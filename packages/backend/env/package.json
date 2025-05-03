@@ -1,0 +1,19 @@
+{
+  "name": "@metorial/env",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "MIT",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@metorial/validation": "^1.0.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

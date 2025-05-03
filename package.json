@@ -1,0 +1,23 @@
+{
+  "name": "@metorial/oss",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev"
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3",
+    "turbo": "^2.5.2",
+    "typescript": "5.8.2"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "yarn@1.2.4",
+  "workspaces": [
+    "apps/*",
+    "gateway/*/*",
+    "packages/*/*",
+    "scripts/*"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@metorial/redis",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "MIT",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "bullmq": "^5.34.3",
+    "mitt": "^3.0.1",
+    "nanoid": "^5.0.7",
+    "p-queue": "^8.0.1",
+    "redis": "^4.7.0",
+    "@metorial/serialize": "^1.0.0",
+    "@metorial/execution-context": "^1.0.0",
+    "@metorial/error": "^1.0.0",
+    "@metorial/random-number": "^1.0.0",
+    "@metorial/id": "^1.0.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}
