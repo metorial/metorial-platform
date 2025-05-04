@@ -1,3 +1,4 @@
+import { getConfig } from '@metorial/config';
 import {
   createExecutionContext,
   ExecutionContext,
@@ -18,12 +19,12 @@ let log = (...any: any[]) => console.log('[QUEUE MANAGER]:', ...any);
 
 export let createBullMqQueue = <JobData>(opts: {
   name: string;
-  redisUrl: string;
   jobOpts?: JobsOptions;
   queueOpts?: Omit<QueueOptions, 'connection'>;
   workerOpts?: Omit<WorkerOptions, 'connection'>;
 }): IQueue<JobData> => {
-  let redisOpts = parseRedisUrl(opts.redisUrl);
+  let config = getConfig();
+  let redisOpts = parseRedisUrl(config.redisUrl);
 
   let queue = new Queue<JobData>(opts.name, {
     ...opts.queueOpts,

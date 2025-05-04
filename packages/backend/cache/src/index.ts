@@ -1,3 +1,4 @@
+import { getConfig } from '@metorial/config';
 import { createRedisClient } from '@metorial/redis';
 import { getSentry } from '@metorial/sentry';
 import { LRUCache } from 'lru-cache';
@@ -13,13 +14,12 @@ export let createCachedFunction = <I, O>(opts: {
   name: string;
   getHash: (i: I) => string;
   provider: (i: I, opts: { setTTL: (ttl: number) => void }) => Promise<O>;
-  redisUrl: string;
   ttlSeconds: number;
   getTags?: (o: O, i: I) => string[];
 }) => {
   let active = new Map<string, Promise<O>>();
 
-  let useRedisClient = createRedisClient({ url: opts.redisUrl }).lazy();
+  let useRedisClient = createRedisClient({ url: getConfig().redisUrl }).lazy();
 
   let getHash = (i: I) => `cache:${version}:${opts.name}:val:${opts.getHash(i)}`;
   let getTagKeys = (tags: string[]) => tags.map(tag => `cache:${version}:tag:${tag}`);

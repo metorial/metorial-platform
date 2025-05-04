@@ -1,18 +1,22 @@
+import { getConfig } from '@metorial/config';
 import { memo } from '@metorial/memo';
 import { getSentry } from '@metorial/sentry';
 import { createClient, RedisClientOptions } from 'redis';
 
 let Sentry = getSentry();
 
-export let createRedisClient = (opts: RedisClientOptions & { url: string }) => {
+export let createRedisClient = (opts: RedisClientOptions & { url: string | undefined }) => {
+  let config = getConfig();
+  let url = opts.url ?? config.redisUrl;
+
   let connect = async () => {
     let client = createClient(opts)
       .on('error', e => {
-        console.error(`Redis error for ${opts.url}`);
+        console.error(`Redis error for ${url}`);
         console.error(e);
       })
       .on('reconnecting', () => {
-        console.log(`Reconnecting to redis: ${opts.url}`);
+        console.log(`Reconnecting to redis: ${url}`);
       });
 
     try {
@@ -20,7 +24,7 @@ export let createRedisClient = (opts: RedisClientOptions & { url: string }) => {
     } catch (e) {
       Sentry.captureException(e);
       console.error(e);
-      console.log(`Could not connect to redis: ${opts.url}`);
+      console.log(`Could not connect to redis: ${url}`);
       throw e;
     }
 

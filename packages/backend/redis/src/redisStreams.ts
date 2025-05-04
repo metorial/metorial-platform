@@ -1,3 +1,4 @@
+import { getConfig } from '@metorial/config';
 import { generateCustomId } from '@metorial/id';
 import { randomNumber } from '@metorial/random-number';
 import { getSentry } from '@metorial/sentry';
@@ -13,8 +14,11 @@ let MIN_IDLE_TIME_FOR_AUTOCLAIM = 1000 * 60 * 5;
 export class RedisStreams<Message> {
   constructor(
     private readonly name: string,
-    private readonly redisUrl: string
-  ) {}
+    private readonly redisUrl?: string
+  ) {
+    let config = getConfig();
+    redisUrl = redisUrl ?? config.redisUrl;
+  }
 
   private async createRedis() {
     return createRedisClient({ url: this.redisUrl }).eager();

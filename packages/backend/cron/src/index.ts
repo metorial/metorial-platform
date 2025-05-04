@@ -1,3 +1,4 @@
+import { getConfig } from '@metorial/config';
 import { createExecutionContext, provideExecutionContext } from '@metorial/execution-context';
 import { generateCustomId } from '@metorial/id';
 import { IQueueProcessor } from '@metorial/queue';
@@ -12,7 +13,6 @@ export let createCron = (
   opts: {
     name: string;
     cron: string;
-    redisUrl: string;
   },
   handler: () => Promise<void>
 ): IQueueProcessor => {
@@ -20,7 +20,7 @@ export let createCron = (
     throw new Error(`Cron with name ${opts.name} already exists`);
   }
 
-  let connection = parseRedisUrl(opts.redisUrl);
+  let connection = parseRedisUrl(getConfig().redisUrl);
   let queue = new Queue(opts.name, {
     connection,
     defaultJobOptions: {

@@ -2,7 +2,7 @@
   "name": "@metorial/ui",
   "version": "1.0.0",
   "author": "Tobias Herber",
-  "license": "MIT",
+  "license": "AGPL",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",

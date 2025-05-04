@@ -1,3 +1,4 @@
+import { getConfig } from '@metorial/config';
 import { memo } from '@metorial/memo';
 import { RedisStreams } from '@metorial/redis';
 import { getSentry } from '@metorial/sentry';
@@ -33,11 +34,13 @@ export class EventObject<Actions extends { [key: string]: Action<string, any> } 
     public readonly opts: {
       serviceName: string;
       objectName: string;
-      redisUrl: string;
     }
   ) {
     this.#getRedisStream = memo((name: string) => {
-      return new RedisStreams<EventPayload>(`${this.opts.serviceName}-${name}`, opts.redisUrl);
+      return new RedisStreams<EventPayload>(
+        `${this.opts.serviceName}-${name}`,
+        getConfig().redisUrl
+      );
     });
   }
 

@@ -13,18 +13,39 @@ let _code = customAlphabet('0123456789', 6);
 
 export let idTime = () => new Date().getTime().toString(36).padStart(9, '0');
 
+let seenPrefixes = new Set<string>();
+let checkPrefix = (prefix: string) => {
+  if (prefix.endsWith('_')) prefix = prefix.slice(0, -1);
+
+  if (seenPrefixes.has(prefix)) {
+    throw new Error(`Prefix ${prefix} already exists`);
+  }
+};
+
 export let idType = {
-  sorted: (prefix: string, length: number = 22) => ({
-    prefix,
-    length,
-    type: 'sorted' as const
-  }),
-  unsorted: (prefix: string, length: number = 22) => ({
-    prefix,
-    length,
-    type: 'unsorted' as const
-  }),
-  key: (prefix: string, length: number = 50) => ({ prefix, length, type: 'key' as const })
+  sorted: (prefix: string, length: number = 22) => {
+    checkPrefix(prefix);
+
+    return {
+      prefix,
+      length,
+      type: 'sorted' as const
+    };
+  },
+  unsorted: (prefix: string, length: number = 22) => {
+    checkPrefix(prefix);
+
+    return {
+      prefix,
+      length,
+      type: 'unsorted' as const
+    };
+  },
+  key: (prefix: string, length: number = 50) => {
+    checkPrefix(prefix);
+
+    return { prefix, length, type: 'key' as const };
+  }
 };
 
 export let createIdGenerator = <
@@ -87,11 +108,14 @@ export let createIdGenerator = <
         throw new Error('Cannot generate key id synchronously');
       }
     },
-    idPrefixes: Object.entries(idPrefixes).reduce((acc, [key, value]) => {
-      // @ts-ignore
-      acc[key] = value.prefix;
-      return acc;
-    }, {} as { [key in keyof T]: string }),
+    idPrefixes: Object.entries(idPrefixes).reduce(
+      (acc, [key, value]) => {
+        // @ts-ignore
+        acc[key] = value.prefix;
+        return acc;
+      },
+      {} as { [key in keyof T]: string }
+    ),
 
     normalizeUUID: (prefix: keyof T, uuid: string) => {
       let desc = getIdDescription(prefix);

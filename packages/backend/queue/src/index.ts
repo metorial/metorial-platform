@@ -9,7 +9,6 @@ let seenNames = new Set<string>();
 export let createQueue = <JobData>(
   opts: { name: string } & {
     driver?: 'bullmq';
-    redisUrl: string;
     jobOpts?: JobsOptions;
     queueOpts?: Omit<QueueOptions, 'connection'>;
     workerOpts?: Omit<WorkerOptions, 'connection'>;
@@ -24,7 +23,6 @@ export let createQueue = <JobData>(
   if (opts.driver === 'bullmq') {
     return createBullMqQueue<JobData>({
       name: opts.name,
-      redisUrl: opts.redisUrl,
       jobOpts: opts.jobOpts,
       queueOpts: opts.queueOpts,
       workerOpts: opts.workerOpts

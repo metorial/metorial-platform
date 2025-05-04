@@ -16,8 +16,7 @@ export let validationError = (
 export let internalServerError = createError({
   status: 500,
   code: 'internal_server_error',
-  message: 'An internal server error occurred.',
-  description: `This error means that something went wrong on our end. Please try again later. If the problem persists please contact support.`
+  message: 'An internal server error occurred.'
 });
 
 export let badRequestError = createError({
@@ -27,9 +26,14 @@ export let badRequestError = createError({
 });
 
 export let notFoundError = (
-  d: string | ({ entity: string } & Partial<ErrorData<'not_found', 404>>)
+  // d: string | ({ entity: string } & Partial<ErrorData<'not_found', 404>>)
+
+  ...[p1, p2]:
+    | [{ entity: string; id?: string } & Partial<ErrorData<'not_found', 404>>]
+    | [string, string | undefined | null]
 ) => {
-  let entity = typeof d == 'string' ? d : d.entity;
+  let entity = typeof p1 == 'string' ? p1 : p1.entity;
+  let id = typeof p1 == 'string' ? p2 : p1.id;
 
   return createError({
     status: 404,
@@ -37,8 +41,9 @@ export let notFoundError = (
     message: `The requested ${Cases.toKebabCase(entity)} could not be found.`,
     hint: 'Make sure the resource you are trying to access exists, that you have access to it and that it has not been deleted.',
     entity,
+    id: id ?? undefined,
 
-    ...(typeof d == 'string' ? {} : d)
+    ...(typeof p1 == 'string' ? {} : p1)
   });
 };
 

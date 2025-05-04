@@ -2,7 +2,7 @@
   "name": "@metorial/redis",
   "version": "1.0.0",
   "author": "Tobias Herber",
-  "license": "MIT",
+  "license": "AGPL",
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",
@@ -18,6 +18,7 @@
     "@metorial/execution-context": "^1.0.0",
     "@metorial/error": "^1.0.0",
     "@metorial/random-number": "^1.0.0",
+    "@metorial/config": "^1.0.0",
     "@metorial/id": "^1.0.0"
   },
   "devDependencies": {

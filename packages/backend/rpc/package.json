@@ -2,7 +2,7 @@
   "name": "@metorial/rpc",
   "version": "1.0.0",
   "author": "Tobias Herber",
-  "license": "MIT",
+  "license": "AGPL",
   "main": "src/server/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",

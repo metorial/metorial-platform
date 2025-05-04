@@ -4,11 +4,12 @@ import { Redis } from 'ioredis';
 import SuperJSON from 'superjson';
 
 // @ts-ignore
+import { getConfig } from '@metorial/config';
 import Redlock_ from 'redlock';
 
-export let lockFactory = (name: string, redisUrl: string) => {
+export let createLock = ({ name }: { name: string }) => {
   let nameHash = Bun.hash.cityHash32(name);
-  let redis = new Redis(parseRedisUrl(redisUrl));
+  let redis = new Redis(parseRedisUrl(getConfig().redisUrl));
 
   let redlock = new Redlock_([redis as any], {
     // The expected clock drift; for more details see:
