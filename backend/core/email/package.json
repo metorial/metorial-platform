@@ -1,0 +1,30 @@
+{
+  "name": "@metorial/module-email",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "AGPL",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ses": "^3.799.0",
+    "@metorial/context": "^1.0.0",
+    "@metorial/cron": "^1.0.0",
+    "@metorial/db": "^1.0.0",
+    "@metorial/env": "^1.0.0",
+    "@metorial/event": "^1.0.0",
+    "@metorial/id": "^1.0.0",
+    "@metorial/queue": "^1.0.0",
+    "@react-email/components": "^0.0.38",
+    "@types/nodemailer": "^6.4.17",
+    "nodemailer": "^7.0.0",
+    "resend": "^4.5.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}
