@@ -1,0 +1,26 @@
+{
+  "name": "@metorial/state",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "AGPL",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@metorial/dashboard-sdk": "^1.0.0",
+    "@metorial/dynamic-component": "^1.0.0",
+    "@metorial/frontend-config": "^1.0.0",
+    "@metorial/pages": "^1.0.0",
+    "@metorial/storage": "^1.0.0",
+    "@metorial/ui": "^1.0.0",
+    "react": "^19.1.0",
+    "react-router-dom": "^7.5.3"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}
