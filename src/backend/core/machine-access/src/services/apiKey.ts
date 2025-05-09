@@ -121,7 +121,7 @@ class ApiKeyService {
       let limitReveal =
         d.type == 'organization_management_token' ||
         d.type == 'user_auth_token' ||
-        (d.type == 'instance_access_token_secret' && d.instance.type == 'development');
+        (d.type == 'instance_access_token_secret' && d.instance.type == 'production');
 
       let apiKey = await db.apiKey.create({
         data: {
@@ -330,7 +330,9 @@ class ApiKeyService {
         where: { oid: d.apiKey.oid },
         data: {
           secretRedacted: UnifiedApiKey.redact(secretKey),
-          secretLength: secretKey.toString().length
+          secretLength: secretKey.toString().length,
+
+          canRevealUntil: addMinutes(new Date(), 5)
         },
         include: {
           machineAccess: {
@@ -442,7 +444,6 @@ class ApiKeyService {
   }
 
   async getApiKeyByIdForUser(d: { apiKeyId: string; user: User }) {
-    console.log('getApiKeyByIdForUser', d.apiKeyId, d.user);
     let apiKey = await db.apiKey.findFirst({
       where: {
         id: d.apiKeyId,

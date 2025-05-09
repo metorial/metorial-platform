@@ -1,3 +1,4 @@
+import { forbiddenError, ServiceError } from '@metorial/error';
 import { organizationMemberService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -55,6 +56,14 @@ export let organizationMemberController = Controller.create(
       })
       .output(organizationMemberPresenter)
       .do(async ctx => {
+        if (ctx.member?.role == 'member') {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not permitted to manage organization members'
+            })
+          );
+        }
+
         let member = await organizationMemberService.getOrganizationMemberById({
           organization: ctx.organization,
           memberId: ctx.params.memberId
@@ -83,6 +92,14 @@ export let organizationMemberController = Controller.create(
       )
       .output(organizationMemberPresenter)
       .do(async ctx => {
+        if (ctx.member?.role == 'member') {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not permitted to manage organization members'
+            })
+          );
+        }
+
         let member = await organizationMemberService.getOrganizationMemberById({
           organization: ctx.organization,
           memberId: ctx.params.memberId

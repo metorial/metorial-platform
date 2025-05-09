@@ -1,8 +1,8 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { SetupLayout } from '@metorial/layout';
-import { useOrganizationInviteAccept } from '@metorial/state';
+import { useOrganizationInviteAccept, useOrganizations } from '@metorial/state';
 import { Button, Spacer } from '@metorial/ui';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import astronaut from '../../../assets/astronaut_waving1.webp';
 
@@ -13,9 +13,16 @@ export let OrganizationInvitePage = () => {
   let [state, setState] = useState<'home' | 'rejected'>('home');
 
   let invite = useOrganizationInviteAccept(inviteKey);
+  let orgs = useOrganizations();
 
   let acceptMutation = invite.acceptMutator();
   let rejectMutation = invite.rejectMutator();
+
+  let hasOrg = !!orgs.data?.some(org => org.id == invite.data?.organization.id);
+
+  useEffect(() => {
+    if (hasOrg) window.location.replace(`/?organization_id=${invite.data?.organization.id}`);
+  }, [hasOrg]);
 
   return (
     <SetupLayout
@@ -26,7 +33,7 @@ export let OrganizationInvitePage = () => {
       imageUrl={astronaut}
     >
       {state == 'home' &&
-        renderWithLoader({ invite })(({ invite }) => (
+        renderWithLoader({ invite, hasOrg })(({ invite }) => (
           <div
             style={{
               display: 'flex',

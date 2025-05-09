@@ -277,17 +277,17 @@ export let ApiKeysScene = ({
       );
     });
 
-  let rollApiKeyModal = ({ apiKeyId }: { apiKeyId: string }) =>
+  let rotateApiKeyModal = ({ apiKeyId }: { apiKeyId: string }) =>
     showModal(({ dialogProps, close }) => {
       let mutator = apiKeys.rotateMutator();
       let [remainsValidForSeconds, setRemainsValidForSeconds] = useState('0');
 
       return (
         <Dialog.Wrapper {...dialogProps}>
-          <Dialog.Title>Roll {name}</Dialog.Title>
+          <Dialog.Title>Rotate {name}</Dialog.Title>
 
           <Dialog.Description>
-            Rolling your {name} will invalidate the current secret and generate a new one. You
+            Rotating your {name} will invalidate the current secret and generate a new one. You
             can configure a buffer time for which both the old and new keys will be valid. This
             gives you time to update your applications with the new key.
           </Dialog.Description>
@@ -326,7 +326,7 @@ export let ApiKeysScene = ({
                     showModal(({ dialogProps, close }) => {
                       return (
                         <Dialog.Wrapper {...dialogProps} variant="padded">
-                          <Dialog.Title>{name} Rolled</Dialog.Title>
+                          <Dialog.Title>{name} Rotated</Dialog.Title>
                           <Dialog.Description>
                             A new secret has been generated for your {name}. Please keep it in
                             a safe place, such as a password manager. You won't be able to see
@@ -347,7 +347,7 @@ export let ApiKeysScene = ({
                 }
               }}
             >
-              Roll
+              Rotate
             </Button>
           </Dialog.Actions>
         </Dialog.Wrapper>
@@ -458,8 +458,8 @@ export let ApiKeysScene = ({
                       disabled: apiKey.status != 'active'
                     },
                     {
-                      id: 'roll',
-                      label: 'Roll',
+                      id: 'rotate',
+                      label: 'Rotate',
                       disabled: apiKey.status != 'active'
                     }
                   ]}
@@ -472,8 +472,8 @@ export let ApiKeysScene = ({
                       deleteApiKeyModal({
                         apiKeyId: apiKey.id
                       });
-                    if (item == 'roll')
-                      rollApiKeyModal({
+                    if (item == 'rotate')
+                      rotateApiKeyModal({
                         apiKeyId: apiKey.id
                       });
                   }}

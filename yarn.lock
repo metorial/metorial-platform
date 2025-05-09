@@ -1643,7 +1643,7 @@
     "@radix-ui/react-primitive" "2.1.2"
     "@radix-ui/react-slot" "1.2.2"
 
-"@radix-ui/react-compose-refs@1.1.2":
+"@radix-ui/react-compose-refs@1.1.2", "@radix-ui/react-compose-refs@^1.1.1":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@radix-ui/react-compose-refs/-/react-compose-refs-1.1.2.tgz#a2c4c47af6337048ee78ff6dc0d090b390d2bb30"
   integrity sha512-z4eqJvfiNnFMHIIvXP3CY57y2WJs5g2v3X0zm9mEJkrkNv4rDxu+sg9Jh8EkXyeqBkB7SOcboo9dMVqhyrACIg==
@@ -1681,6 +1681,26 @@
     "@radix-ui/react-presence" "1.1.4"
     "@radix-ui/react-primitive" "2.1.0"
     "@radix-ui/react-slot" "1.2.0"
+    "@radix-ui/react-use-controllable-state" "1.2.2"
+    aria-hidden "^1.2.4"
+    react-remove-scroll "^2.6.3"
+
+"@radix-ui/react-dialog@^1.1.6":
+  version "1.1.13"
+  resolved "https://registry.yarnpkg.com/@radix-ui/react-dialog/-/react-dialog-1.1.13.tgz#8c868a97ec70765efb125fd48708c9993c7ae683"
+  integrity sha512-ARFmqUyhIVS3+riWzwGTe7JLjqwqgnODBUZdqpWar/z1WFs9z76fuOs/2BOWCR+YboRn4/WN9aoaGVwqNRr8VA==
+  dependencies:
+    "@radix-ui/primitive" "1.1.2"
+    "@radix-ui/react-compose-refs" "1.1.2"
+    "@radix-ui/react-context" "1.1.2"
+    "@radix-ui/react-dismissable-layer" "1.1.9"
+    "@radix-ui/react-focus-guards" "1.1.2"
+    "@radix-ui/react-focus-scope" "1.1.6"
+    "@radix-ui/react-id" "1.1.1"
+    "@radix-ui/react-portal" "1.1.8"
+    "@radix-ui/react-presence" "1.1.4"
+    "@radix-ui/react-primitive" "2.1.2"
+    "@radix-ui/react-slot" "1.2.2"
     "@radix-ui/react-use-controllable-state" "1.2.2"
     aria-hidden "^1.2.4"
     react-remove-scroll "^2.6.3"
@@ -1748,7 +1768,7 @@
     "@radix-ui/react-primitive" "2.1.2"
     "@radix-ui/react-use-callback-ref" "1.1.1"
 
-"@radix-ui/react-id@1.1.1":
+"@radix-ui/react-id@1.1.1", "@radix-ui/react-id@^1.1.0":
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/@radix-ui/react-id/-/react-id-1.1.1.tgz#1404002e79a03fe062b7e3864aa01e24bd1471f7"
   integrity sha512-kGkGegYIdQsOb4XjsfM97rXsiHaBwco+hFI66oO4s9LU+PLAC5oJ7khdOVFxkhsmlbpUqDAvXw11CluXP+jkHg==
@@ -1908,7 +1928,7 @@
   dependencies:
     "@radix-ui/react-slot" "1.2.0"
 
-"@radix-ui/react-primitive@2.1.2":
+"@radix-ui/react-primitive@2.1.2", "@radix-ui/react-primitive@^2.0.2":
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/@radix-ui/react-primitive/-/react-primitive-2.1.2.tgz#03f64f957719c761d22c2f92cc43ffb64bd42cc8"
   integrity sha512-uHa+l/lKfxuDD2zjN/0peM/RhhSmRjr5YWdk/37EnSv1nJ88uvG85DPexSm8HdFQROd2VdERJ6ynXbkCFi+APw==
@@ -4230,6 +4250,16 @@ cluster-key-slot@1.1.2, cluster-key-slot@^1.1.0:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/cluster-key-slot/-/cluster-key-slot-1.1.2.tgz#88ddaa46906e303b5de30d3153b7d9fe0a0c19ac"
   integrity sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA==
+
+cmdk@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/cmdk/-/cmdk-1.1.1.tgz#b8524272699ccaa37aaf07f36850b376bf3d58e5"
+  integrity sha512-Vsv7kFaXm+ptHDMZ7izaRsP70GgrW9NBNGswt9OZaVBLlE0SNpDq8eu/VGXyF9r7M0azK3Wy7OlYXsuyYLFzHg==
+  dependencies:
+    "@radix-ui/react-compose-refs" "^1.1.1"
+    "@radix-ui/react-dialog" "^1.1.6"
+    "@radix-ui/react-id" "^1.1.0"
+    "@radix-ui/react-primitive" "^2.0.2"
 
 color-convert@^2.0.1:
   version "2.0.1"

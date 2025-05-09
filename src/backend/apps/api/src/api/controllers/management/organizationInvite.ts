@@ -1,3 +1,4 @@
+import { forbiddenError, ServiceError } from '@metorial/error';
 import { organizationInviteService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -70,6 +71,14 @@ export let organizationInviteController = Controller.create(
       )
       .output(organizationInvitePresenter)
       .do(async ctx => {
+        if (ctx.member?.role == 'member') {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not permitted to manage organization members'
+            })
+          );
+        }
+
         let invite = await organizationInviteService.createOrganizationInvite({
           organization: ctx.organization,
           input: ctx.body,
@@ -88,6 +97,14 @@ export let organizationInviteController = Controller.create(
       })
       .output(organizationInvitePresenter)
       .do(async ctx => {
+        if (ctx.member?.role == 'member') {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not permitted to manage organization members'
+            })
+          );
+        }
+
         let invite = await organizationInviteService.ensureOrganizationInviteLink({
           organization: ctx.organization,
           context: ctx.context,
@@ -104,6 +121,14 @@ export let organizationInviteController = Controller.create(
       })
       .output(organizationInvitePresenter)
       .do(async ctx => {
+        if (ctx.member?.role == 'member') {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not permitted to manage organization members'
+            })
+          );
+        }
+
         let invite = await organizationInviteService.getOrganizationInviteById({
           organization: ctx.organization,
           inviteId: ctx.params.inviteId
@@ -132,6 +157,14 @@ export let organizationInviteController = Controller.create(
       )
       .output(organizationInvitePresenter)
       .do(async ctx => {
+        if (ctx.member?.role == 'member') {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not permitted to manage organization members'
+            })
+          );
+        }
+
         let invite = await organizationInviteService.getOrganizationInviteById({
           organization: ctx.organization,
           inviteId: ctx.params.inviteId
