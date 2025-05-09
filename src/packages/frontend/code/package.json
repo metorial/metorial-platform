@@ -1,0 +1,24 @@
+{
+  "name": "@metorial/code",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "AGPL",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@metorial/ui": "^1.0.0",
+    "prism-react-renderer": "^2.4.1",
+    "react": "^19.0.0",
+    "react-use": "^17.5.1",
+    "@metorial/dynamic-component": "^1.0.0",
+    "styled-components": "^6.1.13"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

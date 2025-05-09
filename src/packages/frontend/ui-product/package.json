@@ -1,0 +1,24 @@
+{
+  "name": "@metorial/ui-product",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "AGPL",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@metorial/ui": "^1.0.0",
+    "react": "^19.0.0",
+    "react-use": "^17.5.1",
+    "copy-to-clipboard": "^3.3.3",
+    "styled-components": "^6.1.13",
+    "@remixicon/react": "^4.2.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

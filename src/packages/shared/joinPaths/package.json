@@ -1,0 +1,19 @@
+{
+  "name": "@metorial/join-paths",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "AGPL",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "base-x": "^5.0.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}
