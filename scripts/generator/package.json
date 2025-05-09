@@ -1,0 +1,24 @@
+{
+  "name": "generator",
+  "module": "index.ts",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "bun ./src/index.ts",
+    "generate:client": "yarn start http://localhost:3310 ../../clients/metorial-js/packages/core && cd ../../clients/metorial-js/packages/core && yarn build"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.4.0",
+    "@types/fs-extra": "^11.0.4",
+    "dedent": "^1.5.3",
+    "fs-extra": "^11.3.0",
+    "prettier": "^3.5.3"
+  }
+}
