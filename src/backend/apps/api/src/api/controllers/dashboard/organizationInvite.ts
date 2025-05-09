@@ -44,14 +44,14 @@ export let dashboardOrganizationInviteController = Controller.create(
       .body(
         'default',
         v.object({
-          inviteKey: v.string()
+          invite_key: v.string()
         })
       )
       .output(organizationInvitePresenter)
       .do(async ctx => {
         let { invite } = await organizationInviteJoinService.acceptOrganizationInvite({
           user: ctx.user,
-          inviteKey: ctx.body.inviteKey,
+          inviteKey: ctx.body.invite_key,
           context: ctx.context
         });
 
@@ -70,14 +70,14 @@ export let dashboardOrganizationInviteController = Controller.create(
       .body(
         'default',
         v.object({
-          inviteKey: v.string()
+          invite_key: v.string()
         })
       )
       .output(organizationInvitePresenter)
       .do(async ctx => {
         let { invite } = await organizationInviteJoinService.rejectOrganizationInvite({
           user: ctx.user,
-          inviteKey: ctx.body.inviteKey,
+          inviteKey: ctx.body.invite_key,
           context: ctx.context
         });
 

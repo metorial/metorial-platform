@@ -1,0 +1,64 @@
+enum FilePurposeOwnerType {
+  user
+  organization
+}
+
+enum FileStatus {
+  active
+  deleted
+}
+
+model FilePurpose {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  ownerType    FilePurposeOwnerType
+  canHaveLinks Boolean              @default(false)
+
+  slug String @unique
+  name String
+
+  createdAt DateTime @default(now())
+  files     File[]
+}
+
+model File {
+  oid    BigInt     @id @default(autoincrement())
+  id     String     @unique
+  status FileStatus @default(active)
+
+  storeId String @unique
+
+  fileName String
+  fileSize Int
+  fileType String
+
+  purposeOid BigInt
+  purpose    FilePurpose @relation(fields: [purposeOid], references: [oid], onDelete: Cascade)
+
+  userOid BigInt?
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt?
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  title String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  links FileLink[]
+}
+
+model FileLink {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  key String @unique
+
+  fileOid BigInt
+  file    File   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+}

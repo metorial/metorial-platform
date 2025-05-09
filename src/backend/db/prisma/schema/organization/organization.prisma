@@ -36,4 +36,5 @@ model Organization {
   userConfigs     OrganizationUserConfig[]
   projects        Project[]
   machineAccesses MachineAccess[]
+  files           File[]
 }

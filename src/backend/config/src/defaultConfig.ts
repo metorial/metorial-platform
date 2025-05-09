@@ -40,5 +40,15 @@ export let defaultConfig: MetorialConfig = {
 
     apiUrl: env.urls.API_URL,
     appUrl: env.urls.APP_URL
-  }
+  },
+
+  s3: env.s3.S3_ACCESS_KEY_ID
+    ? {
+        accessKeyId: env.s3.S3_ACCESS_KEY_ID!,
+        secretAccessKey: env.s3.S3_SECRET_ACCESS_KEY!,
+        region: env.s3.S3_REGION!,
+        bucket: env.s3.S3_BUCKET!,
+        endpoint: env.s3.S3_ENDPOINT!
+      }
+    : undefined
 };

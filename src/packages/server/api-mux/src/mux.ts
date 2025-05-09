@@ -3,33 +3,22 @@ import { notFoundError } from '@metorial/error';
 export let apiMux = (
   services: {
     domains?: string[];
-    endpoint: { path: string | string[]; fetch: (req: any) => Promise<any> };
+    methods?: string[];
+    endpoint: { path: string | string[]; fetch: (req: any) => Promise<any>; exact?: boolean };
   }[],
   fallback?: (req: any, server: any) => Promise<any>
 ) => {
-  let servicesWithRegex = services.flatMap(({ domains, endpoint }) => {
-    if (endpoint.path == '/') {
-      return [
-        {
-          path: '/',
-          domains,
-          endpoint,
-          regex: undefined as RegExp | undefined
-        }
-      ];
-    } else {
-      return (Array.isArray(endpoint.path) ? endpoint.path : [endpoint.path]).map(path => {
-        let regPath = path.replace(/\//g, '\\/').replace(/\{[^}]*\}/g, '([^/]*)');
-
-        return {
-          path,
-          domains,
-          endpoint,
-          regex: new RegExp(`^${regPath}$`)
-        };
-      });
-    }
-  });
+  let servicesWithRegex = services.flatMap(({ domains, endpoint, methods }) =>
+    (Array.isArray(endpoint.path) ? endpoint.path : [endpoint.path]).map(path => {
+      return {
+        path,
+        domains,
+        endpoint,
+        exact: endpoint.exact,
+        methods: methods?.map(m => m.toUpperCase())
+      };
+    })
+  );
 
   return (req: Request, server: any) => {
     let url = new URL(req.url);
@@ -42,10 +31,13 @@ export let apiMux = (
       return new Response('OK') as any;
     }
 
-    for (let { domains, endpoint, path } of servicesWithRegex) {
+    for (let { domains, endpoint, path, methods, exact } of servicesWithRegex) {
       if (domains && !domains.includes(host)) continue;
 
-      if (url.pathname == path || url.pathname.startsWith(`${path}/`)) {
+      if (
+        (url.pathname == path || (!exact && url.pathname.startsWith(`${path}/`))) &&
+        (!methods || methods.includes(req.method))
+      ) {
         return endpoint.fetch(req);
       }
     }

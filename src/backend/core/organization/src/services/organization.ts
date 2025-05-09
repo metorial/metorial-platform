@@ -172,6 +172,8 @@ class OrganizationService {
           await db.organization.findMany({
             ...opts,
             where: {
+              status: 'active',
+
               actors:
                 d.filter.type === 'actor'
                   ? {

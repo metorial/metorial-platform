@@ -19,5 +19,9 @@ export let ID = createIdGenerator({
   machineAccess: idType.sorted('mac'),
   apiKey: idType.sorted('apk'),
   apiKeySecret: idType.sorted('aks'),
-  apiApplication: idType.sorted('aap')
+  apiApplication: idType.sorted('aap'),
+
+  filePurpose: idType.sorted('fpu'),
+  file: idType.sorted('fil'),
+  fileLink: idType.sorted('fil')
 });

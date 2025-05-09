@@ -32,4 +32,12 @@ export interface MetorialConfig {
     apiUrl: string;
     appUrl: string;
   };
+
+  s3?: {
+    accessKeyId: string;
+    secretAccessKey: string;
+    region: string;
+    bucket: string;
+    endpoint?: string;
+  };
 }

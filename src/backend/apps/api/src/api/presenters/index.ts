@@ -2,6 +2,8 @@ import { declarePresenter } from '@metorial/presenter';
 import {
   apiKeyType,
   bootType,
+  fileLinkType,
+  fileType,
   instanceType,
   machineAccessType,
   organizationActorType,
@@ -13,6 +15,8 @@ import {
 } from './types';
 import { v1ApiKeyPresenter } from './v1/apiKey';
 import { v1BootPresenter } from './v1/boot';
+import { v1FilePresenter } from './v1/file';
+import { v1FileLinkPresenter } from './v1/fileLink';
 import { v1InstancePresenter } from './v1/instance';
 import { v1MachineAccessPresenter } from './v1/machineAccess';
 import { v1OrganizationPresenter } from './v1/organization';
@@ -60,4 +64,12 @@ export let userPresenter = declarePresenter(userType, {
 
 export let bootPresenter = declarePresenter(bootType, {
   v_2025_01_01_pulsar: v1BootPresenter
+});
+
+export let filePresenter = declarePresenter(fileType, {
+  v_2025_01_01_pulsar: v1FilePresenter
+});
+
+export let fileLinkPresenter = declarePresenter(fileLinkType, {
+  v_2025_01_01_pulsar: v1FileLinkPresenter
 });

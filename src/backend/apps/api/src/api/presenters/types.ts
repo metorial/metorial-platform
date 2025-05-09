@@ -1,6 +1,9 @@
 import {
   ApiKey,
   ApiKeySecret,
+  File,
+  FileLink,
+  FilePurpose,
   Instance,
   MachineAccess,
   Organization,
@@ -78,3 +81,11 @@ export let apiKeyType = PresentableType.create<{
   };
   secret?: ApiKeySecret;
 }>()('api_key');
+
+export let fileType = PresentableType.create<{
+  file: File & { purpose: FilePurpose };
+}>()('file');
+
+export let fileLinkType = PresentableType.create<{
+  fileLink: FileLink & { file: File };
+}>()('file');

@@ -29,5 +29,13 @@ export let env = createValidatedEnv({
   env: {
     METORIAL_ENV: v.enumOf(['development', 'staging', 'production']),
     NODE_ENV: v.enumOf(['development', 'production'])
+  },
+
+  s3: {
+    S3_ACCESS_KEY_ID: v.optional(v.string()),
+    S3_SECRET_ACCESS_KEY: v.optional(v.string()),
+    S3_REGION: v.optional(v.string()),
+    S3_BUCKET: v.optional(v.string()),
+    S3_ENDPOINT: v.optional(v.string())
   }
 });

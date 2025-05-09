@@ -130,14 +130,14 @@ export let dashboardApiKeyController = Controller.create(
           v.union([
             v.object({
               type: v.literal('organization_management_token'),
-              organizationId: v.string()
+              organization_id: v.string()
             }),
             v.object({
               type: v.literal('user_auth_token')
             }),
             v.object({
               type: v.literal('instance_access_token'),
-              instanceId: v.string()
+              instance_id: v.string()
             })
           ])
         )
@@ -178,7 +178,7 @@ export let dashboardApiKeyController = Controller.create(
           v.union([
             v.object({
               type: v.literal('organization_management_token'),
-              organizationId: v.string()
+              organization_id: v.string()
             }),
             v.object({
               type: v.literal('user_auth_token')
@@ -188,13 +188,13 @@ export let dashboardApiKeyController = Controller.create(
                 'instance_access_token_secret',
                 'instance_access_token_publishable'
               ]),
-              instanceId: v.string()
+              instance_id: v.string()
             })
           ]),
           v.object({
             name: v.string(),
             description: v.optional(v.string()),
-            expiresAt: v.optional(v.date())
+            expires_at: v.optional(v.date())
           })
         ])
       )
@@ -202,7 +202,7 @@ export let dashboardApiKeyController = Controller.create(
       .do(async ctx => {
         if (ctx.body.type == 'organization_management_token') {
           let organization = await organizationService.getOrganizationByIdForUser({
-            organizationId: ctx.body.organizationId,
+            organizationId: ctx.body.organization_id,
             user: ctx.user
           });
 
@@ -210,7 +210,7 @@ export let dashboardApiKeyController = Controller.create(
             input: {
               name: ctx.body.name,
               description: ctx.body.description,
-              expiresAt: ctx.body.expiresAt
+              expiresAt: ctx.body.expires_at
             },
             context: ctx.context,
             type: 'organization_management_token',
@@ -232,7 +232,7 @@ export let dashboardApiKeyController = Controller.create(
             input: {
               name: ctx.body.name,
               description: ctx.body.description,
-              expiresAt: ctx.body.expiresAt
+              expiresAt: ctx.body.expires_at
             },
             context: ctx.context,
             type: 'user_auth_token',
@@ -242,7 +242,7 @@ export let dashboardApiKeyController = Controller.create(
           return apiKeyPresenter.present({ apiKey, secret });
         } else {
           let res = await instanceService.getInstanceByIdForUser({
-            instanceId: ctx.body.instanceId,
+            instanceId: ctx.body.instance_id,
             user: ctx.user
           });
 
@@ -250,7 +250,7 @@ export let dashboardApiKeyController = Controller.create(
             input: {
               name: ctx.body.name,
               description: ctx.body.description,
-              expiresAt: ctx.body.expiresAt
+              expiresAt: ctx.body.expires_at
             },
             context: ctx.context,
             type: ctx.body.type,
@@ -273,7 +273,7 @@ export let dashboardApiKeyController = Controller.create(
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
-          expiresAt: v.optional(v.date())
+          expires_at: v.optional(v.date())
         })
       )
       .output(apiKeyPresenter)
@@ -295,7 +295,7 @@ export let dashboardApiKeyController = Controller.create(
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            expiresAt: ctx.body.expiresAt
+            expiresAt: ctx.body.expires_at
           },
           context: ctx.context,
           performedBy: org?.member.actor
@@ -340,7 +340,7 @@ export let dashboardApiKeyController = Controller.create(
       .body(
         'default',
         v.object({
-          currentExpiresAt: v.optional(v.date())
+          current_expires_at: v.optional(v.date())
         })
       )
       .output(apiKeyPresenter)
@@ -362,7 +362,7 @@ export let dashboardApiKeyController = Controller.create(
           context: ctx.context,
           performedBy: org?.member.actor,
           input: {
-            currentExpiresAt: ctx.body.currentExpiresAt
+            currentExpiresAt: ctx.body.current_expires_at
           }
         });
 
