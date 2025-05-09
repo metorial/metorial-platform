@@ -1,0 +1,97 @@
+enum OrganizationMemberRole {
+  admin
+  member
+}
+
+enum OrganizationMemberStatus {
+  active
+  deleted
+}
+
+model OrganizationMember {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  role   OrganizationMemberRole
+  status OrganizationMemberStatus
+
+  lastActiveAt DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  deletedUserId String?
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  actorOid BigInt            @unique
+  actor    OrganizationActor @relation(fields: [actorOid], references: [oid], onDelete: Cascade)
+
+  usedInvites OrganizationInviteJoin[]
+  userConfigs OrganizationUserConfig[]
+
+  @@unique([userOid, organizationOid])
+  @@index([lastActiveAt])
+}
+
+enum OrganizationInviteType {
+  email
+  link
+}
+
+enum OrganizationInviteStatus {
+  pending
+  accepted
+  rejected
+  deleted
+}
+
+model OrganizationInvite {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status OrganizationInviteStatus
+
+  type OrganizationInviteType
+  role OrganizationMemberRole
+
+  key String @unique
+
+  email   String?
+  message String?
+
+  invitedByOid BigInt
+  invitedBy    OrganizationActor @relation(fields: [invitedByOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  useCount Int @default(0)
+
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  deletedAt  DateTime?
+  acceptedAt DateTime?
+  rejectedAt DateTime?
+
+  joins OrganizationInviteJoin[]
+
+  @@index([email])
+}
+
+model OrganizationInviteJoin {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  inviteOid BigInt
+  invite    OrganizationInvite @relation(fields: [inviteOid], references: [oid], onDelete: Cascade)
+
+  memberOid BigInt
+  member    OrganizationMember @relation(fields: [memberOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}

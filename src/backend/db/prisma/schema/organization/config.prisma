@@ -1,0 +1,21 @@
+model OrganizationUserConfig {
+  id String @id @default(cuid())
+
+  type String
+  key  String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  memberOid BigInt
+  member    OrganizationMember @relation(fields: [memberOid], references: [oid])
+
+  /// [OrganizationUserConfigValue]
+  value Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([memberOid, organizationOid, key, type])
+  @@index([key, type])
+}

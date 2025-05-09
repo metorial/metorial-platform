@@ -1,0 +1,40 @@
+// ************************************************************
+// Organization
+// ************************************************************
+
+enum OrganizationType {
+  default
+  user
+}
+
+enum OrganizationStatus {
+  active
+  deleted
+}
+
+model Organization {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type   OrganizationType
+  status OrganizationStatus
+
+  slug String @unique
+  name String
+
+  /// [EntityImage]
+  image Json
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  invites         OrganizationInvite[]
+  members         OrganizationMember[]
+  actors          OrganizationActor[]
+  instances       Instance[]
+  userConfigs     OrganizationUserConfig[]
+  projects        Project[]
+  machineAccesses MachineAccess[]
+  apiKeys         ApiKey[]
+}

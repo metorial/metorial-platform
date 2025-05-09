@@ -1,0 +1,40 @@
+enum MachineAccessType {
+  user_auth_token
+  organization_management
+  instance_secret
+  instance_publishable
+}
+
+enum MachineAccessStatus {
+  active
+  deleted
+}
+
+model MachineAccess {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type   MachineAccessType
+  status MachineAccessStatus
+
+  name String
+
+  actorOid BigInt?            @unique
+  actor    OrganizationActor? @relation(fields: [actorOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt?
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  userOid BigInt?
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  deletedAt  DateTime?
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  ApiKey ApiKey[]
+}

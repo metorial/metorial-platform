@@ -1,0 +1,23 @@
+enum ProjectStatus {
+  active
+  deleted
+}
+
+model Project {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status ProjectStatus
+
+  slug String @unique
+  name String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  instances Instance[]
+}

@@ -1,0 +1,60 @@
+enum ApiKeyType {
+  user_auth_token
+  organization_management_token
+  instance_access_token_secret
+  instance_access_token_publishable
+}
+
+enum ApiKeyStatus {
+  active
+  deleted
+  expired
+}
+
+model ApiKeySecret {
+  id String @id
+
+  secret       String @unique
+  secretSha512 String @unique
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+  rolledAt  DateTime?
+
+  apiKeyOid BigInt
+  apiKey    ApiKey @relation(fields: [apiKeyOid], references: [oid], onDelete: Cascade)
+}
+
+model ApiKey {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type   ApiKeyType
+  status ApiKeyStatus
+
+  secretRedacted String
+  secretLength   Int
+
+  name        String
+  description String?
+
+  machineAccessOid BigInt
+  machineAccess    MachineAccess @relation(fields: [machineAccessOid], references: [oid], onDelete: Cascade)
+
+  deletedAt  DateTime?
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  secrets         ApiKeySecret[]
+  user            User?          @relation(fields: [userOid], references: [oid])
+  userOid         BigInt?
+  organization    Organization?  @relation(fields: [organizationOid], references: [oid])
+  organizationOid BigInt?
+  instance        Instance?      @relation(fields: [instanceOid], references: [oid])
+  instanceOid     BigInt?
+
+  @@index([expiresAt])
+  @@index([status])
+}

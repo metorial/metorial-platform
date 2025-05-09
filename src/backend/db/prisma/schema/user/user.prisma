@@ -1,0 +1,47 @@
+enum UserStatus {
+  active
+  deleted
+}
+
+enum UserType {
+  user
+}
+
+model User {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status UserStatus
+  type   UserType
+
+  email     String  @unique
+  name      String
+  firstName String?
+  lastName  String?
+
+  /// [EntityImage]
+  image Json
+
+  passwordHash String?
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  sessions UserSession[]
+  members  OrganizationMember[]
+  access   MachineAccess[]
+  apiKeys  ApiKey[]
+}
+
+model UserSession {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  clientSecret String @unique
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}

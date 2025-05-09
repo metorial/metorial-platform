@@ -1,0 +1,20 @@
+enum EmailIdentityType {
+  email
+}
+
+model EmailIdentity {
+  oid Int    @id @default(autoincrement())
+  id  String @unique
+
+  type EmailIdentityType
+
+  slug          String  @unique
+  fromName      String
+  fromEmail     String
+  subjectMarker String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  OutgoingEmail OutgoingEmail[]
+}

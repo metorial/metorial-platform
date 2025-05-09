@@ -1,0 +1,36 @@
+{
+  "name": "@metorial/apps-api",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "AGPL",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "bun --watch ./src/server.ts"
+  },
+  "dependencies": {
+    "@metorial/api-keys": "^1.0.0",
+    "@metorial/context": "^1.0.0",
+    "@metorial/cron": "^1.0.0",
+    "@metorial/db": "^1.0.0",
+    "@metorial/env": "^1.0.0",
+    "@metorial/error": "^1.0.0",
+    "@metorial/fabric": "^1.0.0",
+    "@metorial/id": "^1.0.0",
+    "@metorial/bearer": "^1.0.0",
+    "@metorial/module-access": "^1.0.0",
+    "@metorial/module-machine-access": "^1.0.0",
+    "@metorial/module-organization": "^1.0.0",
+    "@metorial/module-user": "^1.0.0",
+    "@metorial/pagination": "^1.0.0",
+    "@metorial/queue": "^1.0.0",
+    "@metorial/service": "^1.0.0",
+    "@metorial/slugify": "^1.0.0",
+    "cookie": "^1.0.2",
+    "date-fns": "^4.1.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

@@ -1,0 +1,27 @@
+enum OrganizationActorType {
+  member
+  machine_access
+}
+
+model OrganizationActor {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type OrganizationActorType
+
+  email String?
+  name  String
+
+  /// [EntityImage]
+  image Json
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  member         OrganizationMember?
+  createdInvites OrganizationInvite[]
+  machineAccess  MachineAccess?
+}
