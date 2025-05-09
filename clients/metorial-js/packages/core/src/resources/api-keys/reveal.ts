@@ -1,6 +1,6 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type ApiKeysRotateOutput = {
+export type ApiKeysRevealOutput = {
   id: string;
   status: 'active' | 'deleted';
   secretRedacted: string;
@@ -88,7 +88,7 @@ export type ApiKeysRotateOutput = {
   revealInfo: { until: Date; forever: boolean } | null;
 };
 
-export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
+export let mapApiKeysRevealOutput = mtMap.object<ApiKeysRevealOutput>({
   id: mtMap.objectField('id', mtMap.passthrough()),
   status: mtMap.objectField('status', mtMap.passthrough()),
   secretRedacted: mtMap.objectField('secret_redacted', mtMap.passthrough()),
@@ -205,11 +205,5 @@ export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
       forever: mtMap.objectField('forever', mtMap.passthrough())
     })
   )
-});
-
-export type ApiKeysRotateBody = { currentExpiresAt?: Date | undefined };
-
-export let mapApiKeysRotateBody = mtMap.object<ApiKeysRotateBody>({
-  currentExpiresAt: mtMap.objectField('currentExpiresAt', mtMap.date())
 });
 

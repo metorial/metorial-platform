@@ -58,3 +58,5 @@ export class Cases {
     return this.#normalized.map((w, i) => (i === 0 ? titleWord(w) : word(w))).join(' ');
   }
 }
+
+export let capitalize = (input: string) => Cases.toTitleCase(input);

@@ -36,5 +36,4 @@ model Organization {
   userConfigs     OrganizationUserConfig[]
   projects        Project[]
   machineAccesses MachineAccess[]
-  apiKeys         ApiKey[]
 }

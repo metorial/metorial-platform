@@ -38,6 +38,9 @@ model ApiKey {
   name        String
   description String?
 
+  canRevealUntil   DateTime?
+  canRevealForever Boolean
+
   machineAccessOid BigInt
   machineAccess    MachineAccess @relation(fields: [machineAccessOid], references: [oid], onDelete: Cascade)
 
@@ -47,13 +50,7 @@ model ApiKey {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
 
-  secrets         ApiKeySecret[]
-  user            User?          @relation(fields: [userOid], references: [oid])
-  userOid         BigInt?
-  organization    Organization?  @relation(fields: [organizationOid], references: [oid])
-  organizationOid BigInt?
-  instance        Instance?      @relation(fields: [instanceOid], references: [oid])
-  instanceOid     BigInt?
+  secrets ApiKeySecret[]
 
   @@index([expiresAt])
   @@index([status])

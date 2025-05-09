@@ -113,4 +113,5 @@ export interface FabricEvents {
   'machine_access.api_key.rotated:after': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
   'machine_access.api_key.expired:before': { machineAccess: MachineAccess, apiKey: ApiKey };
   'machine_access.api_key.expired:after': { machineAccess: MachineAccess, apiKey: ApiKey };
+  'machine_access.api_key:revealed': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
 }

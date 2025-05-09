@@ -79,7 +79,7 @@ let parseApiKey = (key: string) => {
 export class UnifiedApiKey {
   private constructor(
     public readonly type: ApiKeyType,
-    public readonly secret: string,
+    private readonly secret: string,
     public readonly config: ApiKeyConfig,
     public readonly version: ApiKeyVersions
   ) {}

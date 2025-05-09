@@ -37,6 +37,14 @@ export let v1ApiKeyPresenter = Presenter.create(apiKeyType)
     secret_redacted_long: keyRedactedLong(apiKey),
     secret: secret?.secret ?? null,
 
+    reveal_info:
+      opts.accessType == 'user_auth_token'
+        ? {
+            until: apiKey.canRevealUntil,
+            forever: apiKey.canRevealForever
+          }
+        : null,
+
     deleted_at: apiKey.deletedAt,
     last_used_at: apiKey.lastUsedAt,
     expires_at: apiKey.expiresAt,
@@ -114,7 +122,19 @@ export let v1ApiKeyPresenter = Presenter.create(apiKeyType)
       updated_at: v.date({
         name: 'updated_at',
         description: `The apiKey's last update date`
-      })
+      }),
+      reveal_info: v.nullable(
+        v.object({
+          until: v.date({
+            name: 'until',
+            description: `The apiKey's reveal date`
+          }),
+          forever: v.boolean({
+            name: 'forever',
+            description: `Whether the apiKey can be revealed forever`
+          })
+        })
+      )
     })
   )
   .build();

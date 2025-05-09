@@ -9,6 +9,7 @@ import {
   mapApiKeysGetOutput,
   mapApiKeysListOutput,
   mapApiKeysListQuery,
+  mapApiKeysRevealOutput,
   mapApiKeysRevokeOutput,
   mapApiKeysRotateBody,
   mapApiKeysRotateOutput,
@@ -19,6 +20,7 @@ import {
   type ApiKeysGetOutput,
   type ApiKeysListOutput,
   type ApiKeysListQuery,
+  type ApiKeysRevealOutput,
   type ApiKeysRevokeOutput,
   type ApiKeysRotateBody,
   type ApiKeysRotateOutput,
@@ -145,5 +147,22 @@ export class MetorialApiKeysEndpoint extends BaseMetorialEndpoint<any> {
       path: ['api-keys', apiKeyId, 'rotate'],
       body: mapApiKeysRotateBody.transformTo(body)
     }).transform(mapApiKeysRotateOutput);
+  }
+
+  /**
+   * @name Reveal API key
+   * @description Reveal a specific API key
+   *
+   * @param `apiKeyId` - string
+   *
+   * @returns ApiKeysRevealOutput
+   *
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  reveal(apiKeyId: string) {
+    return this._post({
+      path: ['api-keys', apiKeyId, 'reveal']
+    }).transform(mapApiKeysRevealOutput);
   }
 }

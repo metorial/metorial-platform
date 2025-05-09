@@ -31,7 +31,6 @@ model User {
   sessions UserSession[]
   members  OrganizationMember[]
   access   MachineAccess[]
-  apiKeys  ApiKey[]
 }
 
 model UserSession {

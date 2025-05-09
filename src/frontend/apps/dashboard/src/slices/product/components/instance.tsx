@@ -1,6 +1,7 @@
 import { storedAtom, useAtom } from '@metorial/data-hooks';
 import { useCurrentProject } from '@metorial/state';
 import { Select } from '@metorial/ui';
+import { useEffect, useRef } from 'react';
 
 let selectedInstance = storedAtom<Record<string, string>>('selected_instance', {});
 
@@ -25,8 +26,20 @@ export let InstanceSelector = () => {
     selectedInstance.set({ ...allInstances });
   };
 
+  let instanceSetRef = useRef(false);
+  useEffect(() => {
+    if (instanceSetRef.current) return;
+
+    if (project.data?.instances.length) {
+      setInstance(project.data?.instances[0].id);
+      instanceSetRef.current = true;
+    }
+  }, [project.data?.instances]);
+
   return (
     <Select
+      label="Instance"
+      hideLabel
       value={instance}
       onChange={setInstance}
       items={

@@ -367,6 +367,34 @@ export let dashboardApiKeyController = Controller.create(
         });
 
         return apiKeyPresenter.present({ apiKey: res.apiKey, secret: res.secret });
+      }),
+
+    reveal: userGroup
+      .post(Path('api-keys/:apiKeyId/reveal', 'apiKeys.reveal'), {
+        name: 'Reveal API key',
+        description: 'Reveal a specific API key'
+      })
+      .output(apiKeyPresenter)
+      .do(async ctx => {
+        let apiKey = await apiKeyService.getApiKeyByIdForUser({
+          apiKeyId: ctx.params.apiKeyId,
+          user: ctx.user
+        });
+
+        let org = apiKey.machineAccess.organization
+          ? await organizationService.getOrganizationByIdForUser({
+              organizationId: apiKey.machineAccess.organization.id,
+              user: ctx.user
+            })
+          : undefined;
+
+        let secret = await apiKeyService.revealApiKey({
+          apiKey,
+          context: ctx.context,
+          performedBy: org?.member.actor
+        });
+
+        return apiKeyPresenter.present({ apiKey, secret });
       })
   }
 );

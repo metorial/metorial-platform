@@ -67,10 +67,17 @@ export let Wrapper = ({
           <Hr style={hr} />
 
           <Section>
-            <Text style={footerText}>
-              Sent by Metorial 💌. If you have any questions, feel free to contact us. If you
-              need to reference this message use this ID: EMAIL_ID.
-            </Text>
+            {process.env.METORIAL_SOURCE == 'enterprise' ? (
+              <Text style={footerText}>
+                Sent by Metorial 💌. If you have any questions, feel free to contact us. If you
+                need to reference this message use this ID: EMAIL_ID.
+              </Text>
+            ) : (
+              <Text style={footerText}>
+                Sent by a self hosted instance of <a href="https://metorial.com">Metorial</a>.
+                Contact the administrator of this instance if you have any questions.
+              </Text>
+            )}
           </Section>
         </Container>
       </Body>

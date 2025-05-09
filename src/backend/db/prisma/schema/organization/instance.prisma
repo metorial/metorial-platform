@@ -29,5 +29,4 @@ model Instance {
   updatedAt DateTime  @default(now()) @updatedAt
 
   machineAccesses MachineAccess[]
-  apiKeys         ApiKey[]
 }

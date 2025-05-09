@@ -17,6 +17,7 @@ import { Fabric } from '@metorial/fabric';
 import { Hash } from '@metorial/hash';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
+import { addMinutes } from 'date-fns';
 import { machineAccessService } from './machineAccess';
 
 export type ListApiKeysFilter =
@@ -117,6 +118,11 @@ class ApiKeyService {
         config: { url: getConfig().urls.apiUrl }
       });
 
+      let limitReveal =
+        d.type == 'organization_management_token' ||
+        d.type == 'user_auth_token' ||
+        (d.type == 'instance_access_token_secret' && d.instance.type == 'development');
+
       let apiKey = await db.apiKey.create({
         data: {
           id: await ID.generateId('apiKey'),
@@ -126,8 +132,10 @@ class ApiKeyService {
           description: d.input.description,
           machineAccessOid: machineAccess.oid,
           secretRedacted: UnifiedApiKey.redact(secretKey),
-          secretLength: secretKey.secret.length,
-          expiresAt: d.input.expiresAt
+          secretLength: secretKey.toString().length,
+          expiresAt: d.input.expiresAt,
+          canRevealUntil: limitReveal ? addMinutes(new Date(), 5) : null,
+          canRevealForever: !limitReveal
         },
         include: {
           machineAccess: {
@@ -144,8 +152,8 @@ class ApiKeyService {
       let secret = await db.apiKeySecret.create({
         data: {
           id: await ID.generateId('apiKeySecret'),
-          secret: secretKey.secret,
-          secretSha512: await Hash.sha512(secretKey.secret),
+          secret: secretKey.toString(),
+          secretSha512: await Hash.sha512(secretKey.toString()),
           expiresAt: d.input.expiresAt,
 
           apiKeyOid: apiKey.oid
@@ -322,7 +330,7 @@ class ApiKeyService {
         where: { oid: d.apiKey.oid },
         data: {
           secretRedacted: UnifiedApiKey.redact(secretKey),
-          secretLength: secretKey.secret.length
+          secretLength: secretKey.toString().length
         },
         include: {
           machineAccess: {
@@ -339,8 +347,8 @@ class ApiKeyService {
       let secret = await db.apiKeySecret.create({
         data: {
           id: await ID.generateId('apiKeySecret'),
-          secret: secretKey.secret,
-          secretSha512: await Hash.sha512(secretKey.secret),
+          secret: secretKey.toString(),
+          secretSha512: await Hash.sha512(secretKey.toString()),
           expiresAt: d.apiKey.expiresAt,
           apiKeyOid: apiKey.oid
         }
@@ -366,11 +374,56 @@ class ApiKeyService {
     });
   }
 
+  async revealApiKey(d: {
+    apiKey: ApiKey & { machineAccess: MachineAccess };
+    performedBy?: OrganizationActor;
+    context: Context;
+  }) {
+    if (d.apiKey.type != 'user_auth_token' && !d.performedBy) {
+      throw new Error('WTF - performedBy is required');
+    }
+
+    await this.ensureApiKeyActive(d.apiKey);
+
+    if (d.apiKey.canRevealUntil && d.apiKey.canRevealUntil < new Date()) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Cannot reveal this api key anymore'
+        })
+      );
+    }
+
+    await Fabric.fire('machine_access.api_key:revealed', {
+      ...d,
+      machineAccess: d.apiKey.machineAccess
+    });
+
+    let activeSecret = await db.apiKeySecret.findFirst({
+      where: {
+        apiKeyOid: d.apiKey.oid,
+        expiresAt: d.apiKey.expiresAt
+      }
+    });
+
+    if (!activeSecret) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Cannot reveal this api key anymore'
+        })
+      );
+    }
+
+    return activeSecret;
+  }
+
   async getApiKeyById(d: { apiKeyId: string; organization: Organization }) {
     let apiKey = await db.apiKey.findFirst({
       where: {
         id: d.apiKeyId,
-        organizationOid: d.organization.oid
+
+        machineAccess: {
+          organizationOid: d.organization.oid
+        }
       },
       include: {
         machineAccess: {
@@ -389,15 +442,39 @@ class ApiKeyService {
   }
 
   async getApiKeyByIdForUser(d: { apiKeyId: string; user: User }) {
+    console.log('getApiKeyByIdForUser', d.apiKeyId, d.user);
     let apiKey = await db.apiKey.findFirst({
       where: {
         id: d.apiKeyId,
-        organization: {
-          members: {
-            some: {
+
+        machineAccess: {
+          OR: [
+            {
+              organization: {
+                members: {
+                  some: {
+                    userOid: d.user.oid
+                  }
+                }
+              }
+            },
+
+            {
+              instance: {
+                organization: {
+                  members: {
+                    some: {
+                      userOid: d.user.oid
+                    }
+                  }
+                }
+              }
+            },
+
+            {
               userOid: d.user.oid
             }
-          }
+          ]
         }
       },
       include: {

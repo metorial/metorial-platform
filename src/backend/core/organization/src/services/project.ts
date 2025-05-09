@@ -64,7 +64,7 @@ class ProjectService {
         performedBy: d.performedBy,
         context: d.context,
         input: {
-          name: `${project.name} Development`,
+          name: `Development`,
           type: 'development'
         }
       });
