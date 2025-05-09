@@ -28,6 +28,12 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "generate:client": {
+      "dependsOn": [
+        "^generate:client"
+      ],
+      "cache": false
     }
   }
 }
