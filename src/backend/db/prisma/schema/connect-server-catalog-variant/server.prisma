@@ -1,0 +1,15 @@
+enum ServerType {
+  imported
+}
+
+model Server {
+  oid  BigInt     @id @default(autoincrement())
+  id   String     @unique
+  type ServerType
+
+  importedServer ImportedServer?
+
+  variant  ServerVariant[]
+  versions ServerVersion[]
+  configs  ServerConfig[]
+}

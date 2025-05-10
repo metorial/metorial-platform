@@ -1,0 +1,25 @@
+enum ServerProviderType {
+  hosted
+  external
+}
+
+model ServerVariantProvider {
+  oid          BigInt             @id @default(autoincrement())
+  id           String             @unique
+  providerType ServerProviderType
+
+  identifier  String  @unique
+  name        String
+  description String?
+
+  /// [EntityImage]
+  image Json
+
+  /// [ServerEntityAttributes]
+  attributes Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  variants ServerVariant[]
+}

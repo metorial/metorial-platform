@@ -1,6 +1,7 @@
 enum OrganizationActorType {
   member
   machine_access
+  system
 }
 
 model OrganizationActor {
@@ -8,6 +9,8 @@ model OrganizationActor {
   id  String @unique
 
   type OrganizationActorType
+
+  isSystem Boolean? @unique
 
   email String?
   name  String
@@ -24,4 +27,6 @@ model OrganizationActor {
   member         OrganizationMember?
   createdInvites OrganizationInvite[]
   machineAccess  MachineAccess?
+
+  SecretEvent SecretEvent[]
 }

@@ -1,0 +1,28 @@
+enum ServerListingStatus {
+  active
+  archived
+  banned
+}
+
+model ServerListing {
+  oid    BigInt              @id @default(autoincrement())
+  id     String              @unique
+  status ServerListingStatus
+
+  name String
+  slug String @unique
+
+  headline String?
+  readme   String?
+
+  profileOid BigInt?
+  profile    Profile? @relation(fields: [profileOid], references: [oid])
+
+  categoryOid BigInt?
+  category    ServerListingCategory? @relation(fields: [categoryOid], references: [oid])
+
+  collections ServerListingCollection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

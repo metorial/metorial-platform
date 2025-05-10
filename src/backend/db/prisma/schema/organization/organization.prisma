@@ -37,4 +37,6 @@ model Organization {
   projects        Project[]
   machineAccesses MachineAccess[]
   files           File[]
+  secrets         Secret[]
+  profile         Profile?
 }

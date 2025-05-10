@@ -1,0 +1,30 @@
+model ImportedServer {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  vendorOid BigInt
+  vendor    ImportedServerVendor @relation(fields: [vendorOid], references: [oid])
+
+  repositoryOid BigInt?
+  repository    ImportedRepository? @relation(fields: [repositoryOid], references: [oid])
+
+  serverOid String @unique
+  server    Server @relation(fields: [serverOid], references: [id])
+
+  slug       String
+  fullSlug   String  @unique
+  identifier String? @unique
+
+  name        String
+  description String?
+
+  subdirectory String?
+
+  /// [ServerAttributes]
+  attributes Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([vendorOid, slug])
+}

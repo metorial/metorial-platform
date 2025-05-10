@@ -1,0 +1,23 @@
+model ImportedServerVendor {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  identifier  String  @unique
+  name        String
+  description String?
+
+  /// [EntityImage]
+  image Json
+
+  /// [ServerEntityAttributes]
+  attributes Json
+
+  profileOid BigInt?
+  profile    Profile? @relation(fields: [profileOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  repositories ImportedRepository[]
+  servers      ImportedServer[]
+}

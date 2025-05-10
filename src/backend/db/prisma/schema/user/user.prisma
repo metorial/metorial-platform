@@ -32,6 +32,7 @@ model User {
   members  OrganizationMember[]
   access   MachineAccess[]
   files    File[]
+  profile  Profile?
 }
 
 model UserSession {

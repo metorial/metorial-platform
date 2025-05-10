@@ -1,0 +1,37 @@
+enum ImportedRepositoryStatus {
+  active
+  archived
+}
+
+model ImportedRepository {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  vendorOid BigInt
+  vendor    ImportedServerVendor @relation(fields: [vendorOid], references: [oid])
+
+  provider               String
+  providerId             String
+  providerFullIdentifier String
+  providerIdentifier     String
+
+  slug String
+  name String
+
+  stars    Int
+  forks    Int
+  watchers Int
+
+  url String
+
+  language    String?
+  description String?
+  license     String?
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now()) @updatedAt
+  ImportedServer ImportedServer[]
+
+  @@unique([vendorOid, provider, slug])
+  @@unique([vendorOid, provider, providerId])
+}

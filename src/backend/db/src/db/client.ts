@@ -17,6 +17,7 @@ declare global {
 
     type EntityImage =
       | { type: 'file'; fileId: string; fileLinkId: string; url: string }
+      | { type: 'url'; url: string }
       | { type: 'default' };
   }
 }

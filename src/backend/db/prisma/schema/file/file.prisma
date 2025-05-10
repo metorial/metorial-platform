@@ -9,7 +9,7 @@ enum FileStatus {
 }
 
 model FilePurpose {
-  oid BigInt @id @default(autoincrement())
+  oid Int    @id @default(autoincrement())
   id  String @unique
 
   ownerType    FilePurposeOwnerType
@@ -33,7 +33,7 @@ model File {
   fileSize Int
   fileType String
 
-  purposeOid BigInt
+  purposeOid Int
   purpose    FilePurpose @relation(fields: [purposeOid], references: [oid], onDelete: Cascade)
 
   userOid BigInt?

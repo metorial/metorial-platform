@@ -1,0 +1,14 @@
+model ServerVersion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  identifier String
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  serverVariantOid BigInt
+  serverVariant    ServerVariant @relation(fields: [serverVariantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}
