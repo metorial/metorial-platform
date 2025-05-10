@@ -23,10 +23,10 @@ export let v1FilePresenter = Presenter.create(fileType)
   }))
   .schema(
     v.object({
-      id: v.string({ name: 'id', description: `The user's unique identifier` }),
+      id: v.string({ name: 'id', description: `The files's unique identifier` }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
-        description: `The user's status`
+        description: `The files's status`
       }),
       file_name: v.string({
         name: 'file_name',
@@ -59,13 +59,13 @@ export let v1FilePresenter = Presenter.create(fileType)
         identifier: v.string({
           name: 'identifier',
           description: `The file's purpose identifier`,
-          examples: ['user_image']
+          examples: ['files_image']
         })
       }),
-      created_at: v.date({ name: 'created_at', description: `The user's creation date` }),
+      created_at: v.date({ name: 'created_at', description: `The files's creation date` }),
       updated_at: v.date({
         name: 'updated_at',
-        description: `The user's last update date`
+        description: `The files's last update date`
       })
     })
   )

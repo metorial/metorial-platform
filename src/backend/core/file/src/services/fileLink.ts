@@ -120,4 +120,7 @@ class FileLinkServiceImpl {
   }
 }
 
-export let fileLinkService = Service.create('usage', () => new FileLinkServiceImpl()).build();
+export let fileLinkService = Service.create(
+  'fileLink',
+  () => new FileLinkServiceImpl()
+).build();

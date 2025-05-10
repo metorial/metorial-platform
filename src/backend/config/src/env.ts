@@ -37,5 +37,9 @@ export let env = createValidatedEnv({
     S3_REGION: v.optional(v.string()),
     S3_BUCKET: v.optional(v.string()),
     S3_ENDPOINT: v.optional(v.string())
+  },
+
+  encryption: {
+    ENCRYPTION_SECRET: v.string()
   }
 });

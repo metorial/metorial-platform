@@ -36,6 +36,9 @@ class OrganizationActorService {
           email: d.input.email,
           image: d.input.image ?? { type: 'default' },
 
+          // True or null -> to ensure that the field is unique
+          isSystem: d.input.type == 'system' ? true : null,
+
           organizationOid: d.organization.oid
         },
         include: {
@@ -53,6 +56,23 @@ class OrganizationActorService {
 
       return actor;
     });
+  }
+
+  async getSystemActor(d: { organization: Organization }) {
+    let actor = await db.organizationActor.findFirst({
+      where: {
+        organizationOid: d.organization.oid,
+        isSystem: true
+      },
+      include: {
+        member: true,
+        machineAccess: true,
+        organization: true
+      }
+    });
+    if (!actor) throw new Error('WTF - System actor not found');
+
+    return actor;
   }
 
   async updateOrganizationActor(d: {

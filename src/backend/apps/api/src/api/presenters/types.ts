@@ -11,6 +11,8 @@ import {
   OrganizationInvite,
   OrganizationMember,
   Project,
+  Secret,
+  SecretType,
   User
 } from '@metorial/db';
 import { PresentableType } from '@metorial/presenter';
@@ -88,4 +90,8 @@ export let fileType = PresentableType.create<{
 
 export let fileLinkType = PresentableType.create<{
   fileLink: FileLink & { file: File };
-}>()('file');
+}>()('fileLink');
+
+export let secretType = PresentableType.create<{
+  secret: Secret & { type: SecretType; organization: Organization };
+}>()('secret');

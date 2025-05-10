@@ -1,10 +1,11 @@
 import { Controller } from '@metorial/rest';
+import { fileController } from './core/file';
+import { fileLinkController } from './core/fileLink';
+import { secretController } from './core/secret';
 import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
 import { dashboardOrganizationController } from './dashboard/organization';
 import { dashboardOrganizationInviteController } from './dashboard/organizationInvite';
-import { fileController } from './management/file';
-import { fileLinkController } from './management/fileLink';
 import { instanceController } from './management/instance';
 import { organizationController } from './management/organization';
 import { organizationInviteController } from './management/organizationInvite';
@@ -31,6 +32,8 @@ export let pulsarController = Controller.create<any>(
     userController,
 
     fileController,
-    fileLinkController
+    fileLinkController,
+
+    secretController
   }
 );

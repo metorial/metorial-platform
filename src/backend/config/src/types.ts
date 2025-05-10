@@ -40,4 +40,6 @@ export interface MetorialConfig {
     bucket: string;
     endpoint?: string;
   };
+
+  encryptionSecret: string;
 }

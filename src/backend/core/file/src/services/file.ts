@@ -183,4 +183,4 @@ class FileServiceImpl {
   }
 }
 
-export let fileService = Service.create('usage', () => new FileServiceImpl()).build();
+export let fileService = Service.create('file', () => new FileServiceImpl()).build();

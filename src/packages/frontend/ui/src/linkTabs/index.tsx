@@ -34,19 +34,32 @@ export let LinkTabs = ({
   variant?: 'soft' | 'outline';
   maxWidth?: number | string;
 }) => {
+  let linkString = useMemo(() => links.map(link => link.to).join(','), [links]);
+
+  let normalizedLinks = useMemo(
+    () =>
+      links.map(link => ({
+        ...link,
+        to: new URL(link.to, window.location.origin).pathname
+      })),
+    [linkString]
+  );
+
   let actualCurrent = useMemo(() => {
-    let [bestMatch] = links
+    let normalizedCurrent = new URL(current, window.location.origin).pathname;
+
+    let [bestMatch] = normalizedLinks
       .map(link => link.to)
-      .filter(link => link == current || current.startsWith(`${link}/`))
+      .filter(link => link == normalizedCurrent || normalizedCurrent.startsWith(`${link}/`))
       .sort((a, b) => b.length - a.length);
 
     return bestMatch;
-  }, [current]);
+  }, [current, normalizedLinks]);
 
   return (
     <Tabs
       current={actualCurrent}
-      tabs={links}
+      tabs={normalizedLinks}
       action={() => {}}
       tabIndicator={tabIndicator}
       lineIndicator={lineIndicator}

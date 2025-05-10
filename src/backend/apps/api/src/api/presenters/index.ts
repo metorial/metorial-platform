@@ -11,6 +11,7 @@ import {
   organizationMemberType,
   organizationType,
   projectType,
+  secretType,
   userType
 } from './types';
 import { v1ApiKeyPresenter } from './v1/apiKey';
@@ -24,6 +25,7 @@ import { v1OrganizationActorPresenter } from './v1/organizationActor';
 import { v1OrganizationInvitePresenter } from './v1/organizationInvite';
 import { v1OrganizationMemberPresenter } from './v1/organizationMember';
 import { v1ProjectPresenter } from './v1/project';
+import { v1SecretPresenter } from './v1/secret';
 import { v1UserPresenter } from './v1/user';
 
 export let apiKeyPresenter = declarePresenter(apiKeyType, {
@@ -72,4 +74,8 @@ export let filePresenter = declarePresenter(fileType, {
 
 export let fileLinkPresenter = declarePresenter(fileLinkType, {
   v_2025_01_01_pulsar: v1FileLinkPresenter
+});
+
+export let secretPresenter = declarePresenter(secretType, {
+  v_2025_01_01_pulsar: v1SecretPresenter
 });

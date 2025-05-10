@@ -11,6 +11,7 @@ import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { createSlugGenerator } from '@metorial/slugify';
 import { differenceInMinutes } from 'date-fns';
+import { organizationActorService } from './organizationActor';
 import { organizationMemberService } from './organizationMember';
 
 let getOrgSlug = createSlugGenerator(
@@ -54,6 +55,20 @@ class OrganizationService {
         ...d,
         organization,
         performedBy: d.performedBy
+      });
+
+      let systemActor = await organizationActorService.createOrganizationActor({
+        input: {
+          type: 'system',
+          name: 'Metorial',
+          image: {
+            type: 'url',
+            url: 'https://cdn.metorial.com/2024-08-17--09-31-34/logos/metorial/primary_logo/raw.svg'
+          }
+        },
+        organization,
+        context: d.context,
+        performedBy: { type: 'user', user: d.performedBy }
       });
 
       let member = await organizationMemberService.createOrganizationMember({

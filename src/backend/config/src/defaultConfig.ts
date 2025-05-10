@@ -50,5 +50,7 @@ export let defaultConfig: MetorialConfig = {
         bucket: env.s3.S3_BUCKET!,
         endpoint: env.s3.S3_ENDPOINT!
       }
-    : undefined
+    : undefined,
+
+  encryptionSecret: env.encryption.ENCRYPTION_SECRET
 };

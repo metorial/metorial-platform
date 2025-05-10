@@ -15,7 +15,7 @@ export let v1FileLinkPresenter = Presenter.create(fileLinkType)
   }))
   .schema(
     v.object({
-      id: v.string({ name: 'id', description: `The user's unique identifier` }),
+      id: v.string({ name: 'id', description: `The links's unique identifier` }),
       file_id: v.string({
         name: 'file_id',
         description: `The file's unique identifier`
@@ -25,7 +25,7 @@ export let v1FileLinkPresenter = Presenter.create(fileLinkType)
         description: `The file's public URL`,
         examples: ['https://api.metorial.com/files/view/1234567890/abcdefg']
       }),
-      created_at: v.date({ name: 'created_at', description: `The user's creation date` }),
+      created_at: v.date({ name: 'created_at', description: `The links's creation date` }),
       expires_at: v.nullable(
         v.date({
           name: 'expires_at',
