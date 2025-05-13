@@ -4,6 +4,7 @@ import { Paginator } from '@metorial/pagination';
 import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { apiGroup } from '../../middleware/apiGroup';
+import { checkAccess } from '../../middleware/checkAccess';
 import { filePresenter } from '../../presenters';
 
 export let fileGroup = apiGroup.use(async ctx => {
@@ -46,6 +47,7 @@ export let fileController = Controller.create(
         name: 'List  files',
         description: 'List all  files'
       })
+      .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
       .outputList(filePresenter)
       .query(
         'default',
@@ -90,6 +92,7 @@ export let fileController = Controller.create(
         name: 'Get file',
         description: 'Get the information of a specific file'
       })
+      .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
       .output(filePresenter)
       .do(async ctx => {
         return filePresenter.present({ file: ctx.file });
@@ -100,6 +103,7 @@ export let fileController = Controller.create(
         name: 'Update file',
         description: 'Update the information of a specific file'
       })
+      .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .body(
         'default',
         v.object({
@@ -123,6 +127,7 @@ export let fileController = Controller.create(
         name: 'Delete file',
         description: 'Delete a specific file'
       })
+      .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .output(filePresenter)
       .do(async ctx => {
         let file = await fileService.deleteFile({

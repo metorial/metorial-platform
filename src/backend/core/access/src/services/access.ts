@@ -1,11 +1,10 @@
 import { forbiddenError, notFoundError, ServiceError } from '@metorial/error';
-import { MachineAccessOrganizationManagementScope } from '@metorial/module-machine-access';
 import { instanceService, organizationService } from '@metorial/module-organization';
 import { Service } from '@metorial/service';
 import { AuthInfo } from './authentication';
 
 class AccessService {
-  async checkManagementAccess(d: {
+  async checkAccess(d: {
     authInfo: AuthInfo;
     possibleScopes: MachineAccessOrganizationManagementScope[];
   }) {

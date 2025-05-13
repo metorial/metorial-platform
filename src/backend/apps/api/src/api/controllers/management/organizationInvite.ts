@@ -3,6 +3,7 @@ import { organizationInviteService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { checkAccess } from '../../middleware/checkAccess';
 import {
   organizationGroup,
   organizationManagementPath
@@ -20,6 +21,7 @@ export let organizationInviteManagementController = Controller.create(
         name: 'List organization invites',
         description: 'List all organization invites'
       })
+      .use(checkAccess({ possibleScopes: ['organization.invite:read'] }))
       .outputList(organizationInvitePresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -39,6 +41,7 @@ export let organizationInviteManagementController = Controller.create(
         name: 'Get organization invite',
         description: 'Get the information of a specific organization invite'
       })
+      .use(checkAccess({ possibleScopes: ['organization.invite:read'] }))
       .output(organizationInvitePresenter)
       .do(async ctx => {
         let invite = await organizationInviteService.getOrganizationInviteById({
@@ -54,6 +57,7 @@ export let organizationInviteManagementController = Controller.create(
         name: 'Create organization invite',
         description: 'Create a new organization invite'
       })
+      .use(checkAccess({ possibleScopes: ['organization.invite:write'] }))
       .body(
         'default',
         v.union([
@@ -95,6 +99,7 @@ export let organizationInviteManagementController = Controller.create(
         description: 'Ensure the invite link for the organization',
         hideInDocs: true
       })
+      .use(checkAccess({ possibleScopes: ['organization.invite:write'] }))
       .output(organizationInvitePresenter)
       .do(async ctx => {
         if (ctx.member?.role == 'member') {
@@ -119,6 +124,7 @@ export let organizationInviteManagementController = Controller.create(
         name: 'Delete organization invite',
         description: 'Remove an organization invite'
       })
+      .use(checkAccess({ possibleScopes: ['organization.invite:write'] }))
       .output(organizationInvitePresenter)
       .do(async ctx => {
         if (ctx.member?.role == 'member') {
@@ -149,6 +155,7 @@ export let organizationInviteManagementController = Controller.create(
         name: 'Update organization invite',
         description: 'Update the role of an organization invite'
       })
+      .use(checkAccess({ possibleScopes: ['organization.invite:write'] }))
       .body(
         'default',
         v.object({

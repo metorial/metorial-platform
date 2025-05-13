@@ -1,4 +1,5 @@
 import { Controller } from '@metorial/rest';
+import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { instancePresenter } from '../../presenters';
 
@@ -13,6 +14,7 @@ export let instanceController = Controller.create(
         name: 'Get  instance',
         description: 'Get the information of a specific  instance'
       })
+      .use(checkAccess({ possibleScopes: ['organization.instance:read'] }))
       .output(instancePresenter)
       .do(async ctx => instancePresenter.present({ instance: ctx.instance }))
   }

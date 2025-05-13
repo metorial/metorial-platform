@@ -3,6 +3,7 @@ import { organizationMemberService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { checkAccess } from '../../middleware/checkAccess';
 import {
   organizationGroup,
   organizationManagementPath
@@ -20,6 +21,7 @@ export let organizationMemberManagementController = Controller.create(
         name: 'List organization members',
         description: 'List all organization members'
       })
+      .use(checkAccess({ possibleScopes: ['organization.member:read'] }))
       .outputList(organizationMemberPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -39,6 +41,7 @@ export let organizationMemberManagementController = Controller.create(
         name: 'Get organization member',
         description: 'Get the information of a specific organization member'
       })
+      .use(checkAccess({ possibleScopes: ['organization.member:read'] }))
       .output(organizationMemberPresenter)
       .do(async ctx => {
         let member = await organizationMemberService.getOrganizationMemberById({
@@ -54,6 +57,7 @@ export let organizationMemberManagementController = Controller.create(
         name: 'Delete organization member',
         description: 'Remove an organization member'
       })
+      .use(checkAccess({ possibleScopes: ['organization.member:write'] }))
       .output(organizationMemberPresenter)
       .do(async ctx => {
         if (ctx.member?.role == 'member') {
@@ -84,6 +88,7 @@ export let organizationMemberManagementController = Controller.create(
         name: 'Update organization member',
         description: 'Update the role of an organization member'
       })
+      .use(checkAccess({ possibleScopes: ['organization.member:write'] }))
       .body(
         'default',
         v.object({

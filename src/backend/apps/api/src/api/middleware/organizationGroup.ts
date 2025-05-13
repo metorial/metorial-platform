@@ -1,10 +1,18 @@
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError, unauthorizedError } from '@metorial/error';
 import { accessService } from '@metorial/module-access';
 import { Path } from '@metorial/rest';
 import { managementGroup } from './managementGroup';
 
 export let organizationGroup = managementGroup.use(async ctx => {
   if (ctx.auth.type == 'machine') {
+    if (ctx.auth.restrictions.type == 'instance') {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'Your API key is not authorized to access this endpoint'
+        })
+      );
+    }
+
     return {
       type: 'actor' as const,
       organization: ctx.auth.restrictions.organization,

@@ -3,6 +3,7 @@ import { secretTypeSlugs } from '@metorial/module-secret/src/definitions';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { secretPresenter } from '../../presenters';
 
@@ -26,6 +27,7 @@ export let secretController = Controller.create(
         name: 'List secrets',
         description: 'List all  secrets'
       })
+      .use(checkAccess({ possibleScopes: ['instance.secret:read'] }))
       .outputList(secretPresenter)
       .query(
         'default',
@@ -51,6 +53,7 @@ export let secretController = Controller.create(
         name: 'Get secret',
         description: 'Get the information of a specific secret'
       })
+      .use(checkAccess({ possibleScopes: ['instance.secret:read'] }))
       .output(secretPresenter)
       .do(async ctx => {
         return secretPresenter.present({ secret: ctx.secret });

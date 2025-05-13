@@ -2,6 +2,7 @@ import { serverVariantService, serverVersionService } from '@metorial/module-cat
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { serverVersionPresenter } from '../../presenters';
 import { serverGroup } from './server';
@@ -26,6 +27,7 @@ export let serverVersionController = Controller.create(
         name: 'List server versions',
         description: 'List all server versions'
       })
+      .use(checkAccess({ possibleScopes: ['instance.server:read'] }))
       .outputList(serverVersionPresenter)
       .query(
         'default',
@@ -63,6 +65,7 @@ export let serverVersionController = Controller.create(
           description: 'Get the information of a specific server version'
         }
       )
+      .use(checkAccess({ possibleScopes: ['instance.server:read'] }))
       .output(serverVersionPresenter)
       .do(async ctx => {
         return serverVersionPresenter.present({ serverVersion: ctx.serverVersion });

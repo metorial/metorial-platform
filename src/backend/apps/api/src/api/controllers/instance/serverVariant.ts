@@ -2,6 +2,7 @@ import { serverVariantService } from '@metorial/module-catalog';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { serverVariantPresenter } from '../../presenters';
 import { serverGroup } from './server';
@@ -26,6 +27,7 @@ export let serverVariantController = Controller.create(
         name: 'List server variants',
         description: 'List all server variants'
       })
+      .use(checkAccess({ possibleScopes: ['instance.server:read'] }))
       .outputList(serverVariantPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -48,6 +50,7 @@ export let serverVariantController = Controller.create(
           description: 'Get the information of a specific server variant'
         }
       )
+      .use(checkAccess({ possibleScopes: ['instance.server:read'] }))
       .output(serverVariantPresenter)
       .do(async ctx => {
         return serverVariantPresenter.present({ serverVariant: ctx.serverVariant });

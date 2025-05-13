@@ -2,6 +2,7 @@ import { projectService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { checkAccess } from '../../middleware/checkAccess';
 import {
   organizationGroup,
   organizationManagementPath
@@ -19,6 +20,7 @@ export let projectManagementController = Controller.create(
         name: 'List organization projects',
         description: 'List all organization projects'
       })
+      .use(checkAccess({ possibleScopes: ['organization.project:read'] }))
       .outputList(projectPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -36,6 +38,7 @@ export let projectManagementController = Controller.create(
         name: 'Get organization project',
         description: 'Get the information of a specific organization project'
       })
+      .use(checkAccess({ possibleScopes: ['organization.project:read'] }))
       .output(projectPresenter)
       .do(async ctx => {
         let project = await projectService.getProjectById({
@@ -51,6 +54,7 @@ export let projectManagementController = Controller.create(
         name: 'Create organization project',
         description: 'Create a new organization project'
       })
+      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
       .body(
         'default',
         v.object({
@@ -76,6 +80,7 @@ export let projectManagementController = Controller.create(
         name: 'Delete organization project',
         description: 'Remove an organization project'
       })
+      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
       .output(projectPresenter)
       .do(async ctx => {
         let project = await projectService.getProjectById({
@@ -98,6 +103,7 @@ export let projectManagementController = Controller.create(
         name: 'Update organization project',
         description: 'Update the role of an organization project'
       })
+      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
       .body(
         'default',
         v.object({

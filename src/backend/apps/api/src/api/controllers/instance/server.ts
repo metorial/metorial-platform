@@ -1,5 +1,6 @@
 import { serverService } from '@metorial/module-catalog';
 import { Controller } from '@metorial/rest';
+import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { serverPresenter } from '../../presenters';
 
@@ -23,6 +24,7 @@ export let serverController = Controller.create(
         name: 'Get server',
         description: 'Get the information of a specific server'
       })
+      .use(checkAccess({ possibleScopes: ['instance.server:read'] }))
       .output(serverPresenter)
       .do(async ctx => {
         return serverPresenter.present({ server: ctx.server });

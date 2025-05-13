@@ -1,7 +1,6 @@
 import { combineQueueProcessors } from '@metorial/queue';
-import { expiresApiKeysProcessors } from './cron/expiresKeys';
+import { expiresApiKeysProcessors } from './cron/expireKeys';
 
-export * from './definitions';
 export * from './services';
 
 export let machineAccessQueueProcessor = combineQueueProcessors([expiresApiKeysProcessors]);

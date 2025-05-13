@@ -2,6 +2,7 @@ import { instanceService, projectService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { checkAccess } from '../../middleware/checkAccess';
 import {
   organizationGroup,
   organizationManagementPath
@@ -19,6 +20,7 @@ export let instanceManagementController = Controller.create(
         name: 'List organization instances',
         description: 'List all organization instances'
       })
+      .use(checkAccess({ possibleScopes: ['organization.instance:read'] }))
       .outputList(instancePresenter)
       .query(
         'default',
@@ -43,6 +45,7 @@ export let instanceManagementController = Controller.create(
         name: 'Get organization instance',
         description: 'Get the information of a specific organization instance'
       })
+      .use(checkAccess({ possibleScopes: ['organization.instance:read'] }))
       .output(instancePresenter)
       .do(async ctx => {
         let instance = await instanceService.getInstanceById({
@@ -58,6 +61,7 @@ export let instanceManagementController = Controller.create(
         name: 'Create organization instance',
         description: 'Create a new organization instance'
       })
+      .use(checkAccess({ possibleScopes: ['organization.instance:write'] }))
       .body(
         'default',
         v.object({
@@ -92,6 +96,7 @@ export let instanceManagementController = Controller.create(
         name: 'Delete organization instance',
         description: 'Remove an organization instance'
       })
+      .use(checkAccess({ possibleScopes: ['organization.instance:write'] }))
       .output(instancePresenter)
       .do(async ctx => {
         let instance = await instanceService.getInstanceById({
@@ -114,6 +119,7 @@ export let instanceManagementController = Controller.create(
         name: 'Update organization instance',
         description: 'Update the role of an organization instance'
       })
+      .use(checkAccess({ possibleScopes: ['organization.instance:write'] }))
       .body(
         'default',
         v.object({

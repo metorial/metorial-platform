@@ -3,6 +3,7 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { apiGroup } from '../../middleware/apiGroup';
+import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { serverListingPresenter } from '../../presenters';
 
@@ -25,6 +26,7 @@ export let serverListingController = Controller.create(
         name: 'List server versions',
         description: 'List all server versions'
       })
+      .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
       .outputList(serverListingPresenter)
       .query(
         'default',
@@ -57,6 +59,7 @@ export let serverListingController = Controller.create(
         name: 'Get server version',
         description: 'Get the information of a specific server version'
       })
+      .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
       .output(serverListingPresenter)
       .do(async ctx => {
         return serverListingPresenter.present({

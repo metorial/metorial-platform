@@ -2,6 +2,7 @@ import { fileLinkService } from '@metorial/module-file';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { checkAccess } from '../../middleware/checkAccess';
 import { fileLinkPresenter, filePresenter } from '../../presenters';
 import { fileGroup, filePath } from './file';
 
@@ -25,6 +26,7 @@ export let fileLinkController = Controller.create(
         name: 'List file links',
         description: 'List all file links'
       })
+      .use(checkAccess({ possibleScopes: ['instance.file:read', 'instance.file_link:read'] }))
       .outputList(filePresenter)
       .do(async ctx => {
         let paginator = await fileLinkService.listFileLinks({
@@ -41,6 +43,7 @@ export let fileLinkController = Controller.create(
         name: 'Get file link',
         description: 'Get the information of a specific file link'
       })
+      .use(checkAccess({ possibleScopes: ['instance.file:read', 'instance.file_link:read'] }))
       .output(fileLinkPresenter)
       .do(async ctx => {
         return fileLinkPresenter.present({ fileLink: ctx.fileLink });
@@ -51,6 +54,9 @@ export let fileLinkController = Controller.create(
         name: 'Create file link',
         description: 'Create a new file link'
       })
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:write', 'instance.file_link:write'] })
+      )
       .output(fileLinkPresenter)
       .body(
         'default',
@@ -74,6 +80,9 @@ export let fileLinkController = Controller.create(
         name: 'Update file link',
         description: 'Update the information of a specific file link'
       })
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:write', 'instance.file_link:write'] })
+      )
       .body(
         'default',
         v.object({
@@ -97,6 +106,9 @@ export let fileLinkController = Controller.create(
         name: 'Delete file link',
         description: 'Delete a specific file link'
       })
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:write', 'instance.file_link:write'] })
+      )
       .output(fileLinkPresenter)
       .do(async ctx => {
         let fileLink = await fileLinkService.deleteFileLink({

@@ -2,6 +2,7 @@ import { badRequestError, ServiceError } from '@metorial/error';
 import { userService } from '@metorial/module-user';
 import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { checkAccess } from '../../middleware/checkAccess';
 import { userGroup } from '../../middleware/userGroup';
 import { userPresenter } from '../../presenters';
 
@@ -16,6 +17,7 @@ export let userManagementController = Controller.create(
         name: 'Get user',
         description: 'Get the current user information'
       })
+      .use(checkAccess({ possibleScopes: ['user:read'] }))
       .output(userPresenter)
       .do(async ctx => {
         return userPresenter.present({ user: ctx.user });
@@ -26,6 +28,7 @@ export let userManagementController = Controller.create(
         name: 'Update user',
         description: 'Update the current user information'
       })
+      .use(checkAccess({ possibleScopes: ['user:write'] }))
       .body(
         'default',
         v.object({
@@ -52,6 +55,7 @@ export let userManagementController = Controller.create(
         name: 'Update user',
         description: 'Update the current user information'
       })
+      .use(checkAccess({ possibleScopes: ['user:write'] }))
       .body(
         'default',
         v.object({
