@@ -35,8 +35,3 @@ export let organizationManagementPath = (path: string, sdkPath: string) => [
     `dashboard.organizations.${sdkPath}`
   )
 ];
-
-export let organizationCorePath = (path: string, sdkPath: string) => [
-  Path(`/${path}`, `core.${sdkPath}`),
-  Path(`/dashboard/organizations/:organizationId/${path}`, `dashboard.core.${sdkPath}`)
-];

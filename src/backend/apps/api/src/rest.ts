@@ -77,8 +77,8 @@ export let authenticate = async (req: Request, url: URL) => {
     auth,
     context,
     flags: {},
-    defaultVersion: 'v_2025_01_01_pulsar',
-    allowedVersions: ['v_2025_01_01_pulsar']
+    defaultVersion: 'mt_2025_01_01_pulsar',
+    allowedVersions: ['mt_2025_01_01_pulsar', 'mt_2025_01_01_dashboard']
   };
 };
 

@@ -1,0 +1,58 @@
+import { serverListingCategoryService } from '@metorial/module-catalog';
+import { Paginator } from '@metorial/pagination';
+import { Controller } from '@metorial/rest';
+import { v } from '@metorial/validation';
+import { apiGroup } from '../../middleware/apiGroup';
+import { instancePath } from '../../middleware/instanceGroup';
+import { serverListingCategoryPresenter } from '../../presenters';
+
+export let serverListingCategoryGroup = apiGroup.use(async ctx => {
+  let serverListingCategory = await serverListingCategoryService.getServerListingCategoryById({
+    serverListingCategoryId: ctx.params.serverListingCategoryId
+  });
+
+  return { serverListingCategory };
+});
+
+export let serverListingCategoryController = Controller.create(
+  {
+    name: 'Server Category',
+    description: 'Read and write server version information'
+  },
+  {
+    list: apiGroup
+      .get(instancePath('server-listing-categories', 'servers.listings.categories.list'), {
+        name: 'List server versions',
+        description: 'List all server versions'
+      })
+      .outputList(serverListingCategoryPresenter)
+      .query('default', Paginator.validate(v.object({})))
+      .do(async ctx => {
+        let paginator = await serverListingCategoryService.listServerListingCategories({});
+
+        let list = await paginator.run(ctx.query);
+
+        return Paginator.present(list, category =>
+          serverListingCategoryPresenter.present({ category })
+        );
+      }),
+
+    get: serverListingCategoryGroup
+      .get(
+        instancePath(
+          'server-listing-categories/:serverListingCategoryId',
+          'servers.listings.categories.get'
+        ),
+        {
+          name: 'Get server version',
+          description: 'Get the information of a specific server version'
+        }
+      )
+      .output(serverListingCategoryPresenter)
+      .do(async ctx => {
+        return serverListingCategoryPresenter.present({
+          category: ctx.serverListingCategory
+        });
+      })
+  }
+);

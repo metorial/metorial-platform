@@ -1,6 +1,7 @@
 import { combineQueueProcessors } from '@metorial/queue';
 
 import { accessQueueProcessor } from '@metorial/module-access';
+import { catalogQueueProcessor } from '@metorial/module-catalog';
 import { emailQueueProcessor } from '@metorial/module-email';
 import { fileQueueProcessor } from '@metorial/module-file';
 import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
@@ -13,5 +14,6 @@ combineQueueProcessors([
   organizationQueueProcessor,
   emailQueueProcessor,
   accessQueueProcessor,
-  fileQueueProcessor
+  fileQueueProcessor,
+  catalogQueueProcessor
 ]).start();

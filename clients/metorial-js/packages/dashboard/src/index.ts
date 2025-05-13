@@ -7,6 +7,6 @@ export type {
   ManagementOrganizationMembersGetOutput as MetorialOrganizationMember,
   ManagementOrganizationProjectsGetOutput as MetorialProject,
   ManagementUserGetOutput as MetorialUser
-} from '@metorial/core';
+} from '@metorial/core/src/mt_2025_01_01_dashboard';
 
 export * from './sdk';

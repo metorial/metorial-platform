@@ -5,7 +5,7 @@ import { v } from '@metorial/validation';
 import { userGroup } from '../../middleware/userGroup';
 import { userPresenter } from '../../presenters';
 
-export let userController = Controller.create(
+export let userManagementController = Controller.create(
   {
     name: 'User',
     description: 'Read and write user information'

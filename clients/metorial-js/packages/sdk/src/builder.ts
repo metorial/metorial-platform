@@ -1,10 +1,6 @@
 import { GetMetorialSDKConfig, MetorialSDKBuilder } from '@metorial/util-endpoint';
 
-export type MetorialKeyPrefix =
-  | 'metorial_pk_dev_'
-  | 'metorial_sk_dev_'
-  | 'metorial_pk_prod_'
-  | 'metorial_sk_prod_';
+export type MetorialKeyPrefix = 'metorial_pk_' | 'metorial_sk_';
 
 export let sdkBuilder = MetorialSDKBuilder.create<
   '2025-01-01-pulsar',

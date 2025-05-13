@@ -17,6 +17,13 @@ export let getImageFields = (entity: {
     };
   }
 
+  if (entity.image?.type == 'url') {
+    return {
+      imageUrl: entity.image.url,
+      imageFileReference: null
+    };
+  }
+
   let url = new URL(`https://avatar-cdn.metorial.com/aimg_${entity.id.split('_').pop()}`);
   // if (entity.email) url.searchParams.set('email', md5(entity.email));
 

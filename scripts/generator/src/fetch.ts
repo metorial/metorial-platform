@@ -26,18 +26,15 @@ export interface Controller {
   description: string;
 }
 
-export let getEndpoints = async (url: string) => {
-  let versions = (await fetch(new URL('/metorial/introspect/versions', url)).then(res =>
-    res.json()
-  )) as {
+export let getEndpointVersions = async (url: string) =>
+  (await fetch(new URL('/metorial/introspect/versions', url)).then(res => res.json())) as {
     versions: { version: string; displayVersion: string; isCurrent: boolean }[];
   };
 
-  let currentVersion = versions.versions.find(v => v.isCurrent)?.version;
-
-  return (await fetch(
-    new URL(`/metorial/introspect/endpoints?version=${currentVersion}`, url)
-  ).then(res => res.json())) as {
+export let getEndpoints = async (url: string, version: string) => {
+  return (await fetch(new URL(`/metorial/introspect/endpoints?version=${version}`, url)).then(
+    res => res.json()
+  )) as {
     endpoints: Endpoint[];
 
     controllers: Controller[];

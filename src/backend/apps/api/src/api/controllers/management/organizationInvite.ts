@@ -9,7 +9,7 @@ import {
 } from '../../middleware/organizationGroup';
 import { organizationInvitePresenter } from '../../presenters';
 
-export let organizationInviteController = Controller.create(
+export let organizationInviteManagementController = Controller.create(
   {
     name: 'Organization Invite',
     description: 'Read and write organization invite information'

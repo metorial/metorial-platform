@@ -1,0 +1,59 @@
+import { serverListingCollectionService } from '@metorial/module-catalog';
+import { Paginator } from '@metorial/pagination';
+import { Controller } from '@metorial/rest';
+import { v } from '@metorial/validation';
+import { apiGroup } from '../../middleware/apiGroup';
+import { instancePath } from '../../middleware/instanceGroup';
+import { serverListingCollectionPresenter } from '../../presenters';
+
+export let serverListingCollectionGroup = apiGroup.use(async ctx => {
+  let serverListingCollection =
+    await serverListingCollectionService.getServerListingCollectionById({
+      serverListingCollectionId: ctx.params.serverListingCollectionId
+    });
+
+  return { serverListingCollection };
+});
+
+export let serverListingCollectionController = Controller.create(
+  {
+    name: 'Server Collection',
+    description: 'Read and write server version information'
+  },
+  {
+    list: apiGroup
+      .get(instancePath('server-listing-collections', 'servers.listings.collections.list'), {
+        name: 'List server versions',
+        description: 'List all server versions'
+      })
+      .outputList(serverListingCollectionPresenter)
+      .query('default', Paginator.validate(v.object({})))
+      .do(async ctx => {
+        let paginator = await serverListingCollectionService.listServerListingCollections({});
+
+        let list = await paginator.run(ctx.query);
+
+        return Paginator.present(list, collection =>
+          serverListingCollectionPresenter.present({ collection })
+        );
+      }),
+
+    get: serverListingCollectionGroup
+      .get(
+        instancePath(
+          'server-listing-collections/:serverListingCollectionId',
+          'servers.listings.collections.get'
+        ),
+        {
+          name: 'Get server version',
+          description: 'Get the information of a specific server version'
+        }
+      )
+      .output(serverListingCollectionPresenter)
+      .do(async ctx => {
+        return serverListingCollectionPresenter.present({
+          collection: ctx.serverListingCollection
+        });
+      })
+  }
+);

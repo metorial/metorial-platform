@@ -8,7 +8,7 @@ import {
 } from '../../middleware/organizationGroup';
 import { instancePresenter } from '../../presenters';
 
-export let instanceController = Controller.create(
+export let instanceManagementController = Controller.create(
   {
     name: 'Instance',
     description: 'Read and write instance information'

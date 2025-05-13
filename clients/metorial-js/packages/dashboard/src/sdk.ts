@@ -1,6 +1,15 @@
 import {
   MetorialApiKeysEndpoint,
   MetorialDashboardEndpoint,
+  MetorialDashboardFilesEndpoint,
+  MetorialDashboardFilesLinksEndpoint,
+  MetorialDashboardInstanceSecretsEndpoint,
+  MetorialDashboardInstanceServersEndpoint,
+  MetorialDashboardInstanceServersListingsCategoriesEndpoint,
+  MetorialDashboardInstanceServersListingsCollectionsEndpoint,
+  MetorialDashboardInstanceServersListingsEndpoint,
+  MetorialDashboardInstanceServersVariantsEndpoint,
+  MetorialDashboardInstanceServersVersionsEndpoint,
   MetorialDashboardOrganizationsEndpoint,
   MetorialDashboardOrganizationsInstancesEndpoint,
   MetorialDashboardOrganizationsInvitesEndpoint,
@@ -8,21 +17,21 @@ import {
   MetorialDashboardOrganizationsMembersEndpoint,
   MetorialDashboardOrganizationsProjectsEndpoint,
   MetorialManagementUserEndpoint
-} from '@metorial/core';
+} from '@metorial/core/src/mt_2025_01_01_dashboard';
 import { MetorialAuthEndpoint } from './auth';
 import { MetorialKeyPrefix, sdkBuilder } from './builder';
 
 export let createMetorialDashboardSDK = sdkBuilder.build(
   (soft: {
     apiKey?: `${MetorialKeyPrefix}${string}` | string;
-    apiVersion?: '2025-01-01-pulsar';
+    apiVersion?: '2025-01-01-dashboard';
     headers?: Record<string, string>;
     apiHost?: string;
     organizationId?: string;
     instanceId?: string;
   }) => ({
     ...soft,
-    apiVersion: '2025-01-01-pulsar'
+    apiVersion: '2025-01-01-dashboard'
   })
 )(manager => ({
   organizations: Object.assign(new MetorialDashboardOrganizationsEndpoint(manager), {
@@ -39,7 +48,23 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
   auth: new MetorialAuthEndpoint(manager),
 
-  dashboard: new MetorialDashboardEndpoint(manager)
+  dashboard: new MetorialDashboardEndpoint(manager),
+
+  files: Object.assign(new MetorialDashboardFilesEndpoint(manager), {
+    links: new MetorialDashboardFilesLinksEndpoint(manager)
+  }),
+
+  secrets: new MetorialDashboardInstanceSecretsEndpoint(manager),
+
+  servers: Object.assign(new MetorialDashboardInstanceServersEndpoint(manager), {
+    listings: Object.assign(new MetorialDashboardInstanceServersListingsEndpoint(manager), {
+      collections: new MetorialDashboardInstanceServersListingsCollectionsEndpoint(manager),
+      categories: new MetorialDashboardInstanceServersListingsCategoriesEndpoint(manager)
+    }),
+
+    variants: new MetorialDashboardInstanceServersVariantsEndpoint(manager),
+    versions: new MetorialDashboardInstanceServersVersionsEndpoint(manager)
+  })
 }));
 
 export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>;

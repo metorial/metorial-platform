@@ -114,7 +114,7 @@ export let fileApi = createHono()
       filePresenter
         .present({
           file: createdFile
-        })({ accessType: 'organization_management', apiVersion: 'v_2025_01_01_pulsar' })
+        })({ accessType: 'organization_management', apiVersion: 'mt_2025_01_01_pulsar' })
         .run({})
     );
   });

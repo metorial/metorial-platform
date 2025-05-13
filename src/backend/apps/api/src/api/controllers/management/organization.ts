@@ -4,7 +4,7 @@ import { v } from '@metorial/validation';
 import { organizationGroup } from '../../middleware/organizationGroup';
 import { organizationPresenter } from '../../presenters';
 
-export let organizationController = Controller.create(
+export let organizationManagementController = Controller.create(
   {
     name: 'Organization',
     description: 'Read and write organization information'

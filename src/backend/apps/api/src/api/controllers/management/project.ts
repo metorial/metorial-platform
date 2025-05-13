@@ -8,7 +8,7 @@ import {
 } from '../../middleware/organizationGroup';
 import { projectPresenter } from '../../presenters';
 
-export let projectController = Controller.create(
+export let projectManagementController = Controller.create(
   {
     name: 'Project',
     description: 'Read and write project information'

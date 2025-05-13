@@ -4,6 +4,9 @@ import {
   File,
   FileLink,
   FilePurpose,
+  ImportedRepository,
+  ImportedServer,
+  ImportedServerVendor,
   Instance,
   MachineAccess,
   Organization,
@@ -13,6 +16,13 @@ import {
   Project,
   Secret,
   SecretType,
+  Server,
+  ServerConfig,
+  ServerListing,
+  ServerListingCategory,
+  ServerListingCollection,
+  ServerVariant,
+  ServerVersion,
   User
 } from '@metorial/db';
 import { PresentableType } from '@metorial/presenter';
@@ -93,5 +103,51 @@ export let fileLinkType = PresentableType.create<{
 }>()('fileLink');
 
 export let secretType = PresentableType.create<{
-  secret: Secret & { type: SecretType; organization: Organization };
+  secret: Secret & { type: SecretType; organization: Organization; instance: Instance };
 }>()('secret');
+
+export let serverType = PresentableType.create<{
+  server: Server & {
+    importedServer: ImportedServer | null;
+    variants: (ServerVariant & {
+      currentVersion: (ServerVersion & { config: ServerConfig }) | null;
+    })[];
+  };
+}>()('server');
+
+export let serverListingCategoryType = PresentableType.create<{
+  category: ServerListingCategory;
+}>()('server_listing_category');
+
+export let serverListingCollectionType = PresentableType.create<{
+  collection: ServerListingCollection;
+}>()('server_listing_collection');
+
+export let serverVariantType = PresentableType.create<{
+  serverVariant: ServerVariant & {
+    currentVersion: (ServerVersion & { config: ServerConfig }) | null;
+    server: Server;
+  };
+}>()('server_variant');
+
+export let serverVersionType = PresentableType.create<{
+  serverVersion: ServerVersion & {
+    server: Server;
+    serverVariant: ServerVariant;
+    config: ServerConfig;
+  };
+}>()('server_version');
+
+export let serverListingType = PresentableType.create<{
+  serverListing: ServerListing & {
+    categories: ServerListingCategory[];
+    server: Server & {
+      importedServer:
+        | (ImportedServer & {
+            vendor: ImportedServerVendor;
+            repository: ImportedRepository | null;
+          })
+        | null;
+    };
+  };
+}>()('server_listing');
