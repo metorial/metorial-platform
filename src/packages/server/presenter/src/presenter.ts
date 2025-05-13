@@ -2,7 +2,7 @@ import { introspectType, ValidationType } from '@metorial/validation';
 
 export interface PresenterContext {
   // instance: Instance;
-  apiVersion: 'v_2025_01_01_pulsar';
+  apiVersion: 'mt_2025_01_01_pulsar' | 'mt_2025_01_01_dashboard';
   accessType:
     | 'instance_secret'
     | 'instance_publishable'
@@ -166,7 +166,8 @@ export class PresenterBuilder<Type extends PresentableType<any, any>, Output ext
 export let declarePresenter = <Type extends PresentableType<any, any>>(
   type: Type,
   presenters: {
-    v_2025_01_01_pulsar: Presenter<Type, any>;
+    mt_2025_01_01_pulsar: Presenter<Type, any>;
+    mt_2025_01_01_dashboard: Presenter<Type, any>;
   }
 ) => ({
   type,

@@ -8,17 +8,23 @@ model ImportedServer {
   repositoryOid BigInt?
   repository    ImportedRepository? @relation(fields: [repositoryOid], references: [oid])
 
-  serverOid String @unique
-  server    Server @relation(fields: [serverOid], references: [id])
+  serverOid BigInt @unique
+  server    Server @relation(fields: [serverOid], references: [oid])
 
+  identifier String @unique
+  fullSlug   String @unique
   slug       String
-  fullSlug   String  @unique
-  identifier String? @unique
 
   name        String
   description String?
 
   subdirectory String?
+
+  isOfficial  Boolean
+  isCommunity Boolean
+  isHostable  Boolean
+
+  readme String?
 
   /// [ServerAttributes]
   attributes Json

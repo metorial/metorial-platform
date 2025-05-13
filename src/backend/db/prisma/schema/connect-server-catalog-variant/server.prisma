@@ -7,9 +7,19 @@ model Server {
   id   String     @unique
   type ServerType
 
+  name        String?
+  description String?
+
   importedServer ImportedServer?
 
-  variant  ServerVariant[]
+  ownerOrganizationOid BigInt?
+  ownerOrganization    Organization? @relation(fields: [ownerOrganizationOid], references: [oid])
+
+  variants ServerVariant[]
   versions ServerVersion[]
   configs  ServerConfig[]
+  listings ServerListing[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }

@@ -49,7 +49,15 @@ export class Paginator<T> {
         order: v.optional(v.enumOf(['asc', 'desc']))
       }),
       inner ?? v.object({})
-    ]);
+    ]) as ValidationType<
+      Inner & {
+        limit?: number;
+        after?: string;
+        before?: string;
+        cursor?: string;
+        order?: 'asc' | 'desc';
+      }
+    >;
   }
 
   static present<T, R>(

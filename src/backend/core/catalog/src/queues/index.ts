@@ -1,0 +1,38 @@
+import { db } from '@metorial/db';
+import { searchService } from '@metorial/module-search';
+import { createQueue } from '@metorial/queue';
+
+export let indexServerListingQueue = createQueue<{ serverListingId: string }>({
+  name: 'cat/index/srvlst',
+  workerOpts: {
+    concurrency: 1
+  }
+});
+
+export let indexServerListingQueueProcessor = indexServerListingQueue.process(async data => {
+  let server = await db.serverListing.findFirst({
+    where: {
+      id: data.serverListingId
+    },
+    include: {
+      categories: true,
+      collections: true
+    }
+  });
+  if (!server) return;
+
+  await searchService.indexDocument({
+    index: 'server_listing',
+    document: {
+      id: server.id,
+      name: server.name,
+      description: server.description,
+      readme: server.readme,
+
+      categories: server.categories.map(c => ({
+        id: c.id,
+        name: c.name
+      }))
+    }
+  });
+});

@@ -1,12 +1,6 @@
-enum ServerProviderType {
-  hosted
-  external
-}
-
 model ServerVariantProvider {
-  oid          BigInt             @id @default(autoincrement())
-  id           String             @unique
-  providerType ServerProviderType
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
 
   identifier  String  @unique
   name        String

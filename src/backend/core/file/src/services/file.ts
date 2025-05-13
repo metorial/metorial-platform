@@ -1,4 +1,4 @@
-import { db, File, ID, Organization, User } from '@metorial/db';
+import { db, File, ID, Instance, Organization, User } from '@metorial/db';
 import { badRequestError, forbiddenError, notFoundError, ServiceError } from '@metorial/error';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -12,6 +12,11 @@ export type FileOwner =
   | {
       type: 'organization';
       organization: Organization;
+    }
+  | {
+      type: 'instance';
+      organization: Organization;
+      instance: Instance;
     };
 
 class FileServiceImpl {
@@ -82,7 +87,7 @@ class FileServiceImpl {
         // organizationOid: d.owner.type === 'organization' ? d.owner.organization.oid : null,
         // userOid: d.owner.type === 'user' ? d.owner.user.oid : null
 
-        ...(d.owner.type === 'organization'
+        ...(d.owner.type === 'organization' || d.owner.type === 'instance'
           ? {
               organizationOid: d.owner.organization.oid
             }

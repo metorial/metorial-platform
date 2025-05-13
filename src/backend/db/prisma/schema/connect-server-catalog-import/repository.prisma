@@ -2,31 +2,48 @@ model ImportedRepository {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  vendorOid BigInt
-  vendor    ImportedServerVendor @relation(fields: [vendorOid], references: [oid])
-
-  provider               String
-  providerId             String
-  providerFullIdentifier String
-  providerIdentifier     String
+  identifier String @unique
 
   slug String
   name String
 
-  stars    Int
-  forks    Int
-  watchers Int
+  providerUrl String
+  websiteUrl  String?
 
-  url String
+  provider String
+
+  providerId             String?
+  providerFullIdentifier String?
+  providerIdentifier     String?
+
+  providerOwnerId         String?
+  providerOwnerIdentifier String?
+  providerOwnerUrl        String?
+
+  isFork     Boolean
+  isArchived Boolean
+
+  starCount         Int
+  forkCount         Int
+  watcherCount      Int
+  openIssuesCount   Int
+  subscriptionCount Int
+  size              Int
+
+  defaultBranch String
+
+  licenseName   String?
+  licenseUrl    String?
+  licenseSpdxId String?
+
+  topics Json
 
   language    String?
   description String?
-  license     String?
 
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @default(now()) @updatedAt
-  ImportedServer ImportedServer[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  pushedAt  DateTime?
 
-  @@unique([vendorOid, provider, slug])
-  @@unique([vendorOid, provider, providerId])
+  servers ImportedServer[]
 }

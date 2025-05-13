@@ -10,5 +10,20 @@ model ServerVersion {
   serverVariantOid BigInt
   serverVariant    ServerVariant @relation(fields: [serverVariantOid], references: [oid])
 
+  configOid BigInt
+  config    ServerConfig @relation(fields: [configOid], references: [oid])
+
+  getLaunchParams String
+
+  sourceType  PublicServerVariantSourceType
+  dockerImage String?
+  dockerTag   String?
+
+  remoteUrl String?
+
+  currentConfigFor ServerVariant[] @relation("ServerVariantCurrentServerConfig")
+
   createdAt DateTime @default(now())
+
+  @@unique([identifier, serverVariantOid])
 }

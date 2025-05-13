@@ -1,6 +1,7 @@
 enum FilePurposeOwnerType {
   user
   organization
+  instance
 }
 
 enum FileStatus {
@@ -41,6 +42,9 @@ model File {
 
   organizationOid BigInt?
   organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   title String?
 

@@ -1,6 +1,7 @@
 import {
   db,
   ID,
+  Instance,
   Organization,
   OrganizationActor,
   Secret,
@@ -26,6 +27,7 @@ class SecretServiceImpl {
 
   async createSecret(d: {
     organization: Organization;
+    instance: Instance;
     performedBy: OrganizationActor;
     input: {
       type: SecretType;
@@ -51,6 +53,7 @@ class SecretServiceImpl {
       typeOid: type.oid,
       storeOid: storeDefinition.oid,
       organizationOid: d.organization.oid,
+      instanceOid: d.instance.oid,
       createdAt: new Date(),
       lastUsedAt: null,
       encryptedData: null
@@ -66,6 +69,7 @@ class SecretServiceImpl {
         },
         include: {
           type: true,
+          instance: true,
           organization: true
         }
       });
@@ -84,17 +88,18 @@ class SecretServiceImpl {
     });
   }
 
-  async getSecretById(d: { secretId: string | bigint; organization: Organization }) {
+  async getSecretById(d: { secretId: string | bigint; instance: Instance }) {
     let secret = await db.secret.findFirst({
       where: {
         id: typeof d.secretId === 'string' ? d.secretId : undefined,
         oid: typeof d.secretId === 'bigint' ? d.secretId : undefined,
 
-        organizationOid: d.organization.oid
+        instanceOid: d.instance.oid
       },
       include: {
         type: true,
         store: true,
+        instance: true,
         organization: true
       }
     });
@@ -104,11 +109,7 @@ class SecretServiceImpl {
     return secret;
   }
 
-  async deleteSecret(d: {
-    secret: Secret;
-    performedBy: OrganizationActor;
-    organization: Organization;
-  }) {
+  async deleteSecret(d: { secret: Secret; performedBy: OrganizationActor }) {
     await this.ensureSecretActive(d.secret);
 
     return withTransaction(async db => {
@@ -127,26 +128,28 @@ class SecretServiceImpl {
         data: { status: 'deleted', encryptedData: null },
         include: {
           type: true,
+          instance: true,
           organization: true
         }
       });
     });
   }
 
-  async listSecrets(d: { organization: Organization; type?: SecretType }) {
+  async listSecrets(d: { instance: Instance; type?: SecretType }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.secret.findMany({
             ...opts,
             where: {
-              organizationOid: d.organization.oid,
+              instanceOid: d.instance.oid,
               status: 'active',
 
               type: d.type ? { slug: d.type } : undefined
             },
             include: {
               type: true,
+              instance: true,
               organization: true
             }
           })
@@ -157,13 +160,13 @@ class SecretServiceImpl {
   async DANGEROUSLY_readSecretValue(d: {
     secretId: string | bigint;
     performedBy: OrganizationActor;
-    organization: Organization;
+    instance: Instance;
     type: SecretType;
     metadata?: Record<string, any>;
   }) {
     let secret = await this.getSecretById({
       secretId: d.secretId,
-      organization: d.organization
+      instance: d.instance
     });
 
     await this.ensureSecretActive(secret);

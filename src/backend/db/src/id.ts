@@ -28,5 +28,22 @@ export let ID = createIdGenerator({
   secretType: idType.sorted('sty'),
   secret: idType.sorted('sec'),
   secretStore: idType.sorted('sst'),
-  secretEvent: idType.sorted('sev')
+  secretEvent: idType.sorted('sev'),
+
+  importedServerVendor: idType.sorted('iven'),
+  importedServer: idType.sorted('isrv'),
+  importedRepository: idType.sorted('irep'),
+
+  serverListing: idType.sorted('sli'),
+  serverListingCategory: idType.sorted('slca'),
+  serverListingCollection: idType.sorted('slco'),
+
+  serverConfig: idType.sorted('sco'),
+  serverVariantProvider: idType.sorted('svpo'),
+
+  server: idType.sorted('srv'),
+  serverVariant: idType.sorted('svar'),
+  serverVersion: idType.sorted('sver'),
+
+  profile: idType.sorted('prf')
 });

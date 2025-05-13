@@ -19,5 +19,9 @@ declare global {
       | { type: 'file'; fileId: string; fileLinkId: string; url: string }
       | { type: 'url'; url: string }
       | { type: 'default' };
+
+    type ServerEntityAttributes = {
+      websiteUrl?: string;
+    };
   }
 }

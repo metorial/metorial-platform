@@ -18,6 +18,5 @@ model ImportedServerVendor {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  repositories ImportedRepository[]
-  servers      ImportedServer[]
+  servers ImportedServer[]
 }

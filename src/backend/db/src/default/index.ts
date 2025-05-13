@@ -1,4 +1,4 @@
+export * from './catalog';
 export * from './emailIdentity';
 export * from './filePurpose';
-export * from './secretStore';
-export * from './secretType';
+export * from './secret';

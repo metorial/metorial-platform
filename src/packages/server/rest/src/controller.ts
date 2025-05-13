@@ -271,7 +271,7 @@ export class Handler<
       // @ts-ignore
       this._validationQuery = validation;
     } else {
-      this._specificBodies.set(version, {
+      this._specificQueries.set(version, {
         validation,
         mapper
       });

@@ -86,7 +86,10 @@ class AccessService {
 
       return {
         type: 'actor' as const,
-        instance,
+        instance: {
+          ...instance,
+          organization: d.authInfo.restrictions.organization
+        },
         organization: d.authInfo.restrictions.organization,
         actor: d.authInfo.restrictions.actor,
         project: instance.project

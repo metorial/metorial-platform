@@ -29,4 +29,6 @@ model Instance {
   updatedAt DateTime  @default(now()) @updatedAt
 
   machineAccesses MachineAccess[]
+  files           File[]
+  secrets         Secret[]
 }
