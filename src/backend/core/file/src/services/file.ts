@@ -141,6 +141,12 @@ class FileServiceImpl {
   }
 
   async deleteFile(d: { file: File }) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'You cannot delete this file'
+      })
+    );
+
     await this.ensureFileActive(d.file);
 
     return await db.file.update({

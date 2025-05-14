@@ -1,40 +1,23 @@
 import { fileService, purposeSlugs } from '@metorial/module-file';
-import { organizationService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
-import { Controller, Path } from '@metorial/rest';
+import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
-import { apiGroup } from '../../middleware/apiGroup';
 import { checkAccess } from '../../middleware/checkAccess';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { filePresenter } from '../../presenters';
 
-export let fileGroup = apiGroup.use(async ctx => {
+export let fileGroup = instanceGroup.use(async ctx => {
   let file = await fileService.getFileById({
     fileId: ctx.params.fileId,
-    owner:
-      ctx.auth.type == 'machine'
-        ? ctx.auth.restrictions.type == 'organization'
-          ? {
-              type: 'organization',
-              organization: ctx.auth.restrictions.organization
-            }
-          : {
-              type: 'instance',
-              instance: ctx.auth.restrictions.instance,
-              organization: ctx.auth.restrictions.organization
-            }
-        : {
-            type: 'user',
-            user: ctx.auth.user
-          }
+    owner: {
+      type: 'instance',
+      instance: ctx.instance,
+      organization: ctx.organization
+    }
   });
 
   return { file };
 });
-
-export let filePath = (path: string, sdkPath: string) => [
-  Path(`/files${path}`, `files.${sdkPath}`),
-  Path(`/dashboard/files${path}`, `dashboard.files.${sdkPath}`)
-];
 
 export let fileController = Controller.create(
   {
@@ -42,8 +25,8 @@ export let fileController = Controller.create(
     description: 'Read and write file information'
   },
   {
-    list: apiGroup
-      .get(filePath('', 'list'), {
+    list: instanceGroup
+      .get(instancePath('files', 'list'), {
         name: 'List  files',
         description: 'List all  files'
       })
@@ -60,26 +43,11 @@ export let fileController = Controller.create(
       )
       .do(async ctx => {
         let paginator = await fileService.listFiles({
-          owner:
-            ctx.auth.type == 'machine'
-              ? {
-                  type: 'organization',
-                  organization: ctx.auth.restrictions.organization
-                }
-              : (ctx.query as any).organization_id
-                ? {
-                    type: 'organization',
-                    organization: (
-                      await organizationService.getOrganizationByIdForUser({
-                        organizationId: (ctx.query as any).organization_id,
-                        user: ctx.auth.user
-                      })
-                    ).organization
-                  }
-                : {
-                    type: 'user',
-                    user: ctx.auth.user
-                  }
+          owner: {
+            type: 'instance',
+            instance: ctx.instance,
+            organization: ctx.organization
+          }
         });
 
         let list = await paginator.run(ctx.query);
@@ -88,7 +56,7 @@ export let fileController = Controller.create(
       }),
 
     get: fileGroup
-      .get(filePath('/:fileId', 'get'), {
+      .get(instancePath('files/:fileId', 'get'), {
         name: 'Get file',
         description: 'Get the information of a specific file'
       })
@@ -99,7 +67,7 @@ export let fileController = Controller.create(
       }),
 
     update: fileGroup
-      .patch(filePath('/:fileId', 'update'), {
+      .patch(instancePath('files/:fileId', 'update'), {
         name: 'Update file',
         description: 'Update the information of a specific file'
       })
@@ -123,7 +91,7 @@ export let fileController = Controller.create(
       }),
 
     delete: fileGroup
-      .delete(filePath('/:fileId', 'delete'), {
+      .delete(instancePath('files/:fileId', 'delete'), {
         name: 'Delete file',
         description: 'Delete a specific file'
       })

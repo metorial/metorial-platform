@@ -3,8 +3,9 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
+import { instancePath } from '../../middleware/instanceGroup';
 import { fileLinkPresenter, filePresenter } from '../../presenters';
-import { fileGroup, filePath } from './file';
+import { fileGroup } from './file';
 
 let fileLinkGroup = fileGroup.use(async ctx => {
   let fileLink = await fileLinkService.getFileLinkById({
@@ -22,7 +23,7 @@ export let fileLinkController = Controller.create(
   },
   {
     list: fileGroup
-      .get(filePath('/:fileId/links', 'links.list'), {
+      .get(instancePath('files/:fileId/links', 'links.list'), {
         name: 'List file links',
         description: 'List all file links'
       })
@@ -39,7 +40,7 @@ export let fileLinkController = Controller.create(
       }),
 
     get: fileLinkGroup
-      .get(filePath('/:fileId/links/:linkId', 'links.get'), {
+      .get(instancePath('files/:fileId/links/:linkId', 'links.get'), {
         name: 'Get file link',
         description: 'Get the information of a specific file link'
       })
@@ -50,7 +51,7 @@ export let fileLinkController = Controller.create(
       }),
 
     create: fileGroup
-      .post(filePath('/:fileId/links', 'links.create'), {
+      .post(instancePath('files/:fileId/links', 'links.create'), {
         name: 'Create file link',
         description: 'Create a new file link'
       })
@@ -76,7 +77,7 @@ export let fileLinkController = Controller.create(
       }),
 
     update: fileLinkGroup
-      .patch(filePath('/:fileId/links/:linkId', 'links.update'), {
+      .patch(instancePath('files/:fileId/links/:linkId', 'links.update'), {
         name: 'Update file link',
         description: 'Update the information of a specific file link'
       })
@@ -102,7 +103,7 @@ export let fileLinkController = Controller.create(
       }),
 
     delete: fileLinkGroup
-      .delete(filePath('/:fileId/links/:linkId', 'links.delete'), {
+      .delete(instancePath('files/:fileId/links/:linkId', 'links.delete'), {
         name: 'Delete file link',
         description: 'Delete a specific file link'
       })
