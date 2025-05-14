@@ -1,0 +1,36 @@
+enum ServerDeploymentStatus {
+  active
+  archived
+  deleted
+}
+
+model ServerDeployment {
+  oid         BigInt                 @id @default(autoincrement())
+  id          String                 @unique
+  status      ServerDeploymentStatus
+  isEphemeral Boolean
+
+  name        String?
+  description String?
+
+  metadata Json?
+
+  serverInstanceOid BigInt
+  serverInstance    ServerInstance @relation(fields: [serverInstanceOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  configOid BigInt
+  config    ServerConfig @relation(fields: [configOid], references: [oid])
+
+  configSecretOid BigInt
+  configSecret    Secret @relation(fields: [configSecretOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}

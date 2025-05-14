@@ -1,0 +1,30 @@
+enum UploadStatus {
+  active
+  completed
+  canceled
+  used
+}
+
+model Upload {
+  oid    BigInt     @id @default(autoincrement())
+  id     String     @unique
+  status FileStatus @default(active)
+
+  storeId String @unique
+
+  fileName String?
+  fileSize Int?
+  fileType String?
+
+  userOid BigInt?
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt?
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

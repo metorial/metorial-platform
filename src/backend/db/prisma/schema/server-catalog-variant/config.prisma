@@ -4,7 +4,8 @@ model ServerConfig {
 
   fingerprint String
 
-  config Json
+  /// [ServerConfigSchema]
+  schema Json
 
   serverVariantOid BigInt
   serverVariant    ServerVariant @relation(fields: [serverVariantOid], references: [oid])
@@ -14,7 +15,8 @@ model ServerConfig {
 
   createdAt DateTime @default(now())
 
-  versions ServerVersion[]
+  versions    ServerVersion[]
+  deployments ServerDeployment[]
 
   @@unique([fingerprint, serverOid])
 }

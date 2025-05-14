@@ -15,7 +15,7 @@ model ServerVersion {
 
   getLaunchParams String
 
-  sourceType  PublicServerVariantSourceType
+  sourceType  ServerVariantSourceType
   dockerImage String?
   dockerTag   String?
 

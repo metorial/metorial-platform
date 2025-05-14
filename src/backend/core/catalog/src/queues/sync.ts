@@ -369,7 +369,8 @@ let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) =>
     (await db.server.create({
       data: {
         id: await ID.generateId('server'),
-        type: 'imported'
+        type: 'imported',
+        name: server.name
       }
     }));
 
@@ -415,76 +416,79 @@ let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) =>
     }
   }));
 
-  for (let variant of variants) {
-    let versions = index
-      .query<
-        {
-          identifier: string;
-          sourceType: 'docker' | 'remote';
-          dockerImage: string | null;
-          dockerTag: string | null;
-          remoteUrl: string | null;
-          config: any;
-          getLaunchParams: string;
-          createdAt: string;
-        },
-        any
-      >('SELECT * FROM PublicServerVariantVersion WHERE variantIdentifier = ?')
-      .all(variant.identifier);
+  // Only create variants if the server is hostable
+  if (ourServer.isHostable) {
+    for (let variant of variants) {
+      let versions = index
+        .query<
+          {
+            identifier: string;
+            sourceType: 'docker' | 'remote';
+            dockerImage: string | null;
+            dockerTag: string | null;
+            remoteUrl: string | null;
+            config: any;
+            getLaunchParams: string;
+            createdAt: string;
+          },
+          any
+        >('SELECT * FROM PublicServerVariantVersion WHERE variantIdentifier = ?')
+        .all(variant.identifier);
 
-    let provider = await db.serverVariantProvider.findUniqueOrThrow({
-      where: { identifier: variant.providerIdentifier }
-    });
+      let provider = await db.serverVariantProvider.findUniqueOrThrow({
+        where: { identifier: variant.providerIdentifier }
+      });
 
-    let ourVariant = await ensureServerVariant(() => ({
-      identifier: variant.identifier,
+      let ourVariant = await ensureServerVariant(() => ({
+        identifier: variant.identifier,
 
-      serverOid: baseServer.oid,
-      providerOid: provider.oid,
-
-      sourceType: variant.sourceType,
-      dockerImage: variant.dockerImage,
-      remoteUrl: variant.remoteUrl
-    }));
-
-    let currentVersion: null | ServerVersion = null;
-
-    for (let version of versions) {
-      let config = await ensureServerConfig(async () => ({
-        fingerprint: await Hash.sha256(canonicalize(version.config)),
-        config: version.config,
         serverOid: baseServer.oid,
-        serverVariantOid: ourVariant.oid
+        providerOid: provider.oid,
+
+        sourceType: variant.sourceType,
+        dockerImage: variant.dockerImage,
+        remoteUrl: variant.remoteUrl
       }));
 
-      let ourVersion = await ensureServerVersion(() => ({
-        identifier: version.identifier,
+      let currentVersion: null | ServerVersion = null;
 
-        configOid: config.oid,
-        serverOid: baseServer.oid,
-        serverVariantOid: ourVariant.oid,
+      for (let version of versions) {
+        let config = await ensureServerConfig(async () => ({
+          fingerprint: await Hash.sha256(canonicalize(version.config)),
+          schema: version.config,
+          serverOid: baseServer.oid,
+          serverVariantOid: ourVariant.oid
+        }));
 
-        sourceType: version.sourceType,
-        dockerImage: version.dockerImage,
-        remoteUrl: version.remoteUrl,
+        let ourVersion = await ensureServerVersion(() => ({
+          identifier: version.identifier,
 
-        getLaunchParams: version.getLaunchParams,
+          configOid: config.oid,
+          serverOid: baseServer.oid,
+          serverVariantOid: ourVariant.oid,
 
-        createdAt: new Date(version.createdAt)
-      }));
+          sourceType: version.sourceType,
+          dockerImage: version.dockerImage,
+          remoteUrl: version.remoteUrl,
 
-      if (
-        !currentVersion ||
-        currentVersion.createdAt.getTime() < ourVersion.createdAt.getTime()
-      ) {
-        currentVersion = ourVersion;
+          getLaunchParams: version.getLaunchParams,
+
+          createdAt: new Date(version.createdAt)
+        }));
+
+        if (
+          !currentVersion ||
+          currentVersion.createdAt.getTime() < ourVersion.createdAt.getTime()
+        ) {
+          currentVersion = ourVersion;
+        }
       }
-    }
 
-    await db.serverVariant.update({
-      where: { oid: ourVariant.oid },
-      data: { currentVersionOid: currentVersion?.oid ?? null }
-    });
+      await db.serverVariant.update({
+        where: { oid: ourVariant.oid },
+        data: { currentVersionOid: currentVersion?.oid ?? null }
+      });
+    }
   }
 
   await indexServerListingQueue.add({

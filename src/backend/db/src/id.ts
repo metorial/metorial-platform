@@ -39,11 +39,14 @@ export let ID = createIdGenerator({
   serverListingCollection: idType.sorted('slco'),
 
   serverConfig: idType.sorted('sco'),
-  serverVariantProvider: idType.sorted('svpo'),
+  serverVariantProvider: idType.sorted('svp'),
 
   server: idType.sorted('srv'),
-  serverVariant: idType.sorted('svar'),
-  serverVersion: idType.sorted('sver'),
+  serverVariant: idType.sorted('sva'),
+  serverVersion: idType.sorted('sve'),
+
+  serverInstance: idType.sorted('svi'),
+  serverDeployment: idType.sorted('svd'),
 
   profile: idType.sorted('prf')
 });

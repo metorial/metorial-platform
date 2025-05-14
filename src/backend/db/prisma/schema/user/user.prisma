@@ -33,6 +33,7 @@ model User {
   access   MachineAccess[]
   files    File[]
   profile  Profile?
+  uploads  Upload[]
 }
 
 model UserSession {

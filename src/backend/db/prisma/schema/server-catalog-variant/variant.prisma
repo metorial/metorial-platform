@@ -1,4 +1,4 @@
-enum PublicServerVariantSourceType {
+enum ServerVariantSourceType {
   docker
   remote
 }
@@ -18,13 +18,14 @@ model ServerVariant {
   currentVersionOid BigInt?
   currentVersion    ServerVersion? @relation(fields: [currentVersionOid], references: [oid], name: "ServerVariantCurrentServerConfig")
 
-  sourceType PublicServerVariantSourceType
+  sourceType ServerVariantSourceType
 
   dockerImage String?
   remoteUrl   String?
 
-  versions ServerVersion[]
-  configs  ServerConfig[]
+  versions  ServerVersion[]
+  configs   ServerConfig[]
+  instances ServerInstance[]
 
   createdAt DateTime @default(now())
 }

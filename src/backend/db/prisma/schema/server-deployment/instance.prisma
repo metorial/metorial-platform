@@ -1,0 +1,34 @@
+enum ServerInstanceStatus {
+  active
+  archived
+  deleted
+}
+
+model ServerInstance {
+  oid         BigInt               @id @default(autoincrement())
+  id          String               @unique
+  status      ServerInstanceStatus
+  isEphemeral Boolean
+
+  name        String?
+  description String?
+
+  metadata Json?
+
+  getLaunchParams String?
+
+  serverVariantOid BigInt
+  serverVariant    ServerVariant @relation(fields: [serverVariantOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  deployment ServerDeployment[]
+}

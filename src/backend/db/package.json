@@ -9,10 +9,11 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
+    "@metorial/config": "^1.0.0",
     "@metorial/id": "^1.0.0",
     "@metorial/presenter": "^1.0.0",
-    "@metorial/config": "^1.0.0",
     "@prisma/client": "^6.7.0",
+    "json-schema": "^0.4.0",
     "prisma": "^6.7.0",
     "prisma-json-types-generator": "^3.2.2"
   },

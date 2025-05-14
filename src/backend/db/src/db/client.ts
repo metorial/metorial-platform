@@ -1,3 +1,4 @@
+import type { JSONSchema4, JSONSchema6, JSONSchema7 } from 'json-schema';
 import { PrismaClient } from '../../prisma/generated';
 export * from '../../prisma/generated';
 
@@ -23,5 +24,7 @@ declare global {
     type ServerEntityAttributes = {
       websiteUrl?: string;
     };
+
+    type ServerConfigSchema = JSONSchema4 | JSONSchema6 | JSONSchema7;
   }
 }

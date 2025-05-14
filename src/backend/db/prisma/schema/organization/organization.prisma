@@ -40,4 +40,5 @@ model Organization {
   secrets         Secret[]
   profile         Profile?
   servers         Server[]
+  uploads         Upload[]
 }

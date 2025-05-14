@@ -1,5 +1,5 @@
-import { db, Server } from '@metorial/db';
-import { notFoundError, ServiceError } from '@metorial/error';
+import { db, Instance, Server, ServerVariantSourceType } from '@metorial/db';
+import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 
@@ -12,11 +12,19 @@ let include = {
   server: true
 };
 
+let serverVariantSourceTypeOrder: ServerVariantSourceType[] = ['remote', 'docker'];
+
 class ServerVariantService {
-  async getServerVariantById(d: { serverVariantId: string; server: Server }) {
+  async getServerVariantById(
+    d: { serverVariantId: string } & ({ server: Server } | { instance: Instance })
+  ) {
     let serverVariant = await db.serverVariant.findFirst({
       where: {
-        serverOid: d.server.oid,
+        serverOid: 'server' in d ? d.server.oid : undefined,
+
+        // TODO: when we add private servers, we need to check the instance here
+        // OR: [{server: {type: 'imported'}}, {server: {type: 'instance', instanceOid: d.instance.oid}}],
+
         OR: [{ id: d.serverVariantId }, { identifier: d.serverVariantId }]
       },
       include
@@ -26,6 +34,45 @@ class ServerVariantService {
     }
 
     return serverVariant;
+  }
+
+  async getServerVariantByIdOrLatestServerVariant(d: {
+    serverVariantId?: string;
+    serverId?: string;
+    instance: Instance;
+  }) {
+    if (d.serverVariantId) {
+      return this.getServerVariantById({
+        serverVariantId: d.serverVariantId,
+        instance: d.instance
+      });
+    }
+
+    if (d.serverId) {
+      let allServerVariant = (
+        await db.serverVariant.findMany({
+          where: {
+            server: { id: d.serverId }
+          },
+          include: { server: true }
+        })
+      ).sort((a, b) => {
+        let aIndex = serverVariantSourceTypeOrder.indexOf(a.sourceType);
+        let bIndex = serverVariantSourceTypeOrder.indexOf(b.sourceType);
+
+        if (aIndex === bIndex) return a.id.localeCompare(b.id);
+
+        return aIndex - bIndex;
+      });
+
+      if (allServerVariant.length) return allServerVariant[0];
+    }
+
+    throw new ServiceError(
+      badRequestError({
+        message: 'No deployable server variant found'
+      })
+    );
   }
 
   async listServerVariants(d: { server: Server }) {

@@ -28,7 +28,10 @@ model Instance {
   deletedAt DateTime?
   updatedAt DateTime  @default(now()) @updatedAt
 
-  machineAccesses MachineAccess[]
-  files           File[]
-  secrets         Secret[]
+  machineAccesses   MachineAccess[]
+  files             File[]
+  secrets           Secret[]
+  serverInstances   ServerInstance[]
+  serverDeployments ServerDeployment[]
+  uploads           Upload[]
 }
