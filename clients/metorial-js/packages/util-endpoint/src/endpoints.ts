@@ -31,17 +31,6 @@ export class MetorialEndpointManager<Config> {
 
     let headers = new Headers(this.getHeaders?.(this.config) ?? {});
 
-    // 'Metorial-SDK': `${that.apiName}/${that.apiVersion}`,
-    // 'Metorial-Version': this.config.apiVersion!
-
-    // if ('apiKey' in this.config) {
-    //   headers.set('Authorization', `Bearer ${this.config.apiKey}`);
-    // }
-
-    // if ('clientSecret' in this.config.clientSecret) {
-    //   headers.set('Metorial-Client-Secret', this.config.clientSecret);
-    // }
-
     let hasBody = method === 'POST' || method === 'PUT' || method === 'PATCH';
     if (hasBody) {
       headers.set('Content-Type', 'application/json');
