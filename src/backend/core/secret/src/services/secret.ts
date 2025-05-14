@@ -5,6 +5,7 @@ import {
   Organization,
   OrganizationActor,
   Secret,
+  SecretStatus,
   withTransaction
 } from '@metorial/db';
 import { forbiddenError, notFoundError, ServiceError } from '@metorial/error';
@@ -135,7 +136,7 @@ class SecretServiceImpl {
     });
   }
 
-  async listSecrets(d: { instance: Instance; type?: SecretType }) {
+  async listSecrets(d: { instance: Instance; type?: SecretType[]; status?: SecretStatus[] }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -143,9 +144,9 @@ class SecretServiceImpl {
             ...opts,
             where: {
               instanceOid: d.instance.oid,
-              status: 'active',
 
-              type: d.type ? { slug: d.type } : undefined
+              status: d.status ? { in: d.status } : undefined,
+              type: d.type ? { slug: { in: d.type } } : undefined
             },
             include: {
               type: true,

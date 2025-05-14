@@ -28,7 +28,13 @@ let scopeRaw = [
   'instance.server:read' as const,
   'instance.server:write' as const,
 
-  'instance.server_listing:read' as const
+  'instance.server_listing:read' as const,
+
+  'instance.server.instance:read' as const,
+  'instance.server.instance:write' as const,
+
+  'instance.server.deployment:read' as const,
+  'instance.server.deployment:write' as const
 
   // 'organization.machine_access.api_key.organization:read' as const,
   // 'organization.machine_access.api_key.organization:write' as const,

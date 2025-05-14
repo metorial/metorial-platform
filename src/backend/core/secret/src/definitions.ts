@@ -1,9 +1,9 @@
 import { ensureSecretType } from '@metorial/db';
 
 export let secretTypes = {
-  server_instance_config: ensureSecretType(() => ({
-    slug: 'server_instance_config',
-    name: 'Server Instance Config'
+  server_deployment_config: ensureSecretType(() => ({
+    slug: 'server_deployment_config',
+    name: 'Server Deployment Config'
   }))
 };
 
