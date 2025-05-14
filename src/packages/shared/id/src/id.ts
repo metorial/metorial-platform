@@ -1,6 +1,7 @@
 import { Hash } from '@metorial/hash';
 import { customAlphabet } from 'nanoid';
 import short from 'short-uuid';
+import { Worker } from 'snowflake-uuid';
 
 let translator = short('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
 
@@ -12,6 +13,11 @@ let _defaultId = customAlphabet(
 let _code = customAlphabet('0123456789', 6);
 
 export let idTime = () => new Date().getTime().toString(36).padStart(9, '0');
+
+let snowflakeIdGenerator = new Worker(0, 1, {
+  workerIdBits: 10,
+  sequenceBits: 12
+});
 
 let seenPrefixes = new Set<string>();
 let checkPrefix = (prefix: string) => {
@@ -146,4 +152,10 @@ export let generateId = (prefix: string, length: number = 20) => {
 
 export let generateCode = (length: number = 6) => {
   return _code(length);
+};
+
+export let generateSnowflakeId = (prefix?: string) => {
+  if (prefix && !prefix.endsWith('_')) prefix = `${prefix}_`;
+
+  return `${prefix}${snowflakeIdGenerator.nextId().toString(36)}`;
 };

@@ -21,6 +21,7 @@
   "workspaces": [
     "clients/metorial-js/*/*",
     "scripts/*",
+    "src/*",
     "src/*/*",
     "src/*/*/*"
   ]
