@@ -38,7 +38,7 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
     config: {
       id: serverVersion.config.id,
       fingerprint: serverVersion.config.fingerprint,
-      config: serverVersion.config.config,
+      schema: serverVersion.config.schema,
 
       server_id: serverVersion.server.id,
       server_variant_id: serverVersion.serverVariant.id,
@@ -78,7 +78,7 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
       config: v.object({
         id: v.string(),
         fingerprint: v.string(),
-        config: v.record(v.any()),
+        schema: v.record(v.any()),
 
         server_id: v.string(),
         server_variant_id: v.string(),

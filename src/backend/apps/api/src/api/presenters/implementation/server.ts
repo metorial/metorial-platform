@@ -27,6 +27,8 @@ export let v1ServerPresenter = Presenter.create(serverType)
       )
     ),
 
+    metadata: server.metadata,
+
     created_at: server.createdAt,
     updated_at: server.updatedAt
   }))
@@ -40,6 +42,8 @@ export let v1ServerPresenter = Presenter.create(serverType)
       imported_server_id: v.nullable(v.string()),
 
       variants: v.array(v1ServerVariantPresenter.schema),
+
+      metadata: v.record(v.any()),
 
       created_at: v.date(),
       updated_at: v.date()

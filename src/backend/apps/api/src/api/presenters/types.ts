@@ -18,6 +18,8 @@ import {
   SecretType,
   Server,
   ServerConfig,
+  ServerDeployment,
+  ServerInstance,
   ServerListing,
   ServerListingCategory,
   ServerListingCollection,
@@ -117,18 +119,18 @@ export let serverType = PresentableType.create<{
 
 export let serverListingCategoryType = PresentableType.create<{
   category: ServerListingCategory;
-}>()('server_listing_category');
+}>()('server_listing.category');
 
 export let serverListingCollectionType = PresentableType.create<{
   collection: ServerListingCollection;
-}>()('server_listing_collection');
+}>()('server_listing.collection');
 
 export let serverVariantType = PresentableType.create<{
   serverVariant: ServerVariant & {
     currentVersion: (ServerVersion & { config: ServerConfig }) | null;
     server: Server;
   };
-}>()('server_variant');
+}>()('server.server_variant');
 
 export let serverVersionType = PresentableType.create<{
   serverVersion: ServerVersion & {
@@ -136,7 +138,7 @@ export let serverVersionType = PresentableType.create<{
     serverVariant: ServerVariant;
     config: ServerConfig;
   };
-}>()('server_version');
+}>()('server.server_version');
 
 export let serverListingType = PresentableType.create<{
   serverListing: ServerListing & {
@@ -151,3 +153,21 @@ export let serverListingType = PresentableType.create<{
     };
   };
 }>()('server_listing');
+
+export let serverInstanceType = PresentableType.create<{
+  serverInstance: ServerInstance & {
+    server: Server;
+    serverVariant: ServerVariant;
+  };
+}>()('server.server_instance');
+
+export let serverDeploymentType = PresentableType.create<{
+  serverDeployment: ServerDeployment & {
+    serverInstance: ServerInstance & {
+      server: Server;
+      serverVariant: ServerVariant;
+    };
+    server: Server;
+    configSecret: Secret;
+  };
+}>()('server.server_deployment');

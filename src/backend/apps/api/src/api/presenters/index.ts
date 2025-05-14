@@ -14,6 +14,8 @@ import { v1SecretPresenter } from './implementation/secret';
 import { v1ServerPresenter } from './implementation/server';
 import { v1ServerListingCategoryPresenter } from './implementation/serverCategory';
 import { v1ServerListingCollectionPresenter } from './implementation/serverCollection';
+import { v1ServerDeploymentPresenter } from './implementation/serverDeployment';
+import { v1ServerInstancePresenter } from './implementation/serverInstance';
 import { v1ServerListingPresenter } from './implementation/serverListing';
 import { v1ServerVariantPresenter } from './implementation/serverVariant';
 import { v1ServerVersionPresenter } from './implementation/serverVersion';
@@ -31,6 +33,8 @@ import {
   organizationType,
   projectType,
   secretType,
+  serverDeploymentType,
+  serverInstanceType,
   serverListingCategoryType,
   serverListingCollectionType,
   serverListingType,
@@ -133,4 +137,14 @@ export let serverListingCategoryPresenter = declarePresenter(serverListingCatego
 export let serverListingCollectionPresenter = declarePresenter(serverListingCollectionType, {
   mt_2025_01_01_pulsar: v1ServerListingCollectionPresenter,
   mt_2025_01_01_dashboard: v1ServerListingCollectionPresenter
+});
+
+export let serverInstancePresenter = declarePresenter(serverInstanceType, {
+  mt_2025_01_01_pulsar: v1ServerInstancePresenter,
+  mt_2025_01_01_dashboard: v1ServerInstancePresenter
+});
+
+export let serverDeploymentPresenter = declarePresenter(serverDeploymentType, {
+  mt_2025_01_01_pulsar: v1ServerDeploymentPresenter,
+  mt_2025_01_01_dashboard: v1ServerDeploymentPresenter
 });

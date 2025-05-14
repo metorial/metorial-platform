@@ -8,6 +8,8 @@ import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
 import { secretController } from './instance/secret';
 import { serverController } from './instance/server';
+import { serverDeploymentController } from './instance/serverDeployment';
+import { serverInstanceController } from './instance/serverInstance';
 import { serverListingController } from './instance/serverListing';
 import { serverListingCategoryController } from './instance/serverListingCategory';
 import { serverListingCollectionController } from './instance/serverListingCollection';
@@ -35,7 +37,10 @@ export let pulsarController = Controller.create<any>(
 
     serverController,
     serverVariantController,
-    serverVersionController
+    serverVersionController,
+
+    serverInstanceController,
+    serverDeploymentController
   }
 );
 

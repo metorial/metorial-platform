@@ -1,8 +1,10 @@
+import { SecretStatus } from '@metorial/db';
 import { secretService } from '@metorial/module-secret';
 import { secretTypeSlugs } from '@metorial/module-secret/src/definitions';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { secretPresenter } from '../../presenters';
@@ -33,14 +35,26 @@ export let secretController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            type: v.optional(v.enumOf(secretTypeSlugs as any))
+            type: v.optional(
+              v.union([
+                v.enumOf(secretTypeSlugs as any),
+                v.array(v.enumOf(secretTypeSlugs as any))
+              ])
+            ),
+            status: v.optional(
+              v.union([
+                v.enumOf(Object.keys(SecretStatus) as any),
+                v.array(v.enumOf(Object.keys(SecretStatus) as any))
+              ])
+            )
           })
         )
       )
       .do(async ctx => {
         let paginator = await secretService.listSecrets({
           instance: ctx.instance,
-          type: (ctx.query as any).type
+          type: normalizeArrayParam(ctx.query.type) as any,
+          status: normalizeArrayParam(ctx.query.status) as any
         });
 
         let list = await paginator.run(ctx.query);
