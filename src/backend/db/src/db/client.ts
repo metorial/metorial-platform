@@ -1,3 +1,11 @@
+import type {
+  ClientCapabilities,
+  JSONRPCMessage,
+  Prompt,
+  ResourceTemplate,
+  ServerCapabilities,
+  Tool
+} from '@modelcontextprotocol/sdk/types.js';
 import type { JSONSchema4, JSONSchema6, JSONSchema7 } from 'json-schema';
 import { PrismaClient } from '../../prisma/generated';
 export * from '../../prisma/generated';
@@ -26,5 +34,18 @@ declare global {
     };
 
     type ServerConfigSchema = JSONSchema4 | JSONSchema6 | JSONSchema7;
+
+        type ServerVersionTools = Tool[] | null;
+    type ServerVersionPrompts = Prompt[] | null;
+    type ServerVersionResourceTemplates = ResourceTemplate[] | null;
+    type ServerVersionServerInfo = { name: string; version: string } | null;
+    type ServerVersionServerCapabilities = ServerCapabilities | null;
+
+    type SessionClientInfo = { name: string; version: string };
+    type SessionClientCapabilities = ClientCapabilities;
+        type SessionServerInfo = { name: string; version: string };
+    type SessionServerCapabilities = ServerCapabilities;
+
+    type SessionMessageMcpPayload = JSONRPCMessage;
   }
 }

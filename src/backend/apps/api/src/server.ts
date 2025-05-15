@@ -7,6 +7,7 @@ import { initLogger } from '@metorial/logging';
 import { apiServer } from './apiServer';
 import { authApi } from './auth';
 import { fileApi } from './fileUpload';
+import { startRunnerGateway } from './runners';
 
 let port = parseInt(process.env.PORT || '3310');
 
@@ -48,3 +49,5 @@ if (process.env.NODE_ENV == 'production') {
     port: 5000
   });
 }
+
+startRunnerGateway({ port: 3399 });

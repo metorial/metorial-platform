@@ -1,13 +1,11 @@
 import { forbiddenError, notFoundError, ServiceError } from '@metorial/error';
 import { instanceService, organizationService } from '@metorial/module-organization';
 import { Service } from '@metorial/service';
+import { Scope } from '../definitions';
 import { AuthInfo } from './authentication';
 
 class AccessService {
-  async checkAccess(d: {
-    authInfo: AuthInfo;
-    possibleScopes: MachineAccessOrganizationManagementScope[];
-  }) {
+  async checkAccess(d: { authInfo: AuthInfo; possibleScopes: Scope[] }) {
     if (!d.authInfo.orgScopes.some(scope => d.possibleScopes.includes(scope))) {
       throw new ServiceError(
         forbiddenError({

@@ -76,6 +76,13 @@ let serverSyncQueue = createQueue<{ identifier: string }>({
       max: 20,
       duration: 1000
     }
+  },
+  jobOpts: {
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 1000
+    }
   }
 });
 
@@ -302,7 +309,7 @@ let serversSyncQueueProcessor = serversSyncQueue.process(async () => {
 });
 
 let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) => {
-  debug.log(`Syncing server ${identifier}...`);
+  // debug.log(`Syncing server ${identifier}...`);
 
   let index = getIndexDatabase();
 

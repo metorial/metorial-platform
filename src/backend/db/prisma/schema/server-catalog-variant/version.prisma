@@ -25,5 +25,7 @@ model ServerVersion {
 
   createdAt DateTime @default(now())
 
+  serverRuns ServerRun[]
+
   @@unique([identifier, serverVariantOid])
 }

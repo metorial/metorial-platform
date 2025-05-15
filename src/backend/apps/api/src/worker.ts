@@ -10,6 +10,7 @@ import { organizationQueueProcessor } from '@metorial/module-organization';
 import { searchQueueProcessor } from '@metorial/module-search';
 import { secretQueueProcessor } from '@metorial/module-secret';
 import { serverDeploymentQueueProcessor } from '@metorial/module-server-deployment';
+import { serverRunnerQueueProcessor } from '@metorial/module-server-runner';
 import { usageQueueProcessor } from '@metorial/module-usage';
 import { userQueueProcessor } from '@metorial/module-user';
 
@@ -25,5 +26,6 @@ combineQueueProcessors([
   searchQueueProcessor,
   secretQueueProcessor,
   serverDeploymentQueueProcessor,
-  usageQueueProcessor
+  usageQueueProcessor,
+  serverRunnerQueueProcessor
 ]).start();

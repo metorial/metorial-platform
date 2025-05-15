@@ -1,0 +1,40 @@
+enum SessionMessageType {
+  request
+  response
+  notification
+  error
+  server_error
+  unknown
+  debug
+}
+
+enum SessionMessageSenderType {
+  server
+  client
+}
+
+model SessionMessage {
+  id   String             @id
+  type SessionMessageType
+
+  senderType SessionMessageSenderType
+  senderId   String
+
+  method String?
+
+  /// [SessionMessageOriginalId]
+  originalId Json?
+  unifiedId  String?
+
+  /// [SessionMessageMcpPayload]
+  payload Json
+
+  isHandled Boolean @default(false)
+
+  serverSessionOid BigInt
+  serverSession    ServerSession @relation(fields: [serverSessionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@index([unifiedId])
+}

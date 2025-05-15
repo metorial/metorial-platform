@@ -9,13 +9,16 @@ import {
   User,
   UserSession
 } from '@metorial/db';
-import {
-  machineAccessAuthService,
-  MachineAccessOrganizationManagementScope,
-  machineAccessOrganizationManagementScopes
-} from '@metorial/module-machine-access';
+import { machineAccessAuthService } from '@metorial/module-machine-access';
 import { userAuthService } from '@metorial/module-user';
 import { Service } from '@metorial/service';
+import {
+  instancePublishableTokenScopes,
+  instanceSecretTokenScopes,
+  orgManagementTokenScopes,
+  Scope,
+  scopes
+} from '../definitions';
 
 export type AuthInfo =
   | {
@@ -23,13 +26,13 @@ export type AuthInfo =
       user: User;
       userSession?: UserSession;
       machineAccess?: MachineAccess;
-      orgScopes: MachineAccessOrganizationManagementScope[];
+      orgScopes: Scope[];
     }
   | {
       type: 'machine';
       apiKey: ApiKey;
       machineAccess: MachineAccess;
-      orgScopes: MachineAccessOrganizationManagementScope[];
+      orgScopes: Scope[];
       restrictions:
         | {
             type: 'organization';
@@ -80,7 +83,7 @@ class AuthenticationService {
       type: 'user',
       user: res.user,
       userSession: res.session,
-      orgScopes: machineAccessOrganizationManagementScopes
+      orgScopes: scopes
     };
   }
 
@@ -96,7 +99,7 @@ class AuthenticationService {
     return {
       type: 'user',
       user: res.user,
-      orgScopes: machineAccessOrganizationManagementScopes
+      orgScopes: scopes
     };
   }
 
@@ -114,7 +117,7 @@ class AuthenticationService {
       return {
         type: 'user',
         user: machineAccess.user,
-        orgScopes: machineAccessOrganizationManagementScopes
+        orgScopes: scopes
       };
     }
 
@@ -128,7 +131,10 @@ class AuthenticationService {
         type: 'machine',
         apiKey: res.apiKey,
         machineAccess,
-        orgScopes: machineAccess.type == 'instance_publishable' ? [] : [],
+        orgScopes:
+          machineAccess.type == 'instance_publishable'
+            ? instancePublishableTokenScopes
+            : instanceSecretTokenScopes,
         restrictions: {
           type: 'instance',
           organization: machineAccess.organization,
@@ -147,7 +153,7 @@ class AuthenticationService {
         type: 'machine',
         apiKey: res.apiKey,
         machineAccess,
-        orgScopes: machineAccessOrganizationManagementScopes,
+        orgScopes: orgManagementTokenScopes,
         restrictions: {
           type: 'organization',
           organization: machineAccess.organization,

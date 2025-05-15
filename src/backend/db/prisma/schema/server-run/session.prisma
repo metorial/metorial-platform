@@ -1,0 +1,49 @@
+enum SessionStatus {
+  created
+  active
+  archived
+}
+
+enum SessionConnectionType {
+  sse
+  streamable_http
+}
+
+model ServerSession {
+  oid    BigInt        @id @default(autoincrement())
+  id     String        @unique
+  status SessionStatus
+
+  serverDeploymentOid BigInt
+  serverDeployment    ServerDeployment @relation(fields: [serverDeploymentOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  mcpVersion        String?
+  mcpInitialized    Boolean                @default(false)
+  mcpConnectionType SessionConnectionType?
+
+  /// [SessionClientInfo]
+  clientInfo Json?
+
+  /// [SessionClientCapabilities]
+  clientCapabilities Json?
+
+  /// [SessionServerInfo]
+  serverInfo Json?
+
+  /// [SessionServerCapabilities]
+  serverCapabilities Json?
+
+  totalProductiveClientMessageCount Int @default(0)
+  totalProductiveServerMessageCount Int @default(0)
+
+  messages   SessionMessage[]
+  serverRuns ServerRun[]
+
+  createdAt DateTime @default(now())
+
+  lastClientActionAt DateTime?
+  lastServerActionAt DateTime?
+}

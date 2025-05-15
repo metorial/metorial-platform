@@ -1,0 +1,43 @@
+enum ServerRunnerType {
+  hosted
+}
+
+enum ServerRunnerStatus {
+  online
+  offline
+}
+
+enum ServerRunnerAttribute {
+  supports_docker_images
+}
+
+model ServerRunner {
+  oid    BigInt             @id @default(autoincrement())
+  id     String             @unique
+  type   ServerRunnerType
+  status ServerRunnerStatus
+
+  identifier String @unique
+
+  connectionKey String @unique
+
+  name        String
+  description String?
+
+  attributes        ServerRunnerAttribute[]
+  tags              String[]
+  maxConcurrentJobs Int                     @default(1)
+  runnerVersion     String                  @default("v1.0.0")
+
+  activeJobs Int @default(0)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lastSeenAt DateTime?
+
+  runs ServerRun[]
+
+  @@index([lastSeenAt])
+  @@index([status])
+  @@index([type])
+}

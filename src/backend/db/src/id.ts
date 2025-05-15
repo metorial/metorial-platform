@@ -23,7 +23,7 @@ export let ID = createIdGenerator({
 
   filePurpose: idType.sorted('fpu'),
   file: idType.sorted('fil'),
-  fileLink: idType.sorted('fil'),
+  fileLink: idType.sorted('flk'),
 
   secretType: idType.sorted('sty'),
   secret: idType.sorted('sec'),
@@ -47,6 +47,13 @@ export let ID = createIdGenerator({
 
   serverInstance: idType.sorted('svi'),
   serverDeployment: idType.sorted('svd'),
+
+  serverRunner: idType.sorted('sru'),
+
+  sessionMessage: idType.sorted('msg'),
+  session: idType.sorted('ses'),
+  serverSession: idType.sorted('srs'),
+  serverRun: idType.sorted('srr'),
 
   profile: idType.sorted('prf')
 });

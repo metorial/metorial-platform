@@ -160,7 +160,7 @@ class SecretServiceImpl {
 
   async DANGEROUSLY_readSecretValue(d: {
     secretId: string | bigint;
-    performedBy: OrganizationActor;
+    performedBy?: OrganizationActor;
     instance: Instance;
     type: SecretType;
     metadata?: Record<string, any>;
@@ -185,7 +185,7 @@ class SecretServiceImpl {
         id: await ID.generateId('secretEvent'),
         type: 'secret_read',
         secretOid: secret.oid,
-        organizationActorOid: d.performedBy.oid,
+        organizationActorOid: d.performedBy?.oid,
         metadata: d.metadata ?? {}
       }
     });

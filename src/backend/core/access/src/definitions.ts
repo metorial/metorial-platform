@@ -51,3 +51,29 @@ let scopeRaw = [
 export type Scope = (typeof scopeRaw)[number];
 
 export let scopes: Scope[] = [...scopeRaw];
+
+let allScopesExcept = (except: Scope[]) => scopes.filter(s => !except.includes(s));
+
+export let orgManagementTokenScopes: Scope[] = allScopesExcept(['user:read', 'user:write']);
+export let instanceSecretTokenScopes: Scope[] = [
+  'instance.file:read' as const,
+  'instance.file:write' as const,
+  'instance.file_link:read' as const,
+  'instance.file_link:write' as const,
+
+  'instance.secret:read' as const,
+  'instance.secret:write' as const,
+
+  'instance.server:read' as const,
+  'instance.server:write' as const,
+
+  'instance.server_listing:read' as const,
+
+  'instance.server.instance:read' as const,
+  'instance.server.instance:write' as const,
+
+  'instance.server.deployment:read' as const,
+  'instance.server.deployment:write' as const
+];
+
+export let instancePublishableTokenScopes: Scope[] = ['instance.server_listing:read' as const];

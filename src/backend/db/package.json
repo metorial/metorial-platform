@@ -6,7 +6,8 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",
-    "lint": "prettier src/**/*.ts --check"
+    "lint": "prettier src/**/*.ts --check",
+    "db:push": "prisma db push"
   },
   "dependencies": {
     "@metorial/config": "^1.0.0",

@@ -1,0 +1,43 @@
+enum ServerRunStatus {
+  active
+  failed
+  completed
+}
+
+enum ServerRunType {
+  hosted
+  external
+}
+
+model ServerRun {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status ServerRunStatus
+  type   ServerRunType
+
+  serverVersionOid BigInt
+  serverVersion    ServerVersion @relation(fields: [serverVersionOid], references: [oid])
+
+  serverDeploymentOid BigInt
+  serverDeployment    ServerDeployment @relation(fields: [serverDeploymentOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  serverSessionOid BigInt
+  serverSession    ServerSession @relation(fields: [serverSessionOid], references: [oid])
+
+  serverRunnerOid BigInt?
+  serverRunner    ServerRunner? @relation(fields: [serverRunnerOid], references: [oid])
+
+  events ServerRunEvent[]
+  errors ServerRunError[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  startedAt  DateTime?
+  stoppedAt  DateTime?
+  lastPingAt DateTime?
+}

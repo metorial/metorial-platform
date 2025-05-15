@@ -1,0 +1,41 @@
+model ServerRunErrorGroup {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  code    String
+  message String
+
+  fingerprint String
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  errors ServerRunError[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([fingerprint, serverOid, instanceOid])
+}
+
+model ServerRunError {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  code     String
+  message  String
+  metadata Json?
+
+  serverDeploymentOid BigInt
+  serverDeployment    ServerDeployment @relation(fields: [serverDeploymentOid], references: [oid])
+
+  serverRunErrorGroupOid BigInt
+  serverRunErrorGroup    ServerRunErrorGroup @relation(fields: [serverRunErrorGroupOid], references: [oid])
+
+  serverRunOid BigInt
+  serverRun    ServerRun @relation(fields: [serverRunOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}
