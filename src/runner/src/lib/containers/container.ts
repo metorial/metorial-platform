@@ -14,6 +14,7 @@ let PING_INTERVAL = 1000 * 5;
 
 export let mcpSessionContainerOptions = z.object({
   image: z.string(),
+  tag: z.optional(z.string()),
   command: z.string(),
   env: z.optional(z.record(z.string())),
   args: z.optional(z.array(z.string()))
@@ -22,7 +23,7 @@ export let mcpSessionContainerOptions = z.object({
 export type McpSessionContainerOptions = z.infer<typeof mcpSessionContainerOptions>;
 
 export interface McpSessionContainerOpts {
-  dockerOpts: DockerManagerOptions;
+  dockerOpts?: DockerManagerOptions;
   containerOpts: McpSessionContainerOptions;
   onPullProgress?: (progress: number) => void;
   onDebug?: (lines: string[]) => void;
@@ -154,7 +155,7 @@ export class McpSessionContainer {
       return;
     }
 
-    if ('id' in message && String(message.id).startsWith('mtgw/ping/')) {
+    if ('id' in message && String(message.id).startsWith('mt/ping/')) {
       return;
     }
 

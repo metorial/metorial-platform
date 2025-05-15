@@ -29,7 +29,10 @@ export class DockerManager {
       let cont = this.#docker.getContainer(container.id);
 
       await cont.stop({ t: 1 });
-      await cont.remove();
+
+      try {
+        await cont.remove();
+      } catch (err: any) {}
     } catch (err: any) {
       if (
         err.message.includes('No such container') ||
@@ -52,7 +55,7 @@ export class DockerManager {
     onExit?: () => void;
   }) {
     try {
-      let name: string = generateCustomId('mtgw_').toLowerCase();
+      let name: string = generateCustomId('metorial_').toLowerCase();
 
       let cmd: string[] = [
         'docker',

@@ -19,14 +19,16 @@
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
-    "build": "tsup"
+    "build": "tsup",
+    "dev": "bun ./src/index.ts"
   },
   "files": [
     "dist"
   ],
   "dependencies": {
     "@metorial/debug": "^1.0.0",
-    "dockerode": "^4.0.6"
+    "dockerode": "^4.0.6",
+    "sade": "^1.8.1"
   },
   "devDependencies": {
     "@types/dockerode": "^3.3.38",

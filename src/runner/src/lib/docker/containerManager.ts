@@ -19,12 +19,15 @@ export class ContainerManager {
     docker: DockerManager,
     opts: {
       image: string;
+      tag?: string;
       command: string;
       args?: string[];
       environment?: Record<string, string>;
       onProgress?: (progress: number) => void;
     }
   ) {
+    if (opts.tag) opts.image = `${opts.image}:${opts.tag}`;
+
     await Promise.race([docker.pullImage(opts.image, opts.onProgress), delay(1000 * 30)]);
     console.log('Image pulled:', opts.image);
 
