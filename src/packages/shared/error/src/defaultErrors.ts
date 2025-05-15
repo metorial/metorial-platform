@@ -109,3 +109,9 @@ export let tooManyRequestsError = createError({
   message: 'You have made too many requests in a short period of time.',
   hint: 'Please wait a moment and try again.'
 });
+
+export let timeoutError = createError({
+  status: 504,
+  code: 'timeout',
+  message: 'The request timed out.'
+});

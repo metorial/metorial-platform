@@ -11,7 +11,7 @@ export let jsonRpcResponseToRequest = (
 
 export let jsonRpcPingRequest = (seedId: string): JSONRPCRequest => ({
   jsonrpc: '2.0',
-  id: `mtgw/ping/${seedId}_${Date.now()}`,
+  id: `mt/ping/${seedId}_${Date.now()}`,
   method: 'ping'
 });
 

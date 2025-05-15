@@ -5,7 +5,7 @@ import {
   provideExecutionContext,
   withExecutionContextOptional
 } from '@metorial/execution-context';
-import { generateCustomId } from '@metorial/id';
+import { generateSnowflakeId } from '@metorial/id';
 import { memo } from '@metorial/memo';
 import { parseRedisUrl } from '@metorial/redis';
 import { getSentry } from '@metorial/sentry';
@@ -38,8 +38,6 @@ export let createBullMqQueue = <JobData>(opts: {
     }
   });
 
-  let jobId = () => generateCustomId('qjob_');
-
   let useQueueEvents = memo(() => new QueueEvents(opts.name, { connection: redisOpts }));
 
   return {
@@ -56,7 +54,8 @@ export let createBullMqQueue = <JobData>(opts: {
             } as any,
             {
               delay: opts?.delay,
-              jobId: jobId()
+              jobId: opts?.id,
+              deduplication: opts?.deduplication
             }
           )
       );
@@ -82,7 +81,30 @@ export let createBullMqQueue = <JobData>(opts: {
                 },
                 opts: {
                   delay: opts?.delay,
-                  jobId: jobId()
+                  jobId: opts?.id,
+                  deduplication: opts?.deduplication
+                }
+              }) as any
+          )
+        );
+      });
+    },
+
+    addManyWithOps: async payloads => {
+      await withExecutionContextOptional(async ctx => {
+        await queue.addBulk(
+          payloads.map(
+            payload =>
+              ({
+                name: 'j',
+                data: {
+                  payload: SuperJson.serialize(payload.data),
+                  $$execution_context$$: ctx
+                },
+                opts: {
+                  delay: payload.opts?.delay,
+                  jobId: payload.opts?.id,
+                  deduplication: payload.opts?.deduplication
                 }
               }) as any
           )
@@ -120,11 +142,11 @@ export let createBullMqQueue = <JobData>(opts: {
               await provideExecutionContext(
                 createExecutionContext({
                   type: 'job',
-                  contextId: job.id ?? jobId(),
+                  contextId: job.id ?? generateSnowflakeId(),
                   queue: opts.name,
                   parent: parentExecutionContext
                 }),
-                () => cb(payload as any)
+                () => cb(payload as any, job)
               );
             } catch (e: any) {
               Sentry.captureException(e);

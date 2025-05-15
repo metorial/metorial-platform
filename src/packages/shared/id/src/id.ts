@@ -71,6 +71,15 @@ export let createIdGenerator = <
     }
   }
 
+  let seenPrefixes = new Set<string>();
+  for (let key in idPrefixes) {
+    let prefix = idPrefixes[key].prefix;
+    if (seenPrefixes.has(prefix)) {
+      throw new Error(`Prefix ${prefix} already exists`);
+    }
+    seenPrefixes.add(prefix);
+  }
+
   let getIdDescription = (prefix: keyof T) => {
     let pf = idPrefixes[prefix];
     if (!pf) throw new Error(`Invalid prefix: ${prefix as string}`);

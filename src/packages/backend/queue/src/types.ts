@@ -1,5 +1,9 @@
+import type { DebounceOptions, Job } from 'bullmq';
+
 export interface IQueueOptions {
-  delay: number;
+  delay?: number;
+  id?: string;
+  deduplication?: DebounceOptions;
 }
 
 export interface IQueueProcessor {
@@ -8,12 +12,13 @@ export interface IQueueProcessor {
 
 export interface IQueue<JobData> {
   name: string;
-  add(
-    payload: JobData,
-    opts?: IQueueOptions
-  ): Promise<{
-    waitUntilFinished(opts?: { timeout?: number }): Promise<void>;
-  }>;
+  add(payload: JobData, opts?: IQueueOptions): Promise<{}>;
   addMany(payloads: JobData[], opts?: IQueueOptions): Promise<void>;
-  process(cb: (payload: JobData) => Promise<void>): IQueueProcessor;
+  addManyWithOps(
+    payloads: {
+      data: JobData;
+      opts?: IQueueOptions;
+    }[]
+  ): Promise<void>;
+  process(cb: (payload: JobData, job: Job) => Promise<void>): IQueueProcessor;
 }
