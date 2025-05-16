@@ -230,7 +230,13 @@ let PopoverInner = ({
     let organization = boot.data?.organizations.find(o => o.id == project.organizationId);
     if (!organization) return;
 
-    navigate(Paths.project(organization, project));
+    let instances = boot.data?.instances.filter(i => i.project.id == project.id);
+    let instance = instances?.find(i => i.type == 'development');
+    if (!instance) instance = instances?.[0];
+
+    if (!instance) return;
+
+    navigate(Paths.instance(organization, instance.project, instance));
   };
 
   let projects = boot.data?.projects.filter(p => p.organizationId == selectedOrg?.id);

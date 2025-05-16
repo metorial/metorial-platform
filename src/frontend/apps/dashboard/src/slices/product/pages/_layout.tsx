@@ -1,11 +1,11 @@
 import { Paths } from '@metorial/frontend-config';
 import { AppLayout } from '@metorial/layout';
-import { useCurrentOrganization, useCurrentProject } from '@metorial/state';
+import { useCurrentInstance, useCurrentOrganization } from '@metorial/state';
 import { RiHomeLine, RiSettings2Line, RiTerminalBoxLine } from '@remixicon/react';
 import { Outlet } from 'react-router-dom';
 
 export let ProjectPageLayout = () => {
-  let project = useCurrentProject();
+  let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
 
   let checkPath = (
@@ -26,7 +26,7 @@ export let ProjectPageLayout = () => {
             {
               icon: <RiHomeLine />,
               label: 'Home',
-              to: Paths.project(organization.data, project.data),
+              to: Paths.instance(organization.data, instance.data?.project, instance.data),
 
               getProps: i => ({
                 isActive: checkPath(i, { exact: true })
@@ -42,12 +42,20 @@ export let ProjectPageLayout = () => {
             {
               icon: <RiTerminalBoxLine />,
               label: 'Developer',
-              to: Paths.project.developer(organization.data, project.data),
+              to: Paths.instance.developer(
+                organization.data,
+                instance.data?.project,
+                instance.data
+              ),
 
               children: [
                 {
                   label: 'API Keys',
-                  to: Paths.project.developer(organization.data, project.data),
+                  to: Paths.instance.developer(
+                    organization.data,
+                    instance.data?.project,
+                    instance.data
+                  ),
 
                   getProps: i => ({
                     isActive: checkPath(i, { exact: true })
@@ -55,7 +63,12 @@ export let ProjectPageLayout = () => {
                 },
                 {
                   label: 'Environments',
-                  to: Paths.project.developer(organization.data, project.data, 'environments'),
+                  to: Paths.instance.developer(
+                    organization.data,
+                    instance.data?.project,
+                    instance.data,
+                    'environments'
+                  ),
 
                   getProps: i => ({
                     isActive: checkPath(i)
@@ -63,7 +76,12 @@ export let ProjectPageLayout = () => {
                 },
                 {
                   label: 'API Access',
-                  to: Paths.project.developer(organization.data, project.data, 'api'),
+                  to: Paths.instance.developer(
+                    organization.data,
+                    instance.data?.project,
+                    instance.data,
+                    'api'
+                  ),
 
                   getProps: i => ({
                     isActive: checkPath(i)
@@ -75,12 +93,20 @@ export let ProjectPageLayout = () => {
             {
               icon: <RiSettings2Line />,
               label: 'Settings',
-              to: Paths.project.settings(organization.data, project.data),
+              to: Paths.instance.settings(
+                organization.data,
+                instance.data?.project,
+                instance.data
+              ),
 
               children: [
                 {
                   label: 'Project',
-                  to: Paths.project.settings(organization.data, project.data),
+                  to: Paths.instance.settings(
+                    organization.data,
+                    instance.data?.project,
+                    instance.data
+                  ),
 
                   getProps: i => ({
                     isActive: checkPath(i, { exact: true })

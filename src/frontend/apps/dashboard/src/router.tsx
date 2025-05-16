@@ -17,7 +17,7 @@ export let App = createFrontendRouter({
     welcomeSlice('welcome'),
     joinSlice('join'),
     authSlice('auth'),
-    productSlice('p')
+    productSlice('i')
   ],
   layout: <Outlet />
 });

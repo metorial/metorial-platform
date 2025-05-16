@@ -3,6 +3,35 @@ import { getConfig } from '.';
 
 export type EntityParam = { id: string; slug: string } | null | undefined;
 
+let InstancePaths = Object.assign(
+  (
+    organization: EntityParam,
+    project: EntityParam,
+    instance: EntityParam,
+    ...subPages: (string | null | undefined)[]
+  ) => {
+    if (!instance || !project || !organization) return '#';
+
+    return joinPaths('i', organization.slug, project.slug, instance.slug, ...subPages);
+  },
+  {
+    home: (organization: EntityParam, project: EntityParam, instance: EntityParam) =>
+      InstancePaths(organization, project, instance),
+    settings: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: (string | null | undefined)[]
+    ) => InstancePaths(organization, project, instance, 'settings', ...subPages),
+    developer: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: (string | null | undefined)[]
+    ) => InstancePaths(organization, project, instance, 'developer', ...subPages)
+  }
+);
+
 let ProjectPaths = Object.assign(
   (
     organization: EntityParam,
@@ -13,20 +42,7 @@ let ProjectPaths = Object.assign(
 
     return joinPaths('p', organization?.slug, project.slug, ...subPages);
   },
-  {
-    home: (organization: EntityParam, project: EntityParam) =>
-      ProjectPaths(organization, project),
-    settings: (
-      organization: EntityParam,
-      project: EntityParam,
-      ...subPages: (string | null | undefined)[]
-    ) => ProjectPaths(organization, project, 'settings', ...subPages),
-    developer: (
-      organization: EntityParam,
-      project: EntityParam,
-      ...subPages: (string | null | undefined)[]
-    ) => ProjectPaths(organization, project, 'developer', ...subPages)
-  }
+  {}
 );
 
 let AccountPaths = Object.assign(
@@ -94,6 +110,7 @@ export let WelcomePaths = Object.assign(
 export let Paths = {
   join: joinPaths,
 
+  instance: InstancePaths,
   project: ProjectPaths,
   account: AccountPaths,
   organization: OrganizationPaths,

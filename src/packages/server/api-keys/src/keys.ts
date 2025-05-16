@@ -27,7 +27,7 @@ export type ApiKey = `${ApiKeyPrefix}${string}`;
 
 const METORIAL_PREFIX = 'metorial';
 
-const SECRET_KEY_LENGTH = 40;
+const SECRET_KEY_LENGTH = 60;
 
 type ApiKeyConfig = {
   url: string;

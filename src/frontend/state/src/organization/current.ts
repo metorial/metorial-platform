@@ -84,7 +84,7 @@ export let useCurrentOrganization = () => {
     }
 
     return null;
-  }, [boot.data, organizationId]);
+  }, [boot.data, organizationId, projectId, instanceId]);
 
   let org = useOrganization(foundItem?.organization.id);
 

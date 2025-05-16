@@ -1,4 +1,8 @@
-import { ApiKeysCreateBody, ApiKeysListQuery, ApiKeysUpdateBody } from '@metorial/core';
+import {
+  ApiKeysCreateBody,
+  ApiKeysListQuery,
+  ApiKeysUpdateBody
+} from '@metorial/core/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { useState } from 'react';
 import { autoPaginate } from '../../lib/autoPaginate';

@@ -1,5 +1,5 @@
 import { Paths } from '@metorial/frontend-config';
-import { lastProjectIdStore, useBoot } from '@metorial/state';
+import { lastInstanceIdStore, useBoot } from '@metorial/state';
 import { useLayoutEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -13,34 +13,39 @@ export let RootRedirect = () => {
   useLayoutEffect(() => {
     if (!boot.data) return;
 
-    lastProjectIdStore.get().then(lastProjectId => {
+    lastInstanceIdStore.get().then(lastInstanceId => {
       if (navigatedRef.current || !boot.data) return;
 
       if (organizationId) {
         let org = boot.data.organizations.find(
           o => o.id === organizationId || o.slug === organizationId
         );
-        let orgProjects = boot.data.projects.filter(i => i.organizationId === org?.id);
+        let orgInstances = boot.data.instances.filter(i => i.organizationId === org?.id);
 
-        let project = orgProjects.find(i => i.id === lastProjectId);
-        if (!project) project = orgProjects[0];
+        let instance = orgInstances.find(i => i.id === lastInstanceId);
+        if (!instance) instance = orgInstances[0];
 
-        if (project && org) {
-          navigate(Paths.project(org, project), { replace: true });
+        if (instance && org) {
+          navigate(Paths.instance(org, instance.project, instance), { replace: true });
           navigatedRef.current = true;
           return;
         }
       }
 
-      let project = boot.data.projects.find(i => i.id === lastProjectId);
+      let instance = boot.data.instances.find(i => i.id === lastInstanceId);
 
-      if (project) {
-        navigate(Paths.project(project.organization, project), { replace: true });
+      if (instance) {
+        navigate(Paths.instance(instance.organization, instance.project, instance), {
+          replace: true
+        });
       } else {
-        let anyProject = boot.data.projects[0];
+        let anyInstance = boot.data.instances[0];
 
-        if (anyProject) {
-          navigate(Paths.project(anyProject.organization, anyProject), { replace: true });
+        if (anyInstance) {
+          navigate(
+            Paths.instance(anyInstance.organization, anyInstance.project, anyInstance),
+            { replace: true }
+          );
         } else {
           navigate(Paths.welcome(), { replace: true });
         }

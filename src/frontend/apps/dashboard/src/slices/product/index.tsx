@@ -11,7 +11,7 @@ import { ProjectSettingsPageLayout } from './pages/settings/_layout';
 
 export let productInnerSlice = createSlice([
   {
-    path: ':organizationId/:projectId',
+    path: ':organizationId/:projectId/:instanceId',
     element: <Outlet />,
 
     children: [

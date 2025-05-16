@@ -5,6 +5,7 @@ import {
   ApiKeysFilter,
   MetorialApiKey,
   useApiKeys,
+  useCurrentInstance,
   useRevealableApiKey
 } from '@metorial/state';
 import {
@@ -368,6 +369,8 @@ export let ApiKeysScene = ({
       }
     });
 
+  let currentInstance = useCurrentInstance();
+
   let initializingRef = useRef<string>(undefined);
   let createApplication = apiKeys.createMutator();
   let [creatingInitialApplication, setCreatingInitialApplication] = useState(false);
@@ -377,7 +380,9 @@ export let ApiKeysScene = ({
       !apiKeys.error &&
       !apiKeys.isLoading &&
       !apiKeys.data?.length &&
-      initializingRef.current !== filter.instanceId
+      initializingRef.current !== filter.instanceId &&
+      currentInstance.data?.id == filter.instanceId &&
+      currentInstance.data?.type == 'development'
     ) {
       setCreatingInitialApplication(true);
 
@@ -393,7 +398,13 @@ export let ApiKeysScene = ({
           setCreatingInitialApplication(false);
         });
     }
-  }, [(filter as any).instanceId, apiKeys.error, apiKeys.isLoading, apiKeys.data?.length]);
+  }, [
+    (filter as any).instanceId,
+    apiKeys.error,
+    apiKeys.isLoading,
+    apiKeys.data?.length,
+    currentInstance.data?.id
+  ]);
 
   let sevenDaysAgo = subDays(new Date(), 7);
 
@@ -487,6 +498,15 @@ export let ApiKeysScene = ({
                 </Menu>
               ])}
           />
+
+          {apiKeys.data.length == 0 && (
+            <>
+              <Spacer height={10} />
+              <Text size="2" color="gray600" align="center">
+                No {name} found. Create one to get started.
+              </Text>
+            </>
+          )}
         </>
       ))}
     </>
