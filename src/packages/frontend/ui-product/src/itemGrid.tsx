@@ -35,12 +35,21 @@ let Header = styled.header`
   display: flex;
   gap: 10px;
   justify-content: space-between;
+  position: relative;
 `;
 
 let HeaderContent = styled.div`
   display: flex;
   flex-direction: column;
   gap: 5px;
+  max-width: 100%;
+`;
+
+let MenuWrapper = styled.div`
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
 `;
 
 let getButtonProps = (onClick: () => void) => ({
@@ -65,7 +74,8 @@ export let ItemGrid = {
     menu,
     onClick,
     bottom,
-    small
+    small,
+    height
   }: {
     title: React.ReactNode;
     description?: React.ReactNode;
@@ -75,6 +85,7 @@ export let ItemGrid = {
     onClick?: () => void;
     bottom?: React.ReactNode;
     small?: boolean;
+    height?: number;
   }) => {
     let menuItems = [
       ...(entity ? [{ id: 'id', label: 'Copy ID' }] : []),
@@ -85,7 +96,7 @@ export let ItemGrid = {
       <Wrapper
         {...(onClick ? getButtonProps(onClick) : {})}
         style={{
-          minHeight: small ? 'unset' : 200
+          minHeight: height ?? (small ? 'unset' : 200)
         }}
       >
         <Header>
@@ -96,14 +107,14 @@ export let ItemGrid = {
               {title}
             </Title>
             {description && (
-              <Text size="1" weight="medium" color="gray700">
+              <Text size="1" weight="medium" color="gray700" truncate>
                 {description}
               </Text>
             )}
           </HeaderContent>
 
           {menuItems.length > 0 && (
-            <div onClick={e => e.stopPropagation()}>
+            <MenuWrapper onClick={e => e.stopPropagation()}>
               <Menu
                 onItemClick={id => {
                   if (id == 'id' && entity) {
@@ -117,7 +128,7 @@ export let ItemGrid = {
               >
                 <Button size="2" iconLeft={<RiMore2Fill />} title="More" variant="outline" />
               </Menu>
-            </div>
+            </MenuWrapper>
           )}
         </Header>
 

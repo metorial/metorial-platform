@@ -125,7 +125,11 @@ export class PresenterBuilder<Type extends PresentableType<any, any>, Output ext
 
   constructor(private readonly presentableType: Type) {}
 
-  presenter<Output extends {}>(
+  presenter<
+    Output extends {
+      object: string;
+    }
+  >(
     presenter: (
       input: GetTypeOfPresentable<Type>,
       context: PresenterContext

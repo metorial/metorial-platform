@@ -208,8 +208,14 @@ let Root = ({
   );
 };
 
-let Content = ({ children }: { children: React.ReactNode }) => {
-  return <ContentWrapper>{children}</ContentWrapper>;
+let Content = ({
+  children,
+  style
+}: {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) => {
+  return <ContentWrapper style={style}>{children}</ContentWrapper>;
 };
 
 export let Popover = Object.assign(Root, {

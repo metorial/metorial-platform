@@ -6,12 +6,12 @@ import _useDelayed from 'use-delayed';
 import { Spinner } from '../spinner';
 import { ButtonStyleProps, buttonTheme, getButtonStyles } from './constants';
 
-export type { ButtonSize, ButtonVariant } from './constants';
+export * from './constants';
 export * from './linkButton';
 
 let useDelayed = _useDelayed;
 
-// @ts-ignore FUCK NEXTJS'S BROKEN IMPORT LOGIC. FUCK IT!!
+// @ts-ignore
 if (useDelayed.default) useDelayed = useDelayed.default;
 
 let Wrapper = styled('button')`

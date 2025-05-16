@@ -1,0 +1,30 @@
+{
+  "name": "@metorial/code-editor",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "MIT",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@metorial/ui": "^1.0.0",
+    "@codemirror/autocomplete": "^6.9.0",
+    "@codemirror/lang-javascript": "^6.1.9",
+    "@codemirror/lang-json": "^6.0.1",
+    "@codemirror/language": "^6.8.0",
+    "@lezer/highlight": "^1.1.6",
+    "@lezer/lr": "^1.3.9",
+    "@uiw/codemirror-themes": "^4.21.8",
+    "@uiw/react-codemirror": "^4.21.8",
+    "clsx": "^2.0.0",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "tsup": "^7.1.0",
+    "typescript": "^5.1.6",
+    "vitest": "^0.34.6"
+  }
+}

@@ -321,6 +321,13 @@ export let createLoader = <
     };
   };
 
+  let createExternalMutator =
+    <I, O>(mutator: (data: I) => Promise<O>) =>
+    () =>
+      useMutation(mutator, {
+        onSuccess: refetchAll
+      });
+
   return {
     refetchAll,
     $$refetchAll$$: refetchAll,
@@ -338,6 +345,8 @@ export let createLoader = <
       let current = ensureState(input);
       return current.state.subscribe(callback);
     },
+
+    createExternalMutator,
 
     use
   };
