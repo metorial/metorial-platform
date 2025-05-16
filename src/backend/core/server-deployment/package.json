@@ -23,8 +23,10 @@
     "@metorial/queue": "^1.0.0",
     "@metorial/service": "^1.0.0",
     "@metorial/slugify": "^1.0.0",
+    "@types/jsonschema": "^1.1.1",
     "ajv": "^8.17.1",
     "date-fns": "^4.1.0",
+    "jsonschema": "^1.5.0",
     "mongoose": "^8.14.2"
   },
   "devDependencies": {

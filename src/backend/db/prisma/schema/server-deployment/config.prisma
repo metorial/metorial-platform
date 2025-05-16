@@ -1,0 +1,18 @@
+model ServerDeploymentConfig {
+  oid         BigInt  @id @default(autoincrement())
+  id          String  @unique
+  isEphemeral Boolean @default(false)
+
+  schemaOid BigInt
+  schema    ServerConfigSchema @relation(fields: [schemaOid], references: [oid])
+
+  configSecretOid BigInt
+  configSecret    Secret @relation(fields: [configSecretOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  deployments ServerDeployment[]
+}

@@ -1,4 +1,4 @@
-model ServerConfig {
+model ServerConfigSchema {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
@@ -15,8 +15,8 @@ model ServerConfig {
 
   createdAt DateTime @default(now())
 
-  versions    ServerVersion[]
-  deployments ServerDeployment[]
+  versions               ServerVersion[]
+  ServerDeploymentConfig ServerDeploymentConfig[]
 
   @@unique([fingerprint, serverOid])
 }

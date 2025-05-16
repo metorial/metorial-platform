@@ -130,8 +130,19 @@ export let createServerRunnerGateway = (
           }
         );
 
+      let connectionClosed = async () => {
+        await serverRunnerConnectionService.unregisterServerRunner({
+          runner
+        });
+        clearInterval(pingInterval!);
+        pingInterval = undefined;
+
+        await closeQueue?.();
+        await transceiver?.close();
+      };
+
       return {
-        onOpen(event, ws) {
+        onOpen: (event, ws) => {
           transceiver = new MICTransceiverWebsocketServer(
             { sessionId: runner.id, connectionId: 'runner' },
             ws
@@ -149,14 +160,10 @@ export let createServerRunnerGateway = (
 
           pingInterval = setInterval(async () => {
             if (Date.now() - lastPing > MAX_PING_INTERVAL) {
-              await serverRunnerConnectionService.unregisterServerRunner({
-                runner
-              });
-              clearInterval(pingInterval!);
-              pingInterval = undefined;
+              await connectionClosed();
 
               ws.close(1000, 'Ping timeout');
-              await transceiver?.close();
+
               return;
             }
 
@@ -165,15 +172,7 @@ export let createServerRunnerGateway = (
 
           endpoint.connect(session);
         },
-        onClose: async () => {
-          clearInterval(pingInterval!);
 
-          await transceiver?.registerClose();
-
-          await serverRunnerConnectionService.unregisterServerRunner({
-            runner
-          });
-        },
         onMessage: async (event, ws) => {
           let data = event.data;
           if (typeof data !== 'string') return;
@@ -193,14 +192,12 @@ export let createServerRunnerGateway = (
 
           transceiver?.registerMessage(data);
         },
+
+        onClose: async () => {
+          connectionClosed();
+        },
         onError: async (event, ws) => {
-          clearInterval(pingInterval!);
-
-          await transceiver?.registerClose();
-
-          await serverRunnerConnectionService.unregisterServerRunner({
-            runner
-          });
+          connectionClosed();
         }
       };
     })

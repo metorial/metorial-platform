@@ -9,7 +9,7 @@ let include = {
     include: {
       currentVersion: {
         include: {
-          config: true
+          schema: true
         }
       }
     }

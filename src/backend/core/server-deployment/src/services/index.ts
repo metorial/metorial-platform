@@ -1,2 +1,2 @@
 export * from './serverDeployment';
-export * from './serverInstance';
+export * from './serverImplementation';

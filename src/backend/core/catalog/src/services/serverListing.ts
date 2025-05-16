@@ -1,4 +1,4 @@
-import { db, ServerListing } from '@metorial/db';
+import { db, Instance, ServerListing } from '@metorial/db';
 import { searchService } from '@metorial/module-search';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -69,6 +69,7 @@ class ServerListingService {
     collectionIds?: string[];
     categoryIds?: string[];
     profileIds?: string[];
+    instance?: Instance;
   }) {
     let collections = d.collectionIds?.length
       ? await db.serverListingCollection.findMany({
@@ -93,10 +94,10 @@ class ServerListingService {
               index: 'server_listing',
               query: d.search,
               options: {
-                limit: 100
+                limit: opts.take
               }
             })
-          : [];
+          : undefined;
 
         return await db.serverListing.findMany({
           ...opts,
@@ -110,22 +111,58 @@ class ServerListingService {
                   { slug: { in: search?.map(s => s.id) } }
                 ]
               },
+              collections
+                ? {
+                    collections: {
+                      some: { oid: { in: collections?.map(c => c.oid) } }
+                    }
+                  }
+                : {},
+              categories
+                ? {
+                    categories: {
+                      some: { oid: { in: categories?.map(c => c.oid) } }
+                    }
+                  }
+                : {},
+              profiles
+                ? {
+                    profile: {
+                      id: { in: profiles?.map(p => p.id) }
+                    }
+                  }
+                : {},
               {
-                collections: {
-                  some: { oid: { in: collections?.map(c => c.oid) } }
-                },
-
-                categories: {
-                  some: { oid: { in: categories?.map(c => c.oid) } }
-                },
-
-                profile: {
-                  id: { in: profiles?.map(p => p.id) }
-                }
+                server: d.instance
+                  ? {
+                      instanceServers: {
+                        some: {
+                          instanceOid: d.instance.oid
+                        }
+                      }
+                    }
+                  : undefined
               }
             ]
           },
-          include
+          include: {
+            ...include,
+            server: {
+              include: d.instance
+                ? {
+                    ...include.server.include,
+                    instanceServers: {
+                      where: {
+                        instanceOid: d.instance.oid
+                      },
+                      include: {
+                        instance: true
+                      }
+                    }
+                  }
+                : include.server.include
+            }
+          }
         });
       })
     );

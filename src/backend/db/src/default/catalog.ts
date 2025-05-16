@@ -96,7 +96,7 @@ export let ensureServerVersion = createEnsureRecord(
 );
 
 export let ensureServerConfig = createEnsureRecord(
-  db.serverConfig,
+  db.serverConfigSchema,
   d => ({
     fingerprint_serverOid: {
       fingerprint: d.fingerprint,
@@ -104,6 +104,6 @@ export let ensureServerConfig = createEnsureRecord(
     }
   }),
   async () => ({
-    id: await ID.generateId('serverConfig')
+    id: await ID.generateId('serverConfigSchema')
   })
 );

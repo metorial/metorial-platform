@@ -460,7 +460,7 @@ let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) =>
       let currentVersion: null | ServerVersion = null;
 
       for (let version of versions) {
-        let config = await ensureServerConfig(async () => ({
+        let schema = await ensureServerConfig(async () => ({
           fingerprint: await Hash.sha256(canonicalize(version.config)),
           schema: version.config,
           serverOid: baseServer.oid,
@@ -470,7 +470,7 @@ let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) =>
         let ourVersion = await ensureServerVersion(() => ({
           identifier: version.identifier,
 
-          configOid: config.oid,
+          schemaOid: schema.oid,
           serverOid: baseServer.oid,
           serverVariantOid: ourVariant.oid,
 

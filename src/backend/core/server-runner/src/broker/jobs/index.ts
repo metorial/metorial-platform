@@ -1,6 +1,7 @@
 import { ServerDeployment, ServerInstance, ServerSession, ServerVariant } from '@metorial/db';
-import { ensureExternalRunner } from './external';
-import { ensureHostedRunner } from './hosted';
+import { combineQueueProcessors } from '@metorial/queue';
+import { brokerRunnerExternalQueueProcessor, ensureExternalRunner } from './external';
+import { brokerRunnerHostedQueueProcessor, ensureHostedRunner } from './hosted';
 
 export let ensureRunnerForSession = async (
   session: ServerSession & {
@@ -17,3 +18,8 @@ export let ensureRunnerForSession = async (
     await ensureHostedRunner(session);
   }
 };
+
+export let runnerQueueProcessors = combineQueueProcessors([
+  brokerRunnerHostedQueueProcessor,
+  brokerRunnerExternalQueueProcessor
+]);

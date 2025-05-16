@@ -6,7 +6,7 @@ import { Service } from '@metorial/service';
 let include = {
   server: true,
   serverVariant: true,
-  config: true
+  schema: true
 };
 
 class ServerVersionService {

@@ -30,8 +30,8 @@ let scopeRaw = [
 
   'instance.server_listing:read' as const,
 
-  'instance.server.instance:read' as const,
-  'instance.server.instance:write' as const,
+  'instance.server.implementation:read' as const,
+  'instance.server.implementation:write' as const,
 
   'instance.server.deployment:read' as const,
   'instance.server.deployment:write' as const
@@ -69,8 +69,8 @@ export let instanceSecretTokenScopes: Scope[] = [
 
   'instance.server_listing:read' as const,
 
-  'instance.server.instance:read' as const,
-  'instance.server.instance:write' as const,
+  'instance.server.implementation:read' as const,
+  'instance.server.implementation:write' as const,
 
   'instance.server.deployment:read' as const,
   'instance.server.deployment:write' as const

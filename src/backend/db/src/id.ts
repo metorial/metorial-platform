@@ -38,15 +38,16 @@ export let ID = createIdGenerator({
   serverListingCategory: idType.sorted('slca'),
   serverListingCollection: idType.sorted('slco'),
 
-  serverConfig: idType.sorted('sco'),
+  serverConfigSchema: idType.sorted('scs'),
   serverVariantProvider: idType.sorted('svp'),
 
   server: idType.sorted('srv'),
   serverVariant: idType.sorted('sva'),
   serverVersion: idType.sorted('sve'),
 
-  serverInstance: idType.sorted('svi'),
+  serverImplementation: idType.sorted('svi'),
   serverDeployment: idType.sorted('svd'),
+  serverDeploymentConfig: idType.sorted('svdc'),
 
   serverRunner: idType.sorted('sru'),
 
@@ -54,6 +55,8 @@ export let ID = createIdGenerator({
   session: idType.sorted('ses'),
   serverSession: idType.sorted('srs'),
   serverRun: idType.sorted('srr'),
+
+  instanceServer: idType.sorted('isv'),
 
   profile: idType.sorted('prf')
 });

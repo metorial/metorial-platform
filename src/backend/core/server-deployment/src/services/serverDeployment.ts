@@ -6,8 +6,9 @@ import {
   OrganizationActor,
   Server,
   ServerDeployment,
+  ServerDeploymentConfig,
   ServerDeploymentStatus,
-  ServerInstance,
+  ServerImplementation,
   ServerVariant,
   withTransaction
 } from '@metorial/db';
@@ -16,24 +17,28 @@ import { serverVariantService } from '@metorial/module-catalog';
 import { ingestEventService } from '@metorial/module-event';
 import { secretService } from '@metorial/module-secret';
 import { Paginator } from '@metorial/pagination';
+import { getSentry } from '@metorial/sentry';
 import { Service } from '@metorial/service';
-import { Ajv } from 'ajv';
+import { Validator } from 'jsonschema';
+import { serverDeploymentDeletedQueue } from '../queues/serverDeploymentDeleted';
 
-let ajv = new Ajv({
-  allErrors: true,
-  removeAdditional: true,
-  useDefaults: true
-});
+let Sentry = getSentry();
+
+let validator = new Validator();
 
 let include = {
-  serverInstance: {
+  serverImplementation: {
     include: {
       server: true,
       serverVariant: true
     }
   },
   server: true,
-  configSecret: true
+  config: {
+    include: {
+      configSecret: true
+    }
+  }
 };
 
 class ServerDeploymentServiceImpl {
@@ -48,12 +53,15 @@ class ServerDeploymentServiceImpl {
   }
 
   private async checkServerDeploymentConfig(d: {
-    serverInstance: ServerInstance & { serverVariant: ServerVariant; server: Server };
+    serverImplementation: ServerImplementation & {
+      serverVariant: ServerVariant;
+      server: Server;
+    };
     config: Record<string, any>;
   }) {
     let variant = await serverVariantService.getServerVariantById({
-      serverVariantId: d.serverInstance.serverVariant.id,
-      server: d.serverInstance.server
+      serverVariantId: d.serverImplementation.serverVariant.id,
+      server: d.serverImplementation.server
     });
     if (!variant.currentVersion) {
       throw new ServiceError(
@@ -63,19 +71,21 @@ class ServerDeploymentServiceImpl {
       );
     }
 
-    let config = variant.currentVersion.config;
+    let schema = variant.currentVersion.schema;
+    let jsonSchema =
+      typeof schema.schema == 'string' ? JSON.parse(schema.schema) : schema.schema;
 
-    let validate = ajv.compile(config.schema);
     let data = { ...d.config };
 
-    if (!validate(data)) {
+    let validate = validator.validate(data, jsonSchema);
+    if (!validate.valid) {
       throw new ServiceError(
         badRequestError({
           message: 'Invalid server deployment config',
           errors: validate.errors?.map(e => ({
             message: e.message,
-            code: e.keyword,
-            params: e.params
+            code: e.name,
+            params: e.path
           }))
         })
       );
@@ -83,7 +93,7 @@ class ServerDeploymentServiceImpl {
 
     return {
       data,
-      config
+      schema
     };
   }
 
@@ -106,8 +116,8 @@ class ServerDeploymentServiceImpl {
     performedBy: OrganizationActor;
     instance: Instance;
 
-    serverInstance: {
-      instance: ServerInstance & { serverVariant: ServerVariant; server: Server };
+    serverImplementation: {
+      instance: ServerImplementation & { serverVariant: ServerVariant; server: Server };
       isNewEphemeral: boolean;
     };
 
@@ -120,7 +130,10 @@ class ServerDeploymentServiceImpl {
     type: 'ephemeral' | 'persistent';
   }) {
     return withTransaction(async db => {
-      if (!d.serverInstance.isNewEphemeral && d.serverInstance.instance.status != 'active') {
+      if (
+        !d.serverImplementation.isNewEphemeral &&
+        d.serverImplementation.instance.status != 'active'
+      ) {
         throw new ServiceError(
           badRequestError({
             message: 'Cannot create a server deployment for a deleted server instance'
@@ -128,8 +141,8 @@ class ServerDeploymentServiceImpl {
         );
       }
 
-      let { config, data } = await this.checkServerDeploymentConfig({
-        serverInstance: d.serverInstance.instance,
+      let { schema, data } = await this.checkServerDeploymentConfig({
+        serverImplementation: d.serverImplementation.instance,
         config: d.input.config
       });
 
@@ -143,6 +156,16 @@ class ServerDeploymentServiceImpl {
         }
       });
 
+      let config = await db.serverDeploymentConfig.create({
+        data: {
+          id: await ID.generateId('serverDeploymentConfig'),
+          schemaOid: schema.oid,
+          configSecretOid: secret.oid,
+          instanceOid: d.instance.oid,
+          isEphemeral: true // Eventually, we will have reusable persistent configs
+        }
+      });
+
       let serverDeployment = await db.serverDeployment.create({
         data: {
           id: await ID.generateId('serverDeployment'),
@@ -153,10 +176,10 @@ class ServerDeploymentServiceImpl {
           description: d.input.description,
           metadata: d.input.metadata,
 
-          serverInstanceOid: d.serverInstance.instance.oid,
-          serverOid: d.serverInstance.instance.server.oid,
+          serverImplementationOid: d.serverImplementation.instance.oid,
+          serverOid: d.serverImplementation.instance.server.oid,
+          serverVariantOid: d.serverImplementation.instance.serverVariant.oid,
           configOid: config.oid,
-          configSecretOid: secret.oid,
           instanceOid: d.instance.oid
         },
         include
@@ -179,14 +202,15 @@ class ServerDeploymentServiceImpl {
     instance: Instance;
 
     serverDeployment: ServerDeployment & {
-      serverInstance: ServerInstance & {
+      serverImplementation: ServerImplementation & {
         serverVariant: ServerVariant;
         server: Server;
       };
+      config: ServerDeploymentConfig;
     };
     input: {
       name?: string;
-      description?: string;
+      description?: string | null;
       metadata?: Record<string, any>;
       config?: Record<string, any>;
     };
@@ -194,13 +218,17 @@ class ServerDeploymentServiceImpl {
     await this.ensureServerDeploymentActive(d.serverDeployment);
 
     return withTransaction(async db => {
-      let newSecretOid: bigint | undefined = undefined;
-      let oldSecretOid: bigint | undefined = undefined;
-      let newConfigOid: bigint | undefined = undefined;
-
       if (d.input.config) {
-        let { config, data } = await this.checkServerDeploymentConfig({
-          serverInstance: d.serverDeployment.serverInstance,
+        if (!d.serverDeployment.config.isEphemeral) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Cannot perform nested update on a persistent server deployment config'
+            })
+          );
+        }
+
+        let { schema, data } = await this.checkServerDeploymentConfig({
+          serverImplementation: d.serverDeployment.serverImplementation,
           config: d.input.config
         });
 
@@ -214,36 +242,36 @@ class ServerDeploymentServiceImpl {
           }
         });
 
-        newSecretOid = secret.oid;
-        newConfigOid = config.oid;
+        await db.serverDeploymentConfig.update({
+          where: {
+            oid: d.serverDeployment.config.oid
+          },
+          data: {
+            schemaOid: schema.oid,
+            configSecretOid: secret.oid
+          }
+        });
 
-        oldSecretOid = d.serverDeployment.configSecretOid;
-      }
-
-      let serverDeployment = await db.serverDeployment.update({
-        where: {
-          id: d.serverDeployment.id
-        },
-        data: {
-          name: d.input.name,
-          description: d.input.description,
-          metadata: d.input.metadata,
-
-          configSecretOid: newSecretOid,
-          configOid: newConfigOid
-        },
-        include
-      });
-
-      if (typeof oldSecretOid == 'bigint' && oldSecretOid !== newSecretOid) {
         await secretService.deleteSecret({
           performedBy: d.performedBy,
           secret: await secretService.getSecretById({
             instance: d.instance,
-            secretId: oldSecretOid
+            secretId: d.serverDeployment.config.configSecretOid
           })
         });
       }
+
+      let serverDeployment = await db.serverDeployment.update({
+        where: {
+          oid: d.serverDeployment.oid
+        },
+        data: {
+          name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata
+        },
+        include
+      });
 
       await ingestEventService.ingest('server.server_deployment:updated', {
         serverDeployment,
@@ -260,19 +288,13 @@ class ServerDeploymentServiceImpl {
     organization: Organization;
     performedBy: OrganizationActor;
     instance: Instance;
-    serverDeployment: ServerDeployment;
+    serverDeployment: ServerDeployment & {
+      config: ServerDeploymentConfig;
+    };
   }) {
     await this.ensureServerDeploymentActive(d.serverDeployment);
 
     return withTransaction(async db => {
-      await secretService.deleteSecret({
-        performedBy: d.performedBy,
-        secret: await secretService.getSecretById({
-          instance: d.instance,
-          secretId: d.serverDeployment.configSecretOid
-        })
-      });
-
       let serverDeployment = await db.serverDeployment.update({
         where: {
           id: d.serverDeployment.id
@@ -291,17 +313,27 @@ class ServerDeploymentServiceImpl {
         instance: d.instance
       });
 
+      await serverDeploymentDeletedQueue.add(
+        {
+          serverDeploymentId: serverDeployment.id,
+          performedById: d.performedBy.id
+        },
+        { delay: 100 }
+      );
+
       return serverDeployment;
     });
   }
 
   async listServerDeployments(d: {
     serverVariantIds?: string[];
-    serverInstanceIds?: string[];
+    serverImplementationIds?: string[];
     serverIds?: string[];
     instance: Instance;
     status?: ServerDeploymentStatus[];
   }) {
+    console.log('listServerDeployments', d);
+
     let servers = d.serverIds?.length
       ? await db.server.findMany({
           where: { id: { in: d.serverIds } }
@@ -312,9 +344,9 @@ class ServerDeploymentServiceImpl {
           where: { id: { in: d.serverVariantIds } }
         })
       : undefined;
-    let serverInstances = d.serverInstanceIds?.length
-      ? await db.serverInstance.findMany({
-          where: { id: { in: d.serverInstanceIds } }
+    let serverImplementations = d.serverImplementationIds?.length
+      ? await db.serverImplementation.findMany({
+          where: { id: { in: d.serverImplementationIds } }
         })
       : undefined;
 
@@ -330,10 +362,10 @@ class ServerDeploymentServiceImpl {
               instanceOid: d.instance.oid,
 
               serverOid: servers ? { in: servers.map(s => s.oid) } : undefined,
-              serverInstanceOid: serverInstances
-                ? { in: serverInstances.map(s => s.oid) }
+              serverImplementationOid: serverImplementations
+                ? { in: serverImplementations.map(s => s.oid) }
                 : undefined,
-              serverInstance: serverVariants
+              serverImplementation: serverVariants
                 ? { serverVariantOid: { in: serverVariants.map(s => s.oid) } }
                 : undefined
             },

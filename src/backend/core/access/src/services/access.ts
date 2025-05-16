@@ -92,6 +92,12 @@ class AccessService {
         project: instance.project
       };
     }
+
+    throw new ServiceError(
+      forbiddenError({
+        message: `You don't have the required permissions to perform this action`
+      })
+    );
   }
 }
 

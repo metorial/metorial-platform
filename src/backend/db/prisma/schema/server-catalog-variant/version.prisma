@@ -10,8 +10,8 @@ model ServerVersion {
   serverVariantOid BigInt
   serverVariant    ServerVariant @relation(fields: [serverVariantOid], references: [oid])
 
-  configOid BigInt
-  config    ServerConfig @relation(fields: [configOid], references: [oid])
+  schemaOid BigInt
+  schema    ServerConfigSchema @relation(fields: [schemaOid], references: [oid])
 
   getLaunchParams String
 

@@ -1,12 +1,12 @@
 import { db, Instance, Server, ServerVariantSourceType } from '@metorial/db';
-import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
+import { notFoundError, ServiceError } from '@metorial/error';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 
 let include = {
   currentVersion: {
     include: {
-      config: true
+      schema: true
     }
   },
   server: true
@@ -36,7 +36,7 @@ class ServerVariantService {
     return serverVariant;
   }
 
-  async getServerVariantByIdOrLatestServerVariant(d: {
+  async getServerVariantByIdOrLatestServerVariantSafe(d: {
     serverVariantId?: string;
     serverId?: string;
     instance: Instance;
@@ -67,12 +67,6 @@ class ServerVariantService {
 
       if (allServerVariant.length) return allServerVariant[0];
     }
-
-    throw new ServiceError(
-      badRequestError({
-        message: 'No deployable server variant found'
-      })
-    );
   }
 
   async listServerVariants(d: { server: Server }) {
