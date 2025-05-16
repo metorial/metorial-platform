@@ -1,6 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ManagementInstanceServersVersionsGetOutput = {
+  object: 'server.server_version';
   id: string;
   identifier: string;
   serverId: string;
@@ -9,7 +10,7 @@ export type ManagementInstanceServersVersionsGetOutput = {
   source:
     | { type: 'docker'; docker: { image: string; tag: string } }
     | { type: 'remote'; remote: { domain: string } };
-  config: {
+  schema: {
     id: string;
     fingerprint: string;
     schema: Record<string, any>;
@@ -23,6 +24,7 @@ export type ManagementInstanceServersVersionsGetOutput = {
 
 export let mapManagementInstanceServersVersionsGetOutput =
   mtMap.object<ManagementInstanceServersVersionsGetOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     identifier: mtMap.objectField('identifier', mtMap.passthrough()),
     serverId: mtMap.objectField('server_id', mtMap.passthrough()),
@@ -58,8 +60,8 @@ export let mapManagementInstanceServersVersionsGetOutput =
         )
       ])
     ),
-    config: mtMap.objectField(
-      'config',
+    schema: mtMap.objectField(
+      'schema',
       mtMap.object({
         id: mtMap.objectField('id', mtMap.passthrough()),
         fingerprint: mtMap.objectField('fingerprint', mtMap.passthrough()),

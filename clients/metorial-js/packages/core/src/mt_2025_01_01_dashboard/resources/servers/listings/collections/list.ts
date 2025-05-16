@@ -2,6 +2,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ServersListingsCollectionsListOutput = {
   items: {
+    object: 'server_listing.collection';
     id: string;
     name: string;
     slug: string;
@@ -18,6 +19,7 @@ export let mapServersListingsCollectionsListOutput =
       'items',
       mtMap.array(
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           slug: mtMap.objectField('slug', mtMap.passthrough()),

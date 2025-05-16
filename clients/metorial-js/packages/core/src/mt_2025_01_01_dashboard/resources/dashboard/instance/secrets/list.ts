@@ -2,6 +2,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 
 export type DashboardInstanceSecretsListOutput = {
   items: {
+    object: 'secret';
     id: string;
     status: 'active' | 'deleted';
     type: { identifier: string; name: string };
@@ -22,6 +23,7 @@ export let mapDashboardInstanceSecretsListOutput =
       'items',
       mtMap.array(
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           type: mtMap.objectField(

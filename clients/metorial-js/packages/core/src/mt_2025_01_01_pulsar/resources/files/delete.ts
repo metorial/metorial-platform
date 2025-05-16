@@ -1,6 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type FilesDeleteOutput = {
+  object: 'file';
   id: string;
   status: 'active' | 'deleted';
   fileName: string;
@@ -13,6 +14,7 @@ export type FilesDeleteOutput = {
 };
 
 export let mapFilesDeleteOutput = mtMap.object<FilesDeleteOutput>({
+  object: mtMap.objectField('object', mtMap.passthrough()),
   id: mtMap.objectField('id', mtMap.passthrough()),
   status: mtMap.objectField('status', mtMap.passthrough()),
   fileName: mtMap.objectField('file_name', mtMap.passthrough()),

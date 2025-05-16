@@ -2,6 +2,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ServersListingsListOutput = {
   items: {
+    object: 'server_listing';
     id: string;
     status: 'active' | 'archived' | 'banned';
     slug: string;
@@ -10,6 +11,7 @@ export type ServersListingsListOutput = {
     readme: string;
     serverId: string;
     categories: {
+      object: 'server_listing.category';
       id: string;
       name: string;
       slug: string;
@@ -54,6 +56,7 @@ export type ServersListingsListOutput = {
       updatedAt: Date;
       pushedAt: Date | null;
     } | null;
+    installation: { id: string; instanceId: string; createdAt: Date } | null;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -66,6 +69,7 @@ export let mapServersListingsListOutput =
       'items',
       mtMap.array(
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           slug: mtMap.objectField('slug', mtMap.passthrough()),
@@ -77,6 +81,7 @@ export let mapServersListingsListOutput =
             'categories',
             mtMap.array(
               mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
                 slug: mtMap.objectField('slug', mtMap.passthrough()),
@@ -162,6 +167,14 @@ export let mapServersListingsListOutput =
               pushedAt: mtMap.objectField('pushed_at', mtMap.date())
             })
           ),
+          installation: mtMap.objectField(
+            'installation',
+            mtMap.object({
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date())
+            })
+          ),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
         })
@@ -190,6 +203,7 @@ export type ServersListingsListQuery = {
   collectionIds?: string[] | undefined;
   categoryIds?: string[] | undefined;
   profileIds?: string[] | undefined;
+  instanceId?: string | undefined;
 };
 
 export let mapServersListingsListQuery = mtMap.union([
@@ -213,7 +227,8 @@ export let mapServersListingsListQuery = mtMap.union([
       profileIds: mtMap.objectField(
         'profile_ids',
         mtMap.array(mtMap.passthrough())
-      )
+      ),
+      instanceId: mtMap.objectField('instance_id', mtMap.passthrough())
     })
   )
 ]);

@@ -1,6 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ManagementInstanceSecretsGetOutput = {
+  object: 'secret';
   id: string;
   status: 'active' | 'deleted';
   type: { identifier: string; name: string };
@@ -15,6 +16,7 @@ export type ManagementInstanceSecretsGetOutput = {
 
 export let mapManagementInstanceSecretsGetOutput =
   mtMap.object<ManagementInstanceSecretsGetOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
     type: mtMap.objectField(

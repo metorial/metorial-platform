@@ -4,12 +4,12 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
-  mapDashboardInstanceServersListingsGetOutput,
-  mapDashboardInstanceServersListingsListOutput,
-  mapDashboardInstanceServersListingsListQuery,
-  type DashboardInstanceServersListingsGetOutput,
-  type DashboardInstanceServersListingsListOutput,
-  type DashboardInstanceServersListingsListQuery
+  mapServersListingsGetOutput,
+  mapServersListingsListOutput,
+  mapServersListingsListQuery,
+  type ServersListingsGetOutput,
+  type ServersListingsListOutput,
+  type ServersListingsListQuery
 } from '../resources';
 
 /**
@@ -28,21 +28,19 @@ export class MetorialServersListingsEndpoint extends BaseMetorialEndpoint<any> {
    * @name List server versions
    * @description List all server versions
    *
-   * @param `query` - DashboardInstanceServersListingsListQuery
+   * @param `query` - ServersListingsListQuery
    *
-   * @returns DashboardInstanceServersListingsListOutput
+   * @returns ServersListingsListOutput
    *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  list(query?: DashboardInstanceServersListingsListQuery) {
+  list(query?: ServersListingsListQuery) {
     return this._get({
       path: ['server-listings'],
 
-      query: query
-        ? mapDashboardInstanceServersListingsListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardInstanceServersListingsListOutput);
+      query: query ? mapServersListingsListQuery.transformTo(query) : undefined
+    }).transform(mapServersListingsListOutput);
   }
 
   /**
@@ -51,7 +49,7 @@ export class MetorialServersListingsEndpoint extends BaseMetorialEndpoint<any> {
    *
    * @param `serverListingId` - string
    *
-   * @returns DashboardInstanceServersListingsGetOutput
+   * @returns ServersListingsGetOutput
    *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
@@ -59,6 +57,6 @@ export class MetorialServersListingsEndpoint extends BaseMetorialEndpoint<any> {
   get(serverListingId: string) {
     return this._get({
       path: ['server-listings', serverListingId]
-    }).transform(mapDashboardInstanceServersListingsGetOutput);
+    }).transform(mapServersListingsGetOutput);
   }
 }

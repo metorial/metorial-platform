@@ -1,6 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ManagementUserDeleteOutput = {
+  object: 'user';
   id: string;
   status: 'active' | 'deleted';
   type: 'user';
@@ -15,6 +16,7 @@ export type ManagementUserDeleteOutput = {
 
 export let mapManagementUserDeleteOutput =
   mtMap.object<ManagementUserDeleteOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
     type: mtMap.objectField('type', mtMap.passthrough()),

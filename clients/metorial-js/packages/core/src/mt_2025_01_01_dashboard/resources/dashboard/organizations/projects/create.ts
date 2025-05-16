@@ -1,6 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type DashboardOrganizationsProjectsCreateOutput = {
+  object: 'organization.project';
   id: string;
   status: 'active' | 'deleted';
   slug: string;
@@ -12,6 +13,7 @@ export type DashboardOrganizationsProjectsCreateOutput = {
 
 export let mapDashboardOrganizationsProjectsCreateOutput =
   mtMap.object<DashboardOrganizationsProjectsCreateOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
     slug: mtMap.objectField('slug', mtMap.passthrough()),

@@ -1,6 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type DashboardInstanceFilesGetOutput = {
+  object: 'file';
   id: string;
   status: 'active' | 'deleted';
   fileName: string;
@@ -14,6 +15,7 @@ export type DashboardInstanceFilesGetOutput = {
 
 export let mapDashboardInstanceFilesGetOutput =
   mtMap.object<DashboardInstanceFilesGetOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
     fileName: mtMap.objectField('file_name', mtMap.passthrough()),

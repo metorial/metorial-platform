@@ -1,6 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ApiKeysGetOutput = {
+  object: 'machine_access.api_key';
   id: string;
   status: 'active' | 'deleted';
   secretRedacted: string;
@@ -14,6 +15,7 @@ export type ApiKeysGetOutput = {
   name: string;
   description: string | null;
   machineAccess: {
+    object: 'machine_access';
     id: string;
     status: 'active' | 'deleted';
     type:
@@ -23,6 +25,7 @@ export type ApiKeysGetOutput = {
       | 'instance_publishable';
     name: string;
     actor: {
+      object: 'organization.actor';
       id: string;
       type: 'member' | 'machine_access';
       organizationId: string;
@@ -34,6 +37,7 @@ export type ApiKeysGetOutput = {
       updatedAt: Date;
     } | null;
     instance: {
+      object: 'organization.instance';
       id: string;
       status: 'active' | 'deleted';
       slug: string;
@@ -41,6 +45,7 @@ export type ApiKeysGetOutput = {
       type: 'development' | 'production';
       organizationId: string;
       project: {
+        object: 'organization.project';
         id: string;
         status: 'active' | 'deleted';
         slug: string;
@@ -53,6 +58,7 @@ export type ApiKeysGetOutput = {
       updatedAt: Date;
     } | null;
     organizationId: {
+      object: 'organization';
       id: string;
       status: 'active' | 'deleted';
       type: 'default';
@@ -64,6 +70,7 @@ export type ApiKeysGetOutput = {
       updatedAt: Date;
     } | null;
     user: {
+      object: 'user';
       id: string;
       status: 'active' | 'deleted';
       type: 'user';
@@ -89,6 +96,7 @@ export type ApiKeysGetOutput = {
 };
 
 export let mapApiKeysGetOutput = mtMap.object<ApiKeysGetOutput>({
+  object: mtMap.objectField('object', mtMap.passthrough()),
   id: mtMap.objectField('id', mtMap.passthrough()),
   status: mtMap.objectField('status', mtMap.passthrough()),
   secretRedacted: mtMap.objectField('secret_redacted', mtMap.passthrough()),
@@ -103,6 +111,7 @@ export let mapApiKeysGetOutput = mtMap.object<ApiKeysGetOutput>({
   machineAccess: mtMap.objectField(
     'machine_access',
     mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
       id: mtMap.objectField('id', mtMap.passthrough()),
       status: mtMap.objectField('status', mtMap.passthrough()),
       type: mtMap.objectField('type', mtMap.passthrough()),
@@ -110,6 +119,7 @@ export let mapApiKeysGetOutput = mtMap.object<ApiKeysGetOutput>({
       actor: mtMap.objectField(
         'actor',
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
           organizationId: mtMap.objectField(
@@ -127,6 +137,7 @@ export let mapApiKeysGetOutput = mtMap.object<ApiKeysGetOutput>({
       instance: mtMap.objectField(
         'instance',
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           slug: mtMap.objectField('slug', mtMap.passthrough()),
@@ -139,6 +150,7 @@ export let mapApiKeysGetOutput = mtMap.object<ApiKeysGetOutput>({
           project: mtMap.objectField(
             'project',
             mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
               status: mtMap.objectField('status', mtMap.passthrough()),
               slug: mtMap.objectField('slug', mtMap.passthrough()),
@@ -158,6 +170,7 @@ export let mapApiKeysGetOutput = mtMap.object<ApiKeysGetOutput>({
       organizationId: mtMap.objectField(
         'organization_id',
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
@@ -175,6 +188,7 @@ export let mapApiKeysGetOutput = mtMap.object<ApiKeysGetOutput>({
       user: mtMap.objectField(
         'user',
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),

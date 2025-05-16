@@ -1,7 +1,9 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type DashboardBootOutput = {
+  object: 'metorial.boot';
   user: {
+    object: 'user';
     id: string;
     status: 'active' | 'deleted';
     type: 'user';
@@ -14,6 +16,7 @@ export type DashboardBootOutput = {
     updatedAt: Date;
   };
   organizations: ({
+    object: 'organization';
     id: string;
     status: 'active' | 'deleted';
     type: 'default';
@@ -25,6 +28,7 @@ export type DashboardBootOutput = {
     updatedAt: Date;
   } & {
     member: {
+      object: 'organization.member';
       id: string;
       status: 'active' | 'deleted';
       role: 'member' | 'admin';
@@ -32,6 +36,7 @@ export type DashboardBootOutput = {
       organizationId: string;
       actorId: string;
       actor: {
+        object: 'organization.actor';
         id: string;
         type: 'member' | 'machine_access';
         organizationId: string;
@@ -49,6 +54,7 @@ export type DashboardBootOutput = {
     };
   })[];
   projects: ({
+    object: 'organization.project';
     id: string;
     status: 'active' | 'deleted';
     slug: string;
@@ -58,6 +64,7 @@ export type DashboardBootOutput = {
     updatedAt: Date;
   } & {
     organization: {
+      object: 'organization';
       id: string;
       status: 'active' | 'deleted';
       type: 'default';
@@ -70,6 +77,7 @@ export type DashboardBootOutput = {
     };
   })[];
   instances: ({
+    object: 'organization.instance';
     id: string;
     status: 'active' | 'deleted';
     slug: string;
@@ -77,6 +85,7 @@ export type DashboardBootOutput = {
     type: 'development' | 'production';
     organizationId: string;
     project: {
+      object: 'organization.project';
       id: string;
       status: 'active' | 'deleted';
       slug: string;
@@ -89,6 +98,7 @@ export type DashboardBootOutput = {
     updatedAt: Date;
   } & {
     organization: {
+      object: 'organization';
       id: string;
       status: 'active' | 'deleted';
       type: 'default';
@@ -103,9 +113,11 @@ export type DashboardBootOutput = {
 };
 
 export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
+  object: mtMap.objectField('object', mtMap.passthrough()),
   user: mtMap.objectField(
     'user',
     mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
       id: mtMap.objectField('id', mtMap.passthrough()),
       status: mtMap.objectField('status', mtMap.passthrough()),
       type: mtMap.objectField('type', mtMap.passthrough()),
@@ -125,6 +137,7 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
         mtMap.unionOption(
           'object',
           mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
             id: mtMap.objectField('id', mtMap.passthrough()),
             status: mtMap.objectField('status', mtMap.passthrough()),
             type: mtMap.objectField('type', mtMap.passthrough()),
@@ -140,6 +153,7 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
             member: mtMap.objectField(
               'member',
               mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 role: mtMap.objectField('role', mtMap.passthrough()),
@@ -152,6 +166,7 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
                 actor: mtMap.objectField(
                   'actor',
                   mtMap.object({
+                    object: mtMap.objectField('object', mtMap.passthrough()),
                     id: mtMap.objectField('id', mtMap.passthrough()),
                     type: mtMap.objectField('type', mtMap.passthrough()),
                     organizationId: mtMap.objectField(
@@ -187,6 +202,7 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
         mtMap.unionOption(
           'object',
           mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
             id: mtMap.objectField('id', mtMap.passthrough()),
             status: mtMap.objectField('status', mtMap.passthrough()),
             slug: mtMap.objectField('slug', mtMap.passthrough()),
@@ -200,6 +216,7 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
             organization: mtMap.objectField(
               'organization',
               mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 type: mtMap.objectField('type', mtMap.passthrough()),
@@ -226,6 +243,7 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
         mtMap.unionOption(
           'object',
           mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
             id: mtMap.objectField('id', mtMap.passthrough()),
             status: mtMap.objectField('status', mtMap.passthrough()),
             slug: mtMap.objectField('slug', mtMap.passthrough()),
@@ -238,6 +256,7 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
             project: mtMap.objectField(
               'project',
               mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 slug: mtMap.objectField('slug', mtMap.passthrough()),
@@ -255,6 +274,7 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
             organization: mtMap.objectField(
               'organization',
               mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 type: mtMap.objectField('type', mtMap.passthrough()),

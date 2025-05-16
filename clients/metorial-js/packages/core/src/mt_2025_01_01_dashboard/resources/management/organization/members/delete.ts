@@ -1,6 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ManagementOrganizationMembersDeleteOutput = {
+  object: 'organization.member';
   id: string;
   status: 'active' | 'deleted';
   role: 'member' | 'admin';
@@ -8,6 +9,7 @@ export type ManagementOrganizationMembersDeleteOutput = {
   organizationId: string;
   actorId: string;
   actor: {
+    object: 'organization.actor';
     id: string;
     type: 'member' | 'machine_access';
     organizationId: string;
@@ -26,6 +28,7 @@ export type ManagementOrganizationMembersDeleteOutput = {
 
 export let mapManagementOrganizationMembersDeleteOutput =
   mtMap.object<ManagementOrganizationMembersDeleteOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
     role: mtMap.objectField('role', mtMap.passthrough()),
@@ -35,6 +38,7 @@ export let mapManagementOrganizationMembersDeleteOutput =
     actor: mtMap.objectField(
       'actor',
       mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         type: mtMap.objectField('type', mtMap.passthrough()),
         organizationId: mtMap.objectField(

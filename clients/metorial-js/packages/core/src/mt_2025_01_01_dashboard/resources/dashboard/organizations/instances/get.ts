@@ -1,6 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type DashboardOrganizationsInstancesGetOutput = {
+  object: 'organization.instance';
   id: string;
   status: 'active' | 'deleted';
   slug: string;
@@ -8,6 +9,7 @@ export type DashboardOrganizationsInstancesGetOutput = {
   type: 'development' | 'production';
   organizationId: string;
   project: {
+    object: 'organization.project';
     id: string;
     status: 'active' | 'deleted';
     slug: string;
@@ -22,6 +24,7 @@ export type DashboardOrganizationsInstancesGetOutput = {
 
 export let mapDashboardOrganizationsInstancesGetOutput =
   mtMap.object<DashboardOrganizationsInstancesGetOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
     slug: mtMap.objectField('slug', mtMap.passthrough()),
@@ -31,6 +34,7 @@ export let mapDashboardOrganizationsInstancesGetOutput =
     project: mtMap.objectField(
       'project',
       mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         status: mtMap.objectField('status', mtMap.passthrough()),
         slug: mtMap.objectField('slug', mtMap.passthrough()),

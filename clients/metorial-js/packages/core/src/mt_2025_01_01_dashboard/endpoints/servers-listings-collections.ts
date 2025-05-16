@@ -4,12 +4,12 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
-  mapDashboardInstanceServersListingsCollectionsGetOutput,
-  mapDashboardInstanceServersListingsCollectionsListOutput,
-  mapDashboardInstanceServersListingsCollectionsListQuery,
-  type DashboardInstanceServersListingsCollectionsGetOutput,
-  type DashboardInstanceServersListingsCollectionsListOutput,
-  type DashboardInstanceServersListingsCollectionsListQuery
+  mapServersListingsCollectionsGetOutput,
+  mapServersListingsCollectionsListOutput,
+  mapServersListingsCollectionsListQuery,
+  type ServersListingsCollectionsGetOutput,
+  type ServersListingsCollectionsListOutput,
+  type ServersListingsCollectionsListQuery
 } from '../resources';
 
 /**
@@ -28,23 +28,21 @@ export class MetorialServersListingsCollectionsEndpoint extends BaseMetorialEndp
    * @name List server versions
    * @description List all server versions
    *
-   * @param `query` - DashboardInstanceServersListingsCollectionsListQuery
+   * @param `query` - ServersListingsCollectionsListQuery
    *
-   * @returns DashboardInstanceServersListingsCollectionsListOutput
+   * @returns ServersListingsCollectionsListOutput
    *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  list(query?: DashboardInstanceServersListingsCollectionsListQuery) {
+  list(query?: ServersListingsCollectionsListQuery) {
     return this._get({
       path: ['server-listing-collections'],
 
       query: query
-        ? mapDashboardInstanceServersListingsCollectionsListQuery.transformTo(
-            query
-          )
+        ? mapServersListingsCollectionsListQuery.transformTo(query)
         : undefined
-    }).transform(mapDashboardInstanceServersListingsCollectionsListOutput);
+    }).transform(mapServersListingsCollectionsListOutput);
   }
 
   /**
@@ -53,7 +51,7 @@ export class MetorialServersListingsCollectionsEndpoint extends BaseMetorialEndp
    *
    * @param `serverListingCollectionId` - string
    *
-   * @returns DashboardInstanceServersListingsCollectionsGetOutput
+   * @returns ServersListingsCollectionsGetOutput
    *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
@@ -61,6 +59,6 @@ export class MetorialServersListingsCollectionsEndpoint extends BaseMetorialEndp
   get(serverListingCollectionId: string) {
     return this._get({
       path: ['server-listing-collections', serverListingCollectionId]
-    }).transform(mapDashboardInstanceServersListingsCollectionsGetOutput);
+    }).transform(mapServersListingsCollectionsGetOutput);
   }
 }

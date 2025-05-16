@@ -1,6 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ServersListingsGetOutput = {
+  object: 'server_listing';
   id: string;
   status: 'active' | 'archived' | 'banned';
   slug: string;
@@ -9,6 +10,7 @@ export type ServersListingsGetOutput = {
   readme: string;
   serverId: string;
   categories: {
+    object: 'server_listing.category';
     id: string;
     name: string;
     slug: string;
@@ -53,12 +55,14 @@ export type ServersListingsGetOutput = {
     updatedAt: Date;
     pushedAt: Date | null;
   } | null;
+  installation: { id: string; instanceId: string; createdAt: Date } | null;
   createdAt: Date;
   updatedAt: Date;
 };
 
 export let mapServersListingsGetOutput = mtMap.object<ServersListingsGetOutput>(
   {
+    object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
     slug: mtMap.objectField('slug', mtMap.passthrough()),
@@ -70,6 +74,7 @@ export let mapServersListingsGetOutput = mtMap.object<ServersListingsGetOutput>(
       'categories',
       mtMap.array(
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           slug: mtMap.objectField('slug', mtMap.passthrough()),
@@ -129,6 +134,14 @@ export let mapServersListingsGetOutput = mtMap.object<ServersListingsGetOutput>(
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date()),
         pushedAt: mtMap.objectField('pushed_at', mtMap.date())
+      })
+    ),
+    installation: mtMap.objectField(
+      'installation',
+      mtMap.object({
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date())
       })
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),

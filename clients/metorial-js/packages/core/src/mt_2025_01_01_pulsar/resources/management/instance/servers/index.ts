@@ -1,5 +1,5 @@
 export * from './deployments';
 export * from './get';
-export * from './instances';
+export * from './implementations';
 export * from './variants';
 export * from './versions';

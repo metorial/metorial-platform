@@ -2,6 +2,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 
 export type DashboardOrganizationsListOutput = {
   items: {
+    object: 'organization';
     id: string;
     status: 'active' | 'deleted';
     type: 'default';
@@ -21,6 +22,7 @@ export let mapDashboardOrganizationsListOutput =
       'items',
       mtMap.array(
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),

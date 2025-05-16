@@ -1,6 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ApiKeysRotateOutput = {
+  object: 'machine_access.api_key';
   id: string;
   status: 'active' | 'deleted';
   secretRedacted: string;
@@ -14,6 +15,7 @@ export type ApiKeysRotateOutput = {
   name: string;
   description: string | null;
   machineAccess: {
+    object: 'machine_access';
     id: string;
     status: 'active' | 'deleted';
     type:
@@ -23,6 +25,7 @@ export type ApiKeysRotateOutput = {
       | 'instance_publishable';
     name: string;
     actor: {
+      object: 'organization.actor';
       id: string;
       type: 'member' | 'machine_access';
       organizationId: string;
@@ -34,6 +37,7 @@ export type ApiKeysRotateOutput = {
       updatedAt: Date;
     } | null;
     instance: {
+      object: 'organization.instance';
       id: string;
       status: 'active' | 'deleted';
       slug: string;
@@ -41,6 +45,7 @@ export type ApiKeysRotateOutput = {
       type: 'development' | 'production';
       organizationId: string;
       project: {
+        object: 'organization.project';
         id: string;
         status: 'active' | 'deleted';
         slug: string;
@@ -53,6 +58,7 @@ export type ApiKeysRotateOutput = {
       updatedAt: Date;
     } | null;
     organizationId: {
+      object: 'organization';
       id: string;
       status: 'active' | 'deleted';
       type: 'default';
@@ -64,6 +70,7 @@ export type ApiKeysRotateOutput = {
       updatedAt: Date;
     } | null;
     user: {
+      object: 'user';
       id: string;
       status: 'active' | 'deleted';
       type: 'user';
@@ -89,6 +96,7 @@ export type ApiKeysRotateOutput = {
 };
 
 export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
+  object: mtMap.objectField('object', mtMap.passthrough()),
   id: mtMap.objectField('id', mtMap.passthrough()),
   status: mtMap.objectField('status', mtMap.passthrough()),
   secretRedacted: mtMap.objectField('secret_redacted', mtMap.passthrough()),
@@ -103,6 +111,7 @@ export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
   machineAccess: mtMap.objectField(
     'machine_access',
     mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
       id: mtMap.objectField('id', mtMap.passthrough()),
       status: mtMap.objectField('status', mtMap.passthrough()),
       type: mtMap.objectField('type', mtMap.passthrough()),
@@ -110,6 +119,7 @@ export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
       actor: mtMap.objectField(
         'actor',
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
           organizationId: mtMap.objectField(
@@ -127,6 +137,7 @@ export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
       instance: mtMap.objectField(
         'instance',
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           slug: mtMap.objectField('slug', mtMap.passthrough()),
@@ -139,6 +150,7 @@ export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
           project: mtMap.objectField(
             'project',
             mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
               status: mtMap.objectField('status', mtMap.passthrough()),
               slug: mtMap.objectField('slug', mtMap.passthrough()),
@@ -158,6 +170,7 @@ export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
       organizationId: mtMap.objectField(
         'organization_id',
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
@@ -175,6 +188,7 @@ export let mapApiKeysRotateOutput = mtMap.object<ApiKeysRotateOutput>({
       user: mtMap.objectField(
         'user',
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),

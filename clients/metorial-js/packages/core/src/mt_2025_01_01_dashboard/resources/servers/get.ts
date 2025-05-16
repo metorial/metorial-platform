@@ -1,16 +1,19 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ServersGetOutput = {
+  object: 'server';
   id: string;
   type: 'public';
   name: string;
   description: string | null;
   importedServerId: string | null;
   variants: {
+    object: 'server.server_variant';
     id: string;
     identifier: string;
     serverId: string;
     currentVersion: {
+      object: 'server.server_version';
       id: string;
       identifier: string;
       serverId: string;
@@ -19,7 +22,7 @@ export type ServersGetOutput = {
       source:
         | { type: 'docker'; docker: { image: string; tag: string } }
         | { type: 'remote'; remote: { domain: string } };
-      config: {
+      schema: {
         id: string;
         fingerprint: string;
         schema: Record<string, any>;
@@ -41,6 +44,7 @@ export type ServersGetOutput = {
 };
 
 export let mapServersGetOutput = mtMap.object<ServersGetOutput>({
+  object: mtMap.objectField('object', mtMap.passthrough()),
   id: mtMap.objectField('id', mtMap.passthrough()),
   type: mtMap.objectField('type', mtMap.passthrough()),
   name: mtMap.objectField('name', mtMap.passthrough()),
@@ -53,12 +57,14 @@ export let mapServersGetOutput = mtMap.object<ServersGetOutput>({
     'variants',
     mtMap.array(
       mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         identifier: mtMap.objectField('identifier', mtMap.passthrough()),
         serverId: mtMap.objectField('server_id', mtMap.passthrough()),
         currentVersion: mtMap.objectField(
           'current_version',
           mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
             id: mtMap.objectField('id', mtMap.passthrough()),
             identifier: mtMap.objectField('identifier', mtMap.passthrough()),
             serverId: mtMap.objectField('server_id', mtMap.passthrough()),
@@ -94,8 +100,8 @@ export let mapServersGetOutput = mtMap.object<ServersGetOutput>({
                 )
               ])
             ),
-            config: mtMap.objectField(
-              'config',
+            schema: mtMap.objectField(
+              'schema',
               mtMap.object({
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 fingerprint: mtMap.objectField(

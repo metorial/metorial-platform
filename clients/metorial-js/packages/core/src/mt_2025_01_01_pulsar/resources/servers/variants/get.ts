@@ -1,10 +1,12 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ServersVariantsGetOutput = {
+  object: 'server.server_variant';
   id: string;
   identifier: string;
   serverId: string;
   currentVersion: {
+    object: 'server.server_version';
     id: string;
     identifier: string;
     serverId: string;
@@ -13,7 +15,7 @@ export type ServersVariantsGetOutput = {
     source:
       | { type: 'docker'; docker: { image: string; tag: string } }
       | { type: 'remote'; remote: { domain: string } };
-    config: {
+    schema: {
       id: string;
       fingerprint: string;
       schema: Record<string, any>;
@@ -32,12 +34,14 @@ export type ServersVariantsGetOutput = {
 
 export let mapServersVariantsGetOutput = mtMap.object<ServersVariantsGetOutput>(
   {
+    object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     identifier: mtMap.objectField('identifier', mtMap.passthrough()),
     serverId: mtMap.objectField('server_id', mtMap.passthrough()),
     currentVersion: mtMap.objectField(
       'current_version',
       mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         identifier: mtMap.objectField('identifier', mtMap.passthrough()),
         serverId: mtMap.objectField('server_id', mtMap.passthrough()),
@@ -73,8 +77,8 @@ export let mapServersVariantsGetOutput = mtMap.object<ServersVariantsGetOutput>(
             )
           ])
         ),
-        config: mtMap.objectField(
-          'config',
+        schema: mtMap.objectField(
+          'schema',
           mtMap.object({
             id: mtMap.objectField('id', mtMap.passthrough()),
             fingerprint: mtMap.objectField('fingerprint', mtMap.passthrough()),

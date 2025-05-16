@@ -4,12 +4,12 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
-  mapDashboardInstanceServersListingsCategoriesGetOutput,
-  mapDashboardInstanceServersListingsCategoriesListOutput,
-  mapDashboardInstanceServersListingsCategoriesListQuery,
-  type DashboardInstanceServersListingsCategoriesGetOutput,
-  type DashboardInstanceServersListingsCategoriesListOutput,
-  type DashboardInstanceServersListingsCategoriesListQuery
+  mapServersListingsCategoriesGetOutput,
+  mapServersListingsCategoriesListOutput,
+  mapServersListingsCategoriesListQuery,
+  type ServersListingsCategoriesGetOutput,
+  type ServersListingsCategoriesListOutput,
+  type ServersListingsCategoriesListQuery
 } from '../resources';
 
 /**
@@ -28,23 +28,21 @@ export class MetorialServersListingsCategoriesEndpoint extends BaseMetorialEndpo
    * @name List server versions
    * @description List all server versions
    *
-   * @param `query` - DashboardInstanceServersListingsCategoriesListQuery
+   * @param `query` - ServersListingsCategoriesListQuery
    *
-   * @returns DashboardInstanceServersListingsCategoriesListOutput
+   * @returns ServersListingsCategoriesListOutput
    *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  list(query?: DashboardInstanceServersListingsCategoriesListQuery) {
+  list(query?: ServersListingsCategoriesListQuery) {
     return this._get({
       path: ['server-listing-categories'],
 
       query: query
-        ? mapDashboardInstanceServersListingsCategoriesListQuery.transformTo(
-            query
-          )
+        ? mapServersListingsCategoriesListQuery.transformTo(query)
         : undefined
-    }).transform(mapDashboardInstanceServersListingsCategoriesListOutput);
+    }).transform(mapServersListingsCategoriesListOutput);
   }
 
   /**
@@ -53,7 +51,7 @@ export class MetorialServersListingsCategoriesEndpoint extends BaseMetorialEndpo
    *
    * @param `serverListingCategoryId` - string
    *
-   * @returns DashboardInstanceServersListingsCategoriesGetOutput
+   * @returns ServersListingsCategoriesGetOutput
    *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
@@ -61,6 +59,6 @@ export class MetorialServersListingsCategoriesEndpoint extends BaseMetorialEndpo
   get(serverListingCategoryId: string) {
     return this._get({
       path: ['server-listing-categories', serverListingCategoryId]
-    }).transform(mapDashboardInstanceServersListingsCategoriesGetOutput);
+    }).transform(mapServersListingsCategoriesGetOutput);
   }
 }

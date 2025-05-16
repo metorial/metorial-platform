@@ -2,12 +2,14 @@ import { mtMap } from '@metorial/util-resource-mapper';
 
 export type DashboardOrganizationsInvitesListOutput = {
   items: {
+    object: 'organization.invite';
     id: string;
     status: 'pending' | 'accepted' | 'rejected' | 'expired' | 'deleted';
     role: 'member' | 'admin';
     type: 'link' | 'email';
     email: string;
     organization: {
+      object: 'organization';
       id: string;
       status: 'active' | 'deleted';
       type: 'default';
@@ -19,6 +21,7 @@ export type DashboardOrganizationsInvitesListOutput = {
       updatedAt: Date;
     };
     invitedBy: {
+      object: 'organization.actor';
       id: string;
       type: 'member' | 'machine_access';
       organizationId: string;
@@ -53,6 +56,7 @@ export let mapDashboardOrganizationsInvitesListOutput =
       'items',
       mtMap.array(
         mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           role: mtMap.objectField('role', mtMap.passthrough()),
@@ -61,6 +65,7 @@ export let mapDashboardOrganizationsInvitesListOutput =
           organization: mtMap.objectField(
             'organization',
             mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
               status: mtMap.objectField('status', mtMap.passthrough()),
               type: mtMap.objectField('type', mtMap.passthrough()),
@@ -78,6 +83,7 @@ export let mapDashboardOrganizationsInvitesListOutput =
           invitedBy: mtMap.objectField(
             'invited_by',
             mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
               type: mtMap.objectField('type', mtMap.passthrough()),
               organizationId: mtMap.objectField(
