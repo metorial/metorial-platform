@@ -49,7 +49,7 @@ export let PageHeader = ({
   pagination
 }: {
   title: string;
-  description: string;
+  description?: string;
   actions?: React.ReactNode;
   pagination?: {
     href: string;
@@ -80,9 +80,11 @@ export let PageHeader = ({
         <Title as="h1" size="7" weight="strong">
           {title}
         </Title>
-        <Text size="2" weight="medium" color="gray700">
-          {description}
-        </Text>
+        {description && (
+          <Text size="2" weight="medium" color="gray700">
+            {description}
+          </Text>
+        )}
       </Main>
 
       {actions && <Nav>{actions}</Nav>}

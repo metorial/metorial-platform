@@ -28,7 +28,71 @@ let InstancePaths = Object.assign(
       project: EntityParam,
       instance: EntityParam,
       ...subPages: (string | null | undefined)[]
-    ) => InstancePaths(organization, project, instance, 'developer', ...subPages)
+    ) => InstancePaths(organization, project, instance, 'developer', ...subPages),
+
+    servers: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: (string | null | undefined)[]
+    ) => InstancePaths(organization, project, instance, 'servers', ...subPages),
+    serverDeployments: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: (string | null | undefined)[]
+    ) => InstancePaths(organization, project, instance, 'server-deployments', ...subPages),
+    serverImplementations: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: (string | null | undefined)[]
+    ) => InstancePaths(organization, project, instance, 'server-implementations', ...subPages),
+
+    server: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: (string | null | undefined)[]
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'server', id, ...subPages);
+    },
+    serverDeployment: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: (string | null | undefined)[]
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'server-deployment',
+        id,
+        ...subPages
+      );
+    },
+    serverImplementation: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: (string | null | undefined)[]
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'server-implementation',
+        id,
+        ...subPages
+      );
+    }
   }
 );
 

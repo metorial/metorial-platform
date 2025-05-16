@@ -19,8 +19,7 @@ let fadeIn = keyframes`
 
 let Wrapper = styled.div`
   height: 100%;
-  display: flex;
-  /* grid-template-columns: 250px 1fr; */
+  display: grid;
   position: relative;
 `;
 
@@ -106,7 +105,13 @@ export let AppLayout = ({
 }) => {
   return (
     <RootLayout Nav={Nav}>
-      <Wrapper>
+      <Wrapper
+        style={{
+          gridTemplateColumns: right
+            ? '250px calc(100% - 310px) 60px'
+            : '250px calc(100% - 250px)'
+        }}
+      >
         <SidebarWrapper>
           <Sidebar>
             <Shadow />

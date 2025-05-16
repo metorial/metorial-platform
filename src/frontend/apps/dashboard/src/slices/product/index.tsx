@@ -1,6 +1,24 @@
 import { createSlice } from '@metorial/microfrontend';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
+import { ServersListLayout } from './pages/(servers)/(list)/_layout';
+import { ServersPage } from './pages/(servers)/(list)/servers';
+import { ServersDeploymentsPage } from './pages/(servers)/(list)/servers-deployments';
+import { ServersImplementationsPage } from './pages/(servers)/(list)/servers-implementations';
+import { ServerOverviewPage } from './pages/(servers)/server';
+import { ServerDeploymentConfigPage } from './pages/(servers)/server-deployment';
+import { ServerDeploymentLayout } from './pages/(servers)/server-deployment/_layout';
+import { ServerDeploymentErrorsPage } from './pages/(servers)/server-deployment/errors';
+import { ServerDeploymentRunsPage } from './pages/(servers)/server-deployment/runs';
+import { ServerImplementationConfigPage } from './pages/(servers)/server-implementation';
+import { ServerImplementationLayout } from './pages/(servers)/server-implementation/_layout';
+import { ServerImplementationDeploymentsPage } from './pages/(servers)/server-implementation/deployments';
+import { ServerImplementationErrorsPage } from './pages/(servers)/server-implementation/errors';
+import { ServerImplementationRunsPage } from './pages/(servers)/server-implementation/runs';
+import { ServerLayout } from './pages/(servers)/server/_layout';
+import { ServerDeploymentsPage } from './pages/(servers)/server/deployments';
+import { ServerImplementationsPage } from './pages/(servers)/server/implementations';
+import { ServerRunsPage } from './pages/(servers)/server/runs';
 import { ProjectPageLayout } from './pages/_layout';
 import { ProjectDeveloperPage } from './pages/developer';
 import { ProjectDeveloperPageLayout } from './pages/developer/_layout';
@@ -48,6 +66,94 @@ export let productInnerSlice = createSlice([
           {
             path: 'environments',
             element: <ProjectDeveloperEnvironmentsPage />
+          }
+        ]
+      },
+
+      {
+        path: '',
+        element: <ServersListLayout />,
+
+        children: [
+          {
+            path: 'servers',
+            element: <ServersPage />
+          },
+          {
+            path: 'server-deployments',
+            element: <ServersDeploymentsPage />
+          },
+          {
+            path: 'server-implementations',
+            element: <ServersImplementationsPage />
+          }
+        ]
+      },
+
+      {
+        path: 'server/:serverId',
+        element: <ServerLayout />,
+
+        children: [
+          {
+            path: '',
+            element: <ServerOverviewPage />
+          },
+          {
+            path: 'deployments',
+            element: <ServerDeploymentsPage />
+          },
+          {
+            path: 'implementations',
+            element: <ServerImplementationsPage />
+          },
+          {
+            path: 'runs',
+            element: <ServerRunsPage />
+          }
+        ]
+      },
+
+      {
+        path: 'server-deployment/:serverDeploymentId',
+        element: <ServerDeploymentLayout />,
+
+        children: [
+          {
+            path: '',
+            element: <ServerDeploymentConfigPage />
+          },
+          {
+            path: 'runs',
+            element: <ServerDeploymentRunsPage />
+          },
+          {
+            path: 'errors',
+            element: <ServerDeploymentErrorsPage />
+          }
+        ]
+      },
+
+      {
+        path: 'server-implementation/:serverImplementationId',
+        element: <ServerImplementationLayout />,
+
+        children: [
+          {
+            path: '',
+            element: <ServerImplementationConfigPage />
+          },
+          {
+            path: 'runs',
+            element: <ServerImplementationRunsPage />
+          },
+          {
+            path: 'errors',
+            element: <ServerImplementationErrorsPage />
+          },
+          {
+            path: 'deployments',
+            element: <ServerImplementationDeploymentsPage />
           }
         ]
       }
