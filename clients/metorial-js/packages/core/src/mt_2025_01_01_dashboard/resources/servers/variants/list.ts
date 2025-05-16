@@ -17,7 +17,7 @@ export type ServersVariantsListOutput = {
       config: {
         id: string;
         fingerprint: string;
-        config: Record<string, any>;
+        schema: Record<string, any>;
         serverId: string;
         serverVariantId: string;
         serverVersionId: string;
@@ -94,7 +94,7 @@ export let mapServersVariantsListOutput =
                     'fingerprint',
                     mtMap.passthrough()
                   ),
-                  config: mtMap.objectField('config', mtMap.passthrough()),
+                  schema: mtMap.objectField('schema', mtMap.passthrough()),
                   serverId: mtMap.objectField('server_id', mtMap.passthrough()),
                   serverVariantId: mtMap.objectField(
                     'server_variant_id',

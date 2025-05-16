@@ -4,18 +4,18 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
-  mapDashboardFilesDeleteOutput,
-  mapDashboardFilesGetOutput,
-  mapDashboardFilesListOutput,
-  mapDashboardFilesListQuery,
-  mapDashboardFilesUpdateBody,
-  mapDashboardFilesUpdateOutput,
-  type DashboardFilesDeleteOutput,
-  type DashboardFilesGetOutput,
-  type DashboardFilesListOutput,
-  type DashboardFilesListQuery,
-  type DashboardFilesUpdateBody,
-  type DashboardFilesUpdateOutput
+  mapDashboardInstanceFilesDeleteOutput,
+  mapDashboardInstanceFilesGetOutput,
+  mapDashboardInstanceFilesListOutput,
+  mapDashboardInstanceFilesListQuery,
+  mapDashboardInstanceFilesUpdateBody,
+  mapDashboardInstanceFilesUpdateOutput,
+  type DashboardInstanceFilesDeleteOutput,
+  type DashboardInstanceFilesGetOutput,
+  type DashboardInstanceFilesListOutput,
+  type DashboardInstanceFilesListQuery,
+  type DashboardInstanceFilesUpdateBody,
+  type DashboardInstanceFilesUpdateOutput
 } from '../resources';
 
 /**
@@ -34,19 +34,21 @@ export class MetorialFilesEndpoint extends BaseMetorialEndpoint<any> {
    * @name List  files
    * @description List all  files
    *
-   * @param `query` - DashboardFilesListQuery
+   * @param `query` - DashboardInstanceFilesListQuery
    *
-   * @returns DashboardFilesListOutput
+   * @returns DashboardInstanceFilesListOutput
    *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  list(query?: DashboardFilesListQuery) {
+  list(query?: DashboardInstanceFilesListQuery) {
     return this._get({
       path: ['files'],
 
-      query: query ? mapDashboardFilesListQuery.transformTo(query) : undefined
-    }).transform(mapDashboardFilesListOutput);
+      query: query
+        ? mapDashboardInstanceFilesListQuery.transformTo(query)
+        : undefined
+    }).transform(mapDashboardInstanceFilesListOutput);
   }
 
   /**
@@ -55,7 +57,7 @@ export class MetorialFilesEndpoint extends BaseMetorialEndpoint<any> {
    *
    * @param `fileId` - string
    *
-   * @returns DashboardFilesGetOutput
+   * @returns DashboardInstanceFilesGetOutput
    *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
@@ -63,7 +65,7 @@ export class MetorialFilesEndpoint extends BaseMetorialEndpoint<any> {
   get(fileId: string) {
     return this._get({
       path: ['files', fileId]
-    }).transform(mapDashboardFilesGetOutput);
+    }).transform(mapDashboardInstanceFilesGetOutput);
   }
 
   /**
@@ -71,18 +73,18 @@ export class MetorialFilesEndpoint extends BaseMetorialEndpoint<any> {
    * @description Update the information of a specific file
    *
    * @param `fileId` - string
-   * @param `body` - DashboardFilesUpdateBody
+   * @param `body` - DashboardInstanceFilesUpdateBody
    *
-   * @returns DashboardFilesUpdateOutput
+   * @returns DashboardInstanceFilesUpdateOutput
    *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  update(fileId: string, body: DashboardFilesUpdateBody) {
+  update(fileId: string, body: DashboardInstanceFilesUpdateBody) {
     return this._patch({
       path: ['files', fileId],
-      body: mapDashboardFilesUpdateBody.transformTo(body)
-    }).transform(mapDashboardFilesUpdateOutput);
+      body: mapDashboardInstanceFilesUpdateBody.transformTo(body)
+    }).transform(mapDashboardInstanceFilesUpdateOutput);
   }
 
   /**
@@ -91,7 +93,7 @@ export class MetorialFilesEndpoint extends BaseMetorialEndpoint<any> {
    *
    * @param `fileId` - string
    *
-   * @returns DashboardFilesDeleteOutput
+   * @returns DashboardInstanceFilesDeleteOutput
    *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
@@ -99,6 +101,6 @@ export class MetorialFilesEndpoint extends BaseMetorialEndpoint<any> {
   delete(fileId: string) {
     return this._delete({
       path: ['files', fileId]
-    }).transform(mapDashboardFilesDeleteOutput);
+    }).transform(mapDashboardInstanceFilesDeleteOutput);
   }
 }

@@ -22,7 +22,7 @@ export type ServersGetOutput = {
       config: {
         id: string;
         fingerprint: string;
-        config: Record<string, any>;
+        schema: Record<string, any>;
         serverId: string;
         serverVariantId: string;
         serverVersionId: string;
@@ -35,6 +35,7 @@ export type ServersGetOutput = {
       | { type: 'remote'; remote: { domain: string } };
     createdAt: Date;
   }[];
+  metadata: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -101,7 +102,7 @@ export let mapServersGetOutput = mtMap.object<ServersGetOutput>({
                   'fingerprint',
                   mtMap.passthrough()
                 ),
-                config: mtMap.objectField('config', mtMap.passthrough()),
+                schema: mtMap.objectField('schema', mtMap.passthrough()),
                 serverId: mtMap.objectField('server_id', mtMap.passthrough()),
                 serverVariantId: mtMap.objectField(
                   'server_variant_id',
@@ -144,6 +145,7 @@ export let mapServersGetOutput = mtMap.object<ServersGetOutput>({
       })
     )
   ),
+  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
   createdAt: mtMap.objectField('created_at', mtMap.date()),
   updatedAt: mtMap.objectField('updated_at', mtMap.date())
 });

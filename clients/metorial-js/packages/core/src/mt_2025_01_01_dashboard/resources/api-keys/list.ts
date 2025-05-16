@@ -247,7 +247,10 @@ export let mapApiKeysListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      type: mtMap.objectField('type', mtMap.passthrough()),
+      organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+      instanceId: mtMap.objectField('instance_id', mtMap.passthrough())
     })
   )
 ]);

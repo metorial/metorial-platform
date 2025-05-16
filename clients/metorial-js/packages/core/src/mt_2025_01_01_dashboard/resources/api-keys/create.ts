@@ -226,6 +226,9 @@ export let mapApiKeysCreateBody = mtMap.union([
   mtMap.unionOption(
     'object',
     mtMap.object({
+      type: mtMap.objectField('type', mtMap.passthrough()),
+      organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
+      instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
       name: mtMap.objectField('name', mtMap.passthrough()),
       description: mtMap.objectField('description', mtMap.passthrough()),
       expiresAt: mtMap.objectField('expires_at', mtMap.date())

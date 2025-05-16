@@ -62,7 +62,10 @@ export type DashboardInstanceSecretsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { type?: 'server_instance_config' | undefined };
+} & {
+  type?: 'server_deployment_config' | 'server_deployment_config'[] | undefined;
+  status?: 'active' | 'deleted' | ('active' | 'deleted')[] | undefined;
+};
 
 export let mapDashboardInstanceSecretsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -73,7 +76,14 @@ export let mapDashboardInstanceSecretsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      type: mtMap.objectField('type', mtMap.passthrough())
+      type: mtMap.objectField(
+        'type',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      ),
+      status: mtMap.objectField(
+        'status',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      )
     })
   )
 ]);

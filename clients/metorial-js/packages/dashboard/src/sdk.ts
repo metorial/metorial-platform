@@ -1,8 +1,6 @@
 import {
   MetorialApiKeysEndpoint,
   MetorialDashboardEndpoint,
-  MetorialDashboardFilesEndpoint,
-  MetorialDashboardFilesLinksEndpoint,
   MetorialDashboardInstanceSecretsEndpoint,
   MetorialDashboardInstanceServersEndpoint,
   MetorialDashboardInstanceServersListingsCategoriesEndpoint,
@@ -50,9 +48,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
   dashboard: new MetorialDashboardEndpoint(manager),
 
-  files: Object.assign(new MetorialDashboardFilesEndpoint(manager), {
-    links: new MetorialDashboardFilesLinksEndpoint(manager)
-  }),
+  // files: Object.assign(new MetorialDashboardFilesEndpoint(manager), {
+  //   links: new MetorialDashboardFilesLinksEndpoint(manager)
+  // }),
 
   secrets: new MetorialDashboardInstanceSecretsEndpoint(manager),
 
