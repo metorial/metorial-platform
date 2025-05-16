@@ -1,10 +1,13 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { serverDeploymentType } from '../types';
-import { v1ServerInstancePresenter } from './serverInstance';
+import { v1ServerDeploymentConfigPresenter } from './serverDeploymentConfig';
+import { v1ServerImplementationPresenter } from './serverImplementation';
 
 export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
   .presenter(async ({ serverDeployment }, opts) => ({
+    object: 'server.server_deployment',
+
     id: serverDeployment.id,
     status: serverDeployment.status,
 
@@ -13,13 +16,30 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
 
     metadata: serverDeployment.metadata,
 
-    server_id: serverDeployment.server.id,
-    secret_id: serverDeployment.configSecret.id,
+    server: {
+      id: serverDeployment.server.id,
+      name: serverDeployment.server.name,
+      description: serverDeployment.server.description,
 
-    server_instance: await v1ServerInstancePresenter
+      type: { imported: 'public' as const }[serverDeployment.server.type],
+
+      created_at: serverDeployment.server.createdAt,
+      updated_at: serverDeployment.server.updatedAt
+    },
+
+    config: await v1ServerDeploymentConfigPresenter
       .present(
         {
-          serverInstance: serverDeployment.serverInstance
+          config: serverDeployment.config
+        },
+        opts
+      )
+      .run(),
+
+    server_implementation: await v1ServerImplementationPresenter
+      .present(
+        {
+          serverImplementation: serverDeployment.serverImplementation
         },
         opts
       )
@@ -30,6 +50,8 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
   }))
   .schema(
     v.object({
+      object: v.literal('server.server_deployment'),
+
       id: v.string(),
       status: v.enumOf(['active', 'archived', 'deleted']),
 
@@ -37,10 +59,21 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
       description: v.nullable(v.string()),
       metadata: v.record(v.any()),
 
-      server_id: v.string(),
       secret_id: v.string(),
 
-      server_instance: v1ServerInstancePresenter.schema,
+      server: v.object({
+        id: v.string(),
+        name: v.string(),
+        description: v.nullable(v.string()),
+        type: v.enumOf(['public']),
+
+        created_at: v.date(),
+        updated_at: v.date()
+      }),
+
+      config: v1ServerDeploymentConfigPresenter.schema,
+
+      server_implementation: v1ServerImplementationPresenter.schema,
 
       created_at: v.date(),
       updated_at: v.date()

@@ -8,6 +8,8 @@ import { serverVariantPresenter } from '../../presenters';
 import { serverGroup } from './server';
 
 export let serverVariantGroup = serverGroup.use(async ctx => {
+  if (!ctx.params.serverVariantId) throw new Error('serverVariantId is required');
+
   let serverVariant = await serverVariantService.getServerVariantById({
     serverVariantId: ctx.params.serverVariantId,
     server: ctx.server

@@ -8,6 +8,8 @@ import { v1UserPresenter } from './user';
 
 export let v1MachineAccessPresenter = Presenter.create(machineAccessType)
   .presenter(async ({ machineAccess }, opts) => ({
+    object: 'machine_access',
+
     id: machineAccess.id,
     status: machineAccess.status,
     type: machineAccess.type,
@@ -69,6 +71,8 @@ export let v1MachineAccessPresenter = Presenter.create(machineAccessType)
   }))
   .schema(
     v.object({
+      object: v.literal('machine_access'),
+
       id: v.string({ name: 'id', description: `The machineAccess's unique identifier` }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',

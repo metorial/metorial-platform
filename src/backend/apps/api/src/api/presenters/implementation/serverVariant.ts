@@ -3,7 +3,7 @@ import { v } from '@metorial/validation';
 import { serverVariantType } from '../types';
 import { v1ServerVersionPresenter } from './serverVersion';
 
-let tryGetHostname = (url: string) => {
+export let tryGetHostname = (url: string) => {
   try {
     return new URL(url).hostname;
   } catch (e) {
@@ -13,6 +13,8 @@ let tryGetHostname = (url: string) => {
 
 export let v1ServerVariantPresenter = Presenter.create(serverVariantType)
   .presenter(async ({ serverVariant }, opts) => ({
+    object: 'server.server_variant',
+
     id: serverVariant.id,
     identifier: serverVariant.identifier,
 
@@ -51,6 +53,8 @@ export let v1ServerVariantPresenter = Presenter.create(serverVariantType)
   }))
   .schema(
     v.object({
+      object: v.literal('server.server_variant'),
+
       id: v.string(),
       identifier: v.string(),
 

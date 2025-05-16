@@ -5,6 +5,8 @@ import { v1ServerVariantPresenter } from './serverVariant';
 
 export let v1ServerPresenter = Presenter.create(serverType)
   .presenter(async ({ server }, opts) => ({
+    object: 'server',
+
     id: server.id,
     type: { imported: 'public' as const }[server.type],
 
@@ -34,6 +36,8 @@ export let v1ServerPresenter = Presenter.create(serverType)
   }))
   .schema(
     v.object({
+      object: v.literal('server'),
+
       id: v.string(),
       type: v.enumOf(['public']),
 

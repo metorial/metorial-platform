@@ -1,13 +1,15 @@
 import { serverListingCollectionService } from '@metorial/module-catalog';
 import { Paginator } from '@metorial/pagination';
-import { Controller } from '@metorial/rest';
+import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { apiGroup } from '../../middleware/apiGroup';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
 import { serverListingCollectionPresenter } from '../../presenters';
 
 export let serverListingCollectionGroup = apiGroup.use(async ctx => {
+  if (!ctx.params.serverListingCollectionId)
+    throw new Error('serverListingCollectionId is required');
+
   let serverListingCollection =
     await serverListingCollectionService.getServerListingCollectionById({
       serverListingCollectionId: ctx.params.serverListingCollectionId
@@ -23,7 +25,7 @@ export let serverListingCollectionController = Controller.create(
   },
   {
     list: apiGroup
-      .get(instancePath('server-listing-collections', 'servers.listings.collections.list'), {
+      .get(Path('server-listing-collections', 'servers.listings.collections.list'), {
         name: 'List server versions',
         description: 'List all server versions'
       })
@@ -42,7 +44,7 @@ export let serverListingCollectionController = Controller.create(
 
     get: serverListingCollectionGroup
       .get(
-        instancePath(
+        Path(
           'server-listing-collections/:serverListingCollectionId',
           'servers.listings.collections.get'
         ),

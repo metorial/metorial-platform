@@ -5,6 +5,8 @@ import { fileLinkType } from '../types';
 
 export let v1FileLinkPresenter = Presenter.create(fileLinkType)
   .presenter(async ({ fileLink }, opts) => ({
+    object: 'file.file_link',
+
     id: fileLink.id,
     file_id: fileLink.file.id,
 
@@ -15,6 +17,8 @@ export let v1FileLinkPresenter = Presenter.create(fileLinkType)
   }))
   .schema(
     v.object({
+      object: v.literal('file.file_link'),
+
       id: v.string({ name: 'id', description: `The links's unique identifier` }),
       file_id: v.string({
         name: 'file_id',

@@ -4,6 +4,8 @@ import { secretType } from '../types';
 
 export let v1SecretPresenter = Presenter.create(secretType)
   .presenter(async ({ secret }, opts) => ({
+    object: 'secret',
+
     id: secret.id,
     status: secret.status,
     type: {
@@ -23,6 +25,8 @@ export let v1SecretPresenter = Presenter.create(secretType)
   }))
   .schema(
     v.object({
+      object: v.literal('secret'),
+
       id: v.string({ name: 'id', description: `The secret's unique identifier` }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',

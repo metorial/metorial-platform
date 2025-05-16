@@ -18,6 +18,8 @@ let keyRedactedLong = (apiKey: ApiKey) => {
 
 export let v1ApiKeyPresenter = Presenter.create(apiKeyType)
   .presenter(async ({ apiKey, secret }, opts) => ({
+    object: 'machine_access.api_key',
+
     id: apiKey.id,
     status: apiKey.status,
     type: apiKey.type,
@@ -39,6 +41,8 @@ export let v1ApiKeyPresenter = Presenter.create(apiKeyType)
   }))
   .schema(
     v.object({
+      object: v.literal('machine_access.api_key'),
+
       id: v.string({ name: 'id', description: `The apiKey's unique identifier` }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
@@ -110,6 +114,8 @@ export let v1ApiKeyPresenter = Presenter.create(apiKeyType)
 
 export let dashboardApiKeyPresenter = Presenter.create(apiKeyType)
   .presenter(async ({ apiKey, secret }, opts) => ({
+    object: 'machine_access.api_key',
+
     id: apiKey.id,
     status: apiKey.status,
     type: apiKey.type,
@@ -140,6 +146,8 @@ export let dashboardApiKeyPresenter = Presenter.create(apiKeyType)
   }))
   .schema(
     v.object({
+      object: v.literal('machine_access.api_key'),
+
       id: v.string({ name: 'id', description: `The apiKey's unique identifier` }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',

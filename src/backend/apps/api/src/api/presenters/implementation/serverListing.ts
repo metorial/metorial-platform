@@ -10,6 +10,8 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
     let repository = serverListing.server.importedServer?.repository;
 
     return {
+      object: 'server_listing',
+
       id: serverListing.id,
       status: serverListing.status,
 
@@ -79,12 +81,22 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
           } as any)
         : null,
 
+      installation: serverListing.server.instanceServers?.length
+        ? {
+            id: serverListing.server.instanceServers[0].id,
+            created_at: serverListing.server.instanceServers[0].createdAt,
+            instance_id: serverListing.server.instanceServers[0].instance.id
+          }
+        : null,
+
       created_at: serverListing.createdAt,
       updated_at: serverListing.updatedAt
     };
   })
   .schema(
     v.object({
+      object: v.literal('server_listing'),
+
       id: v.string(),
       status: v.enumOf(['active', 'archived', 'banned']),
 
@@ -145,6 +157,14 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
           created_at: v.date(),
           updated_at: v.date(),
           pushed_at: v.nullable(v.date())
+        })
+      ),
+
+      installation: v.nullable(
+        v.object({
+          id: v.string(),
+          instance_id: v.string(),
+          created_at: v.date()
         })
       ),
 

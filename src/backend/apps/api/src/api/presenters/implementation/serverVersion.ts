@@ -12,6 +12,8 @@ let tryGetHostname = (url: string) => {
 
 export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
   .presenter(async ({ serverVersion }, opts) => ({
+    object: 'server.server_version',
+
     id: serverVersion.id,
     identifier: serverVersion.identifier,
 
@@ -35,22 +37,27 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
         : null
     } as any,
 
-    config: {
-      id: serverVersion.config.id,
-      fingerprint: serverVersion.config.fingerprint,
-      schema: serverVersion.config.schema,
+    schema: {
+      id: serverVersion.schema.id,
+      fingerprint: serverVersion.schema.fingerprint,
+      schema:
+        typeof serverVersion.schema.schema == 'string'
+          ? JSON.parse(serverVersion.schema.schema)
+          : serverVersion.schema.schema,
 
       server_id: serverVersion.server.id,
       server_variant_id: serverVersion.serverVariant.id,
       server_version_id: serverVersion.id,
 
-      created_at: serverVersion.config.createdAt
+      created_at: serverVersion.schema.createdAt
     },
 
     created_at: serverVersion.createdAt
   }))
   .schema(
     v.object({
+      object: v.literal('server.server_version'),
+
       id: v.string(),
       identifier: v.string(),
 
@@ -75,7 +82,7 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
         })
       ]),
 
-      config: v.object({
+      schema: v.object({
         id: v.string(),
         fingerprint: v.string(),
         schema: v.record(v.any()),

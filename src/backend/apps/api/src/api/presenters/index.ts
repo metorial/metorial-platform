@@ -15,7 +15,8 @@ import { v1ServerPresenter } from './implementation/server';
 import { v1ServerListingCategoryPresenter } from './implementation/serverCategory';
 import { v1ServerListingCollectionPresenter } from './implementation/serverCollection';
 import { v1ServerDeploymentPresenter } from './implementation/serverDeployment';
-import { v1ServerInstancePresenter } from './implementation/serverInstance';
+import { v1ServerDeploymentConfigPresenter } from './implementation/serverDeploymentConfig';
+import { v1ServerImplementationPresenter } from './implementation/serverImplementation';
 import { v1ServerListingPresenter } from './implementation/serverListing';
 import { v1ServerVariantPresenter } from './implementation/serverVariant';
 import { v1ServerVersionPresenter } from './implementation/serverVersion';
@@ -33,8 +34,9 @@ import {
   organizationType,
   projectType,
   secretType,
+  serverDeploymentConfigType,
   serverDeploymentType,
-  serverInstanceType,
+  serverImplementationType,
   serverListingCategoryType,
   serverListingCollectionType,
   serverListingType,
@@ -139,12 +141,17 @@ export let serverListingCollectionPresenter = declarePresenter(serverListingColl
   mt_2025_01_01_dashboard: v1ServerListingCollectionPresenter
 });
 
-export let serverInstancePresenter = declarePresenter(serverInstanceType, {
-  mt_2025_01_01_pulsar: v1ServerInstancePresenter,
-  mt_2025_01_01_dashboard: v1ServerInstancePresenter
+export let serverImplementationPresenter = declarePresenter(serverImplementationType, {
+  mt_2025_01_01_pulsar: v1ServerImplementationPresenter,
+  mt_2025_01_01_dashboard: v1ServerImplementationPresenter
 });
 
 export let serverDeploymentPresenter = declarePresenter(serverDeploymentType, {
   mt_2025_01_01_pulsar: v1ServerDeploymentPresenter,
   mt_2025_01_01_dashboard: v1ServerDeploymentPresenter
+});
+
+export let serverDeploymentConfigPresenter = declarePresenter(serverDeploymentConfigType, {
+  mt_2025_01_01_pulsar: v1ServerDeploymentConfigPresenter,
+  mt_2025_01_01_dashboard: v1ServerDeploymentConfigPresenter
 });

@@ -9,7 +9,7 @@ import { instanceController } from './instance/instance';
 import { secretController } from './instance/secret';
 import { serverController } from './instance/server';
 import { serverDeploymentController } from './instance/serverDeployment';
-import { serverInstanceController } from './instance/serverInstance';
+import { serverImplementationController } from './instance/serverImplementation';
 import { serverListingController } from './instance/serverListing';
 import { serverListingCategoryController } from './instance/serverListingCategory';
 import { serverListingCollectionController } from './instance/serverListingCollection';
@@ -39,7 +39,7 @@ export let pulsarController = Controller.create<any>(
     serverVariantController,
     serverVersionController,
 
-    serverInstanceController,
+    serverImplementationController,
     serverDeploymentController
   }
 );
@@ -72,6 +72,9 @@ export let dashboardController = Controller.create<any>(
     serverVersionController,
     serverListingController,
     serverListingCategoryController,
-    serverListingCollectionController
+    serverListingCollectionController,
+
+    serverImplementationController,
+    serverDeploymentController
   }
 );

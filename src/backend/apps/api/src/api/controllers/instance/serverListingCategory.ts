@@ -1,13 +1,15 @@
 import { serverListingCategoryService } from '@metorial/module-catalog';
 import { Paginator } from '@metorial/pagination';
-import { Controller } from '@metorial/rest';
+import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { apiGroup } from '../../middleware/apiGroup';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
 import { serverListingCategoryPresenter } from '../../presenters';
 
 export let serverListingCategoryGroup = apiGroup.use(async ctx => {
+  if (!ctx.params.serverListingCategoryId)
+    throw new Error('serverListingCategoryId is required');
+
   let serverListingCategory = await serverListingCategoryService.getServerListingCategoryById({
     serverListingCategoryId: ctx.params.serverListingCategoryId
   });
@@ -22,7 +24,7 @@ export let serverListingCategoryController = Controller.create(
   },
   {
     list: apiGroup
-      .get(instancePath('server-listing-categories', 'servers.listings.categories.list'), {
+      .get(Path('server-listing-categories', 'servers.listings.categories.list'), {
         name: 'List server versions',
         description: 'List all server versions'
       })
@@ -41,7 +43,7 @@ export let serverListingCategoryController = Controller.create(
 
     get: serverListingCategoryGroup
       .get(
-        instancePath(
+        Path(
           'server-listing-categories/:serverListingCategoryId',
           'servers.listings.categories.get'
         ),

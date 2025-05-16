@@ -1,13 +1,15 @@
+import { accessService } from '@metorial/module-access';
 import { serverListingService } from '@metorial/module-catalog';
 import { Paginator } from '@metorial/pagination';
-import { Controller } from '@metorial/rest';
+import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { apiGroup } from '../../middleware/apiGroup';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
 import { serverListingPresenter } from '../../presenters';
 
 export let serverListingGroup = apiGroup.use(async ctx => {
+  if (!ctx.params.serverListingId) throw new Error('serverListingId is required');
+
   let serverListing = await serverListingService.getServerListingById({
     serverListingId: ctx.params.serverListingId
   });
@@ -22,7 +24,7 @@ export let serverListingController = Controller.create(
   },
   {
     list: apiGroup
-      .get(instancePath('server-listings', 'servers.listings.list'), {
+      .get(Path('server-listings', 'servers.listings.list'), {
         name: 'List server versions',
         description: 'List all server versions'
       })
@@ -35,16 +37,29 @@ export let serverListingController = Controller.create(
             search: v.optional(v.string()),
             collection_ids: v.optional(v.array(v.string())),
             category_ids: v.optional(v.array(v.string())),
-            profile_ids: v.optional(v.array(v.string()))
+            profile_ids: v.optional(v.array(v.string())),
+
+            instance_id: v.optional(v.string())
           })
         )
       )
       .do(async ctx => {
+        let instance = ctx.query.instance_id
+          ? (
+              await accessService.accessInstance({
+                authInfo: ctx.auth,
+                instanceId: ctx.query.instance_id
+              })
+            )?.instance
+          : undefined;
+
         let paginator = await serverListingService.listServerListings({
           search: ctx.query.search,
           collectionIds: ctx.query.collection_ids,
           categoryIds: ctx.query.category_ids,
-          profileIds: ctx.query.profile_ids
+          profileIds: ctx.query.profile_ids,
+
+          instance
         });
 
         let list = await paginator.run(ctx.query);
@@ -55,7 +70,7 @@ export let serverListingController = Controller.create(
       }),
 
     get: serverListingGroup
-      .get(instancePath('server-listings/:serverListingId', 'servers.listings.get'), {
+      .get(Path('server-listings/:serverListingId', 'servers.listings.get'), {
         name: 'Get server version',
         description: 'Get the information of a specific server version'
       })

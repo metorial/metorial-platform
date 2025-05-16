@@ -5,6 +5,8 @@ import { v1ProjectPresenter } from './project';
 
 export let v1InstancePresenter = Presenter.create(instanceType)
   .presenter(async ({ instance }, opts) => ({
+    object: 'organization.instance',
+
     id: instance.id,
     status: instance.status,
     slug: instance.slug,
@@ -20,6 +22,8 @@ export let v1InstancePresenter = Presenter.create(instanceType)
   }))
   .schema(
     v.object({
+      object: v.literal('organization.instance'),
+
       id: v.string({ name: 'id', description: `The instance's unique identifier` }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',

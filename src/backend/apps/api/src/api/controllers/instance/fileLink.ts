@@ -8,6 +8,8 @@ import { fileLinkPresenter, filePresenter } from '../../presenters';
 import { fileGroup } from './file';
 
 let fileLinkGroup = fileGroup.use(async ctx => {
+  if (!ctx.params.linkId) throw new Error('linkId is required');
+
   let fileLink = await fileLinkService.getFileLinkById({
     fileLinkId: ctx.params.linkId,
     file: ctx.file

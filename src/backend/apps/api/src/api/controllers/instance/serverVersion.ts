@@ -8,6 +8,8 @@ import { serverVersionPresenter } from '../../presenters';
 import { serverGroup } from './server';
 
 export let serverVersionGroup = serverGroup.use(async ctx => {
+  if (!ctx.params.serverVersionId) throw new Error('serverVersionId is required');
+
   let serverVersion = await serverVersionService.getServerVersionById({
     serverVersionId: ctx.params.serverVersionId,
     server: ctx.server

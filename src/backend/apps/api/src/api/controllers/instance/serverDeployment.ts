@@ -1,7 +1,7 @@
 import { ServerDeploymentStatus } from '@metorial/db';
 import {
   serverDeploymentService,
-  serverInstanceService
+  serverImplementationService
 } from '@metorial/module-server-deployment';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -10,9 +10,15 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { serverDeploymentPresenter } from '../../presenters';
-import { createServerInstance, createServerInstanceSchema } from './serverInstance';
+import {
+  createServerImplementation,
+  createServerImplementationSchema,
+  ensureDefaultServerImplementation
+} from './serverImplementation';
 
 export let serverDeploymentGroup = instanceGroup.use(async ctx => {
+  if (!ctx.params.serverDeploymentId) throw new Error('serverDeploymentId is required');
+
   let serverDeployment = await serverDeploymentService.getServerDeploymentById({
     serverDeploymentId: ctx.params.serverDeploymentId,
     instance: ctx.instance
@@ -28,11 +34,11 @@ export let serverDeploymentController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('deployments', 'servers.deployments.list'), {
+      .get(instancePath('server-deployments', 'servers.deployments.list'), {
         name: 'List server deployments',
         description: 'List all server deployments'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.instance:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.server.deployment:read'] }))
       .outputList(serverDeploymentPresenter)
       .query(
         'default',
@@ -46,7 +52,9 @@ export let serverDeploymentController = Controller.create(
             ),
             server_ids: v.optional(v.union([v.string(), v.array(v.string())])),
             server_variant_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_instance_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_server_implementation_ids: v.optional(
+              v.union([v.string(), v.array(v.string())])
+            )
           })
         )
       )
@@ -56,7 +64,9 @@ export let serverDeploymentController = Controller.create(
           status: normalizeArrayParam(ctx.query.status) as any,
           serverIds: normalizeArrayParam(ctx.query.server_ids),
           serverVariantIds: normalizeArrayParam(ctx.query.server_variant_ids),
-          serverInstanceIds: normalizeArrayParam(ctx.query.server_instance_ids)
+          serverImplementationIds: normalizeArrayParam(
+            ctx.query.server_server_implementation_ids
+          )
         });
 
         let list = await paginator.run(ctx.query);
@@ -67,22 +77,22 @@ export let serverDeploymentController = Controller.create(
       }),
 
     get: serverDeploymentGroup
-      .get(instancePath('deployments/:serverDeploymentId', 'servers.deployments.get'), {
+      .get(instancePath('server-deployments/:serverDeploymentId', 'servers.deployments.get'), {
         name: 'Get server instance',
         description: 'Get the information of a specific server instance'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.instance:read'] }))
+      .use(checkAccess({ possibleScopes: ['instance.server.deployment:read'] }))
       .output(serverDeploymentPresenter)
       .do(async ctx => {
         return serverDeploymentPresenter.present({ serverDeployment: ctx.serverDeployment });
       }),
 
-    create: serverDeploymentGroup
-      .post(instancePath('deployments', 'servers.deployments.create'), {
+    create: instanceGroup
+      .post(instancePath('server-deployments', 'servers.deployments.create'), {
         name: 'Create server instance',
         description: 'Create a new server instance'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.instance:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
       .body(
         'default',
         v.intersection([
@@ -94,56 +104,50 @@ export let serverDeploymentController = Controller.create(
           }),
           v.union([
             v.object({
-              server_instance_id: v.string()
+              server_implementation: createServerImplementationSchema
             }),
             v.object({
-              server_instance: createServerInstanceSchema
-            }),
-            v.object({
-              server_id: v.string()
+              server_implementation_id: v.string()
             }),
             v.object({
               server_variant_id: v.string()
+            }),
+            v.object({
+              server_id: v.string()
             })
           ])
         ])
       )
       .output(serverDeploymentPresenter)
       .do(async ctx => {
-        let serverInstance =
-          'server_instance_id' in ctx.body
+        let serverImplementation =
+          'server_implementation_id' in ctx.body
             ? {
                 isNewEphemeral: false,
-                instance: await serverInstanceService.getServerInstanceById({
+                instance: await serverImplementationService.getServerImplementationById({
                   instance: ctx.instance,
-                  serverInstanceId: ctx.body.server_instance_id
+                  serverImplementationId: ctx.body.server_implementation_id
                 })
               }
             : {
                 isNewEphemeral: true,
-                instance: await createServerInstance(
-                  'server_instance' in ctx.body
-                    ? ctx.body.server_instance
-                    : {
-                        server_id: (ctx.body as any).server_id,
-                        server_variant_id: (ctx.body as any).server_variant_id
-                      },
-                  ctx,
-                  {
-                    type: 'ephemeral'
-                  }
-                )
+                instance:
+                  'server_implementation' in ctx.body
+                    ? await createServerImplementation(ctx.body.server_implementation, ctx, {
+                        type: 'ephemeral'
+                      })
+                    : await ensureDefaultServerImplementation(ctx.body, ctx)
               };
 
         let serverDeployment = await serverDeploymentService.createServerDeployment({
           organization: ctx.organization,
           performedBy: ctx.actor,
           instance: ctx.instance,
-          serverInstance,
+          serverImplementation,
           type: 'persistent',
           input: {
-            name: ctx.body.name,
-            description: ctx.body.description,
+            name: ctx.body.name?.trim() || undefined,
+            description: ctx.body.description?.trim() || undefined,
             metadata: ctx.body.metadata,
             config: ctx.body.config
           }
@@ -153,11 +157,14 @@ export let serverDeploymentController = Controller.create(
       }),
 
     update: serverDeploymentGroup
-      .patch(instancePath('deployments/:serverDeploymentId', 'servers.deployments.update'), {
-        name: 'Update server instance',
-        description: 'Update a server instance'
-      })
-      .use(checkAccess({ possibleScopes: ['instance.server.instance:write'] }))
+      .patch(
+        instancePath('server-deployments/:serverDeploymentId', 'servers.deployments.update'),
+        {
+          name: 'Update server instance',
+          description: 'Update a server instance'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
       .body(
         'default',
         v.object({
@@ -175,8 +182,8 @@ export let serverDeploymentController = Controller.create(
           instance: ctx.instance,
           serverDeployment: ctx.serverDeployment,
           input: {
-            name: ctx.body.name,
-            description: ctx.body.description,
+            name: ctx.body.name?.trim() || undefined,
+            description: ctx.body.description?.trim() || null,
             metadata: ctx.body.metadata,
             config: ctx.body.config
           }
@@ -186,11 +193,14 @@ export let serverDeploymentController = Controller.create(
       }),
 
     delete: serverDeploymentGroup
-      .delete(instancePath('deployments/:serverDeploymentId', 'servers.deployments.delete'), {
-        name: 'Delete server instance',
-        description: 'Delete a server instance'
-      })
-      .use(checkAccess({ possibleScopes: ['instance.server.instance:write'] }))
+      .delete(
+        instancePath('server-deployments/:serverDeploymentId', 'servers.deployments.delete'),
+        {
+          name: 'Delete server instance',
+          description: 'Delete a server instance'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
       .output(serverDeploymentPresenter)
       .do(async ctx => {
         let serverDeployment = await serverDeploymentService.deleteServerDeployment({

@@ -4,6 +4,8 @@ import { serverListingCategoryType } from '../types';
 
 export let v1ServerListingCategoryPresenter = Presenter.create(serverListingCategoryType)
   .presenter(async ({ category }, opts) => ({
+    object: 'server_listing.category',
+
     id: category.id,
 
     name: category.name,
@@ -15,6 +17,8 @@ export let v1ServerListingCategoryPresenter = Presenter.create(serverListingCate
   }))
   .schema(
     v.object({
+      object: v.literal('server_listing.category'),
+
       id: v.string(),
 
       name: v.string(),

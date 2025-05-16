@@ -5,6 +5,8 @@ import { v1OrganizationActorPresenter } from './organizationActor';
 
 export let v1OrganizationMemberPresenter = Presenter.create(organizationMemberType)
   .presenter(async ({ organizationMember }, opts) => ({
+    object: 'organization.member',
+
     id: organizationMember.id,
     status: organizationMember.status,
     role: organizationMember.role,
@@ -32,6 +34,8 @@ export let v1OrganizationMemberPresenter = Presenter.create(organizationMemberTy
   }))
   .schema(
     v.object({
+      object: v.literal('organization.member'),
+
       id: v.string({ name: 'id', description: `The organization member's unique identifier` }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',

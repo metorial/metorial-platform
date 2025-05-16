@@ -9,6 +9,8 @@ import { v1UserPresenter } from './user';
 
 export let v1BootPresenter = Presenter.create(bootType)
   .presenter(async ({ user, organizations, instances, projects }, opts) => ({
+    object: 'metorial.boot',
+
     user: await v1UserPresenter.present({ user }, opts).run(),
     organizations: await Promise.all(
       organizations.map(async organization => ({
@@ -40,6 +42,8 @@ export let v1BootPresenter = Presenter.create(bootType)
   }))
   .schema(
     v.object({
+      object: v.literal('metorial.boot'),
+
       user: v1UserPresenter.schema,
       organizations: v.array(
         v.intersection([

@@ -10,6 +10,8 @@ import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { secretPresenter } from '../../presenters';
 
 export let secretGroup = instanceGroup.use(async ctx => {
+  if (!ctx.params.secretId) throw new Error('secretId is required');
+
   let secret = await secretService.getSecretById({
     secretId: ctx.params.secretId,
     instance: ctx.instance

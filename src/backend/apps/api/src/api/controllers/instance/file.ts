@@ -7,6 +7,8 @@ import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { filePresenter } from '../../presenters';
 
 export let fileGroup = instanceGroup.use(async ctx => {
+  if (!ctx.params.fileId) throw new Error('fileId is required');
+
   let file = await fileService.getFileById({
     fileId: ctx.params.fileId,
     owner: {

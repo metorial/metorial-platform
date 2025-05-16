@@ -4,6 +4,8 @@ import { serverListingCollectionType } from '../types';
 
 export let v1ServerListingCollectionPresenter = Presenter.create(serverListingCollectionType)
   .presenter(async ({ collection }, opts) => ({
+    object: 'server_listing.collection',
+
     id: collection.id,
 
     name: collection.name,
@@ -15,6 +17,8 @@ export let v1ServerListingCollectionPresenter = Presenter.create(serverListingCo
   }))
   .schema(
     v.object({
+      object: v.literal('server_listing.collection'),
+
       id: v.string(),
 
       name: v.string(),

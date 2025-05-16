@@ -4,6 +4,8 @@ import { fileType } from '../types';
 
 export let v1FilePresenter = Presenter.create(fileType)
   .presenter(async ({ file }, opts) => ({
+    object: 'file',
+
     id: file.id,
     status: file.status,
 
@@ -23,6 +25,8 @@ export let v1FilePresenter = Presenter.create(fileType)
   }))
   .schema(
     v.object({
+      object: v.literal('file'),
+
       id: v.string({ name: 'id', description: `The files's unique identifier` }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',

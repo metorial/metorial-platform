@@ -8,6 +8,7 @@ import {
   ImportedServer,
   ImportedServerVendor,
   Instance,
+  InstanceServer,
   MachineAccess,
   Organization,
   OrganizationActor,
@@ -17,9 +18,10 @@ import {
   Secret,
   SecretType,
   Server,
-  ServerConfig,
+  ServerConfigSchema,
   ServerDeployment,
-  ServerInstance,
+  ServerDeploymentConfig,
+  ServerImplementation,
   ServerListing,
   ServerListingCategory,
   ServerListingCollection,
@@ -112,7 +114,7 @@ export let serverType = PresentableType.create<{
   server: Server & {
     importedServer: ImportedServer | null;
     variants: (ServerVariant & {
-      currentVersion: (ServerVersion & { config: ServerConfig }) | null;
+      currentVersion: (ServerVersion & { schema: ServerConfigSchema }) | null;
     })[];
   };
 }>()('server');
@@ -127,7 +129,7 @@ export let serverListingCollectionType = PresentableType.create<{
 
 export let serverVariantType = PresentableType.create<{
   serverVariant: ServerVariant & {
-    currentVersion: (ServerVersion & { config: ServerConfig }) | null;
+    currentVersion: (ServerVersion & { schema: ServerConfigSchema }) | null;
     server: Server;
   };
 }>()('server.server_variant');
@@ -136,7 +138,7 @@ export let serverVersionType = PresentableType.create<{
   serverVersion: ServerVersion & {
     server: Server;
     serverVariant: ServerVariant;
-    config: ServerConfig;
+    schema: ServerConfigSchema;
   };
 }>()('server.server_version');
 
@@ -150,24 +152,34 @@ export let serverListingType = PresentableType.create<{
             repository: ImportedRepository | null;
           })
         | null;
+
+      instanceServers?: (InstanceServer & { instance: Instance })[];
     };
   };
 }>()('server_listing');
 
-export let serverInstanceType = PresentableType.create<{
-  serverInstance: ServerInstance & {
+export let serverImplementationType = PresentableType.create<{
+  serverImplementation: ServerImplementation & {
     server: Server;
     serverVariant: ServerVariant;
   };
-}>()('server.server_instance');
+}>()('server.server_implementation');
 
 export let serverDeploymentType = PresentableType.create<{
   serverDeployment: ServerDeployment & {
-    serverInstance: ServerInstance & {
+    serverImplementation: ServerImplementation & {
       server: Server;
       serverVariant: ServerVariant;
     };
     server: Server;
-    configSecret: Secret;
+    config: ServerDeploymentConfig & {
+      configSecret: Secret;
+    };
   };
 }>()('server.server_deployment');
+
+export let serverDeploymentConfigType = PresentableType.create<{
+  config: ServerDeploymentConfig & {
+    configSecret: Secret;
+  };
+}>()('server.server_deployment.config');

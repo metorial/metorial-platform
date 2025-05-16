@@ -7,6 +7,8 @@ import { v1OrganizationActorPresenter } from './organizationActor';
 
 export let v1OrganizationInvitePresenter = Presenter.create(organizationInviteType)
   .presenter(async ({ organizationInvite }, opts) => ({
+    object: 'organization.invite',
+
     id: organizationInvite.id,
     status:
       organizationInvite.expiresAt < new Date()
@@ -55,6 +57,8 @@ export let v1OrganizationInvitePresenter = Presenter.create(organizationInviteTy
   }))
   .schema(
     v.object({
+      object: v.literal('organization.invite'),
+
       id: v.string({ name: 'id', description: `The organization invite's unique identifier` }),
       status: v.enumOf(['pending', 'accepted', 'rejected', 'expired', 'deleted'], {
         name: 'status',

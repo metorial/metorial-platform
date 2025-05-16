@@ -5,6 +5,8 @@ import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { serverPresenter } from '../../presenters';
 
 export let serverGroup = instanceGroup.use(async ctx => {
+  if (!ctx.params.serverId) throw new Error('serverId is required');
+
   let server = await serverService.getServerById({
     serverId: ctx.params.serverId,
     organization: ctx.organization
