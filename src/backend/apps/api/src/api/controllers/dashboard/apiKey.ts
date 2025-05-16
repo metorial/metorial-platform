@@ -16,11 +16,11 @@ export let getApiKeyFilter = async (
       }
     | {
         type: 'instance_access_token';
-        instanceId?: string;
+        instance_id?: string;
       }
     | {
         type: 'organization_management_token';
-        organizationId?: string;
+        organization_id?: string;
       }
 ) => {
   let filter: ListApiKeysFilter | undefined = undefined;
@@ -32,7 +32,7 @@ export let getApiKeyFilter = async (
     };
 
     if (body.type == 'instance_access_token') {
-      if (!body.instanceId) {
+      if (!body.instance_id) {
         throw new ServiceError(
           badRequestError({
             message: 'Instance ID is required for instance access token'
@@ -41,7 +41,7 @@ export let getApiKeyFilter = async (
       }
 
       let res = await instanceService.getInstanceByIdForUser({
-        instanceId: body.instanceId,
+        instanceId: body.instance_id,
         user: auth.user
       });
 
@@ -51,7 +51,7 @@ export let getApiKeyFilter = async (
         organization: res.organization
       };
     } else if (body.type == 'organization_management_token') {
-      if (!body.organizationId) {
+      if (!body.organization_id) {
         throw new ServiceError(
           badRequestError({
             message: 'Organization ID is required for organization management token'
@@ -60,7 +60,7 @@ export let getApiKeyFilter = async (
       }
 
       let res = await organizationService.getOrganizationByIdForUser({
-        organizationId: body.organizationId,
+        organizationId: body.organization_id,
         user: auth.user
       });
 
@@ -84,7 +84,7 @@ export let getApiKeyFilter = async (
     };
 
     if (body.type == 'instance_access_token') {
-      if (!body.instanceId) {
+      if (!body.instance_id) {
         throw new ServiceError(
           badRequestError({
             message: 'Instance ID is required for instance access token'
@@ -93,7 +93,7 @@ export let getApiKeyFilter = async (
       }
 
       let instance = await instanceService.getInstanceById({
-        instanceId: body.instanceId,
+        instanceId: body.instance_id,
         organization: auth.restrictions.organization
       });
 

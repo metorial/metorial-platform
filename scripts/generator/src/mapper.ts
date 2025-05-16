@@ -65,7 +65,18 @@ let unionOrIntersectionMapper = (type: IntrospectedType): string => {
   let dateType: IntrospectedType | undefined;
   let arrayTypes: IntrospectedType[] = [];
 
-  for (let item of type.items!) {
+  let flattenItems = (items: IntrospectedType[]): IntrospectedType[] =>
+    items.flatMap(item => {
+      if (item.type == 'union' || item.type == 'intersection') {
+        return flattenItems(item.items!);
+      }
+
+      return item;
+    });
+
+  let items = flattenItems(type.items!);
+
+  for (let item of items) {
     if (item.type == 'object') {
       if (!objectType) objectType = item;
 

@@ -28,9 +28,9 @@ export let serverDeploymentController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('instances', 'servers.instances.list'), {
-        name: 'List server instances',
-        description: 'List all server instances'
+      .get(instancePath('deployments', 'servers.deployments.list'), {
+        name: 'List server deployments',
+        description: 'List all server deployments'
       })
       .use(checkAccess({ possibleScopes: ['instance.server.instance:read'] }))
       .outputList(serverDeploymentPresenter)
@@ -67,7 +67,7 @@ export let serverDeploymentController = Controller.create(
       }),
 
     get: serverDeploymentGroup
-      .get(instancePath('instances/:serverDeploymentId', 'servers.instances.get'), {
+      .get(instancePath('deployments/:serverDeploymentId', 'servers.deployments.get'), {
         name: 'Get server instance',
         description: 'Get the information of a specific server instance'
       })
@@ -78,7 +78,7 @@ export let serverDeploymentController = Controller.create(
       }),
 
     create: serverDeploymentGroup
-      .post(instancePath('instances', 'servers.instances.create'), {
+      .post(instancePath('deployments', 'servers.deployments.create'), {
         name: 'Create server instance',
         description: 'Create a new server instance'
       })
@@ -98,6 +98,12 @@ export let serverDeploymentController = Controller.create(
             }),
             v.object({
               server_instance: createServerInstanceSchema
+            }),
+            v.object({
+              server_id: v.string()
+            }),
+            v.object({
+              server_variant_id: v.string()
             })
           ])
         ])
@@ -115,9 +121,18 @@ export let serverDeploymentController = Controller.create(
               }
             : {
                 isNewEphemeral: true,
-                instance: await createServerInstance(ctx.body.server_instance, ctx, {
-                  type: 'ephemeral'
-                })
+                instance: await createServerInstance(
+                  'server_instance' in ctx.body
+                    ? ctx.body.server_instance
+                    : {
+                        server_id: (ctx.body as any).server_id,
+                        server_variant_id: (ctx.body as any).server_variant_id
+                      },
+                  ctx,
+                  {
+                    type: 'ephemeral'
+                  }
+                )
               };
 
         let serverDeployment = await serverDeploymentService.createServerDeployment({
@@ -138,7 +153,7 @@ export let serverDeploymentController = Controller.create(
       }),
 
     update: serverDeploymentGroup
-      .patch(instancePath('instances/:serverDeploymentId', 'servers.instances.update'), {
+      .patch(instancePath('deployments/:serverDeploymentId', 'servers.deployments.update'), {
         name: 'Update server instance',
         description: 'Update a server instance'
       })
@@ -171,7 +186,7 @@ export let serverDeploymentController = Controller.create(
       }),
 
     delete: serverDeploymentGroup
-      .delete(instancePath('instances/:serverDeploymentId', 'servers.instances.delete'), {
+      .delete(instancePath('deployments/:serverDeploymentId', 'servers.deployments.delete'), {
         name: 'Delete server instance',
         description: 'Delete a server instance'
       })

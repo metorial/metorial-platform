@@ -15,9 +15,16 @@ if (!rootOutputFolder) rootOutputFolder = await input({ message: 'Output folder'
 
 rootOutputFolder = path.join(process.cwd(), rootOutputFolder);
 
-let versions = await getEndpointVersions(url);
+let urls = url.split(',');
+for (let u of urls) {
+  try {
+    await fetch(u);
+    url = u;
+    break;
+  } catch (e) {}
+}
 
-// let currentVersion = versions.versions.find(v => v.isCurrent)?.version;
+let versions = await getEndpointVersions(url);
 
 for (let version of versions.versions) {
   let { endpoints, types, controllers } = await getEndpoints(url, version.version);
@@ -169,6 +176,7 @@ for (let version of versions.versions) {
 
   for (let resource of resources) {
     let resourceParts = resource.split('.');
+    if (resourceParts.length == 0) continue;
 
     let resourceEndpoints = endpoints
       .map(e => {

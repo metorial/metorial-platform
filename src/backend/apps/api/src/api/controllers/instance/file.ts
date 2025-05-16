@@ -26,7 +26,7 @@ export let fileController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('files', 'list'), {
+      .get(instancePath('files', 'files.list'), {
         name: 'List  files',
         description: 'List all  files'
       })
@@ -56,7 +56,7 @@ export let fileController = Controller.create(
       }),
 
     get: fileGroup
-      .get(instancePath('files/:fileId', 'get'), {
+      .get(instancePath('files/:fileId', 'files.get'), {
         name: 'Get file',
         description: 'Get the information of a specific file'
       })
@@ -67,7 +67,7 @@ export let fileController = Controller.create(
       }),
 
     update: fileGroup
-      .patch(instancePath('files/:fileId', 'update'), {
+      .patch(instancePath('files/:fileId', 'files.update'), {
         name: 'Update file',
         description: 'Update the information of a specific file'
       })
@@ -91,7 +91,7 @@ export let fileController = Controller.create(
       }),
 
     delete: fileGroup
-      .delete(instancePath('files/:fileId', 'delete'), {
+      .delete(instancePath('files/:fileId', 'files.delete'), {
         name: 'Delete file',
         description: 'Delete a specific file'
       })
