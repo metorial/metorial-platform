@@ -3,6 +3,7 @@ import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
 import { dashboardOrganizationController } from './dashboard/organization';
 import { dashboardOrganizationInviteController } from './dashboard/organizationInvite';
+import { dashboardUsageController } from './dashboard/usage';
 import { fileController } from './instance/file';
 import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
@@ -54,6 +55,7 @@ export let dashboardController = Controller.create<any>(
     dashboardOrganizationInviteController,
     dashboardBootController,
     dashboardApiKeyController,
+    dashboardUsageController,
 
     instanceManagementController,
     organizationManagementController,

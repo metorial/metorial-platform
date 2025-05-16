@@ -171,6 +171,22 @@ class InstanceService {
     );
   }
 
+  async getManyInstancesForOrganization(d: {
+    organization: Organization;
+    instanceIds?: string[];
+  }) {
+    return await db.instance.findMany({
+      where: {
+        id: { in: d.instanceIds },
+        organizationOid: d.organization.oid
+      },
+      include: {
+        organization: true,
+        project: true
+      }
+    });
+  }
+
   async getInstanceByIdForUser(d: { instanceId: string; user: User }) {
     let instance = await db.instance.findFirst({
       where: {

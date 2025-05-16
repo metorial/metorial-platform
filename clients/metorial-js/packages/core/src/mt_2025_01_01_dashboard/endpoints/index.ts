@@ -13,6 +13,7 @@ export * from './dashboard-organizations-join';
 export * from './dashboard-organizations-members';
 export * from './dashboard-organizations-projects';
 export * from './dashboard-organizations';
+export * from './dashboard-usage';
 export * from './dashboard';
 export * from './files';
 export * from './links';

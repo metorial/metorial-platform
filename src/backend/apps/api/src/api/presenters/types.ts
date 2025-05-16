@@ -183,3 +183,15 @@ export let serverDeploymentConfigType = PresentableType.create<{
     configSecret: Secret;
   };
 }>()('server.server_deployment.config');
+
+export let usageType = PresentableType.create<{
+  timeline: {
+    entityId: string;
+    entityType: string;
+    ownerId: string;
+    entries: {
+      ts: Date;
+      count: number;
+    }[];
+  }[];
+}>()('usage');

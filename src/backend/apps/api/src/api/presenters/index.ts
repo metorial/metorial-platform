@@ -20,6 +20,7 @@ import { v1ServerImplementationPresenter } from './implementation/serverImplemen
 import { v1ServerListingPresenter } from './implementation/serverListing';
 import { v1ServerVariantPresenter } from './implementation/serverVariant';
 import { v1ServerVersionPresenter } from './implementation/serverVersion';
+import { v1UsagePresenter } from './implementation/usage';
 import { v1UserPresenter } from './implementation/user';
 import {
   apiKeyType,
@@ -43,6 +44,7 @@ import {
   serverType,
   serverVariantType,
   serverVersionType,
+  usageType,
   userType
 } from './types';
 
@@ -154,4 +156,9 @@ export let serverDeploymentPresenter = declarePresenter(serverDeploymentType, {
 export let serverDeploymentConfigPresenter = declarePresenter(serverDeploymentConfigType, {
   mt_2025_01_01_pulsar: v1ServerDeploymentConfigPresenter,
   mt_2025_01_01_dashboard: v1ServerDeploymentConfigPresenter
+});
+
+export let usagePresenter = declarePresenter(usageType, {
+  mt_2025_01_01_pulsar: v1UsagePresenter,
+  mt_2025_01_01_dashboard: v1UsagePresenter
 });

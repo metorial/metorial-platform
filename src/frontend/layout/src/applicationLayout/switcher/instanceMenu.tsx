@@ -27,7 +27,7 @@ let Header = styled('header')`
   padding: 0px 10px;
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 10;
   flex-shrink: 0;
   transition: background 0.2s;
 `;
@@ -39,7 +39,7 @@ let HeaderMarker = styled('div')`
   transform: translateX(-50%);
   transition: all 0.2s;
   padding-bottom: 15px;
-  z-index: 51;
+  z-index: 11;
 
   & > div {
     height: 10px;

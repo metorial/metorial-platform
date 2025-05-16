@@ -108,8 +108,8 @@ export let AppLayout = ({
       <Wrapper
         style={{
           gridTemplateColumns: right
-            ? '250px calc(100% - 310px) 60px'
-            : '250px calc(100% - 250px)'
+            ? '260px calc(100% - 320px) 60px'
+            : '260px calc(100% - 260px)'
         }}
       >
         <SidebarWrapper>

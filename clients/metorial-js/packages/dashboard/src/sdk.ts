@@ -15,6 +15,7 @@ import {
   MetorialDashboardOrganizationsJoinEndpoint,
   MetorialDashboardOrganizationsMembersEndpoint,
   MetorialDashboardOrganizationsProjectsEndpoint,
+  MetorialDashboardUsageEndpoint,
   MetorialManagementUserEndpoint,
   MetorialServersListingsCategoriesEndpoint,
   MetorialServersListingsCollectionsEndpoint,
@@ -69,7 +70,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
     deployments: new MetorialDashboardInstanceServersDeploymentsEndpoint(manager),
     implementations: new MetorialDashboardInstanceServersImplementationsEndpoint(manager)
-  })
+  }),
+
+  usage: new MetorialDashboardUsageEndpoint(manager)
 }));
 
 export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>;
