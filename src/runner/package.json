@@ -17,10 +17,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "test": "vitest run --passWithNoTests",
-    "lint": "prettier src/**/*.ts --check",
-    "build": "tsup",
-    "dev": "bun ./src/index.ts"
+    "start": "bun ./src/index.ts"
   },
   "files": [
     "dist"
