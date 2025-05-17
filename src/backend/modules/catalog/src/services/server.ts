@@ -17,13 +17,23 @@ let include = {
 };
 
 class ServerService {
-  async getServerById(d: { serverId: string; organization: Organization }) {
+  async getServerById(d: { serverId: string; organization?: Organization }) {
     let server = await db.server.findFirst({
       where: {
-        id: d.serverId,
+        AND: [
+          {
+            OR: [
+              { id: d.serverId },
+              { listing: { id: d.serverId } },
+              { listing: { slug: d.serverId } }
+            ]
+          },
 
-        OR: [
-          { type: 'imported' } // Public servers
+          {
+            OR: [
+              { type: 'imported' } // Public servers
+            ]
+          }
         ]
       },
       include

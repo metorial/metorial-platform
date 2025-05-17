@@ -20,7 +20,7 @@ model Server {
   variants        ServerVariant[]
   versions        ServerVersion[]
   schemas         ServerConfigSchema[]
-  listings        ServerListing[]
+  listing         ServerListing?
   deployments     ServerDeployment[]
   errorGroups     ServerRunErrorGroup[]
   implementations ServerImplementation[]

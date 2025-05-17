@@ -231,6 +231,7 @@
       "dependencies": {
         "@aws-sdk/client-s3": "^3.806.0",
         "@aws-sdk/lib-storage": "^3.806.0",
+        "@hono/zod-validator": "^0.5.0",
         "@metorial/api-keys": "^1.0.0",
         "@metorial/bearer": "^1.0.0",
         "@metorial/context": "^1.0.0",
@@ -251,6 +252,8 @@
         "@metorial/slugify": "^1.0.0",
         "cookie": "^1.0.2",
         "date-fns": "^4.1.0",
+        "hono": "^4.7.10",
+        "zod": "^3.24.4",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -1965,6 +1968,8 @@
     "@grpc/grpc-js": ["@grpc/grpc-js@1.13.3", "", { "dependencies": { "@grpc/proto-loader": "^0.7.13", "@js-sdsl/ordered-map": "^4.4.2" } }, "sha512-FTXHdOoPbZrBjlVLHuKbDZnsTxXv2BlHF57xw6LuThXacXvtkahEPED0CKMk6obZDf65Hv4k3z62eyPNpvinIg=="],
 
     "@grpc/proto-loader": ["@grpc/proto-loader@0.7.15", "", { "dependencies": { "lodash.camelcase": "^4.3.0", "long": "^5.0.0", "protobufjs": "^7.2.5", "yargs": "^17.7.2" }, "bin": { "proto-loader-gen-types": "build/bin/proto-loader-gen-types.js" } }, "sha512-tMXdRCfYVixjuFK+Hk0Q1s38gV9zDiDJfWL3h1rv4Qc39oILCu1TRTDt7+fGUI8K4G1Fj125Hx/ru3azECWTyQ=="],
+
+    "@hono/zod-validator": ["@hono/zod-validator@0.5.0", "", { "peerDependencies": { "hono": ">=3.9.0", "zod": "^3.19.1" } }, "sha512-ds5bW6DCgAnNHP33E3ieSbaZFd5dkV52ZjyaXtGoR06APFrCtzAsKZxTHwOrJNBdXsi0e5wNwo5L4nVEVnJUdg=="],
 
     "@inquirer/checkbox": ["@inquirer/checkbox@4.1.6", "", { "dependencies": { "@inquirer/core": "^10.1.11", "@inquirer/figures": "^1.0.11", "@inquirer/type": "^3.0.6", "ansi-escapes": "^4.3.2", "yoctocolors-cjs": "^2.1.2" }, "peerDependencies": { "@types/node": ">=18" }, "optionalPeers": ["@types/node"] }, "sha512-62u896rWCtKKE43soodq5e/QcRsA22I+7/4Ov7LESWnKRO6BVo2A1DFLDmXL9e28TB0CfHc3YtkbPm7iwajqkg=="],
 

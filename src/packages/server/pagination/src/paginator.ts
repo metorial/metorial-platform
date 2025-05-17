@@ -78,6 +78,20 @@ export class Paginator<T> {
     });
   }
 
+  static async presentLight<T, R>(
+    list: PaginatedList<T>,
+    presenter: (item: T) => R | Promise<R>
+  ) {
+    return {
+      __typename: `list`,
+      items: (await Promise.all(list.items.map(item => presenter(item)))).filter(Boolean),
+      pagination: {
+        has_more_after: list.pagination.hasNextPage,
+        has_more_before: list.pagination.hasPreviousPage
+      }
+    };
+  }
+
   async run(input: PaginatorInput): Promise<PaginatedList<T>> {
     let providerInput: PaginatedProviderInput = {
       limit: Math.max(
