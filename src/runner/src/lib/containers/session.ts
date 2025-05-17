@@ -7,7 +7,7 @@ import { McpSessionContainer, type McpSessionContainerOptions } from './containe
 let sessions = new Map<string, McpSession>();
 
 export interface McpSessionOpts {
-  dockerOpts?: DockerManagerOptions;
+  dockerOpts: DockerManagerOptions;
   containerOpts: McpSessionContainerOptions;
   onClose?: () => void;
 }

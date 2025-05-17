@@ -3,6 +3,7 @@ import { MICTransceiverWebsocketClient } from '@metorial/interconnect-websocket-
 import { v } from '@metorial/validation';
 import { ReconnectingWebSocketClient } from '@metorial/websocket';
 import { McpSession } from '../lib/containers/session';
+import { DockerManagerOptions } from '../lib/docker/dockerManager';
 import { getLaunchParams } from '../lib/launchParams';
 import { VERSION } from '../version';
 
@@ -11,6 +12,7 @@ export let startConnection = async (d: {
   connectionKey: string;
   tags: string[];
   maxConcurrentJobs: number;
+  dockerOpts: DockerManagerOptions;
 }) => {
   let transceiver = new MICTransceiverWebsocketClient(
     {
@@ -76,7 +78,7 @@ export let startConnection = async (d: {
         source: v.object({
           type: v.literal('docker'),
           image: v.string(),
-          tag: v.string()
+          tag: v.nullable(v.string())
         }),
 
         launchParams: v.object({
@@ -89,7 +91,7 @@ export let startConnection = async (d: {
         let session = await McpSession.create(data.serverRunId, {
           containerOpts: {
             image: data.source.image,
-            tag: data.source.tag,
+            tag: data.source.tag ?? undefined,
             command: data.launchParams!.command,
             args: data.launchParams!.args ?? [],
             env: data.launchParams!.env ?? {}
@@ -98,7 +100,8 @@ export let startConnection = async (d: {
             ctx.notify('run/closed', {
               serverRunId: data.serverRunId
             });
-          }
+          },
+          dockerOpts: d.dockerOpts
         });
 
         session.onOutgoingMessage(msg => {

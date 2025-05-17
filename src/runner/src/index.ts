@@ -40,7 +40,15 @@ prog
       host,
       connectionKey,
       tags: opts.tags?.split(',').filter(Boolean) || [],
-      maxConcurrentJobs: parseInt(opts['max-concurrent-jobs'] || '1', 10)
+      maxConcurrentJobs: parseInt(opts['max-concurrent-jobs'] || '100', 10),
+
+      dockerOpts: {
+        socketPath: process.env.DOCKER_SOCKET_PATH ?? '/var/run/docker.sock',
+        registryAuth: {
+          username: process.env.DOCKER_REGISTRY_USERNAME,
+          password: process.env.DOCKER_REGISTRY_PASSWORD
+        }
+      }
     });
   });
 

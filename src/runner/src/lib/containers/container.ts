@@ -23,7 +23,7 @@ export let mcpSessionContainerOptions = z.object({
 export type McpSessionContainerOptions = z.infer<typeof mcpSessionContainerOptions>;
 
 export interface McpSessionContainerOpts {
-  dockerOpts?: DockerManagerOptions;
+  dockerOpts: DockerManagerOptions;
   containerOpts: McpSessionContainerOptions;
   onPullProgress?: (progress: number) => void;
   onDebug?: (lines: string[]) => void;
@@ -64,6 +64,7 @@ export class McpSessionContainer {
     onClose
   }: McpSessionContainerOpts) {
     this.#dockerManager = cachedDockerManager ?? new DockerManager(dockerOpts);
+    cachedDockerManager = this.#dockerManager;
 
     this.#containerOpts = containerOpts;
     this.#onDebug = onDebug;
@@ -119,8 +120,6 @@ export class McpSessionContainer {
         ...this.#containerOpts,
         onProgress: this.#onPullProgress
       });
-
-      console.log('Container started:');
 
       this.#container.onStderr(lines => this.handleOutput('stderr', lines));
       this.#container.onStdout(lines => this.handleOutput('stdout', lines));

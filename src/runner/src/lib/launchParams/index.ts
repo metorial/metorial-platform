@@ -17,7 +17,7 @@ export let getLaunchParams = async (d: {
   config: Record<string, any>;
 }) => {
   let script = `
-let ctx = {
+let launcherContext = (config) => ({
   args: {
     flags: (input) => {
       if (typeof input !== 'object' || input === null) {
@@ -28,34 +28,32 @@ let ctx = {
         throw new Error('Invalid input.separator, expected string');
       }
 
-      if (typeof input.arguments !== 'object' || input.arguments === null) {
-        throw new Error('Invalid input.arguments, expected object');
+      if (typeof input.args !== 'object' || input.args === null) {
+        throw new Error('Invalid input.args, expected object');
       }
 
-      let data = valRes.data;
-
-      let args = data.args
+      let args = (Array.isArray(input.args) ? input.args : Object.entries(input.args))
         .map(arg => {
           let configValue = config[arg[1]];
           if (configValue === undefined || configValue === null || configValue === '')
-            return undefined!;
+            return undefined;
 
-          return [arg[0], configValue] as const;
+          return [arg[0], configValue];
         })
         .filter(Boolean);
 
-      if (data.separator) {
-        return args.map(arg => arg.join(data.separator));
+      if (input.separator) {
+        return args.map(arg => arg.join(input.separator));
       }
 
       return args.flatMap(arg => arg);
     }
   }
-}
+})
 
 let config = ${JSON.stringify(d.config)};
 
-let launcher = eval(d.serverImplementationVersion.getLaunchParams);
+let launcher = eval(${JSON.stringify(d.getLaunchParams)});
 
 let output = typeof launcher == 'function' ? 
   launcher(config, launcherContext(config)) : 
@@ -69,12 +67,15 @@ console.log(JSON.stringify({ type: 'success', data: output }));
   await fs.writeFile(tempFile, script, 'utf-8');
 
   let out =
-    await $`timeout 5s deno run --v8-flags=--max-old-space-size=20 --allow-read=${tempFile} --deny-write --deny-env --deny-sys --deny-net --deny-run --deny-ffi ${tempFile}`.throws(
-      false
-    );
+    await $`timeout 5s deno run --v8-flags=--max-old-space-size=20 --allow-read=${tempFile} --deny-write --deny-env --deny-sys --deny-net --deny-run --deny-ffi ${tempFile}`
+      .throws(false)
+      .quiet();
 
   let stdout = await new Response(out.stdout).text();
   let stderr = await new Response(out.stderr).text();
+
+  stdout = stdout.replace(tempFile, 'get-launch-params.js');
+  stderr = stderr.replace(tempFile, 'get-launch-params.js');
 
   if (out.exitCode !== 0) {
     return {

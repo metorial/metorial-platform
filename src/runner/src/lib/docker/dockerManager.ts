@@ -19,7 +19,7 @@ export class DockerManager {
   #docker: Dockerode;
   #registryAuth: { username?: string; password?: string } | undefined;
 
-  constructor(options?: DockerManagerOptions) {
+  constructor(options: DockerManagerOptions) {
     this.#docker = new Dockerode(options);
     this.#registryAuth = options?.registryAuth;
   }
@@ -104,7 +104,7 @@ export class DockerManager {
             stream: new DockerStreamManager(stdinStream, stdoutStream, stderrStream)
           };
         } catch (err: any) {
-          if (err.message.includes('No such container')) continue;
+          if (err.message.toLowerCase().includes('no such container')) continue;
           throw err;
         }
       }
@@ -126,40 +126,46 @@ export class DockerManager {
       //   if (pull.pulledAt.getTime() > Date.now() - SKIP_PULL_TIME) return resolve();
       // }
 
-      this.#docker.pull(image, { authconfig: this.#registryAuth }, (err, stream) => {
-        if (err || !stream) return reject(err);
+      this.#docker.pull(
+        image,
+        {
+          // authconfig: this.#registryAuth
+        },
+        (err, stream) => {
+          if (err || !stream) return reject(err);
 
-        imagePulls.set(image, { pulledAt: new Date(), usedAt: new Date() });
+          imagePulls.set(image, { pulledAt: new Date(), usedAt: new Date() });
 
-        let downloaded = 0;
-        let total = 0;
+          let downloaded = 0;
+          let total = 0;
 
-        let onProgressEvent = (event: any) => {
-          console.log('Image pull progress:', event);
+          let onProgressEvent = (event: any) => {
+            console.log('Image pull progress:', event);
 
-          if (event.progressDetail?.total) {
-            downloaded += event.progressDetail.current || 0;
-            total = event.progressDetail.total;
+            if (event.progressDetail?.total) {
+              downloaded += event.progressDetail.current || 0;
+              total = event.progressDetail.total;
 
-            onProgress?.(Math.min(downloaded / total, 1));
-          }
-        };
+              onProgress?.(Math.min(downloaded / total, 1));
+            }
+          };
 
-        let onFinished = (err: any) => {
-          console.log('Image pull finished:', image, err);
+          let onFinished = (err: any) => {
+            console.log('Image pull finished:', image, err);
 
-          if (err) {
-            imagePulls.delete(image);
-            return reject(err);
-          }
+            if (err) {
+              imagePulls.delete(image);
+              return reject(err);
+            }
 
-          console.log('Image pull finished2:', image);
+            console.log('Image pull finished2:', image);
 
-          resolve();
-        };
+            resolve();
+          };
 
-        this.#docker.modem.followProgress(stream, onFinished, onProgressEvent);
-      });
+          this.#docker.modem.followProgress(stream, onFinished, onProgressEvent);
+        }
+      );
     });
   }
 }
