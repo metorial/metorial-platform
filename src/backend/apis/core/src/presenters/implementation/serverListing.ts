@@ -1,6 +1,6 @@
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { getImageUrl } from '../lib/getImageUrl';
 import { serverListingType } from '../types';
 import { v1ServerListingCategoryPresenter } from './serverCategory';
 

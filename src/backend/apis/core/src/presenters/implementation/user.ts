@@ -1,6 +1,6 @@
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { getImageUrl } from '../lib/getImageUrl';
 import { userType } from '../types';
 
 export let v1UserPresenter = Presenter.create(userType)
