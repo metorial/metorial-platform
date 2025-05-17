@@ -13,10 +13,10 @@ model ServerRunErrorGroup {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])
 
-  errors ServerRunError[]
-
   defaultServerRunErrorOid BigInt?
   defaultServerRunError    ServerRunError? @relation("DefaultServerRunError", fields: [defaultServerRunErrorOid], references: [oid])
+
+  errors ServerRunError[]
 
   createdAt DateTime @default(now())
 
@@ -39,6 +39,9 @@ model ServerRunError {
 
   serverRunOid BigInt
   serverRun    ServerRun @relation(fields: [serverRunOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
 
   createdAt DateTime @default(now())
 

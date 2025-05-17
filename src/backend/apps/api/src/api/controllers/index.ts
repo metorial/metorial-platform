@@ -14,9 +14,15 @@ import { serverImplementationController } from './instance/serverImplementation'
 import { serverListingController } from './instance/serverListing';
 import { serverListingCategoryController } from './instance/serverListingCategory';
 import { serverListingCollectionController } from './instance/serverListingCollection';
+import { serverRunController } from './instance/serverRun';
+import { serverRunErrorController } from './instance/serverRunError';
+import { serverRunErrorGroupController } from './instance/serverRunErrorGroup';
+import { serverSessionController } from './instance/serverSession';
 import { serverVariantController } from './instance/serverVariant';
 import { serverVersionController } from './instance/serverVersion';
 import { sessionController } from './instance/session';
+import { sessionEventController } from './instance/sessionEvent';
+import { sessionMessageController } from './instance/sessionMessage';
 import { instanceManagementController } from './management/instance';
 import { organizationManagementController } from './management/organization';
 import { organizationInviteManagementController } from './management/organizationInvite';
@@ -44,7 +50,14 @@ export let pulsarController = Controller.create<any>(
     serverImplementationController,
     serverDeploymentController,
 
-    sessionController
+    sessionController,
+    sessionEventController,
+    sessionMessageController,
+
+    serverRunController,
+    serverRunErrorController,
+
+    serverSessionController
   }
 );
 
@@ -82,6 +95,14 @@ export let dashboardController = Controller.create<any>(
     serverImplementationController,
     serverDeploymentController,
 
-    sessionController
+    sessionController,
+    sessionEventController,
+    sessionMessageController,
+
+    serverRunController,
+    serverRunErrorController,
+    serverRunErrorGroupController,
+
+    serverSessionController
   }
 );

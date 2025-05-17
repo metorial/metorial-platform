@@ -1,6 +1,8 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { sessionType } from '../types';
+import { v1ServerDeploymentPreviewPresenter } from './serverDeployment';
+import { v1ServerSessionPresenter } from './serverSession';
 
 export let v1SessionPresenter = Presenter.create(sessionType)
   .presenter(async ({ session }, opts) => {
@@ -25,88 +27,38 @@ export let v1SessionPresenter = Presenter.create(sessionType)
       client_secret: {
         object: 'client_secret',
 
+        type: 'session' as const,
         id: session.clientSecretId,
         secret: session.clientSecretValue,
         expires_at: session.clientSecretExpiresAt
       },
 
-      server_deployments: session.serverDeployments.map(serverDeployment => ({
-        object: 'server.server_deployment#preview',
+      server_deployments: await Promise.all(
+        session.serverDeployments.map(serverDeployment =>
+          v1ServerDeploymentPreviewPresenter
+            .present(
+              {
+                serverDeployment
+              },
+              opts
+            )
+            .run()
+        )
+      ),
 
-        id: serverDeployment.id,
-        status: serverDeployment.status,
-
-        name: serverDeployment.name,
-        description: serverDeployment.description,
-
-        metadata: serverDeployment.metadata,
-
-        server: {
-          object: 'server#preview',
-
-          id: serverDeployment.server.id,
-          name: serverDeployment.server.name,
-          description: serverDeployment.server.description,
-
-          type: { imported: 'public' as const }[serverDeployment.server.type],
-
-          created_at: serverDeployment.server.createdAt,
-          updated_at: serverDeployment.server.updatedAt
-        },
-
-        created_at: serverDeployment.createdAt,
-        updated_at: serverDeployment.updatedAt
-      })),
-
-      server_sessions: session.serverSessions.map(serverSession => ({
-        object: 'session.server_session',
-
-        id: serverSession.id,
-        status: 'active',
-
-        mcp: {
-          object: 'mcp',
-
-          version: serverSession.mcpVersion,
-          connection_type: serverSession.mcpConnectionType,
-
-          client: serverSession.clientInfo
-            ? {
-                object: 'session.server_session.client',
-                name: serverSession.clientInfo.name,
-                version: serverSession.clientInfo.version,
-
-                capabilities: serverSession.clientCapabilities ?? {}
-              }
-            : null,
-
-          server: serverSession.serverInfo
-            ? {
-                object: 'session.server_session.server',
-
-                name: serverSession.serverInfo.name,
-                version: serverSession.serverInfo.version,
-
-                capabilities: serverSession.serverCapabilities ?? {}
-              }
-            : null
-        },
-
-        usage: {
-          total_productive_message_count:
-            serverSession.totalProductiveClientMessageCount +
-            serverSession.totalProductiveServerMessageCount,
-          total_productive_client_message_count:
-            serverSession.totalProductiveClientMessageCount,
-          total_productive_server_message_count:
-            serverSession.totalProductiveServerMessageCount
-        },
-
-        server_deployment_id: serverSession.serverDeployment.id,
-        session_id: session.id,
-
-        created_at: serverSession.createdAt
-      })),
+      server_sessions: await Promise.all(
+        session.serverSessions.map(serverSession =>
+          v1ServerSessionPresenter
+            .present(
+              {
+                serverSession,
+                session
+              },
+              opts
+            )
+            .run()
+        )
+      ),
 
       usage: {
         total_productive_message_count:
@@ -132,88 +84,15 @@ export let v1SessionPresenter = Presenter.create(sessionType)
       client_secret: v.object({
         object: v.literal('client_secret'),
 
+        type: v.enumOf(['session']),
         id: v.string(),
         secret: v.string(),
         expires_at: v.date()
       }),
 
-      server_deployments: v.array(
-        v.object({
-          object: v.literal('server.server_deployment#preview'),
+      server_deployments: v.array(v1ServerDeploymentPreviewPresenter.schema),
 
-          id: v.string(),
-          status: v.enumOf(['active', 'archived', 'deleted']),
-
-          name: v.string(),
-          description: v.nullable(v.string()),
-          metadata: v.record(v.any()),
-
-          secret_id: v.string(),
-
-          server: v.object({
-            object: v.literal('server#preview'),
-
-            id: v.string(),
-            name: v.string(),
-            description: v.nullable(v.string()),
-            type: v.enumOf(['public']),
-
-            created_at: v.date(),
-            updated_at: v.date()
-          }),
-
-          created_at: v.date(),
-          updated_at: v.date()
-        })
-      ),
-
-      server_sessions: v.array(
-        v.object({
-          object: v.literal('session.server_session'),
-
-          id: v.string(),
-          status: v.enumOf(['active']),
-
-          mcp: v.object({
-            object: v.literal('mcp'),
-
-            version: v.string(),
-            connection_type: v.enumOf(['sse', 'streamable_http', 'websocket']),
-
-            client: v.nullable(
-              v.object({
-                object: v.literal('session.server_session.client'),
-                name: v.string(),
-                version: v.string(),
-
-                capabilities: v.record(v.any())
-              })
-            ),
-
-            server: v.nullable(
-              v.object({
-                object: v.literal('session.server_session.server'),
-
-                name: v.string(),
-                version: v.string(),
-
-                capabilities: v.record(v.any())
-              })
-            )
-          }),
-
-          usage: v.object({
-            total_productive_message_count: v.number(),
-            total_productive_client_message_count: v.number(),
-            total_productive_server_message_count: v.number()
-          }),
-
-          server_deployment_id: v.string(),
-          session_id: v.string(),
-
-          created_at: v.date()
-        })
-      ),
+      server_sessions: v.array(v1ServerSessionPresenter.schema),
 
       usage: v.object({
         total_productive_message_count: v.number(),

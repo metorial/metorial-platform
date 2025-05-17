@@ -111,6 +111,7 @@ class ServerListingService {
                   { slug: { in: search?.map(s => s.id) } }
                 ]
               },
+
               collections
                 ? {
                     collections: {
@@ -118,6 +119,7 @@ class ServerListingService {
                     }
                   }
                 : {},
+
               categories
                 ? {
                     categories: {
@@ -132,17 +134,18 @@ class ServerListingService {
                     }
                   }
                 : {},
-              {
-                server: d.instance
-                  ? {
+
+              d.instance
+                ? {
+                    server: {
                       instanceServers: {
                         some: {
                           instanceOid: d.instance.oid
                         }
                       }
                     }
-                  : undefined
-              }
+                  }
+                : {}
             ]
           },
           include: {

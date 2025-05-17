@@ -18,9 +18,15 @@ import { v1ServerDeploymentPresenter } from './implementation/serverDeployment';
 import { v1ServerDeploymentConfigPresenter } from './implementation/serverDeploymentConfig';
 import { v1ServerImplementationPresenter } from './implementation/serverImplementation';
 import { v1ServerListingPresenter } from './implementation/serverListing';
+import { v1ServerRunPresenter } from './implementation/serverRun';
+import { v1ServerRunErrorPresenter } from './implementation/serverRunError';
+import { v1ServerRunErrorGroupPresenter } from './implementation/serverRunErrorGroup';
+import { v1ServerSessionPresenter } from './implementation/serverSession';
 import { v1ServerVariantPresenter } from './implementation/serverVariant';
 import { v1ServerVersionPresenter } from './implementation/serverVersion';
 import { v1SessionPresenter } from './implementation/session';
+import { v1SessionEventPresenter } from './implementation/sessionEvent';
+import { v1SessionMessagePresenter } from './implementation/sessionMessage';
 import { v1UsagePresenter } from './implementation/usage';
 import { v1UserPresenter } from './implementation/user';
 import {
@@ -42,9 +48,15 @@ import {
   serverListingCategoryType,
   serverListingCollectionType,
   serverListingType,
+  serverRunErrorGroupType,
+  serverRunErrorType,
+  serverRunType,
+  serverSessionType,
   serverType,
   serverVariantType,
   serverVersionType,
+  sessionEventType,
+  sessionMessageType,
   sessionType,
   usageType,
   userType
@@ -168,4 +180,34 @@ export let usagePresenter = declarePresenter(usageType, {
 export let sessionPresenter = declarePresenter(sessionType, {
   mt_2025_01_01_pulsar: v1SessionPresenter,
   mt_2025_01_01_dashboard: v1SessionPresenter
+});
+
+export let serverRunPresenter = declarePresenter(serverRunType, {
+  mt_2025_01_01_pulsar: v1ServerRunPresenter,
+  mt_2025_01_01_dashboard: v1ServerRunPresenter
+});
+
+export let serverRunErrorPresenter = declarePresenter(serverRunErrorType, {
+  mt_2025_01_01_pulsar: v1ServerRunErrorPresenter,
+  mt_2025_01_01_dashboard: v1ServerRunErrorPresenter
+});
+
+export let serverRunErrorGroupPresenter = declarePresenter(serverRunErrorGroupType, {
+  mt_2025_01_01_pulsar: v1ServerRunErrorGroupPresenter,
+  mt_2025_01_01_dashboard: v1ServerRunErrorGroupPresenter
+});
+
+export let serverSessionPresenter = declarePresenter(serverSessionType, {
+  mt_2025_01_01_pulsar: v1ServerSessionPresenter,
+  mt_2025_01_01_dashboard: v1ServerSessionPresenter
+});
+
+export let sessionEventPresenter = declarePresenter(sessionEventType, {
+  mt_2025_01_01_pulsar: v1SessionEventPresenter,
+  mt_2025_01_01_dashboard: v1SessionEventPresenter
+});
+
+export let sessionMessagePresenter = declarePresenter(sessionMessageType, {
+  mt_2025_01_01_pulsar: v1SessionMessagePresenter,
+  mt_2025_01_01_dashboard: v1SessionMessagePresenter
 });

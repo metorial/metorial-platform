@@ -7,8 +7,6 @@ export let getServerSession = async (
   d: SessionInfo,
   serverSessionOrDeploymentId: string | null
 ) => {
-  console.log('getServerSession', serverSessionOrDeploymentId);
-
   let serverSession = serverSessionOrDeploymentId
     ? d.session.serverSessions.find(s => s.id == serverSessionOrDeploymentId)
     : undefined;

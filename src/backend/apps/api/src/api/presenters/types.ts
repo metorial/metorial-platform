@@ -25,10 +25,15 @@ import {
   ServerListing,
   ServerListingCategory,
   ServerListingCollection,
+  ServerRun,
+  ServerRunError,
+  ServerRunErrorGroup,
   ServerSession,
   ServerVariant,
   ServerVersion,
   Session,
+  SessionEvent,
+  SessionMessage,
   User
 } from '@metorial/db';
 import { PresentableType } from '@metorial/presenter';
@@ -180,6 +185,12 @@ export let serverDeploymentType = PresentableType.create<{
   };
 }>()('server.server_deployment');
 
+export let serverDeploymentPreviewType = PresentableType.create<{
+  serverDeployment: ServerDeployment & {
+    server: Server;
+  };
+}>()('server.server_deployment#preview');
+
 export let serverDeploymentConfigType = PresentableType.create<{
   config: ServerDeploymentConfig & {
     configSecret: Secret;
@@ -210,3 +221,64 @@ export let sessionType = PresentableType.create<{
     })[];
   };
 }>()('session');
+
+export let serverSessionType = PresentableType.create<{
+  session: Session;
+  serverSession: ServerSession & {
+    serverDeployment: ServerDeployment & {
+      serverVariant: ServerVariant;
+    };
+  };
+}>()('session.server_session');
+
+export let sessionMessageType = PresentableType.create<{
+  session: Session;
+  sessionMessage: SessionMessage & {
+    serverSession: ServerSession;
+  };
+}>()('session.message');
+
+export let sessionEventType = PresentableType.create<{
+  session: Session;
+  sessionEvent: SessionEvent & {
+    serverRun:
+      | (ServerRun & {
+          serverVersion: ServerVersion;
+          serverDeployment: ServerDeployment;
+          serverSession: ServerSession;
+        })
+      | null;
+  };
+}>()('session.event');
+
+export let serverRunType = PresentableType.create<{
+  serverRun: ServerRun & {
+    serverVersion: ServerVersion;
+    serverDeployment: ServerDeployment;
+    serverSession: ServerSession & { session: Session };
+  };
+}>()('server.server_run');
+
+export let serverRunErrorType = PresentableType.create<{
+  serverRunError: ServerRunError & {
+    serverRun: ServerRun & {
+      serverVersion: ServerVersion;
+      serverDeployment: ServerDeployment;
+      serverSession: ServerSession & { session: Session };
+    };
+  };
+}>()('server.server_run.error');
+
+export let serverRunErrorGroupType = PresentableType.create<{
+  serverRunErrorGroup: ServerRunErrorGroup & {
+    defaultServerRunError:
+      | (ServerRunError & {
+          serverRun: ServerRun & {
+            serverVersion: ServerVersion;
+            serverDeployment: ServerDeployment;
+            serverSession: ServerSession & { session: Session };
+          };
+        })
+      | null;
+  };
+}>()('server.server_run.error_group');

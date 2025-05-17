@@ -7,9 +7,13 @@ import { initLogger } from '@metorial/logging';
 import { apiServer } from './apiServer';
 import { authApi } from './auth';
 import { fileApi } from './fileUpload';
+import { startMcpServer } from './mcp';
+import { authenticate } from './rest';
 import { startRunnerGateway } from './runners';
 
-let port = parseInt(process.env.PORT || '3310');
+let apiPort = parseInt(process.env.PORT || '3310');
+let mcpPort = parseInt(process.env.PORT || '3311');
+let runnerPort = parseInt(process.env.PORT || '3399');
 
 let server = apiMux(
   [
@@ -31,11 +35,11 @@ let server = apiMux(
 );
 
 Bun.serve({
-  port,
+  port: apiPort,
   fetch: server
 });
 
-console.log(`Listening on port ${port}`);
+console.log(`Listening on port ${apiPort}`);
 
 if (process.env.AXIOM_TOKEN)
   initLogger({
@@ -50,4 +54,5 @@ if (process.env.NODE_ENV == 'production') {
   });
 }
 
-startRunnerGateway({ port: 3399 });
+startRunnerGateway({ port: runnerPort });
+startMcpServer({ port: mcpPort, authenticate });

@@ -40,4 +40,5 @@ model Instance {
   instanceServers         InstanceServer[]
   serverDeploymentConfigs ServerDeploymentConfig[]
   sessions                Session[]
+  serverRunErrors         ServerRunError[]
 }

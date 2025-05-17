@@ -80,6 +80,7 @@ export class BrokerBus {
               senderType: this.connector,
               senderId: this.participant.id,
               serverSessionOid: this.session.oid,
+              sessionOid: this.session.sessionOid,
               originalId: 'id' in message ? message.id : null,
               unifiedId:
                 'id' in message
@@ -125,6 +126,7 @@ export class BrokerBus {
           senderType: this.connector,
           senderId: this.participant.id,
           serverSessionOid: this.session.oid,
+          sessionOid: this.session.sessionOid,
           payload: {
             jsonrpc: '2.0',
             method: 'server_error',
