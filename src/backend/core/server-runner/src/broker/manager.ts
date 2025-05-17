@@ -93,6 +93,11 @@ export class BrokerRunManager {
       data: { status: 'completed' }
     });
 
+    await db.serverSession.updateMany({
+      where: { id: this.session.id },
+      data: { status: 'stopped' }
+    });
+
     this.#bus
       .then(b => b.close())
       .catch(e => {

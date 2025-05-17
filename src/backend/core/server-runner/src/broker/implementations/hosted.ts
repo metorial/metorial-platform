@@ -1,7 +1,10 @@
 import { ServerRun } from '@metorial/db';
 import { MICSessionManger } from '@metorial/interconnect';
 import { type JSONRPCMessage } from '@metorial/mcp-utils';
+import { getSentry } from '@metorial/sentry';
 import { BrokerRunnerImplementation } from './base';
+
+let Sentry = getSentry();
 
 export class BrokerRunnerImplementationHosted extends BrokerRunnerImplementation {
   constructor(
@@ -66,6 +69,22 @@ export class RunnerBrokerManager {
     let runner = this.#runners.get(runId);
     if (!runner) return;
 
-    runner.handleClosed();
+    runner
+      .handleClosed()
+      .then(() => {
+        this.#runners.delete(runId);
+      })
+      .catch(err => {
+        Sentry.captureException(err, {
+          tags: { runnerId: runId },
+          extra: { message: 'Error closing runner' }
+        });
+      });
+  }
+
+  stopAll() {
+    for (let runner of this.#runners.values()) {
+      runner.close();
+    }
   }
 }

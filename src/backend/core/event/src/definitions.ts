@@ -6,18 +6,22 @@ import {
   ServerDeployment,
   ServerDeploymentConfig,
   ServerImplementation,
-  ServerVariant
+  ServerSession,
+  ServerVariant,
+  Session
 } from '@metorial/db';
 
 export type EventTypesFilePayload = {
   file: File & { purpose: FilePurpose };
 };
+
 export type EventTypesServerImplementationPayload = {
   serverImplementation: ServerImplementation & {
     server: Server;
     serverVariant: ServerVariant;
   };
 };
+
 export type EventTypesServerDeploymentPayload = {
   serverDeployment: ServerDeployment & {
     serverImplementation: ServerImplementation & {
@@ -27,8 +31,31 @@ export type EventTypesServerDeploymentPayload = {
     server: Server;
     config: ServerDeploymentConfig & {
       configSecret: Secret;
-    }
+    };
   };
+};
+
+export type EventTypesSessionPayload = {
+  session: Session & {
+    serverDeployments: (ServerDeployment & {
+      server: Server;
+      serverVariant: ServerVariant;
+    })[];
+    serverSessions: (ServerSession & {
+      serverDeployment: ServerDeployment & {
+        serverVariant: ServerVariant;
+      };
+    })[];
+  };
+};
+
+export type EventTypesServerSessionPayload = {
+  serverSession: ServerSession & {
+    serverDeployment: ServerDeployment & {
+      serverVariant: ServerVariant;
+    };
+  };
+  session: Session;
 };
 
 export type EventTypes = {
@@ -43,4 +70,10 @@ export type EventTypes = {
   'server.server_deployment:created': EventTypesServerDeploymentPayload;
   'server.server_deployment:updated': EventTypesServerDeploymentPayload;
   'server.server_deployment:deleted': EventTypesServerDeploymentPayload;
+
+  'session:created': EventTypesSessionPayload;
+  'session:updated': EventTypesSessionPayload;
+  'session:deleted': EventTypesSessionPayload;
+
+  'session.server_session:created': EventTypesServerSessionPayload;
 };

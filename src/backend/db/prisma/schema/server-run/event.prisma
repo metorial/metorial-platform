@@ -1,4 +1,4 @@
-enum ServerRunEventType {
+enum SessionEventType {
   message
   error
   server_run_created
@@ -8,15 +8,18 @@ enum ServerRunEventType {
   client_disconnected
 }
 
-model ServerRunEvent {
-  oid  BigInt             @id @default(autoincrement())
-  id   String             @unique
-  type ServerRunEventType
+model SessionEvent {
+  oid  BigInt           @id @default(autoincrement())
+  id   String           @unique
+  type SessionEventType
 
   // TODO: fields
 
-  serverRunOid BigInt
-  serverRun    ServerRun @relation(fields: [serverRunOid], references: [oid])
+  sessionOid BigInt
+  session    Session @relation(fields: [sessionOid], references: [oid])
+
+  serverRunOid BigInt?
+  serverRun    ServerRun? @relation(fields: [serverRunOid], references: [oid])
 
   createdAt DateTime @default(now())
 }

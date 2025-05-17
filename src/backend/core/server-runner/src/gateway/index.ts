@@ -67,24 +67,52 @@ export let createServerRunnerGateway = (
               });
               if (!info) return;
 
-              let manager = new BrokerRunManager(
-                runnerManager!.create(info.serverRun),
-                info.serverRun,
-                info.session
-              );
+              if (!info.variant.currentVersion || !info.variant.currentVersion.dockerImage) {
+                console.error('No current version for variant', info.variant);
+                return;
+              }
 
               let launchParams = await session!.request<
                 { type: 'error'; output: string } | { type: 'success'; output: any }
               >('get_launch_params', {
                 config: info.DANGEROUSLY_UNENCRYPTED_CONFIG,
-                getLaunchParams: info.version.getLaunchParams
+                getLaunchParams:
+                  info.implementation.getLaunchParams ?? info.version.getLaunchParams
               });
+
+              console.log('Launch params', launchParams);
 
               if (launchParams.type == 'error') {
                 // TODO: run failed
-              }
+              } else {
+                let manager = new BrokerRunManager(
+                  runnerManager!.create(info.serverRun),
+                  info.serverRun,
+                  info.session
+                );
 
-              await manager.waitForClose;
+                console.log({
+                  serverRunId: info.serverRun.id,
+                  source: {
+                    type: 'docker',
+                    image: info.variant.currentVersion.dockerImage,
+                    tag: info.variant.currentVersion.dockerTag
+                  },
+                  launchParams: launchParams.output
+                });
+
+                await session!.request('run/execute', {
+                  serverRunId: info.serverRun.id,
+                  source: {
+                    type: 'docker',
+                    image: info.variant.currentVersion.dockerImage,
+                    tag: info.variant.currentVersion.dockerTag
+                  },
+                  launchParams: launchParams.output
+                });
+
+                await manager.waitForClose;
+              }
             }
           });
         })
@@ -139,6 +167,8 @@ export let createServerRunnerGateway = (
 
         await closeQueue?.();
         await transceiver?.close();
+
+        runnerManager?.stopAll();
       };
 
       return {

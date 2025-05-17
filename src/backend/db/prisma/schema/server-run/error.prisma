@@ -15,6 +15,9 @@ model ServerRunErrorGroup {
 
   errors ServerRunError[]
 
+  defaultServerRunErrorOid BigInt?
+  defaultServerRunError    ServerRunError? @relation("DefaultServerRunError", fields: [defaultServerRunErrorOid], references: [oid])
+
   createdAt DateTime @default(now())
 
   @@unique([fingerprint, serverOid, instanceOid])
@@ -26,7 +29,7 @@ model ServerRunError {
 
   code     String
   message  String
-  metadata Json?
+  metadata Json
 
   serverDeploymentOid BigInt
   serverDeployment    ServerDeployment @relation(fields: [serverDeploymentOid], references: [oid])
@@ -38,4 +41,6 @@ model ServerRunError {
   serverRun    ServerRun @relation(fields: [serverRunOid], references: [oid])
 
   createdAt DateTime @default(now())
+
+  defaultFor ServerRunErrorGroup[] @relation("DefaultServerRunError")
 }

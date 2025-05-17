@@ -4,9 +4,16 @@ enum SessionMcpConnectionType {
   websocket
 }
 
+enum ServerSessionStatus {
+  pending
+  running
+  stopped
+}
+
 model ServerSession {
-  oid BigInt @id @default(autoincrement())
-  id  String @unique
+  oid    BigInt              @id @default(autoincrement())
+  id     String              @unique
+  status ServerSessionStatus
 
   mcpVersion        String?
   mcpInitialized    Boolean?
@@ -88,6 +95,8 @@ model Session {
 
   serverDeployments ServerDeployment[]
   serverSessions    ServerSession[]
+  messages          SessionMessage[]
+  events            SessionEvent[]
 
   @@index([connectionStatus])
   @@index([lastClientPingAt])

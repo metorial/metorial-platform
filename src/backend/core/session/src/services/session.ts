@@ -11,15 +11,23 @@ import {
   SessionConnectionType,
   SessionStatus
 } from '@metorial/db';
-import { forbiddenError, notFoundError, ServiceError } from '@metorial/error';
+import {
+  forbiddenError,
+  notFoundError,
+  ServiceError,
+  unauthorizedError
+} from '@metorial/error';
+import { ingestEventService } from '@metorial/module-event';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 
 let include = {
   serverDeployments: {
     include: {
-      server: true
-    }
+      server: true,
+      serverVariant: true
+    },
+    orderBy: { id: 'asc' as const }
   },
   serverSessions: {
     include: {
@@ -28,7 +36,8 @@ let include = {
           serverVariant: true
         }
       }
-    }
+    },
+    orderBy: { id: 'asc' as const }
   }
 };
 
@@ -78,7 +87,12 @@ class SessionImpl {
       include
     });
 
-    // TODO: report event
+    await ingestEventService.ingest('session:created', {
+      session,
+      instance: d.instance,
+      performedBy: d.performedBy,
+      organization: d.organization
+    });
 
     return session;
   }
@@ -91,7 +105,22 @@ class SessionImpl {
       },
       include
     });
-    if (!session) throw new ServiceError(notFoundError('session', d.sessionId));
+    if (!session) throw new ServiceError(notFoundError('session'));
+
+    return session;
+  }
+
+  async DANGEROUSLY_getSessionOnlyById(d: { sessionId: string }) {
+    let session = await db.session.findFirst({
+      where: {
+        id: d.sessionId
+      },
+      include: {
+        ...include,
+        instance: true
+      }
+    });
+    if (!session) throw new ServiceError(notFoundError('session'));
 
     return session;
   }
@@ -100,14 +129,52 @@ class SessionImpl {
     let session = await db.session.findFirst({
       where: {
         clientSecretValue: d.clientSecret,
-        OR: [{ clientSecretExpiresAt: { gte: new Date() } }, { clientSecretExpiresAt: null }]
+        OR: [{ clientSecretExpiresAt: { gte: new Date() } }, { clientSecretExpiresAt: null }],
+        status: 'active'
       },
-      include: {
-        serverDeployments: true,
-        serverSessions: true
-      }
+      include
     });
-    if (!session) throw new ServiceError(notFoundError('session'));
+    if (!session) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'Invalid client secret',
+          hint: 'Make sure to use a valid client secret and that is has not expired'
+        })
+      );
+    }
+
+    return session;
+  }
+
+  async addServerDeployments(d: {
+    session: Session;
+    performedBy: OrganizationActor;
+    organization: Organization;
+    instance: Instance;
+    serverDeployments: ServerDeployment[];
+  }) {
+    await this.ensureSessionActive(d.session);
+
+    let session = await db.session.update({
+      where: {
+        id: d.session.id
+      },
+      data: {
+        serverDeployments: {
+          connect: d.serverDeployments.map(i => ({
+            oid: i.oid
+          }))
+        }
+      },
+      include
+    });
+
+    await ingestEventService.ingest('session:updated', {
+      session,
+      instance: d.instance,
+      performedBy: d.performedBy,
+      organization: d.organization
+    });
 
     return session;
   }
@@ -129,6 +196,13 @@ class SessionImpl {
         deletedAt: new Date()
       },
       include
+    });
+
+    await ingestEventService.ingest('session:deleted', {
+      session,
+      instance: d.instance,
+      performedBy: d.performedBy,
+      organization: d.organization
     });
 
     return session;

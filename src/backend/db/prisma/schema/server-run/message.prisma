@@ -31,6 +31,9 @@ model SessionMessage {
 
   isHandled Boolean @default(false)
 
+  sessionOid BigInt
+  session    Session @relation(fields: [sessionOid], references: [oid])
+
   serverSessionOid BigInt
   serverSession    ServerSession @relation(fields: [serverSessionOid], references: [oid])
 

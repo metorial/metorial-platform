@@ -5,20 +5,17 @@ import { serverRunnerService } from '../services';
 export let RunJobProcessorUtils = {
   getServerSession: async (d: { serverSessionId: string }) => {
     return await db.serverSession.findFirst({
-      where: { id: d.serverSessionId, status: { in: ['active', 'created'] } },
+      where: { id: d.serverSessionId },
       include: {
         instance: true,
+
         serverDeployment: {
           include: {
-            serverInstance: {
-              include: {
-                serverVariant: {
-                  include: {
-                    currentVersion: true
-                  }
-                }
-              }
-            }
+            config: true,
+            serverVariant: {
+              include: { currentVersion: true }
+            },
+            serverImplementation: true
           }
         }
       }
@@ -30,8 +27,8 @@ export let RunJobProcessorUtils = {
     if (!session) return null;
 
     let deployment = session.serverDeployment;
-    let instance = deployment.serverInstance;
-    let variant = instance.serverVariant;
+    let implementation = deployment.serverImplementation;
+    let variant = deployment.serverVariant;
 
     let version = variant.currentVersion;
     if (!version) return null;
@@ -52,11 +49,11 @@ export let RunJobProcessorUtils = {
 
       await db.serverSession.updateMany({
         where: { id: session.id },
-        data: { status: 'active' }
+        data: { status: 'running' }
       });
 
       let config = await secretService.DANGEROUSLY_readSecretValue({
-        secretId: deployment.configSecretOid,
+        secretId: deployment.config.configSecretOid,
         instance: session.instance,
         type: 'server_deployment_config',
         metadata: { serverRunnerService }
@@ -65,8 +62,9 @@ export let RunJobProcessorUtils = {
       return {
         serverRun,
         session,
-        variant: session.serverDeployment.serverInstance.serverVariant,
+        variant,
         version,
+        implementation,
         secret: config.secret,
         DANGEROUSLY_UNENCRYPTED_CONFIG: config.data
       };

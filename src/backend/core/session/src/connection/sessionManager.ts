@@ -1,6 +1,4 @@
 import {
-  db,
-  Prisma,
   ServerDeployment,
   ServerSession,
   ServerVariant,
@@ -61,15 +59,6 @@ export class SessionManager {
     handler: (message: JSONRPCMessage, stored: SessionMessage) => void
   ) {
     this.#client.onMessage(opts, handler);
-  }
-
-  private async updateSession(d: Prisma.SessionUpdateInput) {
-    let s = await db.session.update({
-      where: { id: this.session.id },
-      data: d
-    });
-
-    this.session = { ...this.session, ...s };
   }
 
   private async init() {}
