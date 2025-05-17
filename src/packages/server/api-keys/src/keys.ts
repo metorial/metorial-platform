@@ -6,7 +6,8 @@ export type ApiKeyType =
   | 'organization_management_token'
   | 'organization_app_access_token'
   | 'instance_access_token_secret'
-  | 'instance_access_token_publishable';
+  | 'instance_access_token_publishable'
+  | 'ephemeral_client_secret';
 
 export type ApiKeyVersions = 'v1';
 
@@ -15,7 +16,8 @@ let keyTypes = {
   mk: 'organization_management_token',
   ak: 'organization_app_access_token',
   sk: 'instance_access_token_secret',
-  pk: 'instance_access_token_publishable'
+  pk: 'instance_access_token_publishable',
+  ek: 'ephemeral_client_secret'
 } as const;
 
 let keyTypesReverse = Object.fromEntries(

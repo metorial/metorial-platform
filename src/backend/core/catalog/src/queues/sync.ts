@@ -309,198 +309,200 @@ let serversSyncQueueProcessor = serversSyncQueue.process(async () => {
 });
 
 let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) => {
-  // debug.log(`Syncing server ${identifier}...`);
+  debug.log(`Syncing server ${identifier}...`);
 
-  let index = getIndexDatabase();
+  try {
+    let index = getIndexDatabase();
 
-  let server = index
-    .query<
-      {
-        identifier: string;
-        fullSlug: string;
-        slug: string;
-        name: string;
-        description: string;
-        subdirectory: string;
-        websiteUrl: string;
-        isOfficial: number;
-        isCommunity: number;
-        isHostable: number;
-        readme: string;
-        vendorIdentifier: string;
-        repositoryIdentifier: string;
-      },
-      any
-    >('SELECT * FROM PublicServer WHERE identifier = ?')
-    .get(identifier);
+    let server = index
+      .query<
+        {
+          identifier: string;
+          fullSlug: string;
+          slug: string;
+          name: string;
+          description: string;
+          subdirectory: string;
+          websiteUrl: string;
+          isOfficial: number;
+          isCommunity: number;
+          isHostable: number;
+          readme: string;
+          vendorIdentifier: string;
+          repositoryIdentifier: string;
+        },
+        any
+      >('SELECT * FROM PublicServer WHERE identifier = ?')
+      .get(identifier);
 
-  let categoryIdentifiers = index
-    .query<
-      {
-        B: string;
-      },
-      any
-    >('SELECT * FROM _PublicServerToPublicServerCategory WHERE A = ?')
-    .all(identifier);
+    let categoryIdentifiers = index
+      .query<
+        {
+          B: string;
+        },
+        any
+      >('SELECT * FROM _PublicServerToPublicServerCategory WHERE A = ?')
+      .all(identifier);
 
-  let variants = index
-    .query<
-      {
-        identifier: string;
-        sourceType: 'docker' | 'remote';
-        providerIdentifier: string;
-        dockerImage: string | null;
-        remoteUrl: string | null;
-      },
-      any
-    >('SELECT * FROM PublicServerVariant WHERE serverIdentifier = ?')
-    .all(identifier);
+    let variants = index
+      .query<
+        {
+          identifier: string;
+          sourceType: 'docker' | 'remote';
+          providerIdentifier: string;
+          dockerImage: string | null;
+          remoteUrl: string | null;
+        },
+        any
+      >('SELECT * FROM PublicServerVariant WHERE serverIdentifier = ?')
+      .all(identifier);
 
-  if (!server) return;
+    if (!server) return;
 
-  let vendor = await db.importedServerVendor.findUniqueOrThrow({
-    where: { identifier: server.vendorIdentifier }
-  });
+    let vendor = await db.importedServerVendor.findUniqueOrThrow({
+      where: { identifier: server.vendorIdentifier }
+    });
 
-  let repository = await db.importedRepository.findUniqueOrThrow({
-    where: { identifier: server.repositoryIdentifier }
-  });
+    let repository = await db.importedRepository.findUniqueOrThrow({
+      where: { identifier: server.repositoryIdentifier }
+    });
 
-  let existingImportedServer = await db.importedServer.findUnique({
-    where: { identifier: server.identifier },
-    include: { server: true }
-  });
+    let existingImportedServer = await db.importedServer.findUnique({
+      where: { identifier: server.identifier },
+      include: { server: true }
+    });
 
-  let baseServer =
-    existingImportedServer?.server ??
-    (await db.server.create({
-      data: {
-        id: await ID.generateId('server'),
-        type: 'imported',
-        name: server.name
+    let baseServer =
+      existingImportedServer?.server ??
+      (await db.server.create({
+        data: {
+          id: await ID.generateId('server'),
+          type: 'imported',
+          name: server.name
+        }
+      }));
+
+    let ourServer = await ensureImportedServer(() => ({
+      vendorOid: vendor.oid,
+      repositoryOid: repository.oid,
+      serverOid: baseServer.oid,
+
+      identifier: server.identifier,
+      fullSlug: server.fullSlug,
+      slug: server.slug,
+
+      name: server.name,
+      description: server.description,
+
+      subdirectory: server.subdirectory,
+
+      isOfficial: Boolean(server.isOfficial),
+      isCommunity: Boolean(server.isCommunity),
+      isHostable: Boolean(server.isHostable),
+
+      readme: server.readme,
+
+      attributes: { websiteUrl: server.websiteUrl }
+    }));
+
+    let existingListing = await db.serverListing.findUnique({
+      where: { serverOid: baseServer.oid }
+    });
+
+    let serverListing = await ensureServerListing(() => ({
+      status: existingListing?.status ?? 'active',
+      name: server.name,
+      slug: existingListing?.slug ?? `${vendor.identifier}/${ourServer.slug}`,
+      description: server.description,
+      readme: server.readme,
+      serverOid: baseServer.oid,
+
+      categories: {
+        connect: categoryIdentifiers.map(categoryIdentifier => ({
+          slug: categoryIdentifier.B
+        }))
       }
     }));
 
-  let ourServer = await ensureImportedServer(() => ({
-    vendorOid: vendor.oid,
-    repositoryOid: repository.oid,
-    serverOid: baseServer.oid,
+    // Only create variants if the server is hostable
+    if (ourServer.isHostable) {
+      for (let variant of variants) {
+        let versions = index
+          .query<
+            {
+              identifier: string;
+              sourceType: 'docker' | 'remote';
+              dockerImage: string | null;
+              dockerTag: string | null;
+              remoteUrl: string | null;
+              config: any;
+              getLaunchParams: string;
+              createdAt: string;
+            },
+            any
+          >('SELECT * FROM PublicServerVariantVersion WHERE variantIdentifier = ?')
+          .all(variant.identifier);
 
-    identifier: server.identifier,
-    fullSlug: server.fullSlug,
-    slug: server.slug,
+        let provider = await db.serverVariantProvider.findUniqueOrThrow({
+          where: { identifier: variant.providerIdentifier }
+        });
 
-    name: server.name,
-    description: server.description,
+        let ourVariant = await ensureServerVariant(() => ({
+          identifier: variant.identifier,
 
-    subdirectory: server.subdirectory,
-
-    isOfficial: Boolean(server.isOfficial),
-    isCommunity: Boolean(server.isCommunity),
-    isHostable: Boolean(server.isHostable),
-
-    readme: server.readme,
-
-    attributes: { websiteUrl: server.websiteUrl }
-  }));
-
-  let existingListing = await db.serverListing.findUnique({
-    where: { serverOid: baseServer.oid }
-  });
-
-  let serverListing = await ensureServerListing(() => ({
-    status: existingListing?.status ?? 'active',
-    name: server.name,
-    slug: existingListing?.slug ?? `${vendor.identifier}/${ourServer.slug}`,
-    description: server.description,
-    readme: server.readme,
-    serverOid: baseServer.oid,
-
-    categories: {
-      connect: categoryIdentifiers.map(categoryIdentifier => ({
-        slug: categoryIdentifier.B
-      }))
-    }
-  }));
-
-  // Only create variants if the server is hostable
-  if (ourServer.isHostable) {
-    for (let variant of variants) {
-      let versions = index
-        .query<
-          {
-            identifier: string;
-            sourceType: 'docker' | 'remote';
-            dockerImage: string | null;
-            dockerTag: string | null;
-            remoteUrl: string | null;
-            config: any;
-            getLaunchParams: string;
-            createdAt: string;
-          },
-          any
-        >('SELECT * FROM PublicServerVariantVersion WHERE variantIdentifier = ?')
-        .all(variant.identifier);
-
-      let provider = await db.serverVariantProvider.findUniqueOrThrow({
-        where: { identifier: variant.providerIdentifier }
-      });
-
-      let ourVariant = await ensureServerVariant(() => ({
-        identifier: variant.identifier,
-
-        serverOid: baseServer.oid,
-        providerOid: provider.oid,
-
-        sourceType: variant.sourceType,
-        dockerImage: variant.dockerImage,
-        remoteUrl: variant.remoteUrl
-      }));
-
-      let currentVersion: null | ServerVersion = null;
-
-      for (let version of versions) {
-        let schema = await ensureServerConfig(async () => ({
-          fingerprint: await Hash.sha256(canonicalize(version.config)),
-          schema: version.config,
           serverOid: baseServer.oid,
-          serverVariantOid: ourVariant.oid
+          providerOid: provider.oid,
+
+          sourceType: variant.sourceType,
+          dockerImage: variant.dockerImage,
+          remoteUrl: variant.remoteUrl
         }));
 
-        let ourVersion = await ensureServerVersion(() => ({
-          identifier: version.identifier,
+        let currentVersion: null | ServerVersion = null;
 
-          schemaOid: schema.oid,
-          serverOid: baseServer.oid,
-          serverVariantOid: ourVariant.oid,
+        for (let version of versions) {
+          let schema = await ensureServerConfig(async () => ({
+            fingerprint: await Hash.sha256(canonicalize(version.config)),
+            schema: version.config,
+            serverOid: baseServer.oid,
+            serverVariantOid: ourVariant.oid
+          }));
 
-          sourceType: version.sourceType,
-          dockerImage: version.dockerImage,
-          remoteUrl: version.remoteUrl,
+          let ourVersion = await ensureServerVersion(() => ({
+            identifier: version.identifier,
 
-          getLaunchParams: version.getLaunchParams,
+            schemaOid: schema.oid,
+            serverOid: baseServer.oid,
+            serverVariantOid: ourVariant.oid,
 
-          createdAt: new Date(version.createdAt)
-        }));
+            sourceType: version.sourceType,
+            dockerImage: version.dockerImage,
+            remoteUrl: version.remoteUrl,
 
-        if (
-          !currentVersion ||
-          currentVersion.createdAt.getTime() < ourVersion.createdAt.getTime()
-        ) {
-          currentVersion = ourVersion;
+            getLaunchParams: version.getLaunchParams,
+
+            createdAt: new Date(version.createdAt)
+          }));
+
+          if (
+            !currentVersion ||
+            currentVersion.createdAt.getTime() < ourVersion.createdAt.getTime()
+          ) {
+            currentVersion = ourVersion;
+          }
         }
+
+        await db.serverVariant.update({
+          where: { oid: ourVariant.oid },
+          data: { currentVersionOid: currentVersion?.oid ?? null }
+        });
       }
-
-      await db.serverVariant.update({
-        where: { oid: ourVariant.oid },
-        data: { currentVersionOid: currentVersion?.oid ?? null }
-      });
     }
-  }
 
-  await indexServerListingQueue.add({
-    serverListingId: serverListing.id
-  });
+    await indexServerListingQueue.add({
+      serverListingId: serverListing.id
+    });
+  } catch (e) {}
 });
 
 export let syncProcessors = combineQueueProcessors([

@@ -16,6 +16,7 @@ import { serverListingCategoryController } from './instance/serverListingCategor
 import { serverListingCollectionController } from './instance/serverListingCollection';
 import { serverVariantController } from './instance/serverVariant';
 import { serverVersionController } from './instance/serverVersion';
+import { sessionController } from './instance/session';
 import { instanceManagementController } from './management/instance';
 import { organizationManagementController } from './management/organization';
 import { organizationInviteManagementController } from './management/organizationInvite';
@@ -41,7 +42,9 @@ export let pulsarController = Controller.create<any>(
     serverVersionController,
 
     serverImplementationController,
-    serverDeploymentController
+    serverDeploymentController,
+
+    sessionController
   }
 );
 
@@ -77,6 +80,8 @@ export let dashboardController = Controller.create<any>(
     serverListingCollectionController,
 
     serverImplementationController,
-    serverDeploymentController
+    serverDeploymentController,
+
+    sessionController
   }
 );

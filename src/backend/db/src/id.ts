@@ -58,5 +58,7 @@ export let ID = createIdGenerator({
 
   instanceServer: idType.sorted('isv'),
 
-  profile: idType.sorted('prf')
+  profile: idType.sorted('prf'),
+
+  clientSecret: idType.sorted('cse')
 });

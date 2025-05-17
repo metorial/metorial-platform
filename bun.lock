@@ -484,6 +484,35 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/backend/core/session": {
+      "name": "@metorial/module-session",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/api-keys": "^1.0.0",
+        "@metorial/context": "^1.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/env": "^1.0.0",
+        "@metorial/error": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/id": "^1.0.0",
+        "@metorial/interconnect": "^1.0.0",
+        "@metorial/module-catalog": "^1.0.0",
+        "@metorial/module-secret": "^1.0.0",
+        "@metorial/pagination": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/service": "^1.0.0",
+        "@metorial/slugify": "^1.0.0",
+        "ajv": "^8.17.1",
+        "date-fns": "^4.1.0",
+        "mongoose": "^8.14.2",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
     "src/backend/core/usage": {
       "name": "@metorial/module-usage",
       "version": "1.0.0",
@@ -1992,6 +2021,8 @@
     "@metorial/module-server-deployment": ["@metorial/module-server-deployment@workspace:src/backend/core/server-deployment"],
 
     "@metorial/module-server-runner": ["@metorial/module-server-runner@workspace:src/backend/core/server-runner"],
+
+    "@metorial/module-session": ["@metorial/module-session@workspace:src/backend/core/session"],
 
     "@metorial/module-usage": ["@metorial/module-usage@workspace:src/backend/core/usage"],
 

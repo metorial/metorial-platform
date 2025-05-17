@@ -115,3 +115,9 @@ export let timeoutError = createError({
   code: 'timeout',
   message: 'The request timed out.'
 });
+
+export let methodNotAllowedError = createError({
+  status: 405,
+  code: 'method_not_allowed',
+  message: 'The requested method is not allowed for this resource.'
+});

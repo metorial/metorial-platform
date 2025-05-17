@@ -37,4 +37,5 @@ model ServerDeployment {
   serverRunErrors ServerRunError[]
   serverSessions  ServerSession[]
   serverRuns      ServerRun[]
+  sessions        Session[]
 }

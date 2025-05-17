@@ -25,8 +25,10 @@ import {
   ServerListing,
   ServerListingCategory,
   ServerListingCollection,
+  ServerSession,
   ServerVariant,
   ServerVersion,
+  Session,
   User
 } from '@metorial/db';
 import { PresentableType } from '@metorial/presenter';
@@ -195,3 +197,16 @@ export let usageType = PresentableType.create<{
     }[];
   }[];
 }>()('usage');
+
+export let sessionType = PresentableType.create<{
+  session: Session & {
+    serverDeployments: (ServerDeployment & {
+      server: Server;
+    })[];
+    serverSessions: (ServerSession & {
+      serverDeployment: ServerDeployment & {
+        serverVariant: ServerVariant;
+      };
+    })[];
+  };
+}>()('session');

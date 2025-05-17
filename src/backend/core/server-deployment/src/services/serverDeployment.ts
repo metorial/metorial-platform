@@ -111,6 +111,27 @@ class ServerDeploymentServiceImpl {
     return serverDeployment;
   }
 
+  async getManyServerDeployments(d: { instance: Instance; serverDeploymentIds?: string[] }) {
+    let uniqueIds = d.serverDeploymentIds
+      ? Array.from(new Set(d.serverDeploymentIds))
+      : undefined;
+
+    let deployments = await db.serverDeployment.findMany({
+      where: {
+        id: uniqueIds ? { in: uniqueIds } : undefined,
+        instanceOid: d.instance.oid
+      }
+    });
+
+    if (uniqueIds && uniqueIds.length != deployments.length) {
+      let notFoundIds = uniqueIds.filter(id => !deployments.find(d => d.id == id));
+
+      throw new ServiceError(notFoundError('server_deployment', notFoundIds[0]));
+    }
+
+    return deployments;
+  }
+
   async createServerDeployment(d: {
     organization: Organization;
     performedBy: OrganizationActor;
@@ -332,8 +353,6 @@ class ServerDeploymentServiceImpl {
     instance: Instance;
     status?: ServerDeploymentStatus[];
   }) {
-    console.log('listServerDeployments', d);
-
     let servers = d.serverIds?.length
       ? await db.server.findMany({
           where: { id: { in: d.serverIds } }

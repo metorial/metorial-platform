@@ -20,6 +20,7 @@ import { v1ServerImplementationPresenter } from './implementation/serverImplemen
 import { v1ServerListingPresenter } from './implementation/serverListing';
 import { v1ServerVariantPresenter } from './implementation/serverVariant';
 import { v1ServerVersionPresenter } from './implementation/serverVersion';
+import { v1SessionPresenter } from './implementation/session';
 import { v1UsagePresenter } from './implementation/usage';
 import { v1UserPresenter } from './implementation/user';
 import {
@@ -44,6 +45,7 @@ import {
   serverType,
   serverVariantType,
   serverVersionType,
+  sessionType,
   usageType,
   userType
 } from './types';
@@ -161,4 +163,9 @@ export let serverDeploymentConfigPresenter = declarePresenter(serverDeploymentCo
 export let usagePresenter = declarePresenter(usageType, {
   mt_2025_01_01_pulsar: v1UsagePresenter,
   mt_2025_01_01_dashboard: v1UsagePresenter
+});
+
+export let sessionPresenter = declarePresenter(sessionType, {
+  mt_2025_01_01_pulsar: v1SessionPresenter,
+  mt_2025_01_01_dashboard: v1SessionPresenter
 });

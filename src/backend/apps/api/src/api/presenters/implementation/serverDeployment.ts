@@ -17,6 +17,8 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
     metadata: serverDeployment.metadata,
 
     server: {
+      object: 'server#preview',
+
       id: serverDeployment.server.id,
       name: serverDeployment.server.name,
       description: serverDeployment.server.description,
@@ -28,21 +30,11 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
     },
 
     config: await v1ServerDeploymentConfigPresenter
-      .present(
-        {
-          config: serverDeployment.config
-        },
-        opts
-      )
+      .present({ config: serverDeployment.config }, opts)
       .run(),
 
     server_implementation: await v1ServerImplementationPresenter
-      .present(
-        {
-          serverImplementation: serverDeployment.serverImplementation
-        },
-        opts
-      )
+      .present({ serverImplementation: serverDeployment.serverImplementation }, opts)
       .run(),
 
     created_at: serverDeployment.createdAt,
@@ -62,6 +54,8 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
       secret_id: v.string(),
 
       server: v.object({
+        object: v.literal('server#preview'),
+
         id: v.string(),
         name: v.string(),
         description: v.nullable(v.string()),

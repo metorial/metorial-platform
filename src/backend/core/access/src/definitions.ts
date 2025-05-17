@@ -34,7 +34,10 @@ let scopeRaw = [
   'instance.server.implementation:write' as const,
 
   'instance.server.deployment:read' as const,
-  'instance.server.deployment:write' as const
+  'instance.server.deployment:write' as const,
+
+  'instance.session:read' as const,
+  'instance.session:write' as const
 
   // 'organization.machine_access.api_key.organization:read' as const,
   // 'organization.machine_access.api_key.organization:write' as const,
@@ -73,7 +76,10 @@ export let instanceSecretTokenScopes: Scope[] = [
   'instance.server.implementation:write' as const,
 
   'instance.server.deployment:read' as const,
-  'instance.server.deployment:write' as const
+  'instance.server.deployment:write' as const,
+
+  'instance.session:read' as const,
+  'instance.session:write' as const
 ];
 
 export let instancePublishableTokenScopes: Scope[] = ['instance.server_listing:read' as const];
