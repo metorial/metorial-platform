@@ -1,6 +1,5 @@
 import type {
   ServerDeployment,
-  ServerInstance,
   ServerSession,
   ServerVariant,
   SessionMessage,
@@ -21,9 +20,7 @@ export class BrokerClientManager {
   constructor(
     private session: ServerSession & {
       serverDeployment: ServerDeployment & {
-        serverInstance: ServerInstance & {
-          serverVariant: ServerVariant;
-        };
+        serverVariant: ServerVariant;
       };
     },
     opts: { subscribe: boolean }

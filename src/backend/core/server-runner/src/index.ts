@@ -2,6 +2,7 @@ import { combineQueueProcessors } from '@metorial/queue';
 import { runnerQueueProcessors } from './broker/jobs';
 import { checkRunnersProcessors } from './cron/check';
 
+export * from './broker/client';
 export * from './gateway';
 export * from './services';
 

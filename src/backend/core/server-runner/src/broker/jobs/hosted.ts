@@ -1,59 +1,20 @@
-import {
-  ServerDeployment,
-  ServerInstance,
-  ServerVariant,
-  type ServerSession
-} from '@metorial/db';
+import { type ServerSession } from '@metorial/db';
 import { debug } from '@metorial/debug';
-import { createQueue } from '@metorial/queue';
+import { getSentry } from '@metorial/sentry';
 import { getRunnerQueue } from '../../gateway/runnerQueue';
+import { serverRunnerService } from '../../services';
 
-let brokerRunnerHostedQueue = createQueue<{
-  session: ServerSession;
-}>({
-  name: 'srr/run/host',
-  workerOpts: {
-    concurrency: 5000
-  },
-  queueOpts: {
-    defaultJobOptions: {
-      attempts: 3
-    }
-  }
-});
+let Sentry = getSentry();
 
-export let ensureHostedRunner = (
-  session: ServerSession & {
-    serverDeployment: ServerDeployment & {
-      serverInstance: ServerInstance & {
-        serverVariant: ServerVariant;
-      };
-    };
-  }
-) => {
-  brokerRunnerHostedQueue
-    .add(
-      {
-        session: {
-          ...session,
-
-          // @ts-ignore
-          serverDeployment: undefined
-        }
-      },
-      { id: session.id }
-    )
-    .catch(err => {
-      debug.error('Failed to add broker run job', err);
+export let ensureHostedRunner = (session: ServerSession) => {
+  (async () => {
+    let runner = await serverRunnerService.findServerRunner({
+      session
     });
+
+    await getRunnerQueue(runner).startSessionRun(session);
+  })().catch(err => {
+    debug.error('Failed to ensure hosted runner', err);
+    Sentry.captureException(err);
+  });
 };
-
-export let brokerRunnerHostedQueueProcessor = brokerRunnerHostedQueue.process(async data => {
-  // TODO: find runner for session
-
-  getRunnerQueue(runner)
-    .startSessionRun(data.session)
-    .catch(err => {
-      debug.error('Failed to add broker run job', err);
-    });
-});

@@ -1,8 +1,20 @@
-import { ensureServerRunner } from '@metorial/db';
+import { ensureServerRunner, ServerSession } from '@metorial/db';
 import { generateCustomId } from '@metorial/id';
 import { Service } from '@metorial/service';
+import { serverRunnerConnectionService } from './serverRunnerConnection';
 
 class ServerRunnerImpl {
+  #lastRunnerIndex = 0;
+
+  constructor() {
+    setInterval(
+      () => {
+        this.#lastRunnerIndex = 0;
+      },
+      1000 * 60 * 60
+    );
+  }
+
   async ensureHostedServerRunner(d: {
     identifier: string;
     name: string;
@@ -20,6 +32,12 @@ class ServerRunnerImpl {
       }),
       { ignoreForUpdate: ['connectionKey'] }
     );
+  }
+
+  async findServerRunner(d: { session: ServerSession }) {
+    let runners = await serverRunnerConnectionService.getOnlineServerRunners();
+
+    return runners[this.#lastRunnerIndex++ % runners.length];
   }
 }
 

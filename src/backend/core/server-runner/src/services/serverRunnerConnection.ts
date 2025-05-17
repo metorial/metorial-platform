@@ -1,6 +1,24 @@
+import { createCachedFunction, createLocallyCachedFunction } from '@metorial/cache';
 import { db, ServerRunner, ServerRunnerAttribute } from '@metorial/db';
 import { badRequestError, ServiceError, unauthorizedError } from '@metorial/error';
 import { Service } from '@metorial/service';
+
+let runnersCachedRemote = createCachedFunction({
+  name: 'srn/runners',
+  ttlSeconds: 60 * 5,
+  getHash: (i: void) => '',
+  provider: async () =>
+    db.serverRunner.findMany({
+      where: { status: 'online' },
+      orderBy: { id: 'asc' }
+    })
+});
+
+let runnersCachedLocal = createLocallyCachedFunction({
+  getHash: (i: void) => '',
+  ttlSeconds: 5,
+  provider: async () => runnersCachedRemote()
+});
 
 class ServerRunnerConnectionImpl {
   async registerServerRunner(d: { connectionKey: string }) {
@@ -31,6 +49,8 @@ class ServerRunnerConnectionImpl {
       }
     });
 
+    await runnersCachedRemote.clear();
+
     return runner;
   }
 
@@ -54,6 +74,8 @@ class ServerRunnerConnectionImpl {
         runnerVersion: d.input.version
       }
     });
+
+    await runnersCachedRemote.clear();
   }
 
   async unregisterServerRunner(d: { runner: ServerRunner }) {
@@ -64,6 +86,8 @@ class ServerRunnerConnectionImpl {
         status: 'offline'
       }
     });
+
+    await runnersCachedRemote.clear();
   }
 
   async handleServerRunnerPing(d: { runner: ServerRunner }) {
@@ -71,6 +95,10 @@ class ServerRunnerConnectionImpl {
       where: { oid: d.runner.oid },
       data: { lastSeenAt: new Date() }
     });
+  }
+
+  async getOnlineServerRunners() {
+    return await runnersCachedLocal();
   }
 }
 
