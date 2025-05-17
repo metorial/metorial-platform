@@ -19,7 +19,7 @@ export let responseSuccessSchema = v.object({
   metorialInterconnect: v.literal('1.0'),
   type: v.literal('response'),
   id: v.string(),
-  result: v.record(v.any())
+  result: v.nullable(v.optional(v.any()))
 });
 
 export let responseErrorSchema = v.object({

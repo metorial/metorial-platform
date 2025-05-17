@@ -31,6 +31,7 @@ export interface MetorialConfig {
     getInviteUrl: (invite: { key: string; email?: string | null }) => string;
     apiUrl: string;
     appUrl: string;
+    mcpUrl: string;
   };
 
   s3?: {

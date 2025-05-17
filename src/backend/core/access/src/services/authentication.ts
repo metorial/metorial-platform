@@ -9,6 +9,7 @@ import {
   User,
   UserSession
 } from '@metorial/db';
+import { ServiceError, unauthorizedError } from '@metorial/error';
 import { machineAccessAuthService } from '@metorial/module-machine-access';
 import { userAuthService } from '@metorial/module-user';
 import { Service } from '@metorial/service';
@@ -162,7 +163,11 @@ class AuthenticationService {
       };
     }
 
-    throw new Error('WTF - Invalid machine access token'); // Very strange case, but we need to handle it
+    throw new ServiceError(
+      unauthorizedError({
+        message: 'This API key is not valid for this action'
+      })
+    );
   }
 }
 
