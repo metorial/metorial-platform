@@ -24,13 +24,22 @@
   ],
   "dependencies": {
     "@metorial/debug": "^1.0.0",
+    "@metorial/delay": "1.0.0",
+    "@metorial/id": "1.0.0",
+    "@metorial/interconnect": "1.0.0",
+    "@metorial/interconnect-websocket-client": "1.0.0",
+    "@metorial/mcp-utils": "1.0.0",
+    "@metorial/programmable-promise": "1.0.0",
+    "@metorial/validation": "1.0.0",
+    "@metorial/websocket": "1.0.0",
     "dockerode": "^4.0.6",
-    "sade": "^1.8.1"
+    "mitt": "^3.0.1",
+    "sade": "^1.8.1",
+    "zod": "^3.24.4"
   },
   "devDependencies": {
     "@types/dockerode": "^3.3.38",
     "tsup": "^7.1.0",
-    "typescript": "^5.1.6",
-    "vitest": "^0.34.6"
+    "typescript": "^5.1.6"
   }
 }

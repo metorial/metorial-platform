@@ -2,14 +2,14 @@ process.env.TZ = 'UTC';
 
 // import './instrument';
 
+import { authApi } from '@metorial/api-auth';
+import { apiServer } from '@metorial/api-core';
+import { fileApi } from '@metorial/api-files';
+import { startMcpServer } from '@metorial/api-mcp';
 import { apiMux } from '@metorial/api-mux';
+import { startRunnerGateway } from '@metorial/api-runner-gateway';
+import { authenticate } from '@metorial/auth';
 import { initLogger } from '@metorial/logging';
-import { apiServer } from './apiServer';
-import { authApi } from './auth';
-import { fileApi } from './fileUpload';
-import { startMcpServer } from './mcp';
-import { authenticate } from './rest';
-import { startRunnerGateway } from './runners';
 
 let apiPort = parseInt(process.env.PORT || '3310');
 let mcpPort = parseInt(process.env.PORT || '3311');

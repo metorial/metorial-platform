@@ -1,4 +1,4 @@
-import { ServersListingsListQuery } from '@metorial/core/src/mt_2025_01_01_dashboard';
+import type { ServersListingsListQuery } from '@metorial/core/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useServerListings } from '@metorial/state';

@@ -1,16 +1,16 @@
 {
-  "name": "@metorial/frontend-config",
+  "name": "@metorial/api-runner-gateway",
   "version": "1.0.0",
   "author": "Tobias Herber",
   "license": "AGPL",
   "main": "src/index.ts",
   "scripts": {
-    "test": "vitest run --passWithNoTests",
-    "lint": "prettier src/**/*.ts --check"
+    "dev": "bun --watch ./src/server.ts"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@metorial/module-server-runner": "^1.0.0"
+  },
   "devDependencies": {
-    "@metorial/join-paths": "^1.0.0",
     "@metorial/tsconfig": "^1.0.0",
     "typescript": "5.8.2",
     "vitest": "^3.1.2"
