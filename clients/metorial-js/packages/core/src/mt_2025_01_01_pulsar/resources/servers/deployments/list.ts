@@ -10,6 +10,7 @@ export type ServersDeploymentsListOutput = {
     metadata: Record<string, any>;
     secretId: string;
     server: {
+      object: 'server#preview';
       id: string;
       name: string;
       description: string | null;
@@ -73,6 +74,7 @@ export let mapServersDeploymentsListOutput =
           server: mtMap.objectField(
             'server',
             mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
               description: mtMap.objectField(
@@ -200,7 +202,7 @@ export type ServersDeploymentsListQuery = {
     | undefined;
   serverIds?: string | string[] | undefined;
   serverVariantIds?: string | string[] | undefined;
-  serverServerImplementationIds?: string | string[] | undefined;
+  serverImplementationIds?: string | string[] | undefined;
 };
 
 export let mapServersDeploymentsListQuery = mtMap.union([
@@ -236,8 +238,8 @@ export let mapServersDeploymentsListQuery = mtMap.union([
           )
         ])
       ),
-      serverServerImplementationIds: mtMap.objectField(
-        'server_server_implementation_ids',
+      serverImplementationIds: mtMap.objectField(
+        'server_implementation_ids',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

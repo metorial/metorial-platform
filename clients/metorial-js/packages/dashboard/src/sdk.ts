@@ -4,11 +4,18 @@ import {
   MetorialDashboardInstanceFilesEndpoint,
   MetorialDashboardInstanceLinksEndpoint,
   MetorialDashboardInstanceSecretsEndpoint,
+  MetorialDashboardInstanceServerRunErrorGroupsEndpoint,
+  MetorialDashboardInstanceServerRunErrorsEndpoint,
+  MetorialDashboardInstanceServerRunsEndpoint,
   MetorialDashboardInstanceServersDeploymentsEndpoint,
   MetorialDashboardInstanceServersEndpoint,
   MetorialDashboardInstanceServersImplementationsEndpoint,
   MetorialDashboardInstanceServersVariantsEndpoint,
   MetorialDashboardInstanceServersVersionsEndpoint,
+  MetorialDashboardInstanceSessionsEndpoint,
+  MetorialDashboardInstanceSessionsEventsEndpoint,
+  MetorialDashboardInstanceSessionsMessagesEndpoint,
+  MetorialDashboardInstanceSessionsServerSessionsEndpoint,
   MetorialDashboardOrganizationsEndpoint,
   MetorialDashboardOrganizationsInstancesEndpoint,
   MetorialDashboardOrganizationsInvitesEndpoint,
@@ -69,7 +76,19 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     versions: new MetorialDashboardInstanceServersVersionsEndpoint(manager),
 
     deployments: new MetorialDashboardInstanceServersDeploymentsEndpoint(manager),
-    implementations: new MetorialDashboardInstanceServersImplementationsEndpoint(manager)
+    implementations: new MetorialDashboardInstanceServersImplementationsEndpoint(manager),
+
+    errors: Object.assign(new MetorialDashboardInstanceServerRunErrorsEndpoint(manager), {
+      groups: new MetorialDashboardInstanceServerRunErrorGroupsEndpoint(manager)
+    }),
+
+    runs: new MetorialDashboardInstanceServerRunsEndpoint(manager)
+  }),
+
+  sessions: Object.assign(new MetorialDashboardInstanceSessionsEndpoint(manager), {
+    events: new MetorialDashboardInstanceSessionsEventsEndpoint(manager),
+    messages: new MetorialDashboardInstanceSessionsMessagesEndpoint(manager),
+    serverSessions: new MetorialDashboardInstanceSessionsServerSessionsEndpoint(manager)
   }),
 
   usage: new MetorialDashboardUsageEndpoint(manager)
