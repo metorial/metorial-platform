@@ -56,8 +56,10 @@ export class BrokerClientManager {
   }
 
   async sendMessage(message: JSONRPCMessage | JSONRPCMessage[]) {
-    await this.ensureRunner();
+    let messages: JSONRPCMessage[] = Array.isArray(message) ? message : [message];
+    if (!messages.length) return;
 
+    await this.ensureRunner();
     return this.#bus.then(bus => bus.sendMessage(message));
   }
 
@@ -111,8 +113,6 @@ export class BrokerClientManager {
       let now = Date.now();
       if (now - hasEnsuredRunnerAt < ENSURE_RUNNER_TIMEOUT) return;
     }
-
-    // TODO:
 
     ensureRunnerForSession(this.session);
     ensuredRunnerCache.set(this.session.id, Date.now());
