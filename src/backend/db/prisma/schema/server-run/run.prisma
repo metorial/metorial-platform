@@ -25,7 +25,7 @@ model ServerRun {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])
 
-  serverSessionOid BigInt        @unique
+  serverSessionOid BigInt
   serverSession    ServerSession @relation(fields: [serverSessionOid], references: [oid])
 
   serverRunnerOid BigInt?

@@ -83,7 +83,7 @@ export class SessionControlMessageBackend {
     try {
       let redis = await redisPromise;
 
-      this.#subRedis = redis.duplicate() as Redis.RedisClientType;
+      this.#subRedis = redis.duplicate() as any as Redis.RedisClientType;
       await this.#subRedis.connect();
 
       await this.#subRedis.subscribe(

@@ -18,7 +18,7 @@ import { SessionManager } from './sessionManager';
 let PING_INTERVAL = 1000 * 30;
 let PING_TIMEOUT = 1000 * 90;
 
-let connections = new Set<SessionConnection>();
+let connections = new Map<string, SessionConnection>();
 
 export class SessionConnection {
   #controlMessageBackend: SessionControlMessageBackend;
@@ -43,6 +43,8 @@ export class SessionConnection {
     this.#manager = new SessionManager(session, {
       mode: opts.mode
     });
+
+    connections.set(session.id, this);
   }
 
   #closing = false;
@@ -57,7 +59,7 @@ export class SessionConnection {
     await this.#controlMessageBackend.close();
     await this.#manager.close();
 
-    connections.delete(this);
+    connections.delete(this.session.id);
   }
 
   async stop() {
