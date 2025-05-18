@@ -37,7 +37,7 @@ let disconnectSessionQueue = createQueue<{ sessionId: string; lastClientPingAt: 
 );
 
 let disconnectSessionQueueProcessor = disconnectSessionQueue.process(async data => {
-  await db.session.updateMany({
+  let session = await db.session.update({
     where: {
       id: data.sessionId,
       connectionStatus: 'connected',
@@ -45,6 +45,16 @@ let disconnectSessionQueueProcessor = disconnectSessionQueue.process(async data 
     },
     data: {
       connectionStatus: 'disconnected'
+    }
+  });
+
+  await db.serverSession.updateMany({
+    where: {
+      sessionOid: session.oid,
+      status: { in: ['running'] }
+    },
+    data: {
+      status: 'stopped'
     }
   });
 });

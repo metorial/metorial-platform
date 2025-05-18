@@ -112,13 +112,21 @@ export let startConnection = async (d: {
           dockerOpts: d.dockerOpts
         });
 
-        await session.waitForStart;
-
-        session.onClose(() => {
+        session.onClose(d => {
           ctx.notify('run/closed', {
-            serverRunId: data.serverRunId
+            serverRunId: data.serverRunId,
+            result: d
           });
         });
+
+        session.onLogs(d => {
+          ctx.notify('run/logs', {
+            serverRunId: data.serverRunId,
+            lines: d.lines
+          });
+        });
+
+        await session.waitForStart;
 
         let token = await SessionTokens.sign({
           sessionId: info.id
@@ -128,21 +136,6 @@ export let startConnection = async (d: {
           token,
           url: url.toString()
         };
-
-        // session.onOutgoingMessage(msg => {
-        //   ctx.notify('run/mcp/message', {
-        //     serverRunId: data.serverRunId,
-        //     message: msg
-        //   });
-        // });
-
-        // session.onDebugMessage(output => {
-        //   ctx.notify('run/mcp/debug', {
-        //     serverRunId: data.serverRunId,
-        //     type: output.type,
-        //     payload: output.payload
-        //   });
-        // });
       }
     )
     .request(
@@ -158,34 +151,5 @@ export let startConnection = async (d: {
         });
       }
     )
-    // .notification(
-    //   'run/close',
-    //   v.object({
-    //     serverRunId: v.string()
-    //   }),
-    //   async data => {
-    //     debug.log('Closing session', data);
-
-    //     let session = McpSession.get(data.serverRunId);
-    //     if (session) await session.close();
-    //   }
-    // )
-    // .notification(
-    //   'run/mcp/message',
-    //   v.object({
-    //     serverRunId: v.string(),
-    //     message: v.any()
-    //   }),
-    //   async data => {
-    //     debug.log('Incoming message', data);
-
-    //     let session = McpSession.get(data.serverRunId);
-    //     if (session) {
-    //       await session.incomingMessage(
-    //         Array.isArray(data.message) ? data.message : [data.message]
-    //       );
-    //     }
-    //   }
-    // )
     .connect(transceiver);
 };

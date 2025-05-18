@@ -1,4 +1,11 @@
-import { db, ServerRun, ServerSession, SessionMessageType } from '@metorial/db';
+import {
+  db,
+  ID,
+  ServerRun,
+  ServerSession,
+  ServerVersion,
+  SessionMessageType
+} from '@metorial/db';
 import { debug } from '@metorial/debug';
 import { generatePlainId } from '@metorial/id';
 import {
@@ -34,7 +41,8 @@ export class BrokerRunManager {
   constructor(
     private implementation: BrokerRunnerImplementation,
     private serverRun: ServerRun,
-    private session: ServerSession
+    private session: ServerSession,
+    private serverVersion: ServerVersion
   ) {
     managers.add(this);
 
@@ -60,18 +68,27 @@ export class BrokerRunManager {
       this.close();
     });
 
-    db.serverRun
-      .updateMany({
+    (async () => {
+      await db.serverRun.updateMany({
         where: { oid: this.serverRun.oid },
         data: {
           status: 'active',
           startedAt: new Date()
         }
-      })
-      .catch(e => {
-        Sentry.captureException(e);
-        console.error('Error updating server run', e);
       });
+
+      await db.sessionEvent.createMany({
+        data: {
+          id: await ID.generateId('sessionEvent'),
+          type: 'server_run_started',
+          sessionOid: this.session.sessionOid,
+          serverRunOid: this.serverRun.oid
+        }
+      });
+    })().catch(e => {
+      Sentry.captureException(e);
+      console.error('Error updating server run', e);
+    });
   }
 
   async close() {
@@ -287,32 +304,54 @@ export class BrokerRunManager {
   }
 
   private async initServerVersionAttributesIfNeeded(initResult: InitializeResult) {
-    // if (
-    //   this.serverVersion.tools == null &&
-    //   this.serverVersion.prompts == null &&
-    //   this.serverVersion.resourceTemplates == null &&
-    //   this.serverVersion.serverCapabilities == null
-    // ) {
-    //   (async () => {
-    //     let con = await this.#connection;
-    //     await db.serverVersion.updateMany({
-    //       where: {
-    //         id: this.serverVersion.id
-    //       },
-    //       data: {
-    //         serverCapabilities: initResult.capabilities,
-    //         serverInfo: initResult.serverInfo,
-    //         tools: initResult.capabilities.tools ? await con.listTools() : [],
-    //         prompts: initResult.capabilities.prompts ? await con.listPrompts() : [],
-    //         resourceTemplates: initResult.capabilities.resources
-    //           ? await con.listResourceTemplates()
-    //           : []
-    //       }
-    //     });
-    //   })().catch(e => {
-    //     console.error('Error initializing server', e);
-    //   });
-    // }
+    if (
+      this.serverVersion.tools == null &&
+      this.serverVersion.prompts == null &&
+      this.serverVersion.resourceTemplates == null &&
+      this.serverVersion.serverCapabilities == null
+    ) {
+      (async () => {
+        let tools = initResult.capabilities.tools ? await this.implementation.listTools() : [];
+        let prompts = initResult.capabilities.prompts
+          ? await this.implementation.listPrompts()
+          : [];
+        let resourceTemplates = initResult.capabilities.resources
+          ? await this.implementation.listResourceTemplates()
+          : [];
+
+        await db.serverVersion.updateMany({
+          where: {
+            id: this.serverVersion.id
+          },
+          data: {
+            serverCapabilities: initResult.capabilities,
+            serverInfo: initResult.serverInfo,
+
+            tools,
+            prompts,
+            resourceTemplates
+          }
+        });
+
+        await db.serverVariant.updateMany({
+          where: {
+            oid: this.serverVersion.serverVariantOid,
+            currentVersionOid: this.serverVersion.oid
+          },
+          data: {
+            serverCapabilities: initResult.capabilities,
+            serverInfo: initResult.serverInfo,
+
+            tools,
+            prompts,
+            resourceTemplates
+          }
+        });
+      })().catch(e => {
+        Sentry.captureException(e);
+        console.error('Error initializing server', e);
+      });
+    }
   }
 }
 

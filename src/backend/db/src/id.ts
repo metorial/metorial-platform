@@ -28,7 +28,7 @@ export let ID = createIdGenerator({
   secretType: idType.sorted('sty'),
   secret: idType.sorted('sec'),
   secretStore: idType.sorted('sst'),
-  secretEvent: idType.sorted('sev'),
+  secretEvent: idType.sorted('sce'),
 
   importedServerVendor: idType.sorted('iven'),
   importedServer: idType.sorted('isrv'),
@@ -52,9 +52,12 @@ export let ID = createIdGenerator({
   serverRunner: idType.sorted('sru'),
 
   sessionMessage: idType.sorted('msg'),
+  sessionEvent: idType.sorted('sev'),
   session: idType.sorted('ses'),
   serverSession: idType.sorted('srs'),
   serverRun: idType.sorted('srr'),
+  serverRunErrorGroup: idType.sorted('sreg'),
+  serverRunError: idType.sorted('sre'),
 
   instanceServer: idType.sorted('isv'),
 

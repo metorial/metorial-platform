@@ -14,6 +14,10 @@ export interface McpSessionOpts {
   containerOpts: DockerRunOptions;
 }
 
+export interface LogsEventPayload {
+  lines: { type: 'stdout' | 'stderr'; line: string }[];
+}
+
 let dockerManager: DockerManager | undefined;
 
 let PING_INTERVAL = 1000 * 15;
@@ -24,6 +28,7 @@ export class McpSession {
   #emitter = new Emitter<{
     message: JSONRPCMessage;
     close: CloseEventPayload;
+    logs: LogsEventPayload;
   }>();
 
   #lastClientMessageAt: number = 0;
@@ -105,12 +110,18 @@ export class McpSession {
     return this.#emitter.on('close', handler);
   }
 
+  onLogs(handler: (data: LogsEventPayload) => void) {
+    return this.#emitter.on('logs', handler);
+  }
+
   #isDisposed = false;
   private dispose() {
     if (this.#isDisposed) return;
     this.#isDisposed = true;
 
     clearInterval(this.#pingInterval);
+
+    this.flushPendingLogs();
 
     this.#emitter.clear();
     this.stop();
@@ -186,11 +197,29 @@ export class McpSession {
     this.sendToClient(message);
   }
 
+  #pendingBuffers: { type: 'stdout' | 'stderr'; line: string }[] = [];
+  #sendTimeout: NodeJS.Timer | undefined;
+  private flushPendingLogs() {
+    let pending = this.#pendingBuffers;
+    this.#pendingBuffers = [];
+    this.#sendTimeout = undefined;
+
+    this.#emitter.emit('logs', {
+      lines: pending
+    });
+  }
+
+  private sendLogs(type: 'stdout' | 'stderr', lines: string[]) {
+    this.#pendingBuffers.push(...lines.map(line => ({ type, line })));
+
+    if (typeof this.#sendTimeout == 'number') return;
+
+    this.#sendTimeout = setTimeout(() => this.flushPendingLogs(), 1000);
+  }
+
   private async handleOutput(type: 'stdout' | 'stderr', lines: string[]) {
     for (let line of lines) {
       if (!line) continue;
-
-      // debug.log(`[${type}] ${line}`);
 
       let json = this.safeParseJson(line);
 
@@ -198,7 +227,7 @@ export class McpSession {
         this.handleOutputMessage(json);
       } else {
         console.log(`[${type}] ${line}`);
-        // this.#onDebug?.([line]);
+        this.sendLogs(type, [line]);
       }
     }
   }

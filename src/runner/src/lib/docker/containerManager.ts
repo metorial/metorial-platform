@@ -4,9 +4,14 @@ import Dockerode from 'dockerode';
 import { DockerManager } from './dockerManager';
 import { DockerStreamManager } from './streamManager';
 
-export interface CloseEventPayload {
-  reason: 'container_exited' | 'container_failed_to_start' | 'container_stopped';
-}
+export type CloseEventPayload =
+  | {
+      reason: 'server_exited_success' | 'server_exited_error' | 'server_stopped';
+      exitCode: number;
+    }
+  | {
+      reason: 'server_failed_to_start';
+    };
 
 export class DockerContainerManager {
   #stream: DockerStreamManager;
@@ -27,9 +32,16 @@ export class DockerContainerManager {
   ) {
     this.#stream = new DockerStreamManager(proc.stdin, proc.stdout, proc.stderr);
 
+    let startedAt = Date.now();
+
     proc.exited.then(() => {
       this.#emitter.emit('close', {
-        reason: this.#stoppedContainer ? 'container_stopped' : 'container_exited'
+        reason: this.#stoppedContainer
+          ? 'server_stopped'
+          : Date.now() - startedAt < 2500 || proc.exitCode != 0
+            ? 'server_exited_error'
+            : 'server_exited_success',
+        exitCode: proc.exitCode ?? 0
       });
     });
 
@@ -51,7 +63,7 @@ export class DockerContainerManager {
       }
     }
 
-    this.#emitter.emit('close', { reason: 'container_failed_to_start' });
+    this.#emitter.emit('close', { reason: 'server_failed_to_start' });
   }
 
   private async awaitContainer() {

@@ -1,3 +1,4 @@
+import { ServerDeployment, ServerRun, ServerSession } from '@metorial/db';
 import { debug } from '@metorial/debug';
 import { ServiceError, unauthorizedError } from '@metorial/error';
 import { createHono } from '@metorial/hono';
@@ -11,11 +12,24 @@ import { RunnerBrokerManager } from '../broker/implementations/hosted';
 import { BrokerRunManager } from '../broker/manager';
 import { RunJobProcessorUtils } from '../broker/runJobProcessorUtils';
 import { serverRunnerConnectionService } from '../services';
+import { serverRunnerRunService } from '../services/serverRun';
 import { createRunnerQueueProcessor } from './runnerQueue';
 
 let MAX_PING_INTERVAL = 10 * 1000;
 let SEND_PING_INTERVAL = 7 * 1000;
 let PING_SAVE_INTERVAL = 60 * 1000;
+
+let closeReported = new Map<string, number>();
+
+setInterval(() => {
+  // Remove old close reports older than 5 minutes
+  let now = Date.now();
+  for (let [id, time] of closeReported) {
+    if (now - time > 5 * 60 * 1000) {
+      closeReported.delete(id);
+    }
+  }
+}, 60 * 1000);
 
 export let createServerRunnerGateway = (
   upgradeWebSocket: UpgradeWebSocket<ServerWebSocket, any, WSEvents<ServerWebSocket>>
@@ -43,6 +57,14 @@ export let createServerRunnerGateway = (
       let runnerManager: RunnerBrokerManager | undefined = undefined;
 
       let runnerClosedPromise = new ProgrammablePromise<void>();
+
+      let serverRunMap = new Map<
+        string,
+        {
+          serverRun: ServerRun;
+          session: ServerSession & { serverDeployment: ServerDeployment };
+        }
+      >();
 
       let endpoint = new MICEndpoint()
         .request(
@@ -73,6 +95,8 @@ export let createServerRunnerGateway = (
               });
               if (!info) return;
 
+              serverRunMap.set(info.serverRun.id, info);
+
               debug.log(`Runner ${runner.id} - starting session run ${serverSessionId}`);
 
               if (!info.variant.currentVersion || !info.variant.currentVersion.dockerImage) {
@@ -80,28 +104,51 @@ export let createServerRunnerGateway = (
                 return;
               }
 
-              let launchParams = await session!.request(
-                'get_launch_params',
-                {
-                  config: info.DANGEROUSLY_UNENCRYPTED_CONFIG,
-                  getLaunchParams:
-                    info.implementation.getLaunchParams ?? info.version.getLaunchParams
-                },
-                v.union([
-                  v.object({
-                    type: v.literal('error'),
-                    output: v.string()
-                  }),
-                  v.object({
-                    type: v.literal('success'),
-                    output: v.any()
-                  })
-                ])
-              );
+              try {
+                let launchParams = await session!.request(
+                  'get_launch_params',
+                  {
+                    config: info.DANGEROUSLY_UNENCRYPTED_CONFIG,
+                    getLaunchParams:
+                      info.implementation.getLaunchParams ?? info.version.getLaunchParams
+                  },
+                  v.union([
+                    v.object({
+                      type: v.literal('error'),
+                      output: v.string()
+                    }),
+                    v.object({
+                      type: v.literal('success'),
+                      output: v.any()
+                    })
+                  ])
+                );
 
-              if (launchParams.type == 'error') {
-                // TODO: run failed
-              } else {
+                if (launchParams.type == 'error') {
+                  await serverRunnerRunService.storeServerRunLogs({
+                    serverRun: info.serverRun,
+                    session: info.session,
+                    lines: [
+                      { type: 'stderr', line: 'Get launch params function error:' },
+                      ...launchParams.output.split('\n').map(line => ({
+                        type: 'stderr' as const,
+                        line
+                      }))
+                    ]
+                  });
+
+                  await serverRunnerRunService.closeServerRun({
+                    serverRun: info.serverRun,
+                    session: info.session,
+                    result: {
+                      reason: 'get_launch_params_error',
+                      exitCode: 1
+                    }
+                  });
+
+                  return;
+                }
+
                 let startRes = await session!.request(
                   'run/start',
                   {
@@ -128,13 +175,43 @@ export let createServerRunnerGateway = (
                   token: startRes.token
                 });
 
-                let manager = new BrokerRunManager(connection, info.serverRun, info.session);
+                let manager = new BrokerRunManager(
+                  connection,
+                  info.serverRun,
+                  info.session,
+                  info.version
+                );
 
                 debug.log(`Runner ${runner.id} - session run ${info.serverRun.id} started`);
 
                 await Promise.race([manager.waitForClose, runnerClosedPromise.promise]);
 
                 debug.log(`Runner ${runner.id} - session run ${info.serverRun.id} closed`);
+
+                setTimeout(() => {
+                  let reported = closeReported.get(info.serverRun.id);
+                  if (reported) return;
+
+                  // The runner may have stopped or something else happened
+                  // that caused the connection to close without a report
+                  serverRunnerRunService.closeServerRun({
+                    serverRun: info.serverRun,
+                    session: info.session,
+                    result: {
+                      reason: 'server_stopped',
+                      exitCode: 0
+                    }
+                  });
+                }, 10000);
+              } catch (e) {
+                await serverRunnerRunService.closeServerRun({
+                  serverRun: info.serverRun,
+                  session: info.session,
+                  result: {
+                    reason: 'server_failed_to_start',
+                    exitCode: 1
+                  }
+                });
               }
             }
           });
@@ -142,32 +219,51 @@ export let createServerRunnerGateway = (
         .notification(
           'run/closed',
           v.object({
-            serverRunId: v.string()
+            serverRunId: v.string(),
+            result: v.object({
+              reason: v.enumOf([
+                'server_exited_success',
+                'server_exited_error',
+                'server_stopped',
+                'server_failed_to_start'
+              ]),
+              exitCode: v.number()
+            })
           }),
           async data => {
+            closeReported.set(data.serverRunId, Date.now());
             runnerManager?.handleClosed(data.serverRunId);
+
+            let info = serverRunMap.get(data.serverRunId);
+            if (!info) return;
+
+            await serverRunnerRunService.closeServerRun({
+              serverRun: info.serverRun,
+              session: info.session,
+              result: data.result
+            });
           }
         )
         .notification(
-          'run/mcp/debug',
+          'run/logs',
           v.object({
             serverRunId: v.string(),
-            type: v.string(),
-            payload: v.any()
+            lines: v.array(
+              v.object({
+                type: v.enumOf(['stdout', 'stderr']),
+                line: v.string()
+              })
+            )
           }),
-          async () => {
-            // TODO: Store debug messages as run events
-          }
-        )
-        .notification(
-          'run/error',
-          v.object({
-            code: v.string(),
-            message: v.string(),
-            output: v.string()
-          }),
-          async () => {
-            // TODO: handle/store run errors
+          async data => {
+            let info = serverRunMap.get(data.serverRunId);
+            if (!info) return;
+
+            await serverRunnerRunService.storeServerRunLogs({
+              serverRun: info.serverRun,
+              session: info.session,
+              lines: data.lines
+            });
           }
         );
 

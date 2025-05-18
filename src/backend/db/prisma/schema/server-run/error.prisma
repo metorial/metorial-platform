@@ -4,6 +4,7 @@ model ServerRunErrorGroup {
 
   code    String
   message String
+  count   Int
 
   fingerprint String
 

@@ -3,6 +3,7 @@ import { Emitter } from '@metorial/emitter';
 import { generatePlainId } from '@metorial/id';
 import {
   jsonRpcPingRequest,
+  JSONRPCRequest,
   type JSONRPCError,
   type JSONRPCMessage,
   type JSONRPCResponse,
@@ -29,6 +30,8 @@ export abstract class BrokerRunnerImplementation {
   protected connectionId = generatePlainId(15);
 
   protected doSendPing = true;
+
+  #pendingOneOffMessages = new Set<string | number>();
 
   constructor(protected emitter: Emitter<BrokerRunnerImplementationEvents>) {
     connections.add(this);
@@ -67,7 +70,14 @@ export abstract class BrokerRunnerImplementation {
   }
 
   onMessage(callback: (message: JSONRPCMessage) => void) {
-    return this.emitter.on('message', callback);
+    return this.emitter.on('message', message => {
+      // Ignore one-off messages
+      if ('id' in message && this.#pendingOneOffMessages.has(message.id)) {
+        return;
+      }
+
+      callback(message);
+    });
   }
 
   onError(callback: (error: Error) => void) {
@@ -83,7 +93,7 @@ export abstract class BrokerRunnerImplementation {
   }
 
   async sendAndWaitForResponse(message: Omit<JSONRPCMessage, 'id' | 'jsonrpc'>) {
-    let msg: JSONRPCMessage = {
+    let sentMessage: JSONRPCRequest = {
       ...(message as any),
       jsonrpc: '2.0',
       id: `mt/oo/${generatePlainId(15)}`
@@ -91,7 +101,7 @@ export abstract class BrokerRunnerImplementation {
 
     return new Promise<JSONRPCResponse>(async (resolve, reject) => {
       let unsub = this.emitter.on('message', (msg: JSONRPCMessage) => {
-        if ('id' in msg && msg.id == (msg as JSONRPCResponse).id) {
+        if ('id' in msg && msg.id == sentMessage.id) {
           unsub();
 
           if ('error' in msg) {
@@ -99,10 +109,16 @@ export abstract class BrokerRunnerImplementation {
           } else {
             resolve(msg as JSONRPCResponse);
           }
+
+          // Short delay to avoid event emitter race conditions, i.e., if another
+          // message handler is executed after this one
+          setTimeout(() => {
+            this.#pendingOneOffMessages.delete(msg.id);
+          }, 100);
         }
       });
 
-      await this.sendMessage(msg);
+      await this.sendMessage(sentMessage);
     });
   }
 
@@ -121,7 +137,7 @@ export abstract class BrokerRunnerImplementation {
         tools.push(...res.result.tools);
         cursor = res.result.cursor;
 
-        if (cursor == null) break;
+        if (cursor == null || tools.length > 100) break;
       }
     } catch (error) {}
 
@@ -143,7 +159,7 @@ export abstract class BrokerRunnerImplementation {
         prompts.push(...res.result.prompts);
         cursor = res.result.cursor;
 
-        if (cursor == null) break;
+        if (cursor == null || prompts.length > 100) break;
       }
     } catch (error) {}
 
@@ -165,7 +181,7 @@ export abstract class BrokerRunnerImplementation {
         resourceTemplates.push(...res.result.resourceTemplates);
         cursor = res.result.cursor;
 
-        if (cursor == null) break;
+        if (cursor == null || resourceTemplates.length > 100) break;
       }
     } catch (error) {}
 

@@ -1,9 +1,12 @@
 import { db, ID, SessionMessageType, type ServerSession } from '@metorial/db';
 import { createLock } from '@metorial/lock';
 import { getMessageType, type JSONRPCMessage } from '@metorial/mcp-utils';
+import { getSentry } from '@metorial/sentry';
 import type { Participant } from '../../types';
 import { UnifiedID } from '../unifiedId';
 import { BrokerBusBackend } from './backend';
+
+let Sentry = getSentry();
 
 let lock = createLock({
   name: 'mtg/op/bus'
@@ -95,18 +98,31 @@ export class BrokerBus {
             }))
           });
 
-          await db.serverSession.updateMany({
-            where: { oid: this.session.oid },
-            data:
-              this.connector == 'server'
-                ? {
-                    lastServerActionAt: new Date(),
-                    totalProductiveServerMessageCount: { increment: messages.length }
-                  }
-                : {
-                    lastClientActionAt: new Date(),
-                    totalProductiveClientMessageCount: { increment: messages.length }
-                  }
+          (async () => {
+            await db.serverSession.updateMany({
+              where: { oid: this.session.oid },
+              data:
+                this.connector == 'server'
+                  ? {
+                      lastServerActionAt: new Date(),
+                      totalProductiveServerMessageCount: { increment: messages.length }
+                    }
+                  : {
+                      lastClientActionAt: new Date(),
+                      totalProductiveClientMessageCount: { increment: messages.length }
+                    }
+            });
+
+            await db.session.updateMany({
+              where: { oid: this.session.sessionOid },
+              data:
+                this.connector == 'server'
+                  ? { totalProductiveServerMessageCount: { increment: messages.length } }
+                  : { totalProductiveClientMessageCount: { increment: messages.length } }
+            });
+          })().catch(e => {
+            Sentry.captureException(e);
+            console.error('Error sending message', e);
           });
 
           this.backend.emit(`${this.connector}_mcp_message`);

@@ -1,6 +1,9 @@
 import { db, ID, ServerRun, ServerRunner, withTransaction } from '@metorial/db';
 import { secretService } from '@metorial/module-secret';
+import { getSentry } from '@metorial/sentry';
 import { serverRunnerService } from '../services';
+
+let Sentry = getSentry();
 
 export let RunJobProcessorUtils = {
   getServerSession: async (d: { serverSessionId: string }) => {
@@ -47,9 +50,23 @@ export let RunJobProcessorUtils = {
         }
       });
 
-      await db.serverSession.updateMany({
-        where: { id: session.id },
-        data: { status: 'running' }
+      (async () => {
+        await db.sessionEvent.createMany({
+          data: {
+            id: await ID.generateId('sessionEvent'),
+            type: 'server_run_created',
+            sessionOid: session.sessionOid,
+            serverRunOid: serverRun.oid
+          }
+        });
+
+        await db.serverSession.updateMany({
+          where: { id: session.id },
+          data: { status: 'running' }
+        });
+      })().catch(e => {
+        Sentry.captureException(e);
+        console.error('Failed to create server run', e);
       });
 
       let config = await secretService.DANGEROUSLY_readSecretValue({

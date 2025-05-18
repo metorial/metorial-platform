@@ -6,16 +6,6 @@ import { v1ServerSessionPresenter } from './serverSession';
 
 export let v1SessionPresenter = Presenter.create(sessionType)
   .presenter(async ({ session }, opts) => {
-    let totalProductiveClientMessageCount = session.serverSessions.reduce(
-      (acc, serverSession) => acc + serverSession.totalProductiveClientMessageCount,
-      0
-    );
-
-    let totalProductiveServerMessageCount = session.serverSessions.reduce(
-      (acc, serverSession) => acc + serverSession.totalProductiveServerMessageCount,
-      0
-    );
-
     return {
       object: 'session',
 
@@ -46,25 +36,12 @@ export let v1SessionPresenter = Presenter.create(sessionType)
         )
       ),
 
-      server_sessions: await Promise.all(
-        session.serverSessions.map(serverSession =>
-          v1ServerSessionPresenter
-            .present(
-              {
-                serverSession,
-                session
-              },
-              opts
-            )
-            .run()
-        )
-      ),
-
       usage: {
         total_productive_message_count:
-          totalProductiveClientMessageCount + totalProductiveServerMessageCount,
-        total_productive_client_message_count: totalProductiveClientMessageCount,
-        total_productive_server_message_count: totalProductiveServerMessageCount
+          session.totalProductiveClientMessageCount +
+          session.totalProductiveServerMessageCount,
+        total_productive_client_message_count: session.totalProductiveClientMessageCount,
+        total_productive_server_message_count: session.totalProductiveServerMessageCount
       },
 
       metadata: session.metadata,

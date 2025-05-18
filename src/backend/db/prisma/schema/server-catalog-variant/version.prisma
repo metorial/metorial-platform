@@ -21,6 +21,21 @@ model ServerVersion {
 
   remoteUrl String?
 
+  /// [ServerVersionTools]
+  tools Json @default("null")
+
+  /// [ServerVersionPrompts]
+  prompts Json @default("null")
+
+  /// [ServerVersionResourceTemplates]
+  resourceTemplates Json @default("null")
+
+  /// [ServerVersionServerInfo]
+  serverInfo Json @default("null")
+
+  /// [ServerVersionServerCapabilities]
+  serverCapabilities Json @default("null")
+
   currentConfigFor ServerVariant[] @relation("ServerVariantCurrentServerConfig")
 
   createdAt DateTime @default(now())
