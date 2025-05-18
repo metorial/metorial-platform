@@ -2,8 +2,6 @@ import React, { useMemo, useReducer } from 'react';
 import { useInterval } from 'react-use';
 import { shleemy } from 'shleemy';
 import { styled } from 'styled-components';
-import { Text } from '../text';
-import { TextSize, TextWeight } from '../text/constants';
 import { theme } from '../theme';
 import { Tooltip } from '../tooltip';
 
@@ -23,15 +21,7 @@ let Description = styled('p')`
   }
 `;
 
-export let RenderDate = ({
-  date,
-  size,
-  weight
-}: {
-  date: string | Date | undefined;
-  size?: TextSize;
-  weight?: TextWeight;
-}) => {
+export let RenderDate = ({ date }: { date: string | Date | undefined }) => {
   let [retriggerIndex, doRetrigger] = useReducer(s => s + 1, 0);
 
   let result = useMemo(() => {
@@ -83,21 +73,18 @@ export let RenderDate = ({
       }
     >
       <div style={{ width: 'fit-content', height: 'fit-content' }} onMouseEnter={doRetrigger}>
-        <Text
+        <span
           style={{
             cursor: 'pointer',
             borderBottom: `1px dashed ${theme.colors.gray500}`,
             margin: 0,
             padding: 0,
             whiteSpace: 'nowrap',
-            lineHeight: undefined,
-            ...(!size && { fontSize: 12 })
+            lineHeight: undefined
           }}
-          size={size}
-          weight={weight}
         >
           {result.pretty}
-        </Text>
+        </span>
       </div>
     </Tooltip>
   );

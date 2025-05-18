@@ -6,14 +6,16 @@ import { ServersPage } from './pages/(servers)/(list)/servers';
 import { ServersDeploymentsPage } from './pages/(servers)/(list)/servers-deployments';
 import { ServersImplementationsPage } from './pages/(servers)/(list)/servers-implementations';
 import { ServerOverviewPage } from './pages/(servers)/server';
-import { ServerDeploymentConfigPage } from './pages/(servers)/server-deployment';
 import { ServerDeploymentLayout } from './pages/(servers)/server-deployment/_layout';
+import { ServerDeploymentConfigPage } from './pages/(servers)/server-deployment/config';
 import { ServerDeploymentErrorsPage } from './pages/(servers)/server-deployment/errors';
+import { ServerDeploymentOverviewPage } from './pages/(servers)/server-deployment/overview';
 import { ServerDeploymentRunsPage } from './pages/(servers)/server-deployment/runs';
-import { ServerImplementationConfigPage } from './pages/(servers)/server-implementation';
 import { ServerImplementationLayout } from './pages/(servers)/server-implementation/_layout';
+import { ServerImplementationConfigPage } from './pages/(servers)/server-implementation/config';
 import { ServerImplementationDeploymentsPage } from './pages/(servers)/server-implementation/deployments';
 import { ServerImplementationErrorsPage } from './pages/(servers)/server-implementation/errors';
+import { ServerImplementationOverviewPage } from './pages/(servers)/server-implementation/overview';
 import { ServerImplementationRunsPage } from './pages/(servers)/server-implementation/runs';
 import { ServerLayout } from './pages/(servers)/server/_layout';
 import { ServerDeploymentsPage } from './pages/(servers)/server/deployments';
@@ -121,6 +123,10 @@ export let productInnerSlice = createSlice([
         children: [
           {
             path: '',
+            element: <ServerDeploymentOverviewPage />
+          },
+          {
+            path: 'config',
             element: <ServerDeploymentConfigPage />
           },
           {
@@ -141,6 +147,10 @@ export let productInnerSlice = createSlice([
         children: [
           {
             path: '',
+            element: <ServerImplementationOverviewPage />
+          },
+          {
+            path: 'config',
             element: <ServerImplementationConfigPage />
           },
           {

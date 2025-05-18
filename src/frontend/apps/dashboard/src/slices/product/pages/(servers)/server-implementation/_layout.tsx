@@ -98,6 +98,10 @@ export let ServerImplementationLayout = () => {
             to: Paths.instance.serverImplementation(...serverPathParams)
           },
           {
+            label: 'Configure',
+            to: Paths.instance.serverImplementation(...serverPathParams, 'config')
+          },
+          {
             label: 'Runs',
             to: Paths.instance.serverImplementation(...serverPathParams, 'runs')
           },
