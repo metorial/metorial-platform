@@ -20,6 +20,8 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
       description: serverListing.description,
       readme: serverListing.readme,
 
+      skills: serverListing.skills,
+
       server_id: serverListing.server.id,
 
       categories: await Promise.all(
@@ -106,6 +108,7 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
       readme: v.string(),
       server_id: v.string(),
       categories: v.array(v1ServerListingCategoryPresenter.schema),
+      skills: v.array(v.string()),
 
       is_official: v.boolean(),
       is_community: v.boolean(),

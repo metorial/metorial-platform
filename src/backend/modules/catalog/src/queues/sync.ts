@@ -330,6 +330,7 @@ let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) =>
           readme: string;
           vendorIdentifier: string;
           repositoryIdentifier: string;
+          skills: string[];
         },
         any
       >('SELECT * FROM PublicServer WHERE identifier = ?')
@@ -416,6 +417,7 @@ let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) =>
       description: server.description,
       readme: server.readme,
       serverOid: baseServer.oid,
+      skills: server.skills || [],
 
       categories: {
         connect: categoryIdentifiers.map(categoryIdentifier => ({
