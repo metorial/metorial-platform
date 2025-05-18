@@ -41,11 +41,11 @@ export type EventTypesSessionPayload = {
       server: Server;
       serverVariant: ServerVariant;
     })[];
-    serverSessions: (ServerSession & {
-      serverDeployment: ServerDeployment & {
-        serverVariant: ServerVariant;
-      };
-    })[];
+    // serverSessions: (ServerSession & {
+    //   serverDeployment: ServerDeployment & {
+    //     serverVariant: ServerVariant;
+    //   };
+    // })[];
   };
 };
 

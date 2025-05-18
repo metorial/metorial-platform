@@ -20,6 +20,7 @@ export class MICTransceiverWebsocketServer extends MICTransceiver {
   }
 
   async send(message: MICMessage) {
+    if (!this.ws) return;
     await this.ws.send(JSON.stringify(message));
   }
 

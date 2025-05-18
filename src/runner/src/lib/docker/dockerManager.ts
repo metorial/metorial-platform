@@ -1,8 +1,7 @@
-import { delay } from '@metorial/delay';
 import { generateCustomId } from '@metorial/id';
 import Dockerode from 'dockerode';
 import { buildArguments } from '../args/buildArguments';
-import { DockerStreamManager } from './streamManager';
+import { DockerContainerManager } from './containerManager';
 
 export type DockerManagerOptions = Dockerode.DockerOptions & {
   registryAuth?: {
@@ -11,9 +10,13 @@ export type DockerManagerOptions = Dockerode.DockerOptions & {
   };
 };
 
-let imagePulls = new Map<string, { pulledAt: Date; usedAt: Date }>();
-let SKIP_PULL_TIME = 1000 * 60 * 5; // 5 minutes
-let IMAGE_PRUNE_TIME = 1000 * 60 * 60 * 6; // 6 hours
+export type DockerRunOptions = {
+  image: string;
+  tag?: string;
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+};
 
 export class DockerManager {
   #docker: Dockerode;
@@ -47,17 +50,18 @@ export class DockerManager {
     }
   }
 
-  async startContainer(d: {
-    image: string;
-    command: string;
-    args?: string[];
-    env?: Record<string, string>;
-    onExit?: () => void;
-  }) {
+  async startContainer(d: DockerRunOptions) {
+    if (d.tag) {
+      let [image] = d.image.split(':');
+      d.image = `${image}:${d.tag}`;
+    }
+
     try {
       let name: string = generateCustomId('metorial_').toLowerCase();
 
-      let cmd: string[] = [
+      await this.pullImage(d.image);
+
+      let dockerRunCommand: string[] = [
         'docker',
         'run',
 
@@ -72,100 +76,45 @@ export class DockerManager {
 
         d.image,
 
-        ...[d.command, ...(d.args ?? [])].filter(Boolean)
+        [d.command, ...(d.args ?? [])]
+          .filter(Boolean)
+          .map(c => `"${c}"`)
+          .join(' ')
       ];
 
-      console.log('Starting container:', cmd.join(' '));
+      console.log('Starting container:', dockerRunCommand.join(' '));
 
-      let proc = Bun.spawn(cmd, {
+      let proc = Bun.spawn(dockerRunCommand, {
         stdout: 'pipe',
         stderr: 'pipe',
         stdin: 'pipe'
       });
 
-      proc.exited.then(() => {
-        d.onExit?.();
-      });
-
-      let stdoutStream = proc.stdout;
-      let stderrStream = proc.stderr;
-      let stdinStream = proc.stdin;
-
-      // await delay(100);
-
-      for (let i = 0; i < 50; i++) {
-        await delay(25);
-
-        try {
-          let container = this.#docker.getContainer(name);
-
-          return {
-            container,
-            stream: new DockerStreamManager(stdinStream, stdoutStream, stderrStream)
-          };
-        } catch (err: any) {
-          if (err.message.toLowerCase().includes('no such container')) continue;
-          throw err;
-        }
-      }
-
-      throw new Error('Failed to start container');
+      return new DockerContainerManager(proc, name, this.#docker, this);
     } catch (err) {
       console.error('Error starting container:', err);
       throw err;
     }
   }
 
-  async pullImage(image: string, onProgress?: (progress: number) => void) {
+  async pullImage(image: string) {
     return new Promise<void>((resolve, reject) => {
       if (!image.includes(':')) image += ':latest';
 
-      // if (imagePulls.has(image)) {
-      //   let pull = imagePulls.get(image)!;
-      //   pull.usedAt = new Date();
-      //   if (pull.pulledAt.getTime() > Date.now() - SKIP_PULL_TIME) return resolve();
-      // }
+      this.#docker.pull(image, { authconfig: this.#registryAuth }, (err, stream) => {
+        if (err || !stream) return reject(err);
 
-      this.#docker.pull(
-        image,
-        {
-          // authconfig: this.#registryAuth
-        },
-        (err, stream) => {
-          if (err || !stream) return reject(err);
+        let onProgressEvent = (event: any) => {
+          console.log('Image pull progress:', event);
+        };
 
-          imagePulls.set(image, { pulledAt: new Date(), usedAt: new Date() });
+        let onFinished = (err: any) => {
+          if (err) return reject(err);
+          resolve();
+        };
 
-          let downloaded = 0;
-          let total = 0;
-
-          let onProgressEvent = (event: any) => {
-            console.log('Image pull progress:', event);
-
-            if (event.progressDetail?.total) {
-              downloaded += event.progressDetail.current || 0;
-              total = event.progressDetail.total;
-
-              onProgress?.(Math.min(downloaded / total, 1));
-            }
-          };
-
-          let onFinished = (err: any) => {
-            console.log('Image pull finished:', image, err);
-
-            if (err) {
-              imagePulls.delete(image);
-              return reject(err);
-            }
-
-            console.log('Image pull finished2:', image);
-
-            resolve();
-          };
-
-          this.#docker.modem.followProgress(stream, onFinished, onProgressEvent);
-        }
-      );
+        this.#docker.modem.followProgress(stream, onFinished, onProgressEvent);
+      });
     });
   }
 }

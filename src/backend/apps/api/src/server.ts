@@ -5,10 +5,12 @@ process.env.TZ = 'UTC';
 import { authApi } from '@metorial/api-auth';
 import { apiServer } from '@metorial/api-core';
 import { fileApi } from '@metorial/api-files';
+import { marketplaceApp } from '@metorial/api-marketplace';
 import { startMcpServer } from '@metorial/api-mcp';
 import { apiMux } from '@metorial/api-mux';
 import { startRunnerGateway } from '@metorial/api-runner-gateway';
 import { authenticate } from '@metorial/auth';
+import { createHono } from '@metorial/hono';
 import { initLogger } from '@metorial/logging';
 
 let apiPort = parseInt(process.env.PORT || '3310');
@@ -21,6 +23,12 @@ let server = apiMux(
       endpoint: {
         path: '/_/auth',
         fetch: authApi.fetch as any
+      }
+    },
+    {
+      endpoint: {
+        path: '/marketplace',
+        fetch: createHono().route('/marketplace', marketplaceApp).fetch
       }
     },
     {

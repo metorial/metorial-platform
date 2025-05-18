@@ -33,12 +33,12 @@ export let ServerImplementationForm = (
   p: ServerImplementationFormProps & { close?: () => any }
 ) => {
   let instance = useCurrentInstance();
-  let deployment =
+  let implementation =
     p.type == 'update'
       ? useServerImplementation(instance.data?.id, p.serverImplementationId)
       : null;
 
-  let update = deployment?.useUpdateMutator();
+  let update = implementation?.useUpdateMutator();
   let create = useCreateImplementation();
 
   let navigate = useNavigate();
@@ -51,7 +51,7 @@ export let ServerImplementationForm = (
     instance.data?.id,
     p.type == 'create'
       ? (p.for?.serverId ?? searchServer?.serverId)
-      : deployment?.data?.server.id
+      : implementation?.data?.server.id
   );
 
   let variant = (p as any).for?.serverVariantId
@@ -60,10 +60,10 @@ export let ServerImplementationForm = (
 
   let form = useForm({
     initialValues: {
-      name: deployment?.data?.name ?? variant?.currentVersion?.getLaunchParams ?? '',
-      description: deployment?.data?.description ?? '',
-      metadata: deployment?.data?.metadata ?? {},
-      getLaunchParams: deployment?.data?.getLaunchParams ?? ''
+      name: implementation?.data?.name ?? implementation?.data?.server.name ?? '',
+      description: implementation?.data?.description ?? '',
+      metadata: implementation?.data?.metadata ?? {},
+      getLaunchParams: implementation?.data?.getLaunchParams ?? ''
     },
     schema: yup =>
       yup.object({

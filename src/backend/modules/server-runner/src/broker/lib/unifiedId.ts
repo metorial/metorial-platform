@@ -2,7 +2,7 @@ import { base62 } from '@metorial/base62';
 import type { SessionMessage } from '@metorial/db';
 import type { Participant } from '../types';
 
-const PREFIX = 'mt/';
+const PREFIX = 'mt/x/';
 
 let extractUnifiedId = (id: string) =>
   JSON.parse(base62.decode(id.slice(PREFIX.length))) as [

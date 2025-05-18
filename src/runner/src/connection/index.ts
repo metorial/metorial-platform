@@ -1,10 +1,13 @@
+import { debug } from '@metorial/debug';
 import { MICEndpoint } from '@metorial/interconnect';
 import { MICTransceiverWebsocketClient } from '@metorial/interconnect-websocket-client';
 import { v } from '@metorial/validation';
 import { ReconnectingWebSocketClient } from '@metorial/websocket';
-import { McpSession } from '../lib/containers/session';
 import { DockerManagerOptions } from '../lib/docker/dockerManager';
 import { getLaunchParams } from '../lib/launchParams';
+import { McpSessionManager } from '../lib/session/manager';
+import { SessionTokens } from '../lib/tokens';
+import { getServer, RunnerServerRef } from '../server';
 import { VERSION } from '../version';
 
 export let startConnection = async (d: {
@@ -13,7 +16,10 @@ export let startConnection = async (d: {
   tags: string[];
   maxConcurrentJobs: number;
   dockerOpts: DockerManagerOptions;
+  url: string;
 }) => {
+  let url = new URL('/mcp/sse', d.url);
+
   let transceiver = new MICTransceiverWebsocketClient(
     {
       sessionId: 'runner',
@@ -25,9 +31,18 @@ export let startConnection = async (d: {
     )
   );
 
+  transceiver.onMessage(m => console.log('Incoming message', m));
+
   transceiver.onClose(() => {
     console.log('Runner closed');
     process.exit(0);
+  });
+
+  let serverRef: RunnerServerRef = {};
+  Bun.serve({
+    port: url.port,
+    fetch: getServer(url.origin, serverRef).fetch,
+    idleTimeout: 0
   });
 
   new MICEndpoint()
@@ -62,18 +77,14 @@ export let startConnection = async (d: {
         await ctx.notify('server/ready', {});
 
         console.log('Runner is ready to accept jobs');
+
+        serverRef.mic = ctx;
       }
     )
     .request(
-      'run/execute',
+      'run/start',
       v.object({
         serverRunId: v.string(),
-
-        // server: v.object({ id: v.string() }),
-        // serverInstance: v.object({ id: v.string() }),
-        // serverDeployment: v.object({ id: v.string() }),
-        // serverVariant: v.object({ id: v.string() }),
-        // serverVersion: v.object({ id: v.string() }),
 
         source: v.object({
           type: v.literal('docker'),
@@ -88,7 +99,9 @@ export let startConnection = async (d: {
         })
       }),
       async (data, ctx) => {
-        let session = await McpSession.create(data.serverRunId, {
+        debug.log('Starting server run', data.serverRunId);
+
+        let { session, info } = McpSessionManager.createSession({
           containerOpts: {
             image: data.source.image,
             tag: data.source.tag ?? undefined,
@@ -96,28 +109,40 @@ export let startConnection = async (d: {
             args: data.launchParams!.args ?? [],
             env: data.launchParams!.env ?? {}
           },
-          onClose: () => {
-            ctx.notify('run/closed', {
-              serverRunId: data.serverRunId
-            });
-          },
           dockerOpts: d.dockerOpts
         });
 
-        session.onOutgoingMessage(msg => {
-          ctx.notify('run/mcp/message', {
-            serverRunId: data.serverRunId,
-            message: msg
+        await session.waitForStart;
+
+        session.onClose(() => {
+          ctx.notify('run/closed', {
+            serverRunId: data.serverRunId
           });
         });
 
-        session.onDebugMessage(output => {
-          ctx.notify('run/mcp/debug', {
-            serverRunId: data.serverRunId,
-            type: output.type,
-            payload: output.payload
-          });
+        let token = await SessionTokens.sign({
+          sessionId: info.id
         });
+
+        return {
+          token,
+          url: url.toString()
+        };
+
+        // session.onOutgoingMessage(msg => {
+        //   ctx.notify('run/mcp/message', {
+        //     serverRunId: data.serverRunId,
+        //     message: msg
+        //   });
+        // });
+
+        // session.onDebugMessage(output => {
+        //   ctx.notify('run/mcp/debug', {
+        //     serverRunId: data.serverRunId,
+        //     type: output.type,
+        //     payload: output.payload
+        //   });
+        // });
       }
     )
     .request(
@@ -133,30 +158,34 @@ export let startConnection = async (d: {
         });
       }
     )
-    .notification(
-      'run/close',
-      v.object({
-        serverRunId: v.string()
-      }),
-      async data => {
-        let session = McpSession.get(data.serverRunId);
-        if (session) await session.close();
-      }
-    )
-    .notification(
-      'run/mcp/message',
-      v.object({
-        serverRunId: v.string(),
-        message: v.any()
-      }),
-      async data => {
-        let session = McpSession.get(data.serverRunId);
-        if (session) {
-          await session.incomingMessage(
-            Array.isArray(data.message) ? data.message : [data.message]
-          );
-        }
-      }
-    )
+    // .notification(
+    //   'run/close',
+    //   v.object({
+    //     serverRunId: v.string()
+    //   }),
+    //   async data => {
+    //     debug.log('Closing session', data);
+
+    //     let session = McpSession.get(data.serverRunId);
+    //     if (session) await session.close();
+    //   }
+    // )
+    // .notification(
+    //   'run/mcp/message',
+    //   v.object({
+    //     serverRunId: v.string(),
+    //     message: v.any()
+    //   }),
+    //   async data => {
+    //     debug.log('Incoming message', data);
+
+    //     let session = McpSession.get(data.serverRunId);
+    //     if (session) {
+    //       await session.incomingMessage(
+    //         Array.isArray(data.message) ? data.message : [data.message]
+    //       );
+    //     }
+    //   }
+    // )
     .connect(transceiver);
 };

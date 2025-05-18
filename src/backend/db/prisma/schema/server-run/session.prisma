@@ -50,8 +50,6 @@ model ServerSession {
 
   lastClientActionAt DateTime?
   lastServerActionAt DateTime?
-
-  @@unique([serverDeploymentOid, sessionOid])
 }
 
 enum SessionStatus {
@@ -80,6 +78,9 @@ model Session {
   status           SessionStatus
   connectionStatus SessionConnectionStatus
   connectionType   SessionConnectionType
+
+  totalProductiveClientMessageCount Int @default(0)
+  totalProductiveServerMessageCount Int @default(0)
 
   metadata Json?
 

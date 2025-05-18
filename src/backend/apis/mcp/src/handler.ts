@@ -110,21 +110,25 @@ export let mcpConnectionHandler = async (
       return streamSSE(
         c,
         async stream => {
-          // if (opts.sessionCreated) {
-          let endpointUrl = new URL(
-            `/mcp/${sessionInfo.session.id}/${serverSession.id}/sse`,
-            getConfig().urls.mcpUrl
-          ).toString();
+          if (opts.sessionCreated) {
+            let endpointUrl = new URL(
+              `/mcp/${sessionInfo.session.id}/${serverSession.serverDeployment.id}/sse?metorial_server_session_id=${serverSession.id}`,
+              getConfig().urls.mcpUrl
+            ).toString();
 
-          await stream.writeSSE({
-            event: 'endpoint',
-            data: endpointUrl
-          });
-          // }
+            await stream.writeSSE({
+              event: 'endpoint',
+              data: endpointUrl
+            });
+          }
 
           onMessage(async msg => stream.writeSSE({ data: JSON.stringify(msg) }));
 
+          console.log('MCP SSE connection opened');
+
           await connection.waitForClose;
+
+          console.log('MCP SSE connection closed');
         },
         async error => {
           console.error('Error in SSE stream', error);

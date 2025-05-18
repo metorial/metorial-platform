@@ -1,7 +1,9 @@
+import { debug } from '@metorial/debug';
 import { ServiceError, unauthorizedError } from '@metorial/error';
 import { createHono } from '@metorial/hono';
 import { MICEndpoint, MICSessionManger } from '@metorial/interconnect';
 import { MICTransceiverWebsocketServer } from '@metorial/interconnect-websocket-server';
+import { ProgrammablePromise } from '@metorial/programmable-promise';
 import { v } from '@metorial/validation';
 import type { ServerWebSocket } from 'bun';
 import type { UpgradeWebSocket, WSEvents } from 'hono/ws';
@@ -40,6 +42,8 @@ export let createServerRunnerGateway = (
       let closeQueue: (() => void) | undefined = undefined;
       let runnerManager: RunnerBrokerManager | undefined = undefined;
 
+      let runnerClosedPromise = new ProgrammablePromise<void>();
+
       let endpoint = new MICEndpoint()
         .request(
           'server/set_config',
@@ -57,6 +61,8 @@ export let createServerRunnerGateway = (
           }
         )
         .notification('server/ready', v.any(), async () => {
+          debug.log(`Runner ${runner.id} connection ready`);
+
           runnerManager = new RunnerBrokerManager(session!);
 
           closeQueue = await createRunnerQueueProcessor(runner, {
@@ -67,51 +73,68 @@ export let createServerRunnerGateway = (
               });
               if (!info) return;
 
+              debug.log(`Runner ${runner.id} - starting session run ${serverSessionId}`);
+
               if (!info.variant.currentVersion || !info.variant.currentVersion.dockerImage) {
                 console.error('No current version for variant', info.variant);
                 return;
               }
 
-              let launchParams = await session!.request<
-                { type: 'error'; output: string } | { type: 'success'; output: any }
-              >('get_launch_params', {
-                config: info.DANGEROUSLY_UNENCRYPTED_CONFIG,
-                getLaunchParams:
-                  info.implementation.getLaunchParams ?? info.version.getLaunchParams
-              });
-
-              console.log('Launch params', launchParams);
+              let launchParams = await session!.request(
+                'get_launch_params',
+                {
+                  config: info.DANGEROUSLY_UNENCRYPTED_CONFIG,
+                  getLaunchParams:
+                    info.implementation.getLaunchParams ?? info.version.getLaunchParams
+                },
+                v.union([
+                  v.object({
+                    type: v.literal('error'),
+                    output: v.string()
+                  }),
+                  v.object({
+                    type: v.literal('success'),
+                    output: v.any()
+                  })
+                ])
+              );
 
               if (launchParams.type == 'error') {
                 // TODO: run failed
               } else {
-                let manager = new BrokerRunManager(
-                  runnerManager!.create(info.serverRun),
-                  info.serverRun,
-                  info.session
+                let startRes = await session!.request(
+                  'run/start',
+                  {
+                    serverRunId: info.serverRun.id,
+                    source: {
+                      type: 'docker',
+                      image: info.variant.currentVersion.dockerImage,
+                      tag: info.variant.currentVersion.dockerTag
+                    },
+                    launchParams: launchParams.output
+                  },
+                  v.object({
+                    token: v.string(),
+                    url: v.string()
+                  })
                 );
 
-                console.log({
-                  serverRunId: info.serverRun.id,
-                  source: {
-                    type: 'docker',
-                    image: info.variant.currentVersion.dockerImage,
-                    tag: info.variant.currentVersion.dockerTag
-                  },
-                  launchParams: launchParams.output
+                // TODO: once we add self-hosted runners, we need to perform an
+                // SSRF check here to make sure the URL is valid and not pointing
+                // to a local address
+
+                let connection = await runnerManager!.create(info.serverRun, {
+                  url: startRes.url,
+                  token: startRes.token
                 });
 
-                await session!.request('run/execute', {
-                  serverRunId: info.serverRun.id,
-                  source: {
-                    type: 'docker',
-                    image: info.variant.currentVersion.dockerImage,
-                    tag: info.variant.currentVersion.dockerTag
-                  },
-                  launchParams: launchParams.output
-                });
+                let manager = new BrokerRunManager(connection, info.serverRun, info.session);
 
-                await manager.waitForClose;
+                debug.log(`Runner ${runner.id} - session run ${info.serverRun.id} started`);
+
+                await Promise.race([manager.waitForClose, runnerClosedPromise.promise]);
+
+                debug.log(`Runner ${runner.id} - session run ${info.serverRun.id} closed`);
               }
             }
           });
@@ -123,16 +146,6 @@ export let createServerRunnerGateway = (
           }),
           async data => {
             runnerManager?.handleClosed(data.serverRunId);
-          }
-        )
-        .notification(
-          'run/mcp/message',
-          v.object({
-            serverRunId: v.string(),
-            message: v.any()
-          }),
-          async data => {
-            runnerManager?.handleMessage(data.serverRunId, data.message);
           }
         )
         .notification(
@@ -159,17 +172,25 @@ export let createServerRunnerGateway = (
         );
 
       let connectionClosed = async () => {
+        debug.log(`Runner ${runner.id} connection closed`);
+
         await serverRunnerConnectionService.unregisterServerRunner({
           runner
         });
         clearInterval(pingInterval!);
         pingInterval = undefined;
 
+        runnerClosedPromise.resolve();
+
         await closeQueue?.();
         await transceiver?.close();
 
         runnerManager?.stopAll();
       };
+
+      process.on('SIGINT', async () => {
+        await connectionClosed();
+      });
 
       return {
         onOpen: (event, ws) => {

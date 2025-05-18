@@ -1,6 +1,8 @@
 import { debug } from '@metorial/debug';
 
 export class DockerStreamManager {
+  private recordings = new Map<string, string[]>();
+
   constructor(
     private stdinStream: Bun.FileSink,
     private stdoutStream: ReadableStream<Uint8Array<ArrayBufferLike>>,
@@ -8,6 +10,7 @@ export class DockerStreamManager {
   ) {}
 
   private handleStream(
+    type: 'stdout' | 'stderr',
     stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
     callback: (data: string[]) => void
   ) {
@@ -27,7 +30,14 @@ export class DockerStreamManager {
       lineBuffer = lines.pop() || '';
 
       lines = lines.filter(line => line.length > 0);
-      if (lines.length > 0) callback(lines);
+      if (lines.length > 0) {
+        callback(lines);
+
+        let rec = this.recordings.get(type) ?? [];
+        rec.push(...lines);
+        if (rec.length > 100) rec = rec.slice(-100);
+        this.recordings.set(type, rec);
+      }
 
       read();
     };
@@ -36,11 +46,11 @@ export class DockerStreamManager {
   }
 
   onStdout(callback: (data: string[]) => void) {
-    this.handleStream(this.stdoutStream, callback);
+    this.handleStream('stdout', this.stdoutStream, callback);
   }
 
   onStderr(callback: (data: string[]) => void) {
-    this.handleStream(this.stderrStream, callback);
+    this.handleStream('stderr', this.stderrStream, callback);
   }
 
   stdin(data: string[]) {

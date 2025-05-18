@@ -1,64 +1,102 @@
 import { delay } from '@metorial/delay';
-import { Container } from 'dockerode';
-import mitt from 'mitt';
-import type { DockerManager } from './dockerManager';
+import { Emitter } from '@metorial/emitter';
+import Dockerode from 'dockerode';
+import { DockerManager } from './dockerManager';
 import { DockerStreamManager } from './streamManager';
 
-export class ContainerManager {
-  #emitter = mitt<{ close: void }>();
+export interface CloseEventPayload {
+  reason: 'container_exited' | 'container_failed_to_start' | 'container_stopped';
+}
 
-  private constructor(
-    private docker: DockerManager,
-    private container: Container,
-    private stream: DockerStreamManager
+export class DockerContainerManager {
+  #stream: DockerStreamManager;
+  #emitter = new Emitter<{
+    close: CloseEventPayload;
+  }>();
+
+  #stoppedContainer = false;
+  #waitForContainerPromise: Promise<void>;
+
+  #container?: Dockerode.Container;
+
+  constructor(
+    private proc: Bun.Subprocess<'pipe', 'pipe', 'pipe'>,
+    private containerName: string,
+    private docker: Dockerode,
+    private manager: DockerManager
   ) {
-    container.wait().then(() => this.close());
+    this.#stream = new DockerStreamManager(proc.stdin, proc.stdout, proc.stderr);
+
+    proc.exited.then(() => {
+      this.#emitter.emit('close', {
+        reason: this.#stoppedContainer ? 'container_stopped' : 'container_exited'
+      });
+    });
+
+    this.onClose(() => this.cleanup());
+
+    this.#waitForContainerPromise = this.waitForContainer();
   }
 
-  static async create(
-    docker: DockerManager,
-    opts: {
-      image: string;
-      tag?: string;
-      command: string;
-      args?: string[];
-      environment?: Record<string, string>;
-      onProgress?: (progress: number) => void;
+  private async waitForContainer() {
+    for (let i = 0; i < 50; i++) {
+      await delay(25);
+
+      try {
+        this.#container = this.docker.getContainer(this.containerName);
+        return;
+      } catch (err: any) {
+        if (err.message.toLowerCase().includes('no such container')) continue;
+        throw err;
+      }
     }
-  ) {
-    if (opts.tag) opts.image = `${opts.image}:${opts.tag}`;
 
-    await Promise.race([docker.pullImage(opts.image, opts.onProgress), delay(1000 * 30)]);
-    console.log('Image pulled:', opts.image);
-
-    let containerRes = await docker.startContainer(opts);
-    console.log('Container started:', containerRes.container.id);
-
-    return new ContainerManager(docker, containerRes.container, containerRes.stream);
+    this.#emitter.emit('close', { reason: 'container_failed_to_start' });
   }
 
+  private async awaitContainer() {
+    if (this.#container) return this.#container;
+    await this.#waitForContainerPromise;
+    return this.#container;
+  }
+
+  get waitForStart() {
+    return this.#waitForContainerPromise;
+  }
+
+  #isStopped = false;
   async stopAndRemove() {
-    await this.docker.stopAndRemoveContainer(this.container);
+    if (this.#isStopped) return;
+    this.#isStopped = true;
+
+    let container = await this.awaitContainer();
+    if (!container) return;
+
+    console.log('Stopping and removing container:', container.id);
+    await this.manager.stopAndRemoveContainer(container);
   }
 
   async stdin(message: string | string[]) {
-    return this.stream.stdin(Array.isArray(message) ? message : [message]);
+    return this.#stream.stdin(Array.isArray(message) ? message : [message]);
   }
 
   onStdout(callback: (data: string[]) => void) {
-    return this.stream.onStdout(callback);
+    return this.#stream.onStdout(callback);
   }
 
   onStderr(callback: (data: string[]) => void) {
-    return this.stream.onStderr(callback);
+    return this.#stream.onStderr(callback);
   }
 
-  onClose(callback: () => void) {
+  onClose(callback: (d: CloseEventPayload) => void) {
     this.#emitter.on('close', callback);
   }
 
-  private async close() {
-    this.#emitter.emit('close');
-    this.#emitter.all.clear();
+  #isClosed = false;
+  private async cleanup() {
+    if (this.#isClosed) return;
+    this.#isClosed = true;
+
+    this.#emitter.clear();
   }
 }

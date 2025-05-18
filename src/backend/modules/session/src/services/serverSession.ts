@@ -13,30 +13,10 @@ let include = {
 };
 
 class ServerSessionImpl {
-  async ensureServerSession(d: { session: Session; serverDeployment: ServerDeployment }) {
-    let existing = await db.serverSession.findUnique({
-      where: {
-        serverDeploymentOid_sessionOid: {
-          serverDeploymentOid: d.serverDeployment.oid,
-          sessionOid: d.session.oid
-        }
-      },
-      include
-    });
-    if (existing) return existing;
-
-    let id = await ID.generateId('serverSession');
-
-    let session = await db.serverSession.upsert({
-      where: {
-        serverDeploymentOid_sessionOid: {
-          serverDeploymentOid: d.serverDeployment.oid,
-          sessionOid: d.session.oid
-        }
-      },
-      update: {},
-      create: {
-        id,
+  async createServerSession(d: { session: Session; serverDeployment: ServerDeployment }) {
+    let session = await db.serverSession.create({
+      data: {
+        id: await ID.generateId('serverSession'),
         serverDeploymentOid: d.serverDeployment.oid,
         instanceOid: d.session.instanceOid,
         sessionOid: d.session.oid,
@@ -52,15 +32,13 @@ class ServerSessionImpl {
       }
     });
 
-    if (session.id == id) {
-      await ingestEventService.ingest('session.server_session:created', {
-        session: d.session,
-        serverSession: session,
+    await ingestEventService.ingest('session.server_session:created', {
+      session: d.session,
+      serverSession: session,
 
-        instance: session.instance,
-        organization: session.instance.organization
-      });
-    }
+      instance: session.instance,
+      organization: session.instance.organization
+    });
 
     return session;
   }

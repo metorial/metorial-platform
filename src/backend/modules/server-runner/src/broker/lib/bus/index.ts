@@ -84,10 +84,12 @@ export class BrokerBus {
               originalId: 'id' in message ? message.id : null,
               unifiedId:
                 'id' in message
-                  ? this.#unifiedId.serialize({
-                      sender: this.participant,
-                      originalId: message.id
-                    })
+                  ? String(
+                      this.#unifiedId.serialize({
+                        sender: this.participant,
+                        originalId: message.id
+                      })
+                    )
                   : null,
               payload: message
             }))

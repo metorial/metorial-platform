@@ -12,7 +12,7 @@ import { EventSource } from 'eventsource';
 import { BrokerRunnerImplementation, BrokerRunnerImplementationEvents } from './base';
 
 export class BrokerRunnerImplementationExternal extends BrokerRunnerImplementation {
-  private constructor(
+  protected constructor(
     private eventSource: EventSource,
     private endpoint: string,
     emitter: Emitter<BrokerRunnerImplementationEvents>
@@ -64,7 +64,7 @@ export class BrokerRunnerImplementationExternal extends BrokerRunnerImplementati
       }
     }
 
-    return new Promise<BrokerRunnerImplementation>((resolve, reject) => {
+    return new Promise<BrokerRunnerImplementationExternal>((resolve, reject) => {
       let eventSource = new EventSource(url, {
         fetch: (input, init) =>
           fetch(input, {
@@ -85,6 +85,8 @@ export class BrokerRunnerImplementationExternal extends BrokerRunnerImplementati
       let opened = { current: false };
 
       eventSource.addEventListener('error', error => {
+        debug.error('Runner MCP connection error', error);
+
         if (opened.current) {
           emitter.emit('close');
           emitter.clear();
@@ -102,6 +104,8 @@ export class BrokerRunnerImplementationExternal extends BrokerRunnerImplementati
         try {
           let endpointUrl = new URL(event.data, url);
 
+          debug.error('Runner MCP connection opened', endpointUrl.toString());
+
           resolve(
             new BrokerRunnerImplementationExternal(
               eventSource,
@@ -118,6 +122,8 @@ export class BrokerRunnerImplementationExternal extends BrokerRunnerImplementati
       });
 
       eventSource.addEventListener('close', () => {
+        debug.error('Runner MCP connection closed');
+
         emitter.emit('close');
         emitter.clear();
       });

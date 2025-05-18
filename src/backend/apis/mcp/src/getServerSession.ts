@@ -5,29 +5,32 @@ import { SessionInfo } from './getSession';
 
 export let getServerSession = async (
   d: SessionInfo,
-  serverSessionOrDeploymentId: string | null
+  deploymentId: string | null,
+  serverSessionId: string | null
 ) => {
-  let serverSession = serverSessionOrDeploymentId
-    ? d.session.serverSessions.find(s => s.id == serverSessionOrDeploymentId)
-    : undefined;
+  if (serverSessionId) {
+    let serverSession = await serverSessionService.getServerSessionById({
+      session: d.session,
+      serverSessionId
+    });
 
-  if (!serverSession) {
-    let deployment = await getServerSessionDeployment(d, serverSessionOrDeploymentId);
-
-    serverSession = d.session.serverSessions.find(
-      s => s.serverDeploymentOid == deployment.oid
-    );
-    if (!serverSession) {
-      serverSession = await serverSessionService.ensureServerSession({
-        session: d.session,
-        serverDeployment: deployment
-      });
-    }
+    return {
+      serverSession,
+      sessionCreated: false
+    };
   }
 
-  // if (!serverSession) throw new ServiceError(notFoundError('server_deployment'));
+  let serverDeployment = await getServerSessionDeployment(d, deploymentId);
 
-  return serverSession;
+  let serverSession = await serverSessionService.createServerSession({
+    session: d.session,
+    serverDeployment
+  });
+
+  return {
+    serverSession,
+    sessionCreated: true
+  };
 };
 
 let getServerSessionDeployment = async (

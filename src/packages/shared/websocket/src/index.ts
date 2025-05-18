@@ -36,12 +36,12 @@ export class ReconnectingWebSocketClient {
     });
 
     this.ws.addEventListener('close', event => {
-      let shouldReconnect = ![1000, 1001, 1005].includes(event.code);
-      if (shouldReconnect) {
-        this.reconnect(event);
-      } else {
-        this.emitter.emit('close', event);
-      }
+      // let shouldReconnect = ![1000, 1001, 1005].includes(event.code);
+      // if (shouldReconnect) {
+      this.reconnect(event);
+      // } else {
+      //   this.emitter.emit('close', event);
+      // }
     });
 
     this.ws.addEventListener('error', event => {

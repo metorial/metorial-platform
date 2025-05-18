@@ -56,6 +56,10 @@ export class BrokerRunManager {
     this.startBusListener();
     this.startConnectionListener();
 
+    this.implementation.onClose(() => {
+      this.close();
+    });
+
     db.serverRun
       .updateMany({
         where: { oid: this.serverRun.oid },
@@ -224,6 +228,8 @@ export class BrokerRunManager {
     });
 
     this.implementation.onMessage(async msg => {
+      console.log('this.implementation.onMessage', msg);
+
       if (
         ('method' in msg && 'id' in msg && String(msg.id).startsWith('mt/init/')) ||
         !this.session.mcpInitialized

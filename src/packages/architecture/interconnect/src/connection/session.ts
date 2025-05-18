@@ -1,6 +1,7 @@
-import { isServiceError, ServiceError, timeoutError } from '@metorial/error';
+import { isServiceError, ServiceError, timeoutError, validationError } from '@metorial/error';
 import { generatePlainId } from '@metorial/id';
 import { getSentry } from '@metorial/sentry';
+import { ValidationType } from '@metorial/validation';
 import { MICTransceiver } from './base';
 
 const DEFAULT_TIMEOUT = 10000;
@@ -32,6 +33,7 @@ export class MICSessionManger {
   async request<T = unknown>(
     method: string,
     params: any,
+    schema?: ValidationType<T>,
     opts?: {
       timeout?: number;
     }
@@ -62,6 +64,17 @@ export class MICSessionManger {
 
         if (!timedOutRef.current && data.type == 'response' && data.id == id) {
           clearTimeout(timeout);
+
+          if (schema) {
+            let valRes = schema.validate(data.result);
+            if (!valRes.success)
+              throw new ServiceError(
+                validationError({ errors: valRes.errors, entity: 'response' })
+              );
+
+            data.result = valRes.value;
+          }
+
           resolve(data.result as T);
         }
 

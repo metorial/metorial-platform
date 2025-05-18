@@ -28,17 +28,17 @@ let include = {
       serverVariant: true
     },
     orderBy: { id: 'asc' as const }
-  },
-  serverSessions: {
-    include: {
-      serverDeployment: {
-        include: {
-          serverVariant: true
-        }
-      }
-    },
-    orderBy: { id: 'asc' as const }
   }
+  // serverSessions: {
+  //   include: {
+  //     serverDeployment: {
+  //       include: {
+  //         serverVariant: true
+  //       }
+  //     }
+  //   },
+  //   orderBy: { id: 'asc' as const }
+  // }
 };
 
 class SessionImpl {

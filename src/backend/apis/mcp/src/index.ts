@@ -35,13 +35,22 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       let url = new URL(c.req.url);
       let req = c.req.raw;
 
+      let serverSessionId =
+        c.req.query('metorial_server_session_id') ??
+        c.req.header('mcp-session-id') ??
+        c.req.header('metorial-server-session-id');
+
       let sessionInfo = await getSessionAndAuthenticate(sessionId, req, url, d.authenticate);
-      let serverSession = await getServerSession(sessionInfo, serverDeploymentId ?? null);
+      let { serverSession, sessionCreated } = await getServerSession(
+        sessionInfo,
+        serverDeploymentId ?? null,
+        serverSessionId ?? null
+      );
 
       return await mcpConnectionHandler(c, next, sessionInfo, serverSession, {
         connectionType: connectionType,
-        sessionCreated: false,
-        upgradeWebSocket
+        upgradeWebSocket,
+        sessionCreated
       });
     });
 

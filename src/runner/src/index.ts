@@ -13,43 +13,60 @@ prog
   })
   .option('--tags', 'Comma separated tags for this runner (no spaces)')
   .option('--max-concurrent-jobs', 'Max concurrent jobs for this runner')
-  .action(async (uri: string, opts: { tags?: string; ['max-concurrent-jobs']?: string }) => {
-    if (!(await checkRunnerMachine())) process.exit(1);
+  .option('--url', 'The runners public URL')
+  .action(
+    async (
+      uri: string,
+      opts: { tags?: string; ['max-concurrent-jobs']?: string; url: string }
+    ) => {
+      if (!(await checkRunnerMachine())) process.exit(1);
 
-    let host: string;
-    let connectionKey: string;
+      if (!opts.url) throw new Error('Missing --url option');
 
-    try {
-      let url = new URL(uri);
-      if (url.protocol !== 'mti:') {
-        throw new Error('Invalid protocol, expected mti://');
+      try {
+        new URL(opts.url);
+      } catch (e: any) {
+        console.error('Invalid URL: ', e.message);
+        process.exit(1);
       }
 
-      host = url.host;
-      connectionKey = url.username || url.password;
+      let host: string;
+      let connectionKey: string;
 
-      if (!connectionKey) throw new Error('Missing connection key');
-    } catch (e: any) {
-      console.error('Invalid connection URI: ', e.message);
-      process.exit(1);
-    }
-
-    console.log('Starting Metorial Runner');
-
-    await startConnection({
-      host,
-      connectionKey,
-      tags: opts.tags?.split(',').filter(Boolean) || [],
-      maxConcurrentJobs: parseInt(opts['max-concurrent-jobs'] || '100', 10),
-
-      dockerOpts: {
-        socketPath: process.env.DOCKER_SOCKET_PATH ?? '/var/run/docker.sock',
-        registryAuth: {
-          username: process.env.DOCKER_REGISTRY_USERNAME,
-          password: process.env.DOCKER_REGISTRY_PASSWORD
+      try {
+        let url = new URL(uri);
+        if (url.protocol !== 'mti:') {
+          throw new Error('Invalid protocol, expected mti://');
         }
+
+        host = url.host;
+        connectionKey = url.username || url.password;
+
+        if (!connectionKey) throw new Error('Missing connection key');
+      } catch (e: any) {
+        console.error('Invalid connection URI: ', e.message);
+        process.exit(1);
       }
-    });
-  });
+
+      console.log('Starting Metorial Runner');
+
+      await startConnection({
+        host,
+        connectionKey,
+        tags: opts.tags?.split(',').filter(Boolean) || [],
+        maxConcurrentJobs: parseInt(opts['max-concurrent-jobs'] || '100', 10),
+
+        url: opts.url,
+
+        dockerOpts: {
+          socketPath: process.env.DOCKER_SOCKET_PATH ?? '/var/run/docker.sock',
+          registryAuth: {
+            username: process.env.DOCKER_REGISTRY_USERNAME,
+            password: process.env.DOCKER_REGISTRY_PASSWORD
+          }
+        }
+      });
+    }
+  );
 
 prog.parse(process.argv);
