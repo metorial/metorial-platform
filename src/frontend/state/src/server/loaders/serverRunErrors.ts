@@ -7,7 +7,7 @@ export let serverRunErrorsLoader = createLoader({
   name: 'serverRunErrors',
   parents: [],
   fetch: (i: { instanceId: string } & DashboardInstanceServerRunErrorsListQuery) =>
-    withAuth(sdk => sdk.servers.runs.list(i.instanceId, i)),
+    withAuth(sdk => sdk.servers.errors.list(i.instanceId, i)),
   mutators: {}
 });
 
@@ -26,7 +26,7 @@ export let serverRunErrorLoader = createLoader({
   name: 'serverRunError',
   parents: [],
   fetch: (i: { instanceId: string; serverRunErrorId: string }) =>
-    withAuth(sdk => sdk.servers.runs.get(i.instanceId, i.serverRunErrorId)),
+    withAuth(sdk => sdk.servers.errors.get(i.instanceId, i.serverRunErrorId)),
   mutators: {}
 });
 

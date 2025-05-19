@@ -1,10 +1,20 @@
 import { createSlice } from '@metorial/microfrontend';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
+import { LogsListLayout } from './pages/(logs)/(list)/_layout';
+import { ServerErrorsPage } from './pages/(logs)/(list)/server-errors';
+import { ServerRunsPage } from './pages/(logs)/(list)/server-runs';
+import { SessionsPage } from './pages/(logs)/(list)/sessions';
+import { ServerErrorPage } from './pages/(logs)/server-error';
+import { ServerErrorLayout } from './pages/(logs)/server-error/_layout';
+import { ServerRunPage } from './pages/(logs)/server-run';
+import { ServerRunLayout } from './pages/(logs)/server-run/_layout';
+import { SessionPage } from './pages/(logs)/session';
+import { SessionLayout } from './pages/(logs)/session/_layout';
 import { ServersListLayout } from './pages/(servers)/(list)/_layout';
+import { ServersDeploymentsPage } from './pages/(servers)/(list)/server-deployments';
+import { ServersImplementationsPage } from './pages/(servers)/(list)/server-implementations';
 import { ServersPage } from './pages/(servers)/(list)/servers';
-import { ServersDeploymentsPage } from './pages/(servers)/(list)/servers-deployments';
-import { ServersImplementationsPage } from './pages/(servers)/(list)/servers-implementations';
 import { ServerOverviewPage } from './pages/(servers)/server';
 import { ServerDeploymentLayout } from './pages/(servers)/server-deployment/_layout';
 import { ServerDeploymentConfigPage } from './pages/(servers)/server-deployment/config';
@@ -18,9 +28,9 @@ import { ServerImplementationErrorsPage } from './pages/(servers)/server-impleme
 import { ServerImplementationOverviewPage } from './pages/(servers)/server-implementation/overview';
 import { ServerImplementationRunsPage } from './pages/(servers)/server-implementation/runs';
 import { ServerLayout } from './pages/(servers)/server/_layout';
-import { ServerDeploymentsPage } from './pages/(servers)/server/deployments';
-import { ServerImplementationsPage } from './pages/(servers)/server/implementations';
-import { ServerRunsPage } from './pages/(servers)/server/runs';
+import { ServerServerDeploymentsPage } from './pages/(servers)/server/deployments';
+import { ServerServerImplementationsPage } from './pages/(servers)/server/implementations';
+import { ServerServerRunsPage } from './pages/(servers)/server/runs';
 import { ProjectPageLayout } from './pages/_layout';
 import { ProjectDeveloperPage } from './pages/developer';
 import { ProjectDeveloperPageLayout } from './pages/developer/_layout';
@@ -72,98 +82,168 @@ export let productInnerSlice = createSlice([
         ]
       },
 
+      /***************
+       * Servers
+       *************** */
       {
-        path: '',
-        element: <ServersListLayout />,
-
         children: [
           {
-            path: 'servers',
-            element: <ServersPage />
+            path: '',
+            element: <ServersListLayout />,
+
+            children: [
+              {
+                path: 'servers',
+                element: <ServersPage />
+              },
+              {
+                path: 'server-deployments',
+                element: <ServersDeploymentsPage />
+              },
+              {
+                path: 'server-implementations',
+                element: <ServersImplementationsPage />
+              }
+            ]
           },
+
           {
-            path: 'server-deployments',
-            element: <ServersDeploymentsPage />
+            path: 'server/:serverId',
+            element: <ServerLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ServerOverviewPage />
+              },
+              {
+                path: 'deployments',
+                element: <ServerServerDeploymentsPage />
+              },
+              {
+                path: 'implementations',
+                element: <ServerServerImplementationsPage />
+              },
+              {
+                path: 'runs',
+                element: <ServerServerRunsPage />
+              }
+            ]
           },
+
           {
-            path: 'server-implementations',
-            element: <ServersImplementationsPage />
+            path: 'server-deployment/:serverDeploymentId',
+            element: <ServerDeploymentLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ServerDeploymentOverviewPage />
+              },
+              {
+                path: 'config',
+                element: <ServerDeploymentConfigPage />
+              },
+              {
+                path: 'runs',
+                element: <ServerDeploymentRunsPage />
+              },
+              {
+                path: 'errors',
+                element: <ServerDeploymentErrorsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'server-implementation/:serverImplementationId',
+            element: <ServerImplementationLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ServerImplementationOverviewPage />
+              },
+              {
+                path: 'config',
+                element: <ServerImplementationConfigPage />
+              },
+              {
+                path: 'runs',
+                element: <ServerImplementationRunsPage />
+              },
+              {
+                path: 'errors',
+                element: <ServerImplementationErrorsPage />
+              },
+              {
+                path: 'deployments',
+                element: <ServerImplementationDeploymentsPage />
+              }
+            ]
           }
         ]
       },
 
+      /***************
+       * Logs
+       *************** */
       {
-        path: 'server/:serverId',
-        element: <ServerLayout />,
-
         children: [
           {
             path: '',
-            element: <ServerOverviewPage />
-          },
-          {
-            path: 'deployments',
-            element: <ServerDeploymentsPage />
-          },
-          {
-            path: 'implementations',
-            element: <ServerImplementationsPage />
-          },
-          {
-            path: 'runs',
-            element: <ServerRunsPage />
-          }
-        ]
-      },
+            element: <LogsListLayout />,
 
-      {
-        path: 'server-deployment/:serverDeploymentId',
-        element: <ServerDeploymentLayout />,
+            children: [
+              {
+                path: 'sessions',
+                element: <SessionsPage />
+              },
+              {
+                path: 'server-runs',
+                element: <ServerRunsPage />
+              },
+              {
+                path: 'server-errors',
+                element: <ServerErrorsPage />
+              }
+            ]
+          },
 
-        children: [
           {
-            path: '',
-            element: <ServerDeploymentOverviewPage />
-          },
-          {
-            path: 'config',
-            element: <ServerDeploymentConfigPage />
-          },
-          {
-            path: 'runs',
-            element: <ServerDeploymentRunsPage />
-          },
-          {
-            path: 'errors',
-            element: <ServerDeploymentErrorsPage />
-          }
-        ]
-      },
+            path: 'server-error/:serverErrorId',
+            element: <ServerErrorLayout />,
 
-      {
-        path: 'server-implementation/:serverImplementationId',
-        element: <ServerImplementationLayout />,
+            children: [
+              {
+                path: '',
+                element: <ServerErrorPage />
+              }
+            ]
+          },
 
-        children: [
           {
-            path: '',
-            element: <ServerImplementationOverviewPage />
+            path: 'server-run/:serverRunId',
+            element: <ServerRunLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ServerRunPage />
+              }
+            ]
           },
+
           {
-            path: 'config',
-            element: <ServerImplementationConfigPage />
-          },
-          {
-            path: 'runs',
-            element: <ServerImplementationRunsPage />
-          },
-          {
-            path: 'errors',
-            element: <ServerImplementationErrorsPage />
-          },
-          {
-            path: 'deployments',
-            element: <ServerImplementationDeploymentsPage />
+            path: 'session/:sessionId',
+            element: <SessionLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <SessionPage />
+              }
+            ]
           }
         ]
       }

@@ -47,7 +47,7 @@ export let ServerDeploymentForm = (p: ServerDeploymentFormProps & { close?: () =
   let variants = useServerVariants(
     instance.data?.id,
     p.type == 'create'
-      ? (p.for?.serverId ?? searchServer?.serverId)
+      ? (p.for?.serverId ?? searchServer?.server.id)
       : deployment?.data?.server.id
   );
 
@@ -87,7 +87,7 @@ export let ServerDeploymentForm = (p: ServerDeploymentFormProps & { close?: () =
           metadata: values.metadata,
           config: values.config,
           instanceId: instance.data?.id!,
-          serverId: p.for?.serverId ?? searchServer?.serverId!,
+          serverId: p.for?.serverId ?? searchServer?.server.id!,
           ...p.for
         });
 

@@ -50,7 +50,7 @@ export let ServerImplementationForm = (
   let variants = useServerVariants(
     instance.data?.id,
     p.type == 'create'
-      ? (p.for?.serverId ?? searchServer?.serverId)
+      ? (p.for?.serverId ?? searchServer?.server.id)
       : implementation?.data?.server.id
   );
 
@@ -90,7 +90,7 @@ export let ServerImplementationForm = (
           metadata: values.metadata,
           getLaunchParams: values.getLaunchParams,
           instanceId: instance.data?.id!,
-          serverId: p.for?.serverId ?? searchServer?.serverId!,
+          serverId: p.for?.serverId ?? searchServer?.server.id!,
           ...p.for
         });
 

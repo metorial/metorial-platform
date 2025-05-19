@@ -1,7 +1,7 @@
 import { useCurrentInstance, useServer } from '@metorial/state';
 import { useParams } from 'react-router-dom';
 
-export let ServerRunsPage = () => {
+export let ServerServerRunsPage = () => {
   let instance = useCurrentInstance();
 
   let { serverId } = useParams();

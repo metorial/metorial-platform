@@ -3,7 +3,7 @@ import { useCurrentInstance, useServer } from '@metorial/state';
 import { useParams } from 'react-router-dom';
 import { ServerImplementationsTable } from '../../../scenes/server-implementations/table';
 
-export let ServerImplementationsPage = () => {
+export let ServerServerImplementationsPage = () => {
   let instance = useCurrentInstance();
 
   let { serverId } = useParams();

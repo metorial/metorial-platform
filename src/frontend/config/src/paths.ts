@@ -36,19 +36,6 @@ let InstancePaths = Object.assign(
       instance: EntityParam,
       ...subPages: (string | null | undefined)[]
     ) => InstancePaths(organization, project, instance, 'servers', ...subPages),
-    serverDeployments: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      ...subPages: (string | null | undefined)[]
-    ) => InstancePaths(organization, project, instance, 'server-deployments', ...subPages),
-    serverImplementations: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      ...subPages: (string | null | undefined)[]
-    ) => InstancePaths(organization, project, instance, 'server-implementations', ...subPages),
-
     server: (
       organization: EntityParam,
       project: EntityParam,
@@ -59,6 +46,13 @@ let InstancePaths = Object.assign(
       if (!id) return '#';
       return InstancePaths(organization, project, instance, 'server', id, ...subPages);
     },
+
+    serverDeployments: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: (string | null | undefined)[]
+    ) => InstancePaths(organization, project, instance, 'server-deployments', ...subPages),
     serverDeployment: (
       organization: EntityParam,
       project: EntityParam,
@@ -76,6 +70,13 @@ let InstancePaths = Object.assign(
         ...subPages
       );
     },
+
+    serverImplementations: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: (string | null | undefined)[]
+    ) => InstancePaths(organization, project, instance, 'server-implementations', ...subPages),
     serverImplementation: (
       organization: EntityParam,
       project: EntityParam,
@@ -92,7 +93,65 @@ let InstancePaths = Object.assign(
         id,
         ...subPages
       );
-    }
+    },
+
+    sessions: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: (string | null | undefined)[]
+    ) => InstancePaths(organization, project, instance, 'sessions', ...subPages),
+    session: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: (string | null | undefined)[]
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'session', id, ...subPages);
+    },
+
+    serverErrors: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: (string | null | undefined)[]
+    ) => InstancePaths(organization, project, instance, 'server-errors', ...subPages),
+    serverError: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: (string | null | undefined)[]
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'server-error', id, ...subPages);
+    },
+
+    serverRuns: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: (string | null | undefined)[]
+    ) => InstancePaths(organization, project, instance, 'server-runs', ...subPages),
+    serverRun: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: (string | null | undefined)[]
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'server-run', id, ...subPages);
+    },
+
+    inspector: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: (string | null | undefined)[]
+    ) => InstancePaths(organization, project, instance, 'inspector', ...subPages)
   }
 );
 
