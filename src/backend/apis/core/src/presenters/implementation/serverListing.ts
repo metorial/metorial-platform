@@ -3,6 +3,7 @@ import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { serverListingType } from '../types';
 import { v1ServerListingCategoryPresenter } from './serverCategory';
+import { v1ServerPreview } from './serverPreview';
 
 export let v1ServerListingPresenter = Presenter.create(serverListingType)
   .presenter(async ({ serverListing }, opts) => {
@@ -22,7 +23,7 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
 
       skills: serverListing.skills,
 
-      server_id: serverListing.server.id,
+      server: v1ServerPreview(serverListing.server),
 
       categories: await Promise.all(
         serverListing.categories.map(category =>
@@ -106,13 +107,14 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
       name: v.string(),
       description: v.string(),
       readme: v.string(),
-      server_id: v.string(),
       categories: v.array(v1ServerListingCategoryPresenter.schema),
       skills: v.array(v.string()),
 
       is_official: v.boolean(),
       is_community: v.boolean(),
       is_hostable: v.boolean(),
+
+      server: v1ServerPreview.schema,
 
       vendor: v.nullable(
         v.object({

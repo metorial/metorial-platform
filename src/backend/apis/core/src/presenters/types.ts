@@ -222,6 +222,7 @@ export let serverSessionType = PresentableType.create<{
   serverSession: ServerSession & {
     serverDeployment: ServerDeployment & {
       serverVariant: ServerVariant;
+      server: Server;
     };
   };
 }>()('session.server_session');
@@ -239,7 +240,7 @@ export let sessionEventType = PresentableType.create<{
     serverRun:
       | (ServerRun & {
           serverVersion: ServerVersion;
-          serverDeployment: ServerDeployment;
+          serverDeployment: ServerDeployment & { server: Server };
           serverSession: ServerSession;
         })
       | null;
@@ -249,7 +250,7 @@ export let sessionEventType = PresentableType.create<{
 export let serverRunType = PresentableType.create<{
   serverRun: ServerRun & {
     serverVersion: ServerVersion;
-    serverDeployment: ServerDeployment;
+    serverDeployment: ServerDeployment & { server: Server };
     serverSession: ServerSession & { session: Session };
   };
 }>()('server.server_run');
@@ -258,7 +259,7 @@ export let serverRunErrorType = PresentableType.create<{
   serverRunError: ServerRunError & {
     serverRun: ServerRun & {
       serverVersion: ServerVersion;
-      serverDeployment: ServerDeployment;
+      serverDeployment: ServerDeployment & { server: Server };
       serverSession: ServerSession & { session: Session };
     };
   };
@@ -270,7 +271,7 @@ export let serverRunErrorGroupType = PresentableType.create<{
       | (ServerRunError & {
           serverRun: ServerRun & {
             serverVersion: ServerVersion;
-            serverDeployment: ServerDeployment;
+            serverDeployment: ServerDeployment & { server: Server };
             serverSession: ServerSession & { session: Session };
           };
         })

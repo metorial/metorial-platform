@@ -1,7 +1,8 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { serverImplementationType } from '../types';
-import { tryGetHostname } from './serverVariant';
+import { v1ServerPreview } from './serverPreview';
+import { v1ServerVariantPreview } from './serverVariantPreview';
 
 export let v1ServerImplementationPresenter = Presenter.create(serverImplementationType)
   .presenter(async ({ serverImplementation }, opts) => ({
@@ -16,37 +17,12 @@ export let v1ServerImplementationPresenter = Presenter.create(serverImplementati
     metadata: serverImplementation.metadata,
     get_launch_params: serverImplementation.getLaunchParams,
 
-    server_variant: {
-      id: serverImplementation.serverVariant.id,
-      identifier: serverImplementation.serverVariant.identifier,
+    server_variant: v1ServerVariantPreview(
+      serverImplementation.serverVariant,
+      serverImplementation.server
+    ),
 
-      source: {
-        type: serverImplementation.serverVariant.sourceType,
-        docker: serverImplementation.serverVariant.dockerImage
-          ? {
-              image: serverImplementation.serverVariant.dockerImage
-            }
-          : null,
-        remote: serverImplementation.serverVariant.remoteUrl
-          ? {
-              domain: tryGetHostname(serverImplementation.serverVariant.remoteUrl)
-            }
-          : null
-      } as any,
-
-      created_at: serverImplementation.serverVariant.createdAt
-    },
-
-    server: {
-      id: serverImplementation.server.id,
-      name: serverImplementation.server.name,
-      description: serverImplementation.server.description,
-
-      type: { imported: 'public' as const }[serverImplementation.server.type],
-
-      created_at: serverImplementation.server.createdAt,
-      updated_at: serverImplementation.server.updatedAt
-    },
+    server: v1ServerPreview(serverImplementation.server),
 
     created_at: serverImplementation.createdAt,
     updated_at: serverImplementation.updatedAt
@@ -64,37 +40,8 @@ export let v1ServerImplementationPresenter = Presenter.create(serverImplementati
 
       get_launch_params: v.nullable(v.string()),
 
-      server_variant: v.object({
-        id: v.string(),
-        identifier: v.string(),
-
-        source: v.union([
-          v.object({
-            type: v.literal('docker'),
-            docker: v.object({
-              image: v.string()
-            })
-          }),
-          v.object({
-            type: v.literal('remote'),
-            remote: v.object({
-              domain: v.string()
-            })
-          })
-        ]),
-
-        created_at: v.date()
-      }),
-
-      server: v.object({
-        id: v.string(),
-        name: v.string(),
-        description: v.nullable(v.string()),
-        type: v.enumOf(['public']),
-
-        created_at: v.date(),
-        updated_at: v.date()
-      }),
+      server_variant: v1ServerVariantPreview.schema,
+      server: v1ServerPreview.schema,
 
       created_at: v.date(),
       updated_at: v.date()

@@ -3,6 +3,7 @@ import { v } from '@metorial/validation';
 import { serverDeploymentPreviewType, serverDeploymentType } from '../types';
 import { v1ServerDeploymentConfigPresenter } from './serverDeploymentConfig';
 import { v1ServerImplementationPresenter } from './serverImplementation';
+import { v1ServerPreview } from './serverPreview';
 
 export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
   .presenter(async ({ serverDeployment }, opts) => ({
@@ -16,18 +17,7 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
 
     metadata: serverDeployment.metadata,
 
-    server: {
-      object: 'server#preview',
-
-      id: serverDeployment.server.id,
-      name: serverDeployment.server.name,
-      description: serverDeployment.server.description,
-
-      type: { imported: 'public' as const }[serverDeployment.server.type],
-
-      created_at: serverDeployment.server.createdAt,
-      updated_at: serverDeployment.server.updatedAt
-    },
+    server: v1ServerPreview(serverDeployment.server),
 
     config: await v1ServerDeploymentConfigPresenter
       .present({ config: serverDeployment.config }, opts)
@@ -53,17 +43,7 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
 
       secret_id: v.string(),
 
-      server: v.object({
-        object: v.literal('server#preview'),
-
-        id: v.string(),
-        name: v.string(),
-        description: v.nullable(v.string()),
-        type: v.enumOf(['public']),
-
-        created_at: v.date(),
-        updated_at: v.date()
-      }),
+      server: v1ServerPreview.schema,
 
       config: v1ServerDeploymentConfigPresenter.schema,
 
@@ -87,18 +67,7 @@ export let v1ServerDeploymentPreviewPresenter = Presenter.create(serverDeploymen
 
     metadata: serverDeployment.metadata,
 
-    server: {
-      object: 'server#preview',
-
-      id: serverDeployment.server.id,
-      name: serverDeployment.server.name,
-      description: serverDeployment.server.description,
-
-      type: { imported: 'public' as const }[serverDeployment.server.type],
-
-      created_at: serverDeployment.server.createdAt,
-      updated_at: serverDeployment.server.updatedAt
-    },
+    server: v1ServerPreview(serverDeployment.server),
 
     created_at: serverDeployment.createdAt,
     updated_at: serverDeployment.updatedAt
@@ -116,17 +85,7 @@ export let v1ServerDeploymentPreviewPresenter = Presenter.create(serverDeploymen
 
       secret_id: v.string(),
 
-      server: v.object({
-        object: v.literal('server#preview'),
-
-        id: v.string(),
-        name: v.string(),
-        description: v.nullable(v.string()),
-        type: v.enumOf(['public']),
-
-        created_at: v.date(),
-        updated_at: v.date()
-      }),
+      server: v1ServerPreview.schema,
 
       created_at: v.date(),
       updated_at: v.date()

@@ -1,6 +1,9 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { serverRunType } from '../types';
+import { v1ServerDeploymentPreview } from './serverDeploymentPreview';
+import { v1ServerPreview } from './serverPreview';
+import { v1ServerSessionPreview } from './serverSessionPreview';
 
 export let v1ServerRunPresenter = Presenter.create(serverRunType)
   .presenter(async ({ serverRun }, opts) => ({
@@ -11,9 +14,18 @@ export let v1ServerRunPresenter = Presenter.create(serverRunType)
     type: serverRun.type,
 
     server_version_id: serverRun.serverVersion.id,
-    server_deployment_id: serverRun.serverDeployment.id,
-    server_session_id: serverRun.serverSession.id,
-    session_id: serverRun.serverSession.session.id,
+
+    server: v1ServerPreview(serverRun.serverDeployment.server),
+
+    server_deployment: v1ServerDeploymentPreview(
+      serverRun.serverDeployment,
+      serverRun.serverDeployment.server
+    ),
+
+    server_session: v1ServerSessionPreview(
+      serverRun.serverSession,
+      serverRun.serverSession.session
+    ),
 
     created_at: serverRun.createdAt,
     updated_at: serverRun.updatedAt,
@@ -29,9 +41,10 @@ export let v1ServerRunPresenter = Presenter.create(serverRunType)
       status: v.enumOf(['active', 'failed', 'completed']),
 
       server_version_id: v.string(),
-      server_deployment_id: v.string(),
-      server_session_id: v.string(),
-      session_id: v.string(),
+
+      server: v1ServerPreview.schema,
+      server_deployment: v1ServerDeploymentPreview.schema,
+      server_session: v1ServerSessionPreview.schema,
 
       created_at: v.date(),
       updated_at: v.date(),

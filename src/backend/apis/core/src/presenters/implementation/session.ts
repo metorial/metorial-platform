@@ -2,7 +2,6 @@ import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { sessionType } from '../types';
 import { v1ServerDeploymentPreviewPresenter } from './serverDeployment';
-import { v1ServerSessionPresenter } from './serverSession';
 
 export let v1SessionPresenter = Presenter.create(sessionType)
   .presenter(async ({ session }, opts) => {
@@ -25,14 +24,7 @@ export let v1SessionPresenter = Presenter.create(sessionType)
 
       server_deployments: await Promise.all(
         session.serverDeployments.map(serverDeployment =>
-          v1ServerDeploymentPreviewPresenter
-            .present(
-              {
-                serverDeployment
-              },
-              opts
-            )
-            .run()
+          v1ServerDeploymentPreviewPresenter.present({ serverDeployment }, opts).run()
         )
       ),
 
@@ -68,8 +60,6 @@ export let v1SessionPresenter = Presenter.create(sessionType)
       }),
 
       server_deployments: v.array(v1ServerDeploymentPreviewPresenter.schema),
-
-      server_sessions: v.array(v1ServerSessionPresenter.schema),
 
       usage: v.object({
         total_productive_message_count: v.number(),

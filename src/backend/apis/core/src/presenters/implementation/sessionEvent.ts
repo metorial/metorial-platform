@@ -37,13 +37,11 @@ export let v1SessionEventPresenter = Presenter.create(sessionEventType)
 
       id: v.string(),
       type: v.enumOf([
-        'message',
+        'server_logs',
         'error',
         'server_run_created',
         'server_run_started',
-        'server_run_stopped',
-        'client_connected',
-        'client_disconnected'
+        'server_run_stopped'
       ]),
 
       session_id: v.string(),

@@ -1,13 +1,9 @@
-import { Presenter } from '@metorial/presenter';
+import { ServerSession, Session } from '@metorial/db';
 import { v } from '@metorial/validation';
-import { serverSessionType } from '../types';
-import { v1ServerDeploymentPreview } from './serverDeploymentPreview';
-import { v1ServerPreview } from './serverPreview';
-import { v1SessionPreview } from './sessionPreview';
 
-export let v1ServerSessionPresenter = Presenter.create(serverSessionType)
-  .presenter(async ({ session, serverSession }, opts) => ({
-    object: 'session.server_session',
+export let v1ServerSessionPreview = Object.assign(
+  (serverSession: ServerSession, session: Session) => ({
+    object: 'session.server_session#preview',
 
     id: serverSession.id,
     status: 'active',
@@ -48,19 +44,13 @@ export let v1ServerSessionPresenter = Presenter.create(serverSessionType)
       total_productive_server_message_count: serverSession.totalProductiveServerMessageCount
     },
 
-    server: v1ServerPreview(serverSession.serverDeployment.server),
-
-    session: v1SessionPreview(session),
-    server_deployment: v1ServerDeploymentPreview(
-      serverSession.serverDeployment,
-      serverSession.serverDeployment.server
-    ),
+    session_id: session.id,
 
     created_at: serverSession.createdAt
-  }))
-  .schema(
-    v.object({
-      object: v.literal('session.server_session'),
+  }),
+  {
+    schema: v.object({
+      object: v.literal('session.server_session#preview'),
 
       id: v.string(),
       status: v.enumOf(['active']),
@@ -99,12 +89,9 @@ export let v1ServerSessionPresenter = Presenter.create(serverSessionType)
         total_productive_server_message_count: v.number()
       }),
 
-      server: v1ServerPreview.schema,
-
-      session: v1SessionPreview.schema,
-      server_deployment: v1ServerDeploymentPreview.schema,
+      session_id: v.string(),
 
       created_at: v.date()
     })
-  )
-  .build();
+  }
+);

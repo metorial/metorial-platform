@@ -37,7 +37,9 @@ export let serverRunErrorController = Controller.create(
           v.object({
             server_session_ids: v.optional(v.union([v.string(), v.array(v.string())])),
             server_implementation_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_deployment_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_deployment_ids: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_run_ids: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_run_error_group_ids: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
@@ -46,7 +48,9 @@ export let serverRunErrorController = Controller.create(
           instance: ctx.instance,
           serverSessionIds: normalizeArrayParam(ctx.query.server_session_ids),
           serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_ids),
-          serverDeploymentIds: normalizeArrayParam(ctx.query.server_deployment_ids)
+          serverDeploymentIds: normalizeArrayParam(ctx.query.server_deployment_ids),
+          serverRunIds: normalizeArrayParam(ctx.query.server_run_ids),
+          serverRunErrorGroupIds: normalizeArrayParam(ctx.query.server_run_error_group_ids)
         });
 
         let list = await paginator.run(ctx.query);
