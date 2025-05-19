@@ -66,6 +66,7 @@ export let closeServerRunQueueProcessor = closeServerRunQueue.process(async d =>
         get_launch_params_error: 'Get launch params function failed'
       }[d.result.reason] ?? 'Unknown error';
 
+    let groupId = await ID.generateId('serverRunErrorGroup');
     let group = await db.serverRunErrorGroup.upsert({
       where: {
         fingerprint_serverOid_instanceOid: {
@@ -75,33 +76,50 @@ export let closeServerRunQueueProcessor = closeServerRunQueue.process(async d =>
         }
       },
       create: {
-        id: await ID.generateId('serverRunErrorGroup'),
+        id: groupId,
         fingerprint: errorFingerprint,
         message,
         code: d.result.reason,
         count: 1,
         serverOid: d.session.serverDeployment.serverOid,
-        instanceOid: d.session.instanceOid
+        instanceOid: d.session.instanceOid,
+        lastSeenAt: new Date()
       },
       update: {
-        count: { increment: 1 }
+        count: { increment: 1 },
+        lastSeenAt: new Date()
       }
     });
 
-    await db.serverRunError.createMany({
-      data: {
-        id: await ID.generateId('serverRunError'),
-        code: d.result.reason,
-        message,
-        metadata: {
-          exitCode: d.result.exitCode ?? 0
-        },
-        serverDeploymentOid: d.session.serverDeployment.oid,
-        serverRunErrorGroupOid: group.oid,
-        serverRunOid: d.serverRun.oid,
-        instanceOid: d.session.instanceOid
-      }
-    });
+    let errorData = {
+      id: await ID.generateId('serverRunError'),
+      code: d.result.reason,
+      message,
+      metadata: {
+        exitCode: d.result.exitCode ?? 0
+      },
+      serverDeploymentOid: d.session.serverDeployment.oid,
+      serverRunErrorGroupOid: group.oid,
+      serverRunOid: d.serverRun.oid,
+      instanceOid: d.session.instanceOid
+    };
+
+    // Attach this as the default error for this group,
+    // if it doesn't have one already
+    if (group.defaultServerRunErrorOid === null) {
+      let defaultError = await db.serverRunError.create({
+        data: errorData
+      });
+
+      await db.serverRunErrorGroup.updateMany({
+        where: { oid: group.oid },
+        data: { defaultServerRunErrorOid: defaultError.oid }
+      });
+    } else {
+      await db.serverRunError.createMany({
+        data: errorData
+      });
+    }
   }
 
   // Timeout to allow for final logs to be sent

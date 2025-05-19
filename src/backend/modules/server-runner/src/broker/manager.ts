@@ -50,12 +50,24 @@ export class BrokerRunManager {
     this.#lastClientMessageAt = Date.now();
     this.#lastClientRequestMessageAt = Date.now();
 
-    this.#activePingIv = setInterval(async () => {
-      await db.serverRun.updateMany({
-        where: { oid: this.serverRun.oid },
-        data: { lastPingAt: new Date() }
-      });
-    }, ACTIVE_PING_INTERVAL);
+    let dbPing = async () => {
+      try {
+        await db.serverRun.updateMany({
+          where: { oid: this.serverRun.oid },
+          data: { lastPingAt: new Date() }
+        });
+
+        await db.session.updateMany({
+          where: { oid: this.session.sessionOid },
+          data: { lastClientPingAt: new Date() }
+        });
+      } catch (e) {
+        Sentry.captureException(e);
+        console.error('Error pinging database', e);
+      }
+    };
+
+    this.#activePingIv = setInterval(dbPing, ACTIVE_PING_INTERVAL);
 
     this.#bus = BrokerBus.create({ type: 'server', id: serverRun.id }, session, {
       subscribe: true

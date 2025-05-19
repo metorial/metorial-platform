@@ -117,8 +117,14 @@ export class BrokerBus {
               where: { oid: this.session.sessionOid },
               data:
                 this.connector == 'server'
-                  ? { totalProductiveServerMessageCount: { increment: messages.length } }
-                  : { totalProductiveClientMessageCount: { increment: messages.length } }
+                  ? {
+                      totalProductiveServerMessageCount: { increment: messages.length }
+                    }
+                  : {
+                      totalProductiveClientMessageCount: { increment: messages.length },
+                      lastClientActionAt: new Date(),
+                      lastClientPingAt: new Date()
+                    }
             });
           })().catch(e => {
             Sentry.captureException(e);

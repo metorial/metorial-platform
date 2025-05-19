@@ -7,6 +7,7 @@ import { Service } from '@metorial/service';
 let include = {
   serverDeployment: {
     include: {
+      server: true,
       serverVariant: true
     }
   }

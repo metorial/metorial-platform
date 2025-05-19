@@ -57,7 +57,7 @@ export class BrokerClientManager {
 
   async sendMessage(message: JSONRPCMessage | JSONRPCMessage[]) {
     let messages: JSONRPCMessage[] = Array.isArray(message) ? message : [message];
-    if (!messages.length) return;
+    if (!messages.length) return [];
 
     await this.ensureRunner();
     return this.#bus.then(bus => bus.sendMessage(message));

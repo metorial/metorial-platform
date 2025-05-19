@@ -4,7 +4,11 @@ import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 
 let include = {
-  serverDeployment: true,
+  serverDeployment: {
+    include: {
+      server: true
+    }
+  },
   serverVersion: true,
   serverSession: {
     include: {

@@ -7,7 +7,11 @@ let include = {
   serverRun: {
     include: {
       serverVersion: true,
-      serverDeployment: true,
+      serverDeployment: {
+        include: {
+          server: true
+        }
+      },
       serverSession: true
     }
   }

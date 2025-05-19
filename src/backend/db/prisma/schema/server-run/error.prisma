@@ -19,7 +19,8 @@ model ServerRunErrorGroup {
 
   errors ServerRunError[]
 
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
 
   @@unique([fingerprint, serverOid, instanceOid])
 }

@@ -48,6 +48,18 @@ let disconnectSessionQueueProcessor = disconnectSessionQueue.process(async data 
     }
   });
 
+  await db.serverRun.updateMany({
+    where: {
+      serverSession: {
+        sessionOid: session.oid
+      },
+      stoppedAt: null
+    },
+    data: {
+      stoppedAt: new Date()
+    }
+  });
+
   await db.serverSession.updateMany({
     where: {
       sessionOid: session.oid,
