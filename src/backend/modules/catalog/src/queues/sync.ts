@@ -72,10 +72,13 @@ let serverSyncQueue = createQueue<{ identifier: string }>({
   workerOpts: {
     concurrency: 1,
 
-    limiter: {
-      max: 20,
-      duration: 1000
-    }
+    limiter:
+      process.env.NODE_ENV == 'development'
+        ? undefined
+        : {
+            max: 20,
+            duration: 1000
+          }
   },
   jobOpts: {
     attempts: 3,
@@ -283,12 +286,7 @@ let serversSyncQueueProcessor = serversSyncQueue.process(async () => {
   let index = getIndexDatabase();
 
   let servers = index
-    .query<
-      {
-        identifier: string;
-      },
-      any
-    >('SELECT * FROM PublicServer')
+    .query<{ identifier: string }, any>('SELECT * FROM PublicServer')
     .iterate();
 
   let chunk: string[] = [];
@@ -298,13 +296,17 @@ let serversSyncQueueProcessor = serversSyncQueue.process(async () => {
     chunk.push(server.identifier);
 
     if (chunk.length >= maxChunkSize) {
-      await serverSyncQueue.addMany(chunk.map(identifier => ({ identifier })));
+      await serverSyncQueue.addManyWithOps(
+        chunk.map(identifier => ({ data: { identifier }, opts: { id: identifier } }))
+      );
       chunk = [];
     }
   }
 
   if (chunk.length > 0) {
-    await serverSyncQueue.addMany(chunk.map(identifier => ({ identifier })));
+    await serverSyncQueue.addManyWithOps(
+      chunk.map(identifier => ({ data: { identifier }, opts: { id: identifier } }))
+    );
   }
 });
 

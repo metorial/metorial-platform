@@ -37,9 +37,10 @@ export let startRankQueueProcessor = startRankQueue.process(async () => {
     });
     if (servers.length == 0) break;
 
-    await processSingleRankQueue.addMany(
+    await processSingleRankQueue.addManyWithOps(
       servers.map(server => ({
-        serverListingId: server.id
+        data: { serverListingId: server.id },
+        opts: { id: server.id }
       }))
     );
   }
