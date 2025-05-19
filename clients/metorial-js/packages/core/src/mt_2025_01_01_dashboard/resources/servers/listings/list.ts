@@ -9,7 +9,6 @@ export type ServersListingsListOutput = {
     name: string;
     description: string;
     readme: string;
-    serverId: string;
     categories: {
       object: 'server_listing.category';
       id: string;
@@ -19,9 +18,19 @@ export type ServersListingsListOutput = {
       createdAt: Date;
       updatedAt: Date;
     }[];
+    skills: string[];
     isOfficial: boolean;
     isCommunity: boolean;
     isHostable: boolean;
+    server: {
+      object: 'server#preview';
+      id: string;
+      name: string;
+      description: string | null;
+      type: 'public';
+      createdAt: Date;
+      updatedAt: Date;
+    };
     vendor: {
       id: string;
       identifier: string;
@@ -76,7 +85,6 @@ export let mapServersListingsListOutput =
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           readme: mtMap.objectField('readme', mtMap.passthrough()),
-          serverId: mtMap.objectField('server_id', mtMap.passthrough()),
           categories: mtMap.objectField(
             'categories',
             mtMap.array(
@@ -94,9 +102,25 @@ export let mapServersListingsListOutput =
               })
             )
           ),
+          skills: mtMap.objectField('skills', mtMap.array(mtMap.passthrough())),
           isOfficial: mtMap.objectField('is_official', mtMap.passthrough()),
           isCommunity: mtMap.objectField('is_community', mtMap.passthrough()),
           isHostable: mtMap.objectField('is_hostable', mtMap.passthrough()),
+          server: mtMap.objectField(
+            'server',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
+              type: mtMap.objectField('type', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+            })
+          ),
           vendor: mtMap.objectField(
             'vendor',
             mtMap.object({

@@ -13,9 +13,53 @@ export type DashboardInstanceServerRunErrorsListOutput = {
       type: 'hosted' | 'external';
       status: 'active' | 'failed' | 'completed';
       serverVersionId: string;
-      serverDeploymentId: string;
-      serverSessionId: string;
-      sessionId: string;
+      server: {
+        object: 'server#preview';
+        id: string;
+        name: string;
+        description: string | null;
+        type: 'public';
+        createdAt: Date;
+        updatedAt: Date;
+      };
+      serverDeployment: {
+        object: 'server.server_deployment#preview';
+        id: string;
+        name: string | null;
+        description: string | null;
+        metadata: Record<string, any>;
+        createdAt: Date;
+        updatedAt: Date;
+      };
+      serverSession: {
+        object: 'session.server_session#preview';
+        id: string;
+        status: 'active';
+        mcp: {
+          object: 'mcp';
+          version: string;
+          connectionType: 'sse' | 'streamable_http' | 'websocket';
+          client: {
+            object: 'session.server_session.client';
+            name: string;
+            version: string;
+            capabilities: Record<string, any>;
+          } | null;
+          server: {
+            object: 'session.server_session.server';
+            name: string;
+            version: string;
+            capabilities: Record<string, any>;
+          } | null;
+        };
+        usage: {
+          totalProductiveMessageCount: number;
+          totalProductiveClientMessageCount: number;
+          totalProductiveServerMessageCount: number;
+        };
+        sessionId: string;
+        createdAt: Date;
+      };
       createdAt: Date;
       updatedAt: Date;
       startedAt: Date | null;
@@ -48,15 +92,116 @@ export let mapDashboardInstanceServerRunErrorsListOutput =
                 'server_version_id',
                 mtMap.passthrough()
               ),
-              serverDeploymentId: mtMap.objectField(
-                'server_deployment_id',
-                mtMap.passthrough()
+              server: mtMap.objectField(
+                'server',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  description: mtMap.objectField(
+                    'description',
+                    mtMap.passthrough()
+                  ),
+                  type: mtMap.objectField('type', mtMap.passthrough()),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
               ),
-              serverSessionId: mtMap.objectField(
-                'server_session_id',
-                mtMap.passthrough()
+              serverDeployment: mtMap.objectField(
+                'server_deployment',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  description: mtMap.objectField(
+                    'description',
+                    mtMap.passthrough()
+                  ),
+                  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
               ),
-              sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
+              serverSession: mtMap.objectField(
+                'server_session',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  status: mtMap.objectField('status', mtMap.passthrough()),
+                  mcp: mtMap.objectField(
+                    'mcp',
+                    mtMap.object({
+                      object: mtMap.objectField('object', mtMap.passthrough()),
+                      version: mtMap.objectField(
+                        'version',
+                        mtMap.passthrough()
+                      ),
+                      connectionType: mtMap.objectField(
+                        'connection_type',
+                        mtMap.passthrough()
+                      ),
+                      client: mtMap.objectField(
+                        'client',
+                        mtMap.object({
+                          object: mtMap.objectField(
+                            'object',
+                            mtMap.passthrough()
+                          ),
+                          name: mtMap.objectField('name', mtMap.passthrough()),
+                          version: mtMap.objectField(
+                            'version',
+                            mtMap.passthrough()
+                          ),
+                          capabilities: mtMap.objectField(
+                            'capabilities',
+                            mtMap.passthrough()
+                          )
+                        })
+                      ),
+                      server: mtMap.objectField(
+                        'server',
+                        mtMap.object({
+                          object: mtMap.objectField(
+                            'object',
+                            mtMap.passthrough()
+                          ),
+                          name: mtMap.objectField('name', mtMap.passthrough()),
+                          version: mtMap.objectField(
+                            'version',
+                            mtMap.passthrough()
+                          ),
+                          capabilities: mtMap.objectField(
+                            'capabilities',
+                            mtMap.passthrough()
+                          )
+                        })
+                      )
+                    })
+                  ),
+                  usage: mtMap.objectField(
+                    'usage',
+                    mtMap.object({
+                      totalProductiveMessageCount: mtMap.objectField(
+                        'total_productive_message_count',
+                        mtMap.passthrough()
+                      ),
+                      totalProductiveClientMessageCount: mtMap.objectField(
+                        'total_productive_client_message_count',
+                        mtMap.passthrough()
+                      ),
+                      totalProductiveServerMessageCount: mtMap.objectField(
+                        'total_productive_server_message_count',
+                        mtMap.passthrough()
+                      )
+                    })
+                  ),
+                  sessionId: mtMap.objectField(
+                    'session_id',
+                    mtMap.passthrough()
+                  ),
+                  createdAt: mtMap.objectField('created_at', mtMap.date())
+                })
+              ),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date()),
               startedAt: mtMap.objectField('started_at', mtMap.date()),
@@ -89,6 +234,8 @@ export type DashboardInstanceServerRunErrorsListQuery = {
   serverSessionIds?: string | string[] | undefined;
   serverImplementationIds?: string | string[] | undefined;
   serverDeploymentIds?: string | string[] | undefined;
+  serverRunIds?: string | string[] | undefined;
+  serverRunErrorGroupIds?: string | string[] | undefined;
 };
 
 export let mapDashboardInstanceServerRunErrorsListQuery = mtMap.union([
@@ -122,6 +269,26 @@ export let mapDashboardInstanceServerRunErrorsListQuery = mtMap.union([
       ),
       serverDeploymentIds: mtMap.objectField(
         'server_deployment_ids',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      serverRunIds: mtMap.objectField(
+        'server_run_ids',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      serverRunErrorGroupIds: mtMap.objectField(
+        'server_run_error_group_ids',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
