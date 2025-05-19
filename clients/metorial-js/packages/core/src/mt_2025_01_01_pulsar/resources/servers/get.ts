@@ -11,7 +11,15 @@ export type ServersGetOutput = {
     object: 'server.server_variant';
     id: string;
     identifier: string;
-    serverId: string;
+    server: {
+      object: 'server#preview';
+      id: string;
+      name: string;
+      description: string | null;
+      type: 'public';
+      createdAt: Date;
+      updatedAt: Date;
+    };
     currentVersion: {
       object: 'server.server_version';
       id: string;
@@ -30,6 +38,15 @@ export type ServersGetOutput = {
         serverVariantId: string;
         serverVersionId: string;
         createdAt: Date;
+      };
+      server: {
+        object: 'server#preview';
+        id: string;
+        name: string;
+        description: string | null;
+        type: 'public';
+        createdAt: Date;
+        updatedAt: Date;
       };
       createdAt: Date;
     } | null;
@@ -60,7 +77,18 @@ export let mapServersGetOutput = mtMap.object<ServersGetOutput>({
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-        serverId: mtMap.objectField('server_id', mtMap.passthrough()),
+        server: mtMap.objectField(
+          'server',
+          mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            name: mtMap.objectField('name', mtMap.passthrough()),
+            description: mtMap.objectField('description', mtMap.passthrough()),
+            type: mtMap.objectField('type', mtMap.passthrough()),
+            createdAt: mtMap.objectField('created_at', mtMap.date()),
+            updatedAt: mtMap.objectField('updated_at', mtMap.date())
+          })
+        ),
         currentVersion: mtMap.objectField(
           'current_version',
           mtMap.object({
@@ -119,6 +147,21 @@ export let mapServersGetOutput = mtMap.object<ServersGetOutput>({
                   mtMap.passthrough()
                 ),
                 createdAt: mtMap.objectField('created_at', mtMap.date())
+              })
+            ),
+            server: mtMap.objectField(
+              'server',
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                name: mtMap.objectField('name', mtMap.passthrough()),
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                ),
+                type: mtMap.objectField('type', mtMap.passthrough()),
+                createdAt: mtMap.objectField('created_at', mtMap.date()),
+                updatedAt: mtMap.objectField('updated_at', mtMap.date())
               })
             ),
             createdAt: mtMap.objectField('created_at', mtMap.date())

@@ -9,14 +9,17 @@ export type ServersImplementationsCreateOutput = {
   metadata: Record<string, any>;
   getLaunchParams: string | null;
   serverVariant: {
+    object: 'server.server_variant#preview';
     id: string;
     identifier: string;
+    serverId: string;
     source:
       | { type: 'docker'; docker: { image: string } }
       | { type: 'remote'; remote: { domain: string } };
     createdAt: Date;
   };
   server: {
+    object: 'server#preview';
     id: string;
     name: string;
     description: string | null;
@@ -43,8 +46,10 @@ export let mapServersImplementationsCreateOutput =
     serverVariant: mtMap.objectField(
       'server_variant',
       mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         identifier: mtMap.objectField('identifier', mtMap.passthrough()),
+        serverId: mtMap.objectField('server_id', mtMap.passthrough()),
         source: mtMap.objectField(
           'source',
           mtMap.union([
@@ -74,6 +79,7 @@ export let mapServersImplementationsCreateOutput =
     server: mtMap.objectField(
       'server',
       mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
         description: mtMap.objectField('description', mtMap.passthrough()),

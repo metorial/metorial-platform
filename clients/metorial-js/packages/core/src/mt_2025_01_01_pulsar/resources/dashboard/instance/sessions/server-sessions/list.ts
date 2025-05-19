@@ -27,8 +27,38 @@ export type DashboardInstanceSessionsServerSessionsListOutput = {
       totalProductiveClientMessageCount: number;
       totalProductiveServerMessageCount: number;
     };
-    serverDeploymentId: string;
-    sessionId: string;
+    server: {
+      object: 'server#preview';
+      id: string;
+      name: string;
+      description: string | null;
+      type: 'public';
+      createdAt: Date;
+      updatedAt: Date;
+    };
+    session: {
+      object: 'session#preview';
+      id: string;
+      status: 'active' | 'deleted';
+      connectionStatus: 'connected' | 'disconnected';
+      usage: {
+        totalProductiveMessageCount: number;
+        totalProductiveClientMessageCount: number;
+        totalProductiveServerMessageCount: number;
+      };
+      metadata: Record<string, any>;
+      createdAt: Date;
+      updatedAt: Date;
+    };
+    serverDeployment: {
+      object: 'server.server_deployment#preview';
+      id: string;
+      name: string | null;
+      description: string | null;
+      metadata: Record<string, any>;
+      createdAt: Date;
+      updatedAt: Date;
+    };
     createdAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
@@ -95,11 +125,68 @@ export let mapDashboardInstanceSessionsServerSessionsListOutput =
               )
             })
           ),
-          serverDeploymentId: mtMap.objectField(
-            'server_deployment_id',
-            mtMap.passthrough()
+          server: mtMap.objectField(
+            'server',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
+              type: mtMap.objectField('type', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+            })
           ),
-          sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
+          session: mtMap.objectField(
+            'session',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              status: mtMap.objectField('status', mtMap.passthrough()),
+              connectionStatus: mtMap.objectField(
+                'connection_status',
+                mtMap.passthrough()
+              ),
+              usage: mtMap.objectField(
+                'usage',
+                mtMap.object({
+                  totalProductiveMessageCount: mtMap.objectField(
+                    'total_productive_message_count',
+                    mtMap.passthrough()
+                  ),
+                  totalProductiveClientMessageCount: mtMap.objectField(
+                    'total_productive_client_message_count',
+                    mtMap.passthrough()
+                  ),
+                  totalProductiveServerMessageCount: mtMap.objectField(
+                    'total_productive_server_message_count',
+                    mtMap.passthrough()
+                  )
+                })
+              ),
+              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+            })
+          ),
+          serverDeployment: mtMap.objectField(
+            'server_deployment',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
+              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+            })
+          ),
           createdAt: mtMap.objectField('created_at', mtMap.date())
         })
       )
