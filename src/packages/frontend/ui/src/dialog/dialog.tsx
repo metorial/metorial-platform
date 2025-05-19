@@ -85,9 +85,10 @@ export let Dialog = {
 
             <Wrapper
               style={{
-                ...style,
                 zIndex: zIndex + 1,
-                maxWidth: width ? width : variant == 'padded' ? 480 : 400
+                maxWidth: width ? width : variant == 'padded' ? 480 : 400,
+
+                ...style
               }}
             >
               <Inner variant={variant}>

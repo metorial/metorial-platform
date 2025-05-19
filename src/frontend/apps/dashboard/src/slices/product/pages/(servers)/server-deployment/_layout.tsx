@@ -88,8 +88,12 @@ export let ServerDeploymentLayout = () => {
         current={pathname}
         links={[
           {
-            label: 'Configuration',
+            label: 'Overview',
             to: Paths.instance.serverDeployment(...serverPathParams)
+          },
+          {
+            label: 'Configuration',
+            to: Paths.instance.serverDeployment(...serverPathParams, 'config')
           },
           {
             label: 'Runs',

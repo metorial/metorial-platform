@@ -94,11 +94,11 @@ export let ServerImplementationLayout = () => {
         current={pathname}
         links={[
           {
-            label: 'Configuration',
+            label: 'Overview',
             to: Paths.instance.serverImplementation(...serverPathParams)
           },
           {
-            label: 'Configure',
+            label: 'Configuration',
             to: Paths.instance.serverImplementation(...serverPathParams, 'config')
           },
           {

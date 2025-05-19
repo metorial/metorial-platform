@@ -11,7 +11,7 @@ import { BrokerBus } from '../lib/bus';
 import { getUnifiedIdIfNeeded } from '../lib/unifiedId';
 import { Participant } from '../types';
 
-let ENSURE_RUNNER_TIMEOUT = 1000 * 30;
+let ENSURE_RUNNER_TIMEOUT = 1000 * 5;
 let ensuredRunnerCache = new Map<string, number>();
 
 export class BrokerClientManager {
