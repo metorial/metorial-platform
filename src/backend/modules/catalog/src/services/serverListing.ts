@@ -70,6 +70,8 @@ class ServerListingService {
     categoryIds?: string[];
     profileIds?: string[];
     instance?: Instance;
+
+    orderByRank?: boolean;
   }) {
     let collections = d.collectionIds?.length
       ? await db.serverListingCollection.findMany({
@@ -87,6 +89,8 @@ class ServerListingService {
         })
       : undefined;
 
+    console.log(d);
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         let search = d.search
@@ -101,6 +105,9 @@ class ServerListingService {
 
         return await db.serverListing.findMany({
           ...opts,
+
+          orderBy: d.orderByRank ? { rank: 'desc' } : opts.orderBy,
+
           where: {
             status: 'active',
 

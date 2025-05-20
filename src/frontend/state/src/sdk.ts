@@ -1,14 +1,20 @@
 import { createMetorialDashboardSDK, MetorialDashboardSDK } from '@metorial/dashboard-sdk';
-import { getConfig } from '@metorial/frontend-config';
+import { awaitConfig } from '@metorial/frontend-config';
 
 let sdk: MetorialDashboardSDK | null = null;
 
-export let withDashboardSDK = async <T>(cb: (sdk: MetorialDashboardSDK) => Promise<T>) => {
-  sdk =
-    sdk ??
-    createMetorialDashboardSDK({
-      apiHost: getConfig().apiUrl
-    });
+let ensureSdk = async () => {
+  if (sdk) return sdk;
 
-  return await cb(sdk);
+  let config = await awaitConfig();
+
+  sdk = createMetorialDashboardSDK({
+    apiHost: config.apiUrl
+  });
+
+  return sdk;
+};
+
+export let withDashboardSDK = async <T>(cb: (sdk: MetorialDashboardSDK) => Promise<T>) => {
+  return await cb(await ensureSdk());
 };

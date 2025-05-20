@@ -54,13 +54,13 @@ export let paginatedProviderPrisma =
 
     let items = (await provider(opts)) ?? [];
 
-    let orderedItems = items?.sort((a, b) => {
+    let orderedItems = items; /* items?.sort((a, b) => {
       if (order == 'asc') {
         return a.id.localeCompare(b.id);
       } else {
         return b.id.localeCompare(a.id);
       }
-    });
+    });*/
 
     let cursorItem = cursorId ? orderedItems?.find(item => item.id == cursorId) : undefined;
     let cursorItemIndex = cursorItem ? orderedItems?.indexOf(cursorItem) : undefined;

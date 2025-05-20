@@ -1,7 +1,7 @@
-import { getConfig } from '@metorial/frontend-config';
+import { awaitConfig } from '@metorial/frontend-config';
 
-export let redirectToAuth = (nextUrl: string) => {
-  let config = getConfig();
+export let redirectToAuth = async (nextUrl: string) => {
+  let config = await awaitConfig();
 
   let u = new URL(config.auth.loginPath, config.auth.authFrontendUrl ?? location.origin);
   u.searchParams.set('redirect_uri', nextUrl);
@@ -9,8 +9,8 @@ export let redirectToAuth = (nextUrl: string) => {
   window.location.replace(u.toString());
 };
 
-export let redirectToLogout = () => {
-  let config = getConfig();
+export let redirectToLogout = async () => {
+  let config = await awaitConfig();
 
   let u = new URL(config.auth.logoutPath, config.auth.authFrontendUrl ?? location.origin);
 

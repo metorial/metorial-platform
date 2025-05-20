@@ -19,7 +19,7 @@ import { Hash } from '@metorial/hash';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { Database } from 'bun:sqlite';
 import path from 'path';
-import { indexServerListingQueue } from '.';
+import { indexServerListingQueue } from './search';
 
 let syncCron = createCron(
   {

@@ -1,5 +1,6 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
+import { debug } from '@metorial/debug';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 
 let rankCron = createCron(
@@ -13,13 +14,24 @@ let rankCron = createCron(
 );
 
 let startRankQueue = createQueue({
-  name: 'cat/rank/start'
+  name: 'cat/rank/start',
+  workerOpts: {
+    concurrency: 1
+  }
 });
 
 let processSingleRankQueue = createQueue<{ serverListingId: string }>({
   name: 'cat/rank/single',
   workerOpts: {
-    concurrency: 1
+    concurrency: 1,
+
+    limiter:
+      process.env.NODE_ENV == 'development'
+        ? undefined
+        : {
+            max: 20,
+            duration: 1000
+          }
   }
 });
 
@@ -43,6 +55,8 @@ export let startRankQueueProcessor = startRankQueue.process(async () => {
         opts: { id: server.id }
       }))
     );
+
+    afterId = servers[servers.length - 1].id as string;
   }
 });
 
@@ -63,37 +77,52 @@ export let processSingleRankQueueProcessor = processSingleRankQueue.process(asyn
   });
   if (!serverListing) return;
 
-  let deploymentsCount = await db.serverDeployment.count({
-    where: { serverOid: serverListing.serverOid }
-  });
-  let serverSessionsCount = await db.serverSession.count({
-    where: { serverDeployment: { serverOid: serverListing.serverOid } }
-  });
-  let serverMessagesCountAgg = await db.serverSession.aggregate({
-    where: { serverDeployment: { serverOid: serverListing.serverOid } },
-    _sum: {
-      totalProductiveServerMessageCount: true,
-      totalProductiveClientMessageCount: true
-    }
-  });
+  debug.log('Processing rank for serverListingId', serverListing.slug);
 
-  let serverMessagesCount =
-    (serverMessagesCountAgg._sum.totalProductiveServerMessageCount ?? 0) +
-    (serverMessagesCountAgg._sum.totalProductiveClientMessageCount ?? 0);
+  let rank = 0;
+  let deploymentsCount = 0;
+  let serverSessionsCount = 0;
+  let serverMessagesCount = 0;
+  let repoStarsCount = 0;
 
-  let repoStarsCount = serverListing.server.importedServer?.repository?.starCount ?? 0;
-  let isOfficial = !!serverListing.server.importedServer?.isOfficial;
+  // Only calculate rank for hostable servers
+  if (serverListing.server.importedServer?.isHostable) {
+    deploymentsCount = await db.serverDeployment.count({
+      where: { serverOid: serverListing.serverOid }
+    });
+    serverSessionsCount = await db.serverSession.count({
+      where: { serverDeployment: { serverOid: serverListing.serverOid } }
+    });
 
-  let rank = Math.ceil(
-    repoStarsCount * 5 +
-      deploymentsCount * 0.1 +
-      serverSessionsCount * 0.3 +
-      serverMessagesCount * 0.01
-  );
+    let serverMessagesCountAgg = await db.serverSession.aggregate({
+      where: { serverDeployment: { serverOid: serverListing.serverOid } },
+      _sum: {
+        totalProductiveServerMessageCount: true,
+        totalProductiveClientMessageCount: true
+      }
+    });
 
-  if (isOfficial) rank = Math.ceil(rank * 3);
+    serverMessagesCount =
+      (serverMessagesCountAgg._sum.totalProductiveServerMessageCount ?? 0) +
+      (serverMessagesCountAgg._sum.totalProductiveClientMessageCount ?? 0);
 
-  rank = Math.min(rank, 1_000_000_000);
+    repoStarsCount = serverListing.server.importedServer?.repository?.starCount ?? 0;
+
+    // Calculate rank based on various factors
+    rank = Math.ceil(
+      repoStarsCount * 5 +
+        deploymentsCount * 0.1 +
+        serverSessionsCount * 0.3 +
+        serverMessagesCount * 0.01
+    );
+
+    // Boost rank for official servers
+    if (!!serverListing.server.importedServer?.isOfficial) rank = Math.ceil(rank * 3);
+
+    rank = Math.min(rank, 1_000_000_000);
+  } else {
+    rank = -1;
+  }
 
   await db.serverListing.updateMany({
     where: { oid: serverListing.oid },

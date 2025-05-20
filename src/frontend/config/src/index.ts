@@ -1,20 +1,30 @@
+import { ProgrammablePromise } from '@metorial/programmable-promise';
 import { defaultConfig, FrontendConfig, RequiredFrontendConfig } from './type';
 
-let config: FrontendConfig | null = null;
+let configRef: { current: FrontendConfig | null } = { current: null };
+let configPromise = new ProgrammablePromise<void>();
 
 export let setConfig = (newConfig: RequiredFrontendConfig) => {
-  config = {
+  configRef.current = {
     ...defaultConfig,
-    ...config,
+    ...configRef.current,
     ...newConfig
   };
 
-  console.log('Frontend config set', config);
+  console.log('Frontend config set', configRef.current);
+
+  setTimeout(() => configPromise.resolve(), 0);
 };
 
 export let getConfig = () => {
-  if (!config) throw new Error('Config not set');
-  return config;
+  if (!configRef.current) throw new Error('Config not set');
+  return configRef.current;
+};
+
+export let awaitConfig = async () => {
+  if (configRef.current) return configRef.current;
+  await configPromise.promise;
+  return configRef.current!;
 };
 
 export * from './paths';

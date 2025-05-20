@@ -1,0 +1,1 @@
+export let DESKTOP_NAV_MIN_WIDTH = 900;

@@ -1,0 +1,176 @@
+'use client';
+
+import { useUser } from '@metorial/state';
+import { Logo, theme } from '@metorial/ui';
+import { RiArrowRightSLine, RiMenuLine } from '@remixicon/react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useMedia } from 'react-use';
+import { styled } from 'styled-components';
+import { LandingButton } from '../button';
+import { UserMenu } from '../user/menu';
+import { NavRoot } from './root';
+import { DESKTOP_NAV_MIN_WIDTH } from './variables';
+
+let NavWrapper = styled('nav')`
+  padding: 0px 15px;
+  display: flex;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease-in-out;
+  flex-direction: column;
+  position: fixed;
+  top: 40px;
+  left: 0;
+  right: 0;
+`;
+
+let NavInner = styled('main')`
+  padding: 10px 0px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 20px;
+  margin: 0 auto;
+  max-width: 80rem;
+
+  a {
+    color: unset;
+  }
+
+  &.desktop {
+    @media screen and (max-width: ${DESKTOP_NAV_MIN_WIDTH}px) {
+      display: none;
+    }
+  }
+
+  &.mobile {
+    display: none;
+
+    @media screen and (max-width: ${DESKTOP_NAV_MIN_WIDTH}px) {
+      display: flex;
+    }
+  }
+`;
+
+let NavLogoText = styled('h1')`
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    color: ${theme.colors.gray700};
+  }
+`;
+
+let SearchInput = styled('input')`
+  height: 42px;
+  border: 1px solid ${theme.colors.gray400};
+  background: rgba(0, 0, 0, 0.01);
+  border-radius: 9999px;
+  padding: 0px 20px;
+  font-size: 14px;
+  width: 400px;
+  transition: all 0.2s ease-in-out;
+  outline: none;
+
+  &:focus,
+  &:hover {
+    border: 1px solid ${theme.colors.gray500};
+    box-shadow: 0 2px 10px ${theme.colors.gray400};
+    background: rgba(0, 0, 0, 0.05);
+  }
+`;
+
+let NavSection = styled('section')`
+  display: flex;
+  align-items: center;
+  gap: 20px;
+`;
+
+export let Nav = () => {
+  let isMobile = useMedia(`(max-width: ${DESKTOP_NAV_MIN_WIDTH}px)`, false);
+  let [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  let user = useUser();
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [isMobile]);
+
+  return (
+    <>
+      {/* <MobileNavInner nav={nav} isOpen={mobileMenuOpen} onOpenChange={setMobileMenuOpen} /> */}
+
+      <NavRoot>
+        <NavWrapper
+          style={{
+            color: 'black',
+            background: 'rgba(255, 255, 255, 0.8)',
+            borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
+            backdropFilter: 'blur(10px)'
+          }}
+        >
+          <NavInner className="mobile">
+            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Logo size={22} />
+              <NavLogoText>Metorial</NavLogoText>
+            </Link>
+
+            <LandingButton
+              rounded="soft"
+              // variant={y > 50 ? 'primary' : 'white'}
+              aria-label="Close"
+              icon={<RiMenuLine />}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            />
+          </NavInner>
+
+          <NavInner className="desktop">
+            <NavSection>
+              <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Logo size={22} />
+                <NavLogoText>
+                  <span
+                    onClick={e => {
+                      e.preventDefault();
+                      window.location.href = 'https://metorial.com';
+                    }}
+                  >
+                    Metorial
+                  </span>
+                  <RiArrowRightSLine />
+                  <span>Marketplace</span>
+                </NavLogoText>
+              </Link>
+
+              <SearchInput placeholder="Server MCP servers" />
+            </NavSection>
+
+            <NavSection>
+              {user.isLoading ? (
+                <></>
+              ) : user.error ? (
+                <>
+                  <LandingButton rounded="soft" variant="soft">
+                    Login
+                  </LandingButton>
+
+                  <LandingButton rounded="soft">Get Started</LandingButton>
+                </>
+              ) : (
+                <>
+                  <UserMenu />
+                </>
+              )}
+            </NavSection>
+          </NavInner>
+        </NavWrapper>
+      </NavRoot>
+    </>
+  );
+};

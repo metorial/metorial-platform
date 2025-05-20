@@ -17,7 +17,7 @@ export interface FrontendConfig {
 
 export let defaultConfig = {
   auth: {
-    authFrontendUrl: undefined,
+    authFrontendUrl: undefined as string | undefined,
     loginPath: '/auth/login',
     signupPath: '/auth/signup',
     logoutPath: '/auth/logout'

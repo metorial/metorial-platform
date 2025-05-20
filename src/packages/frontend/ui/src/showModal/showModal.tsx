@@ -101,7 +101,9 @@ export let ModalRoot = () => {
 };
 
 let usePathname = () => {
-  let [pathname, setPathname] = useState(() => window.location.pathname);
+  let [pathname, setPathname] = useState(() =>
+    typeof window != 'undefined' ? window.location.pathname : '/'
+  );
   let currentPathRef = useRef(pathname);
   currentPathRef.current = pathname;
 
