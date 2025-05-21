@@ -84,10 +84,6 @@ export let ServerLayout = () => {
           {
             label: 'Implementations',
             to: Paths.instance.server(...serverPathParams, 'implementations')
-          },
-          {
-            label: 'Runs',
-            to: Paths.instance.server(...serverPathParams, 'runs')
           }
         ]}
       />

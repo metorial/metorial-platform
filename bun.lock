@@ -842,7 +842,7 @@
         "cmdk": "^1.0.4",
         "lucide-react": "^0.447.0",
         "pkce-challenge": "^4.1.0",
-        "prettier": "",
+        "prettier": "^3.5.3",
         "prismjs": "^1.30.0",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
@@ -1376,6 +1376,26 @@
       "dependencies": {
         "@metorial/ui": "^1.0.0",
         "p-queue": "^8.1.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/packages/frontend/markdown": {
+      "name": "@metorial/markdown",
+      "version": "1.0.0",
+      "dependencies": {
+        "@looped/hooks": "^0.1.3",
+        "@metorial/ui": "^1.0.0",
+        "apexcharts": "^4.7.0",
+        "react": "^19.1.0",
+        "react-apexcharts": "^1.7.0",
+        "react-markdown": "^10.1.0",
+        "react-medium-image-zoom": "^5.2.14",
+        "remark-gfm": "^4.0.1",
+        "striptags": "^3.2.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -2386,6 +2406,8 @@
     "@metorial/lock": ["@metorial/lock@workspace:src/packages/backend/lock"],
 
     "@metorial/logging": ["@metorial/logging@workspace:src/packages/backend/logging"],
+
+    "@metorial/markdown": ["@metorial/markdown@workspace:src/packages/frontend/markdown"],
 
     "@metorial/mcp-utils": ["@metorial/mcp-utils@workspace:src/packages/mcp/mcp-utils"],
 
@@ -4840,6 +4862,8 @@
     "@metorial/layout/framer-motion": ["framer-motion@12.12.1", "", { "dependencies": { "motion-dom": "^12.12.1", "motion-utils": "^12.12.1", "tslib": "^2.4.0" }, "peerDependencies": { "@emotion/is-prop-valid": "*", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@emotion/is-prop-valid", "react", "react-dom"] }, "sha512-PFw4/GCREHI2suK/NlPSUxd+x6Rkp80uQsfCRFSOQNrm5pZif7eGtmG1VaD/UF1fW9tRBy5AaS77StatB3OJDg=="],
 
     "@metorial/layout/react-router-dom": ["react-router-dom@7.6.0", "", { "dependencies": { "react-router": "7.6.0" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" } }, "sha512-DYgm6RDEuKdopSyGOWZGtDfSm7Aofb8CCzgkliTjtu/eDuB0gcsv6qdFhhi8HdtmA+KHkt5MfZ5K2PdzjugYsA=="],
+
+    "@metorial/markdown/react-markdown": ["react-markdown@10.1.0", "", { "dependencies": { "@types/hast": "^3.0.0", "@types/mdast": "^4.0.0", "devlop": "^1.0.0", "hast-util-to-jsx-runtime": "^2.0.0", "html-url-attributes": "^3.0.0", "mdast-util-to-hast": "^13.0.0", "remark-parse": "^11.0.0", "remark-rehype": "^11.0.0", "unified": "^11.0.0", "unist-util-visit": "^5.0.0", "vfile": "^6.0.0" }, "peerDependencies": { "@types/react": ">=18", "react": ">=18" } }, "sha512-qKxVopLT/TyA6BX3Ue5NwabOsAzm0Q7kAPwq6L+wWDwisYs7R8vZ0nRXqq6rkueboxpkjvLGU9fWifiX/ZZFxQ=="],
 
     "@metorial/memo/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
 

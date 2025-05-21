@@ -32,7 +32,6 @@ import { ServerImplementationRunsPage } from './pages/(servers)/server-implement
 import { ServerLayout } from './pages/(servers)/server/_layout';
 import { ServerServerDeploymentsPage } from './pages/(servers)/server/deployments';
 import { ServerServerImplementationsPage } from './pages/(servers)/server/implementations';
-import { ServerServerRunsPage } from './pages/(servers)/server/runs';
 import { ProjectPageLayout } from './pages/_layout';
 import { ProjectDeveloperPage } from './pages/developer';
 import { ProjectDeveloperPageLayout } from './pages/developer/_layout';
@@ -126,10 +125,6 @@ export let productInnerSlice = createSlice([
               {
                 path: 'implementations',
                 element: <ServerServerImplementationsPage />
-              },
-              {
-                path: 'runs',
-                element: <ServerServerRunsPage />
               }
             ]
           },
