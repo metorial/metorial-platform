@@ -31,7 +31,7 @@ export let ServersTable = (filter: ServersListingsListQuery) => {
             instance.data?.organization,
             instance.data?.project,
             instance.data,
-            listing.serverId
+            listing.server.id
           )
         }))}
       />

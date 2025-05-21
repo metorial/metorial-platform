@@ -1,6 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useServerImplementation } from '@metorial/state';
 import { useParams } from 'react-router-dom';
+import { ServerRunsTable } from '../../../scenes/server-runs/table';
 
 export let ServerImplementationRunsPage = () => {
   let instance = useCurrentInstance();
@@ -8,5 +9,7 @@ export let ServerImplementationRunsPage = () => {
   let { serverImplementationId } = useParams();
   let implementation = useServerImplementation(instance.data?.id, serverImplementationId);
 
-  return renderWithLoader({ implementation })(({ implementation }) => <h1>Runs</h1>);
+  return renderWithLoader({ implementation })(({ implementation }) => (
+    <ServerRunsTable serverImplementationIds={[implementation.data.id]} />
+  ));
 };

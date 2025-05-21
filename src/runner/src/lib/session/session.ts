@@ -16,6 +16,7 @@ export interface McpSessionOpts {
 
 export interface LogsEventPayload {
   lines: { type: 'stdout' | 'stderr'; line: string }[];
+  time: number;
 }
 
 let dockerManager: DockerManager | undefined;
@@ -198,6 +199,7 @@ export class McpSession {
   }
 
   #pendingBuffers: { type: 'stdout' | 'stderr'; line: string }[] = [];
+  #logsTime: number = 0;
   #sendTimeout: NodeJS.Timer | undefined;
   private flushPendingLogs() {
     let pending = this.#pendingBuffers;
@@ -205,12 +207,16 @@ export class McpSession {
     this.#sendTimeout = undefined;
 
     this.#emitter.emit('logs', {
-      lines: pending
+      lines: pending,
+      time: this.#logsTime
     });
+
+    this.#logsTime = 0;
   }
 
   private sendLogs(type: 'stdout' | 'stderr', lines: string[]) {
     this.#pendingBuffers.push(...lines.map(line => ({ type, line })));
+    if (!this.#logsTime) this.#logsTime = Date.now();
 
     if (typeof this.#sendTimeout == 'number') return;
 

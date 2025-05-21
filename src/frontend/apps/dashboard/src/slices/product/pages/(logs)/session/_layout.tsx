@@ -62,6 +62,14 @@ export let SessionLayout = () => {
           {
             label: 'Logs',
             to: Paths.instance.session(...serverPathParams)
+          },
+          {
+            label: 'Deployments',
+            to: Paths.instance.session(...serverPathParams, 'deployments')
+          },
+          {
+            label: 'Server Runs',
+            to: Paths.instance.session(...serverPathParams, 'runs')
           }
         ]}
       />

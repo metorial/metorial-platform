@@ -36,6 +36,7 @@ import { ProjectDeveloperPage } from './pages/developer';
 import { ProjectDeveloperPageLayout } from './pages/developer/_layout';
 import { ProjectDeveloperAPIPage } from './pages/developer/api';
 import { ProjectDeveloperEnvironmentsPage } from './pages/developer/environments';
+import { ExplorerPage } from './pages/explorer';
 import { ProjectSettingsPage } from './pages/settings';
 import { ProjectSettingsPageLayout } from './pages/settings/_layout';
 
@@ -246,6 +247,14 @@ export let productInnerSlice = createSlice([
             ]
           }
         ]
+      },
+
+      /***************
+       * Explorer
+       *************** */
+      {
+        path: 'explorer',
+        element: <ExplorerPage />
       }
     ]
   }

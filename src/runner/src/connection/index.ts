@@ -122,7 +122,8 @@ export let startConnection = async (d: {
         session.onLogs(d => {
           ctx.notify('run/logs', {
             serverRunId: data.serverRunId,
-            lines: d.lines
+            lines: d.lines,
+            time: d.time
           });
         });
 

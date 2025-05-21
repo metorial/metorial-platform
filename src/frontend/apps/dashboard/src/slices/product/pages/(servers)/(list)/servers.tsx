@@ -16,7 +16,8 @@ export let ServersPage = () => {
 
       <ServersGrid
         limit={6}
-        categoryIds={['security']} // TODO: replace with featured collection
+        orderByRank
+        // categoryIds={['security']} // TODO: replace with featured collection
       />
 
       <Spacer size={10} />

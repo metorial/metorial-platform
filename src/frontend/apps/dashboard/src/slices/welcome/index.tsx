@@ -1,6 +1,7 @@
 import { createSlice } from '@metorial/microfrontend';
 import { WelcomeCreateOrganizationPage } from './pages/createOrganization';
 import { WelcomeCreateProjectPage } from './pages/createProject';
+import { JumpstartPage } from './pages/jumpstart';
 import { WelcomeSetupProjectPage } from './pages/setupProject';
 
 export let welcomeSlice = createSlice([
@@ -18,6 +19,11 @@ export let welcomeSlice = createSlice([
       {
         path: 'create-project',
         element: <WelcomeCreateProjectPage />
+      },
+
+      {
+        path: 'jumpstart',
+        element: <JumpstartPage />
       }
     ]
   }

@@ -44,7 +44,8 @@ export let ServerSearch = ({
   let searchDebounced = useDebounced(search, 500);
   let server = useServerListings({
     search: searchDebounced,
-    limit: 10
+    limit: 10,
+    orderByRank: true
   });
 
   return (
@@ -150,7 +151,7 @@ export let ServerSearchField = ({
         <Popover.Content
           style={{
             width,
-            maxHeight: '400px',
+            // maxHeight: '400px',
             overflowY: 'auto'
           }}
         >

@@ -1,4 +1,5 @@
 import { canonicalize } from '@metorial/canonicalize';
+import { ServersDeploymentsGetOutput } from '@metorial/core';
 import { ServersListingsGetOutput } from '@metorial/core/src/mt_2025_01_01_dashboard';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
@@ -9,7 +10,7 @@ import {
   useServerVariants
 } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { JsonSchemaEditor } from '../jsonSchemaEditor/jsonSchemaEditor';
@@ -30,7 +31,13 @@ export type ServerDeploymentFormProps =
         | { serverId: string; serverVariantId: string; serverImplementationId: string };
     };
 
-export let ServerDeploymentForm = (p: ServerDeploymentFormProps & { close?: () => any }) => {
+export let ServerDeploymentForm = (
+  p: ServerDeploymentFormProps & {
+    close?: () => any;
+    extraActions?: React.ReactNode;
+    onCreate?: (depl: ServersDeploymentsGetOutput) => any;
+  }
+) => {
   let instance = useCurrentInstance();
   let deployment =
     p.type == 'update' ? useServerDeployment(instance.data?.id, p.serverDeploymentId) : null;
@@ -92,14 +99,19 @@ export let ServerDeploymentForm = (p: ServerDeploymentFormProps & { close?: () =
         });
 
         if (res) {
-          navigate(
-            Paths.instance.serverDeployment(
-              instance.data?.organization,
-              instance.data?.project,
-              instance.data,
-              res.id
-            )
-          );
+          if (p.onCreate) {
+            p.onCreate(res);
+            p.close?.();
+          } else {
+            navigate(
+              Paths.instance.serverDeployment(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                res.id
+              )
+            );
+          }
         }
       }
     }
@@ -144,6 +156,8 @@ export let ServerDeploymentForm = (p: ServerDeploymentFormProps & { close?: () =
           justifyContent: 'flex-end'
         }}
       >
+        {p.extraActions}
+
         {p.close && (
           <Button
             type="button"

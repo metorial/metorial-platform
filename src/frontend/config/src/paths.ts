@@ -146,12 +146,12 @@ let InstancePaths = Object.assign(
       return InstancePaths(organization, project, instance, 'server-run', id, ...subPages);
     },
 
-    inspector: (
+    explorer: (
       organization: EntityParam,
       project: EntityParam,
       instance: EntityParam,
       ...subPages: (string | null | undefined)[]
-    ) => InstancePaths(organization, project, instance, 'inspector', ...subPages)
+    ) => InstancePaths(organization, project, instance, 'explorer', ...subPages)
   }
 );
 

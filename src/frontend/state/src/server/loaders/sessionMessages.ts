@@ -8,7 +8,7 @@ export let sessionMessagesLoader = createLoader({
   parents: [],
   fetch: (
     i: { instanceId: string; sessionId: string } & DashboardInstanceSessionsMessagesListQuery
-  ) => withAuth(sdk => sdk.sessions.events.list(i.instanceId, i.sessionId, i)),
+  ) => withAuth(sdk => sdk.sessions.messages.list(i.instanceId, i.sessionId, i)),
   mutators: {}
 });
 
@@ -30,7 +30,7 @@ export let sessionMessageLoader = createLoader({
   name: 'sessionMessage',
   parents: [],
   fetch: (i: { instanceId: string; sessionId: string; sessionMessageId: string }) =>
-    withAuth(sdk => sdk.sessions.events.get(i.instanceId, i.sessionId, i.sessionMessageId)),
+    withAuth(sdk => sdk.sessions.messages.get(i.instanceId, i.sessionId, i.sessionMessageId)),
   mutators: {}
 });
 

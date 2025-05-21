@@ -7,7 +7,7 @@ import {
   useCurrentProject,
   useServerImplementation
 } from '@metorial/state';
-import { Button, LinkTabs } from '@metorial/ui';
+import { Button, Callout, LinkTabs, Spacer } from '@metorial/ui';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import { showServerDeploymentFormModal } from '../../../scenes/server-deployments/modal';
 
@@ -115,6 +115,17 @@ export let ServerImplementationLayout = () => {
           }
         ]}
       />
+
+      {implementation.data?.isDefault && (
+        <>
+          <Callout color="blue">
+            This is the default server implementation for this server. It will be used for all
+            new deployments unless a different implementation is specified.
+          </Callout>
+
+          <Spacer height={15} />
+        </>
+      )}
 
       {renderWithLoader({ implementation })(() => (
         <Outlet />

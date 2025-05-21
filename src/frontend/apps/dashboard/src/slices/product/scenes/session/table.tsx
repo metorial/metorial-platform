@@ -26,7 +26,10 @@ export let SessionConnectionStatusBadge = ({ session }: { session: SessionsGetOu
 
 export let SessionsTable = (filter: SessionsListQuery) => {
   let instance = useCurrentInstance();
-  let sessions = useSessions(instance.data?.id, filter);
+  let sessions = useSessions(instance.data?.id, {
+    ...filter,
+    order: filter.order ?? 'desc'
+  });
 
   return renderWithPagination(sessions)(sessions => (
     <>

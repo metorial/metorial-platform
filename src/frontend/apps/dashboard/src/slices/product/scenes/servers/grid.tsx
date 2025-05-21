@@ -38,12 +38,15 @@ export let ServersGrid = (filter: ServersListingsListQuery) => {
               key={server.id}
               entity={{ id: server.id, hasUsage: true }}
               title={server.name}
-              description={server.description.slice(0, 60)}
+              description={
+                server.description.slice(0, 100) +
+                (server.description.length > 100 ? '...' : '')
+              }
               height={250}
               icon={
                 <Avatar
                   entity={{
-                    name: server.name,
+                    name: server.vendor?.name ?? server.name,
                     photoUrl:
                       server.vendor?.imageUrl ?? `https://avatar-cdn.metorial.com/${server.id}`
                   }}
@@ -56,7 +59,7 @@ export let ServersGrid = (filter: ServersListingsListQuery) => {
                     instance.data?.organization,
                     instance.data?.project,
                     instance.data,
-                    server.serverId
+                    server.server.id
                   )
                 )
               }

@@ -1,19 +1,23 @@
-import { Dialog, showModal } from '@metorial/ui';
+import { Panel, showModal } from '@metorial/ui';
 import { ServerImplementationForm, ServerImplementationFormProps } from './form';
 
 export let showServerImplementationFormModal = (p: ServerImplementationFormProps) =>
   showModal(({ dialogProps, close }) => (
-    <Dialog.Wrapper {...dialogProps}>
-      <Dialog.Title>
-        {p.type == 'update' ? 'Update Implementation' : 'Create Implementation'}
-      </Dialog.Title>
+    <Panel.Wrapper {...dialogProps}>
+      <Panel.Header>
+        <Panel.Title>
+          {p.type == 'update' ? 'Update Implementation' : 'Create Implementation'}
+        </Panel.Title>
 
-      <Dialog.Description>
-        {p.type == 'update'
-          ? 'Update the deployment details.'
-          : 'Create a new deployment for this MCP server.'}
-      </Dialog.Description>
+        <Panel.Description>
+          {p.type == 'update'
+            ? 'Update the implementation details.'
+            : 'Create a new implementation for this MCP server.'}
+        </Panel.Description>
+      </Panel.Header>
 
-      <ServerImplementationForm {...p} close={close} />
-    </Dialog.Wrapper>
+      <Panel.Content>
+        <ServerImplementationForm {...p} close={close} />
+      </Panel.Content>
+    </Panel.Wrapper>
   ));

@@ -1,5 +1,10 @@
-import { DashboardInstanceSessionsListQuery } from '@metorial/core/src/mt_2025_01_01_dashboard';
-import { createLoader } from '@metorial/data-hooks';
+import { DashboardInstanceSessionsGetOutput } from '@metorial/core';
+import {
+  DashboardInstanceSessionsCreateBody,
+  DashboardInstanceSessionsListQuery
+} from '@metorial/core/src/mt_2025_01_01_dashboard';
+import { createLoader, useMutation } from '@metorial/data-hooks';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -37,4 +42,44 @@ export let useSession = (
   let data = sessionLoader.use(instanceId && sessionId ? { instanceId, sessionId } : null);
 
   return data;
+};
+
+export let useCreateSession = (instanceId: string | null | undefined) => {
+  return useMutation(
+    useMemo(
+      () => (body: DashboardInstanceSessionsCreateBody) =>
+        withAuth(sdk => sdk.sessions.create(instanceId!, body)),
+      [instanceId]
+    )
+  );
+};
+
+export let useSessionForDeployment = (
+  instanceId: string | null | undefined,
+  deploymentId: string | null | undefined
+) => {
+  let create = useCreateSession(instanceId);
+  let [session, setSession] = useState<DashboardInstanceSessionsGetOutput | null>(null);
+
+  let creatingSessionRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!instanceId || !deploymentId || creatingSessionRef.current === deploymentId) return;
+    creatingSessionRef.current = deploymentId;
+
+    create
+      .mutate({
+        serverDeployments: [{ serverDeploymentId: deploymentId }]
+      })
+      .then(([res, error]) => {
+        if (res) setSession(res);
+      });
+  }, [instanceId, deploymentId]);
+
+  let sessionGetter = useSession(instanceId, session?.id);
+
+  return {
+    ...sessionGetter,
+    data: sessionGetter.data ?? session,
+    isLoading: session ? false : sessionGetter.isLoading
+  };
 };
