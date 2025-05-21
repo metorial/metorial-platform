@@ -1,8 +1,9 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useServerImplementation } from '@metorial/state';
-import { Attributes, RenderDate, Spacer } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { useParams } from 'react-router-dom';
+import { Attributes, Button, RenderDate, Spacer } from '@metorial/ui';
+import { ID, SideBox } from '@metorial/ui-product';
+import { Link, useParams } from 'react-router-dom';
 import { UsageScene } from '../../../scenes/usage/usage';
 
 export let ServerImplementationOverviewPage = () => {
@@ -29,6 +30,29 @@ export let ServerImplementationOverviewPage = () => {
           }
         ]}
       />
+
+      <Spacer height={15} />
+
+      <SideBox
+        title="Test your implementation"
+        description="Use the Metorial Explorer to test your server implementation."
+      >
+        <Link
+          to={Paths.instance.explorer(
+            instance.data?.organization,
+            instance.data?.project,
+            instance.data,
+            {
+              server_implementation_id: implementation.data?.id,
+              server_id: implementation.data.server.id
+            }
+          )}
+        >
+          <Button as="span" size="2">
+            Open Explorer
+          </Button>
+        </Link>
+      </SideBox>
 
       <Spacer height={15} />
 

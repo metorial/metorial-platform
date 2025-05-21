@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useSession } from '@metorial/state';
 import { useParams } from 'react-router-dom';
-import { ServerDeploymentsListItems } from '../../../scenes/server-deployments/table';
+import { ServerDeploymentsListItems } from '../../../scenes/serverDeployments/table';
 
 export let SessionDeploymentsPage = () => {
   let instance = useCurrentInstance();

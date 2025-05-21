@@ -1,7 +1,10 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import { Readme } from '@metorial/markdown';
 import { useCurrentInstance, useServer, useServerListing } from '@metorial/state';
-import { useParams } from 'react-router-dom';
+import { Button, Spacer } from '@metorial/ui';
+import { SideBox } from '@metorial/ui-product';
+import { Link, useParams } from 'react-router-dom';
 import { AttributesLayout } from '../../../scenes/attributesLayout';
 
 export let ServerOverviewPage = () => {
@@ -32,6 +35,26 @@ export let ServerOverviewPage = () => {
         }
       ]}
     >
+      <SideBox
+        title="Test this server"
+        description="Use the Metorial Explorer to test this server."
+      >
+        <Link
+          to={Paths.instance.explorer(
+            instance.data?.organization,
+            instance.data?.project,
+            instance.data,
+            { server_id: server.data?.id }
+          )}
+        >
+          <Button as="span" size="2">
+            Open Explorer
+          </Button>
+        </Link>
+      </SideBox>
+
+      <Spacer height={15} />
+
       <Readme
         readme={listing.data.readme}
         imageRoot={

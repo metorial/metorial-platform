@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useServer } from '@metorial/state';
 import { useParams } from 'react-router-dom';
-import { ServerImplementationsTable } from '../../../scenes/server-implementations/table';
+import { ServerImplementationsTable } from '../../../scenes/serverImplementations/table';
 
 export let ServerServerImplementationsPage = () => {
   let instance = useCurrentInstance();

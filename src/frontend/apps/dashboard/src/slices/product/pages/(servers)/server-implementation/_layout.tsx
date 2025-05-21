@@ -9,7 +9,7 @@ import {
 } from '@metorial/state';
 import { Button, Callout, LinkTabs, Spacer } from '@metorial/ui';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
-import { showServerDeploymentFormModal } from '../../../scenes/server-deployments/modal';
+import { showServerDeploymentFormModal } from '../../../scenes/serverDeployments/modal';
 
 export let ServerImplementationLayout = () => {
   let instance = useCurrentInstance();
@@ -61,15 +61,13 @@ export let ServerImplementationLayout = () => {
                 instance.data,
                 implementation.data?.server.id
               )}
-              className="btn btn-primary"
             >
-              <Button as="span" size="2">
+              <Button as="span" size="2" variant="outline">
                 View Server
               </Button>
             </Link>
 
             <Button
-              as="span"
               size="2"
               onClick={() => {
                 if (!implementation.data) return;

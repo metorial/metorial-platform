@@ -7,8 +7,8 @@ import {
 } from '@metorial/state';
 import { Button, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
-import { showServerDeploymentFormModal } from '../../../scenes/server-deployments/modal';
-import { showServerImplementationFormModal } from '../../../scenes/server-implementations/modal';
+import { showServerDeploymentFormModal } from '../../../scenes/serverDeployments/modal';
+import { showServerImplementationFormModal } from '../../../scenes/serverImplementations/modal';
 
 export let ServersListLayout = () => {
   let instance = useCurrentInstance();

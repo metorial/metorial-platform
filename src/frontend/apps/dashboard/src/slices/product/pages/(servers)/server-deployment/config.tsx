@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useServerDeployment } from '@metorial/state';
 import { useParams } from 'react-router-dom';
-import { ServerDeploymentForm } from '../../../scenes/server-deployments/form';
+import { ServerDeploymentForm } from '../../../scenes/serverDeployments/form';
 
 export let ServerDeploymentConfigPage = () => {
   let instance = useCurrentInstance();

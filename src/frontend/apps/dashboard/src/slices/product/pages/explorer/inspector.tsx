@@ -1,4 +1,3 @@
-import { ServersDeploymentsGetOutput } from '@metorial/core';
 import { useCurrentInstance, useSessionForDeployment } from '@metorial/state';
 import { CenteredSpinner } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -29,11 +28,7 @@ let Iframe = styled.iframe`
   border: none;
 `;
 
-export let InspectorFrame = ({
-  serverDeployment
-}: {
-  serverDeployment: ServersDeploymentsGetOutput;
-}) => {
+export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: string } }) => {
   let instance = useCurrentInstance();
   let session = useSessionForDeployment(instance.data?.id, serverDeployment.id);
 

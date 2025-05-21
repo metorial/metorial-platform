@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance } from '@metorial/state';
 import { Callout, Spacer } from '@metorial/ui';
-import { ServerImplementationsTable } from '../../../scenes/server-implementations/table';
+import { ServerImplementationsTable } from '../../../scenes/serverImplementations/table';
 
 export let ServersImplementationsPage = () => {
   let instance = useCurrentInstance();

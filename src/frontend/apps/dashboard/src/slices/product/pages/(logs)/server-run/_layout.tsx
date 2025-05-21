@@ -11,7 +11,7 @@ import { LinkTabs, RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { AttributesLayout } from '../../../scenes/attributesLayout';
-import { ServerRunStatusBadge } from '../../../scenes/server-runs/table';
+import { ServerRunStatusBadge } from '../../../scenes/serverRuns/table';
 
 export let ServerRunLayout = () => {
   let instance = useCurrentInstance();
