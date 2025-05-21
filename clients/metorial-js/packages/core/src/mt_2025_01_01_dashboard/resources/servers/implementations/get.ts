@@ -4,6 +4,8 @@ export type ServersImplementationsGetOutput = {
   object: 'server.server_implementation';
   id: string;
   status: 'active' | 'archived' | 'deleted';
+  isDefault: boolean;
+  isEphemeral: boolean;
   name: string;
   description: string | null;
   metadata: Record<string, any>;
@@ -36,6 +38,8 @@ export let mapServersImplementationsGetOutput =
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
+    isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
+    isEphemeral: mtMap.objectField('is_ephemeral', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),

@@ -15,11 +15,11 @@ export type DashboardInstanceSessionsCreateOutput = {
   serverDeployments: {
     object: 'server.server_deployment#preview';
     id: string;
-    status: 'active' | 'archived' | 'deleted';
-    name: string;
+    name: string | null;
     description: string | null;
     metadata: Record<string, any>;
-    secretId: string;
+    createdAt: Date;
+    updatedAt: Date;
     server: {
       object: 'server#preview';
       id: string;
@@ -29,8 +29,6 @@ export type DashboardInstanceSessionsCreateOutput = {
       createdAt: Date;
       updatedAt: Date;
     };
-    createdAt: Date;
-    updatedAt: Date;
   }[];
   usage: {
     totalProductiveMessageCount: number;
@@ -67,11 +65,11 @@ export let mapDashboardInstanceSessionsCreateOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          secretId: mtMap.objectField('secret_id', mtMap.passthrough()),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
           server: mtMap.objectField(
             'server',
             mtMap.object({
@@ -86,9 +84,7 @@ export let mapDashboardInstanceSessionsCreateOutput =
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+          )
         })
       )
     ),

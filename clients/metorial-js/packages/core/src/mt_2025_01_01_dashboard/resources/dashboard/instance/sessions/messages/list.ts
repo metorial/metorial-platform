@@ -20,6 +20,7 @@ export type DashboardInstanceSessionsMessagesListOutput = {
     mcpMessage: {
       object: 'session.message.mcp_message';
       id: string;
+      originalId: string | null;
       method: string;
       payload: Record<string, any>;
     };
@@ -52,6 +53,7 @@ export let mapDashboardInstanceSessionsMessagesListOutput =
             mtMap.object({
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
+              originalId: mtMap.objectField('original_id', mtMap.passthrough()),
               method: mtMap.objectField('method', mtMap.passthrough()),
               payload: mtMap.objectField('payload', mtMap.passthrough())
             })
@@ -83,7 +85,10 @@ export type DashboardInstanceSessionsMessagesListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & {
+  serverRunIds?: string | string[] | undefined;
+  serverSessionIds?: string | string[] | undefined;
+};
 
 export let mapDashboardInstanceSessionsMessagesListQuery = mtMap.union([
   mtMap.unionOption(
@@ -93,7 +98,27 @@ export let mapDashboardInstanceSessionsMessagesListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      serverRunIds: mtMap.objectField(
+        'server_run_ids',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      serverSessionIds: mtMap.objectField(
+        'server_session_ids',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
     })
   )
 ]);

@@ -19,6 +19,7 @@ export type ManagementInstanceSessionsMessagesGetOutput = {
   mcpMessage: {
     object: 'session.message.mcp_message';
     id: string;
+    originalId: string | null;
     method: string;
     payload: Record<string, any>;
   };
@@ -45,6 +46,7 @@ export let mapManagementInstanceSessionsMessagesGetOutput =
       mtMap.object({
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
+        originalId: mtMap.objectField('original_id', mtMap.passthrough()),
         method: mtMap.objectField('method', mtMap.passthrough()),
         payload: mtMap.objectField('payload', mtMap.passthrough())
       })

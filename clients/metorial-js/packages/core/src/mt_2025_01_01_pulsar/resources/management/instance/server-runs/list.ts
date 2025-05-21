@@ -24,6 +24,15 @@ export type ManagementInstanceServerRunsListOutput = {
       metadata: Record<string, any>;
       createdAt: Date;
       updatedAt: Date;
+      server: {
+        object: 'server#preview';
+        id: string;
+        name: string;
+        description: string | null;
+        type: 'public';
+        createdAt: Date;
+        updatedAt: Date;
+      };
     };
     serverSession: {
       object: 'session.server_session#preview';
@@ -103,7 +112,22 @@ export let mapManagementInstanceServerRunsListOutput =
               ),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+              server: mtMap.objectField(
+                'server',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  description: mtMap.objectField(
+                    'description',
+                    mtMap.passthrough()
+                  ),
+                  type: mtMap.objectField('type', mtMap.passthrough()),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
+              )
             })
           ),
           serverSession: mtMap.objectField(
@@ -209,6 +233,7 @@ export type ManagementInstanceServerRunsListQuery = {
   serverSessionIds?: string | string[] | undefined;
   serverImplementationIds?: string | string[] | undefined;
   serverDeploymentIds?: string | string[] | undefined;
+  sessionIds?: string | string[] | undefined;
 };
 
 export let mapManagementInstanceServerRunsListQuery = mtMap.union([
@@ -246,6 +271,16 @@ export let mapManagementInstanceServerRunsListQuery = mtMap.union([
       ),
       serverDeploymentIds: mtMap.objectField(
         'server_deployment_ids',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      sessionIds: mtMap.objectField(
+        'session_ids',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

@@ -58,6 +58,15 @@ export type ManagementInstanceSessionsServerSessionsListOutput = {
       metadata: Record<string, any>;
       createdAt: Date;
       updatedAt: Date;
+      server: {
+        object: 'server#preview';
+        id: string;
+        name: string;
+        description: string | null;
+        type: 'public';
+        createdAt: Date;
+        updatedAt: Date;
+      };
     };
     createdAt: Date;
   }[];
@@ -184,7 +193,22 @@ export let mapManagementInstanceSessionsServerSessionsListOutput =
               ),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+              server: mtMap.objectField(
+                'server',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  description: mtMap.objectField(
+                    'description',
+                    mtMap.passthrough()
+                  ),
+                  type: mtMap.objectField('type', mtMap.passthrough()),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
+              )
             })
           ),
           createdAt: mtMap.objectField('created_at', mtMap.date())
