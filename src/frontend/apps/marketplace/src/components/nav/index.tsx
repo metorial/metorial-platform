@@ -4,11 +4,14 @@ import { useUser } from '@metorial/state';
 import { Logo, theme } from '@metorial/ui';
 import { RiArrowRightSLine, RiMenuLine } from '@remixicon/react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useMedia } from 'react-use';
 import { styled } from 'styled-components';
+import { ServerCategory } from '../../state/server';
 import { LandingButton } from '../button';
 import { UserMenu } from '../user/menu';
+import { MobileNavInner } from './mobile';
 import { NavRoot } from './root';
 import { DESKTOP_NAV_MIN_WIDTH } from './variables';
 
@@ -92,11 +95,12 @@ let NavSection = styled('section')`
   gap: 20px;
 `;
 
-export let Nav = () => {
+export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
   let isMobile = useMedia(`(max-width: ${DESKTOP_NAV_MIN_WIDTH}px)`, false);
   let [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   let user = useUser();
+  let router = useRouter();
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -104,7 +108,32 @@ export let Nav = () => {
 
   return (
     <>
-      {/* <MobileNavInner nav={nav} isOpen={mobileMenuOpen} onOpenChange={setMobileMenuOpen} /> */}
+      <MobileNavInner
+        nav={{
+          items: [
+            {
+              type: 'link',
+              label: 'Metorial',
+              href: 'https://metorial.com'
+            },
+            {
+              type: 'panel',
+              label: 'Categories',
+
+              navs: [
+                {
+                  links: categories.map(category => ({
+                    label: category.name,
+                    href: `/servers?categories_ids=${category.id}`
+                  }))
+                }
+              ]
+            }
+          ]
+        }}
+        isOpen={mobileMenuOpen}
+        onOpenChange={setMobileMenuOpen}
+      />
 
       <NavRoot>
         <NavWrapper
@@ -148,7 +177,21 @@ export let Nav = () => {
                 </NavLogoText>
               </Link>
 
-              <SearchInput placeholder="Server MCP servers" />
+              <form
+                onSubmit={e => {
+                  e.preventDefault();
+                  let form = e.currentTarget;
+                  let input = form.querySelector('input') as HTMLInputElement;
+                  let value = input.value;
+                  if (!value) return;
+
+                  console.log('search', value);
+
+                  router.push(`/servers?search=${value}`);
+                }}
+              >
+                <SearchInput placeholder="Server MCP servers" />
+              </form>
             </NavSection>
 
             <NavSection>

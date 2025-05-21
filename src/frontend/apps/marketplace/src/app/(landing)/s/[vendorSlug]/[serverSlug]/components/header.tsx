@@ -1,17 +1,15 @@
 'use client';
 
-import { useIsMobile } from '@looped/hooks';
+import { useIsSSR } from '@looped/hooks';
 import { useUser } from '@metorial/state';
 import { ServerListing } from '../../../../../../state/server';
 import { LocalHeader } from '../../../../components/localHeader';
-import { useExplorer } from './explorer/context';
 
 export let ServerHeader = ({ server }: { server: ServerListing }) => {
   let basePath = `/s/${server.slug}`;
-  let explorer = useExplorer(server);
-  let isMobile = useIsMobile(700);
 
   let user = useUser();
+  let isServer = useIsSSR();
 
   return (
     <LocalHeader
@@ -27,10 +25,21 @@ export let ServerHeader = ({ server }: { server: ServerListing }) => {
       items={[
         { label: 'Overview', href: '' },
         { label: 'Tools', href: `/tools` },
-        ...(isMobile ? [] : [{ label: 'Explore', onClick: () => explorer.open() }]),
         { label: 'Versions', href: `/versions` },
-        ...(user.data ? [{ label: 'Deployments', href: `/deployments` }] : [])
-        // { label: 'Usage', href: `/usage` }
+        {
+          label: 'Deploy',
+          onClick: () => {
+            let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/deploy?server_id=${server.serverId}`)}`;
+            window.open(url, '_blank');
+          }
+        },
+        {
+          label: 'Explore',
+          onClick: () => {
+            let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/explorer?server_id=${server.serverId}`)}`;
+            window.open(url, '_blank');
+          }
+        }
       ]}
     />
   );

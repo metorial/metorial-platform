@@ -35,7 +35,7 @@ export default async ({
       collectionIds,
       profileIds
     }),
-    listServerCategories({ limit: '100' })
+    listServerCategories({})
   ]);
 
   return (

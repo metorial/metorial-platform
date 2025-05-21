@@ -1,11 +1,11 @@
 export type INavItemPanel = {
   type: 'panel';
   label: string;
-  header: {
-    title: React.ReactNode;
-    description: React.ReactNode;
-    background: [string, string, string];
-  };
+  // header: {
+  //   title: React.ReactNode;
+  //   description: React.ReactNode;
+  //   background: [string, string, string];
+  // };
   navs: {
     title?: string;
     links: {

@@ -25,7 +25,7 @@ let Inner = styled.div`
 `;
 
 let Nav = styled.nav`
-  width: 1000px;
+  width: 80rem;
   max-width: 100%;
   margin: 0 auto;
   padding: 30px 0;
@@ -69,7 +69,7 @@ let Nav = styled.nav`
 `;
 
 let MainContent = styled.main`
-  width: 1000px;
+  width: 80rem;
   max-width: 100%;
   margin: 0 auto;
 `;

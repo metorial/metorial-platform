@@ -2,7 +2,6 @@
 
 import styled from 'styled-components';
 import { ServerListing } from '../../../../../../state/server';
-import { useExplorer } from '../components/explorer/context';
 
 let Wrapper = styled.div`
   display: flex;
@@ -11,8 +10,6 @@ let Wrapper = styled.div`
 `;
 
 export let Tools = ({ server }: { server: ServerListing }) => {
-  let explorer = useExplorer(server);
-
   return null;
 
   // let tools = server.current_version?.tools ?? [];

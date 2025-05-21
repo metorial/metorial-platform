@@ -96,12 +96,19 @@ export let listServerVersions = async (
       )
   );
 
-export let listServerCategories = async (input: {
-  after?: string;
-  before?: string;
-  limit?: string;
-}) =>
-  withSdk(async client => await client['server-categories'].$get({ query: input }, fetchOpts));
+export let listServerCategories = async (input: { after?: string; before?: string }) =>
+  withSdk(
+    async client =>
+      await client['server-categories'].$get(
+        {
+          query: {
+            ...input,
+            limit: '100'
+          }
+        },
+        fetchOpts
+      )
+  );
 
 export let getServerCategory = async (categoryId: string) =>
   withSdk(

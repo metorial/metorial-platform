@@ -1,7 +1,8 @@
 'use client';
 
-import { theme } from '@metorial/ui';
+import { Button, Spacer, theme } from '@metorial/ui';
 import Link from 'next/link';
+import { useState } from 'react';
 import styled from 'styled-components';
 import { ServerCategory } from '../../../../state/server';
 
@@ -12,11 +13,20 @@ let Wrapper = styled.div`
   grid-template-columns: 280px calc(100% - 300px);
   gap: 20px;
   margin: 0 auto;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
 `;
 
 let CategoriesWrapper = styled.aside`
   display: flex;
   flex-direction: column;
+
+  @media (max-width: 900px) {
+    display: none;
+  }
 `;
 
 let CategoriesList = styled.ul`
@@ -72,11 +82,13 @@ export let Categories = ({
   children: React.ReactNode;
   currentCategoryIds?: string[];
 }) => {
+  let [firstCategories, setFirstCategories] = useState(10);
+
   return (
     <Wrapper>
       <CategoriesWrapper>
         <CategoriesList>
-          {categories.map(category => (
+          {categories.slice(0, firstCategories).map(category => (
             <CategoryItem
               key={category.id}
               data-active={
@@ -88,6 +100,15 @@ export let Categories = ({
             </CategoryItem>
           ))}
         </CategoriesList>
+
+        {firstCategories < categories.length && (
+          <div>
+            <Spacer height={20} />
+            <Button onClick={() => setFirstCategories(Infinity)} size="2">
+              Show more
+            </Button>
+          </div>
+        )}
       </CategoriesWrapper>
 
       <Main>{children}</Main>

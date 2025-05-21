@@ -30,6 +30,7 @@ let Content = styled(Dialog.Content)`
   right: 0;
   bottom: 0;
   z-index: 9999;
+  overflow: auto;
 
   &[data-state='open'] {
     animation: ${fadeIn} 0.3s cubic-bezier(0.22, 1, 0.36, 1);

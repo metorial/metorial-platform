@@ -1,6 +1,6 @@
 'use client';
 
-import { Datalist, Spacer, theme } from '@metorial/ui';
+import { Button, Datalist, Spacer, theme } from '@metorial/ui';
 import styled from 'styled-components';
 import { ServerListing } from '../../../../../../state/server';
 
@@ -15,7 +15,14 @@ let Wrapper = styled.aside`
 export let ServerAside = ({ server }: { server: ServerListing }) => {
   return (
     <Wrapper>
-      {/* <DeployBox server={server} /> */}
+      <Button
+        onClick={() => {
+          let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/deploy?server_id=${server.serverId}`)}`;
+          window.open(url, '_blank');
+        }}
+      >
+        Deploy {server.name} on Metorial
+      </Button>
 
       <Spacer size={20} />
 

@@ -100,6 +100,8 @@ export let UserMenu = () => {
 
   if (isServer) return null;
 
+  let accountFrontend = process.env.ACCOUNT_FRONTEND_URL;
+
   return (
     <Popover.Root>
       <Trigger aria-label="Open user menu">
@@ -118,9 +120,13 @@ export let UserMenu = () => {
           </Header>
 
           <Actions>
-            <Button size="2" fullWidth variant="solid">
-              Account
-            </Button>
+            {accountFrontend && (
+              <a href={accountFrontend}>
+                <Button size="2" fullWidth variant="solid">
+                  Account
+                </Button>
+              </a>
+            )}
 
             <Button size="2" fullWidth variant="outline" onClick={redirectToLogout}>
               Logout

@@ -3,7 +3,6 @@
 import styled from 'styled-components';
 import { ServerListing } from '../../../../../state/server';
 import { ServerAside } from './components/aside';
-import { ExplorerContextProvider } from './components/explorer/context';
 import { ServerHeader } from './components/header';
 
 let Wrapper = styled.div`
@@ -11,7 +10,7 @@ let Wrapper = styled.div`
 `;
 
 let Inner = styled.div`
-  width: 1000px;
+  width: 80rem;
   max-width: 100%;
   margin: 0 auto;
 `;
@@ -28,7 +27,7 @@ let Grid = styled.div`
 `;
 
 let Main = styled.main`
-  max-width: min(calc(100vw - 60px), 550px);
+  /* max-width: min(calc(100vw - 60px), 550px); */
 `;
 
 export let ClientLayout = ({
@@ -39,7 +38,7 @@ export let ClientLayout = ({
   server: ServerListing;
 }) => {
   return (
-    <ExplorerContextProvider>
+    <>
       <ServerHeader server={server} />
 
       <Wrapper>
@@ -53,8 +52,6 @@ export let ClientLayout = ({
           </Grid>
         </Inner>
       </Wrapper>
-
-      {/* <ExplorerRoot server={server} /> */}
-    </ExplorerContextProvider>
+    </>
   );
 };

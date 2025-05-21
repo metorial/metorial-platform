@@ -2,8 +2,7 @@
 
 import { listServerCategories, listServers } from '../../state/server';
 import { LandingAbout } from './components/about';
-import { CategoryCarousel } from './components/carousel';
-// import { LandingCategories } from './components/categories/single';
+import { CollectionCarousel } from './components/carousel';
 import { LandingHeader } from './components/header';
 import { Categories } from './components/servers/categories';
 import { ServerList } from './components/servers/list';
@@ -12,7 +11,7 @@ export default async () => {
   // let featuredCategories = await getAllFeaturedServers();
 
   let [categories, servers] = await Promise.all([
-    listServerCategories({ limit: '100' }),
+    listServerCategories({}),
     listServers({
       collectionIds: process.env.LANDING_COLLECTION_IDS?.split(',')
     })
@@ -22,12 +21,10 @@ export default async () => {
     <>
       <LandingHeader />
 
-      {process.env.FEATURED_CATEGORY_IDS &&
-        process.env.FEATURED_CATEGORY_IDS.split(',').map(categoryId => (
-          <CategoryCarousel key={categoryId} categoryId={categoryId} />
+      {process.env.FEATURED_COLLECTION_IDS &&
+        process.env.FEATURED_COLLECTION_IDS.split(',').map(collectionId => (
+          <CollectionCarousel key={collectionId} collectionId={collectionId} />
         ))}
-
-      <CategoryCarousel categoryId="security" />
 
       <Categories categories={categories.items}>
         <ServerList servers={servers.items} />
