@@ -1,11 +1,4 @@
-import {
-  db,
-  ID,
-  ServerRun,
-  ServerSession,
-  ServerVersion,
-  SessionMessageType
-} from '@metorial/db';
+import { db, ServerRun, ServerSession, ServerVersion, SessionMessageType } from '@metorial/db';
 import { debug } from '@metorial/debug';
 import { generatePlainId } from '@metorial/id';
 import {
@@ -86,15 +79,6 @@ export class BrokerRunManager {
         data: {
           status: 'active',
           startedAt: new Date()
-        }
-      });
-
-      await db.sessionEvent.createMany({
-        data: {
-          id: await ID.generateId('sessionEvent'),
-          type: 'server_run_started',
-          sessionOid: this.session.sessionOid,
-          serverRunOid: this.serverRun.oid
         }
       });
     })().catch(e => {

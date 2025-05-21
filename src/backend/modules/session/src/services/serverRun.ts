@@ -34,6 +34,7 @@ class ServerRunImpl {
   async listServerRuns(d: {
     instance: Instance;
     status?: ServerRunStatus[];
+    sessionIds?: string[];
     serverSessionIds?: string[];
     serverDeploymentIds?: string[];
     serverImplementationIds?: string[];
@@ -51,6 +52,11 @@ class ServerRunImpl {
     let serverImplementations = d.serverImplementationIds?.length
       ? await db.serverImplementation.findMany({
           where: { id: { in: d.serverImplementationIds } }
+        })
+      : undefined;
+    let sessions = d.sessionIds?.length
+      ? await db.session.findMany({
+          where: { id: { in: d.sessionIds } }
         })
       : undefined;
 
@@ -79,6 +85,13 @@ class ServerRunImpl {
                   ? {
                       serverDeployment: {
                         serverImplementationOid: { in: serverImplementations.map(s => s.oid) }
+                      }
+                    }
+                  : undefined!,
+                sessions
+                  ? {
+                      serverSession: {
+                        sessionOid: { in: sessions.map(s => s.oid) }
                       }
                     }
                   : undefined!

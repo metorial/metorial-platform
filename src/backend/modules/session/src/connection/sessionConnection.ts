@@ -1,4 +1,5 @@
 import {
+  db,
   ServerDeployment,
   ServerSession,
   ServerVariant,
@@ -12,8 +13,11 @@ import {
   type JSONRPCMessage
 } from '@metorial/mcp-utils';
 import { ProgrammablePromise } from '@metorial/programmable-promise';
+import { getSentry } from '@metorial/sentry';
 import { SessionControlMessageBackend } from './sessionControlMessageBackend';
 import { SessionManager } from './sessionManager';
+
+let Sentry = getSentry();
 
 let PING_INTERVAL = 1000 * 30;
 let PING_TIMEOUT = 1000 * 90;
@@ -25,6 +29,7 @@ export class SessionConnection {
   #manager: SessionManager;
   #lastMessageAt: number;
   #closePromise = new ProgrammablePromise<void>();
+  #pingIv: NodeJS.Timeout;
 
   constructor(
     private session: ServerSession & {
@@ -44,6 +49,21 @@ export class SessionConnection {
       mode: opts.mode
     });
 
+    this.#pingIv = setInterval(() => {
+      (async () => {
+        await db.session.updateMany({
+          where: { oid: this.session.sessionOid },
+          data: {
+            lastClientPingAt: new Date(),
+            connectionStatus: 'connected'
+          }
+        });
+      })().catch(e => {
+        Sentry.captureException(e);
+        console.error('Error sending message', e);
+      });
+    }, 30 * 1000);
+
     connections.set(session.id, this);
   }
 
@@ -55,6 +75,8 @@ export class SessionConnection {
     debug.log('Closing session connection', this.session.id);
 
     this.#closePromise.resolve();
+
+    clearInterval(this.#pingIv);
 
     await this.#controlMessageBackend.close();
     await this.#manager.close();

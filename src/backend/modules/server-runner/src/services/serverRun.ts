@@ -40,19 +40,6 @@ export let closeServerRunQueueProcessor = closeServerRunQueue.process(async d =>
   });
 
   if (status == 'failed') {
-    await db.sessionEvent.createMany({
-      data: {
-        id: await ID.generateId('sessionEvent'),
-        type: 'error',
-        sessionOid: d.session.sessionOid,
-        serverRunOid: d.serverRun.oid,
-        payload: {
-          code: d.result.reason,
-          exitCode: d.result.exitCode ?? 0
-        }
-      }
-    });
-
     let errorFingerprint = await Hash.sha256(
       JSON.stringify([d.result.reason, String(d.session.serverDeployment.serverOid)])
     );
@@ -104,35 +91,33 @@ export let closeServerRunQueueProcessor = closeServerRunQueue.process(async d =>
       instanceOid: d.session.instanceOid
     };
 
+    let error = await db.serverRunError.create({
+      data: errorData
+    });
+
     // Attach this as the default error for this group,
     // if it doesn't have one already
     if (group.defaultServerRunErrorOid === null) {
-      let defaultError = await db.serverRunError.create({
-        data: errorData
-      });
-
       await db.serverRunErrorGroup.updateMany({
         where: { oid: group.oid },
-        data: { defaultServerRunErrorOid: defaultError.oid }
-      });
-    } else {
-      await db.serverRunError.createMany({
-        data: errorData
+        data: { defaultServerRunErrorOid: error.oid }
       });
     }
-  }
 
-  // Timeout to allow for final logs to be sent
-  setTimeout(async () => {
     await db.sessionEvent.createMany({
       data: {
         id: await ID.generateId('sessionEvent'),
-        type: 'server_run_stopped',
+        type: 'server_run_error',
         sessionOid: d.session.sessionOid,
-        serverRunOid: d.serverRun.oid
+        serverRunOid: d.serverRun.oid,
+        serverRunErrorOid: error.oid,
+        payload: {
+          code: d.result.reason,
+          exitCode: d.result.exitCode ?? 0
+        }
       }
     });
-  }, 2500);
+  }
 });
 
 class ServerRunnerRunImpl {
@@ -151,6 +136,7 @@ class ServerRunnerRunImpl {
       type: 'stdout' | 'stderr';
       line: string;
     }[];
+    time?: Date;
   }) {
     let lastEvent = await db.sessionEvent.findFirst({
       where: { serverRunOid: d.serverRun.oid },
@@ -159,7 +145,9 @@ class ServerRunnerRunImpl {
 
     let lines = d.lines.map(l => `${l.type == 'stdout' ? 'O' : 'E'}${l.line}`);
 
-    if (lastEvent?.type == 'server_logs') {
+    let now = Date.now();
+
+    if (lastEvent?.type == 'server_logs' && now - lastEvent.createdAt.getTime() < 2000) {
       await db.sessionEvent.updateMany({
         where: { oid: lastEvent.oid },
         data: {
@@ -173,7 +161,8 @@ class ServerRunnerRunImpl {
           type: 'server_logs',
           sessionOid: d.session.sessionOid,
           serverRunOid: d.serverRun.oid,
-          logLines: lines
+          logLines: lines,
+          createdAt: d.time ?? new Date()
         }
       });
     }

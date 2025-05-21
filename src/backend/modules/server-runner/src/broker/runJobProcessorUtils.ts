@@ -51,15 +51,6 @@ export let RunJobProcessorUtils = {
       });
 
       (async () => {
-        await db.sessionEvent.createMany({
-          data: {
-            id: await ID.generateId('sessionEvent'),
-            type: 'server_run_created',
-            sessionOid: session.sessionOid,
-            serverRunOid: serverRun.oid
-          }
-        });
-
         await db.serverSession.updateMany({
           where: { id: session.id },
           data: { status: 'running' }

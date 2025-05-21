@@ -123,7 +123,8 @@ export class BrokerBus {
                   : {
                       totalProductiveClientMessageCount: { increment: messages.length },
                       lastClientActionAt: new Date(),
-                      lastClientPingAt: new Date()
+                      lastClientPingAt: new Date(),
+                      connectionStatus: 'connected'
                     }
             });
           })().catch(e => {

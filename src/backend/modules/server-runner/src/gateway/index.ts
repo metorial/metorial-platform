@@ -253,7 +253,8 @@ export let createServerRunnerGateway = (
                 type: v.enumOf(['stdout', 'stderr']),
                 line: v.string()
               })
-            )
+            ),
+            time: v.optional(v.number())
           }),
           async data => {
             let info = serverRunMap.get(data.serverRunId);
@@ -262,7 +263,8 @@ export let createServerRunnerGateway = (
             await serverRunnerRunService.storeServerRunLogs({
               serverRun: info.serverRun,
               session: info.session,
-              lines: data.lines
+              lines: data.lines,
+              time: data.time ? new Date(data.time) : undefined
             });
           }
         );
