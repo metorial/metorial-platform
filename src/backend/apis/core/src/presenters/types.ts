@@ -244,6 +244,16 @@ export let sessionEventType = PresentableType.create<{
           serverSession: ServerSession;
         })
       | null;
+
+    serverRunError:
+      | (ServerRunError & {
+          serverRun: ServerRun & {
+            serverVersion: ServerVersion;
+            serverDeployment: ServerDeployment & { server: Server };
+            serverSession: ServerSession;
+          };
+        })
+      | null;
   };
 }>()('session.event');
 

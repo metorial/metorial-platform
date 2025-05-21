@@ -38,8 +38,8 @@ export let serverListingController = Controller.create(
             collection_ids: v.optional(v.array(v.string())),
             category_ids: v.optional(v.array(v.string())),
             profile_ids: v.optional(v.array(v.string())),
-
-            instance_id: v.optional(v.string())
+            instance_id: v.optional(v.string()),
+            order_by_rank: v.optional(v.boolean())
           })
         )
       )
@@ -58,7 +58,7 @@ export let serverListingController = Controller.create(
           collectionIds: ctx.query.collection_ids,
           categoryIds: ctx.query.category_ids,
           profileIds: ctx.query.profile_ids,
-
+          orderByRank: ctx.query.order_by_rank,
           instance
         });
 

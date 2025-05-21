@@ -48,3 +48,54 @@ export let v1ServerImplementationPresenter = Presenter.create(serverImplementati
     })
   )
   .build();
+
+export let dashboardServerImplementationPresenter = Presenter.create(serverImplementationType)
+  .presenter(async ({ serverImplementation }, opts) => ({
+    object: 'server.server_implementation',
+
+    id: serverImplementation.id,
+    status: serverImplementation.status,
+
+    is_default: !!serverImplementation.isDefault,
+    is_ephemeral: serverImplementation.isEphemeral,
+
+    name: serverImplementation.name,
+    description: serverImplementation.description,
+
+    metadata: serverImplementation.metadata,
+    get_launch_params: serverImplementation.getLaunchParams,
+
+    server_variant: v1ServerVariantPreview(
+      serverImplementation.serverVariant,
+      serverImplementation.server
+    ),
+
+    server: v1ServerPreview(serverImplementation.server),
+
+    created_at: serverImplementation.createdAt,
+    updated_at: serverImplementation.updatedAt
+  }))
+  .schema(
+    v.object({
+      object: v.literal('server.server_implementation'),
+
+      id: v.string(),
+      status: v.enumOf(['active', 'archived', 'deleted']),
+
+      is_default: v.boolean(),
+      is_ephemeral: v.boolean(),
+
+      name: v.string(),
+      description: v.nullable(v.string()),
+      metadata: v.record(v.any()),
+
+      get_launch_params: v.nullable(v.string()),
+
+      server_variant: v1ServerVariantPreview.schema,
+      server: v1ServerPreview.schema,
+
+      created_at: v.date(),
+      updated_at: v.date()
+    })
+  )
+  .build();

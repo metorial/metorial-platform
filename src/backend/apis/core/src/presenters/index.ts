@@ -16,7 +16,10 @@ import { v1ServerListingCategoryPresenter } from './implementation/serverCategor
 import { v1ServerListingCollectionPresenter } from './implementation/serverCollection';
 import { v1ServerDeploymentPresenter } from './implementation/serverDeployment';
 import { v1ServerDeploymentConfigPresenter } from './implementation/serverDeploymentConfig';
-import { v1ServerImplementationPresenter } from './implementation/serverImplementation';
+import {
+  dashboardServerImplementationPresenter,
+  v1ServerImplementationPresenter
+} from './implementation/serverImplementation';
 import { v1ServerListingPresenter } from './implementation/serverListing';
 import { v1ServerRunPresenter } from './implementation/serverRun';
 import { v1ServerRunErrorPresenter } from './implementation/serverRunError';
@@ -26,7 +29,10 @@ import { v1ServerVariantPresenter } from './implementation/serverVariant';
 import { v1ServerVersionPresenter } from './implementation/serverVersion';
 import { v1SessionPresenter } from './implementation/session';
 import { v1SessionEventPresenter } from './implementation/sessionEvent';
-import { v1SessionMessagePresenter } from './implementation/sessionMessage';
+import {
+  dashboardSessionMessagePresenter,
+  v1SessionMessagePresenter
+} from './implementation/sessionMessage';
 import { v1UsagePresenter } from './implementation/usage';
 import { v1UserPresenter } from './implementation/user';
 import {
@@ -159,7 +165,7 @@ export let serverListingCollectionPresenter = declarePresenter(serverListingColl
 
 export let serverImplementationPresenter = declarePresenter(serverImplementationType, {
   mt_2025_01_01_pulsar: v1ServerImplementationPresenter,
-  mt_2025_01_01_dashboard: v1ServerImplementationPresenter
+  mt_2025_01_01_dashboard: dashboardServerImplementationPresenter
 });
 
 export let serverDeploymentPresenter = declarePresenter(serverDeploymentType, {
@@ -209,5 +215,5 @@ export let sessionEventPresenter = declarePresenter(sessionEventType, {
 
 export let sessionMessagePresenter = declarePresenter(sessionMessageType, {
   mt_2025_01_01_pulsar: v1SessionMessagePresenter,
-  mt_2025_01_01_dashboard: v1SessionMessagePresenter
+  mt_2025_01_01_dashboard: dashboardSessionMessagePresenter
 });

@@ -1,5 +1,6 @@
 import { Server, ServerDeployment } from '@metorial/db';
 import { v } from '@metorial/validation';
+import { v1ServerPreview } from './serverPreview';
 
 export let v1ServerDeploymentPreview = Object.assign(
   (deployment: ServerDeployment, server: Server) => ({
@@ -10,6 +11,8 @@ export let v1ServerDeploymentPreview = Object.assign(
     description: deployment.description,
 
     metadata: server.metadata,
+
+    server: v1ServerPreview(server),
 
     created_at: deployment.createdAt,
     updated_at: deployment.updatedAt
@@ -22,7 +25,8 @@ export let v1ServerDeploymentPreview = Object.assign(
       description: v.nullable(v.string()),
       metadata: v.record(v.any()),
       created_at: v.date(),
-      updated_at: v.date()
+      updated_at: v.date(),
+      server: v1ServerPreview.schema
     })
   }
 );
