@@ -1,17 +1,17 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance, useServerRun, useServerRunErrors } from '@metorial/state';
+import { useCurrentInstance, useServerRun } from '@metorial/state';
 import { useParams } from 'react-router-dom';
+import { ServerRunEvents } from '../../../scenes/server-run/events';
 
 export let ServerRunPage = () => {
   let instance = useCurrentInstance();
 
   let { serverRunId } = useParams();
-  let run = useServerRun(instance.data?.id, serverRunId);
+  let serverRun = useServerRun(instance.data?.id, serverRunId);
 
-  let errors = useServerRunErrors(run.data ? instance.data?.id : null, {
-    serverRunIds: run.data?.id
-  });
-  let error = errors.data?.items[0];
-
-  return renderWithLoader({ run })(({ run }) => <h1>Hello</h1>);
+  return renderWithLoader({ serverRun })(({ serverRun }) => (
+    <>
+      <ServerRunEvents serverRun={serverRun.data} />
+    </>
+  ));
 };

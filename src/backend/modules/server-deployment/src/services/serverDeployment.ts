@@ -350,6 +350,7 @@ class ServerDeploymentServiceImpl {
     serverVariantIds?: string[];
     serverImplementationIds?: string[];
     serverIds?: string[];
+    sessionIds?: string[];
     instance: Instance;
     status?: ServerDeploymentStatus[];
   }) {
@@ -366,6 +367,11 @@ class ServerDeploymentServiceImpl {
     let serverImplementations = d.serverImplementationIds?.length
       ? await db.serverImplementation.findMany({
           where: { id: { in: d.serverImplementationIds } }
+        })
+      : undefined;
+    let sessions = d.sessionIds?.length
+      ? await db.session.findMany({
+          where: { id: { in: d.sessionIds } }
         })
       : undefined;
 
@@ -386,6 +392,13 @@ class ServerDeploymentServiceImpl {
                 : undefined,
               serverImplementation: serverVariants
                 ? { serverVariantOid: { in: serverVariants.map(s => s.oid) } }
+                : undefined,
+              sessions: sessions
+                ? {
+                    some: {
+                      oid: { in: sessions.map(s => s.oid) }
+                    }
+                  }
                 : undefined
             },
             include

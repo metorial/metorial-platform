@@ -5,6 +5,7 @@ import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useServerDeployments } from '@metorial/state';
 import { Entity, RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
+import { Link } from 'react-router-dom';
 
 export let ServerDeploymentsTable = (filter: ServersDeploymentsListQuery) => {
   let instance = useCurrentInstance();
@@ -60,21 +61,44 @@ export let ServerDeploymentsList = (
   let deployments = useServerDeployments(instance.data?.id, filter);
 
   return renderWithPagination(deployments)(deployments => (
+    <ServerDeploymentsListItems
+      deployments={deployments.data.items}
+      onDeploymentClick={filter.onDeploymentClick as any}
+    />
+  ));
+};
+
+export interface ServerDeployment {
+  id: string;
+  name: string | null;
+  description: string | null;
+  metadata: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+  server: {
+    object: 'server#preview';
+    id: string;
+    name: string;
+    description: string | null;
+    type: 'public';
+    createdAt: Date;
+    updatedAt: Date;
+  };
+}
+
+export let ServerDeploymentsListItems = ({
+  deployments,
+  onDeploymentClick
+}: {
+  deployments: ServerDeployment[];
+  onDeploymentClick?: (deployment: ServerDeployment) => void;
+}) => {
+  let instance = useCurrentInstance();
+
+  return (
     <>
-      {deployments.data.items.map(deployment => (
-        <button
-          key={deployment.id}
-          onClick={() => {
-            if (filter.onDeploymentClick) {
-              filter.onDeploymentClick(deployment);
-            }
-          }}
-          style={{
-            padding: 0,
-            border: 'none',
-            background: 'none'
-          }}
-        >
+      {deployments.map(deployment => {
+        let inner = (
           <Entity.Wrapper>
             <Entity.Content>
               <Entity.Field
@@ -99,14 +123,46 @@ export let ServerDeploymentsList = (
               />
             </Entity.Content>
           </Entity.Wrapper>
-        </button>
-      ))}
+        );
 
-      {deployments.data.items.length == 0 && (
+        if (onDeploymentClick) {
+          return (
+            <button
+              key={deployment.id}
+              onClick={() => {
+                onDeploymentClick(deployment);
+              }}
+              style={{
+                padding: 0,
+                border: 'none',
+                background: 'none',
+                width: '100%'
+              }}
+            >
+              {inner}
+            </button>
+          );
+        }
+
+        return (
+          <Link
+            to={Paths.instance.serverDeployment(
+              instance.data?.organization,
+              instance.data?.project,
+              instance.data,
+              deployment.id
+            )}
+          >
+            {inner}
+          </Link>
+        );
+      })}
+
+      {deployments.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
           No deployments found
         </Text>
       )}
     </>
-  ));
+  );
 };

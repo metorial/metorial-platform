@@ -7,20 +7,10 @@ import {
   useCurrentProject,
   useServerRunErrorGroup
 } from '@metorial/state';
-import { Datalist, LinkTabs, RenderDate } from '@metorial/ui';
+import { LinkTabs, RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
-import styled from 'styled-components';
-
-let Grid = styled.div`
-  display: grid;
-  grid-template-columns: calc(100% - 350px) 300px;
-  gap: 50px;
-`;
-
-let Main = styled.main``;
-
-let Aside = styled.aside``;
+import { AttributesLayout } from '../../../scenes/attributesLayout';
 
 export let ServerErrorLayout = () => {
   let instance = useCurrentInstance();
@@ -70,33 +60,28 @@ export let ServerErrorLayout = () => {
       />
 
       {renderWithLoader({ error })(({ error }) => (
-        <Grid>
-          <Main>
-            <Outlet />
-          </Main>
-          <Aside>
-            <Datalist
-              items={[
-                { label: 'Error Group ID', value: <ID id={error.data.id} /> },
-                { label: 'First Seen', value: <RenderDate date={error.data.createdAt} /> },
-                {
-                  label: 'Occurrences',
-                  value: error.data.count
-                },
-                { label: 'Code', value: error.data.code },
+        <AttributesLayout
+          items={[
+            { label: 'Error Group ID', value: <ID id={error.data.id} /> },
+            { label: 'First Seen', value: <RenderDate date={error.data.createdAt} /> },
+            {
+              label: 'Occurrences',
+              value: error.data.count
+            },
+            { label: 'Code', value: error.data.code },
 
-                {
-                  label: 'Server Name',
-                  value: error.data.defaultError?.serverRun.server.name ?? 'unknown'
-                },
-                {
-                  label: 'Server ID',
-                  value: <ID id={error.data.defaultError?.serverRun.server.id} />
-                }
-              ]}
-            />
-          </Aside>
-        </Grid>
+            {
+              label: 'Server Name',
+              value: error.data.defaultError?.serverRun.server.name ?? 'unknown'
+            },
+            {
+              label: 'Server ID',
+              value: <ID id={error.data.defaultError?.serverRun.server.id} />
+            }
+          ]}
+        >
+          <Outlet />
+        </AttributesLayout>
       ))}
     </ContentLayout>
   );

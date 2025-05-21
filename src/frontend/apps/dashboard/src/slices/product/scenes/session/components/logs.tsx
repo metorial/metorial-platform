@@ -6,8 +6,8 @@ let Wrapper = styled.div`
   border-radius: 8px;
   background: black;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-  margin-left: -15px;
-  margin-right: -15px;
+  /* margin-left: -15px;
+  margin-right: -15px; */
 `;
 
 let Header = styled.header`

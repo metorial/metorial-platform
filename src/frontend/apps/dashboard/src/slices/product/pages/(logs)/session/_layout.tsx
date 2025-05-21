@@ -7,21 +7,11 @@ import {
   useCurrentProject,
   useSession
 } from '@metorial/state';
-import { Datalist, LinkTabs, RenderDate } from '@metorial/ui';
+import { LinkTabs, RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
-import styled from 'styled-components';
-import { SessionConnectionStatusBadge } from '../../../scenes/session/table';
-
-let Grid = styled.div`
-  display: grid;
-  grid-template-columns: calc(100% - 350px) 300px;
-  gap: 50px;
-`;
-
-let Main = styled.main``;
-
-let Aside = styled.aside``;
+import { AttributesLayout } from '../../../scenes/attributesLayout';
+import { SessionConnectionStatusBadge } from '../../../scenes/sessions/table';
 
 export let SessionLayout = () => {
   let instance = useCurrentInstance();
@@ -75,32 +65,26 @@ export let SessionLayout = () => {
       />
 
       {renderWithLoader({ session })(({ session }) => (
-        <Grid>
-          <Main>
-            <Outlet />
-          </Main>
-
-          <Aside>
-            <Datalist
-              items={[
-                {
-                  label: 'Status',
-                  value: <SessionConnectionStatusBadge session={session.data} />
-                },
-                { label: 'Session ID', value: <ID id={session.data.id} /> },
-                { label: 'Created At', value: <RenderDate date={session.data.createdAt} /> },
-                {
-                  label: 'Client Messages',
-                  value: session.data.usage.totalProductiveClientMessageCount
-                },
-                {
-                  label: 'Server Messages',
-                  value: session.data.usage.totalProductiveServerMessageCount
-                }
-              ]}
-            />
-          </Aside>
-        </Grid>
+        <AttributesLayout
+          items={[
+            {
+              label: 'Status',
+              value: <SessionConnectionStatusBadge session={session.data} />
+            },
+            { label: 'Session ID', value: <ID id={session.data.id} /> },
+            { label: 'Created At', value: <RenderDate date={session.data.createdAt} /> },
+            {
+              label: 'Client Messages',
+              value: session.data.usage.totalProductiveClientMessageCount
+            },
+            {
+              label: 'Server Messages',
+              value: session.data.usage.totalProductiveServerMessageCount
+            }
+          ]}
+        >
+          <Outlet />
+        </AttributesLayout>
       ))}
     </ContentLayout>
   );

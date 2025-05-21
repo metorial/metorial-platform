@@ -11,6 +11,8 @@ import { ServerRunPage } from './pages/(logs)/server-run';
 import { ServerRunLayout } from './pages/(logs)/server-run/_layout';
 import { SessionPage } from './pages/(logs)/session';
 import { SessionLayout } from './pages/(logs)/session/_layout';
+import { SessionDeploymentsPage } from './pages/(logs)/session/deployments';
+import { SessionServerRunsPage } from './pages/(logs)/session/serverRuns';
 import { ServersListLayout } from './pages/(servers)/(list)/_layout';
 import { ServersDeploymentsPage } from './pages/(servers)/(list)/server-deployments';
 import { ServersImplementationsPage } from './pages/(servers)/(list)/server-implementations';
@@ -243,6 +245,14 @@ export let productInnerSlice = createSlice([
               {
                 path: '',
                 element: <SessionPage />
+              },
+              {
+                path: 'deployments',
+                element: <SessionDeploymentsPage />
+              },
+              {
+                path: 'runs',
+                element: <SessionServerRunsPage />
               }
             ]
           }
