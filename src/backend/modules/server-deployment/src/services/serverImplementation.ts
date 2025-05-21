@@ -151,6 +151,11 @@ class ServerImplementationServiceImpl {
           performedBy: d.performedBy,
           instance: d.instance
         });
+
+        await serverImplementationCreatedQueue.add(
+          { serverImplementationId: serverImplementation.id },
+          { delay: 100 }
+        );
       }
 
       return serverImplementation;

@@ -89,8 +89,6 @@ class ServerListingService {
         })
       : undefined;
 
-    console.log(d);
-
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         let search = d.search

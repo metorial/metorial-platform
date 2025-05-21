@@ -1,9 +1,6 @@
 enum SessionEventType {
-  error
+  server_run_error
   server_logs
-  server_run_created
-  server_run_started
-  server_run_stopped
 }
 
 model SessionEvent {
@@ -19,6 +16,9 @@ model SessionEvent {
 
   serverRunOid BigInt?
   serverRun    ServerRun? @relation(fields: [serverRunOid], references: [oid])
+
+  serverRunErrorOid BigInt?
+  serverRunError    ServerRunError? @relation(fields: [serverRunErrorOid], references: [oid])
 
   createdAt DateTime @default(now())
 }

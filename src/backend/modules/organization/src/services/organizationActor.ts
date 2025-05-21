@@ -28,6 +28,8 @@ class OrganizationActorService {
     return withTransaction(async db => {
       await Fabric.fire('organization.actor.created:before', d);
 
+      console.log('Creating actor', d.input);
+
       let actor = await db.organizationActor.create({
         data: {
           id: await ID.generateId('organizationActor'),

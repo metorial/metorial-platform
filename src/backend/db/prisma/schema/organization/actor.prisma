@@ -10,7 +10,7 @@ model OrganizationActor {
 
   type OrganizationActorType
 
-  isSystem Boolean? @unique
+  isSystem Boolean?
 
   email String?
   name  String
@@ -29,4 +29,6 @@ model OrganizationActor {
   machineAccess  MachineAccess?
 
   SecretEvent SecretEvent[]
+
+  @@unique([isSystem, organizationOid])
 }

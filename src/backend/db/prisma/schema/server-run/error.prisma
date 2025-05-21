@@ -48,4 +48,6 @@ model ServerRunError {
   createdAt DateTime @default(now())
 
   defaultFor ServerRunErrorGroup[] @relation("DefaultServerRunError")
+
+  events SessionEvent[]
 }

@@ -7,6 +7,7 @@ import {
   ServiceError
 } from '@metorial/error';
 import { Fabric } from '@metorial/fabric';
+import { generateId } from '@metorial/id';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { createSlugGenerator } from '@metorial/slugify';
@@ -45,7 +46,7 @@ class OrganizationService {
           id: await ID.generateId('organization'),
           status: 'active',
           type: 'default',
-          slug: await getOrgSlug({ input: d.input.name }),
+          slug: generateId('a'), // await getOrgSlug({ input: d.input.name }),
           name: d.input.name,
           image: d.input.image ?? { type: 'default' }
         }
