@@ -56,7 +56,7 @@ export let ServerDeploymentOverviewPage = () => {
       <UsageScene
         title="Usage"
         description="See how this server deployment is being used in your project."
-        entities={[{ type: 'deployment', id: deployment.data.id }]}
+        entities={[{ type: 'server_deployment', id: deployment.data.id }]}
         entityNames={{ [deployment.data.id]: deployment.data.name! }}
       />
     </>

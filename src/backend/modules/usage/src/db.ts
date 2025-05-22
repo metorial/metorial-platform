@@ -20,7 +20,6 @@ let dbConnect = async () => {
   if (connection.conn) return connection.conn;
 
   if (!connection.promise) {
-    console.log('Connecting to usage mongodb');
     connection.promise = mongoose.connect(env.db.USAGE_MONGO_URL, {
       bufferCommands: false
     });

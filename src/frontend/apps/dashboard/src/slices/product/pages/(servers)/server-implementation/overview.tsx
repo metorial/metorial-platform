@@ -59,7 +59,7 @@ export let ServerImplementationOverviewPage = () => {
       <UsageScene
         title="Usage"
         description="See how this server implementation is being used in your project."
-        entities={[{ type: 'implementation', id: implementation.data.id }]}
+        entities={[{ type: 'server_implementation', id: implementation.data.id }]}
         entityNames={{ [implementation.data.id]: implementation.data.name! }}
       />
     </>
