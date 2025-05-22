@@ -24,7 +24,8 @@ export let v1SessionMessagePresenter = Presenter.create(sessionMessageType)
 
       payload: {
         ...sessionMessage.payload,
-        id: 'id' in sessionMessage.payload ? sessionMessage.unifiedId : undefined
+        id:
+          'id' in sessionMessage.payload ? (sessionMessage.unifiedId ?? undefined) : undefined
       } as any
     },
 
@@ -96,7 +97,8 @@ export let dashboardSessionMessagePresenter = Presenter.create(sessionMessageTyp
 
       payload: {
         ...sessionMessage.payload,
-        id: 'id' in sessionMessage.payload ? sessionMessage.unifiedId : undefined
+        id:
+          'id' in sessionMessage.payload ? (sessionMessage.unifiedId ?? undefined) : undefined
       } as any
     },
 

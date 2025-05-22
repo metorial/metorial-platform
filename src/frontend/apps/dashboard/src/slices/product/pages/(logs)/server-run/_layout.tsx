@@ -36,7 +36,7 @@ export let ServerRunLayout = () => {
         title="Server Run"
         pagination={[
           {
-            label: 'Runs',
+            label: 'Server Runs',
             href: Paths.instance.serverRuns(organization.data, project.data, instance.data)
           },
           {

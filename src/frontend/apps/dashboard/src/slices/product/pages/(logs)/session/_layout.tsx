@@ -33,10 +33,10 @@ export let SessionLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Server Run"
+        title="Session"
         pagination={[
           {
-            label: 'Runs',
+            label: 'Sessions',
             href: Paths.instance.sessions(organization.data, project.data, instance.data)
           },
           {
