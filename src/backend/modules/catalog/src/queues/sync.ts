@@ -277,8 +277,6 @@ let repositoriesSyncQueueProcessor = repositoriesSyncQueue.process(async () => {
     }));
   }
 
-  console.log('Repositories synced');
-
   await serversSyncQueue.add({}, { id: 'serversSyncQueue' });
 });
 

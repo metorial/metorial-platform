@@ -82,8 +82,6 @@ export class DockerManager {
           .join(' ')
       ];
 
-      console.log('Starting container:', dockerRunCommand.join(' '));
-
       let proc = Bun.spawn(dockerRunCommand, {
         stdout: 'pipe',
         stderr: 'pipe',
@@ -105,7 +103,7 @@ export class DockerManager {
         if (err || !stream) return reject(err);
 
         let onProgressEvent = (event: any) => {
-          console.log('Image pull progress:', event);
+          // console.log('Image pull progress:', event);
         };
 
         let onFinished = (err: any) => {

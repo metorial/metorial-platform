@@ -84,7 +84,6 @@ export class DockerContainerManager {
     let container = await this.awaitContainer();
     if (!container) return;
 
-    console.log('Stopping and removing container:', container.id);
     await this.manager.stopAndRemoveContainer(container);
   }
 

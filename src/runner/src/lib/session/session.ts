@@ -1,6 +1,11 @@
 import { debug } from '@metorial/debug';
 import { Emitter } from '@metorial/emitter';
-import { JSONRPCMessage, jsonRpcPingRequest, jsonRpcPingResponse } from '@metorial/mcp-utils';
+import {
+  JSONRPCMessage,
+  jsonRpcPingRequest,
+  jsonRpcPingResponse,
+  MCP_IDS
+} from '@metorial/mcp-utils';
 import { ProgrammablePromise } from '@metorial/programmable-promise';
 import { CloseEventPayload, DockerContainerManager } from '../docker/containerManager';
 import {
@@ -93,7 +98,7 @@ export class McpSession {
         return;
       }
 
-      if ('id' in message && String(message.id).startsWith('mt/ping/')) {
+      if ('id' in message && String(message.id).startsWith(MCP_IDS.PING)) {
         return;
       }
 
@@ -191,7 +196,7 @@ export class McpSession {
       return;
     }
 
-    if ('id' in message && String(message.id).startsWith('mt/ping/')) {
+    if ('id' in message && String(message.id).startsWith(MCP_IDS.PING)) {
       return;
     }
 

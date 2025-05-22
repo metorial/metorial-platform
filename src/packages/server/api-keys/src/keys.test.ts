@@ -38,8 +38,6 @@ describe('UnifiedApiKey', () => {
       const encodedConfig = encodeBase62(JSON.stringify([validConfig.url]));
       const apiKeyString = `metorial_uk_${validSecret}${encodedConfig}v1`;
 
-      console.log('Encoded Config:', apiKeyString);
-
       const apiKey = UnifiedApiKey.from(apiKeyString);
 
       expect(apiKey).toBeInstanceOf(UnifiedApiKey);

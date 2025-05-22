@@ -611,6 +611,7 @@
         "@metorial/redis": "1.0.0",
         "@metorial/sentry": "1.0.0",
         "@metorial/service": "^1.0.0",
+        "@metorial/unified-id": "^1.0.0",
         "@metorial/validation": "1.0.0",
         "ajv": "^8.17.1",
         "date-fns": "^4.1.0",
@@ -647,6 +648,7 @@
         "@metorial/queue": "^1.0.0",
         "@metorial/redis": "1.0.0",
         "@metorial/service": "^1.0.0",
+        "@metorial/unified-id": "^1.0.0",
         "ajv": "^8.17.1",
         "date-fns": "^4.1.0",
         "mitt": "^3.0.1",
@@ -730,6 +732,7 @@
         "@types/lodash": "^4.17.10",
         "@types/react-dom": "^19.0.4",
         "@vitejs/plugin-react": "^4.3.1",
+        "ansi-to-react": "^6.1.6",
         "copy-to-clipboard": "^3.3.3",
         "date-fns": "^3.6.0",
         "framer-motion": "^11.5.4",
@@ -1505,6 +1508,18 @@
     "src/packages/mcp/mcp-utils": {
       "name": "@metorial/mcp-utils",
       "version": "1.0.0",
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/packages/mcp/unified-id": {
+      "name": "@metorial/unified-id",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/mcp-utils": "^1.0.0",
+      },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.8.2",
@@ -2499,6 +2514,8 @@
 
     "@metorial/ui-product": ["@metorial/ui-product@workspace:src/packages/frontend/ui-product"],
 
+    "@metorial/unified-id": ["@metorial/unified-id@workspace:src/packages/mcp/unified-id"],
+
     "@metorial/unique": ["@metorial/unique@workspace:src/packages/shared/unique"],
 
     "@metorial/util-async-iterator": ["@metorial/util-async-iterator@workspace:clients/metorial-js/packages/util-async-iterator"],
@@ -3153,11 +3170,15 @@
 
     "ajv": ["ajv@8.17.1", "", { "dependencies": { "fast-deep-equal": "^3.1.3", "fast-uri": "^3.0.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2" } }, "sha512-B/gBuNg5SiMTrPkC+A2+cW0RszwxYmn6VYxB/inlBStS5nx6xHIt/ehKRhIMhqusl7a8LjQoZnjCs5vhwxOQ1g=="],
 
+    "anser": ["anser@1.4.10", "", {}, "sha512-hCv9AqTQ8ycjpSd3upOJd7vFwW1JaoYQ7tpham03GJ1ca8/65rqn0RpaWpItOAd6ylW9wAw6luXYPJIyPFVOww=="],
+
     "ansi-escapes": ["ansi-escapes@4.3.2", "", { "dependencies": { "type-fest": "^0.21.3" } }, "sha512-gKXj5ALrKWQLsYG9jlTRmR/xKluxHV+Z9QEwNIgCfM1/uwPMCuzVVnh5mwTd+OuBZcwSIMbqssNWRm1lE51QaQ=="],
 
     "ansi-regex": ["ansi-regex@5.0.1", "", {}, "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ=="],
 
     "ansi-styles": ["ansi-styles@4.3.0", "", { "dependencies": { "color-convert": "^2.0.1" } }, "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg=="],
+
+    "ansi-to-react": ["ansi-to-react@6.1.6", "", { "dependencies": { "anser": "^1.4.1", "escape-carriage": "^1.3.0" }, "peerDependencies": { "react": "^16.3.2 || ^17.0.0", "react-dom": "^16.3.2 || ^17.0.0" } }, "sha512-+HWn72GKydtupxX9TORBedqOMsJRiKTqaLUKW8txSBZw9iBpzPKLI8KOu4WzwD4R7hSv1zEspobY6LwlWvwZ6Q=="],
 
     "any-base": ["any-base@1.1.0", "", {}, "sha512-uMgjozySS8adZZYePpaWs8cxB9/kdzmpX6SgJZ+wbz1K5eYk5QMYDVJaZKhxyIHUdnnJkfR7SVgStgH7LkGUyg=="],
 
@@ -3480,6 +3501,8 @@
     "esbuild-register": ["esbuild-register@3.6.0", "", { "dependencies": { "debug": "^4.3.4" }, "peerDependencies": { "esbuild": ">=0.12 <1" } }, "sha512-H2/S7Pm8a9CL1uhp9OvjwrBh5Pvx0H8qVOxNu8Wed9Y7qv56MPtq+GGM8RJpq6glYJn9Wspr8uw7l55uyinNeg=="],
 
     "escalade": ["escalade@3.2.0", "", {}, "sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA=="],
+
+    "escape-carriage": ["escape-carriage@1.3.1", "", {}, "sha512-GwBr6yViW3ttx1kb7/Oh+gKQ1/TrhYwxKqVmg5gS+BK+Qe2KrOa/Vh7w3HPBvgGf0LfcDGoY9I6NHKoA5Hozhw=="],
 
     "escape-html": ["escape-html@1.0.3", "", {}, "sha512-NiSupZ4OeuGwr68lGIeym/ksIZMJodUGOSCZ/FSnTxcrekbvqrgdUxlJOMpijaKZVjAJrWrGs/6Jy8OMuyj9ow=="],
 
