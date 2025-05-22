@@ -54,21 +54,18 @@ const App = () => {
     tools: null
   });
   const [command, setCommand] = useState<string>(() => {
-    return localStorage.getItem('lastCommand') || 'mcp-server-everything';
+    return 'mcp-server-everything';
   });
   const [args, setArgs] = useState<string>(() => {
-    return localStorage.getItem('lastArgs') || '';
+    return '';
   });
 
   const [sseUrl, setSseUrl] = useState<string>(() => {
-    return localStorage.getItem('lastSseUrl') || 'http://localhost:3001/sse';
+    return 'http://localhost:3001/sse';
   });
   const [transportType, setTransportType] = useState<'stdio' | 'sse' | 'streamable-http'>(
     () => {
-      return (
-        (localStorage.getItem('lastTransportType') as 'stdio' | 'sse' | 'streamable-http') ||
-        'stdio'
-      );
+      return 'stdio';
     }
   );
   const [logLevel, setLogLevel] = useState<LoggingLevel>('debug');
@@ -78,32 +75,32 @@ const App = () => {
   const [env, setEnv] = useState<Record<string, string>>({});
 
   const [config, setConfig] = useState<InspectorConfig>(() => {
-    const savedConfig = localStorage.getItem(CONFIG_LOCAL_STORAGE_KEY);
-    if (savedConfig) {
-      // merge default config with saved config
-      const mergedConfig = {
-        ...DEFAULT_INSPECTOR_CONFIG,
-        ...JSON.parse(savedConfig)
-      } as InspectorConfig;
+    // const savedConfig = localStorage.getItem(CONFIG_LOCAL_STORAGE_KEY);
+    // if (savedConfig) {
+    //   // merge default config with saved config
+    //   const mergedConfig = {
+    //     ...DEFAULT_INSPECTOR_CONFIG,
+    //     ...JSON.parse(savedConfig)
+    //   } as InspectorConfig;
 
-      // update description of keys to match the new description (in case of any updates to the default config description)
-      Object.entries(mergedConfig).forEach(([key, value]) => {
-        mergedConfig[key as keyof InspectorConfig] = {
-          ...value,
-          label: DEFAULT_INSPECTOR_CONFIG[key as keyof InspectorConfig].label
-        };
-      });
+    //   // update description of keys to match the new description (in case of any updates to the default config description)
+    //   Object.entries(mergedConfig).forEach(([key, value]) => {
+    //     mergedConfig[key as keyof InspectorConfig] = {
+    //       ...value,
+    //       label: DEFAULT_INSPECTOR_CONFIG[key as keyof InspectorConfig].label
+    //     };
+    //   });
 
-      return mergedConfig;
-    }
+    //   return mergedConfig;
+    // }
     return DEFAULT_INSPECTOR_CONFIG;
   });
   const [bearerToken, setBearerToken] = useState<string>(() => {
-    return localStorage.getItem('lastBearerToken') || '';
+    return '';
   });
 
   const [headerName, setHeaderName] = useState<string>(() => {
-    return localStorage.getItem('lastHeaderName') || '';
+    return '';
   });
 
   const [pendingSampleRequests, setPendingSampleRequests] = useState<
@@ -169,33 +166,33 @@ const App = () => {
     getRoots: () => rootsRef.current
   });
 
-  useEffect(() => {
-    localStorage.setItem('lastCommand', command);
-  }, [command]);
+  // useEffect(() => {
+  //   localStorage.setItem('lastCommand', command);
+  // }, [command]);
 
-  useEffect(() => {
-    localStorage.setItem('lastArgs', args);
-  }, [args]);
+  // useEffect(() => {
+  //   localStorage.setItem('lastArgs', args);
+  // }, [args]);
 
-  useEffect(() => {
-    localStorage.setItem('lastSseUrl', sseUrl);
-  }, [sseUrl]);
+  // useEffect(() => {
+  //   localStorage.setItem('lastSseUrl', sseUrl);
+  // }, [sseUrl]);
 
-  useEffect(() => {
-    localStorage.setItem('lastTransportType', transportType);
-  }, [transportType]);
+  // useEffect(() => {
+  //   localStorage.setItem('lastTransportType', transportType);
+  // }, [transportType]);
 
-  useEffect(() => {
-    localStorage.setItem('lastBearerToken', bearerToken);
-  }, [bearerToken]);
+  // useEffect(() => {
+  //   localStorage.setItem('lastBearerToken', bearerToken);
+  // }, [bearerToken]);
 
-  useEffect(() => {
-    localStorage.setItem('lastHeaderName', headerName);
-  }, [headerName]);
+  // useEffect(() => {
+  //   localStorage.setItem('lastHeaderName', headerName);
+  // }, [headerName]);
 
-  useEffect(() => {
-    localStorage.setItem(CONFIG_LOCAL_STORAGE_KEY, JSON.stringify(config));
-  }, [config]);
+  // useEffect(() => {
+  //   localStorage.setItem(CONFIG_LOCAL_STORAGE_KEY, JSON.stringify(config));
+  // }, [config]);
 
   // Auto-connect to previously saved serverURL after OAuth callback
   const onOAuthConnect = useCallback(
@@ -437,6 +434,8 @@ const App = () => {
   };
 
   let autoConnectedRef = useRef(false);
+  let connectMcpServerRef = useRef(connectMcpServer);
+  connectMcpServerRef.current = connectMcpServer;
   useEffect(() => {
     if (autoConnectedRef.current) return;
     autoConnectedRef.current = true;
@@ -455,7 +454,9 @@ const App = () => {
         setBearerToken(bearerToken);
       }
 
-      connectMcpServer();
+      setTimeout(() => {
+        connectMcpServerRef.current();
+      }, 100);
 
       console.log(
         `Connected to MCP server with transportType: ${transportType}, sseUrl: ${sseUrl}, bearerToken: ${bearerToken}`

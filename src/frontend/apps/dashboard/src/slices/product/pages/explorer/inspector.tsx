@@ -54,7 +54,7 @@ export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: str
 
   return (
     <Wrapper>
-      <Iframe src={url} onLoad={() => setIsLoading(false)} />
+      <Iframe src={url} onLoad={() => setIsLoading(false)} key={url} />
 
       <AnimatePresence>
         {isLoading && (

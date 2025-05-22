@@ -1,10 +1,5 @@
 import { useToast } from '@/hooks/use-toast';
-import {
-  getMCPProxyAddress,
-  getMCPServerRequestMaxTotalTimeout,
-  getMCPServerRequestTimeout,
-  resetRequestTimeoutOnProgress
-} from '@/utils/configUtils';
+import { getMCPProxyAddress, resetRequestTimeoutOnProgress } from '@/utils/configUtils';
 import { auth } from '@modelcontextprotocol/sdk/client/auth.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport, SseError } from '@modelcontextprotocol/sdk/client/sse.js';
@@ -106,9 +101,9 @@ export function useConnection({
       const mcpRequestOptions: RequestOptions = {
         signal: options?.signal ?? abortController.signal,
         resetTimeoutOnProgress:
-          options?.resetTimeoutOnProgress ?? resetRequestTimeoutOnProgress(config),
-        timeout: options?.timeout ?? getMCPServerRequestTimeout(config),
-        maxTotalTimeout: options?.maxTotalTimeout ?? getMCPServerRequestMaxTotalTimeout(config)
+          options?.resetTimeoutOnProgress ?? resetRequestTimeoutOnProgress(config)
+        // timeout: options?.timeout ?? getMCPServerRequestTimeout(config),
+        // maxTotalTimeout: options?.maxTotalTimeout ?? getMCPServerRequestMaxTotalTimeout(config)
       };
 
       // If progress notifications are enabled, add an onprogress hook to the MCP Client request options
