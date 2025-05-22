@@ -185,8 +185,6 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
                   let value = input.value;
                   if (!value) return;
 
-                  console.log('search', value);
-
                   router.push(`/servers?search=${value}`);
                 }}
               >

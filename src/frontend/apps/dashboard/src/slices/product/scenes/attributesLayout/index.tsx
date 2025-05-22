@@ -7,8 +7,8 @@ let Grid = styled.div`
   grid-template-columns: calc(100% - 350px) 300px;
   gap: 50px;
 
-  @media (max-width: 1000px) {
-    grid-template-columns: 1fr;
+  @media (max-width: 1300px) {
+    grid-template-columns: 100%;
     gap: 30px;
   }
 `;

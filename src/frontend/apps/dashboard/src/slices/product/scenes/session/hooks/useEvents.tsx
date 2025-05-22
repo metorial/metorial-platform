@@ -11,6 +11,7 @@ export let useEvents = (
   opts: {
     serverSessionIds?: string[] | string;
     serverRunIds?: string[] | string;
+    limit?: number;
   }
 ) => {
   let instance = useCurrentInstance();

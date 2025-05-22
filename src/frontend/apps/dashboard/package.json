@@ -33,6 +33,7 @@
     "@types/lodash": "^4.17.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.1",
+    "ansi-to-react": "^6.1.6",
     "copy-to-clipboard": "^3.3.3",
     "date-fns": "^3.6.0",
     "framer-motion": "^11.5.4",

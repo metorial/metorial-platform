@@ -1,5 +1,6 @@
 import { SessionsEventsGetOutput } from '@metorial/core';
-import { Fragment } from 'react/jsx-runtime';
+import { RenderDate } from '@metorial/ui';
+import Ansi from 'ansi-to-react';
 import styled from 'styled-components';
 
 let Wrapper = styled.div`
@@ -16,6 +17,9 @@ let Header = styled.header`
   border-bottom: 1px solid #444;
   font-size: 12px;
   font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 let Main = styled.main`
@@ -31,11 +35,10 @@ let Pre = styled.pre`
   padding: 0px;
   margin: 0px;
 
-  span[data-type='stdout'] {
-    color: #aaa;
-  }
-
-  span[data-type='stderr'] {
+  code {
+    background: transparent;
+    line-height: 1.5;
+    font-size: 12px;
     color: white;
   }
 `;
@@ -45,16 +48,20 @@ export let Logs = ({ event }: { event: SessionsEventsGetOutput }) => {
     <Wrapper>
       <Header>
         <p>Output</p>
+
+        <RenderDate date={event.createdAt} />
       </Header>
 
       <Main>
         <Pre>
-          {event.logLines.map((line, i) => (
-            <Fragment key={i}>
-              {i > 0 && <br />}
-              <span data-type={line.type}>{line.line}</span>
-            </Fragment>
-          ))}
+          <Ansi>{event.logLines.map(l => l.line).join('\n')}</Ansi>
+
+          {/* {event.logLines.map((line, i) => (
+              <Fragment key={i}>
+                {i > 0 && <br />}
+                <span data-type={line.type}>{line.line}</span>
+              </Fragment>
+            ))} */}
         </Pre>
       </Main>
     </Wrapper>
