@@ -46,6 +46,20 @@ export let listServers = async (input: {
       )
   );
 
+export let getServerCapabilities = async (vendorSlug: string, serverSlug: string) =>
+  withSdk(
+    async client =>
+      await client.servers[':vendorSlug'][':serverSlug'].capabilities.$get(
+        {
+          param: {
+            vendorSlug,
+            serverSlug
+          }
+        },
+        fetchOpts
+      )
+  );
+
 export let listServerVariants = async (
   vendorSlug: string,
   serverSlug: string,
@@ -150,3 +164,6 @@ export type ServerVersion = Awaited<ReturnType<typeof listServerVersions>>['item
 export type ServerVariant = Awaited<ReturnType<typeof listServerVariants>>['items'][number];
 export type ServerCategory = Awaited<ReturnType<typeof getServerCategory>>;
 export type ServerCollection = Awaited<ReturnType<typeof getServerCollection>>;
+export type ServerCapabilities = NonNullable<
+  Awaited<ReturnType<typeof getServerCapabilities>>
+>;

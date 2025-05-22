@@ -2,7 +2,8 @@
 
 import { notFound } from 'next/navigation';
 import { serverFetch } from '../../../../../../state/sdk';
-import { getServer } from '../../../../../../state/server';
+import { getServer, getServerCapabilities } from '../../../../../../state/server';
+import { NoTools } from './noTools';
 import { Tools } from './tools';
 
 export default async ({
@@ -19,8 +20,11 @@ export default async ({
 
   let server = serverRes.data;
 
-  // TODO: add tool list
-  // if (!server.current_version?.tools) return <NoTools server={server} />;
+  let capabilities = await serverFetch(() =>
+    getServerCapabilities(params.vendorSlug, params.serverSlug)
+  );
 
-  return <Tools server={server} />;
+  if (!capabilities.data?.tools?.length) return <NoTools server={server} />;
+
+  return <Tools server={server} capabilities={capabilities.data} />;
 };

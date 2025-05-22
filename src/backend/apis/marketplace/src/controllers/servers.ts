@@ -1,5 +1,6 @@
 import { createHono } from '@metorial/hono';
 import {
+  serverCapabilitiesService,
   serverListingService,
   serverService,
   serverVariantService,
@@ -9,6 +10,7 @@ import { Paginator } from '@metorial/pagination';
 import { z } from 'zod';
 import { paginatorSchema } from '../lib/paginatorSchema';
 import { useValidation } from '../lib/validator';
+import { serverCapabilitiesPresenter } from '../presenters/serverCapabilities';
 import { serverListingPresenter } from '../presenters/serverListing';
 import { serverVariantPresenter } from '../presenters/serverVariant';
 import { serverVersionPresenter } from '../presenters/serverVersion';
@@ -46,11 +48,24 @@ export let serversController = createHono()
     }
   )
   .get(':vendorSlug/:serverSlug', async c => {
-    let collection = await serverListingService.getServerListingById({
+    let listing = await serverListingService.getServerListingById({
       serverListingId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`
     });
 
-    return c.json(await serverListingPresenter(collection));
+    return c.json(await serverListingPresenter(listing));
+  })
+  .get(':vendorSlug/:serverSlug/capabilities', async c => {
+    let listing = await serverListingService.getServerListingById({
+      serverListingId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`
+    });
+
+    let [capabilities] = await serverCapabilitiesService.getManyServerCapabilities({
+      serverIds: [listing.server.id]
+    });
+
+    if (!capabilities) return c.json(null);
+
+    return c.json(await serverCapabilitiesPresenter(capabilities));
   })
   .get(
     ':vendorSlug/:serverSlug/variants',
