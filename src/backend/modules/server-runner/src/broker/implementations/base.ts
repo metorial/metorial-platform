@@ -100,6 +100,8 @@ export abstract class BrokerRunnerImplementation {
       id: `${MCP_IDS.ONE_OFF}${generatePlainId(15)}`
     };
 
+    this.#pendingOneOffMessages.add(sentMessage.id);
+
     return new Promise<JSONRPCResponse>(async (resolve, reject) => {
       let unsub = this.emitter.on('message', (msg: JSONRPCMessage) => {
         if ('id' in msg && msg.id == sentMessage.id) {
@@ -115,7 +117,7 @@ export abstract class BrokerRunnerImplementation {
           // message handler is executed after this one
           setTimeout(() => {
             this.#pendingOneOffMessages.delete(msg.id);
-          }, 100);
+          }, 5000);
         }
       });
 
