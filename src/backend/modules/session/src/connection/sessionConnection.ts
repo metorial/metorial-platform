@@ -10,6 +10,7 @@ import { debug } from '@metorial/debug';
 import {
   jsonRpcPingRequest,
   jsonRpcPingResponse,
+  MCP_IDS,
   type JSONRPCMessage
 } from '@metorial/mcp-utils';
 import { ProgrammablePromise } from '@metorial/programmable-promise';
@@ -19,8 +20,8 @@ import { SessionManager } from './sessionManager';
 
 let Sentry = getSentry();
 
-let PING_INTERVAL = 1000 * 30;
-let PING_TIMEOUT = 1000 * 90;
+let PING_INTERVAL = process.env.NODE_ENV == 'development' ? 1000 * 5 : 1000 * 30;
+let PING_TIMEOUT = process.env.NODE_ENV == 'development' ? 1000 * 10 : 1000 * 65;
 
 let connections = new Map<string, SessionConnection>();
 
@@ -48,6 +49,8 @@ export class SessionConnection {
     this.#manager = new SessionManager(session, {
       mode: opts.mode
     });
+
+    this.onClose(() => this.close());
 
     this.#pingIv = setInterval(() => {
       (async () => {
@@ -94,26 +97,30 @@ export class SessionConnection {
 
     this.#lastMessageAt = Date.now();
 
+    let messagesToSend: JSONRPCMessage[] = [];
+
     for (let i = 0; i < messages.length; i++) {
       let message = messages[i];
       if ('method' in message && message.method == 'ping') {
-        messages.splice(i, 1);
-        i--;
-
+        // Client pings are handled by the control message backend
+        // and are not sent to the server
         if ('id' in message) {
           this.#controlMessageBackend.sendMessage(jsonRpcPingResponse(message));
         }
+
+        continue;
       }
 
-      if ('id' in message && String(message.id).startsWith('mtgw/ping/')) {
-        messages.splice(i, 1);
-        i--;
-
+      if ('id' in message && String(message.id).startsWith(MCP_IDS.PING)) {
         // Ignore ping messages
+        continue;
       }
+
+      messagesToSend.push(message);
     }
 
-    if (messages.length) return await this.#manager.sendMessage(messages);
+    if (messagesToSend.length) return await this.#manager.sendMessage(messagesToSend);
+
     return [];
   }
 
@@ -165,8 +172,6 @@ export class SessionConnection {
           ids: Array.from(idsToWaitFor)
         },
         async (message, stored) => {
-          console.log('Received message', message, stored);
-
           if (closedRef.current) return;
 
           if (stored?.type != 'request' && stored?.unifiedId) {

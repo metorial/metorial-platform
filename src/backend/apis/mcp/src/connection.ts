@@ -36,7 +36,11 @@ export class McpServerConnection {
           type: ['error', 'notification', 'response', 'request']
         },
         async msg => {
-          debug.log('MCP message - out', msg);
+          debug.log('MCP message - out', {
+            ...msg,
+            result: undefined,
+            params: undefined
+          });
           await cb(msg);
         }
       );

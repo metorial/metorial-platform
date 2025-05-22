@@ -2,8 +2,8 @@ import { db, ID, SessionMessageType, type ServerSession } from '@metorial/db';
 import { createLock } from '@metorial/lock';
 import { getMessageType, type JSONRPCMessage } from '@metorial/mcp-utils';
 import { getSentry } from '@metorial/sentry';
+import { UnifiedID } from '@metorial/unified-id';
 import type { Participant } from '../../types';
-import { UnifiedID } from '../unifiedId';
 import { BrokerBusBackend } from './backend';
 
 let Sentry = getSentry();

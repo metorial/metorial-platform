@@ -1,8 +1,18 @@
 import { base62 } from '@metorial/base62';
 import type { SessionMessage } from '@metorial/db';
-import type { Participant } from '../types';
+import { MCP_IDS } from '@metorial/mcp-utils';
 
-const PREFIX = 'mt/x/';
+let PREFIX = MCP_IDS.UNIFIED;
+
+export type Participant =
+  | {
+      type: 'server';
+      id: string;
+    }
+  | {
+      type: 'client';
+      id: string;
+    };
 
 let extractUnifiedId = (id: string) =>
   JSON.parse(base62.decode(id.slice(PREFIX.length))) as [
@@ -49,7 +59,6 @@ export class UnifiedID {
   serialize(d: { sender: Participant; originalId: string | number }) {
     if (typeof d.originalId == 'string' && d.originalId.startsWith(PREFIX)) {
       let parsed = parseUnifiedId(d.originalId);
-      console.log('parsed', parsed);
       if (parsed && parsed.sessionId == this.sessionId) return d.originalId;
     }
 

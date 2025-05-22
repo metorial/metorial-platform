@@ -4,14 +4,15 @@ import { generatePlainId } from '@metorial/id';
 import {
   InitializeRequestSchema,
   InitializeResultSchema,
+  MCP_IDS,
   type InitializeResult,
   type JSONRPCResponse
 } from '@metorial/mcp-utils';
 import { ProgrammablePromise } from '@metorial/programmable-promise';
 import { getSentry } from '@metorial/sentry';
+import { getUnifiedIdIfNeeded } from '@metorial/unified-id';
 import { BrokerRunnerImplementation } from './implementations/base';
 import { BrokerBus } from './lib/bus';
-import { getUnifiedIdIfNeeded } from './lib/unifiedId';
 
 let RELEVANT_TYPES: SessionMessageType[] = ['error', 'notification', 'request', 'response'];
 let NO_CLIENT_REQUEST_TIMEOUT = 1000 * 30;
@@ -241,10 +242,8 @@ export class BrokerRunManager {
     });
 
     this.implementation.onMessage(async msg => {
-      console.log('this.implementation.onMessage', msg);
-
       if (
-        ('method' in msg && 'id' in msg && String(msg.id).startsWith('mt/init/')) ||
+        ('method' in msg && 'id' in msg && String(msg.id).startsWith(MCP_IDS.INIT)) ||
         !this.session.mcpInitialized
       ) {
         let initResult = InitializeResultSchema.safeParse((msg as JSONRPCResponse).result);
@@ -288,7 +287,7 @@ export class BrokerRunManager {
     if (this.session.mcpInitialized) {
       this.implementation.sendMessage({
         jsonrpc: '2.0',
-        id: `mt/init/${generatePlainId(15)}`,
+        id: `${MCP_IDS.INIT}${generatePlainId(15)}`,
         method: 'initialize',
         params: {
           protocolVersion: '2024-11-05',

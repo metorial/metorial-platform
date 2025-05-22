@@ -1,4 +1,5 @@
 import { type JSONRPCRequest, type JSONRPCResponse } from '@modelcontextprotocol/sdk/types.js';
+import { MCP_IDS } from '../systemIds';
 
 export let jsonRpcResponseToRequest = (
   request: JSONRPCRequest,
@@ -11,7 +12,7 @@ export let jsonRpcResponseToRequest = (
 
 export let jsonRpcPingRequest = (seedId: string): JSONRPCRequest => ({
   jsonrpc: '2.0',
-  id: `mt/ping/${seedId}_${Date.now()}`,
+  id: `${MCP_IDS.PING}${seedId}_${Date.now()}`,
   method: 'ping'
 });
 

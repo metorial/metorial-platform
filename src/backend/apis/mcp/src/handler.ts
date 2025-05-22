@@ -1,5 +1,6 @@
 import { getConfig } from '@metorial/config';
 import { ServerDeployment, ServerSession, ServerVariant } from '@metorial/db';
+import { delay } from '@metorial/delay';
 import {
   badRequestError,
   internalServerError,
@@ -47,8 +48,10 @@ export let mcpConnectionHandler = async (
     );
   }
 
-  c.res.headers.set('Mcp-Session-Id', sessionInfo.session.id);
+  c.res.headers.set('Mcp-Session-Id', serverSession.id);
   c.res.headers.set('Metorial-Session-Id', sessionInfo.session.id);
+  c.res.headers.set('Metorial-Server-Session-Id', serverSession.id);
+  c.res.headers.set('Metorial-Server-Deployment-Id', serverSession.serverDeployment.id);
 
   if (c.req.method == 'DELETE') {
     // TODO: Handle this like a session delete
@@ -124,11 +127,7 @@ export let mcpConnectionHandler = async (
 
           onMessage(async msg => stream.writeSSE({ data: JSON.stringify(msg) }));
 
-          console.log('MCP SSE connection opened');
-
           await connection.waitForClose;
-
-          console.log('MCP SSE connection closed');
         },
         async error => {
           console.error('Error in SSE stream', error);
@@ -184,12 +183,15 @@ export let mcpConnectionHandler = async (
 
           await connection.sendMessagesAndWaitForResponse(
             messages.filter(m => m.status == 'ok').map(m => m.message),
-            async (msg, stor) =>
+            async (msg, stor) => {
               stream.writeSSE({
                 id: stor?.unifiedId ?? undefined,
                 data: JSON.stringify(msg)
-              })
+              });
+            }
           );
+
+          await delay(100);
 
           await connection.close();
         },

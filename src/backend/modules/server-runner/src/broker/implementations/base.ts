@@ -4,6 +4,7 @@ import { generatePlainId } from '@metorial/id';
 import {
   jsonRpcPingRequest,
   JSONRPCRequest,
+  MCP_IDS,
   type JSONRPCError,
   type JSONRPCMessage,
   type JSONRPCResponse,
@@ -96,7 +97,7 @@ export abstract class BrokerRunnerImplementation {
     let sentMessage: JSONRPCRequest = {
       ...(message as any),
       jsonrpc: '2.0',
-      id: `mt/oo/${generatePlainId(15)}`
+      id: `${MCP_IDS.ONE_OFF}${generatePlainId(15)}`
     };
 
     return new Promise<JSONRPCResponse>(async (resolve, reject) => {

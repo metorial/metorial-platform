@@ -6,9 +6,9 @@ import type {
   SessionMessageType
 } from '@metorial/db';
 import type { JSONRPCMessage } from '@metorial/mcp-utils';
+import { getUnifiedIdIfNeeded } from '@metorial/unified-id';
 import { ensureRunnerForSession } from '../jobs';
 import { BrokerBus } from '../lib/bus';
-import { getUnifiedIdIfNeeded } from '../lib/unifiedId';
 import { Participant } from '../types';
 
 let ENSURE_RUNNER_TIMEOUT = 1000 * 5;
@@ -58,8 +58,6 @@ export class BrokerClientManager {
   async sendMessage(message: JSONRPCMessage | JSONRPCMessage[]) {
     let messages: JSONRPCMessage[] = Array.isArray(message) ? message : [message];
     if (!messages.length) return [];
-
-    console.log('sendMessage', messages);
 
     await this.ensureRunner();
     return this.#bus.then(bus => bus.sendMessage(message));
