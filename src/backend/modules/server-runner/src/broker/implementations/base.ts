@@ -177,7 +177,7 @@ export abstract class BrokerRunnerImplementation {
     try {
       while (true) {
         let res: any = await this.sendAndWaitForResponse({
-          method: 'resource_templates/list',
+          method: 'resources/templates/list',
           params: { cursor }
         });
 
