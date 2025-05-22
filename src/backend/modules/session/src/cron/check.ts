@@ -1,5 +1,6 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
+import { debug } from '@metorial/debug';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { subMinutes } from 'date-fns';
 
@@ -36,6 +37,8 @@ let disconnectSessionsCron = createCron(
           lastClientPingAt: session.lastClientPingAt
         }))
       );
+
+      cursorId = sessionsToDisconnect[sessionsToDisconnect.length - 1].id as string;
     }
   }
 );
@@ -45,7 +48,9 @@ let disconnectSessionQueue = createQueue<{ sessionId: string; lastClientPingAt: 
 );
 
 let disconnectSessionQueueProcessor = disconnectSessionQueue.process(async data => {
-  let session = await db.session.update({
+  debug.log('Disconnecting session', data.sessionId);
+
+  let [session] = await db.session.updateManyAndReturn({
     where: {
       id: data.sessionId,
       connectionStatus: 'connected',
@@ -55,6 +60,7 @@ let disconnectSessionQueueProcessor = disconnectSessionQueue.process(async data 
       connectionStatus: 'disconnected'
     }
   });
+  if (!session) return;
 
   await db.serverRun.updateMany({
     where: {

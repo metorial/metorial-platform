@@ -3,6 +3,7 @@ import { notFoundError, ServiceError } from '@metorial/error';
 import { ingestEventService } from '@metorial/module-event';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
+import { serverSessionCreatedQueue } from '../queue/serverSessionCreated';
 
 let include = {
   serverDeployment: {
@@ -39,6 +40,10 @@ class ServerSessionImpl {
 
       instance: session.instance,
       organization: session.instance.organization
+    });
+
+    await serverSessionCreatedQueue.add({
+      serverSessionId: session.id
     });
 
     return session;
