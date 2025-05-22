@@ -12,6 +12,7 @@ import { v1OrganizationMemberPresenter } from './implementation/organizationMemb
 import { v1ProjectPresenter } from './implementation/project';
 import { v1SecretPresenter } from './implementation/secret';
 import { v1ServerPresenter } from './implementation/server';
+import { v1ServerCapabilitiesPresenter } from './implementation/serverCapabilities';
 import { v1ServerListingCategoryPresenter } from './implementation/serverCategory';
 import { v1ServerListingCollectionPresenter } from './implementation/serverCollection';
 import { v1ServerDeploymentPresenter } from './implementation/serverDeployment';
@@ -48,6 +49,7 @@ import {
   organizationType,
   projectType,
   secretType,
+  serverCapabilitiesType,
   serverDeploymentConfigType,
   serverDeploymentType,
   serverImplementationType,
@@ -216,4 +218,9 @@ export let sessionEventPresenter = declarePresenter(sessionEventType, {
 export let sessionMessagePresenter = declarePresenter(sessionMessageType, {
   mt_2025_01_01_pulsar: v1SessionMessagePresenter,
   mt_2025_01_01_dashboard: dashboardSessionMessagePresenter
+});
+
+export let serverCapabilitiesPresenter = declarePresenter(serverCapabilitiesType, {
+  mt_2025_01_01_pulsar: v1ServerCapabilitiesPresenter,
+  mt_2025_01_01_dashboard: v1ServerCapabilitiesPresenter
 });

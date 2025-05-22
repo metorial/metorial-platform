@@ -41,22 +41,22 @@ class ServerRunImpl {
   }) {
     let serverSessions = d.serverSessionIds?.length
       ? await db.serverSession.findMany({
-          where: { id: { in: d.serverSessionIds } }
+          where: { id: { in: d.serverSessionIds }, instanceOid: d.instance.oid }
         })
       : undefined;
     let serverDeployments = d.serverDeploymentIds?.length
       ? await db.serverDeployment.findMany({
-          where: { id: { in: d.serverDeploymentIds } }
+          where: { id: { in: d.serverDeploymentIds }, instanceOid: d.instance.oid }
         })
       : undefined;
     let serverImplementations = d.serverImplementationIds?.length
       ? await db.serverImplementation.findMany({
-          where: { id: { in: d.serverImplementationIds } }
+          where: { id: { in: d.serverImplementationIds }, instanceOid: d.instance.oid }
         })
       : undefined;
     let sessions = d.sessionIds?.length
       ? await db.session.findMany({
-          where: { id: { in: d.sessionIds } }
+          where: { id: { in: d.sessionIds }, instanceOid: d.instance.oid }
         })
       : undefined;
 

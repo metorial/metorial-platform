@@ -229,12 +229,12 @@ class SessionImpl {
       : undefined;
     let serverImplementations = d.serverImplementationIds?.length
       ? await db.serverImplementation.findMany({
-          where: { id: { in: d.serverImplementationIds } }
+          where: { id: { in: d.serverImplementationIds }, instanceOid: d.instance.oid }
         })
       : undefined;
     let serverDeployments = d.serverDeploymentIds?.length
       ? await db.serverDeployment.findMany({
-          where: { id: { in: d.serverDeploymentIds } }
+          where: { id: { in: d.serverDeploymentIds }, instanceOid: d.instance.oid }
         })
       : undefined;
 

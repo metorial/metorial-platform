@@ -28,13 +28,13 @@ class SessionMessageImpl {
   }) {
     let serverRuns = d.serverRunIds?.length
       ? await db.serverRun.findMany({
-          where: { id: { in: d.serverRunIds } }
+          where: { id: { in: d.serverRunIds }, instanceOid: d.session.instanceOid }
         })
       : undefined;
 
     let serverSessions = d.serverSessionIds?.length
       ? await db.serverSession.findMany({
-          where: { id: { in: d.serverSessionIds } }
+          where: { id: { in: d.serverSessionIds }, instanceOid: d.session.instanceOid }
         })
       : undefined;
 

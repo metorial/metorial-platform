@@ -3,6 +3,7 @@ import { serverListingService } from '@metorial/module-catalog';
 import { Paginator } from '@metorial/pagination';
 import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { apiGroup } from '../../middleware/apiGroup';
 import { checkAccess } from '../../middleware/checkAccess';
 import { serverListingPresenter } from '../../presenters';
@@ -20,13 +21,13 @@ export let serverListingGroup = apiGroup.use(async ctx => {
 export let serverListingController = Controller.create(
   {
     name: 'Server Listing',
-    description: 'Read and write server version information'
+    description: 'Read and write server listing information'
   },
   {
     list: apiGroup
       .get(Path('server-listings', 'servers.listings.list'), {
-        name: 'List server versions',
-        description: 'List all server versions'
+        name: 'List server listings',
+        description: 'List all server listings'
       })
       .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
       .outputList(serverListingPresenter)
@@ -35,9 +36,9 @@ export let serverListingController = Controller.create(
         Paginator.validate(
           v.object({
             search: v.optional(v.string()),
-            collection_ids: v.optional(v.array(v.string())),
-            category_ids: v.optional(v.array(v.string())),
-            profile_ids: v.optional(v.array(v.string())),
+            collection_ids: v.optional(v.union([v.array(v.string()), v.string()])),
+            category_ids: v.optional(v.union([v.array(v.string()), v.string()])),
+            profile_ids: v.optional(v.union([v.array(v.string()), v.string()])),
             instance_id: v.optional(v.string()),
             order_by_rank: v.optional(v.boolean())
           })
@@ -55,9 +56,9 @@ export let serverListingController = Controller.create(
 
         let paginator = await serverListingService.listServerListings({
           search: ctx.query.search,
-          collectionIds: ctx.query.collection_ids,
-          categoryIds: ctx.query.category_ids,
-          profileIds: ctx.query.profile_ids,
+          collectionIds: normalizeArrayParam(ctx.query.collection_ids),
+          categoryIds: normalizeArrayParam(ctx.query.category_ids),
+          profileIds: normalizeArrayParam(ctx.query.profile_ids),
           orderByRank: ctx.query.order_by_rank,
           instance
         });
@@ -71,8 +72,8 @@ export let serverListingController = Controller.create(
 
     get: serverListingGroup
       .get(Path('server-listings/:serverListingId', 'servers.listings.get'), {
-        name: 'Get server version',
-        description: 'Get the information of a specific server version'
+        name: 'Get server listing',
+        description: 'Get the information of a specific server listing'
       })
       .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
       .output(serverListingPresenter)

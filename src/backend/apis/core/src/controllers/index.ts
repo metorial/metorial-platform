@@ -9,6 +9,7 @@ import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
 import { secretController } from './instance/secret';
 import { serverController } from './instance/server';
+import { serverCapabilitiesController } from './instance/serverCapabilities';
 import { serverDeploymentController } from './instance/serverDeployment';
 import { serverImplementationController } from './instance/serverImplementation';
 import { serverListingController } from './instance/serverListing';
@@ -57,7 +58,9 @@ export let pulsarController = Controller.create<any>(
     serverRunController,
     serverRunErrorController,
 
-    serverSessionController
+    serverSessionController,
+
+    serverCapabilitiesController
   }
 );
 
@@ -103,6 +106,8 @@ export let dashboardController = Controller.create<any>(
     serverRunErrorController,
     serverRunErrorGroupController,
 
-    serverSessionController
+    serverSessionController,
+
+    serverCapabilitiesController
   }
 );

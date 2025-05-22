@@ -36,6 +36,7 @@ import {
   SessionMessage,
   User
 } from '@metorial/db';
+import { ServerCapabilities } from '@metorial/module-catalog';
 import { PresentableType } from '@metorial/presenter';
 
 export let bootType = PresentableType.create<{
@@ -288,3 +289,7 @@ export let serverRunErrorGroupType = PresentableType.create<{
       | null;
   };
 }>()('server.server_run.error_group');
+
+export let serverCapabilitiesType = PresentableType.create<{
+  serverCapabilities: ServerCapabilities[];
+}>()('server.capabilities');

@@ -35,7 +35,7 @@ declare global {
 
     type ServerConfigSchema = JSONSchema4 | JSONSchema6 | JSONSchema7;
 
-        type ServerVersionTools = Tool[] | null;
+    type ServerVersionTools = Tool[] | null;
     type ServerVersionPrompts = Prompt[] | null;
     type ServerVersionResourceTemplates = ResourceTemplate[] | null;
     type ServerVersionServerInfo = { name: string; version: string } | null;
@@ -43,7 +43,7 @@ declare global {
 
     type SessionClientInfo = { name: string; version: string };
     type SessionClientCapabilities = ClientCapabilities;
-        type SessionServerInfo = { name: string; version: string };
+    type SessionServerInfo = { name: string; version: string };
     type SessionServerCapabilities = ServerCapabilities;
 
     type SessionMessageMcpPayload = JSONRPCMessage;

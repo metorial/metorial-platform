@@ -46,27 +46,27 @@ class ServerRunErrorImpl {
   }) {
     let serverSessions = d.serverSessionIds?.length
       ? await db.serverSession.findMany({
-          where: { id: { in: d.serverSessionIds } }
+          where: { id: { in: d.serverSessionIds }, instanceOid: d.instance.oid }
         })
       : undefined;
     let serverDeployments = d.serverDeploymentIds?.length
       ? await db.serverDeployment.findMany({
-          where: { id: { in: d.serverDeploymentIds } }
+          where: { id: { in: d.serverDeploymentIds }, instanceOid: d.instance.oid }
         })
       : undefined;
     let serverImplementations = d.serverImplementationIds?.length
       ? await db.serverImplementation.findMany({
-          where: { id: { in: d.serverImplementationIds } }
+          where: { id: { in: d.serverImplementationIds }, instanceOid: d.instance.oid }
         })
       : undefined;
     let serverRunErrorGroups = d.serverRunErrorGroupIds?.length
       ? await db.serverRunErrorGroup.findMany({
-          where: { id: { in: d.serverRunErrorGroupIds } }
+          where: { id: { in: d.serverRunErrorGroupIds }, instanceOid: d.instance.oid }
         })
       : undefined;
     let serverRuns = d.serverRunIds?.length
       ? await db.serverRun.findMany({
-          where: { id: { in: d.serverRunIds } }
+          where: { id: { in: d.serverRunIds }, instanceOid: d.instance.oid }
         })
       : undefined;
 

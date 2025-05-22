@@ -41,7 +41,9 @@ let startSyncQueue = createQueue({
   }
 });
 
-startSyncQueue.add({}).catch(e => console.error('Error adding to full sync queue', e));
+startSyncQueue
+  .add({}, { id: 'init' })
+  .catch(e => console.error('Error adding to full sync queue', e));
 
 let fullSyncQueue = createQueue({
   name: 'cat/sync/full'
@@ -95,13 +97,13 @@ let getIndexDatabase = () =>
 let startSyncQueueProcessor = startSyncQueue.process(async () => {
   debug.log('Starting full sync...');
 
-  await fullSyncQueue.add({});
+  await fullSyncQueue.add({}, { id: 'fullSyncQueue' });
 });
 
 let fullSyncQueueProcessor = fullSyncQueue.process(async () => {
   debug.log('Running full sync...');
 
-  await vendorsSyncQueue.add({});
+  await vendorsSyncQueue.add({}, { id: 'vendorsSyncQueue' });
 });
 
 let vendorsSyncQueueProcessor = vendorsSyncQueue.process(async () => {
@@ -134,7 +136,7 @@ let vendorsSyncQueueProcessor = vendorsSyncQueue.process(async () => {
 
   debug.log('Vendors synced');
 
-  await categoriesSyncQueue.add({});
+  await categoriesSyncQueue.add({}, { id: 'categoriesSyncQueue' });
 });
 
 let categoriesSyncQueueProcessor = categoriesSyncQueue.process(async () => {
@@ -163,7 +165,7 @@ let categoriesSyncQueueProcessor = categoriesSyncQueue.process(async () => {
 
   debug.log('Categories synced');
 
-  await providersSyncQueue.add({});
+  await providersSyncQueue.add({}, { id: 'providersSyncQueue' });
 });
 
 let providersSyncQueueProcessor = providersSyncQueue.process(async () => {
@@ -196,7 +198,7 @@ let providersSyncQueueProcessor = providersSyncQueue.process(async () => {
 
   debug.log('Providers synced');
 
-  await repositoriesSyncQueue.add({});
+  await repositoriesSyncQueue.add({}, { id: 'repositoriesSyncQueue' });
 });
 
 let repositoriesSyncQueueProcessor = repositoriesSyncQueue.process(async () => {
@@ -277,7 +279,7 @@ let repositoriesSyncQueueProcessor = repositoriesSyncQueue.process(async () => {
 
   console.log('Repositories synced');
 
-  await serversSyncQueue.add({});
+  await serversSyncQueue.add({}, { id: 'serversSyncQueue' });
 });
 
 let serversSyncQueueProcessor = serversSyncQueue.process(async () => {
@@ -332,7 +334,7 @@ let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) =>
           readme: string;
           vendorIdentifier: string;
           repositoryIdentifier: string;
-          skills: string[];
+          skills: string;
         },
         any
       >('SELECT * FROM PublicServer WHERE identifier = ?')
@@ -419,7 +421,7 @@ let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) =>
       description: server.description,
       readme: server.readme,
       serverOid: baseServer.oid,
-      skills: server.skills || [],
+      skills: JSON.parse(server.skills),
 
       categories: {
         connect: categoryIdentifiers.map(categoryIdentifier => ({
