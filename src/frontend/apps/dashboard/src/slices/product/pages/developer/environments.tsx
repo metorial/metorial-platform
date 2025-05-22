@@ -17,11 +17,11 @@ export let ProjectDeveloperEnvironmentsPage = () => {
   return (
     <>
       <PageHeader
-        title="Environments"
+        title="Instances"
         description="Create multiple project instances for different environments. For example, one for production, one for staging, and one for development."
         actions={
           <Button size="2" onClick={() => project.data && createInstance(project.data as any)}>
-            Create Environment
+            Create Instance
           </Button>
         }
       />

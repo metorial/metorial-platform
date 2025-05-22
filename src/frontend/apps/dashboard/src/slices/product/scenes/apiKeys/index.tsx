@@ -1,13 +1,7 @@
 import { capitalize } from '@metorial/case';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { PageHeader } from '@metorial/layout';
-import {
-  ApiKeysFilter,
-  MetorialApiKey,
-  useApiKeys,
-  useCurrentInstance,
-  useRevealableApiKey
-} from '@metorial/state';
+import { ApiKeysFilter, MetorialApiKey, useRevealableApiKey } from '@metorial/state';
 import {
   Badge,
   Button,
@@ -31,9 +25,10 @@ import {
 import { Table } from '@metorial/ui-product';
 import { RiClipboardLine, RiMoreLine } from '@remixicon/react';
 import { subDays } from 'date-fns';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import styled from 'styled-components';
-import { useNow } from '../../../../../../hooks/useNow';
+import { useNow } from '../../../../hooks/useNow';
+import { useApiKeysWithAutoInit } from './useApiKeysWithAutoInit';
 
 export let ApiKeysScene = ({
   filter,
@@ -53,7 +48,7 @@ export let ApiKeysScene = ({
     instance_access_token: 'API Key'
   }[filter.type];
 
-  let apiKeys = useApiKeys(filter);
+  let apiKeys = useApiKeysWithAutoInit(filter);
 
   let createApiKeyModal = () =>
     showModal(({ dialogProps, close }) => {
@@ -369,146 +364,111 @@ export let ApiKeysScene = ({
       }
     });
 
-  let currentInstance = useCurrentInstance();
-
-  let initializingRef = useRef<string>(undefined);
-  let createApplication = apiKeys.createMutator();
-  let [creatingInitialApplication, setCreatingInitialApplication] = useState(false);
-  useEffect(() => {
-    if (
-      filter.type === 'instance_access_token' &&
-      !apiKeys.error &&
-      !apiKeys.isLoading &&
-      !apiKeys.data?.length &&
-      initializingRef.current !== filter.instanceId &&
-      currentInstance.data?.id == filter.instanceId &&
-      currentInstance.data?.type == 'development'
-    ) {
-      setCreatingInitialApplication(true);
-
-      initializingRef.current = filter.instanceId;
-
-      createApplication
-        .mutate({
-          name: 'Default Token',
-          instanceId: filter.instanceId,
-          type: 'instance_access_token_secret'
-        })
-        .finally(() => {
-          setCreatingInitialApplication(false);
-        });
-    }
-  }, [
-    (filter as any).instanceId,
-    apiKeys.error,
-    apiKeys.isLoading,
-    apiKeys.data?.length,
-    currentInstance.data?.id
-  ]);
-
   let sevenDaysAgo = subDays(new Date(), 7);
 
   return (
     <>
-      {renderWithLoader({ apiKeys, creatingInitialApplication })(({ apiKeys }) => (
-        <>
-          <PageHeader
-            title={header.title}
-            description={header.description}
-            actions={
-              <Button size="2" onClick={() => createApiKeyModal()}>
-                Create {name}
-              </Button>
-            }
-          />
+      {renderWithLoader({ apiKeys, creating: apiKeys.creatingInitialApplication })(
+        ({ apiKeys }) => (
+          <>
+            <PageHeader
+              title={header.title}
+              description={header.description}
+              actions={
+                <Button size="2" onClick={() => createApiKeyModal()}>
+                  Create {name}
+                </Button>
+              }
+            />
 
-          {extra && <div>{extra}</div>}
+            {extra && <div>{extra}</div>}
 
-          <Table
-            headers={['Status', 'Type', 'Name', 'Secret', 'Expires', 'Last Used', ' ']}
-            padding={{ sides: '20px' }}
-            data={apiKeys.data
-              .filter(
-                apiKey =>
-                  apiKey.status == 'active' ||
-                  (apiKey.deletedAt && apiKey.deletedAt > sevenDaysAgo) ||
-                  (apiKey.expiresAt && apiKey.expiresAt > sevenDaysAgo)
-              )
-              .map(apiKey => [
-                <Badge size="1" color={apiKey.status == 'active' ? 'green' : 'gray'}>
-                  {capitalize(apiKey.status)}
-                </Badge>,
-                <Badge
-                  size="1"
-                  color={apiKey.type.includes('publishable') ? 'blue' : 'purple'}
-                >
-                  {capitalize(apiKey.type)}
-                </Badge>,
-                <Flex gap={3} direction="column">
-                  <Text size="2" weight="strong">
-                    {apiKey.name}
-                  </Text>
-                  <Text size="1" color="gray600" truncate>
-                    {apiKey.description}
-                  </Text>
-                </Flex>,
-                <ApiKeySecret apiKey={apiKey} />,
-                apiKey.expiresAt ? <RenderDate date={apiKey.expiresAt} /> : 'Never',
-                apiKey.lastUsedAt ? <RenderDate date={apiKey.lastUsedAt} /> : 'Never',
-
-                <Menu
-                  items={[
-                    {
-                      id: 'update',
-                      label: 'Update',
-                      disabled: apiKey.status != 'active'
-                    },
-                    {
-                      id: 'delete',
-                      label: 'Delete',
-                      disabled: apiKey.status != 'active'
-                    },
-                    {
-                      id: 'rotate',
-                      label: 'Rotate',
-                      disabled: apiKey.status != 'active'
-                    }
-                  ]}
-                  onItemClick={item => {
-                    if (item == 'update')
-                      updateApiKeyModal({
-                        apiKeyId: apiKey.id
-                      });
-                    if (item == 'delete')
-                      deleteApiKeyModal({
-                        apiKeyId: apiKey.id
-                      });
-                    if (item == 'rotate')
-                      rotateApiKeyModal({
-                        apiKeyId: apiKey.id
-                      });
-                  }}
-                >
-                  <Button
+            <Table
+              headers={['Status', 'Type', 'Name', 'Secret', 'Expires', 'Last Used', ' ']}
+              padding={{ sides: '20px' }}
+              data={apiKeys.data
+                .filter(
+                  apiKey =>
+                    apiKey.status == 'active' ||
+                    (apiKey.deletedAt && apiKey.deletedAt > sevenDaysAgo) ||
+                    (apiKey.expiresAt && apiKey.expiresAt > sevenDaysAgo)
+                )
+                .map(apiKey => [
+                  <Badge size="1" color={apiKey.status == 'active' ? 'green' : 'gray'}>
+                    {capitalize(apiKey.status)}
+                  </Badge>,
+                  <Badge
                     size="1"
-                    variant="outline"
-                    iconLeft={<RiMoreLine />}
-                    title="Open API key options"
-                  />
-                </Menu>
-              ])}
-          />
+                    color={apiKey.type.includes('publishable') ? 'blue' : 'purple'}
+                  >
+                    {capitalize(apiKey.type)}
+                  </Badge>,
+                  <Flex gap={3} direction="column">
+                    <Text size="2" weight="strong">
+                      {apiKey.name}
+                    </Text>
+                    <Text size="1" color="gray600" truncate>
+                      {apiKey.description}
+                    </Text>
+                  </Flex>,
+                  <ApiKeySecret apiKey={apiKey} />,
+                  apiKey.expiresAt ? <RenderDate date={apiKey.expiresAt} /> : 'Never',
+                  apiKey.lastUsedAt ? <RenderDate date={apiKey.lastUsedAt} /> : 'Never',
 
-          {apiKeys.data.length == 0 && (
-            <>
-              <Spacer height={10} />
-              <Text size="2" color="gray600" align="center">
-                No {name} found. Create one to get started.
-              </Text>
-            </>
-          )}
-        </>
-      ))}
+                  <Menu
+                    items={[
+                      {
+                        id: 'update',
+                        label: 'Update',
+                        disabled: apiKey.status != 'active'
+                      },
+                      {
+                        id: 'delete',
+                        label: 'Delete',
+                        disabled: apiKey.status != 'active'
+                      },
+                      {
+                        id: 'rotate',
+                        label: 'Rotate',
+                        disabled: apiKey.status != 'active'
+                      }
+                    ]}
+                    onItemClick={item => {
+                      if (item == 'update')
+                        updateApiKeyModal({
+                          apiKeyId: apiKey.id
+                        });
+                      if (item == 'delete')
+                        deleteApiKeyModal({
+                          apiKeyId: apiKey.id
+                        });
+                      if (item == 'rotate')
+                        rotateApiKeyModal({
+                          apiKeyId: apiKey.id
+                        });
+                    }}
+                  >
+                    <Button
+                      size="1"
+                      variant="outline"
+                      iconLeft={<RiMoreLine />}
+                      title="Open API key options"
+                    />
+                  </Menu>
+                ])}
+            />
+
+            {apiKeys.data.length == 0 && (
+              <>
+                <Spacer height={10} />
+                <Text size="2" color="gray600" align="center">
+                  No {name} found. Create one to get started.
+                </Text>
+              </>
+            )}
+          </>
+        )
+      )}
     </>
   );
 };

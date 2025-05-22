@@ -30,9 +30,9 @@ export let LandingAbout = () => {
   return (
     <AboutSection>
       <AboutText>
-        <LinkPreview url="https://metorial.com">Metorial Connect</LinkPreview> lets you to
-        connect to thousands of service providers using a single function call. We handle the
-        nitty-gritty of running{' '}
+        <LinkPreview url="https://metorial.com">Metorial</LinkPreview> lets you to connect to
+        thousands of service providers using a single function call. We handle the nitty-gritty
+        of running{' '}
         <LinkPreview url="https://github.com/metorial/mcp-containers">MCP servers</LinkPreview>
         , so you can focus on building your AI agents.
       </AboutText>

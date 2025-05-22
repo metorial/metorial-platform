@@ -177,7 +177,12 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
                     let afterPath = location.pathname.replace(currentBasePath, '');
 
                     navigate(
-                      Paths.instance(org.data!, project.data!, foundInstance, afterPath)
+                      Paths.instance(
+                        org.data!,
+                        project.data!,
+                        foundInstance
+                        // afterPath
+                      )
                     );
                   }
                 }}

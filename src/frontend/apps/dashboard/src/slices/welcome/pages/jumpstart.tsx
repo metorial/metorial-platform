@@ -2,15 +2,17 @@ import { SetupLayout } from '@metorial/layout';
 import { createProject, useOrganizations, useUser } from '@metorial/state';
 import { CenteredSpinner } from '@metorial/ui';
 import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import astronaut from '../../../assets/astronaut_waving1.webp';
 
 export let JumpstartPage = () => {
   let user = useUser();
 
   let orgs = useOrganizations();
-
   let createOrganization = orgs.createMutator();
+
+  let [search] = useSearchParams();
+  let path = search.get('path');
 
   let navigate = useNavigate();
 
@@ -21,7 +23,7 @@ export let JumpstartPage = () => {
     creating.current = true;
 
     let org = orgs.data[0];
-    if (org) return navigate(`/o/${org.slug}`);
+    if (org) return navigate(`/o/${org.slug}?path=${path ?? ''}`, { replace: true });
 
     (async () => {
       let [org] = await createOrganization.mutate({
@@ -33,7 +35,8 @@ export let JumpstartPage = () => {
         organizationId: org.id,
         name: 'My Project'
       });
-      navigate(`/p/${org.slug}/${project.slug}`);
+
+      navigate(`/p/${org.slug}/${project.slug}?path=${path ?? ''}`, { replace: true });
     })().catch(e => {
       console.error(e);
     });

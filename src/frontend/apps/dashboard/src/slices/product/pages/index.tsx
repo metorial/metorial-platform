@@ -1,53 +1,56 @@
-import { ContentLayout, PageHeader } from '@metorial/layout';
-import { useCurrentOrganization, useCurrentProject, useUser } from '@metorial/state';
-import { styled } from 'styled-components';
-
-let OnboardingHeader = styled.div`
-  padding: 3px;
-  background: linear-gradient(to right, #e9c176, #81b9e3);
-  border-radius: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  display: flex;
-`;
-
-let OnboardingHeaderContent = styled.div`
-  padding: 20px;
-  border-radius: 17px;
-  box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.2);
-  display: flex;
-  background: rgba(255, 255, 255, 0.8);
-`;
-
-let OnboardingContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  color: white;
-  padding: 30px;
-  justify-content: center;
-
-  a {
-    color: inherit;
-    text-decoration: underline;
-  }
-`;
-
-let OnboardingCta = styled.div`
-  display: flex;
-  flex-direction: column;
-  width: 500px;
-  padding: 40px;
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 10px;
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.12);
-`;
+import { renderWithLoader } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
+import { ContentLayout, createInstance, PageHeader } from '@metorial/layout';
+import { useBoot, useCurrentInstance, useServerDeployments, useUser } from '@metorial/state';
+import { Button, Spacer } from '@metorial/ui';
+import { SideBox } from '@metorial/ui-product';
+import { Link } from 'react-router-dom';
+import { ApiKeySecret } from '../scenes/apiKeys';
+import { useApiKeysWithAutoInit } from '../scenes/apiKeys/useApiKeysWithAutoInit';
+import { ServersGrid } from '../scenes/servers/grid';
+import { SessionsTable } from '../scenes/sessions/table';
 
 export let ProjectHomePage = () => {
-  let project = useCurrentProject();
-  let org = useCurrentOrganization();
+  let instance = useCurrentInstance();
   let user = useUser();
 
-  let organization = useCurrentOrganization();
+  let boot = useBoot();
+  let otherInstancesFromThisProject = boot.data?.instances.filter(
+    i => i.project.id == instance.data?.project.id && i.id != instance.data?.id
+  );
+  let otherProductionInstance = otherInstancesFromThisProject?.find(
+    i => i.type == 'production'
+  );
+  let otherDevelopmentInstance = otherInstancesFromThisProject?.find(
+    i => i.type == 'development'
+  );
+
+  let deployments = useServerDeployments(instance.data?.id, {
+    limit: 1
+  });
+  let hasDeployments = !!deployments.data?.items.length;
+
+  let apiKeys = useApiKeysWithAutoInit(
+    instance.data
+      ? {
+          type: 'instance_access_token',
+          instanceId: instance.data.id
+        }
+      : undefined
+  );
+
+  let pathItems = [
+    instance.data?.organization,
+    instance.data?.project,
+    instance.data
+  ] as const;
+
+  let secretApiKey = apiKeys.data?.find(
+    a =>
+      a.type === 'instance_access_token_secret' &&
+      ((a.status == 'active' && a.revealInfo?.forever) ||
+        (a.revealInfo?.until && a.revealInfo?.until > new Date()))
+  );
 
   return (
     <ContentLayout>
@@ -58,58 +61,150 @@ export let ProjectHomePage = () => {
         />
       )}
 
-      {/* {agents.data?.length === 0 ? (
-        <OnboardingHeader>
-          <OnboardingHeaderContent>
-            <OnboardingContent>
-              <Title size="7" weight="bold">
-                Welcome to Metorial!
-              </Title>
-              <Spacer size={5} />
-              <Text size="2" weight="medium">
-                Getting started is super easy. Let's begin by{' '}
-                <Link to={Paths.workflows.agents(inst.data)}>creating your first agent</Link>.
-                You can use your new agent to build the AI workflows you need. Just drag and
-                drop the blocks, connect them, and you're good to go!
-              </Text>
-            </OnboardingContent>
-
-            <OnboardingCta>
-              <Title size="6" weight="strong">
-                Ready to get started?
-              </Title>
-              <Spacer size={5} />
-              <Text>Let's create your first agent.</Text>
-
-              <Spacer size={15} />
-
-              <Link to={Paths.workflows.agents(inst.data)}>
-                <Button as="span">Create Agent</Button>
-              </Link>
-            </OnboardingCta>
-          </OnboardingHeaderContent>
-        </OnboardingHeader>
-      ) : (
+      {renderWithLoader({ instance, apiKeys, deployments })(() => (
         <>
-          <AgentGrid preview />
+          {!hasDeployments && (
+            <>
+              <SideBox
+                title="Welcome to Metorial!"
+                description={
+                  <>
+                    Getting started is super easy. Let's begin by{' '}
+                    <Link to={Paths.instance.servers(...pathItems)}>
+                      deploying your first MCP server
+                    </Link>
+                    .
+                  </>
+                }
+              >
+                <Link to={Paths.instance.servers(...pathItems)}>
+                  <Button as="span" size="2">
+                    Deploy Server
+                  </Button>
+                </Link>
+              </SideBox>
 
-          <Spacer height={25} />
+              <Spacer height={25} />
+            </>
+          )}
 
-          <UsageScene
-            title="Agent Usage"
-            description="Recent usage of your agents."
-            entityNames={
-              agents.data?.reduce((acc, c) => ({ ...acc, [c.id]: c.name }), {}) ?? {}
-            }
-            organizationId={org.data?.id ?? null}
-            entities={
-              // [{ type: 'agent', id: c.id }]
-              agents.data?.map(c => ({ type: 'agent', id: c.id })) ?? []
-            }
-            interval={{ unit: 'day', count: 1 }}
+          {secretApiKey && (
+            <>
+              <SideBox
+                title="Connect to Metorial"
+                description="Use this API key to connect to Metorial from your application."
+              >
+                <ApiKeySecret apiKey={secretApiKey} />
+              </SideBox>
+
+              <Spacer height={25} />
+            </>
+          )}
+
+          {instance.data?.type == 'development' ? (
+            <>
+              {otherProductionInstance ? (
+                <SideBox
+                  title="Switch to Production"
+                  description={
+                    <>
+                      You are currently using a development instance. Switch to your{' '}
+                      {otherProductionInstance.name.toLowerCase()} instance for increased
+                      performance and reliability.
+                    </>
+                  }
+                >
+                  <Link
+                    to={Paths.instance(
+                      otherProductionInstance.organization,
+                      otherProductionInstance.project,
+                      otherProductionInstance
+                    )}
+                  >
+                    <Button as="span" size="2">
+                      Switch to Production
+                    </Button>
+                  </Link>
+                </SideBox>
+              ) : (
+                <SideBox
+                  title="Switch to Production"
+                  description={
+                    <>
+                      You are currently using a development instance. Switch to a production
+                      instance for increased performance and reliability.
+                    </>
+                  }
+                >
+                  <Button
+                    size="2"
+                    onClick={() =>
+                      createInstance(instance.data?.project!, { type: 'production' })
+                    }
+                  >
+                    Set up Production Instance
+                  </Button>
+                </SideBox>
+              )}
+
+              <Spacer height={25} />
+            </>
+          ) : (
+            <>
+              {otherDevelopmentInstance && (
+                <SideBox
+                  title="Switch to Development"
+                  description={
+                    <>
+                      You are currently using a production instance. Switch to your{' '}
+                      {otherDevelopmentInstance.name.toLowerCase()} instance to test changes
+                      before deploying to production.
+                    </>
+                  }
+                >
+                  <Link
+                    to={Paths.instance(
+                      otherDevelopmentInstance.organization,
+                      otherDevelopmentInstance.project,
+                      otherDevelopmentInstance
+                    )}
+                  >
+                    <Button as="span" size="2">
+                      Switch to Development
+                    </Button>
+                  </Link>
+                </SideBox>
+              )}
+
+              <Spacer height={25} />
+            </>
+          )}
+
+          <Spacer height={10} />
+
+          <PageHeader
+            title="Featured Servers"
+            description="Explore some of the most popular servers in the Metorial community."
+            size="5"
           />
+
+          <ServersGrid
+            orderByRank
+            limit={6}
+            collectionIds={import.meta.env.VITE_FEATURED_COLLECTION_SLUG}
+          />
+
+          <Spacer height={35} />
+
+          <PageHeader
+            title="Recent MCP Sessions"
+            description="Your recent MCP sessions are listed below. Click on a session to view its details."
+            size="5"
+          />
+
+          <SessionsTable limit={15} />
         </>
-      )} */}
+      ))}
     </ContentLayout>
   );
 };

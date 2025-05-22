@@ -33,6 +33,7 @@ import { ServerLayout } from './pages/(servers)/server/_layout';
 import { ServerServerDeploymentsPage } from './pages/(servers)/server/deployments';
 import { ServerServerImplementationsPage } from './pages/(servers)/server/implementations';
 import { ProjectPageLayout } from './pages/_layout';
+import { DeployPage } from './pages/deploy';
 import { ProjectDeveloperPage } from './pages/developer';
 import { ProjectDeveloperPageLayout } from './pages/developer/_layout';
 import { ProjectDeveloperAPIPage } from './pages/developer/api';
@@ -265,9 +266,19 @@ export let productInnerSlice = createSlice([
   }
 ]);
 
+export let deploySlice = createSlice([
+  {
+    path: ':organizationId/:projectId/:instanceId/deploy',
+    element: <DeployPage />
+  }
+]);
+
 export let productSlice = createSlice([
   {
     element: <ProjectPageLayout />,
     children: productInnerSlice.routes
+  },
+  {
+    children: deploySlice.routes
   }
 ]);

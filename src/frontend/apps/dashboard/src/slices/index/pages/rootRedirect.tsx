@@ -8,6 +8,7 @@ export let RootRedirect = () => {
   let navigate = useNavigate();
   let [params] = useSearchParams();
   let organizationId = params.get('organization_id') ?? params.get('organizationId');
+  let path = params.get('path');
 
   let navigatedRef = useRef(false);
   useLayoutEffect(() => {
@@ -26,7 +27,7 @@ export let RootRedirect = () => {
         if (!instance) instance = orgInstances[0];
 
         if (instance && org) {
-          navigate(Paths.instance(org, instance.project, instance), { replace: true });
+          navigate(Paths.instance(org, instance.project, instance, path), { replace: true });
           navigatedRef.current = true;
           return;
         }
@@ -35,7 +36,7 @@ export let RootRedirect = () => {
       let instance = boot.data.instances.find(i => i.id === lastInstanceId);
 
       if (instance) {
-        navigate(Paths.instance(instance.organization, instance.project, instance), {
+        navigate(Paths.instance(instance.organization, instance.project, instance, path), {
           replace: true
         });
       } else {
@@ -43,7 +44,7 @@ export let RootRedirect = () => {
 
         if (anyInstance) {
           navigate(
-            Paths.instance(anyInstance.organization, anyInstance.project, anyInstance),
+            Paths.instance(anyInstance.organization, anyInstance.project, anyInstance, path),
             { replace: true }
           );
         } else {

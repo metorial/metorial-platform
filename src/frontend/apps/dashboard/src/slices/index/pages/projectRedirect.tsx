@@ -1,11 +1,14 @@
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentProject } from '@metorial/state';
 import { useLayoutEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export let ProjectRedirect = () => {
   let project = useCurrentProject();
   let navigate = useNavigate();
+
+  let [search] = useSearchParams();
+  let path = search.get('path');
 
   let navigatedRef = useRef(false);
   useLayoutEffect(() => {
@@ -17,7 +20,7 @@ export let ProjectRedirect = () => {
     if (!instance) instance = project.data.instances[0];
     if (!instance) return navigate('/');
 
-    navigate(Paths.instance(project.data.organization, instance.project, instance), {
+    navigate(Paths.instance(project.data.organization, instance.project, instance, path), {
       replace: true
     });
   }, [project.data]);

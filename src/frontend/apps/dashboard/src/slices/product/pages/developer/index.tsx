@@ -1,6 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance } from '@metorial/state';
-import { ApiKeysScene } from './scenes/apiKeys';
+import { ApiKeysScene } from '../../scenes/apiKeys';
 
 export let ProjectDeveloperPage = () => {
   let instance = useCurrentInstance();

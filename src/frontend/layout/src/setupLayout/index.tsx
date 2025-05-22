@@ -83,7 +83,7 @@ export let SetupLayout = ({
 
   imageUrl: string;
 
-  main: {
+  main?: {
     title: string;
     description: string;
   };
@@ -104,7 +104,7 @@ export let SetupLayout = ({
             </Side>
 
             <AnimatePresence>
-              {!hidden && (
+              {!hidden && main && (
                 <Side
                   style={{ padding: '50px' }}
                   initial={{

@@ -44,7 +44,7 @@ export let SideBox = ({
             {title}
           </Title>
           {description && (
-            <Text size="2" weight="medium" color="gray600">
+            <Text size="2" weight="medium" color="gray600" balance>
               {description}
             </Text>
           )}
