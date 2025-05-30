@@ -115,7 +115,7 @@ export let mcpConnectionHandler = async (
         async stream => {
           if (opts.sessionCreated) {
             let endpointUrl = new URL(
-              `/mcp/${sessionInfo.session.id}/${serverSession.serverDeployment.id}/sse?metorial_server_session_id=${serverSession.id}`,
+              `/mcp/${sessionInfo.session.id}/${serverSession.serverDeployment.id}/sse?metorial_server_session_id=${serverSession.id}&key=${sessionInfo.session.clientSecretValue}`,
               getConfig().urls.mcpUrl
             ).toString();
 

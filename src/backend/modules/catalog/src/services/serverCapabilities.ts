@@ -97,24 +97,26 @@ class ServerCapabilitiesService {
   }) {
     let variants = await this.getManyServerVersionsForCapabilities(d);
 
-    return variants.map(v => {
-      let variant = 'serverVariant' in v ? v.serverVariant : v;
-      let version = 'serverVariant' in v ? v : undefined;
+    return await Promise.all(
+      variants.map(async v => {
+        let variant = 'serverVariant' in v ? v.serverVariant : v;
+        let version = 'serverVariant' in v ? v : undefined;
 
-      return {
-        id: `mcap_${Hash.sha256(String(variant.id + (version?.oid ?? variant.currentVersionOid)))}`,
+        return {
+          id: `mcap_${await Hash.sha256(String(variant.id + (version?.oid ?? variant.currentVersionOid)))}`,
 
-        serverVariant: variant,
-        serverVersion: version,
-        server: v.server,
+          serverVariant: variant,
+          serverVersion: version,
+          server: v.server,
 
-        prompts: v.prompts,
-        tools: v.tools,
-        resourceTemplates: v.resourceTemplates,
-        capabilities: v.serverCapabilities,
-        info: v.serverInfo
-      } satisfies ServerCapabilities;
-    });
+          prompts: v.prompts,
+          tools: v.tools,
+          resourceTemplates: v.resourceTemplates,
+          capabilities: v.serverCapabilities,
+          info: v.serverInfo
+        } satisfies ServerCapabilities;
+      })
+    );
   }
 }
 

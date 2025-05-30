@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Server Listing controller
- * @description Read and write server version information
+ * @description Read and write server listing information
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -25,8 +25,8 @@ export class MetorialServersListingsEndpoint extends BaseMetorialEndpoint<any> {
   }
 
   /**
-   * @name List server versions
-   * @description List all server versions
+   * @name List server listings
+   * @description List all server listings
    *
    * @param `query` - ServersListingsListQuery
    *
@@ -44,8 +44,8 @@ export class MetorialServersListingsEndpoint extends BaseMetorialEndpoint<any> {
   }
 
   /**
-   * @name Get server version
-   * @description Get the information of a specific server version
+   * @name Get server listing
+   * @description Get the information of a specific server listing
    *
    * @param `serverListingId` - string
    *

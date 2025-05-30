@@ -9,7 +9,7 @@ let rankCron = createCron(
     cron: '0 * * * *'
   },
   async () => {
-    await startRankQueue.add({});
+    // await startRankQueue.add({});
   }
 );
 

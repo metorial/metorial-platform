@@ -209,6 +209,7 @@ export type ServersDeploymentsListQuery = {
   serverIds?: string | string[] | undefined;
   serverVariantIds?: string | string[] | undefined;
   serverImplementationIds?: string | string[] | undefined;
+  sessionIds?: string | string[] | undefined;
 };
 
 export let mapServersDeploymentsListQuery = mtMap.union([
@@ -246,6 +247,16 @@ export let mapServersDeploymentsListQuery = mtMap.union([
       ),
       serverImplementationIds: mtMap.objectField(
         'server_implementation_ids',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      sessionIds: mtMap.objectField(
+        'session_ids',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

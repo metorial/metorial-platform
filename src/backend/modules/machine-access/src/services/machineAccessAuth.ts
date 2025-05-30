@@ -8,6 +8,7 @@ import { differenceInMinutes } from 'date-fns';
 class MachineAccessAuthService {
   async authenticateWithMachineAccessToken(d: { token: string; context: Context }) {
     let parsed = UnifiedApiKey.from(d.token);
+
     if (parsed) {
       if (parsed.type == 'organization_app_access_token') {
         // TODO: implement this when we add oauth integrations

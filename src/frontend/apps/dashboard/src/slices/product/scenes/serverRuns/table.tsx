@@ -28,7 +28,10 @@ export let ServerRunStatusBadge = ({ run }: { run: ServerRunsGetOutput }) => {
 
 export let ServerRunsTable = (filter: ServerRunsListQuery) => {
   let instance = useCurrentInstance();
-  let runs = useServerRuns(instance.data?.id, filter);
+  let runs = useServerRuns(instance.data?.id, {
+    ...filter,
+    order: filter.order ?? 'desc'
+  });
 
   return renderWithPagination(runs)(runs => (
     <>
