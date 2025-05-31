@@ -27,7 +27,7 @@ import {
   MetorialServersListingsCategoriesEndpoint,
   MetorialServersListingsCollectionsEndpoint,
   MetorialServersListingsEndpoint
-} from '@metorial/core/src/mt_2025_01_01_dashboard';
+} from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { MetorialAuthEndpoint } from './auth';
 import { MetorialKeyPrefix, sdkBuilder } from './builder';
 

@@ -1,5 +1,5 @@
 import { CodeBlock } from '@metorial/code';
-import { SessionsMessagesGetOutput } from '@metorial/core';
+import { SessionsMessagesGetOutput } from '@metorial/generated';
 import { RenderDate, theme } from '@metorial/ui';
 import styled from 'styled-components';
 import { AggregatedMessages } from '../hooks/useAggregatedMessages';

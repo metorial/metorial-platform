@@ -1,5 +1,5 @@
-import { DashboardOrganizationsProjectsCreateBody } from '@metorial/core/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
+import { DashboardOrganizationsProjectsCreateBody } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { withAuth } from '../../user';
 import { bootLoader } from './boot';

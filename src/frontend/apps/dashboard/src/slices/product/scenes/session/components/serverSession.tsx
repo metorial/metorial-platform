@@ -1,5 +1,5 @@
-import { SessionsServerSessionsGetOutput } from '@metorial/core';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { SessionsServerSessionsGetOutput } from '@metorial/generated';
 import { useCurrentInstance, useServerRuns } from '@metorial/state';
 import { theme } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';

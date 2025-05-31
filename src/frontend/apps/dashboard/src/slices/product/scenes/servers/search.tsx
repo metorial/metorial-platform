@@ -1,4 +1,4 @@
-import { ServersListingsGetOutput } from '@metorial/core/src/mt_2025_01_01_dashboard';
+import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useServerListings } from '@metorial/state';
 import {
   Badge,

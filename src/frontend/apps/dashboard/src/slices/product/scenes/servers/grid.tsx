@@ -1,6 +1,6 @@
-import type { ServersListingsListQuery } from '@metorial/core/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
+import type { ServersListingsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useServerListings } from '@metorial/state';
 import { Avatar, Text } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';

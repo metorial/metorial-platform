@@ -1,7 +1,7 @@
 import { CodeEditor } from '@metorial/code-editor';
-import { ServersListingsGetOutput } from '@metorial/core/src/mt_2025_01_01_dashboard';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
+import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import {
   useCreateImplementation,
   useCurrentInstance,

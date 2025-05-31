@@ -1,4 +1,4 @@
-import { ServerRunsGetOutput } from '@metorial/core';
+import { ServerRunsGetOutput } from '@metorial/generated';
 import { useCurrentInstance, useServerRunErrors } from '@metorial/state';
 import { Callout, Spacer } from '@metorial/ui';
 import { RiServerLine } from '@remixicon/react';

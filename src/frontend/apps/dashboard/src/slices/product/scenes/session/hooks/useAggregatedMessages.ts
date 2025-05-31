@@ -1,4 +1,4 @@
-import { DashboardInstanceSessionsMessagesGetOutput } from '@metorial/core/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceSessionsMessagesGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useMemo } from 'react';
 
 export interface AggregatedMessages {

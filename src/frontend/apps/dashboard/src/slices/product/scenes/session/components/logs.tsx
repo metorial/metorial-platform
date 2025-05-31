@@ -1,4 +1,4 @@
-import { SessionsEventsGetOutput } from '@metorial/core';
+import { SessionsEventsGetOutput } from '@metorial/generated';
 import { RenderDate } from '@metorial/ui';
 import Ansi from 'ansi-to-react';
 import styled from 'styled-components';

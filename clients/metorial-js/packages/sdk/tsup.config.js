@@ -9,5 +9,5 @@ export default defineConfig({
   bundle: true,
   dts: true,
   treeshake: true,
-  noExternal: ['@metorial/core']
+  noExternal: ['@metorial/generated']
 });

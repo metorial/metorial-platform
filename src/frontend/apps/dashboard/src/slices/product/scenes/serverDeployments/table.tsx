@@ -1,7 +1,7 @@
-import { ServersDeploymentsGetOutput } from '@metorial/core';
-import { ServersDeploymentsListQuery } from '@metorial/core/src/mt_2025_01_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
+import { ServersDeploymentsGetOutput } from '@metorial/generated';
+import { ServersDeploymentsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useServerDeployments } from '@metorial/state';
 import { Entity, RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';

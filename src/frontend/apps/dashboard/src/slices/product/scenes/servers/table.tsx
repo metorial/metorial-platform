@@ -1,6 +1,6 @@
-import { ServersListingsListQuery } from '@metorial/core/src/mt_2025_01_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
+import { ServersListingsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useServerListings } from '@metorial/state';
 import { RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';

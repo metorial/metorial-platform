@@ -1,4 +1,4 @@
-import { ServersListingsGetOutput } from '@metorial/core/src/mt_2025_01_01_dashboard';
+import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useServerListing } from '@metorial/state';
 import { Button, Spacer, Tabs, Text, theme } from '@metorial/ui';
 import { RiArrowRightLine, RiCloseLine } from '@remixicon/react';

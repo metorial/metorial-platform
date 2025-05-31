@@ -1,7 +1,7 @@
-import { ServerRunsGetOutput } from '@metorial/core';
-import { ServerRunsListQuery } from '@metorial/core/src/mt_2025_01_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
+import { ServerRunsGetOutput } from '@metorial/generated';
+import { ServerRunsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useServerRuns } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';

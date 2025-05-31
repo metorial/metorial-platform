@@ -1,4 +1,4 @@
-export type * from '@metorial/core';
+export type * from '@metorial/generated';
 export * from './sdk';
 
-export type {} from '@metorial/core';
+export type {} from '@metorial/generated';

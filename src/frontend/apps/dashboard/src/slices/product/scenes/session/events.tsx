@@ -1,5 +1,5 @@
-import { SessionsGetOutput } from '@metorial/core';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { SessionsGetOutput } from '@metorial/generated';
 import { useCurrentInstance, useSessionServerSessions } from '@metorial/state';
 import { Callout, Spacer } from '@metorial/ui';
 import { RiCornerUpRightDoubleLine } from '@remixicon/react';

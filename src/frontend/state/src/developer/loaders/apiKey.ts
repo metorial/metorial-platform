@@ -1,9 +1,9 @@
+import { createLoader } from '@metorial/data-hooks';
 import {
   ApiKeysCreateBody,
   ApiKeysListQuery,
   ApiKeysUpdateBody
-} from '@metorial/core/src/mt_2025_01_01_dashboard';
-import { createLoader } from '@metorial/data-hooks';
+} from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useState } from 'react';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { withAuth } from '../../user';

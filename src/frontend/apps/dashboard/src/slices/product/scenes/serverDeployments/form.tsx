@@ -1,8 +1,8 @@
 import { canonicalize } from '@metorial/canonicalize';
-import { ServersDeploymentsGetOutput } from '@metorial/core';
-import { ServersListingsGetOutput } from '@metorial/core/src/mt_2025_01_01_dashboard';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
+import { ServersDeploymentsGetOutput } from '@metorial/generated';
+import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import {
   useCreateDeployment,
   useCurrentInstance,

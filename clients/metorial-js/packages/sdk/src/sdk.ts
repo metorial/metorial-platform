@@ -15,7 +15,7 @@ import {
   MetorialSessionsEventsEndpoint,
   MetorialSessionsMessagesEndpoint,
   MetorialSessionsServerSessionsEndpoint
-} from '@metorial/core';
+} from '@metorial/generated';
 import { MetorialKeyPrefix, sdkBuilder } from './builder';
 
 export let createMetorialSDK = sdkBuilder.build(

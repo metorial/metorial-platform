@@ -1,9 +1,9 @@
-import { DashboardInstanceSessionsGetOutput } from '@metorial/core';
+import { createLoader, useMutation } from '@metorial/data-hooks';
+import { DashboardInstanceSessionsGetOutput } from '@metorial/generated';
 import {
   DashboardInstanceSessionsCreateBody,
   DashboardInstanceSessionsListQuery
-} from '@metorial/core/src/mt_2025_01_01_dashboard';
-import { createLoader, useMutation } from '@metorial/data-hooks';
+} from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
