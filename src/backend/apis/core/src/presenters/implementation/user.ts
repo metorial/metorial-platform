@@ -14,7 +14,7 @@ export let v1UserPresenter = Presenter.create(userType)
     first_name: user.firstName,
     last_name: user.lastName,
     name: user.name,
-    image_url: getImageUrl(user),
+    image_url: await getImageUrl(user),
     created_at: user.createdAt,
     updated_at: user.updatedAt
   }))

@@ -30,10 +30,12 @@ let DL = styled('dl')`
 let DT = styled('dt')`
   font-weight: 600;
   color: ${theme.colors.gray600};
+  margin: 0 !important;
 `;
 
 let DD = styled('dd')`
   font-weight: 400;
+  margin: 0 !important;
 `;
 
 export let Datalist = ({

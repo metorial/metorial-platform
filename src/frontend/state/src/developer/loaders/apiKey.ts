@@ -55,17 +55,14 @@ export let useApiKeys = (input: ApiKeysFilter | null | undefined) => {
 export let apiKeyLoader = createLoader({
   name: 'apiKey',
   fetch: (i: { apiKeyId: string }) => withAuth(sdk => sdk.apiKeys.get(i.apiKeyId)),
-  mutators: {
-    reveal: (_, { input: { apiKeyId } }) => withAuth(sdk => sdk.apiKeys.reveal(apiKeyId))
-  }
+  mutators: {}
 });
 
 export let useApiKey = (apiKeyId: string | null | undefined) => {
   let apiKey = apiKeyLoader.use(apiKeyId ? { apiKeyId } : null);
 
   return {
-    ...apiKey,
-    revealMutator: apiKey.useMutator('reveal')
+    ...apiKey
   };
 };
 
@@ -85,12 +82,15 @@ let getCachedRevealedApiKey = (apiKeyId: string) => {
   }
   return cached;
 };
+let useApiReveal = apiKeyLoader.createExternalMutator(({ apiKeyId }: { apiKeyId: string }) =>
+  withAuth(sdk => sdk.apiKeys.reveal(apiKeyId))
+);
+
 export let useRevealableApiKey = ({ apiKeyId }: { apiKeyId: string }) => {
   let [value, setValue] = useState<string | undefined>(
     () => getCachedRevealedApiKey(apiKeyId)?.secret
   );
-  let apiKey = useApiKey(apiKeyId);
-  let revealMutator = apiKey.revealMutator();
+  let revealMutator = useApiReveal();
 
   let reveal = () => {
     let cached = getCachedRevealedApiKey(apiKeyId);
@@ -99,14 +99,18 @@ export let useRevealableApiKey = ({ apiKeyId }: { apiKeyId: string }) => {
       return;
     }
 
-    revealMutator.mutate({}).then(async ([res]) => {
-      if (!res) return;
-      revealedApiKey[apiKeyId] = {
-        secret: res.secret!,
-        ts: Date.now()
-      };
-      setValue(res?.secret!);
-    });
+    revealMutator
+      .mutate({
+        apiKeyId
+      })
+      .then(async ([res]) => {
+        if (!res) return;
+        revealedApiKey[apiKeyId] = {
+          secret: res.secret!,
+          ts: Date.now()
+        };
+        setValue(res?.secret!);
+      });
   };
 
   let hide = () => {

@@ -14,7 +14,7 @@ export let v1OrganizationActorPresenter = Presenter.create(organizationActorType
 
     name: organizationActor.name,
     email: organizationActor.email,
-    image_url: getImageUrl(organizationActor),
+    image_url: await getImageUrl(organizationActor),
 
     created_at: organizationActor.createdAt,
     updated_at: organizationActor.updatedAt

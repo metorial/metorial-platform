@@ -31,8 +31,6 @@ export let startConnection = async (d: {
     )
   );
 
-  transceiver.onMessage(m => console.log('Incoming message', m));
-
   transceiver.onClose(() => {
     console.log('Runner closed');
     process.exit(0);

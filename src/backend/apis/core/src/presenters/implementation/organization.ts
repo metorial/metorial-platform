@@ -12,7 +12,7 @@ export let v1OrganizationPresenter = Presenter.create(organizationType)
     type: organization.type,
     slug: organization.slug,
     name: organization.name,
-    image_url: getImageUrl(organization),
+    image_url: await getImageUrl(organization),
     created_at: organization.createdAt,
     updated_at: organization.updatedAt
   }))

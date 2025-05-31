@@ -8,6 +8,7 @@ import type {
 } from '@modelcontextprotocol/sdk/types.js';
 import type { JSONSchema4, JSONSchema6, JSONSchema7 } from 'json-schema';
 import { PrismaClient } from '../../prisma/generated';
+import { EntityImage as ImportedEntityImage } from '../lib';
 export * from '../../prisma/generated';
 
 let createClient = () => new PrismaClient({});
@@ -22,12 +23,7 @@ declare global {
   namespace PrismaJson {
     type Record = { [key: string]: any };
 
-    type OrganizationUserConfigValue = { [key: string]: any };
-
-    type EntityImage =
-      | { type: 'file'; fileId: string; fileLinkId: string; url: string }
-      | { type: 'url'; url: string }
-      | { type: 'default' };
+    type EntityImage = ImportedEntityImage;
 
     type ServerEntityAttributes = {
       websiteUrl?: string;

@@ -42,7 +42,7 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
             name: vendor.name,
             description: vendor.description,
 
-            image_url: getImageUrl(vendor),
+            image_url: await getImageUrl(vendor),
 
             attributes: vendor.attributes,
 

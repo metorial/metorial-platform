@@ -401,7 +401,12 @@ export let ApiKeysScene = ({
                     size="1"
                     color={apiKey.type.includes('publishable') ? 'blue' : 'purple'}
                   >
-                    {capitalize(apiKey.type)}
+                    {{
+                      organization_management_token: 'Admin Token',
+                      user_auth_token: 'User Token',
+                      instance_access_token_secret: 'Secret Key',
+                      instance_access_token_publishable: 'Publishable Key'
+                    }[apiKey.type] ?? apiKey.type}
                   </Badge>,
                   <Flex gap={3} direction="column">
                     <Text size="2" weight="strong">

@@ -11,7 +11,7 @@ import {
 } from '@metorial/db';
 import { serverCategoryPresenter } from './serverCategory';
 
-export let serverListingPresenter = (
+export let serverListingPresenter = async (
   serverListing: ServerListing & {
     categories: ServerListingCategory[];
     server: Server & {
@@ -55,7 +55,7 @@ export let serverListingPresenter = (
           name: vendor.name,
           description: vendor.description,
 
-          imageUrl: getImageUrl(vendor),
+          imageUrl: await getImageUrl(vendor),
 
           attributes: vendor.attributes,
 
