@@ -97,7 +97,7 @@ let getIndexDatabase = () =>
 let startSyncQueueProcessor = startSyncQueue.process(async () => {
   debug.log('Starting full sync...');
 
-  // await fullSyncQueue.add({}, { id: 'fullSyncQueue' });
+  await fullSyncQueue.add({}, { id: 'fullSyncQueue' });
 });
 
 let fullSyncQueueProcessor = fullSyncQueue.process(async () => {

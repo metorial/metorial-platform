@@ -1,10 +1,10 @@
+import { getConfig } from '@metorial/config';
 import { delay } from '@metorial/delay';
 import { parseRedisUrl } from '@metorial/redis';
 import { Redis } from 'ioredis';
 import SuperJSON from 'superjson';
 
 // @ts-ignore
-import { getConfig } from '@metorial/config';
 import Redlock_ from 'redlock';
 
 export let createLock = ({ name }: { name: string }) => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { styled } from 'styled-components';
+import styled from 'styled-components';
 
 export let Wrapper = styled.div`
   background-color: hsla(321, 100%, 98%, 1);
