@@ -41,7 +41,7 @@ export let brokerRunnerExternalQueueProcessor = brokerRunnerExternalQueue.proces
       transport: 'mcp/sse'
     });
 
-    let manager = new BrokerRunManager(impl, info.serverRun, info.session);
+    let manager = new BrokerRunManager(impl, info.serverRun, info.session, info.version);
 
     await manager.waitForClose;
   }
