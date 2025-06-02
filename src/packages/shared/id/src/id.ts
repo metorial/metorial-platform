@@ -14,8 +14,8 @@ let _code = customAlphabet('0123456789', 6);
 
 export let idTime = () => new Date().getTime().toString(36).padStart(9, '0');
 
-let snowflakeIdGenerator = new Worker(0, 1, {
-  workerIdBits: 10,
+let snowflakeIdGenerator = new Worker(0, 0, {
+  workerIdBits: 12,
   sequenceBits: 12
 });
 
