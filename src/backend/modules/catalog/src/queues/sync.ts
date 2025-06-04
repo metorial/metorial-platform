@@ -72,7 +72,7 @@ let serversSyncQueue = createQueue({
 let serverSyncQueue = createQueue<{ identifier: string }>({
   name: 'cat/sync/server',
   workerOpts: {
-    concurrency: 1,
+    concurrency: process.env.NODE_ENV == 'development' ? 50 : 1,
 
     limiter:
       process.env.NODE_ENV == 'development'
@@ -311,7 +311,7 @@ let serversSyncQueueProcessor = serversSyncQueue.process(async () => {
 });
 
 let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) => {
-  debug.log(`Syncing server ${identifier}...`);
+  // debug.log(`Syncing server ${identifier}...`);
 
   try {
     let index = getIndexDatabase();
@@ -401,7 +401,7 @@ let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) =>
 
       isOfficial: Boolean(server.isOfficial),
       isCommunity: Boolean(server.isCommunity),
-      isHostable: Boolean(server.isHostable),
+      isHostable: Boolean(server.isHostable) && variants.length > 0,
 
       readme: server.readme,
 
@@ -506,7 +506,9 @@ let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) =>
     await indexServerListingQueue.add({
       serverListingId: serverListing.id
     });
-  } catch (e) {}
+  } catch (e) {
+    // console.error(`Error syncing server ${identifier}:`, e);
+  }
 });
 
 export let syncProcessors = combineQueueProcessors([

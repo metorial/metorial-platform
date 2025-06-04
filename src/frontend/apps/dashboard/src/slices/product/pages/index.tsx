@@ -191,7 +191,7 @@ export let ProjectHomePage = () => {
           <ServersGrid
             orderByRank
             limit={6}
-            collectionIds={import.meta.env.VITE_FEATURED_COLLECTION_SLUG}
+            collectionIds={(window as any).metorial_enterprise?.landing_collection_ids}
           />
 
           <Spacer height={35} />

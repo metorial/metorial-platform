@@ -62,6 +62,7 @@ export let ServerLayout = () => {
 
             <Button
               size="2"
+              disabled={!server.data?.variants.length}
               onClick={() => {
                 if (!server.data) return;
 

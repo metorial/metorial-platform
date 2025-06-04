@@ -1,6 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
+import { SideBox } from '@metorial/ui-product';
 import { useState } from 'react';
 import { useDebounced } from '../../../../../hooks/useDebounced';
 import { ServersGrid } from '../../../scenes/servers/grid';
@@ -35,12 +36,36 @@ export let ServersPage = () => {
 
       <Spacer size={15} />
 
-      <ServersGrid
-        limit={6}
-        orderByRank
-        search={searchDebounced}
-        // categoryIds={['security']} // TODO: replace with featured collection
-      />
+      <ServersGrid limit={6} orderByRank search={searchDebounced} />
+
+      <Spacer size={15} />
+
+      {(window as any).metorial_enterprise && (
+        <SideBox
+          title="Request Server"
+          description="If you need support for a specific MCP server, please reach out to our team."
+        >
+          <Button
+            as="span"
+            size="2"
+            onClick={() => {
+              // @ts-ignore
+              window.metorial_enterprise?.chrome?.showContactSupportModal({
+                subject: `Request for MCP Server`,
+                message: `Hello Metorial Team,
+I would like to request support for a specific MCP server.
+
+Server Name: ...
+Server Github URL: ...
+
+Please let me know if you need any additional information from my side.`
+              });
+            }}
+          >
+            Request Server
+          </Button>
+        </SideBox>
+      )}
 
       <Spacer size={15} />
 
