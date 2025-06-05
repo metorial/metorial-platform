@@ -58,8 +58,10 @@ let redirectToAuthIfNotAuthenticated = async <R>(fn: () => Promise<R>) => {
 
 let firstUserPromise = new ProgrammablePromise<MetorialUser>();
 
-export let fetchUserSpecial = () =>
-  redirectToAuthIfNotAuthenticated(() =>
+export let fetchUserSpecial = () => {
+  if (typeof window === 'undefined') return new Promise(() => {}) as Promise<MetorialUser>;
+
+  return redirectToAuthIfNotAuthenticated(() =>
     withDashboardSDK(async sdk => {
       let u = await sdk.user.get();
       if (!firstUserPromise.value) firstUserPromise.resolve(u);
@@ -67,6 +69,7 @@ export let fetchUserSpecial = () =>
       return u;
     })
   );
+};
 
 export let withAuth = async <O>(fn: (sdk: MetorialDashboardSDK) => Promise<O>) => {
   if (typeof window === 'undefined') return new Promise(() => {}) as Promise<O>;

@@ -1,15 +1,10 @@
 'use client';
 
-import { useIsSSR } from '@looped/hooks';
-import { useUser } from '@metorial/state';
 import { ServerListing } from '../../../../../../state/server';
 import { LocalHeader } from '../../../../components/localHeader';
 
 export let ServerHeader = ({ server }: { server: ServerListing }) => {
   let basePath = `/s/${server.slug}`;
-
-  let user = useUser();
-  let isServer = useIsSSR();
 
   return (
     <LocalHeader

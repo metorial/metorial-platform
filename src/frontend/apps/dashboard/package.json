@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "vite --port 3300 --host",
     "frontend:build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@metorial/canonicalize": "^1.0.0",
