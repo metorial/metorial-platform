@@ -1,7 +1,5 @@
 'use server';
 
-import { Button } from '@metorial/ui';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { serverFetch } from '../../../../../../state/sdk';
 import { getServer, listServerVersions } from '../../../../../../state/server';
@@ -41,35 +39,14 @@ export default async ({
 
   return (
     <>
-      <VersionsPageClient server={server} versions={versions} />
-
-      <div
-        style={{
-          display: 'flex',
-          gap: 15,
-          justifyContent: 'flex-end',
-          marginTop: 15
+      <VersionsPageClient
+        server={server}
+        versions={versions}
+        pagination={{
+          hasMoreAfter: versionsRes.data.pagination.has_more_after,
+          hasMoreBefore: versionsRes.data.pagination.has_more_before
         }}
-      >
-        {versionsRes.data.pagination.has_more_before && (
-          <Link
-            href={`/s/${params.vendorSlug}/${params.serverSlug}/versions?before=${versions[0]?.id}`}
-          >
-            <Button variant="outline" as="span" size="1">
-              Previous
-            </Button>
-          </Link>
-        )}
-        {versionsRes.data.pagination.has_more_before && (
-          <Link
-            href={`/s/${params.vendorSlug}/${params.serverSlug}/versions?after=${versions[versions.length - 1]?.id}`}
-          >
-            <Button variant="outline" as="span" size="1">
-              Next
-            </Button>
-          </Link>
-        )}
-      </div>
+      />
     </>
   );
 };

@@ -16,7 +16,7 @@ let Inner = styled.div`
 `;
 
 let Grid = styled.div`
-  display: grid;
+  display: flex;
   grid-template-columns: 1fr 400px;
   gap: 50px;
 
@@ -27,7 +27,8 @@ let Grid = styled.div`
 `;
 
 let Main = styled.main`
-  /* max-width: min(calc(100vw - 60px), 550px); */
+  max-width: min(calc(100vw - 60px), calc(80rem - 450px));
+  width: 100%;
 `;
 
 export let ClientLayout = ({

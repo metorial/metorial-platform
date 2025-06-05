@@ -333,6 +333,7 @@ let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) =>
           vendorIdentifier: string;
           repositoryIdentifier: string;
           skills: string;
+          tools: string | null;
         },
         any
       >('SELECT * FROM PublicServer WHERE identifier = ?')
@@ -459,7 +460,9 @@ let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) =>
 
           sourceType: variant.sourceType,
           dockerImage: variant.dockerImage,
-          remoteUrl: variant.remoteUrl
+          remoteUrl: variant.remoteUrl,
+
+          tools: server.tools ? JSON.parse(server.tools) : undefined
         }));
 
         let currentVersion: null | ServerVersion = null;
@@ -472,21 +475,26 @@ let serverSyncQueueProcessor = serverSyncQueue.process(async ({ identifier }) =>
             serverVariantOid: ourVariant.oid
           }));
 
-          let ourVersion = await ensureServerVersion(() => ({
-            identifier: version.identifier,
+          let ourVersion = await ensureServerVersion(
+            () => ({
+              identifier: version.identifier,
 
-            schemaOid: schema.oid,
-            serverOid: baseServer.oid,
-            serverVariantOid: ourVariant.oid,
+              schemaOid: schema.oid,
+              serverOid: baseServer.oid,
+              serverVariantOid: ourVariant.oid,
 
-            sourceType: version.sourceType,
-            dockerImage: version.dockerImage,
-            remoteUrl: version.remoteUrl,
+              sourceType: version.sourceType,
+              dockerImage: version.dockerImage,
+              remoteUrl: version.remoteUrl,
 
-            getLaunchParams: version.getLaunchParams,
+              tools: ourVariant.tools,
 
-            createdAt: new Date(version.createdAt)
-          }));
+              getLaunchParams: version.getLaunchParams,
+
+              createdAt: new Date(version.createdAt)
+            }),
+            { ignoreForUpdate: ['tools'] }
+          );
 
           if (
             !currentVersion ||

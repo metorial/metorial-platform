@@ -20,6 +20,13 @@
         "^lint"
       ]
     },
+    "test": {
+      "dependsOn": [
+        "^test"
+      ],
+      "cache": false,
+      "persistent": false
+    },
     "check-types": {
       "dependsOn": [
         "^check-types"

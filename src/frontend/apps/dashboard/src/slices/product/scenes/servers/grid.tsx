@@ -25,8 +25,6 @@ let Category = styled.div`
 `;
 
 export let ServersGrid = (filter: ServersListingsListQuery) => {
-  console.log('ServersGrid', filter);
-
   let instance = useCurrentInstance();
   let servers = useServerListings(filter);
   let navigate = useNavigate();

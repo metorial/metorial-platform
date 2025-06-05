@@ -15,16 +15,20 @@ let Wrapper = styled.aside`
 export let ServerAside = ({ server }: { server: ServerListing }) => {
   return (
     <Wrapper>
-      <Button
-        onClick={() => {
-          let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/deploy?server_id=${server.serverId}`)}`;
-          window.open(url, '_blank');
-        }}
-      >
-        Deploy {server.name} on Metorial
-      </Button>
+      {server.isHostable && (
+        <>
+          <Button
+            onClick={() => {
+              let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/deploy?server_id=${server.serverId}`)}`;
+              window.open(url, '_blank');
+            }}
+          >
+            Deploy {server.name} on Metorial
+          </Button>
 
-      <Spacer size={20} />
+          <Spacer size={20} />
+        </>
+      )}
 
       <Datalist
         variant="large"

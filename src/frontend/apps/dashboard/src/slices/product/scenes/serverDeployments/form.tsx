@@ -9,7 +9,7 @@ import {
   useServerDeployment,
   useServerVariants
 } from '@metorial/state';
-import { Button, Input, Spacer } from '@metorial/ui';
+import { Button, Callout, Input, Spacer } from '@metorial/ui';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -51,12 +51,12 @@ export let ServerDeploymentForm = (
     undefined
   );
 
-  let variants = useServerVariants(
-    instance.data?.id,
+  let serverId =
     p.type == 'create'
       ? (p.for?.serverId ?? searchServer?.server.id)
-      : deployment?.data?.server.id
-  );
+      : deployment?.data?.server.id;
+
+  let variants = useServerVariants(instance.data?.id, serverId);
 
   let variant = (p as any).for?.serverVariantId
     ? variants.data?.items.find(v => v.id == (p as any).for?.serverVariantId)
@@ -71,7 +71,7 @@ export let ServerDeploymentForm = (
     },
     schema: yup =>
       yup.object({
-        name: yup.string().required('Name is required'),
+        name: yup.string(),
         description: yup.string().optional(),
         metadata: yup.object().optional(),
         config: yup.object()
@@ -117,6 +117,10 @@ export let ServerDeploymentForm = (
     }
   });
 
+  if (variants.data?.items.length === 0 && p.type == 'create') {
+    return <Callout color="orange">This server cannot yet be deployed on Metorial.</Callout>;
+  }
+
   return (
     <Form onSubmit={form.handleSubmit}>
       {p.type == 'create' && !p.for && (
@@ -134,18 +138,20 @@ export let ServerDeploymentForm = (
       <Input label="Description" {...form.getFieldProps('description')} />
       <form.RenderError field="description" />
 
-      {variant?.currentVersion?.schema.schema && p.type == 'create' && (
-        <>
-          <Spacer size={15} />
+      {variant?.currentVersion?.schema.schema &&
+        Object.entries(variant?.currentVersion?.schema.schema?.properties ?? {}).length > 0 &&
+        p.type == 'create' && (
+          <>
+            <Spacer size={15} />
 
-          <JsonSchemaEditor
-            label="Config"
-            schema={variant?.currentVersion?.schema.schema ?? {}}
-            value={form.values.config}
-            onChange={v => form.setFieldValue('config', v)}
-          />
-        </>
-      )}
+            <JsonSchemaEditor
+              label="Config"
+              schema={variant?.currentVersion?.schema.schema ?? {}}
+              value={form.values.config}
+              onChange={v => form.setFieldValue('config', v)}
+            />
+          </>
+        )}
 
       <Spacer size={15} />
 
