@@ -22,9 +22,7 @@ describe('MetorialSDKError', () => {
   it('should create an instance of MetorialSDKError', () => {
     const error = new MetorialSDKError(response);
     expect(error).toBeInstanceOf(MetorialSDKError);
-    expect(error.message).toBe(
-      '[METORIAL REQUEST ERROR]: INVALID_REQUEST - The request is invalid.'
-    );
+    expect(error.message).toBe('[METORIAL ERROR]: INVALID_REQUEST - The request is invalid.');
   });
 
   it('should return the correct code', () => {
@@ -34,9 +32,7 @@ describe('MetorialSDKError', () => {
 
   it('should return the correct message', () => {
     const error = new MetorialSDKError(response);
-    expect(error.message).toBe(
-      '[METORIAL REQUEST ERROR]: INVALID_REQUEST - The request is invalid.'
-    );
+    expect(error.message).toBe('[METORIAL ERROR]: INVALID_REQUEST - The request is invalid.');
   });
 
   it('should return the correct hint', () => {

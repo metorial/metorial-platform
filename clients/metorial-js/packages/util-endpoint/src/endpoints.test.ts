@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { BaseMetorialEndpoint, MetorialRequest } from './endpoints';
+import { BaseMetorialEndpoint, MetorialEndpointManager, MetorialRequest } from './endpoints';
 import { MetorialSDKError } from './error';
 
 describe('BaseMetorialEndpoint', () => {
@@ -27,14 +27,18 @@ describe('BaseMetorialEndpoint', () => {
     }
   }
 
-  const endpoint = new TestEndpoint(mockConfig);
+  const endpoint = new TestEndpoint(
+    new MetorialEndpointManager(mockConfig, 'http://test', () => ({}), {
+      enableDebugLogging: true
+    })
+  );
 
   it('should make a GET request and return transformed data', async () => {
     const mockResponse = { data: 'test' };
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => mockResponse
-    });
+    }) as any;
 
     const request: MetorialRequest = { path: '/test' };
     const result = await endpoint
@@ -53,7 +57,7 @@ describe('BaseMetorialEndpoint', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => mockResponse
-    });
+    }) as any;
 
     const request: MetorialRequest = { path: '/test', body: { key: 'value' } };
     const result = await endpoint
@@ -68,7 +72,7 @@ describe('BaseMetorialEndpoint', () => {
   });
 
   it('should handle network errors', async () => {
-    global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+    global.fetch = vi.fn().mockRejectedValue(new Error('Network error')) as any;
 
     const request: MetorialRequest = { path: '/test' };
 
@@ -83,7 +87,7 @@ describe('BaseMetorialEndpoint', () => {
       json: async () => {
         throw new Error('Malformed JSON');
       }
-    });
+    }) as any;
 
     const request: MetorialRequest = { path: '/test' };
 
@@ -98,7 +102,7 @@ describe('BaseMetorialEndpoint', () => {
       ok: false,
       status: 400,
       json: async () => mockErrorResponse
-    });
+    }) as any;
 
     const request: MetorialRequest = { path: '/test' };
 

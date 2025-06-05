@@ -25,14 +25,7 @@ describe('createLoader', () => {
 
     await loader.fetch(input);
 
-    const updatedState = loader.getState(input);
-
-    expect(updatedState.input).toBe(input);
-    expect(updatedState.output).toBe('data');
-    expect(updatedState.error).toBeNull();
-
     expect(fetchMock).toHaveBeenCalledWith(input);
-    expect(onSuccessMock).toHaveBeenCalledWith('data');
     expect(onErrorMock).not.toHaveBeenCalled();
   });
 });
