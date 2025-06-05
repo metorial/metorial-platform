@@ -7,7 +7,8 @@
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
-    "db:push": "prisma db push"
+    "prisma:push": "prisma db push",
+    "prisma:generate": "prisma generate"
   },
   "dependencies": {
     "@metorial/execution-context": "^1.0.0",
