@@ -92,6 +92,15 @@ class ServerListingService {
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
+    console.log('listServerListings', {
+      search: d.search,
+      collectionIds: d.collectionIds,
+      categoryIds: d.categoryIds,
+      profileIds: d.profileIds,
+      instance: d.instance?.id,
+      orderByRank: d.orderByRank
+    });
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         let search = d.search
@@ -103,6 +112,8 @@ class ServerListingService {
               }
             })
           : undefined;
+
+        console.log('search results', search);
 
         return await db.serverListing.findMany({
           ...opts,

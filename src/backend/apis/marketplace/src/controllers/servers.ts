@@ -33,6 +33,8 @@ export let serversController = createHono()
     async c => {
       let query = c.req.query();
 
+      console.log('query', query);
+
       let paginator = await serverListingService.listServerListings({
         search: query.search,
 
