@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "vercel-build": "next build",
+    "vercel-build:other": "cd ../ && bun run build",
+    "vercel-build:this": "next build",
+    "vercel-build": "bun run vercel-build:other && bun run vercel-build:this",
     "dev": "next dev --port 3301",
     "enterprise:dev": "next dev --port 3301",
     "frontend:build": "next build",
