@@ -1,4 +1,3 @@
-import { sentryVitePlugin } from '@sentry/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
@@ -16,11 +15,6 @@ export default defineConfig({
         babelrc: false,
         configFile: false
       }
-    }),
-
-    sentryVitePlugin({
-      org: 'metorial',
-      project: 'meteor-dashboard'
     })
   ],
 

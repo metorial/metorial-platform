@@ -11,7 +11,7 @@ export let restServer = new RestServerBuilder<AuthInfo, ApiVersion>()
       auth.machineAccess?.type == 'instance_publishable' ||
       (auth.type == 'user' &&
         (getConfig().env == 'development' ||
-          ['metorial.com', 'metorial-staging.click'].some(domain => origin.includes(domain))))
+          ['metorial.com', 'metorial-staging.space'].some(domain => origin.includes(domain))))
   )
   .rateLimiter(
     new RateLimiter(
