@@ -19,7 +19,7 @@
     "@metorial/generated": "^1.0.0",
     "@metorial/storage": "^1.0.0",
     "react": "^19.1.0",
-    "react-router-dom": "^7.5.3"
+    "react-router-dom": "^6.26.1"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

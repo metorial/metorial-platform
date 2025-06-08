@@ -18,7 +18,7 @@
     "clsx": "^2.1.1",
     "framer-motion": "^12.12.1",
     "react": "^19.1.0",
-    "react-router-dom": "^7.5.3",
+    "react-router-dom": "^6.26.1",
     "react-use": "^17.6.0",
     "styled-components": "^6.1.18"
   },
