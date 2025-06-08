@@ -133,7 +133,7 @@ CREATE TABLE "OutgoingEmail" (
     "id" TEXT NOT NULL,
     "numberOfDestinations" INTEGER NOT NULL,
     "numberOfDestinationsCompleted" INTEGER NOT NULL,
-    "identityId" INTEGER NOT NULL,
+    "identityId" BIGINT NOT NULL,
     "values" JSONB NOT NULL,
     "subject" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -174,7 +174,7 @@ CREATE TABLE "OutgoingEmailSend" (
 
 -- CreateTable
 CREATE TABLE "EmailIdentity" (
-    "oid" SERIAL NOT NULL,
+    "oid" BIGSERIAL NOT NULL,
     "id" TEXT NOT NULL,
     "type" "EmailIdentityType" NOT NULL,
     "slug" TEXT NOT NULL,
