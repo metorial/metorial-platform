@@ -16,7 +16,11 @@ export let createHono = <E extends Env>(basePath?: string) => {
   });
 
   app.onError((e, c) => {
-    console.error(e, isServiceError(e));
+    if (isServiceError(e)) {
+      return c.json(e.toResponse(), e.data.status);
+    }
+
+    console.error(e);
 
     Sentry.captureException(e, {
       extra: {
@@ -24,10 +28,6 @@ export let createHono = <E extends Env>(basePath?: string) => {
         url: c.req.url
       }
     });
-
-    if (isServiceError(e)) {
-      return c.json(e.toResponse(), e.data.status);
-    }
 
     return c.json(internalServerError().toResponse(), 500);
   });

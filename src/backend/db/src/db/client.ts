@@ -12,20 +12,20 @@ import { PrismaClient } from '../../prisma/generated';
 import { EntityImage as ImportedEntityImage } from '../lib';
 export * from '../../prisma/generated';
 
-let workerIdBits = 10;
+let workerIdBits = 12;
 let workerIdMask = (1 << workerIdBits) - 1;
 
 let workerId = (() => {
   let array = new Uint16Array(1);
   crypto.getRandomValues(array);
-  return array[0] & workerIdMask; // Mask to get only the lowest 10 bits
+  return array[0] & workerIdMask;
 })();
 
 let generator = new SnowflakeId(workerId, 0, {
   workerIdBits: workerIdBits,
-  datacenterIdBits: 3,
-  sequenceBits: 12,
-  epoch: new Date('2025-01-01T00:00:00Z').getTime()
+  datacenterIdBits: 0,
+  sequenceBits: 9,
+  epoch: new Date('2025-06-01T00:00:00Z').getTime()
 });
 
 let createClient = () => {
@@ -43,6 +43,12 @@ let createClient = () => {
             args.args.data.oid = generator.nextId();
           }
 
+          // @ts-ignore
+          if (baseClient[normalizedModelName].fields.id?.typeName == 'BigInt') {
+            // @ts-ignore
+            args.args.data.id = generator.nextId();
+          }
+
           return args.query(args.args);
         },
 
@@ -56,6 +62,16 @@ let createClient = () => {
             for (let item of data) {
               // @ts-ignore
               item.oid = generator.nextId();
+            }
+          }
+
+          // @ts-ignore
+          if (baseClient[normalizedModelName].fields.id?.typeName == 'BigInt') {
+            let data = Array.isArray(args.args.data) ? args.args.data : [args.args.data];
+
+            for (let item of data) {
+              // @ts-ignore
+              item.id = generator.nextId();
             }
           }
 
@@ -75,6 +91,16 @@ let createClient = () => {
             }
           }
 
+          // @ts-ignore
+          if (baseClient[normalizedModelName].fields.id?.typeName == 'BigInt') {
+            let data = Array.isArray(args.args.data) ? args.args.data : [args.args.data];
+
+            for (let item of data) {
+              // @ts-ignore
+              item.id = generator.nextId();
+            }
+          }
+
           return args.query(args.args);
         },
 
@@ -85,6 +111,12 @@ let createClient = () => {
           if (baseClient[normalizedModelName].fields.oid?.typeName == 'BigInt') {
             // @ts-ignore
             args.args.create.oid = generator.nextId();
+          }
+
+          // @ts-ignore
+          if (baseClient[normalizedModelName].fields.id?.typeName == 'BigInt') {
+            // @ts-ignore
+            args.args.create.id = generator.nextId();
           }
 
           return args.query(args.args);

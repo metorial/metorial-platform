@@ -3,7 +3,7 @@ enum EmailIdentityType {
 }
 
 model EmailIdentity {
-  oid Int    @id @default(autoincrement())
+  oid BigInt @id @default(autoincrement())
   id  String @unique
 
   type EmailIdentityType

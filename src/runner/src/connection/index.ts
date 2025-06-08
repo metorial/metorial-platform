@@ -16,9 +16,13 @@ export let startConnection = async (d: {
   tags: string[];
   maxConcurrentJobs: number;
   dockerOpts: DockerManagerOptions;
-  url: string;
+
+  server: {
+    port: number;
+    url: string;
+  };
 }) => {
-  let url = new URL('/mcp/sse', d.url);
+  let url = new URL('/mcp/sse', d.server.url);
 
   let transceiver = new MICTransceiverWebsocketClient(
     {
@@ -38,7 +42,7 @@ export let startConnection = async (d: {
 
   let serverRef: RunnerServerRef = {};
   Bun.serve({
-    port: url.port,
+    port: d.server.port,
     fetch: getServer(url.origin, serverRef).fetch,
     idleTimeout: 0
   });

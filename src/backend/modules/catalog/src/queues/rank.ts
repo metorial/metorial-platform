@@ -1,6 +1,5 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
-import { debug } from '@metorial/debug';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 
 let rankCron = createCron(
@@ -13,7 +12,7 @@ let rankCron = createCron(
   }
 );
 
-let startRankQueue = createQueue({
+export let startRankQueue = createQueue({
   name: 'cat/rank/start',
   workerOpts: {
     concurrency: 1
@@ -76,8 +75,6 @@ export let processSingleRankQueueProcessor = processSingleRankQueue.process(asyn
     }
   });
   if (!serverListing) return;
-
-  debug.log('Processing rank for serverListingId', serverListing.slug);
 
   let rank = 0;
   let deploymentsCount = 0;

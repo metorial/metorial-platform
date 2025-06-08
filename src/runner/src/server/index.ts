@@ -36,9 +36,10 @@ export let getServer = (origin: string, ref: RunnerServerRef) =>
     })
     .notFound(c => c.json(notFoundError('endpoint').toResponse(), 404))
     .get('/ping', c => c.text('ok', 200))
+    .use(async (c, next) => {
+      await next();
+    })
     .all('/mcp/sse', async c => {
-      console.log('MCP connection request', c.req.method);
-
       if (!ref.mic) return c.text('INITIALIZING', 503);
 
       if (c.req.method == 'OPTIONS') return c.text('', 200);

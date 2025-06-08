@@ -52,20 +52,24 @@ export class SessionConnection {
 
     this.onClose(() => this.close());
 
-    this.#pingIv = setInterval(() => {
-      (async () => {
-        await db.session.updateMany({
-          where: { oid: this.session.sessionOid },
-          data: {
-            lastClientPingAt: new Date(),
-            connectionStatus: 'connected'
-          }
+    if (opts.mode == 'send-and-receive') {
+      this.#pingIv = setInterval(() => {
+        (async () => {
+          console.log('Touching session', this.session.id);
+
+          await db.session.updateMany({
+            where: { oid: this.session.sessionOid },
+            data: {
+              lastClientPingAt: new Date(),
+              connectionStatus: 'connected'
+            }
+          });
+        })().catch(e => {
+          Sentry.captureException(e);
+          console.error('Error sending message', e);
         });
-      })().catch(e => {
-        Sentry.captureException(e);
-        console.error('Error sending message', e);
-      });
-    }, 30 * 1000);
+      }, 30 * 1000);
+    }
 
     connections.set(session.id, this);
   }

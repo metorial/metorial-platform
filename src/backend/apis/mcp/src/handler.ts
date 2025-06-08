@@ -55,12 +55,7 @@ export let mcpConnectionHandler = async (
 
   if (c.req.method == 'DELETE') {
     // TODO: Handle this like a session delete
-
-    throw new ServiceError(
-      methodNotAllowedError({
-        hint: 'Use DELETE /sessions/<sessionId> to delete a session'
-      })
-    );
+    throw new ServiceError(methodNotAllowedError({}));
   }
 
   let isWebsocketConnection =
