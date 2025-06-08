@@ -124,7 +124,7 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
                 {
                   links: categories.map(category => ({
                     label: category.name,
-                    href: `/servers?categories_ids=${category.id}`
+                    href: `/marketplace/servers?categories_ids=${category.id}`
                   }))
                 }
               ]
@@ -185,7 +185,7 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
                   let value = input.value;
                   if (!value) return;
 
-                  router.push(`/servers?search=${value}`);
+                  router.push(`/marketplace/servers?search=${value}`);
                 }}
               >
                 <SearchInput placeholder="Server MCP servers" />

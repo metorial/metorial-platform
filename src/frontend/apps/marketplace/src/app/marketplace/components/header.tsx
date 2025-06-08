@@ -117,7 +117,7 @@ export let LandingHeader = ({ search }: { search?: string }) => {
             let value = input.value;
             if (!value) return;
 
-            router.push(`/servers?search=${value}`);
+            router.push(`/marketplace/servers?search=${value}`);
           }}
         />
       </InputWrapper>

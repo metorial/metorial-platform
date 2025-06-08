@@ -69,7 +69,7 @@ export let ServerAside = ({ server }: { server: ServerListing }) => {
 
                 <a
                   key={category.id}
-                  href={`/servers?category_ids=${category.slug}`}
+                  href={`/marketplace/servers?category_ids=${category.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: 'inherit' }}
