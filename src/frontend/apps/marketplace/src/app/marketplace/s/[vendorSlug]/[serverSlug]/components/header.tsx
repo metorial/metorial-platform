@@ -4,7 +4,7 @@ import { ServerListing } from '../../../../../../state/server';
 import { LocalHeader } from '../../../../components/localHeader';
 
 export let ServerHeader = ({ server }: { server: ServerListing }) => {
-  let basePath = `/s/${server.slug}`;
+  let basePath = `/marketplace/s/${server.slug}`;
 
   return (
     <LocalHeader

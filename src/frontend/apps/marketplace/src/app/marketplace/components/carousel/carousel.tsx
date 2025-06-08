@@ -44,7 +44,7 @@ export let ServerCarouselWithGroup = ({
               src: `https://avatar-cdn.metorial.com/${server.id}`
             }}
             index={index}
-            href={`/s/${server.slug}`}
+            href={`/marketplace/s/${server.slug}`}
           />
         ))}
       />

@@ -20,7 +20,19 @@ const nextConfig: NextConfig = {
     DOCS_FRONTEND_URL: process.env.DOCS_FRONTEND_URL,
     API_DOCS_FRONTEND_URL: process.env.API_DOCS_FRONTEND_URL,
     METORIAL_ENV: process.env.METORIAL_ENV
-  }
+  },
+
+  redirects: async () => {
+    return [
+      {
+        source: '/',
+        destination: '/marketplace',
+        permanent: true
+      }
+    ];
+  },
+
+  assetPrefix: process.env.ASSET_PREFIX
 };
 
 export default nextConfig;

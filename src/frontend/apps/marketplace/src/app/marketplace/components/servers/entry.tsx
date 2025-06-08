@@ -103,7 +103,7 @@ export let ServerEntry = ({ server }: { server: ServerListing }) => {
       onClick={() => {
         if (typeof window == 'undefined') return;
       }}
-      href={`/s/${server.slug}`}
+      href={`/marketplace/s/${server.slug}`}
     >
       <ImageOuter
         style={{

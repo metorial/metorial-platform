@@ -43,7 +43,7 @@ export let LandingServers = ({ servers }: { servers: ServerListing[] }) => {
                   src: `https://avatar-cdn.metorial.com/${server.id}`
                 }}
                 index={index}
-                href={`/s/${server.slug}`}
+                href={`/marketplace/s/${server.slug}`}
               />
             </CardWrapper>
           ))}

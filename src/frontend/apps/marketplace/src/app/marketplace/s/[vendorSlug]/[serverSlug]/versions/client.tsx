@@ -54,7 +54,7 @@ export let VersionsPageClient = ({
         }}
       >
         {pagination.hasMoreBefore && (
-          <Link href={`/s/${server.slug}/versions?before=${versions[0]?.id}`}>
+          <Link href={`/marketplace/s/${server.slug}/versions?before=${versions[0]?.id}`}>
             <Button variant="outline" as="span" size="1">
               Previous
             </Button>
@@ -62,7 +62,9 @@ export let VersionsPageClient = ({
         )}
 
         {pagination.hasMoreAfter && (
-          <Link href={`/s/${server.slug}/versions?after=${versions[versions.length - 1]?.id}`}>
+          <Link
+            href={`/marketplace/s/${server.slug}/versions?after=${versions[versions.length - 1]?.id}`}
+          >
             <Button variant="outline" as="span" size="1">
               Next
             </Button>
