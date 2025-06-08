@@ -30,7 +30,7 @@ export class SessionConnection {
   #manager: SessionManager;
   #lastMessageAt: number;
   #closePromise = new ProgrammablePromise<void>();
-  #pingIv: NodeJS.Timeout;
+  #pingIv?: NodeJS.Timeout;
 
   constructor(
     private session: ServerSession & {
@@ -83,7 +83,7 @@ export class SessionConnection {
 
     this.#closePromise.resolve();
 
-    clearInterval(this.#pingIv);
+    if (this.#pingIv) clearInterval(this.#pingIv);
 
     await this.#controlMessageBackend.close();
     await this.#manager.close();
