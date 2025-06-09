@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Datalist, Spacer, theme } from '@metorial/ui';
+import { Datalist, theme } from '@metorial/ui';
 import styled from 'styled-components';
 import { ServerListing } from '../../../../../../state/server';
 
@@ -15,7 +15,7 @@ let Wrapper = styled.aside`
 export let ServerAside = ({ server }: { server: ServerListing }) => {
   return (
     <Wrapper>
-      {server.isHostable && (
+      {/* {server.isHostable && (
         <>
           <Button
             onClick={() => {
@@ -28,7 +28,7 @@ export let ServerAside = ({ server }: { server: ServerListing }) => {
 
           <Spacer size={20} />
         </>
-      )}
+      )} */}
 
       <Datalist
         variant="large"
