@@ -88,18 +88,44 @@ export let ProjectHomePage = () => {
             </>
           )}
 
-          {secretApiKey && (
-            <>
+          <div
+            style={{
+              display: 'grid',
+              gap: 20,
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'
+            }}
+          >
+            <SideBox
+              title="Integrate Metorial"
+              description="Learn how to integrate Metorial with your AI app. We have guides for various programming languages and frameworks."
+            >
+              <Button
+                size="2"
+                onClick={() => {
+                  // @ts-ignore
+                  if (window.metorial_enterprise) {
+                    // @ts-ignore
+                    window.metorial_enterprise?.chrome.showDocs();
+                  } else {
+                    window.open('https://metorial.com/docs', '_blank');
+                  }
+                }}
+              >
+                Read the Docs
+              </Button>
+            </SideBox>
+
+            {secretApiKey && (
               <SideBox
                 title="Connect to Metorial"
-                description="Use this API key to connect to Metorial from your application."
+                description="Use this API key to connect to Metorial from your code."
               >
                 <ApiKeySecret apiKey={secretApiKey} />
               </SideBox>
+            )}
+          </div>
 
-              <Spacer height={25} />
-            </>
-          )}
+          <Spacer height={25} />
 
           {instance.data?.type == 'development' ? (
             <>

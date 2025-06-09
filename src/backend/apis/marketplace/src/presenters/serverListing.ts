@@ -41,6 +41,8 @@ export let serverListingPresenter = async (
     description: serverListing.description,
     // readme: serverListing.readme,
 
+    skills: serverListing.skills,
+
     serverId: serverListing.server.id,
 
     categories: serverListing.categories.map(category => serverCategoryPresenter(category)),

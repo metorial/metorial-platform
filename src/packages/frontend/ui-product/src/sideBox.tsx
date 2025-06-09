@@ -6,6 +6,9 @@ let Wrapper = styled.div`
   border: 1px solid ${theme.colors.gray300};
   border-radius: 12px;
   padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 let Header = styled.header`

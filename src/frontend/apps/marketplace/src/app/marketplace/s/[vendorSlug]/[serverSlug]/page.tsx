@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { serverFetch } from '../../../../../state/sdk';
 import { getServer } from '../../../../../state/server';
 import { ServerReadme } from './components/readme';
+import { Skills } from './components/skills';
 
 export default async ({
   params: paramsPromise
@@ -22,6 +23,8 @@ export default async ({
 
   return (
     <>
+      <Skills skills={server.skills} />
+
       {server.readme && (
         <ServerReadme
           readme={server.readme}

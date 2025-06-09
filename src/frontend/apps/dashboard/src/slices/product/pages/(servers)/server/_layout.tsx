@@ -88,6 +88,10 @@ export let ServerLayout = () => {
             to: Paths.instance.server(...serverPathParams)
           },
           {
+            label: 'Readme',
+            to: Paths.instance.server(...serverPathParams, 'readme')
+          },
+          {
             label: 'Deployments',
             to: Paths.instance.server(...serverPathParams, 'deployments')
           },

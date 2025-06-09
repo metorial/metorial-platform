@@ -159,7 +159,7 @@ export let getServerCollection = async (collectionId: string) =>
       )
   );
 
-export type ServerListing = Awaited<ReturnType<typeof getServer>>;
+export type ServerListing = Omit<Awaited<ReturnType<typeof getServer>>, 'readme'>;
 export type ServerVersion = Awaited<ReturnType<typeof listServerVersions>>['items'][number];
 export type ServerVariant = Awaited<ReturnType<typeof listServerVariants>>['items'][number];
 export type ServerCategory = Awaited<ReturnType<typeof getServerCategory>>;

@@ -1,11 +1,18 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { Readme } from '@metorial/markdown';
-import { useCurrentInstance, useServer, useServerListing } from '@metorial/state';
-import { Button, Callout, LinkButton, Spacer } from '@metorial/ui';
+import {
+  useCurrentInstance,
+  useRevealedApiKey,
+  useServer,
+  useServerListing
+} from '@metorial/state';
+import { Button, Spacer } from '@metorial/ui';
 import { SideBox } from '@metorial/ui-product';
+import dedent from 'dedent';
 import { Link, useParams } from 'react-router-dom';
-import { AttributesLayout } from '../../../scenes/attributesLayout';
+import { useApiKeysWithAutoInit } from '../../../scenes/apiKeys/useApiKeysWithAutoInit';
+import { Instructions } from './components/instructions';
+import { Skills } from './components/skills';
 
 export let ServerOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -15,79 +22,124 @@ export let ServerOverviewPage = () => {
 
   let listing = useServerListing(serverId);
 
-  return renderWithLoader({ server, listing })(({ server, listing }) => (
-    <AttributesLayout
-      items={[
-        { label: 'Server ID', value: listing.data.slug },
-        { label: 'Server Name', value: server.data.name },
-        {
-          label: 'Server Type',
-          value: { public: 'Public' }[server.data.type] ?? server.data.type
-        },
-        { label: 'Vendor', value: listing.data.vendor?.name },
-        { label: 'Type', value: listing.data.isOfficial ? 'Official' : 'Community' },
-        { label: 'Hosting', value: listing.data.isHostable ? 'Hostable' : 'Not Hostable' },
-        {
-          label: 'Provider',
-          value: server.data.variants.some(v => v.source.type == 'remote')
-            ? 'Remote'
-            : 'Metorial'
+  let apiKeys = useApiKeysWithAutoInit(
+    instance.data
+      ? {
+          type: 'instance_access_token',
+          instanceId: instance.data.id
         }
-      ]}
-    >
-      {!server.data?.variants.length && (
-        <>
-          <Callout color="orange">
-            <span>
-              This server isn't supported by Metorial yet. Please{' '}
-              <LinkButton
-                onClick={() => {
-                  // @ts-ignore
-                  window.metorial_enterprise?.chrome?.showContactSupportModal({
-                    subject: `Support for ${server.data.name} server`,
-                    message: `Hey team,
-I would like to request support for the ${server.data.name} server (ID: ${server.data.id}) in Metorial. Please let me know if you need any additional information from my side.`
+      : undefined
+  );
+
+  let secretApiKey = apiKeys.data?.find(
+    a =>
+      a.type === 'instance_access_token_secret' &&
+      ((a.status == 'active' && a.revealInfo?.forever) ||
+        (a.revealInfo?.until && a.revealInfo?.until > new Date()))
+  );
+
+  let key = useRevealedApiKey({ apiKeyId: secretApiKey?.id });
+
+  let jsStartInstructions = [
+    {
+      title: 'Install the Metorial SDK',
+      description: 'Get started by installing the Metorial SDK in your project.',
+      type: 'code' as const,
+      code: 'npm install @metorial/sdk',
+      lineNumbers: false
+    },
+    {
+      title: 'Instantiate the Metorial SDK',
+      description: 'Set up the Metorial SDK with your API key.',
+      type: 'code' as const,
+      code: dedent`
+                  import { Metorial } from '@metorial/sdk';
+
+                  const metorial = new Metorial({
+                    apiKey: '${key.value ?? '... your API key ...'}',
                   });
-                }}
-              >
-                reach out
-              </LinkButton>{' '}
-              if you want to see it supported.
-            </span>
-          </Callout>
+                `,
+      lineNumbers: true
+    }
+  ];
 
-          <Spacer height={15} />
-        </>
-      )}
-
-      <SideBox
-        title="Test this server"
-        description="Use the Metorial Explorer to test this server."
-      >
-        <Link
-          to={Paths.instance.explorer(
-            instance.data?.organization,
-            instance.data?.project,
-            instance.data,
-            { server_id: server.data?.id }
-          )}
+  return renderWithLoader({ server, listing })(({ server, listing }) => (
+    <>
+      {!!server.data?.variants.length && (
+        <SideBox
+          title="Test this server"
+          description="Use the Metorial Explorer to test this server."
         >
-          <Button as="span" size="2">
-            Open Explorer
-          </Button>
-        </Link>
-      </SideBox>
+          <Link
+            to={Paths.instance.explorer(
+              instance.data?.organization,
+              instance.data?.project,
+              instance.data,
+              { server_id: server.data?.id }
+            )}
+          >
+            <Button as="span" size="2">
+              Open Explorer
+            </Button>
+          </Link>
+        </SideBox>
+      )}
 
       <Spacer height={15} />
 
-      <Readme
-        readme={listing.data.readme}
-        imageRoot={
-          listing.data.repository
-            ? `https://raw.githubusercontent.com/${listing.data.repository.identifier.replace('github.com/', '')}/${listing.data.repository.defaultBranch}/`
-            : undefined
-        }
+      <Skills skills={listing.data.skills} />
+
+      <Spacer height={15} />
+
+      <Instructions
+        variants={[
+          {
+            title: 'JS & AI SDK',
+            icon: (
+              <img
+                src="https://cdn.metorial.com/2025-06-09--10-17-03/logos/providers/vercel.svg"
+                alt="OpenAI Logo"
+              />
+            ),
+            instructions: [...jsStartInstructions],
+            codeViewer: {
+              repo: 'mcp-containers',
+              owner: 'metorial',
+              path: 'scripts/add-server'
+            }
+          },
+          {
+            title: 'JS & OpenAI',
+            icon: (
+              <img
+                src="https://cdn.metorial.com/2025-06-09--10-17-03/logos/providers/openai.svg"
+                alt="OpenAI Logo"
+              />
+            ),
+            instructions: [...jsStartInstructions]
+          },
+          {
+            title: 'Node.js',
+            icon: (
+              <img
+                src="https://cdn.metorial.com/2025-06-09--10-17-03/logos/languages/typescript.svg"
+                alt="OpenAI Logo"
+              />
+            ),
+            instructions: [...jsStartInstructions]
+          },
+          {
+            title: 'Python',
+            icon: (
+              <img
+                src="https://cdn.metorial.com/2025-06-09--10-17-03/logos/languages/python.svg"
+                alt="OpenAI Logo"
+              />
+            ),
+            instructions: []
+          }
+        ]}
       />
-    </AttributesLayout>
+    </>
   ));
 };

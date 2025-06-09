@@ -26,15 +26,16 @@ export let startConnection = async (d: {
 
   let McpSessionManager = getMcpSessionManager();
 
+  let metorialUrl = `${d.host.includes(':') ? 'ws' : 'wss'}://${d.host}/metorial_runner_interconnect?metorial_runner_connection_key=${d.connectionKey}`;
+
   let transceiver = new MICTransceiverWebsocketClient(
     {
       sessionId: 'runner',
       connectionId: 'metorial-server'
     },
-    new ReconnectingWebSocketClient(
-      `ws://${d.host}/metorial_runner_interconnect?metorial_runner_connection_key=${d.connectionKey}`,
-      { onReconnect: () => console.log('Reconnecting to Metorial...') }
-    )
+    new ReconnectingWebSocketClient(metorialUrl, {
+      onReconnect: () => console.log('Reconnecting to Metorial...')
+    })
   );
 
   transceiver.onClose(() => {

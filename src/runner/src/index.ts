@@ -15,10 +15,11 @@ prog
   .option('--tags', 'Comma separated tags for this runner (no spaces)')
   .option('--max-concurrent-jobs', 'Max concurrent jobs for this runner')
   .option('--url', 'The runners public URL')
+  .option('--port', 'The runners public port (default: from URL)')
   .action(
     async (
       uri: string,
-      opts: { tags?: string; ['max-concurrent-jobs']?: string; url: string }
+      opts: { tags?: string; ['max-concurrent-jobs']?: string; url: string; port?: string }
     ) => {
       if (!(await checkRunnerMachine())) process.exit(1);
 
@@ -29,7 +30,9 @@ prog
           let url = new URL(opts.url);
           server = {
             url: url.href,
-            port: parseInt(url.port) || (url.protocol === 'https:' ? 443 : 80)
+            port: opts.port
+              ? parseInt(opts.port)
+              : parseInt(url.port) || (url.protocol === 'https:' ? 443 : 80)
           };
         } catch (e: any) {
           console.error('Invalid URL: ', e.message);
@@ -46,7 +49,7 @@ prog
 
         server = {
           url: opts.url,
-          port: 3464
+          port: opts.port ? parseInt(opts.port) : 3464
         };
       }
 
