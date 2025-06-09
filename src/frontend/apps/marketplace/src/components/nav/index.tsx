@@ -179,7 +179,7 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
                     Metorial
                   </span>
                   <RiArrowRightSLine />
-                  <span>Marketplace</span>
+                  <span>Index</span>
                 </NavLogoText>
               </Link>
 

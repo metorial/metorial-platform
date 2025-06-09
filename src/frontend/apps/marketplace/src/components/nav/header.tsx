@@ -55,7 +55,7 @@ export let Header = () => {
     >
       <HeaderContainer>
         <HeaderText>
-          Built by <BoldText>Metorial</BoldText>, the platform for AI integrations.
+          Built by <BoldText>Metorial</BoldText>, the integration platform for agentic AI.
         </HeaderText>
 
         <NavLinks>

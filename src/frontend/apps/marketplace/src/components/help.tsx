@@ -15,6 +15,10 @@ let Wrapper = styled.div`
   flex-direction: column;
   align-items: flex-end;
   gap: 20px;
+
+  @media (max-width: 600px) {
+    display: none;
+  }
 `;
 
 let Button = styled(motion.button)`

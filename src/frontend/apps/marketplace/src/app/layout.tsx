@@ -19,8 +19,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Metorial Marketplace',
-  description: 'Connect to thousands of MCP servers in a single function call.'
+  title: 'Metorial Index',
+  // description: 'Connect to thousands of MCP servers in a single function call.'
+  description: 'Explore thousands of MCP servers.'
 };
 
 export default function RootLayout({

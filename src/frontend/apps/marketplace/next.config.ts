@@ -19,7 +19,8 @@ const nextConfig: NextConfig = {
     LANDING_FRONTEND_URL: process.env.LANDING_FRONTEND_URL,
     DOCS_FRONTEND_URL: process.env.DOCS_FRONTEND_URL,
     API_DOCS_FRONTEND_URL: process.env.API_DOCS_FRONTEND_URL,
-    METORIAL_ENV: process.env.METORIAL_ENV
+    METORIAL_ENV: process.env.METORIAL_ENV,
+    SHOW_EARLY_ACCESS_BAR: process.env.SHOW_EARLY_ACCESS_BAR
   },
 
   redirects: async () => {

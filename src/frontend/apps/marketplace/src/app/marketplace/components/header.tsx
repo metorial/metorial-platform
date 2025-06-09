@@ -104,7 +104,15 @@ export let LandingHeader = ({ search }: { search?: string }) => {
       </HeaderTitle>
 
       <HeaderSubtitle>
-        Connect to thousands of MCP servers in a single function call.
+        {/* Connect to thousands of MCP servers in a single function call. */}
+        Explore thousands of MCP servers.{' '}
+        <a
+          href="https://metorial.com/early-access"
+          style={{ textDecoration: 'none', color: 'black' }}
+        >
+          And connect to them in a single function call
+        </a>
+        .
       </HeaderSubtitle>
 
       <InputWrapper>
