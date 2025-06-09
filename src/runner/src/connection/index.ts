@@ -5,7 +5,7 @@ import { v } from '@metorial/validation';
 import { ReconnectingWebSocketClient } from '@metorial/websocket';
 import { DockerManagerOptions } from '../lib/docker/dockerManager';
 import { getLaunchParams } from '../lib/launchParams';
-import { McpSessionManager } from '../lib/session/manager';
+import { getMcpSessionManager } from '../lib/session/manager';
 import { SessionTokens } from '../lib/tokens';
 import { getServer, RunnerServerRef } from '../server';
 import { VERSION } from '../version';
@@ -23,6 +23,8 @@ export let startConnection = async (d: {
   };
 }) => {
   let url = new URL('/mcp/sse', d.server.url);
+
+  let McpSessionManager = getMcpSessionManager();
 
   let transceiver = new MICTransceiverWebsocketClient(
     {

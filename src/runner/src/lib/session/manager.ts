@@ -85,4 +85,10 @@ class McpSessionManagerImpl {
   }
 }
 
-export let McpSessionManager = new McpSessionManagerImpl();
+let currentMcpSessionManager: McpSessionManagerImpl | null = null;
+
+export let getMcpSessionManager = () => {
+  if (!currentMcpSessionManager) currentMcpSessionManager = new McpSessionManagerImpl();
+
+  return currentMcpSessionManager;
+};

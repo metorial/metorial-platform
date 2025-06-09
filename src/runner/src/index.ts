@@ -2,7 +2,6 @@ import { req } from '@metorial/req';
 import sade from 'sade';
 import { startConnection } from './connection';
 import { checkRunnerMachine } from './lib/check';
-import { getCloudflareDTunnel } from './lib/cloudflared';
 import { VERSION } from './version';
 
 let prog = sade('metorial-runner')
@@ -37,29 +36,18 @@ prog
           process.exit(1);
         }
       } else {
-        let cloudflareUrl = await getCloudflareDTunnel({ port: 3464 });
-        if (cloudflareUrl) {
-          console.log(`Using Cloudflare Tunnel URL: ${cloudflareUrl}`);
-          opts.url = cloudflareUrl;
+        let mt: { ip: string } = await req.get('https://ip.metorial.com', {
+          headers: { 'User-Agent': 'Metorial Runner CLI' }
+        });
 
-          server = {
-            url: cloudflareUrl,
-            port: 3464
-          };
-        } else {
-          let mt: { ip: string } = await req.get('https://ip.metorial.com', {
-            headers: { 'User-Agent': 'Metorial Runner CLI' }
-          });
+        opts.url = `http://${mt.ip}:3464`;
 
-          opts.url = `http://${mt.ip}:3464`;
+        console.log(`Using insecure URL: ${opts.url}`);
 
-          console.log(`Using insecure URL: ${opts.url}`);
-
-          server = {
-            url: opts.url,
-            port: 3464
-          };
-        }
+        server = {
+          url: opts.url,
+          port: 3464
+        };
       }
 
       let host: string;
