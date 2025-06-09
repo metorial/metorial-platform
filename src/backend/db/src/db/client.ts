@@ -28,6 +28,12 @@ let generator = new SnowflakeId(workerId, 0, {
   epoch: new Date('2025-06-01T00:00:00Z').getTime()
 });
 
+let getSecureRandomInt = (max: number) => {
+  let array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  return array[0] & 0x7fffffff;
+};
+
 let createClient = () => {
   let baseClient = new PrismaClient({});
 
@@ -47,6 +53,18 @@ let createClient = () => {
           if (baseClient[normalizedModelName].fields.id?.typeName == 'BigInt') {
             // @ts-ignore
             args.args.data.id = generator.nextId();
+          }
+
+          // @ts-ignore
+          if (baseClient[normalizedModelName].fields.oid?.typeName == 'Int') {
+            // @ts-ignore
+            args.args.data.oid = getSecureRandomInt();
+          }
+
+          // @ts-ignore
+          if (baseClient[normalizedModelName].fields.id?.typeName == 'Int') {
+            // @ts-ignore
+            args.args.data.id = getSecureRandomInt();
           }
 
           return args.query(args.args);
@@ -72,6 +90,26 @@ let createClient = () => {
             for (let item of data) {
               // @ts-ignore
               item.id = generator.nextId();
+            }
+          }
+
+          // @ts-ignore
+          if (baseClient[normalizedModelName].fields.oid?.typeName == 'Int') {
+            let data = Array.isArray(args.args.data) ? args.args.data : [args.args.data];
+
+            for (let item of data) {
+              // @ts-ignore
+              item.oid = getSecureRandomInt();
+            }
+          }
+
+          // @ts-ignore
+          if (baseClient[normalizedModelName].fields.id?.typeName == 'Int') {
+            let data = Array.isArray(args.args.data) ? args.args.data : [args.args.data];
+
+            for (let item of data) {
+              // @ts-ignore
+              item.id = getSecureRandomInt();
             }
           }
 
@@ -101,6 +139,26 @@ let createClient = () => {
             }
           }
 
+          // @ts-ignore
+          if (baseClient[normalizedModelName].fields.oid?.typeName == 'Int') {
+            let data = Array.isArray(args.args.data) ? args.args.data : [args.args.data];
+
+            for (let item of data) {
+              // @ts-ignore
+              item.oid = getSecureRandomInt();
+            }
+          }
+
+          // @ts-ignore
+          if (baseClient[normalizedModelName].fields.id?.typeName == 'Int') {
+            let data = Array.isArray(args.args.data) ? args.args.data : [args.args.data];
+
+            for (let item of data) {
+              // @ts-ignore
+              item.id = getSecureRandomInt();
+            }
+          }
+
           return args.query(args.args);
         },
 
@@ -117,6 +175,18 @@ let createClient = () => {
           if (baseClient[normalizedModelName].fields.id?.typeName == 'BigInt') {
             // @ts-ignore
             args.args.create.id = generator.nextId();
+          }
+
+          // @ts-ignore
+          if (baseClient[normalizedModelName].fields.oid?.typeName == 'Int') {
+            // @ts-ignore
+            args.args.create.oid = getSecureRandomInt();
+          }
+
+          // @ts-ignore
+          if (baseClient[normalizedModelName].fields.id?.typeName == 'Int') {
+            // @ts-ignore
+            args.args.create.id = getSecureRandomInt();
           }
 
           return args.query(args.args);

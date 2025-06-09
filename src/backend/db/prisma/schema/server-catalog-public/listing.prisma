@@ -36,4 +36,6 @@ model ServerListing {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @default(now()) @updatedAt
   rankUpdatedAt DateTime? @updatedAt
+
+  @@index([rank])
 }
