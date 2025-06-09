@@ -145,7 +145,10 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
           }}
         >
           <NavInner className="mobile">
-            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Link
+              href="/marketplace"
+              style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+            >
               <Logo size={22} />
               <NavLogoText>Metorial</NavLogoText>
             </Link>
@@ -161,7 +164,10 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
 
           <NavInner className="desktop">
             <NavSection>
-              <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Link
+                href="/marketplace"
+                style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+              >
                 <Logo size={22} />
                 <NavLogoText>
                   <span
