@@ -1,4 +1,5 @@
 import { db, ID, ServerRun, ServerRunner, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { secretService } from '@metorial/module-secret';
 import { getSentry } from '@metorial/sentry';
 import { serverRunnerService } from '../services';
@@ -10,7 +11,7 @@ export let RunJobProcessorUtils = {
     return await db.serverSession.findFirst({
       where: { id: d.serverSessionId },
       include: {
-        instance: true,
+        instance: { include: { organization: true } },
 
         serverDeployment: {
           include: {
@@ -36,6 +37,11 @@ export let RunJobProcessorUtils = {
     let version = variant.currentVersion;
     if (!version) return null;
 
+    await Fabric.fire('server.server_run.created:before', {
+      organization: session.instance.organization,
+      instance: session.instance
+    });
+
     return await withTransaction(async db => {
       let serverRun = await db.serverRun.create({
         data: {
@@ -48,6 +54,12 @@ export let RunJobProcessorUtils = {
           serverSessionOid: session.oid,
           serverRunnerOid: d.runner?.oid
         }
+      });
+
+      await Fabric.fire('server.server_run.created:after', {
+        serverRun,
+        organization: session.instance.organization,
+        instance: session.instance
       });
 
       (async () => {

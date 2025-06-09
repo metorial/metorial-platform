@@ -11,6 +11,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { forbiddenError, notFoundError, ServiceError } from '@metorial/error';
+import { Fabric } from '@metorial/fabric';
 import { ingestEventService } from '@metorial/module-event';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -64,6 +65,12 @@ class ServerImplementationServiceImpl {
     };
     type: 'ephemeral' | 'persistent';
   }) {
+    await Fabric.fire('server.server_implementation.created:before', {
+      organization: d.organization,
+      performedBy: d.performedBy,
+      instance: d.instance
+    });
+
     return withTransaction(async db => {
       let serverImplementation = await db.serverImplementation.create({
         data: {
@@ -97,6 +104,13 @@ class ServerImplementationServiceImpl {
         { delay: 100 }
       );
 
+      await Fabric.fire('server.server_implementation.created:after', {
+        organization: d.organization,
+        performedBy: d.performedBy,
+        instance: d.instance,
+        implementation: serverImplementation
+      });
+
       return serverImplementation;
     });
   }
@@ -121,6 +135,12 @@ class ServerImplementationServiceImpl {
         include
       });
       if (defaultImplementation) return defaultImplementation;
+
+      await Fabric.fire('server.server_implementation.created:before', {
+        organization: d.organization,
+        performedBy: d.performedBy,
+        instance: d.instance
+      });
 
       let serverImplementation = await db.serverImplementation.upsert({
         where: {
@@ -158,6 +178,13 @@ class ServerImplementationServiceImpl {
         );
       }
 
+      await Fabric.fire('server.server_implementation.created:after', {
+        organization: d.organization,
+        performedBy: d.performedBy,
+        instance: d.instance,
+        implementation: serverImplementation
+      });
+
       return serverImplementation;
     });
   }
@@ -174,6 +201,13 @@ class ServerImplementationServiceImpl {
       getLaunchParams?: string;
     };
   }) {
+    await Fabric.fire('server.server_implementation.updated:before', {
+      organization: d.organization,
+      performedBy: d.performedBy,
+      instance: d.instance,
+      implementation: d.serverImplementation
+    });
+
     await this.ensureServerImplementationActive(d.serverImplementation);
 
     return withTransaction(async db => {
@@ -197,6 +231,13 @@ class ServerImplementationServiceImpl {
         instance: d.instance
       });
 
+      await Fabric.fire('server.server_implementation.updated:after', {
+        organization: d.organization,
+        performedBy: d.performedBy,
+        instance: d.instance,
+        implementation: serverImplementation
+      });
+
       return serverImplementation;
     });
   }
@@ -207,6 +248,13 @@ class ServerImplementationServiceImpl {
     instance: Instance;
     serverImplementation: ServerImplementation;
   }) {
+    await Fabric.fire('server.server_implementation.deleted:before', {
+      organization: d.organization,
+      performedBy: d.performedBy,
+      instance: d.instance,
+      implementation: d.serverImplementation
+    });
+
     await this.ensureServerImplementationActive(d.serverImplementation);
 
     return withTransaction(async db => {
@@ -226,6 +274,13 @@ class ServerImplementationServiceImpl {
         organization: d.organization,
         performedBy: d.performedBy,
         instance: d.instance
+      });
+
+      await Fabric.fire('server.server_implementation.deleted:after', {
+        organization: d.organization,
+        performedBy: d.performedBy,
+        instance: d.instance,
+        implementation: serverImplementation
       });
 
       return serverImplementation;

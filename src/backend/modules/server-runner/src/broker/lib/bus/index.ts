@@ -1,4 +1,12 @@
-import { db, ID, SessionMessageType, type ServerSession } from '@metorial/db';
+import {
+  db,
+  ID,
+  Instance,
+  Organization,
+  SessionMessageType,
+  type ServerSession
+} from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { getMessageType, type JSONRPCMessage } from '@metorial/mcp-utils';
 import { getSentry } from '@metorial/sentry';
@@ -19,6 +27,7 @@ export class BrokerBus {
     private backend: BrokerBusBackend,
     private participant: Participant,
     private session: ServerSession,
+    private instance: Instance & { organization: Organization },
     opts: { subscribe: boolean }
   ) {
     if (this.connector == 'server') {
@@ -31,10 +40,11 @@ export class BrokerBus {
   static async create(
     participant: Participant,
     session: ServerSession,
+    instance: Instance & { organization: Organization },
     opts: { subscribe: boolean }
   ) {
     let backend = await BrokerBusBackend.create(session, opts);
-    return new BrokerBus(backend, participant, session, opts);
+    return new BrokerBus(backend, participant, session, instance, opts);
   }
 
   private get connector() {
@@ -75,6 +85,12 @@ export class BrokerBus {
     return (
       (await lock
         .usingLock(this.session.id, async () => {
+          await Fabric.fire('session.session_message.created:before', {
+            organization: this.instance.organization,
+            instance: this.instance,
+            session: this.session
+          });
+
           let createdMessages = await db.sessionMessage.createManyAndReturn({
             data: messages.map(message => ({
               id: ID.generateIdSync('sessionMessage'),
@@ -96,6 +112,13 @@ export class BrokerBus {
                   : null,
               payload: message
             }))
+          });
+
+          await Fabric.fire('session.session_message.created.many:after', {
+            organization: this.instance.organization,
+            instance: this.instance,
+            session: this.session,
+            sessionMessages: createdMessages
           });
 
           (async () => {

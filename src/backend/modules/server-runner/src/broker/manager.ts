@@ -1,4 +1,12 @@
-import { db, ServerRun, ServerSession, ServerVersion, SessionMessageType } from '@metorial/db';
+import {
+  db,
+  Instance,
+  Organization,
+  ServerRun,
+  ServerSession,
+  ServerVersion,
+  SessionMessageType
+} from '@metorial/db';
 import { debug } from '@metorial/debug';
 import { generatePlainId } from '@metorial/id';
 import {
@@ -36,7 +44,8 @@ export class BrokerRunManager {
     private implementation: BrokerRunnerImplementation,
     private serverRun: ServerRun,
     private session: ServerSession,
-    private serverVersion: ServerVersion
+    private serverVersion: ServerVersion,
+    private instance: Instance & { organization: Organization }
   ) {
     managers.add(this);
 
@@ -63,7 +72,7 @@ export class BrokerRunManager {
 
     this.#activePingIv = setInterval(dbPing, ACTIVE_PING_INTERVAL);
 
-    this.#bus = BrokerBus.create({ type: 'server', id: serverRun.id }, session, {
+    this.#bus = BrokerBus.create({ type: 'server', id: serverRun.id }, session, instance, {
       subscribe: true
     });
 

@@ -181,7 +181,8 @@ export let createServerRunnerGateway = (
                     connection,
                     info.serverRun,
                     info.session,
-                    info.version
+                    info.version,
+                    info.session.instance
                   );
 
                   debug.log(`Runner ${runner.id} - session run ${info.serverRun.id} started`);
