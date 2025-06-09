@@ -1,4 +1,4 @@
-import { db, ID } from '@metorial/db';
+import { ID, withTransaction } from '@metorial/db';
 import { Service } from '@metorial/service';
 import { defaultEmailIdentity } from '../definitions';
 import { sendEmailQueue } from '../queue/sendEmail';
@@ -14,39 +14,43 @@ class EmailService {
       text: string;
     };
   }) {
-    let emails = await db.outgoingEmail.create({
-      data: {
-        id: ID.generateIdSync('email'),
+    return withTransaction(async db => {
+      let emails = await db.outgoingEmail.create({
+        data: {
+          id: ID.generateIdSync('email'),
 
-        numberOfDestinations: d.to.length,
-        numberOfDestinationsCompleted: 0,
+          numberOfDestinations: d.to.length,
+          numberOfDestinationsCompleted: 0,
 
-        destinations: {
-          create: d.to.map(t => ({
-            status: 'pending',
-            destination: t
-          }))
-        },
+          values: d.template,
 
-        values: d.template,
+          subject: d.content.subject,
 
-        subject: d.content.subject,
-
-        identityId: (await defaultEmailIdentity).oid,
-
-        content: {
-          create: {
-            subject: d.content.subject,
-            html: d.content.html,
-            text: d.content.text
-          }
+          identityId: (await defaultEmailIdentity).oid
         }
-      }
+      });
+
+      await db.outgoingEmailContent.createMany({
+        data: {
+          subject: d.content.subject,
+          html: d.content.html,
+          text: d.content.text,
+          emailId: emails.oid
+        }
+      });
+
+      await db.outgoingEmailDestination.createMany({
+        data: d.to.map(t => ({
+          status: 'pending',
+          destination: t,
+          emailId: emails.oid
+        }))
+      });
+
+      await sendEmailQueue.add({ emailId: emails.id });
+
+      return emails;
     });
-
-    await sendEmailQueue.add({ emailId: emails.id });
-
-    return emails;
   }
 }
 

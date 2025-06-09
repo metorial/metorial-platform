@@ -35,7 +35,7 @@ let syncQueue = createQueue({
   workerOpts: {
     limiter: {
       max: 1,
-      duration: 1000 * 60 * 5
+      duration: 1000 * 60 * 60
     }
   }
 });
