@@ -1,4 +1,6 @@
 import {
+  Instance,
+  Organization,
   ServerDeployment,
   ServerSession,
   ServerVariant,
@@ -17,9 +19,10 @@ export class SessionManager {
         serverVariant: ServerVariant;
       };
     },
+    private instance: Instance & { organization: Organization },
     opts: { mode: 'send-only' | 'send-and-receive' }
   ) {
-    this.#client = new BrokerClientManager(session, {
+    this.#client = new BrokerClientManager(session, instance, {
       subscribe: opts.mode == 'send-and-receive'
     });
 

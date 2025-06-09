@@ -1,4 +1,6 @@
 import type {
+  Instance,
+  Organization,
   ServerDeployment,
   ServerSession,
   ServerVariant,
@@ -23,9 +25,10 @@ export class BrokerClientManager {
         serverVariant: ServerVariant;
       };
     },
+    private instance: Instance & { organization: Organization },
     opts: { subscribe: boolean }
   ) {
-    this.#bus = BrokerBus.create(this.participant, this.session, opts);
+    this.#bus = BrokerBus.create(this.participant, this.session, instance, opts);
   }
 
   #closing = false;

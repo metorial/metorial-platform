@@ -146,7 +146,10 @@ class SessionImpl {
         OR: [{ clientSecretExpiresAt: { gte: new Date() } }, { clientSecretExpiresAt: null }],
         status: 'active'
       },
-      include
+      include: {
+        ...include,
+        instance: { include: { organization: true } }
+      }
     });
     if (!session) {
       throw new ServiceError(

@@ -26,7 +26,8 @@ export let getSessionAndAuthenticate = async (
 
     return {
       type: 'session_client_secret' as const,
-      session
+      session,
+      instance: session.instance
     };
   }
 

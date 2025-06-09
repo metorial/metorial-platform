@@ -1,4 +1,11 @@
-import { ServerDeployment, ServerSession, ServerVariant, Session } from '@metorial/db';
+import {
+  Instance,
+  Organization,
+  ServerDeployment,
+  ServerSession,
+  ServerVariant,
+  Session
+} from '@metorial/db';
 import { debug } from '@metorial/debug';
 import { JSONRPCMessage, JSONRPCMessageSchema, McpError } from '@metorial/mcp-utils';
 import { SessionConnection } from '@metorial/module-session';
@@ -13,13 +20,14 @@ export class McpServerConnection {
       serverDeployment: ServerDeployment & {
         serverVariant: ServerVariant;
       };
-    }
+    },
+    private instance: Instance & { organization: Organization }
   ) {}
 
   ensureReceiveConnection() {
     let connection =
       this.#sendAndReceiveConnection ??
-      new SessionConnection(this.serverSession, {
+      new SessionConnection(this.serverSession, this.instance, {
         mode: 'send-and-receive',
         receiveControlMessages: true
       });
@@ -70,7 +78,7 @@ export class McpServerConnection {
     let connection =
       this.#sendAndReceiveConnection ??
       this.#sendOnlyConnection ??
-      new SessionConnection(this.serverSession, {
+      new SessionConnection(this.serverSession, this.instance, {
         mode: 'send-only',
         receiveControlMessages: true
       });

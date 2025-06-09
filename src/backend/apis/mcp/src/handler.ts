@@ -68,7 +68,11 @@ export let mcpConnectionHandler = async (
     );
   }
 
-  let manager = new McpServerConnection(sessionInfo.session, serverSession);
+  let manager = new McpServerConnection(
+    sessionInfo.session,
+    serverSession,
+    sessionInfo.instance
+  );
 
   if (connectionType == 'websocket') {
     let { onMessage, close } = manager.ensureReceiveConnection();

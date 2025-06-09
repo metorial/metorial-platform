@@ -1,5 +1,7 @@
 import {
   db,
+  Instance,
+  Organization,
   ServerDeployment,
   ServerSession,
   ServerVariant,
@@ -38,6 +40,7 @@ export class SessionConnection {
         serverVariant: ServerVariant;
       };
     },
+    private instance: Instance & { organization: Organization },
     private opts: { mode: 'send-only' | 'send-and-receive'; receiveControlMessages: boolean }
   ) {
     this.#lastMessageAt = Date.now();
@@ -46,7 +49,7 @@ export class SessionConnection {
       mode: opts.mode
     });
 
-    this.#manager = new SessionManager(session, {
+    this.#manager = new SessionManager(session, instance, {
       mode: opts.mode
     });
 
