@@ -151,7 +151,7 @@ export let serverVersionType = PresentableType.create<{
 }>()('server.server_version');
 
 export let serverListingType = PresentableType.create<{
-  serverListing: ServerListing & {
+  serverListing: Omit<ServerListing, 'readme'> & {
     categories: ServerListingCategory[];
     server: Server & {
       importedServer:
@@ -164,6 +164,7 @@ export let serverListingType = PresentableType.create<{
       instanceServers?: (InstanceServer & { instance: Instance })[];
     };
   };
+  readme?: string | null;
 }>()('server_listing');
 
 export let serverImplementationType = PresentableType.create<{

@@ -173,6 +173,9 @@ class ServerListingService {
                   }
                 : include.server.include
             }
+          },
+          omit: {
+            readme: true
           }
         });
       })

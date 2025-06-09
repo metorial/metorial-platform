@@ -52,7 +52,10 @@ export let serversController = createHono()
       serverListingId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`
     });
 
-    return c.json(await serverListingPresenter(listing));
+    return c.json({
+      ...(await serverListingPresenter(listing)),
+      readme: listing.readme
+    });
   })
   .get(':vendorSlug/:serverSlug/capabilities', async c => {
     let listing = await serverListingService.getServerListingById({

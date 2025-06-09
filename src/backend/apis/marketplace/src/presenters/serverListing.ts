@@ -1,5 +1,4 @@
 import {
-  getImageUrl,
   ImportedRepository,
   ImportedServer,
   ImportedServerVendor,
@@ -9,10 +8,12 @@ import {
   ServerListing,
   ServerListingCategory
 } from '@metorial/db';
+import { repositoryPresenter } from './repository';
 import { serverCategoryPresenter } from './serverCategory';
+import { vendorPresenter } from './vendor';
 
 export let serverListingPresenter = async (
-  serverListing: ServerListing & {
+  serverListing: Omit<ServerListing, 'readme'> & {
     categories: ServerListingCategory[];
     server: Server & {
       importedServer:
@@ -38,7 +39,7 @@ export let serverListingPresenter = async (
     slug: serverListing.slug,
     name: serverListing.name,
     description: serverListing.description,
-    readme: serverListing.readme,
+    // readme: serverListing.readme,
 
     serverId: serverListing.server.id,
 
@@ -48,54 +49,8 @@ export let serverListingPresenter = async (
     isCommunity: !!serverListing.server.importedServer?.isCommunity,
     isHostable: !!serverListing.server.importedServer?.isHostable,
 
-    vendor: vendor
-      ? {
-          id: vendor.id,
-          identifier: vendor.identifier,
-          name: vendor.name,
-          description: vendor.description,
-
-          imageUrl: await getImageUrl(vendor),
-
-          attributes: vendor.attributes,
-
-          createdAt: vendor.createdAt,
-          updatedAt: vendor.updatedAt
-        }
-      : null,
-
-    repository: repository
-      ? {
-          id: repository.id,
-          identifier: repository.identifier,
-          slug: repository.slug,
-          name: repository.name,
-          providerUrl: repository.providerUrl,
-          websiteUrl: repository.websiteUrl,
-          provider: repository.provider,
-
-          starCount: repository.starCount,
-          forkCount: repository.forkCount,
-          watcherCount: repository.watcherCount,
-          openIssuesCount: repository.openIssuesCount,
-          subscriptionCount: repository.subscriptionCount,
-
-          defaultBranch: repository.defaultBranch,
-
-          licenseName: repository.licenseName,
-          licenseUrl: repository.licenseUrl,
-          licenseSpdxId: repository.licenseSpdxId,
-
-          topics: repository.topics,
-
-          language: repository.language,
-          description: repository.description,
-
-          createdAt: repository.createdAt,
-          updatedAt: repository.updatedAt,
-          pushedAt: repository.pushedAt
-        }
-      : null,
+    vendor: vendor ? await vendorPresenter(vendor) : null,
+    repository: repository ? await repositoryPresenter(repository) : null,
 
     installation: serverListing.server.instanceServers?.length
       ? {

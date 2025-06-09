@@ -79,7 +79,8 @@ export let serverListingController = Controller.create(
       .output(serverListingPresenter)
       .do(async ctx => {
         return serverListingPresenter.present({
-          serverListing: ctx.serverListing
+          serverListing: ctx.serverListing,
+          readme: ctx.serverListing.readme
         });
       })
   }

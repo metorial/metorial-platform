@@ -6,7 +6,7 @@ import { v1ServerListingCategoryPresenter } from './serverCategory';
 import { v1ServerPreview } from './serverPreview';
 
 export let v1ServerListingPresenter = Presenter.create(serverListingType)
-  .presenter(async ({ serverListing }, opts) => {
+  .presenter(async ({ serverListing, readme }, opts) => {
     let vendor = serverListing.server.importedServer?.vendor;
     let repository = serverListing.server.importedServer?.repository;
 
@@ -19,7 +19,7 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
       slug: serverListing.slug,
       name: serverListing.name,
       description: serverListing.description,
-      readme: serverListing.readme,
+      readme: readme ?? null,
 
       skills: serverListing.skills,
 
