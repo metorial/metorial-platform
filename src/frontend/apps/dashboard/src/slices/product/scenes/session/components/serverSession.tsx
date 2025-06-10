@@ -94,7 +94,7 @@ export let ServerSession = ({
                 {
                   component: (
                     <Entry
-                      title={`Server run ${serverRun.serverDeployment.name ?? serverRun.server.name} started`}
+                      title={`Server ${serverRun.serverDeployment.name ?? serverRun.server.name} started`}
                       icon={<RiServerLine />}
                       time={serverRun.startedAt ?? serverRun.createdAt}
                     />
@@ -105,7 +105,7 @@ export let ServerSession = ({
                 serverRun.stoppedAt && {
                   component: (
                     <Entry
-                      title={`Server run ${serverRun.serverDeployment.name ?? serverRun.server.name} stopped`}
+                      title={`Server ${serverRun.serverDeployment.name ?? serverRun.server.name} stopped`}
                       icon={<RiServerLine />}
                       time={serverRun.startedAt ?? serverRun.createdAt}
                     />

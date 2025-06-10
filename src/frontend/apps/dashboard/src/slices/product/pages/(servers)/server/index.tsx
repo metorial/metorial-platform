@@ -11,7 +11,7 @@ import { SideBox } from '@metorial/ui-product';
 import dedent from 'dedent';
 import { Link, useParams } from 'react-router-dom';
 import { useApiKeysWithAutoInit } from '../../../scenes/apiKeys/useApiKeysWithAutoInit';
-import { Instructions } from './components/instructions';
+import { InstructionItem, Instructions } from './components/instructions';
 import { Skills } from './components/skills';
 
 export let ServerOverviewPage = () => {
@@ -40,13 +40,41 @@ export let ServerOverviewPage = () => {
 
   let key = useRevealedApiKey({ apiKeyId: secretApiKey?.id });
 
-  let jsStartInstructions = [
+  let getJSStartInstructions = (d?: { additionalPackages?: string[] }): InstructionItem[] => [
     {
       title: 'Install the Metorial SDK',
       description: 'Get started by installing the Metorial SDK in your project.',
-      type: 'code' as const,
-      code: 'npm install @metorial/sdk',
-      lineNumbers: false
+
+      variants: [
+        {
+          label: 'npm',
+          item: {
+            type: 'code' as const,
+            code: `npm install --save ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
+          }
+        },
+        {
+          label: 'yarn',
+          item: {
+            type: 'code' as const,
+            code: `yarn add ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
+          }
+        },
+        {
+          label: 'pnpm',
+          item: {
+            type: 'code' as const,
+            code: `pnpm install --save ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
+          }
+        },
+        {
+          label: 'bun',
+          item: {
+            type: 'code' as const,
+            code: `bun install ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
+          }
+        }
+      ]
     },
     {
       title: 'Instantiate the Metorial SDK',
@@ -101,7 +129,9 @@ export let ServerOverviewPage = () => {
                 alt="OpenAI Logo"
               />
             ),
-            instructions: [...jsStartInstructions],
+            instructions: [
+              ...getJSStartInstructions({ additionalPackages: ['@metorial/ai-sdk'] })
+            ],
             codeViewer: {
               repo: 'mcp-containers',
               owner: 'metorial',
@@ -116,7 +146,9 @@ export let ServerOverviewPage = () => {
                 alt="OpenAI Logo"
               />
             ),
-            instructions: [...jsStartInstructions]
+            instructions: [
+              ...getJSStartInstructions({ additionalPackages: ['@metorial/openai'] })
+            ]
           },
           {
             title: 'Node.js',
@@ -126,7 +158,7 @@ export let ServerOverviewPage = () => {
                 alt="OpenAI Logo"
               />
             ),
-            instructions: [...jsStartInstructions]
+            instructions: [...getJSStartInstructions()]
           },
           {
             title: 'Python',

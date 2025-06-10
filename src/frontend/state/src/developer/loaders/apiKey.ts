@@ -136,7 +136,7 @@ export let useRevealedApiKey = ({ apiKeyId }: { apiKeyId?: string }) => {
 
   useEffect(() => {
     if (!reveal.value && apiKeyId) reveal.reveal();
-  }, [reveal, apiKeyId]);
+  }, [reveal.value, apiKeyId]);
 
   return reveal;
 };
