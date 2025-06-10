@@ -1191,6 +1191,9 @@
     "src/packages/backend/service": {
       "name": "@metorial/service",
       "version": "1.0.0",
+      "dependencies": {
+        "@opentelemetry/api": "^1.9.0",
+      },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.8.2",
@@ -1562,6 +1565,7 @@
       "name": "@metorial/rest",
       "version": "1.0.0",
       "dependencies": {
+        "@opentelemetry/api": "^1.9.0",
         "@types/qs": "^6.9.18",
         "async-ratelimiter": "^1.3.13",
         "qs": "^6.14.0",
@@ -2426,6 +2430,8 @@
     "@nodelib/fs.stat": ["@nodelib/fs.stat@2.0.5", "", {}, "sha512-RkhPPp2zrqDAQA/2jNhnztcPAlv64XdhIp7a7454A5ovI7Bukxgt7MX7udwAu3zg1DcpPU0rz3VV1SeaqvY4+A=="],
 
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
+
+    "@opentelemetry/api": ["@opentelemetry/api@1.9.0", "", {}, "sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg=="],
 
     "@pkgjs/parseargs": ["@pkgjs/parseargs@0.11.0", "", {}, "sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg=="],
 
