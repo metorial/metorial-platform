@@ -1,5 +1,6 @@
 import { SetupLayout } from '@metorial/layout';
-import astronaut from '../../../assets/astronaut_waving1.webp';
+import bg from '../../../assets/bg.webp';
+import bubbles from '../../../assets/bubbles.svg';
 import { WelcomeCreateProjectScene } from '../scenes/createProject';
 
 export let WelcomeCreateProjectPage = () => {
@@ -9,7 +10,8 @@ export let WelcomeCreateProjectPage = () => {
         title: 'Create Project',
         description: `Please choose a name for your new project.`
       }}
-      imageUrl={astronaut}
+      bubblesUrl={bubbles}
+      backgroundUrl={bg}
     >
       <WelcomeCreateProjectScene />
     </SetupLayout>

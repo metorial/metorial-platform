@@ -1,5 +1,6 @@
 import { SetupLayout } from '@metorial/layout';
-import astronaut from '../../../assets/astronaut_waving1.webp';
+import bg from '../../../assets/bg.webp';
+import bubbles from '../../../assets/bubbles.svg';
 import { WelcomeCreateOrganizationScene } from '../scenes/createOrganization';
 
 export let WelcomeCreateOrganizationPage = () => {
@@ -9,7 +10,8 @@ export let WelcomeCreateOrganizationPage = () => {
         title: 'Create Workspace',
         description: `Let's get started by setting up your workspace.`
       }}
-      imageUrl={astronaut}
+      bubblesUrl={bubbles}
+      backgroundUrl={bg}
     >
       <WelcomeCreateOrganizationScene />
     </SetupLayout>

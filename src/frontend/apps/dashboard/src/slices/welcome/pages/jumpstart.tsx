@@ -3,7 +3,8 @@ import { createProject, useOrganizations, useUser } from '@metorial/state';
 import { CenteredSpinner } from '@metorial/ui';
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import astronaut from '../../../assets/astronaut_waving1.webp';
+import bg from '../../../assets/bg.webp';
+import bubbles from '../../../assets/bubbles.svg';
 
 export let JumpstartPage = () => {
   let user = useUser();
@@ -48,7 +49,8 @@ export let JumpstartPage = () => {
         title: 'Setting up Metorial',
         description: ''
       }}
-      imageUrl={astronaut}
+      bubblesUrl={bubbles}
+      backgroundUrl={bg}
     >
       <CenteredSpinner />
     </SetupLayout>
