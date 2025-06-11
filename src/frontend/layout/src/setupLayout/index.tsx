@@ -29,10 +29,10 @@ let Box = styled.div`
   max-height: 70dvh;
   width: 10000px;
   height: 700px;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.5);
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(15px);
   overflow-y: auto;
   overflow-x: hidden;
   /* padding: 50px; */
@@ -112,8 +112,8 @@ export let SetupLayout = ({
       >
         <Inner>
           <Grid>
-            <Side className="aside" style={{ padding: '50px' }}>
-              <img src={bubblesUrl} style={{ width: '100%' }} />
+            <Side className="aside padded" style={{ alignItems: 'center', padding: '50px' }}>
+              <img src={bubblesUrl} style={{ width: '100%', maxWidth: 350 }} />
             </Side>
 
             <Side style={{ padding: '50px', background: 'rgba(255, 255, 255, 0.9)' }}>
