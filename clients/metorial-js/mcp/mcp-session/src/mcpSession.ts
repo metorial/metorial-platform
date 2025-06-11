@@ -1,7 +1,6 @@
 import { MetorialCoreSDK, MetorialSDK } from '@metorial/core';
 import { DashboardInstanceSessionsCreateBody } from '@metorial/generated';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import { MetorialMcpClient } from './mcpClient';
 import { MetorialMcpToolManager } from './mcpToolManager';
 
 export interface MetorialMcpSessionInit extends DashboardInstanceSessionsCreateBody {
@@ -13,7 +12,7 @@ export interface MetorialMcpSessionInit extends DashboardInstanceSessionsCreateB
 
 export class MetorialMcpSession {
   #sessionPromise: Promise<MetorialSDK.Session>;
-  #clientPromises = new Map<string, Promise<Client>>();
+  #clientPromises = new Map<string, Promise<MetorialMcpClient>>();
 
   constructor(
     private readonly sdk: MetorialCoreSDK,
@@ -55,26 +54,16 @@ export class MetorialMcpSession {
 
   async getClient(opts: { deploymentId: string }) {
     if (!this.#clientPromises.has(opts.deploymentId)) {
+      let session = await this.getSession();
+
       this.#clientPromises.set(
         opts.deploymentId,
-        (async () => {
-          let session = await this.getSession();
-
-          let client = new Client({
-            name: this.init.client?.name ?? 'metorial-js-client',
-            version: this.init.client?.version ?? '1.0.0'
-          });
-          let transport = new SSEClientTransport(
-            new URL(
-              `/mcp/${session.id}/${opts.deploymentId}/sse?key=${session.clientSecret.secret}`,
-              this.mcpHost
-            )
-          );
-
-          await client.connect(transport);
-
-          return client;
-        })()
+        MetorialMcpClient.create(session, {
+          host: this.mcpHost,
+          deploymentId: opts.deploymentId,
+          clientName: this.init.client?.name,
+          clientVersion: this.init.client?.version
+        })
       );
     }
 

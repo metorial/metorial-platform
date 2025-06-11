@@ -32,8 +32,21 @@ export class Metorial implements MetorialCoreSDK {
     return {
       createSession: (init: MetorialMcpSessionInit) => new MetorialMcpSession(this.sdk, init),
       withSession: this.withSession.bind(this),
-      withProviderSession: this.withProviderSession.bind(this)
+      withProviderSession: this.withProviderSession.bind(this),
+      createConnection: this.createMcpConnection.bind(this)
     };
+  }
+
+  async createMcpConnection(init: MetorialMcpSessionInit['serverDeployments'][number]) {
+    let session = new MetorialMcpSession(this.sdk, {
+      serverDeployments: [init]
+    });
+
+    let deployments = await session.getServerDeployments();
+
+    return await session.getClient({
+      deploymentId: deployments[0].id
+    });
   }
 
   async withSession<T>(
