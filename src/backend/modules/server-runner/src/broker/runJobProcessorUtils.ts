@@ -2,7 +2,6 @@ import { db, ID, ServerRun, ServerRunner, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { secretService } from '@metorial/module-secret';
 import { getSentry } from '@metorial/sentry';
-import { serverRunnerService } from '../services';
 
 let Sentry = getSentry();
 
@@ -76,7 +75,7 @@ export let RunJobProcessorUtils = {
         secretId: deployment.config.configSecretOid,
         instance: session.instance,
         type: 'server_deployment_config',
-        metadata: { serverRunnerService }
+        metadata: { serverRunId: serverRun.id }
       });
 
       return {

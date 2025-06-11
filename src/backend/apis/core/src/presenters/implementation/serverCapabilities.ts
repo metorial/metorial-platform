@@ -1,6 +1,7 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { serverCapabilitiesType } from '../types';
+import { v1ServerDeploymentPreview } from './serverDeploymentPreview';
 import { v1ServerPreview } from './serverPreview';
 import { v1ServerVariantPreview } from './serverVariantPreview';
 import { v1ServerVersionPreview } from './serverVersionPreview';
@@ -18,6 +19,9 @@ export let v1ServerCapabilitiesPresenter = Presenter.create(serverCapabilitiesTy
       server_variant: v1ServerVariantPreview(s.serverVariant, s.server),
       server_version: s.serverVersion
         ? v1ServerVersionPreview(s.serverVersion, s.serverVariant, s.server)
+        : null,
+      server_deployment: s.serverDeployment
+        ? v1ServerDeploymentPreview(s.serverDeployment, s.server)
         : null,
 
       info: {
@@ -61,6 +65,7 @@ export let v1ServerCapabilitiesPresenter = Presenter.create(serverCapabilitiesTy
           server: v1ServerPreview.schema,
           server_variant: v1ServerVariantPreview.schema,
           server_version: v.nullable(v1ServerVersionPreview.schema),
+          server_deployment: v.nullable(v1ServerDeploymentPreview.schema),
 
           capabilities: v.record(v.record(v.any())),
 

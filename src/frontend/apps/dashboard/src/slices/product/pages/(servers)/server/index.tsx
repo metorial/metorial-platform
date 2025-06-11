@@ -81,7 +81,7 @@ export let ServerOverviewPage = () => {
       description: 'Set up the Metorial SDK with your API key.',
       type: 'code' as const,
       code: dedent`
-                  import { Metorial } from '@metorial/sdk';
+                  import { Metorial } from 'metorial';
 
                   const metorial = new Metorial({
                     apiKey: '${key.value ?? '... your API key ...'}',

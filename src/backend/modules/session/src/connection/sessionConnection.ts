@@ -222,7 +222,7 @@ export class SessionConnection {
 
 setInterval(() => {
   for (let con of connections.values()) con.checkPing();
-}, 10 * 1000);
+}, 30 * 1000);
 
 setInterval(() => {
   for (let con of connections.values()) con.sendPing();

@@ -1,8 +1,9 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { SessionsGetOutput } from '@metorial/generated';
 import { useCurrentInstance, useSessionServerSessions } from '@metorial/state';
-import { Callout, Spacer } from '@metorial/ui';
+import { Callout, Entity, Spacer } from '@metorial/ui';
 import { RiCornerUpRightDoubleLine } from '@remixicon/react';
+import { useMemo } from 'react';
 import { Entry } from './components/entry';
 import { ItemList } from './components/itemList';
 import { ServerSession } from './components/serverSession';
@@ -15,8 +16,21 @@ export let SessionEvents = ({ session }: { session: SessionsGetOutput }) => {
     order: 'asc'
   });
 
+  let client = useMemo(
+    () => (serverSessions.data?.items ?? []).map(s => s.mcp.client).find(Boolean) ?? undefined,
+    [serverSessions.data?.items]
+  );
+
   return renderWithLoader({ serverSessions })(({ serverSessions }) => (
     <>
+      {client && (
+        <Entity.Wrapper>
+          <Entity.Content>
+            <Entity.Field title={client.name} />
+          </Entity.Content>
+        </Entity.Wrapper>
+      )}
+
       <ItemList
         items={[
           {

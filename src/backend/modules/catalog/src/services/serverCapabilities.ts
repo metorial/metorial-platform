@@ -1,4 +1,11 @@
-import { db, Instance, Server, ServerVariant, ServerVersion } from '@metorial/db';
+import {
+  db,
+  Instance,
+  Server,
+  ServerDeployment,
+  ServerVariant,
+  ServerVersion
+} from '@metorial/db';
 import { Hash } from '@metorial/hash';
 import { Service } from '@metorial/service';
 
@@ -7,6 +14,7 @@ export interface ServerCapabilities {
 
   serverVariant: ServerVariant;
   serverVersion?: ServerVersion;
+  serverDeployment?: ServerDeployment;
   server: Server;
 
   prompts: PrismaJson.ServerVersionPrompts;
@@ -81,7 +89,11 @@ class ServerCapabilitiesService {
         ].filter(Boolean)
       },
       include: {
-        server: true
+        server: true,
+
+        serverDeployments: serverDeployments
+          ? { where: { oid: { in: serverDeployments.map(s => s.oid) } } }
+          : undefined
       },
       take: 100
     });
@@ -108,6 +120,10 @@ class ServerCapabilitiesService {
           serverVariant: variant,
           serverVersion: version,
           server: v.server,
+          serverDeployment:
+            'serverDeployments' in v
+              ? ((v.serverDeployments as ServerDeployment[]) || undefined)?.[0]
+              : undefined,
 
           prompts: v.prompts,
           tools: v.tools,
