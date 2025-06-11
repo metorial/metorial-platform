@@ -1,8 +1,9 @@
 'use client';
 
-import { useInterval } from '@looped/hooks';
+import { useInterval, useIsSSR } from '@looped/hooks';
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useWindowScroll, useWindowSize } from 'react-use';
 import styled from 'styled-components';
 import { LandingButton } from '../../../components/button';
 
@@ -10,7 +11,6 @@ let Wrapper = styled(motion.div)`
   position: fixed;
   bottom: 20px;
   left: 50%;
-  transform: translateX(-50%);
   width: min(calc(100% - 50px), 600px);
   padding: 0px 8px 0px 20px;
   background-color: rgba(0, 0, 0, 0.7);
@@ -45,6 +45,15 @@ export let EarlyAccessBar = () => {
   let [visible, setVisible] = useState(false);
   let [index, setIndex] = useState(0);
 
+  let scroll = useWindowScroll();
+  let size = useWindowSize();
+  let isSSR = useIsSSR();
+
+  let isAtBottom = useMemo(() => {
+    if (typeof window === 'undefined' || isSSR) return false;
+    return scroll.y + size.height >= document.body.scrollHeight - 250;
+  }, [scroll, size, isSSR]);
+
   useEffect(() => {
     let timer = setTimeout(() => setVisible(true), 1000);
     return () => clearTimeout(timer);
@@ -62,11 +71,12 @@ export let EarlyAccessBar = () => {
 
   return (
     <AnimatePresence>
-      {visible && (
+      {visible && !isAtBottom && (
         <Wrapper
-          initial={{ opacity: 0, bottom: -10 }}
-          animate={{ opacity: 1, bottom: 20 }}
-          transition={{ ease: 'anticipate' }}
+          initial={{ opacity: 0, bottom: -20, x: '-50%', scale: 0.98, filter: 'blur(10px)' }}
+          animate={{ opacity: 1, bottom: 20, x: '-50%', scale: 1, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, bottom: 10, x: '-50%', scale: 0.6, filter: 'blur(20px)' }}
+          transition={{ ease: 'anticipate', duration: 0.4 }}
           data-visible={visible.toString()}
         >
           <div>

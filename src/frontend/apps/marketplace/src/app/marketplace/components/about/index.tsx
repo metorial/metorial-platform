@@ -1,7 +1,9 @@
 'use client';
 
 import styled from 'styled-components';
-import { LinkPreview } from '../../../components/link-preview';
+import { LinkPreview } from '../../../../components/link-preview';
+import mcpContainersImage from './mcp-containers.github.png';
+import metorialComImage from './metorial.com.png';
 
 let AboutSection = styled.div`
   display: flex;
@@ -30,10 +32,17 @@ export let LandingAbout = () => {
   return (
     <AboutSection>
       <AboutText>
-        <LinkPreview url="https://metorial.com">Metorial</LinkPreview> lets you to connect to
-        thousands of service providers using a single function call. We handle the nitty-gritty
-        of running{' '}
-        <LinkPreview url="https://github.com/metorial/mcp-containers">MCP servers</LinkPreview>
+        <LinkPreview url="https://metorial.com" imageSrc={metorialComImage.src}>
+          Metorial
+        </LinkPreview>{' '}
+        lets you to connect to thousands of service providers using a single function call. We
+        handle the nitty-gritty of running{' '}
+        <LinkPreview
+          url="https://github.com/metorial/mcp-containers"
+          imageSrc={mcpContainersImage.src}
+        >
+          MCP servers
+        </LinkPreview>
         , so you can focus on building your AI agents.
       </AboutText>
     </AboutSection>

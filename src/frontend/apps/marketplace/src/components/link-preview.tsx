@@ -1,7 +1,6 @@
 'use client';
 import * as HoverCardPrimitive from '@radix-ui/react-hover-card';
 import { AnimatePresence, motion, useMotionValue, useSpring } from 'motion/react';
-import { encode } from 'qss';
 import React from 'react';
 import styled from 'styled-components';
 import { cn } from '../lib/utils';
@@ -52,7 +51,8 @@ type LinkPreviewProps = {
   height?: number;
   quality?: number;
   layout?: string;
-} & ({ isStatic: true; imageSrc: string } | { isStatic?: false; imageSrc?: never });
+  imageSrc: string;
+};
 
 export let LinkPreview = ({
   children,
@@ -62,26 +62,8 @@ export let LinkPreview = ({
   height = 125,
   quality = 50,
   layout = 'fixed',
-  isStatic = false,
-  imageSrc = ''
+  imageSrc
 }: LinkPreviewProps) => {
-  let src;
-  if (!isStatic) {
-    let params = encode({
-      url,
-      screenshot: true,
-      meta: false,
-      embed: 'screenshot.url',
-      'viewport.isMobile': true,
-      'viewport.deviceScaleFactor': 1,
-      'viewport.width': width * 3,
-      'viewport.height': height * 3
-    });
-    src = `https://api.microlink.io/?${params}`;
-  } else {
-    src = imageSrc;
-  }
-
   let [isOpen, setOpen] = React.useState(false);
   let [isMounted, setIsMounted] = React.useState(false);
 
@@ -104,7 +86,7 @@ export let LinkPreview = ({
     <>
       {isMounted ? (
         <HiddenImageContainer>
-          <img src={src} width={width} height={height} alt="hidden image" />
+          <img src={imageSrc} width={width} height={height} alt="hidden image" />
         </HiddenImageContainer>
       ) : null}
 
@@ -141,7 +123,7 @@ export let LinkPreview = ({
               >
                 <PreviewLink href={url} style={{ fontSize: 0 }}>
                   <PreviewImage
-                    src={isStatic ? imageSrc : src}
+                    src={imageSrc}
                     width={width}
                     height={height}
                     alt="preview image"
