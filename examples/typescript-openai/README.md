@@ -100,3 +100,9 @@ metorial.withProviderSession(
 ## License
 
 MIT — feel free to use and adapt this code in your own projects.
+
+## Learn More
+
+* [Metorial Documentation](https://metorial.com/docs)
+* [OpenAI Tool Calling](https://platform.openai.com/docs/guides/tool-calling)
+* [OpenAI SDK](https://www.npmjs.com/package/openai)

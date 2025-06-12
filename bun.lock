@@ -379,6 +379,20 @@
         "vitest": "^0.34.6",
       },
     },
+    "examples/typescript-ai-sdk": {
+      "name": "@metorial-examples/typescript-ai-sdk",
+      "dependencies": {
+        "@metorial/ai-sdk": "^1.0.0",
+        "ai": "^4.3.16",
+        "metorial": "^1.0.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
     "examples/typescript-openai": {
       "name": "@metorial-examples/typescript-openai",
       "dependencies": {
@@ -2434,6 +2448,8 @@
     "@looped/hooks": ["@looped/hooks@0.1.3", "", { "dependencies": { "lodash": "^4.17.21", "use-interval": "^1.4.0" }, "peerDependencies": { "react": ">=16" } }, "sha512-1WN1Ak+CBif9/J3Jt/Epxit4ZW92hQuYCLFmEYjJVtiqiBUGuqXsnyz1EC0XPiJCUE5h4L/0jnyetxcgPIB1NQ=="],
 
     "@marijn/find-cluster-break": ["@marijn/find-cluster-break@1.0.2", "", {}, "sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g=="],
+
+    "@metorial-examples/typescript-ai-sdk": ["@metorial-examples/typescript-ai-sdk@workspace:examples/typescript-ai-sdk"],
 
     "@metorial-examples/typescript-openai": ["@metorial-examples/typescript-openai@workspace:examples/typescript-openai"],
 
