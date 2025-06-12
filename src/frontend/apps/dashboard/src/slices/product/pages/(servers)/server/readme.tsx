@@ -66,7 +66,7 @@ I would like to request support for the ${server.data.name} server (ID: ${server
         readme={listing.data.readme}
         imageRoot={
           listing.data.repository
-            ? `https://raw.githubusercontent.com/${listing.data.repository.identifier.replace('github.com/', '')}/${listing.data.repository.defaultBranch}/`
+            ? `https://raw.githubusercontent.com/${listing.data.repository.identifier.replace('github.com/', '')}/${listing.data.repository.defaultBranch ?? 'main'}/`
             : undefined
         }
       />

@@ -1,7 +1,7 @@
 import { MetorialSDK } from '@metorial/core';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-import { RequestOptions } from '@modelcontextprotocol/sdk/shared/protocol';
+import { RequestOptions } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import {
   CallToolRequest,
   CallToolResultSchema,
@@ -15,7 +15,7 @@ import {
   ListToolsRequest,
   LoggingLevel,
   ReadResourceRequest
-} from '@modelcontextprotocol/sdk/types';
+} from '@modelcontextprotocol/sdk/types.js';
 
 export class MetorialMcpClient {
   private constructor(private readonly client: Client) {}

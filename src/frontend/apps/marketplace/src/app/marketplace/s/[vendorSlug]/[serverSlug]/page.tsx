@@ -30,7 +30,7 @@ export default async ({
           readme={server.readme}
           imageRoot={
             server.repository
-              ? `https://raw.githubusercontent.com/${server.repository.identifier.replace('github.com/', '')}/${server.repository.defaultBranch}/`
+              ? `https://raw.githubusercontent.com/${server.repository.identifier.replace('github.com/', '')}/${server.repository.defaultBranch ?? 'main'}/`
               : undefined
           }
         />

@@ -132,7 +132,8 @@ export class MetorialMcpTool {
           required: uri
             .getProperties()
             .filter(prop => !prop.optional)
-            .map(prop => prop.key)
+            .map(prop => prop.key),
+          additionalProperties: false
         }
       },
       async params => {

@@ -34,9 +34,7 @@ export let createOpenAICompatibleMcpSdk = (opts?: { withStrict?: boolean }) =>
           function: {
             name: t.id,
             description: t.description ?? undefined,
-            parameters: t.getParametersAs('json-schema'),
-
-            ...(opts?.withStrict ? { strict: true } : {})
+            parameters: t.getParametersAs('json-schema')
           }
         }) satisfies MetorialOpenAiCompatibleFunctionTool
     ) as MetorialOpenAiCompatibleFunctionTool[],
