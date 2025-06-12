@@ -15,9 +15,9 @@ import { serverRunnerConnectionService } from '../services';
 import { serverRunnerRunService } from '../services/serverRun';
 import { createRunnerQueueProcessor } from './runnerQueue';
 
-let MAX_PING_INTERVAL = 10 * 1000;
-let SEND_PING_INTERVAL = 7 * 1000;
-let PING_SAVE_INTERVAL = 60 * 1000;
+let MAX_PING_INTERVAL = 15 * 1000;
+let SEND_PING_INTERVAL = 10 * 1000;
+let PING_SAVE_INTERVAL = 30 * 1000;
 
 let closeReported = new Map<string, number>();
 
@@ -312,12 +312,16 @@ export let createServerRunnerGateway = (
 
             pingInterval = setInterval(async () => {
               if (Date.now() - lastPing > MAX_PING_INTERVAL) {
+                console.warn(`Runner ${runner.id} ping timeout`);
+
                 await connectionClosed();
 
                 ws.close(1000, 'Ping timeout');
 
                 return;
               }
+
+              console.log(`Runner ${runner.id} sending ping`);
 
               ws.send('ping');
             }, SEND_PING_INTERVAL);
@@ -332,11 +336,16 @@ export let createServerRunnerGateway = (
             if (data === 'ping') {
               lastPing = Date.now();
 
+              console.log(`Runner ${runner.id} ping received`);
+
               // Only save every 60 seconds
               if (lastPing - lastPingSaved > PING_SAVE_INTERVAL) {
                 await serverRunnerConnectionService.handleServerRunnerPing({
                   runner
                 });
+                lastPingSaved = Date.now();
+
+                console.log(`Runner ${runner.id} ping saved`);
               }
 
               return;
