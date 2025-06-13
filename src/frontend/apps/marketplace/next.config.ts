@@ -29,6 +29,16 @@ const nextConfig: NextConfig = {
         source: '/',
         destination: '/marketplace',
         permanent: true
+      },
+      {
+        source: '/index/:path*',
+        destination: '/marketplace/:path*',
+        permanent: false
+      },
+      {
+        source: '/index',
+        destination: '/marketplace',
+        permanent: false
       }
     ];
   },

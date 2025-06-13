@@ -1,18 +1,21 @@
 import { Service } from '@metorial/service';
 import { Index, MeiliSearchApiError } from 'meilisearch';
+import { env } from '../env';
 import { meiliSearch } from '../meilisearch';
 
 export type SearchIndex = 'server_listing';
 
 let indices = new Map<string, Index>();
 
+let prefix = env.meiliSearch.MEILISEARCH_INDEX_PREFIX;
+
 class SearchService {
-  async ensureIndex(index: SearchIndex) {
+  private async ensureIndex(index: SearchIndex) {
     if (!meiliSearch) return;
 
     if (indices.has(index)) return indices.get(index)!;
 
-    let meiliIndex = meiliSearch.index(index);
+    let meiliIndex = meiliSearch.index(prefix ? `${prefix}_${index}` : index);
     indices.set(index, meiliIndex);
 
     return meiliIndex;
