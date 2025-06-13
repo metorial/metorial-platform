@@ -5,6 +5,7 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import striptags from 'striptags';
 import styled from 'styled-components';
+import { joinUrls } from '../../../../../../lib/joinUrls';
 import './readme.css';
 
 let Wrapper = styled.div`
@@ -12,7 +13,15 @@ let Wrapper = styled.div`
   flex-direction: column;
 `;
 
-export let ServerReadme = ({ readme, imageRoot }: { readme: string; imageRoot?: string }) => {
+export let ServerReadme = ({
+  readme,
+  imageRoot,
+  rootPath
+}: {
+  readme: string;
+  imageRoot: string;
+  rootPath?: string;
+}) => {
   readme = useMemo(() => striptags(readme), [readme]);
 
   return (
@@ -21,18 +30,17 @@ export let ServerReadme = ({ readme, imageRoot }: { readme: string; imageRoot?: 
         remarkPlugins={[remarkGfm]}
         components={{
           img: ({ node, ...props }) => {
-            if (props.src === undefined) return null;
+            if (props.src === undefined || typeof props.src != 'string') return null;
 
-            let image = <img {...props} />;
+            let url: string;
 
-            if (typeof props.src == 'string' && !props.src.startsWith('http') && imageRoot) {
-              try {
-                let url = new URL(props.src, imageRoot);
-                image = <img {...props} src={url.href} />;
-              } catch (e) {}
+            try {
+              url = joinUrls(imageRoot, rootPath, props.src);
+            } catch (e) {
+              return null;
             }
 
-            return image;
+            return <img {...props} src={url} />;
           }
         }}
       >

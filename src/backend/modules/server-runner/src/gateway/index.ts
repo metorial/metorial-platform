@@ -15,9 +15,9 @@ import { serverRunnerConnectionService } from '../services';
 import { serverRunnerRunService } from '../services/serverRun';
 import { createRunnerQueueProcessor } from './runnerQueue';
 
-let MAX_PING_INTERVAL = 15 * 1000;
+let MAX_PING_INTERVAL = 25 * 1000;
 let SEND_PING_INTERVAL = 10 * 1000;
-let PING_SAVE_INTERVAL = 30 * 1000;
+let PING_SAVE_INTERVAL = 25 * 1000;
 
 let closeReported = new Map<string, number>();
 

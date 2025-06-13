@@ -30,9 +30,10 @@ export default async ({
           readme={server.readme}
           imageRoot={
             server.repository
-              ? `https://raw.githubusercontent.com/${server.repository.identifier.replace('github.com/', '')}/${server.repository.defaultBranch ?? 'main'}/`
-              : undefined
+              ? `https://raw.githubusercontent.com/${server.repository.identifier.replace('github.com/', '')}/${server.repository.defaultBranch ?? 'main'}`
+              : 'https://metorial.com'
           }
+          rootPath={server.subdirectory ?? undefined}
         />
       )}
     </>

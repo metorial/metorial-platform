@@ -51,6 +51,8 @@ export let serverListingPresenter = async (
     isCommunity: !!serverListing.server.importedServer?.isCommunity,
     isHostable: !!serverListing.server.importedServer?.isHostable,
 
+    subdirectory: serverListing.server.importedServer?.subdirectory,
+
     vendor: vendor ? await vendorPresenter(vendor) : null,
     repository: repository ? await repositoryPresenter(repository) : null,
 

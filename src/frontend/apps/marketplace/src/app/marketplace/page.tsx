@@ -8,8 +8,6 @@ import { Categories } from './components/servers/categories';
 import { ServerList } from './components/servers/list';
 
 export default async () => {
-  // let featuredCategories = await getAllFeaturedServers();
-
   let [categories, servers] = await Promise.all([
     listServerCategories({}),
     listServers({
