@@ -131,7 +131,7 @@ export let ProjectPageLayout = () => {
     >
       {instance.data && (
         <Helmet>
-          <title>Metorial Dashboard - {instance.data.project.name}</title>
+          <title>Metorial Dashboard • {instance.data.project.name}</title>
         </Helmet>
       )}
 

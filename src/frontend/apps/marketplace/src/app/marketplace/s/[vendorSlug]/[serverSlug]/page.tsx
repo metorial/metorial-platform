@@ -49,7 +49,7 @@ export async function generateMetadata(
   let serverRes = await serverFetch(() => getServer(params.vendorSlug, params.serverSlug));
 
   return {
-    title: `${serverRes.data?.name ?? 'Not Found'} - Metorial`,
+    title: `${serverRes.data?.name ?? 'Not Found'} • Metorial Index`,
     description: 'The open source integration platform for agentic AI.',
     metadataBase: new URL('https://metorial.com'),
     alternates: { canonical: '/' },
