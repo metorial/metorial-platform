@@ -49,7 +49,8 @@ export let serversController = createHono()
   )
   .get(':vendorSlug/:serverSlug', async c => {
     let listing = await serverListingService.getServerListingById({
-      serverListingId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`
+      serverListingId:
+        `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
     });
 
     return c.json({
@@ -59,7 +60,8 @@ export let serversController = createHono()
   })
   .get(':vendorSlug/:serverSlug/capabilities', async c => {
     let listing = await serverListingService.getServerListingById({
-      serverListingId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`
+      serverListingId:
+        `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
     });
 
     let [capabilities] = await serverCapabilitiesService.getManyServerCapabilities({
@@ -77,7 +79,7 @@ export let serversController = createHono()
       let query = c.req.query();
 
       let server = await serverService.getServerById({
-        serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`
+        serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
       });
 
       let paginator = await serverVariantService.listServerVariants({
@@ -90,7 +92,7 @@ export let serversController = createHono()
   )
   .get(':vendorSlug/:serverSlug/variants/:variantId', async c => {
     let server = await serverService.getServerById({
-      serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`
+      serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
     });
 
     let collection = await serverVariantService.getServerVariantById({
@@ -107,7 +109,7 @@ export let serversController = createHono()
       let query = c.req.query();
 
       let server = await serverService.getServerById({
-        serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`
+        serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
       });
 
       let paginator = await serverVersionService.listServerVersions({
@@ -120,7 +122,7 @@ export let serversController = createHono()
   )
   .get(':vendorSlug/:serverSlug/versions/:versionId', async c => {
     let server = await serverService.getServerById({
-      serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`
+      serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
     });
 
     let collection = await serverVersionService.getServerVersionById({

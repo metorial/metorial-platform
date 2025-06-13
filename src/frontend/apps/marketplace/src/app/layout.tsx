@@ -19,9 +19,26 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Metorial Index',
-  // description: 'Connect to thousands of MCP servers in a single function call.'
-  description: 'Explore thousands of MCP servers.'
+  title: 'Metorial',
+  description: 'The open source integration platform for agentic AI.',
+  metadataBase: new URL('https://metorial.com'),
+  alternates: { canonical: '/' },
+  openGraph: {
+    images: { url: '/opengraph-image.jpg', alt: 'Metorial' },
+    title: 'Metorial',
+    siteName: 'Metorial',
+    description: 'The open source integration platform for agentic AI.',
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://metorial.com'
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@metorial_ai',
+    title: 'Metorial',
+    description: 'The open source integration platform for agentic AI.',
+    images: { url: '/twitter-image.jpg', alt: 'Metorial' }
+  }
 };
 
 export default function RootLayout({

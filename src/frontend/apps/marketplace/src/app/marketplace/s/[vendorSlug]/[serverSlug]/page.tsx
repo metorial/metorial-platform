@@ -1,5 +1,6 @@
 'use server';
 
+import { Metadata, ResolvingMetadata } from 'next';
 import { notFound } from 'next/navigation';
 import { serverFetch } from '../../../../../state/sdk';
 import { getServer } from '../../../../../state/server';
@@ -39,3 +40,34 @@ export default async ({
     </>
   );
 };
+
+export async function generateMetadata(
+  { params: paramsPromise }: { params: Promise<{ vendorSlug: string; serverSlug: string }> },
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  let params = await paramsPromise;
+  let serverRes = await serverFetch(() => getServer(params.vendorSlug, params.serverSlug));
+
+  return {
+    title: `${serverRes.data?.name ?? 'Not Found'} - Metorial`,
+    description: 'The open source integration platform for agentic AI.',
+    metadataBase: new URL('https://metorial.com'),
+    alternates: { canonical: '/' },
+    openGraph: {
+      images: { url: '/opengraph-image.jpg', alt: 'Metorial' },
+      title: 'Metorial',
+      siteName: 'Metorial',
+      description: 'The open source integration platform for agentic AI.',
+      type: 'website',
+      locale: 'en_US',
+      url: 'https://metorial.com'
+    },
+    twitter: {
+      card: 'summary_large_image',
+      site: '@metorial_ai',
+      title: 'Metorial',
+      description: 'The open source integration platform for agentic AI.',
+      images: { url: '/twitter-image.jpg', alt: 'Metorial' }
+    }
+  };
+}
