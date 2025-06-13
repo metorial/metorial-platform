@@ -38,9 +38,9 @@ export let ProjectDeveloperEnvironmentsPage = () => {
                     title={i.name}
                     prefix={
                       i.type == 'production' ? (
-                        <Badge color="orange">Production</Badge>
+                        <Badge color="blue">Production</Badge>
                       ) : (
-                        <Badge color="blue">Staging</Badge>
+                        <Badge color="orange">Development</Badge>
                       )
                     }
                   />

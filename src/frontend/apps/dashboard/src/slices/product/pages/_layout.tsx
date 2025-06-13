@@ -4,6 +4,9 @@ import { useCurrentInstance, useCurrentOrganization } from '@metorial/state';
 import { RiHomeLine, RiSettings2Line, RiTerminalBoxLine } from '@remixicon/react';
 import { Outlet } from 'react-router-dom';
 
+// @ts-ignore
+import { Helmet } from 'react-helmet';
+
 export let ProjectPageLayout = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
@@ -126,6 +129,12 @@ export let ProjectPageLayout = () => {
         }
       ]}
     >
+      {instance.data && (
+        <Helmet>
+          <title>Metorial Dashboard - {instance.data.project.name}</title>
+        </Helmet>
+      )}
+
       <Outlet />
     </AppLayout>
   );

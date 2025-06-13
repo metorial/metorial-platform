@@ -63,7 +63,7 @@ class OrganizationService {
           name: 'Metorial',
           image: {
             type: 'url',
-            url: 'https://cdn.metorial.com/2024-08-17--09-31-34/logos/metorial/primary_logo/raw.svg'
+            url: 'https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg'
           }
         },
         organization,
