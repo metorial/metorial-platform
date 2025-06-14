@@ -1,0 +1,41 @@
+name: 'Build and Test'
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/**'
+  pull_request:
+    paths:
+      - 'src/**'
+    branches:
+      - dev
+      - main
+
+jobs:
+  build-and-test:
+    name: 'Build and Test'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Packages
+        run: bun i
+
+      - name: Generate Prisma Clients
+        run: bun run prisma:generate
+
+      - name: Build Packages
+        run: bun run build
+
+      - name: Test
+        run: bun run test

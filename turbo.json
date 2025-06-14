@@ -2,30 +2,67 @@
   "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
   "tasks": {
+    "enterprise:dev": {
+      "cache": false,
+      "persistent": true
+    },
     "build": {
       "dependsOn": [
         "^build"
-      ],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        ".env*"
-      ],
-      "outputs": [
-        ".next/**",
-        "!.next/cache/**"
       ]
     },
-    "lint": {
+    "prisma:generate": {
       "dependsOn": [
-        "^lint"
+        "^prisma:generate"
+      ]
+    },
+    "prisma:push": {
+      "dependsOn": [
+        "^prisma:push"
+      ]
+    },
+    "frontend:build": {
+      "dependsOn": [
+        "^frontend:build"
+      ],
+      "env": [
+        "SENTRY_AUTH_TOKEN",
+        "METORIAL_ENV",
+        "VITE_*"
+      ]
+    },
+    "deploy:only": {
+      "env": [
+        "SENTRY_AUTH_TOKEN",
+        "METORIAL_ENV",
+        "VITE_*",
+        "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_ACCOUNT_ID"
+      ]
+    },
+    "deploy": {
+      "env": [
+        "SENTRY_AUTH_TOKEN",
+        "METORIAL_ENV",
+        "VITE_*",
+        "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_ACCOUNT_ID"
+      ]
+    },
+    "server:build": {
+      "dependsOn": [
+        "^build",
+        "^server:build"
+      ],
+      "env": [
+        "SENTRY_AUTH_TOKEN",
+        "METORIAL_ENV"
       ]
     },
     "test": {
       "dependsOn": [
         "^test"
-      ],
-      "cache": false,
-      "persistent": false
+      ]
     },
     "check-types": {
       "dependsOn": [
@@ -35,12 +72,6 @@
     "dev": {
       "cache": false,
       "persistent": true
-    },
-    "generate:client": {
-      "dependsOn": [
-        "^generate:client"
-      ],
-      "cache": false
     }
   }
 }
