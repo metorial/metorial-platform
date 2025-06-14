@@ -104,6 +104,7 @@ export let ServerEntry = ({ server }: { server: ServerListing }) => {
         if (typeof window == 'undefined') return;
       }}
       href={`/marketplace/s/${server.slug}`}
+      prefetch={false}
     >
       <ImageOuter
         style={{

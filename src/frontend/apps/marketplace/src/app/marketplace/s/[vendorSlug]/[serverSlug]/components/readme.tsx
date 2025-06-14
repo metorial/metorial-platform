@@ -16,10 +16,12 @@ let Wrapper = styled.div`
 export let ServerReadme = ({
   readme,
   imageRoot,
+  linkRoot,
   rootPath
 }: {
   readme: string;
   imageRoot: string;
+  linkRoot: string;
   rootPath?: string;
 }) => {
   readme = useMemo(() => striptags(readme), [readme]);
@@ -40,7 +42,27 @@ export let ServerReadme = ({
               return null;
             }
 
+            let preprocessor = process.env.IMAGE_LINK_PREPROCESSOR;
+            if (preprocessor) url = eval(preprocessor)(url);
+
             return <img {...props} src={url} />;
+          },
+
+          a: ({ node, ...props }) => {
+            if (props.href === undefined || typeof props.href != 'string')
+              return <a {...(props as any)} />;
+
+            let url: string;
+
+            try {
+              url = joinUrls(linkRoot, rootPath, props.href);
+            } catch (e) {
+              return null;
+            }
+
+            return (
+              <a {...(props as any)} href={url} target="_blank" rel="noopener noreferrer" />
+            );
           }
         }}
       >

@@ -34,6 +34,11 @@ export default async ({
               ? `https://raw.githubusercontent.com/${server.repository.identifier.replace('github.com/', '')}/${server.repository.defaultBranch ?? 'main'}`
               : 'https://metorial.com'
           }
+          linkRoot={
+            server.repository
+              ? `https://github.com/${server.repository.identifier.replace('github.com/', '')}/blob/${server.repository.defaultBranch ?? 'main'}`
+              : 'https://metorial.com'
+          }
           rootPath={server.subdirectory ?? undefined}
         />
       )}

@@ -96,7 +96,10 @@ export let Categories = ({
                 currentCategoryIds?.includes(category.slug)
               }
             >
-              <Link href={`/marketplace/servers/?category_ids=${category.slug}`}>
+              <Link
+                prefetch={false}
+                href={`/marketplace/servers/?category_ids=${category.slug}`}
+              >
                 {category.name}
               </Link>
             </CategoryItem>

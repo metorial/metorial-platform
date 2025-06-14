@@ -276,7 +276,7 @@ export let Card = ({
   href: string;
 }) => {
   return (
-    <CardButton href={href}>
+    <CardButton href={href} prefetch={false}>
       <CardContent>
         <CardCategory layoutId={layout ? `category-${card.category}` : undefined}>
           {card.category}

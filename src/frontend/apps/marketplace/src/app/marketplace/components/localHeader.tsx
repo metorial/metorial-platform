@@ -139,6 +139,7 @@ export let LocalHeader = ({
                   <Link
                     className={clsx({ active: isActive(item.href) })}
                     href={`${basePath}${item.href}`}
+                    prefetch={false}
                   >
                     {item.label}
                   </Link>

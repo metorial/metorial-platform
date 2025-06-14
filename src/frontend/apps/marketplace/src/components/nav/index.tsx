@@ -148,6 +148,7 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
             <Link
               href="/marketplace"
               style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+              prefetch={false}
             >
               <Logo size={22} />
               <NavLogoText>Metorial</NavLogoText>
@@ -167,6 +168,7 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
               <Link
                 href="/marketplace"
                 style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+                prefetch={false}
               >
                 <Logo size={22} />
                 <NavLogoText>

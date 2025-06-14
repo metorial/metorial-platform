@@ -1,7 +1,6 @@
 'use client';
 
 import { Logo } from '@metorial/ui';
-import Link from 'next/link';
 import { styled } from 'styled-components';
 
 let Wrapper = styled('footer')`
@@ -76,16 +75,16 @@ export let Footer = () => {
             <h1>Product</h1>
             <ul>
               <li>
-                <Link href="/pricing">Pricing</Link>
+                <a href="/pricing">Pricing</a>
               </li>
               <li>
-                <Link href="/changelog">Changelog</Link>
+                <a href="/changelog">Changelog</a>
               </li>
               <li>
-                <Link href="/docs">Docs</Link>
+                <a href="/docs">Docs</a>
               </li>
               <li>
-                <Link href="/api">API</Link>
+                <a href="/api">API</a>
               </li>
             </ul>
           </Column>
@@ -94,16 +93,16 @@ export let Footer = () => {
             <h1>Legal</h1>
             <ul>
               <li>
-                <Link href="/legal/terms-of-service">Terms of Service</Link>
+                <a href="/legal/terms-of-service">Terms of Service</a>
               </li>
               <li>
-                <Link href="/legal/privacy-policy">Privacy Policy</Link>
+                <a href="/legal/privacy-policy">Privacy Policy</a>
               </li>
               <li>
-                <Link href="/legal/refund-and-payment-policy">Payments and Refunds</Link>
+                <a href="/legal/refund-and-payment-policy">Payments and Refunds</a>
               </li>
               <li>
-                <Link href="/legal/imprint">Imprint</Link>
+                <a href="/legal/imprint">Imprint</a>
               </li>
             </ul>
           </Column>
@@ -112,7 +111,7 @@ export let Footer = () => {
             <h1>Tools</h1>
             <ul>
               <li>
-                <Link href="/websocket-explorer">Websocket Explorer</Link>
+                <a href="/websocket-explorer">Websocket Explorer</a>
               </li>
             </ul>
           </Column>
@@ -121,16 +120,16 @@ export let Footer = () => {
             <h1>Socials</h1>
             <ul>
               <li>
-                <Link href="/blog">Blog</Link>
+                <a href="/blog">Blog</a>
               </li>
               <li>
-                <Link href="https://x.com/metorial_ai">X</Link>
+                <a href="https://x.com/metorial_ai">X</a>
               </li>
               <li>
-                <Link href="https://github.com/metorial">Github</Link>
+                <a href="https://github.com/metorial">Github</a>
               </li>
               <li>
-                <Link href="/support">Support</Link>
+                <a href="/support">Support</a>
               </li>
             </ul>
           </Column>
