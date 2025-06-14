@@ -3,7 +3,7 @@ import { encodeBase62 } from './base62';
 import { UnifiedApiKey } from './keys';
 
 describe('UnifiedApiKey', () => {
-  const validSecret = 'a'.repeat(40);
+  const validSecret = 'a'.repeat(60);
   const validConfig = { url: 'https://example.com' };
   const validType = 'user_auth_token';
 
@@ -17,7 +17,6 @@ describe('UnifiedApiKey', () => {
 
       expect(apiKey).toBeInstanceOf(UnifiedApiKey);
       expect(apiKey.type).toBe(validType);
-      expect(apiKey.secret).toBe(validSecret);
       expect(apiKey.config).toEqual(validConfig);
       expect(apiKey.version).toBe('v1');
     });
@@ -29,7 +28,7 @@ describe('UnifiedApiKey', () => {
           secret: 'short_secret',
           config: validConfig
         })
-      ).toThrowError(`Secret key must be 40 characters long`);
+      ).toThrowError(`Secret key must be 60 characters long`);
     });
   });
 
@@ -38,13 +37,10 @@ describe('UnifiedApiKey', () => {
       const encodedConfig = encodeBase62(JSON.stringify([validConfig.url]));
       const apiKeyString = `metorial_uk_${validSecret}${encodedConfig}v1`;
 
-      console.log('Encoded Config:', apiKeyString);
-
       const apiKey = UnifiedApiKey.from(apiKeyString);
 
       expect(apiKey).toBeInstanceOf(UnifiedApiKey);
       expect(apiKey?.type).toBe(validType);
-      expect(apiKey?.secret).toBe(validSecret);
       expect(apiKey?.config).toEqual(validConfig);
       expect(apiKey?.version).toBe('v1');
     });

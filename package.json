@@ -5,21 +5,25 @@
     "build": "npx -y turbo@latest run build",
     "generate:client": "npx -y turbo@latest run generate:client && npx -y turbo@latest run build",
     "dev": "npx -y turbo@latest run dev",
+    "test": "npx -y turbo@latest run --concurrency=1 --ui=stream test",
+    "prisma:generate": "turbo run prisma:generate",
     "prepare": "echo prepare",
     "postinstall": "echo postinstall",
     "preinstall": "[ -f \"../metorial_enterprise_install.sh\" ] && { ../metorial_enterprise_install.sh; } || { [ ! -f \"../metorial_enterprise_install.sh\" ] && echo \"Ignoring enterprise dependencies.\"; }"
   },
   "devDependencies": {
     "prettier": "^3.5.3",
-    "turbo": "^2.5.2",
+    "turbo": "^2.5.4",
     "typescript": "5.8.2"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=18",
+    "bun": ">=1.2.15"
   },
-  "packageManager": "yarn@1.2.4",
+  "packageManager": "bun@1.2.15",
   "workspaces": [
     "clients/metorial-js/*/*",
+    "examples/*",
     "scripts/*",
     "src/*",
     "src/*/*",

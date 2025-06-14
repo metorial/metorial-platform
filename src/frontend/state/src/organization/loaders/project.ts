@@ -1,4 +1,5 @@
 import { createLoader } from '@metorial/data-hooks';
+import { DashboardOrganizationsProjectsCreateBody } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { withAuth } from '../../user';
 import { bootLoader } from './boot';
@@ -11,10 +12,16 @@ export let projectsLoader = createLoader({
       autoPaginate(cursor => sdk.projects.list(i.organizationId, { limit: 100, ...cursor }))
     ),
   mutators: {
-    create: (i: { name: string }, { input: { organizationId } }) =>
+    create: (i: DashboardOrganizationsProjectsCreateBody, { input: { organizationId } }) =>
       withAuth(sdk => sdk.projects.create(organizationId, i))
   }
 });
+
+export let createProject = (
+  d: DashboardOrganizationsProjectsCreateBody & { organizationId: string }
+) => {
+  return withAuth(sdk => sdk.projects.create(d.organizationId, d));
+};
 
 export let useProjects = (organizationId: string | null | undefined) => {
   let projects = projectsLoader.use(organizationId ? { organizationId } : null);

@@ -10,6 +10,7 @@
   },
   "dependencies": {},
   "devDependencies": {
+    "@metorial/programmable-promise": "^1.0.0",
     "@metorial/join-paths": "^1.0.0",
     "@metorial/tsconfig": "^1.0.0",
     "typescript": "5.8.2",

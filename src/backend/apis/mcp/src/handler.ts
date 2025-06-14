@@ -1,5 +1,6 @@
 import { getConfig } from '@metorial/config';
 import { ServerDeployment, ServerSession, ServerVariant } from '@metorial/db';
+import { delay } from '@metorial/delay';
 import {
   badRequestError,
   internalServerError,
@@ -47,17 +48,14 @@ export let mcpConnectionHandler = async (
     );
   }
 
-  c.res.headers.set('Mcp-Session-Id', sessionInfo.session.id);
+  c.res.headers.set('Mcp-Session-Id', serverSession.id);
   c.res.headers.set('Metorial-Session-Id', sessionInfo.session.id);
+  c.res.headers.set('Metorial-Server-Session-Id', serverSession.id);
+  c.res.headers.set('Metorial-Server-Deployment-Id', serverSession.serverDeployment.id);
 
   if (c.req.method == 'DELETE') {
     // TODO: Handle this like a session delete
-
-    throw new ServiceError(
-      methodNotAllowedError({
-        hint: 'Use DELETE /sessions/<sessionId> to delete a session'
-      })
-    );
+    throw new ServiceError(methodNotAllowedError({}));
   }
 
   let isWebsocketConnection =
@@ -70,7 +68,11 @@ export let mcpConnectionHandler = async (
     );
   }
 
-  let manager = new McpServerConnection(sessionInfo.session, serverSession);
+  let manager = new McpServerConnection(
+    sessionInfo.session,
+    serverSession,
+    sessionInfo.instance
+  );
 
   if (connectionType == 'websocket') {
     let { onMessage, close } = manager.ensureReceiveConnection();
@@ -112,7 +114,7 @@ export let mcpConnectionHandler = async (
         async stream => {
           if (opts.sessionCreated) {
             let endpointUrl = new URL(
-              `/mcp/${sessionInfo.session.id}/${serverSession.serverDeployment.id}/sse?metorial_server_session_id=${serverSession.id}`,
+              `/mcp/${sessionInfo.session.id}/${serverSession.serverDeployment.id}/sse?metorial_server_session_id=${serverSession.id}&key=${sessionInfo.session.clientSecretValue}`,
               getConfig().urls.mcpUrl
             ).toString();
 
@@ -124,11 +126,7 @@ export let mcpConnectionHandler = async (
 
           onMessage(async msg => stream.writeSSE({ data: JSON.stringify(msg) }));
 
-          console.log('MCP SSE connection opened');
-
           await connection.waitForClose;
-
-          console.log('MCP SSE connection closed');
         },
         async error => {
           console.error('Error in SSE stream', error);
@@ -184,12 +182,15 @@ export let mcpConnectionHandler = async (
 
           await connection.sendMessagesAndWaitForResponse(
             messages.filter(m => m.status == 'ok').map(m => m.message),
-            async (msg, stor) =>
+            async (msg, stor) => {
               stream.writeSSE({
                 id: stor?.unifiedId ?? undefined,
                 data: JSON.stringify(msg)
-              })
+              });
+            }
           );
+
+          await delay(100);
 
           await connection.close();
         },

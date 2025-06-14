@@ -2,6 +2,7 @@ import { sessionEventService } from '@metorial/module-session';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { sessionEventPresenter } from '../../presenters';
@@ -31,10 +32,20 @@ export let sessionEventController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.session:read'] }))
       .outputList(sessionEventPresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            server_run_ids: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_session_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await sessionEventService.listSessionEvents({
-          session: ctx.session
+          session: ctx.session,
+          serverRunIds: normalizeArrayParam(ctx.query.server_run_ids),
+          serverSessionIds: normalizeArrayParam(ctx.query.server_session_ids)
         });
 
         let list = await paginator.run(ctx.query);

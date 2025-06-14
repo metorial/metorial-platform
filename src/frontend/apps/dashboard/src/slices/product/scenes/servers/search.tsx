@@ -1,4 +1,4 @@
-import { ServersListingsGetOutput } from '@metorial/core/src/mt_2025_01_01_dashboard';
+import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useServerListings } from '@metorial/state';
 import {
   Badge,
@@ -44,7 +44,8 @@ export let ServerSearch = ({
   let searchDebounced = useDebounced(search, 500);
   let server = useServerListings({
     search: searchDebounced,
-    limit: 10
+    limit: 10,
+    orderByRank: true
   });
 
   return (
@@ -150,7 +151,7 @@ export let ServerSearchField = ({
         <Popover.Content
           style={{
             width,
-            maxHeight: '400px',
+            // maxHeight: '400px',
             overflowY: 'auto'
           }}
         >

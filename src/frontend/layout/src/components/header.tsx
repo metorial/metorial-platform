@@ -6,15 +6,22 @@ import { styled } from 'styled-components';
 
 let Wrapper = styled.header`
   display: flex;
-  gap: 20px;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 10px;
   margin-bottom: 20px;
 `;
 
-let Main = styled.main`
+let Content = styled.div`
   display: flex;
   flex-direction: column;
   gap: 5px;
+`;
+
+let HeaderSection = styled.section`
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 let Nav = styled.nav`
@@ -46,7 +53,8 @@ export let PageHeader = ({
   title,
   description,
   actions,
-  pagination
+  pagination,
+  size = '7'
 }: {
   title: string;
   description?: string;
@@ -55,39 +63,47 @@ export let PageHeader = ({
     href: string;
     label: React.ReactNode;
   }[];
+  size?: '7' | '3' | '1' | '2' | '4' | '5' | '6' | '8' | '9';
 }) => {
   return (
-    <Wrapper>
-      <Main>
-        {pagination && (
-          <PaginationList>
-            {pagination.map((item, index) => (
-              <Fragment key={index}>
-                {index > 0 && (
+    <Wrapper data-size={size}>
+      <HeaderSection>
+        <Content>
+          {pagination && (
+            <PaginationList>
+              {pagination.map((item, index) => (
+                <Fragment key={index}>
+                  {index > 0 && (
+                    <PaginationItem>
+                      <RiArrowRightSLine size={14} />
+                    </PaginationItem>
+                  )}
+
                   <PaginationItem>
-                    <RiArrowRightSLine size={14} />
+                    <Link to={item.href}>{item.label}</Link>
                   </PaginationItem>
-                )}
+                </Fragment>
+              ))}
+            </PaginationList>
+          )}
 
-                <PaginationItem>
-                  <Link to={item.href}>{item.label}</Link>
-                </PaginationItem>
-              </Fragment>
-            ))}
-          </PaginationList>
-        )}
+          <Title as="h1" size={size} weight="strong">
+            {title}
+          </Title>
+        </Content>
 
-        <Title as="h1" size="7" weight="strong">
-          {title}
-        </Title>
-        {description && (
-          <Text size="2" weight="medium" color="gray700">
-            {description}
-          </Text>
-        )}
-      </Main>
+        {actions && <Nav>{actions}</Nav>}
+      </HeaderSection>
 
-      {actions && <Nav>{actions}</Nav>}
+      {description && (
+        <HeaderSection>
+          <Content>
+            <Text size="2" weight="medium" color="gray700">
+              {description}
+            </Text>
+          </Content>
+        </HeaderSection>
+      )}
     </Wrapper>
   );
 };

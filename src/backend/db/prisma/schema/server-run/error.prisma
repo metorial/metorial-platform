@@ -19,7 +19,8 @@ model ServerRunErrorGroup {
 
   errors ServerRunError[]
 
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
 
   @@unique([fingerprint, serverOid, instanceOid])
 }
@@ -47,4 +48,6 @@ model ServerRunError {
   createdAt DateTime @default(now())
 
   defaultFor ServerRunErrorGroup[] @relation("DefaultServerRunError")
+
+  events SessionEvent[]
 }

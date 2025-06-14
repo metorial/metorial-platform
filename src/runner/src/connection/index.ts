@@ -5,7 +5,7 @@ import { v } from '@metorial/validation';
 import { ReconnectingWebSocketClient } from '@metorial/websocket';
 import { DockerManagerOptions } from '../lib/docker/dockerManager';
 import { getLaunchParams } from '../lib/launchParams';
-import { McpSessionManager } from '../lib/session/manager';
+import { getMcpSessionManager } from '../lib/session/manager';
 import { SessionTokens } from '../lib/tokens';
 import { getServer, RunnerServerRef } from '../server';
 import { VERSION } from '../version';
@@ -16,22 +16,27 @@ export let startConnection = async (d: {
   tags: string[];
   maxConcurrentJobs: number;
   dockerOpts: DockerManagerOptions;
-  url: string;
+
+  server: {
+    port: number;
+    url: string;
+  };
 }) => {
-  let url = new URL('/mcp/sse', d.url);
+  let url = new URL('/mcp/sse', d.server.url);
+
+  let McpSessionManager = getMcpSessionManager();
+
+  let metorialUrl = `${d.host.includes(':') ? 'ws' : 'wss'}://${d.host}/metorial_runner_interconnect?metorial_runner_connection_key=${d.connectionKey}`;
 
   let transceiver = new MICTransceiverWebsocketClient(
     {
       sessionId: 'runner',
       connectionId: 'metorial-server'
     },
-    new ReconnectingWebSocketClient(
-      `ws://${d.host}/metorial_runner_interconnect?metorial_runner_connection_key=${d.connectionKey}`,
-      { onReconnect: () => console.log('Reconnecting to Metorial...') }
-    )
+    new ReconnectingWebSocketClient(metorialUrl, {
+      onReconnect: () => console.log('Reconnecting to Metorial...')
+    })
   );
-
-  transceiver.onMessage(m => console.log('Incoming message', m));
 
   transceiver.onClose(() => {
     console.log('Runner closed');
@@ -40,7 +45,7 @@ export let startConnection = async (d: {
 
   let serverRef: RunnerServerRef = {};
   Bun.serve({
-    port: url.port,
+    port: d.server.port,
     fetch: getServer(url.origin, serverRef).fetch,
     idleTimeout: 0
   });
@@ -122,7 +127,8 @@ export let startConnection = async (d: {
         session.onLogs(d => {
           ctx.notify('run/logs', {
             serverRunId: data.serverRunId,
-            lines: d.lines
+            lines: d.lines,
+            time: d.time
           });
         });
 

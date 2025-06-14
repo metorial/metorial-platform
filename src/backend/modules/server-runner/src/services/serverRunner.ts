@@ -37,7 +37,12 @@ class ServerRunnerImpl {
   async findServerRunner(d: { session: ServerSession }) {
     let runners = await serverRunnerConnectionService.getOnlineServerRunners();
 
-    return runners[this.#lastRunnerIndex++ % runners.length];
+    let runner = runners[this.#lastRunnerIndex++ % runners.length];
+    if (!runner) {
+      throw new Error('No online server runners available');
+    }
+
+    return runner;
   }
 }
 

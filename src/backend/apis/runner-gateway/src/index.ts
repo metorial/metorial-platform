@@ -13,7 +13,8 @@ export let startRunnerGateway = (d: { port: number }) => {
   Bun.serve({
     port: d.port,
     fetch: hono.fetch,
-    websocket
+    websocket,
+    idleTimeout: 0
   });
 
   console.log('Server runner gateway started on port', d.port);

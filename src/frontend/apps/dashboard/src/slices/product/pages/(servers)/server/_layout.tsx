@@ -8,8 +8,8 @@ import {
   useServer
 } from '@metorial/state';
 import { Button, LinkTabs } from '@metorial/ui';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
-import { showServerDeploymentFormModal } from '../../../scenes/server-deployments/modal';
+import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { showServerDeploymentFormModal } from '../../../scenes/serverDeployments/modal';
 
 export let ServerLayout = () => {
   let instance = useCurrentInstance();
@@ -50,9 +50,19 @@ export let ServerLayout = () => {
         ]}
         actions={
           <>
+            <Link
+              to={Paths.instance.explorer(organization.data, project.data, instance.data, {
+                server_id: server.data?.id
+              })}
+            >
+              <Button as="span" size="2" variant="outline">
+                Open Explorer
+              </Button>
+            </Link>
+
             <Button
-              as="span"
               size="2"
+              disabled={!server.data?.variants.length}
               onClick={() => {
                 if (!server.data) return;
 
@@ -78,16 +88,16 @@ export let ServerLayout = () => {
             to: Paths.instance.server(...serverPathParams)
           },
           {
+            label: 'Readme',
+            to: Paths.instance.server(...serverPathParams, 'readme')
+          },
+          {
             label: 'Deployments',
             to: Paths.instance.server(...serverPathParams, 'deployments')
           },
           {
             label: 'Implementations',
             to: Paths.instance.server(...serverPathParams, 'implementations')
-          },
-          {
-            label: 'Runs',
-            to: Paths.instance.server(...serverPathParams, 'runs')
           }
         ]}
       />

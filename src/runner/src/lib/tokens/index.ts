@@ -1,7 +1,8 @@
+import { generatePlainId } from '@metorial/id';
 import { JWT } from '@metorial/jwt';
 
-let secret = 'test'; // generatePlainId(32);
-let id = 'test'; // generatePlainId(15);
+let secret = generatePlainId(32);
+let id = generatePlainId(15);
 let identifier = `https://${id}.runners.connect.metorial.com`;
 
 export interface SessionToken {

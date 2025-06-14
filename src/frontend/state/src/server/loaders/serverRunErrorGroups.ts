@@ -1,5 +1,5 @@
-import { DashboardInstanceServerRunErrorGroupsListQuery } from '@metorial/core/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
+import { DashboardInstanceServerRunErrorGroupsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -7,7 +7,7 @@ export let serverRunErrorGroupsLoader = createLoader({
   name: 'serverRunErrorGroups',
   parents: [],
   fetch: (i: { instanceId: string } & DashboardInstanceServerRunErrorGroupsListQuery) =>
-    withAuth(sdk => sdk.servers.runs.list(i.instanceId, i)),
+    withAuth(sdk => sdk.servers.errors.groups.list(i.instanceId, i)),
   mutators: {}
 });
 
@@ -26,7 +26,7 @@ export let serverRunErrorGroupLoader = createLoader({
   name: 'serverRunErrorGroup',
   parents: [],
   fetch: (i: { instanceId: string; serverRunErrorGroupId: string }) =>
-    withAuth(sdk => sdk.servers.runs.get(i.instanceId, i.serverRunErrorGroupId)),
+    withAuth(sdk => sdk.servers.errors.groups.get(i.instanceId, i.serverRunErrorGroupId)),
   mutators: {}
 });
 

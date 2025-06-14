@@ -19,7 +19,11 @@ export let v1ServerRunErrorGroupPresenter = Presenter.create(serverRunErrorGroup
           .run()
       : null,
 
-    created_at: serverRunErrorGroup.createdAt
+    count: serverRunErrorGroup.count,
+
+    created_at: serverRunErrorGroup.createdAt,
+    first_seen_at: serverRunErrorGroup.createdAt,
+    last_seen_at: serverRunErrorGroup.lastSeenAt
   }))
   .schema(
     v.object({
@@ -32,9 +36,13 @@ export let v1ServerRunErrorGroupPresenter = Presenter.create(serverRunErrorGroup
 
       fingerprint: v.string(),
 
+      count: v.number(),
+
       default_error: v.nullable(v1ServerRunErrorPresenter.schema),
 
-      created_at: v.date()
+      created_at: v.date(),
+      first_seen_at: v.date(),
+      last_seen_at: v.date()
     })
   )
   .build();

@@ -1,3 +1,4 @@
+import { req } from '@metorial/req';
 import sade from 'sade';
 import { startConnection } from './connection';
 import { checkRunnerMachine } from './lib/check';
@@ -14,20 +15,42 @@ prog
   .option('--tags', 'Comma separated tags for this runner (no spaces)')
   .option('--max-concurrent-jobs', 'Max concurrent jobs for this runner')
   .option('--url', 'The runners public URL')
+  .option('--port', 'The runners public port (default: from URL)')
   .action(
     async (
       uri: string,
-      opts: { tags?: string; ['max-concurrent-jobs']?: string; url: string }
+      opts: { tags?: string; ['max-concurrent-jobs']?: string; url: string; port?: string }
     ) => {
       if (!(await checkRunnerMachine())) process.exit(1);
 
-      if (!opts.url) throw new Error('Missing --url option');
+      let server: { url: string; port: number };
 
-      try {
-        new URL(opts.url);
-      } catch (e: any) {
-        console.error('Invalid URL: ', e.message);
-        process.exit(1);
+      if (opts.url) {
+        try {
+          let url = new URL(opts.url);
+          server = {
+            url: url.href,
+            port: opts.port
+              ? parseInt(opts.port)
+              : parseInt(url.port) || (url.protocol === 'https:' ? 443 : 80)
+          };
+        } catch (e: any) {
+          console.error('Invalid URL: ', e.message);
+          process.exit(1);
+        }
+      } else {
+        let mt: { ip: string } = await req.get('https://ip.metorial.com', {
+          headers: { 'User-Agent': 'Metorial Runner CLI' }
+        });
+
+        opts.url = `http://${mt.ip}:3464`;
+
+        console.log(`Using insecure URL: ${opts.url}`);
+
+        server = {
+          url: opts.url,
+          port: opts.port ? parseInt(opts.port) : 3464
+        };
       }
 
       let host: string;
@@ -56,7 +79,7 @@ prog
         tags: opts.tags?.split(',').filter(Boolean) || [],
         maxConcurrentJobs: parseInt(opts['max-concurrent-jobs'] || '100', 10),
 
-        url: opts.url,
+        server,
 
         dockerOpts: {
           socketPath: process.env.DOCKER_SOCKET_PATH ?? '/var/run/docker.sock',

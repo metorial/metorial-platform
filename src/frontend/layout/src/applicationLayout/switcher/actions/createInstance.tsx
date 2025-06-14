@@ -3,7 +3,12 @@ import { MetorialInstance, MetorialProject, useInstance, useInstances } from '@m
 import { Button, Dialog, Input, Select, showModal, Spacer } from '@metorial/ui';
 import React from 'react';
 
-export let createInstance = (project_: MetorialProject) =>
+export let createInstance = (
+  project_: MetorialProject,
+  opts?: {
+    type?: 'development' | 'production';
+  }
+) =>
   showModal(({ close, dialogProps }) => {
     let instances = useInstances(project_.organizationId);
     let create = instances.createMutator();
@@ -11,7 +16,7 @@ export let createInstance = (project_: MetorialProject) =>
     let form = useForm({
       initialValues: {
         name: '',
-        type: 'development' as 'development' | 'production'
+        type: opts?.type ?? ('development' as 'development' | 'production')
       },
       onSubmit: async values => {
         let [res] = await create.mutate({
@@ -33,7 +38,7 @@ export let createInstance = (project_: MetorialProject) =>
 
     return (
       <Dialog.Wrapper {...dialogProps}>
-        <Dialog.Title>Create Environment</Dialog.Title>
+        <Dialog.Title>Create Instance</Dialog.Title>
         <Dialog.Description>
           You can create multiple project instances for different environments. For example,
           one for production, one for staging, and one for development.
@@ -45,17 +50,21 @@ export let createInstance = (project_: MetorialProject) =>
 
           <Spacer size={15} />
 
-          <Select
-            label="Environment"
-            items={[
-              { id: 'development', label: 'Staging' },
-              { id: 'production', label: 'Production' }
-            ]}
-            value={form.values.type}
-            onChange={value => form.setFieldValue('type', value)}
-          />
+          {!opts?.type && (
+            <>
+              <Select
+                label="Environment"
+                items={[
+                  { id: 'development', label: 'Staging' },
+                  { id: 'production', label: 'Production' }
+                ]}
+                value={form.values.type}
+                onChange={value => form.setFieldValue('type', value)}
+              />
 
-          <Spacer size={15} />
+              <Spacer size={15} />
+            </>
+          )}
 
           <Dialog.Actions>
             <Button

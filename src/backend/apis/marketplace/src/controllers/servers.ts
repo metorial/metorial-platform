@@ -1,5 +1,6 @@
 import { createHono } from '@metorial/hono';
 import {
+  serverCapabilitiesService,
   serverListingService,
   serverService,
   serverVariantService,
@@ -9,6 +10,7 @@ import { Paginator } from '@metorial/pagination';
 import { z } from 'zod';
 import { paginatorSchema } from '../lib/paginatorSchema';
 import { useValidation } from '../lib/validator';
+import { serverCapabilitiesPresenter } from '../presenters/serverCapabilities';
 import { serverListingPresenter } from '../presenters/serverListing';
 import { serverVariantPresenter } from '../presenters/serverVariant';
 import { serverVersionPresenter } from '../presenters/serverVersion';
@@ -33,36 +35,65 @@ export let serversController = createHono()
 
       let paginator = await serverListingService.listServerListings({
         search: query.search,
+
         collectionIds: query.collectionIds?.split(','),
         categoryIds: query.categoryIds?.split(','),
-        profileIds: query.profileIds?.split(',')
+        profileIds: query.profileIds?.split(','),
+
+        orderByRank: true
       });
       let list = await paginator.run(query);
 
       return c.json(await Paginator.presentLight(list, serverListingPresenter));
     }
   )
-  .get(':serverId', async c => {
-    let collection = await serverListingService.getServerListingById({
-      serverListingId: c.req.param('serverId')
+  .get(':vendorSlug/:serverSlug', async c => {
+    let listing = await serverListingService.getServerListingById({
+      serverListingId:
+        `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
     });
 
-    return c.json(await serverListingPresenter(collection));
-  })
-  .get(':serverId/variants', useValidation('query', paginatorSchema), async c => {
-    let query = c.req.query();
-
-    let server = await serverService.getServerById({ serverId: c.req.param('serverId') });
-
-    let paginator = await serverVariantService.listServerVariants({
-      server
+    return c.json({
+      ...(await serverListingPresenter(listing)),
+      readme: listing.readme
     });
-    let list = await paginator.run(query);
-
-    return c.json(await Paginator.presentLight(list, serverVariantPresenter));
   })
-  .get(':serverId/variants/:variantId', async c => {
-    let server = await serverService.getServerById({ serverId: c.req.param('serverId') });
+  .get(':vendorSlug/:serverSlug/capabilities', async c => {
+    let listing = await serverListingService.getServerListingById({
+      serverListingId:
+        `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
+    });
+
+    let [capabilities] = await serverCapabilitiesService.getManyServerCapabilities({
+      serverIds: [listing.server.id]
+    });
+
+    if (!capabilities) return c.json(null);
+
+    return c.json(await serverCapabilitiesPresenter(capabilities));
+  })
+  .get(
+    ':vendorSlug/:serverSlug/variants',
+    useValidation('query', paginatorSchema),
+    async c => {
+      let query = c.req.query();
+
+      let server = await serverService.getServerById({
+        serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
+      });
+
+      let paginator = await serverVariantService.listServerVariants({
+        server
+      });
+      let list = await paginator.run(query);
+
+      return c.json(await Paginator.presentLight(list, serverVariantPresenter));
+    }
+  )
+  .get(':vendorSlug/:serverSlug/variants/:variantId', async c => {
+    let server = await serverService.getServerById({
+      serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
+    });
 
     let collection = await serverVariantService.getServerVariantById({
       serverVariantId: c.req.param('variantId'),
@@ -71,20 +102,28 @@ export let serversController = createHono()
 
     return c.json(await serverVariantPresenter(collection));
   })
-  .get(':serverId/versions', useValidation('query', paginatorSchema), async c => {
-    let query = c.req.query();
+  .get(
+    ':vendorSlug/:serverSlug/versions',
+    useValidation('query', paginatorSchema),
+    async c => {
+      let query = c.req.query();
 
-    let server = await serverService.getServerById({ serverId: c.req.param('serverId') });
+      let server = await serverService.getServerById({
+        serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
+      });
 
-    let paginator = await serverVersionService.listServerVersions({
-      server
+      let paginator = await serverVersionService.listServerVersions({
+        server
+      });
+      let list = await paginator.run(query);
+
+      return c.json(await Paginator.presentLight(list, serverVersionPresenter));
+    }
+  )
+  .get(':vendorSlug/:serverSlug/versions/:versionId', async c => {
+    let server = await serverService.getServerById({
+      serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
     });
-    let list = await paginator.run(query);
-
-    return c.json(await Paginator.presentLight(list, serverVersionPresenter));
-  })
-  .get(':serverId/versions/:versionId', async c => {
-    let server = await serverService.getServerById({ serverId: c.req.param('serverId') });
 
     let collection = await serverVersionService.getServerVersionById({
       serverVersionId: c.req.param('versionId'),

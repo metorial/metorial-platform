@@ -4,6 +4,7 @@ import { Emitter } from '@metorial/emitter';
 import {
   JSONRPCMessageSchema,
   jsonRpcPingResponse,
+  MCP_IDS,
   type JSONRPCMessage,
   type JSONRPCRequest,
   type JSONRPCResponse
@@ -33,7 +34,10 @@ export class BrokerRunnerImplementationExternal extends BrokerRunnerImplementati
           if (hasMethod && hasId && (payload as JSONRPCRequest).method == 'ping') {
             // Handle ping request
             this.sendMessage(jsonRpcPingResponse(payload as any));
-          } else if (hasId && String((payload as JSONRPCResponse).id).startsWith('mt/ping/')) {
+          } else if (
+            hasId &&
+            String((payload as JSONRPCResponse).id).startsWith(MCP_IDS.PING)
+          ) {
             emitter.emit('ping');
           } else {
             emitter.emit('message', payload);

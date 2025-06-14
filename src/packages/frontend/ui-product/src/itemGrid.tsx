@@ -107,7 +107,7 @@ export let ItemGrid = {
               {title}
             </Title>
             {description && (
-              <Text size="1" weight="medium" color="gray700" truncate>
+              <Text size="1" weight="medium" color="gray700">
                 {description}
               </Text>
             )}

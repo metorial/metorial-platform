@@ -56,7 +56,7 @@ export let Wrapper = ({
         <Container style={container}>
           <Section style={logoContainer}>
             <Img
-              src="https://cdn.metorial.com/2024-08-17--09-31-34/logos/metorial/primary_logo_text/resized-100-w888-h256.png"
+              src="https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo_text/resized-100-w881-h256.png"
               height="30"
               alt="Metorial"
             />

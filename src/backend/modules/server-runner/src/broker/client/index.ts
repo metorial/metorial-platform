@@ -1,4 +1,6 @@
 import type {
+  Instance,
+  Organization,
   ServerDeployment,
   ServerSession,
   ServerVariant,
@@ -6,12 +8,12 @@ import type {
   SessionMessageType
 } from '@metorial/db';
 import type { JSONRPCMessage } from '@metorial/mcp-utils';
+import { getUnifiedIdIfNeeded } from '@metorial/unified-id';
 import { ensureRunnerForSession } from '../jobs';
 import { BrokerBus } from '../lib/bus';
-import { getUnifiedIdIfNeeded } from '../lib/unifiedId';
 import { Participant } from '../types';
 
-let ENSURE_RUNNER_TIMEOUT = 1000 * 30;
+let ENSURE_RUNNER_TIMEOUT = 1000 * 5;
 let ensuredRunnerCache = new Map<string, number>();
 
 export class BrokerClientManager {
@@ -23,9 +25,10 @@ export class BrokerClientManager {
         serverVariant: ServerVariant;
       };
     },
+    private instance: Instance & { organization: Organization },
     opts: { subscribe: boolean }
   ) {
-    this.#bus = BrokerBus.create(this.participant, this.session, opts);
+    this.#bus = BrokerBus.create(this.participant, this.session, instance, opts);
   }
 
   #closing = false;
@@ -56,8 +59,10 @@ export class BrokerClientManager {
   }
 
   async sendMessage(message: JSONRPCMessage | JSONRPCMessage[]) {
-    await this.ensureRunner();
+    let messages: JSONRPCMessage[] = Array.isArray(message) ? message : [message];
+    if (!messages.length) return [];
 
+    await this.ensureRunner();
     return this.#bus.then(bus => bus.sendMessage(message));
   }
 
@@ -111,8 +116,6 @@ export class BrokerClientManager {
       let now = Date.now();
       if (now - hasEnsuredRunnerAt < ENSURE_RUNNER_TIMEOUT) return;
     }
-
-    // TODO:
 
     ensureRunnerForSession(this.session);
     ensuredRunnerCache.set(this.session.id, Date.now());

@@ -141,6 +141,8 @@ export let createLoader = <
     let input = current.state.value.input;
 
     let fetchInner = async (input: I, fetchOpts?: { force?: boolean }) => {
+      if (typeof window == 'undefined') return;
+
       if (current.active) {
         // If the fetch is already in progress, wait for it to complete
         if (fetchOpts?.force) await new Promise(r => current.state.subscribeOnce(r));

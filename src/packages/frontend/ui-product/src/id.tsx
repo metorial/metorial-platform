@@ -10,7 +10,14 @@ export let ID = ({ id }: { id: string | undefined }) => (
       fontFamily: 'jetbrains mono, monospace'
     }}
   >
-    <span>{id}</span>
+    <span
+      style={{
+        wordBreak: 'break-all',
+        overflowWrap: 'break-word'
+      }}
+    >
+      {id}
+    </span>
     <span
       style={{
         position: 'absolute',

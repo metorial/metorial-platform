@@ -3,9 +3,10 @@ import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { serverListingType } from '../types';
 import { v1ServerListingCategoryPresenter } from './serverCategory';
+import { v1ServerPreview } from './serverPreview';
 
 export let v1ServerListingPresenter = Presenter.create(serverListingType)
-  .presenter(async ({ serverListing }, opts) => {
+  .presenter(async ({ serverListing, readme }, opts) => {
     let vendor = serverListing.server.importedServer?.vendor;
     let repository = serverListing.server.importedServer?.repository;
 
@@ -18,9 +19,11 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
       slug: serverListing.slug,
       name: serverListing.name,
       description: serverListing.description,
-      readme: serverListing.readme,
+      readme: readme ?? null,
 
-      server_id: serverListing.server.id,
+      skills: serverListing.skills,
+
+      server: v1ServerPreview(serverListing.server),
 
       categories: await Promise.all(
         serverListing.categories.map(category =>
@@ -39,7 +42,7 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
             name: vendor.name,
             description: vendor.description,
 
-            image_url: getImageUrl(vendor),
+            image_url: await getImageUrl(vendor),
 
             attributes: vendor.attributes,
 
@@ -104,12 +107,14 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
       name: v.string(),
       description: v.string(),
       readme: v.string(),
-      server_id: v.string(),
       categories: v.array(v1ServerListingCategoryPresenter.schema),
+      skills: v.array(v.string()),
 
       is_official: v.boolean(),
       is_community: v.boolean(),
       is_hostable: v.boolean(),
+
+      server: v1ServerPreview.schema,
 
       vendor: v.nullable(
         v.object({

@@ -5,7 +5,7 @@ model OutgoingEmail {
   numberOfDestinations          Int
   numberOfDestinationsCompleted Int
 
-  identityId Int
+  identityId BigInt
   identity   EmailIdentity @relation(fields: [identityId], references: [oid], onDelete: Cascade)
 
   values Json

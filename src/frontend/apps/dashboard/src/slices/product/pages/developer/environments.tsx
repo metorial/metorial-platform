@@ -17,11 +17,11 @@ export let ProjectDeveloperEnvironmentsPage = () => {
   return (
     <>
       <PageHeader
-        title="Environments"
+        title="Instances"
         description="Create multiple project instances for different environments. For example, one for production, one for staging, and one for development."
         actions={
           <Button size="2" onClick={() => project.data && createInstance(project.data as any)}>
-            Create Environment
+            Create Instance
           </Button>
         }
       />
@@ -38,9 +38,9 @@ export let ProjectDeveloperEnvironmentsPage = () => {
                     title={i.name}
                     prefix={
                       i.type == 'production' ? (
-                        <Badge color="orange">Production</Badge>
+                        <Badge color="blue">Production</Badge>
                       ) : (
-                        <Badge color="blue">Staging</Badge>
+                        <Badge color="orange">Development</Badge>
                       )
                     }
                   />

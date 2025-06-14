@@ -127,7 +127,8 @@ export let serverDeploymentController = Controller.create(
             ),
             server_ids: v.optional(v.union([v.string(), v.array(v.string())])),
             server_variant_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_implementation_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_implementation_ids: v.optional(v.union([v.string(), v.array(v.string())])),
+            session_ids: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
@@ -137,7 +138,8 @@ export let serverDeploymentController = Controller.create(
           status: normalizeArrayParam(ctx.query.status) as any,
           serverIds: normalizeArrayParam(ctx.query.server_ids),
           serverVariantIds: normalizeArrayParam(ctx.query.server_variant_ids),
-          serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_ids)
+          serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_ids),
+          sessionIds: normalizeArrayParam(ctx.query.session_ids)
         });
 
         let list = await paginator.run(ctx.query);

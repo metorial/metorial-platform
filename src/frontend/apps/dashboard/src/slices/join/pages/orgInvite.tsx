@@ -4,7 +4,8 @@ import { useOrganizationInviteAccept, useOrganizations } from '@metorial/state';
 import { Button, Spacer } from '@metorial/ui';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import astronaut from '../../../assets/astronaut_waving1.webp';
+import bg from '../../../assets/bg.webp';
+import bubbles from '../../../assets/bubbles.svg';
 
 export let OrganizationInvitePage = () => {
   let [params] = useSearchParams();
@@ -30,7 +31,8 @@ export let OrganizationInvitePage = () => {
         title: `Join ${invite.data?.organization?.name ?? '...'}`,
         description: 'Join your team and start collaborating.'
       }}
-      imageUrl={astronaut}
+      bubblesUrl={bubbles}
+      backgroundUrl={bg}
     >
       {state == 'home' &&
         renderWithLoader({ invite, hasOrg })(({ invite }) => (

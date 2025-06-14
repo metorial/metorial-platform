@@ -1,0 +1,45 @@
+{
+  "name": "@metorial/generated",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/mt_2025_01_01_pulsar/index.cjs",
+  "types": "dist/mt_2025_01_01_pulsar/index.d.ts",
+  "module": "dist/mt_2025_01_01_pulsar/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/mt_2025_01_01_pulsar/index.d.ts",
+      "import": "./dist/mt_2025_01_01_pulsar/index.js",
+      "require": "./dist/mt_2025_01_01_pulsar/index.cjs",
+      "default": "./dist/mt_2025_01_01_pulsar/index.js"
+    },
+    "./src/mt_2025_01_01_dashboard": {
+      "types": "./dist/mt_2025_01_01_dashboard/index.d.ts",
+      "import": "./dist/mt_2025_01_01_dashboard/index.js",
+      "require": "./dist/mt_2025_01_01_dashboard/index.cjs",
+      "default": "./dist/mt_2025_01_01_dashboard/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "build": "tsup"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "jose": "^5.9.6",
+    "@metorial/util-endpoint": "^1.0.0",
+    "@metorial/util-resource-mapper": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/isomorphic-fetch": "^0.0.39",
+    "@types/ws": "^8.5.13",
+    "tsup": "^7.1.0",
+    "typescript": "^5.1.6",
+    "vitest": "^0.34.6"
+  }
+}

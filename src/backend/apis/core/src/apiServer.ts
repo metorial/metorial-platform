@@ -1,4 +1,4 @@
-import { dashboardController, pulsarController } from './api/controllers';
+import { dashboardController, pulsarController } from './controllers';
 import { restServer } from './rest';
 
 export let apiServer = restServer.launch({

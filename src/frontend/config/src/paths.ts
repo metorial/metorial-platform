@@ -2,13 +2,14 @@ import { joinPaths } from '@metorial/join-paths';
 import { getConfig } from '.';
 
 export type EntityParam = { id: string; slug: string } | null | undefined;
+export type SubPages = (string | null | undefined | object)[];
 
 let InstancePaths = Object.assign(
   (
     organization: EntityParam,
     project: EntityParam,
     instance: EntityParam,
-    ...subPages: (string | null | undefined)[]
+    ...subPages: SubPages
   ) => {
     if (!instance || !project || !organization) return '#';
 
@@ -21,50 +22,44 @@ let InstancePaths = Object.assign(
       organization: EntityParam,
       project: EntityParam,
       instance: EntityParam,
-      ...subPages: (string | null | undefined)[]
+      ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'settings', ...subPages),
     developer: (
       organization: EntityParam,
       project: EntityParam,
       instance: EntityParam,
-      ...subPages: (string | null | undefined)[]
+      ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'developer', ...subPages),
 
     servers: (
       organization: EntityParam,
       project: EntityParam,
       instance: EntityParam,
-      ...subPages: (string | null | undefined)[]
+      ...subPages: SubPages
     ) => InstancePaths(organization, project, instance, 'servers', ...subPages),
-    serverDeployments: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      ...subPages: (string | null | undefined)[]
-    ) => InstancePaths(organization, project, instance, 'server-deployments', ...subPages),
-    serverImplementations: (
-      organization: EntityParam,
-      project: EntityParam,
-      instance: EntityParam,
-      ...subPages: (string | null | undefined)[]
-    ) => InstancePaths(organization, project, instance, 'server-implementations', ...subPages),
-
     server: (
       organization: EntityParam,
       project: EntityParam,
       instance: EntityParam,
       id?: string,
-      ...subPages: (string | null | undefined)[]
+      ...subPages: SubPages
     ) => {
       if (!id) return '#';
       return InstancePaths(organization, project, instance, 'server', id, ...subPages);
     },
+
+    serverDeployments: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'server-deployments', ...subPages),
     serverDeployment: (
       organization: EntityParam,
       project: EntityParam,
       instance: EntityParam,
       id?: string,
-      ...subPages: (string | null | undefined)[]
+      ...subPages: SubPages
     ) => {
       if (!id) return '#';
       return InstancePaths(
@@ -76,12 +71,19 @@ let InstancePaths = Object.assign(
         ...subPages
       );
     },
+
+    serverImplementations: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'server-implementations', ...subPages),
     serverImplementation: (
       organization: EntityParam,
       project: EntityParam,
       instance: EntityParam,
       id?: string,
-      ...subPages: (string | null | undefined)[]
+      ...subPages: SubPages
     ) => {
       if (!id) return '#';
       return InstancePaths(
@@ -92,16 +94,70 @@ let InstancePaths = Object.assign(
         id,
         ...subPages
       );
-    }
+    },
+
+    sessions: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'sessions', ...subPages),
+    session: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'session', id, ...subPages);
+    },
+
+    serverErrors: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'server-errors', ...subPages),
+    serverError: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'server-error', id, ...subPages);
+    },
+
+    serverRuns: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'server-runs', ...subPages),
+    serverRun: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'server-run', id, ...subPages);
+    },
+
+    explorer: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'explorer', ...subPages)
   }
 );
 
 let ProjectPaths = Object.assign(
-  (
-    organization: EntityParam,
-    project: EntityParam,
-    ...subPages: (string | null | undefined)[]
-  ) => {
+  (organization: EntityParam, project: EntityParam, ...subPages: SubPages) => {
     if (!project) return '#';
 
     return joinPaths('p', organization?.slug, project.slug, ...subPages);
@@ -110,7 +166,7 @@ let ProjectPaths = Object.assign(
 );
 
 let AccountPaths = Object.assign(
-  (...subPages: (string | null | undefined)[]) => {
+  (...subPages: SubPages) => {
     if (getConfig().enterprise?.accountFrontendUrl) {
       return `${getConfig().enterprise!.accountFrontendUrl}${joinPaths(...subPages)}`;
     }
@@ -118,16 +174,14 @@ let AccountPaths = Object.assign(
     return joinPaths('account', ...subPages);
   },
   {
-    settings: (...subPages: (string | null | undefined)[]) => AccountPaths(...subPages),
-    emails: (...subPages: (string | null | undefined)[]) =>
-      AccountPaths('emails', ...subPages),
-    security: (...subPages: (string | null | undefined)[]) =>
-      AccountPaths('security', ...subPages)
+    settings: (...subPages: SubPages) => AccountPaths(...subPages),
+    emails: (...subPages: SubPages) => AccountPaths('emails', ...subPages),
+    security: (...subPages: SubPages) => AccountPaths('security', ...subPages)
   }
 );
 
 let OrganizationPaths = Object.assign(
-  (organization: EntityParam, ...subPages: (string | null | undefined)[]) => {
+  (organization: EntityParam, ...subPages: SubPages) => {
     if (!organization) return '#';
 
     let path = joinPaths('o', organization.slug, ...subPages);
@@ -139,31 +193,28 @@ let OrganizationPaths = Object.assign(
     return path;
   },
   {
-    settings: (organization: EntityParam, ...subPages: (string | null | undefined)[]) =>
+    settings: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths(organization, ...subPages),
-    billing: (organization: EntityParam, ...subPages: (string | null | undefined)[]) =>
+    billing: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'billing', ...subPages),
-    members: (organization: EntityParam, ...subPages: (string | null | undefined)[]) =>
+    members: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'members', ...subPages),
-    invites: (organization: EntityParam, ...subPages: (string | null | undefined)[]) =>
+    invites: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'invites', ...subPages),
-    projects: (organization: EntityParam, ...subPages: (string | null | undefined)[]) =>
+    projects: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'projects', ...subPages)
   }
 );
 
 export let WelcomePaths = Object.assign(
-  (...subPages: (string | null | undefined)[]) => joinPaths('welcome', ...subPages),
+  (...subPages: SubPages) => joinPaths('welcome', ...subPages),
   {
     project: (i: { organizationId: string }) => {
       let inner = WelcomePaths('project');
       let search = new URLSearchParams({ organization_id: i.organizationId });
       return `${inner}?${search.toString()}`;
     },
-    createProject: (
-      i: { organizationId: string },
-      ...subPages: (string | null | undefined)[]
-    ) => {
+    createProject: (i: { organizationId: string }, ...subPages: SubPages) => {
       let inner = WelcomePaths('create-project');
       let search = new URLSearchParams({ organization_id: i.organizationId });
       return `${inner}?${search.toString()}`;

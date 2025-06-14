@@ -15,6 +15,15 @@ model ServerListing {
   description String?
   readme      String?
 
+  rank Int @default(0)
+
+  skills String[]
+
+  deploymentsCount    Int @default(0)
+  repoStarsCount      Int @default(0)
+  serverSessionsCount Int @default(0)
+  serverMessagesCount Int @default(0)
+
   profileOid BigInt?
   profile    Profile? @relation(fields: [profileOid], references: [oid])
 
@@ -24,6 +33,9 @@ model ServerListing {
   categories  ServerListingCategory[]
   collections ServerListingCollection[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  rankUpdatedAt DateTime? @updatedAt
+
+  @@index([rank])
 }

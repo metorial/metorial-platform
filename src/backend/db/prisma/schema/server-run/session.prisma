@@ -71,7 +71,7 @@ model Session {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  clientSecretId        String
+  clientSecretId        String    @unique
   clientSecretValue     String    @unique
   clientSecretExpiresAt DateTime?
 

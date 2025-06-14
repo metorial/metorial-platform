@@ -13,6 +13,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { badRequestError, forbiddenError, notFoundError, ServiceError } from '@metorial/error';
+import { Fabric } from '@metorial/fabric';
 import { serverVariantService } from '@metorial/module-catalog';
 import { ingestEventService } from '@metorial/module-event';
 import { secretService } from '@metorial/module-secret';
@@ -150,6 +151,13 @@ class ServerDeploymentServiceImpl {
     };
     type: 'ephemeral' | 'persistent';
   }) {
+    await Fabric.fire('server.server_deployment.created:before', {
+      organization: d.organization,
+      performedBy: d.performedBy,
+      instance: d.instance,
+      implementation: d.serverImplementation.instance
+    });
+
     return withTransaction(async db => {
       if (
         !d.serverImplementation.isNewEphemeral &&
@@ -213,6 +221,14 @@ class ServerDeploymentServiceImpl {
         instance: d.instance
       });
 
+      await Fabric.fire('server.server_deployment.created:after', {
+        organization: d.organization,
+        performedBy: d.performedBy,
+        instance: d.instance,
+        deployment: serverDeployment,
+        implementation: d.serverImplementation.instance
+      });
+
       return serverDeployment;
     });
   }
@@ -236,6 +252,14 @@ class ServerDeploymentServiceImpl {
       config?: Record<string, any>;
     };
   }) {
+    await Fabric.fire('server.server_deployment.updated:before', {
+      organization: d.organization,
+      performedBy: d.performedBy,
+      instance: d.instance,
+      deployment: d.serverDeployment,
+      implementation: d.serverDeployment.serverImplementation
+    });
+
     await this.ensureServerDeploymentActive(d.serverDeployment);
 
     return withTransaction(async db => {
@@ -301,6 +325,14 @@ class ServerDeploymentServiceImpl {
         instance: d.instance
       });
 
+      await Fabric.fire('server.server_deployment.updated:after', {
+        organization: d.organization,
+        performedBy: d.performedBy,
+        instance: d.instance,
+        deployment: serverDeployment,
+        implementation: d.serverDeployment.serverImplementation
+      });
+
       return serverDeployment;
     });
   }
@@ -311,8 +343,17 @@ class ServerDeploymentServiceImpl {
     instance: Instance;
     serverDeployment: ServerDeployment & {
       config: ServerDeploymentConfig;
+      serverImplementation: ServerImplementation;
     };
   }) {
+    await Fabric.fire('server.server_deployment.deleted:before', {
+      organization: d.organization,
+      performedBy: d.performedBy,
+      instance: d.instance,
+      deployment: d.serverDeployment,
+      implementation: d.serverDeployment.serverImplementation
+    });
+
     await this.ensureServerDeploymentActive(d.serverDeployment);
 
     return withTransaction(async db => {
@@ -342,6 +383,14 @@ class ServerDeploymentServiceImpl {
         { delay: 100 }
       );
 
+      await Fabric.fire('server.server_deployment.deleted:after', {
+        organization: d.organization,
+        performedBy: d.performedBy,
+        instance: d.instance,
+        deployment: serverDeployment,
+        implementation: d.serverDeployment.serverImplementation
+      });
+
       return serverDeployment;
     });
   }
@@ -350,6 +399,7 @@ class ServerDeploymentServiceImpl {
     serverVariantIds?: string[];
     serverImplementationIds?: string[];
     serverIds?: string[];
+    sessionIds?: string[];
     instance: Instance;
     status?: ServerDeploymentStatus[];
   }) {
@@ -366,6 +416,11 @@ class ServerDeploymentServiceImpl {
     let serverImplementations = d.serverImplementationIds?.length
       ? await db.serverImplementation.findMany({
           where: { id: { in: d.serverImplementationIds } }
+        })
+      : undefined;
+    let sessions = d.sessionIds?.length
+      ? await db.session.findMany({
+          where: { id: { in: d.sessionIds } }
         })
       : undefined;
 
@@ -386,6 +441,13 @@ class ServerDeploymentServiceImpl {
                 : undefined,
               serverImplementation: serverVariants
                 ? { serverVariantOid: { in: serverVariants.map(s => s.oid) } }
+                : undefined,
+              sessions: sessions
+                ? {
+                    some: {
+                      oid: { in: sessions.map(s => s.oid) }
+                    }
+                  }
                 : undefined
             },
             include

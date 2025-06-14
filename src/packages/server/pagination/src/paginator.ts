@@ -9,7 +9,7 @@ import {
 import { PaginatedList } from './types';
 
 export interface PaginatorInput {
-  limit?: number;
+  limit?: number | string;
   after?: string;
   before?: string;
   cursor?: string;
@@ -93,9 +93,12 @@ export class Paginator<T> {
   }
 
   async run(input: PaginatorInput): Promise<PaginatedList<T>> {
+    let numberLimit = Number(input.limit);
+    if (isNaN(numberLimit)) numberLimit = 20;
+
     let providerInput: PaginatedProviderInput = {
       limit: Math.max(
-        Math.min(input.limit ?? this.opts.defaultLimit ?? 20, this.opts.defaultLimit ?? 100),
+        Math.min(numberLimit ?? this.opts.defaultLimit ?? 20, this.opts.defaultLimit ?? 100),
         1
       ),
       order: input.order ?? this.opts.defaultOrder ?? 'asc'

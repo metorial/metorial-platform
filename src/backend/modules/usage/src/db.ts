@@ -20,7 +20,6 @@ let dbConnect = async () => {
   if (connection.conn) return connection.conn;
 
   if (!connection.promise) {
-    console.log('Connecting to usage mongodb');
     connection.promise = mongoose.connect(env.db.USAGE_MONGO_URL, {
       bufferCommands: false
     });
@@ -102,8 +101,6 @@ export let getUsageTimeline = async (opts: {
     count: number;
   };
 }) => {
-  if (!isEnabled()) return [];
-
   let from = opts.interval.unit == 'day' ? startOfDay(opts.from) : startOfHour(opts.from);
   let to = opts.interval.unit == 'day' ? endOfDay(opts.to) : endOfHour(opts.to);
 
@@ -142,19 +139,18 @@ export let getUsageTimeline = async (opts: {
     count: { $sum: '$count' }
   };
 
-  let timeline = (await UsageRecordModel.aggregate([
-    { $match: match },
-    { $group: group }
-  ])) as {
-    _id: {
-      ownerId: string;
-      entityId: string;
-      entityType: string;
-      type: string;
-      ts: Date;
-    };
-    count: number;
-  }[];
+  let timeline = isEnabled()
+    ? ((await UsageRecordModel.aggregate([{ $match: match }, { $group: group }])) as {
+        _id: {
+          ownerId: string;
+          entityId: string;
+          entityType: string;
+          type: string;
+          ts: Date;
+        };
+        count: number;
+      }[])
+    : [];
 
   let timelineMap = new Map<
     string,

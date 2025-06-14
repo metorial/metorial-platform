@@ -1,4 +1,4 @@
-import { zValidator } from '@hono/zod-validator/dist';
+import { zValidator } from '@hono/zod-validator';
 import { validationError } from '@metorial/error';
 import { ValidationTargets } from 'hono';
 import { ZodSchema } from 'zod';

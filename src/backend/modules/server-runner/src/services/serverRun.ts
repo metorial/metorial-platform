@@ -40,19 +40,6 @@ export let closeServerRunQueueProcessor = closeServerRunQueue.process(async d =>
   });
 
   if (status == 'failed') {
-    await db.sessionEvent.createMany({
-      data: {
-        id: await ID.generateId('sessionEvent'),
-        type: 'error',
-        sessionOid: d.session.sessionOid,
-        serverRunOid: d.serverRun.oid,
-        payload: {
-          code: d.result.reason,
-          exitCode: d.result.exitCode ?? 0
-        }
-      }
-    });
-
     let errorFingerprint = await Hash.sha256(
       JSON.stringify([d.result.reason, String(d.session.serverDeployment.serverOid)])
     );
@@ -66,6 +53,7 @@ export let closeServerRunQueueProcessor = closeServerRunQueue.process(async d =>
         get_launch_params_error: 'Get launch params function failed'
       }[d.result.reason] ?? 'Unknown error';
 
+    let groupId = await ID.generateId('serverRunErrorGroup');
     let group = await db.serverRunErrorGroup.upsert({
       where: {
         fingerprint_serverOid_instanceOid: {
@@ -75,46 +63,61 @@ export let closeServerRunQueueProcessor = closeServerRunQueue.process(async d =>
         }
       },
       create: {
-        id: await ID.generateId('serverRunErrorGroup'),
+        id: groupId,
         fingerprint: errorFingerprint,
         message,
         code: d.result.reason,
         count: 1,
         serverOid: d.session.serverDeployment.serverOid,
-        instanceOid: d.session.instanceOid
+        instanceOid: d.session.instanceOid,
+        lastSeenAt: new Date()
       },
       update: {
-        count: { increment: 1 }
+        count: { increment: 1 },
+        lastSeenAt: new Date()
       }
     });
 
-    await db.serverRunError.createMany({
-      data: {
-        id: await ID.generateId('serverRunError'),
-        code: d.result.reason,
-        message,
-        metadata: {
-          exitCode: d.result.exitCode ?? 0
-        },
-        serverDeploymentOid: d.session.serverDeployment.oid,
-        serverRunErrorGroupOid: group.oid,
-        serverRunOid: d.serverRun.oid,
-        instanceOid: d.session.instanceOid
-      }
-    });
-  }
+    let errorData = {
+      id: await ID.generateId('serverRunError'),
+      code: d.result.reason,
+      message,
+      metadata: {
+        exitCode: d.result.exitCode ?? 0
+      },
+      serverDeploymentOid: d.session.serverDeployment.oid,
+      serverRunErrorGroupOid: group.oid,
+      serverRunOid: d.serverRun.oid,
+      instanceOid: d.session.instanceOid
+    };
 
-  // Timeout to allow for final logs to be sent
-  setTimeout(async () => {
+    let error = await db.serverRunError.create({
+      data: errorData
+    });
+
+    // Attach this as the default error for this group,
+    // if it doesn't have one already
+    if (group.defaultServerRunErrorOid === null) {
+      await db.serverRunErrorGroup.updateMany({
+        where: { oid: group.oid },
+        data: { defaultServerRunErrorOid: error.oid }
+      });
+    }
+
     await db.sessionEvent.createMany({
       data: {
         id: await ID.generateId('sessionEvent'),
-        type: 'server_run_stopped',
+        type: 'server_run_error',
         sessionOid: d.session.sessionOid,
-        serverRunOid: d.serverRun.oid
+        serverRunOid: d.serverRun.oid,
+        serverRunErrorOid: error.oid,
+        payload: {
+          code: d.result.reason,
+          exitCode: d.result.exitCode ?? 0
+        }
       }
     });
-  }, 2500);
+  }
 });
 
 class ServerRunnerRunImpl {
@@ -133,6 +136,7 @@ class ServerRunnerRunImpl {
       type: 'stdout' | 'stderr';
       line: string;
     }[];
+    time?: Date;
   }) {
     let lastEvent = await db.sessionEvent.findFirst({
       where: { serverRunOid: d.serverRun.oid },
@@ -141,7 +145,9 @@ class ServerRunnerRunImpl {
 
     let lines = d.lines.map(l => `${l.type == 'stdout' ? 'O' : 'E'}${l.line}`);
 
-    if (lastEvent?.type == 'server_logs') {
+    let now = Date.now();
+
+    if (lastEvent?.type == 'server_logs' && now - lastEvent.createdAt.getTime() < 2000) {
       await db.sessionEvent.updateMany({
         where: { oid: lastEvent.oid },
         data: {
@@ -155,7 +161,8 @@ class ServerRunnerRunImpl {
           type: 'server_logs',
           sessionOid: d.session.sessionOid,
           serverRunOid: d.serverRun.oid,
-          logLines: lines
+          logLines: lines,
+          createdAt: d.time ?? new Date()
         }
       });
     }

@@ -9,6 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
+    "@metorial/unified-id": "^1.0.0",
     "@metorial/cron": "^1.0.0",
     "@metorial/db": "^1.0.0",
     "@metorial/env": "^1.0.0",
@@ -20,13 +21,6 @@
     "@metorial/pagination": "^1.0.0",
     "@metorial/queue": "^1.0.0",
     "@metorial/service": "^1.0.0",
-    "ajv": "^8.17.1",
-    "date-fns": "^4.1.0",
-    "eventsource": "^4.0.0",
-    "hono": "^4.7.10",
-    "mitt": "^3.0.1",
-    "mongoose": "^8.14.2",
-    "redis": "^5.0.1",
     "@metorial/cache": "1.0.0",
     "@metorial/hono": "1.0.0",
     "@metorial/interconnect-websocket-server": "1.0.0",
@@ -38,7 +32,14 @@
     "@metorial/base62": "1.0.0",
     "@metorial/redis": "1.0.0",
     "@metorial/lock": "1.0.0",
-    "@metorial/emitter": "1.0.0"
+    "@metorial/emitter": "1.0.0",
+    "ajv": "^8.17.1",
+    "date-fns": "^4.1.0",
+    "eventsource": "^4.0.0",
+    "hono": "^4.7.10",
+    "mitt": "^3.0.1",
+    "mongoose": "^8.14.2",
+    "redis": "^5.0.1"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

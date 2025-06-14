@@ -1,8 +1,7 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { sessionType } from '../types';
-import { v1ServerDeploymentPreviewPresenter } from './serverDeployment';
-import { v1ServerSessionPresenter } from './serverSession';
+import { v1ServerDeploymentPreview } from './serverDeploymentPreview';
 
 export let v1SessionPresenter = Presenter.create(sessionType)
   .presenter(async ({ session }, opts) => {
@@ -23,17 +22,8 @@ export let v1SessionPresenter = Presenter.create(sessionType)
         expires_at: session.clientSecretExpiresAt
       },
 
-      server_deployments: await Promise.all(
-        session.serverDeployments.map(serverDeployment =>
-          v1ServerDeploymentPreviewPresenter
-            .present(
-              {
-                serverDeployment
-              },
-              opts
-            )
-            .run()
-        )
+      server_deployments: session.serverDeployments.map(serverDeployment =>
+        v1ServerDeploymentPreview(serverDeployment, serverDeployment.server)
       ),
 
       usage: {
@@ -67,9 +57,7 @@ export let v1SessionPresenter = Presenter.create(sessionType)
         expires_at: v.date()
       }),
 
-      server_deployments: v.array(v1ServerDeploymentPreviewPresenter.schema),
-
-      server_sessions: v.array(v1ServerSessionPresenter.schema),
+      server_deployments: v.array(v1ServerDeploymentPreview.schema),
 
       usage: v.object({
         total_productive_message_count: v.number(),

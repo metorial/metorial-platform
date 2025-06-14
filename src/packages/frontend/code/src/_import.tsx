@@ -60,6 +60,7 @@ let Line = styled('div')`
 let LineNumber = styled('span')`
   width: 35px;
   display: inline-block;
+  user-select: none;
 `;
 
 let LineContent = styled('span')``;

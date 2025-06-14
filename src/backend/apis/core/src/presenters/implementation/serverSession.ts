@@ -1,6 +1,9 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { serverSessionType } from '../types';
+import { v1ServerDeploymentPreview } from './serverDeploymentPreview';
+import { v1ServerPreview } from './serverPreview';
+import { v1SessionPreview } from './sessionPreview';
 
 export let v1ServerSessionPresenter = Presenter.create(serverSessionType)
   .presenter(async ({ session, serverSession }, opts) => ({
@@ -45,8 +48,13 @@ export let v1ServerSessionPresenter = Presenter.create(serverSessionType)
       total_productive_server_message_count: serverSession.totalProductiveServerMessageCount
     },
 
-    server_deployment_id: serverSession.serverDeployment.id,
-    session_id: session.id,
+    server: v1ServerPreview(serverSession.serverDeployment.server),
+
+    session: v1SessionPreview(session),
+    server_deployment: v1ServerDeploymentPreview(
+      serverSession.serverDeployment,
+      serverSession.serverDeployment.server
+    ),
 
     created_at: serverSession.createdAt
   }))
@@ -91,8 +99,10 @@ export let v1ServerSessionPresenter = Presenter.create(serverSessionType)
         total_productive_server_message_count: v.number()
       }),
 
-      server_deployment_id: v.string(),
-      session_id: v.string(),
+      server: v1ServerPreview.schema,
+
+      session: v1SessionPreview.schema,
+      server_deployment: v1ServerDeploymentPreview.schema,
 
       created_at: v.date()
     })

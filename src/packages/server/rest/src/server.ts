@@ -9,6 +9,7 @@ import { createExecutionContext, provideExecutionContext } from '@metorial/execu
 import { generateId } from '@metorial/id';
 import { PresenterContext } from '@metorial/presenter';
 import { getSentry } from '@metorial/sentry';
+import opentelemetry, { context, propagation, Span } from '@opentelemetry/api';
 import { Hono } from 'hono';
 import qs from 'qs';
 import { EndpointDescriptor, Group, Handler, IController, ServiceRequest } from './controller';
@@ -154,6 +155,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
               requestId: string;
               url: URL;
               flags: RequestFlags;
+              span: Span;
             };
           }>();
 
@@ -207,6 +209,15 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                         body: body,
                         auth: c.env.auth,
                         context: c.env.context
+                      });
+
+                      c.env.span.setAttributes({
+                        'metorial.api.version': apiVersion,
+                        'metorial.request.id': c.env.requestId,
+                        'metorial.request.url': c.req.url,
+                        'metorial.request.method': handler.method,
+                        'metorial.request.context.ip': c.env.context.ip,
+                        'metorial.request.context.ua': c.env.context.ua ?? 'unknown'
                       });
 
                       // let objects: RequestObject[] = [];
@@ -318,184 +329,200 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
 
     let knowVersions = new Set(Object.keys(versions));
 
+    let apiServerTracer = opentelemetry.trace.getTracer('@metorial/rest/server', '1.0.0');
+
     return {
       fetch: async (req: Request, server: any): Promise<any> => {
         let requestId = generateId('req_');
 
-        return provideExecutionContext(
-          {
-            type: 'request',
-            contextId: requestId,
-            ip: 'x',
-            userAgent: 'x'
-          },
-          async () => {
-            let origin = req.headers.get('origin') ?? '';
+        return apiServerTracer.startActiveSpan('restApi.fetch', span =>
+          context.with(
+            propagation.setBaggage(context.active(), propagation.createBaggage({})),
+            () =>
+              provideExecutionContext(
+                {
+                  type: 'request',
+                  contextId: requestId,
+                  ip: 'x',
+                  userAgent: 'x'
+                },
+                async () => {
+                  let origin = req.headers.get('origin') ?? '';
 
-            let corsHeaders: Record<string, string> = {
-              'access-control-allow-origin': origin,
-              'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-              'access-control-allow-headers':
-                'Content-Type, Authorization, Cookies, metorial-version, metorial-instance-id, metorial-organization-id, baggage, sentry-trace, metorial-client',
-              'access-control-max-age': '604800',
-              'access-control-allow-credentials': 'true',
-              'x-powered-by': 'Metorial'
-            };
+                  span.addEvent('request.start');
 
-            try {
-              let url = new URL(req.url);
-              if (url.pathname == '/ping') return new Response('OK');
-              if (url.pathname == '/')
-                return Response.redirect('https://metorial.com/api', 301);
-              if (url.pathname == '/metorial/introspect/versions') {
-                return json({
-                  versions: Object.entries(versions).map(
-                    ([_, { apiVersion, displayVersion }]) => ({
-                      version: apiVersion,
-                      displayVersion,
-                      isCurrent: apiVersion == currentVersion
-                    })
-                  )
-                });
-              }
-              if (url.pathname == '/metorial/introspect/endpoints') {
-                let version = url.searchParams.get('version');
-                if (!version) {
-                  return json(
-                    badRequestError({
-                      message: 'Version is required'
-                    }).toResponse(),
-                    400,
-                    corsHeaders
-                  );
+                  let corsHeaders: Record<string, string> = {
+                    'access-control-allow-origin': origin,
+                    'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+                    'access-control-allow-headers':
+                      'Content-Type, Authorization, Cookies, metorial-version, metorial-instance-id, metorial-organization-id, baggage, sentry-trace, metorial-client',
+                    'access-control-max-age': '604800',
+                    'access-control-allow-credentials': 'true',
+                    'x-powered-by': 'Metorial'
+                  };
+
+                  try {
+                    let url = new URL(req.url);
+                    if (url.pathname == '/ping') return new Response('OK');
+                    if (url.pathname == '/')
+                      return Response.redirect('https://metorial.com/api', 301);
+                    if (url.pathname == '/metorial/introspect/versions') {
+                      return json({
+                        versions: Object.entries(versions).map(
+                          ([_, { apiVersion, displayVersion }]) => ({
+                            version: apiVersion,
+                            displayVersion,
+                            isCurrent: apiVersion == currentVersion
+                          })
+                        )
+                      });
+                    }
+                    if (url.pathname == '/metorial/introspect/endpoints') {
+                      let version = url.searchParams.get('version');
+                      if (!version) {
+                        return json(
+                          badRequestError({
+                            message: 'Version is required'
+                          }).toResponse(),
+                          400,
+                          corsHeaders
+                        );
+                      }
+
+                      let selectedVersion = versionApps.get(version);
+                      if (!selectedVersion) {
+                        return json(
+                          badRequestError({
+                            message: `Invalid API version: ${version}`
+                          }).toResponse(),
+                          406,
+                          corsHeaders
+                        );
+                      }
+
+                      return json(
+                        introspectApi({
+                          version: selectedVersion.version as any,
+                          rootController: selectedVersion.rootController,
+                          displayVersion: selectedVersion.displayVersion,
+                          isCurrent: selectedVersion.version == currentVersion
+                        })
+                      );
+                    }
+
+                    if (req.method == 'OPTIONS') {
+                      return new Response(null, {
+                        status: 204,
+                        headers: corsHeaders
+                      });
+                    }
+
+                    let auth = await this.authenticate(req, url as URL);
+
+                    let corsOk = this.checkCors({
+                      origin,
+                      auth: auth.auth
+                    });
+                    if (!corsOk) corsHeaders = {};
+
+                    let rateLimit = await this.rateLimiter.check({
+                      auth: auth.auth,
+                      context: auth.context
+                    });
+                    if (!rateLimit.allowed) return rateLimit.response;
+
+                    // await updateExecutionContext({
+                    //   apiKeyId: 'apiKey' in auth.token ? auth.token.apiKey.id : undefined,
+                    //   ip: auth.context.ip,
+                    //   userAgent: auth.context.ua ?? 'unknown'
+                    // });
+
+                    let version =
+                      req.headers.get('metorial-version') ??
+                      url.searchParams.get('api-version');
+                    if (!version && auth.defaultVersion) {
+                      if (knowVersions.has(auth.defaultVersion)) version = auth.defaultVersion;
+                    }
+
+                    if (!version) version = currentVersion;
+
+                    let selectedVersion = versionApps.get(version);
+                    if (!selectedVersion) {
+                      return json(
+                        badRequestError({
+                          message: `Invalid API version: ${version}`
+                        }).toResponse(),
+                        406,
+                        corsHeaders
+                      );
+                    }
+
+                    if (!auth.allowedVersions.includes(selectedVersion.version)) {
+                      return json(
+                        badRequestError({
+                          message: `Invalid API version: ${version}`
+                        }).toResponse(),
+                        406,
+                        corsHeaders
+                      );
+                    }
+
+                    for (let custom of this.customHandlers) {
+                      if (custom.path.test(url.pathname)) {
+                        return custom.handler({
+                          req,
+
+                          // @ts-ignore
+                          url,
+
+                          server,
+                          requestId,
+                          corsHeaders,
+                          auth: auth.auth,
+                          context: auth.context,
+                          version: selectedVersion.version
+                        });
+                      }
+                    }
+
+                    let res = await selectedVersion.app.fetch(req, {
+                      requestId,
+                      origin,
+                      url,
+                      span,
+                      ...auth
+                    });
+
+                    res.headers.set('metorial-version', selectedVersion.displayVersion);
+                    res.headers.set('metorial-req-id', requestId);
+                    res.headers.set('x-powered-by', 'Metorial');
+                    // res.headers.set('content-type', 'application/json');
+
+                    for (let [key, value] of Object.entries(corsHeaders)) {
+                      res.headers.set(key, value);
+                    }
+
+                    for (let [key, value] of Object.entries(rateLimit.headers)) {
+                      res.headers.set(key, value);
+                    }
+
+                    return res;
+                  } catch (e) {
+                    if (isServiceError(e))
+                      return json(e.toResponse(), e.data.status, corsHeaders);
+
+                    Sentry.captureException(e);
+
+                    console.error('Error in fetch handler', e);
+
+                    return json(internalServerError().toResponse(), 500, corsHeaders);
+                  } finally {
+                    span.addEvent('request.end');
+                    span.end();
+                  }
                 }
-
-                let selectedVersion = versionApps.get(version);
-                if (!selectedVersion) {
-                  return json(
-                    badRequestError({
-                      message: `Invalid API version: ${version}`
-                    }).toResponse(),
-                    406,
-                    corsHeaders
-                  );
-                }
-
-                return json(
-                  introspectApi({
-                    version: selectedVersion.version as any,
-                    rootController: selectedVersion.rootController,
-                    displayVersion: selectedVersion.displayVersion,
-                    isCurrent: selectedVersion.version == currentVersion
-                  })
-                );
-              }
-
-              if (req.method == 'OPTIONS') {
-                return new Response(null, {
-                  status: 204,
-                  headers: corsHeaders
-                });
-              }
-
-              let auth = await this.authenticate(req, url as URL);
-
-              let corsOk = this.checkCors({
-                origin,
-                auth: auth.auth
-              });
-              if (!corsOk) corsHeaders = {};
-
-              let rateLimit = await this.rateLimiter.check({
-                auth: auth.auth,
-                context: auth.context
-              });
-              if (!rateLimit.allowed) return rateLimit.response;
-
-              // await updateExecutionContext({
-              //   apiKeyId: 'apiKey' in auth.token ? auth.token.apiKey.id : undefined,
-              //   ip: auth.context.ip,
-              //   userAgent: auth.context.ua ?? 'unknown'
-              // });
-
-              let version =
-                req.headers.get('metorial-version') ?? url.searchParams.get('api-version');
-              if (!version && auth.defaultVersion) {
-                if (knowVersions.has(auth.defaultVersion)) version = auth.defaultVersion;
-              }
-
-              if (!version) version = currentVersion;
-
-              let selectedVersion = versionApps.get(version);
-              if (!selectedVersion) {
-                return json(
-                  badRequestError({
-                    message: `Invalid API version: ${version}`
-                  }).toResponse(),
-                  406,
-                  corsHeaders
-                );
-              }
-
-              if (!auth.allowedVersions.includes(selectedVersion.version)) {
-                return json(
-                  badRequestError({
-                    message: `Invalid API version: ${version}`
-                  }).toResponse(),
-                  406,
-                  corsHeaders
-                );
-              }
-
-              for (let custom of this.customHandlers) {
-                if (custom.path.test(url.pathname)) {
-                  return custom.handler({
-                    req,
-
-                    // @ts-ignore
-                    url,
-
-                    server,
-                    requestId,
-                    corsHeaders,
-                    auth: auth.auth,
-                    context: auth.context,
-                    version: selectedVersion.version
-                  });
-                }
-              }
-
-              let res = await selectedVersion.app.fetch(req, {
-                requestId,
-                origin,
-                url,
-                ...auth
-              });
-
-              res.headers.set('metorial-version', selectedVersion.displayVersion);
-              res.headers.set('metorial-req-id', requestId);
-              res.headers.set('x-powered-by', 'Metorial');
-              // res.headers.set('content-type', 'application/json');
-
-              for (let [key, value] of Object.entries(corsHeaders)) {
-                res.headers.set(key, value);
-              }
-
-              for (let [key, value] of Object.entries(rateLimit.headers)) {
-                res.headers.set(key, value);
-              }
-
-              return res;
-            } catch (e) {
-              if (isServiceError(e)) return json(e.toResponse(), e.data.status, corsHeaders);
-
-              Sentry.captureException(e);
-
-              console.error('Error in fetch handler', e);
-
-              return json(internalServerError().toResponse(), 500, corsHeaders);
-            }
-          }
+              )
+          )
         );
       }
     };

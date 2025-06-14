@@ -20,7 +20,12 @@ export let useMutation = <Input, Response>(
   let [input, setInput] = useState<Input | null>(null);
   let [success, setSuccess] = useState(false);
 
+  let mutatorRef = useRef(mutator);
+  mutatorRef.current = mutator;
+
   let mutate = async (input: Input) => {
+    let mutator = mutatorRef.current;
+
     if (!mutator) return [null, null] as [null, null];
 
     setLoading(true);

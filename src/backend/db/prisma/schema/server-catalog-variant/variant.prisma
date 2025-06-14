@@ -38,10 +38,10 @@ model ServerVariant {
   /// [ServerVersionServerCapabilities]
   serverCapabilities Json @default("null")
 
-  versions             ServerVersion[]
-  schemas              ServerConfigSchema[]
-  ServerImplementation ServerImplementation[]
-  ServerDeployment     ServerDeployment[]
+  versions              ServerVersion[]
+  schemas               ServerConfigSchema[]
+  serverImplementations ServerImplementation[]
+  serverDeployments     ServerDeployment[]
 
   createdAt DateTime @default(now())
 }

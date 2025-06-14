@@ -21,14 +21,50 @@ class SessionMessageImpl {
     return sessionMessage;
   }
 
-  async listSessionMessages(d: { session: Session }) {
+  async listSessionMessages(d: {
+    session: Session;
+    serverRunIds?: string[];
+    serverSessionIds?: string[];
+  }) {
+    let serverRuns = d.serverRunIds?.length
+      ? await db.serverRun.findMany({
+          where: { id: { in: d.serverRunIds }, instanceOid: d.session.instanceOid }
+        })
+      : undefined;
+
+    let serverSessions = d.serverSessionIds?.length
+      ? await db.serverSession.findMany({
+          where: { id: { in: d.serverSessionIds }, instanceOid: d.session.instanceOid }
+        })
+      : undefined;
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.sessionMessage.findMany({
             ...opts,
             where: {
-              sessionOid: d.session.oid
+              sessionOid: d.session.oid,
+
+              AND: [
+                serverRuns
+                  ? {
+                      serverSession: {
+                        serverRuns: {
+                          some: {
+                            oid: { in: serverRuns?.map(s => s.oid) }
+                          }
+                        }
+                      }
+                    }
+                  : undefined!,
+
+                serverSessions
+                  ? {
+                      serverSessionOid: { in: serverSessions.map(s => s.oid) }
+                    }
+                  : undefined!
+              ].filter(Boolean)
             },
             include
           })

@@ -9,6 +9,7 @@ export let dynamicPage = <Params extends any[]>(
 ) => {
   let loadPromise: Promise<(p: any) => ReactNode> | null = null;
 
+  // @ts-ignore
   if (import.meta.env.PROD) {
     setTimeout(() => {
       requestIdleCallback(

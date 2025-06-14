@@ -55,6 +55,7 @@ export let createEnsureRecord = <
       }
     }
 
+    // try {
     let res = await type.upsert({
       where,
       create: value,
@@ -64,5 +65,12 @@ export let createEnsureRecord = <
     if (cache) cache.set(cacheKey!, res);
 
     return res;
+    // } catch (e) {
+    //   console.error(
+    //     `Error ensuring record for ${(Object.values((type as any).fields ?? {})?.[0] as any)?.modelName ?? 'unknown'}, ${JSON.stringify(where)}`,
+    //     e
+    //   );
+    //   throw e;
+    // }
   };
 };

@@ -7,9 +7,9 @@ import {
   useCurrentProject,
   useServerImplementation
 } from '@metorial/state';
-import { Button, LinkTabs } from '@metorial/ui';
+import { Button, Callout, LinkTabs, Spacer } from '@metorial/ui';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
-import { showServerDeploymentFormModal } from '../../../scenes/server-deployments/modal';
+import { showServerDeploymentFormModal } from '../../../scenes/serverDeployments/modal';
 
 export let ServerImplementationLayout = () => {
   let instance = useCurrentInstance();
@@ -61,15 +61,13 @@ export let ServerImplementationLayout = () => {
                 instance.data,
                 implementation.data?.server.id
               )}
-              className="btn btn-primary"
             >
-              <Button as="span" size="2">
+              <Button as="span" size="2" variant="outline">
                 View Server
               </Button>
             </Link>
 
             <Button
-              as="span"
               size="2"
               onClick={() => {
                 if (!implementation.data) return;
@@ -94,11 +92,11 @@ export let ServerImplementationLayout = () => {
         current={pathname}
         links={[
           {
-            label: 'Configuration',
+            label: 'Overview',
             to: Paths.instance.serverImplementation(...serverPathParams)
           },
           {
-            label: 'Configure',
+            label: 'Configuration',
             to: Paths.instance.serverImplementation(...serverPathParams, 'config')
           },
           {
@@ -115,6 +113,17 @@ export let ServerImplementationLayout = () => {
           }
         ]}
       />
+
+      {implementation.data?.isDefault && (
+        <>
+          <Callout color="blue">
+            This is the default server implementation for this server. It will be used for all
+            new deployments unless a different implementation is specified.
+          </Callout>
+
+          <Spacer height={15} />
+        </>
+      )}
 
       {renderWithLoader({ implementation })(() => (
         <Outlet />

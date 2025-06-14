@@ -60,7 +60,6 @@ export let ServerDeploymentLayout = () => {
                 instance.data,
                 deployment.data?.serverImplementation.id
               )}
-              className="btn btn-primary"
             >
               <Button as="span" size="2" variant="outline">
                 View Implementation
@@ -68,18 +67,27 @@ export let ServerDeploymentLayout = () => {
             </Link>
 
             <Link
+              to={Paths.instance.explorer(organization.data, project.data, instance.data, {
+                server_deployment_id: deployment.data?.id
+              })}
+            >
+              <Button as="span" size="2">
+                Open Explorer
+              </Button>
+            </Link>
+
+            {/* <Link
               to={Paths.instance.server(
                 organization.data,
                 project.data,
                 instance.data,
                 deployment.data?.server.id
               )}
-              className="btn btn-primary"
             >
               <Button as="span" size="2">
                 View Server
               </Button>
-            </Link>
+            </Link> */}
           </>
         }
       />
@@ -88,8 +96,12 @@ export let ServerDeploymentLayout = () => {
         current={pathname}
         links={[
           {
-            label: 'Configuration',
+            label: 'Overview',
             to: Paths.instance.serverDeployment(...serverPathParams)
+          },
+          {
+            label: 'Configuration',
+            to: Paths.instance.serverDeployment(...serverPathParams, 'config')
           },
           {
             label: 'Runs',

@@ -17,7 +17,7 @@ import {
 } from '@metorial/mcp-utils';
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
-import { McpSessionManager } from '../lib/session/manager';
+import { getMcpSessionManager } from '../lib/session/manager';
 import { SessionTokens } from '../lib/tokens';
 
 export interface RunnerServerRef {
@@ -36,9 +36,10 @@ export let getServer = (origin: string, ref: RunnerServerRef) =>
     })
     .notFound(c => c.json(notFoundError('endpoint').toResponse(), 404))
     .get('/ping', c => c.text('ok', 200))
+    .use(async (c, next) => {
+      await next();
+    })
     .all('/mcp/sse', async c => {
-      console.log('MCP connection request', c.req.method);
-
       if (!ref.mic) return c.text('INITIALIZING', 503);
 
       if (c.req.method == 'OPTIONS') return c.text('', 200);
@@ -51,6 +52,8 @@ export let getServer = (origin: string, ref: RunnerServerRef) =>
       let token = await SessionTokens.verify(tokenStr);
 
       let rawReq = c.req.raw;
+
+      let McpSessionManager = getMcpSessionManager();
 
       let sessionRes = await McpSessionManager.getSession(token.sessionId);
       // If the session is stopped, we need to stop the connection

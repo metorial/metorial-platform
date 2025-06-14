@@ -1,10 +1,10 @@
+import { createLoader } from '@metorial/data-hooks';
 import {
   ApiKeysCreateBody,
   ApiKeysListQuery,
   ApiKeysUpdateBody
-} from '@metorial/core/src/mt_2025_01_01_dashboard';
-import { createLoader } from '@metorial/data-hooks';
-import { useState } from 'react';
+} from '@metorial/generated/src/mt_2025_01_01_dashboard';
+import { useEffect, useState } from 'react';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { withAuth } from '../../user';
 
@@ -55,17 +55,14 @@ export let useApiKeys = (input: ApiKeysFilter | null | undefined) => {
 export let apiKeyLoader = createLoader({
   name: 'apiKey',
   fetch: (i: { apiKeyId: string }) => withAuth(sdk => sdk.apiKeys.get(i.apiKeyId)),
-  mutators: {
-    reveal: (_, { input: { apiKeyId } }) => withAuth(sdk => sdk.apiKeys.reveal(apiKeyId))
-  }
+  mutators: {}
 });
 
 export let useApiKey = (apiKeyId: string | null | undefined) => {
   let apiKey = apiKeyLoader.use(apiKeyId ? { apiKeyId } : null);
 
   return {
-    ...apiKey,
-    revealMutator: apiKey.useMutator('reveal')
+    ...apiKey
   };
 };
 
@@ -85,28 +82,40 @@ let getCachedRevealedApiKey = (apiKeyId: string) => {
   }
   return cached;
 };
-export let useRevealableApiKey = ({ apiKeyId }: { apiKeyId: string }) => {
-  let [value, setValue] = useState<string | undefined>(
-    () => getCachedRevealedApiKey(apiKeyId)?.secret
+let useApiReveal = apiKeyLoader.createExternalMutator(({ apiKeyId }: { apiKeyId: string }) =>
+  withAuth(sdk => sdk.apiKeys.reveal(apiKeyId))
+);
+
+export let useRevealableApiKey = ({ apiKeyId }: { apiKeyId?: string }) => {
+  let [value, setValue] = useState<string | undefined>(() =>
+    apiKeyId ? getCachedRevealedApiKey(apiKeyId)?.secret : undefined
   );
-  let apiKey = useApiKey(apiKeyId);
-  let revealMutator = apiKey.revealMutator();
+  let revealMutator = useApiReveal();
 
   let reveal = () => {
+    if (!apiKeyId) {
+      setValue(undefined);
+      return;
+    }
+
     let cached = getCachedRevealedApiKey(apiKeyId);
     if (cached) {
       setValue(cached.secret);
       return;
     }
 
-    revealMutator.mutate({}).then(async ([res]) => {
-      if (!res) return;
-      revealedApiKey[apiKeyId] = {
-        secret: res.secret!,
-        ts: Date.now()
-      };
-      setValue(res?.secret!);
-    });
+    revealMutator
+      .mutate({
+        apiKeyId
+      })
+      .then(async ([res]) => {
+        if (!res) return;
+        revealedApiKey[apiKeyId] = {
+          secret: res.secret!,
+          ts: Date.now()
+        };
+        setValue(res?.secret!);
+      });
   };
 
   let hide = () => {
@@ -120,4 +129,14 @@ export let useRevealableApiKey = ({ apiKeyId }: { apiKeyId: string }) => {
     reveal,
     hide
   };
+};
+
+export let useRevealedApiKey = ({ apiKeyId }: { apiKeyId?: string }) => {
+  let reveal = useRevealableApiKey({ apiKeyId });
+
+  useEffect(() => {
+    if (!reveal.value && apiKeyId) reveal.reveal();
+  }, [reveal.value, apiKeyId]);
+
+  return reveal;
 };

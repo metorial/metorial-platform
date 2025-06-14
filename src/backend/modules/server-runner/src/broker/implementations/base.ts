@@ -4,6 +4,7 @@ import { generatePlainId } from '@metorial/id';
 import {
   jsonRpcPingRequest,
   JSONRPCRequest,
+  MCP_IDS,
   type JSONRPCError,
   type JSONRPCMessage,
   type JSONRPCResponse,
@@ -96,8 +97,10 @@ export abstract class BrokerRunnerImplementation {
     let sentMessage: JSONRPCRequest = {
       ...(message as any),
       jsonrpc: '2.0',
-      id: `mt/oo/${generatePlainId(15)}`
+      id: `${MCP_IDS.ONE_OFF}${generatePlainId(15)}`
     };
+
+    this.#pendingOneOffMessages.add(sentMessage.id);
 
     return new Promise<JSONRPCResponse>(async (resolve, reject) => {
       let unsub = this.emitter.on('message', (msg: JSONRPCMessage) => {
@@ -114,7 +117,7 @@ export abstract class BrokerRunnerImplementation {
           // message handler is executed after this one
           setTimeout(() => {
             this.#pendingOneOffMessages.delete(msg.id);
-          }, 100);
+          }, 5000);
         }
       });
 
@@ -174,7 +177,7 @@ export abstract class BrokerRunnerImplementation {
     try {
       while (true) {
         let res: any = await this.sendAndWaitForResponse({
-          method: 'resource_templates/list',
+          method: 'resources/templates/list',
           params: { cursor }
         });
 

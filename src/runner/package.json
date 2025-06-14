@@ -17,6 +17,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
+    "bin:build": "tsc -b && bun build ./src/index.ts --compile --outfile out/metorial-runner",
     "start": "bun ./src/index.ts"
   },
   "files": [

@@ -29,6 +29,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
     .options('*', c => {
       return c.text('');
     })
+    .get('/ping', c => c.text('OK'))
     .all('/mcp/:sessionId/:serverDeploymentId/:connectionType', async (c, next) => {
       let { sessionId, serverDeploymentId, connectionType } = c.req.param();
 

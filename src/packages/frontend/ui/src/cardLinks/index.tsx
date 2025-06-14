@@ -19,7 +19,7 @@ let LinkWrapper = styled('span')`
   &:focus {
     border-color: ${theme.colors.primary} !important;
     transform: scale(1.02);
-    box-shadow: ${theme.shadows.small};
+    box-shadow: ${theme.shadows.medium};
   }
 
   &:active {
@@ -34,14 +34,14 @@ let LinkContent = styled('div')`
 `;
 
 let LinkTitle = styled('p')`
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   color: ${theme.colors.foreground};
 `;
 
 let LinkDescription = styled('p')`
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 400;
   color: ${theme.colors.gray600};
 `;
 

@@ -16,6 +16,7 @@ export let marketplaceApp = createHono()
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
   })
   .options('*', c => c.text(''))
+  .get('/ping', c => c.text('OK'))
   .route('/servers', serversController)
   .route('/server-categories', serverCategoriesController)
   .route('/server-collections', serverCollectionsController);

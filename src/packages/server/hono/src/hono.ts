@@ -1,4 +1,5 @@
 import { internalServerError, isServiceError, notFoundError } from '@metorial/error';
+import { getSentry } from '@metorial/sentry';
 import { Context, Env, Hono } from 'hono';
 import { cors } from 'hono/cors';
 
@@ -7,6 +8,8 @@ export { cors, type Context };
 export let createHono = <E extends Env>(basePath?: string) => {
   let app = new Hono<E>();
   if (basePath) app = app.basePath(basePath);
+
+  let Sentry = getSentry();
 
   app.notFound(c => {
     return c.json(notFoundError('endpoint', null).toResponse(), 404);
@@ -18,6 +21,14 @@ export let createHono = <E extends Env>(basePath?: string) => {
     }
 
     console.error(e);
+
+    Sentry.captureException(e, {
+      extra: {
+        method: c.req.method,
+        url: c.req.url
+      }
+    });
+
     return c.json(internalServerError().toResponse(), 500);
   });
 

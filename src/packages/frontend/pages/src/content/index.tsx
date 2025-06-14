@@ -1,6 +1,6 @@
 import React from 'react';
 import { Balancer } from 'react-wrap-balancer';
-import { styled } from 'styled-components';
+import styled from 'styled-components';
 
 let Wrapper = styled.div`
   height: 100vh;

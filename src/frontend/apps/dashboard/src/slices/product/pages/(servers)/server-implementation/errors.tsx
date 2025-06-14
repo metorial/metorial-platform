@@ -1,6 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useServerImplementation } from '@metorial/state';
 import { useParams } from 'react-router-dom';
+import { ServerErrorsTable } from '../../../scenes/serverErrors/errorsTable';
 
 export let ServerImplementationErrorsPage = () => {
   let instance = useCurrentInstance();
@@ -8,5 +9,7 @@ export let ServerImplementationErrorsPage = () => {
   let { serverImplementationId } = useParams();
   let implementation = useServerImplementation(instance.data?.id, serverImplementationId);
 
-  return renderWithLoader({ implementation })(({ implementation }) => <h1>Errors</h1>);
+  return renderWithLoader({ implementation })(({ implementation }) => (
+    <ServerErrorsTable serverImplementationIds={[implementation.data.id]} />
+  ));
 };

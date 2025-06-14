@@ -17,6 +17,7 @@ import {
   ServiceError,
   unauthorizedError
 } from '@metorial/error';
+import { Fabric } from '@metorial/fabric';
 import { ingestEventService } from '@metorial/module-event';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -61,6 +62,12 @@ class SessionImpl {
       serverDeployments: ServerDeployment[];
     };
   }) {
+    await Fabric.fire('session.created:before', {
+      instance: d.instance,
+      organization: d.organization,
+      performedBy: d.performedBy
+    });
+
     let session = await db.session.create({
       data: {
         id: await ID.generateId('session'),
@@ -92,6 +99,13 @@ class SessionImpl {
       instance: d.instance,
       performedBy: d.performedBy,
       organization: d.organization
+    });
+
+    await Fabric.fire('session.created:after', {
+      session,
+      instance: d.instance,
+      organization: d.organization,
+      performedBy: d.performedBy
     });
 
     return session;
@@ -132,7 +146,10 @@ class SessionImpl {
         OR: [{ clientSecretExpiresAt: { gte: new Date() } }, { clientSecretExpiresAt: null }],
         status: 'active'
       },
-      include
+      include: {
+        ...include,
+        instance: { include: { organization: true } }
+      }
     });
     if (!session) {
       throw new ServiceError(
@@ -185,6 +202,13 @@ class SessionImpl {
     instance: Instance;
     session: Session;
   }) {
+    await Fabric.fire('session.deleted:before', {
+      instance: d.instance,
+      organization: d.organization,
+      performedBy: d.performedBy,
+      session: d.session
+    });
+
     await this.ensureSessionActive(d.session);
 
     let session = await db.session.update({
@@ -203,6 +227,13 @@ class SessionImpl {
       instance: d.instance,
       performedBy: d.performedBy,
       organization: d.organization
+    });
+
+    await Fabric.fire('session.deleted:after', {
+      session,
+      instance: d.instance,
+      organization: d.organization,
+      performedBy: d.performedBy
     });
 
     return session;
@@ -229,12 +260,12 @@ class SessionImpl {
       : undefined;
     let serverImplementations = d.serverImplementationIds?.length
       ? await db.serverImplementation.findMany({
-          where: { id: { in: d.serverImplementationIds } }
+          where: { id: { in: d.serverImplementationIds }, instanceOid: d.instance.oid }
         })
       : undefined;
     let serverDeployments = d.serverDeploymentIds?.length
       ? await db.serverDeployment.findMany({
-          where: { id: { in: d.serverDeploymentIds } }
+          where: { id: { in: d.serverDeploymentIds }, instanceOid: d.instance.oid }
         })
       : undefined;
 

@@ -20,8 +20,8 @@ if (import.meta.env.PROD) {
       'vulcan',
       // All metorial.com subdomains
       /^https:\/\/.*\.metorial\.com/,
-      // All metorial-staging.click subdomains
-      /^https:\/\/.*\.metorial-staging\.click/
+      // All metorial-staging.space subdomains
+      /^https:\/\/.*\.metorial-staging\.space/
     ],
 
     environment: process.env.METORIAL_ENV || process.env.VITE_METORIAL_ENV,

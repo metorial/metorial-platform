@@ -93,12 +93,12 @@ export class UnifiedApiKey {
     return new UnifiedApiKey(parsed.type, parsed.secret, parsed.config, parsed.version);
   }
 
-  static create(d: { type: ApiKeyType; config: ApiKeyConfig }) {
-    let secret = generatePlainId(SECRET_KEY_LENGTH);
+  static create(d: { type: ApiKeyType; config: ApiKeyConfig; secret?: string }) {
+    if (d.secret && d.secret.length != SECRET_KEY_LENGTH) {
+      throw new Error(`Secret key must be ${SECRET_KEY_LENGTH} characters long`);
+    }
 
-    // if (d.secret.length != SECRET_KEY_LENGTH) {
-    //   throw new Error(`Secret key must be ${SECRET_KEY_LENGTH} characters long`);
-    // }
+    let secret = d.secret ? d.secret : generatePlainId(SECRET_KEY_LENGTH);
 
     return new UnifiedApiKey(d.type, secret, d.config, 'v1');
   }

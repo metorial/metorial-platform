@@ -36,6 +36,7 @@ import {
   SessionMessage,
   User
 } from '@metorial/db';
+import { ServerCapabilities } from '@metorial/module-catalog';
 import { PresentableType } from '@metorial/presenter';
 
 export let bootType = PresentableType.create<{
@@ -150,7 +151,7 @@ export let serverVersionType = PresentableType.create<{
 }>()('server.server_version');
 
 export let serverListingType = PresentableType.create<{
-  serverListing: ServerListing & {
+  serverListing: Omit<ServerListing, 'readme'> & {
     categories: ServerListingCategory[];
     server: Server & {
       importedServer:
@@ -163,6 +164,7 @@ export let serverListingType = PresentableType.create<{
       instanceServers?: (InstanceServer & { instance: Instance })[];
     };
   };
+  readme?: string | null;
 }>()('server_listing');
 
 export let serverImplementationType = PresentableType.create<{
@@ -222,6 +224,7 @@ export let serverSessionType = PresentableType.create<{
   serverSession: ServerSession & {
     serverDeployment: ServerDeployment & {
       serverVariant: ServerVariant;
+      server: Server;
     };
   };
 }>()('session.server_session');
@@ -239,8 +242,18 @@ export let sessionEventType = PresentableType.create<{
     serverRun:
       | (ServerRun & {
           serverVersion: ServerVersion;
-          serverDeployment: ServerDeployment;
+          serverDeployment: ServerDeployment & { server: Server };
           serverSession: ServerSession;
+        })
+      | null;
+
+    serverRunError:
+      | (ServerRunError & {
+          serverRun: ServerRun & {
+            serverVersion: ServerVersion;
+            serverDeployment: ServerDeployment & { server: Server };
+            serverSession: ServerSession;
+          };
         })
       | null;
   };
@@ -249,7 +262,7 @@ export let sessionEventType = PresentableType.create<{
 export let serverRunType = PresentableType.create<{
   serverRun: ServerRun & {
     serverVersion: ServerVersion;
-    serverDeployment: ServerDeployment;
+    serverDeployment: ServerDeployment & { server: Server };
     serverSession: ServerSession & { session: Session };
   };
 }>()('server.server_run');
@@ -258,7 +271,7 @@ export let serverRunErrorType = PresentableType.create<{
   serverRunError: ServerRunError & {
     serverRun: ServerRun & {
       serverVersion: ServerVersion;
-      serverDeployment: ServerDeployment;
+      serverDeployment: ServerDeployment & { server: Server };
       serverSession: ServerSession & { session: Session };
     };
   };
@@ -270,10 +283,14 @@ export let serverRunErrorGroupType = PresentableType.create<{
       | (ServerRunError & {
           serverRun: ServerRun & {
             serverVersion: ServerVersion;
-            serverDeployment: ServerDeployment;
+            serverDeployment: ServerDeployment & { server: Server };
             serverSession: ServerSession & { session: Session };
           };
         })
       | null;
   };
 }>()('server.server_run.error_group');
+
+export let serverCapabilitiesType = PresentableType.create<{
+  serverCapabilities: ServerCapabilities[];
+}>()('server.capabilities');

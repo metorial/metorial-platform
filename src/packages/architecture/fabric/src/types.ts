@@ -9,6 +9,12 @@ import {
   OrganizationInviteJoin,
   OrganizationMember,
   Project,
+  ServerDeployment,
+  ServerImplementation,
+  ServerRun,
+  ServerSession,
+  Session,
+  SessionMessage,
   User,
   UserSession
 } from '@metorial/db';
@@ -114,4 +120,29 @@ export interface FabricEvents {
   'machine_access.api_key.expired:before': { machineAccess: MachineAccess, apiKey: ApiKey };
   'machine_access.api_key.expired:after': { machineAccess: MachineAccess, apiKey: ApiKey };
   'machine_access.api_key:revealed': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
+
+  'server.server_deployment.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context, implementation: ServerImplementation };
+  'server.server_deployment.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; deployment: ServerDeployment, implementation: ServerImplementation };
+  'server.server_deployment.updated:before': { organization: Organization, instance: Instance, deployment: ServerDeployment, performedBy: OrganizationActor; context?: Context, implementation: ServerImplementation };
+  'server.server_deployment.updated:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; deployment: ServerDeployment, implementation: ServerImplementation };
+  'server.server_deployment.deleted:before': { organization: Organization, instance: Instance, deployment: ServerDeployment, performedBy: OrganizationActor; context?: Context, implementation: ServerImplementation };
+  'server.server_deployment.deleted:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; deployment: ServerDeployment, implementation: ServerImplementation };
+
+  'server.server_implementation.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context };
+  'server.server_implementation.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; implementation: ServerImplementation };
+  'server.server_implementation.updated:before': { organization: Organization, instance: Instance, implementation: ServerImplementation, performedBy: OrganizationActor; context?: Context };
+  'server.server_implementation.updated:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; implementation: ServerImplementation };
+  'server.server_implementation.deleted:before': { organization: Organization, instance: Instance, implementation: ServerImplementation, performedBy: OrganizationActor; context?: Context };
+  'server.server_implementation.deleted:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; implementation: ServerImplementation };
+
+  'session.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context };
+  'session.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; session: Session };
+  'session.deleted:before': { organization: Organization, instance: Instance, session: Session, performedBy: OrganizationActor; context?: Context };
+  'session.deleted:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; session: Session };
+
+  'server.server_run.created:before': { organization: Organization, instance: Instance };
+  'server.server_run.created:after': { organization: Organization, instance: Instance, serverRun: ServerRun };
+
+  'session.session_message.created:before': { organization: Organization, instance: Instance, session: ServerSession };
+  'session.session_message.created.many:after': { organization: Organization, instance: Instance, session: ServerSession, sessionMessages: SessionMessage[] };
 }

@@ -2,6 +2,7 @@ import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { sessionEventType } from '../types';
 import { v1ServerRunPresenter } from './serverRun';
+import { v1ServerRunErrorPresenter } from './serverRunError';
 
 export let v1SessionEventPresenter = Presenter.create(sessionEventType)
   .presenter(async ({ session, sessionEvent }, opts) => ({
@@ -29,6 +30,37 @@ export let v1SessionEventPresenter = Presenter.create(sessionEventType)
           .run()
       : null,
 
+    server_run_error: sessionEvent.serverRunError
+      ? await v1ServerRunErrorPresenter
+          .present(
+            {
+              serverRunError: {
+                ...sessionEvent.serverRunError,
+                serverRun: {
+                  ...sessionEvent.serverRunError.serverRun,
+                  serverSession: {
+                    ...sessionEvent.serverRunError.serverRun.serverSession,
+                    session
+                  }
+                }
+              }
+            },
+            opts
+          )
+          .run()
+      : null,
+
+    log_lines: sessionEvent.logLines.map(l => {
+      let firstChar = l[0];
+      let rest = l.slice(1);
+      let type = firstChar == 'O' ? 'stdout' : 'stderr';
+
+      return {
+        type,
+        line: rest
+      };
+    }),
+
     created_at: sessionEvent.createdAt
   }))
   .schema(
@@ -36,19 +68,19 @@ export let v1SessionEventPresenter = Presenter.create(sessionEventType)
       object: v.literal('session.event'),
 
       id: v.string(),
-      type: v.enumOf([
-        'message',
-        'error',
-        'server_run_created',
-        'server_run_started',
-        'server_run_stopped',
-        'client_connected',
-        'client_disconnected'
-      ]),
+      type: v.enumOf(['server_logs', 'server_run_error']),
 
       session_id: v.string(),
 
       server_run: v.nullable(v1ServerRunPresenter.schema),
+      server_run_error: v.nullable(v1ServerRunErrorPresenter.schema),
+
+      log_lines: v.array(
+        v.object({
+          type: v.enumOf(['stdout', 'stderr']),
+          line: v.string()
+        })
+      ),
 
       created_at: v.date()
     })

@@ -79,6 +79,8 @@ class ServerRunnerConnectionImpl {
   }
 
   async unregisterServerRunner(d: { runner: ServerRunner }) {
+    console.log('Unregistering server runner', d.runner.id);
+
     await db.serverRunner.updateMany({
       where: { oid: d.runner.oid },
       data: {
