@@ -95,6 +95,24 @@ let NavSection = styled('section')`
   gap: 20px;
 `;
 
+let NavLink = styled(Link)`
+  color: ${theme.colors.gray700};
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.3s ease-in-out;
+  padding: 0px 13px;
+  height: 30px;
+  border-radius: 99px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    color: ${theme.colors.gray900};
+    background: rgba(0, 0, 0, 0.05);
+  }
+`;
+
 export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
   let isMobile = useMedia(`(max-width: ${DESKTOP_NAV_MIN_WIDTH}px)`, false);
   let [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -115,6 +133,11 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
               type: 'link',
               label: 'Metorial',
               href: 'https://metorial.com'
+            },
+            {
+              type: 'link',
+              label: 'GitHub',
+              href: 'https://github.com/metorial/mcp-index'
             },
             {
               type: 'panel',
@@ -200,7 +223,19 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
               </form>
             </NavSection>
 
-            <NavSection>
+            <NavSection style={{ gap: 10 }}>
+              <NavLink href="https://metorial.com" prefetch={false}>
+                Metorial
+              </NavLink>
+
+              <NavLink
+                href="https://github.com/metorial/mcp-index"
+                prefetch={false}
+                target="_blank"
+              >
+                GitHub
+              </NavLink>
+
               {user.isLoading ? (
                 <></>
               ) : user.error ? (
@@ -221,9 +256,9 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
                   </LandingButton> */}
                 </>
               ) : (
-                <>
+                <div style={{ paddingLeft: 10 }}>
                   <UserMenu />
-                </>
+                </div>
               )}
             </NavSection>
           </NavInner>
