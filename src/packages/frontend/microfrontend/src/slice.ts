@@ -34,7 +34,7 @@ export let createSlice = <T extends NonIndexRouteObject[]>(
           { value: { path: prefix } },
           React.createElement(Outlet, null) as any
         ),
-        children: routes
+        children: currentRoutes.current
       } satisfies NonIndexRouteObject
     };
   };
