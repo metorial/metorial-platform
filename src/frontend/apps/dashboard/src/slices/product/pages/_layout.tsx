@@ -2,10 +2,8 @@ import { Paths } from '@metorial/frontend-config';
 import { AppLayout } from '@metorial/layout';
 import { useCurrentInstance, useCurrentOrganization } from '@metorial/state';
 import { RiHomeLine, RiSettings2Line, RiTerminalBoxLine } from '@remixicon/react';
+import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-
-// @ts-ignore
-import { Helmet } from 'react-helmet';
 
 export let ProjectPageLayout = () => {
   let instance = useCurrentInstance();
@@ -20,6 +18,13 @@ export let ProjectPageLayout = () => {
     return i.pathname === i.to || (!opts?.exact && i.pathname.startsWith(`${i.to}/`));
   };
 
+  useEffect(() => {
+    if (!instance.data) return;
+    document.title = `${instance.data.project.name} • Metorial Dashboard`;
+  }, [instance.data]);
+
+  let pathParts = [organization.data, instance.data?.project, instance.data] as const;
+
   return (
     <AppLayout
       id="product"
@@ -29,7 +34,7 @@ export let ProjectPageLayout = () => {
             {
               icon: <RiHomeLine />,
               label: 'Home',
-              to: Paths.instance(organization.data, instance.data?.project, instance.data),
+              to: Paths.instance(...pathParts),
 
               getProps: i => ({
                 isActive: checkPath(i, { exact: true })
@@ -45,20 +50,12 @@ export let ProjectPageLayout = () => {
             {
               icon: <RiTerminalBoxLine />,
               label: 'Developer',
-              to: Paths.instance.developer(
-                organization.data,
-                instance.data?.project,
-                instance.data
-              ),
+              to: Paths.instance.developer(...pathParts),
 
               children: [
                 {
                   label: 'API Keys',
-                  to: Paths.instance.developer(
-                    organization.data,
-                    instance.data?.project,
-                    instance.data
-                  ),
+                  to: Paths.instance.developer(...pathParts),
 
                   getProps: i => ({
                     isActive: checkPath(i, { exact: true })
@@ -66,12 +63,7 @@ export let ProjectPageLayout = () => {
                 },
                 {
                   label: 'Environments',
-                  to: Paths.instance.developer(
-                    organization.data,
-                    instance.data?.project,
-                    instance.data,
-                    'environments'
-                  ),
+                  to: Paths.instance.developer(...pathParts, 'environments'),
 
                   getProps: i => ({
                     isActive: checkPath(i)
@@ -79,12 +71,7 @@ export let ProjectPageLayout = () => {
                 },
                 {
                   label: 'API Access',
-                  to: Paths.instance.developer(
-                    organization.data,
-                    instance.data?.project,
-                    instance.data,
-                    'api'
-                  ),
+                  to: Paths.instance.developer(...pathParts, 'api'),
 
                   getProps: i => ({
                     isActive: checkPath(i)
@@ -96,20 +83,12 @@ export let ProjectPageLayout = () => {
             {
               icon: <RiSettings2Line />,
               label: 'Settings',
-              to: Paths.instance.settings(
-                organization.data,
-                instance.data?.project,
-                instance.data
-              ),
+              to: Paths.instance.settings(...pathParts),
 
               children: [
                 {
                   label: 'Project',
-                  to: Paths.instance.settings(
-                    organization.data,
-                    instance.data?.project,
-                    instance.data
-                  ),
+                  to: Paths.instance.settings(...pathParts),
 
                   getProps: i => ({
                     isActive: checkPath(i, { exact: true })
@@ -129,12 +108,6 @@ export let ProjectPageLayout = () => {
         }
       ]}
     >
-      {instance.data && (
-        <Helmet>
-          <title>Metorial Dashboard • {instance.data.project.name}</title>
-        </Helmet>
-      )}
-
       <Outlet />
     </AppLayout>
   );
