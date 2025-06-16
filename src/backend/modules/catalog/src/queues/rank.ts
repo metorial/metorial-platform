@@ -1,16 +1,5 @@
-import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
-
-let rankCron = createCron(
-  {
-    name: 'cat/rank/cron',
-    cron: '0 * * * *'
-  },
-  async () => {
-    await startRankQueue.add({});
-  }
-);
 
 export let startRankQueue = createQueue({
   name: 'cat/rank/start',
@@ -23,14 +12,7 @@ let processSingleRankQueue = createQueue<{ serverListingId: string }>({
   name: 'cat/rank/single',
   workerOpts: {
     concurrency: 1,
-
-    limiter:
-      process.env.NODE_ENV == 'development'
-        ? undefined
-        : {
-            max: 20,
-            duration: 1000
-          }
+    limiter: process.env.NODE_ENV == 'development' ? undefined : { max: 20, duration: 1000 }
   }
 });
 
@@ -136,7 +118,6 @@ export let processSingleRankQueueProcessor = processSingleRankQueue.process(asyn
 });
 
 export let rankProcessors = combineQueueProcessors([
-  rankCron,
   startRankQueueProcessor,
   processSingleRankQueueProcessor
 ]);

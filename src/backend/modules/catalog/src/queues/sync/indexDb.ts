@@ -44,6 +44,20 @@ export class IndexDB {
     return new IndexDB(indexDb, dir);
   }
 
+  static async createAndUse<T>(fn: (db: IndexDB) => Promise<T>): Promise<T> {
+    let indexDb = await IndexDB.create();
+    return await indexDb.use(fn);
+  }
+
+  async use<T>(fn: (db: IndexDB) => Promise<T>): Promise<T> {
+    try {
+      return await fn(this);
+    } finally {
+      // Ensure the database is closed after use
+      await this.close();
+    }
+  }
+
   get vendors() {
     return {
       iterate: () =>
