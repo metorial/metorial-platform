@@ -53,7 +53,7 @@ class OrganizationInviteService {
           status: 'pending',
           type: d.input.type,
           role: d.input.role,
-          key: generateCustomId('metorial_inv', 50),
+          key: generateCustomId('metorial_inv', 30),
           expiresAt: addDays(new Date(), 14),
 
           organizationOid: d.organization.oid,
