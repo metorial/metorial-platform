@@ -26,7 +26,8 @@ export let serversController = createHono()
           search: z.optional(z.string()),
           collectionIds: z.optional(z.string()),
           categoryIds: z.optional(z.string()),
-          profileIds: z.optional(z.string())
+          profileIds: z.optional(z.string()),
+          providerIds: z.optional(z.string())
         })
       )
     ),
@@ -39,6 +40,7 @@ export let serversController = createHono()
         collectionIds: query.collectionIds?.split(','),
         categoryIds: query.categoryIds?.split(','),
         profileIds: query.profileIds?.split(','),
+        providerIds: query.providerIds?.split(','),
 
         orderByRank: true
       });
