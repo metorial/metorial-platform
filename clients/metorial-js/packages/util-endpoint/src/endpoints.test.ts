@@ -35,10 +35,16 @@ describe('BaseMetorialEndpoint', () => {
 
   it('should make a GET request and return transformed data', async () => {
     const mockResponse = { data: 'test' };
-    global.fetch = vi.fn().mockResolvedValue({
+    let fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => mockResponse
     }) as any;
+
+    const endpoint = new TestEndpoint(
+      new MetorialEndpointManager(mockConfig, 'http://test', () => ({}), fetch, {
+        enableDebugLogging: true
+      })
+    );
 
     const request: MetorialRequest = { path: '/test' };
     const result = await endpoint
@@ -46,7 +52,7 @@ describe('BaseMetorialEndpoint', () => {
       .transform({ transformFrom: (data: any) => data });
 
     expect(result).toEqual(mockResponse);
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(fetch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ method: 'GET' })
     );
@@ -54,10 +60,16 @@ describe('BaseMetorialEndpoint', () => {
 
   it('should make a POST request and return transformed data', async () => {
     const mockResponse = { data: 'test' };
-    global.fetch = vi.fn().mockResolvedValue({
+    let fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => mockResponse
     }) as any;
+
+    const endpoint = new TestEndpoint(
+      new MetorialEndpointManager(mockConfig, 'http://test', () => ({}), fetch, {
+        enableDebugLogging: true
+      })
+    );
 
     const request: MetorialRequest = { path: '/test', body: { key: 'value' } };
     const result = await endpoint
@@ -65,7 +77,7 @@ describe('BaseMetorialEndpoint', () => {
       .transform({ transformFrom: (data: any) => data });
 
     expect(result).toEqual(mockResponse);
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(fetch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ method: 'POST' })
     );
