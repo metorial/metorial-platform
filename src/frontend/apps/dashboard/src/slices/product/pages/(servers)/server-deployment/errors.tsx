@@ -10,6 +10,6 @@ export let ServerDeploymentErrorsPage = () => {
   let deployment = useServerDeployment(instance.data?.id, serverDeploymentId);
 
   return renderWithLoader({ deployment })(({ deployment }) => (
-    <ServerErrorsTable serverDeploymentIds={[deployment.data.id]} />
+    <ServerErrorsTable serverDeploymentId={[deployment.data.id]} />
   ));
 };

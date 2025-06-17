@@ -10,6 +10,6 @@ export let ServerDeploymentRunsPage = () => {
   let deployment = useServerDeployment(instance.data?.id, serverDeploymentId);
 
   return renderWithLoader({ deployment })(({ deployment }) => (
-    <ServerRunsTable serverDeploymentIds={[deployment.data.id]} />
+    <ServerRunsTable serverDeploymentId={[deployment.data.id]} />
   ));
 };

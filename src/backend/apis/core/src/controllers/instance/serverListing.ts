@@ -36,9 +36,9 @@ export let serverListingController = Controller.create(
         Paginator.validate(
           v.object({
             search: v.optional(v.string()),
-            collection_ids: v.optional(v.union([v.array(v.string()), v.string()])),
-            category_ids: v.optional(v.union([v.array(v.string()), v.string()])),
-            profile_ids: v.optional(v.union([v.array(v.string()), v.string()])),
+            collection_id: v.optional(v.union([v.array(v.string()), v.string()])),
+            category_id: v.optional(v.union([v.array(v.string()), v.string()])),
+            profile_id: v.optional(v.union([v.array(v.string()), v.string()])),
             instance_id: v.optional(v.string()),
             order_by_rank: v.optional(v.boolean())
           })
@@ -56,9 +56,9 @@ export let serverListingController = Controller.create(
 
         let paginator = await serverListingService.listServerListings({
           search: ctx.query.search,
-          collectionIds: normalizeArrayParam(ctx.query.collection_ids),
-          categoryIds: normalizeArrayParam(ctx.query.category_ids),
-          profileIds: normalizeArrayParam(ctx.query.profile_ids),
+          collectionIds: normalizeArrayParam(ctx.query.collection_id),
+          categoryIds: normalizeArrayParam(ctx.query.category_id),
+          profileIds: normalizeArrayParam(ctx.query.profile_id),
           orderByRank: ctx.query.order_by_rank,
           instance
         });

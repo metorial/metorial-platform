@@ -103,92 +103,112 @@ export let mapSessionsCreateOutput = mtMap.object<SessionsCreateOutput>({
   updatedAt: mtMap.objectField('updated_at', mtMap.date())
 });
 
-export type SessionsCreateBody = {
-  serverDeployments: (
-    | ({
-        name?: string | undefined;
-        description?: string | undefined;
-        metadata?: Record<string, any> | undefined;
-        config: Record<string, any>;
-      } & (
-        | {
-            serverImplementation: {
-              name?: string | undefined;
-              description?: string | undefined;
-              metadata?: Record<string, any> | undefined;
-              getLaunchParams?: string | undefined;
-            } & ({ serverId: string } | { serverVariantId: string });
-          }
-        | { serverImplementationId: string }
-        | { serverVariantId: string }
-        | { serverId: string }
-      ))
-    | string
-    | { serverDeploymentId: string }
-  )[];
-};
+export type SessionsCreateBody =
+  | {
+      serverDeployments: (
+        | ({
+            name?: string | undefined;
+            description?: string | undefined;
+            metadata?: Record<string, any> | undefined;
+            config: Record<string, any>;
+          } & (
+            | {
+                serverImplementation: {
+                  name?: string | undefined;
+                  description?: string | undefined;
+                  metadata?: Record<string, any> | undefined;
+                  getLaunchParams?: string | undefined;
+                } & ({ serverId: string } | { serverVariantId: string });
+              }
+            | { serverImplementationId: string }
+            | { serverVariantId: string }
+            | { serverId: string }
+          ))
+        | string
+        | { serverDeploymentId: string }
+      )[];
+    }
+  | { serverDeploymentIds: string[] | string };
 
-export let mapSessionsCreateBody = mtMap.object<SessionsCreateBody>({
-  serverDeployments: mtMap.objectField(
-    'server_deployments',
-    mtMap.array(
-      mtMap.union([
-        mtMap.unionOption(
-          'object',
-          mtMap.object({
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-            config: mtMap.objectField('config', mtMap.passthrough()),
-            serverImplementation: mtMap.objectField(
-              'server_implementation',
-              mtMap.union([
-                mtMap.unionOption(
-                  'object',
-                  mtMap.object({
-                    name: mtMap.objectField('name', mtMap.passthrough()),
-                    description: mtMap.objectField(
-                      'description',
-                      mtMap.passthrough()
-                    ),
-                    metadata: mtMap.objectField(
-                      'metadata',
-                      mtMap.passthrough()
-                    ),
-                    getLaunchParams: mtMap.objectField(
-                      'get_launch_params',
-                      mtMap.passthrough()
-                    ),
-                    serverId: mtMap.objectField(
-                      'server_id',
-                      mtMap.passthrough()
-                    ),
-                    serverVariantId: mtMap.objectField(
-                      'server_variant_id',
-                      mtMap.passthrough()
+export let mapSessionsCreateBody = mtMap.union([
+  mtMap.unionOption(
+    'object',
+    mtMap.object({
+      serverDeployments: mtMap.objectField(
+        'server_deployments',
+        mtMap.array(
+          mtMap.union([
+            mtMap.unionOption(
+              'object',
+              mtMap.object({
+                name: mtMap.objectField('name', mtMap.passthrough()),
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                ),
+                metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+                config: mtMap.objectField('config', mtMap.passthrough()),
+                serverImplementation: mtMap.objectField(
+                  'server_implementation',
+                  mtMap.union([
+                    mtMap.unionOption(
+                      'object',
+                      mtMap.object({
+                        name: mtMap.objectField('name', mtMap.passthrough()),
+                        description: mtMap.objectField(
+                          'description',
+                          mtMap.passthrough()
+                        ),
+                        metadata: mtMap.objectField(
+                          'metadata',
+                          mtMap.passthrough()
+                        ),
+                        getLaunchParams: mtMap.objectField(
+                          'get_launch_params',
+                          mtMap.passthrough()
+                        ),
+                        serverId: mtMap.objectField(
+                          'server_id',
+                          mtMap.passthrough()
+                        ),
+                        serverVariantId: mtMap.objectField(
+                          'server_variant_id',
+                          mtMap.passthrough()
+                        )
+                      })
                     )
-                  })
+                  ])
+                ),
+                serverImplementationId: mtMap.objectField(
+                  'server_implementation_id',
+                  mtMap.passthrough()
+                ),
+                serverVariantId: mtMap.objectField(
+                  'server_variant_id',
+                  mtMap.passthrough()
+                ),
+                serverId: mtMap.objectField('server_id', mtMap.passthrough()),
+                serverDeploymentId: mtMap.objectField(
+                  'server_deployment_id',
+                  mtMap.passthrough()
                 )
-              ])
+              })
             ),
-            serverImplementationId: mtMap.objectField(
-              'server_implementation_id',
-              mtMap.passthrough()
-            ),
-            serverVariantId: mtMap.objectField(
-              'server_variant_id',
-              mtMap.passthrough()
-            ),
-            serverId: mtMap.objectField('server_id', mtMap.passthrough()),
-            serverDeploymentId: mtMap.objectField(
-              'server_deployment_id',
-              mtMap.passthrough()
-            )
-          })
-        ),
-        mtMap.unionOption('string', mtMap.passthrough())
-      ])
-    )
+            mtMap.unionOption('string', mtMap.passthrough())
+          ])
+        )
+      ),
+      serverDeploymentIds: mtMap.objectField(
+        'server_deployment_ids',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
+    })
   )
-});
+]);
 

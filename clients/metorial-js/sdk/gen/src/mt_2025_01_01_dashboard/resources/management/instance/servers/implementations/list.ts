@@ -135,8 +135,8 @@ export type ManagementInstanceServersImplementationsListQuery = {
     | 'deleted'
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
-  serverIds?: string | string[] | undefined;
-  serverVariantIds?: string | string[] | undefined;
+  serverId?: string | string[] | undefined;
+  serverVariantId?: string | string[] | undefined;
 };
 
 export let mapManagementInstanceServersImplementationsListQuery = mtMap.union([
@@ -152,8 +152,8 @@ export let mapManagementInstanceServersImplementationsListQuery = mtMap.union([
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       ),
-      serverIds: mtMap.objectField(
-        'server_ids',
+      serverId: mtMap.objectField(
+        'server_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -162,8 +162,8 @@ export let mapManagementInstanceServersImplementationsListQuery = mtMap.union([
           )
         ])
       ),
-      serverVariantIds: mtMap.objectField(
-        'server_variant_ids',
+      serverVariantId: mtMap.objectField(
+        'server_variant_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

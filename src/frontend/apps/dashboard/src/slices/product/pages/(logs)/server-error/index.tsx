@@ -10,6 +10,6 @@ export let ServerErrorPage = () => {
   let error = useServerRunErrorGroup(instance.data?.id, serverErrorId);
 
   return renderWithLoader({ error })(({ error }) => (
-    <ServerErrorsTable serverRunErrorGroupIds={[error.data.id]} />
+    <ServerErrorsTable serverRunErrorGroupId={[error.data.id]} />
   ));
 };

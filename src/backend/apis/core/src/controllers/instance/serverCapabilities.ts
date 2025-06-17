@@ -24,21 +24,21 @@ export let serverCapabilitiesController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            server_deployment_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_variant_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_version_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_implementation_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_version_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
       .do(async ctx => {
         let serverCapabilities = await serverCapabilitiesService.getManyServerCapabilities({
-          serverDeploymentIds: normalizeArrayParam(ctx.query.server_deployment_ids),
-          serverVariantIds: normalizeArrayParam(ctx.query.server_variant_ids),
-          serverIds: normalizeArrayParam(ctx.query.server_ids),
-          serverVersionIds: normalizeArrayParam(ctx.query.server_version_ids),
-          serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_ids),
+          serverDeploymentIds: normalizeArrayParam(ctx.query.server_deployment_id),
+          serverVariantIds: normalizeArrayParam(ctx.query.server_variant_id),
+          serverIds: normalizeArrayParam(ctx.query.server_id),
+          serverVersionIds: normalizeArrayParam(ctx.query.server_version_id),
+          serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_id),
 
           instance: ctx.instance
         });

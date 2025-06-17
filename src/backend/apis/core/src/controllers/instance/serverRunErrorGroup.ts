@@ -35,14 +35,14 @@ export let serverRunErrorGroupController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            server_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
       .do(async ctx => {
         let paginator = await serverRunErrorGroupService.listServerRunErrorGroups({
           instance: ctx.instance,
-          serverIds: normalizeArrayParam(ctx.query.server_ids)
+          serverIds: normalizeArrayParam(ctx.query.server_id)
         });
 
         let list = await paginator.run(ctx.query);

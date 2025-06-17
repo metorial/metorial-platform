@@ -35,22 +35,22 @@ export let serverRunErrorController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            server_session_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_implementation_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_deployment_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_run_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_run_error_group_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_session_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_run_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_run_error_group_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
       .do(async ctx => {
         let paginator = await serverRunErrorService.listServerRunErrors({
           instance: ctx.instance,
-          serverSessionIds: normalizeArrayParam(ctx.query.server_session_ids),
-          serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_ids),
-          serverDeploymentIds: normalizeArrayParam(ctx.query.server_deployment_ids),
-          serverRunIds: normalizeArrayParam(ctx.query.server_run_ids),
-          serverRunErrorGroupIds: normalizeArrayParam(ctx.query.server_run_error_group_ids)
+          serverSessionIds: normalizeArrayParam(ctx.query.server_session_id),
+          serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_id),
+          serverDeploymentIds: normalizeArrayParam(ctx.query.server_deployment_id),
+          serverRunIds: normalizeArrayParam(ctx.query.server_run_id),
+          serverRunErrorGroupIds: normalizeArrayParam(ctx.query.server_run_error_group_id)
         });
 
         let list = await paginator.run(ctx.query);

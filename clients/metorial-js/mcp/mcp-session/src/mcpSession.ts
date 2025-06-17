@@ -3,12 +3,17 @@ import { DashboardInstanceSessionsCreateBody } from '@metorial/generated';
 import { MetorialMcpClient } from './mcpClient';
 import { MetorialMcpToolManager } from './mcpToolManager';
 
-export interface MetorialMcpSessionInit extends DashboardInstanceSessionsCreateBody {
+export type MetorialMcpSessionInitServerDeployments = (DashboardInstanceSessionsCreateBody & {
+  serverDeploymentIds?: never;
+})['serverDeployments'];
+
+export type MetorialMcpSessionInit = {
+  serverDeployments: MetorialMcpSessionInitServerDeployments;
   client?: {
     name?: string;
     version?: string;
   };
-}
+};
 
 export class MetorialMcpSession {
   #sessionPromise: Promise<MetorialSDK.Session>;
@@ -18,9 +23,7 @@ export class MetorialMcpSession {
     private readonly sdk: MetorialCoreSDK,
     private readonly init: MetorialMcpSessionInit
   ) {
-    this.#sessionPromise = this.sdk.sessions.create({
-      serverDeployments: init.serverDeployments
-    });
+    this.#sessionPromise = this.sdk.sessions.create(init);
   }
 
   async getSession() {
@@ -36,7 +39,7 @@ export class MetorialMcpSession {
     let deployments = await this.getServerDeployments();
 
     return this.sdk.servers.capabilities.list({
-      serverDeploymentIds: deployments.map(d => d.id)
+      serverDeploymentId: deployments.map(d => d.id)
     });
   }
 

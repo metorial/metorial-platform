@@ -9,8 +9,8 @@ import { useAggregatedMessages } from './useAggregatedMessages';
 export let useEvents = (
   sessionId: string | undefined | null,
   opts: {
-    serverSessionIds?: string[] | string;
-    serverRunIds?: string[] | string;
+    serverSessionId?: string[] | string;
+    serverRunId?: string[] | string;
     limit?: number;
   }
 ) => {
