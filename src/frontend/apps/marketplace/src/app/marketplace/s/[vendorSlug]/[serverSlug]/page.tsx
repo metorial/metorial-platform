@@ -57,7 +57,7 @@ export async function generateMetadata(
     title: `${serverRes.data?.name ?? 'Not Found'} • Metorial Index`,
     description: 'The open source integration platform for agentic AI.',
     metadataBase: new URL('https://metorial.com'),
-    alternates: { canonical: '/' },
+    alternates: { canonical: serverRes.data?.repository?.providerUrl },
     openGraph: {
       images: { url: '/opengraph-image.jpg', alt: 'Metorial' },
       title: 'Metorial',

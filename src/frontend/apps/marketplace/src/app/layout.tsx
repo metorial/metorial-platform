@@ -23,7 +23,6 @@ export const metadata: Metadata = {
   applicationName: 'Metorial',
   description: 'The open source integration platform for agentic AI.',
   metadataBase: new URL('https://metorial.com'),
-  alternates: { canonical: '/' },
   openGraph: {
     images: { url: '/opengraph-image.jpg', alt: 'Metorial' },
     title: 'Metorial',
