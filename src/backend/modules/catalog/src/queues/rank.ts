@@ -19,7 +19,7 @@ let processSingleRankQueue = createQueue<{ serverListingId: string }>({
 export let startRankQueueProcessor = startRankQueue.process(async () => {
   let afterId: string | undefined = undefined;
 
-  while (true) {
+  for (let i = 0; i < 10_000; i++) {
     let servers = await db.serverListing.findMany({
       where: {
         id: { gt: afterId }

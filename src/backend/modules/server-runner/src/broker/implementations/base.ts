@@ -131,7 +131,7 @@ export abstract class BrokerRunnerImplementation {
     let cursor: any | undefined = undefined;
 
     try {
-      while (true) {
+      for (let i = 0; i < 20; i++) {
         let res: any = await this.sendAndWaitForResponse({
           method: 'tools/list',
           params: { cursor }
@@ -153,7 +153,7 @@ export abstract class BrokerRunnerImplementation {
     let cursor: any | undefined = undefined;
 
     try {
-      while (true) {
+      for (let i = 0; i < 20; i++) {
         let res: any = await this.sendAndWaitForResponse({
           method: 'prompts/list',
           params: { cursor }
@@ -175,7 +175,7 @@ export abstract class BrokerRunnerImplementation {
     let cursor: any | undefined = undefined;
 
     try {
-      while (true) {
+      for (let i = 0; i < 20; i++) {
         let res: any = await this.sendAndWaitForResponse({
           method: 'resources/templates/list',
           params: { cursor }
