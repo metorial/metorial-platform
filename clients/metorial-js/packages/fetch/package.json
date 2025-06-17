@@ -1,5 +1,5 @@
 {
-  "name": "@metorial/dashboard-sdk",
+  "name": "@metorial/fetch",
   "version": "1.0.0",
   "author": "Tobias Herber",
   "license": "MIT",
@@ -25,12 +25,9 @@
     "dist"
   ],
   "dependencies": {
-    "@metorial/fetch": "^1.0.0",
-    "@metorial/generated": "^1.0.0",
-    "@metorial/util-endpoint": "^1.0.0"
+    "cross-fetch": "^4.1.0"
   },
   "devDependencies": {
-    "@types/isomorphic-fetch": "^0.0.39",
     "@types/ws": "^8.5.13",
     "tsup": "^7.1.0",
     "typescript": "^5.1.6",

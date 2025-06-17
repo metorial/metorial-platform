@@ -28,7 +28,7 @@ describe('BaseMetorialEndpoint', () => {
   }
 
   const endpoint = new TestEndpoint(
-    new MetorialEndpointManager(mockConfig, 'http://test', () => ({}), {
+    new MetorialEndpointManager(mockConfig, 'http://test', () => ({}), fetch, {
       enableDebugLogging: true
     })
   );
