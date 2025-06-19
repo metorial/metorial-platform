@@ -1,14 +1,11 @@
 import { theme } from '@metorial/ui';
 import { Highlight, Prism } from 'prism-react-renderer';
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useScroll } from 'react-use';
 import { styled } from 'styled-components';
 import prismTheme from './theme';
 
 (typeof global != 'undefined' ? global : window).Prism = Prism;
-
-// @ts-ignore
-let prism = import('prismjs/components/prism-json');
 
 let Wrapper = styled('div')`
   border-radius: 10px;
@@ -69,56 +66,90 @@ export let CodeBlock = ({
   lineNumbers = true,
   code,
   language,
-  variant = 'bordered'
+  variant = 'bordered',
+  replacements = {}
 }: {
   lineNumbers?: boolean;
   code: string;
   language?: string;
   variant?: 'bordered' | 'seamless';
+  replacements?: Record<string, () => React.ReactNode>;
 }) => {
   let overflowRef = useRef<HTMLDivElement>(null);
   let scroll = useScroll(overflowRef as any);
 
   let scrolledLeft = scroll.x > 0;
 
-  return (
-    <Wrapper
-      style={
-        variant == 'bordered'
-          ? ({
-              border: `1px solid ${theme.colors.gray300}`,
-              '--padding': '15px'
-            } as any)
-          : {}
-      }
-    >
-      <link rel="stylesheet" href="https://fonts.metorial.com/jetbrains-mono.css" />
+  let replacementsRef = useRef(replacements);
+  replacementsRef.current = replacements;
 
-      <Main>
-        <LeftShadow style={{ opacity: scrolledLeft ? 1 : 0 }} />
+  let replacementKeys = Object.keys(replacementsRef.current);
 
-        <Overflow ref={overflowRef}>
-          <Highlight theme={prismTheme} code={code} language={language ?? 'typescript'}>
-            {({ className, style, tokens, getLineProps, getTokenProps }) => (
-              <Pre style={style} className={className}>
-                {tokens.map((line, i) => (
-                  <Line key={i} {...getLineProps({ line })}>
-                    {lineNumbers && <LineNumber>{i + 1}</LineNumber>}
+  let inner = useMemo(
+    () => (
+      <Wrapper
+        style={
+          variant == 'bordered'
+            ? ({
+                border: `1px solid ${theme.colors.gray300}`,
+                '--padding': '15px'
+              } as any)
+            : {}
+        }
+      >
+        <link rel="stylesheet" href="https://fonts.metorial.com/jetbrains-mono.css" />
 
-                    <LineContent>
-                      {line.map((token, key) => (
-                        <span key={key} {...getTokenProps({ token })} />
-                      ))}
-                    </LineContent>
-                  </Line>
-                ))}
-              </Pre>
-            )}
-          </Highlight>
+        <Main>
+          <LeftShadow style={{ opacity: scrolledLeft ? 1 : 0 }} />
 
-          <RightShadow />
-        </Overflow>
-      </Main>
-    </Wrapper>
+          <Overflow ref={overflowRef}>
+            <Highlight theme={prismTheme} code={code} language={language ?? 'typescript'}>
+              {({ className, style, tokens: lines, getLineProps, getTokenProps }) => (
+                <Pre style={style} className={className}>
+                  {lines.map((lineTokens, i) => (
+                    <Line key={i} {...getLineProps({ line: lineTokens })}>
+                      {lineNumbers && <LineNumber>{i + 1}</LineNumber>}
+
+                      <LineContent>
+                        {lineTokens.map((token, key) => {
+                          let tokenProps = getTokenProps({ token });
+
+                          let children: React.ReactNode = tokenProps.children;
+
+                          let replacementKey = replacementKeys.find(key =>
+                            token.content.includes(key)
+                          );
+                          if (replacementKey) {
+                            let [before, after] = token.content.split(replacementKey);
+                            children = (
+                              <>
+                                {before}
+                                {replacementsRef.current[replacementKey]()}
+                                {after}
+                              </>
+                            );
+                          }
+
+                          return (
+                            <span key={key} {...tokenProps}>
+                              {children}
+                            </span>
+                          );
+                        })}
+                      </LineContent>
+                    </Line>
+                  ))}
+                </Pre>
+              )}
+            </Highlight>
+
+            <RightShadow />
+          </Overflow>
+        </Main>
+      </Wrapper>
+    ),
+    [scrolledLeft, code, language, lineNumbers, variant]
   );
+
+  return inner;
 };

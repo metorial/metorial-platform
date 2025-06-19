@@ -12,6 +12,7 @@ import dedent from 'dedent';
 import { Link, useParams } from 'react-router-dom';
 import { useApiKeysWithAutoInit } from '../../../scenes/apiKeys/useApiKeysWithAutoInit';
 import { InstructionItem, Instructions } from './components/instructions';
+import { KeySelector } from './components/keySelector';
 import { Skills } from './components/skills';
 
 export let ServerOverviewPage = () => {
@@ -84,10 +85,15 @@ export let ServerOverviewPage = () => {
                   import { Metorial } from 'metorial';
 
                   const metorial = new Metorial({
-                    apiKey: '${key.value ?? '... your API key ...'}',
+                    apiKey: '${key.value ?? '__REPLACE_ME_WITH_API_KEY__'}',
                   });
                 `,
-      lineNumbers: true
+      lineNumbers: true,
+      replacements: {
+        __REPLACE_ME_WITH_API_KEY__: () => (
+          <KeySelector name={`Server ${server.data?.name} API Key`} />
+        )
+      }
     }
   ];
 
