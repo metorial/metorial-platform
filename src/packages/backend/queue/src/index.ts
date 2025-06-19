@@ -59,5 +59,5 @@ export let runQueueProcessors = async (processor: IQueueProcessor[]) => {
     await res?.close();
   });
 
-  return combined;
+  return res;
 };

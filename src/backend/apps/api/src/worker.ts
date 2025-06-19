@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@metorial/queue';
+import { runQueueProcessors } from '@metorial/queue';
 
 import { accessQueueProcessor } from '@metorial/module-access';
 import { catalogQueueProcessor } from '@metorial/module-catalog';
@@ -15,7 +15,7 @@ import { sessionQueueProcessor } from '@metorial/module-session';
 import { usageQueueProcessor } from '@metorial/module-usage';
 import { userQueueProcessor } from '@metorial/module-user';
 
-combineQueueProcessors([
+export let worker = runQueueProcessors([
   userQueueProcessor,
   machineAccessQueueProcessor,
   organizationQueueProcessor,
@@ -30,4 +30,4 @@ combineQueueProcessors([
   usageQueueProcessor,
   serverRunnerQueueProcessor,
   sessionQueueProcessor
-]).start();
+]);
