@@ -26,10 +26,10 @@ export class MetorialEndpointManager<Config> {
   }
 
   private async request(method: Method, request: MetorialRequest, tryCount = 0): Promise<any> {
-    let url = new URL(
-      Array.isArray(request.path) ? request.path.join('/') : request.path,
-      request.host ?? this.apiHost
-    );
+    let path = Array.isArray(request.path) ? request.path.join('/') : request.path;
+    let url = new URL(request.host ?? this.apiHost);
+    url.pathname = url.pathname.replace(/\/$/, '') + '/' + path.replace(/^\//, '');
+
     if (request.query) {
       url.search = qs.stringify(request.query);
     }
