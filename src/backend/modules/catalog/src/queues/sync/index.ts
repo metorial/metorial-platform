@@ -36,7 +36,7 @@ let syncQueue = createQueue({
     concurrency: 1,
     limiter: {
       max: 1,
-      duration: process.env.METORIAL_ENV == 'development' ? 1000 * 60 * 60 : 1000 * 60 * 25
+      duration: process.env.METORIAL_ENV == 'development' ? 1000 * 60 * 60 : 1000 * 60 * 60 * 6
     }
   }
 });
