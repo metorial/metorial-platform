@@ -1,4 +1,4 @@
-.PHONY: build-mcp-runner run-mcp-runner proto-mcp-runner build-mcp-runner-client run-mcp-runner-client
+.PHONY: build-mcp-runner run-mcp-runner proto-mcp-runner build-mcp-runner-client run-mcp-runner-client build-manager run-manager proto-mcp-manager
 
 build-mcp-runner:
 	go build -o bin/mcp-runner ./cmd/mcp-runner
@@ -12,5 +12,14 @@ build-mcp-runner-client:
 run-mcp-runner-client: build-mcp-runner-client
 	./bin/mcp-runner-client $(ARGS)
 
+build-manager:
+	go build -o bin/manager ./cmd/manager
+
+run-manager: build-manager
+	./bin/manager $(ARGS)
+
 proto-mcp-runner:
 	cd pkg/proto-mcp-runner && protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative ./proto-mcp-runner.proto
+
+proto-mcp-manager:
+	cd pkg/proto-mcp-manager && protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative ./proto-mcp-manager.proto

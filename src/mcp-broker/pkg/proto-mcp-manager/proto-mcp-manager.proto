@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "proto-mcp-manager.proto";
+
+service McpManagerForWorker {
+  rpc ListManagers(ListManagersRequest) returns (ListManagersResponse);
+  rpc RegisterWorker(RegisterWorkerRequest) returns (RegisterWorkerResponse);
+}
+
+message ListManagersRequest {}
+
+message ListManagersResponse {
+  repeated Manager managers = 1;
+}
+
+message Manager {
+  string id = 1;
+  string address = 2;
+}
+
+enum WorkerType {
+  WORKER_TYPE_RUNNER = 0;
+}
+
+message RegisterWorkerRequest {
+  string worker_id = 1;
+  string address = 2;
+  WorkerType worker_type = 3;
+}
+
+message RegisterWorkerResponse {}
+

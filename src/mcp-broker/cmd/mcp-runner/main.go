@@ -6,42 +6,57 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 
+	"github.com/metorial/metorial/mcp-broker/pkg/addr"
 	"github.com/metorial/metorial/mcp-broker/pkg/docker"
 	mcp_runner "github.com/metorial/metorial/mcp-broker/pkg/mcp-runner"
+	"github.com/metorial/metorial/mcp-broker/pkg/worker"
 )
 
 func main() {
-	port := getConfig()
+	ownAddress, port, managerAddress := getConfig()
 
 	dockerManager := docker.NewDockerManager(docker.RuntimeDocker)
 	runner := mcp_runner.NewRunner(context.Background(), port, dockerManager)
 
 	go runner.Start()
 
+	worker, err := worker.NewWorker(runner.RunnerId(), ownAddress, managerAddress)
+	if err != nil {
+		log.Fatalf("Failed to create worker: %v", err)
+	}
+
+	log.Printf("Starting MCP Runner on port localhost:%d\n", port)
+
 	// Wait for interrupt signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	log.Println("State worker is running. Press Ctrl+C to stop.")
 	<-sigChan
 
 	log.Println("Received interrupt signal, shutting down...")
 	if err := runner.Stop(); err != nil {
 		log.Printf("Error during shutdown: %v", err)
 	}
+
+	if err := worker.Stop(); err != nil {
+		log.Printf("Error stopping worker: %v", err)
+	}
 }
 
-func getConfig() int {
-	portArg := flag.String("port", "50051", "Port for the MCP Runner to listen on")
+func getConfig() (string, int, string) {
+	ownAddressArg := flag.String("address", "localhost:50051", "Address for the MCP Runner to listen on")
+	managerAddressArg := flag.String("manager", "localhost:50050", "Address of the MCP Manager to connect to")
 	flag.Parse()
 
-	port, err := strconv.Atoi(*portArg)
+	address := *ownAddressArg
+	managerAddress := *managerAddressArg
+
+	port, err := addr.ExtractPort(address)
 	if err != nil {
 		log.Fatalf("Invalid port number: %v", err)
 	}
 
-	return port
+	return address, port, managerAddress
 }

@@ -25,7 +25,7 @@ func NewRunner(ctx context.Context, port int, dockerManager *docker.DockerManage
 	done := make(chan struct{})
 
 	state := newRunnerState(dockerManager, done)
-	state.startPrintStateRoutine(time.Second * 10)
+	state.startPrintStateRoutine(time.Second * 60 * 5)
 
 	log.Println("Runner ID:", state.RunnerID)
 	log.Println("Start Time:", state.StartTime)
@@ -68,4 +68,11 @@ func (r *runner) Stop() error {
 
 	log.Println("Runner stopped successfully")
 	return nil
+}
+
+func (r *runner) RunnerId() string {
+	if r.state == nil {
+		return ""
+	}
+	return r.state.RunnerID
 }

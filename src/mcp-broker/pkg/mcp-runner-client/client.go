@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	grpc_util "github.com/metorial/metorial/mcp-broker/pkg/grpc-util"
 	pb "github.com/metorial/metorial/mcp-broker/pkg/proto-mcp-runner"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -22,10 +23,12 @@ func NewMcpRunnerClient(address string) (*McpRunnerClient, error) {
 
 	client := pb.NewMcpRunnerClient(conn)
 
-	return &McpRunnerClient{
+	res := &McpRunnerClient{
 		conn:   conn,
 		client: client,
-	}, nil
+	}
+
+	return res, nil
 }
 
 func (c *McpRunnerClient) Close() error {
@@ -33,6 +36,10 @@ func (c *McpRunnerClient) Close() error {
 		return c.conn.Close()
 	}
 	return nil
+}
+
+func (c *McpRunnerClient) Wait() {
+	grpc_util.WaitForConnectionClose(c.conn)
 }
 
 func (c *McpRunnerClient) GetRunnerInfo() (*pb.RunnerInfoResponse, error) {
