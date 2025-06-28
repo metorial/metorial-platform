@@ -1,0 +1,153 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "proto-mcp-runner.proto";
+
+service McpRunner {
+  rpc GetRunnerInfo(RunnerInfoRequest) returns (RunnerInfoResponse);
+  rpc StreamRunnerHealth(RunnerHealthRequest) returns (stream RunnerHealthResponse);
+
+  rpc ListActiveRuns(Empty) returns (ActiveRunsResponse);
+  rpc ListDockerImages(Empty) returns (DockerImagesResponse);
+  rpc ListDockerContainers(Empty) returns (DockerContainersResponse);
+
+  rpc StreamMcpRun(stream McpRunRequest) returns (stream McpRunResponse);
+}
+
+enum RunnerStatus {
+  HEALTHY = 0;
+  UNHEALTHY = 1;
+}
+
+enum RunnerAcceptingJobs {
+  ACCEPTING = 0;
+  NOT_ACCEPTING = 1;
+}
+
+message RunnerInfoRequest {}
+
+message RunnerInfoResponse {
+  string runner_id = 1;
+  int64 start_time = 2;
+
+  RunnerAcceptingJobs accepting_runs = 3;
+  RunnerStatus status = 4;
+  uint32 active_runs = 5;
+  uint64 total_runs = 6;
+}
+
+message RunnerHealthRequest {}
+
+message RunnerHealthResponse {
+  string runner_id = 1;
+  RunnerStatus status = 2;
+  RunnerAcceptingJobs accepting_runs = 3;
+}
+
+message Empty {}
+
+message ActiveRunsResponse {
+  repeated RunInfo runs = 1;
+}
+
+message RunInfo {
+  string run_id = 1;
+  string docker_image = 2;
+  string max_memory = 6; // e.g., "512m" or "1g"
+  string max_cpu = 7; // e.g., "1"
+  int64 start_time = 3; 
+  int64 end_time = 4;
+}
+
+message DockerImagesResponse {
+  repeated DockerImageInfo images = 1;
+}
+
+message DockerImageInfo {
+  string name = 1;
+  string tag = 2;
+  string image_id = 3;
+  int64 last_used = 4; // Unix timestamp in seconds
+}
+
+message DockerContainersResponse {
+  repeated DockerContainerInfo containers = 1;
+}
+
+message DockerContainerInfo {
+  string container_id = 1;
+  string image_name = 2;
+  int32 exit_code = 3;
+  bool running = 4;
+}
+
+message RunConfig {
+  string docker_image = 1;
+  string command = 2;
+  map<string, string> env_vars = 3;
+  repeated string args = 4;
+  string max_memory = 5; // e.g., "512m" or "1g"
+  string max_cpu = 6; // e.g., "1"
+}
+
+message McpRunRequest {
+  oneof job_type {
+    McpRunRequestInit mcp_init = 1;
+    McpRunRequestMcpMessage mcp_message = 2;
+    McpRunRequestClose mcp_close = 3;
+  }
+}
+
+message McpRunResponse {
+  oneof job_type {
+    McpRunResponseMcpMessage mcp_message = 1;
+    McpRunResponseInit mcp_init = 2;
+
+    McpRunResponseOutput mcp_output = 3;
+    McpRunResponseError mcp_error = 4;
+    McpRunResponseClose mcp_close = 5;
+  }
+}
+
+message McpRunRequestInit {
+  RunConfig run_config = 1;
+}
+
+message McpRunResponseInit {
+  string run_id = 1; // Unique identifier for the run
+}
+
+message McpRunRequestMcpMessage {
+  string message = 1; 
+}
+
+message McpRunResponseMcpMessage {
+  string message = 1; 
+}
+
+enum McpRunErrorCode {
+  MCP_RUN_FAILED_TO_START = 0;
+  MCP_RUN_FAILED_TO_STOP = 1;
+  MCP_RUN_INVALID_MCP_MESSAGE = 2;
+}
+
+message McpRunResponseError {
+  string error_message = 1;
+  McpRunErrorCode error_code = 2;
+}
+
+message McpRunRequestClose {}
+
+message McpRunResponseClose {}
+
+enum McpOutputType {
+  MCP_JOB_OUTPUT_TYPE_STDOUT = 0;
+  MCP_JOB_OUTPUT_TYPE_STDERR = 1;
+}
+
+message McpRunResponseOutput {
+  McpOutputType output_type = 1;
+  repeated string lines = 2;
+}
+
