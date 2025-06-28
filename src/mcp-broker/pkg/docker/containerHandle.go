@@ -131,7 +131,12 @@ func (c *ContainerHandle) monitor() {
 		c.manager.mutex.Unlock()
 
 		if err != nil {
-			fmt.Printf("Container %s exited with error: %v\n", c.ID, err)
+			if exitError, ok := err.(*exec.ExitError); ok {
+				c.ExitCode = exitError.ExitCode()
+			} else {
+				c.ExitCode = -1 // Indicate an error occurred
+				fmt.Printf("Container %s exited with error: %v\n", c.ID, err)
+			}
 		}
 	}
 }

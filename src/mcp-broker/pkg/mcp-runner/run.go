@@ -119,5 +119,5 @@ func (m *Run) HandleInput(input string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse MCP message")
 	}
-	return m.input(message.GetStringPayload())
+	return m.input(message.GetStringPayload() + "\n")
 }

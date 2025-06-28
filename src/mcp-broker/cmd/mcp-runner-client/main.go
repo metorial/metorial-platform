@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	mcp_runner_client "github.com/metorial/metorial/mcp-broker/pkg/mcp-runner-client"
 	pb "github.com/metorial/metorial/mcp-broker/pkg/proto-mcp-runner"
@@ -50,7 +51,7 @@ func main() {
 	stream.AddSenderHandler(func(run *mcp_runner_client.Run) {
 		fmt.Printf("Run started with ID: %s\n", run.RemoteID)
 
-		init, _ := json.Marshal(map[string]interface{}{
+		msg, _ := json.Marshal(map[string]interface{}{
 			"jsonrpc": "2.0",
 			"id":      1,
 			"method":  "initialize",
@@ -64,9 +65,29 @@ func main() {
 			},
 		})
 
-		run.SendMessage(string(init))
+		run.SendMessage(string(msg))
+		fmt.Printf("Sent initialization message: %s\n", msg)
 
-		fmt.Printf("Sent initialization message: %s\n", init)
+		time.Sleep(100 * time.Millisecond)
+
+		msg, _ = json.Marshal(map[string]interface{}{
+			"jsonrpc": "2.0",
+			"method":  "notifications/initialized",
+		})
+
+		run.SendMessage(string(msg))
+		fmt.Printf("Sent initialized message: %s\n", msg)
+
+		time.Sleep(100 * time.Millisecond)
+
+		msg, _ = json.Marshal(map[string]interface{}{
+			"jsonrpc": "2.0",
+			"id":      2,
+			"method":  "tools/list",
+		})
+
+		run.SendMessage(string(msg))
+		fmt.Printf("Sent list tools: %s\n", msg)
 	})
 
 	err = stream.Start()

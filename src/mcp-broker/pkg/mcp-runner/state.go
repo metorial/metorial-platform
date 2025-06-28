@@ -2,6 +2,7 @@ package mcp_runner
 
 import (
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -66,6 +67,7 @@ func (state *RunnerState) removeRun(runID string) {
 func (state *RunnerState) StartRun(init *RunInit) (*Run, error) {
 	run, err := newRun(state, init)
 	if err != nil {
+		log.Printf("Failed to start run: %v", err)
 		return nil, mterror.WithInnerError("failed_to_start", "Failed to start run", err, map[string]any{})
 	}
 

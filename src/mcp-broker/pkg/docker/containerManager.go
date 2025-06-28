@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
-	"strings"
 	"sync"
 
 	"github.com/google/uuid"
@@ -67,15 +66,15 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 		return nil, fmt.Errorf("failed to update image usage: %w", err)
 	}
 
-	// Create command context
 	ctx, cancel := context.WithCancel(m.ctx)
 
-	containerID := fmt.Sprintf("mtsc_%s", strings.ReplaceAll(uuid.New().String(), "-", ""))
+	containerID := fmt.Sprintf("mtrc-%s", uuid.New().String())
 
 	dockerArgs := []string{
-		"run", "-i", "--rm",
+		"run", "--interactive", "--rm",
 		"--name", containerID,
 		"--env", fmt.Sprintf("METORIAL_CONTAINER_ID=%s", containerID),
+		"--env", "Metorial/Runner@2.0",
 	}
 
 	for key, value := range opts.Env {
