@@ -93,6 +93,10 @@ func (c *ContainerHandle) Wait() error {
 	return nil
 }
 
+func (c *ContainerHandle) Done() <-chan struct{} {
+	return c.done
+}
+
 func (c *ContainerHandle) monitor() {
 	err := c.cmd.Wait()
 

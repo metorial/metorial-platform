@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 type MessageType string
@@ -27,14 +28,19 @@ func (m *MCPMessage) GetStringId() string {
 	if m.ID == nil {
 		return ""
 	}
-	return string(*m.ID)
+
+	str, err := strconv.Unquote(string(*m.ID))
+	if err != nil {
+		return string(*m.ID) // Return raw if unquoting fails
+	}
+
+	return str
 }
 
 func (m *MCPMessage) GetStringPayload() string {
 	if m.Raw == nil {
 		return ""
 	}
-
 	return string(m.Raw)
 }
 
@@ -74,9 +80,9 @@ func ParseMCPMessage(stringData string) (*MCPMessage, error) {
 		msg.MsgType = RequestType
 	case msg.ID == nil && msg.Method != nil:
 		msg.MsgType = NotificationType
-	case raw["result"] != nil:
+	case msg.ID != nil && raw["result"] != nil:
 		msg.MsgType = ResponseType
-	case raw["error"] != nil:
+	case msg.ID != nil && raw["error"] != nil:
 		msg.MsgType = ErrorType
 	default:
 		msg.MsgType = UnknownType

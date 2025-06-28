@@ -1,6 +1,7 @@
 package mcp_runner
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -16,6 +17,7 @@ type Run struct {
 	container *docker.ContainerHandle
 	state     *RunnerState
 	StartTime time.Time
+	LastPing  time.Time
 }
 
 type RunInit struct {
@@ -53,14 +55,41 @@ func newRun(state *RunnerState, init *RunInit) (*Run, error) {
 		Init:      init,
 		ID:        uuid.New().String(),
 		StartTime: time.Now(),
+		LastPing:  time.Now(),
 
 		container: container,
 		state:     state,
 	}
 
 	go run.monitor()
+	go run.pingRoutine()
 
 	return run, nil
+}
+
+func (m *Run) pingRoutine() {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if time.Since(m.LastPing) > 10*time.Second {
+				// Container has not responded in a while, consider it dead
+				m.Stop()
+				return
+			}
+
+			// Send a ping message
+			pingMessage := fmt.Sprintf(`{"jsonrpc": "2.0", "id": "mtr/ping/%d", "method": "ping"}`, time.Now().UnixMicro())
+			if err := m.input(pingMessage + "\n"); err != nil {
+				fmt.Printf("Failed to send ping: %v\n", err)
+			}
+
+		case <-m.container.Done():
+			return
+		}
+	}
 }
 
 func (m *Run) monitor() {
@@ -104,7 +133,34 @@ func (m *Run) HandleOutput(messageHandler McpMessageHandler, outputHandler Outpu
 	m.output(func(outputType OutputType, line string) {
 		if outputType == OutputTypeStdout && strings.HasPrefix(line, "{") {
 			message, err := mcp.ParseMCPMessage(line)
-			if err != nil {
+
+			if err == nil {
+				// We count any message as a ping. As long as the server is sending messages,
+				// we consider it alive.
+				m.LastPing = time.Now()
+
+				// Handle ping requests
+				if message.MsgType == mcp.RequestType && *message.Method == "ping" {
+					resp, err := json.Marshal(map[string]interface{}{
+						"jsonrpc": "2.0",
+						"id":      message.ID,
+						"result":  map[string]interface{}{},
+					})
+					if err != nil {
+						fmt.Printf("Failed to marshal ping response: %v\n", err)
+						return
+					}
+
+					err = m.input(string(resp) + "\n")
+					return
+				}
+
+				// Handle ping responses
+				if message.MsgType == mcp.ResponseType && strings.HasPrefix(message.GetStringId(), "mtr/ping/") {
+					// Ignore ping responses
+					return
+				}
+
 				messageHandler(message)
 				return
 			}
