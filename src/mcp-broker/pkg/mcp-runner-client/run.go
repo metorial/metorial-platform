@@ -10,38 +10,39 @@ import (
 	pb "github.com/metorial/metorial/mcp-broker/pkg/proto-mcp-runner"
 )
 
-type MessageHandler func(*pb.McpRunResponseMcpMessage) error
-type ErrorHandler func(*pb.McpRunResponseError) error
-type OutputHandler func(*pb.McpRunResponseOutput) error
-type SenderHandler func(*Run)
-
 type Run struct {
+	context context.Context
+	close   context.CancelFunc
+
 	RemoteID string
 	Config   *pb.RunConfig
 
 	client pb.McpRunnerClient
 	stream pb.McpRunner_StreamMcpRunClient
-	done   chan struct{}
 
-	mutex sync.Mutex
+	createStreamWg sync.WaitGroup
 
-	messageHandlers []MessageHandler
-	errorHandlers   []ErrorHandler
-	outputHandlers  []OutputHandler
-	senderHandlers  []SenderHandler
+	messages chan *pb.McpRunResponseMcpMessage
+	errors   chan *pb.McpRunResponseError
+	output   chan *pb.McpRunResponseOutput
+
+	initError error
 }
 
 func NewRun(config *pb.RunConfig, client pb.McpRunnerClient) *Run {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &Run{
+		context: ctx,
+		close:   cancel,
+
 		Config: config,
 
 		client: client,
-		done:   make(chan struct{}),
 
-		messageHandlers: make([]MessageHandler, 0),
-		errorHandlers:   make([]ErrorHandler, 0),
-		outputHandlers:  make([]OutputHandler, 0),
-		senderHandlers:  make([]SenderHandler, 0),
+		messages: make(chan *pb.McpRunResponseMcpMessage),
+		errors:   make(chan *pb.McpRunResponseError),
+		output:   make(chan *pb.McpRunResponseOutput),
 	}
 }
 
@@ -54,64 +55,25 @@ func (r *Run) Start() error {
 		return fmt.Errorf("Run stream is already initialized")
 	}
 
-	r.mutex.Lock()
+	r.createStreamWg.Add(1)
 
-	stream, err := r.client.StreamMcpRun(context.Background())
-	if err != nil {
-		return fmt.Errorf("failed to start MCP run stream: %w", err)
+	go r.handleStream()
+
+	r.createStreamWg.Wait()
+
+	if r.initError != nil {
+		return fmt.Errorf("failed to create MCP run stream: %w", r.initError)
 	}
-
-	r.stream = stream
-
-	stream.Send(&pb.McpRunRequest{
-		JobType: &pb.McpRunRequest_McpInit{
-			McpInit: &pb.McpRunRequestInit{
-				RunConfig: r.Config,
-			},
-		},
-	})
-
-	resp, err := stream.Recv()
-	if err != nil {
-		return err
-	}
-
-	mcpErr := resp.GetMcpError()
-	if mcpErr != nil {
-		return mterror.New(
-			mcpErr.GetErrorCode().String(),
-			mcpErr.GetErrorMessage(),
-		)
-	}
-
-	init := resp.GetMcpInit()
-	if init == nil {
-		return mterror.New(
-			pb.McpRunErrorCode_MCP_RUN_FAILED_TO_START.String(),
-			"Runner did not return a valid MCP Init response",
-		)
-	}
-
-	r.RemoteID = init.RunId
-
-	r.mutex.Unlock()
-
-	for _, handler := range r.senderHandlers {
-		go handler(r)
-	}
-
-	r.processStream()
 
 	return nil
 }
 
 func (r *Run) SendMessage(message string) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	r.createStreamWg.Wait()
 
 	if r.stream == nil {
 		return mterror.New(
-			pb.McpRunErrorCode_MCP_RUN_FAILED_TO_START.String(),
+			pb.McpRunErrorCode_FAILED_TO_START.String(),
 			"Run stream is not initialized",
 		)
 	}
@@ -126,6 +88,8 @@ func (r *Run) SendMessage(message string) error {
 }
 
 func (r *Run) Close() error {
+	r.createStreamWg.Wait()
+
 	if r.stream == nil {
 		return fmt.Errorf("Run stream is not initialized")
 	}
@@ -141,104 +105,126 @@ func (r *Run) Close() error {
 
 	// Wait for the stream to close
 	select {
-	case <-r.done:
-		return nil
+	case <-r.context.Done():
 	case <-r.stream.Context().Done():
-		return fmt.Errorf("stream context done before close response received")
 	}
+
+	r.stream = nil
+
+	return nil
 }
 
-func (r *Run) AddMessageHandler(handler MessageHandler) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+func (r *Run) Messages() <-chan *pb.McpRunResponseMcpMessage {
+	return r.messages
+}
 
-	if handler == nil {
+func (r *Run) Errors() <-chan *pb.McpRunResponseError {
+	return r.errors
+}
+
+func (r *Run) Output() <-chan *pb.McpRunResponseOutput {
+	return r.output
+}
+
+func (r *Run) Done() <-chan struct{} {
+	return r.context.Done()
+}
+
+func (r *Run) Wait() {
+	<-r.context.Done()
+}
+
+func (r *Run) handleStream() {
+	defer r.close()
+	defer close(r.messages)
+	defer close(r.errors)
+	defer close(r.output)
+
+	stream, err := r.client.StreamMcpRun(context.Background())
+	if err != nil {
+		r.createStreamWg.Done()
+		r.initError = mterror.WithInnerError(
+			pb.McpRunErrorCode_FAILED_TO_START.String(),
+			"Could not connect to Metorial MCP Runner: "+err.Error(),
+			err,
+		)
 		return
 	}
 
-	r.messageHandlers = append(r.messageHandlers, handler)
-}
+	r.stream = stream
+	defer stream.CloseSend()
 
-func (r *Run) AddErrorHandler(handler ErrorHandler) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	stream.Send(&pb.McpRunRequest{
+		JobType: &pb.McpRunRequest_McpInit{
+			McpInit: &pb.McpRunRequestInit{
+				RunConfig: r.Config,
+			},
+		},
+	})
 
-	if handler == nil {
+	resp, err := stream.Recv()
+	if err != nil {
+		r.createStreamWg.Done()
+		r.initError = mterror.WithInnerError(
+			pb.McpRunErrorCode_FAILED_TO_START.String(),
+			"Could not connect to Metorial MCP Runner: "+err.Error(),
+			err,
+		)
 		return
 	}
 
-	r.errorHandlers = append(r.errorHandlers, handler)
-}
-
-func (r *Run) AddOutputHandler(handler OutputHandler) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if handler == nil {
+	mcpErr := resp.GetMcpError()
+	if mcpErr != nil {
+		r.createStreamWg.Done()
+		r.initError = mterror.New(
+			mcpErr.GetErrorCode().String(),
+			mcpErr.GetErrorMessage(),
+		)
 		return
 	}
 
-	r.outputHandlers = append(r.outputHandlers, handler)
-}
-
-func (r *Run) AddSenderHandler(handler SenderHandler) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if handler == nil {
+	init := resp.GetMcpInit()
+	if init == nil {
+		r.createStreamWg.Done()
+		r.initError = mterror.New(
+			pb.McpRunErrorCode_FAILED_TO_START.String(),
+			"Runner did not return a valid MCP Init response",
+		)
 		return
 	}
 
-	r.senderHandlers = append(r.senderHandlers, handler)
+	r.RemoteID = init.RunId
+
+	r.createStreamWg.Done()
+
+	r.processStream(stream)
+
+	fmt.Printf("Run %s has been initialized successfully\n", r.RemoteID)
 }
 
-func (r *Run) processStream() {
+func (r *Run) processStream(stream pb.McpRunner_StreamMcpRunClient) {
 
 loop:
 	for {
-		resp, err := r.stream.Recv()
+		resp, err := stream.Recv()
 		if err != nil {
 			log.Printf("Error receiving response: %v\n", err)
 			break
 		}
 
+		log.Printf("Received response: %v\n", resp)
+
 		switch msg := resp.JobType.(type) {
 
 		case *pb.McpRunResponse_McpMessage:
-			if len(r.messageHandlers) > 0 {
-				for _, handler := range r.messageHandlers {
-					if err := handler(msg.McpMessage); err != nil {
-						log.Printf("Error handling message: %v\n", err)
-					}
-				}
-			}
+			r.messages <- msg.McpMessage
+
 		case *pb.McpRunResponse_McpOutput:
-			if len(r.outputHandlers) > 0 {
-				for _, handler := range r.outputHandlers {
-					if err := handler(msg.McpOutput); err != nil {
-						log.Printf("Error handling output: %v\n", err)
-					}
-				}
-			}
+			r.output <- msg.McpOutput
 
 		case *pb.McpRunResponse_McpError:
-			if len(r.errorHandlers) > 0 {
-				for _, handler := range r.errorHandlers {
-					if err := handler(msg.McpError); err != nil {
-						log.Printf("Error handling error: %v\n", err)
-					}
-				}
-			} else {
-				log.Printf("MCP Error: %s\n", msg.McpError.ErrorMessage)
-			}
-
-			r.stream.Send(&pb.McpRunRequest{
-				JobType: &pb.McpRunRequest_McpClose{
-					McpClose: &pb.McpRunRequestClose{},
-				},
-			})
-
-			// No break here, since we want to wait for the close response
+			r.errors <- msg.McpError
+			go r.Close()
 
 		case *pb.McpRunResponse_McpClose:
 			log.Println("Run closed by server")
@@ -249,10 +235,4 @@ loop:
 		}
 	}
 
-	close(r.done)
-	if r.stream != nil {
-		if err := r.stream.CloseSend(); err != nil {
-			log.Printf("Error closing stream: %v\n", err)
-		}
-	}
 }

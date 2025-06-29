@@ -21,7 +21,7 @@ func main() {
 		log.Fatalf("Failed to create MCP Runner client: %v", err)
 	}
 
-	stream, err := client.StreamMcpRun(&pb.RunConfig{
+	run, err := client.StreamMcpRun(&pb.RunConfig{
 		DockerImage: image,
 		Args:        args,
 		EnvVars:     envFlags,
@@ -31,69 +31,80 @@ func main() {
 		log.Fatalf("Failed to start MCP run stream: %v", err)
 	}
 
-	stream.AddErrorHandler(func(mrre *pb.McpRunResponseError) error {
-		fmt.Printf("Error in MCP run: %s\n", mrre.ErrorMessage)
-		return nil
-	})
-
-	stream.AddOutputHandler(func(mrro *pb.McpRunResponseOutput) error {
-		for _, line := range mrro.Lines {
-			fmt.Printf("Output: %s\n", line)
+	go func() {
+		errors := run.Errors()
+		for err := range errors {
+			fmt.Printf("Error in MCP run: %s\n", err.ErrorMessage)
 		}
-		return nil
-	})
+	}()
 
-	stream.AddMessageHandler(func(mrmm *pb.McpRunResponseMcpMessage) error {
-		fmt.Printf("MCP Message: %s\n", mrmm.Message)
-		return nil
-	})
+	go func() {
+		outputs := run.Output()
+		for output := range outputs {
+			for _, line := range output.Lines {
+				if output.OutputType == pb.McpOutputType_STDOUT {
+					fmt.Printf("STDOUT: %s\n", line)
+				} else {
+					fmt.Printf("STDERR: %s\n", line)
+				}
+			}
+		}
+	}()
 
-	stream.AddSenderHandler(func(run *mcp_runner_client.Run) {
-		fmt.Printf("Run started with ID: %s\n", run.RemoteID)
+	go func() {
+		messages := run.Messages()
+		for msg := range messages {
+			fmt.Printf("MCP Message: %s\n", msg.Message)
+		}
+	}()
 
-		msg, _ := json.Marshal(map[string]interface{}{
-			"jsonrpc": "2.0",
-			"id":      1,
-			"method":  "initialize",
-			"params": map[string]interface{}{
-				"protocolVersion": "2024-11-05",
-				"capabilities":    map[string]interface{}{},
-				"clientInfo": map[string]string{
-					"name":    "Test Client",
-					"version": "1.0.0",
-				},
-			},
-		})
-
-		run.SendMessage(string(msg))
-		fmt.Printf("Sent initialization message: %s\n", msg)
-
-		time.Sleep(100 * time.Millisecond)
-
-		msg, _ = json.Marshal(map[string]interface{}{
-			"jsonrpc": "2.0",
-			"method":  "notifications/initialized",
-		})
-
-		run.SendMessage(string(msg))
-		fmt.Printf("Sent initialized message: %s\n", msg)
-
-		time.Sleep(100 * time.Millisecond)
-
-		msg, _ = json.Marshal(map[string]interface{}{
-			"jsonrpc": "2.0",
-			"id":      2,
-			"method":  "tools/list",
-		})
-
-		run.SendMessage(string(msg))
-		fmt.Printf("Sent list tools: %s\n", msg)
-	})
-
-	err = stream.Start()
+	err = run.Start()
 	if err != nil {
 		log.Fatalf("Failed to start MCP run: %v", err)
 	}
+
+	fmt.Printf("Run started with ID: %s\n", run.RemoteID)
+
+	msg, _ := json.Marshal(map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "initialize",
+		"params": map[string]interface{}{
+			"protocolVersion": "2024-11-05",
+			"capabilities":    map[string]interface{}{},
+			"clientInfo": map[string]string{
+				"name":    "Test Client",
+				"version": "1.0.0",
+			},
+		},
+	})
+
+	run.SendMessage(string(msg))
+	fmt.Printf("Sent initialization message: %s\n", msg)
+
+	time.Sleep(100 * time.Millisecond)
+
+	msg, _ = json.Marshal(map[string]interface{}{
+		"jsonrpc": "2.0",
+		"method":  "notifications/initialized",
+	})
+
+	run.SendMessage(string(msg))
+	fmt.Printf("Sent initialized message: %s\n", msg)
+
+	time.Sleep(100 * time.Millisecond)
+
+	msg, _ = json.Marshal(map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      2,
+		"method":  "tools/list",
+	})
+
+	run.SendMessage(string(msg))
+	fmt.Printf("Sent list tools: %s\n", msg)
+
+	run.Wait()
+
 }
 
 func getConfig() (string, string, string, []string, map[string]string) {
