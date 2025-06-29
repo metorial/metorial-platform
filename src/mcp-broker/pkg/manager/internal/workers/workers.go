@@ -1,6 +1,11 @@
 package workers
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/metorial/metorial/mcp-broker/pkg/mcp"
+	pb "github.com/metorial/metorial/mcp-broker/pkg/proto-mcp-runner"
+)
 
 type Worker interface {
 	WorkerID() string
@@ -8,6 +13,16 @@ type Worker interface {
 	Stop() error
 	AcceptingJobs() bool
 	Healthy() bool
+
+	CreateConnection(input WorkerConnectionInput) (WorkerConnection, error)
+}
+
+type WorkerConnectionInput struct {
+	RunConfig *pb.RunConfig
+	MCPClient *mcp.MCPClient
+
+	ConnectionID string
+	SessionID    string
 }
 
 type WorkersManager struct {
