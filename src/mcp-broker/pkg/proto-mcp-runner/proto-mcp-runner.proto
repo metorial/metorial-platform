@@ -127,9 +127,9 @@ message McpRunResponseMcpMessage {
 }
 
 enum McpRunErrorCode {
-  MCP_RUN_FAILED_TO_START = 0;
-  MCP_RUN_FAILED_TO_STOP = 1;
-  MCP_RUN_INVALID_MCP_MESSAGE = 2;
+  FAILED_TO_START = 0;
+  FAILED_TO_STOP = 1;
+  INVALID_MCP_MESSAGE = 2;
 }
 
 message McpRunResponseError {
@@ -142,8 +142,8 @@ message McpRunRequestClose {}
 message McpRunResponseClose {}
 
 enum McpOutputType {
-  MCP_JOB_OUTPUT_TYPE_STDOUT = 0;
-  MCP_JOB_OUTPUT_TYPE_STDERR = 1;
+ STDOUT = 0;
+ STDERR = 1;
 }
 
 message McpRunResponseOutput {

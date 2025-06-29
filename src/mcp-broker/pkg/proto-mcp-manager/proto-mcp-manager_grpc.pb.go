@@ -157,3 +157,63 @@ var McpManagerForWorker_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto-mcp-manager.proto",
 }
+
+// McpManagerClient is the client API for McpManager service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type McpManagerClient interface {
+}
+
+type mcpManagerClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewMcpManagerClient(cc grpc.ClientConnInterface) McpManagerClient {
+	return &mcpManagerClient{cc}
+}
+
+// McpManagerServer is the server API for McpManager service.
+// All implementations must embed UnimplementedMcpManagerServer
+// for forward compatibility.
+type McpManagerServer interface {
+	mustEmbedUnimplementedMcpManagerServer()
+}
+
+// UnimplementedMcpManagerServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedMcpManagerServer struct{}
+
+func (UnimplementedMcpManagerServer) mustEmbedUnimplementedMcpManagerServer() {}
+func (UnimplementedMcpManagerServer) testEmbeddedByValue()                    {}
+
+// UnsafeMcpManagerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to McpManagerServer will
+// result in compilation errors.
+type UnsafeMcpManagerServer interface {
+	mustEmbedUnimplementedMcpManagerServer()
+}
+
+func RegisterMcpManagerServer(s grpc.ServiceRegistrar, srv McpManagerServer) {
+	// If the following call pancis, it indicates UnimplementedMcpManagerServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&McpManager_ServiceDesc, srv)
+}
+
+// McpManager_ServiceDesc is the grpc.ServiceDesc for McpManager service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var McpManager_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "proto.McpManager",
+	HandlerType: (*McpManagerServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams:     []grpc.StreamDesc{},
+	Metadata:    "proto-mcp-manager.proto",
+}

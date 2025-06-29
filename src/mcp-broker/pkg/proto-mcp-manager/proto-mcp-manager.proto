@@ -32,3 +32,51 @@ message RegisterWorkerRequest {
 
 message RegisterWorkerResponse {}
 
+service McpManager {
+}
+
+message McpError {
+  enum McpErrorCode {
+    FAILED_TO_START = 0;
+    FAILED_TO_STOP = 1;
+    INVALID_MCP_MESSAGE = 2;
+    UNKNOWN_ERROR = 3;
+  }
+
+  string error_message = 1;
+  McpErrorCode error_code = 2;
+  string connection_id = 3;
+  string session_id = 4;
+}
+
+message McpOutput {
+  enum McpOutputType {
+    STDOUT = 0;
+    STDERR = 1;
+  }
+  
+  McpOutputType output_type = 1;
+  repeated string lines = 2;
+  string connection_id = 3;
+  string session_id = 4;
+}
+
+message McpMessageRaw {
+  string message = 1; 
+}
+
+message McpMessage {
+  enum McpMessageType {
+    REQUEST = 0;
+    RESPONSE = 1;  
+    NOTIFICATION = 2;
+    ERROR = 3;
+    UNKNOWN = 4;
+  }
+
+  McpMessageRaw mcp_message = 1;
+  McpMessageType message_type = 2;
+  string connection_id = 3;
+  string session_id = 4;
+}
+

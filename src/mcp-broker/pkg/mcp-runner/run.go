@@ -37,6 +37,7 @@ const (
 )
 
 type OutputHandler func(outputType OutputType, line string)
+type MultiOutputHandler func(outputType OutputType, line []string)
 
 func newRun(state *RunnerState, init *RunInit) (*Run, error) {
 	container, err := state.dockerManager.StartContainer(&docker.ContainerStartOptions{
@@ -129,12 +130,23 @@ func (m *Run) output(handler OutputHandler) {
 
 type McpMessageHandler func(message *mcp.MCPMessage)
 
-func (m *Run) HandleOutput(messageHandler McpMessageHandler, outputHandler OutputHandler) {
+func (m *Run) HandleOutput(messageHandler McpMessageHandler, outputHandler MultiOutputHandler) {
+	stdoutBuffer := NewLineBuffer(100*time.Millisecond, func(line []string) {
+		outputHandler(OutputTypeStdout, line)
+	})
+
+	stderrBuffer := NewLineBuffer(100*time.Millisecond, func(line []string) {
+		outputHandler(OutputTypeStderr, line)
+	})
+
 	m.output(func(outputType OutputType, line string) {
 		if outputType == OutputTypeStdout && strings.HasPrefix(line, "{") {
 			message, err := mcp.ParseMCPMessage(line)
 
 			if err == nil {
+				stdoutBuffer.Flush()
+				stderrBuffer.Flush()
+
 				// We count any message as a ping. As long as the server is sending messages,
 				// we consider it alive.
 				m.LastPing = time.Now()
@@ -143,7 +155,7 @@ func (m *Run) HandleOutput(messageHandler McpMessageHandler, outputHandler Outpu
 				if message.MsgType == mcp.RequestType && *message.Method == "ping" {
 					resp, err := json.Marshal(map[string]interface{}{
 						"jsonrpc": "2.0",
-						"id":      message.ID,
+						"id":      message.GetRawId(),
 						"result":  map[string]interface{}{},
 					})
 					if err != nil {
@@ -166,7 +178,12 @@ func (m *Run) HandleOutput(messageHandler McpMessageHandler, outputHandler Outpu
 			}
 		}
 
-		outputHandler(outputType, line)
+		if outputType == OutputTypeStdout {
+			stdoutBuffer.AddLine(line)
+		}
+		if outputType == OutputTypeStderr {
+			stderrBuffer.AddLine(line)
+		}
 	})
 }
 

@@ -144,7 +144,7 @@ func (s *runnerServer) StreamMcpRun(stream pb.McpRunner_StreamMcpRunServer) erro
 			JobType: &pb.McpRunResponse_McpError{
 				McpError: &pb.McpRunResponseError{
 					ErrorMessage: err.Error(),
-					ErrorCode:    pb.McpRunErrorCode_MCP_RUN_FAILED_TO_START,
+					ErrorCode:    pb.McpRunErrorCode_FAILED_TO_START,
 				},
 			},
 		})
@@ -174,20 +174,20 @@ func (s *runnerServer) StreamMcpRun(stream pb.McpRunner_StreamMcpRunServer) erro
 				fmt.Printf("Failed to send MCP message: %v\n", err)
 			}
 		},
-		func(outputType OutputType, message string) {
+		func(outputType OutputType, lines []string) {
 			var outputMsg *pb.McpRunResponse_McpOutput
 			if outputType == OutputTypeStdout {
 				outputMsg = &pb.McpRunResponse_McpOutput{
 					McpOutput: &pb.McpRunResponseOutput{
-						OutputType: pb.McpOutputType_MCP_JOB_OUTPUT_TYPE_STDOUT,
-						Lines:      []string{message},
+						OutputType: pb.McpOutputType_STDOUT,
+						Lines:      lines,
 					},
 				}
 			} else {
 				outputMsg = &pb.McpRunResponse_McpOutput{
 					McpOutput: &pb.McpRunResponseOutput{
-						OutputType: pb.McpOutputType_MCP_JOB_OUTPUT_TYPE_STDERR,
-						Lines:      []string{message},
+						OutputType: pb.McpOutputType_STDERR,
+						Lines:      lines,
 					},
 				}
 			}
@@ -220,7 +220,7 @@ func (s *runnerServer) StreamMcpRun(stream pb.McpRunner_StreamMcpRunServer) erro
 					JobType: &pb.McpRunResponse_McpError{
 						McpError: &pb.McpRunResponseError{
 							ErrorMessage: err.Error(),
-							ErrorCode:    pb.McpRunErrorCode_MCP_RUN_FAILED_TO_STOP,
+							ErrorCode:    pb.McpRunErrorCode_FAILED_TO_STOP,
 						},
 					},
 				})
@@ -239,7 +239,7 @@ func (s *runnerServer) StreamMcpRun(stream pb.McpRunner_StreamMcpRunServer) erro
 					JobType: &pb.McpRunResponse_McpError{
 						McpError: &pb.McpRunResponseError{
 							ErrorMessage: err.Error(),
-							ErrorCode:    pb.McpRunErrorCode_MCP_RUN_INVALID_MCP_MESSAGE,
+							ErrorCode:    pb.McpRunErrorCode_INVALID_MCP_MESSAGE,
 						},
 					},
 				})

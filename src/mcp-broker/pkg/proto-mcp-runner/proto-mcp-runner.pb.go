@@ -116,22 +116,22 @@ func (RunnerAcceptingJobs) EnumDescriptor() ([]byte, []int) {
 type McpRunErrorCode int32
 
 const (
-	McpRunErrorCode_MCP_RUN_FAILED_TO_START     McpRunErrorCode = 0
-	McpRunErrorCode_MCP_RUN_FAILED_TO_STOP      McpRunErrorCode = 1
-	McpRunErrorCode_MCP_RUN_INVALID_MCP_MESSAGE McpRunErrorCode = 2
+	McpRunErrorCode_FAILED_TO_START     McpRunErrorCode = 0
+	McpRunErrorCode_FAILED_TO_STOP      McpRunErrorCode = 1
+	McpRunErrorCode_INVALID_MCP_MESSAGE McpRunErrorCode = 2
 )
 
 // Enum value maps for McpRunErrorCode.
 var (
 	McpRunErrorCode_name = map[int32]string{
-		0: "MCP_RUN_FAILED_TO_START",
-		1: "MCP_RUN_FAILED_TO_STOP",
-		2: "MCP_RUN_INVALID_MCP_MESSAGE",
+		0: "FAILED_TO_START",
+		1: "FAILED_TO_STOP",
+		2: "INVALID_MCP_MESSAGE",
 	}
 	McpRunErrorCode_value = map[string]int32{
-		"MCP_RUN_FAILED_TO_START":     0,
-		"MCP_RUN_FAILED_TO_STOP":      1,
-		"MCP_RUN_INVALID_MCP_MESSAGE": 2,
+		"FAILED_TO_START":     0,
+		"FAILED_TO_STOP":      1,
+		"INVALID_MCP_MESSAGE": 2,
 	}
 )
 
@@ -165,19 +165,19 @@ func (McpRunErrorCode) EnumDescriptor() ([]byte, []int) {
 type McpOutputType int32
 
 const (
-	McpOutputType_MCP_JOB_OUTPUT_TYPE_STDOUT McpOutputType = 0
-	McpOutputType_MCP_JOB_OUTPUT_TYPE_STDERR McpOutputType = 1
+	McpOutputType_STDOUT McpOutputType = 0
+	McpOutputType_STDERR McpOutputType = 1
 )
 
 // Enum value maps for McpOutputType.
 var (
 	McpOutputType_name = map[int32]string{
-		0: "MCP_JOB_OUTPUT_TYPE_STDOUT",
-		1: "MCP_JOB_OUTPUT_TYPE_STDERR",
+		0: "STDOUT",
+		1: "STDERR",
 	}
 	McpOutputType_value = map[string]int32{
-		"MCP_JOB_OUTPUT_TYPE_STDOUT": 0,
-		"MCP_JOB_OUTPUT_TYPE_STDERR": 1,
+		"STDOUT": 0,
+		"STDERR": 1,
 	}
 )
 
@@ -1349,7 +1349,7 @@ func (x *McpRunResponseError) GetErrorCode() McpRunErrorCode {
 	if x != nil {
 		return x.ErrorCode
 	}
-	return McpRunErrorCode_MCP_RUN_FAILED_TO_START
+	return McpRunErrorCode_FAILED_TO_START
 }
 
 type McpRunRequestClose struct {
@@ -1466,7 +1466,7 @@ func (x *McpRunResponseOutput) GetOutputType() McpOutputType {
 	if x != nil {
 		return x.OutputType
 	}
-	return McpOutputType_MCP_JOB_OUTPUT_TYPE_STDOUT
+	return McpOutputType_STDOUT
 }
 
 func (x *McpRunResponseOutput) GetLines() []string {
@@ -1578,14 +1578,16 @@ const file_proto_mcp_runner_proto_rawDesc = "" +
 	"\tUNHEALTHY\x10\x01*7\n" +
 	"\x13RunnerAcceptingJobs\x12\r\n" +
 	"\tACCEPTING\x10\x00\x12\x11\n" +
-	"\rNOT_ACCEPTING\x10\x01*k\n" +
-	"\x0fMcpRunErrorCode\x12\x1b\n" +
-	"\x17MCP_RUN_FAILED_TO_START\x10\x00\x12\x1a\n" +
-	"\x16MCP_RUN_FAILED_TO_STOP\x10\x01\x12\x1f\n" +
-	"\x1bMCP_RUN_INVALID_MCP_MESSAGE\x10\x02*O\n" +
-	"\rMcpOutputType\x12\x1e\n" +
-	"\x1aMCP_JOB_OUTPUT_TYPE_STDOUT\x10\x00\x12\x1e\n" +
-	"\x1aMCP_JOB_OUTPUT_TYPE_STDERR\x10\x012\xa4\x03\n" +
+	"\rNOT_ACCEPTING\x10\x01*S\n" +
+	"\x0fMcpRunErrorCode\x12\x13\n" +
+	"\x0fFAILED_TO_START\x10\x00\x12\x12\n" +
+	"\x0eFAILED_TO_STOP\x10\x01\x12\x17\n" +
+	"\x13INVALID_MCP_MESSAGE\x10\x02*'\n" +
+	"\rMcpOutputType\x12\n" +
+	"\n" +
+	"\x06STDOUT\x10\x00\x12\n" +
+	"\n" +
+	"\x06STDERR\x10\x012\xa4\x03\n" +
 	"\tMcpRunner\x12D\n" +
 	"\rGetRunnerInfo\x12\x18.proto.RunnerInfoRequest\x1a\x19.proto.RunnerInfoResponse\x12O\n" +
 	"\x12StreamRunnerHealth\x12\x1a.proto.RunnerHealthRequest\x1a\x1b.proto.RunnerHealthResponse0\x01\x129\n" +

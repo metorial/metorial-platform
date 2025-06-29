@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/metorial/metorial/mcp-broker/pkg/docker"
-	mterror "github.com/metorial/metorial/mcp-broker/pkg/mt-error"
 )
 
 type RunnerState struct {
@@ -68,7 +67,7 @@ func (state *RunnerState) StartRun(init *RunInit) (*Run, error) {
 	run, err := newRun(state, init)
 	if err != nil {
 		log.Printf("Failed to start run: %v", err)
-		return nil, mterror.WithInnerError("failed_to_start", "Failed to start run", err, map[string]any{})
+		return nil, fmt.Errorf("failed to start run: %w", err)
 	}
 
 	state.addRun(run)
