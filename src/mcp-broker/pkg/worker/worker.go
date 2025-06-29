@@ -103,14 +103,10 @@ func (w *Worker) connectToNewManagers() error {
 		return err
 	}
 
-	log.Printf("Found %d managers", len(managers.Managers))
-
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 
 	for _, manager := range managers.Managers {
-		log.Printf("Found manager: %s at %s", manager.Id, manager.Address)
-
 		if slices.Contains(w.seenManagers, manager.Id) {
 			continue
 		}
@@ -124,7 +120,7 @@ func (w *Worker) connectToNewManagers() error {
 }
 
 func (w *Worker) connectToNewManagersRoutine() {
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 
 	if err := w.connectToNewManagers(); err != nil {
