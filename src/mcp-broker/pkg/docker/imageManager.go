@@ -8,8 +8,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	mterror "github.com/metorial/metorial/mcp-broker/pkg/mt-error"
 )
 
 const CleanupInterval = 5 * time.Minute
@@ -53,11 +51,7 @@ func (im *ImageManager) downloadImage(name string, tag *string) error {
 	cmd := exec.Command("docker", "pull", fullName)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return mterror.WithDetails("image_download_failed", fmt.Sprintf("Failed to pull image %s", fullName), map[string]interface{}{
-			"error":   err.Error(),
-			"output":  string(output),
-			"command": cmd.String(),
-		})
+		return fmt.Errorf("failed to pull image %s: %w\nOutput: %s", fullName, err, string(output))
 	}
 
 	imageID, err := im.getImageID(fullName)
