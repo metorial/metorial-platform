@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/metorial/metorial/mcp-broker/pkg/proto-mcp-manager"
+	workerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/managerForWorker"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -17,7 +17,7 @@ type Worker struct {
 	Address  string
 
 	conn   *grpc.ClientConn
-	client pb.McpManagerForWorkerClient
+	client workerPb.McpManagerForWorkerClient
 
 	done      chan struct{}
 	closeOnce sync.Once
@@ -33,7 +33,7 @@ func NewWorker(workerID, ownAddress string, managerAddress string) (*Worker, err
 		return nil, err
 	}
 
-	client := pb.NewMcpManagerForWorkerClient(conn)
+	client := workerPb.NewMcpManagerForWorkerClient(conn)
 
 	worker := &Worker{
 		WorkerID: workerID,
@@ -77,12 +77,12 @@ func (w *Worker) registerWithManager(address string) error {
 
 	defer conn.Close()
 
-	client := pb.NewMcpManagerForWorkerClient(conn)
+	client := workerPb.NewMcpManagerForWorkerClient(conn)
 
-	_, err = client.RegisterWorker(context.Background(), &pb.RegisterWorkerRequest{
+	_, err = client.RegisterWorker(context.Background(), &workerPb.RegisterWorkerRequest{
 		WorkerId:   w.WorkerID,
 		Address:    w.Address,
-		WorkerType: pb.WorkerType_WORKER_TYPE_RUNNER,
+		WorkerType: workerPb.WorkerType_WORKER_TYPE_RUNNER,
 	})
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func (w *Worker) connectToNewManagers() error {
 		return nil
 	}
 
-	managers, err := w.client.ListManagers(context.Background(), &pb.ListManagersRequest{})
+	managers, err := w.client.ListManagers(context.Background(), &workerPb.ListManagersRequest{})
 	if err != nil {
 		return err
 	}

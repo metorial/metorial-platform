@@ -1,4 +1,4 @@
-.PHONY: build-mcp-runner run-mcp-runner proto-mcp-runner build-mcp-runner-client run-mcp-runner-client build-manager run-manager proto-mcp-manager
+.PHONY: build-mcp-runner run-mcp-runner proto-mcp-runner build-mcp-runner-client run-mcp-runner-client build-manager run-manager proto-mcp-manager proto
 
 build-mcp-runner:
 	go build -o bin/mcp-runner ./cmd/mcp-runner
@@ -18,8 +18,20 @@ build-manager:
 run-manager: build-manager
 	./bin/manager $(ARGS)
 
-proto-mcp-runner:
-	cd pkg/proto-mcp-runner && protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative ./proto-mcp-runner.proto
+proto:
+	cd proto && \
+	mkdir -p ../gen && \
+	protoc \
+		--proto_path=. \
+		--go_out=../gen \
+		--go-grpc_out=../gen \
+		common.proto \
+		manager.proto \
+		managerForWorker.proto \
+		mcp.proto \
+		runner.proto && \
+	cp -r ../gen/github.com/metorial/metorial/mcp-broker/* ../ && \
+	rm -rf ../gen/github.com 
 
 proto-mcp-manager:
 	cd pkg/proto-mcp-manager && protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative ./proto-mcp-manager.proto

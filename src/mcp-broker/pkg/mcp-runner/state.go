@@ -21,13 +21,12 @@ type RunnerState struct {
 	total_runs  uint64
 
 	mutex sync.Mutex
-	done  chan struct{}
+	done  <-chan struct{}
 }
 
-func newRunnerState(dockerManager *docker.DockerManager, done chan struct{}) *RunnerState {
+func newRunnerState(dockerManager *docker.DockerManager, done <-chan struct{}) *RunnerState {
 	return &RunnerState{
-
-		RunnerID:  uuid.New().String(),
+		RunnerID:  uuid.NewString(),
 		StartTime: time.Now(),
 
 		health: NewRunnerHealthManager(),

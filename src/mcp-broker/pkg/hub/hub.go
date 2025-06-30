@@ -56,3 +56,14 @@ func (h *Hub) Send(msg any) {
 func (h *Hub) Unsubscribe(client chan any) {
 	h.unregister <- client
 }
+
+func (h *Hub) Close() {
+	close(h.broadcast)
+	close(h.register)
+	close(h.unregister)
+
+	for client := range h.clients {
+		close(client)
+		delete(h.clients, client)
+	}
+}

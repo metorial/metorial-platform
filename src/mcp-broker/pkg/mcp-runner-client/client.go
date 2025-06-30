@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 
+	runnerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/runner"
 	grpc_util "github.com/metorial/metorial/mcp-broker/pkg/grpc-util"
-	pb "github.com/metorial/metorial/mcp-broker/pkg/proto-mcp-runner"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 type McpRunnerClient struct {
 	conn   *grpc.ClientConn
-	client pb.McpRunnerClient
+	client runnerPb.McpRunnerClient
 }
 
 func NewMcpRunnerClient(address string) (*McpRunnerClient, error) {
@@ -21,7 +21,7 @@ func NewMcpRunnerClient(address string) (*McpRunnerClient, error) {
 		return nil, err
 	}
 
-	client := pb.NewMcpRunnerClient(conn)
+	client := runnerPb.NewMcpRunnerClient(conn)
 
 	res := &McpRunnerClient{
 		conn:   conn,
@@ -42,20 +42,20 @@ func (c *McpRunnerClient) Wait() {
 	grpc_util.WaitForConnectionClose(c.conn)
 }
 
-func (c *McpRunnerClient) GetRunnerInfo() (*pb.RunnerInfoResponse, error) {
+func (c *McpRunnerClient) GetRunnerInfo() (*runnerPb.RunnerInfoResponse, error) {
 	if c.client == nil {
 		return nil, fmt.Errorf("McpRunnerClient is not initialized")
 	}
 
-	return c.client.GetRunnerInfo(context.Background(), &pb.RunnerInfoRequest{})
+	return c.client.GetRunnerInfo(context.Background(), &runnerPb.RunnerInfoRequest{})
 }
 
-func (c *McpRunnerClient) StreamRunnerHealth(onHealthUpdate func(*pb.RunnerHealthResponse)) error {
+func (c *McpRunnerClient) StreamRunnerHealth(onHealthUpdate func(*runnerPb.RunnerHealthResponse)) error {
 	if c.client == nil {
 		return fmt.Errorf("McpRunnerClient is not initialized")
 	}
 
-	stream, err := c.client.StreamRunnerHealth(context.Background(), &pb.RunnerHealthRequest{})
+	stream, err := c.client.StreamRunnerHealth(context.Background(), &runnerPb.RunnerHealthRequest{})
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (c *McpRunnerClient) StreamRunnerHealth(onHealthUpdate func(*pb.RunnerHealt
 	}
 }
 
-func (c *McpRunnerClient) StreamMcpRun(config *pb.RunConfig) (*Run, error) {
+func (c *McpRunnerClient) StreamMcpRun(config *runnerPb.RunConfig) (*Run, error) {
 	if c.client == nil {
 		return nil, fmt.Errorf("McpRunnerClient is not initialized")
 	}

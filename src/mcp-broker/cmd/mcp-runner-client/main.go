@@ -9,8 +9,9 @@ import (
 	"strings"
 	"time"
 
+	mcpPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
+	runnerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/runner"
 	mcp_runner_client "github.com/metorial/metorial/mcp-broker/pkg/mcp-runner-client"
-	pb "github.com/metorial/metorial/mcp-broker/pkg/proto-mcp-runner"
 )
 
 func main() {
@@ -21,11 +22,15 @@ func main() {
 		log.Fatalf("Failed to create MCP Runner client: %v", err)
 	}
 
-	run, err := client.StreamMcpRun(&pb.RunConfig{
-		DockerImage: image,
-		Args:        args,
-		EnvVars:     envFlags,
-		Command:     cmd,
+	run, err := client.StreamMcpRun(&runnerPb.RunConfig{
+		Container: &runnerPb.RunConfigContainer{
+			DockerImage: image,
+		},
+		ContainerArguments: &runnerPb.RunConfigContainerArguments{
+			Args:    args,
+			EnvVars: envFlags,
+			Command: cmd,
+		},
 	})
 	if err != nil {
 		log.Fatalf("Failed to start MCP run stream: %v", err)
@@ -34,15 +39,19 @@ func main() {
 	go func() {
 		errors := run.Errors()
 		for err := range errors {
-			fmt.Printf("Error in MCP run: %s\n", err.ErrorMessage)
+			fmt.Printf("Error in MCP run: %s\n", err.McpError.ErrorMessage)
 		}
 	}()
 
 	go func() {
 		outputs := run.Output()
 		for output := range outputs {
-			for _, line := range output.Lines {
-				if output.OutputType == pb.McpOutputType_STDOUT {
+			if output.McpOutput == nil {
+				continue
+			}
+
+			for _, line := range output.McpOutput.Lines {
+				if output.McpOutput.OutputType == mcpPb.McpOutput_stdout {
 					fmt.Printf("STDOUT: %s\n", line)
 				} else {
 					fmt.Printf("STDERR: %s\n", line)

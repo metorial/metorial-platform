@@ -8,9 +8,10 @@ import (
 	"time"
 
 	"github.com/metorial/metorial/mcp-broker/pkg/docker"
-	pb "github.com/metorial/metorial/mcp-broker/pkg/proto-mcp-runner"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	runnerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/runner"
 )
 
 type runner struct {
@@ -22,9 +23,7 @@ type runner struct {
 }
 
 func NewRunner(ctx context.Context, port int, dockerManager *docker.DockerManager) *runner {
-	done := make(chan struct{})
-
-	state := newRunnerState(dockerManager, done)
+	state := newRunnerState(dockerManager, ctx.Done())
 	state.startPrintStateRoutine(time.Second * 60 * 5)
 
 	log.Println("Runner ID:", state.RunnerID)
@@ -48,7 +47,7 @@ func (r *runner) Start() error {
 	s := grpc.NewServer()
 	r.grpcServer = s
 
-	pb.RegisterMcpRunnerServer(s, r.server)
+	runnerPb.RegisterMcpRunnerServer(s, r.server)
 
 	reflection.Register(s)
 

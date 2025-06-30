@@ -54,7 +54,7 @@ func newRun(state *RunnerState, init *RunInit) (*Run, error) {
 
 	run := &Run{
 		Init:      init,
-		ID:        uuid.New().String(),
+		ID:        uuid.NewString(),
 		StartTime: time.Now(),
 		LastPing:  time.Now(),
 

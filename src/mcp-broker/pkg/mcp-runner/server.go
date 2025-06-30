@@ -4,20 +4,22 @@ import (
 	"context"
 	"fmt"
 
+	commonPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/common"
+	mcpPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
+	runnerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/runner"
 	"github.com/metorial/metorial/mcp-broker/pkg/mcp"
-	pb "github.com/metorial/metorial/mcp-broker/pkg/proto-mcp-runner"
 )
 
 type runnerServer struct {
-	pb.UnimplementedMcpRunnerServer
+	runnerPb.UnimplementedMcpRunnerServer
 
 	state *RunnerState
 }
 
-func (s *runnerServer) GetRunnerInfo(context.Context, *pb.RunnerInfoRequest) (*pb.RunnerInfoResponse, error) {
+func (s *runnerServer) GetRunnerInfo(context.Context, *runnerPb.RunnerInfoRequest) (*runnerPb.RunnerInfoResponse, error) {
 	health := s.getRunnerHealth()
 
-	res := &pb.RunnerInfoResponse{
+	res := &runnerPb.RunnerInfoResponse{
 		RunnerId:  s.state.RunnerID,
 		StartTime: s.state.StartTime.Unix(),
 
@@ -31,25 +33,25 @@ func (s *runnerServer) GetRunnerInfo(context.Context, *pb.RunnerInfoRequest) (*p
 	return res, nil
 }
 
-func (s *runnerServer) getRunnerHealth() *pb.RunnerHealthResponse {
-	res := &pb.RunnerHealthResponse{
+func (s *runnerServer) getRunnerHealth() *runnerPb.RunnerHealthResponse {
+	res := &runnerPb.RunnerHealthResponse{
 		RunnerId:      s.state.RunnerID,
-		Status:        pb.RunnerStatus_HEALTHY,
-		AcceptingRuns: pb.RunnerAcceptingJobs_ACCEPTING,
+		Status:        runnerPb.RunnerStatus_HEALTHY,
+		AcceptingRuns: runnerPb.RunnerAcceptingJobs_ACCEPTING,
 	}
 
 	if !s.state.health.Health.healthy {
-		res.Status = pb.RunnerStatus_UNHEALTHY
+		res.Status = runnerPb.RunnerStatus_UNHEALTHY
 	}
 
 	if !s.state.health.Health.acceptingRuns {
-		res.AcceptingRuns = pb.RunnerAcceptingJobs_NOT_ACCEPTING
+		res.AcceptingRuns = runnerPb.RunnerAcceptingJobs_NOT_ACCEPTING
 	}
 
 	return res
 }
 
-func (s *runnerServer) StreamRunnerHealth(req *pb.RunnerHealthRequest, stream pb.McpRunner_StreamRunnerHealthServer) error {
+func (s *runnerServer) StreamRunnerHealth(req *runnerPb.RunnerHealthRequest, stream runnerPb.McpRunner_StreamRunnerHealthServer) error {
 	if err := stream.Send(s.getRunnerHealth()); err != nil {
 		return err
 	}
@@ -67,12 +69,12 @@ func (s *runnerServer) StreamRunnerHealth(req *pb.RunnerHealthRequest, stream pb
 	}
 }
 
-func (s *runnerServer) ListActiveRuns(ctx context.Context, req *pb.Empty) (*pb.ActiveRunsResponse, error) {
+func (s *runnerServer) ListActiveRuns(ctx context.Context, req *commonPb.Empty) (*runnerPb.ActiveRunsResponse, error) {
 	runs := s.state.ListActiveRuns()
 
-	activeRuns := make([]*pb.RunInfo, len(runs))
+	activeRuns := make([]*runnerPb.RunInfo, len(runs))
 	for i, run := range runs {
-		activeRuns[i] = &pb.RunInfo{
+		activeRuns[i] = &runnerPb.RunInfo{
 			RunId:       run.ID,
 			DockerImage: run.Init.DockerImage,
 			MaxMemory:   run.Init.ContainerMaxMemory,
@@ -81,15 +83,15 @@ func (s *runnerServer) ListActiveRuns(ctx context.Context, req *pb.Empty) (*pb.A
 		}
 	}
 
-	return &pb.ActiveRunsResponse{Runs: activeRuns}, nil
+	return &runnerPb.ActiveRunsResponse{Runs: activeRuns}, nil
 }
 
-func (s *runnerServer) ListDockerImages(ctx context.Context, req *pb.Empty) (*pb.DockerImagesResponse, error) {
+func (s *runnerServer) ListDockerImages(ctx context.Context, req *commonPb.Empty) (*runnerPb.DockerImagesResponse, error) {
 	images := s.state.dockerManager.ListImages()
 
-	imageInfos := make([]*pb.DockerImageInfo, len(images))
+	imageInfos := make([]*runnerPb.DockerImageInfo, len(images))
 	for i, image := range images {
-		imageInfos[i] = &pb.DockerImageInfo{
+		imageInfos[i] = &runnerPb.DockerImageInfo{
 			Name:     image.Name,
 			Tag:      image.Tag,
 			ImageId:  image.ImageID,
@@ -97,15 +99,15 @@ func (s *runnerServer) ListDockerImages(ctx context.Context, req *pb.Empty) (*pb
 		}
 	}
 
-	return &pb.DockerImagesResponse{Images: imageInfos}, nil
+	return &runnerPb.DockerImagesResponse{Images: imageInfos}, nil
 }
 
-func (s *runnerServer) ListDockerContainers(ctx context.Context, req *pb.Empty) (*pb.DockerContainersResponse, error) {
+func (s *runnerServer) ListDockerContainers(ctx context.Context, req *commonPb.Empty) (*runnerPb.DockerContainersResponse, error) {
 	containers := s.state.dockerManager.ListContainers()
 
-	containerInfos := make([]*pb.DockerContainerInfo, len(containers))
+	containerInfos := make([]*runnerPb.DockerContainerInfo, len(containers))
 	for i, container := range containers {
-		containerInfos[i] = &pb.DockerContainerInfo{
+		containerInfos[i] = &runnerPb.DockerContainerInfo{
 			ContainerId: container.ID,
 			ImageName:   container.ImageRef,
 			ExitCode:    int32(container.ExitCode),
@@ -113,10 +115,10 @@ func (s *runnerServer) ListDockerContainers(ctx context.Context, req *pb.Empty) 
 		}
 	}
 
-	return &pb.DockerContainersResponse{Containers: containerInfos}, nil
+	return &runnerPb.DockerContainersResponse{Containers: containerInfos}, nil
 }
 
-func (s *runnerServer) StreamMcpRun(stream pb.McpRunner_StreamMcpRunServer) error {
+func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer) error {
 	req, err := stream.Recv()
 	if err != nil {
 		if err == context.Canceled {
@@ -126,33 +128,37 @@ func (s *runnerServer) StreamMcpRun(stream pb.McpRunner_StreamMcpRunServer) erro
 		return err // Other error
 	}
 
-	msg, ok := req.JobType.(*pb.McpRunRequest_McpInit)
+	msg, ok := req.JobType.(*runnerPb.RunRequest_Init)
 	if !ok {
 		return fmt.Errorf("expected McpInit request, got %T", req.JobType)
 	}
 
 	run, err := s.state.StartRun(&RunInit{
-		DockerImage:        msg.McpInit.RunConfig.DockerImage,
-		ContainerEnv:       msg.McpInit.RunConfig.EnvVars,
-		ContainerArgs:      msg.McpInit.RunConfig.Args,
-		ContainerCommand:   msg.McpInit.RunConfig.Command,
-		ContainerMaxMemory: msg.McpInit.RunConfig.MaxMemory,
-		ContainerMaxCPU:    msg.McpInit.RunConfig.MaxCpu,
+		DockerImage:        msg.Init.RunConfig.Container.DockerImage,
+		ContainerMaxMemory: msg.Init.RunConfig.Container.MaxMemory,
+		ContainerMaxCPU:    msg.Init.RunConfig.Container.MaxCpu,
+
+		ContainerEnv:     msg.Init.RunConfig.ContainerArguments.EnvVars,
+		ContainerArgs:    msg.Init.RunConfig.ContainerArguments.Args,
+		ContainerCommand: msg.Init.RunConfig.ContainerArguments.Command,
 	})
 	if err != nil {
-		return stream.Send(&pb.McpRunResponse{
-			JobType: &pb.McpRunResponse_McpError{
-				McpError: &pb.McpRunResponseError{
-					ErrorMessage: err.Error(),
-					ErrorCode:    pb.McpRunErrorCode_FAILED_TO_START,
+		return stream.Send(&runnerPb.RunResponse{
+			JobType: &runnerPb.RunResponse_Error{
+				Error: &runnerPb.RunResponseError{
+					McpError: &mcpPb.McpError{
+						ErrorMessage: err.Error(),
+						ErrorCode:    mcpPb.McpError_failed_to_start,
+					},
 				},
 			},
 		})
+
 	}
 
-	if err := stream.Send(&pb.McpRunResponse{
-		JobType: &pb.McpRunResponse_McpInit{
-			McpInit: &pb.McpRunResponseInit{
+	if err := stream.Send(&runnerPb.RunResponse{
+		JobType: &runnerPb.RunResponse_Init{
+			Init: &runnerPb.RunResponseInit{
 				RunId: run.ID,
 			},
 		},
@@ -162,10 +168,12 @@ func (s *runnerServer) StreamMcpRun(stream pb.McpRunner_StreamMcpRunServer) erro
 
 	go run.HandleOutput(
 		func(message *mcp.MCPMessage) {
-			err := stream.Send(&pb.McpRunResponse{
-				JobType: &pb.McpRunResponse_McpMessage{
-					McpMessage: &pb.McpRunResponseMcpMessage{
-						Message: message.GetStringPayload(),
+			err := stream.Send(&runnerPb.RunResponse{
+				JobType: &runnerPb.RunResponse_McpMessage{
+					McpMessage: &runnerPb.RunResponseMcpMessage{
+						Message: &mcpPb.McpMessageRaw{
+							Message: message.GetStringPayload(),
+						},
 					},
 				},
 			})
@@ -175,24 +183,28 @@ func (s *runnerServer) StreamMcpRun(stream pb.McpRunner_StreamMcpRunServer) erro
 			}
 		},
 		func(outputType OutputType, lines []string) {
-			var outputMsg *pb.McpRunResponse_McpOutput
+			var outputMsg *runnerPb.RunResponse_Output
 			if outputType == OutputTypeStdout {
-				outputMsg = &pb.McpRunResponse_McpOutput{
-					McpOutput: &pb.McpRunResponseOutput{
-						OutputType: pb.McpOutputType_STDOUT,
-						Lines:      lines,
+				outputMsg = &runnerPb.RunResponse_Output{
+					Output: &runnerPb.RunResponseOutput{
+						McpOutput: &mcpPb.McpOutput{
+							OutputType: mcpPb.McpOutput_stdout,
+							Lines:      lines,
+						},
 					},
 				}
 			} else {
-				outputMsg = &pb.McpRunResponse_McpOutput{
-					McpOutput: &pb.McpRunResponseOutput{
-						OutputType: pb.McpOutputType_STDERR,
-						Lines:      lines,
+				outputMsg = &runnerPb.RunResponse_Output{
+					Output: &runnerPb.RunResponseOutput{
+						McpOutput: &mcpPb.McpOutput{
+							OutputType: mcpPb.McpOutput_stderr,
+							Lines:      lines,
+						},
 					},
 				}
 			}
 
-			if err := stream.Send(&pb.McpRunResponse{JobType: outputMsg}); err != nil {
+			if err := stream.Send(&runnerPb.RunResponse{JobType: outputMsg}); err != nil {
 				fmt.Printf("Failed to send output message: %v\n", err)
 			}
 		},
@@ -211,35 +223,39 @@ func (s *runnerServer) StreamMcpRun(stream pb.McpRunner_StreamMcpRunServer) erro
 		}
 
 		switch msg := req.JobType.(type) {
-		case *pb.McpRunRequest_McpInit:
+		case *runnerPb.RunRequest_Init:
 			continue
 
-		case *pb.McpRunRequest_McpClose:
+		case *runnerPb.RunRequest_Close:
 			if err := run.Stop(); err != nil {
-				return stream.Send(&pb.McpRunResponse{
-					JobType: &pb.McpRunResponse_McpError{
-						McpError: &pb.McpRunResponseError{
-							ErrorMessage: err.Error(),
-							ErrorCode:    pb.McpRunErrorCode_FAILED_TO_STOP,
+				return stream.Send(&runnerPb.RunResponse{
+					JobType: &runnerPb.RunResponse_Error{
+						Error: &runnerPb.RunResponseError{
+							McpError: &mcpPb.McpError{
+								ErrorMessage: err.Error(),
+								ErrorCode:    mcpPb.McpError_failed_to_stop,
+							},
 						},
 					},
 				})
 			}
 
-			return stream.Send(&pb.McpRunResponse{
-				JobType: &pb.McpRunResponse_McpClose{
-					McpClose: &pb.McpRunResponseClose{},
+			return stream.Send(&runnerPb.RunResponse{
+				JobType: &runnerPb.RunResponse_Close{
+					Close: &runnerPb.RunResponseClose{},
 				},
 			})
 
-		case *pb.McpRunRequest_McpMessage:
-			err = run.HandleInput(msg.McpMessage.Message)
+		case *runnerPb.RunRequest_McpMessage:
+			err = run.HandleInput(msg.McpMessage.Message.Message)
 			if err != nil {
-				return stream.Send(&pb.McpRunResponse{
-					JobType: &pb.McpRunResponse_McpError{
-						McpError: &pb.McpRunResponseError{
-							ErrorMessage: err.Error(),
-							ErrorCode:    pb.McpRunErrorCode_INVALID_MCP_MESSAGE,
+				return stream.Send(&runnerPb.RunResponse{
+					JobType: &runnerPb.RunResponse_Error{
+						Error: &runnerPb.RunResponseError{
+							McpError: &mcpPb.McpError{
+								ErrorMessage: err.Error(),
+								ErrorCode:    mcpPb.McpError_invalid_mcp_message,
+							},
 						},
 					},
 				})
