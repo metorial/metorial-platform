@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package broker.manager;
+
+option go_package = "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/manager;manager";
+
+import "runner.proto";
+
+service McpManager {
+  rpc CreateSession(broker.manager.CreateSessionRequest) returns (broker.manager.CreateSessionResponse);
+  rpc SendMcpMessage(broker.manager.SendMcpMessageRequest) returns (stream broker.manager.SendMcpMessageResponse);
+  rpc StreamMcpMessages(broker.manager.StreamMcpMessagesRequest) returns (stream broker.manager.StreamMcpMessagesResponse);
+}
+
+message CreateSessionRequest {
+  enum SessionType {
+    runner = 0;
+  }
+
+  string session_id = 1;
+  SessionType session_type = 2;
+  SessionConfig session_config = 3;
+}
+
+message Launcher {
+  enum LauncherType {
+    deno = 0;
+  }
+
+  LauncherType launcher_type = 1;
+  string code = 2;
+}
+
+message RunConfigWithLauncher {
+  broker.runner.RunConfigContainer container = 1;
+  Launcher launcher = 2;
+}
+
+message SessionConfig {
+  oneof session_config_type {
+    RunConfigWithLauncher run_config_with_launcher = 1;
+    broker.runner.RunConfig run_config_with_container_arguments = 2;
+  }
+}
+
+message CreateSessionResponse {}
+
+message SendMcpMessageRequest {}
+
+message SendMcpMessageResponse {}
+
+message StreamMcpMessagesRequest {}
+
+message StreamMcpMessagesResponse {}

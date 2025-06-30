@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package broker.common;
+
+option go_package = "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/common;common";
+
+message Empty {}

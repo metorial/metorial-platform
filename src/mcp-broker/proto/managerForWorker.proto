@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package broker.managerForWorker;
+
+option go_package = "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/managerForWorker;managerForWorker";
+
+service McpManagerForWorker {
+  rpc ListManagers(broker.managerForWorker.ListManagersRequest) returns (broker.managerForWorker.ListManagersResponse);
+  rpc RegisterWorker(broker.managerForWorker.RegisterWorkerRequest) returns (broker.managerForWorker.RegisterWorkerResponse);
+}
+
+message ListManagersRequest {}
+
+message ListManagersResponse {
+  repeated Manager managers = 1;
+}
+
+message Manager {
+  string id = 1;
+  string address = 2;
+}
+
+enum WorkerType {
+  WORKER_TYPE_RUNNER = 0;
+}
+
+message RegisterWorkerRequest {
+  string worker_id = 1;
+  string address = 2;
+  WorkerType worker_type = 3;
+}
+
+message RegisterWorkerResponse {}
