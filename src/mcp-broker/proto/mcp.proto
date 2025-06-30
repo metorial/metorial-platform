@@ -43,3 +43,13 @@ message McpMessage {
   McpMessageRaw mcp_message = 1;
   McpMessageType message_type = 2;
 }
+
+message McpParticipant {
+  enum ParticipantType {
+    server = 0;
+    client = 1;
+  }
+
+  ParticipantType type = 1;
+  string participant_json = 2;
+}

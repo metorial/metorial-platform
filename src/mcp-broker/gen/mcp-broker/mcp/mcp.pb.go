@@ -174,6 +174,52 @@ func (McpMessage_McpMessageType) EnumDescriptor() ([]byte, []int) {
 	return file_mcp_proto_rawDescGZIP(), []int{3, 0}
 }
 
+type McpParticipant_ParticipantType int32
+
+const (
+	McpParticipant_server McpParticipant_ParticipantType = 0
+	McpParticipant_client McpParticipant_ParticipantType = 1
+)
+
+// Enum value maps for McpParticipant_ParticipantType.
+var (
+	McpParticipant_ParticipantType_name = map[int32]string{
+		0: "server",
+		1: "client",
+	}
+	McpParticipant_ParticipantType_value = map[string]int32{
+		"server": 0,
+		"client": 1,
+	}
+)
+
+func (x McpParticipant_ParticipantType) Enum() *McpParticipant_ParticipantType {
+	p := new(McpParticipant_ParticipantType)
+	*p = x
+	return p
+}
+
+func (x McpParticipant_ParticipantType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (McpParticipant_ParticipantType) Descriptor() protoreflect.EnumDescriptor {
+	return file_mcp_proto_enumTypes[3].Descriptor()
+}
+
+func (McpParticipant_ParticipantType) Type() protoreflect.EnumType {
+	return &file_mcp_proto_enumTypes[3]
+}
+
+func (x McpParticipant_ParticipantType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use McpParticipant_ParticipantType.Descriptor instead.
+func (McpParticipant_ParticipantType) EnumDescriptor() ([]byte, []int) {
+	return file_mcp_proto_rawDescGZIP(), []int{4, 0}
+}
+
 type McpError struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ErrorMessage  string                 `protobuf:"bytes,1,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
@@ -382,6 +428,58 @@ func (x *McpMessage) GetMessageType() McpMessage_McpMessageType {
 	return McpMessage_request
 }
 
+type McpParticipant struct {
+	state           protoimpl.MessageState         `protogen:"open.v1"`
+	Type            McpParticipant_ParticipantType `protobuf:"varint,1,opt,name=type,proto3,enum=broker.mcp.McpParticipant_ParticipantType" json:"type,omitempty"`
+	ParticipantJson string                         `protobuf:"bytes,2,opt,name=participant_json,json=participantJson,proto3" json:"participant_json,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *McpParticipant) Reset() {
+	*x = McpParticipant{}
+	mi := &file_mcp_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *McpParticipant) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*McpParticipant) ProtoMessage() {}
+
+func (x *McpParticipant) ProtoReflect() protoreflect.Message {
+	mi := &file_mcp_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use McpParticipant.ProtoReflect.Descriptor instead.
+func (*McpParticipant) Descriptor() ([]byte, []int) {
+	return file_mcp_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *McpParticipant) GetType() McpParticipant_ParticipantType {
+	if x != nil {
+		return x.Type
+	}
+	return McpParticipant_server
+}
+
+func (x *McpParticipant) GetParticipantJson() string {
+	if x != nil {
+		return x.ParticipantJson
+	}
+	return ""
+}
+
 var File_mcp_proto protoreflect.FileDescriptor
 
 const file_mcp_proto_rawDesc = "" +
@@ -422,7 +520,15 @@ const file_mcp_proto_rawDesc = "" +
 	"\bresponse\x10\x01\x12\x10\n" +
 	"\fnotification\x10\x02\x12\t\n" +
 	"\x05error\x10\x03\x12\v\n" +
-	"\aunknown\x10\x04B@Z>github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp;mcpb\x06proto3"
+	"\aunknown\x10\x04\"\xa6\x01\n" +
+	"\x0eMcpParticipant\x12>\n" +
+	"\x04type\x18\x01 \x01(\x0e2*.broker.mcp.McpParticipant.ParticipantTypeR\x04type\x12)\n" +
+	"\x10participant_json\x18\x02 \x01(\tR\x0fparticipantJson\")\n" +
+	"\x0fParticipantType\x12\n" +
+	"\n" +
+	"\x06server\x10\x00\x12\n" +
+	"\n" +
+	"\x06client\x10\x01B@Z>github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp;mcpb\x06proto3"
 
 var (
 	file_mcp_proto_rawDescOnce sync.Once
@@ -436,29 +542,32 @@ func file_mcp_proto_rawDescGZIP() []byte {
 	return file_mcp_proto_rawDescData
 }
 
-var file_mcp_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_mcp_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_mcp_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_mcp_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_mcp_proto_goTypes = []any{
-	(McpError_McpErrorCode)(0),     // 0: broker.mcp.McpError.McpErrorCode
-	(McpOutput_McpOutputType)(0),   // 1: broker.mcp.McpOutput.McpOutputType
-	(McpMessage_McpMessageType)(0), // 2: broker.mcp.McpMessage.McpMessageType
-	(*McpError)(nil),               // 3: broker.mcp.McpError
-	(*McpOutput)(nil),              // 4: broker.mcp.McpOutput
-	(*McpMessageRaw)(nil),          // 5: broker.mcp.McpMessageRaw
-	(*McpMessage)(nil),             // 6: broker.mcp.McpMessage
-	nil,                            // 7: broker.mcp.McpError.MetadataEntry
+	(McpError_McpErrorCode)(0),          // 0: broker.mcp.McpError.McpErrorCode
+	(McpOutput_McpOutputType)(0),        // 1: broker.mcp.McpOutput.McpOutputType
+	(McpMessage_McpMessageType)(0),      // 2: broker.mcp.McpMessage.McpMessageType
+	(McpParticipant_ParticipantType)(0), // 3: broker.mcp.McpParticipant.ParticipantType
+	(*McpError)(nil),                    // 4: broker.mcp.McpError
+	(*McpOutput)(nil),                   // 5: broker.mcp.McpOutput
+	(*McpMessageRaw)(nil),               // 6: broker.mcp.McpMessageRaw
+	(*McpMessage)(nil),                  // 7: broker.mcp.McpMessage
+	(*McpParticipant)(nil),              // 8: broker.mcp.McpParticipant
+	nil,                                 // 9: broker.mcp.McpError.MetadataEntry
 }
 var file_mcp_proto_depIdxs = []int32{
 	0, // 0: broker.mcp.McpError.error_code:type_name -> broker.mcp.McpError.McpErrorCode
-	7, // 1: broker.mcp.McpError.metadata:type_name -> broker.mcp.McpError.MetadataEntry
+	9, // 1: broker.mcp.McpError.metadata:type_name -> broker.mcp.McpError.MetadataEntry
 	1, // 2: broker.mcp.McpOutput.output_type:type_name -> broker.mcp.McpOutput.McpOutputType
-	5, // 3: broker.mcp.McpMessage.mcp_message:type_name -> broker.mcp.McpMessageRaw
+	6, // 3: broker.mcp.McpMessage.mcp_message:type_name -> broker.mcp.McpMessageRaw
 	2, // 4: broker.mcp.McpMessage.message_type:type_name -> broker.mcp.McpMessage.McpMessageType
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	3, // 5: broker.mcp.McpParticipant.type:type_name -> broker.mcp.McpParticipant.ParticipantType
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_mcp_proto_init() }
@@ -471,8 +580,8 @@ func file_mcp_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_mcp_proto_rawDesc), len(file_mcp_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   5,
+			NumEnums:      4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

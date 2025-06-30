@@ -65,7 +65,7 @@ func (im *ImageManager) downloadImage(name string, tag *string) error {
 	im.images[fullName] = image
 	im.mu.Unlock()
 
-	fmt.Printf("Successfully downloaded image: %s\n", fullName)
+	log.Printf("Successfully downloaded image: %s\n", fullName)
 
 	return nil
 }
@@ -165,7 +165,6 @@ func (im *ImageManager) removeImage(imageName string) error {
 	delete(im.images, imageName)
 	im.mu.Unlock()
 
-	fmt.Printf("Removed image: %s\n", imageName)
 	return nil
 }
 
@@ -183,7 +182,7 @@ func (im *ImageManager) removeUnusedImages() {
 
 	for _, imageName := range imagesToRemove {
 		if err := im.removeImage(imageName); err != nil {
-			fmt.Printf("Error removing unused image %s: %v\n", imageName, err)
+			log.Printf("Error removing unused image %s: %v\n", imageName, err)
 		}
 	}
 }

@@ -3,6 +3,7 @@ package mcp_runner
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -84,7 +85,7 @@ func (m *Run) pingRoutine() {
 			// Send a ping message
 			pingMessage := fmt.Sprintf(`{"jsonrpc": "2.0", "id": "mtr/ping/%d", "method": "ping"}`, time.Now().UnixMicro())
 			if err := m.input(pingMessage + "\n"); err != nil {
-				fmt.Printf("Failed to send ping: %v\n", err)
+				log.Printf("Failed to send ping: %v\n", err)
 			}
 
 		case <-m.container.Done():
@@ -159,7 +160,7 @@ func (m *Run) HandleOutput(messageHandler McpMessageHandler, outputHandler Multi
 						"result":  map[string]interface{}{},
 					})
 					if err != nil {
-						fmt.Printf("Failed to marshal ping response: %v\n", err)
+						log.Printf("Failed to marshal ping response: %v\n", err)
 						return
 					}
 

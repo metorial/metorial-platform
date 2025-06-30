@@ -201,8 +201,6 @@ func (r *Run) handleStream() {
 	r.createStreamWg.Done()
 
 	r.processStream(stream)
-
-	fmt.Printf("Run %s has been initialized successfully\n", r.RemoteID)
 }
 
 func (r *Run) processStream(stream runnerPb.McpRunner_StreamMcpRunClient) {
@@ -212,7 +210,7 @@ loop:
 		resp, err := stream.Recv()
 		if err != nil {
 			log.Printf("Error receiving response: %v\n", err)
-			break
+			break loop
 		}
 
 		log.Printf("Received response: %v\n", resp)

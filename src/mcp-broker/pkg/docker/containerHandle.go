@@ -139,7 +139,7 @@ func (c *ContainerHandle) monitor() {
 				c.ExitCode = exitError.ExitCode()
 			} else {
 				c.ExitCode = -1 // Indicate an error occurred
-				fmt.Printf("Container %s exited with error: %v\n", c.ID, err)
+				log.Printf("Container %s exited with error: %v\n", c.ID, err)
 			}
 		}
 	}

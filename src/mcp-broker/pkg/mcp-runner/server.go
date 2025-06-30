@@ -3,6 +3,7 @@ package mcp_runner
 import (
 	"context"
 	"fmt"
+	"log"
 
 	commonPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/common"
 	mcpPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
@@ -179,7 +180,7 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 			})
 
 			if err != nil {
-				fmt.Printf("Failed to send MCP message: %v\n", err)
+				log.Printf("Failed to send MCP message: %v\n", err)
 			}
 		},
 		func(outputType OutputType, lines []string) {
@@ -205,7 +206,7 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 			}
 
 			if err := stream.Send(&runnerPb.RunResponse{JobType: outputMsg}); err != nil {
-				fmt.Printf("Failed to send output message: %v\n", err)
+				log.Printf("Failed to send output message: %v\n", err)
 			}
 		},
 	)
