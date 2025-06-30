@@ -12,15 +12,15 @@ func PrintStatus(sm *StateManager) {
 		return
 	}
 
-	connections, err := sm.ListConnections()
+	sessions, err := sm.ListSessions()
 	if err != nil {
-		log.Printf("Failed to get connections: %v", err)
+		log.Printf("Failed to get sessions: %v", err)
 		return
 	}
 
 	log.Printf("=== System Status ===")
-	log.Printf("Managers: %d, Connections: %d",
-		len(managers), len(connections))
+	log.Printf("Managers: %d, Sessions: %d",
+		len(managers), len(sessions))
 
 	log.Printf("--- Managers ---")
 	for _, manager := range managers {
@@ -35,12 +35,12 @@ func PrintStatus(sm *StateManager) {
 			joined.Format("15:04:05"), lastPing.Format("15:04:05"))
 	}
 
-	log.Printf("--- Connections ---")
-	for _, conn := range connections {
+	log.Printf("--- Sessions ---")
+	for _, conn := range sessions {
 		lastPing := time.UnixMilli(conn.LastPingAt)
 		created := time.UnixMilli(conn.CreatedAt)
-		log.Printf("  %s - Manager: %s, Worker: %s, Created: %s, Last Ping: %s",
-			conn.ID[:8], conn.ManagerID[:8], conn.WorkerID[:8],
+		log.Printf("  %s - Manager: %s, Created: %s, Last Ping: %s",
+			conn.ID[:8], conn.ManagerID[:8],
 			created.Format("15:04:05"), lastPing.Format("15:04:05"))
 	}
 

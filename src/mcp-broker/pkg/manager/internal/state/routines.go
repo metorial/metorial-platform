@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const CONNECTION_MAX_AGE = 1000 * 60 * 30
+const SESSION_DEAD_TIMEOUT = 1000 * 60
 const MANAGER_DEAD_TIMEOUT = 1000 * 15
 
 func (sm *StateManager) startPingRoutine() {
@@ -55,8 +55,8 @@ func (sm *StateManager) startCleanupRoutine() {
 				log.Printf("Failed to cleanup dead managers: %v", err)
 			}
 
-			if err := sm.cleanupDeadConnections(); err != nil {
-				log.Printf("Failed to cleanup dead connections: %v", err)
+			if err := sm.cleanupDeadSessions(); err != nil {
+				log.Printf("Failed to cleanup dead sessions: %v", err)
 			}
 		}
 	}
@@ -93,32 +93,32 @@ func (sm *StateManager) cleanupDeadManagers() error {
 	return nil
 }
 
-func (sm *StateManager) cleanupDeadConnections() error {
-	connections, err := sm.ListConnections()
+func (sm *StateManager) cleanupDeadSessions() error {
+	sessions, err := sm.ListSessions()
 	if err != nil {
-		return fmt.Errorf("failed to get connections for cleanup: %v", err)
+		return fmt.Errorf("failed to get sessions for cleanup: %v", err)
 	}
 
-	cutoffTime := time.Now().UnixMilli() - CONNECTION_MAX_AGE
-	deadConnections := []string{}
+	cutoffTime := time.Now().UnixMilli() - SESSION_DEAD_TIMEOUT
+	deadSessions := []string{}
 
-	for _, connection := range connections {
-		if connection.LastPingAt < cutoffTime {
-			deadConnections = append(deadConnections, connection.ID)
+	for _, session := range sessions {
+		if session.LastPingAt < cutoffTime {
+			deadSessions = append(deadSessions, session.ID)
 		}
 	}
 
-	// Remove dead connections
-	for _, connectionID := range deadConnections {
-		if err := sm.DeleteConnection(connectionID); err != nil {
-			log.Printf("Failed to delete dead connection %s: %v", connectionID, err)
+	// Remove dead sessions
+	for _, sessionID := range deadSessions {
+		if _, err := sm.DeleteSession(sessionID); err != nil {
+			log.Printf("Failed to delete dead session %s: %v", sessionID, err)
 		} else {
-			log.Printf("Removed dead connection %s", connectionID)
+			log.Printf("Removed dead session %s", sessionID)
 		}
 	}
 
-	if len(deadConnections) > 0 {
-		log.Printf("Cleaned up %d dead connections", len(deadConnections))
+	if len(deadSessions) > 0 {
+		log.Printf("Cleaned up %d dead sessions", len(deadSessions))
 	}
 
 	return nil
