@@ -33,7 +33,7 @@ func NewStateManager(etcdEndpoints []string, address string) (*StateManager, err
 
 	return &StateManager{
 		client:    client,
-		ManagerID: uuid.New().String(),
+		ManagerID: uuid.NewString(),
 		Address:   address,
 		ctx:       ctx,
 		cancel:    cancel,

@@ -3,11 +3,12 @@ package workers
 import (
 	"fmt"
 	"sync"
+	"time"
 
+	mcpPB "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
+	runnerPB "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/runner"
 	"github.com/metorial/metorial/mcp-broker/pkg/mcp"
 	mcp_runner_client "github.com/metorial/metorial/mcp-broker/pkg/mcp-runner-client"
-	managerPB "github.com/metorial/metorial/mcp-broker/pkg/proto-mcp-manager"
-	runnerPB "github.com/metorial/metorial/mcp-broker/pkg/proto-mcp-runner"
 )
 
 type RunnerWorker struct {
@@ -18,7 +19,7 @@ type RunnerWorker struct {
 	healthy       bool
 
 	client  *mcp_runner_client.McpRunnerClient
-	manager *WorkersManager
+	manager *WorkerManager
 
 	mutex sync.Mutex
 }
@@ -81,6 +82,10 @@ func (rw *RunnerWorker) Healthy() bool {
 	return rw.healthy
 }
 
+func (rw *RunnerWorker) Type() WorkerType {
+	return WorkerTypeRunner
+}
+
 func (rw *RunnerWorker) monitor() {
 	if rw.client == nil {
 		return // Not started
@@ -109,15 +114,23 @@ type RunnerWorkerConnection struct {
 	mcpServer *mcp.MCPServer
 	mcpClient *mcp.MCPClient
 
-	ConnectionID string
-	SessionID    string
+	connectionID string
+	sessionID    string
 
 	messages chan mcp.MCPMessage
-	output   chan *managerPB.McpOutput
-	errors   chan *managerPB.McpError
+	output   chan *mcpPB.McpOutput
+	errors   chan *mcpPB.McpError
 }
 
-func (rw *RunnerWorker) CreateConnection(input WorkerConnectionInput) (WorkerConnection, error) {
+func GetConnectionHashForRunnerWorker(input *WorkerConnectionInput) ([]byte, error) {
+	if input.RunConfig == nil {
+		return nil, fmt.Errorf("RunConfig is required to create a connection hash")
+	}
+
+	return []byte(input.RunConfig.Container.DockerImage), nil
+}
+
+func (rw *RunnerWorker) CreateConnection(input *WorkerConnectionInput) (WorkerConnection, error) {
 	if input.RunConfig == nil {
 		return nil, fmt.Errorf("RunConfig is required to create a connection")
 	}
@@ -131,12 +144,12 @@ func (rw *RunnerWorker) CreateConnection(input WorkerConnectionInput) (WorkerCon
 		run:       run,
 		mcpClient: input.MCPClient,
 
-		ConnectionID: input.ConnectionID,
-		SessionID:    input.SessionID,
+		connectionID: input.ConnectionID,
+		sessionID:    input.SessionID,
 
 		messages: make(chan mcp.MCPMessage, 10),
-		output:   make(chan *managerPB.McpOutput, 10),
-		errors:   make(chan *managerPB.McpError, 10),
+		output:   make(chan *mcpPB.McpOutput, 10),
+		errors:   make(chan *mcpPB.McpError, 10),
 	}
 
 	go res.channelMapper()
@@ -194,6 +207,10 @@ func (rwc *RunnerWorkerConnection) RemoteID() string {
 	return rwc.run.RemoteID
 }
 
+func (rwc *RunnerWorkerConnection) ConnectionID() string {
+	return rwc.connectionID
+}
+
 func (rwc *RunnerWorkerConnection) GetServer() (*mcp.MCPServer, error) {
 	if rwc.mcpServer == nil {
 		return nil, fmt.Errorf("MCP server not initialized")
@@ -220,7 +237,7 @@ func (rws *RunnerWorkerConnection) SendAndWaitForResponse(message *mcp.MCPMessag
 			return nil, fmt.Errorf("connection closed before receiving response")
 		case msg := <-rws.run.Messages():
 			if msg != nil {
-				parsed, _ := pbMessageToMCPMessage(msg)
+				parsed, _ := mcp.FromPbRawMessage(msg.Message)
 				if parsed != nil && parsed.MsgType == mcp.ResponseType && parsed.GetStringId() == message.GetStringId() {
 					return parsed, nil
 				}
@@ -237,7 +254,7 @@ func (rwc *RunnerWorkerConnection) Messages() <-chan mcp.MCPMessage {
 	return rwc.messages
 }
 
-func (rwc *RunnerWorkerConnection) Output() <-chan *managerPB.McpOutput {
+func (rwc *RunnerWorkerConnection) Output() <-chan *mcpPB.McpOutput {
 	if rwc.run == nil {
 		return nil
 	}
@@ -245,7 +262,7 @@ func (rwc *RunnerWorkerConnection) Output() <-chan *managerPB.McpOutput {
 	return rwc.output
 }
 
-func (rwc *RunnerWorkerConnection) Errors() <-chan *managerPB.McpError {
+func (rwc *RunnerWorkerConnection) Errors() <-chan *mcpPB.McpError {
 	if rwc.run == nil {
 		return nil
 	}
@@ -253,7 +270,15 @@ func (rwc *RunnerWorkerConnection) Errors() <-chan *managerPB.McpError {
 	return rwc.errors
 }
 
+func (rwc *RunnerWorkerConnection) InactivityTimeout() time.Duration {
+	return time.Second * 20
+}
+
 func (rwc *RunnerWorkerConnection) channelMapper() {
+	defer close(rwc.messages)
+	defer close(rwc.output)
+	defer close(rwc.errors)
+
 	if rwc.run == nil {
 		return // No run to map channels
 	}
@@ -264,60 +289,20 @@ func (rwc *RunnerWorkerConnection) channelMapper() {
 			return // Exit if the run is done
 		case msg := <-rwc.run.Messages():
 			if msg != nil {
-				parsed, _ := pbMessageToMCPMessage(msg)
+				parsed, _ := mcp.FromPbRawMessage(msg.Message)
 				if parsed != nil {
 					rwc.messages <- *parsed
 				}
 			}
 		case output := <-rwc.run.Output():
 			if output != nil {
-				outputType := managerPB.McpOutput_STDOUT
-				if output.OutputType == runnerPB.McpOutputType_STDERR {
-					outputType = managerPB.McpOutput_STDERR
-				}
-
-				rwc.output <- &managerPB.McpOutput{
-					OutputType:   outputType,
-					Lines:        output.Lines,
-					ConnectionId: rwc.ConnectionID,
-					SessionId:    rwc.SessionID,
-				}
+				rwc.output <- output.McpOutput
 			}
 		case err := <-rwc.run.Errors():
 			if err != nil {
-				var errorCode managerPB.McpError_McpErrorCode
-				switch err.ErrorCode {
-				case runnerPB.McpRunErrorCode_FAILED_TO_START:
-					errorCode = managerPB.McpError_FAILED_TO_START
-				case runnerPB.McpRunErrorCode_FAILED_TO_STOP:
-					errorCode = managerPB.McpError_FAILED_TO_STOP
-				case runnerPB.McpRunErrorCode_INVALID_MCP_MESSAGE:
-					errorCode = managerPB.McpError_INVALID_MCP_MESSAGE
-				default:
-					errorCode = managerPB.McpError_UNKNOWN_ERROR
-				}
-
-				rwc.errors <- &managerPB.McpError{
-					ErrorCode:    errorCode,
-					ErrorMessage: err.ErrorMessage,
-					ConnectionId: rwc.ConnectionID,
-					SessionId:    rwc.SessionID,
-				}
+				rwc.errors <- err.McpError
 			}
 
 		}
 	}
-}
-
-func pbMessageToMCPMessage(pbMsg *runnerPB.McpRunResponseMcpMessage) (*mcp.MCPMessage, error) {
-	if pbMsg == nil {
-		return nil, fmt.Errorf("nil MCP message")
-	}
-
-	message, err := mcp.ParseMCPMessage(pbMsg.Message)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse MCP message: %w", err)
-	}
-
-	return message, nil
 }

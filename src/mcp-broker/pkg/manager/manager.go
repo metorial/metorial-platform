@@ -5,10 +5,10 @@ import (
 	"net"
 	"strconv"
 
+	managerForWorkerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/managerForWorker"
 	"github.com/metorial/metorial/mcp-broker/pkg/addr"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/state"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/workers"
-	pb "github.com/metorial/metorial/mcp-broker/pkg/proto-mcp-manager"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -19,7 +19,7 @@ type Manager struct {
 	state        *state.StateManager
 	grpcServer   *grpc.Server
 	workerServer *managerForWorkerServer
-	workers      *workers.WorkersManager
+	workers      *workers.WorkerManager
 }
 
 func NewManager(etcdEndpoints []string, address string) (*Manager, error) {
@@ -33,7 +33,7 @@ func NewManager(etcdEndpoints []string, address string) (*Manager, error) {
 		return nil, err
 	}
 
-	workers := workers.NewWorkersManager()
+	workers := workers.NewWorkerManager()
 
 	return &Manager{
 		state:        sm,
@@ -55,7 +55,7 @@ func (m *Manager) Start() error {
 	s := grpc.NewServer()
 	m.grpcServer = s
 
-	pb.RegisterMcpManagerForWorkerServer(s, m.workerServer)
+	managerForWorkerPb.RegisterMcpManagerForWorkerServer(s, m.workerServer)
 
 	reflection.Register(s)
 

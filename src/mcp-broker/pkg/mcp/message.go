@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+
+	mcpPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
 )
 
 type MessageType string
@@ -98,6 +100,31 @@ func ParseMCPMessageFromBytes(data []byte) (*MCPMessage, error) {
 	}
 
 	return msg, nil
+}
+
+func FromPbRawMessage(pbMessage *mcpPb.McpMessageRaw) (*MCPMessage, error) {
+	if pbMessage == nil {
+		return nil, fmt.Errorf("nil MCP message")
+	}
+
+	if pbMessage.Message == "" {
+		return nil, fmt.Errorf("empty MCP message")
+	}
+
+	msg, err := ParseMCPMessage(pbMessage.Message)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse MCP message: %w", err)
+	}
+
+	return msg, nil
+}
+
+func FromPbMessage(pbMessage *mcpPb.McpMessage) (*MCPMessage, error) {
+	if pbMessage == nil {
+		return nil, fmt.Errorf("nil MCP message")
+	}
+
+	return FromPbRawMessage(pbMessage.McpMessage)
 }
 
 func NewMCPRequestMessage(id string, method string, params map[string]any) (*MCPMessage, error) {

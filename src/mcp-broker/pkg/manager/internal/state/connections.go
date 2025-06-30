@@ -22,7 +22,7 @@ type Connection struct {
 func (sm *StateManager) CreateConnection(managerID, workerID string) (*Connection, error) {
 	now := time.Now().UnixMilli()
 	connection := Connection{
-		ID:         uuid.New().String(),
+		ID:         uuid.NewString(),
 		ManagerID:  managerID,
 		WorkerID:   workerID,
 		LastPingAt: now,

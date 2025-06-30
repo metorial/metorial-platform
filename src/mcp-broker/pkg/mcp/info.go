@@ -27,6 +27,19 @@ type MCPServer struct {
 	Extra        map[string]any  `json:"-"`
 }
 
+func ParseMcpClient(data []byte) (*MCPClient, error) {
+	var client MCPClient
+	if err := json.Unmarshal(data, &client); err != nil {
+		return nil, fmt.Errorf("failed to parse MCP client info: %w", err)
+	}
+
+	if client.Info.Name == "" {
+		client.Info.Name = "MCP Client"
+	}
+
+	return &client, nil
+}
+
 func (c *MCPClient) Assemble() map[string]any {
 	data := map[string]any{
 		"clientInfo":   c.Info,

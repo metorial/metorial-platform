@@ -1,42 +1,44 @@
 package workers
 
 import (
+	"fmt"
 	"sync"
 
-	"github.com/metorial/metorial/mcp-broker/pkg/mcp"
-	pb "github.com/metorial/metorial/mcp-broker/pkg/proto-mcp-runner"
+	"github.com/metorial/metorial/mcp-broker/pkg/murmur3"
+)
+
+type WorkerType string
+
+const (
+	WorkerTypeRunner WorkerType = "runner"
 )
 
 type Worker interface {
+	Type() WorkerType
+
 	WorkerID() string
 	Start() error
 	Stop() error
 	AcceptingJobs() bool
 	Healthy() bool
 
-	CreateConnection(input WorkerConnectionInput) (WorkerConnection, error)
+	CreateConnection(input *WorkerConnectionInput) (WorkerConnection, error)
 }
 
-type WorkerConnectionInput struct {
-	RunConfig *pb.RunConfig
-	MCPClient *mcp.MCPClient
+type WorkerManager struct {
+	workers       map[string]Worker
+	workersByType map[WorkerType][]string
 
-	ConnectionID string
-	SessionID    string
+	mutex sync.Mutex
 }
 
-type WorkersManager struct {
-	workers map[string]Worker
-	mutex   sync.Mutex
-}
-
-func NewWorkersManager() *WorkersManager {
-	return &WorkersManager{
+func NewWorkerManager() *WorkerManager {
+	return &WorkerManager{
 		workers: make(map[string]Worker),
 	}
 }
 
-func (wm *WorkersManager) RegisterWorker(worker Worker) error {
+func (wm *WorkerManager) RegisterWorker(worker Worker) error {
 	wm.mutex.Lock()
 	defer wm.mutex.Unlock()
 
@@ -53,7 +55,7 @@ func (wm *WorkersManager) RegisterWorker(worker Worker) error {
 	return nil
 }
 
-func (wm *WorkersManager) GetWorker(workerID string) (Worker, bool) {
+func (wm *WorkerManager) GetWorker(workerID string) (Worker, bool) {
 	wm.mutex.Lock()
 	defer wm.mutex.Unlock()
 
@@ -61,7 +63,7 @@ func (wm *WorkersManager) GetWorker(workerID string) (Worker, bool) {
 	return worker, exists
 }
 
-func (wm *WorkersManager) ListWorkers() []Worker {
+func (wm *WorkerManager) ListWorkers() []Worker {
 	wm.mutex.Lock()
 	defer wm.mutex.Unlock()
 
@@ -73,7 +75,57 @@ func (wm *WorkersManager) ListWorkers() []Worker {
 	return workersList
 }
 
-func (wm *WorkersManager) removeWorker(workerID string) {
+func (wm *WorkerManager) ListWorkersByType(workerType WorkerType) []Worker {
+	wm.mutex.Lock()
+	defer wm.mutex.Unlock()
+
+	workerIDs, exists := wm.workersByType[workerType]
+	if !exists {
+		return nil
+	}
+
+	workersList := make([]Worker, 0, len(workerIDs))
+	for _, workerID := range workerIDs {
+		if worker, exists := wm.workers[workerID]; exists {
+			workersList = append(workersList, worker)
+		}
+	}
+
+	return workersList
+}
+
+func (wm *WorkerManager) PickWorkerByHash(workerType WorkerType, data []byte) (Worker, bool) {
+	wm.mutex.Lock()
+	defer wm.mutex.Unlock()
+
+	workerIDs, exists := wm.workersByType[workerType]
+	if !exists || len(workerIDs) == 0 {
+		return nil, false
+	}
+
+	index := murmur3.PickByHashIndex(data, len(workerIDs))
+	if index < 0 || index >= len(workerIDs) {
+		index = 0 // I'm pretty sure this can't happen, but just in case
+	}
+
+	workerID := workerIDs[index]
+	worker, exists := wm.workers[workerID]
+	if !exists {
+		return nil, false
+	}
+
+	return worker, true
+}
+
+func (wm *WorkerManager) GetConnectionHashForWorkerType(workerType WorkerType, input *WorkerConnectionInput) ([]byte, error) {
+	if workerType == WorkerTypeRunner {
+		return GetConnectionHashForRunnerWorker(input)
+	}
+
+	return nil, fmt.Errorf("unsupported worker type: %v", workerType)
+}
+
+func (wm *WorkerManager) removeWorker(workerID string) {
 	wm.mutex.Lock()
 	defer wm.mutex.Unlock()
 

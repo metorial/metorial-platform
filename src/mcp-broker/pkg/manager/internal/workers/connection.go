@@ -1,12 +1,16 @@
 package workers
 
 import (
+	"time"
+
+	mcpPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
+	runnerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/runner"
 	"github.com/metorial/metorial/mcp-broker/pkg/mcp"
-	pb "github.com/metorial/metorial/mcp-broker/pkg/proto-mcp-manager"
 )
 
 type WorkerConnection interface {
 	RemoteID() string
+	ConnectionID() string
 
 	AcceptMessage(message *mcp.MCPMessage) error
 	GetServer() (*mcp.MCPServer, error)
@@ -16,6 +20,16 @@ type WorkerConnection interface {
 	Done() <-chan struct{}
 
 	Messages() <-chan mcp.MCPMessage
-	Output() <-chan *pb.McpOutput
-	Errors() <-chan *pb.McpError
+	Output() <-chan *mcpPb.McpOutput
+	Errors() <-chan *mcpPb.McpError
+
+	InactivityTimeout() time.Duration
+}
+
+type WorkerConnectionInput struct {
+	RunConfig *runnerPb.RunConfig
+	MCPClient *mcp.MCPClient
+
+	ConnectionID string
+	SessionID    string
 }
