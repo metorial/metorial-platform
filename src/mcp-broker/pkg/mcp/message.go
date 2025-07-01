@@ -127,6 +127,49 @@ func FromPbMessage(pbMessage *mcpPb.McpMessage) (*MCPMessage, error) {
 	return FromPbRawMessage(pbMessage.McpMessage)
 }
 
+func (m *MCPMessage) ToPbRawMessage() *mcpPb.McpMessageRaw {
+	return &mcpPb.McpMessageRaw{
+		Message: string(m.raw),
+	}
+}
+
+func (m *MCPMessage) ToPbMessage() *mcpPb.McpMessage {
+	rawMessage := m.ToPbRawMessage()
+
+	var messageType mcpPb.McpMessage_McpMessageType
+	switch m.MsgType {
+	case RequestType:
+		messageType = mcpPb.McpMessage_request
+	case NotificationType:
+		messageType = mcpPb.McpMessage_notification
+	case ResponseType:
+		messageType = mcpPb.McpMessage_response
+	case ErrorType:
+		messageType = mcpPb.McpMessage_error
+	default:
+		messageType = mcpPb.McpMessage_unknown
+	}
+
+	msg := &mcpPb.McpMessage{
+		McpMessage:  rawMessage,
+		MessageType: messageType,
+	}
+
+	if m.stringId != "" {
+		msg.IdString = m.stringId
+	}
+
+	if m.rawId != nil {
+		msg.IdJson = string(*m.rawId)
+	}
+
+	if m.Method != nil {
+		msg.Method = *m.Method
+	}
+
+	return msg
+}
+
 func NewMCPRequestMessage(id string, method string, params map[string]any) (*MCPMessage, error) {
 	rawMessage := map[string]any{
 		"jsonrpc": "2.0",

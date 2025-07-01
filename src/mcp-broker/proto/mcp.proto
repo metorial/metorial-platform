@@ -42,6 +42,9 @@ message McpMessage {
 
   McpMessageRaw mcp_message = 1;
   McpMessageType message_type = 2;
+  string id_string = 3; // Optional
+  string id_json = 4; // Optional
+  string method = 5; // Optional
 }
 
 message McpParticipant {

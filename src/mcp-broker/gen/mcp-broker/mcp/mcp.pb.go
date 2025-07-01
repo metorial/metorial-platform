@@ -380,6 +380,9 @@ type McpMessage struct {
 	state         protoimpl.MessageState    `protogen:"open.v1"`
 	McpMessage    *McpMessageRaw            `protobuf:"bytes,1,opt,name=mcp_message,json=mcpMessage,proto3" json:"mcp_message,omitempty"`
 	MessageType   McpMessage_McpMessageType `protobuf:"varint,2,opt,name=message_type,json=messageType,proto3,enum=broker.mcp.McpMessage_McpMessageType" json:"message_type,omitempty"`
+	IdString      string                    `protobuf:"bytes,3,opt,name=id_string,json=idString,proto3" json:"id_string,omitempty"` // Optional
+	IdJson        string                    `protobuf:"bytes,4,opt,name=id_json,json=idJson,proto3" json:"id_json,omitempty"`       // Optional
+	Method        string                    `protobuf:"bytes,5,opt,name=method,proto3" json:"method,omitempty"`                     // Optional
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -426,6 +429,27 @@ func (x *McpMessage) GetMessageType() McpMessage_McpMessageType {
 		return x.MessageType
 	}
 	return McpMessage_request
+}
+
+func (x *McpMessage) GetIdString() string {
+	if x != nil {
+		return x.IdString
+	}
+	return ""
+}
+
+func (x *McpMessage) GetIdJson() string {
+	if x != nil {
+		return x.IdJson
+	}
+	return ""
+}
+
+func (x *McpMessage) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
 }
 
 type McpParticipant struct {
@@ -509,12 +533,15 @@ const file_mcp_proto_rawDesc = "" +
 	"\n" +
 	"\x06stderr\x10\x01\")\n" +
 	"\rMcpMessageRaw\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\"\xe9\x01\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"\xb7\x02\n" +
 	"\n" +
 	"McpMessage\x12:\n" +
 	"\vmcp_message\x18\x01 \x01(\v2\x19.broker.mcp.McpMessageRawR\n" +
 	"mcpMessage\x12H\n" +
-	"\fmessage_type\x18\x02 \x01(\x0e2%.broker.mcp.McpMessage.McpMessageTypeR\vmessageType\"U\n" +
+	"\fmessage_type\x18\x02 \x01(\x0e2%.broker.mcp.McpMessage.McpMessageTypeR\vmessageType\x12\x1b\n" +
+	"\tid_string\x18\x03 \x01(\tR\bidString\x12\x17\n" +
+	"\aid_json\x18\x04 \x01(\tR\x06idJson\x12\x16\n" +
+	"\x06method\x18\x05 \x01(\tR\x06method\"U\n" +
 	"\x0eMcpMessageType\x12\v\n" +
 	"\arequest\x10\x00\x12\f\n" +
 	"\bresponse\x10\x01\x12\x10\n" +

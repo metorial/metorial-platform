@@ -40,7 +40,7 @@ func NewManager(etcdEndpoints []string, address string) (*Manager, error) {
 		Port:         port,
 		Address:      address,
 		workers:      workers,
-		workerServer: &managerForWorkerServer{state: sm, workers: workers},
+		workerServer: &managerForWorkerServer{state: sm, workerManager: workers},
 	}, nil
 }
 

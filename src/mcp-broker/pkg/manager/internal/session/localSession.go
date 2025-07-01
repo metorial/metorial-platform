@@ -2,6 +2,8 @@ package session
 
 import (
 	"fmt"
+	"log"
+	"slices"
 	"sync"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/state"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/workers"
 	"github.com/metorial/metorial/mcp-broker/pkg/mcp"
+	"google.golang.org/grpc"
 )
 
 const LOCAL_SESSION_INACTIVITY_TIMEOUT = 1000 * 60 * 5
@@ -30,27 +33,101 @@ type LocalSession struct {
 	mutex sync.RWMutex
 }
 
-func (s *LocalSession) SendMcpMessage(request *managerPb.SendMcpMessageRequest) (*managerPb.SendMcpMessageResponse, error) {
+func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) error {
 	s.ensureConnection()
 
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	for _, rawMessage := range request.McpMessages {
+	mcpMessages := make([]*mcp.MCPMessage, 0, len(req.McpMessages))
+	for _, rawMessage := range req.McpMessages {
 		message, err := mcp.FromPbRawMessage(rawMessage)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		err = s.activeConnection.AcceptMessage(message)
+		mcpMessages = append(mcpMessages, message)
+	}
+
+	wg := sync.WaitGroup{}
+
+	if req.IncludeResponses {
+		wg.Add(1)
+
+		mcpRequestMessageIdsToListenFor := make([]string, 0)
+		for _, message := range mcpMessages {
+			if message.MsgType == mcp.RequestType {
+				id := message.GetStringId()
+				if id != "" {
+					mcpRequestMessageIdsToListenFor = append(mcpRequestMessageIdsToListenFor, id)
+				}
+			}
+		}
+
+		go func() {
+			defer wg.Done()
+
+			s.mutex.RLock()
+			defer s.mutex.RUnlock()
+
+			responsesToWaitFor := len(mcpRequestMessageIdsToListenFor)
+
+			for {
+				if responsesToWaitFor <= 0 {
+					return
+				}
+
+				select {
+				case <-stream.Context().Done():
+					return
+
+				case <-s.activeConnection.Done():
+					return
+
+				case message := <-s.activeConnection.Messages():
+					if slices.Contains(mcpRequestMessageIdsToListenFor, message.GetStringId()) {
+						response := &managerPb.SendMcpMessageResponse{
+							ResponseType:       managerPb.SendMcpMessageResponse_message,
+							McpResponseMessage: message.ToPbMessage(),
+						}
+
+						err := stream.Send(response)
+						if err != nil {
+							log.Printf("Failed to send response message: %v", err)
+							return
+						}
+
+						s.lastConnectionInteraction = time.Now()
+						responsesToWaitFor--
+					}
+
+				case mcpErr := <-s.activeConnection.Errors():
+					response := &managerPb.SendMcpMessageResponse{
+						ResponseType: managerPb.SendMcpMessageResponse_error,
+						McpError:     mcpErr,
+					}
+					err := stream.Send(response)
+					if err != nil {
+						log.Printf("Failed to send error message: %v", err)
+						return
+					}
+				}
+			}
+		}()
+	}
+
+	for _, message := range mcpMessages {
+		err := s.activeConnection.AcceptMessage(message)
 		if err != nil {
-			return nil, fmt.Errorf("failed to process message: %w", err)
+			return fmt.Errorf("failed to process message: %w", err)
 		}
 
 		s.lastConnectionInteraction = time.Now()
 	}
 
-	return &managerPb.SendMcpMessageResponse{}, nil
+	wg.Wait()
+
+	return nil
 }
 
 func (s *LocalSession) CanDiscard() bool {

@@ -13,8 +13,8 @@ import (
 type managerForWorkerServer struct {
 	managerForWorkerPb.UnimplementedMcpManagerForWorkerServer
 
-	state   *state.StateManager
-	workers *workers.WorkerManager
+	state         *state.StateManager
+	workerManager *workers.WorkerManager
 }
 
 func (s *managerForWorkerServer) ListManagers(ctx context.Context, req *managerForWorkerPb.ListManagersRequest) (*managerForWorkerPb.ListManagersResponse, error) {
@@ -41,7 +41,7 @@ func (s *managerForWorkerServer) RegisterWorker(ctx context.Context, req *manage
 		log.Printf("Registering worker %s of type %s at address %s", req.WorkerId, req.WorkerType, req.Address)
 
 		runnerWorker := workers.NewRunnerWorker(req.WorkerId, req.Address)
-		s.workers.RegisterWorker(runnerWorker)
+		s.workerManager.RegisterWorker(runnerWorker)
 
 		return &managerForWorkerPb.RegisterWorkerResponse{}, nil
 	}

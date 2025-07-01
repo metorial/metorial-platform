@@ -12,6 +12,7 @@ import (
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/state"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/workers"
 	"github.com/metorial/metorial/mcp-broker/pkg/mcp"
+	"google.golang.org/grpc"
 )
 
 type Session interface {
@@ -20,7 +21,7 @@ type Session interface {
 	// Output() <-chan *mcpPb.McpOutput
 	// Errors() <-chan *mcpPb.McpError
 
-	SendMcpMessage(request *managerPb.SendMcpMessageRequest) (*managerPb.SendMcpMessageResponse, error)
+	SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) error
 	StoredSession() *state.Session
 
 	CanDiscard() bool
@@ -66,8 +67,6 @@ func (s *Sessions) GetSession(sessionId string) Session {
 }
 
 func (s *Sessions) UpsertSession(
-	workerManager *workers.WorkerManager,
-	state *state.StateManager,
 	request *managerPb.CreateSessionRequest,
 ) (Session, error) {
 	existing := s.GetSession(request.SessionId)
@@ -83,7 +82,7 @@ func (s *Sessions) UpsertSession(
 		return nil, fmt.Errorf("failed to parse MCP client: %w", err)
 	}
 
-	storedSession, err := state.UpsertSession(
+	storedSession, err := s.state.UpsertSession(
 		request.SessionId,
 		s.state.ManagerID,
 	)
@@ -93,7 +92,7 @@ func (s *Sessions) UpsertSession(
 
 	// This manager is responsible for the session, so we
 	// need to create a local session for it.
-	if storedSession.ManagerID == state.ManagerID {
+	if storedSession.ManagerID == s.state.ManagerID {
 		var workerType workers.WorkerType
 		if request.Type == managerPb.CreateSessionRequest_runner {
 			workerType = workers.WorkerTypeRunner
@@ -111,7 +110,7 @@ func (s *Sessions) UpsertSession(
 			activeConnection:          nil,
 			lastConnectionInteraction: time.Now(),
 
-			workerManager: workerManager,
+			workerManager: s.workerManager,
 		}
 
 		return session, nil

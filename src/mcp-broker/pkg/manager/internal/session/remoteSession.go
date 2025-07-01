@@ -6,6 +6,7 @@ import (
 
 	managerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/manager"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/state"
+	"google.golang.org/grpc"
 )
 
 const REMOTE_SESSION_INACTIVITY_TIMEOUT = 1000 * 60
@@ -16,8 +17,8 @@ type RemoteSession struct {
 	mutex                     sync.RWMutex
 }
 
-func (s *RemoteSession) SendMcpMessage(request *managerPb.SendMcpMessageRequest) (*managerPb.SendMcpMessageResponse, error) {
-	return &managerPb.SendMcpMessageResponse{}, nil
+func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) error {
+	return nil
 }
 
 func (s *RemoteSession) CanDiscard() bool {
