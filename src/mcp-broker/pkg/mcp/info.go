@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	mcpPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
 )
 
 type Capabilities map[string]any
@@ -72,6 +74,20 @@ func (s *MCPServer) Assemble() map[string]any {
 	}
 
 	return data
+}
+
+func (s *MCPServer) ToPbParticipant() (*mcpPb.McpParticipant, error) {
+	participantJson, err := json.Marshal(s.Assemble())
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal MCP server info: %w", err)
+	}
+
+	participant := &mcpPb.McpParticipant{
+		Type:            mcpPb.McpParticipant_server,
+		ParticipantJson: string(participantJson),
+	}
+
+	return participant, nil
 }
 
 type mcpResponseMessageWithServerInfo struct {

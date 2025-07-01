@@ -136,18 +136,18 @@ func (m *MCPMessage) ToPbRawMessage() *mcpPb.McpMessageRaw {
 func (m *MCPMessage) ToPbMessage() *mcpPb.McpMessage {
 	rawMessage := m.ToPbRawMessage()
 
-	var messageType mcpPb.McpMessage_McpMessageType
+	var messageType mcpPb.McpMessageType
 	switch m.MsgType {
 	case RequestType:
-		messageType = mcpPb.McpMessage_request
+		messageType = mcpPb.McpMessageType_request
 	case NotificationType:
-		messageType = mcpPb.McpMessage_notification
+		messageType = mcpPb.McpMessageType_notification
 	case ResponseType:
-		messageType = mcpPb.McpMessage_response
+		messageType = mcpPb.McpMessageType_response
 	case ErrorType:
-		messageType = mcpPb.McpMessage_error
+		messageType = mcpPb.McpMessageType_error
 	default:
-		messageType = mcpPb.McpMessage_unknown
+		messageType = mcpPb.McpMessageType_unknown
 	}
 
 	msg := &mcpPb.McpMessage{

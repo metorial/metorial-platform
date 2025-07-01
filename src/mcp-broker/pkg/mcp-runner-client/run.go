@@ -8,7 +8,6 @@ import (
 
 	mcpPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
 	runnerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/runner"
-	mterror "github.com/metorial/metorial/mcp-broker/pkg/mt-error"
 )
 
 type Run struct {
@@ -73,10 +72,7 @@ func (r *Run) SendMessage(message string) error {
 	r.createStreamWg.Wait()
 
 	if r.stream == nil {
-		return mterror.New(
-			mcpPb.McpError_failed_to_start.String(),
-			"Run stream is not initialized",
-		)
+		return fmt.Errorf("Run stream is not initialized")
 	}
 
 	return r.stream.Send(&runnerPb.RunRequest{
@@ -146,11 +142,7 @@ func (r *Run) handleStream() {
 	stream, err := r.client.StreamMcpRun(context.Background())
 	if err != nil {
 		r.createStreamWg.Done()
-		r.initError = mterror.WithInnerError(
-			mcpPb.McpError_failed_to_start.String(),
-			"Could not connect to Metorial MCP Runner: "+err.Error(),
-			err,
-		)
+		r.initError = fmt.Errorf("failed to create MCP run stream: %w", err)
 		return
 	}
 
@@ -168,31 +160,22 @@ func (r *Run) handleStream() {
 	resp, err := stream.Recv()
 	if err != nil {
 		r.createStreamWg.Done()
-		r.initError = mterror.WithInnerError(
-			mcpPb.McpError_failed_to_start.String(),
-			"Could not connect to Metorial MCP Runner: "+err.Error(),
-			err,
-		)
+		r.initError = fmt.Errorf("failed to receive initial response: %w", err)
 		return
 	}
 
 	mcpErr := resp.GetError()
 	if mcpErr != nil {
 		r.createStreamWg.Done()
-		r.initError = mterror.New(
-			mcpErr.McpError.ErrorCode.String(),
-			mcpErr.McpError.ErrorMessage,
-		)
+		r.errors <- mcpErr
+		r.initError = fmt.Errorf("failed to start MCP run: %s", mcpErr.McpError.ErrorMessage)
 		return
 	}
 
 	init := resp.GetInit()
 	if init == nil {
 		r.createStreamWg.Done()
-		r.initError = mterror.New(
-			mcpPb.McpError_failed_to_start.String(),
-			"Runner did not return a valid MCP Init response",
-		)
+		r.initError = fmt.Errorf("initial response is not an Init message")
 		return
 	}
 
