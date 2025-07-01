@@ -12,6 +12,7 @@ import (
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/state"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/workers"
 	"github.com/metorial/metorial/mcp-broker/pkg/mcp"
+	mterror "github.com/metorial/metorial/mcp-broker/pkg/mt-error"
 	"google.golang.org/grpc"
 )
 
@@ -33,7 +34,7 @@ type LocalSession struct {
 	mutex sync.RWMutex
 }
 
-func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) error {
+func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError {
 	s.ensureConnection()
 
 	s.mutex.RLock()
@@ -43,7 +44,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	for _, rawMessage := range req.McpMessages {
 		message, err := mcp.FromPbRawMessage(rawMessage)
 		if err != nil {
-			return err
+			return mterror.NewWithInnerError(mterror.InvalidRequestCode, "failed to parse MCP message", err)
 		}
 
 		mcpMessages = append(mcpMessages, message)
@@ -119,7 +120,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	for _, message := range mcpMessages {
 		err := s.activeConnection.AcceptMessage(message)
 		if err != nil {
-			return fmt.Errorf("failed to process message: %w", err)
+			return mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to process MCP message", err)
 		}
 
 		s.lastConnectionInteraction = time.Now()
@@ -128,6 +129,24 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	wg.Wait()
 
 	return nil
+}
+
+func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError {
+	return nil
+}
+
+func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcp.MCPServer, *mterror.MTError) {
+	s.ensureConnection()
+
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	server, err := s.activeConnection.GetServer()
+	if err != nil {
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to get server info", err)
+	}
+
+	return server, nil
 }
 
 func (s *LocalSession) CanDiscard() bool {

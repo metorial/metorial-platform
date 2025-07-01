@@ -6,6 +6,8 @@ import (
 
 	managerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/manager"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/state"
+	"github.com/metorial/metorial/mcp-broker/pkg/mcp"
+	mterror "github.com/metorial/metorial/mcp-broker/pkg/mt-error"
 	"google.golang.org/grpc"
 )
 
@@ -17,8 +19,16 @@ type RemoteSession struct {
 	mutex                     sync.RWMutex
 }
 
-func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) error {
+func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError {
 	return nil
+}
+
+func (s *RemoteSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError {
+	return nil
+}
+
+func (s *RemoteSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcp.MCPServer, *mterror.MTError) {
+	return nil, nil
 }
 
 func (s *RemoteSession) CanDiscard() bool {

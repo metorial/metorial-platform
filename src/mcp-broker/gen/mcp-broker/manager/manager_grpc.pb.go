@@ -8,6 +8,7 @@ package manager
 
 import (
 	context "context"
+	mcp "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -22,6 +23,7 @@ const (
 	McpManager_CreateSession_FullMethodName     = "/broker.manager.McpManager/CreateSession"
 	McpManager_SendMcpMessage_FullMethodName    = "/broker.manager.McpManager/SendMcpMessage"
 	McpManager_StreamMcpMessages_FullMethodName = "/broker.manager.McpManager/StreamMcpMessages"
+	McpManager_GetServerInfo_FullMethodName     = "/broker.manager.McpManager/GetServerInfo"
 )
 
 // McpManagerClient is the client API for McpManager service.
@@ -31,6 +33,7 @@ type McpManagerClient interface {
 	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionResponse, error)
 	SendMcpMessage(ctx context.Context, in *SendMcpMessageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SendMcpMessageResponse], error)
 	StreamMcpMessages(ctx context.Context, in *StreamMcpMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamMcpMessagesResponse], error)
+	GetServerInfo(ctx context.Context, in *GetServerInfoRequest, opts ...grpc.CallOption) (*mcp.McpParticipant, error)
 }
 
 type mcpManagerClient struct {
@@ -89,6 +92,16 @@ func (c *mcpManagerClient) StreamMcpMessages(ctx context.Context, in *StreamMcpM
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type McpManager_StreamMcpMessagesClient = grpc.ServerStreamingClient[StreamMcpMessagesResponse]
 
+func (c *mcpManagerClient) GetServerInfo(ctx context.Context, in *GetServerInfoRequest, opts ...grpc.CallOption) (*mcp.McpParticipant, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(mcp.McpParticipant)
+	err := c.cc.Invoke(ctx, McpManager_GetServerInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // McpManagerServer is the server API for McpManager service.
 // All implementations must embed UnimplementedMcpManagerServer
 // for forward compatibility.
@@ -96,6 +109,7 @@ type McpManagerServer interface {
 	CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error)
 	SendMcpMessage(*SendMcpMessageRequest, grpc.ServerStreamingServer[SendMcpMessageResponse]) error
 	StreamMcpMessages(*StreamMcpMessagesRequest, grpc.ServerStreamingServer[StreamMcpMessagesResponse]) error
+	GetServerInfo(context.Context, *GetServerInfoRequest) (*mcp.McpParticipant, error)
 	mustEmbedUnimplementedMcpManagerServer()
 }
 
@@ -114,6 +128,9 @@ func (UnimplementedMcpManagerServer) SendMcpMessage(*SendMcpMessageRequest, grpc
 }
 func (UnimplementedMcpManagerServer) StreamMcpMessages(*StreamMcpMessagesRequest, grpc.ServerStreamingServer[StreamMcpMessagesResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method StreamMcpMessages not implemented")
+}
+func (UnimplementedMcpManagerServer) GetServerInfo(context.Context, *GetServerInfoRequest) (*mcp.McpParticipant, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetServerInfo not implemented")
 }
 func (UnimplementedMcpManagerServer) mustEmbedUnimplementedMcpManagerServer() {}
 func (UnimplementedMcpManagerServer) testEmbeddedByValue()                    {}
@@ -176,6 +193,24 @@ func _McpManager_StreamMcpMessages_Handler(srv interface{}, stream grpc.ServerSt
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type McpManager_StreamMcpMessagesServer = grpc.ServerStreamingServer[StreamMcpMessagesResponse]
 
+func _McpManager_GetServerInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetServerInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).GetServerInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_GetServerInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).GetServerInfo(ctx, req.(*GetServerInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // McpManager_ServiceDesc is the grpc.ServiceDesc for McpManager service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -186,6 +221,10 @@ var McpManager_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateSession",
 			Handler:    _McpManager_CreateSession_Handler,
+		},
+		{
+			MethodName: "GetServerInfo",
+			Handler:    _McpManager_GetServerInfo_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

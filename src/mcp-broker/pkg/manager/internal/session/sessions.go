@@ -12,6 +12,7 @@ import (
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/state"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/workers"
 	"github.com/metorial/metorial/mcp-broker/pkg/mcp"
+	mterror "github.com/metorial/metorial/mcp-broker/pkg/mt-error"
 	"google.golang.org/grpc"
 )
 
@@ -21,7 +22,9 @@ type Session interface {
 	// Output() <-chan *mcpPb.McpOutput
 	// Errors() <-chan *mcpPb.McpError
 
-	SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) error
+	SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError
+	StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError
+	GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcp.MCPServer, *mterror.MTError)
 	StoredSession() *state.Session
 
 	CanDiscard() bool
@@ -66,9 +69,20 @@ func (s *Sessions) GetSession(sessionId string) Session {
 	return s.sessions[sessionId]
 }
 
+func (s *Sessions) GetSessionUnsafe(sessionId string) (Session, *mterror.MTError) {
+	session := s.GetSession(sessionId)
+	if session == nil {
+		return nil, mterror.NewWithDetails(mterror.NotFoundCode, "session not found", map[string]string{
+			"session_id": sessionId,
+		})
+	}
+
+	return session, nil
+}
+
 func (s *Sessions) UpsertSession(
 	request *managerPb.CreateSessionRequest,
-) (Session, error) {
+) (Session, *mterror.MTError) {
 	existing := s.GetSession(request.SessionId)
 	if existing != nil {
 		return existing, nil
@@ -79,7 +93,7 @@ func (s *Sessions) UpsertSession(
 
 	client, err := mcp.ParseMcpClient([]byte(request.McpClient.ParticipantJson))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse MCP client: %w", err)
+		return nil, mterror.NewWithInnerError(mterror.InvalidRequestCode, "failed to parse MCP client", err)
 	}
 
 	storedSession, err := s.state.UpsertSession(
@@ -87,7 +101,8 @@ func (s *Sessions) UpsertSession(
 		s.state.ManagerID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to upsert session: %w", err)
+		// return nil, fmt.Errorf("failed to upsert session: %w", err)
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to upsert session", err)
 	}
 
 	// This manager is responsible for the session, so we
@@ -97,7 +112,7 @@ func (s *Sessions) UpsertSession(
 		if request.Type == managerPb.CreateSessionRequest_runner {
 			workerType = workers.WorkerTypeRunner
 		} else {
-			return nil, fmt.Errorf("unknown session type: %s", request.Type)
+			return nil, mterror.New(mterror.InvalidRequestCode, "unsupported session type")
 		}
 
 		session := &LocalSession{
@@ -118,7 +133,7 @@ func (s *Sessions) UpsertSession(
 
 	_, err = s.managers.GetManager(storedSession.ManagerID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get manager for session %s: %w", storedSession.ID, err)
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to get manager for session", err)
 	}
 
 	// TODO: implement remote session handling

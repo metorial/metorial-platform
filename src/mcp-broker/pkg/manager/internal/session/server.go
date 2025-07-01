@@ -4,8 +4,10 @@ import (
 	"context"
 
 	managerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/manager"
+	"github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/state"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/workers"
+	mterror "github.com/metorial/metorial/mcp-broker/pkg/mt-error"
 	"google.golang.org/grpc"
 )
 
@@ -38,11 +40,48 @@ func (s *SessionServer) CreateSession(ctx context.Context, req *managerPb.Create
 }
 
 func (s *SessionServer) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) error {
-	// Implementation for sending MCP messages
+	session, err := s.sessions.GetSessionUnsafe(req.SessionId)
+	if err != nil {
+		return err.ToGRPCStatus().Err()
+	}
+
+	err = session.SendMcpMessage(req, stream)
+	if err != nil {
+		return err.ToGRPCStatus().Err()
+	}
+
 	return nil
 }
 
 func (s *SessionServer) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) error {
-	// Implementation for streaming MCP messages
+	session, err := s.sessions.GetSessionUnsafe(req.SessionId)
+	if err != nil {
+		return err.ToGRPCStatus().Err()
+	}
+
+	err = session.StreamMcpMessages(req, stream)
+	if err != nil {
+		return err.ToGRPCStatus().Err()
+	}
+
 	return nil
+}
+
+func (s *SessionServer) GetServerInfo(ctx context.Context, req *managerPb.GetServerInfoRequest) (*mcp.McpParticipant, error) {
+	session, err := s.sessions.GetSessionUnsafe(req.SessionId)
+	if err != nil {
+		return nil, err.ToGRPCStatus().Err()
+	}
+
+	server, err := session.GetServerInfo(req)
+	if err != nil {
+		return nil, err.ToGRPCStatus().Err()
+	}
+
+	participant, gerr := server.ToPbParticipant()
+	if gerr != nil {
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to convert server to participant", gerr).ToGRPCStatus().Err()
+	}
+
+	return participant, nil
 }

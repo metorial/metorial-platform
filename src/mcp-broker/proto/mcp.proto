@@ -31,15 +31,15 @@ message McpMessageRaw {
   string message = 1; 
 }
 
-message McpMessage {
-  enum McpMessageType {
-    request = 0;
-    response = 1;  
-    notification = 2;
-    error = 3;
-    unknown = 4;
-  }
+enum McpMessageType {
+  request = 0;
+  response = 1;  
+  notification = 2;
+  error = 3;
+  unknown = 4;
+}
 
+message McpMessage {
   McpMessageRaw mcp_message = 1;
   McpMessageType message_type = 2;
   string id_string = 3; // Optional

@@ -11,6 +11,7 @@ service McpManager {
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
   rpc SendMcpMessage(SendMcpMessageRequest) returns (stream SendMcpMessageResponse);
   rpc StreamMcpMessages(StreamMcpMessagesRequest) returns (stream StreamMcpMessagesResponse);
+  rpc GetServerInfo(GetServerInfoRequest) returns (broker.mcp.McpParticipant);
 }
 
 message CreateSessionRequest {
@@ -64,6 +65,23 @@ message SendMcpMessageResponse {
   broker.mcp.McpError mcp_error = 3;
 }
 
-message StreamMcpMessagesRequest {}
+message StreamMcpMessagesRequest {
+  string session_id = 1;
+  repeated broker.mcp.McpMessageType only_message_types = 2; // Optional, if empty, all message types are streamed
+  repeated string only_ids = 3; // Optional, if empty, all messages are streamed
+}
 
-message StreamMcpMessagesResponse {}
+message StreamMcpMessagesResponse {
+    enum ResponseType {
+    error = 0;
+    message = 1;
+  }
+
+  ResponseType response_type = 1;
+  broker.mcp.McpMessage mcp_response_message = 2; 
+  broker.mcp.McpError mcp_error = 3;
+}
+
+message GetServerInfoRequest {
+  string session_id = 1;
+}
