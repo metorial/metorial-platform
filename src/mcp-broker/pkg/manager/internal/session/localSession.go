@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	managerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/manager"
+	mcpPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/state"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/workers"
 	"github.com/metorial/metorial/mcp-broker/pkg/mcp"
@@ -135,7 +136,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 	return nil
 }
 
-func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcp.MCPServer, *mterror.MTError) {
+func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpPb.McpParticipant, *mterror.MTError) {
 	s.ensureConnection()
 
 	s.mutex.RLock()
@@ -146,7 +147,12 @@ func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcp.
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to get server info", err)
 	}
 
-	return server, nil
+	participant, err := server.ToPbParticipant()
+	if err != nil {
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to convert server to participant", err)
+	}
+
+	return participant, nil
 }
 
 func (s *LocalSession) CanDiscard() bool {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	managerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/manager"
+	mcpPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
 	"github.com/metorial/metorial/mcp-broker/pkg/limiter"
 	"github.com/metorial/metorial/mcp-broker/pkg/lock"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/state"
@@ -24,7 +25,7 @@ type Session interface {
 
 	SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError
 	StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError
-	GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcp.MCPServer, *mterror.MTError)
+	GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpPb.McpParticipant, *mterror.MTError)
 	StoredSession() *state.Session
 
 	CanDiscard() bool
@@ -131,16 +132,18 @@ func (s *Sessions) UpsertSession(
 		return session, nil
 	}
 
-	_, err = s.managers.GetManager(storedSession.ManagerID)
+	manager, err := s.managers.GetManager(storedSession.ManagerID)
 	if err != nil {
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to get manager for session", err)
 	}
 
-	// TODO: implement remote session handling
+	connection, err := s.managers.GetManagerConnection(manager.ID)
+
 	session := &RemoteSession{
 		storedSession:             storedSession,
 		lastConnectionInteraction: time.Now(),
 		mutex:                     sync.RWMutex{},
+		connection:                connection,
 	}
 
 	return session, nil

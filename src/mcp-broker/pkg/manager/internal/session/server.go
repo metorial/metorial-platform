@@ -7,7 +7,6 @@ import (
 	"github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/state"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/workers"
-	mterror "github.com/metorial/metorial/mcp-broker/pkg/mt-error"
 	"google.golang.org/grpc"
 )
 
@@ -73,14 +72,9 @@ func (s *SessionServer) GetServerInfo(ctx context.Context, req *managerPb.GetSer
 		return nil, err.ToGRPCStatus().Err()
 	}
 
-	server, err := session.GetServerInfo(req)
+	participant, err := session.GetServerInfo(req)
 	if err != nil {
 		return nil, err.ToGRPCStatus().Err()
-	}
-
-	participant, gerr := server.ToPbParticipant()
-	if gerr != nil {
-		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to convert server to participant", gerr).ToGRPCStatus().Err()
 	}
 
 	return participant, nil
