@@ -10,6 +10,7 @@ message McpError {
     failed_to_stop = 1;
     invalid_mcp_message = 2;
     unknown_error = 3;
+    timeout = 4;
   }
 
   string error_message = 1;

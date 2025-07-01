@@ -83,6 +83,7 @@ const (
 	McpError_failed_to_stop      McpError_McpErrorCode = 1
 	McpError_invalid_mcp_message McpError_McpErrorCode = 2
 	McpError_unknown_error       McpError_McpErrorCode = 3
+	McpError_timeout             McpError_McpErrorCode = 4
 )
 
 // Enum value maps for McpError_McpErrorCode.
@@ -92,12 +93,14 @@ var (
 		1: "failed_to_stop",
 		2: "invalid_mcp_message",
 		3: "unknown_error",
+		4: "timeout",
 	}
 	McpError_McpErrorCode_value = map[string]int32{
 		"failed_to_start":     0,
 		"failed_to_stop":      1,
 		"invalid_mcp_message": 2,
 		"unknown_error":       3,
+		"timeout":             4,
 	}
 )
 
@@ -509,7 +512,7 @@ var File_mcp_proto protoreflect.FileDescriptor
 const file_mcp_proto_rawDesc = "" +
 	"\n" +
 	"\tmcp.proto\x12\n" +
-	"broker.mcp\"\xd3\x02\n" +
+	"broker.mcp\"\xe0\x02\n" +
 	"\bMcpError\x12#\n" +
 	"\rerror_message\x18\x01 \x01(\tR\ferrorMessage\x12@\n" +
 	"\n" +
@@ -517,12 +520,13 @@ const file_mcp_proto_rawDesc = "" +
 	"\bmetadata\x18\x03 \x03(\v2\".broker.mcp.McpError.MetadataEntryR\bmetadata\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"c\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"p\n" +
 	"\fMcpErrorCode\x12\x13\n" +
 	"\x0ffailed_to_start\x10\x00\x12\x12\n" +
 	"\x0efailed_to_stop\x10\x01\x12\x17\n" +
 	"\x13invalid_mcp_message\x10\x02\x12\x11\n" +
-	"\runknown_error\x10\x03\"\x90\x01\n" +
+	"\runknown_error\x10\x03\x12\v\n" +
+	"\atimeout\x10\x04\"\x90\x01\n" +
 	"\tMcpOutput\x12D\n" +
 	"\voutput_type\x18\x01 \x01(\x0e2#.broker.mcp.McpOutput.McpOutputTypeR\n" +
 	"outputType\x12\x14\n" +

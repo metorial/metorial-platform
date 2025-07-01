@@ -154,7 +154,6 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 				},
 			},
 		})
-
 	}
 
 	if err := stream.Send(&runnerPb.RunResponse{

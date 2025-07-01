@@ -136,23 +136,9 @@ func (m *MCPMessage) ToPbRawMessage() *mcpPb.McpMessageRaw {
 func (m *MCPMessage) ToPbMessage() *mcpPb.McpMessage {
 	rawMessage := m.ToPbRawMessage()
 
-	var messageType mcpPb.McpMessageType
-	switch m.MsgType {
-	case RequestType:
-		messageType = mcpPb.McpMessageType_request
-	case NotificationType:
-		messageType = mcpPb.McpMessageType_notification
-	case ResponseType:
-		messageType = mcpPb.McpMessageType_response
-	case ErrorType:
-		messageType = mcpPb.McpMessageType_error
-	default:
-		messageType = mcpPb.McpMessageType_unknown
-	}
-
 	msg := &mcpPb.McpMessage{
 		McpMessage:  rawMessage,
-		MessageType: messageType,
+		MessageType: messageTypeToPbMessageType(m.MsgType),
 	}
 
 	if m.stringId != "" {
@@ -168,6 +154,10 @@ func (m *MCPMessage) ToPbMessage() *mcpPb.McpMessage {
 	}
 
 	return msg
+}
+
+func (m *MCPMessage) GetPbMessageType() mcpPb.McpMessageType {
+	return messageTypeToPbMessageType(m.MsgType)
 }
 
 func NewMCPRequestMessage(id string, method string, params map[string]any) (*MCPMessage, error) {
@@ -232,6 +222,39 @@ func (m *MCPMessage) GetRawPayload() []byte {
 	}
 	return m.raw
 }
+
+func messageTypeToPbMessageType(inType MessageType) mcpPb.McpMessageType {
+	var messageType mcpPb.McpMessageType
+	switch inType {
+	case RequestType:
+		messageType = mcpPb.McpMessageType_request
+	case NotificationType:
+		messageType = mcpPb.McpMessageType_notification
+	case ResponseType:
+		messageType = mcpPb.McpMessageType_response
+	case ErrorType:
+		messageType = mcpPb.McpMessageType_error
+	default:
+		messageType = mcpPb.McpMessageType_unknown
+	}
+
+	return messageType
+}
+
+// func pbMessageTypeToMessageType(inType mcpPb.McpMessageType) MessageType {
+// 	switch inType {
+// 	case mcpPb.McpMessageType_request:
+// 		return RequestType
+// 	case mcpPb.McpMessageType_notification:
+// 		return NotificationType
+// 	case mcpPb.McpMessageType_response:
+// 		return ResponseType
+// 	case mcpPb.McpMessageType_error:
+// 		return ErrorType
+// 	default:
+// 		return UnknownType
+// 	}
+// }
 
 // func (m *MCPMessage) GetPayload() map[string]any {
 // 	if m.payload == nil {

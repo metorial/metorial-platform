@@ -72,6 +72,8 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 			s.mutex.RLock()
 			defer s.mutex.RUnlock()
 
+			timeout := time.NewTimer(time.Second * 30)
+
 			responsesToWaitFor := len(mcpRequestMessageIdsToListenFor)
 
 			for {
@@ -79,11 +81,31 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 					return
 				}
 
+				s.touch()
+
 				select {
 				case <-stream.Context().Done():
 					return
 
 				case <-s.activeConnection.Done():
+					return
+
+				case <-timeout.C:
+					if responsesToWaitFor > 0 {
+						response := &managerPb.SendMcpMessageResponse{
+							ResponseType: managerPb.SendMcpMessageResponse_message,
+							McpError: &mcpPb.McpError{
+								ErrorCode:    mcpPb.McpError_timeout,
+								ErrorMessage: fmt.Sprintf("timeout waiting for %d MCP responses", responsesToWaitFor),
+							},
+						}
+
+						err := stream.Send(response)
+						if err != nil {
+							log.Printf("Failed to send response message: %v", err)
+							return
+						}
+					}
 					return
 
 				case message := <-s.activeConnection.Messages():
@@ -99,16 +121,14 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 							return
 						}
 
-						s.lastConnectionInteraction = time.Now()
 						responsesToWaitFor--
 					}
 
 				case mcpErr := <-s.activeConnection.Errors():
-					response := &managerPb.SendMcpMessageResponse{
+					err := stream.Send(&managerPb.SendMcpMessageResponse{
 						ResponseType: managerPb.SendMcpMessageResponse_error,
 						McpError:     mcpErr,
-					}
-					err := stream.Send(response)
+					})
 					if err != nil {
 						log.Printf("Failed to send error message: %v", err)
 						return
@@ -124,7 +144,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 			return mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to process MCP message", err)
 		}
 
-		s.lastConnectionInteraction = time.Now()
+		s.touch()
 	}
 
 	wg.Wait()
@@ -133,7 +153,64 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 }
 
 func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError {
-	return nil
+	responsesToWaitFor := 0
+	if req.OnlyIds == nil {
+		responsesToWaitFor = len(req.OnlyIds)
+	}
+
+	for {
+		if responsesToWaitFor <= 0 {
+			return nil
+		}
+
+		select {
+		case <-stream.Context().Done():
+			return nil
+
+		case <-s.activeConnection.Done():
+			return nil
+
+		case message := <-s.activeConnection.Messages():
+			canSend := true
+
+			if req.OnlyIds != nil {
+				if slices.Contains(req.OnlyIds, message.GetStringId()) {
+					responsesToWaitFor--
+				} else {
+					canSend = false
+				}
+			}
+
+			if req.OnlyMessageTypes != nil {
+				if !slices.Contains(req.OnlyMessageTypes, message.GetPbMessageType()) {
+					canSend = false
+				}
+			}
+
+			if canSend {
+				response := &managerPb.StreamMcpMessagesResponse{
+					ResponseType:       managerPb.StreamMcpMessagesResponse_message,
+					McpResponseMessage: message.ToPbMessage(),
+				}
+
+				err := stream.Send(response)
+				if err != nil {
+					log.Printf("Failed to send response message: %v", err)
+					return nil
+				}
+			}
+
+		case mcpErr := <-s.activeConnection.Errors():
+			err := stream.Send(&managerPb.StreamMcpMessagesResponse{
+				ResponseType: managerPb.StreamMcpMessagesResponse_error,
+				McpError:     mcpErr,
+			})
+			if err != nil {
+				log.Printf("Failed to send error message: %v", err)
+				return nil
+			}
+		}
+	}
 }
 
 func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpPb.McpParticipant, *mterror.MTError) {
@@ -176,33 +253,6 @@ func (s *LocalSession) StoredSession() *state.Session {
 	return s.storedSession
 }
 
-// func (s *LocalSession) Messages() <-chan mcp.MCPMessage {
-// 	s.ensureConnection()
-
-// 	s.mutex.RLock()
-// 	defer s.mutex.RUnlock()
-
-// 	return s.activeConnection.Messages()
-// }
-
-// func (s *LocalSession) Output() <-chan *mcpPb.McpOutput {
-// 	s.ensureConnection()
-
-// 	s.mutex.RLock()
-// 	defer s.mutex.RUnlock()
-
-// 	return s.activeConnection.Output()
-// }
-
-// func (s *LocalSession) Errors() <-chan *mcpPb.McpError {
-// 	s.ensureConnection()
-
-// 	s.mutex.RLock()
-// 	defer s.mutex.RUnlock()
-
-// 	return s.activeConnection.Errors()
-// }
-
 func (s *LocalSession) ensureConnection() error {
 	s.mutex.RLock()
 
@@ -215,6 +265,11 @@ func (s *LocalSession) ensureConnection() error {
 
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+
+	// Double-check if the connection was created while waiting for the lock
+	if s.activeConnection != nil {
+		return nil
+	}
 
 	connectionInput := &workers.WorkerConnectionInput{
 		SessionID:    s.storedSession.ID,
@@ -310,4 +365,11 @@ loop:
 			break loop
 		}
 	}
+}
+
+func (s *LocalSession) touch() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	s.lastConnectionInteraction = time.Now()
 }
