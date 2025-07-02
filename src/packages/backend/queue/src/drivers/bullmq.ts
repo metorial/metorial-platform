@@ -112,59 +112,70 @@ export let createBullMqQueue = <JobData>(opts: {
       });
     },
 
-    process: cb => ({
-      start: async () => {
-        log(`Starting queue ${opts.name} using bullmq`);
+    process: cb => {
+      let staredRef = { started: false };
 
-        let worker = new Worker<JobData>(
-          opts.name,
-          async job => {
-            try {
-              let data = job.data as any;
+      setTimeout(() => {
+        if (!staredRef.started) {
+          log(`Queue ${opts.name} was not started within 10 seconds, this is likely a bug`);
+        }
+      }, 10000);
 
-              let payload: any;
+      return {
+        start: async () => {
+          log(`Starting queue ${opts.name} using bullmq`);
+          staredRef.started = true;
 
+          let worker = new Worker<JobData>(
+            opts.name,
+            async job => {
               try {
-                payload = SuperJson.deserialize(data.payload);
+                let data = job.data as any;
+
+                let payload: any;
+
+                try {
+                  payload = SuperJson.deserialize(data.payload);
+                } catch (e: any) {
+                  payload = data.payload;
+                }
+
+                let parentExecutionContext = (data as any)
+                  .$$execution_context$$ as ExecutionContext;
+                while (
+                  parentExecutionContext &&
+                  parentExecutionContext.type == 'job' &&
+                  parentExecutionContext.parent
+                )
+                  parentExecutionContext = parentExecutionContext.parent;
+
+                await provideExecutionContext(
+                  createExecutionContext({
+                    type: 'job',
+                    contextId: job.id ?? generateSnowflakeId(),
+                    queue: opts.name,
+                    parent: parentExecutionContext
+                  }),
+                  () => cb(payload as any, job)
+                );
               } catch (e: any) {
-                payload = data.payload;
+                Sentry.captureException(e);
+                // TODO: add sentry
+                console.error(e);
+                throw e;
               }
-
-              let parentExecutionContext = (data as any)
-                .$$execution_context$$ as ExecutionContext;
-              while (
-                parentExecutionContext &&
-                parentExecutionContext.type == 'job' &&
-                parentExecutionContext.parent
-              )
-                parentExecutionContext = parentExecutionContext.parent;
-
-              await provideExecutionContext(
-                createExecutionContext({
-                  type: 'job',
-                  contextId: job.id ?? generateSnowflakeId(),
-                  queue: opts.name,
-                  parent: parentExecutionContext
-                }),
-                () => cb(payload as any, job)
-              );
-            } catch (e: any) {
-              Sentry.captureException(e);
-              // TODO: add sentry
-              console.error(e);
-              throw e;
+            },
+            {
+              ...opts.workerOpts,
+              connection: redisOpts
             }
-          },
-          {
-            ...opts.workerOpts,
-            connection: redisOpts
-          }
-        );
+          );
 
-        return {
-          close: () => worker.close()
-        };
-      }
-    })
+          return {
+            close: () => worker.close()
+          };
+        }
+      };
+    }
   };
 };

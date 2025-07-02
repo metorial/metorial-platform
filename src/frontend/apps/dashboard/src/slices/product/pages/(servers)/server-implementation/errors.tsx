@@ -10,6 +10,6 @@ export let ServerImplementationErrorsPage = () => {
   let implementation = useServerImplementation(instance.data?.id, serverImplementationId);
 
   return renderWithLoader({ implementation })(({ implementation }) => (
-    <ServerErrorsTable serverImplementationIds={[implementation.data.id]} />
+    <ServerErrorsTable serverImplementationId={[implementation.data.id]} />
   ));
 };

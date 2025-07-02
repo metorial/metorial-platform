@@ -321,8 +321,6 @@ export let createServerRunnerGateway = (
                 return;
               }
 
-              console.log(`Runner ${runner.id} sending ping`);
-
               ws.send('ping');
             }, SEND_PING_INTERVAL);
 
@@ -336,16 +334,12 @@ export let createServerRunnerGateway = (
             if (data === 'ping') {
               lastPing = Date.now();
 
-              console.log(`Runner ${runner.id} ping received`);
-
               // Only save every 60 seconds
               if (lastPing - lastPingSaved > PING_SAVE_INTERVAL) {
                 await serverRunnerConnectionService.handleServerRunnerPing({
                   runner
                 });
                 lastPingSaved = Date.now();
-
-                console.log(`Runner ${runner.id} ping saved`);
               }
 
               return;

@@ -5,6 +5,7 @@ export class MetorialSDKBuilder<
   Config extends {
     apiKey?: string;
     apiVersion: ApiVersion;
+    fetch?: typeof fetch;
   }
 > {
   #getApiHost?: (config: Config) => string;
@@ -56,9 +57,13 @@ export class MetorialSDKBuilder<
         let fullConfig = getConfig(config);
         let apiHost = this.#getApiHost!(fullConfig);
 
-        let manager = new MetorialEndpointManager(fullConfig, apiHost, this.#getHeaders!, {
-          enableDebugLogging: !!config.enableDebugLogging
-        });
+        let manager = new MetorialEndpointManager(
+          fullConfig,
+          apiHost,
+          this.#getHeaders!,
+          fullConfig.fetch,
+          { enableDebugLogging: !!config.enableDebugLogging }
+        );
 
         return {
           _config: {

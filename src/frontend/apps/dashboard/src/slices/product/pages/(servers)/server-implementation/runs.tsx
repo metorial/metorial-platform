@@ -10,6 +10,6 @@ export let ServerImplementationRunsPage = () => {
   let implementation = useServerImplementation(instance.data?.id, serverImplementationId);
 
   return renderWithLoader({ implementation })(({ implementation }) => (
-    <ServerRunsTable serverImplementationIds={[implementation.data.id]} />
+    <ServerRunsTable serverImplementationId={[implementation.data.id]} />
   ));
 };

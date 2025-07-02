@@ -11,6 +11,12 @@ export let createHono = <E extends Env>(basePath?: string) => {
 
   let Sentry = getSentry();
 
+  app.use(async (c, next) => {
+    await next();
+
+    c.res.headers.set('X-Powered-By', 'Metorial');
+  });
+
   app.notFound(c => {
     return c.json(notFoundError('endpoint', null).toResponse(), 404);
   });

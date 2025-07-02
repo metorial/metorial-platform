@@ -21,6 +21,12 @@
         "^prisma:push"
       ]
     },
+    "generate:client": {
+      "dependsOn": [
+        "^generate:client"
+      ],
+      "cache": false
+    },
     "frontend:build": {
       "dependsOn": [
         "^frontend:build"

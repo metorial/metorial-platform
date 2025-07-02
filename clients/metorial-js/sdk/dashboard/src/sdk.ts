@@ -1,3 +1,4 @@
+import { createFetchWithRetry } from '@metorial/fetch';
 import {
   MetorialApiKeysEndpoint,
   MetorialDashboardEndpoint,
@@ -31,6 +32,29 @@ import {
 import { MetorialAuthEndpoint } from './auth';
 import { MetorialKeyPrefix, sdkBuilder } from './builder';
 
+let fetchWithRetry = createFetchWithRetry();
+
+let fetchWithRetryAndLogging = async (
+  input: string | URL | Request,
+  init?: RequestInit
+): Promise<Response> => {
+  console.log('[Metorial API] Fetching:', {
+    input,
+    init
+  });
+
+  try {
+    return await fetchWithRetry(input, init);
+  } catch (error) {
+    console.error('[Metorial API] Fetch failed:', {
+      input,
+      init,
+      error
+    });
+    throw error;
+  }
+};
+
 export let createMetorialDashboardSDK = sdkBuilder.build(
   (soft: {
     apiKey?: `${MetorialKeyPrefix}${string}` | string;
@@ -41,7 +65,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     instanceId?: string;
   }) => ({
     ...soft,
-    apiVersion: '2025-01-01-dashboard'
+    apiVersion: '2025-01-01-dashboard',
+    fetch: fetchWithRetryAndLogging
   })
 )(manager => ({
   organizations: Object.assign(new MetorialDashboardOrganizationsEndpoint(manager), {

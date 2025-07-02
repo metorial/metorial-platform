@@ -300,7 +300,7 @@ export type ManagementInstanceServerRunErrorGroupsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { serverIds?: string | string[] | undefined };
+} & { serverId?: string | string[] | undefined };
 
 export let mapManagementInstanceServerRunErrorGroupsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -311,8 +311,8 @@ export let mapManagementInstanceServerRunErrorGroupsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      serverIds: mtMap.objectField(
-        'server_ids',
+      serverId: mtMap.objectField(
+        'server_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

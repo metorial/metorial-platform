@@ -15,7 +15,7 @@ let checkRunnersCron = createCron(
 
     let cursorId: string | undefined = undefined;
 
-    while (true) {
+    for (let i = 0; i < 10_000; i++) {
       let runnersToStop = await db.serverRunner.findMany({
         where: {
           status: 'online',

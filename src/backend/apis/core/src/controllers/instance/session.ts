@@ -45,10 +45,10 @@ export let sessionController = Controller.create(
                 v.array(v.enumOf(Object.keys(SessionStatus) as any))
               ])
             ),
-            server_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_variant_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_implementation_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_deployment_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
@@ -56,10 +56,10 @@ export let sessionController = Controller.create(
         let paginator = await sessionService.listSessions({
           instance: ctx.instance,
           status: normalizeArrayParam(ctx.query.status) as any,
-          serverIds: normalizeArrayParam(ctx.query.server_ids),
-          serverVariantIds: normalizeArrayParam(ctx.query.server_variant_ids),
-          serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_ids),
-          serverDeploymentIds: normalizeArrayParam(ctx.query.server_deployment_ids)
+          serverIds: normalizeArrayParam(ctx.query.server_id),
+          serverVariantIds: normalizeArrayParam(ctx.query.server_variant_id),
+          serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_id),
+          serverDeploymentIds: normalizeArrayParam(ctx.query.server_deployment_id)
         });
 
         let list = await paginator.run(ctx.query);
@@ -86,21 +86,33 @@ export let sessionController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.session:write'] }))
       .body(
         'default',
-        v.object({
-          server_deployments: v.array(
-            v.union([
-              createServerDeploymentSchema,
-              v.string(),
-              v.object({
-                server_deployment_id: v.string()
-              })
-            ])
-          )
-        })
+        v.union([
+          v.object({
+            server_deployments: v.array(
+              v.union([
+                createServerDeploymentSchema,
+                v.string(),
+                v.object({
+                  server_deployment_id: v.string()
+                })
+              ])
+            )
+          }),
+          v.object({
+            server_deployment_ids: v.union([v.array(v.string()), v.string()])
+          })
+        ])
       )
       .output(sessionPresenter)
       .do(async ctx => {
-        let deploymentIds = ctx.body.server_deployments
+        let serverDeploymentInputs =
+          'server_deployments' in ctx.body
+            ? ctx.body.server_deployments
+            : Array.isArray(ctx.body.server_deployment_ids)
+              ? ctx.body.server_deployment_ids
+              : [ctx.body.server_deployment_ids];
+
+        let deploymentIds = serverDeploymentInputs
           .map(d => {
             if (typeof d === 'string') return d;
             return 'server_deployment_id' in d ? d.server_deployment_id : undefined!;
@@ -121,7 +133,7 @@ export let sessionController = Controller.create(
           );
         }
 
-        let deploymentsToCreate = ctx.body.server_deployments
+        let deploymentsToCreate = serverDeploymentInputs
           .map(d => {
             if (typeof d != 'object' || 'server_deployment_id' in d) return undefined!;
             return d;

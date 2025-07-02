@@ -440,13 +440,13 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                     let version =
                       req.headers.get('metorial-version') ??
                       url.searchParams.get('api-version');
-                    if (!version && auth.defaultVersion) {
-                      if (knowVersions.has(auth.defaultVersion)) version = auth.defaultVersion;
-                    }
 
+                    if (version && !knowVersions.has(version)) version = null;
+                    if (!version && auth.defaultVersion) version = auth.defaultVersion;
                     if (!version) version = currentVersion;
 
                     let selectedVersion = versionApps.get(version);
+
                     if (!selectedVersion) {
                       return json(
                         badRequestError({

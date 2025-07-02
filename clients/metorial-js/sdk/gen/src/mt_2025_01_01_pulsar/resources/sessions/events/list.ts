@@ -513,8 +513,8 @@ export type SessionsEventsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  serverRunIds?: string | string[] | undefined;
-  serverSessionIds?: string | string[] | undefined;
+  serverRunId?: string | string[] | undefined;
+  serverSessionId?: string | string[] | undefined;
 };
 
 export let mapSessionsEventsListQuery = mtMap.union([
@@ -526,8 +526,8 @@ export let mapSessionsEventsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      serverRunIds: mtMap.objectField(
-        'server_run_ids',
+      serverRunId: mtMap.objectField(
+        'server_run_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -536,8 +536,8 @@ export let mapSessionsEventsListQuery = mtMap.union([
           )
         ])
       ),
-      serverSessionIds: mtMap.objectField(
-        'server_session_ids',
+      serverSessionId: mtMap.objectField(
+        'server_session_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

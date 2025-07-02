@@ -1,0 +1,15 @@
+{
+  "name": "metorial-test-tools",
+  "module": "index.ts",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "bin": "./src/cli.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {}
+}

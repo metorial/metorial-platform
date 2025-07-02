@@ -139,8 +139,8 @@ export let serverImplementationController = Controller.create(
                 v.array(v.enumOf(Object.keys(ServerImplementationStatus) as any))
               ])
             ),
-            server_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_variant_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
@@ -148,8 +148,8 @@ export let serverImplementationController = Controller.create(
         let paginator = await serverImplementationService.listServerImplementations({
           instance: ctx.instance,
           status: normalizeArrayParam(ctx.query.status) as any,
-          serverIds: normalizeArrayParam(ctx.query.server_ids),
-          serverVariantIds: normalizeArrayParam(ctx.query.server_variant_ids)
+          serverIds: normalizeArrayParam(ctx.query.server_id),
+          serverVariantIds: normalizeArrayParam(ctx.query.server_variant_id)
         });
 
         let list = await paginator.run(ctx.query);

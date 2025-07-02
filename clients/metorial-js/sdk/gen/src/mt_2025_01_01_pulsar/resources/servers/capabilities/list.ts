@@ -269,11 +269,11 @@ export type ServersCapabilitiesListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  serverDeploymentIds?: string | string[] | undefined;
-  serverVariantIds?: string | string[] | undefined;
-  serverIds?: string | string[] | undefined;
-  serverVersionIds?: string | string[] | undefined;
-  serverImplementationIds?: string | string[] | undefined;
+  serverDeploymentId?: string | string[] | undefined;
+  serverVariantId?: string | string[] | undefined;
+  serverId?: string | string[] | undefined;
+  serverVersionId?: string | string[] | undefined;
+  serverImplementationId?: string | string[] | undefined;
 };
 
 export let mapServersCapabilitiesListQuery = mtMap.union([
@@ -285,8 +285,8 @@ export let mapServersCapabilitiesListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      serverDeploymentIds: mtMap.objectField(
-        'server_deployment_ids',
+      serverDeploymentId: mtMap.objectField(
+        'server_deployment_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -295,8 +295,8 @@ export let mapServersCapabilitiesListQuery = mtMap.union([
           )
         ])
       ),
-      serverVariantIds: mtMap.objectField(
-        'server_variant_ids',
+      serverVariantId: mtMap.objectField(
+        'server_variant_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -305,8 +305,8 @@ export let mapServersCapabilitiesListQuery = mtMap.union([
           )
         ])
       ),
-      serverIds: mtMap.objectField(
-        'server_ids',
+      serverId: mtMap.objectField(
+        'server_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -315,8 +315,8 @@ export let mapServersCapabilitiesListQuery = mtMap.union([
           )
         ])
       ),
-      serverVersionIds: mtMap.objectField(
-        'server_version_ids',
+      serverVersionId: mtMap.objectField(
+        'server_version_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -325,8 +325,8 @@ export let mapServersCapabilitiesListQuery = mtMap.union([
           )
         ])
       ),
-      serverImplementationIds: mtMap.objectField(
-        'server_implementation_ids',
+      serverImplementationId: mtMap.objectField(
+        'server_implementation_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

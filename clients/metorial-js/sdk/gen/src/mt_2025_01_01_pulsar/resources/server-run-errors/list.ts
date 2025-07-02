@@ -255,11 +255,11 @@ export type ServerRunErrorsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  serverSessionIds?: string | string[] | undefined;
-  serverImplementationIds?: string | string[] | undefined;
-  serverDeploymentIds?: string | string[] | undefined;
-  serverRunIds?: string | string[] | undefined;
-  serverRunErrorGroupIds?: string | string[] | undefined;
+  serverSessionId?: string | string[] | undefined;
+  serverImplementationId?: string | string[] | undefined;
+  serverDeploymentId?: string | string[] | undefined;
+  serverRunId?: string | string[] | undefined;
+  serverRunErrorGroupId?: string | string[] | undefined;
 };
 
 export let mapServerRunErrorsListQuery = mtMap.union([
@@ -271,8 +271,8 @@ export let mapServerRunErrorsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      serverSessionIds: mtMap.objectField(
-        'server_session_ids',
+      serverSessionId: mtMap.objectField(
+        'server_session_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -281,8 +281,8 @@ export let mapServerRunErrorsListQuery = mtMap.union([
           )
         ])
       ),
-      serverImplementationIds: mtMap.objectField(
-        'server_implementation_ids',
+      serverImplementationId: mtMap.objectField(
+        'server_implementation_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -291,8 +291,8 @@ export let mapServerRunErrorsListQuery = mtMap.union([
           )
         ])
       ),
-      serverDeploymentIds: mtMap.objectField(
-        'server_deployment_ids',
+      serverDeploymentId: mtMap.objectField(
+        'server_deployment_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -301,8 +301,8 @@ export let mapServerRunErrorsListQuery = mtMap.union([
           )
         ])
       ),
-      serverRunIds: mtMap.objectField(
-        'server_run_ids',
+      serverRunId: mtMap.objectField(
+        'server_run_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -311,8 +311,8 @@ export let mapServerRunErrorsListQuery = mtMap.union([
           )
         ])
       ),
-      serverRunErrorGroupIds: mtMap.objectField(
-        'server_run_error_group_ids',
+      serverRunErrorGroupId: mtMap.objectField(
+        'server_run_error_group_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

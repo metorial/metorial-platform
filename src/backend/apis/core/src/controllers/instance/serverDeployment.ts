@@ -125,10 +125,10 @@ export let serverDeploymentController = Controller.create(
                 v.array(v.enumOf(Object.keys(ServerDeploymentStatus) as any))
               ])
             ),
-            server_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_variant_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_implementation_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            session_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            session_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
@@ -136,10 +136,10 @@ export let serverDeploymentController = Controller.create(
         let paginator = await serverDeploymentService.listServerDeployments({
           instance: ctx.instance,
           status: normalizeArrayParam(ctx.query.status) as any,
-          serverIds: normalizeArrayParam(ctx.query.server_ids),
-          serverVariantIds: normalizeArrayParam(ctx.query.server_variant_ids),
-          serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_ids),
-          sessionIds: normalizeArrayParam(ctx.query.session_ids)
+          serverIds: normalizeArrayParam(ctx.query.server_id),
+          serverVariantIds: normalizeArrayParam(ctx.query.server_variant_id),
+          serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_id),
+          sessionIds: normalizeArrayParam(ctx.query.session_id)
         });
 
         let list = await paginator.run(ctx.query);

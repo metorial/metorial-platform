@@ -1,5 +1,9 @@
 import { MetorialCoreSDK, createMetorialCoreSDK } from '@metorial/core';
-import { MetorialMcpSession, MetorialMcpSessionInit } from '@metorial/mcp-session';
+import {
+  MetorialMcpSession,
+  MetorialMcpSessionInit,
+  MetorialMcpSessionInitServerDeployments
+} from '@metorial/mcp-session';
 
 export class Metorial implements MetorialCoreSDK {
   private readonly sdk: MetorialCoreSDK;
@@ -37,7 +41,7 @@ export class Metorial implements MetorialCoreSDK {
     };
   }
 
-  async createMcpConnection(init: MetorialMcpSessionInit['serverDeployments'][number]) {
+  async createMcpConnection(init: MetorialMcpSessionInitServerDeployments[number]) {
     let session = new MetorialMcpSession(this.sdk, {
       serverDeployments: [init]
     });

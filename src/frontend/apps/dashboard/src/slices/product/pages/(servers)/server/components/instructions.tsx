@@ -5,7 +5,13 @@ import styled from 'styled-components';
 import { CodeViewer } from './codeViewer';
 
 export type InstructionItemOption =
-  | { type: 'code'; lineNumbers?: boolean; code: string; language?: string }
+  | {
+      type: 'code';
+      lineNumbers?: boolean;
+      code: string;
+      language?: string;
+      replacements?: Record<string, () => React.ReactNode>;
+    }
   | {
       component: React.ReactNode;
     };
@@ -135,6 +141,7 @@ let InstructionItem = ({ item }: { item: InstructionItem }) => {
             language={currentOption.item.language}
             code={currentOption.item.code}
             lineNumbers={!!currentOption.item.lineNumbers}
+            replacements={currentOption.item.replacements}
           />
         )}
 

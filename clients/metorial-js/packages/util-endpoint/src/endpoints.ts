@@ -15,16 +15,21 @@ export class MetorialEndpointManager<Config> {
     public readonly config: Config,
     public readonly apiHost: string,
     public readonly getHeaders: (config: Config) => Record<string, string>,
+    public readonly fetchImpl: typeof fetch | undefined | null,
     private readonly options: {
       enableDebugLogging: boolean;
     }
   ) {}
 
+  get fetch() {
+    return this.fetchImpl ?? globalThis.fetch.bind(globalThis);
+  }
+
   private async request(method: Method, request: MetorialRequest, tryCount = 0): Promise<any> {
-    let url = new URL(
-      Array.isArray(request.path) ? request.path.join('/') : request.path,
-      request.host ?? this.apiHost
-    );
+    let path = Array.isArray(request.path) ? request.path.join('/') : request.path;
+    let url = new URL(request.host ?? this.apiHost);
+    url.pathname = url.pathname.replace(/\/$/, '') + '/' + path.replace(/^\//, '');
+
     if (request.query) {
       url.search = qs.stringify(request.query);
     }
@@ -45,7 +50,7 @@ export class MetorialEndpointManager<Config> {
 
     let response: Response;
     try {
-      response = await fetch(url.toString(), {
+      response = await this.fetch(url.toString(), {
         method,
         headers,
         body: hasBody
@@ -141,7 +146,7 @@ export class MetorialEndpointManager<Config> {
   }
 }
 
-export class BaseMetorialEndpoint<Config> {
+export abstract class BaseMetorialEndpoint<Config> {
   constructor(protected readonly manager: MetorialEndpointManager<Config>) {}
 
   protected _get(request: MetorialRequest) {

@@ -224,9 +224,9 @@ export type ServersListingsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {
   search?: string | undefined;
-  collectionIds?: string[] | string | undefined;
-  categoryIds?: string[] | string | undefined;
-  profileIds?: string[] | string | undefined;
+  collectionId?: string[] | string | undefined;
+  categoryId?: string[] | string | undefined;
+  profileId?: string[] | string | undefined;
   instanceId?: string | undefined;
   orderByRank?: boolean | undefined;
 };
@@ -241,8 +241,8 @@ export let mapServersListingsListQuery = mtMap.union([
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
       search: mtMap.objectField('search', mtMap.passthrough()),
-      collectionIds: mtMap.objectField(
-        'collection_ids',
+      collectionId: mtMap.objectField(
+        'collection_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -251,8 +251,8 @@ export let mapServersListingsListQuery = mtMap.union([
           )
         ])
       ),
-      categoryIds: mtMap.objectField(
-        'category_ids',
+      categoryId: mtMap.objectField(
+        'category_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -261,8 +261,8 @@ export let mapServersListingsListQuery = mtMap.union([
           )
         ])
       ),
-      profileIds: mtMap.objectField(
-        'profile_ids',
+      profileId: mtMap.objectField(
+        'profile_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

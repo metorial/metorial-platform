@@ -36,16 +36,16 @@ export let sessionMessageController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            server_run_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_session_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_run_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_session_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
       .do(async ctx => {
         let paginator = await sessionMessageService.listSessionMessages({
           session: ctx.session,
-          serverRunIds: normalizeArrayParam(ctx.query.server_run_ids),
-          serverSessionIds: normalizeArrayParam(ctx.query.server_session_ids)
+          serverRunIds: normalizeArrayParam(ctx.query.server_run_id),
+          serverSessionIds: normalizeArrayParam(ctx.query.server_session_id)
         });
 
         let list = await paginator.run(ctx.query);

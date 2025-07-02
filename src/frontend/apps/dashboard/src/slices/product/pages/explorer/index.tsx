@@ -214,8 +214,8 @@ export let ExplorerPage = () => {
 
                     {serverTab == 'list' && (
                       <ServerDeploymentsList
-                        serverIds={[selectedServer.server.id]}
-                        serverImplementationIds={
+                        serverId={[selectedServer.server.id]}
+                        serverImplementationId={
                           serverImplementationIdParam
                             ? [serverImplementationIdParam]
                             : undefined

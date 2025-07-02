@@ -3,9 +3,10 @@ import { searchService } from '@metorial/module-search';
 import { createQueue } from '@metorial/queue';
 
 export let indexServerListingQueue = createQueue<{ serverListingId: string }>({
-  name: 'cat/index/srvlst',
+  name: 'cat/search/srvlst',
   workerOpts: {
-    concurrency: 1
+    concurrency: 1,
+    limiter: process.env.NODE_ENV == 'development' ? undefined : { max: 20, duration: 1000 }
   }
 });
 

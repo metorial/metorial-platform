@@ -15,7 +15,7 @@ let disconnectSessionsCron = createCron(
 
     let cursorId: string | undefined = undefined;
 
-    while (true) {
+    for (let i = 0; i < 10_000; i++) {
       let sessionsToDisconnect = await db.session.findMany({
         where: {
           connectionStatus: 'connected',

@@ -10,6 +10,6 @@ export let ServerServerDeploymentsPage = () => {
   let server = useServer(instance.data?.id, serverId);
 
   return renderWithLoader({ server })(({ server }) => (
-    <ServerDeploymentsTable serverIds={[server.data.id]} />
+    <ServerDeploymentsTable serverId={[server.data.id]} />
   ));
 };

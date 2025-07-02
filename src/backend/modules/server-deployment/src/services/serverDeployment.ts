@@ -18,12 +18,9 @@ import { serverVariantService } from '@metorial/module-catalog';
 import { ingestEventService } from '@metorial/module-event';
 import { secretService } from '@metorial/module-secret';
 import { Paginator } from '@metorial/pagination';
-import { getSentry } from '@metorial/sentry';
 import { Service } from '@metorial/service';
 import { Validator } from 'jsonschema';
 import { serverDeploymentDeletedQueue } from '../queues/serverDeploymentDeleted';
-
-let Sentry = getSentry();
 
 let validator = new Validator();
 

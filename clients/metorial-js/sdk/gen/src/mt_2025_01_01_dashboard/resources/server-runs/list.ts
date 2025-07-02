@@ -214,10 +214,10 @@ export type ServerRunsListQuery = {
     | 'completed'
     | ('active' | 'failed' | 'completed')[]
     | undefined;
-  serverSessionIds?: string | string[] | undefined;
-  serverImplementationIds?: string | string[] | undefined;
-  serverDeploymentIds?: string | string[] | undefined;
-  sessionIds?: string | string[] | undefined;
+  serverSessionId?: string | string[] | undefined;
+  serverImplementationId?: string | string[] | undefined;
+  serverDeploymentId?: string | string[] | undefined;
+  sessionId?: string | string[] | undefined;
 };
 
 export let mapServerRunsListQuery = mtMap.union([
@@ -233,8 +233,8 @@ export let mapServerRunsListQuery = mtMap.union([
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       ),
-      serverSessionIds: mtMap.objectField(
-        'server_session_ids',
+      serverSessionId: mtMap.objectField(
+        'server_session_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -243,8 +243,8 @@ export let mapServerRunsListQuery = mtMap.union([
           )
         ])
       ),
-      serverImplementationIds: mtMap.objectField(
-        'server_implementation_ids',
+      serverImplementationId: mtMap.objectField(
+        'server_implementation_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -253,8 +253,8 @@ export let mapServerRunsListQuery = mtMap.union([
           )
         ])
       ),
-      serverDeploymentIds: mtMap.objectField(
-        'server_deployment_ids',
+      serverDeploymentId: mtMap.objectField(
+        'server_deployment_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -263,8 +263,8 @@ export let mapServerRunsListQuery = mtMap.union([
           )
         ])
       ),
-      sessionIds: mtMap.objectField(
-        'session_ids',
+      sessionId: mtMap.objectField(
+        'session_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

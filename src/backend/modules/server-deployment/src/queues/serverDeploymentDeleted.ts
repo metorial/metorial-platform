@@ -6,7 +6,7 @@ export let serverDeploymentDeletedQueue = createQueue<{
   serverDeploymentId: string;
   performedById: string;
 }>({
-  name: 'srd/impl/create'
+  name: 'srd/depl/create'
 });
 
 export let serverDeploymentDeletedQueueProcessor = serverDeploymentDeletedQueue.process(

@@ -25,6 +25,8 @@ export let createMetorialCoreSDK = sdkBuilder.build(
     mcpHost?: string;
   }) => ({
     ...soft,
+    apiHost: soft.apiHost,
+    mcpHost: soft.mcpHost ?? soft.apiHost,
     apiVersion: '2025-01-01-pulsar'
   })
 )(manager => ({

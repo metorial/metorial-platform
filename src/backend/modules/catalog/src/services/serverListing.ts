@@ -69,6 +69,7 @@ class ServerListingService {
     collectionIds?: string[];
     categoryIds?: string[];
     profileIds?: string[];
+    providerIds?: string[];
     instance?: Instance;
 
     orderByRank?: boolean;
@@ -86,6 +87,11 @@ class ServerListingService {
     let profiles = d.profileIds?.length
       ? await db.profile.findMany({
           where: { OR: [{ id: { in: d.profileIds } }, { slug: { in: d.profileIds } }] }
+        })
+      : undefined;
+    let providers = d.providerIds?.length
+      ? await db.serverVariantProvider.findMany({
+          where: { OR: [{ id: { in: d.providerIds } }, { identifier: { in: d.providerIds } }] }
         })
       : undefined;
 
@@ -139,6 +145,17 @@ class ServerListingService {
                 ? {
                     profile: {
                       id: { in: profiles?.map(p => p.id) }
+                    }
+                  }
+                : {},
+              providers
+                ? {
+                    server: {
+                      variants: {
+                        some: {
+                          providerOid: { in: providers?.map(p => p.oid) }
+                        }
+                      }
                     }
                   }
                 : {},

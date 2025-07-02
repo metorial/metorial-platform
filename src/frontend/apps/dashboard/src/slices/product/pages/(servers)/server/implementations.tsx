@@ -10,6 +10,6 @@ export let ServerServerImplementationsPage = () => {
   let server = useServer(instance.data?.id, serverId);
 
   return renderWithLoader({ server })(({ server }) => (
-    <ServerImplementationsTable serverIds={[server.data.id]} />
+    <ServerImplementationsTable serverId={[server.data.id]} />
   ));
 };

@@ -10,13 +10,13 @@ export let ServerRunEvents = ({ serverRun }: { serverRun: ServerRunsGetOutput })
   let instance = useCurrentInstance();
 
   let errors = useServerRunErrors(serverRun ? instance.data?.id : null, {
-    serverRunIds: serverRun?.id,
+    serverRunId: serverRun?.id,
     limit: 1
   });
   let error = errors.data?.items[0];
 
   let eventItems = useEvents(serverRun?.serverSession.sessionId, {
-    serverRunIds: serverRun?.id
+    serverRunId: serverRun?.id
   });
 
   return (

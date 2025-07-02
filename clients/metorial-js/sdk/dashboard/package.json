@@ -25,6 +25,7 @@
     "dist"
   ],
   "dependencies": {
+    "@metorial/fetch": "^1.0.0",
     "@metorial/generated": "^1.0.0",
     "@metorial/util-endpoint": "^1.0.0"
   },

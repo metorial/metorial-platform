@@ -55,12 +55,12 @@ export let ServerSession = ({
 
   let instance = useCurrentInstance();
   let serverRuns = useServerRuns(canFetch ? instance.data?.id : undefined, {
-    serverSessionIds: [serverSession.id],
+    serverSessionId: [serverSession.id],
     limit: 100
   });
 
   let eventItems = useEvents(canFetch ? serverSession.session.id : undefined, {
-    serverSessionIds: [serverSession.id],
+    serverSessionId: [serverSession.id],
     limit: 100
   });
 
