@@ -19,12 +19,15 @@ type RemoteSession struct {
 	lastConnectionInteraction time.Time
 	mutex                     sync.RWMutex
 	connection                managerPb.McpManagerClient
+
+	context context.Context
+	cancel  context.CancelFunc
 }
 
 func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError {
 	s.touch()
 
-	responseStream, err := s.connection.SendMcpMessage(stream.Context(), req)
+	responseStream, err := s.connection.SendMcpMessage(s.context, req)
 	if err != nil {
 		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to send MCP message", err)
 	}
@@ -50,7 +53,7 @@ func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, str
 func (s *RemoteSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError {
 	s.touch()
 
-	responseStream, err := s.connection.StreamMcpMessages(stream.Context(), req)
+	responseStream, err := s.connection.StreamMcpMessages(s.context, req)
 	if err != nil {
 		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to stream MCP messages", err)
 	}
@@ -76,7 +79,7 @@ func (s *RemoteSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesReques
 func (s *RemoteSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpPb.McpParticipant, *mterror.MTError) {
 	s.touch()
 
-	server, err := s.connection.GetServerInfo(context.Background(), req)
+	server, err := s.connection.GetServerInfo(s.context, req)
 	if err != nil {
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get server info", err)
 	}
@@ -88,6 +91,17 @@ func (s *RemoteSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcp
 	}
 
 	return server, nil
+}
+
+func (s *RemoteSession) DiscardSession() *mterror.MTError {
+	_, err := s.connection.DiscardSession(s.context, &managerPb.DiscardSessionRequest{
+		SessionId: s.storedSession.ID,
+	})
+	if err != nil {
+		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to discard session", err)
+	}
+
+	return nil
 }
 
 func (s *RemoteSession) CanDiscard() bool {
@@ -107,6 +121,13 @@ func (s *RemoteSession) StoredSession() *state.Session {
 }
 
 func (s *RemoteSession) stop() error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if s.cancel != nil {
+		s.cancel()
+		s.cancel = nil
+	}
+
 	return nil
 }
 

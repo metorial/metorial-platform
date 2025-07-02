@@ -25,6 +25,7 @@ const (
 	McpManager_SendMcpMessage_FullMethodName    = "/broker.manager.McpManager/SendMcpMessage"
 	McpManager_StreamMcpMessages_FullMethodName = "/broker.manager.McpManager/StreamMcpMessages"
 	McpManager_GetServerInfo_FullMethodName     = "/broker.manager.McpManager/GetServerInfo"
+	McpManager_DiscardSession_FullMethodName    = "/broker.manager.McpManager/DiscardSession"
 	McpManager_ListManagers_FullMethodName      = "/broker.manager.McpManager/ListManagers"
 	McpManager_ListWorkers_FullMethodName       = "/broker.manager.McpManager/ListWorkers"
 )
@@ -37,6 +38,7 @@ type McpManagerClient interface {
 	SendMcpMessage(ctx context.Context, in *SendMcpMessageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SendMcpMessageResponse], error)
 	StreamMcpMessages(ctx context.Context, in *StreamMcpMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamMcpMessagesResponse], error)
 	GetServerInfo(ctx context.Context, in *GetServerInfoRequest, opts ...grpc.CallOption) (*mcp.McpParticipant, error)
+	DiscardSession(ctx context.Context, in *DiscardSessionRequest, opts ...grpc.CallOption) (*DiscardSessionResponse, error)
 	ListManagers(ctx context.Context, in *workerBroker.ListManagersRequest, opts ...grpc.CallOption) (*workerBroker.ListManagersResponse, error)
 	ListWorkers(ctx context.Context, in *ListWorkersRequest, opts ...grpc.CallOption) (*ListWorkersResponse, error)
 }
@@ -107,6 +109,16 @@ func (c *mcpManagerClient) GetServerInfo(ctx context.Context, in *GetServerInfoR
 	return out, nil
 }
 
+func (c *mcpManagerClient) DiscardSession(ctx context.Context, in *DiscardSessionRequest, opts ...grpc.CallOption) (*DiscardSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DiscardSessionResponse)
+	err := c.cc.Invoke(ctx, McpManager_DiscardSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *mcpManagerClient) ListManagers(ctx context.Context, in *workerBroker.ListManagersRequest, opts ...grpc.CallOption) (*workerBroker.ListManagersResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(workerBroker.ListManagersResponse)
@@ -135,6 +147,7 @@ type McpManagerServer interface {
 	SendMcpMessage(*SendMcpMessageRequest, grpc.ServerStreamingServer[SendMcpMessageResponse]) error
 	StreamMcpMessages(*StreamMcpMessagesRequest, grpc.ServerStreamingServer[StreamMcpMessagesResponse]) error
 	GetServerInfo(context.Context, *GetServerInfoRequest) (*mcp.McpParticipant, error)
+	DiscardSession(context.Context, *DiscardSessionRequest) (*DiscardSessionResponse, error)
 	ListManagers(context.Context, *workerBroker.ListManagersRequest) (*workerBroker.ListManagersResponse, error)
 	ListWorkers(context.Context, *ListWorkersRequest) (*ListWorkersResponse, error)
 	mustEmbedUnimplementedMcpManagerServer()
@@ -158,6 +171,9 @@ func (UnimplementedMcpManagerServer) StreamMcpMessages(*StreamMcpMessagesRequest
 }
 func (UnimplementedMcpManagerServer) GetServerInfo(context.Context, *GetServerInfoRequest) (*mcp.McpParticipant, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetServerInfo not implemented")
+}
+func (UnimplementedMcpManagerServer) DiscardSession(context.Context, *DiscardSessionRequest) (*DiscardSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DiscardSession not implemented")
 }
 func (UnimplementedMcpManagerServer) ListManagers(context.Context, *workerBroker.ListManagersRequest) (*workerBroker.ListManagersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListManagers not implemented")
@@ -244,6 +260,24 @@ func _McpManager_GetServerInfo_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _McpManager_DiscardSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DiscardSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).DiscardSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_DiscardSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).DiscardSession(ctx, req.(*DiscardSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _McpManager_ListManagers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(workerBroker.ListManagersRequest)
 	if err := dec(in); err != nil {
@@ -294,6 +328,10 @@ var McpManager_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetServerInfo",
 			Handler:    _McpManager_GetServerInfo_Handler,
+		},
+		{
+			MethodName: "DiscardSession",
+			Handler:    _McpManager_DiscardSession_Handler,
 		},
 		{
 			MethodName: "ListManagers",

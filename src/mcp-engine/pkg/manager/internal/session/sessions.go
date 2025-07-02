@@ -1,6 +1,7 @@
 package session
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"sync"
@@ -28,6 +29,7 @@ type Session interface {
 	StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError
 	GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpPb.McpParticipant, *mterror.MTError)
 	StoredSession() *state.Session
+	DiscardSession() *mterror.MTError
 
 	CanDiscard() bool
 	stop() error
@@ -115,6 +117,8 @@ func (s *Sessions) UpsertSession(
 		return nil, mterror.New(mterror.InvalidRequestKind, "session config must not be nil")
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	// This manager is responsible for the session, so we
 	// need to create a local session for it.
 	if storedSession.ManagerID == s.state.ManagerID {
@@ -147,6 +151,8 @@ func (s *Sessions) UpsertSession(
 			McpClient:  client,
 			WorkerType: workerType,
 
+			sessionManager: s,
+
 			storedSession:   storedSession,
 			connectionInput: connectionInput,
 
@@ -155,6 +161,9 @@ func (s *Sessions) UpsertSession(
 			lastConnectionInteraction: time.Now(),
 
 			workerManager: s.workerManager,
+
+			context: ctx,
+			cancel:  cancel,
 		}
 
 		s.mutex.Lock()
@@ -177,8 +186,11 @@ func (s *Sessions) UpsertSession(
 	session := &RemoteSession{
 		storedSession:             storedSession,
 		lastConnectionInteraction: time.Now(),
-		mutex:                     sync.RWMutex{},
-		connection:                connection,
+
+		connection: connection,
+
+		context: ctx,
+		cancel:  cancel,
 	}
 
 	s.mutex.Lock()

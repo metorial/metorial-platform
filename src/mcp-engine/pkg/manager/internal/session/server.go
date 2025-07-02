@@ -86,6 +86,20 @@ func (s *SessionServer) GetServerInfo(ctx context.Context, req *managerPb.GetSer
 	return participant, nil
 }
 
+func (s *SessionServer) DiscardSession(ctx context.Context, req *managerPb.DiscardSessionRequest) (*managerPb.DiscardSessionResponse, error) {
+	session, err := s.sessions.GetSessionUnsafe(req.SessionId)
+	if err != nil {
+		return nil, err.ToGRPCStatus().Err()
+	}
+
+	err = session.DiscardSession()
+	if err != nil {
+		return nil, err.ToGRPCStatus().Err()
+	}
+
+	return &managerPb.DiscardSessionResponse{}, nil
+}
+
 func (s *SessionServer) ListManagers(context.Context, *workerBrokerPb.ListManagersRequest) (*workerBrokerPb.ListManagersResponse, error) {
 	managers, err := s.state.ListManagers()
 	if err != nil {

@@ -13,6 +13,7 @@ service McpManager {
   rpc SendMcpMessage(SendMcpMessageRequest) returns (stream SendMcpMessageResponse);
   rpc StreamMcpMessages(StreamMcpMessagesRequest) returns (stream StreamMcpMessagesResponse);
   rpc GetServerInfo(GetServerInfoRequest) returns (broker.mcp.McpParticipant);
+  rpc DiscardSession(DiscardSessionRequest) returns (DiscardSessionResponse);
 
   rpc ListManagers(broker.workerBroker.ListManagersRequest) returns (broker.workerBroker.ListManagersResponse);
   rpc ListWorkers(ListWorkersRequest) returns (ListWorkersResponse);
@@ -103,3 +104,9 @@ message WorkerInfo {
   bool accepting_runs = 3;
   bool healthy = 4;
 }
+
+message DiscardSessionRequest {
+  string session_id = 1;
+}
+
+message DiscardSessionResponse {}

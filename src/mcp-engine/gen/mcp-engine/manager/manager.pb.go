@@ -932,6 +932,86 @@ func (x *WorkerInfo) GetHealthy() bool {
 	return false
 }
 
+type DiscardSessionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiscardSessionRequest) Reset() {
+	*x = DiscardSessionRequest{}
+	mi := &file_manager_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiscardSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiscardSessionRequest) ProtoMessage() {}
+
+func (x *DiscardSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiscardSessionRequest.ProtoReflect.Descriptor instead.
+func (*DiscardSessionRequest) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *DiscardSessionRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+type DiscardSessionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiscardSessionResponse) Reset() {
+	*x = DiscardSessionResponse{}
+	mi := &file_manager_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiscardSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiscardSessionResponse) ProtoMessage() {}
+
+func (x *DiscardSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiscardSessionResponse.ProtoReflect.Descriptor instead.
+func (*DiscardSessionResponse) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{14}
+}
+
 var File_manager_proto protoreflect.FileDescriptor
 
 const file_manager_proto_rawDesc = "" +
@@ -997,13 +1077,18 @@ const file_manager_proto_rawDesc = "" +
 	"\tworker_id\x18\x01 \x01(\tR\bworkerId\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12%\n" +
 	"\x0eaccepting_runs\x18\x03 \x01(\bR\racceptingRuns\x12\x18\n" +
-	"\ahealthy\x18\x04 \x01(\bR\ahealthy2\xc9\x04\n" +
+	"\ahealthy\x18\x04 \x01(\bR\ahealthy\"6\n" +
+	"\x15DiscardSessionRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"\x18\n" +
+	"\x16DiscardSessionResponse2\xaa\x05\n" +
 	"\n" +
 	"McpManager\x12\\\n" +
 	"\rCreateSession\x12$.broker.manager.CreateSessionRequest\x1a%.broker.manager.CreateSessionResponse\x12a\n" +
 	"\x0eSendMcpMessage\x12%.broker.manager.SendMcpMessageRequest\x1a&.broker.manager.SendMcpMessageResponse0\x01\x12j\n" +
 	"\x11StreamMcpMessages\x12(.broker.manager.StreamMcpMessagesRequest\x1a).broker.manager.StreamMcpMessagesResponse0\x01\x12Q\n" +
-	"\rGetServerInfo\x12$.broker.manager.GetServerInfoRequest\x1a\x1a.broker.mcp.McpParticipant\x12c\n" +
+	"\rGetServerInfo\x12$.broker.manager.GetServerInfoRequest\x1a\x1a.broker.mcp.McpParticipant\x12_\n" +
+	"\x0eDiscardSession\x12%.broker.manager.DiscardSessionRequest\x1a&.broker.manager.DiscardSessionResponse\x12c\n" +
 	"\fListManagers\x12(.broker.workerBroker.ListManagersRequest\x1a).broker.workerBroker.ListManagersResponse\x12V\n" +
 	"\vListWorkers\x12\".broker.manager.ListWorkersRequest\x1a#.broker.manager.ListWorkersResponseBHZFgithub.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager;managerb\x06proto3"
 
@@ -1020,7 +1105,7 @@ func file_manager_proto_rawDescGZIP() []byte {
 }
 
 var file_manager_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_manager_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_manager_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_manager_proto_goTypes = []any{
 	(CreateSessionRequest_SessionType)(0),       // 0: broker.manager.CreateSessionRequest.SessionType
 	(Launcher_LauncherType)(0),                  // 1: broker.manager.Launcher.LauncherType
@@ -1039,48 +1124,52 @@ var file_manager_proto_goTypes = []any{
 	(*ListWorkersRequest)(nil),                  // 14: broker.manager.ListWorkersRequest
 	(*ListWorkersResponse)(nil),                 // 15: broker.manager.ListWorkersResponse
 	(*WorkerInfo)(nil),                          // 16: broker.manager.WorkerInfo
-	(*mcp.McpParticipant)(nil),                  // 17: broker.mcp.McpParticipant
-	(*runner.RunConfigContainer)(nil),           // 18: broker.runner.RunConfigContainer
-	(*runner.RunConfig)(nil),                    // 19: broker.runner.RunConfig
-	(*mcp.McpMessageRaw)(nil),                   // 20: broker.mcp.McpMessageRaw
-	(*mcp.McpMessage)(nil),                      // 21: broker.mcp.McpMessage
-	(*mcp.McpError)(nil),                        // 22: broker.mcp.McpError
-	(mcp.McpMessageType)(0),                     // 23: broker.mcp.McpMessageType
-	(*workerBroker.ListManagersRequest)(nil),    // 24: broker.workerBroker.ListManagersRequest
-	(*workerBroker.ListManagersResponse)(nil),   // 25: broker.workerBroker.ListManagersResponse
+	(*DiscardSessionRequest)(nil),               // 17: broker.manager.DiscardSessionRequest
+	(*DiscardSessionResponse)(nil),              // 18: broker.manager.DiscardSessionResponse
+	(*mcp.McpParticipant)(nil),                  // 19: broker.mcp.McpParticipant
+	(*runner.RunConfigContainer)(nil),           // 20: broker.runner.RunConfigContainer
+	(*runner.RunConfig)(nil),                    // 21: broker.runner.RunConfig
+	(*mcp.McpMessageRaw)(nil),                   // 22: broker.mcp.McpMessageRaw
+	(*mcp.McpMessage)(nil),                      // 23: broker.mcp.McpMessage
+	(*mcp.McpError)(nil),                        // 24: broker.mcp.McpError
+	(mcp.McpMessageType)(0),                     // 25: broker.mcp.McpMessageType
+	(*workerBroker.ListManagersRequest)(nil),    // 26: broker.workerBroker.ListManagersRequest
+	(*workerBroker.ListManagersResponse)(nil),   // 27: broker.workerBroker.ListManagersResponse
 }
 var file_manager_proto_depIdxs = []int32{
 	0,  // 0: broker.manager.CreateSessionRequest.type:type_name -> broker.manager.CreateSessionRequest.SessionType
 	7,  // 1: broker.manager.CreateSessionRequest.config:type_name -> broker.manager.SessionConfig
-	17, // 2: broker.manager.CreateSessionRequest.mcp_client:type_name -> broker.mcp.McpParticipant
+	19, // 2: broker.manager.CreateSessionRequest.mcp_client:type_name -> broker.mcp.McpParticipant
 	1,  // 3: broker.manager.Launcher.launcher_type:type_name -> broker.manager.Launcher.LauncherType
-	18, // 4: broker.manager.RunConfigWithLauncher.container:type_name -> broker.runner.RunConfigContainer
+	20, // 4: broker.manager.RunConfigWithLauncher.container:type_name -> broker.runner.RunConfigContainer
 	5,  // 5: broker.manager.RunConfigWithLauncher.launcher:type_name -> broker.manager.Launcher
 	6,  // 6: broker.manager.SessionConfig.run_config_with_launcher:type_name -> broker.manager.RunConfigWithLauncher
-	19, // 7: broker.manager.SessionConfig.run_config_with_container_arguments:type_name -> broker.runner.RunConfig
-	20, // 8: broker.manager.SendMcpMessageRequest.mcp_messages:type_name -> broker.mcp.McpMessageRaw
+	21, // 7: broker.manager.SessionConfig.run_config_with_container_arguments:type_name -> broker.runner.RunConfig
+	22, // 8: broker.manager.SendMcpMessageRequest.mcp_messages:type_name -> broker.mcp.McpMessageRaw
 	2,  // 9: broker.manager.SendMcpMessageResponse.response_type:type_name -> broker.manager.SendMcpMessageResponse.ResponseType
-	21, // 10: broker.manager.SendMcpMessageResponse.mcp_response_message:type_name -> broker.mcp.McpMessage
-	22, // 11: broker.manager.SendMcpMessageResponse.mcp_error:type_name -> broker.mcp.McpError
-	23, // 12: broker.manager.StreamMcpMessagesRequest.only_message_types:type_name -> broker.mcp.McpMessageType
+	23, // 10: broker.manager.SendMcpMessageResponse.mcp_response_message:type_name -> broker.mcp.McpMessage
+	24, // 11: broker.manager.SendMcpMessageResponse.mcp_error:type_name -> broker.mcp.McpError
+	25, // 12: broker.manager.StreamMcpMessagesRequest.only_message_types:type_name -> broker.mcp.McpMessageType
 	3,  // 13: broker.manager.StreamMcpMessagesResponse.response_type:type_name -> broker.manager.StreamMcpMessagesResponse.ResponseType
-	21, // 14: broker.manager.StreamMcpMessagesResponse.mcp_response_message:type_name -> broker.mcp.McpMessage
-	22, // 15: broker.manager.StreamMcpMessagesResponse.mcp_error:type_name -> broker.mcp.McpError
+	23, // 14: broker.manager.StreamMcpMessagesResponse.mcp_response_message:type_name -> broker.mcp.McpMessage
+	24, // 15: broker.manager.StreamMcpMessagesResponse.mcp_error:type_name -> broker.mcp.McpError
 	16, // 16: broker.manager.ListWorkersResponse.workers:type_name -> broker.manager.WorkerInfo
 	4,  // 17: broker.manager.McpManager.CreateSession:input_type -> broker.manager.CreateSessionRequest
 	9,  // 18: broker.manager.McpManager.SendMcpMessage:input_type -> broker.manager.SendMcpMessageRequest
 	11, // 19: broker.manager.McpManager.StreamMcpMessages:input_type -> broker.manager.StreamMcpMessagesRequest
 	13, // 20: broker.manager.McpManager.GetServerInfo:input_type -> broker.manager.GetServerInfoRequest
-	24, // 21: broker.manager.McpManager.ListManagers:input_type -> broker.workerBroker.ListManagersRequest
-	14, // 22: broker.manager.McpManager.ListWorkers:input_type -> broker.manager.ListWorkersRequest
-	8,  // 23: broker.manager.McpManager.CreateSession:output_type -> broker.manager.CreateSessionResponse
-	10, // 24: broker.manager.McpManager.SendMcpMessage:output_type -> broker.manager.SendMcpMessageResponse
-	12, // 25: broker.manager.McpManager.StreamMcpMessages:output_type -> broker.manager.StreamMcpMessagesResponse
-	17, // 26: broker.manager.McpManager.GetServerInfo:output_type -> broker.mcp.McpParticipant
-	25, // 27: broker.manager.McpManager.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
-	15, // 28: broker.manager.McpManager.ListWorkers:output_type -> broker.manager.ListWorkersResponse
-	23, // [23:29] is the sub-list for method output_type
-	17, // [17:23] is the sub-list for method input_type
+	17, // 21: broker.manager.McpManager.DiscardSession:input_type -> broker.manager.DiscardSessionRequest
+	26, // 22: broker.manager.McpManager.ListManagers:input_type -> broker.workerBroker.ListManagersRequest
+	14, // 23: broker.manager.McpManager.ListWorkers:input_type -> broker.manager.ListWorkersRequest
+	8,  // 24: broker.manager.McpManager.CreateSession:output_type -> broker.manager.CreateSessionResponse
+	10, // 25: broker.manager.McpManager.SendMcpMessage:output_type -> broker.manager.SendMcpMessageResponse
+	12, // 26: broker.manager.McpManager.StreamMcpMessages:output_type -> broker.manager.StreamMcpMessagesResponse
+	19, // 27: broker.manager.McpManager.GetServerInfo:output_type -> broker.mcp.McpParticipant
+	18, // 28: broker.manager.McpManager.DiscardSession:output_type -> broker.manager.DiscardSessionResponse
+	27, // 29: broker.manager.McpManager.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
+	15, // 30: broker.manager.McpManager.ListWorkers:output_type -> broker.manager.ListWorkersResponse
+	24, // [24:31] is the sub-list for method output_type
+	17, // [17:24] is the sub-list for method input_type
 	17, // [17:17] is the sub-list for extension type_name
 	17, // [17:17] is the sub-list for extension extendee
 	0,  // [0:17] is the sub-list for field type_name
@@ -1101,7 +1190,7 @@ func file_manager_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_manager_proto_rawDesc), len(file_manager_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

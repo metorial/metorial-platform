@@ -1,6 +1,7 @@
 package session
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"slices"
@@ -23,7 +24,12 @@ type LocalSession struct {
 	WorkerType workers.WorkerType
 	McpClient  *mcp.MCPClient
 
+	sessionManager *Sessions
+
 	storedSession *state.Session
+
+	context context.Context
+	cancel  context.CancelFunc
 
 	activeConnection          workers.WorkerConnection
 	activeConnectionCreated   chan struct{}
@@ -80,7 +86,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 		go func() {
 			defer wg.Done()
 
-			timeout := time.NewTimer(time.Second * 30)
+			timeout := time.NewTimer(time.Second * 60)
 			defer timeout.Stop()
 
 			responsesToWaitFor := len(mcpRequestMessageIdsToListenFor)
@@ -100,6 +106,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 				select {
 				case <-stream.Context().Done():
+				case <-s.context.Done():
 					return
 
 				case <-connection.Done():
@@ -186,6 +193,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 		if connection == nil {
 			select {
 			case <-stream.Context().Done():
+			case <-s.context.Done():
 				return nil
 			case <-s.activeConnectionCreated:
 				// Wait for the mutex to be released
@@ -216,6 +224,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 
 		select {
 		case <-stream.Context().Done():
+		case <-s.context.Done():
 			return nil
 
 		case <-connection.Done():
@@ -286,6 +295,16 @@ func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpP
 	}
 
 	return participant, nil
+}
+
+func (s *LocalSession) DiscardSession() *mterror.MTError {
+	// The manager is responsible for discarding the session
+	err := s.sessionManager.DiscardSession(s.storedSession.ID)
+	if err != nil {
+		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to discard session", err)
+	}
+
+	return nil
 }
 
 func (s *LocalSession) CanDiscard() bool {
@@ -375,6 +394,12 @@ func (s *LocalSession) stop() error {
 	s.mutex.Lock()
 	close(s.activeConnectionCreated)
 	s.activeConnectionCreated = nil
+
+	if s.cancel != nil {
+		s.cancel()
+		s.cancel = nil
+	}
+
 	s.mutex.Unlock()
 
 	return s.closeActiveConnection()
