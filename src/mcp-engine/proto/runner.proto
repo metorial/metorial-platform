@@ -8,14 +8,14 @@ import "mcp.proto";
 import "common.proto";
 
 service McpRunner {
-  rpc GetRunnerInfo(broker.runner.RunnerInfoRequest) returns (broker.runner.RunnerInfoResponse);
-  rpc StreamRunnerHealth(broker.runner.RunnerHealthRequest) returns (stream broker.runner.RunnerHealthResponse);
+  rpc GetRunnerInfo(RunnerInfoRequest) returns (RunnerInfoResponse);
+  rpc StreamRunnerHealth(RunnerHealthRequest) returns (stream RunnerHealthResponse);
 
-  rpc ListActiveRuns(broker.common.Empty) returns (broker.runner.ActiveRunsResponse);
-  rpc ListDockerImages(broker.common.Empty) returns (broker.runner.DockerImagesResponse);
-  rpc ListDockerContainers(broker.common.Empty) returns (broker.runner.DockerContainersResponse);
+  rpc ListActiveRuns(broker.common.Empty) returns (ActiveRunsResponse);
+  rpc ListDockerImages(broker.common.Empty) returns (DockerImagesResponse);
+  rpc ListDockerContainers(broker.common.Empty) returns (DockerContainersResponse);
 
-  rpc StreamMcpRun(stream broker.runner.RunRequest) returns (stream broker.runner.RunResponse);
+  rpc StreamMcpRun(stream RunRequest) returns (stream RunResponse);
 }
 
 enum RunnerStatus {
@@ -97,7 +97,7 @@ message RunConfigContainer {
 
 message RunConfig {
   RunConfigContainer container = 1;
-  RunConfigContainerArguments container_arguments = 2;
+  RunConfigContainerArguments arguments = 2;
 }
 
 message RunRequest {

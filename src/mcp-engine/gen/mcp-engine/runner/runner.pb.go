@@ -804,11 +804,11 @@ func (x *RunConfigContainer) GetMaxCpu() string {
 }
 
 type RunConfig struct {
-	state              protoimpl.MessageState       `protogen:"open.v1"`
-	Container          *RunConfigContainer          `protobuf:"bytes,1,opt,name=container,proto3" json:"container,omitempty"`
-	ContainerArguments *RunConfigContainerArguments `protobuf:"bytes,2,opt,name=container_arguments,json=containerArguments,proto3" json:"container_arguments,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state         protoimpl.MessageState       `protogen:"open.v1"`
+	Container     *RunConfigContainer          `protobuf:"bytes,1,opt,name=container,proto3" json:"container,omitempty"`
+	Arguments     *RunConfigContainerArguments `protobuf:"bytes,2,opt,name=arguments,proto3" json:"arguments,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RunConfig) Reset() {
@@ -848,9 +848,9 @@ func (x *RunConfig) GetContainer() *RunConfigContainer {
 	return nil
 }
 
-func (x *RunConfig) GetContainerArguments() *RunConfigContainerArguments {
+func (x *RunConfig) GetArguments() *RunConfigContainerArguments {
 	if x != nil {
-		return x.ContainerArguments
+		return x.Arguments
 	}
 	return nil
 }
@@ -1479,10 +1479,10 @@ const file_runner_proto_rawDesc = "" +
 	"\fdocker_image\x18\x01 \x01(\tR\vdockerImage\x12\x1d\n" +
 	"\n" +
 	"max_memory\x18\x02 \x01(\tR\tmaxMemory\x12\x17\n" +
-	"\amax_cpu\x18\x03 \x01(\tR\x06maxCpu\"\xa9\x01\n" +
+	"\amax_cpu\x18\x03 \x01(\tR\x06maxCpu\"\x96\x01\n" +
 	"\tRunConfig\x12?\n" +
-	"\tcontainer\x18\x01 \x01(\v2!.broker.runner.RunConfigContainerR\tcontainer\x12[\n" +
-	"\x13container_arguments\x18\x02 \x01(\v2*.broker.runner.RunConfigContainerArgumentsR\x12containerArguments\"\xcd\x01\n" +
+	"\tcontainer\x18\x01 \x01(\v2!.broker.runner.RunConfigContainerR\tcontainer\x12H\n" +
+	"\targuments\x18\x02 \x01(\v2*.broker.runner.RunConfigContainerArgumentsR\targuments\"\xcd\x01\n" +
 	"\n" +
 	"RunRequest\x123\n" +
 	"\x04init\x18\x01 \x01(\v2\x1d.broker.runner.RunRequestInitH\x00R\x04init\x12F\n" +
@@ -1586,7 +1586,7 @@ var file_runner_proto_depIdxs = []int32{
 	11, // 6: broker.runner.DockerContainersResponse.containers:type_name -> broker.runner.DockerContainerInfo
 	25, // 7: broker.runner.RunConfigContainerArguments.env_vars:type_name -> broker.runner.RunConfigContainerArguments.EnvVarsEntry
 	13, // 8: broker.runner.RunConfig.container:type_name -> broker.runner.RunConfigContainer
-	12, // 9: broker.runner.RunConfig.container_arguments:type_name -> broker.runner.RunConfigContainerArguments
+	12, // 9: broker.runner.RunConfig.arguments:type_name -> broker.runner.RunConfigContainerArguments
 	16, // 10: broker.runner.RunRequest.init:type_name -> broker.runner.RunRequestInit
 	17, // 11: broker.runner.RunRequest.mcp_message:type_name -> broker.runner.RunRequestMcpMessage
 	18, // 12: broker.runner.RunRequest.close:type_name -> broker.runner.RunRequestClose

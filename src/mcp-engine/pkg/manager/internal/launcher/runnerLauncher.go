@@ -15,8 +15,6 @@ type RunnerLaunchParams struct {
 }
 
 func GetRunnerLaunchParams(input *managerPb.RunConfigWithLauncher) (*runnerPb.RunConfig, error) {
-	fmt.Printf("GetRunnerLaunchParams: %v\n", input)
-
 	var configMap map[string]any
 	err := json.Unmarshal([]byte(input.Launcher.JsonConfig), &configMap)
 	if err != nil {
@@ -33,7 +31,7 @@ func GetRunnerLaunchParams(input *managerPb.RunConfigWithLauncher) (*runnerPb.Ru
 
 	return &runnerPb.RunConfig{
 		Container: input.Container,
-		ContainerArguments: &runnerPb.RunConfigContainerArguments{
+		Arguments: &runnerPb.RunConfigContainerArguments{
 			Command: params.Command,
 			Args:    params.Args,
 			EnvVars: params.Env,

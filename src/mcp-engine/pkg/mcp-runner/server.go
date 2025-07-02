@@ -139,9 +139,9 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 		ContainerMaxMemory: msg.Init.RunConfig.Container.MaxMemory,
 		ContainerMaxCPU:    msg.Init.RunConfig.Container.MaxCpu,
 
-		ContainerEnv:     msg.Init.RunConfig.ContainerArguments.EnvVars,
-		ContainerArgs:    msg.Init.RunConfig.ContainerArguments.Args,
-		ContainerCommand: msg.Init.RunConfig.ContainerArguments.Command,
+		ContainerEnv:     msg.Init.RunConfig.Arguments.EnvVars,
+		ContainerArgs:    msg.Init.RunConfig.Arguments.Args,
+		ContainerCommand: msg.Init.RunConfig.Arguments.Command,
 	})
 	if err != nil {
 		return stream.Send(&runnerPb.RunResponse{

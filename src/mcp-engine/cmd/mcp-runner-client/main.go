@@ -26,7 +26,7 @@ func main() {
 		Container: &runnerPb.RunConfigContainer{
 			DockerImage: image,
 		},
-		ContainerArguments: &runnerPb.RunConfigContainerArguments{
+		Arguments: &runnerPb.RunConfigContainerArguments{
 			Args:    args,
 			EnvVars: envFlags,
 			Command: cmd,
