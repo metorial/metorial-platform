@@ -92,8 +92,6 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 				s.touch()
 
-				fmt.Println("Waiting for MCP responses...")
-
 				select {
 				case <-stream.Context().Done():
 					return

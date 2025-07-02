@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-const REMOTE_SESSION_INACTIVITY_TIMEOUT = 1000 * 60
+const REMOTE_SESSION_INACTIVITY_TIMEOUT = time.Second * 60
 
 type RemoteSession struct {
 	storedSession             *state.Session

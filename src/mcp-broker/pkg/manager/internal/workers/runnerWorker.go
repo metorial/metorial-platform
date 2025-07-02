@@ -64,6 +64,8 @@ func (rw *RunnerWorker) Start() error {
 	go rw.monitor()
 
 	go rw.client.StreamRunnerHealth(func(rhr *runnerPB.RunnerHealthResponse) {
+		log.Printf("RunnerWorker %s at %s received health update: AcceptingRuns=%v, Status=%v", rw.workerID, rw.address, rhr.AcceptingRuns, rhr.Status)
+
 		rw.mutex.Lock()
 		defer rw.mutex.Unlock()
 

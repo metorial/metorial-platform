@@ -125,6 +125,17 @@ func (wm *WorkerManager) PickWorkerByHash(workerType WorkerType, data []byte) (W
 		return nil, false
 	}
 
+	if !worker.Healthy() || !worker.AcceptingJobs() {
+		// If the worker is not healthy or not accepting jobs, we need to choose another one.
+		for i := 0; i < len(workerIDs); i++ {
+			workerID = workerIDs[index]
+			worker, exists = wm.workers[workerID]
+			if exists && worker.Healthy() && worker.AcceptingJobs() {
+				break
+			}
+		}
+	}
+
 	return worker, true
 }
 
