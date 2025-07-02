@@ -4,27 +4,28 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type ErrorCode string
+type ErrorKind string
 
 const (
 	// General errors
-	UnknownErrorCode   ErrorCode = "unknown_error"
-	InvalidRequestCode ErrorCode = "invalid_request"
-	InternalErrorCode  ErrorCode = "internal_error"
-	NotFoundCode       ErrorCode = "not_found"
-	ConflictCode       ErrorCode = "conflict"
-	ForbiddenCode      ErrorCode = "forbidden"
-	TimeoutCode        ErrorCode = "timeout"
+	UnknownErrorKind   ErrorKind = "unknown_error"
+	InvalidRequestKind ErrorKind = "invalid_request"
+	InternalErrorKind  ErrorKind = "internal_error"
+	NotFoundKind       ErrorKind = "not_found"
+	ConflictKind       ErrorKind = "conflict"
+	ForbiddenKind      ErrorKind = "forbidden"
+	TimeoutKind        ErrorKind = "timeout"
 )
 
 type MTError struct {
-	Code    ErrorCode         `json:"code"`
+	Kind    ErrorKind         `json:"kind"`
 	Message string            `json:"message"`
 	Details map[string]string `json:"-"`
 
@@ -32,17 +33,18 @@ type MTError struct {
 }
 
 func (e *MTError) Error() string {
-	return fmt.Sprintf("%s: %s", e.Code, e.Message)
+	return fmt.Sprintf("%s: %s", e.Kind, e.Message)
 }
 
 func (e *MTError) MarshalJSON() ([]byte, error) {
 	root := map[string]any{
-		"code":    e.Code,
+		"kind":    e.Kind,
+		"code":    e.Kind,
 		"message": e.Message,
 	}
 
 	for k, v := range e.Details {
-		if k != "code" && k != "message" {
+		if k != "kind" && k != "message" { // If there is a code, it should replace the kind
 			root[k] = v
 		}
 	}
@@ -50,35 +52,67 @@ func (e *MTError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(root)
 }
 
-func New(code ErrorCode, message string) *MTError {
+func New(kind ErrorKind, message string) *MTError {
 	return &MTError{
-		Code:    code,
+		Kind:    kind,
 		Message: message,
 	}
 }
 
-func NewWithDetails(code ErrorCode, message string, details map[string]string) *MTError {
+func NewWithDetails(kind ErrorKind, message string, details map[string]string) *MTError {
 	return &MTError{
-		Code:    code,
+		Kind:    kind,
 		Message: message,
 		Details: details,
 	}
 }
 
-func NewWithInnerError(code ErrorCode, message string, inner error) *MTError {
+func NewWithInnerError(kind ErrorKind, message string, inner error) *MTError {
 	return &MTError{
-		Code:    code,
+		Kind:    kind,
 		Message: message,
 		inner:   inner,
 	}
 }
 
-func NewWithInnerErrorAndDetails(code ErrorCode, message string, inner error, details map[string]string) *MTError {
+func NewWithInnerErrorAndDetails(kind ErrorKind, message string, inner error, details map[string]string) *MTError {
 	return &MTError{
-		Code:    code,
+		Kind:    kind,
 		Message: message,
 		inner:   inner,
 		Details: details,
+	}
+}
+
+func NewWithCodeAndDetails(kind ErrorKind, code string, message string, details map[string]string) *MTError {
+	ourDetails := cloneMap(details)
+	ourDetails["code"] = code
+
+	return &MTError{
+		Kind:    kind,
+		Message: message,
+		Details: ourDetails,
+	}
+}
+
+func NewWithCodeAndInnerError(kind ErrorKind, code string, message string, inner error) *MTError {
+	return &MTError{
+		Kind:    kind,
+		Message: message,
+		inner:   inner,
+		Details: map[string]string{"code": code},
+	}
+}
+
+func NewWithCodeAndInnerErrorAndDetails(kind ErrorKind, code string, message string, inner error, details map[string]string) *MTError {
+	ourDetails := cloneMap(details)
+	ourDetails["code"] = code
+
+	return &MTError{
+		Kind:    kind,
+		Message: message,
+		inner:   inner,
+		Details: ourDetails,
 	}
 }
 
@@ -102,10 +136,10 @@ func (e *MTError) ToGRPCStatus() *status.Status {
 		return status.New(codes.OK, "")
 	}
 
-	st := status.New(mtErrorCodeToGRPCCode(e.Code), e.Message)
+	st := status.New(mtErrorKindToGRPCCode(e.Kind), e.Message)
 	if len(e.Details) > 0 {
 		details := &errdetails.ErrorInfo{
-			Reason:   string(e.Code),
+			Reason:   string(e.Kind),
 			Metadata: e.Details,
 		}
 		st, _ = st.WithDetails(details)
@@ -114,23 +148,32 @@ func (e *MTError) ToGRPCStatus() *status.Status {
 	return st
 }
 
-func mtErrorCodeToGRPCCode(code ErrorCode) codes.Code {
-	switch code {
-	case UnknownErrorCode:
+func mtErrorKindToGRPCCode(kind ErrorKind) codes.Code {
+	switch kind {
+	case UnknownErrorKind:
 		return codes.Unknown
-	case InvalidRequestCode:
+	case InvalidRequestKind:
 		return codes.InvalidArgument
-	case InternalErrorCode:
+	case InternalErrorKind:
 		return codes.Internal
-	case NotFoundCode:
+	case NotFoundKind:
 		return codes.NotFound
-	case ConflictCode:
+	case ConflictKind:
 		return codes.AlreadyExists
-	case ForbiddenCode:
+	case ForbiddenKind:
 		return codes.PermissionDenied
-	case TimeoutCode:
+	case TimeoutKind:
 		return codes.DeadlineExceeded
 	default:
 		return codes.Unknown
 	}
+}
+
+func cloneMap(original map[string]string) map[string]string {
+	if original == nil {
+		return map[string]string{}
+	}
+	clone := make(map[string]string, len(original))
+	maps.Copy(clone, original)
+	return clone
 }

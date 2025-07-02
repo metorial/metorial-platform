@@ -11,6 +11,7 @@ message McpError {
     invalid_mcp_message = 2;
     unknown_error = 3;
     timeout = 4;
+    launch_params_error = 5;
   }
 
   string error_message = 1;

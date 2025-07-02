@@ -10,6 +10,7 @@ import (
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/limiter"
 	"github.com/metorial/metorial/mcp-engine/pkg/lock"
+	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/launcher"
 	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/state"
 	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
@@ -72,12 +73,12 @@ func (s *Sessions) GetSession(sessionId string) Session {
 
 func (s *Sessions) GetSessionUnsafe(sessionId string) (Session, *mterror.MTError) {
 	if sessionId == "" {
-		return nil, mterror.New(mterror.InvalidRequestCode, "session ID cannot be empty")
+		return nil, mterror.New(mterror.InvalidRequestKind, "session ID cannot be empty")
 	}
 
 	session := s.GetSession(sessionId)
 	if session == nil {
-		return nil, mterror.NewWithDetails(mterror.NotFoundCode, "session not found", map[string]string{
+		return nil, mterror.NewWithDetails(mterror.NotFoundKind, "session not found", map[string]string{
 			"session_id": sessionId,
 		})
 	}
@@ -98,7 +99,7 @@ func (s *Sessions) UpsertSession(
 
 	client, err := mcp.ParseMcpClient([]byte(request.McpClient.ParticipantJson))
 	if err != nil {
-		return nil, mterror.NewWithInnerError(mterror.InvalidRequestCode, "failed to parse MCP client", err)
+		return nil, mterror.NewWithInnerError(mterror.InvalidRequestKind, "failed to parse MCP client", err)
 	}
 
 	storedSession, err := s.state.UpsertSession(
@@ -107,7 +108,11 @@ func (s *Sessions) UpsertSession(
 	)
 	if err != nil {
 		// return nil, fmt.Errorf("failed to upsert session: %w", err)
-		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to upsert session", err)
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to upsert session", err)
+	}
+
+	if request.Config.ConfigType == nil {
+		return nil, mterror.New(mterror.InvalidRequestKind, "session config must not be nil")
 	}
 
 	// This manager is responsible for the session, so we
@@ -117,15 +122,33 @@ func (s *Sessions) UpsertSession(
 		if request.Type == managerPb.CreateSessionRequest_runner {
 			workerType = workers.WorkerTypeRunner
 		} else {
-			return nil, mterror.New(mterror.InvalidRequestCode, "unsupported session type")
+			return nil, mterror.New(mterror.InvalidRequestKind, "unsupported session type")
+		}
+
+		connectionInput := &workers.WorkerConnectionInput{
+			SessionID:    request.SessionId,
+			ConnectionID: "",
+			MCPClient:    client,
+		}
+
+		if request.Config.GetRunConfigWithLauncher() != nil {
+			connectionInput.RunConfig, err = launcher.GetRunnerLaunchParams(request.Config.GetRunConfigWithLauncher())
+			if err != nil {
+				log.Printf("Failed to get runner launch params: %v\n", err)
+				return nil, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err.Error(), err)
+			}
+		} else if request.Config.GetRunConfigWithContainerArguments() != nil {
+			connectionInput.RunConfig = request.Config.GetRunConfigWithContainerArguments()
+		} else {
+			return nil, mterror.New(mterror.InvalidRequestKind, "session config must contain either RunConfigWithContainerArguments or RunConfigWithLauncher")
 		}
 
 		session := &LocalSession{
 			McpClient:  client,
 			WorkerType: workerType,
 
-			storedSession: storedSession,
-			sessionConfig: request.Config,
+			storedSession:   storedSession,
+			connectionInput: connectionInput,
 
 			activeConnection:          nil,
 			activeConnectionCreated:   make(chan struct{}),
@@ -143,12 +166,12 @@ func (s *Sessions) UpsertSession(
 
 	manager, err := s.managers.GetManager(storedSession.ManagerID)
 	if err != nil {
-		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to get manager for session", err)
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get manager for session", err)
 	}
 
 	connection, err := s.managers.GetManagerConnection(manager.ID)
 	if err != nil {
-		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to get manager connection", err)
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get manager connection", err)
 	}
 
 	session := &RemoteSession{

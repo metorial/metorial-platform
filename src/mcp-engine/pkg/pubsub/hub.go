@@ -1,4 +1,4 @@
-package hub
+package pubsub
 
 type Hub struct {
 	clients    map[chan any]bool

@@ -29,7 +29,7 @@ type LocalSession struct {
 	activeConnectionCreated   chan struct{}
 	lastConnectionInteraction time.Time
 
-	sessionConfig *managerPb.SessionConfig
+	connectionInput *workers.WorkerConnectionInput
 
 	workerManager *workers.WorkerManager
 
@@ -39,14 +39,14 @@ type LocalSession struct {
 func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError {
 	err := s.ensureConnection()
 	if err != nil {
-		return mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to ensure connection", err)
+		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to ensure connection", err)
 	}
 
 	mcpMessages := make([]*mcp.MCPMessage, 0, len(req.McpMessages))
 	for _, rawMessage := range req.McpMessages {
 		message, err := mcp.FromPbRawMessage(rawMessage)
 		if err != nil {
-			return mterror.NewWithInnerError(mterror.InvalidRequestCode, "failed to parse MCP message", err)
+			return mterror.NewWithInnerError(mterror.InvalidRequestKind, "failed to parse MCP message", err)
 		}
 
 		mcpMessages = append(mcpMessages, message)
@@ -60,7 +60,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	// and don't need to consider new connections.
 	connection := s.activeConnection
 	if connection == nil {
-		return mterror.New(mterror.InternalErrorCode, "no active connection for session")
+		return mterror.New(mterror.InternalErrorKind, "no active connection for session")
 	}
 	s.mutex.RUnlock()
 
@@ -84,6 +84,12 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 			defer timeout.Stop()
 
 			responsesToWaitFor := len(mcpRequestMessageIdsToListenFor)
+
+			msgChan := connection.Messages().Subscribe()
+			defer connection.Messages().Unsubscribe(msgChan)
+
+			errChan := connection.Errors().Subscribe()
+			defer connection.Errors().Unsubscribe(errChan)
 
 			for {
 				if responsesToWaitFor <= 0 {
@@ -115,7 +121,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 					}
 					return
 
-				case message := <-connection.Messages():
+				case message := <-msgChan:
 					if slices.Contains(mcpRequestMessageIdsToListenFor, message.GetStringId()) {
 						response := &managerPb.SendMcpMessageResponse{
 							ResponseType:       managerPb.SendMcpMessageResponse_message,
@@ -131,7 +137,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 						responsesToWaitFor--
 					}
 
-				case mcpErr := <-connection.Errors():
+				case mcpErr := <-errChan:
 					err := stream.Send(&managerPb.SendMcpMessageResponse{
 						ResponseType: managerPb.SendMcpMessageResponse_error,
 						McpError:     mcpErr,
@@ -140,6 +146,8 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 						log.Printf("Failed to send error message: %v", err)
 						return
 					}
+
+					return
 				}
 			}
 		}()
@@ -148,7 +156,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	for _, message := range mcpMessages {
 		err := connection.AcceptMessage(message)
 		if err != nil {
-			return mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to process MCP message", err)
+			return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to process MCP message", err)
 		}
 	}
 
@@ -164,6 +172,10 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 	if req.OnlyIds == nil {
 		responsesToWaitFor = len(req.OnlyIds)
 	}
+
+	var msgChan chan *mcp.MCPMessage = nil
+	var errChan chan *mcpPb.McpError = nil
+	chansForConId := ""
 
 	for {
 		if req.OnlyIds != nil && responsesToWaitFor <= 0 {
@@ -188,6 +200,20 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 			continue
 		}
 
+		if chansForConId != connection.ConnectionID() {
+			if msgChan != nil {
+				connection.Messages().Unsubscribe(msgChan)
+			}
+
+			if errChan != nil {
+				connection.Errors().Unsubscribe(errChan)
+			}
+
+			msgChan = connection.Messages().Subscribe()
+			errChan = connection.Errors().Subscribe()
+			chansForConId = connection.ConnectionID()
+		}
+
 		select {
 		case <-stream.Context().Done():
 			return nil
@@ -197,7 +223,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 			// start over with the loop to wait for a new connection
 			continue
 
-		case message := <-connection.Messages():
+		case message := <-msgChan:
 			canSend := true
 
 			if req.OnlyIds != nil {
@@ -227,7 +253,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 				}
 			}
 
-		case mcpErr := <-connection.Errors():
+		case mcpErr := <-errChan:
 			err := stream.Send(&managerPb.StreamMcpMessagesResponse{
 				ResponseType: managerPb.StreamMcpMessagesResponse_error,
 				McpError:     mcpErr,
@@ -243,7 +269,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpPb.McpParticipant, *mterror.MTError) {
 	err := s.ensureConnection()
 	if err != nil {
-		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to ensure connection", err)
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to ensure connection", err)
 	}
 
 	s.mutex.RLock()
@@ -251,12 +277,12 @@ func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpP
 
 	server, err := s.activeConnection.GetServer()
 	if err != nil {
-		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to get server info", err)
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get server info", err)
 	}
 
 	participant, err := server.ToPbParticipant()
 	if err != nil {
-		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to convert server to participant", err)
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to convert server to participant", err)
 	}
 
 	return participant, nil
@@ -303,24 +329,9 @@ func (s *LocalSession) ensureConnection() error {
 		return nil
 	}
 
-	connectionInput := &workers.WorkerConnectionInput{
-		SessionID:    s.storedSession.ID,
-		ConnectionID: uuid.NewString(),
-
-		MCPClient: s.McpClient,
-	}
-
-	if s.sessionConfig.ConfigType == nil {
-		return fmt.Errorf("session config is not set for session %s", s.storedSession.ID)
-	}
-
-	if s.sessionConfig.GetRunConfigWithLauncher() != nil {
-		panic("TODO: implement RunConfigWithLauncher for LocalSession")
-	} else if s.sessionConfig.GetRunConfigWithContainerArguments() != nil {
-		connectionInput.RunConfig = s.sessionConfig.GetRunConfigWithContainerArguments()
-	} else {
-		return fmt.Errorf("unsupported session config type for session %s", s.storedSession.ID)
-	}
+	connectionInput := s.connectionInput
+	// Update the connection input with the session ID and a new connection ID
+	connectionInput.ConnectionID = uuid.NewString()
 
 	hash, err := s.workerManager.GetConnectionHashForWorkerType(s.WorkerType, connectionInput)
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	runnerPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	mcp_runner_client "github.com/metorial/metorial/mcp-engine/pkg/mcp-runner-client"
+	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
 )
 
 type RunnerWorker struct {
@@ -127,9 +128,9 @@ type RunnerWorkerConnection struct {
 	connectionID string
 	sessionID    string
 
-	messages chan mcp.MCPMessage
-	output   chan *mcpPB.McpOutput
-	errors   chan *mcpPB.McpError
+	messages *pubsub.Broadcaster[*mcp.MCPMessage]
+	output   *pubsub.Broadcaster[*mcpPB.McpOutput]
+	errors   *pubsub.Broadcaster[*mcpPB.McpError]
 }
 
 func GetConnectionHashForRunnerWorker(input *WorkerConnectionInput) ([]byte, error) {
@@ -157,9 +158,9 @@ func (rw *RunnerWorker) CreateConnection(input *WorkerConnectionInput) (WorkerCo
 		connectionID: input.ConnectionID,
 		sessionID:    input.SessionID,
 
-		messages: make(chan mcp.MCPMessage, 10),
-		output:   make(chan *mcpPB.McpOutput, 10),
-		errors:   make(chan *mcpPB.McpError, 10),
+		messages: pubsub.NewBroadcaster[*mcp.MCPMessage](),
+		output:   pubsub.NewBroadcaster[*mcpPB.McpOutput](),
+		errors:   pubsub.NewBroadcaster[*mcpPB.McpError](),
 	}
 
 	go res.channelMapper()
@@ -254,7 +255,7 @@ func (rws *RunnerWorkerConnection) SendAndWaitForResponse(message *mcp.MCPMessag
 	}
 }
 
-func (rwc *RunnerWorkerConnection) Messages() <-chan mcp.MCPMessage {
+func (rwc *RunnerWorkerConnection) Messages() *pubsub.Broadcaster[*mcp.MCPMessage] {
 	if rwc.run == nil {
 		return nil
 	}
@@ -262,7 +263,7 @@ func (rwc *RunnerWorkerConnection) Messages() <-chan mcp.MCPMessage {
 	return rwc.messages
 }
 
-func (rwc *RunnerWorkerConnection) Output() <-chan *mcpPB.McpOutput {
+func (rwc *RunnerWorkerConnection) Output() *pubsub.Broadcaster[*mcpPB.McpOutput] {
 	if rwc.run == nil {
 		return nil
 	}
@@ -270,7 +271,7 @@ func (rwc *RunnerWorkerConnection) Output() <-chan *mcpPB.McpOutput {
 	return rwc.output
 }
 
-func (rwc *RunnerWorkerConnection) Errors() <-chan *mcpPB.McpError {
+func (rwc *RunnerWorkerConnection) Errors() *pubsub.Broadcaster[*mcpPB.McpError] {
 	if rwc.run == nil {
 		return nil
 	}
@@ -283,9 +284,9 @@ func (rwc *RunnerWorkerConnection) InactivityTimeout() time.Duration {
 }
 
 func (rwc *RunnerWorkerConnection) channelMapper() {
-	defer close(rwc.messages)
-	defer close(rwc.output)
-	defer close(rwc.errors)
+	defer rwc.messages.Close()
+	defer rwc.output.Close()
+	defer rwc.errors.Close()
 
 	if rwc.run == nil {
 		return // No run to map channels
@@ -299,16 +300,16 @@ func (rwc *RunnerWorkerConnection) channelMapper() {
 			if msg != nil {
 				parsed, _ := mcp.FromPbRawMessage(msg.Message)
 				if parsed != nil {
-					rwc.messages <- *parsed
+					rwc.messages.Publish(parsed)
 				}
 			}
 		case output := <-rwc.run.Output():
 			if output != nil {
-				rwc.output <- output.McpOutput
+				rwc.output.Publish(output.McpOutput)
 			}
 		case err := <-rwc.run.Errors():
 			if err != nil {
-				rwc.errors <- err.McpError
+				rwc.errors.Publish(err.McpError)
 			}
 
 		}

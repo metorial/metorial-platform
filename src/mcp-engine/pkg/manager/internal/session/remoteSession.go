@@ -26,7 +26,7 @@ func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, str
 
 	responseStream, err := s.connection.SendMcpMessage(stream.Context(), req)
 	if err != nil {
-		return mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to send MCP message", err)
+		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to send MCP message", err)
 	}
 
 	for {
@@ -38,11 +38,11 @@ func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, str
 				return nil // Client has closed the stream
 			}
 
-			return mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to receive MCP message response", err)
+			return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to receive MCP message response", err)
 		}
 
 		if err := stream.Send(response); err != nil {
-			return mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to send MCP message response to client", err)
+			return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to send MCP message response to client", err)
 		}
 	}
 }
@@ -52,7 +52,7 @@ func (s *RemoteSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesReques
 
 	responseStream, err := s.connection.StreamMcpMessages(stream.Context(), req)
 	if err != nil {
-		return mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to stream MCP messages", err)
+		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to stream MCP messages", err)
 	}
 
 	for {
@@ -64,11 +64,11 @@ func (s *RemoteSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesReques
 				return nil // Client has closed the stream
 			}
 
-			return mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to receive MCP message stream response", err)
+			return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to receive MCP message stream response", err)
 		}
 
 		if err := stream.Send(response); err != nil {
-			return mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to send MCP message stream response to client", err)
+			return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to send MCP message stream response to client", err)
 		}
 	}
 }
@@ -78,11 +78,11 @@ func (s *RemoteSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcp
 
 	server, err := s.connection.GetServerInfo(context.Background(), req)
 	if err != nil {
-		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to get server info", err)
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get server info", err)
 	}
 
 	if server == nil {
-		return nil, mterror.NewWithDetails(mterror.NotFoundCode, "server not found", map[string]string{
+		return nil, mterror.NewWithDetails(mterror.NotFoundKind, "server not found", map[string]string{
 			"session_id": s.storedSession.ID,
 		})
 	}

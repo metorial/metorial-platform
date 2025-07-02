@@ -33,7 +33,7 @@ func NewSessionServer(
 
 func (s *SessionServer) CreateSession(ctx context.Context, req *managerPb.CreateSessionRequest) (*managerPb.CreateSessionResponse, error) {
 	if req.Config.GetRunConfigWithContainerArguments() == nil && req.Config.GetRunConfigWithLauncher() == nil {
-		return nil, mterror.New(mterror.InvalidRequestCode, "session config must contain either RunConfigWithContainerArguments or RunConfigWithLauncher").ToGRPCStatus().Err()
+		return nil, mterror.New(mterror.InvalidRequestKind, "session config must contain either RunConfigWithContainerArguments or RunConfigWithLauncher").ToGRPCStatus().Err()
 	}
 
 	_, err := s.sessions.UpsertSession(req)

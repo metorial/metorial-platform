@@ -6,6 +6,7 @@ import (
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	runnerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
+	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
 )
 
 type WorkerConnection interface {
@@ -19,9 +20,9 @@ type WorkerConnection interface {
 	Close() error
 	Done() <-chan struct{}
 
-	Messages() <-chan mcp.MCPMessage
-	Output() <-chan *mcpPb.McpOutput
-	Errors() <-chan *mcpPb.McpError
+	Messages() *pubsub.Broadcaster[*mcp.MCPMessage]
+	Output() *pubsub.Broadcaster[*mcpPb.McpOutput]
+	Errors() *pubsub.Broadcaster[*mcpPb.McpError]
 
 	InactivityTimeout() time.Duration
 }

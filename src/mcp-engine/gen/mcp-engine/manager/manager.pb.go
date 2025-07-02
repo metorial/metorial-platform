@@ -274,6 +274,7 @@ type Launcher struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	LauncherType  Launcher_LauncherType  `protobuf:"varint,1,opt,name=launcher_type,json=launcherType,proto3,enum=broker.manager.Launcher_LauncherType" json:"launcher_type,omitempty"`
 	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	JsonConfig    string                 `protobuf:"bytes,3,opt,name=json_config,json=jsonConfig,proto3" json:"json_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -318,6 +319,13 @@ func (x *Launcher) GetLauncherType() Launcher_LauncherType {
 func (x *Launcher) GetCode() string {
 	if x != nil {
 		return x.Code
+	}
+	return ""
+}
+
+func (x *Launcher) GetJsonConfig() string {
+	if x != nil {
+		return x.JsonConfig
 	}
 	return ""
 }
@@ -938,10 +946,12 @@ const file_manager_proto_rawDesc = "" +
 	"mcp_client\x18\x04 \x01(\v2\x1a.broker.mcp.McpParticipantR\tmcpClient\"\x19\n" +
 	"\vSessionType\x12\n" +
 	"\n" +
-	"\x06runner\x10\x00\"\x84\x01\n" +
+	"\x06runner\x10\x00\"\xa5\x01\n" +
 	"\bLauncher\x12J\n" +
 	"\rlauncher_type\x18\x01 \x01(\x0e2%.broker.manager.Launcher.LauncherTypeR\flauncherType\x12\x12\n" +
-	"\x04code\x18\x02 \x01(\tR\x04code\"\x18\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x1f\n" +
+	"\vjson_config\x18\x03 \x01(\tR\n" +
+	"jsonConfig\"\x18\n" +
 	"\fLauncherType\x12\b\n" +
 	"\x04deno\x10\x00\"\x8e\x01\n" +
 	"\x15RunConfigWithLauncher\x12?\n" +

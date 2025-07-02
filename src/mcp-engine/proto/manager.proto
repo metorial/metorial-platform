@@ -36,6 +36,7 @@ message Launcher {
 
   LauncherType launcher_type = 1;
   string code = 2;
+  string json_config = 3;
 }
 
 message RunConfigWithLauncher {
