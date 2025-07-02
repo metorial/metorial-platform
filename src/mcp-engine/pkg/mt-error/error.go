@@ -138,6 +138,14 @@ func (e *MTError) ToGRPCStatus() *status.Status {
 
 	st := status.New(mtErrorKindToGRPCCode(e.Kind), e.Message)
 	if len(e.Details) > 0 {
+		e.Details["kind"] = string(e.Kind) // Ensure the kind is included in the details
+		e.Details["message"] = e.Message
+
+		_, codeExists := e.Details["code"]
+		if !codeExists {
+			e.Details["code"] = string(e.Kind)
+		}
+
 		details := &errdetails.ErrorInfo{
 			Reason:   string(e.Kind),
 			Metadata: e.Details,

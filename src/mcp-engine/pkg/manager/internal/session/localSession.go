@@ -45,14 +45,14 @@ type LocalSession struct {
 func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError {
 	err := s.ensureConnection()
 	if err != nil {
-		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to ensure connection", err)
+		return err
 	}
 
 	mcpMessages := make([]*mcp.MCPMessage, 0, len(req.McpMessages))
 	for _, rawMessage := range req.McpMessages {
 		message, err := mcp.FromPbRawMessage(rawMessage)
 		if err != nil {
-			return mterror.NewWithInnerError(mterror.InvalidRequestKind, "failed to parse MCP message", err)
+			return mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "runner_connection_error", "failed to parse MCP message", err)
 		}
 
 		mcpMessages = append(mcpMessages, message)
@@ -163,7 +163,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	for _, message := range mcpMessages {
 		err := connection.AcceptMessage(message)
 		if err != nil {
-			return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to process MCP message", err)
+			return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "mcp_message_processing_failed", "failed to process MCP message", err)
 		}
 	}
 
@@ -278,19 +278,19 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpPb.McpParticipant, *mterror.MTError) {
 	err := s.ensureConnection()
 	if err != nil {
-		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to ensure connection", err)
+		return nil, mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "runner_connection_error", "failed to ensure connection", err)
 	}
 
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	server, err := s.activeConnection.GetServer()
-	if err != nil {
+	server, err2 := s.activeConnection.GetServer()
+	if err2 != nil {
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get server info", err)
 	}
 
-	participant, err := server.ToPbParticipant()
-	if err != nil {
+	participant, err2 := server.ToPbParticipant()
+	if err2 != nil {
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to convert server to participant", err)
 	}
 
@@ -328,7 +328,7 @@ func (s *LocalSession) StoredSession() *state.Session {
 	return s.storedSession
 }
 
-func (s *LocalSession) ensureConnection() error {
+func (s *LocalSession) ensureConnection() *mterror.MTError {
 	s.mutex.RLock()
 
 	if s.activeConnection != nil {
@@ -354,17 +354,17 @@ func (s *LocalSession) ensureConnection() error {
 
 	hash, err := s.workerManager.GetConnectionHashForWorkerType(s.WorkerType, connectionInput)
 	if err != nil {
-		return fmt.Errorf("failed to get connection hash for worker type %s: %w", s.WorkerType, err)
+		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get connection hash for worker type", err)
 	}
 
 	worker, ok := s.workerManager.PickWorkerByHash(s.WorkerType, hash)
 	if !ok {
-		return fmt.Errorf("no available worker for worker type %s with hash %s", s.WorkerType, hash)
+		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "runner_connection_error", "no available worker for worker type", err)
 	}
 
 	connection, err := worker.CreateConnection(connectionInput)
 	if err != nil {
-		return fmt.Errorf("failed to create connection for worker %w", err)
+		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "runner_connection_error", "failed to create connection for worker", err)
 	}
 
 	log.Printf("Created connection %s for session %s with worker %s", connection.ConnectionID(), s.storedSession.ID, worker.WorkerID())
@@ -374,7 +374,7 @@ func (s *LocalSession) ensureConnection() error {
 
 	err = connection.Start()
 	if err != nil {
-		return fmt.Errorf("failed to start connection for worker %w", err)
+		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "runner_connection_error", "failed to start connection", err)
 	}
 
 	go s.monitorConnection(connection)
