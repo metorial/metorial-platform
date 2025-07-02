@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const CleanupInterval = 5 * time.Minute
+const CLEANUP_INTERVAL = time.Minute * 5
 
 type ImageManager struct {
 	images map[string]*ImageHandle
@@ -104,17 +104,16 @@ func (im *ImageManager) ensureImage(imageName string) error {
 	return im.downloadImage(name, &tag)
 }
 
-func (im *ImageManager) reportImageUse(imageName, containerID string) error {
+func (im *ImageManager) reportImageUse(imageName, containerID string) {
 	im.mu.RLock()
 	image, exists := im.images[imageName]
 	im.mu.RUnlock()
 
 	if !exists {
-		return nil
+		return
 	}
 
 	image.markUsed(containerID)
-	return nil
 }
 
 func (im *ImageManager) listImages() []*ImageHandle {
@@ -202,7 +201,7 @@ func (im *ImageManager) startCleanupTask() {
 	go func() {
 		defer im.wg.Done()
 
-		ticker := time.NewTicker(CleanupInterval)
+		ticker := time.NewTicker(CLEANUP_INTERVAL)
 		defer ticker.Stop()
 
 		for {
@@ -220,5 +219,5 @@ func (im *ImageManager) performCleanup() {
 	im.removeUnusedImages()
 	im.removeOldImageUses()
 
-	fmt.Println("Image cleanup completed")
+	log.Println("Image cleanup completed")
 }

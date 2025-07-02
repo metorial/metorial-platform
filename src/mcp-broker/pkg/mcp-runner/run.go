@@ -13,12 +13,12 @@ import (
 )
 
 type Run struct {
-	ID        string
-	Init      *RunInit
-	container *docker.ContainerHandle
-	state     *RunnerState
-	StartTime time.Time
-	LastPing  time.Time
+	ID               string
+	Init             *RunInit
+	container        *docker.ContainerHandle
+	state            *RunnerState
+	StartTime        time.Time
+	LastServerAction time.Time
 }
 
 type RunInit struct {
@@ -54,10 +54,10 @@ func newRun(state *RunnerState, init *RunInit) (*Run, error) {
 	}
 
 	run := &Run{
-		Init:      init,
-		ID:        uuid.NewString(),
-		StartTime: time.Now(),
-		LastPing:  time.Now(),
+		Init:             init,
+		ID:               uuid.NewString(),
+		StartTime:        time.Now(),
+		LastServerAction: time.Now(),
 
 		container: container,
 		state:     state,
@@ -76,7 +76,7 @@ func (m *Run) pingRoutine() {
 	for {
 		select {
 		case <-ticker.C:
-			if time.Since(m.LastPing) > 10*time.Second {
+			if time.Since(m.LastServerAction) > 10*time.Second {
 				// Container has not responded in a while, consider it dead
 				m.Stop()
 				return
@@ -108,11 +108,12 @@ func (m *Run) Stop() error {
 	return m.container.Stop()
 }
 
-func (m *Run) Wait() error {
+func (m *Run) Wait() {
 	if m.container == nil {
-		return nil
+		return
 	}
-	return m.container.Wait()
+
+	m.container.Wait()
 }
 
 func (m *Run) input(line string) error {
@@ -150,14 +151,14 @@ func (m *Run) HandleOutput(messageHandler McpMessageHandler, outputHandler Multi
 
 				// We count any message as a ping. As long as the server is sending messages,
 				// we consider it alive.
-				m.LastPing = time.Now()
+				m.LastServerAction = time.Now()
 
 				// Handle ping requests
-				if message.MsgType == mcp.RequestType && *message.Method == "ping" {
-					resp, err := json.Marshal(map[string]interface{}{
+				if message.MsgType == mcp.RequestType && message.GetMethod() == "ping" {
+					resp, err := json.Marshal(map[string]any{
 						"jsonrpc": "2.0",
 						"id":      message.GetRawId(),
-						"result":  map[string]interface{}{},
+						"result":  map[string]any{},
 					})
 					if err != nil {
 						log.Printf("Failed to marshal ping response: %v\n", err)
@@ -165,6 +166,11 @@ func (m *Run) HandleOutput(messageHandler McpMessageHandler, outputHandler Multi
 					}
 
 					err = m.input(string(resp) + "\n")
+					if err != nil {
+						log.Printf("Failed to send ping response: %v\n", err)
+						return
+					}
+
 					return
 				}
 
@@ -189,9 +195,5 @@ func (m *Run) HandleOutput(messageHandler McpMessageHandler, outputHandler Multi
 }
 
 func (m *Run) HandleInput(input string) error {
-	message, err := mcp.ParseMCPMessage(input)
-	if err != nil {
-		return fmt.Errorf("failed to parse MCP message")
-	}
-	return m.input(message.GetStringPayload() + "\n")
+	return m.input(input + "\n")
 }

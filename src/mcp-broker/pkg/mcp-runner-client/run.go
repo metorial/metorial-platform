@@ -126,10 +126,18 @@ func (r *Run) Output() <-chan *runnerPb.RunResponseOutput {
 }
 
 func (r *Run) Done() <-chan struct{} {
+	if r.context == nil {
+		return nil
+	}
+
 	return r.context.Done()
 }
 
 func (r *Run) Wait() {
+	if r.context == nil {
+		return
+	}
+
 	<-r.context.Done()
 }
 
@@ -149,13 +157,18 @@ func (r *Run) handleStream() {
 	r.stream = stream
 	defer stream.CloseSend()
 
-	stream.Send(&runnerPb.RunRequest{
+	err = stream.Send(&runnerPb.RunRequest{
 		JobType: &runnerPb.RunRequest_Init{
 			Init: &runnerPb.RunRequestInit{
 				RunConfig: r.Config,
 			},
 		},
 	})
+	if err != nil {
+		r.createStreamWg.Done()
+		r.initError = fmt.Errorf("failed to send initial request: %w", err)
+		return
+	}
 
 	resp, err := stream.Recv()
 	if err != nil {
@@ -196,8 +209,6 @@ loop:
 			break loop
 		}
 
-		log.Printf("Received response: %v\n", resp)
-
 		switch msg := resp.JobType.(type) {
 
 		case *runnerPb.RunResponse_McpMessage:
@@ -211,7 +222,7 @@ loop:
 			go r.Close()
 
 		case *runnerPb.RunResponse_Close:
-			log.Println("Run closed by server")
+			log.Printf("Run %s closed by server\n", r.RemoteID)
 			break loop
 
 		default:

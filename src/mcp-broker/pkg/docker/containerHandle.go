@@ -88,9 +88,8 @@ func (c *ContainerHandle) IsRunning() bool {
 	}
 }
 
-func (c *ContainerHandle) Wait() error {
+func (c *ContainerHandle) Wait() {
 	<-c.done
-	return nil
 }
 
 func (c *ContainerHandle) Done() <-chan struct{} {

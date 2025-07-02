@@ -80,10 +80,12 @@ func (state *RunnerState) StopRun(runID string) error {
 		return nil // Run not found, nothing to stop
 	}
 
-	run.Stop()
+	err := run.Stop()
+
+	// Remove the run, even if stopping failed
 	state.removeRun(runID)
 
-	return nil
+	return err
 }
 
 func (state *RunnerState) ListActiveRuns() []*Run {

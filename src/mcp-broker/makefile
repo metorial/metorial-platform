@@ -1,4 +1,4 @@
-.PHONY: build-mcp-runner run-mcp-runner proto-mcp-runner build-mcp-runner-client run-mcp-runner-client build-manager run-manager proto-mcp-manager proto
+.PHONY: build-mcp-runner run-mcp-runner proto-mcp-runner build-mcp-runner-client run-mcp-runner-client build-manager run-manager proto-mcp-manager proto vet staticcheck lint
 
 build-mcp-runner:
 	go build -o bin/mcp-runner ./cmd/mcp-runner
@@ -18,6 +18,15 @@ build-manager:
 run-manager: build-manager
 	./bin/manager $(ARGS)
 
+vet:
+	go vet ./...
+
+staticcheck:
+	staticcheck ./...
+
+lint:
+	golangci-lint run ./...
+
 proto:
 	cd proto && \
 	mkdir -p ../gen && \
@@ -27,7 +36,7 @@ proto:
 		--go-grpc_out=../gen \
 		common.proto \
 		manager.proto \
-		managerForWorker.proto \
+		workerBroker.proto \
 		mcp.proto \
 		runner.proto && \
 	cp -r ../gen/github.com/metorial/metorial/mcp-broker/* ../ && \

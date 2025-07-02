@@ -95,10 +95,6 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 		dockerArgs = append(dockerArgs, opts.Command)
 	}
 
-	for _, arg := range opts.Args {
-		dockerArgs = append(dockerArgs, arg)
-	}
-
 	cmd := exec.CommandContext(ctx, "docker", dockerArgs...)
 
 	log.Printf("Starting container for image %s with ID %s", opts.ImageRef, containerID)
