@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+package broker.runner;
+
+option go_package = "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner;runner";
+
+import "mcp.proto";
+import "common.proto";
+
+service McpRunner {
+  rpc GetRunnerInfo(broker.runner.RunnerInfoRequest) returns (broker.runner.RunnerInfoResponse);
+  rpc StreamRunnerHealth(broker.runner.RunnerHealthRequest) returns (stream broker.runner.RunnerHealthResponse);
+
+  rpc ListActiveRuns(broker.common.Empty) returns (broker.runner.ActiveRunsResponse);
+  rpc ListDockerImages(broker.common.Empty) returns (broker.runner.DockerImagesResponse);
+  rpc ListDockerContainers(broker.common.Empty) returns (broker.runner.DockerContainersResponse);
+
+  rpc StreamMcpRun(stream broker.runner.RunRequest) returns (stream broker.runner.RunResponse);
+}
+
+enum RunnerStatus {
+  HEALTHY = 0;
+  UNHEALTHY = 1;
+}
+
+enum RunnerAcceptingJobs {
+  ACCEPTING = 0;
+  NOT_ACCEPTING = 1;
+}
+
+message RunnerInfoRequest {}
+
+message RunnerInfoResponse {
+  string runner_id = 1;
+  int64 start_time = 2;
+
+  RunnerAcceptingJobs accepting_runs = 3;
+  RunnerStatus status = 4;
+  uint32 active_runs = 5;
+  uint64 total_runs = 6;
+}
+
+message RunnerHealthRequest {}
+
+message RunnerHealthResponse {
+  string runner_id = 1;
+  RunnerStatus status = 2;
+  RunnerAcceptingJobs accepting_runs = 3;
+}
+
+message ActiveRunsResponse {
+  repeated RunInfo runs = 1;
+}
+
+message RunInfo {
+  string run_id = 1;
+  string docker_image = 2;
+  string max_memory = 6; // e.g., "512m" or "1g"
+  string max_cpu = 7; // e.g., "1"
+  int64 start_time = 3; 
+  int64 end_time = 4;
+}
+
+message DockerImagesResponse {
+  repeated DockerImageInfo images = 1;
+}
+
+message DockerImageInfo {
+  string name = 1;
+  string tag = 2;
+  string image_id = 3;
+  int64 last_used = 4; // Unix timestamp in seconds
+}
+
+message DockerContainersResponse {
+  repeated DockerContainerInfo containers = 1;
+}
+
+message DockerContainerInfo {
+  string container_id = 1;
+  string image_name = 2;
+  int32 exit_code = 3;
+  bool running = 4;
+}
+
+message RunConfigContainerArguments {
+  string command = 1;
+  map<string, string> env_vars = 2;
+  repeated string args = 3;
+}
+
+message RunConfigContainer {
+  string docker_image = 1;
+  string max_memory = 2; // e.g., "512m" or "1g"
+  string max_cpu = 3; // e.g., "1"
+}
+
+message RunConfig {
+  RunConfigContainer container = 1;
+  RunConfigContainerArguments container_arguments = 2;
+}
+
+message RunRequest {
+  oneof job_type {
+    RunRequestInit init = 1;
+    RunRequestMcpMessage mcp_message = 2;
+    RunRequestClose close = 3;
+  }
+}
+
+message RunRequestInit {
+  RunConfig run_config = 1;
+}
+
+message RunRequestMcpMessage {
+  broker.mcp.McpMessageRaw message = 1; 
+}
+
+message RunRequestClose {}
+
+
+message RunResponse {
+  oneof job_type {
+    RunResponseMcpMessage mcp_message = 1;
+    RunResponseInit init = 2;
+
+    RunResponseOutput output = 3;
+    RunResponseError error = 4;
+    RunResponseClose close = 5;
+  }
+}
+
+message RunResponseInit {
+  string run_id = 1; // Unique identifier for the run
+}
+
+message RunResponseMcpMessage {
+  broker.mcp.McpMessageRaw message = 1; 
+}
+
+message RunResponseError {
+  broker.mcp.McpError mcp_error = 1;
+}
+
+message RunResponseOutput {
+  broker.mcp.McpOutput mcp_output = 1;
+}
+
+message RunResponseClose {}
