@@ -5,8 +5,10 @@ import (
 
 	managerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/manager"
 	"github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
+	workerBrokerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/workerBroker"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/state"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/workers"
+	mterror "github.com/metorial/metorial/mcp-broker/pkg/mt-error"
 	"google.golang.org/grpc"
 )
 
@@ -30,6 +32,10 @@ func NewSessionServer(
 }
 
 func (s *SessionServer) CreateSession(ctx context.Context, req *managerPb.CreateSessionRequest) (*managerPb.CreateSessionResponse, error) {
+	if req.Config.GetRunConfigWithContainerArguments() == nil && req.Config.GetRunConfigWithLauncher() == nil {
+		return nil, mterror.New(mterror.InvalidRequestCode, "session config must contain either RunConfigWithContainerArguments or RunConfigWithLauncher").ToGRPCStatus().Err()
+	}
+
 	_, err := s.sessions.UpsertSession(req)
 	if err != nil {
 		return nil, err
@@ -78,4 +84,45 @@ func (s *SessionServer) GetServerInfo(ctx context.Context, req *managerPb.GetSer
 	}
 
 	return participant, nil
+}
+
+func (s *SessionServer) ListManagers(context.Context, *workerBrokerPb.ListManagersRequest) (*workerBrokerPb.ListManagersResponse, error) {
+	managers, err := s.state.ListManagers()
+	if err != nil {
+		return nil, err
+	}
+
+	resManagers := make([]*workerBrokerPb.Manager, 0, len(managers))
+	for _, manager := range managers {
+		resManagers = append(resManagers, &workerBrokerPb.Manager{
+			Id:      manager.ID,
+			Address: manager.Address,
+		})
+	}
+
+	return &workerBrokerPb.ListManagersResponse{
+		Managers: resManagers,
+	}, nil
+}
+
+func (s *SessionServer) ListWorkers(context.Context, *managerPb.ListWorkersRequest) (*managerPb.ListWorkersResponse, error) {
+	workers := s.workerManager.ListWorkers()
+
+	resWorkers := make([]*managerPb.WorkerInfo, 0, len(workers))
+	for _, worker := range workers {
+		resWorkers = append(resWorkers, &managerPb.WorkerInfo{
+			WorkerId:      worker.WorkerID(),
+			Address:       worker.Address(),
+			AcceptingRuns: worker.AcceptingJobs(),
+			Healthy:       worker.Healthy(),
+		})
+	}
+
+	return &managerPb.ListWorkersResponse{
+		Workers: resWorkers,
+	}, nil
+}
+
+func (s *SessionServer) Stop() error {
+	return s.sessions.Stop()
 }

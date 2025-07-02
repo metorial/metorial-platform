@@ -9,6 +9,7 @@ package manager
 import (
 	context "context"
 	mcp "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
+	workerBroker "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/workerBroker"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -24,6 +25,8 @@ const (
 	McpManager_SendMcpMessage_FullMethodName    = "/broker.manager.McpManager/SendMcpMessage"
 	McpManager_StreamMcpMessages_FullMethodName = "/broker.manager.McpManager/StreamMcpMessages"
 	McpManager_GetServerInfo_FullMethodName     = "/broker.manager.McpManager/GetServerInfo"
+	McpManager_ListManagers_FullMethodName      = "/broker.manager.McpManager/ListManagers"
+	McpManager_ListWorkers_FullMethodName       = "/broker.manager.McpManager/ListWorkers"
 )
 
 // McpManagerClient is the client API for McpManager service.
@@ -34,6 +37,8 @@ type McpManagerClient interface {
 	SendMcpMessage(ctx context.Context, in *SendMcpMessageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SendMcpMessageResponse], error)
 	StreamMcpMessages(ctx context.Context, in *StreamMcpMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamMcpMessagesResponse], error)
 	GetServerInfo(ctx context.Context, in *GetServerInfoRequest, opts ...grpc.CallOption) (*mcp.McpParticipant, error)
+	ListManagers(ctx context.Context, in *workerBroker.ListManagersRequest, opts ...grpc.CallOption) (*workerBroker.ListManagersResponse, error)
+	ListWorkers(ctx context.Context, in *ListWorkersRequest, opts ...grpc.CallOption) (*ListWorkersResponse, error)
 }
 
 type mcpManagerClient struct {
@@ -102,6 +107,26 @@ func (c *mcpManagerClient) GetServerInfo(ctx context.Context, in *GetServerInfoR
 	return out, nil
 }
 
+func (c *mcpManagerClient) ListManagers(ctx context.Context, in *workerBroker.ListManagersRequest, opts ...grpc.CallOption) (*workerBroker.ListManagersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(workerBroker.ListManagersResponse)
+	err := c.cc.Invoke(ctx, McpManager_ListManagers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) ListWorkers(ctx context.Context, in *ListWorkersRequest, opts ...grpc.CallOption) (*ListWorkersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListWorkersResponse)
+	err := c.cc.Invoke(ctx, McpManager_ListWorkers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // McpManagerServer is the server API for McpManager service.
 // All implementations must embed UnimplementedMcpManagerServer
 // for forward compatibility.
@@ -110,6 +135,8 @@ type McpManagerServer interface {
 	SendMcpMessage(*SendMcpMessageRequest, grpc.ServerStreamingServer[SendMcpMessageResponse]) error
 	StreamMcpMessages(*StreamMcpMessagesRequest, grpc.ServerStreamingServer[StreamMcpMessagesResponse]) error
 	GetServerInfo(context.Context, *GetServerInfoRequest) (*mcp.McpParticipant, error)
+	ListManagers(context.Context, *workerBroker.ListManagersRequest) (*workerBroker.ListManagersResponse, error)
+	ListWorkers(context.Context, *ListWorkersRequest) (*ListWorkersResponse, error)
 	mustEmbedUnimplementedMcpManagerServer()
 }
 
@@ -131,6 +158,12 @@ func (UnimplementedMcpManagerServer) StreamMcpMessages(*StreamMcpMessagesRequest
 }
 func (UnimplementedMcpManagerServer) GetServerInfo(context.Context, *GetServerInfoRequest) (*mcp.McpParticipant, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetServerInfo not implemented")
+}
+func (UnimplementedMcpManagerServer) ListManagers(context.Context, *workerBroker.ListManagersRequest) (*workerBroker.ListManagersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListManagers not implemented")
+}
+func (UnimplementedMcpManagerServer) ListWorkers(context.Context, *ListWorkersRequest) (*ListWorkersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListWorkers not implemented")
 }
 func (UnimplementedMcpManagerServer) mustEmbedUnimplementedMcpManagerServer() {}
 func (UnimplementedMcpManagerServer) testEmbeddedByValue()                    {}
@@ -211,6 +244,42 @@ func _McpManager_GetServerInfo_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _McpManager_ListManagers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(workerBroker.ListManagersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).ListManagers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_ListManagers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).ListManagers(ctx, req.(*workerBroker.ListManagersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_ListWorkers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListWorkersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).ListWorkers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_ListWorkers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).ListWorkers(ctx, req.(*ListWorkersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // McpManager_ServiceDesc is the grpc.ServiceDesc for McpManager service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -225,6 +294,14 @@ var McpManager_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetServerInfo",
 			Handler:    _McpManager_GetServerInfo_Handler,
+		},
+		{
+			MethodName: "ListManagers",
+			Handler:    _McpManager_ListManagers_Handler,
+		},
+		{
+			MethodName: "ListWorkers",
+			Handler:    _McpManager_ListWorkers_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

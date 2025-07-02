@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	workerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/managerForWorker"
+	workerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/workerBroker"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -17,7 +17,7 @@ type Worker struct {
 	Address  string
 
 	conn   *grpc.ClientConn
-	client workerPb.McpManagerForWorkerClient
+	client workerPb.McpWorkerBrokerClient
 
 	done      chan struct{}
 	closeOnce sync.Once
@@ -33,7 +33,7 @@ func NewWorker(workerID, ownAddress string, managerAddress string) (*Worker, err
 		return nil, err
 	}
 
-	client := workerPb.NewMcpManagerForWorkerClient(conn)
+	client := workerPb.NewMcpWorkerBrokerClient(conn)
 
 	worker := &Worker{
 		WorkerID: workerID,
@@ -77,7 +77,7 @@ func (w *Worker) registerWithManager(address string) error {
 
 	defer conn.Close()
 
-	client := workerPb.NewMcpManagerForWorkerClient(conn)
+	client := workerPb.NewMcpWorkerBrokerClient(conn)
 
 	_, err = client.RegisterWorker(context.Background(), &workerPb.RegisterWorkerRequest{
 		WorkerId:   w.WorkerID,
@@ -120,7 +120,7 @@ func (w *Worker) connectToNewManagers() error {
 }
 
 func (w *Worker) connectToNewManagersRoutine() {
-	ticker := time.NewTicker(15 * time.Second)
+	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	if err := w.connectToNewManagers(); err != nil {

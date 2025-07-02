@@ -210,6 +210,8 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 		},
 	)
 
+	log.Printf("Run started with ID: %s\n", run.ID)
+
 	for {
 		req, err := stream.Recv()
 		if err != nil {

@@ -71,6 +71,10 @@ func (s *Sessions) GetSession(sessionId string) Session {
 }
 
 func (s *Sessions) GetSessionUnsafe(sessionId string) (Session, *mterror.MTError) {
+	if sessionId == "" {
+		return nil, mterror.New(mterror.InvalidRequestCode, "session ID cannot be empty")
+	}
+
 	session := s.GetSession(sessionId)
 	if session == nil {
 		return nil, mterror.NewWithDetails(mterror.NotFoundCode, "session not found", map[string]string{
@@ -124,10 +128,15 @@ func (s *Sessions) UpsertSession(
 			sessionConfig: request.Config,
 
 			activeConnection:          nil,
+			activeConnectionCreated:   make(chan struct{}),
 			lastConnectionInteraction: time.Now(),
 
 			workerManager: s.workerManager,
 		}
+
+		s.mutex.Lock()
+		s.sessions[storedSession.ID] = session
+		s.mutex.Unlock()
 
 		return session, nil
 	}
@@ -138,6 +147,9 @@ func (s *Sessions) UpsertSession(
 	}
 
 	connection, err := s.managers.GetManagerConnection(manager.ID)
+	if err != nil {
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to get manager connection", err)
+	}
 
 	session := &RemoteSession{
 		storedSession:             storedSession,
@@ -145,6 +157,10 @@ func (s *Sessions) UpsertSession(
 		mutex:                     sync.RWMutex{},
 		connection:                connection,
 	}
+
+	s.mutex.Lock()
+	s.sessions[storedSession.ID] = session
+	s.mutex.Unlock()
 
 	return session, nil
 }
@@ -162,9 +178,31 @@ func (s *Sessions) DiscardSession(sessionId string) error {
 
 	s.mutex.Unlock()
 
-	err := session.stop()
+	_, err := s.state.DeleteSession(sessionId)
+	if err != nil {
+		return fmt.Errorf("failed to delete session %s from state: %w", sessionId, err)
+	}
+
+	err = session.stop()
 	if err != nil {
 		return fmt.Errorf("failed to stop session %s: %w", sessionId, err)
+	}
+
+	return nil
+}
+
+func (s *Sessions) Stop() error {
+	for id, session := range s.sessions {
+		log.Printf("Stopping session %s\n", id)
+
+		err := session.stop()
+		_, err2 := s.state.DeleteSession(id)
+		if err != nil {
+			log.Panicf("failed to stop session %s: %v\n", id, err)
+		}
+		if err2 != nil {
+			log.Panicf("failed to delete session %s from state: %v\n", id, err2)
+		}
 	}
 
 	return nil

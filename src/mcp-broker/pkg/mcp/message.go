@@ -149,7 +149,7 @@ func (m *MCPMessage) ToPbMessage() *mcpPb.McpMessage {
 		msg.IdJson = string(*m.rawId)
 	}
 
-	if m.Method != nil {
+	if m.Method != nil && *m.Method != "" {
 		msg.Method = *m.Method
 	}
 
@@ -183,16 +183,16 @@ func NewMCPRequestMessage(id string, method string, params map[string]any) (*MCP
 }
 
 func (m *MCPMessage) GetStringId() string {
-	if m.stringId != "" {
-		return m.stringId
-	}
-
 	if m.rawId != nil {
 		str, err := strconv.Unquote(string(*m.rawId))
 		if err != nil {
 			return string(*m.rawId) // Return raw if unquoting fails
 		}
 		return str
+	}
+
+	if m.stringId != "" {
+		return m.stringId
 	}
 
 	return ""
@@ -202,6 +202,7 @@ func (m *MCPMessage) GetRawId() *json.RawMessage {
 	if m.rawId != nil {
 		return m.rawId
 	}
+
 	if m.stringId != "" {
 		raw := json.RawMessage(fmt.Sprintf(`"%s"`, m.stringId))
 		return &raw
@@ -221,6 +222,13 @@ func (m *MCPMessage) GetRawPayload() []byte {
 		return nil
 	}
 	return m.raw
+}
+
+func (m *MCPMessage) GetMethod() string {
+	if m.Method != nil {
+		return *m.Method
+	}
+	return ""
 }
 
 func messageTypeToPbMessageType(inType MessageType) mcpPb.McpMessageType {

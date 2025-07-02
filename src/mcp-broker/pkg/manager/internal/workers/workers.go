@@ -17,6 +17,8 @@ type Worker interface {
 	Type() WorkerType
 
 	WorkerID() string
+	Address() string
+
 	Start() error
 	Stop() error
 	AcceptingJobs() bool
@@ -29,12 +31,15 @@ type WorkerManager struct {
 	workers       map[string]Worker
 	workersByType map[WorkerType][]string
 
-	mutex sync.Mutex
+	mutex sync.RWMutex
 }
 
 func NewWorkerManager() *WorkerManager {
 	return &WorkerManager{
-		workers: make(map[string]Worker),
+		workers:       make(map[string]Worker),
+		workersByType: make(map[WorkerType][]string),
+
+		mutex: sync.RWMutex{},
 	}
 }
 
@@ -52,20 +57,26 @@ func (wm *WorkerManager) RegisterWorker(worker Worker) error {
 
 	wm.workers[worker.WorkerID()] = worker
 
+	workerType := worker.Type()
+	if _, exists := wm.workersByType[workerType]; !exists {
+		wm.workersByType[workerType] = []string{}
+	}
+	wm.workersByType[workerType] = append(wm.workersByType[workerType], worker.WorkerID())
+
 	return nil
 }
 
 func (wm *WorkerManager) GetWorker(workerID string) (Worker, bool) {
-	wm.mutex.Lock()
-	defer wm.mutex.Unlock()
+	wm.mutex.RLock()
+	defer wm.mutex.RUnlock()
 
 	worker, exists := wm.workers[workerID]
 	return worker, exists
 }
 
 func (wm *WorkerManager) ListWorkers() []Worker {
-	wm.mutex.Lock()
-	defer wm.mutex.Unlock()
+	wm.mutex.RLock()
+	defer wm.mutex.RUnlock()
 
 	workersList := make([]Worker, 0, len(wm.workers))
 	for _, worker := range wm.workers {
@@ -76,8 +87,8 @@ func (wm *WorkerManager) ListWorkers() []Worker {
 }
 
 func (wm *WorkerManager) ListWorkersByType(workerType WorkerType) []Worker {
-	wm.mutex.Lock()
-	defer wm.mutex.Unlock()
+	wm.mutex.RLock()
+	defer wm.mutex.RUnlock()
 
 	workerIDs, exists := wm.workersByType[workerType]
 	if !exists {
@@ -95,8 +106,8 @@ func (wm *WorkerManager) ListWorkersByType(workerType WorkerType) []Worker {
 }
 
 func (wm *WorkerManager) PickWorkerByHash(workerType WorkerType, data []byte) (Worker, bool) {
-	wm.mutex.Lock()
-	defer wm.mutex.Unlock()
+	wm.mutex.RLock()
+	defer wm.mutex.RUnlock()
 
 	workerIDs, exists := wm.workersByType[workerType]
 	if !exists || len(workerIDs) == 0 {

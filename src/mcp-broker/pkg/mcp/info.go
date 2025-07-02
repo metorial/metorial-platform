@@ -58,7 +58,13 @@ func (c *MCPClient) Assemble() map[string]any {
 }
 
 func (c *MCPClient) ToInitMessage() (*MCPMessage, error) {
-	return NewMCPRequestMessage(fmt.Sprintf("mtp/init/%d", time.Now().UnixMilli()), "initialize", c.Assemble())
+	inner := c.Assemble()
+	inner["protocolVersion"] = "2024-11-05"
+	inner["metorial"] = map[string]any{
+		"agent": "metorial-engine",
+	}
+
+	return NewMCPRequestMessage(fmt.Sprintf("mte/init/%d", time.Now().UnixMilli()), "initialize", inner)
 }
 
 func (s *MCPServer) Assemble() map[string]any {

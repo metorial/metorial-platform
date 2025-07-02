@@ -2,6 +2,7 @@ package workers
 
 import (
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -24,17 +25,25 @@ type RunnerWorker struct {
 	mutex sync.Mutex
 }
 
-func NewRunnerWorker(workerID, address string) *RunnerWorker {
+func NewRunnerWorker(manager *WorkerManager, workerID, address string) *RunnerWorker {
 	return &RunnerWorker{
 		workerID: workerID,
 		address:  address,
 
-		client: nil,
+		acceptingRuns: false,
+		healthy:       false,
+
+		manager: manager,
+		client:  nil,
 	}
 }
 
 func (rw *RunnerWorker) WorkerID() string {
 	return rw.workerID
+}
+
+func (rw *RunnerWorker) Address() string {
+	return rw.address
 }
 
 func (rw *RunnerWorker) Start() error {
@@ -53,7 +62,14 @@ func (rw *RunnerWorker) Start() error {
 	rw.client = client
 
 	go rw.monitor()
-	rw.registerListeners()
+
+	go rw.client.StreamRunnerHealth(func(rhr *runnerPB.RunnerHealthResponse) {
+		rw.mutex.Lock()
+		defer rw.mutex.Unlock()
+
+		rw.acceptingRuns = rhr.AcceptingRuns == runnerPB.RunnerAcceptingJobs_ACCEPTING
+		rw.healthy = rhr.Status == runnerPB.RunnerStatus_HEALTHY
+	})
 
 	return nil
 }
@@ -93,20 +109,12 @@ func (rw *RunnerWorker) monitor() {
 
 	rw.client.Wait()
 
+	log.Printf("RunnerWorker %s at %s has stopped", rw.workerID, rw.address)
+
 	rw.mutex.Lock()
 	defer rw.mutex.Unlock()
 
 	rw.manager.removeWorker(rw.workerID)
-}
-
-func (rw *RunnerWorker) registerListeners() {
-	go rw.client.StreamRunnerHealth(func(rhr *runnerPB.RunnerHealthResponse) {
-		rw.mutex.Lock()
-		defer rw.mutex.Unlock()
-
-		rw.acceptingRuns = rhr.AcceptingRuns == runnerPB.RunnerAcceptingJobs_ACCEPTING
-		rw.healthy = rhr.Status == runnerPB.RunnerStatus_HEALTHY
-	})
 }
 
 type RunnerWorkerConnection struct {
@@ -183,23 +191,14 @@ func (rwc *RunnerWorkerConnection) Start() error {
 }
 
 func (rwc *RunnerWorkerConnection) Close() error {
-	if rwc.run == nil {
-		return nil // Already closed
-	}
-
 	if err := rwc.run.Close(); err != nil {
 		return fmt.Errorf("failed to close MCP run: %w", err)
 	}
 
-	rwc.run = nil
 	return nil
 }
 
 func (rwc *RunnerWorkerConnection) Done() <-chan struct{} {
-	if rwc.run == nil {
-		return nil // No run to wait for
-	}
-
 	return rwc.run.Done()
 }
 
@@ -227,14 +226,21 @@ func (rws *RunnerWorkerConnection) SendAndWaitForResponse(message *mcp.MCPMessag
 		return nil, fmt.Errorf("only request messages can be sent and waited for a response")
 	}
 
-	if err := rws.AcceptMessage(message); err != nil {
-		return nil, fmt.Errorf("failed to send message: %w", err)
-	}
+	errchan := make(chan error, 1)
+	defer close(errchan)
+
+	go func() {
+		if err := rws.AcceptMessage(message); err != nil {
+			errchan <- fmt.Errorf("failed to send message: %w", err)
+		}
+	}()
 
 	for {
 		select {
 		case <-rws.Done():
 			return nil, fmt.Errorf("connection closed before receiving response")
+		case err := <-errchan:
+			return nil, err
 		case msg := <-rws.run.Messages():
 			if msg != nil {
 				parsed, _ := mcp.FromPbRawMessage(msg.Message)

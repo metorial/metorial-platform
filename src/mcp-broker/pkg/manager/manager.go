@@ -5,8 +5,10 @@ import (
 	"net"
 	"strconv"
 
-	managerForWorkerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/managerForWorker"
+	managerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/manager"
+	workerBrokerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/workerBroker"
 	"github.com/metorial/metorial/mcp-broker/pkg/addr"
+	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/session"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/state"
 	"github.com/metorial/metorial/mcp-broker/pkg/manager/internal/workers"
 	"google.golang.org/grpc"
@@ -14,12 +16,13 @@ import (
 )
 
 type Manager struct {
-	Address      string
-	Port         int
-	state        *state.StateManager
-	grpcServer   *grpc.Server
-	workerServer *managerForWorkerServer
-	workers      *workers.WorkerManager
+	Address       string
+	Port          int
+	state         *state.StateManager
+	grpcServer    *grpc.Server
+	workerServer  *workerBrokerServer
+	workers       *workers.WorkerManager
+	sessionServer *session.SessionServer
 }
 
 func NewManager(etcdEndpoints []string, address string) (*Manager, error) {
@@ -36,11 +39,12 @@ func NewManager(etcdEndpoints []string, address string) (*Manager, error) {
 	workers := workers.NewWorkerManager()
 
 	return &Manager{
-		state:        sm,
-		Port:         port,
-		Address:      address,
-		workers:      workers,
-		workerServer: &managerForWorkerServer{state: sm, workerManager: workers},
+		state:         sm,
+		Port:          port,
+		Address:       address,
+		workers:       workers,
+		workerServer:  &workerBrokerServer{state: sm, workerManager: workers},
+		sessionServer: session.NewSessionServer(sm, workers),
 	}, nil
 }
 
@@ -55,7 +59,8 @@ func (m *Manager) Start() error {
 	s := grpc.NewServer()
 	m.grpcServer = s
 
-	managerForWorkerPb.RegisterMcpManagerForWorkerServer(s, m.workerServer)
+	workerBrokerPb.RegisterMcpWorkerBrokerServer(s, m.workerServer)
+	managerPb.RegisterMcpManagerServer(s, m.sessionServer)
 
 	reflection.Register(s)
 
@@ -75,6 +80,10 @@ func (m *Manager) Start() error {
 func (m *Manager) Stop() error {
 	if m.state == nil {
 		return nil
+	}
+
+	if err := m.sessionServer.Stop(); err != nil {
+		return err
 	}
 
 	if err := m.state.Stop(); err != nil {

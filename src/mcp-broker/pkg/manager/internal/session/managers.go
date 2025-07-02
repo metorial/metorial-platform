@@ -21,8 +21,10 @@ type OtherManagers struct {
 
 func NewOtherManagers(inputState *state.StateManager) *OtherManagers {
 	return &OtherManagers{
-		managers: make(map[string]*state.Manager),
-		state:    inputState,
+		managers:           make(map[string]*state.Manager),
+		managerConnections: make(map[string]managerPb.McpManagerClient),
+
+		state: inputState,
 	}
 }
 

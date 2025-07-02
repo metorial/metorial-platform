@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	runnerPb "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/runner"
-	grpc_util "github.com/metorial/metorial/mcp-broker/pkg/grpc-util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -13,6 +12,8 @@ import (
 type McpRunnerClient struct {
 	conn   *grpc.ClientConn
 	client runnerPb.McpRunnerClient
+
+	healthStopped chan struct{}
 }
 
 func NewMcpRunnerClient(address string) (*McpRunnerClient, error) {
@@ -24,8 +25,9 @@ func NewMcpRunnerClient(address string) (*McpRunnerClient, error) {
 	client := runnerPb.NewMcpRunnerClient(conn)
 
 	res := &McpRunnerClient{
-		conn:   conn,
-		client: client,
+		conn:          conn,
+		client:        client,
+		healthStopped: make(chan struct{}),
 	}
 
 	return res, nil
@@ -39,7 +41,7 @@ func (c *McpRunnerClient) Close() error {
 }
 
 func (c *McpRunnerClient) Wait() {
-	grpc_util.WaitForConnectionClose(c.conn)
+	<-c.healthStopped
 }
 
 func (c *McpRunnerClient) GetRunnerInfo() (*runnerPb.RunnerInfoResponse, error) {
@@ -54,6 +56,12 @@ func (c *McpRunnerClient) StreamRunnerHealth(onHealthUpdate func(*runnerPb.Runne
 	if c.client == nil {
 		return fmt.Errorf("McpRunnerClient is not initialized")
 	}
+
+	defer func() {
+		if c.healthStopped != nil {
+			close(c.healthStopped)
+		}
+	}()
 
 	stream, err := c.client.StreamRunnerHealth(context.Background(), &runnerPb.RunnerHealthRequest{})
 	if err != nil {

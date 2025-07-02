@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v6.31.1
-// source: managerForWorker.proto
+// source: workerBroker.proto
 
-package managerForWorker
+package workerBroker
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -48,11 +48,11 @@ func (x WorkerType) String() string {
 }
 
 func (WorkerType) Descriptor() protoreflect.EnumDescriptor {
-	return file_managerForWorker_proto_enumTypes[0].Descriptor()
+	return file_workerBroker_proto_enumTypes[0].Descriptor()
 }
 
 func (WorkerType) Type() protoreflect.EnumType {
-	return &file_managerForWorker_proto_enumTypes[0]
+	return &file_workerBroker_proto_enumTypes[0]
 }
 
 func (x WorkerType) Number() protoreflect.EnumNumber {
@@ -61,7 +61,7 @@ func (x WorkerType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WorkerType.Descriptor instead.
 func (WorkerType) EnumDescriptor() ([]byte, []int) {
-	return file_managerForWorker_proto_rawDescGZIP(), []int{0}
+	return file_workerBroker_proto_rawDescGZIP(), []int{0}
 }
 
 type ListManagersRequest struct {
@@ -72,7 +72,7 @@ type ListManagersRequest struct {
 
 func (x *ListManagersRequest) Reset() {
 	*x = ListManagersRequest{}
-	mi := &file_managerForWorker_proto_msgTypes[0]
+	mi := &file_workerBroker_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -84,7 +84,7 @@ func (x *ListManagersRequest) String() string {
 func (*ListManagersRequest) ProtoMessage() {}
 
 func (x *ListManagersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_managerForWorker_proto_msgTypes[0]
+	mi := &file_workerBroker_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -97,7 +97,7 @@ func (x *ListManagersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListManagersRequest.ProtoReflect.Descriptor instead.
 func (*ListManagersRequest) Descriptor() ([]byte, []int) {
-	return file_managerForWorker_proto_rawDescGZIP(), []int{0}
+	return file_workerBroker_proto_rawDescGZIP(), []int{0}
 }
 
 type ListManagersResponse struct {
@@ -109,7 +109,7 @@ type ListManagersResponse struct {
 
 func (x *ListManagersResponse) Reset() {
 	*x = ListManagersResponse{}
-	mi := &file_managerForWorker_proto_msgTypes[1]
+	mi := &file_workerBroker_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -121,7 +121,7 @@ func (x *ListManagersResponse) String() string {
 func (*ListManagersResponse) ProtoMessage() {}
 
 func (x *ListManagersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_managerForWorker_proto_msgTypes[1]
+	mi := &file_workerBroker_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -134,7 +134,7 @@ func (x *ListManagersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListManagersResponse.ProtoReflect.Descriptor instead.
 func (*ListManagersResponse) Descriptor() ([]byte, []int) {
-	return file_managerForWorker_proto_rawDescGZIP(), []int{1}
+	return file_workerBroker_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ListManagersResponse) GetManagers() []*Manager {
@@ -154,7 +154,7 @@ type Manager struct {
 
 func (x *Manager) Reset() {
 	*x = Manager{}
-	mi := &file_managerForWorker_proto_msgTypes[2]
+	mi := &file_workerBroker_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -166,7 +166,7 @@ func (x *Manager) String() string {
 func (*Manager) ProtoMessage() {}
 
 func (x *Manager) ProtoReflect() protoreflect.Message {
-	mi := &file_managerForWorker_proto_msgTypes[2]
+	mi := &file_workerBroker_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -179,7 +179,7 @@ func (x *Manager) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Manager.ProtoReflect.Descriptor instead.
 func (*Manager) Descriptor() ([]byte, []int) {
-	return file_managerForWorker_proto_rawDescGZIP(), []int{2}
+	return file_workerBroker_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Manager) GetId() string {
@@ -200,14 +200,14 @@ type RegisterWorkerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	WorkerId      string                 `protobuf:"bytes,1,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
 	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
-	WorkerType    WorkerType             `protobuf:"varint,3,opt,name=worker_type,json=workerType,proto3,enum=broker.managerForWorker.WorkerType" json:"worker_type,omitempty"`
+	WorkerType    WorkerType             `protobuf:"varint,3,opt,name=worker_type,json=workerType,proto3,enum=broker.workerBroker.WorkerType" json:"worker_type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RegisterWorkerRequest) Reset() {
 	*x = RegisterWorkerRequest{}
-	mi := &file_managerForWorker_proto_msgTypes[3]
+	mi := &file_workerBroker_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -219,7 +219,7 @@ func (x *RegisterWorkerRequest) String() string {
 func (*RegisterWorkerRequest) ProtoMessage() {}
 
 func (x *RegisterWorkerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_managerForWorker_proto_msgTypes[3]
+	mi := &file_workerBroker_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -232,7 +232,7 @@ func (x *RegisterWorkerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterWorkerRequest.ProtoReflect.Descriptor instead.
 func (*RegisterWorkerRequest) Descriptor() ([]byte, []int) {
-	return file_managerForWorker_proto_rawDescGZIP(), []int{3}
+	return file_workerBroker_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *RegisterWorkerRequest) GetWorkerId() string {
@@ -264,7 +264,7 @@ type RegisterWorkerResponse struct {
 
 func (x *RegisterWorkerResponse) Reset() {
 	*x = RegisterWorkerResponse{}
-	mi := &file_managerForWorker_proto_msgTypes[4]
+	mi := &file_workerBroker_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -276,7 +276,7 @@ func (x *RegisterWorkerResponse) String() string {
 func (*RegisterWorkerResponse) ProtoMessage() {}
 
 func (x *RegisterWorkerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_managerForWorker_proto_msgTypes[4]
+	mi := &file_workerBroker_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -289,62 +289,62 @@ func (x *RegisterWorkerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterWorkerResponse.ProtoReflect.Descriptor instead.
 func (*RegisterWorkerResponse) Descriptor() ([]byte, []int) {
-	return file_managerForWorker_proto_rawDescGZIP(), []int{4}
+	return file_workerBroker_proto_rawDescGZIP(), []int{4}
 }
 
-var File_managerForWorker_proto protoreflect.FileDescriptor
+var File_workerBroker_proto protoreflect.FileDescriptor
 
-const file_managerForWorker_proto_rawDesc = "" +
+const file_workerBroker_proto_rawDesc = "" +
 	"\n" +
-	"\x16managerForWorker.proto\x12\x17broker.managerForWorker\"\x15\n" +
-	"\x13ListManagersRequest\"T\n" +
-	"\x14ListManagersResponse\x12<\n" +
-	"\bmanagers\x18\x01 \x03(\v2 .broker.managerForWorker.ManagerR\bmanagers\"3\n" +
+	"\x12workerBroker.proto\x12\x13broker.workerBroker\"\x15\n" +
+	"\x13ListManagersRequest\"P\n" +
+	"\x14ListManagersResponse\x128\n" +
+	"\bmanagers\x18\x01 \x03(\v2\x1c.broker.workerBroker.ManagerR\bmanagers\"3\n" +
 	"\aManager\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
-	"\aaddress\x18\x02 \x01(\tR\aaddress\"\x94\x01\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\"\x90\x01\n" +
 	"\x15RegisterWorkerRequest\x12\x1b\n" +
 	"\tworker_id\x18\x01 \x01(\tR\bworkerId\x12\x18\n" +
-	"\aaddress\x18\x02 \x01(\tR\aaddress\x12D\n" +
-	"\vworker_type\x18\x03 \x01(\x0e2#.broker.managerForWorker.WorkerTypeR\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\x12@\n" +
+	"\vworker_type\x18\x03 \x01(\x0e2\x1f.broker.workerBroker.WorkerTypeR\n" +
 	"workerType\"\x18\n" +
 	"\x16RegisterWorkerResponse*$\n" +
 	"\n" +
 	"WorkerType\x12\x16\n" +
-	"\x12WORKER_TYPE_RUNNER\x10\x002\xf5\x01\n" +
-	"\x13McpManagerForWorker\x12k\n" +
-	"\fListManagers\x12,.broker.managerForWorker.ListManagersRequest\x1a-.broker.managerForWorker.ListManagersResponse\x12q\n" +
-	"\x0eRegisterWorker\x12..broker.managerForWorker.RegisterWorkerRequest\x1a/.broker.managerForWorker.RegisterWorkerResponseBZZXgithub.com/metorial/metorial/mcp-broker/gen/mcp-broker/managerForWorker;managerForWorkerb\x06proto3"
+	"\x12WORKER_TYPE_RUNNER\x10\x002\xe1\x01\n" +
+	"\x0fMcpWorkerBroker\x12c\n" +
+	"\fListManagers\x12(.broker.workerBroker.ListManagersRequest\x1a).broker.workerBroker.ListManagersResponse\x12i\n" +
+	"\x0eRegisterWorker\x12*.broker.workerBroker.RegisterWorkerRequest\x1a+.broker.workerBroker.RegisterWorkerResponseBRZPgithub.com/metorial/metorial/mcp-broker/gen/mcp-broker/workerBroker;workerBrokerb\x06proto3"
 
 var (
-	file_managerForWorker_proto_rawDescOnce sync.Once
-	file_managerForWorker_proto_rawDescData []byte
+	file_workerBroker_proto_rawDescOnce sync.Once
+	file_workerBroker_proto_rawDescData []byte
 )
 
-func file_managerForWorker_proto_rawDescGZIP() []byte {
-	file_managerForWorker_proto_rawDescOnce.Do(func() {
-		file_managerForWorker_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_managerForWorker_proto_rawDesc), len(file_managerForWorker_proto_rawDesc)))
+func file_workerBroker_proto_rawDescGZIP() []byte {
+	file_workerBroker_proto_rawDescOnce.Do(func() {
+		file_workerBroker_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_workerBroker_proto_rawDesc), len(file_workerBroker_proto_rawDesc)))
 	})
-	return file_managerForWorker_proto_rawDescData
+	return file_workerBroker_proto_rawDescData
 }
 
-var file_managerForWorker_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_managerForWorker_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_managerForWorker_proto_goTypes = []any{
-	(WorkerType)(0),                // 0: broker.managerForWorker.WorkerType
-	(*ListManagersRequest)(nil),    // 1: broker.managerForWorker.ListManagersRequest
-	(*ListManagersResponse)(nil),   // 2: broker.managerForWorker.ListManagersResponse
-	(*Manager)(nil),                // 3: broker.managerForWorker.Manager
-	(*RegisterWorkerRequest)(nil),  // 4: broker.managerForWorker.RegisterWorkerRequest
-	(*RegisterWorkerResponse)(nil), // 5: broker.managerForWorker.RegisterWorkerResponse
+var file_workerBroker_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_workerBroker_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_workerBroker_proto_goTypes = []any{
+	(WorkerType)(0),                // 0: broker.workerBroker.WorkerType
+	(*ListManagersRequest)(nil),    // 1: broker.workerBroker.ListManagersRequest
+	(*ListManagersResponse)(nil),   // 2: broker.workerBroker.ListManagersResponse
+	(*Manager)(nil),                // 3: broker.workerBroker.Manager
+	(*RegisterWorkerRequest)(nil),  // 4: broker.workerBroker.RegisterWorkerRequest
+	(*RegisterWorkerResponse)(nil), // 5: broker.workerBroker.RegisterWorkerResponse
 }
-var file_managerForWorker_proto_depIdxs = []int32{
-	3, // 0: broker.managerForWorker.ListManagersResponse.managers:type_name -> broker.managerForWorker.Manager
-	0, // 1: broker.managerForWorker.RegisterWorkerRequest.worker_type:type_name -> broker.managerForWorker.WorkerType
-	1, // 2: broker.managerForWorker.McpManagerForWorker.ListManagers:input_type -> broker.managerForWorker.ListManagersRequest
-	4, // 3: broker.managerForWorker.McpManagerForWorker.RegisterWorker:input_type -> broker.managerForWorker.RegisterWorkerRequest
-	2, // 4: broker.managerForWorker.McpManagerForWorker.ListManagers:output_type -> broker.managerForWorker.ListManagersResponse
-	5, // 5: broker.managerForWorker.McpManagerForWorker.RegisterWorker:output_type -> broker.managerForWorker.RegisterWorkerResponse
+var file_workerBroker_proto_depIdxs = []int32{
+	3, // 0: broker.workerBroker.ListManagersResponse.managers:type_name -> broker.workerBroker.Manager
+	0, // 1: broker.workerBroker.RegisterWorkerRequest.worker_type:type_name -> broker.workerBroker.WorkerType
+	1, // 2: broker.workerBroker.McpWorkerBroker.ListManagers:input_type -> broker.workerBroker.ListManagersRequest
+	4, // 3: broker.workerBroker.McpWorkerBroker.RegisterWorker:input_type -> broker.workerBroker.RegisterWorkerRequest
+	2, // 4: broker.workerBroker.McpWorkerBroker.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
+	5, // 5: broker.workerBroker.McpWorkerBroker.RegisterWorker:output_type -> broker.workerBroker.RegisterWorkerResponse
 	4, // [4:6] is the sub-list for method output_type
 	2, // [2:4] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -352,27 +352,27 @@ var file_managerForWorker_proto_depIdxs = []int32{
 	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_managerForWorker_proto_init() }
-func file_managerForWorker_proto_init() {
-	if File_managerForWorker_proto != nil {
+func init() { file_workerBroker_proto_init() }
+func file_workerBroker_proto_init() {
+	if File_workerBroker_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_managerForWorker_proto_rawDesc), len(file_managerForWorker_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_workerBroker_proto_rawDesc), len(file_workerBroker_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_managerForWorker_proto_goTypes,
-		DependencyIndexes: file_managerForWorker_proto_depIdxs,
-		EnumInfos:         file_managerForWorker_proto_enumTypes,
-		MessageInfos:      file_managerForWorker_proto_msgTypes,
+		GoTypes:           file_workerBroker_proto_goTypes,
+		DependencyIndexes: file_workerBroker_proto_depIdxs,
+		EnumInfos:         file_workerBroker_proto_enumTypes,
+		MessageInfos:      file_workerBroker_proto_msgTypes,
 	}.Build()
-	File_managerForWorker_proto = out.File
-	file_managerForWorker_proto_goTypes = nil
-	file_managerForWorker_proto_depIdxs = nil
+	File_workerBroker_proto = out.File
+	file_workerBroker_proto_goTypes = nil
+	file_workerBroker_proto_depIdxs = nil
 }

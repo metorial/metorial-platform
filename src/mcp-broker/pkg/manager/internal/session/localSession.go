@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-const LOCAL_SESSION_INACTIVITY_TIMEOUT = 1000 * 60 * 5
+const LOCAL_SESSION_INACTIVITY_TIMEOUT = time.Second * 60 * 5
 
 type LocalSession struct {
 	WorkerType workers.WorkerType
@@ -26,6 +26,7 @@ type LocalSession struct {
 	storedSession *state.Session
 
 	activeConnection          workers.WorkerConnection
+	activeConnectionCreated   chan struct{}
 	lastConnectionInteraction time.Time
 
 	sessionConfig *managerPb.SessionConfig
@@ -36,10 +37,10 @@ type LocalSession struct {
 }
 
 func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError {
-	s.ensureConnection()
-
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
+	err := s.ensureConnection()
+	if err != nil {
+		return mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to ensure connection", err)
+	}
 
 	mcpMessages := make([]*mcp.MCPMessage, 0, len(req.McpMessages))
 	for _, rawMessage := range req.McpMessages {
@@ -53,6 +54,16 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 	wg := sync.WaitGroup{}
 
+	s.mutex.RLock()
+	// Since the messages are sent to the same connection,
+	// we can just hold on to the current active connection,
+	// and don't need to consider new connections.
+	connection := s.activeConnection
+	if connection == nil {
+		return mterror.New(mterror.InternalErrorCode, "no active connection for session")
+	}
+	s.mutex.RUnlock()
+
 	if req.IncludeResponses {
 		wg.Add(1)
 
@@ -60,7 +71,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 		for _, message := range mcpMessages {
 			if message.MsgType == mcp.RequestType {
 				id := message.GetStringId()
-				if id != "" {
+				if id != "" && !slices.Contains(mcpRequestMessageIdsToListenFor, id) {
 					mcpRequestMessageIdsToListenFor = append(mcpRequestMessageIdsToListenFor, id)
 				}
 			}
@@ -69,10 +80,8 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 		go func() {
 			defer wg.Done()
 
-			s.mutex.RLock()
-			defer s.mutex.RUnlock()
-
 			timeout := time.NewTimer(time.Second * 30)
+			defer timeout.Stop()
 
 			responsesToWaitFor := len(mcpRequestMessageIdsToListenFor)
 
@@ -83,13 +92,13 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 				s.touch()
 
+				fmt.Println("Waiting for MCP responses...")
+
 				select {
 				case <-stream.Context().Done():
 					return
 
-				case <-s.activeConnection.Done():
-					return
-
+				case <-connection.Done():
 				case <-timeout.C:
 					if responsesToWaitFor > 0 {
 						response := &managerPb.SendMcpMessageResponse{
@@ -108,7 +117,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 					}
 					return
 
-				case message := <-s.activeConnection.Messages():
+				case message := <-connection.Messages():
 					if slices.Contains(mcpRequestMessageIdsToListenFor, message.GetStringId()) {
 						response := &managerPb.SendMcpMessageResponse{
 							ResponseType:       managerPb.SendMcpMessageResponse_message,
@@ -124,7 +133,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 						responsesToWaitFor--
 					}
 
-				case mcpErr := <-s.activeConnection.Errors():
+				case mcpErr := <-connection.Errors():
 					err := stream.Send(&managerPb.SendMcpMessageResponse{
 						ResponseType: managerPb.SendMcpMessageResponse_error,
 						McpError:     mcpErr,
@@ -139,13 +148,13 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	}
 
 	for _, message := range mcpMessages {
-		err := s.activeConnection.AcceptMessage(message)
+		err := connection.AcceptMessage(message)
 		if err != nil {
 			return mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to process MCP message", err)
 		}
-
-		s.touch()
 	}
+
+	s.touch()
 
 	wg.Wait()
 
@@ -159,18 +168,38 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 	}
 
 	for {
-		if responsesToWaitFor <= 0 {
+		if req.OnlyIds != nil && responsesToWaitFor <= 0 {
 			return nil
+		}
+
+		connection := s.activeConnection
+		if connection == nil {
+			select {
+			case <-stream.Context().Done():
+				return nil
+			case <-s.activeConnectionCreated:
+				// Wait for the mutex to be released
+				s.mutex.RLock()
+				connection = s.activeConnection
+				s.mutex.RUnlock()
+			}
+		}
+
+		if connection == nil {
+			log.Println("No active connection found, waiting for one to be created")
+			continue
 		}
 
 		select {
 		case <-stream.Context().Done():
 			return nil
 
-		case <-s.activeConnection.Done():
-			return nil
+		case <-connection.Done():
+			// The connection has been closed, but the stream remains open
+			// start over with the loop to wait for a new connection
+			continue
 
-		case message := <-s.activeConnection.Messages():
+		case message := <-connection.Messages():
 			canSend := true
 
 			if req.OnlyIds != nil {
@@ -200,7 +229,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 				}
 			}
 
-		case mcpErr := <-s.activeConnection.Errors():
+		case mcpErr := <-connection.Errors():
 			err := stream.Send(&managerPb.StreamMcpMessagesResponse{
 				ResponseType: managerPb.StreamMcpMessagesResponse_error,
 				McpError:     mcpErr,
@@ -214,7 +243,10 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 }
 
 func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpPb.McpParticipant, *mterror.MTError) {
-	s.ensureConnection()
+	err := s.ensureConnection()
+	if err != nil {
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorCode, "failed to ensure connection", err)
+	}
 
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -237,7 +269,7 @@ func (s *LocalSession) CanDiscard() bool {
 	defer s.mutex.RUnlock()
 
 	// Never discard a session that has an active connection
-	if s.activeConnection == nil {
+	if s.activeConnection != nil {
 		return false
 	}
 
@@ -258,6 +290,8 @@ func (s *LocalSession) ensureConnection() error {
 
 	if s.activeConnection != nil {
 		s.mutex.RUnlock()
+		s.touch()
+
 		return nil // Connection already exists
 	}
 
@@ -305,6 +339,8 @@ func (s *LocalSession) ensureConnection() error {
 		return fmt.Errorf("failed to create connection for worker %w", err)
 	}
 
+	log.Printf("Created connection %s for session %s with worker %s", connection.ConnectionID(), s.storedSession.ID, worker.WorkerID())
+
 	s.activeConnection = connection
 	s.lastConnectionInteraction = time.Now()
 
@@ -315,10 +351,23 @@ func (s *LocalSession) ensureConnection() error {
 
 	go s.monitorConnection(connection)
 
+	defer func() {
+		// Send to activeConnectionCreated without blocking
+		select {
+		case s.activeConnectionCreated <- struct{}{}:
+		default:
+		}
+	}()
+
 	return nil
 }
 
 func (s *LocalSession) stop() error {
+	s.mutex.Lock()
+	close(s.activeConnectionCreated)
+	s.activeConnectionCreated = nil
+	s.mutex.Unlock()
+
 	return s.closeActiveConnection()
 }
 
@@ -340,7 +389,7 @@ func (s *LocalSession) closeActiveConnection() error {
 func (s *LocalSession) monitorConnection(connection workers.WorkerConnection) {
 	timeout := connection.InactivityTimeout()
 
-	ticker := time.NewTicker(5)
+	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
 
 loop:
@@ -350,12 +399,21 @@ loop:
 			if time.Since(s.lastConnectionInteraction) > timeout {
 				s.mutex.Lock()
 				if s.activeConnection != nil && s.activeConnection.ConnectionID() == connection.ConnectionID() {
-					s.activeConnection.Close()
 					s.activeConnection = nil
+					go connection.Close()
 				}
 				s.mutex.Unlock()
+
 				break loop
+			} else if s.activeConnection != nil && s.activeConnection.ConnectionID() != connection.ConnectionID() {
+				// I'm pretty sure this can't happen, but just in case
+				// clean up the old connection if it has been replaced
+				err := connection.Close()
+				if err != nil {
+					log.Printf("Failed to close old connection %s: %v", connection.ConnectionID(), err)
+				}
 			}
+
 		case <-connection.Done():
 			s.mutex.Lock()
 			if s.activeConnection != nil && s.activeConnection.ConnectionID() == connection.ConnectionID() {
@@ -365,6 +423,8 @@ loop:
 			break loop
 		}
 	}
+
+	log.Printf("Connection %s for session %s has been closed", connection.ConnectionID(), s.storedSession.ID)
 }
 
 func (s *LocalSession) touch() {

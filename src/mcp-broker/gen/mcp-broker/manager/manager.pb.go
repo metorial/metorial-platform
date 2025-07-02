@@ -9,6 +9,7 @@ package manager
 import (
 	mcp "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/mcp"
 	runner "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/runner"
+	workerBroker "github.com/metorial/metorial/mcp-broker/gen/mcp-broker/workerBroker"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -775,11 +776,159 @@ func (x *GetServerInfoRequest) GetSessionId() string {
 	return ""
 }
 
+type ListWorkersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWorkersRequest) Reset() {
+	*x = ListWorkersRequest{}
+	mi := &file_manager_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWorkersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWorkersRequest) ProtoMessage() {}
+
+func (x *ListWorkersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWorkersRequest.ProtoReflect.Descriptor instead.
+func (*ListWorkersRequest) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{10}
+}
+
+type ListWorkersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Workers       []*WorkerInfo          `protobuf:"bytes,1,rep,name=workers,proto3" json:"workers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWorkersResponse) Reset() {
+	*x = ListWorkersResponse{}
+	mi := &file_manager_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWorkersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWorkersResponse) ProtoMessage() {}
+
+func (x *ListWorkersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWorkersResponse.ProtoReflect.Descriptor instead.
+func (*ListWorkersResponse) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ListWorkersResponse) GetWorkers() []*WorkerInfo {
+	if x != nil {
+		return x.Workers
+	}
+	return nil
+}
+
+type WorkerInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WorkerId      string                 `protobuf:"bytes,1,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
+	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	AcceptingRuns bool                   `protobuf:"varint,3,opt,name=accepting_runs,json=acceptingRuns,proto3" json:"accepting_runs,omitempty"`
+	Healthy       bool                   `protobuf:"varint,4,opt,name=healthy,proto3" json:"healthy,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkerInfo) Reset() {
+	*x = WorkerInfo{}
+	mi := &file_manager_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkerInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkerInfo) ProtoMessage() {}
+
+func (x *WorkerInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkerInfo.ProtoReflect.Descriptor instead.
+func (*WorkerInfo) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *WorkerInfo) GetWorkerId() string {
+	if x != nil {
+		return x.WorkerId
+	}
+	return ""
+}
+
+func (x *WorkerInfo) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *WorkerInfo) GetAcceptingRuns() bool {
+	if x != nil {
+		return x.AcceptingRuns
+	}
+	return false
+}
+
+func (x *WorkerInfo) GetHealthy() bool {
+	if x != nil {
+		return x.Healthy
+	}
+	return false
+}
+
 var File_manager_proto protoreflect.FileDescriptor
 
 const file_manager_proto_rawDesc = "" +
 	"\n" +
-	"\rmanager.proto\x12\x0ebroker.manager\x1a\frunner.proto\x1a\tmcp.proto\"\x88\x02\n" +
+	"\rmanager.proto\x12\x0ebroker.manager\x1a\frunner.proto\x1a\tmcp.proto\x1a\x12workerBroker.proto\"\x88\x02\n" +
 	"\x14CreateSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12D\n" +
@@ -829,13 +978,24 @@ const file_manager_proto_rawDesc = "" +
 	"\amessage\x10\x01\"5\n" +
 	"\x14GetServerInfoRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId2\x8c\x03\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"\x14\n" +
+	"\x12ListWorkersRequest\"K\n" +
+	"\x13ListWorkersResponse\x124\n" +
+	"\aworkers\x18\x01 \x03(\v2\x1a.broker.manager.WorkerInfoR\aworkers\"\x84\x01\n" +
+	"\n" +
+	"WorkerInfo\x12\x1b\n" +
+	"\tworker_id\x18\x01 \x01(\tR\bworkerId\x12\x18\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\x12%\n" +
+	"\x0eaccepting_runs\x18\x03 \x01(\bR\racceptingRuns\x12\x18\n" +
+	"\ahealthy\x18\x04 \x01(\bR\ahealthy2\xc9\x04\n" +
 	"\n" +
 	"McpManager\x12\\\n" +
 	"\rCreateSession\x12$.broker.manager.CreateSessionRequest\x1a%.broker.manager.CreateSessionResponse\x12a\n" +
 	"\x0eSendMcpMessage\x12%.broker.manager.SendMcpMessageRequest\x1a&.broker.manager.SendMcpMessageResponse0\x01\x12j\n" +
 	"\x11StreamMcpMessages\x12(.broker.manager.StreamMcpMessagesRequest\x1a).broker.manager.StreamMcpMessagesResponse0\x01\x12Q\n" +
-	"\rGetServerInfo\x12$.broker.manager.GetServerInfoRequest\x1a\x1a.broker.mcp.McpParticipantBHZFgithub.com/metorial/metorial/mcp-broker/gen/mcp-broker/manager;managerb\x06proto3"
+	"\rGetServerInfo\x12$.broker.manager.GetServerInfoRequest\x1a\x1a.broker.mcp.McpParticipant\x12c\n" +
+	"\fListManagers\x12(.broker.workerBroker.ListManagersRequest\x1a).broker.workerBroker.ListManagersResponse\x12V\n" +
+	"\vListWorkers\x12\".broker.manager.ListWorkersRequest\x1a#.broker.manager.ListWorkersResponseBHZFgithub.com/metorial/metorial/mcp-broker/gen/mcp-broker/manager;managerb\x06proto3"
 
 var (
 	file_manager_proto_rawDescOnce sync.Once
@@ -850,7 +1010,7 @@ func file_manager_proto_rawDescGZIP() []byte {
 }
 
 var file_manager_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_manager_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_manager_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_manager_proto_goTypes = []any{
 	(CreateSessionRequest_SessionType)(0),       // 0: broker.manager.CreateSessionRequest.SessionType
 	(Launcher_LauncherType)(0),                  // 1: broker.manager.Launcher.LauncherType
@@ -866,44 +1026,54 @@ var file_manager_proto_goTypes = []any{
 	(*StreamMcpMessagesRequest)(nil),            // 11: broker.manager.StreamMcpMessagesRequest
 	(*StreamMcpMessagesResponse)(nil),           // 12: broker.manager.StreamMcpMessagesResponse
 	(*GetServerInfoRequest)(nil),                // 13: broker.manager.GetServerInfoRequest
-	(*mcp.McpParticipant)(nil),                  // 14: broker.mcp.McpParticipant
-	(*runner.RunConfigContainer)(nil),           // 15: broker.runner.RunConfigContainer
-	(*runner.RunConfig)(nil),                    // 16: broker.runner.RunConfig
-	(*mcp.McpMessageRaw)(nil),                   // 17: broker.mcp.McpMessageRaw
-	(*mcp.McpMessage)(nil),                      // 18: broker.mcp.McpMessage
-	(*mcp.McpError)(nil),                        // 19: broker.mcp.McpError
-	(mcp.McpMessageType)(0),                     // 20: broker.mcp.McpMessageType
+	(*ListWorkersRequest)(nil),                  // 14: broker.manager.ListWorkersRequest
+	(*ListWorkersResponse)(nil),                 // 15: broker.manager.ListWorkersResponse
+	(*WorkerInfo)(nil),                          // 16: broker.manager.WorkerInfo
+	(*mcp.McpParticipant)(nil),                  // 17: broker.mcp.McpParticipant
+	(*runner.RunConfigContainer)(nil),           // 18: broker.runner.RunConfigContainer
+	(*runner.RunConfig)(nil),                    // 19: broker.runner.RunConfig
+	(*mcp.McpMessageRaw)(nil),                   // 20: broker.mcp.McpMessageRaw
+	(*mcp.McpMessage)(nil),                      // 21: broker.mcp.McpMessage
+	(*mcp.McpError)(nil),                        // 22: broker.mcp.McpError
+	(mcp.McpMessageType)(0),                     // 23: broker.mcp.McpMessageType
+	(*workerBroker.ListManagersRequest)(nil),    // 24: broker.workerBroker.ListManagersRequest
+	(*workerBroker.ListManagersResponse)(nil),   // 25: broker.workerBroker.ListManagersResponse
 }
 var file_manager_proto_depIdxs = []int32{
 	0,  // 0: broker.manager.CreateSessionRequest.type:type_name -> broker.manager.CreateSessionRequest.SessionType
 	7,  // 1: broker.manager.CreateSessionRequest.config:type_name -> broker.manager.SessionConfig
-	14, // 2: broker.manager.CreateSessionRequest.mcp_client:type_name -> broker.mcp.McpParticipant
+	17, // 2: broker.manager.CreateSessionRequest.mcp_client:type_name -> broker.mcp.McpParticipant
 	1,  // 3: broker.manager.Launcher.launcher_type:type_name -> broker.manager.Launcher.LauncherType
-	15, // 4: broker.manager.RunConfigWithLauncher.container:type_name -> broker.runner.RunConfigContainer
+	18, // 4: broker.manager.RunConfigWithLauncher.container:type_name -> broker.runner.RunConfigContainer
 	5,  // 5: broker.manager.RunConfigWithLauncher.launcher:type_name -> broker.manager.Launcher
 	6,  // 6: broker.manager.SessionConfig.run_config_with_launcher:type_name -> broker.manager.RunConfigWithLauncher
-	16, // 7: broker.manager.SessionConfig.run_config_with_container_arguments:type_name -> broker.runner.RunConfig
-	17, // 8: broker.manager.SendMcpMessageRequest.mcp_messages:type_name -> broker.mcp.McpMessageRaw
+	19, // 7: broker.manager.SessionConfig.run_config_with_container_arguments:type_name -> broker.runner.RunConfig
+	20, // 8: broker.manager.SendMcpMessageRequest.mcp_messages:type_name -> broker.mcp.McpMessageRaw
 	2,  // 9: broker.manager.SendMcpMessageResponse.response_type:type_name -> broker.manager.SendMcpMessageResponse.ResponseType
-	18, // 10: broker.manager.SendMcpMessageResponse.mcp_response_message:type_name -> broker.mcp.McpMessage
-	19, // 11: broker.manager.SendMcpMessageResponse.mcp_error:type_name -> broker.mcp.McpError
-	20, // 12: broker.manager.StreamMcpMessagesRequest.only_message_types:type_name -> broker.mcp.McpMessageType
+	21, // 10: broker.manager.SendMcpMessageResponse.mcp_response_message:type_name -> broker.mcp.McpMessage
+	22, // 11: broker.manager.SendMcpMessageResponse.mcp_error:type_name -> broker.mcp.McpError
+	23, // 12: broker.manager.StreamMcpMessagesRequest.only_message_types:type_name -> broker.mcp.McpMessageType
 	3,  // 13: broker.manager.StreamMcpMessagesResponse.response_type:type_name -> broker.manager.StreamMcpMessagesResponse.ResponseType
-	18, // 14: broker.manager.StreamMcpMessagesResponse.mcp_response_message:type_name -> broker.mcp.McpMessage
-	19, // 15: broker.manager.StreamMcpMessagesResponse.mcp_error:type_name -> broker.mcp.McpError
-	4,  // 16: broker.manager.McpManager.CreateSession:input_type -> broker.manager.CreateSessionRequest
-	9,  // 17: broker.manager.McpManager.SendMcpMessage:input_type -> broker.manager.SendMcpMessageRequest
-	11, // 18: broker.manager.McpManager.StreamMcpMessages:input_type -> broker.manager.StreamMcpMessagesRequest
-	13, // 19: broker.manager.McpManager.GetServerInfo:input_type -> broker.manager.GetServerInfoRequest
-	8,  // 20: broker.manager.McpManager.CreateSession:output_type -> broker.manager.CreateSessionResponse
-	10, // 21: broker.manager.McpManager.SendMcpMessage:output_type -> broker.manager.SendMcpMessageResponse
-	12, // 22: broker.manager.McpManager.StreamMcpMessages:output_type -> broker.manager.StreamMcpMessagesResponse
-	14, // 23: broker.manager.McpManager.GetServerInfo:output_type -> broker.mcp.McpParticipant
-	20, // [20:24] is the sub-list for method output_type
-	16, // [16:20] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	21, // 14: broker.manager.StreamMcpMessagesResponse.mcp_response_message:type_name -> broker.mcp.McpMessage
+	22, // 15: broker.manager.StreamMcpMessagesResponse.mcp_error:type_name -> broker.mcp.McpError
+	16, // 16: broker.manager.ListWorkersResponse.workers:type_name -> broker.manager.WorkerInfo
+	4,  // 17: broker.manager.McpManager.CreateSession:input_type -> broker.manager.CreateSessionRequest
+	9,  // 18: broker.manager.McpManager.SendMcpMessage:input_type -> broker.manager.SendMcpMessageRequest
+	11, // 19: broker.manager.McpManager.StreamMcpMessages:input_type -> broker.manager.StreamMcpMessagesRequest
+	13, // 20: broker.manager.McpManager.GetServerInfo:input_type -> broker.manager.GetServerInfoRequest
+	24, // 21: broker.manager.McpManager.ListManagers:input_type -> broker.workerBroker.ListManagersRequest
+	14, // 22: broker.manager.McpManager.ListWorkers:input_type -> broker.manager.ListWorkersRequest
+	8,  // 23: broker.manager.McpManager.CreateSession:output_type -> broker.manager.CreateSessionResponse
+	10, // 24: broker.manager.McpManager.SendMcpMessage:output_type -> broker.manager.SendMcpMessageResponse
+	12, // 25: broker.manager.McpManager.StreamMcpMessages:output_type -> broker.manager.StreamMcpMessagesResponse
+	17, // 26: broker.manager.McpManager.GetServerInfo:output_type -> broker.mcp.McpParticipant
+	25, // 27: broker.manager.McpManager.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
+	15, // 28: broker.manager.McpManager.ListWorkers:output_type -> broker.manager.ListWorkersResponse
+	23, // [23:29] is the sub-list for method output_type
+	17, // [17:23] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_manager_proto_init() }
@@ -921,7 +1091,7 @@ func file_manager_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_manager_proto_rawDesc), len(file_manager_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   10,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
