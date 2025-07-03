@@ -38,6 +38,7 @@ proto:
 		manager.proto \
 		workerBroker.proto \
 		launcher.proto \
+		connector.proto \
 		mcp.proto \
 		worker.proto \
 		runner.proto && \
