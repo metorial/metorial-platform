@@ -8,66 +8,34 @@ import (
 	commonPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/common"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	runnerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
+	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
+	"github.com/metorial/metorial/mcp-engine/pkg/worker"
 )
 
 type runnerServer struct {
 	runnerPb.UnimplementedMcpRunnerServer
 
-	state *RunnerState
+	state  *RunnerState
+	worker *worker.Worker
 }
 
-func (s *runnerServer) GetRunnerInfo(context.Context, *runnerPb.RunnerInfoRequest) (*runnerPb.RunnerInfoResponse, error) {
-	health := s.getRunnerHealth()
+func (s *runnerServer) GetRunnerInfo(ctx context.Context, req *runnerPb.RunnerInfoRequest) (*runnerPb.RunnerInfoResponse, error) {
+	WorkerInfo, err := s.worker.WorkerServer().GetWorkerInfo(ctx, &workerPb.WorkerInfoRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worker info: %w", err)
+	}
 
 	res := &runnerPb.RunnerInfoResponse{
-		RunnerId:  s.state.RunnerID,
-		StartTime: s.state.StartTime.Unix(),
+		RunnerId: s.state.RunnerID,
+
+		WorkerInfo: WorkerInfo,
 
 		ActiveRuns: uint32(len(s.state.active_runs)),
 		TotalRuns:  s.state.total_runs,
-
-		AcceptingRuns: health.AcceptingRuns,
-		Status:        health.Status,
 	}
 
 	return res, nil
-}
-
-func (s *runnerServer) getRunnerHealth() *runnerPb.RunnerHealthResponse {
-	res := &runnerPb.RunnerHealthResponse{
-		RunnerId:      s.state.RunnerID,
-		Status:        runnerPb.RunnerStatus_HEALTHY,
-		AcceptingRuns: runnerPb.RunnerAcceptingJobs_ACCEPTING,
-	}
-
-	if !s.state.health.Health.healthy {
-		res.Status = runnerPb.RunnerStatus_UNHEALTHY
-	}
-
-	if !s.state.health.Health.acceptingRuns {
-		res.AcceptingRuns = runnerPb.RunnerAcceptingJobs_NOT_ACCEPTING
-	}
-
-	return res
-}
-
-func (s *runnerServer) StreamRunnerHealth(req *runnerPb.RunnerHealthRequest, stream runnerPb.McpRunner_StreamRunnerHealthServer) error {
-	if err := stream.Send(s.getRunnerHealth()); err != nil {
-		return err
-	}
-
-	for {
-		select {
-		case <-s.state.health.HealthChan:
-			if err := stream.Send(s.getRunnerHealth()); err != nil {
-				return err
-			}
-		case <-stream.Context().Done():
-			// Stream has been closed by the client
-			return nil
-		}
-	}
 }
 
 func (s *runnerServer) ListActiveRuns(ctx context.Context, req *commonPb.Empty) (*runnerPb.ActiveRunsResponse, error) {

@@ -127,8 +127,8 @@ func (s *SessionServer) ListWorkers(context.Context, *managerPb.ListWorkersReque
 		resWorkers = append(resWorkers, &managerPb.WorkerInfo{
 			WorkerId:      worker.WorkerID(),
 			Address:       worker.Address(),
-			AcceptingRuns: worker.AcceptingJobs(),
-			Healthy:       worker.Healthy(),
+			AcceptingRuns: worker.IsAcceptingJobs(),
+			Healthy:       worker.IsHealthy(),
 		})
 	}
 

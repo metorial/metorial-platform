@@ -7,6 +7,7 @@ option go_package = "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mana
 import "runner.proto";
 import "mcp.proto";
 import "workerBroker.proto";
+import "launcher.proto";
 
 service McpManager {
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
@@ -30,19 +31,9 @@ message CreateSessionRequest {
   broker.mcp.McpParticipant mcp_client = 4;
 }
 
-message Launcher {
-  enum LauncherType {
-    deno = 0;
-  }
-
-  LauncherType launcher_type = 1;
-  string code = 2;
-  string json_config = 3;
-}
-
 message RunConfigWithLauncher {
   broker.runner.RunConfigContainer container = 1;
-  Launcher launcher = 2;
+  broker.launcher.ConfigLauncher launcher = 2;
 }
 
 message SessionConfig {

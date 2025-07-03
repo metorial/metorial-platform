@@ -9,6 +9,7 @@ package runner
 import (
 	common "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/common"
 	mcp "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
+	worker "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -22,98 +23,6 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
-
-type RunnerStatus int32
-
-const (
-	RunnerStatus_HEALTHY   RunnerStatus = 0
-	RunnerStatus_UNHEALTHY RunnerStatus = 1
-)
-
-// Enum value maps for RunnerStatus.
-var (
-	RunnerStatus_name = map[int32]string{
-		0: "HEALTHY",
-		1: "UNHEALTHY",
-	}
-	RunnerStatus_value = map[string]int32{
-		"HEALTHY":   0,
-		"UNHEALTHY": 1,
-	}
-)
-
-func (x RunnerStatus) Enum() *RunnerStatus {
-	p := new(RunnerStatus)
-	*p = x
-	return p
-}
-
-func (x RunnerStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (RunnerStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_runner_proto_enumTypes[0].Descriptor()
-}
-
-func (RunnerStatus) Type() protoreflect.EnumType {
-	return &file_runner_proto_enumTypes[0]
-}
-
-func (x RunnerStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use RunnerStatus.Descriptor instead.
-func (RunnerStatus) EnumDescriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{0}
-}
-
-type RunnerAcceptingJobs int32
-
-const (
-	RunnerAcceptingJobs_ACCEPTING     RunnerAcceptingJobs = 0
-	RunnerAcceptingJobs_NOT_ACCEPTING RunnerAcceptingJobs = 1
-)
-
-// Enum value maps for RunnerAcceptingJobs.
-var (
-	RunnerAcceptingJobs_name = map[int32]string{
-		0: "ACCEPTING",
-		1: "NOT_ACCEPTING",
-	}
-	RunnerAcceptingJobs_value = map[string]int32{
-		"ACCEPTING":     0,
-		"NOT_ACCEPTING": 1,
-	}
-)
-
-func (x RunnerAcceptingJobs) Enum() *RunnerAcceptingJobs {
-	p := new(RunnerAcceptingJobs)
-	*p = x
-	return p
-}
-
-func (x RunnerAcceptingJobs) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (RunnerAcceptingJobs) Descriptor() protoreflect.EnumDescriptor {
-	return file_runner_proto_enumTypes[1].Descriptor()
-}
-
-func (RunnerAcceptingJobs) Type() protoreflect.EnumType {
-	return &file_runner_proto_enumTypes[1]
-}
-
-func (x RunnerAcceptingJobs) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use RunnerAcceptingJobs.Descriptor instead.
-func (RunnerAcceptingJobs) EnumDescriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{1}
-}
 
 type RunnerInfoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -152,13 +61,11 @@ func (*RunnerInfoRequest) Descriptor() ([]byte, []int) {
 }
 
 type RunnerInfoResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RunnerId      string                 `protobuf:"bytes,1,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
-	StartTime     int64                  `protobuf:"varint,2,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	AcceptingRuns RunnerAcceptingJobs    `protobuf:"varint,3,opt,name=accepting_runs,json=acceptingRuns,proto3,enum=broker.runner.RunnerAcceptingJobs" json:"accepting_runs,omitempty"`
-	Status        RunnerStatus           `protobuf:"varint,4,opt,name=status,proto3,enum=broker.runner.RunnerStatus" json:"status,omitempty"`
-	ActiveRuns    uint32                 `protobuf:"varint,5,opt,name=active_runs,json=activeRuns,proto3" json:"active_runs,omitempty"`
-	TotalRuns     uint64                 `protobuf:"varint,6,opt,name=total_runs,json=totalRuns,proto3" json:"total_runs,omitempty"`
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	RunnerId      string                     `protobuf:"bytes,1,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
+	ActiveRuns    uint32                     `protobuf:"varint,2,opt,name=active_runs,json=activeRuns,proto3" json:"active_runs,omitempty"`
+	TotalRuns     uint64                     `protobuf:"varint,3,opt,name=total_runs,json=totalRuns,proto3" json:"total_runs,omitempty"`
+	WorkerInfo    *worker.WorkerInfoResponse `protobuf:"bytes,4,opt,name=worker_info,json=workerInfo,proto3" json:"worker_info,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -200,27 +107,6 @@ func (x *RunnerInfoResponse) GetRunnerId() string {
 	return ""
 }
 
-func (x *RunnerInfoResponse) GetStartTime() int64 {
-	if x != nil {
-		return x.StartTime
-	}
-	return 0
-}
-
-func (x *RunnerInfoResponse) GetAcceptingRuns() RunnerAcceptingJobs {
-	if x != nil {
-		return x.AcceptingRuns
-	}
-	return RunnerAcceptingJobs_ACCEPTING
-}
-
-func (x *RunnerInfoResponse) GetStatus() RunnerStatus {
-	if x != nil {
-		return x.Status
-	}
-	return RunnerStatus_HEALTHY
-}
-
 func (x *RunnerInfoResponse) GetActiveRuns() uint32 {
 	if x != nil {
 		return x.ActiveRuns
@@ -235,100 +121,11 @@ func (x *RunnerInfoResponse) GetTotalRuns() uint64 {
 	return 0
 }
 
-type RunnerHealthRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RunnerHealthRequest) Reset() {
-	*x = RunnerHealthRequest{}
-	mi := &file_runner_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RunnerHealthRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RunnerHealthRequest) ProtoMessage() {}
-
-func (x *RunnerHealthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[2]
+func (x *RunnerInfoResponse) GetWorkerInfo() *worker.WorkerInfoResponse {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+		return x.WorkerInfo
 	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RunnerHealthRequest.ProtoReflect.Descriptor instead.
-func (*RunnerHealthRequest) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{2}
-}
-
-type RunnerHealthResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RunnerId      string                 `protobuf:"bytes,1,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
-	Status        RunnerStatus           `protobuf:"varint,2,opt,name=status,proto3,enum=broker.runner.RunnerStatus" json:"status,omitempty"`
-	AcceptingRuns RunnerAcceptingJobs    `protobuf:"varint,3,opt,name=accepting_runs,json=acceptingRuns,proto3,enum=broker.runner.RunnerAcceptingJobs" json:"accepting_runs,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RunnerHealthResponse) Reset() {
-	*x = RunnerHealthResponse{}
-	mi := &file_runner_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RunnerHealthResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RunnerHealthResponse) ProtoMessage() {}
-
-func (x *RunnerHealthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RunnerHealthResponse.ProtoReflect.Descriptor instead.
-func (*RunnerHealthResponse) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *RunnerHealthResponse) GetRunnerId() string {
-	if x != nil {
-		return x.RunnerId
-	}
-	return ""
-}
-
-func (x *RunnerHealthResponse) GetStatus() RunnerStatus {
-	if x != nil {
-		return x.Status
-	}
-	return RunnerStatus_HEALTHY
-}
-
-func (x *RunnerHealthResponse) GetAcceptingRuns() RunnerAcceptingJobs {
-	if x != nil {
-		return x.AcceptingRuns
-	}
-	return RunnerAcceptingJobs_ACCEPTING
+	return nil
 }
 
 type ActiveRunsResponse struct {
@@ -340,7 +137,7 @@ type ActiveRunsResponse struct {
 
 func (x *ActiveRunsResponse) Reset() {
 	*x = ActiveRunsResponse{}
-	mi := &file_runner_proto_msgTypes[4]
+	mi := &file_runner_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -352,7 +149,7 @@ func (x *ActiveRunsResponse) String() string {
 func (*ActiveRunsResponse) ProtoMessage() {}
 
 func (x *ActiveRunsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[4]
+	mi := &file_runner_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -365,7 +162,7 @@ func (x *ActiveRunsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ActiveRunsResponse.ProtoReflect.Descriptor instead.
 func (*ActiveRunsResponse) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{4}
+	return file_runner_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ActiveRunsResponse) GetRuns() []*RunInfo {
@@ -389,7 +186,7 @@ type RunInfo struct {
 
 func (x *RunInfo) Reset() {
 	*x = RunInfo{}
-	mi := &file_runner_proto_msgTypes[5]
+	mi := &file_runner_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -401,7 +198,7 @@ func (x *RunInfo) String() string {
 func (*RunInfo) ProtoMessage() {}
 
 func (x *RunInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[5]
+	mi := &file_runner_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -414,7 +211,7 @@ func (x *RunInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunInfo.ProtoReflect.Descriptor instead.
 func (*RunInfo) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{5}
+	return file_runner_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *RunInfo) GetRunId() string {
@@ -468,7 +265,7 @@ type DockerImagesResponse struct {
 
 func (x *DockerImagesResponse) Reset() {
 	*x = DockerImagesResponse{}
-	mi := &file_runner_proto_msgTypes[6]
+	mi := &file_runner_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -480,7 +277,7 @@ func (x *DockerImagesResponse) String() string {
 func (*DockerImagesResponse) ProtoMessage() {}
 
 func (x *DockerImagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[6]
+	mi := &file_runner_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -493,7 +290,7 @@ func (x *DockerImagesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerImagesResponse.ProtoReflect.Descriptor instead.
 func (*DockerImagesResponse) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{6}
+	return file_runner_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *DockerImagesResponse) GetImages() []*DockerImageInfo {
@@ -515,7 +312,7 @@ type DockerImageInfo struct {
 
 func (x *DockerImageInfo) Reset() {
 	*x = DockerImageInfo{}
-	mi := &file_runner_proto_msgTypes[7]
+	mi := &file_runner_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -527,7 +324,7 @@ func (x *DockerImageInfo) String() string {
 func (*DockerImageInfo) ProtoMessage() {}
 
 func (x *DockerImageInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[7]
+	mi := &file_runner_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -540,7 +337,7 @@ func (x *DockerImageInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerImageInfo.ProtoReflect.Descriptor instead.
 func (*DockerImageInfo) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{7}
+	return file_runner_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *DockerImageInfo) GetName() string {
@@ -580,7 +377,7 @@ type DockerContainersResponse struct {
 
 func (x *DockerContainersResponse) Reset() {
 	*x = DockerContainersResponse{}
-	mi := &file_runner_proto_msgTypes[8]
+	mi := &file_runner_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -592,7 +389,7 @@ func (x *DockerContainersResponse) String() string {
 func (*DockerContainersResponse) ProtoMessage() {}
 
 func (x *DockerContainersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[8]
+	mi := &file_runner_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -605,7 +402,7 @@ func (x *DockerContainersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerContainersResponse.ProtoReflect.Descriptor instead.
 func (*DockerContainersResponse) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{8}
+	return file_runner_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DockerContainersResponse) GetContainers() []*DockerContainerInfo {
@@ -627,7 +424,7 @@ type DockerContainerInfo struct {
 
 func (x *DockerContainerInfo) Reset() {
 	*x = DockerContainerInfo{}
-	mi := &file_runner_proto_msgTypes[9]
+	mi := &file_runner_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -639,7 +436,7 @@ func (x *DockerContainerInfo) String() string {
 func (*DockerContainerInfo) ProtoMessage() {}
 
 func (x *DockerContainerInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[9]
+	mi := &file_runner_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -652,7 +449,7 @@ func (x *DockerContainerInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerContainerInfo.ProtoReflect.Descriptor instead.
 func (*DockerContainerInfo) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{9}
+	return file_runner_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DockerContainerInfo) GetContainerId() string {
@@ -694,7 +491,7 @@ type RunConfigContainerArguments struct {
 
 func (x *RunConfigContainerArguments) Reset() {
 	*x = RunConfigContainerArguments{}
-	mi := &file_runner_proto_msgTypes[10]
+	mi := &file_runner_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -706,7 +503,7 @@ func (x *RunConfigContainerArguments) String() string {
 func (*RunConfigContainerArguments) ProtoMessage() {}
 
 func (x *RunConfigContainerArguments) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[10]
+	mi := &file_runner_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -719,7 +516,7 @@ func (x *RunConfigContainerArguments) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunConfigContainerArguments.ProtoReflect.Descriptor instead.
 func (*RunConfigContainerArguments) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{10}
+	return file_runner_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *RunConfigContainerArguments) GetCommand() string {
@@ -754,7 +551,7 @@ type RunConfigContainer struct {
 
 func (x *RunConfigContainer) Reset() {
 	*x = RunConfigContainer{}
-	mi := &file_runner_proto_msgTypes[11]
+	mi := &file_runner_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -766,7 +563,7 @@ func (x *RunConfigContainer) String() string {
 func (*RunConfigContainer) ProtoMessage() {}
 
 func (x *RunConfigContainer) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[11]
+	mi := &file_runner_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -779,7 +576,7 @@ func (x *RunConfigContainer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunConfigContainer.ProtoReflect.Descriptor instead.
 func (*RunConfigContainer) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{11}
+	return file_runner_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RunConfigContainer) GetDockerImage() string {
@@ -813,7 +610,7 @@ type RunConfig struct {
 
 func (x *RunConfig) Reset() {
 	*x = RunConfig{}
-	mi := &file_runner_proto_msgTypes[12]
+	mi := &file_runner_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -825,7 +622,7 @@ func (x *RunConfig) String() string {
 func (*RunConfig) ProtoMessage() {}
 
 func (x *RunConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[12]
+	mi := &file_runner_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -838,7 +635,7 @@ func (x *RunConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunConfig.ProtoReflect.Descriptor instead.
 func (*RunConfig) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{12}
+	return file_runner_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RunConfig) GetContainer() *RunConfigContainer {
@@ -869,7 +666,7 @@ type RunRequest struct {
 
 func (x *RunRequest) Reset() {
 	*x = RunRequest{}
-	mi := &file_runner_proto_msgTypes[13]
+	mi := &file_runner_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -881,7 +678,7 @@ func (x *RunRequest) String() string {
 func (*RunRequest) ProtoMessage() {}
 
 func (x *RunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[13]
+	mi := &file_runner_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -894,7 +691,7 @@ func (x *RunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunRequest.ProtoReflect.Descriptor instead.
 func (*RunRequest) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{13}
+	return file_runner_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RunRequest) GetJobType() isRunRequest_JobType {
@@ -962,7 +759,7 @@ type RunRequestInit struct {
 
 func (x *RunRequestInit) Reset() {
 	*x = RunRequestInit{}
-	mi := &file_runner_proto_msgTypes[14]
+	mi := &file_runner_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -974,7 +771,7 @@ func (x *RunRequestInit) String() string {
 func (*RunRequestInit) ProtoMessage() {}
 
 func (x *RunRequestInit) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[14]
+	mi := &file_runner_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -987,7 +784,7 @@ func (x *RunRequestInit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunRequestInit.ProtoReflect.Descriptor instead.
 func (*RunRequestInit) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{14}
+	return file_runner_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *RunRequestInit) GetRunConfig() *RunConfig {
@@ -1006,7 +803,7 @@ type RunRequestMcpMessage struct {
 
 func (x *RunRequestMcpMessage) Reset() {
 	*x = RunRequestMcpMessage{}
-	mi := &file_runner_proto_msgTypes[15]
+	mi := &file_runner_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1018,7 +815,7 @@ func (x *RunRequestMcpMessage) String() string {
 func (*RunRequestMcpMessage) ProtoMessage() {}
 
 func (x *RunRequestMcpMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[15]
+	mi := &file_runner_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1031,7 +828,7 @@ func (x *RunRequestMcpMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunRequestMcpMessage.ProtoReflect.Descriptor instead.
 func (*RunRequestMcpMessage) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{15}
+	return file_runner_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RunRequestMcpMessage) GetMessage() *mcp.McpMessageRaw {
@@ -1049,7 +846,7 @@ type RunRequestClose struct {
 
 func (x *RunRequestClose) Reset() {
 	*x = RunRequestClose{}
-	mi := &file_runner_proto_msgTypes[16]
+	mi := &file_runner_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1061,7 +858,7 @@ func (x *RunRequestClose) String() string {
 func (*RunRequestClose) ProtoMessage() {}
 
 func (x *RunRequestClose) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[16]
+	mi := &file_runner_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1074,7 +871,7 @@ func (x *RunRequestClose) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunRequestClose.ProtoReflect.Descriptor instead.
 func (*RunRequestClose) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{16}
+	return file_runner_proto_rawDescGZIP(), []int{14}
 }
 
 type RunResponse struct {
@@ -1093,7 +890,7 @@ type RunResponse struct {
 
 func (x *RunResponse) Reset() {
 	*x = RunResponse{}
-	mi := &file_runner_proto_msgTypes[17]
+	mi := &file_runner_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1105,7 +902,7 @@ func (x *RunResponse) String() string {
 func (*RunResponse) ProtoMessage() {}
 
 func (x *RunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[17]
+	mi := &file_runner_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1118,7 +915,7 @@ func (x *RunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponse.ProtoReflect.Descriptor instead.
 func (*RunResponse) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{17}
+	return file_runner_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *RunResponse) GetJobType() isRunResponse_JobType {
@@ -1216,7 +1013,7 @@ type RunResponseInit struct {
 
 func (x *RunResponseInit) Reset() {
 	*x = RunResponseInit{}
-	mi := &file_runner_proto_msgTypes[18]
+	mi := &file_runner_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1228,7 +1025,7 @@ func (x *RunResponseInit) String() string {
 func (*RunResponseInit) ProtoMessage() {}
 
 func (x *RunResponseInit) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[18]
+	mi := &file_runner_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1241,7 +1038,7 @@ func (x *RunResponseInit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseInit.ProtoReflect.Descriptor instead.
 func (*RunResponseInit) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{18}
+	return file_runner_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *RunResponseInit) GetRunId() string {
@@ -1260,7 +1057,7 @@ type RunResponseMcpMessage struct {
 
 func (x *RunResponseMcpMessage) Reset() {
 	*x = RunResponseMcpMessage{}
-	mi := &file_runner_proto_msgTypes[19]
+	mi := &file_runner_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1272,7 +1069,7 @@ func (x *RunResponseMcpMessage) String() string {
 func (*RunResponseMcpMessage) ProtoMessage() {}
 
 func (x *RunResponseMcpMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[19]
+	mi := &file_runner_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1285,7 +1082,7 @@ func (x *RunResponseMcpMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseMcpMessage.ProtoReflect.Descriptor instead.
 func (*RunResponseMcpMessage) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{19}
+	return file_runner_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *RunResponseMcpMessage) GetMessage() *mcp.McpMessageRaw {
@@ -1304,7 +1101,7 @@ type RunResponseError struct {
 
 func (x *RunResponseError) Reset() {
 	*x = RunResponseError{}
-	mi := &file_runner_proto_msgTypes[20]
+	mi := &file_runner_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1316,7 +1113,7 @@ func (x *RunResponseError) String() string {
 func (*RunResponseError) ProtoMessage() {}
 
 func (x *RunResponseError) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[20]
+	mi := &file_runner_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1329,7 +1126,7 @@ func (x *RunResponseError) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseError.ProtoReflect.Descriptor instead.
 func (*RunResponseError) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{20}
+	return file_runner_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *RunResponseError) GetMcpError() *mcp.McpError {
@@ -1348,7 +1145,7 @@ type RunResponseOutput struct {
 
 func (x *RunResponseOutput) Reset() {
 	*x = RunResponseOutput{}
-	mi := &file_runner_proto_msgTypes[21]
+	mi := &file_runner_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1360,7 +1157,7 @@ func (x *RunResponseOutput) String() string {
 func (*RunResponseOutput) ProtoMessage() {}
 
 func (x *RunResponseOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[21]
+	mi := &file_runner_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1373,7 +1170,7 @@ func (x *RunResponseOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseOutput.ProtoReflect.Descriptor instead.
 func (*RunResponseOutput) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{21}
+	return file_runner_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *RunResponseOutput) GetMcpOutput() *mcp.McpOutput {
@@ -1391,7 +1188,7 @@ type RunResponseClose struct {
 
 func (x *RunResponseClose) Reset() {
 	*x = RunResponseClose{}
-	mi := &file_runner_proto_msgTypes[22]
+	mi := &file_runner_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1403,7 +1200,7 @@ func (x *RunResponseClose) String() string {
 func (*RunResponseClose) ProtoMessage() {}
 
 func (x *RunResponseClose) ProtoReflect() protoreflect.Message {
-	mi := &file_runner_proto_msgTypes[22]
+	mi := &file_runner_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1416,30 +1213,23 @@ func (x *RunResponseClose) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseClose.ProtoReflect.Descriptor instead.
 func (*RunResponseClose) Descriptor() ([]byte, []int) {
-	return file_runner_proto_rawDescGZIP(), []int{22}
+	return file_runner_proto_rawDescGZIP(), []int{20}
 }
 
 var File_runner_proto protoreflect.FileDescriptor
 
 const file_runner_proto_rawDesc = "" +
 	"\n" +
-	"\frunner.proto\x12\rbroker.runner\x1a\tmcp.proto\x1a\fcommon.proto\"\x13\n" +
-	"\x11RunnerInfoRequest\"\x90\x02\n" +
+	"\frunner.proto\x12\rbroker.runner\x1a\tmcp.proto\x1a\fcommon.proto\x1a\fworker.proto\"\x13\n" +
+	"\x11RunnerInfoRequest\"\xb5\x01\n" +
 	"\x12RunnerInfoResponse\x12\x1b\n" +
-	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12\x1d\n" +
-	"\n" +
-	"start_time\x18\x02 \x01(\x03R\tstartTime\x12I\n" +
-	"\x0eaccepting_runs\x18\x03 \x01(\x0e2\".broker.runner.RunnerAcceptingJobsR\racceptingRuns\x123\n" +
-	"\x06status\x18\x04 \x01(\x0e2\x1b.broker.runner.RunnerStatusR\x06status\x12\x1f\n" +
-	"\vactive_runs\x18\x05 \x01(\rR\n" +
+	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12\x1f\n" +
+	"\vactive_runs\x18\x02 \x01(\rR\n" +
 	"activeRuns\x12\x1d\n" +
 	"\n" +
-	"total_runs\x18\x06 \x01(\x04R\ttotalRuns\"\x15\n" +
-	"\x13RunnerHealthRequest\"\xb3\x01\n" +
-	"\x14RunnerHealthResponse\x12\x1b\n" +
-	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x123\n" +
-	"\x06status\x18\x02 \x01(\x0e2\x1b.broker.runner.RunnerStatusR\x06status\x12I\n" +
-	"\x0eaccepting_runs\x18\x03 \x01(\x0e2\".broker.runner.RunnerAcceptingJobsR\racceptingRuns\"@\n" +
+	"total_runs\x18\x03 \x01(\x04R\ttotalRuns\x12B\n" +
+	"\vworker_info\x18\x04 \x01(\v2!.broker.worker.WorkerInfoResponseR\n" +
+	"workerInfo\"@\n" +
 	"\x12ActiveRunsResponse\x12*\n" +
 	"\x04runs\x18\x01 \x03(\v2\x16.broker.runner.RunInfoR\x04runs\"\xb5\x01\n" +
 	"\aRunInfo\x12\x15\n" +
@@ -1515,16 +1305,9 @@ const file_runner_proto_rawDesc = "" +
 	"\x11RunResponseOutput\x124\n" +
 	"\n" +
 	"mcp_output\x18\x01 \x01(\v2\x15.broker.mcp.McpOutputR\tmcpOutput\"\x12\n" +
-	"\x10RunResponseClose**\n" +
-	"\fRunnerStatus\x12\v\n" +
-	"\aHEALTHY\x10\x00\x12\r\n" +
-	"\tUNHEALTHY\x10\x01*7\n" +
-	"\x13RunnerAcceptingJobs\x12\r\n" +
-	"\tACCEPTING\x10\x00\x12\x11\n" +
-	"\rNOT_ACCEPTING\x10\x012\xfe\x03\n" +
+	"\x10RunResponseClose2\x9d\x03\n" +
 	"\tMcpRunner\x12T\n" +
-	"\rGetRunnerInfo\x12 .broker.runner.RunnerInfoRequest\x1a!.broker.runner.RunnerInfoResponse\x12_\n" +
-	"\x12StreamRunnerHealth\x12\".broker.runner.RunnerHealthRequest\x1a#.broker.runner.RunnerHealthResponse0\x01\x12I\n" +
+	"\rGetRunnerInfo\x12 .broker.runner.RunnerInfoRequest\x1a!.broker.runner.RunnerInfoResponse\x12I\n" +
 	"\x0eListActiveRuns\x12\x14.broker.common.Empty\x1a!.broker.runner.ActiveRunsResponse\x12M\n" +
 	"\x10ListDockerImages\x12\x14.broker.common.Empty\x1a#.broker.runner.DockerImagesResponse\x12U\n" +
 	"\x14ListDockerContainers\x12\x14.broker.common.Empty\x1a'.broker.runner.DockerContainersResponse\x12I\n" +
@@ -1542,81 +1325,72 @@ func file_runner_proto_rawDescGZIP() []byte {
 	return file_runner_proto_rawDescData
 }
 
-var file_runner_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_runner_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_runner_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_runner_proto_goTypes = []any{
-	(RunnerStatus)(0),                   // 0: broker.runner.RunnerStatus
-	(RunnerAcceptingJobs)(0),            // 1: broker.runner.RunnerAcceptingJobs
-	(*RunnerInfoRequest)(nil),           // 2: broker.runner.RunnerInfoRequest
-	(*RunnerInfoResponse)(nil),          // 3: broker.runner.RunnerInfoResponse
-	(*RunnerHealthRequest)(nil),         // 4: broker.runner.RunnerHealthRequest
-	(*RunnerHealthResponse)(nil),        // 5: broker.runner.RunnerHealthResponse
-	(*ActiveRunsResponse)(nil),          // 6: broker.runner.ActiveRunsResponse
-	(*RunInfo)(nil),                     // 7: broker.runner.RunInfo
-	(*DockerImagesResponse)(nil),        // 8: broker.runner.DockerImagesResponse
-	(*DockerImageInfo)(nil),             // 9: broker.runner.DockerImageInfo
-	(*DockerContainersResponse)(nil),    // 10: broker.runner.DockerContainersResponse
-	(*DockerContainerInfo)(nil),         // 11: broker.runner.DockerContainerInfo
-	(*RunConfigContainerArguments)(nil), // 12: broker.runner.RunConfigContainerArguments
-	(*RunConfigContainer)(nil),          // 13: broker.runner.RunConfigContainer
-	(*RunConfig)(nil),                   // 14: broker.runner.RunConfig
-	(*RunRequest)(nil),                  // 15: broker.runner.RunRequest
-	(*RunRequestInit)(nil),              // 16: broker.runner.RunRequestInit
-	(*RunRequestMcpMessage)(nil),        // 17: broker.runner.RunRequestMcpMessage
-	(*RunRequestClose)(nil),             // 18: broker.runner.RunRequestClose
-	(*RunResponse)(nil),                 // 19: broker.runner.RunResponse
-	(*RunResponseInit)(nil),             // 20: broker.runner.RunResponseInit
-	(*RunResponseMcpMessage)(nil),       // 21: broker.runner.RunResponseMcpMessage
-	(*RunResponseError)(nil),            // 22: broker.runner.RunResponseError
-	(*RunResponseOutput)(nil),           // 23: broker.runner.RunResponseOutput
-	(*RunResponseClose)(nil),            // 24: broker.runner.RunResponseClose
-	nil,                                 // 25: broker.runner.RunConfigContainerArguments.EnvVarsEntry
-	(*mcp.McpMessageRaw)(nil),           // 26: broker.mcp.McpMessageRaw
-	(*mcp.McpError)(nil),                // 27: broker.mcp.McpError
-	(*mcp.McpOutput)(nil),               // 28: broker.mcp.McpOutput
-	(*common.Empty)(nil),                // 29: broker.common.Empty
+	(*RunnerInfoRequest)(nil),           // 0: broker.runner.RunnerInfoRequest
+	(*RunnerInfoResponse)(nil),          // 1: broker.runner.RunnerInfoResponse
+	(*ActiveRunsResponse)(nil),          // 2: broker.runner.ActiveRunsResponse
+	(*RunInfo)(nil),                     // 3: broker.runner.RunInfo
+	(*DockerImagesResponse)(nil),        // 4: broker.runner.DockerImagesResponse
+	(*DockerImageInfo)(nil),             // 5: broker.runner.DockerImageInfo
+	(*DockerContainersResponse)(nil),    // 6: broker.runner.DockerContainersResponse
+	(*DockerContainerInfo)(nil),         // 7: broker.runner.DockerContainerInfo
+	(*RunConfigContainerArguments)(nil), // 8: broker.runner.RunConfigContainerArguments
+	(*RunConfigContainer)(nil),          // 9: broker.runner.RunConfigContainer
+	(*RunConfig)(nil),                   // 10: broker.runner.RunConfig
+	(*RunRequest)(nil),                  // 11: broker.runner.RunRequest
+	(*RunRequestInit)(nil),              // 12: broker.runner.RunRequestInit
+	(*RunRequestMcpMessage)(nil),        // 13: broker.runner.RunRequestMcpMessage
+	(*RunRequestClose)(nil),             // 14: broker.runner.RunRequestClose
+	(*RunResponse)(nil),                 // 15: broker.runner.RunResponse
+	(*RunResponseInit)(nil),             // 16: broker.runner.RunResponseInit
+	(*RunResponseMcpMessage)(nil),       // 17: broker.runner.RunResponseMcpMessage
+	(*RunResponseError)(nil),            // 18: broker.runner.RunResponseError
+	(*RunResponseOutput)(nil),           // 19: broker.runner.RunResponseOutput
+	(*RunResponseClose)(nil),            // 20: broker.runner.RunResponseClose
+	nil,                                 // 21: broker.runner.RunConfigContainerArguments.EnvVarsEntry
+	(*worker.WorkerInfoResponse)(nil),   // 22: broker.worker.WorkerInfoResponse
+	(*mcp.McpMessageRaw)(nil),           // 23: broker.mcp.McpMessageRaw
+	(*mcp.McpError)(nil),                // 24: broker.mcp.McpError
+	(*mcp.McpOutput)(nil),               // 25: broker.mcp.McpOutput
+	(*common.Empty)(nil),                // 26: broker.common.Empty
 }
 var file_runner_proto_depIdxs = []int32{
-	1,  // 0: broker.runner.RunnerInfoResponse.accepting_runs:type_name -> broker.runner.RunnerAcceptingJobs
-	0,  // 1: broker.runner.RunnerInfoResponse.status:type_name -> broker.runner.RunnerStatus
-	0,  // 2: broker.runner.RunnerHealthResponse.status:type_name -> broker.runner.RunnerStatus
-	1,  // 3: broker.runner.RunnerHealthResponse.accepting_runs:type_name -> broker.runner.RunnerAcceptingJobs
-	7,  // 4: broker.runner.ActiveRunsResponse.runs:type_name -> broker.runner.RunInfo
-	9,  // 5: broker.runner.DockerImagesResponse.images:type_name -> broker.runner.DockerImageInfo
-	11, // 6: broker.runner.DockerContainersResponse.containers:type_name -> broker.runner.DockerContainerInfo
-	25, // 7: broker.runner.RunConfigContainerArguments.env_vars:type_name -> broker.runner.RunConfigContainerArguments.EnvVarsEntry
-	13, // 8: broker.runner.RunConfig.container:type_name -> broker.runner.RunConfigContainer
-	12, // 9: broker.runner.RunConfig.arguments:type_name -> broker.runner.RunConfigContainerArguments
-	16, // 10: broker.runner.RunRequest.init:type_name -> broker.runner.RunRequestInit
-	17, // 11: broker.runner.RunRequest.mcp_message:type_name -> broker.runner.RunRequestMcpMessage
-	18, // 12: broker.runner.RunRequest.close:type_name -> broker.runner.RunRequestClose
-	14, // 13: broker.runner.RunRequestInit.run_config:type_name -> broker.runner.RunConfig
-	26, // 14: broker.runner.RunRequestMcpMessage.message:type_name -> broker.mcp.McpMessageRaw
-	21, // 15: broker.runner.RunResponse.mcp_message:type_name -> broker.runner.RunResponseMcpMessage
-	20, // 16: broker.runner.RunResponse.init:type_name -> broker.runner.RunResponseInit
-	23, // 17: broker.runner.RunResponse.output:type_name -> broker.runner.RunResponseOutput
-	22, // 18: broker.runner.RunResponse.error:type_name -> broker.runner.RunResponseError
-	24, // 19: broker.runner.RunResponse.close:type_name -> broker.runner.RunResponseClose
-	26, // 20: broker.runner.RunResponseMcpMessage.message:type_name -> broker.mcp.McpMessageRaw
-	27, // 21: broker.runner.RunResponseError.mcp_error:type_name -> broker.mcp.McpError
-	28, // 22: broker.runner.RunResponseOutput.mcp_output:type_name -> broker.mcp.McpOutput
-	2,  // 23: broker.runner.McpRunner.GetRunnerInfo:input_type -> broker.runner.RunnerInfoRequest
-	4,  // 24: broker.runner.McpRunner.StreamRunnerHealth:input_type -> broker.runner.RunnerHealthRequest
-	29, // 25: broker.runner.McpRunner.ListActiveRuns:input_type -> broker.common.Empty
-	29, // 26: broker.runner.McpRunner.ListDockerImages:input_type -> broker.common.Empty
-	29, // 27: broker.runner.McpRunner.ListDockerContainers:input_type -> broker.common.Empty
-	15, // 28: broker.runner.McpRunner.StreamMcpRun:input_type -> broker.runner.RunRequest
-	3,  // 29: broker.runner.McpRunner.GetRunnerInfo:output_type -> broker.runner.RunnerInfoResponse
-	5,  // 30: broker.runner.McpRunner.StreamRunnerHealth:output_type -> broker.runner.RunnerHealthResponse
-	6,  // 31: broker.runner.McpRunner.ListActiveRuns:output_type -> broker.runner.ActiveRunsResponse
-	8,  // 32: broker.runner.McpRunner.ListDockerImages:output_type -> broker.runner.DockerImagesResponse
-	10, // 33: broker.runner.McpRunner.ListDockerContainers:output_type -> broker.runner.DockerContainersResponse
-	19, // 34: broker.runner.McpRunner.StreamMcpRun:output_type -> broker.runner.RunResponse
-	29, // [29:35] is the sub-list for method output_type
-	23, // [23:29] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	22, // 0: broker.runner.RunnerInfoResponse.worker_info:type_name -> broker.worker.WorkerInfoResponse
+	3,  // 1: broker.runner.ActiveRunsResponse.runs:type_name -> broker.runner.RunInfo
+	5,  // 2: broker.runner.DockerImagesResponse.images:type_name -> broker.runner.DockerImageInfo
+	7,  // 3: broker.runner.DockerContainersResponse.containers:type_name -> broker.runner.DockerContainerInfo
+	21, // 4: broker.runner.RunConfigContainerArguments.env_vars:type_name -> broker.runner.RunConfigContainerArguments.EnvVarsEntry
+	9,  // 5: broker.runner.RunConfig.container:type_name -> broker.runner.RunConfigContainer
+	8,  // 6: broker.runner.RunConfig.arguments:type_name -> broker.runner.RunConfigContainerArguments
+	12, // 7: broker.runner.RunRequest.init:type_name -> broker.runner.RunRequestInit
+	13, // 8: broker.runner.RunRequest.mcp_message:type_name -> broker.runner.RunRequestMcpMessage
+	14, // 9: broker.runner.RunRequest.close:type_name -> broker.runner.RunRequestClose
+	10, // 10: broker.runner.RunRequestInit.run_config:type_name -> broker.runner.RunConfig
+	23, // 11: broker.runner.RunRequestMcpMessage.message:type_name -> broker.mcp.McpMessageRaw
+	17, // 12: broker.runner.RunResponse.mcp_message:type_name -> broker.runner.RunResponseMcpMessage
+	16, // 13: broker.runner.RunResponse.init:type_name -> broker.runner.RunResponseInit
+	19, // 14: broker.runner.RunResponse.output:type_name -> broker.runner.RunResponseOutput
+	18, // 15: broker.runner.RunResponse.error:type_name -> broker.runner.RunResponseError
+	20, // 16: broker.runner.RunResponse.close:type_name -> broker.runner.RunResponseClose
+	23, // 17: broker.runner.RunResponseMcpMessage.message:type_name -> broker.mcp.McpMessageRaw
+	24, // 18: broker.runner.RunResponseError.mcp_error:type_name -> broker.mcp.McpError
+	25, // 19: broker.runner.RunResponseOutput.mcp_output:type_name -> broker.mcp.McpOutput
+	0,  // 20: broker.runner.McpRunner.GetRunnerInfo:input_type -> broker.runner.RunnerInfoRequest
+	26, // 21: broker.runner.McpRunner.ListActiveRuns:input_type -> broker.common.Empty
+	26, // 22: broker.runner.McpRunner.ListDockerImages:input_type -> broker.common.Empty
+	26, // 23: broker.runner.McpRunner.ListDockerContainers:input_type -> broker.common.Empty
+	11, // 24: broker.runner.McpRunner.StreamMcpRun:input_type -> broker.runner.RunRequest
+	1,  // 25: broker.runner.McpRunner.GetRunnerInfo:output_type -> broker.runner.RunnerInfoResponse
+	2,  // 26: broker.runner.McpRunner.ListActiveRuns:output_type -> broker.runner.ActiveRunsResponse
+	4,  // 27: broker.runner.McpRunner.ListDockerImages:output_type -> broker.runner.DockerImagesResponse
+	6,  // 28: broker.runner.McpRunner.ListDockerContainers:output_type -> broker.runner.DockerContainersResponse
+	15, // 29: broker.runner.McpRunner.StreamMcpRun:output_type -> broker.runner.RunResponse
+	25, // [25:30] is the sub-list for method output_type
+	20, // [20:25] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_runner_proto_init() }
@@ -1624,12 +1398,12 @@ func file_runner_proto_init() {
 	if File_runner_proto != nil {
 		return
 	}
-	file_runner_proto_msgTypes[13].OneofWrappers = []any{
+	file_runner_proto_msgTypes[11].OneofWrappers = []any{
 		(*RunRequest_Init)(nil),
 		(*RunRequest_McpMessage)(nil),
 		(*RunRequest_Close)(nil),
 	}
-	file_runner_proto_msgTypes[17].OneofWrappers = []any{
+	file_runner_proto_msgTypes[15].OneofWrappers = []any{
 		(*RunResponse_McpMessage)(nil),
 		(*RunResponse_Init)(nil),
 		(*RunResponse_Output)(nil),
@@ -1641,14 +1415,13 @@ func file_runner_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runner_proto_rawDesc), len(file_runner_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   24,
+			NumEnums:      0,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_runner_proto_goTypes,
 		DependencyIndexes: file_runner_proto_depIdxs,
-		EnumInfos:         file_runner_proto_enumTypes,
 		MessageInfos:      file_runner_proto_msgTypes,
 	}.Build()
 	File_runner_proto = out.File

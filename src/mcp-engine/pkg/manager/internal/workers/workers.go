@@ -21,8 +21,8 @@ type Worker interface {
 
 	Start() error
 	Stop() error
-	AcceptingJobs() bool
-	Healthy() bool
+	IsAcceptingJobs() bool
+	IsHealthy() bool
 
 	CreateConnection(input *WorkerConnectionInput) (WorkerConnection, error)
 }
@@ -47,11 +47,13 @@ func (wm *WorkerManager) RegisterWorker(worker Worker) error {
 	wm.mutex.Lock()
 	defer wm.mutex.Unlock()
 
-	if _, exists := wm.workers[worker.WorkerID()]; exists {
+	_, exists := wm.workers[worker.WorkerID()]
+	if exists {
 		return nil
 	}
 
-	if err := worker.Start(); err != nil {
+	err := worker.Start()
+	if err != nil {
 		return err
 	}
 
@@ -125,12 +127,12 @@ func (wm *WorkerManager) PickWorkerByHash(workerType WorkerType, data []byte) (W
 		return nil, false
 	}
 
-	if !worker.Healthy() || !worker.AcceptingJobs() {
+	if !worker.IsHealthy() || !worker.IsAcceptingJobs() {
 		// If the worker is not healthy or not accepting jobs, we need to choose another one.
-		for i := 0; i < len(workerIDs); i++ {
+		for range workerIDs {
 			workerID = workerIDs[index]
 			worker, exists = wm.workers[workerID]
-			if exists && worker.Healthy() && worker.AcceptingJobs() {
+			if exists && worker.IsHealthy() && worker.IsAcceptingJobs() {
 				break
 			}
 		}
@@ -141,13 +143,17 @@ func (wm *WorkerManager) PickWorkerByHash(workerType WorkerType, data []byte) (W
 
 func (wm *WorkerManager) GetConnectionHashForWorkerType(workerType WorkerType, input *WorkerConnectionInput) ([]byte, error) {
 	if workerType == WorkerTypeRunner {
-		return GetConnectionHashForRunnerWorker(input)
+		if input.RunConfig == nil {
+			return nil, fmt.Errorf("RunConfig is required to create a connection hash")
+		}
+
+		return []byte(input.RunConfig.Container.DockerImage), nil
 	}
 
 	return nil, fmt.Errorf("unsupported worker type: %v", workerType)
 }
 
-func (wm *WorkerManager) removeWorker(workerID string) {
+func (wm *WorkerManager) SelfUnregisterWorker(workerID string) {
 	wm.mutex.Lock()
 	defer wm.mutex.Unlock()
 

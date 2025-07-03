@@ -2,69 +2,148 @@ package worker
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net"
 	"slices"
 	"sync"
 	"time"
 
-	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
+	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
+	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
+	"github.com/metorial/metorial/mcp-engine/pkg/addr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 )
 
+type WorkerImpl interface {
+	Start(worker *Worker, grpc *grpc.Server) error
+	Stop() error
+}
+
 type Worker struct {
-	WorkerID string
-	Address  string
+	WorkerID  string
+	Address   string
+	StartTime time.Time
 
-	conn   *grpc.ClientConn
-	client workerPb.McpWorkerBrokerClient
+	port       int
+	grpcServer *grpc.Server
 
-	done      chan struct{}
-	closeOnce sync.Once
+	managerConn   *grpc.ClientConn
+	managerClient workerBrokerPb.McpWorkerBrokerClient
+
+	impl WorkerImpl
+
+	health WorkerHealthManager
+
+	context context.Context
+	cancel  context.CancelFunc
 
 	mutex sync.Mutex
+
+	workerServer *workerServer
 
 	seenManagers []string
 }
 
-func NewWorker(workerID, ownAddress string, managerAddress string) (*Worker, error) {
+func NewWorker(ctx context.Context, workerID string, ownAddress string, managerAddress string, impl WorkerImpl) (*Worker, error) {
+
+	port, err := addr.ExtractPort(ownAddress)
+	if err != nil {
+		return nil, err
+	}
+
 	conn, err := grpc.NewClient(managerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}
 
-	client := workerPb.NewMcpWorkerBrokerClient(conn)
+	client := workerBrokerPb.NewMcpWorkerBrokerClient(conn)
+
+	ctx, cancel := context.WithCancel(ctx)
 
 	worker := &Worker{
-		WorkerID: workerID,
-		Address:  ownAddress,
+		port: port,
 
-		conn:   conn,
-		client: client,
+		WorkerID:  workerID,
+		Address:   ownAddress,
+		StartTime: time.Now(),
 
-		done:         make(chan struct{}),
+		health: *newWorkerHealthManager(),
+
+		managerConn:   conn,
+		managerClient: client,
+
+		impl: impl,
+
+		context: ctx,
+		cancel:  cancel,
+
 		seenManagers: []string{},
 	}
+
+	go worker.start()
 
 	go worker.connectToNewManagersRoutine()
 
 	return worker, nil
 }
 
+func (w *Worker) start() error {
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", w.port))
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+
+	grpcServer := grpc.NewServer()
+	w.grpcServer = grpcServer
+
+	w.workerServer = &workerServer{worker: w}
+	workerPb.RegisterWorkerServer(w.grpcServer, w.workerServer)
+
+	err = w.impl.Start(w, w.grpcServer)
+	if err != nil {
+		log.Fatalf("Failed to start worker: %v", err)
+	}
+
+	reflection.Register(w.grpcServer)
+
+	log.Printf("Starting worker server at %s", w.Address)
+
+	if err := w.grpcServer.Serve(lis); err != nil {
+		log.Fatalf("Failed to serve: %v", err)
+	}
+
+	return nil
+}
+
 func (w *Worker) Stop() error {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 
-	if w.conn != nil {
-		if err := w.conn.Close(); err != nil {
-			return err
-		}
-		w.conn = nil
+	log.Printf("Worker server at %s stopped", w.Address)
+
+	if w.grpcServer != nil {
+		w.grpcServer.Stop()
+		w.grpcServer = nil
 	}
 
-	w.closeOnce.Do(func() {
-		close(w.done)
-	})
+	if w.managerConn != nil {
+		if err := w.managerConn.Close(); err != nil {
+			return err
+		}
+		w.managerConn = nil
+	}
+
+	if w.impl != nil {
+		if err := w.impl.Stop(); err != nil {
+			return err
+		}
+		w.impl = nil
+	}
+
+	w.cancel()
 
 	return nil
 }
@@ -77,12 +156,12 @@ func (w *Worker) registerWithManager(address string) error {
 
 	defer conn.Close()
 
-	client := workerPb.NewMcpWorkerBrokerClient(conn)
+	client := workerBrokerPb.NewMcpWorkerBrokerClient(conn)
 
-	_, err = client.RegisterWorker(context.Background(), &workerPb.RegisterWorkerRequest{
+	_, err = client.RegisterWorker(context.Background(), &workerBrokerPb.RegisterWorkerRequest{
 		WorkerId:   w.WorkerID,
 		Address:    w.Address,
-		WorkerType: workerPb.WorkerType_WORKER_TYPE_RUNNER,
+		WorkerType: workerBrokerPb.WorkerType_WORKER_TYPE_RUNNER,
 	})
 	if err != nil {
 		return err
@@ -94,11 +173,11 @@ func (w *Worker) registerWithManager(address string) error {
 }
 
 func (w *Worker) connectToNewManagers() error {
-	if w.client == nil {
+	if w.managerClient == nil {
 		return nil
 	}
 
-	managers, err := w.client.ListManagers(context.Background(), &workerPb.ListManagersRequest{})
+	managers, err := w.managerClient.ListManagers(context.Background(), &workerBrokerPb.ListManagersRequest{})
 	if err != nil {
 		return err
 	}
@@ -120,7 +199,9 @@ func (w *Worker) connectToNewManagers() error {
 }
 
 func (w *Worker) connectToNewManagersRoutine() {
-	ticker := time.NewTicker(30 * time.Second)
+	time.Sleep(time.Second) // Wait for server to be ready
+
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
 	if err := w.connectToNewManagers(); err != nil {
@@ -129,7 +210,7 @@ func (w *Worker) connectToNewManagersRoutine() {
 
 	for {
 		select {
-		case <-w.done:
+		case <-w.context.Done():
 			return
 		case <-ticker.C:
 			if err := w.connectToNewManagers(); err != nil {
@@ -137,4 +218,24 @@ func (w *Worker) connectToNewManagersRoutine() {
 			}
 		}
 	}
+}
+
+func (w *Worker) Health() WorkerHealth {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+
+	return w.health.GetHealth()
+}
+
+func (w *Worker) WorkerServer() *workerServer {
+	return w.workerServer
+}
+
+func (w *Worker) Done() <-chan struct{} {
+	return w.context.Done()
+}
+
+func (w *Worker) Wait() {
+	<-w.context.Done()
+	log.Printf("Worker %s stopped", w.WorkerID)
 }

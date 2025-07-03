@@ -37,7 +37,9 @@ proto:
 		common.proto \
 		manager.proto \
 		workerBroker.proto \
+		launcher.proto \
 		mcp.proto \
+		worker.proto \
 		runner.proto && \
 	cp -r ../gen/github.com/metorial/metorial/mcp-engine/* ../ && \
 	rm -rf ../gen/github.com 

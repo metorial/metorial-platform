@@ -21,7 +21,6 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	McpRunner_GetRunnerInfo_FullMethodName        = "/broker.runner.McpRunner/GetRunnerInfo"
-	McpRunner_StreamRunnerHealth_FullMethodName   = "/broker.runner.McpRunner/StreamRunnerHealth"
 	McpRunner_ListActiveRuns_FullMethodName       = "/broker.runner.McpRunner/ListActiveRuns"
 	McpRunner_ListDockerImages_FullMethodName     = "/broker.runner.McpRunner/ListDockerImages"
 	McpRunner_ListDockerContainers_FullMethodName = "/broker.runner.McpRunner/ListDockerContainers"
@@ -33,7 +32,6 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type McpRunnerClient interface {
 	GetRunnerInfo(ctx context.Context, in *RunnerInfoRequest, opts ...grpc.CallOption) (*RunnerInfoResponse, error)
-	StreamRunnerHealth(ctx context.Context, in *RunnerHealthRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RunnerHealthResponse], error)
 	ListActiveRuns(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*ActiveRunsResponse, error)
 	ListDockerImages(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*DockerImagesResponse, error)
 	ListDockerContainers(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*DockerContainersResponse, error)
@@ -57,25 +55,6 @@ func (c *mcpRunnerClient) GetRunnerInfo(ctx context.Context, in *RunnerInfoReque
 	}
 	return out, nil
 }
-
-func (c *mcpRunnerClient) StreamRunnerHealth(ctx context.Context, in *RunnerHealthRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RunnerHealthResponse], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &McpRunner_ServiceDesc.Streams[0], McpRunner_StreamRunnerHealth_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[RunnerHealthRequest, RunnerHealthResponse]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type McpRunner_StreamRunnerHealthClient = grpc.ServerStreamingClient[RunnerHealthResponse]
 
 func (c *mcpRunnerClient) ListActiveRuns(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*ActiveRunsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -109,7 +88,7 @@ func (c *mcpRunnerClient) ListDockerContainers(ctx context.Context, in *common.E
 
 func (c *mcpRunnerClient) StreamMcpRun(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[RunRequest, RunResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &McpRunner_ServiceDesc.Streams[1], McpRunner_StreamMcpRun_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &McpRunner_ServiceDesc.Streams[0], McpRunner_StreamMcpRun_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +104,6 @@ type McpRunner_StreamMcpRunClient = grpc.BidiStreamingClient[RunRequest, RunResp
 // for forward compatibility.
 type McpRunnerServer interface {
 	GetRunnerInfo(context.Context, *RunnerInfoRequest) (*RunnerInfoResponse, error)
-	StreamRunnerHealth(*RunnerHealthRequest, grpc.ServerStreamingServer[RunnerHealthResponse]) error
 	ListActiveRuns(context.Context, *common.Empty) (*ActiveRunsResponse, error)
 	ListDockerImages(context.Context, *common.Empty) (*DockerImagesResponse, error)
 	ListDockerContainers(context.Context, *common.Empty) (*DockerContainersResponse, error)
@@ -142,9 +120,6 @@ type UnimplementedMcpRunnerServer struct{}
 
 func (UnimplementedMcpRunnerServer) GetRunnerInfo(context.Context, *RunnerInfoRequest) (*RunnerInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRunnerInfo not implemented")
-}
-func (UnimplementedMcpRunnerServer) StreamRunnerHealth(*RunnerHealthRequest, grpc.ServerStreamingServer[RunnerHealthResponse]) error {
-	return status.Errorf(codes.Unimplemented, "method StreamRunnerHealth not implemented")
 }
 func (UnimplementedMcpRunnerServer) ListActiveRuns(context.Context, *common.Empty) (*ActiveRunsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListActiveRuns not implemented")
@@ -196,17 +171,6 @@ func _McpRunner_GetRunnerInfo_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	return interceptor(ctx, in, info, handler)
 }
-
-func _McpRunner_StreamRunnerHealth_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(RunnerHealthRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(McpRunnerServer).StreamRunnerHealth(m, &grpc.GenericServerStream[RunnerHealthRequest, RunnerHealthResponse]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type McpRunner_StreamRunnerHealthServer = grpc.ServerStreamingServer[RunnerHealthResponse]
 
 func _McpRunner_ListActiveRuns_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(common.Empty)
@@ -294,11 +258,6 @@ var McpRunner_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "StreamRunnerHealth",
-			Handler:       _McpRunner_StreamRunnerHealth_Handler,
-			ServerStreams: true,
-		},
 		{
 			StreamName:    "StreamMcpRun",
 			Handler:       _McpRunner_StreamMcpRun_Handler,

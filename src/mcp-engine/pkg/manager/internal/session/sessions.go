@@ -117,8 +117,6 @@ func (s *Sessions) UpsertSession(
 		return nil, mterror.New(mterror.InvalidRequestKind, "session config must not be nil")
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-
 	// This manager is responsible for the session, so we
 	// need to create a local session for it.
 	if storedSession.ManagerID == s.state.ManagerID {
@@ -146,6 +144,8 @@ func (s *Sessions) UpsertSession(
 		} else {
 			return nil, mterror.New(mterror.InvalidRequestKind, "session config must contain either RunConfigWithContainerArguments or RunConfigWithLauncher")
 		}
+
+		ctx, cancel := context.WithCancel(context.Background())
 
 		session := &LocalSession{
 			McpClient:  client,
@@ -182,6 +182,8 @@ func (s *Sessions) UpsertSession(
 	if err != nil {
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get manager connection", err)
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
 
 	session := &RemoteSession{
 		storedSession:             storedSession,

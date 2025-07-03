@@ -20,25 +20,18 @@ func main() {
 	dockerManager := docker.NewDockerManager(docker.RuntimeDocker)
 	runner := mcp_runner.NewRunner(context.Background(), port, dockerManager)
 
-	go runner.Start()
-
-	worker, err := worker.NewWorker(runner.RunnerId(), ownAddress, managerAddress)
+	worker, err := worker.NewWorker(context.Background(), runner.RunnerId(), ownAddress, managerAddress, runner)
 	if err != nil {
 		log.Fatalf("Failed to create worker: %v", err)
 	}
 
-	log.Printf("Starting MCP Runner on port localhost:%d\n", port)
+	log.Printf("Starting MCP Runner on at localhost:%d\n", port)
 
 	// Wait for interrupt signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	<-sigChan
-
-	log.Println("Received interrupt signal, shutting down...")
-	if err := runner.Stop(); err != nil {
-		log.Printf("Error during shutdown: %v", err)
-	}
 
 	if err := worker.Stop(); err != nil {
 		log.Printf("Error stopping worker: %v", err)

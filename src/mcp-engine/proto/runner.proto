@@ -6,10 +6,10 @@ option go_package = "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runn
 
 import "mcp.proto";
 import "common.proto";
+import "worker.proto";
 
 service McpRunner {
   rpc GetRunnerInfo(RunnerInfoRequest) returns (RunnerInfoResponse);
-  rpc StreamRunnerHealth(RunnerHealthRequest) returns (stream RunnerHealthResponse);
 
   rpc ListActiveRuns(broker.common.Empty) returns (ActiveRunsResponse);
   rpc ListDockerImages(broker.common.Empty) returns (DockerImagesResponse);
@@ -18,34 +18,15 @@ service McpRunner {
   rpc StreamMcpRun(stream RunRequest) returns (stream RunResponse);
 }
 
-enum RunnerStatus {
-  HEALTHY = 0;
-  UNHEALTHY = 1;
-}
-
-enum RunnerAcceptingJobs {
-  ACCEPTING = 0;
-  NOT_ACCEPTING = 1;
-}
-
 message RunnerInfoRequest {}
 
 message RunnerInfoResponse {
   string runner_id = 1;
-  int64 start_time = 2;
 
-  RunnerAcceptingJobs accepting_runs = 3;
-  RunnerStatus status = 4;
-  uint32 active_runs = 5;
-  uint64 total_runs = 6;
-}
+  uint32 active_runs = 2;
+  uint64 total_runs = 3;
 
-message RunnerHealthRequest {}
-
-message RunnerHealthResponse {
-  string runner_id = 1;
-  RunnerStatus status = 2;
-  RunnerAcceptingJobs accepting_runs = 3;
+  broker.worker.WorkerInfoResponse worker_info = 4;
 }
 
 message ActiveRunsResponse {

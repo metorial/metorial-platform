@@ -8,6 +8,7 @@ import (
 	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
 	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/state"
 	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers"
+	runner_worker "github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers/runner"
 )
 
 type workerBrokerServer struct {
@@ -46,7 +47,7 @@ func (s *workerBrokerServer) RegisterWorker(ctx context.Context, req *workerBrok
 	if req.WorkerType == workerBrokerPb.WorkerType_WORKER_TYPE_RUNNER {
 		log.Printf("Registering worker %s of type %s at address %s", req.WorkerId, req.WorkerType, req.Address)
 
-		runnerWorker := workers.NewRunnerWorker(s.workerManager, req.WorkerId, req.Address)
+		runnerWorker := runner_worker.NewRunnerWorker(context.Background(), s.workerManager, req.WorkerId, req.Address)
 		err := s.workerManager.RegisterWorker(runnerWorker)
 		if err != nil {
 			log.Printf("Failed to register worker %s: %v", req.WorkerId, err)

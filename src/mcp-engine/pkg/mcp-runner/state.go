@@ -14,7 +14,6 @@ type RunnerState struct {
 	RunnerID  string
 	StartTime time.Time
 
-	health        *RunnerHealthManager
 	dockerManager *docker.DockerManager
 
 	active_runs map[string]*Run
@@ -28,8 +27,6 @@ func newRunnerState(dockerManager *docker.DockerManager, done <-chan struct{}) *
 	return &RunnerState{
 		RunnerID:  uuid.NewString(),
 		StartTime: time.Now(),
-
-		health: NewRunnerHealthManager(),
 
 		dockerManager: dockerManager,
 		active_runs:   make(map[string]*Run),
@@ -100,12 +97,10 @@ func (state *RunnerState) printState() {
 	state.mutex.Lock()
 	defer state.mutex.Unlock()
 
-	fmt.Println("\n== Runner State ==")
+	log.Println("\n== Runner State ==")
 
-	fmt.Println("Health - Healthy:", state.health.Health.healthy)
-	fmt.Println("Health - Accepting Runs:", state.health.Health.acceptingRuns)
-	fmt.Println("Total Runs:", state.total_runs)
-	fmt.Println("Active Runs:", len(state.active_runs))
+	log.Println("Total Runs:", state.total_runs)
+	log.Println("Active Runs:", len(state.active_runs))
 }
 
 func (state *RunnerState) startPrintStateRoutine(interval time.Duration) {

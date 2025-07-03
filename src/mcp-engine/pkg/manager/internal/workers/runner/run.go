@@ -1,4 +1,4 @@
-package mcp_runner_client
+package runner_worker
 
 import (
 	"context"
@@ -6,13 +6,15 @@ import (
 	"log"
 	"sync"
 
-	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
+	mcpPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	runnerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
+	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
+	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
 )
 
 type Run struct {
 	context context.Context
-	close   context.CancelFunc
+	cancel  context.CancelFunc
 
 	RemoteID string
 	Config   *runnerPb.RunConfig
@@ -22,27 +24,32 @@ type Run struct {
 
 	createStreamWg sync.WaitGroup
 
-	messages chan *runnerPb.RunResponseMcpMessage
-	errors   chan *runnerPb.RunResponseError
-	output   chan *runnerPb.RunResponseOutput
+	messages *pubsub.Broadcaster[*mcp.MCPMessage]
+	output   *pubsub.Broadcaster[*mcpPB.McpOutput]
+	errors   *pubsub.Broadcaster[*mcpPB.McpError]
 
 	initError error
 }
 
 func NewRun(config *runnerPb.RunConfig, client runnerPb.McpRunnerClient) *Run {
+	if client == nil {
+		log.Println("McpRunnerClient is nil, cannot create Run")
+		return nil
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &Run{
 		context: ctx,
-		close:   cancel,
+		cancel:  cancel,
 
 		Config: config,
 
 		client: client,
 
-		messages: make(chan *runnerPb.RunResponseMcpMessage),
-		errors:   make(chan *runnerPb.RunResponseError),
-		output:   make(chan *runnerPb.RunResponseOutput),
+		messages: pubsub.NewBroadcaster[*mcp.MCPMessage](),
+		errors:   pubsub.NewBroadcaster[*mcpPB.McpError](),
+		output:   pubsub.NewBroadcaster[*mcpPB.McpOutput](),
 	}
 }
 
@@ -78,7 +85,7 @@ func (r *Run) SendMessage(message string) error {
 	return r.stream.Send(&runnerPb.RunRequest{
 		JobType: &runnerPb.RunRequest_McpMessage{
 			McpMessage: &runnerPb.RunRequestMcpMessage{
-				Message: &mcpPb.McpMessageRaw{
+				Message: &mcpPB.McpMessageRaw{
 					Message: message,
 				},
 			},
@@ -113,18 +120,6 @@ func (r *Run) Close() error {
 	return nil
 }
 
-func (r *Run) Messages() <-chan *runnerPb.RunResponseMcpMessage {
-	return r.messages
-}
-
-func (r *Run) Errors() <-chan *runnerPb.RunResponseError {
-	return r.errors
-}
-
-func (r *Run) Output() <-chan *runnerPb.RunResponseOutput {
-	return r.output
-}
-
 func (r *Run) Done() <-chan struct{} {
 	if r.context == nil {
 		return nil
@@ -142,10 +137,17 @@ func (r *Run) Wait() {
 }
 
 func (r *Run) handleStream() {
-	defer r.close()
-	defer close(r.messages)
-	defer close(r.errors)
-	defer close(r.output)
+	defer r.cancel()
+	defer r.messages.Close()
+	defer r.errors.Close()
+	defer r.output.Close()
+
+	if r.client == nil {
+		log.Println("McpRunnerClient is nil, cannot create stream")
+		r.createStreamWg.Done()
+		r.initError = fmt.Errorf("McpRunnerClient is not initialized")
+		return
+	}
 
 	stream, err := r.client.StreamMcpRun(context.Background())
 	if err != nil {
@@ -180,7 +182,7 @@ func (r *Run) handleStream() {
 	mcpErr := resp.GetError()
 	if mcpErr != nil {
 		r.createStreamWg.Done()
-		r.errors <- mcpErr
+		r.errors.Publish(mcpErr.McpError)
 		r.initError = fmt.Errorf("failed to start MCP run: %s", mcpErr.McpError.ErrorMessage)
 		return
 	}
@@ -212,13 +214,27 @@ loop:
 		switch msg := resp.JobType.(type) {
 
 		case *runnerPb.RunResponse_McpMessage:
-			r.messages <- msg.McpMessage
+			if msg.McpMessage == nil || msg.McpMessage.Message == nil {
+				continue
+			}
+
+			parsed, _ := mcp.FromPbRawMessage(msg.McpMessage.Message)
+			if parsed != nil {
+				r.messages.Publish(parsed)
+			}
 
 		case *runnerPb.RunResponse_Output:
-			r.output <- msg.Output
+			if msg.Output == nil || msg.Output.McpOutput == nil {
+				continue
+			}
+
+			r.output.Publish(msg.Output.McpOutput)
 
 		case *runnerPb.RunResponse_Error:
-			r.errors <- msg.Error
+			if msg.Error == nil || msg.Error.McpError == nil {
+				continue
+			}
+
 			go r.Close()
 
 		case *runnerPb.RunResponse_Close:
