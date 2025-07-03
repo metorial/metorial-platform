@@ -1,6 +1,5 @@
-import { MetorialSDK } from '@metorial/core';
 import { MetorialMcpSession } from './mcpSession';
-import { MetorialMcpTool } from './mcpTool';
+import { Capability, MetorialMcpTool } from './mcpTool';
 
 export class MetorialMcpToolManager {
   #tools = new Map<string, MetorialMcpTool>();
@@ -15,18 +14,11 @@ export class MetorialMcpToolManager {
     }
   }
 
-  static async fromCapabilities(
-    session: MetorialMcpSession,
-    capabilities: MetorialSDK.ServerCapabilities
-  ) {
-    let tools = [
-      ...capabilities.tools.map(tool => MetorialMcpTool.fromTool(session, capabilities, tool)),
-      ...capabilities.resourceTemplates.map(resourceTemplate =>
-        MetorialMcpTool.fromResourceTemplate(session, capabilities, resourceTemplate)
-      )
-    ];
-
-    return new MetorialMcpToolManager(session, tools);
+  static async fromCapabilities(session: MetorialMcpSession, capabilities: Capability[]) {
+    return new MetorialMcpToolManager(
+      session,
+      capabilities.map(c => MetorialMcpTool.fromCapability(session, c))
+    );
   }
 
   getTool(idOrName: string): MetorialMcpTool | undefined {
