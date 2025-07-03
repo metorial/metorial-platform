@@ -2,15 +2,18 @@ package workers
 
 import (
 	"fmt"
+	"math/rand"
 	"sync"
 
+	launcherPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/launcher"
 	"github.com/metorial/metorial/mcp-engine/pkg/murmur3"
 )
 
 type WorkerType string
 
 const (
-	WorkerTypeRunner WorkerType = "runner"
+	WorkerTypeRunner   WorkerType = "runner"
+	WorkerTypeLauncher WorkerType = "launcher"
 )
 
 type Worker interface {
@@ -25,6 +28,7 @@ type Worker interface {
 	IsHealthy() bool
 
 	CreateConnection(input *WorkerConnectionInput) (WorkerConnection, error)
+	RunLauncher(input *launcherPb.LauncherConfig) (*launcherPb.RunLauncherResponse, error)
 }
 
 type WorkerManager struct {
@@ -107,7 +111,7 @@ func (wm *WorkerManager) ListWorkersByType(workerType WorkerType) []Worker {
 	return workersList
 }
 
-func (wm *WorkerManager) PickWorkerByHash(workerType WorkerType, data []byte) (Worker, bool) {
+func (wm *WorkerManager) getWorkerOfTypeByIndex(workerType WorkerType, index int) (Worker, bool) {
 	wm.mutex.RLock()
 	defer wm.mutex.RUnlock()
 
@@ -116,9 +120,8 @@ func (wm *WorkerManager) PickWorkerByHash(workerType WorkerType, data []byte) (W
 		return nil, false
 	}
 
-	index := murmur3.PickByHashIndex(data, len(workerIDs))
 	if index < 0 || index >= len(workerIDs) {
-		index = 0 // I'm pretty sure this can't happen, but just in case
+		index = 0 // If the index is out of bounds, we default to the first worker.
 	}
 
 	workerID := workerIDs[index]
@@ -139,6 +142,32 @@ func (wm *WorkerManager) PickWorkerByHash(workerType WorkerType, data []byte) (W
 	}
 
 	return worker, true
+}
+
+func (wm *WorkerManager) PickWorkerByHash(workerType WorkerType, data []byte) (Worker, bool) {
+	wm.mutex.RLock()
+	defer wm.mutex.RUnlock()
+
+	workerIDs, exists := wm.workersByType[workerType]
+	if !exists || len(workerIDs) == 0 {
+		return nil, false
+	}
+
+	index := murmur3.PickByHashIndex(data, len(workerIDs))
+	return wm.getWorkerOfTypeByIndex(workerType, index)
+}
+
+func (wm *WorkerManager) PickWorkerRandomly(workerType WorkerType) (Worker, bool) {
+	wm.mutex.RLock()
+	defer wm.mutex.RUnlock()
+
+	workerIDs, exists := wm.workersByType[workerType]
+	if !exists || len(workerIDs) == 0 {
+		return nil, false
+	}
+
+	index := rand.Intn(len(workerIDs))
+	return wm.getWorkerOfTypeByIndex(workerType, index)
 }
 
 func (wm *WorkerManager) GetConnectionHashForWorkerType(workerType WorkerType, input *WorkerConnectionInput) ([]byte, error) {

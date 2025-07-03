@@ -1,16 +1,16 @@
-.PHONY: build-mcp-runner run-mcp-runner proto-mcp-runner build-mcp-runner-client run-mcp-runner-client build-manager run-manager proto-mcp-manager proto vet staticcheck lint
+.PHONY: build-worker-mcp-runner run-worker-mcp-runner proto-worker-mcp-runner build-manager run-manager proto-mcp-manager proto vet staticcheck lint build-worker-launcher run-worker-launcher
 
-build-mcp-runner:
-	go build -o bin/mcp-runner ./cmd/mcp-runner
+build-worker-mcp-runner:
+	go build -o bin/worker-mcp-runner ./cmd/worker-mcp-runner
 
-run-mcp-runner: build-mcp-runner
-	./bin/mcp-runner $(ARGS)
+run-worker-mcp-runner: build-worker-mcp-runner
+	./bin/worker-mcp-runner $(ARGS)
 
-build-mcp-runner-client:
-	go build -o bin/mcp-runner-client ./cmd/mcp-runner-client
+build-worker-launcher:
+	go build -o bin/worker-launcher ./cmd/worker-launcher
 
-run-mcp-runner-client: build-mcp-runner-client
-	./bin/mcp-runner-client $(ARGS)
+run-worker-launcher: build-worker-launcher
+	./bin/worker-launcher $(ARGS)
 
 build-manager:
 	go build -o bin/manager ./cmd/manager

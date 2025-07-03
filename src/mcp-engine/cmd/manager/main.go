@@ -3,15 +3,19 @@ package main
 import (
 	"flag"
 	"log"
+	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/metorial/metorial/mcp-engine/pkg/manager"
 )
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	address, etcdEndpoints := getConfig()
 
 	manager, err := manager.NewManager(etcdEndpoints, address)

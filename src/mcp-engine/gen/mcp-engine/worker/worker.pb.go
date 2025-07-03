@@ -21,6 +21,55 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type WorkerType int32
+
+const (
+	WorkerType_mcp_runner WorkerType = 0
+	WorkerType_mcp_remote WorkerType = 1
+	WorkerType_launcher   WorkerType = 10
+)
+
+// Enum value maps for WorkerType.
+var (
+	WorkerType_name = map[int32]string{
+		0:  "mcp_runner",
+		1:  "mcp_remote",
+		10: "launcher",
+	}
+	WorkerType_value = map[string]int32{
+		"mcp_runner": 0,
+		"mcp_remote": 1,
+		"launcher":   10,
+	}
+)
+
+func (x WorkerType) Enum() *WorkerType {
+	p := new(WorkerType)
+	*p = x
+	return p
+}
+
+func (x WorkerType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WorkerType) Descriptor() protoreflect.EnumDescriptor {
+	return file_worker_proto_enumTypes[0].Descriptor()
+}
+
+func (WorkerType) Type() protoreflect.EnumType {
+	return &file_worker_proto_enumTypes[0]
+}
+
+func (x WorkerType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WorkerType.Descriptor instead.
+func (WorkerType) EnumDescriptor() ([]byte, []int) {
+	return file_worker_proto_rawDescGZIP(), []int{0}
+}
+
 type WorkerStatus int32
 
 const (
@@ -51,11 +100,11 @@ func (x WorkerStatus) String() string {
 }
 
 func (WorkerStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_worker_proto_enumTypes[0].Descriptor()
+	return file_worker_proto_enumTypes[1].Descriptor()
 }
 
 func (WorkerStatus) Type() protoreflect.EnumType {
-	return &file_worker_proto_enumTypes[0]
+	return &file_worker_proto_enumTypes[1]
 }
 
 func (x WorkerStatus) Number() protoreflect.EnumNumber {
@@ -64,7 +113,7 @@ func (x WorkerStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WorkerStatus.Descriptor instead.
 func (WorkerStatus) EnumDescriptor() ([]byte, []int) {
-	return file_worker_proto_rawDescGZIP(), []int{0}
+	return file_worker_proto_rawDescGZIP(), []int{1}
 }
 
 type WorkerAcceptingJobs int32
@@ -97,11 +146,11 @@ func (x WorkerAcceptingJobs) String() string {
 }
 
 func (WorkerAcceptingJobs) Descriptor() protoreflect.EnumDescriptor {
-	return file_worker_proto_enumTypes[1].Descriptor()
+	return file_worker_proto_enumTypes[2].Descriptor()
 }
 
 func (WorkerAcceptingJobs) Type() protoreflect.EnumType {
-	return &file_worker_proto_enumTypes[1]
+	return &file_worker_proto_enumTypes[2]
 }
 
 func (x WorkerAcceptingJobs) Number() protoreflect.EnumNumber {
@@ -110,7 +159,7 @@ func (x WorkerAcceptingJobs) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WorkerAcceptingJobs.Descriptor instead.
 func (WorkerAcceptingJobs) EnumDescriptor() ([]byte, []int) {
-	return file_worker_proto_rawDescGZIP(), []int{1}
+	return file_worker_proto_rawDescGZIP(), []int{2}
 }
 
 type WorkerInfoRequest struct {
@@ -155,6 +204,7 @@ type WorkerInfoResponse struct {
 	StartTime     int64                  `protobuf:"varint,2,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	AcceptingJobs WorkerAcceptingJobs    `protobuf:"varint,3,opt,name=accepting_jobs,json=acceptingJobs,proto3,enum=broker.worker.WorkerAcceptingJobs" json:"accepting_jobs,omitempty"`
 	Status        WorkerStatus           `protobuf:"varint,4,opt,name=status,proto3,enum=broker.worker.WorkerStatus" json:"status,omitempty"`
+	WorkerType    WorkerType             `protobuf:"varint,5,opt,name=worker_type,json=workerType,proto3,enum=broker.worker.WorkerType" json:"worker_type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -217,6 +267,13 @@ func (x *WorkerInfoResponse) GetStatus() WorkerStatus {
 	return WorkerStatus_healthy
 }
 
+func (x *WorkerInfoResponse) GetWorkerType() WorkerType {
+	if x != nil {
+		return x.WorkerType
+	}
+	return WorkerType_mcp_runner
+}
+
 type WorkerHealthRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -258,14 +315,24 @@ var File_worker_proto protoreflect.FileDescriptor
 const file_worker_proto_rawDesc = "" +
 	"\n" +
 	"\fworker.proto\x12\rbroker.worker\"\x13\n" +
-	"\x11WorkerInfoRequest\"\xd0\x01\n" +
+	"\x11WorkerInfoRequest\"\x8c\x02\n" +
 	"\x12WorkerInfoResponse\x12\x1b\n" +
 	"\tworker_id\x18\x01 \x01(\tR\bworkerId\x12\x1d\n" +
 	"\n" +
 	"start_time\x18\x02 \x01(\x03R\tstartTime\x12I\n" +
 	"\x0eaccepting_jobs\x18\x03 \x01(\x0e2\".broker.worker.WorkerAcceptingJobsR\racceptingJobs\x123\n" +
-	"\x06status\x18\x04 \x01(\x0e2\x1b.broker.worker.WorkerStatusR\x06status\"\x15\n" +
-	"\x13WorkerHealthRequest**\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x1b.broker.worker.WorkerStatusR\x06status\x12:\n" +
+	"\vworker_type\x18\x05 \x01(\x0e2\x19.broker.worker.WorkerTypeR\n" +
+	"workerType\"\x15\n" +
+	"\x13WorkerHealthRequest*:\n" +
+	"\n" +
+	"WorkerType\x12\x0e\n" +
+	"\n" +
+	"mcp_runner\x10\x00\x12\x0e\n" +
+	"\n" +
+	"mcp_remote\x10\x01\x12\f\n" +
+	"\blauncher\x10\n" +
+	"**\n" +
 	"\fWorkerStatus\x12\v\n" +
 	"\ahealthy\x10\x00\x12\r\n" +
 	"\tunhealthy\x10\x01*7\n" +
@@ -288,27 +355,29 @@ func file_worker_proto_rawDescGZIP() []byte {
 	return file_worker_proto_rawDescData
 }
 
-var file_worker_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_worker_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_worker_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_worker_proto_goTypes = []any{
-	(WorkerStatus)(0),           // 0: broker.worker.WorkerStatus
-	(WorkerAcceptingJobs)(0),    // 1: broker.worker.WorkerAcceptingJobs
-	(*WorkerInfoRequest)(nil),   // 2: broker.worker.WorkerInfoRequest
-	(*WorkerInfoResponse)(nil),  // 3: broker.worker.WorkerInfoResponse
-	(*WorkerHealthRequest)(nil), // 4: broker.worker.WorkerHealthRequest
+	(WorkerType)(0),             // 0: broker.worker.WorkerType
+	(WorkerStatus)(0),           // 1: broker.worker.WorkerStatus
+	(WorkerAcceptingJobs)(0),    // 2: broker.worker.WorkerAcceptingJobs
+	(*WorkerInfoRequest)(nil),   // 3: broker.worker.WorkerInfoRequest
+	(*WorkerInfoResponse)(nil),  // 4: broker.worker.WorkerInfoResponse
+	(*WorkerHealthRequest)(nil), // 5: broker.worker.WorkerHealthRequest
 }
 var file_worker_proto_depIdxs = []int32{
-	1, // 0: broker.worker.WorkerInfoResponse.accepting_jobs:type_name -> broker.worker.WorkerAcceptingJobs
-	0, // 1: broker.worker.WorkerInfoResponse.status:type_name -> broker.worker.WorkerStatus
-	2, // 2: broker.worker.Worker.GetWorkerInfo:input_type -> broker.worker.WorkerInfoRequest
-	4, // 3: broker.worker.Worker.StreamWorkerHealth:input_type -> broker.worker.WorkerHealthRequest
-	3, // 4: broker.worker.Worker.GetWorkerInfo:output_type -> broker.worker.WorkerInfoResponse
-	3, // 5: broker.worker.Worker.StreamWorkerHealth:output_type -> broker.worker.WorkerInfoResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	2, // 0: broker.worker.WorkerInfoResponse.accepting_jobs:type_name -> broker.worker.WorkerAcceptingJobs
+	1, // 1: broker.worker.WorkerInfoResponse.status:type_name -> broker.worker.WorkerStatus
+	0, // 2: broker.worker.WorkerInfoResponse.worker_type:type_name -> broker.worker.WorkerType
+	3, // 3: broker.worker.Worker.GetWorkerInfo:input_type -> broker.worker.WorkerInfoRequest
+	5, // 4: broker.worker.Worker.StreamWorkerHealth:input_type -> broker.worker.WorkerHealthRequest
+	4, // 5: broker.worker.Worker.GetWorkerInfo:output_type -> broker.worker.WorkerInfoResponse
+	4, // 6: broker.worker.Worker.StreamWorkerHealth:output_type -> broker.worker.WorkerInfoResponse
+	5, // [5:7] is the sub-list for method output_type
+	3, // [3:5] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_worker_proto_init() }
@@ -321,7 +390,7 @@ func file_worker_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_worker_proto_rawDesc), len(file_worker_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      3,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,

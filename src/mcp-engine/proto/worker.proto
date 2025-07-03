@@ -9,6 +9,12 @@ service Worker {
   rpc StreamWorkerHealth(WorkerHealthRequest) returns (stream WorkerInfoResponse);
 }
 
+enum WorkerType {
+  mcp_runner = 0;
+  mcp_remote = 1;
+  launcher = 10;
+}
+
 enum WorkerStatus {
   healthy = 0;
   unhealthy = 1;
@@ -27,6 +33,7 @@ message WorkerInfoResponse {
 
   WorkerAcceptingJobs accepting_jobs = 3;
   WorkerStatus status = 4;
+  WorkerType worker_type = 5;
 }
 
 message WorkerHealthRequest {}

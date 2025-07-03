@@ -7,6 +7,7 @@
 package workerBroker
 
 import (
+	worker "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -20,49 +21,6 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
-
-type WorkerType int32
-
-const (
-	WorkerType_WORKER_TYPE_RUNNER WorkerType = 0
-)
-
-// Enum value maps for WorkerType.
-var (
-	WorkerType_name = map[int32]string{
-		0: "WORKER_TYPE_RUNNER",
-	}
-	WorkerType_value = map[string]int32{
-		"WORKER_TYPE_RUNNER": 0,
-	}
-)
-
-func (x WorkerType) Enum() *WorkerType {
-	p := new(WorkerType)
-	*p = x
-	return p
-}
-
-func (x WorkerType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (WorkerType) Descriptor() protoreflect.EnumDescriptor {
-	return file_workerBroker_proto_enumTypes[0].Descriptor()
-}
-
-func (WorkerType) Type() protoreflect.EnumType {
-	return &file_workerBroker_proto_enumTypes[0]
-}
-
-func (x WorkerType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use WorkerType.Descriptor instead.
-func (WorkerType) EnumDescriptor() ([]byte, []int) {
-	return file_workerBroker_proto_rawDescGZIP(), []int{0}
-}
 
 type ListManagersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -200,7 +158,7 @@ type RegisterWorkerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	WorkerId      string                 `protobuf:"bytes,1,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
 	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
-	WorkerType    WorkerType             `protobuf:"varint,3,opt,name=worker_type,json=workerType,proto3,enum=broker.workerBroker.WorkerType" json:"worker_type,omitempty"`
+	WorkerType    worker.WorkerType      `protobuf:"varint,3,opt,name=worker_type,json=workerType,proto3,enum=broker.worker.WorkerType" json:"worker_type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -249,11 +207,11 @@ func (x *RegisterWorkerRequest) GetAddress() string {
 	return ""
 }
 
-func (x *RegisterWorkerRequest) GetWorkerType() WorkerType {
+func (x *RegisterWorkerRequest) GetWorkerType() worker.WorkerType {
 	if x != nil {
 		return x.WorkerType
 	}
-	return WorkerType_WORKER_TYPE_RUNNER
+	return worker.WorkerType(0)
 }
 
 type RegisterWorkerResponse struct {
@@ -296,22 +254,19 @@ var File_workerBroker_proto protoreflect.FileDescriptor
 
 const file_workerBroker_proto_rawDesc = "" +
 	"\n" +
-	"\x12workerBroker.proto\x12\x13broker.workerBroker\"\x15\n" +
+	"\x12workerBroker.proto\x12\x13broker.workerBroker\x1a\fworker.proto\"\x15\n" +
 	"\x13ListManagersRequest\"P\n" +
 	"\x14ListManagersResponse\x128\n" +
 	"\bmanagers\x18\x01 \x03(\v2\x1c.broker.workerBroker.ManagerR\bmanagers\"3\n" +
 	"\aManager\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
-	"\aaddress\x18\x02 \x01(\tR\aaddress\"\x90\x01\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\"\x8a\x01\n" +
 	"\x15RegisterWorkerRequest\x12\x1b\n" +
 	"\tworker_id\x18\x01 \x01(\tR\bworkerId\x12\x18\n" +
-	"\aaddress\x18\x02 \x01(\tR\aaddress\x12@\n" +
-	"\vworker_type\x18\x03 \x01(\x0e2\x1f.broker.workerBroker.WorkerTypeR\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\x12:\n" +
+	"\vworker_type\x18\x03 \x01(\x0e2\x19.broker.worker.WorkerTypeR\n" +
 	"workerType\"\x18\n" +
-	"\x16RegisterWorkerResponse*$\n" +
-	"\n" +
-	"WorkerType\x12\x16\n" +
-	"\x12WORKER_TYPE_RUNNER\x10\x002\xe1\x01\n" +
+	"\x16RegisterWorkerResponse2\xe1\x01\n" +
 	"\x0fMcpWorkerBroker\x12c\n" +
 	"\fListManagers\x12(.broker.workerBroker.ListManagersRequest\x1a).broker.workerBroker.ListManagersResponse\x12i\n" +
 	"\x0eRegisterWorker\x12*.broker.workerBroker.RegisterWorkerRequest\x1a+.broker.workerBroker.RegisterWorkerResponseBRZPgithub.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker;workerBrokerb\x06proto3"
@@ -328,23 +283,22 @@ func file_workerBroker_proto_rawDescGZIP() []byte {
 	return file_workerBroker_proto_rawDescData
 }
 
-var file_workerBroker_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_workerBroker_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_workerBroker_proto_goTypes = []any{
-	(WorkerType)(0),                // 0: broker.workerBroker.WorkerType
-	(*ListManagersRequest)(nil),    // 1: broker.workerBroker.ListManagersRequest
-	(*ListManagersResponse)(nil),   // 2: broker.workerBroker.ListManagersResponse
-	(*Manager)(nil),                // 3: broker.workerBroker.Manager
-	(*RegisterWorkerRequest)(nil),  // 4: broker.workerBroker.RegisterWorkerRequest
-	(*RegisterWorkerResponse)(nil), // 5: broker.workerBroker.RegisterWorkerResponse
+	(*ListManagersRequest)(nil),    // 0: broker.workerBroker.ListManagersRequest
+	(*ListManagersResponse)(nil),   // 1: broker.workerBroker.ListManagersResponse
+	(*Manager)(nil),                // 2: broker.workerBroker.Manager
+	(*RegisterWorkerRequest)(nil),  // 3: broker.workerBroker.RegisterWorkerRequest
+	(*RegisterWorkerResponse)(nil), // 4: broker.workerBroker.RegisterWorkerResponse
+	(worker.WorkerType)(0),         // 5: broker.worker.WorkerType
 }
 var file_workerBroker_proto_depIdxs = []int32{
-	3, // 0: broker.workerBroker.ListManagersResponse.managers:type_name -> broker.workerBroker.Manager
-	0, // 1: broker.workerBroker.RegisterWorkerRequest.worker_type:type_name -> broker.workerBroker.WorkerType
-	1, // 2: broker.workerBroker.McpWorkerBroker.ListManagers:input_type -> broker.workerBroker.ListManagersRequest
-	4, // 3: broker.workerBroker.McpWorkerBroker.RegisterWorker:input_type -> broker.workerBroker.RegisterWorkerRequest
-	2, // 4: broker.workerBroker.McpWorkerBroker.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
-	5, // 5: broker.workerBroker.McpWorkerBroker.RegisterWorker:output_type -> broker.workerBroker.RegisterWorkerResponse
+	2, // 0: broker.workerBroker.ListManagersResponse.managers:type_name -> broker.workerBroker.Manager
+	5, // 1: broker.workerBroker.RegisterWorkerRequest.worker_type:type_name -> broker.worker.WorkerType
+	0, // 2: broker.workerBroker.McpWorkerBroker.ListManagers:input_type -> broker.workerBroker.ListManagersRequest
+	3, // 3: broker.workerBroker.McpWorkerBroker.RegisterWorker:input_type -> broker.workerBroker.RegisterWorkerRequest
+	1, // 4: broker.workerBroker.McpWorkerBroker.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
+	4, // 5: broker.workerBroker.McpWorkerBroker.RegisterWorker:output_type -> broker.workerBroker.RegisterWorkerResponse
 	4, // [4:6] is the sub-list for method output_type
 	2, // [2:4] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -362,14 +316,13 @@ func file_workerBroker_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_workerBroker_proto_rawDesc), len(file_workerBroker_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      0,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_workerBroker_proto_goTypes,
 		DependencyIndexes: file_workerBroker_proto_depIdxs,
-		EnumInfos:         file_workerBroker_proto_enumTypes,
 		MessageInfos:      file_workerBroker_proto_msgTypes,
 	}.Build()
 	File_workerBroker_proto = out.File

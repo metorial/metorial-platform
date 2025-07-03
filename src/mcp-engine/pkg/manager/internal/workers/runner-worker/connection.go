@@ -26,7 +26,7 @@ func (rw *RunnerWorker) CreateConnection(input *workers.WorkerConnectionInput) (
 	}
 
 	if rw.client == nil {
-		return nil, fmt.Errorf("McpRunnerClient is not initialized for worker %s at %s", rw.workerID, rw.address)
+		return nil, fmt.Errorf("McpRunnerClient is not initialized for worker %s at %s", rw.WorkerID(), rw.Address())
 	}
 
 	run := NewRun(input.RunConfig, rw.client)

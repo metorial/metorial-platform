@@ -14,13 +14,13 @@ type workerServer struct {
 }
 
 func (r *workerServer) GetWorkerInfo(ctx context.Context, req *workerPb.WorkerInfoRequest) (*workerPb.WorkerInfoResponse, error) {
-	health := r.getWorkerHealth()
+	health := r.getWorkerInfo()
 
 	return health, nil
 }
 
 func (r *workerServer) StreamWorkerHealth(req *workerPb.WorkerHealthRequest, stream grpc.ServerStreamingServer[workerPb.WorkerInfoResponse]) error {
-	err := stream.Send(r.getWorkerHealth())
+	err := stream.Send(r.getWorkerInfo())
 	if err != nil {
 		return err
 	}
@@ -28,7 +28,7 @@ func (r *workerServer) StreamWorkerHealth(req *workerPb.WorkerHealthRequest, str
 	for {
 		select {
 		case <-r.worker.health.HealthChan:
-			if err := stream.Send(r.getWorkerHealth()); err != nil {
+			if err := stream.Send(r.getWorkerInfo()); err != nil {
 				return err
 			}
 		case <-stream.Context().Done():
@@ -38,10 +38,12 @@ func (r *workerServer) StreamWorkerHealth(req *workerPb.WorkerHealthRequest, str
 	}
 }
 
-func (r *workerServer) getWorkerHealth() *workerPb.WorkerInfoResponse {
+func (r *workerServer) getWorkerInfo() *workerPb.WorkerInfoResponse {
 	res := &workerPb.WorkerInfoResponse{
 		WorkerId:  r.worker.WorkerID,
 		StartTime: r.worker.StartTime.Unix(),
+
+		WorkerType: r.worker.workerType,
 
 		Status:        workerPb.WorkerStatus_healthy,
 		AcceptingJobs: workerPb.WorkerAcceptingJobs_accepting,

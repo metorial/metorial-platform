@@ -10,23 +10,21 @@ import (
 
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/pkg/addr"
-	"github.com/metorial/metorial/mcp-engine/pkg/docker"
 	"github.com/metorial/metorial/mcp-engine/pkg/worker"
-	workerMcpRunner "github.com/metorial/metorial/mcp-engine/pkg/worker-mcp-runner"
+	workerLauncher "github.com/metorial/metorial/mcp-engine/pkg/worker-launcher"
 )
 
 func main() {
 	ownAddress, port, managerAddress := getConfig()
 
-	dockerManager := docker.NewDockerManager(docker.RuntimeDocker)
-	runner := workerMcpRunner.NewRunner(context.Background(), dockerManager)
+	runner := workerLauncher.NewLauncher()
 
-	worker, err := worker.NewWorker(context.Background(), workerPb.WorkerType_mcp_runner, ownAddress, managerAddress, runner)
+	worker, err := worker.NewWorker(context.Background(), workerPb.WorkerType_launcher, ownAddress, managerAddress, runner)
 	if err != nil {
 		log.Fatalf("Failed to create worker: %v", err)
 	}
 
-	log.Printf("Starting MCP Runner on at localhost:%d\n", port)
+	log.Printf("Starting Launcher on at localhost:%d\n", port)
 
 	// Wait for interrupt signal
 	sigChan := make(chan os.Signal, 1)
@@ -40,7 +38,7 @@ func main() {
 }
 
 func getConfig() (string, int, string) {
-	ownAddressArg := flag.String("address", "localhost:50051", "Address for the MCP Runner to listen on")
+	ownAddressArg := flag.String("address", "localhost:50052", "Address for the Launcher to listen on")
 	managerAddressArg := flag.String("manager", "localhost:50050", "Address of the MCP Manager to connect to")
 	flag.Parse()
 

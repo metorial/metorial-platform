@@ -8,7 +8,7 @@ service Launcher {
   rpc RunLauncher(RunLauncherRequest) returns (RunLauncherResponse);
 }
 
-message ConfigLauncher {
+message LauncherConfig {
   enum LauncherType {
     deno = 0;
   }
@@ -19,7 +19,7 @@ message ConfigLauncher {
 }
 
 message RunLauncherRequest {
-  ConfigLauncher launcher = 1;
+  LauncherConfig config = 1;
 }
 
 message RunLauncherResponse {
@@ -30,4 +30,5 @@ message RunLauncherResponse {
 
   Type type = 1;
   string json_output = 2;
+  string error_message = 3;
 }

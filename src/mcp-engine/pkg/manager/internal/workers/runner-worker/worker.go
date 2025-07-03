@@ -14,12 +14,6 @@ import (
 type RunnerWorker struct {
 	*base_worker.BaseWorkerConnection
 
-	workerID string
-	address  string
-
-	acceptingRuns bool
-	healthy       bool
-
 	client  runnerPb.McpRunnerClient
 	manager *workers.WorkerManager
 
@@ -30,12 +24,6 @@ func NewRunnerWorker(ctx context.Context, manager *workers.WorkerManager, worker
 	res := &RunnerWorker{
 		BaseWorkerConnection: base_worker.NewBaseWorkerConnection(ctx, workerID, address),
 
-		workerID: workerID,
-		address:  address,
-
-		acceptingRuns: false,
-		healthy:       false,
-
 		manager: manager,
 		client:  nil,
 	}
@@ -44,12 +32,12 @@ func NewRunnerWorker(ctx context.Context, manager *workers.WorkerManager, worker
 }
 
 func (rw *RunnerWorker) Start() error {
-	log.Printf("Starting RunnerWorker %s at %s", rw.workerID, rw.address)
+	log.Printf("Starting RunnerWorker %s at %s", rw.WorkerID(), rw.Address())
 
 	rw.mutex.Lock()
 	defer rw.mutex.Unlock()
 	if rw.client != nil {
-		return fmt.Errorf("RunnerWorker %s at %s is already started", rw.workerID, rw.address)
+		return fmt.Errorf("RunnerWorker %s at %s is already started", rw.WorkerID(), rw.Address())
 	}
 
 	err := rw.BaseWorkerConnection.Start()
@@ -65,7 +53,7 @@ func (rw *RunnerWorker) Start() error {
 }
 
 func (rw *RunnerWorker) Stop() error {
-	log.Printf("Stopping RunnerWorker %s at %s", rw.workerID, rw.address)
+	log.Printf("Stopping RunnerWorker %s at %s", rw.WorkerID(), rw.Address())
 
 	rw.mutex.Lock()
 	defer rw.mutex.Unlock()
@@ -97,10 +85,10 @@ func (rw *RunnerWorker) monitor() {
 
 	rw.BaseWorkerConnection.Wait()
 
-	log.Printf("RunnerWorker %s at %s has stopped", rw.workerID, rw.address)
+	log.Printf("RunnerWorker %s at %s has stopped", rw.WorkerID(), rw.Address())
 
 	rw.mutex.Lock()
 	defer rw.mutex.Unlock()
 
-	rw.manager.SelfUnregisterWorker(rw.workerID)
+	rw.manager.SelfUnregisterWorker(rw.WorkerID())
 }

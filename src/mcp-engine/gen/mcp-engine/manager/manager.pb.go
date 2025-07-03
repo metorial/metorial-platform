@@ -7,16 +7,15 @@
 package manager
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
 	launcher "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/launcher"
 	mcp "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	runner "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
 	workerBroker "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -232,7 +231,7 @@ func (x *CreateSessionRequest) GetMcpClient() *mcp.McpParticipant {
 type RunConfigWithLauncher struct {
 	state         protoimpl.MessageState     `protogen:"open.v1"`
 	Container     *runner.RunConfigContainer `protobuf:"bytes,1,opt,name=container,proto3" json:"container,omitempty"`
-	Launcher      *launcher.ConfigLauncher   `protobuf:"bytes,2,opt,name=launcher,proto3" json:"launcher,omitempty"`
+	Launcher      *launcher.LauncherConfig   `protobuf:"bytes,2,opt,name=launcher,proto3" json:"launcher,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -274,7 +273,7 @@ func (x *RunConfigWithLauncher) GetContainer() *runner.RunConfigContainer {
 	return nil
 }
 
-func (x *RunConfigWithLauncher) GetLauncher() *launcher.ConfigLauncher {
+func (x *RunConfigWithLauncher) GetLauncher() *launcher.LauncherConfig {
 	if x != nil {
 		return x.Launcher
 	}
@@ -928,7 +927,7 @@ const file_manager_proto_rawDesc = "" +
 	"\x06runner\x10\x00\"\x95\x01\n" +
 	"\x15RunConfigWithLauncher\x12?\n" +
 	"\tcontainer\x18\x01 \x01(\v2!.broker.runner.RunConfigContainerR\tcontainer\x12;\n" +
-	"\blauncher\x18\x02 \x01(\v2\x1f.broker.launcher.ConfigLauncherR\blauncher\"\xea\x01\n" +
+	"\blauncher\x18\x02 \x01(\v2\x1f.broker.launcher.LauncherConfigR\blauncher\"\xea\x01\n" +
 	"\rSessionConfig\x12`\n" +
 	"\x18run_config_with_launcher\x18\x01 \x01(\v2%.broker.manager.RunConfigWithLauncherH\x00R\x15runConfigWithLauncher\x12h\n" +
 	"#run_config_with_container_arguments\x18\x02 \x01(\v2\x18.broker.runner.RunConfigH\x00R\x1frunConfigWithContainerArgumentsB\r\n" +
@@ -1018,7 +1017,7 @@ var file_manager_proto_goTypes = []any{
 	(*DiscardSessionResponse)(nil),              // 16: broker.manager.DiscardSessionResponse
 	(*mcp.McpParticipant)(nil),                  // 17: broker.mcp.McpParticipant
 	(*runner.RunConfigContainer)(nil),           // 18: broker.runner.RunConfigContainer
-	(*launcher.ConfigLauncher)(nil),             // 19: broker.launcher.ConfigLauncher
+	(*launcher.LauncherConfig)(nil),             // 19: broker.launcher.LauncherConfig
 	(*runner.RunConfig)(nil),                    // 20: broker.runner.RunConfig
 	(*mcp.McpMessageRaw)(nil),                   // 21: broker.mcp.McpMessageRaw
 	(*mcp.McpMessage)(nil),                      // 22: broker.mcp.McpMessage
@@ -1032,7 +1031,7 @@ var file_manager_proto_depIdxs = []int32{
 	5,  // 1: broker.manager.CreateSessionRequest.config:type_name -> broker.manager.SessionConfig
 	17, // 2: broker.manager.CreateSessionRequest.mcp_client:type_name -> broker.mcp.McpParticipant
 	18, // 3: broker.manager.RunConfigWithLauncher.container:type_name -> broker.runner.RunConfigContainer
-	19, // 4: broker.manager.RunConfigWithLauncher.launcher:type_name -> broker.launcher.ConfigLauncher
+	19, // 4: broker.manager.RunConfigWithLauncher.launcher:type_name -> broker.launcher.LauncherConfig
 	4,  // 5: broker.manager.SessionConfig.run_config_with_launcher:type_name -> broker.manager.RunConfigWithLauncher
 	20, // 6: broker.manager.SessionConfig.run_config_with_container_arguments:type_name -> broker.runner.RunConfig
 	21, // 7: broker.manager.SendMcpMessageRequest.mcp_messages:type_name -> broker.mcp.McpMessageRaw

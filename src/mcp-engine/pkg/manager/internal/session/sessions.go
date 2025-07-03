@@ -45,6 +45,8 @@ type Sessions struct {
 	keylock     *lock.KeyLock
 	pingLimiter *limiter.Limiter
 	mutex       sync.RWMutex
+
+	launcher *launcher.Launcher
 }
 
 func NewSessions(
@@ -58,6 +60,7 @@ func NewSessions(
 		managers:      NewOtherManagers(state),
 		keylock:       lock.NewKeyLock(),
 		pingLimiter:   limiter.NewLimiter(100), // Max 100 ping updates at a time
+		launcher:      launcher.NewLauncher(workerManager),
 	}
 
 	go sessions.discardRoutine()
@@ -134,7 +137,7 @@ func (s *Sessions) UpsertSession(
 		}
 
 		if request.Config.GetRunConfigWithLauncher() != nil {
-			connectionInput.RunConfig, err = launcher.GetRunnerLaunchParams(request.Config.GetRunConfigWithLauncher())
+			connectionInput.RunConfig, err = s.launcher.GetRunnerLaunchParams(request.Config.GetRunConfigWithLauncher())
 			if err != nil {
 				log.Printf("Failed to get runner launch params: %v\n", err)
 				return nil, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err.Error(), err)

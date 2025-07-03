@@ -33,7 +33,7 @@ message CreateSessionRequest {
 
 message RunConfigWithLauncher {
   broker.runner.RunConfigContainer container = 1;
-  broker.launcher.ConfigLauncher launcher = 2;
+  broker.launcher.LauncherConfig launcher = 2;
 }
 
 message SessionConfig {

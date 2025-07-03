@@ -21,46 +21,46 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ConfigLauncher_LauncherType int32
+type LauncherConfig_LauncherType int32
 
 const (
-	ConfigLauncher_deno ConfigLauncher_LauncherType = 0
+	LauncherConfig_deno LauncherConfig_LauncherType = 0
 )
 
-// Enum value maps for ConfigLauncher_LauncherType.
+// Enum value maps for LauncherConfig_LauncherType.
 var (
-	ConfigLauncher_LauncherType_name = map[int32]string{
+	LauncherConfig_LauncherType_name = map[int32]string{
 		0: "deno",
 	}
-	ConfigLauncher_LauncherType_value = map[string]int32{
+	LauncherConfig_LauncherType_value = map[string]int32{
 		"deno": 0,
 	}
 )
 
-func (x ConfigLauncher_LauncherType) Enum() *ConfigLauncher_LauncherType {
-	p := new(ConfigLauncher_LauncherType)
+func (x LauncherConfig_LauncherType) Enum() *LauncherConfig_LauncherType {
+	p := new(LauncherConfig_LauncherType)
 	*p = x
 	return p
 }
 
-func (x ConfigLauncher_LauncherType) String() string {
+func (x LauncherConfig_LauncherType) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (ConfigLauncher_LauncherType) Descriptor() protoreflect.EnumDescriptor {
+func (LauncherConfig_LauncherType) Descriptor() protoreflect.EnumDescriptor {
 	return file_launcher_proto_enumTypes[0].Descriptor()
 }
 
-func (ConfigLauncher_LauncherType) Type() protoreflect.EnumType {
+func (LauncherConfig_LauncherType) Type() protoreflect.EnumType {
 	return &file_launcher_proto_enumTypes[0]
 }
 
-func (x ConfigLauncher_LauncherType) Number() protoreflect.EnumNumber {
+func (x LauncherConfig_LauncherType) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use ConfigLauncher_LauncherType.Descriptor instead.
-func (ConfigLauncher_LauncherType) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use LauncherConfig_LauncherType.Descriptor instead.
+func (LauncherConfig_LauncherType) EnumDescriptor() ([]byte, []int) {
 	return file_launcher_proto_rawDescGZIP(), []int{0, 0}
 }
 
@@ -110,29 +110,29 @@ func (RunLauncherResponse_Type) EnumDescriptor() ([]byte, []int) {
 	return file_launcher_proto_rawDescGZIP(), []int{2, 0}
 }
 
-type ConfigLauncher struct {
+type LauncherConfig struct {
 	state         protoimpl.MessageState      `protogen:"open.v1"`
-	LauncherType  ConfigLauncher_LauncherType `protobuf:"varint,1,opt,name=launcher_type,json=launcherType,proto3,enum=broker.launcher.ConfigLauncher_LauncherType" json:"launcher_type,omitempty"`
+	LauncherType  LauncherConfig_LauncherType `protobuf:"varint,1,opt,name=launcher_type,json=launcherType,proto3,enum=broker.launcher.LauncherConfig_LauncherType" json:"launcher_type,omitempty"`
 	Code          string                      `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
 	JsonConfig    string                      `protobuf:"bytes,3,opt,name=json_config,json=jsonConfig,proto3" json:"json_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ConfigLauncher) Reset() {
-	*x = ConfigLauncher{}
+func (x *LauncherConfig) Reset() {
+	*x = LauncherConfig{}
 	mi := &file_launcher_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ConfigLauncher) String() string {
+func (x *LauncherConfig) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ConfigLauncher) ProtoMessage() {}
+func (*LauncherConfig) ProtoMessage() {}
 
-func (x *ConfigLauncher) ProtoReflect() protoreflect.Message {
+func (x *LauncherConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_launcher_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -144,26 +144,26 @@ func (x *ConfigLauncher) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConfigLauncher.ProtoReflect.Descriptor instead.
-func (*ConfigLauncher) Descriptor() ([]byte, []int) {
+// Deprecated: Use LauncherConfig.ProtoReflect.Descriptor instead.
+func (*LauncherConfig) Descriptor() ([]byte, []int) {
 	return file_launcher_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ConfigLauncher) GetLauncherType() ConfigLauncher_LauncherType {
+func (x *LauncherConfig) GetLauncherType() LauncherConfig_LauncherType {
 	if x != nil {
 		return x.LauncherType
 	}
-	return ConfigLauncher_deno
+	return LauncherConfig_deno
 }
 
-func (x *ConfigLauncher) GetCode() string {
+func (x *LauncherConfig) GetCode() string {
 	if x != nil {
 		return x.Code
 	}
 	return ""
 }
 
-func (x *ConfigLauncher) GetJsonConfig() string {
+func (x *LauncherConfig) GetJsonConfig() string {
 	if x != nil {
 		return x.JsonConfig
 	}
@@ -172,7 +172,7 @@ func (x *ConfigLauncher) GetJsonConfig() string {
 
 type RunLauncherRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Launcher      *ConfigLauncher        `protobuf:"bytes,1,opt,name=launcher,proto3" json:"launcher,omitempty"`
+	Config        *LauncherConfig        `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -207,9 +207,9 @@ func (*RunLauncherRequest) Descriptor() ([]byte, []int) {
 	return file_launcher_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *RunLauncherRequest) GetLauncher() *ConfigLauncher {
+func (x *RunLauncherRequest) GetConfig() *LauncherConfig {
 	if x != nil {
-		return x.Launcher
+		return x.Config
 	}
 	return nil
 }
@@ -218,6 +218,7 @@ type RunLauncherResponse struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
 	Type          RunLauncherResponse_Type `protobuf:"varint,1,opt,name=type,proto3,enum=broker.launcher.RunLauncherResponse_Type" json:"type,omitempty"`
 	JsonOutput    string                   `protobuf:"bytes,2,opt,name=json_output,json=jsonOutput,proto3" json:"json_output,omitempty"`
+	ErrorMessage  string                   `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -266,24 +267,32 @@ func (x *RunLauncherResponse) GetJsonOutput() string {
 	return ""
 }
 
+func (x *RunLauncherResponse) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
 var File_launcher_proto protoreflect.FileDescriptor
 
 const file_launcher_proto_rawDesc = "" +
 	"\n" +
 	"\x0elauncher.proto\x12\x0fbroker.launcher\"\xb2\x01\n" +
-	"\x0eConfigLauncher\x12Q\n" +
-	"\rlauncher_type\x18\x01 \x01(\x0e2,.broker.launcher.ConfigLauncher.LauncherTypeR\flauncherType\x12\x12\n" +
+	"\x0eLauncherConfig\x12Q\n" +
+	"\rlauncher_type\x18\x01 \x01(\x0e2,.broker.launcher.LauncherConfig.LauncherTypeR\flauncherType\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x12\x1f\n" +
 	"\vjson_config\x18\x03 \x01(\tR\n" +
 	"jsonConfig\"\x18\n" +
 	"\fLauncherType\x12\b\n" +
-	"\x04deno\x10\x00\"Q\n" +
-	"\x12RunLauncherRequest\x12;\n" +
-	"\blauncher\x18\x01 \x01(\v2\x1f.broker.launcher.ConfigLauncherR\blauncher\"\x95\x01\n" +
+	"\x04deno\x10\x00\"M\n" +
+	"\x12RunLauncherRequest\x127\n" +
+	"\x06config\x18\x01 \x01(\v2\x1f.broker.launcher.LauncherConfigR\x06config\"\xba\x01\n" +
 	"\x13RunLauncherResponse\x12=\n" +
 	"\x04type\x18\x01 \x01(\x0e2).broker.launcher.RunLauncherResponse.TypeR\x04type\x12\x1f\n" +
 	"\vjson_output\x18\x02 \x01(\tR\n" +
-	"jsonOutput\"\x1e\n" +
+	"jsonOutput\x12#\n" +
+	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\"\x1e\n" +
 	"\x04Type\x12\t\n" +
 	"\x05error\x10\x00\x12\v\n" +
 	"\asuccess\x10\x012d\n" +
@@ -305,15 +314,15 @@ func file_launcher_proto_rawDescGZIP() []byte {
 var file_launcher_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_launcher_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_launcher_proto_goTypes = []any{
-	(ConfigLauncher_LauncherType)(0), // 0: broker.launcher.ConfigLauncher.LauncherType
+	(LauncherConfig_LauncherType)(0), // 0: broker.launcher.LauncherConfig.LauncherType
 	(RunLauncherResponse_Type)(0),    // 1: broker.launcher.RunLauncherResponse.Type
-	(*ConfigLauncher)(nil),           // 2: broker.launcher.ConfigLauncher
+	(*LauncherConfig)(nil),           // 2: broker.launcher.LauncherConfig
 	(*RunLauncherRequest)(nil),       // 3: broker.launcher.RunLauncherRequest
 	(*RunLauncherResponse)(nil),      // 4: broker.launcher.RunLauncherResponse
 }
 var file_launcher_proto_depIdxs = []int32{
-	0, // 0: broker.launcher.ConfigLauncher.launcher_type:type_name -> broker.launcher.ConfigLauncher.LauncherType
-	2, // 1: broker.launcher.RunLauncherRequest.launcher:type_name -> broker.launcher.ConfigLauncher
+	0, // 0: broker.launcher.LauncherConfig.launcher_type:type_name -> broker.launcher.LauncherConfig.LauncherType
+	2, // 1: broker.launcher.RunLauncherRequest.config:type_name -> broker.launcher.LauncherConfig
 	1, // 2: broker.launcher.RunLauncherResponse.type:type_name -> broker.launcher.RunLauncherResponse.Type
 	3, // 3: broker.launcher.Launcher.RunLauncher:input_type -> broker.launcher.RunLauncherRequest
 	4, // 4: broker.launcher.Launcher.RunLauncher:output_type -> broker.launcher.RunLauncherResponse

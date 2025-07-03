@@ -6,7 +6,9 @@ import (
 	"log"
 	"sync"
 
+	launcherPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/launcher"
 	workerPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
+	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -160,7 +162,6 @@ func (bw *BaseWorkerConnection) healthRoutine() error {
 
 	for {
 		resp, err := stream.Recv()
-		fmt.Println("Received health response:", resp, "Error:", err)
 		if err != nil {
 			return err
 		}
@@ -187,8 +188,27 @@ func (bw *BaseWorkerConnection) Conn() *grpc.ClientConn {
 	defer bw.mutex.Unlock()
 
 	if bw.conn == nil {
-		return nil
+		log.Fatalf("Worker connection for %s at %s is not initialized", bw.workerID, bw.address)
 	}
 
 	return bw.conn
+}
+
+func (bw *BaseWorkerConnection) Context() context.Context {
+	bw.mutex.Lock()
+	defer bw.mutex.Unlock()
+
+	if bw.context == nil {
+		log.Fatalf("Worker connection for %s at %s is not initialized", bw.workerID, bw.address)
+	}
+
+	return bw.context
+}
+
+func (bw *BaseWorkerConnection) CreateConnection(input *workers.WorkerConnectionInput) (workers.WorkerConnection, error) {
+	return nil, fmt.Errorf("CreateConnection is not implemented for BaseWorkerConnection")
+}
+
+func (bw *BaseWorkerConnection) RunLauncher(input *launcherPB.LauncherConfig) (*launcherPB.RunLauncherResponse, error) {
+	return nil, fmt.Errorf("RunLauncher is not implemented for BaseWorkerConnection")
 }

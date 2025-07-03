@@ -28,6 +28,8 @@ type Worker struct {
 	Address   string
 	StartTime time.Time
 
+	workerType workerPb.WorkerType
+
 	port       int
 	grpcServer *grpc.Server
 
@@ -48,8 +50,7 @@ type Worker struct {
 	seenManagers []string
 }
 
-func NewWorker(ctx context.Context, ownAddress string, managerAddress string, impl WorkerImpl) (*Worker, error) {
-
+func NewWorker(ctx context.Context, workerType workerPb.WorkerType, ownAddress string, managerAddress string, impl WorkerImpl) (*Worker, error) {
 	port, err := addr.ExtractPort(ownAddress)
 	if err != nil {
 		return nil, err
@@ -66,6 +67,8 @@ func NewWorker(ctx context.Context, ownAddress string, managerAddress string, im
 
 	worker := &Worker{
 		port: port,
+
+		workerType: workerType,
 
 		WorkerID:  impl.WorkerId(),
 		Address:   ownAddress,
@@ -162,7 +165,7 @@ func (w *Worker) registerWithManager(address string) error {
 	_, err = client.RegisterWorker(context.Background(), &workerBrokerPb.RegisterWorkerRequest{
 		WorkerId:   w.WorkerID,
 		Address:    w.Address,
-		WorkerType: workerBrokerPb.WorkerType_WORKER_TYPE_RUNNER,
+		WorkerType: w.workerType,
 	})
 	if err != nil {
 		return err

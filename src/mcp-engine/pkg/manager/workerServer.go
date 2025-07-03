@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log"
 
+	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
 	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/state"
 	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers"
-	runner_worker "github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers/runner"
+	launcherWorker "github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers/launcher-worker"
+	runnerWorker "github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers/runner-worker"
 )
 
 type workerBrokerServer struct {
@@ -44,18 +46,26 @@ func (s *workerBrokerServer) RegisterWorker(ctx context.Context, req *workerBrok
 		return &workerBrokerPb.RegisterWorkerResponse{}, nil
 	}
 
-	if req.WorkerType == workerBrokerPb.WorkerType_WORKER_TYPE_RUNNER {
-		log.Printf("Registering worker %s of type %s at address %s", req.WorkerId, req.WorkerType, req.Address)
+	var worker workers.Worker
+	log.Printf("Registering worker %s of type %s at address %s", req.WorkerId, req.WorkerType, req.Address)
 
-		runnerWorker := runner_worker.NewRunnerWorker(context.Background(), s.workerManager, req.WorkerId, req.Address)
-		err := s.workerManager.RegisterWorker(runnerWorker)
-		if err != nil {
-			log.Printf("Failed to register worker %s: %v", req.WorkerId, err)
-			return nil, fmt.Errorf("failed to register worker %s: %w", req.WorkerId, err)
-		}
+	switch req.WorkerType {
 
-		return &workerBrokerPb.RegisterWorkerResponse{}, nil
+	case workerPb.WorkerType_mcp_runner:
+		worker = runnerWorker.NewRunnerWorker(context.Background(), s.workerManager, req.WorkerId, req.Address)
+	case workerPb.WorkerType_launcher:
+		worker = launcherWorker.NewLauncherWorker(context.Background(), s.workerManager, req.WorkerId, req.Address)
+	default:
+		return nil, fmt.Errorf("unsupported worker type: %v", req.WorkerType)
+
 	}
 
-	return nil, fmt.Errorf("unsupported worker type: %v", req.WorkerType)
+	err := s.workerManager.RegisterWorker(worker)
+	if err != nil {
+		log.Printf("Failed to register worker %s: %v", req.WorkerId, err)
+		return nil, fmt.Errorf("failed to register worker %s: %w", req.WorkerId, err)
+	}
+
+	return &workerBrokerPb.RegisterWorkerResponse{}, nil
+
 }
