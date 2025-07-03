@@ -20,6 +20,7 @@ import (
 type WorkerImpl interface {
 	Start(worker *Worker, grpc *grpc.Server) error
 	Stop() error
+	WorkerId() string
 }
 
 type Worker struct {
@@ -47,7 +48,7 @@ type Worker struct {
 	seenManagers []string
 }
 
-func NewWorker(ctx context.Context, workerID string, ownAddress string, managerAddress string, impl WorkerImpl) (*Worker, error) {
+func NewWorker(ctx context.Context, ownAddress string, managerAddress string, impl WorkerImpl) (*Worker, error) {
 
 	port, err := addr.ExtractPort(ownAddress)
 	if err != nil {
@@ -66,7 +67,7 @@ func NewWorker(ctx context.Context, workerID string, ownAddress string, managerA
 	worker := &Worker{
 		port: port,
 
-		WorkerID:  workerID,
+		WorkerID:  impl.WorkerId(),
 		Address:   ownAddress,
 		StartTime: time.Now(),
 

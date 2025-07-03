@@ -10,17 +10,17 @@ import (
 
 	"github.com/metorial/metorial/mcp-engine/pkg/addr"
 	"github.com/metorial/metorial/mcp-engine/pkg/docker"
-	mcp_runner "github.com/metorial/metorial/mcp-engine/pkg/mcp-runner"
 	"github.com/metorial/metorial/mcp-engine/pkg/worker"
+	worker_mcp_runner "github.com/metorial/metorial/mcp-engine/pkg/worker-mcp-runner"
 )
 
 func main() {
 	ownAddress, port, managerAddress := getConfig()
 
 	dockerManager := docker.NewDockerManager(docker.RuntimeDocker)
-	runner := mcp_runner.NewRunner(context.Background(), port, dockerManager)
+	runner := worker_mcp_runner.NewRunner(context.Background(), dockerManager)
 
-	worker, err := worker.NewWorker(context.Background(), runner.RunnerId(), ownAddress, managerAddress, runner)
+	worker, err := worker.NewWorker(context.Background(), ownAddress, managerAddress, runner)
 	if err != nil {
 		log.Fatalf("Failed to create worker: %v", err)
 	}

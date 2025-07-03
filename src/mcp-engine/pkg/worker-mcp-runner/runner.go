@@ -1,4 +1,4 @@
-package mcp_runner
+package worker_mcp_runner
 
 import (
 	"context"
@@ -15,14 +15,12 @@ import (
 type runner struct {
 	worker.WorkerImpl
 
-	port int
-
 	worker *worker.Worker
 
 	state *RunnerState
 }
 
-func NewRunner(ctx context.Context, port int, dockerManager *docker.DockerManager) *runner {
+func NewRunner(ctx context.Context, dockerManager *docker.DockerManager) *runner {
 	state := newRunnerState(dockerManager, ctx.Done())
 	state.startPrintStateRoutine(time.Second * 60 * 5)
 
@@ -30,7 +28,6 @@ func NewRunner(ctx context.Context, port int, dockerManager *docker.DockerManage
 	log.Println("Start Time:", state.StartTime)
 
 	return &runner{
-		port:  port,
 		state: state,
 	}
 }
@@ -48,7 +45,7 @@ func (r *runner) Stop() error {
 	return nil
 }
 
-func (r *runner) RunnerId() string {
+func (r *runner) WorkerId() string {
 	if r.state == nil {
 		return ""
 	}

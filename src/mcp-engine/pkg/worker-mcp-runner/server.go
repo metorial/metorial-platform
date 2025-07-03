@@ -1,4 +1,4 @@
-package mcp_runner
+package worker_mcp_runner
 
 import (
 	"context"
