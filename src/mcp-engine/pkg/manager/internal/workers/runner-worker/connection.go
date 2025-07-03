@@ -75,7 +75,7 @@ func (rwc *RunnerWorkerConnection) Close() error {
 	return nil
 }
 
-func (rwc *RunnerWorkerConnection) Done() <-chan struct{} {
+func (rwc *RunnerWorkerConnection) Done() pubsub.BroadcasterReader[struct{}] {
 	return rwc.run.Done()
 }
 
@@ -109,18 +109,25 @@ func (rws *RunnerWorkerConnection) SendAndWaitForResponse(message *mcp.MCPMessag
 	msgchan := rws.run.messages.Subscribe()
 	defer rws.run.messages.Unsubscribe(msgchan)
 
+	donechan := rws.run.Done().Subscribe()
+	defer rws.run.Done().Unsubscribe(donechan)
+
 	go func() {
 		if err := rws.AcceptMessage(message); err != nil {
 			errchan <- fmt.Errorf("failed to send message: %w", err)
 		}
 	}()
 
+	timeout := time.After(time.Second * 10)
+
 	for {
 		select {
-		case <-rws.Done():
+		case <-donechan:
 			return nil, fmt.Errorf("connection closed before receiving response")
 		case err := <-errchan:
 			return nil, err
+		case <-timeout:
+			return nil, fmt.Errorf("timeout waiting for response to message: %s", message.GetStringPayload())
 		case msg := <-msgchan:
 			if msg != nil {
 				return msg, nil
@@ -129,7 +136,7 @@ func (rws *RunnerWorkerConnection) SendAndWaitForResponse(message *mcp.MCPMessag
 	}
 }
 
-func (rwc *RunnerWorkerConnection) Messages() *pubsub.Broadcaster[*mcp.MCPMessage] {
+func (rwc *RunnerWorkerConnection) Messages() pubsub.BroadcasterReader[*mcp.MCPMessage] {
 	if rwc.run == nil {
 		return nil
 	}
@@ -137,7 +144,7 @@ func (rwc *RunnerWorkerConnection) Messages() *pubsub.Broadcaster[*mcp.MCPMessag
 	return rwc.run.messages
 }
 
-func (rwc *RunnerWorkerConnection) Output() *pubsub.Broadcaster[*mcpPB.McpOutput] {
+func (rwc *RunnerWorkerConnection) Output() pubsub.BroadcasterReader[*mcpPB.McpOutput] {
 	if rwc.run == nil {
 		return nil
 	}
@@ -145,7 +152,7 @@ func (rwc *RunnerWorkerConnection) Output() *pubsub.Broadcaster[*mcpPB.McpOutput
 	return rwc.run.output
 }
 
-func (rwc *RunnerWorkerConnection) Errors() *pubsub.Broadcaster[*mcpPB.McpError] {
+func (rwc *RunnerWorkerConnection) Errors() pubsub.BroadcasterReader[*mcpPB.McpError] {
 	if rwc.run == nil {
 		return nil
 	}

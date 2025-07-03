@@ -108,12 +108,20 @@ func (m *Run) Stop() error {
 	return m.container.Stop()
 }
 
-func (m *Run) Wait() {
+func (m *Run) Done() <-chan struct{} {
 	if m.container == nil {
-		return
+		return nil
 	}
 
-	m.container.Wait()
+	return m.container.Done()
+}
+
+func (m *Run) Status() int {
+	if m.container == nil {
+		return -1
+	}
+
+	return m.container.ExitCode
 }
 
 func (m *Run) input(line string) error {
@@ -192,6 +200,9 @@ func (m *Run) HandleOutput(messageHandler McpMessageHandler, outputHandler Multi
 			stderrBuffer.AddLine(line)
 		}
 	})
+
+	stdoutBuffer.Flush()
+	stderrBuffer.Flush()
 }
 
 func (m *Run) HandleInput(input string) error {

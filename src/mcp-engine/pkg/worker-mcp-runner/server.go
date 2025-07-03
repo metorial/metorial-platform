@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
+	"time"
 
 	commonPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/common"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
@@ -124,13 +126,14 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 		})
 	}
 
-	if err := stream.Send(&runnerPb.RunResponse{
+	err = stream.Send(&runnerPb.RunResponse{
 		JobType: &runnerPb.RunResponse_Init{
 			Init: &runnerPb.RunResponseInit{
 				RunId: run.ID,
 			},
 		},
-	}); err != nil {
+	})
+	if err != nil {
 		return err
 	}
 
@@ -145,7 +148,6 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 					},
 				},
 			})
-
 			if err != nil {
 				log.Printf("Failed to send MCP message: %v\n", err)
 			}
@@ -172,14 +174,47 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 				}
 			}
 
-			if err := stream.Send(&runnerPb.RunResponse{JobType: outputMsg}); err != nil {
+			err := stream.Send(&runnerPb.RunResponse{JobType: outputMsg})
+			if err != nil {
 				log.Printf("Failed to send output message: %v\n", err)
 			}
 		},
 	)
 
+	closeWg := &sync.WaitGroup{}
+	closeWg.Add(1)
+
+	go func() {
+		// Wait for the run to finish
+		<-run.Done()
+
+		closeWg.Done()
+
+		time.Sleep(100 * time.Millisecond)
+
+		if run.Status() != 0 {
+			stream.Send(&runnerPb.RunResponse{
+				JobType: &runnerPb.RunResponse_Error{
+					Error: &runnerPb.RunResponseError{
+						McpError: &mcpPb.McpError{
+							ErrorMessage: fmt.Sprintf("Finished with non-zero exit code: %d", run.Status()),
+							ErrorCode:    mcpPb.McpError_execution_error,
+						},
+					},
+				},
+			})
+		}
+
+		stream.Send(&runnerPb.RunResponse{
+			JobType: &runnerPb.RunResponse_Close{
+				Close: &runnerPb.RunResponseClose{},
+			},
+		})
+	}()
+
 	log.Printf("Run started with ID: %s\n", run.ID)
 
+loop:
 	for {
 		req, err := stream.Recv()
 		if err != nil {
@@ -197,7 +232,8 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 			continue
 
 		case *runnerPb.RunRequest_Close:
-			if err := run.Stop(); err != nil {
+			err := run.Stop()
+			if err != nil {
 				return stream.Send(&runnerPb.RunResponse{
 					JobType: &runnerPb.RunResponse_Error{
 						Error: &runnerPb.RunResponseError{
@@ -210,11 +246,7 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 				})
 			}
 
-			return stream.Send(&runnerPb.RunResponse{
-				JobType: &runnerPb.RunResponse_Close{
-					Close: &runnerPb.RunResponseClose{},
-				},
-			})
+			break loop
 
 		case *runnerPb.RunRequest_McpMessage:
 			err = run.HandleInput(msg.McpMessage.Message.Message)
@@ -232,4 +264,8 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 			}
 		}
 	}
+
+	closeWg.Wait()
+
+	return nil
 }

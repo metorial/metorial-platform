@@ -97,6 +97,9 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 			errChan := connection.Errors().Subscribe()
 			defer connection.Errors().Unsubscribe(errChan)
 
+			doneChan := connection.Done().Subscribe()
+			defer connection.Done().Unsubscribe(doneChan)
+
 			for {
 				if responsesToWaitFor <= 0 {
 					return
@@ -109,7 +112,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 				case <-s.context.Done():
 					return
 
-				case <-connection.Done():
+				case <-doneChan:
 				case <-timeout.C:
 					if responsesToWaitFor > 0 {
 						response := &managerPb.SendMcpMessageResponse{
@@ -163,7 +166,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	for _, message := range mcpMessages {
 		err := connection.AcceptMessage(message)
 		if err != nil {
-			return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "mcp_message_processing_failed", "failed to process MCP message", err)
+			return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "mcp_message_processing_failed", "failed to accept MCP message", err)
 		}
 	}
 
@@ -182,7 +185,24 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 
 	var msgChan chan *mcp.MCPMessage = nil
 	var errChan chan *mcpPb.McpError = nil
+	var outChan chan *mcpPb.McpOutput = nil
+	var doneChan chan struct{} = nil
 	chansForConId := ""
+
+	defer func() {
+		if msgChan != nil {
+			s.activeConnection.Messages().Unsubscribe(msgChan)
+		}
+		if errChan != nil {
+			s.activeConnection.Errors().Unsubscribe(errChan)
+		}
+		if outChan != nil {
+			s.activeConnection.Output().Unsubscribe(outChan)
+		}
+		if doneChan != nil {
+			s.activeConnection.Done().Unsubscribe(doneChan)
+		}
+	}()
 
 	for {
 		if req.OnlyIds != nil && responsesToWaitFor <= 0 {
@@ -195,6 +215,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 			case <-stream.Context().Done():
 			case <-s.context.Done():
 				return nil
+
 			case <-s.activeConnectionCreated:
 				// Wait for the mutex to be released
 				s.mutex.RLock()
@@ -204,7 +225,6 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 		}
 
 		if connection == nil {
-			log.Println("No active connection found, waiting for one to be created")
 			continue
 		}
 
@@ -217,8 +237,18 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 				connection.Errors().Unsubscribe(errChan)
 			}
 
+			if doneChan != nil {
+				connection.Done().Unsubscribe(doneChan)
+			}
+
+			if outChan != nil {
+				connection.Output().Unsubscribe(outChan)
+			}
+
 			msgChan = connection.Messages().Subscribe()
 			errChan = connection.Errors().Subscribe()
+			outChan = connection.Output().Subscribe()
+			doneChan = connection.Done().Subscribe()
 			chansForConId = connection.ConnectionID()
 		}
 
@@ -227,7 +257,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 		case <-s.context.Done():
 			return nil
 
-		case <-connection.Done():
+		case <-doneChan:
 			// The connection has been closed, but the stream remains open
 			// start over with the loop to wait for a new connection
 			continue
@@ -251,8 +281,9 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 
 			if canSend {
 				response := &managerPb.StreamMcpMessagesResponse{
-					ResponseType:       managerPb.StreamMcpMessagesResponse_message,
-					McpResponseMessage: message.ToPbMessage(),
+					Response: &managerPb.StreamMcpMessagesResponse_McpMessage{
+						McpMessage: message.ToPbMessage(),
+					},
 				}
 
 				err := stream.Send(response)
@@ -264,11 +295,23 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 
 		case mcpErr := <-errChan:
 			err := stream.Send(&managerPb.StreamMcpMessagesResponse{
-				ResponseType: managerPb.StreamMcpMessagesResponse_error,
-				McpError:     mcpErr,
+				Response: &managerPb.StreamMcpMessagesResponse_McpError{
+					McpError: mcpErr,
+				},
 			})
 			if err != nil {
 				log.Printf("Failed to send error message: %v", err)
+				return nil
+			}
+
+		case output := <-outChan:
+			err := stream.Send(&managerPb.StreamMcpMessagesResponse{
+				Response: &managerPb.StreamMcpMessagesResponse_McpOutput{
+					McpOutput: output,
+				},
+			})
+			if err != nil {
+				log.Printf("Failed to send output message: %v", err)
 				return nil
 			}
 		}
@@ -369,13 +412,15 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 
 	log.Printf("Created connection %s for session %s with worker %s", connection.ConnectionID(), s.storedSession.ID, worker.WorkerID())
 
-	s.activeConnection = connection
-	s.lastConnectionInteraction = time.Now()
-
 	err = connection.Start()
 	if err != nil {
 		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "runner_connection_error", "failed to start connection", err)
 	}
+
+	log.Printf("Started connection %s for session %s with worker %s", connection.ConnectionID(), s.storedSession.ID, worker.WorkerID())
+
+	s.activeConnection = connection
+	s.lastConnectionInteraction = time.Now()
 
 	go s.monitorConnection(connection)
 
@@ -391,7 +436,10 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 }
 
 func (s *LocalSession) stop() error {
+
 	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	close(s.activeConnectionCreated)
 	s.activeConnectionCreated = nil
 
@@ -399,15 +447,6 @@ func (s *LocalSession) stop() error {
 		s.cancel()
 		s.cancel = nil
 	}
-
-	s.mutex.Unlock()
-
-	return s.closeActiveConnection()
-}
-
-func (s *LocalSession) closeActiveConnection() error {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
 
 	if s.activeConnection != nil {
 		err := s.activeConnection.Close()
@@ -426,6 +465,9 @@ func (s *LocalSession) monitorConnection(connection workers.WorkerConnection) {
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
 
+	doneChan := connection.Done().Subscribe()
+	defer connection.Done().Unsubscribe(doneChan)
+
 loop:
 	for {
 		select {
@@ -435,6 +477,8 @@ loop:
 				if s.activeConnection != nil && s.activeConnection.ConnectionID() == connection.ConnectionID() {
 					s.activeConnection = nil
 					go connection.Close()
+
+					log.Printf("Connection %s for session %s has been closed due to inactivity", connection.ConnectionID(), s.storedSession.ID)
 				}
 				s.mutex.Unlock()
 
@@ -448,7 +492,7 @@ loop:
 				}
 			}
 
-		case <-connection.Done():
+		case <-doneChan:
 			s.mutex.Lock()
 			if s.activeConnection != nil && s.activeConnection.ConnectionID() == connection.ConnectionID() {
 				s.activeConnection = nil

@@ -114,52 +114,6 @@ func (SendMcpMessageResponse_ResponseType) EnumDescriptor() ([]byte, []int) {
 	return file_manager_proto_rawDescGZIP(), []int{5, 0}
 }
 
-type StreamMcpMessagesResponse_ResponseType int32
-
-const (
-	StreamMcpMessagesResponse_error   StreamMcpMessagesResponse_ResponseType = 0
-	StreamMcpMessagesResponse_message StreamMcpMessagesResponse_ResponseType = 1
-)
-
-// Enum value maps for StreamMcpMessagesResponse_ResponseType.
-var (
-	StreamMcpMessagesResponse_ResponseType_name = map[int32]string{
-		0: "error",
-		1: "message",
-	}
-	StreamMcpMessagesResponse_ResponseType_value = map[string]int32{
-		"error":   0,
-		"message": 1,
-	}
-)
-
-func (x StreamMcpMessagesResponse_ResponseType) Enum() *StreamMcpMessagesResponse_ResponseType {
-	p := new(StreamMcpMessagesResponse_ResponseType)
-	*p = x
-	return p
-}
-
-func (x StreamMcpMessagesResponse_ResponseType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (StreamMcpMessagesResponse_ResponseType) Descriptor() protoreflect.EnumDescriptor {
-	return file_manager_proto_enumTypes[2].Descriptor()
-}
-
-func (StreamMcpMessagesResponse_ResponseType) Type() protoreflect.EnumType {
-	return &file_manager_proto_enumTypes[2]
-}
-
-func (x StreamMcpMessagesResponse_ResponseType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use StreamMcpMessagesResponse_ResponseType.Descriptor instead.
-func (StreamMcpMessagesResponse_ResponseType) EnumDescriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{7, 0}
-}
-
 type CreateSessionRequest struct {
 	state         protoimpl.MessageState           `protogen:"open.v1"`
 	SessionId     string                           `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
@@ -579,12 +533,15 @@ func (x *StreamMcpMessagesRequest) GetOnlyIds() []string {
 }
 
 type StreamMcpMessagesResponse struct {
-	state              protoimpl.MessageState                 `protogen:"open.v1"`
-	ResponseType       StreamMcpMessagesResponse_ResponseType `protobuf:"varint,1,opt,name=response_type,json=responseType,proto3,enum=broker.manager.StreamMcpMessagesResponse_ResponseType" json:"response_type,omitempty"`
-	McpResponseMessage *mcp.McpMessage                        `protobuf:"bytes,2,opt,name=mcp_response_message,json=mcpResponseMessage,proto3" json:"mcp_response_message,omitempty"`
-	McpError           *mcp.McpError                          `protobuf:"bytes,3,opt,name=mcp_error,json=mcpError,proto3" json:"mcp_error,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Response:
+	//
+	//	*StreamMcpMessagesResponse_McpMessage
+	//	*StreamMcpMessagesResponse_McpError
+	//	*StreamMcpMessagesResponse_McpOutput
+	Response      isStreamMcpMessagesResponse_Response `protobuf_oneof:"response"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StreamMcpMessagesResponse) Reset() {
@@ -617,26 +574,61 @@ func (*StreamMcpMessagesResponse) Descriptor() ([]byte, []int) {
 	return file_manager_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *StreamMcpMessagesResponse) GetResponseType() StreamMcpMessagesResponse_ResponseType {
+func (x *StreamMcpMessagesResponse) GetResponse() isStreamMcpMessagesResponse_Response {
 	if x != nil {
-		return x.ResponseType
+		return x.Response
 	}
-	return StreamMcpMessagesResponse_error
+	return nil
 }
 
-func (x *StreamMcpMessagesResponse) GetMcpResponseMessage() *mcp.McpMessage {
+func (x *StreamMcpMessagesResponse) GetMcpMessage() *mcp.McpMessage {
 	if x != nil {
-		return x.McpResponseMessage
+		if x, ok := x.Response.(*StreamMcpMessagesResponse_McpMessage); ok {
+			return x.McpMessage
+		}
 	}
 	return nil
 }
 
 func (x *StreamMcpMessagesResponse) GetMcpError() *mcp.McpError {
 	if x != nil {
-		return x.McpError
+		if x, ok := x.Response.(*StreamMcpMessagesResponse_McpError); ok {
+			return x.McpError
+		}
 	}
 	return nil
 }
+
+func (x *StreamMcpMessagesResponse) GetMcpOutput() *mcp.McpOutput {
+	if x != nil {
+		if x, ok := x.Response.(*StreamMcpMessagesResponse_McpOutput); ok {
+			return x.McpOutput
+		}
+	}
+	return nil
+}
+
+type isStreamMcpMessagesResponse_Response interface {
+	isStreamMcpMessagesResponse_Response()
+}
+
+type StreamMcpMessagesResponse_McpMessage struct {
+	McpMessage *mcp.McpMessage `protobuf:"bytes,1,opt,name=mcp_message,json=mcpMessage,proto3,oneof"`
+}
+
+type StreamMcpMessagesResponse_McpError struct {
+	McpError *mcp.McpError `protobuf:"bytes,2,opt,name=mcp_error,json=mcpError,proto3,oneof"`
+}
+
+type StreamMcpMessagesResponse_McpOutput struct {
+	McpOutput *mcp.McpOutput `protobuf:"bytes,3,opt,name=mcp_output,json=mcpOutput,proto3,oneof"`
+}
+
+func (*StreamMcpMessagesResponse_McpMessage) isStreamMcpMessagesResponse_Response() {}
+
+func (*StreamMcpMessagesResponse_McpError) isStreamMcpMessagesResponse_Response() {}
+
+func (*StreamMcpMessagesResponse_McpOutput) isStreamMcpMessagesResponse_Response() {}
 
 type GetServerInfoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -949,14 +941,15 @@ const file_manager_proto_rawDesc = "" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12H\n" +
 	"\x12only_message_types\x18\x02 \x03(\x0e2\x1a.broker.mcp.McpMessageTypeR\x10onlyMessageTypes\x12\x19\n" +
-	"\bonly_ids\x18\x03 \x03(\tR\aonlyIds\"\x9d\x02\n" +
-	"\x19StreamMcpMessagesResponse\x12[\n" +
-	"\rresponse_type\x18\x01 \x01(\x0e26.broker.manager.StreamMcpMessagesResponse.ResponseTypeR\fresponseType\x12H\n" +
-	"\x14mcp_response_message\x18\x02 \x01(\v2\x16.broker.mcp.McpMessageR\x12mcpResponseMessage\x121\n" +
-	"\tmcp_error\x18\x03 \x01(\v2\x14.broker.mcp.McpErrorR\bmcpError\"&\n" +
-	"\fResponseType\x12\t\n" +
-	"\x05error\x10\x00\x12\v\n" +
-	"\amessage\x10\x01\"5\n" +
+	"\bonly_ids\x18\x03 \x03(\tR\aonlyIds\"\xcf\x01\n" +
+	"\x19StreamMcpMessagesResponse\x129\n" +
+	"\vmcp_message\x18\x01 \x01(\v2\x16.broker.mcp.McpMessageH\x00R\n" +
+	"mcpMessage\x123\n" +
+	"\tmcp_error\x18\x02 \x01(\v2\x14.broker.mcp.McpErrorH\x00R\bmcpError\x126\n" +
+	"\n" +
+	"mcp_output\x18\x03 \x01(\v2\x15.broker.mcp.McpOutputH\x00R\tmcpOutputB\n" +
+	"\n" +
+	"\bresponse\"5\n" +
 	"\x14GetServerInfoRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"\x14\n" +
@@ -995,68 +988,68 @@ func file_manager_proto_rawDescGZIP() []byte {
 	return file_manager_proto_rawDescData
 }
 
-var file_manager_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_manager_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_manager_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_manager_proto_goTypes = []any{
-	(CreateSessionRequest_SessionType)(0),       // 0: broker.manager.CreateSessionRequest.SessionType
-	(SendMcpMessageResponse_ResponseType)(0),    // 1: broker.manager.SendMcpMessageResponse.ResponseType
-	(StreamMcpMessagesResponse_ResponseType)(0), // 2: broker.manager.StreamMcpMessagesResponse.ResponseType
-	(*CreateSessionRequest)(nil),                // 3: broker.manager.CreateSessionRequest
-	(*RunConfigWithLauncher)(nil),               // 4: broker.manager.RunConfigWithLauncher
-	(*SessionConfig)(nil),                       // 5: broker.manager.SessionConfig
-	(*CreateSessionResponse)(nil),               // 6: broker.manager.CreateSessionResponse
-	(*SendMcpMessageRequest)(nil),               // 7: broker.manager.SendMcpMessageRequest
-	(*SendMcpMessageResponse)(nil),              // 8: broker.manager.SendMcpMessageResponse
-	(*StreamMcpMessagesRequest)(nil),            // 9: broker.manager.StreamMcpMessagesRequest
-	(*StreamMcpMessagesResponse)(nil),           // 10: broker.manager.StreamMcpMessagesResponse
-	(*GetServerInfoRequest)(nil),                // 11: broker.manager.GetServerInfoRequest
-	(*ListWorkersRequest)(nil),                  // 12: broker.manager.ListWorkersRequest
-	(*ListWorkersResponse)(nil),                 // 13: broker.manager.ListWorkersResponse
-	(*WorkerInfo)(nil),                          // 14: broker.manager.WorkerInfo
-	(*DiscardSessionRequest)(nil),               // 15: broker.manager.DiscardSessionRequest
-	(*DiscardSessionResponse)(nil),              // 16: broker.manager.DiscardSessionResponse
-	(*mcp.McpParticipant)(nil),                  // 17: broker.mcp.McpParticipant
-	(*runner.RunConfigContainer)(nil),           // 18: broker.runner.RunConfigContainer
-	(*launcher.LauncherConfig)(nil),             // 19: broker.launcher.LauncherConfig
-	(*runner.RunConfig)(nil),                    // 20: broker.runner.RunConfig
-	(*mcp.McpMessageRaw)(nil),                   // 21: broker.mcp.McpMessageRaw
-	(*mcp.McpMessage)(nil),                      // 22: broker.mcp.McpMessage
-	(*mcp.McpError)(nil),                        // 23: broker.mcp.McpError
-	(mcp.McpMessageType)(0),                     // 24: broker.mcp.McpMessageType
-	(*workerBroker.ListManagersRequest)(nil),    // 25: broker.workerBroker.ListManagersRequest
-	(*workerBroker.ListManagersResponse)(nil),   // 26: broker.workerBroker.ListManagersResponse
+	(CreateSessionRequest_SessionType)(0),     // 0: broker.manager.CreateSessionRequest.SessionType
+	(SendMcpMessageResponse_ResponseType)(0),  // 1: broker.manager.SendMcpMessageResponse.ResponseType
+	(*CreateSessionRequest)(nil),              // 2: broker.manager.CreateSessionRequest
+	(*RunConfigWithLauncher)(nil),             // 3: broker.manager.RunConfigWithLauncher
+	(*SessionConfig)(nil),                     // 4: broker.manager.SessionConfig
+	(*CreateSessionResponse)(nil),             // 5: broker.manager.CreateSessionResponse
+	(*SendMcpMessageRequest)(nil),             // 6: broker.manager.SendMcpMessageRequest
+	(*SendMcpMessageResponse)(nil),            // 7: broker.manager.SendMcpMessageResponse
+	(*StreamMcpMessagesRequest)(nil),          // 8: broker.manager.StreamMcpMessagesRequest
+	(*StreamMcpMessagesResponse)(nil),         // 9: broker.manager.StreamMcpMessagesResponse
+	(*GetServerInfoRequest)(nil),              // 10: broker.manager.GetServerInfoRequest
+	(*ListWorkersRequest)(nil),                // 11: broker.manager.ListWorkersRequest
+	(*ListWorkersResponse)(nil),               // 12: broker.manager.ListWorkersResponse
+	(*WorkerInfo)(nil),                        // 13: broker.manager.WorkerInfo
+	(*DiscardSessionRequest)(nil),             // 14: broker.manager.DiscardSessionRequest
+	(*DiscardSessionResponse)(nil),            // 15: broker.manager.DiscardSessionResponse
+	(*mcp.McpParticipant)(nil),                // 16: broker.mcp.McpParticipant
+	(*runner.RunConfigContainer)(nil),         // 17: broker.runner.RunConfigContainer
+	(*launcher.LauncherConfig)(nil),           // 18: broker.launcher.LauncherConfig
+	(*runner.RunConfig)(nil),                  // 19: broker.runner.RunConfig
+	(*mcp.McpMessageRaw)(nil),                 // 20: broker.mcp.McpMessageRaw
+	(*mcp.McpMessage)(nil),                    // 21: broker.mcp.McpMessage
+	(*mcp.McpError)(nil),                      // 22: broker.mcp.McpError
+	(mcp.McpMessageType)(0),                   // 23: broker.mcp.McpMessageType
+	(*mcp.McpOutput)(nil),                     // 24: broker.mcp.McpOutput
+	(*workerBroker.ListManagersRequest)(nil),  // 25: broker.workerBroker.ListManagersRequest
+	(*workerBroker.ListManagersResponse)(nil), // 26: broker.workerBroker.ListManagersResponse
 }
 var file_manager_proto_depIdxs = []int32{
 	0,  // 0: broker.manager.CreateSessionRequest.type:type_name -> broker.manager.CreateSessionRequest.SessionType
-	5,  // 1: broker.manager.CreateSessionRequest.config:type_name -> broker.manager.SessionConfig
-	17, // 2: broker.manager.CreateSessionRequest.mcp_client:type_name -> broker.mcp.McpParticipant
-	18, // 3: broker.manager.RunConfigWithLauncher.container:type_name -> broker.runner.RunConfigContainer
-	19, // 4: broker.manager.RunConfigWithLauncher.launcher:type_name -> broker.launcher.LauncherConfig
-	4,  // 5: broker.manager.SessionConfig.run_config_with_launcher:type_name -> broker.manager.RunConfigWithLauncher
-	20, // 6: broker.manager.SessionConfig.run_config_with_container_arguments:type_name -> broker.runner.RunConfig
-	21, // 7: broker.manager.SendMcpMessageRequest.mcp_messages:type_name -> broker.mcp.McpMessageRaw
+	4,  // 1: broker.manager.CreateSessionRequest.config:type_name -> broker.manager.SessionConfig
+	16, // 2: broker.manager.CreateSessionRequest.mcp_client:type_name -> broker.mcp.McpParticipant
+	17, // 3: broker.manager.RunConfigWithLauncher.container:type_name -> broker.runner.RunConfigContainer
+	18, // 4: broker.manager.RunConfigWithLauncher.launcher:type_name -> broker.launcher.LauncherConfig
+	3,  // 5: broker.manager.SessionConfig.run_config_with_launcher:type_name -> broker.manager.RunConfigWithLauncher
+	19, // 6: broker.manager.SessionConfig.run_config_with_container_arguments:type_name -> broker.runner.RunConfig
+	20, // 7: broker.manager.SendMcpMessageRequest.mcp_messages:type_name -> broker.mcp.McpMessageRaw
 	1,  // 8: broker.manager.SendMcpMessageResponse.response_type:type_name -> broker.manager.SendMcpMessageResponse.ResponseType
-	22, // 9: broker.manager.SendMcpMessageResponse.mcp_response_message:type_name -> broker.mcp.McpMessage
-	23, // 10: broker.manager.SendMcpMessageResponse.mcp_error:type_name -> broker.mcp.McpError
-	24, // 11: broker.manager.StreamMcpMessagesRequest.only_message_types:type_name -> broker.mcp.McpMessageType
-	2,  // 12: broker.manager.StreamMcpMessagesResponse.response_type:type_name -> broker.manager.StreamMcpMessagesResponse.ResponseType
-	22, // 13: broker.manager.StreamMcpMessagesResponse.mcp_response_message:type_name -> broker.mcp.McpMessage
-	23, // 14: broker.manager.StreamMcpMessagesResponse.mcp_error:type_name -> broker.mcp.McpError
-	14, // 15: broker.manager.ListWorkersResponse.workers:type_name -> broker.manager.WorkerInfo
-	3,  // 16: broker.manager.McpManager.CreateSession:input_type -> broker.manager.CreateSessionRequest
-	7,  // 17: broker.manager.McpManager.SendMcpMessage:input_type -> broker.manager.SendMcpMessageRequest
-	9,  // 18: broker.manager.McpManager.StreamMcpMessages:input_type -> broker.manager.StreamMcpMessagesRequest
-	11, // 19: broker.manager.McpManager.GetServerInfo:input_type -> broker.manager.GetServerInfoRequest
-	15, // 20: broker.manager.McpManager.DiscardSession:input_type -> broker.manager.DiscardSessionRequest
+	21, // 9: broker.manager.SendMcpMessageResponse.mcp_response_message:type_name -> broker.mcp.McpMessage
+	22, // 10: broker.manager.SendMcpMessageResponse.mcp_error:type_name -> broker.mcp.McpError
+	23, // 11: broker.manager.StreamMcpMessagesRequest.only_message_types:type_name -> broker.mcp.McpMessageType
+	21, // 12: broker.manager.StreamMcpMessagesResponse.mcp_message:type_name -> broker.mcp.McpMessage
+	22, // 13: broker.manager.StreamMcpMessagesResponse.mcp_error:type_name -> broker.mcp.McpError
+	24, // 14: broker.manager.StreamMcpMessagesResponse.mcp_output:type_name -> broker.mcp.McpOutput
+	13, // 15: broker.manager.ListWorkersResponse.workers:type_name -> broker.manager.WorkerInfo
+	2,  // 16: broker.manager.McpManager.CreateSession:input_type -> broker.manager.CreateSessionRequest
+	6,  // 17: broker.manager.McpManager.SendMcpMessage:input_type -> broker.manager.SendMcpMessageRequest
+	8,  // 18: broker.manager.McpManager.StreamMcpMessages:input_type -> broker.manager.StreamMcpMessagesRequest
+	10, // 19: broker.manager.McpManager.GetServerInfo:input_type -> broker.manager.GetServerInfoRequest
+	14, // 20: broker.manager.McpManager.DiscardSession:input_type -> broker.manager.DiscardSessionRequest
 	25, // 21: broker.manager.McpManager.ListManagers:input_type -> broker.workerBroker.ListManagersRequest
-	12, // 22: broker.manager.McpManager.ListWorkers:input_type -> broker.manager.ListWorkersRequest
-	6,  // 23: broker.manager.McpManager.CreateSession:output_type -> broker.manager.CreateSessionResponse
-	8,  // 24: broker.manager.McpManager.SendMcpMessage:output_type -> broker.manager.SendMcpMessageResponse
-	10, // 25: broker.manager.McpManager.StreamMcpMessages:output_type -> broker.manager.StreamMcpMessagesResponse
-	17, // 26: broker.manager.McpManager.GetServerInfo:output_type -> broker.mcp.McpParticipant
-	16, // 27: broker.manager.McpManager.DiscardSession:output_type -> broker.manager.DiscardSessionResponse
+	11, // 22: broker.manager.McpManager.ListWorkers:input_type -> broker.manager.ListWorkersRequest
+	5,  // 23: broker.manager.McpManager.CreateSession:output_type -> broker.manager.CreateSessionResponse
+	7,  // 24: broker.manager.McpManager.SendMcpMessage:output_type -> broker.manager.SendMcpMessageResponse
+	9,  // 25: broker.manager.McpManager.StreamMcpMessages:output_type -> broker.manager.StreamMcpMessagesResponse
+	16, // 26: broker.manager.McpManager.GetServerInfo:output_type -> broker.mcp.McpParticipant
+	15, // 27: broker.manager.McpManager.DiscardSession:output_type -> broker.manager.DiscardSessionResponse
 	26, // 28: broker.manager.McpManager.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
-	13, // 29: broker.manager.McpManager.ListWorkers:output_type -> broker.manager.ListWorkersResponse
+	12, // 29: broker.manager.McpManager.ListWorkers:output_type -> broker.manager.ListWorkersResponse
 	23, // [23:30] is the sub-list for method output_type
 	16, // [16:23] is the sub-list for method input_type
 	16, // [16:16] is the sub-list for extension type_name
@@ -1073,12 +1066,17 @@ func file_manager_proto_init() {
 		(*SessionConfig_RunConfigWithLauncher)(nil),
 		(*SessionConfig_RunConfigWithContainerArguments)(nil),
 	}
+	file_manager_proto_msgTypes[7].OneofWrappers = []any{
+		(*StreamMcpMessagesResponse_McpMessage)(nil),
+		(*StreamMcpMessagesResponse_McpError)(nil),
+		(*StreamMcpMessagesResponse_McpOutput)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_manager_proto_rawDesc), len(file_manager_proto_rawDesc)),
-			NumEnums:      3,
+			NumEnums:      2,
 			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,

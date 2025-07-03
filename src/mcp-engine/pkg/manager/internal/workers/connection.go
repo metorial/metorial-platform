@@ -18,11 +18,11 @@ type WorkerConnection interface {
 
 	Start() error
 	Close() error
-	Done() <-chan struct{}
 
-	Messages() *pubsub.Broadcaster[*mcp.MCPMessage]
-	Output() *pubsub.Broadcaster[*mcpPb.McpOutput]
-	Errors() *pubsub.Broadcaster[*mcpPb.McpError]
+	Done() pubsub.BroadcasterReader[struct{}]
+	Messages() pubsub.BroadcasterReader[*mcp.MCPMessage]
+	Output() pubsub.BroadcasterReader[*mcpPb.McpOutput]
+	Errors() pubsub.BroadcasterReader[*mcpPb.McpError]
 
 	InactivityTimeout() time.Duration
 }

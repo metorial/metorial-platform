@@ -17,15 +17,6 @@ import (
 var fileIndex int64
 
 func runLaunchParamsFunction(input *launcherPb.LauncherConfig) (*launcherPb.RunLauncherResponse, error) {
-	// Create the launcher context script
-	configJSON, err := json.Marshal(input.JsonConfig)
-	if err != nil {
-		return &launcherPb.RunLauncherResponse{
-			Type:         launcherPb.RunLauncherResponse_error,
-			ErrorMessage: fmt.Sprintf("Failed to marshal config: %v", err),
-		}, nil
-	}
-
 	getLaunchParamsJSON, err := json.Marshal(input.Code)
 	if err != nil {
 		return &launcherPb.RunLauncherResponse{
@@ -78,7 +69,7 @@ let output = typeof launcher == 'function' ?
   launcher;
 
 console.log(JSON.stringify({ type: 'success', data: output }));
-`, string(configJSON), string(getLaunchParamsJSON))
+`, input.JsonConfig, string(getLaunchParamsJSON))
 
 	// Create temporary file
 	tempDir := os.TempDir()

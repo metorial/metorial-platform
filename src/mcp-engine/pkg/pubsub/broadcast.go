@@ -4,6 +4,11 @@ import (
 	"sync"
 )
 
+type BroadcasterReader[T any] interface {
+	Subscribe() chan T
+	Unsubscribe(ch chan T)
+}
+
 type Broadcaster[T any] struct {
 	mu          sync.RWMutex
 	subscribers map[chan T]struct{}

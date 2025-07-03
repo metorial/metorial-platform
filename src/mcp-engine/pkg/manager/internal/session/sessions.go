@@ -20,11 +20,6 @@ import (
 )
 
 type Session interface {
-	// AcceptMessage(message *mcp.MCPMessage) error
-	// Messages() <-chan mcp.MCPMessage
-	// Output() <-chan *mcpPb.McpOutput
-	// Errors() <-chan *mcpPb.McpError
-
 	SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError
 	StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError
 	GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpPb.McpParticipant, *mterror.MTError)
@@ -65,6 +60,7 @@ func NewSessions(
 
 	go sessions.discardRoutine()
 	go sessions.pingRoutine()
+	go sessions.printStateRoutine()
 
 	return sessions
 }
@@ -284,4 +280,28 @@ func (s *Sessions) pingRoutine() {
 			})
 		}
 	}
+}
+
+func printState(s *Sessions) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	log.Println("== Sessions State ==")
+
+	log.Println("Total Sessions:", len(s.sessions))
+
+	for id, session := range s.sessions {
+		log.Printf("Session ID: %s, Type: %T\n", id, session)
+	}
+}
+
+func (s *Sessions) printStateRoutine() {
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			printState(s)
+		}
+	}()
 }

@@ -12,6 +12,7 @@ message McpError {
     unknown_error = 3;
     timeout = 4;
     launch_params_error = 5;
+    execution_error = 6;
   }
 
   string error_message = 1;

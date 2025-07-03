@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	mcpPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	runnerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
@@ -21,6 +22,8 @@ type Run struct {
 
 	client runnerPb.McpRunnerClient
 	stream runnerPb.McpRunner_StreamMcpRunClient
+
+	doneBroadcaster *pubsub.Broadcaster[struct{}]
 
 	createStreamWg sync.WaitGroup
 
@@ -46,6 +49,8 @@ func NewRun(config *runnerPb.RunConfig, client runnerPb.McpRunnerClient) *Run {
 		Config: config,
 
 		client: client,
+
+		doneBroadcaster: pubsub.NewBroadcaster[struct{}](),
 
 		messages: pubsub.NewBroadcaster[*mcp.MCPMessage](),
 		errors:   pubsub.NewBroadcaster[*mcpPB.McpError](),
@@ -109,10 +114,14 @@ func (r *Run) Close() error {
 		return fmt.Errorf("failed to send close request: %w", err)
 	}
 
+	timeout := time.After(5 * time.Second)
+
 	// Wait for the stream to close
 	select {
 	case <-r.context.Done():
 	case <-r.stream.Context().Done():
+	case <-timeout:
+		r.stream.CloseSend()
 	}
 
 	r.stream = nil
@@ -120,20 +129,8 @@ func (r *Run) Close() error {
 	return nil
 }
 
-func (r *Run) Done() <-chan struct{} {
-	if r.context == nil {
-		return nil
-	}
-
-	return r.context.Done()
-}
-
-func (r *Run) Wait() {
-	if r.context == nil {
-		return
-	}
-
-	<-r.context.Done()
+func (r *Run) Done() pubsub.BroadcasterReader[struct{}] {
+	return r.doneBroadcaster
 }
 
 func (r *Run) handleStream() {
@@ -141,9 +138,13 @@ func (r *Run) handleStream() {
 	defer r.messages.Close()
 	defer r.errors.Close()
 	defer r.output.Close()
+	defer func() {
+		r.doneBroadcaster.Publish(struct{}{})
+		time.Sleep(500 * time.Millisecond) // Give time for subscribers to receive the done message
+		r.doneBroadcaster.Close()
+	}()
 
 	if r.client == nil {
-		log.Println("McpRunnerClient is nil, cannot create stream")
 		r.createStreamWg.Done()
 		r.initError = fmt.Errorf("McpRunnerClient is not initialized")
 		return
@@ -198,11 +199,6 @@ func (r *Run) handleStream() {
 
 	r.createStreamWg.Done()
 
-	r.processStream(stream)
-}
-
-func (r *Run) processStream(stream runnerPb.McpRunner_StreamMcpRunClient) {
-
 loop:
 	for {
 		resp, err := stream.Recv()
@@ -245,5 +241,4 @@ loop:
 			log.Printf("Unknown response type: %T\n", msg)
 		}
 	}
-
 }
