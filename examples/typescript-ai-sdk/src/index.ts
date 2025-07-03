@@ -13,7 +13,8 @@ metorial.withProviderSession(
   async session => {
     let result = await generateText({
       model: openai('gpt-4o'),
-      prompt: 'What is the capital of France?',
+      prompt:
+        'Summarize the README.md file of the metorial/websocket-explorer repository on GitHub?',
       maxSteps: 10,
       tools: session.tools
     });

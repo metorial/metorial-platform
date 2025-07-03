@@ -15,7 +15,8 @@ metorial.withProviderSession(
     let messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
       {
         role: 'user',
-        content: 'What are the contents of the metorial/mcp-containers repository on GitHub?'
+        content:
+          'Summarize the README.md file of the metorial/websocket-explorer repository on GitHub?'
       }
     ];
 

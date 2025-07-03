@@ -4,8 +4,25 @@ import { McpUriTemplate } from './lib/mcpUri';
 import { slugify } from './lib/slugify';
 import { MetorialMcpSession } from './mcpSession';
 
-type Tool = MetorialSDK.ServerCapabilities['tools'][number];
-type ResourceTemplate = MetorialSDK.ServerCapabilities['resourceTemplates'][number];
+type SmallServerDeployment =
+  MetorialSDK.ServerCapabilities['mcpServers'][number]['serverDeployment'];
+type Tool = Omit<MetorialSDK.ServerCapabilities['tools'][number], 'mcpServerId'>;
+type ResourceTemplate = Omit<
+  MetorialSDK.ServerCapabilities['resourceTemplates'][number],
+  'mcpServerId'
+>;
+
+export type Capability =
+  | {
+      type: 'tool';
+      tool: Tool;
+      serverDeployment: SmallServerDeployment;
+    }
+  | {
+      type: 'resource-template';
+      resourceTemplate: ResourceTemplate;
+      serverDeployment: SmallServerDeployment;
+    };
 
 export class MetorialMcpTool {
   #id: string;
@@ -63,19 +80,14 @@ export class MetorialMcpTool {
     throw new Error(`[METORIAL MCP]: Unknown parameters format: ${as}`);
   }
 
-  static fromTool(
-    session: MetorialMcpSession,
-    capabilities: MetorialSDK.ServerCapabilities,
-    tool: Tool
-  ) {
-    let mcpServer = capabilities.mcpServers.find(s => s.id === tool.mcpServerId)!;
-    if (!mcpServer) {
-      throw new Error(`[METORIAL MCP]: Tool ${tool.name} not found in capabilities`);
+  static fromTool(session: MetorialMcpSession, capability: Capability) {
+    if (capability.type !== 'tool') {
+      throw new Error(
+        `[METORIAL MCP]: Expected capability type to be 'tool', got '${capability.type}'`
+      );
     }
 
-    if (!mcpServer.serverDeployment) {
-      throw new Error(`[METORIAL MCP]: Tool ${tool.name} has no server deployment to run on`);
-    }
+    let { tool, serverDeployment } = capability;
 
     return new MetorialMcpTool(
       session,
@@ -87,7 +99,7 @@ export class MetorialMcpTool {
       },
       async params => {
         let client = await session.getClient({
-          deploymentId: mcpServer.serverDeployment!.id
+          deploymentId: serverDeployment!.id
         });
 
         let result = await client.callTool({
@@ -95,35 +107,28 @@ export class MetorialMcpTool {
           arguments: params
         });
 
-        return result.toolResult;
+        return result;
       }
     );
   }
 
-  static fromResourceTemplate(
-    session: MetorialMcpSession,
-    capabilities: MetorialSDK.ServerCapabilities,
-    template: ResourceTemplate
-  ) {
-    let mcpServer = capabilities.mcpServers.find(s => s.id === template.mcpServerId)!;
-    if (!mcpServer) {
-      throw new Error(`[METORIAL MCP]: Tool ${template.name} not found in capabilities`);
-    }
-
-    if (!mcpServer.serverDeployment) {
+  static fromResourceTemplate(session: MetorialMcpSession, capability: Capability) {
+    if (capability.type !== 'resource-template') {
       throw new Error(
-        `[METORIAL MCP]: Tool ${template.name} has no server deployment to run on`
+        `[METORIAL MCP]: Expected capability type to be 'resource-template', got '${capability.type}'`
       );
     }
 
-    let uri = new McpUriTemplate(template.uriTemplate);
+    let { resourceTemplate, serverDeployment } = capability;
+
+    let uri = new McpUriTemplate(resourceTemplate.uriTemplate);
 
     return new MetorialMcpTool(
       session,
       {
-        id: slugify(template.name),
-        name: template.name,
-        description: template.description ?? null,
+        id: slugify(resourceTemplate.name),
+        name: resourceTemplate.name,
+        description: resourceTemplate.description ?? null,
         parameters: {
           type: 'object',
           properties: Object.fromEntries(
@@ -138,7 +143,7 @@ export class MetorialMcpTool {
       },
       async params => {
         let client = await session.getClient({
-          deploymentId: mcpServer.serverDeployment!.id
+          deploymentId: serverDeployment!.id
         });
 
         let finalUri = uri.expand(params);
@@ -147,8 +152,22 @@ export class MetorialMcpTool {
           uri: finalUri
         });
 
-        return result.contents;
+        return result;
       }
+    );
+  }
+
+  static fromCapability(session: MetorialMcpSession, capability: Capability): MetorialMcpTool {
+    if (capability.type === 'tool') {
+      return MetorialMcpTool.fromTool(session, capability);
+    }
+
+    if (capability.type === 'resource-template') {
+      return MetorialMcpTool.fromResourceTemplate(session, capability);
+    }
+
+    throw new Error(
+      `[METORIAL MCP]: Unknown capability type: ${capability}. Expected 'tool' or 'resource-template'.`
     );
   }
 }
