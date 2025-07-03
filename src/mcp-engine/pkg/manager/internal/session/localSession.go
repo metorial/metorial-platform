@@ -190,6 +190,13 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 	chansForConId := ""
 
 	defer func() {
+		s.mutex.RLock()
+		defer s.mutex.RUnlock()
+
+		if s.activeConnection == nil {
+			return
+		}
+
 		if msgChan != nil {
 			s.activeConnection.Messages().Unsubscribe(msgChan)
 		}

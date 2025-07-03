@@ -90,7 +90,8 @@ message RunRequest {
 }
 
 message RunRequestInit {
-  RunConfig run_config = 1;
+  string connection_id = 1; // Unique identifier for the run
+  RunConfig run_config = 2;
 }
 
 message RunRequestMcpMessage {
@@ -98,7 +99,6 @@ message RunRequestMcpMessage {
 }
 
 message RunRequestClose {}
-
 
 message RunResponse {
   oneof job_type {
@@ -111,9 +111,7 @@ message RunResponse {
   }
 }
 
-message RunResponseInit {
-  string run_id = 1; // Unique identifier for the run
-}
+message RunResponseInit {}
 
 message RunResponseMcpMessage {
   broker.mcp.McpMessageRaw message = 1; 

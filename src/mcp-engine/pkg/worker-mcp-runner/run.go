@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/metorial/metorial/mcp-engine/pkg/docker"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 )
@@ -22,6 +21,7 @@ type Run struct {
 }
 
 type RunInit struct {
+	ID                 string
 	DockerImage        string
 	ContainerEnv       map[string]string
 	ContainerArgs      []string
@@ -42,6 +42,7 @@ type MultiOutputHandler func(outputType OutputType, line []string)
 
 func newRun(state *RunnerState, init *RunInit) (*Run, error) {
 	container, err := state.dockerManager.StartContainer(&docker.ContainerStartOptions{
+		ID:        init.ID,
 		ImageRef:  init.DockerImage,
 		Env:       init.ContainerEnv,
 		Args:      init.ContainerArgs,
@@ -55,7 +56,7 @@ func newRun(state *RunnerState, init *RunInit) (*Run, error) {
 
 	run := &Run{
 		Init:             init,
-		ID:               uuid.NewString(),
+		ID:               init.ID,
 		StartTime:        time.Now(),
 		LastServerAction: time.Now(),
 

@@ -29,7 +29,7 @@ func (rw *RunnerWorker) CreateConnection(input *workers.WorkerConnectionInput) (
 		return nil, fmt.Errorf("McpRunnerClient is not initialized for worker %s at %s", rw.WorkerID(), rw.Address())
 	}
 
-	run := NewRun(input.RunConfig, rw.client)
+	run := NewRun(input.RunConfig, rw.client, input.ConnectionID)
 
 	res := &RunnerWorkerConnection{
 		run:       run,
@@ -77,10 +77,6 @@ func (rwc *RunnerWorkerConnection) Close() error {
 
 func (rwc *RunnerWorkerConnection) Done() pubsub.BroadcasterReader[struct{}] {
 	return rwc.run.Done()
-}
-
-func (rwc *RunnerWorkerConnection) RemoteID() string {
-	return rwc.run.RemoteID
 }
 
 func (rwc *RunnerWorkerConnection) ConnectionID() string {

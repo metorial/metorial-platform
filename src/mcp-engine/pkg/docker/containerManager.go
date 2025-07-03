@@ -6,8 +6,6 @@ import (
 	"log"
 	"os/exec"
 	"sync"
-
-	"github.com/google/uuid"
 )
 
 type Runtime string
@@ -26,6 +24,8 @@ type ContainerManager struct {
 }
 
 type ContainerStartOptions struct {
+	ID string
+
 	ImageRef  string
 	Env       map[string]string
 	Args      []string
@@ -68,7 +68,7 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 
 	ctx, cancel := context.WithCancel(m.ctx)
 
-	containerID := fmt.Sprintf("mtrc-%s", uuid.New().String())
+	containerID := fmt.Sprintf("mtrc-%s", opts.ID)
 
 	dockerArgs := []string{
 		"run", "--interactive", "--rm",

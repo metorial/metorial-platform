@@ -17,8 +17,8 @@ type Run struct {
 	context context.Context
 	cancel  context.CancelFunc
 
-	RemoteID string
-	Config   *runnerPb.RunConfig
+	ConnectionID string
+	Config       *runnerPb.RunConfig
 
 	client runnerPb.McpRunnerClient
 	stream runnerPb.McpRunner_StreamMcpRunClient
@@ -34,7 +34,7 @@ type Run struct {
 	initError error
 }
 
-func NewRun(config *runnerPb.RunConfig, client runnerPb.McpRunnerClient) *Run {
+func NewRun(config *runnerPb.RunConfig, client runnerPb.McpRunnerClient, connectionId string) *Run {
 	if client == nil {
 		log.Println("McpRunnerClient is nil, cannot create Run")
 		return nil
@@ -46,7 +46,8 @@ func NewRun(config *runnerPb.RunConfig, client runnerPb.McpRunnerClient) *Run {
 		context: ctx,
 		cancel:  cancel,
 
-		Config: config,
+		Config:       config,
+		ConnectionID: connectionId,
 
 		client: client,
 
@@ -163,7 +164,8 @@ func (r *Run) handleStream() {
 	err = stream.Send(&runnerPb.RunRequest{
 		JobType: &runnerPb.RunRequest_Init{
 			Init: &runnerPb.RunRequestInit{
-				RunConfig: r.Config,
+				RunConfig:    r.Config,
+				ConnectionId: r.ConnectionID,
 			},
 		},
 	})
@@ -194,8 +196,6 @@ func (r *Run) handleStream() {
 		r.initError = fmt.Errorf("initial response is not an Init message")
 		return
 	}
-
-	r.RemoteID = init.RunId
 
 	r.createStreamWg.Done()
 
@@ -234,7 +234,7 @@ loop:
 			go r.Close()
 
 		case *runnerPb.RunResponse_Close:
-			log.Printf("Run %s closed by server\n", r.RemoteID)
+			log.Printf("Run %s closed by server\n", r.ConnectionID)
 			break loop
 
 		default:

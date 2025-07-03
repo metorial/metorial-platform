@@ -752,7 +752,8 @@ func (*RunRequest_Close) isRunRequest_JobType() {}
 
 type RunRequestInit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RunConfig     *RunConfig             `protobuf:"bytes,1,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
+	ConnectionId  string                 `protobuf:"bytes,1,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"` // Unique identifier for the run
+	RunConfig     *RunConfig             `protobuf:"bytes,2,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -785,6 +786,13 @@ func (x *RunRequestInit) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RunRequestInit.ProtoReflect.Descriptor instead.
 func (*RunRequestInit) Descriptor() ([]byte, []int) {
 	return file_runner_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *RunRequestInit) GetConnectionId() string {
+	if x != nil {
+		return x.ConnectionId
+	}
+	return ""
 }
 
 func (x *RunRequestInit) GetRunConfig() *RunConfig {
@@ -1006,7 +1014,6 @@ func (*RunResponse_Close) isRunResponse_JobType() {}
 
 type RunResponseInit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"` // Unique identifier for the run
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1039,13 +1046,6 @@ func (x *RunResponseInit) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RunResponseInit.ProtoReflect.Descriptor instead.
 func (*RunResponseInit) Descriptor() ([]byte, []int) {
 	return file_runner_proto_rawDescGZIP(), []int{16}
-}
-
-func (x *RunResponseInit) GetRunId() string {
-	if x != nil {
-		return x.RunId
-	}
-	return ""
 }
 
 type RunResponseMcpMessage struct {
@@ -1280,10 +1280,11 @@ const file_runner_proto_rawDesc = "" +
 	"mcpMessage\x126\n" +
 	"\x05close\x18\x03 \x01(\v2\x1e.broker.runner.RunRequestCloseH\x00R\x05closeB\n" +
 	"\n" +
-	"\bjob_type\"I\n" +
-	"\x0eRunRequestInit\x127\n" +
+	"\bjob_type\"n\n" +
+	"\x0eRunRequestInit\x12#\n" +
+	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\x127\n" +
 	"\n" +
-	"run_config\x18\x01 \x01(\v2\x18.broker.runner.RunConfigR\trunConfig\"K\n" +
+	"run_config\x18\x02 \x01(\v2\x18.broker.runner.RunConfigR\trunConfig\"K\n" +
 	"\x14RunRequestMcpMessage\x123\n" +
 	"\amessage\x18\x01 \x01(\v2\x19.broker.mcp.McpMessageRawR\amessage\"\x11\n" +
 	"\x0fRunRequestClose\"\xc6\x02\n" +
@@ -1295,9 +1296,8 @@ const file_runner_proto_rawDesc = "" +
 	"\x05error\x18\x04 \x01(\v2\x1f.broker.runner.RunResponseErrorH\x00R\x05error\x127\n" +
 	"\x05close\x18\x05 \x01(\v2\x1f.broker.runner.RunResponseCloseH\x00R\x05closeB\n" +
 	"\n" +
-	"\bjob_type\"(\n" +
-	"\x0fRunResponseInit\x12\x15\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x05runId\"L\n" +
+	"\bjob_type\"\x11\n" +
+	"\x0fRunResponseInit\"L\n" +
 	"\x15RunResponseMcpMessage\x123\n" +
 	"\amessage\x18\x01 \x01(\v2\x19.broker.mcp.McpMessageRawR\amessage\"E\n" +
 	"\x10RunResponseError\x121\n" +

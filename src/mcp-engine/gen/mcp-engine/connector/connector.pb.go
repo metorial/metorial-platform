@@ -322,8 +322,7 @@ func (x *RunConfig) GetArguments() *RunConfigRemoteArguments {
 }
 
 type RunRequest struct {
-	state        protoimpl.MessageState `protogen:"open.v1"`
-	ConnectionId string                 `protobuf:"bytes,4,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to JobType:
 	//
 	//	*RunRequest_Init
@@ -362,13 +361,6 @@ func (x *RunRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RunRequest.ProtoReflect.Descriptor instead.
 func (*RunRequest) Descriptor() ([]byte, []int) {
 	return file_connector_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *RunRequest) GetConnectionId() string {
-	if x != nil {
-		return x.ConnectionId
-	}
-	return ""
 }
 
 func (x *RunRequest) GetJobType() isRunRequest_JobType {
@@ -429,7 +421,8 @@ func (*RunRequest_Close) isRunRequest_JobType() {}
 
 type RunRequestInit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RunConfig     *RunConfig             `protobuf:"bytes,1,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
+	ConnectionId  string                 `protobuf:"bytes,1,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
+	RunConfig     *RunConfig             `protobuf:"bytes,2,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -462,6 +455,13 @@ func (x *RunRequestInit) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RunRequestInit.ProtoReflect.Descriptor instead.
 func (*RunRequestInit) Descriptor() ([]byte, []int) {
 	return file_connector_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *RunRequestInit) GetConnectionId() string {
+	if x != nil {
+		return x.ConnectionId
+	}
+	return ""
 }
 
 func (x *RunRequestInit) GetRunConfig() *RunConfig {
@@ -913,19 +913,19 @@ const file_connector_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x96\x01\n" +
 	"\tRunConfig\x12?\n" +
 	"\x06server\x18\x01 \x01(\v2'.broker.connector.RunConfigRemoteServerR\x06server\x12H\n" +
-	"\targuments\x18\x02 \x01(\v2*.broker.connector.RunConfigRemoteArgumentsR\targuments\"\xfb\x01\n" +
+	"\targuments\x18\x02 \x01(\v2*.broker.connector.RunConfigRemoteArgumentsR\targuments\"\xd6\x01\n" +
 	"\n" +
-	"RunRequest\x12#\n" +
-	"\rconnection_id\x18\x04 \x01(\tR\fconnectionId\x126\n" +
+	"RunRequest\x126\n" +
 	"\x04init\x18\x01 \x01(\v2 .broker.connector.RunRequestInitH\x00R\x04init\x12I\n" +
 	"\vmcp_message\x18\x02 \x01(\v2&.broker.connector.RunRequestMcpMessageH\x00R\n" +
 	"mcpMessage\x129\n" +
 	"\x05close\x18\x03 \x01(\v2!.broker.connector.RunRequestCloseH\x00R\x05closeB\n" +
 	"\n" +
-	"\bjob_type\"L\n" +
-	"\x0eRunRequestInit\x12:\n" +
+	"\bjob_type\"q\n" +
+	"\x0eRunRequestInit\x12#\n" +
+	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\x12:\n" +
 	"\n" +
-	"run_config\x18\x01 \x01(\v2\x1b.broker.connector.RunConfigR\trunConfig\"K\n" +
+	"run_config\x18\x02 \x01(\v2\x1b.broker.connector.RunConfigR\trunConfig\"K\n" +
 	"\x14RunRequestMcpMessage\x123\n" +
 	"\amessage\x18\x01 \x01(\v2\x19.broker.mcp.McpMessageRawR\amessage\"\x11\n" +
 	"\x0fRunRequestClose\"\xd5\x02\n" +

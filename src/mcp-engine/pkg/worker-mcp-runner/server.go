@@ -105,6 +105,8 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 	}
 
 	run, err := s.state.StartRun(&RunInit{
+		ID: msg.Init.ConnectionId,
+
 		DockerImage:        msg.Init.RunConfig.Container.DockerImage,
 		ContainerMaxMemory: msg.Init.RunConfig.Container.MaxMemory,
 		ContainerMaxCPU:    msg.Init.RunConfig.Container.MaxCpu,
@@ -128,9 +130,7 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 
 	err = stream.Send(&runnerPb.RunResponse{
 		JobType: &runnerPb.RunResponse_Init{
-			Init: &runnerPb.RunResponseInit{
-				RunId: run.ID,
-			},
+			Init: &runnerPb.RunResponseInit{},
 		},
 	})
 	if err != nil {

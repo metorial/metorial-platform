@@ -44,8 +44,6 @@ message RunConfig {
 }
 
 message RunRequest {
-  string connection_id = 4;
-
   oneof job_type {
     RunRequestInit init = 1;
     RunRequestMcpMessage mcp_message = 2;
@@ -54,7 +52,8 @@ message RunRequest {
 }
 
 message RunRequestInit {
-  RunConfig run_config = 1;
+  string connection_id = 1;
+  RunConfig run_config = 2;
 }
 
 message RunRequestMcpMessage {

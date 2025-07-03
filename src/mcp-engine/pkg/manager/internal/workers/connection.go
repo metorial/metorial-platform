@@ -10,7 +10,6 @@ import (
 )
 
 type WorkerConnection interface {
-	RemoteID() string
 	ConnectionID() string
 
 	AcceptMessage(message *mcp.MCPMessage) error
