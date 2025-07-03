@@ -65,7 +65,7 @@ func NewSessions(
 	return sessions
 }
 
-func (s *Sessions) GetSession(sessionId string) Session {
+func (s *Sessions) GetLocalSession(sessionId string) Session {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -77,20 +77,34 @@ func (s *Sessions) GetSessionUnsafe(sessionId string) (Session, *mterror.MTError
 		return nil, mterror.New(mterror.InvalidRequestKind, "session ID cannot be empty")
 	}
 
-	session := s.GetSession(sessionId)
-	if session == nil {
-		return nil, mterror.NewWithDetails(mterror.NotFoundKind, "session not found", map[string]string{
-			"session_id": sessionId,
-		})
+	s.keylock.Lock(sessionId)
+	defer s.keylock.Unlock(sessionId)
+
+	s.mutex.RLock()
+	localSession, exists := s.sessions[sessionId]
+	s.mutex.RUnlock()
+	if exists {
+		return localSession, nil
 	}
 
-	return session, nil
+	storedSession, err := s.state.GetSession(sessionId)
+	if err != nil {
+		if err.Error() == "session not found" {
+			return nil, mterror.NewWithDetails(mterror.NotFoundKind, "session not found", map[string]string{
+				"session_id": sessionId,
+			})
+		}
+
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get session from state", err)
+	}
+
+	return s.EnsureRemoteSession(storedSession)
 }
 
 func (s *Sessions) UpsertSession(
 	request *managerPb.CreateSessionRequest,
 ) (Session, *mterror.MTError) {
-	existing := s.GetSession(request.SessionId)
+	existing := s.GetLocalSession(request.SessionId)
 	if existing != nil {
 		return existing, nil
 	}
@@ -172,6 +186,10 @@ func (s *Sessions) UpsertSession(
 		return session, nil
 	}
 
+	return s.EnsureRemoteSession(storedSession)
+}
+
+func (s *Sessions) EnsureRemoteSession(storedSession *state.Session) (*RemoteSession, *mterror.MTError) {
 	manager, err := s.managers.GetManager(storedSession.ManagerID)
 	if err != nil {
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get manager for session", err)
