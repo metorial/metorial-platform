@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
+	"github.com/metorial/metorial/mcp-engine/pkg/util"
 )
 
 type SessionError struct {
@@ -27,7 +28,7 @@ type SessionError struct {
 
 func NewErrorFromMcp(session *Session, connection *SessionConnection, mcpError *mcpPb.McpError) *SessionError {
 	return &SessionError{
-		ID: uuid.NewString(),
+		ID: util.Must(uuid.NewV7()).String(),
 
 		SessionID: session.ID,
 		Session:   session,
@@ -45,7 +46,7 @@ func NewErrorFromMcp(session *Session, connection *SessionConnection, mcpError *
 
 func NewErrorStructuredError(session *Session, errorCode string, errorMessage string, metadata map[string]string) *SessionError {
 	return &SessionError{
-		ID: uuid.NewString(),
+		ID: util.Must(uuid.NewV7()).String(),
 
 		SessionID: session.ID,
 		Session:   session,
@@ -65,7 +66,7 @@ func NewErrorStructuredErrorWithConnection(session *Session, connection *Session
 	}
 
 	return &SessionError{
-		ID: uuid.NewString(),
+		ID: util.Must(uuid.NewV7()).String(),
 
 		SessionID: session.ID,
 		Session:   session,

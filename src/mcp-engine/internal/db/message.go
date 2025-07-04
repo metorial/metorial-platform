@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"slices"
 	"time"
 
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
@@ -61,4 +62,45 @@ func NewMessage(session *Session, connection *SessionConnection, index int, send
 func (d *DB) CreateMessage(message *SessionMessage) error {
 	message.CreatedAt = time.Now()
 	return d.db.Create(message).Error
+}
+
+func (d *DB) ListGlobalSessionMessagesAfter(sessionId string, afterId string) ([]SessionMessage, error) {
+	two_days_ago := time.Now().Add(-48 * time.Hour)
+
+	var sessions []Session
+	err := d.db.Model(&SessionMessage{}).
+		Where("external_id = ?", sessionId).
+		Where("last_ping_at > ?", two_days_ago).
+		Find(&sessions).Error
+	if err != nil {
+		return nil, err
+	}
+
+	if len(sessions) == 0 {
+		return make([]SessionMessage, 0), nil
+	}
+
+	sessionIds := make([]string, 0, len(sessions))
+	for _, session := range sessions {
+		sessionIds = append(sessionIds, session.ID)
+	}
+
+	// We're fetching in reverse order to get the most recent messages first,
+	// but we need to reverse them later to return in chronological order.
+
+	var reverseMessages []SessionMessage
+	err = d.db.Model(&SessionMessage{}).
+		Where("session_id IN ?", sessionIds).
+		Where("id > ?", afterId).
+		Order("created_at DESC").
+		Limit(100).
+		Find(&reverseMessages).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Reverse the messages to get them in chronological order
+	slices.Reverse(reverseMessages)
+
+	return reverseMessages, nil
 }

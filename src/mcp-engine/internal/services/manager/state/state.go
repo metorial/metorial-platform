@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/metorial/metorial/mcp-engine/pkg/util"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -33,7 +34,7 @@ func NewStateManager(etcdEndpoints []string, address string) (*StateManager, err
 
 	return &StateManager{
 		client:    client,
-		ManagerID: uuid.NewString(),
+		ManagerID: util.Must(uuid.NewV7()).String(),
 		Address:   address,
 		ctx:       ctx,
 		cancel:    cancel,

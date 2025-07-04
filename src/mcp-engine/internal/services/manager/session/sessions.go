@@ -19,6 +19,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
 	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
+	"github.com/metorial/metorial/mcp-engine/pkg/util"
 	"google.golang.org/grpc"
 )
 
@@ -162,7 +163,7 @@ func (s *Sessions) UpsertSession(
 		}
 
 		dbSession, err := s.db.CreateSession(db.NewSession(
-			uuid.NewString(),
+			util.Must(uuid.NewV7()).String(),
 			request.SessionId,
 			db.SessionStatusActive,
 			db.SessionTypeFromSessionType(request.Type),

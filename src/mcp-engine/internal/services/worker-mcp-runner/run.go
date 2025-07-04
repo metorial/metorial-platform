@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/metorial/metorial/mcp-engine/pkg/docker"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
+	"github.com/metorial/metorial/mcp-engine/pkg/util"
 )
 
 type Run struct {
@@ -153,7 +154,7 @@ func (m *Run) HandleOutput(messageHandler McpMessageHandler, outputHandler Multi
 
 	m.output(func(outputType OutputType, line string) {
 		if outputType == OutputTypeStdout && strings.HasPrefix(line, "{") {
-			message, err := mcp.ParseMCPMessage(uuid.NewString(), line)
+			message, err := mcp.ParseMCPMessage(util.Must(uuid.NewV7()).String(), line)
 
 			if err == nil {
 				stdoutBuffer.Flush()

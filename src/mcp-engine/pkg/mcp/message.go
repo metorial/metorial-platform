@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
+	"github.com/metorial/metorial/mcp-engine/pkg/util"
 )
 
 type MessageType string
@@ -140,7 +141,7 @@ func (m *MCPMessage) ToPbRawMessage() *mcpPb.McpMessageRaw {
 	defer m.mutex.Unlock()
 
 	if m.internalUuid == "" {
-		m.internalUuid = uuid.NewString()
+		m.internalUuid = util.Must(uuid.NewV7()).String()
 	}
 
 	return &mcpPb.McpMessageRaw{
@@ -264,7 +265,7 @@ func (m *MCPMessage) GetUuid() string {
 	defer m.mutex.Unlock()
 
 	if m.internalUuid == "" {
-		m.internalUuid = uuid.NewString()
+		m.internalUuid = util.Must(uuid.NewV7()).String()
 	}
 
 	return m.internalUuid

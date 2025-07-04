@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/metorial/metorial/mcp-engine/pkg/docker"
+	"github.com/metorial/metorial/mcp-engine/pkg/util"
 )
 
 type RunnerState struct {
@@ -25,7 +26,7 @@ type RunnerState struct {
 
 func newRunnerState(dockerManager *docker.DockerManager, done <-chan struct{}) *RunnerState {
 	return &RunnerState{
-		RunnerID:  uuid.NewString(),
+		RunnerID:  util.Must(uuid.NewV7()).String(),
 		StartTime: time.Now(),
 
 		dockerManager: dockerManager,

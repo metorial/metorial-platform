@@ -18,6 +18,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
 	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
+	"github.com/metorial/metorial/mcp-engine/pkg/util"
 	"google.golang.org/grpc"
 )
 
@@ -493,7 +494,7 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 
 	connectionInput := s.connectionInput
 	// Update the connection input with the session ID and a new connection ID
-	connectionInput.ConnectionID = uuid.NewString()
+	connectionInput.ConnectionID = util.Must(uuid.NewV7()).String()
 
 	hash, err := s.workerManager.GetConnectionHashForWorkerType(s.WorkerType, connectionInput)
 	if err != nil {

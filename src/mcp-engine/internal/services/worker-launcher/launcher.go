@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
+	"github.com/metorial/metorial/mcp-engine/pkg/util"
 	"google.golang.org/grpc"
 
 	launcherPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/launcher"
@@ -18,7 +19,7 @@ type launcher struct {
 
 func NewLauncher() *launcher {
 	return &launcher{
-		id: uuid.NewString(),
+		id: util.Must(uuid.NewV7()).String(),
 	}
 }
 

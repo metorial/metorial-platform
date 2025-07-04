@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
+	"github.com/metorial/metorial/mcp-engine/pkg/util"
 )
 
 type SessionEventType uint8
@@ -44,7 +45,7 @@ func (d *DB) CreateEvent(event *SessionEvent) error {
 
 func newErrorEvent(err *SessionError) *SessionEvent {
 	return &SessionEvent{
-		ID:           uuid.NewString(),
+		ID:           util.Must(uuid.NewV7()).String(),
 		Type:         SessionEventTypeError,
 		SessionID:    err.SessionID,
 		Session:      err.Session,
@@ -59,7 +60,7 @@ func newErrorEvent(err *SessionError) *SessionEvent {
 
 func NewOutputEvent(session *Session, connection *SessionConnection, output *mcp.McpOutput) *SessionEvent {
 	return &SessionEvent{
-		ID:           uuid.NewString(),
+		ID:           util.Must(uuid.NewV7()).String(),
 		Type:         SessionEventTypeOutput,
 		SessionID:    session.ID,
 		Session:      session,

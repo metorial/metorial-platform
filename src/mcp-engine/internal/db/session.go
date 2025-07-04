@@ -27,7 +27,7 @@ const (
 
 type Session struct {
 	ID         string `gorm:"primaryKey;type:uuid;not null"`
-	ExternalId string `gorm:"type:varchar(40);not null"`
+	ExternalId string `gorm:"type:varchar(40);not null;index"`
 
 	Status SessionStatus `gorm:"type:smallint;not null;index"`
 	Type   SessionType   `gorm:"type:smallint;not null"`

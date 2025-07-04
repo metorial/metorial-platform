@@ -14,6 +14,7 @@ import (
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
+	"github.com/metorial/metorial/mcp-engine/pkg/util"
 )
 
 type runnerServer struct {
@@ -145,7 +146,7 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 					McpMessage: &runnerPb.RunResponseMcpMessage{
 						Message: &mcpPb.McpMessageRaw{
 							Message: message.GetStringPayload(),
-							Uuid:    uuid.NewString(),
+							Uuid:    util.Must(uuid.NewV7()).String(),
 						},
 					},
 				},
