@@ -25,6 +25,10 @@ func NewDB(dsn string) (*DB, error) {
 		return nil, err
 	}
 
+	go res.expireActiveSessionConnectionsRoutine()
+	go res.expireActiveSessionsRoutine()
+	go res.cleanupOldSessionsRoutine()
+
 	return res, nil
 }
 

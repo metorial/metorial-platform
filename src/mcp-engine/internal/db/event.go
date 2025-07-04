@@ -21,14 +21,14 @@ type SessionEvent struct {
 
 	Type SessionEventType `gorm:"type:smallint;not null"`
 
-	SessionID string `gorm:"type:uuid;not null"`
-	Session   *Session
+	SessionID string   `gorm:"type:uuid;not null"`
+	Session   *Session `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
-	ConnectionID sql.NullString `gorm:"type:uuid"`
-	Connection   *SessionConnection
+	ConnectionID sql.NullString     `gorm:"type:uuid"`
+	Connection   *SessionConnection `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
 	ErrorID sql.NullString `gorm:"type:uuid"`
-	Error   *SessionError
+	Error   *SessionError  `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
 	Content  sql.NullString    `gorm:"type:text"`
 	Lines    []string          `gorm:"type:jsonb;serializer:json"`

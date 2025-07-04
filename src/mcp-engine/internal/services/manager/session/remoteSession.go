@@ -15,6 +15,8 @@ import (
 const REMOTE_SESSION_INACTIVITY_TIMEOUT = time.Second * 60
 
 type RemoteSession struct {
+	sessionManager *Sessions
+
 	storedSession             *state.Session
 	lastConnectionInteraction time.Time
 	mutex                     sync.RWMutex
@@ -97,6 +99,11 @@ func (s *RemoteSession) DiscardSession() *mterror.MTError {
 	_, err := s.connection.DiscardSession(s.context, &managerPb.DiscardSessionRequest{
 		SessionId: s.storedSession.ID,
 	})
+	if err != nil {
+		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to discard session", err)
+	}
+
+	err = s.sessionManager.DiscardSession(s.storedSession.ID)
 	if err != nil {
 		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to discard session", err)
 	}

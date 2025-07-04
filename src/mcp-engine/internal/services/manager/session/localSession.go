@@ -17,6 +17,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
+	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
 	"google.golang.org/grpc"
 )
 
@@ -37,6 +38,8 @@ type LocalSession struct {
 
 	context context.Context
 	cancel  context.CancelFunc
+
+	sessionEventBroadcaster *pubsub.Broadcaster[*managerPb.SessionEvent]
 
 	hasError bool
 
@@ -130,6 +133,9 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 			doneChan := connection.Done().Subscribe()
 			defer connection.Done().Unsubscribe(doneChan)
 
+			eventChan := s.sessionEventBroadcaster.Subscribe()
+			defer s.sessionEventBroadcaster.Unsubscribe(eventChan)
+
 			for {
 				if responsesToWaitFor <= 0 {
 					return
@@ -146,10 +152,11 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 				case <-timeout.C:
 					if responsesToWaitFor > 0 {
 						response := &managerPb.SendMcpMessageResponse{
-							ResponseType: managerPb.SendMcpMessageResponse_message,
-							McpError: &mcpPb.McpError{
-								ErrorCode:    mcpPb.McpError_timeout,
-								ErrorMessage: fmt.Sprintf("timeout waiting for %d MCP responses", responsesToWaitFor),
+							Response: &managerPb.SendMcpMessageResponse_McpError{
+								McpError: &mcpPb.McpError{
+									ErrorCode:    mcpPb.McpError_timeout,
+									ErrorMessage: fmt.Sprintf("timeout waiting for %d MCP responses", responsesToWaitFor),
+								},
 							},
 						}
 
@@ -164,8 +171,9 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 				case message := <-msgChan:
 					if slices.Contains(mcpRequestMessageIdsToListenFor, message.GetStringId()) {
 						response := &managerPb.SendMcpMessageResponse{
-							ResponseType:       managerPb.SendMcpMessageResponse_message,
-							McpResponseMessage: message.ToPbMessage(),
+							Response: &managerPb.SendMcpMessageResponse_McpMessage{
+								McpMessage: message.ToPbMessage(),
+							},
 						}
 
 						err := stream.Send(response)
@@ -179,8 +187,9 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 				case mcpErr := <-errChan:
 					err := stream.Send(&managerPb.SendMcpMessageResponse{
-						ResponseType: managerPb.SendMcpMessageResponse_error,
-						McpError:     mcpErr,
+						Response: &managerPb.SendMcpMessageResponse_McpError{
+							McpError: mcpErr,
+						},
 					})
 					if err != nil {
 						log.Printf("Failed to send error message: %v", err)
@@ -188,6 +197,18 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 					}
 
 					return
+
+				case event := <-eventChan:
+					err := stream.Send(&managerPb.SendMcpMessageResponse{
+						Response: &managerPb.SendMcpMessageResponse_SessionEvent{
+							SessionEvent: event,
+						},
+					})
+					if err != nil {
+						log.Printf("Failed to send session event message: %v", err)
+						return
+					}
+
 				}
 			}
 		}()
@@ -227,6 +248,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 	var msgChan chan *mcp.MCPMessage = nil
 	var errChan chan *mcpPb.McpError = nil
 	var outChan chan *mcpPb.McpOutput = nil
+	var eventChan chan *managerPb.SessionEvent = nil
 	var doneChan chan struct{} = nil
 	chansForConId := ""
 
@@ -249,6 +271,9 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 		}
 		if doneChan != nil {
 			s.activeConnection.Done().Unsubscribe(doneChan)
+		}
+		if eventChan != nil {
+			s.sessionEventBroadcaster.Unsubscribe(eventChan)
 		}
 	}()
 
@@ -280,23 +305,24 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 			if msgChan != nil {
 				connection.Messages().Unsubscribe(msgChan)
 			}
-
 			if errChan != nil {
 				connection.Errors().Unsubscribe(errChan)
 			}
-
 			if doneChan != nil {
 				connection.Done().Unsubscribe(doneChan)
 			}
-
 			if outChan != nil {
 				connection.Output().Unsubscribe(outChan)
+			}
+			if eventChan != nil {
+				s.sessionEventBroadcaster.Unsubscribe(eventChan)
 			}
 
 			msgChan = connection.Messages().Subscribe()
 			errChan = connection.Errors().Subscribe()
 			outChan = connection.Output().Subscribe()
 			doneChan = connection.Done().Subscribe()
+			eventChan = s.sessionEventBroadcaster.Subscribe()
 			chansForConId = connection.ConnectionID()
 		}
 
@@ -362,6 +388,18 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 				log.Printf("Failed to send output message: %v", err)
 				return nil
 			}
+
+		case event := <-eventChan:
+			err := stream.Send(&managerPb.StreamMcpMessagesResponse{
+				Response: &managerPb.StreamMcpMessagesResponse_SessionEvent{
+					SessionEvent: event,
+				},
+			})
+			if err != nil {
+				log.Printf("Failed to send session event message: %v", err)
+				return nil
+			}
+
 		}
 	}
 }
@@ -389,6 +427,10 @@ func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpP
 }
 
 func (s *LocalSession) DiscardSession() *mterror.MTError {
+	s.sessionEventBroadcaster.Publish(&managerPb.SessionEvent{
+		Event: &managerPb.SessionEvent_SessionDiscarded{},
+	})
+
 	// The manager is responsible for discarding the session
 	err := s.sessionManager.DiscardSession(s.storedSession.ID)
 	if err != nil {
@@ -488,6 +530,14 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 
 	go s.monitorConnection(s.activeConnectionDb, connection)
 
+	s.sessionEventBroadcaster.Publish(&managerPb.SessionEvent{
+		Event: &managerPb.SessionEvent_StartConnection{
+			StartConnection: &managerPb.SessionEventStartConnection{
+				ConnectionId: connection.ConnectionID(),
+			},
+		},
+	})
+
 	err = connection.Start()
 	if err != nil {
 		go s.db.CreateError(db.NewErrorStructuredErrorWithConnection(
@@ -531,6 +581,11 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 func (s *LocalSession) stop(type_ SessionStopType) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+	defer s.sessionEventBroadcaster.Close()
+
+	s.sessionEventBroadcaster.Publish(&managerPb.SessionEvent{
+		Event: &managerPb.SessionEvent_SessionStopped{},
+	})
 
 	close(s.activeConnectionCreated)
 	s.activeConnectionCreated = nil
@@ -643,6 +698,14 @@ loop:
 			}
 
 		case <-doneChan:
+			s.sessionEventBroadcaster.Publish(&managerPb.SessionEvent{
+				Event: &managerPb.SessionEvent_StopConnection{
+					StopConnection: &managerPb.SessionEventStopConnection{
+						ConnectionId: connection.ConnectionID(),
+					},
+				},
+			})
+
 			s.mutex.Lock()
 			if s.activeConnection != nil && s.activeConnection.ConnectionID() == connection.ConnectionID() {
 				s.activeConnection = nil
@@ -660,6 +723,7 @@ loop:
 				}
 			}
 			s.mutex.Unlock()
+
 			break loop
 
 		case err := <-errChan:
@@ -702,4 +766,20 @@ func (s *LocalSession) touch() {
 	defer s.mutex.Unlock()
 
 	s.lastConnectionInteraction = time.Now()
+
+	if s.dbSession != nil && time.Since(s.dbSession.LastPingAt) > time.Second*60 {
+		s.dbSession.LastPingAt = time.Now()
+		err := s.db.SaveSession(s.dbSession)
+		if err != nil {
+			log.Printf("Failed to update last ping time for session %s: %v", s.dbSession.ID, err)
+		}
+	}
+
+	if s.activeConnectionDb != nil && time.Since(s.activeConnectionDb.LastPingAt) > time.Second*60 {
+		s.activeConnectionDb.LastPingAt = time.Now()
+		err := s.db.SaveConnection(s.activeConnectionDb)
+		if err != nil {
+			log.Printf("Failed to update last ping time for connection %s: %v", s.activeConnectionDb.ID, err)
+		}
+	}
 }

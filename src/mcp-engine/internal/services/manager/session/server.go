@@ -38,12 +38,21 @@ func (s *SessionServer) CreateSession(ctx context.Context, req *managerPb.Create
 		return nil, mterror.New(mterror.InvalidRequestKind, "session config must contain either RunConfigWithContainerArguments or RunConfigWithLauncher").ToGRPCStatus().Err()
 	}
 
-	_, err := s.sessions.UpsertSession(req)
+	_, dbSes, err := s.sessions.UpsertSession(req)
 	if err != nil {
 		return nil, err
 	}
 
-	return &managerPb.CreateSessionResponse{}, nil
+	if dbSes != nil {
+		return &managerPb.CreateSessionResponse{
+			SessionId:         req.SessionId,
+			InternalSessionId: dbSes.ID,
+		}, nil
+	}
+
+	return &managerPb.CreateSessionResponse{
+		SessionId: req.SessionId,
+	}, nil
 }
 
 func (s *SessionServer) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) error {

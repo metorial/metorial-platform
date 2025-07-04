@@ -43,7 +43,10 @@ message SessionConfig {
   }
 }
 
-message CreateSessionResponse {}
+message CreateSessionResponse {
+  string session_id = 1;
+  string internal_session_id = 2; // Internal ID used by the MCP Engine
+}
 
 message SendMcpMessageRequest {
   string session_id = 1;
@@ -52,14 +55,11 @@ message SendMcpMessageRequest {
 }
 
 message SendMcpMessageResponse {
-  enum ResponseType {
-    error = 0;
-    message = 1;
+  oneof response {
+    broker.mcp.McpMessage mcp_message = 1; 
+    broker.mcp.McpError mcp_error = 2;
+    SessionEvent session_event = 3;
   }
-
-  ResponseType response_type = 1;
-  broker.mcp.McpMessage mcp_response_message = 2; 
-  broker.mcp.McpError mcp_error = 3;
 }
 
 message StreamMcpMessagesRequest {
@@ -68,11 +68,33 @@ message StreamMcpMessagesRequest {
   repeated string only_ids = 3; // Optional, if empty, all messages are streamed
 }
 
+message SessionEventStartConnection {
+  string connection_id = 1;
+}
+
+message SessionEventStopConnection {
+  string connection_id = 1;
+}
+
+message SessionEventSessionDiscarded {}
+
+message SessionEventSessionStopped {}
+
+message SessionEvent {
+  oneof event {
+    SessionEventStartConnection start_connection = 1;
+    SessionEventStopConnection stop_connection = 2;
+    SessionEventSessionDiscarded session_discarded = 3;
+    SessionEventSessionStopped session_stopped = 4;
+  }
+}
+
 message StreamMcpMessagesResponse {
   oneof response {
     broker.mcp.McpMessage mcp_message = 1; 
     broker.mcp.McpError mcp_error = 2;
     broker.mcp.McpOutput mcp_output = 3;
+    SessionEvent session_event = 4;
   }
 }
 

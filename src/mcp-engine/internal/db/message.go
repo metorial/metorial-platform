@@ -22,11 +22,11 @@ type SessionMessage struct {
 
 	Sender SessionMessageSender `gorm:"type:smallint;not null"`
 
-	SessionID string `gorm:"type:uuid;not null"`
-	Session   *Session
+	SessionID string   `gorm:"type:uuid;not null"`
+	Session   *Session `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
-	ConnectionID sql.NullString `gorm:"type:uuid"`
-	Connection   *SessionConnection
+	ConnectionID sql.NullString     `gorm:"type:uuid"`
+	Connection   *SessionConnection `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
 	MessageType   mcp.MessageType
 	MessageMethod sql.NullString `gorm:"type:text"`

@@ -201,6 +201,10 @@ loop:
 	for {
 		resp, err := stream.Recv()
 		if err != nil {
+			if err == context.Canceled || err.Error() == "EOF" {
+				break loop
+			}
+
 			log.Printf("Error receiving response: %v\n", err)
 			break loop
 		}

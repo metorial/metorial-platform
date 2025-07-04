@@ -18,6 +18,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/pkg/lock"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
+	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
 	"google.golang.org/grpc"
 )
 
@@ -117,10 +118,10 @@ func (s *Sessions) GetSessionUnsafe(sessionId string) (Session, *mterror.MTError
 
 func (s *Sessions) UpsertSession(
 	request *managerPb.CreateSessionRequest,
-) (Session, *mterror.MTError) {
+) (Session, *db.Session, *mterror.MTError) {
 	existing := s.GetLocalSession(request.SessionId)
 	if existing != nil {
-		return existing, nil
+		return existing, nil, nil
 	}
 
 	s.keylock.Lock(request.SessionId)
@@ -128,7 +129,7 @@ func (s *Sessions) UpsertSession(
 
 	client, err := mcp.ParseMcpClient([]byte(request.McpClient.ParticipantJson))
 	if err != nil {
-		return nil, mterror.NewWithInnerError(mterror.InvalidRequestKind, "failed to parse MCP client", err)
+		return nil, nil, mterror.NewWithInnerError(mterror.InvalidRequestKind, "failed to parse MCP client", err)
 	}
 
 	storedSession, err := s.state.UpsertSession(
@@ -137,11 +138,11 @@ func (s *Sessions) UpsertSession(
 	)
 	if err != nil {
 		// return nil, fmt.Errorf("failed to upsert session: %w", err)
-		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to upsert session", err)
+		return nil, nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to upsert session", err)
 	}
 
 	if request.Config.ConfigType == nil {
-		return nil, mterror.New(mterror.InvalidRequestKind, "session config must not be nil")
+		return nil, nil, mterror.New(mterror.InvalidRequestKind, "session config must not be nil")
 	}
 
 	// This manager is responsible for the session, so we
@@ -151,7 +152,7 @@ func (s *Sessions) UpsertSession(
 		if request.Type == managerPb.CreateSessionRequest_runner {
 			workerType = workers.WorkerTypeRunner
 		} else {
-			return nil, mterror.New(mterror.InvalidRequestKind, "unsupported session type")
+			return nil, nil, mterror.New(mterror.InvalidRequestKind, "unsupported session type")
 		}
 
 		connectionInput := &workers.WorkerConnectionInput{
@@ -169,7 +170,7 @@ func (s *Sessions) UpsertSession(
 		))
 		if err != nil {
 			log.Printf("Failed to create session in DB: %v\n", err)
-			return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to create session in DB", err)
+			return nil, dbSession, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to create session in DB", err)
 		}
 
 		if request.Config.GetRunConfigWithLauncher() != nil {
@@ -183,12 +184,12 @@ func (s *Sessions) UpsertSession(
 				))
 
 				log.Printf("Failed to get runner launch params: %v\n", err)
-				return nil, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err.Error(), err)
+				return nil, dbSession, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err.Error(), err)
 			}
 		} else if request.Config.GetRunConfigWithContainerArguments() != nil {
 			connectionInput.RunConfig = request.Config.GetRunConfigWithContainerArguments()
 		} else {
-			return nil, mterror.New(mterror.InvalidRequestKind, "session config must contain either RunConfigWithContainerArguments or RunConfigWithLauncher")
+			return nil, dbSession, mterror.New(mterror.InvalidRequestKind, "session config must contain either RunConfigWithContainerArguments or RunConfigWithLauncher")
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -206,6 +207,8 @@ func (s *Sessions) UpsertSession(
 			storedSession:   storedSession,
 			connectionInput: connectionInput,
 
+			sessionEventBroadcaster: pubsub.NewBroadcaster[*managerPb.SessionEvent](),
+
 			activeConnection:          nil,
 			activeConnectionCreated:   make(chan struct{}),
 			lastConnectionInteraction: time.Now(),
@@ -220,10 +223,11 @@ func (s *Sessions) UpsertSession(
 		s.sessions[storedSession.ID] = session
 		s.mutex.Unlock()
 
-		return session, nil
+		return session, dbSession, nil
 	}
 
-	return s.EnsureRemoteSession(storedSession)
+	ses, err2 := s.EnsureRemoteSession(storedSession)
+	return ses, nil, err2
 }
 
 func (s *Sessions) EnsureRemoteSession(storedSession *state.Session) (*RemoteSession, *mterror.MTError) {
@@ -240,6 +244,8 @@ func (s *Sessions) EnsureRemoteSession(storedSession *state.Session) (*RemoteSes
 	ctx, cancel := context.WithCancel(context.Background())
 
 	session := &RemoteSession{
+		sessionManager: s,
+
 		storedSession:             storedSession,
 		lastConnectionInteraction: time.Now(),
 

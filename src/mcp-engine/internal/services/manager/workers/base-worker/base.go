@@ -163,6 +163,10 @@ func (bw *BaseWorkerConnection) healthRoutine() error {
 	for {
 		resp, err := stream.Recv()
 		if err != nil {
+			if err == context.Canceled {
+				return nil // Client has closed the stream
+			}
+
 			return err
 		}
 

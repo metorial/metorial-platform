@@ -29,7 +29,7 @@ type Session struct {
 	ID         string `gorm:"primaryKey;type:uuid;not null"`
 	ExternalId string `gorm:"type:varchar(40);not null"`
 
-	Status SessionStatus `gorm:"type:smallint;not null"`
+	Status SessionStatus `gorm:"type:smallint;not null;index"`
 	Type   SessionType   `gorm:"type:smallint;not null"`
 
 	HasError bool `gorm:"default:false;not null"`
@@ -37,10 +37,12 @@ type Session struct {
 	McpClient *mcp.MCPClient `gorm:"type:jsonb;serializer:json;not null"`
 	McpServer *mcp.MCPServer `gorm:"type:jsonb;serializer:json"`
 
-	CreatedAt time.Time `gorm:"not null"`
-	UpdatedAt time.Time `gorm:"not null"`
-	StartedAt time.Time `gorm:"not null"`
-	EndedAt   sql.NullTime
+	CreatedAt  time.Time `gorm:"not null"`
+	UpdatedAt  time.Time `gorm:"not null"`
+	StartedAt  time.Time `gorm:"not null"`
+	LastPingAt time.Time `gorm:"not null"`
+
+	EndedAt sql.NullTime
 }
 
 func NewSession(id string, externalId string, status SessionStatus, type_ SessionType, client *mcp.MCPClient) *Session {
@@ -53,9 +55,10 @@ func NewSession(id string, externalId string, status SessionStatus, type_ Sessio
 		Status: status,
 		Type:   type_,
 
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		StartedAt: time.Now(),
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+		StartedAt:  time.Now(),
+		LastPingAt: time.Now(),
 	}
 }
 
@@ -79,4 +82,28 @@ func (d *DB) CreateSession(session *Session) (*Session, error) {
 func (d *DB) SaveSession(session *Session) error {
 	session.UpdatedAt = time.Now()
 	return d.db.Save(session).Error
+}
+
+func (d *DB) expireActiveSessionsRoutine() {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		now := time.Now()
+		d.db.Model(&Session{}).
+			Where("status = ? AND last_ping_at < ?", SessionStatusActive, now.Add(-5*time.Minute)).
+			Update("status", SessionStatusExpired)
+	}
+}
+
+func (d *DB) cleanupOldSessionsRoutine() {
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		now := time.Now()
+		d.db.Model(&Session{}).
+			Where("status = ? AND ended_at < ?", SessionStatusExpired, now.Add(-30*24*time.Hour)).
+			Delete(&Session{})
+	}
 }
