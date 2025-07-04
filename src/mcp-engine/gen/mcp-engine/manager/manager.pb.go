@@ -390,6 +390,7 @@ type SendMcpMessageResponse struct {
 	//	*SendMcpMessageResponse_McpError
 	//	*SendMcpMessageResponse_SessionEvent
 	Response      isSendMcpMessageResponse_Response `protobuf_oneof:"response"`
+	IsReplay      bool                              `protobuf:"varint,10,opt,name=isReplay,proto3" json:"isReplay,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -458,6 +459,13 @@ func (x *SendMcpMessageResponse) GetSessionEvent() *SessionEvent {
 	return nil
 }
 
+func (x *SendMcpMessageResponse) GetIsReplay() bool {
+	if x != nil {
+		return x.IsReplay
+	}
+	return false
+}
+
 type isSendMcpMessageResponse_Response interface {
 	isSendMcpMessageResponse_Response()
 }
@@ -485,6 +493,7 @@ type StreamMcpMessagesRequest struct {
 	SessionId        string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	OnlyMessageTypes []mcp.McpMessageType   `protobuf:"varint,2,rep,packed,name=only_message_types,json=onlyMessageTypes,proto3,enum=broker.mcp.McpMessageType" json:"only_message_types,omitempty"` // Optional, if empty, all message types are streamed
 	OnlyIds          []string               `protobuf:"bytes,3,rep,name=only_ids,json=onlyIds,proto3" json:"only_ids,omitempty"`                                                                     // Optional, if empty, all messages are streamed
+	ReplayAfterUuid  string                 `protobuf:"bytes,4,opt,name=replay_after_uuid,json=replayAfterUuid,proto3" json:"replay_after_uuid,omitempty"`                                           // Include messages after this UUID, useful for resuming streams
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -538,6 +547,13 @@ func (x *StreamMcpMessagesRequest) GetOnlyIds() []string {
 		return x.OnlyIds
 	}
 	return nil
+}
+
+func (x *StreamMcpMessagesRequest) GetReplayAfterUuid() string {
+	if x != nil {
+		return x.ReplayAfterUuid
+	}
+	return ""
 }
 
 type SessionEventStartConnection struct {
@@ -1230,19 +1246,22 @@ const file_manager_proto_rawDesc = "" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12<\n" +
 	"\fmcp_messages\x18\x02 \x03(\v2\x19.broker.mcp.McpMessageRawR\vmcpMessages\x12+\n" +
-	"\x11include_responses\x18\x03 \x01(\bR\x10includeResponses\"\xd9\x01\n" +
+	"\x11include_responses\x18\x03 \x01(\bR\x10includeResponses\"\xf5\x01\n" +
 	"\x16SendMcpMessageResponse\x129\n" +
 	"\vmcp_message\x18\x01 \x01(\v2\x16.broker.mcp.McpMessageH\x00R\n" +
 	"mcpMessage\x123\n" +
 	"\tmcp_error\x18\x02 \x01(\v2\x14.broker.mcp.McpErrorH\x00R\bmcpError\x12C\n" +
-	"\rsession_event\x18\x03 \x01(\v2\x1c.broker.manager.SessionEventH\x00R\fsessionEventB\n" +
+	"\rsession_event\x18\x03 \x01(\v2\x1c.broker.manager.SessionEventH\x00R\fsessionEvent\x12\x1a\n" +
+	"\bisReplay\x18\n" +
+	" \x01(\bR\bisReplayB\n" +
 	"\n" +
-	"\bresponse\"\x9e\x01\n" +
+	"\bresponse\"\xca\x01\n" +
 	"\x18StreamMcpMessagesRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12H\n" +
 	"\x12only_message_types\x18\x02 \x03(\x0e2\x1a.broker.mcp.McpMessageTypeR\x10onlyMessageTypes\x12\x19\n" +
-	"\bonly_ids\x18\x03 \x03(\tR\aonlyIds\"B\n" +
+	"\bonly_ids\x18\x03 \x03(\tR\aonlyIds\x12*\n" +
+	"\x11replay_after_uuid\x18\x04 \x01(\tR\x0freplayAfterUuid\"B\n" +
 	"\x1bSessionEventStartConnection\x12#\n" +
 	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\"A\n" +
 	"\x1aSessionEventStopConnection\x12#\n" +

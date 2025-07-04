@@ -159,7 +159,7 @@ func (m *MCPMessage) ToPbMessage() *mcpPb.McpMessage {
 	}
 
 	if m.stringId != "" {
-		msg.IdString = m.stringId
+		msg.IdString = m.GetStringId()
 	}
 
 	if m.rawId != nil {
@@ -209,7 +209,12 @@ func (m *MCPMessage) GetStringId() string {
 	}
 
 	if m.stringId != "" {
-		return m.stringId
+		str, err := strconv.Unquote(m.stringId)
+		if err == nil {
+			return str
+		}
+
+		return m.stringId // Return raw if unquoting fails
 	}
 
 	return ""

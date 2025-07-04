@@ -2,9 +2,11 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"slices"
 	"time"
 
+	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 )
 
@@ -68,7 +70,7 @@ func (d *DB) ListGlobalSessionMessagesAfter(sessionId string, afterId string) ([
 	two_days_ago := time.Now().Add(-48 * time.Hour)
 
 	var sessions []Session
-	err := d.db.Model(&SessionMessage{}).
+	err := d.db.Model(&Session{}).
 		Where("external_id = ?", sessionId).
 		Where("last_ping_at > ?", two_days_ago).
 		Find(&sessions).Error
@@ -92,6 +94,7 @@ func (d *DB) ListGlobalSessionMessagesAfter(sessionId string, afterId string) ([
 	err = d.db.Model(&SessionMessage{}).
 		Where("session_id IN ?", sessionIds).
 		Where("id > ?", afterId).
+		Where("sender = ?", SessionMessageSenderServer).
 		Order("created_at DESC").
 		Limit(100).
 		Find(&reverseMessages).Error
@@ -103,4 +106,37 @@ func (d *DB) ListGlobalSessionMessagesAfter(sessionId string, afterId string) ([
 	slices.Reverse(reverseMessages)
 
 	return reverseMessages, nil
+}
+
+func (m *SessionMessage) ToMcpMessage() (*mcp.MCPMessage, error) {
+	if m == nil {
+		return nil, fmt.Errorf("cannot convert nil SessionMessage to MCPMessage")
+	}
+
+	msg, err := mcp.ParseMCPMessage(m.ID, m.MessageJson)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse MCP message: %w", err)
+	}
+
+	msg.MsgType = m.MessageType
+
+	return msg, nil
+}
+
+func (m *SessionMessage) ToPbMessage() (*mcpPb.McpMessage, error) {
+	mcp, err := m.ToMcpMessage()
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert SessionMessage to MCPMessage: %w", err)
+	}
+
+	return mcp.ToPbMessage(), nil
+}
+
+func (m *SessionMessage) ToPbRawMessage() (*mcpPb.McpMessageRaw, error) {
+	mcp, err := m.ToMcpMessage()
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert SessionMessage to MCPMessage: %w", err)
+	}
+
+	return mcp.ToPbRawMessage(), nil
 }

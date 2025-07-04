@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -244,6 +245,42 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 	responsesToWaitFor := 0
 	if req.OnlyIds == nil {
 		responsesToWaitFor = len(req.OnlyIds)
+	}
+
+	if req.ReplayAfterUuid != "" {
+		go func() {
+			messages, err := s.db.ListGlobalSessionMessagesAfter(req.SessionId, req.ReplayAfterUuid)
+			if err != nil {
+				log.Printf("Failed to list messages after UUID %s: %v", req.ReplayAfterUuid, err)
+				return
+			}
+
+			for _, message := range messages {
+				message, err := message.ToPbMessage()
+				if strings.HasPrefix(message.IdString, "mte/init/") {
+					// Skip initialization messages, as they are always handled internally
+					// and not by the MCP client.
+					continue
+				}
+
+				if err != nil {
+					log.Printf("Failed to convert message to PB message: %v", err)
+					continue
+				}
+
+				response := &managerPb.StreamMcpMessagesResponse{
+					Response: &managerPb.StreamMcpMessagesResponse_McpMessage{
+						McpMessage: message,
+					},
+				}
+
+				err = stream.Send(response)
+				if err != nil {
+					log.Printf("Failed to send replayed message: %v", err)
+					return
+				}
+			}
+		}()
 	}
 
 	var msgChan chan *mcp.MCPMessage = nil

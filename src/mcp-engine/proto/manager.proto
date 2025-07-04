@@ -60,12 +60,15 @@ message SendMcpMessageResponse {
     broker.mcp.McpError mcp_error = 2;
     SessionEvent session_event = 3;
   }
+
+  bool isReplay = 10;
 }
 
 message StreamMcpMessagesRequest {
   string session_id = 1;
   repeated broker.mcp.McpMessageType only_message_types = 2; // Optional, if empty, all message types are streamed
   repeated string only_ids = 3; // Optional, if empty, all messages are streamed
+  string replay_after_uuid = 4; // Include messages after this UUID, useful for resuming streams
 }
 
 message SessionEventStartConnection {
