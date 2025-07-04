@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	runnerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
-	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers"
-	base_worker "github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers/base-worker"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
+	base_worker "github.com/metorial/metorial/mcp-engine/internal/services/manager/workers/base-worker"
 )
 
 type RunnerWorker struct {

@@ -11,8 +11,8 @@ import (
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	runnerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
+	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
-	"github.com/metorial/metorial/mcp-engine/pkg/worker"
 )
 
 type runnerServer struct {

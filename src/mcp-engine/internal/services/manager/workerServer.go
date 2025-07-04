@@ -7,10 +7,10 @@ import (
 
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
-	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/state"
-	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers"
-	launcherWorker "github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers/launcher-worker"
-	runnerWorker "github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers/runner-worker"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
+	launcherWorker "github.com/metorial/metorial/mcp-engine/internal/services/manager/workers/launcher-worker"
+	runnerWorker "github.com/metorial/metorial/mcp-engine/internal/services/manager/workers/runner-worker"
 )
 
 type workerBrokerServer struct {

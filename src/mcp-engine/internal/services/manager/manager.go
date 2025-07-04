@@ -7,10 +7,10 @@ import (
 
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/session"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/addr"
-	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/session"
-	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/state"
-	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )

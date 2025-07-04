@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
-	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/state"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

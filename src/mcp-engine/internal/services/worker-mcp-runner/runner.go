@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	"github.com/metorial/metorial/mcp-engine/pkg/docker"
-	"github.com/metorial/metorial/mcp-engine/pkg/worker"
 	"google.golang.org/grpc"
 
 	runnerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"

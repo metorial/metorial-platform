@@ -6,8 +6,8 @@ import (
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	"github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
-	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/state"
-	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
 	"google.golang.org/grpc"
 )

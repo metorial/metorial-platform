@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/google/uuid"
-	"github.com/metorial/metorial/mcp-engine/pkg/worker"
+	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	"google.golang.org/grpc"
 
 	launcherPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/launcher"

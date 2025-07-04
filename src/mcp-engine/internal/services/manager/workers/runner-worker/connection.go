@@ -5,7 +5,7 @@ import (
 	"time"
 
 	mcpPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
-	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
 )

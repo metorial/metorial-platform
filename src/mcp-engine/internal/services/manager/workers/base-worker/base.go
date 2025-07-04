@@ -8,7 +8,7 @@ import (
 
 	launcherPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/launcher"
 	workerPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
-	"github.com/metorial/metorial/mcp-engine/pkg/manager/internal/workers"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

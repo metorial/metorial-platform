@@ -9,9 +9,9 @@ import (
 	"syscall"
 
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
+	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
+	workerLauncher "github.com/metorial/metorial/mcp-engine/internal/services/worker-launcher"
 	"github.com/metorial/metorial/mcp-engine/pkg/addr"
-	"github.com/metorial/metorial/mcp-engine/pkg/worker"
-	workerLauncher "github.com/metorial/metorial/mcp-engine/pkg/worker-launcher"
 )
 
 func main() {

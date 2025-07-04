@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/metorial/metorial/mcp-engine/pkg/manager"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager"
 )
 
 func main() {
