@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"sync"
 
+	"github.com/google/uuid"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 )
 
@@ -27,14 +29,19 @@ type MCPMessage struct {
 	stringId string
 
 	raw []byte
+
+	internalUuid string // Internal UUID for tracking
+
+	mutex sync.Mutex
+
 	// payload map[string]any
 }
 
-func ParseMCPMessage(stringData string) (*MCPMessage, error) {
-	return ParseMCPMessageFromBytes([]byte(stringData))
+func ParseMCPMessage(uuid string, stringData string) (*MCPMessage, error) {
+	return ParseMCPMessageFromBytes(uuid, []byte(stringData))
 }
 
-func ParseMCPMessageFromBytes(data []byte) (*MCPMessage, error) {
+func ParseMCPMessageFromBytes(uuid string, data []byte) (*MCPMessage, error) {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, fmt.Errorf("invalid JSON: %w", err)
@@ -47,7 +54,8 @@ func ParseMCPMessageFromBytes(data []byte) (*MCPMessage, error) {
 	}
 
 	msg := &MCPMessage{
-		raw: data,
+		raw:          data,
+		internalUuid: uuid,
 	}
 
 	// Optional fields
@@ -111,7 +119,7 @@ func FromPbRawMessage(pbMessage *mcpPb.McpMessageRaw) (*MCPMessage, error) {
 		return nil, fmt.Errorf("empty MCP message")
 	}
 
-	msg, err := ParseMCPMessage(pbMessage.Message)
+	msg, err := ParseMCPMessage(pbMessage.Uuid, pbMessage.Message)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse MCP message: %w", err)
 	}
@@ -128,8 +136,16 @@ func FromPbMessage(pbMessage *mcpPb.McpMessage) (*MCPMessage, error) {
 }
 
 func (m *MCPMessage) ToPbRawMessage() *mcpPb.McpMessageRaw {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if m.internalUuid == "" {
+		m.internalUuid = uuid.NewString()
+	}
+
 	return &mcpPb.McpMessageRaw{
 		Message: string(m.raw),
+		Uuid:    m.internalUuid,
 	}
 }
 
@@ -210,6 +226,18 @@ func (m *MCPMessage) GetRawId() *json.RawMessage {
 	return nil
 }
 
+func (m *MCPMessage) GetJsonId() string {
+	if m.rawId != nil {
+		return string(*m.rawId)
+	}
+
+	if m.stringId != "" {
+		return fmt.Sprintf(`"%s"`, m.stringId)
+	}
+
+	return ""
+}
+
 func (m *MCPMessage) GetStringPayload() string {
 	if m.raw == nil {
 		return ""
@@ -229,6 +257,17 @@ func (m *MCPMessage) GetMethod() string {
 		return *m.Method
 	}
 	return ""
+}
+
+func (m *MCPMessage) GetUuid() string {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if m.internalUuid == "" {
+		m.internalUuid = uuid.NewString()
+	}
+
+	return m.internalUuid
 }
 
 func messageTypeToPbMessageType(inType MessageType) mcpPb.McpMessageType {

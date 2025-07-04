@@ -109,7 +109,7 @@ func (s *RemoteSession) CanDiscard() bool {
 	defer s.mutex.RUnlock()
 
 	// If the last interaction with the connection was too long ago, we can discard it
-	if time.Since(s.lastConnectionInteraction) > LOCAL_SESSION_INACTIVITY_TIMEOUT {
+	if time.Since(s.lastConnectionInteraction) > REMOTE_SESSION_INACTIVITY_TIMEOUT {
 		return true
 	}
 
@@ -120,7 +120,7 @@ func (s *RemoteSession) StoredSession() *state.Session {
 	return s.storedSession
 }
 
-func (s *RemoteSession) stop() error {
+func (s *RemoteSession) stop(SessionStopType) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	if s.cancel != nil {

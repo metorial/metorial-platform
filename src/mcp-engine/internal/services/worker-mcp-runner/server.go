@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	commonPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/common"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	runnerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
@@ -144,6 +145,7 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 					McpMessage: &runnerPb.RunResponseMcpMessage{
 						Message: &mcpPb.McpMessageRaw{
 							Message: message.GetStringPayload(),
+							Uuid:    uuid.NewString(),
 						},
 					},
 				},

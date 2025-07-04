@@ -81,7 +81,7 @@ func (r *Run) Start() error {
 	return nil
 }
 
-func (r *Run) SendMessage(message string) error {
+func (r *Run) SendMessage(msg *mcpPB.McpMessageRaw) error {
 	r.createStreamWg.Wait()
 
 	if r.stream == nil {
@@ -91,9 +91,7 @@ func (r *Run) SendMessage(message string) error {
 	return r.stream.Send(&runnerPb.RunRequest{
 		JobType: &runnerPb.RunRequest_McpMessage{
 			McpMessage: &runnerPb.RunRequestMcpMessage{
-				Message: &mcpPB.McpMessageRaw{
-					Message: message,
-				},
+				Message: msg,
 			},
 		},
 	})

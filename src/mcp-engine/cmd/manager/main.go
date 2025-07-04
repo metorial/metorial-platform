@@ -3,22 +3,30 @@ package main
 import (
 	"flag"
 	"log"
-	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
+	"github.com/joho/godotenv"
+	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager"
 )
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
-	address, etcdEndpoints := getConfig()
+	address, etcdEndpoints, dsn := getConfig()
 
-	manager, err := manager.NewManager(etcdEndpoints, address)
+	db, error := db.NewDB(dsn)
+	if error != nil {
+		log.Fatalf("Failed to connect to database: %v", error)
+	}
+
+	manager, err := manager.NewManager(db, etcdEndpoints, address)
 	if err != nil {
 		log.Fatalf("Failed to create manager: %v", err)
 	}
@@ -39,7 +47,7 @@ func main() {
 	}
 }
 
-func getConfig() (string, []string) {
+func getConfig() (string, []string, string) {
 	addressArg := flag.String("address", "localhost:50050", "Address for the MCP Managers to listen on")
 	flag.Parse()
 
@@ -51,5 +59,10 @@ func getConfig() (string, []string) {
 		etcdEndpoints = strings.Split(etcdEndpointsEnv, ",")
 	}
 
-	return address, etcdEndpoints
+	dsn := os.Getenv("DATABASE_DSN")
+	if dsn == "" {
+		log.Fatal("DATABASE_DSN environment variable is not set")
+	}
+
+	return address, etcdEndpoints, dsn
 }

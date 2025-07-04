@@ -7,8 +7,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
+	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/launcher"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
@@ -19,6 +21,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+type SessionStopType int
+
+const (
+	SessionStopTypeClose SessionStopType = iota
+	SessionStopTypeExpire
+	SessionStopTypeError
+)
+
 type Session interface {
 	SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError
 	StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError
@@ -27,11 +37,13 @@ type Session interface {
 	DiscardSession() *mterror.MTError
 
 	CanDiscard() bool
-	stop() error
+	stop(SessionStopType) error
 }
 
 type Sessions struct {
 	sessions map[string]Session
+
+	db *db.DB
 
 	state         *state.StateManager
 	workerManager *workers.WorkerManager
@@ -45,12 +57,14 @@ type Sessions struct {
 }
 
 func NewSessions(
+	db *db.DB,
 	state *state.StateManager,
 	workerManager *workers.WorkerManager,
 ) *Sessions {
 	sessions := &Sessions{
 		sessions:      make(map[string]Session),
 		state:         state,
+		db:            db,
 		workerManager: workerManager,
 		managers:      NewOtherManagers(state),
 		keylock:       lock.NewKeyLock(),
@@ -146,9 +160,28 @@ func (s *Sessions) UpsertSession(
 			MCPClient:    client,
 		}
 
+		dbSession, err := s.db.CreateSession(db.NewSession(
+			uuid.NewString(),
+			request.SessionId,
+			db.SessionStatusActive,
+			db.SessionTypeFromSessionType(request.Type),
+			client,
+		))
+		if err != nil {
+			log.Printf("Failed to create session in DB: %v\n", err)
+			return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to create session in DB", err)
+		}
+
 		if request.Config.GetRunConfigWithLauncher() != nil {
 			connectionInput.RunConfig, err = s.launcher.GetRunnerLaunchParams(request.Config.GetRunConfigWithLauncher())
 			if err != nil {
+				go s.db.CreateError(db.NewErrorStructuredError(
+					dbSession,
+					"get_launch_params_error",
+					err.Error(),
+					map[string]string{},
+				))
+
 				log.Printf("Failed to get runner launch params: %v\n", err)
 				return nil, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err.Error(), err)
 			}
@@ -165,6 +198,10 @@ func (s *Sessions) UpsertSession(
 			WorkerType: workerType,
 
 			sessionManager: s,
+			dbSession:      dbSession,
+			db:             s.db,
+
+			hasError: false,
 
 			storedSession:   storedSession,
 			connectionInput: connectionInput,
@@ -237,7 +274,7 @@ func (s *Sessions) DiscardSession(sessionId string) error {
 		return fmt.Errorf("failed to delete session %s from state: %w", sessionId, err)
 	}
 
-	err = session.stop()
+	err = session.stop(SessionStopTypeClose)
 	if err != nil {
 		return fmt.Errorf("failed to stop session %s: %w", sessionId, err)
 	}
@@ -249,7 +286,7 @@ func (s *Sessions) Stop() error {
 	for id, session := range s.sessions {
 		log.Printf("Stopping session %s\n", id)
 
-		err := session.stop()
+		err := session.stop(SessionStopTypeExpire)
 		_, err2 := s.state.DeleteSession(id)
 		if err != nil {
 			log.Panicf("failed to stop session %s: %v\n", id, err)

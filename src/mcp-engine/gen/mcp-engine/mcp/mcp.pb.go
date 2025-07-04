@@ -234,6 +234,7 @@ type McpError struct {
 	ErrorMessage  string                 `protobuf:"bytes,1,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
 	ErrorCode     McpError_McpErrorCode  `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3,enum=broker.mcp.McpError_McpErrorCode" json:"error_code,omitempty"`
 	Metadata      map[string]string      `protobuf:"bytes,3,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Optional, Additional metadata for the error
+	Uuid          string                 `protobuf:"bytes,4,opt,name=uuid,proto3" json:"uuid,omitempty"`                                                                                   // UUID for tracking the error
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -289,10 +290,18 @@ func (x *McpError) GetMetadata() map[string]string {
 	return nil
 }
 
+func (x *McpError) GetUuid() string {
+	if x != nil {
+		return x.Uuid
+	}
+	return ""
+}
+
 type McpOutput struct {
 	state         protoimpl.MessageState  `protogen:"open.v1"`
 	OutputType    McpOutput_McpOutputType `protobuf:"varint,1,opt,name=output_type,json=outputType,proto3,enum=broker.mcp.McpOutput_McpOutputType" json:"output_type,omitempty"`
 	Lines         []string                `protobuf:"bytes,2,rep,name=lines,proto3" json:"lines,omitempty"`
+	Uuid          string                  `protobuf:"bytes,3,opt,name=uuid,proto3" json:"uuid,omitempty"` // UUID for tracking the output
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -341,9 +350,17 @@ func (x *McpOutput) GetLines() []string {
 	return nil
 }
 
+func (x *McpOutput) GetUuid() string {
+	if x != nil {
+		return x.Uuid
+	}
+	return ""
+}
+
 type McpMessageRaw struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	Uuid          string                 `protobuf:"bytes,2,opt,name=uuid,proto3" json:"uuid,omitempty"` // UUID for tracking the message
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -381,6 +398,13 @@ func (*McpMessageRaw) Descriptor() ([]byte, []int) {
 func (x *McpMessageRaw) GetMessage() string {
 	if x != nil {
 		return x.Message
+	}
+	return ""
+}
+
+func (x *McpMessageRaw) GetUuid() string {
+	if x != nil {
+		return x.Uuid
 	}
 	return ""
 }
@@ -518,12 +542,13 @@ var File_mcp_proto protoreflect.FileDescriptor
 const file_mcp_proto_rawDesc = "" +
 	"\n" +
 	"\tmcp.proto\x12\n" +
-	"broker.mcp\"\x8f\x03\n" +
+	"broker.mcp\"\xa3\x03\n" +
 	"\bMcpError\x12#\n" +
 	"\rerror_message\x18\x01 \x01(\tR\ferrorMessage\x12@\n" +
 	"\n" +
 	"error_code\x18\x02 \x01(\x0e2!.broker.mcp.McpError.McpErrorCodeR\terrorCode\x12>\n" +
-	"\bmetadata\x18\x03 \x03(\v2\".broker.mcp.McpError.MetadataEntryR\bmetadata\x1a;\n" +
+	"\bmetadata\x18\x03 \x03(\v2\".broker.mcp.McpError.MetadataEntryR\bmetadata\x12\x12\n" +
+	"\x04uuid\x18\x04 \x01(\tR\x04uuid\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x9e\x01\n" +
@@ -534,18 +559,20 @@ const file_mcp_proto_rawDesc = "" +
 	"\runknown_error\x10\x03\x12\v\n" +
 	"\atimeout\x10\x04\x12\x17\n" +
 	"\x13launch_params_error\x10\x05\x12\x13\n" +
-	"\x0fexecution_error\x10\x06\"\x90\x01\n" +
+	"\x0fexecution_error\x10\x06\"\xa4\x01\n" +
 	"\tMcpOutput\x12D\n" +
 	"\voutput_type\x18\x01 \x01(\x0e2#.broker.mcp.McpOutput.McpOutputTypeR\n" +
 	"outputType\x12\x14\n" +
-	"\x05lines\x18\x02 \x03(\tR\x05lines\"'\n" +
+	"\x05lines\x18\x02 \x03(\tR\x05lines\x12\x12\n" +
+	"\x04uuid\x18\x03 \x01(\tR\x04uuid\"'\n" +
 	"\rMcpOutputType\x12\n" +
 	"\n" +
 	"\x06stdout\x10\x00\x12\n" +
 	"\n" +
-	"\x06stderr\x10\x01\")\n" +
+	"\x06stderr\x10\x01\"=\n" +
 	"\rMcpMessageRaw\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\"\xd5\x01\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\x12\x12\n" +
+	"\x04uuid\x18\x02 \x01(\tR\x04uuid\"\xd5\x01\n" +
 	"\n" +
 	"McpMessage\x12:\n" +
 	"\vmcp_message\x18\x01 \x01(\v2\x19.broker.mcp.McpMessageRawR\n" +

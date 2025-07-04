@@ -7,6 +7,7 @@ import (
 
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
+	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/session"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
@@ -25,7 +26,7 @@ type Manager struct {
 	sessionServer *session.SessionServer
 }
 
-func NewManager(etcdEndpoints []string, address string) (*Manager, error) {
+func NewManager(db *db.DB, etcdEndpoints []string, address string) (*Manager, error) {
 	port, err := addr.ExtractPort(address)
 	if err != nil {
 		return nil, err
@@ -44,7 +45,7 @@ func NewManager(etcdEndpoints []string, address string) (*Manager, error) {
 		Address:       address,
 		workers:       workers,
 		workerServer:  &workerBrokerServer{state: sm, workerManager: workers},
-		sessionServer: session.NewSessionServer(sm, workers),
+		sessionServer: session.NewSessionServer(db, sm, workers),
 	}, nil
 }
 

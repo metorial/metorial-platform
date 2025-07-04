@@ -91,7 +91,7 @@ func (rwc *RunnerWorkerConnection) GetServer() (*mcp.MCPServer, error) {
 }
 
 func (rwc *RunnerWorkerConnection) AcceptMessage(message *mcp.MCPMessage) error {
-	return rwc.run.SendMessage(message.GetStringPayload())
+	return rwc.run.SendMessage(message.ToPbRawMessage())
 }
 
 func (rws *RunnerWorkerConnection) SendAndWaitForResponse(message *mcp.MCPMessage) (*mcp.MCPMessage, error) {

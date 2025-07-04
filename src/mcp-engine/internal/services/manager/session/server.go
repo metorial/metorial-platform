@@ -6,6 +6,7 @@ import (
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	"github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
+	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
@@ -21,13 +22,14 @@ type SessionServer struct {
 }
 
 func NewSessionServer(
+	db *db.DB,
 	state *state.StateManager,
 	workerManager *workers.WorkerManager,
 ) *SessionServer {
 	return &SessionServer{
 		state:         state,
 		workerManager: workerManager,
-		sessions:      NewSessions(state, workerManager),
+		sessions:      NewSessions(db, state, workerManager),
 	}
 }
 

@@ -18,6 +18,7 @@ message McpError {
   string error_message = 1;
   McpErrorCode error_code = 2;
   map<string, string> metadata = 3; // Optional, Additional metadata for the error
+  string uuid = 4; // UUID for tracking the error
 }
 
 message McpOutput {
@@ -28,10 +29,12 @@ message McpOutput {
   
   McpOutputType output_type = 1;
   repeated string lines = 2;
+  string uuid = 3; // UUID for tracking the output
 }
 
 message McpMessageRaw {
   string message = 1; 
+  string uuid = 2; // UUID for tracking the message
 }
 
 enum McpMessageType {
