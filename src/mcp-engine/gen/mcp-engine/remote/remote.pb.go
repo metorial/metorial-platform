@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v6.31.1
-// source: connector.proto
+// source: remote.proto
 
-package connector
+package remote
 
 import (
 	mcp "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
@@ -53,11 +53,11 @@ func (x RunConfigRemoteServer_ServerProtocol) String() string {
 }
 
 func (RunConfigRemoteServer_ServerProtocol) Descriptor() protoreflect.EnumDescriptor {
-	return file_connector_proto_enumTypes[0].Descriptor()
+	return file_remote_proto_enumTypes[0].Descriptor()
 }
 
 func (RunConfigRemoteServer_ServerProtocol) Type() protoreflect.EnumType {
-	return &file_connector_proto_enumTypes[0]
+	return &file_remote_proto_enumTypes[0]
 }
 
 func (x RunConfigRemoteServer_ServerProtocol) Number() protoreflect.EnumNumber {
@@ -66,30 +66,30 @@ func (x RunConfigRemoteServer_ServerProtocol) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use RunConfigRemoteServer_ServerProtocol.Descriptor instead.
 func (RunConfigRemoteServer_ServerProtocol) EnumDescriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{2, 0}
+	return file_remote_proto_rawDescGZIP(), []int{2, 0}
 }
 
-type ConnectorInfoRequest struct {
+type RemoteInfoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ConnectorInfoRequest) Reset() {
-	*x = ConnectorInfoRequest{}
-	mi := &file_connector_proto_msgTypes[0]
+func (x *RemoteInfoRequest) Reset() {
+	*x = RemoteInfoRequest{}
+	mi := &file_remote_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ConnectorInfoRequest) String() string {
+func (x *RemoteInfoRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ConnectorInfoRequest) ProtoMessage() {}
+func (*RemoteInfoRequest) ProtoMessage() {}
 
-func (x *ConnectorInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[0]
+func (x *RemoteInfoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_remote_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -100,36 +100,36 @@ func (x *ConnectorInfoRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConnectorInfoRequest.ProtoReflect.Descriptor instead.
-func (*ConnectorInfoRequest) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{0}
+// Deprecated: Use RemoteInfoRequest.ProtoReflect.Descriptor instead.
+func (*RemoteInfoRequest) Descriptor() ([]byte, []int) {
+	return file_remote_proto_rawDescGZIP(), []int{0}
 }
 
-type ConnectorInfoResponse struct {
-	state         protoimpl.MessageState     `protogen:"open.v1"`
-	RunnerId      string                     `protobuf:"bytes,1,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
-	ActiveRuns    uint32                     `protobuf:"varint,2,opt,name=active_runs,json=activeRuns,proto3" json:"active_runs,omitempty"`
-	TotalRuns     uint64                     `protobuf:"varint,3,opt,name=total_runs,json=totalRuns,proto3" json:"total_runs,omitempty"`
-	WorkerInfo    *worker.WorkerInfoResponse `protobuf:"bytes,4,opt,name=worker_info,json=workerInfo,proto3" json:"worker_info,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+type RemoteInfoResponse struct {
+	state             protoimpl.MessageState     `protogen:"open.v1"`
+	WorkerId          string                     `protobuf:"bytes,1,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
+	ActiveConnections uint32                     `protobuf:"varint,2,opt,name=active_connections,json=activeConnections,proto3" json:"active_connections,omitempty"`
+	TotalConnections  uint64                     `protobuf:"varint,3,opt,name=total_connections,json=totalConnections,proto3" json:"total_connections,omitempty"`
+	WorkerInfo        *worker.WorkerInfoResponse `protobuf:"bytes,4,opt,name=worker_info,json=workerInfo,proto3" json:"worker_info,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
-func (x *ConnectorInfoResponse) Reset() {
-	*x = ConnectorInfoResponse{}
-	mi := &file_connector_proto_msgTypes[1]
+func (x *RemoteInfoResponse) Reset() {
+	*x = RemoteInfoResponse{}
+	mi := &file_remote_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ConnectorInfoResponse) String() string {
+func (x *RemoteInfoResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ConnectorInfoResponse) ProtoMessage() {}
+func (*RemoteInfoResponse) ProtoMessage() {}
 
-func (x *ConnectorInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[1]
+func (x *RemoteInfoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_remote_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -140,33 +140,33 @@ func (x *ConnectorInfoResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConnectorInfoResponse.ProtoReflect.Descriptor instead.
-func (*ConnectorInfoResponse) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{1}
+// Deprecated: Use RemoteInfoResponse.ProtoReflect.Descriptor instead.
+func (*RemoteInfoResponse) Descriptor() ([]byte, []int) {
+	return file_remote_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ConnectorInfoResponse) GetRunnerId() string {
+func (x *RemoteInfoResponse) GetWorkerId() string {
 	if x != nil {
-		return x.RunnerId
+		return x.WorkerId
 	}
 	return ""
 }
 
-func (x *ConnectorInfoResponse) GetActiveRuns() uint32 {
+func (x *RemoteInfoResponse) GetActiveConnections() uint32 {
 	if x != nil {
-		return x.ActiveRuns
+		return x.ActiveConnections
 	}
 	return 0
 }
 
-func (x *ConnectorInfoResponse) GetTotalRuns() uint64 {
+func (x *RemoteInfoResponse) GetTotalConnections() uint64 {
 	if x != nil {
-		return x.TotalRuns
+		return x.TotalConnections
 	}
 	return 0
 }
 
-func (x *ConnectorInfoResponse) GetWorkerInfo() *worker.WorkerInfoResponse {
+func (x *RemoteInfoResponse) GetWorkerInfo() *worker.WorkerInfoResponse {
 	if x != nil {
 		return x.WorkerInfo
 	}
@@ -176,14 +176,14 @@ func (x *ConnectorInfoResponse) GetWorkerInfo() *worker.WorkerInfoResponse {
 type RunConfigRemoteServer struct {
 	state         protoimpl.MessageState               `protogen:"open.v1"`
 	ServerUri     string                               `protobuf:"bytes,1,opt,name=server_uri,json=serverUri,proto3" json:"server_uri,omitempty"`
-	Protocol      RunConfigRemoteServer_ServerProtocol `protobuf:"varint,2,opt,name=protocol,proto3,enum=broker.connector.RunConfigRemoteServer_ServerProtocol" json:"protocol,omitempty"`
+	Protocol      RunConfigRemoteServer_ServerProtocol `protobuf:"varint,2,opt,name=protocol,proto3,enum=broker.remote.RunConfigRemoteServer_ServerProtocol" json:"protocol,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RunConfigRemoteServer) Reset() {
 	*x = RunConfigRemoteServer{}
-	mi := &file_connector_proto_msgTypes[2]
+	mi := &file_remote_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -195,7 +195,7 @@ func (x *RunConfigRemoteServer) String() string {
 func (*RunConfigRemoteServer) ProtoMessage() {}
 
 func (x *RunConfigRemoteServer) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[2]
+	mi := &file_remote_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -208,7 +208,7 @@ func (x *RunConfigRemoteServer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunConfigRemoteServer.ProtoReflect.Descriptor instead.
 func (*RunConfigRemoteServer) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{2}
+	return file_remote_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *RunConfigRemoteServer) GetServerUri() string {
@@ -234,7 +234,7 @@ type RunConfigRemoteArguments struct {
 
 func (x *RunConfigRemoteArguments) Reset() {
 	*x = RunConfigRemoteArguments{}
-	mi := &file_connector_proto_msgTypes[3]
+	mi := &file_remote_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -246,7 +246,7 @@ func (x *RunConfigRemoteArguments) String() string {
 func (*RunConfigRemoteArguments) ProtoMessage() {}
 
 func (x *RunConfigRemoteArguments) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[3]
+	mi := &file_remote_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -259,7 +259,7 @@ func (x *RunConfigRemoteArguments) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunConfigRemoteArguments.ProtoReflect.Descriptor instead.
 func (*RunConfigRemoteArguments) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{3}
+	return file_remote_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *RunConfigRemoteArguments) GetHeaders() map[string]string {
@@ -279,7 +279,7 @@ type RunConfig struct {
 
 func (x *RunConfig) Reset() {
 	*x = RunConfig{}
-	mi := &file_connector_proto_msgTypes[4]
+	mi := &file_remote_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -291,7 +291,7 @@ func (x *RunConfig) String() string {
 func (*RunConfig) ProtoMessage() {}
 
 func (x *RunConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[4]
+	mi := &file_remote_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -304,7 +304,7 @@ func (x *RunConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunConfig.ProtoReflect.Descriptor instead.
 func (*RunConfig) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{4}
+	return file_remote_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RunConfig) GetServer() *RunConfigRemoteServer {
@@ -323,19 +323,19 @@ func (x *RunConfig) GetArguments() *RunConfigRemoteArguments {
 
 type RunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to JobType:
+	// Types that are valid to be assigned to Type:
 	//
 	//	*RunRequest_Init
 	//	*RunRequest_McpMessage
 	//	*RunRequest_Close
-	JobType       isRunRequest_JobType `protobuf_oneof:"job_type"`
+	Type          isRunRequest_Type `protobuf_oneof:"type"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RunRequest) Reset() {
 	*x = RunRequest{}
-	mi := &file_connector_proto_msgTypes[5]
+	mi := &file_remote_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -347,7 +347,7 @@ func (x *RunRequest) String() string {
 func (*RunRequest) ProtoMessage() {}
 
 func (x *RunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[5]
+	mi := &file_remote_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -360,19 +360,19 @@ func (x *RunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunRequest.ProtoReflect.Descriptor instead.
 func (*RunRequest) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{5}
+	return file_remote_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *RunRequest) GetJobType() isRunRequest_JobType {
+func (x *RunRequest) GetType() isRunRequest_Type {
 	if x != nil {
-		return x.JobType
+		return x.Type
 	}
 	return nil
 }
 
 func (x *RunRequest) GetInit() *RunRequestInit {
 	if x != nil {
-		if x, ok := x.JobType.(*RunRequest_Init); ok {
+		if x, ok := x.Type.(*RunRequest_Init); ok {
 			return x.Init
 		}
 	}
@@ -381,7 +381,7 @@ func (x *RunRequest) GetInit() *RunRequestInit {
 
 func (x *RunRequest) GetMcpMessage() *RunRequestMcpMessage {
 	if x != nil {
-		if x, ok := x.JobType.(*RunRequest_McpMessage); ok {
+		if x, ok := x.Type.(*RunRequest_McpMessage); ok {
 			return x.McpMessage
 		}
 	}
@@ -390,15 +390,15 @@ func (x *RunRequest) GetMcpMessage() *RunRequestMcpMessage {
 
 func (x *RunRequest) GetClose() *RunRequestClose {
 	if x != nil {
-		if x, ok := x.JobType.(*RunRequest_Close); ok {
+		if x, ok := x.Type.(*RunRequest_Close); ok {
 			return x.Close
 		}
 	}
 	return nil
 }
 
-type isRunRequest_JobType interface {
-	isRunRequest_JobType()
+type isRunRequest_Type interface {
+	isRunRequest_Type()
 }
 
 type RunRequest_Init struct {
@@ -413,11 +413,11 @@ type RunRequest_Close struct {
 	Close *RunRequestClose `protobuf:"bytes,3,opt,name=close,proto3,oneof"`
 }
 
-func (*RunRequest_Init) isRunRequest_JobType() {}
+func (*RunRequest_Init) isRunRequest_Type() {}
 
-func (*RunRequest_McpMessage) isRunRequest_JobType() {}
+func (*RunRequest_McpMessage) isRunRequest_Type() {}
 
-func (*RunRequest_Close) isRunRequest_JobType() {}
+func (*RunRequest_Close) isRunRequest_Type() {}
 
 type RunRequestInit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -429,7 +429,7 @@ type RunRequestInit struct {
 
 func (x *RunRequestInit) Reset() {
 	*x = RunRequestInit{}
-	mi := &file_connector_proto_msgTypes[6]
+	mi := &file_remote_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -441,7 +441,7 @@ func (x *RunRequestInit) String() string {
 func (*RunRequestInit) ProtoMessage() {}
 
 func (x *RunRequestInit) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[6]
+	mi := &file_remote_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -454,7 +454,7 @@ func (x *RunRequestInit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunRequestInit.ProtoReflect.Descriptor instead.
 func (*RunRequestInit) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{6}
+	return file_remote_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *RunRequestInit) GetConnectionId() string {
@@ -480,7 +480,7 @@ type RunRequestMcpMessage struct {
 
 func (x *RunRequestMcpMessage) Reset() {
 	*x = RunRequestMcpMessage{}
-	mi := &file_connector_proto_msgTypes[7]
+	mi := &file_remote_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -492,7 +492,7 @@ func (x *RunRequestMcpMessage) String() string {
 func (*RunRequestMcpMessage) ProtoMessage() {}
 
 func (x *RunRequestMcpMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[7]
+	mi := &file_remote_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -505,7 +505,7 @@ func (x *RunRequestMcpMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunRequestMcpMessage.ProtoReflect.Descriptor instead.
 func (*RunRequestMcpMessage) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{7}
+	return file_remote_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RunRequestMcpMessage) GetMessage() *mcp.McpMessageRaw {
@@ -523,7 +523,7 @@ type RunRequestClose struct {
 
 func (x *RunRequestClose) Reset() {
 	*x = RunRequestClose{}
-	mi := &file_connector_proto_msgTypes[8]
+	mi := &file_remote_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -535,7 +535,7 @@ func (x *RunRequestClose) String() string {
 func (*RunRequestClose) ProtoMessage() {}
 
 func (x *RunRequestClose) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[8]
+	mi := &file_remote_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -548,26 +548,26 @@ func (x *RunRequestClose) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunRequestClose.ProtoReflect.Descriptor instead.
 func (*RunRequestClose) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{8}
+	return file_remote_proto_rawDescGZIP(), []int{8}
 }
 
 type RunResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to JobType:
+	// Types that are valid to be assigned to Type:
 	//
 	//	*RunResponse_McpMessage
 	//	*RunResponse_Init
 	//	*RunResponse_Output
 	//	*RunResponse_Error
 	//	*RunResponse_Close
-	JobType       isRunResponse_JobType `protobuf_oneof:"job_type"`
+	Type          isRunResponse_Type `protobuf_oneof:"type"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RunResponse) Reset() {
 	*x = RunResponse{}
-	mi := &file_connector_proto_msgTypes[9]
+	mi := &file_remote_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -579,7 +579,7 @@ func (x *RunResponse) String() string {
 func (*RunResponse) ProtoMessage() {}
 
 func (x *RunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[9]
+	mi := &file_remote_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -592,19 +592,19 @@ func (x *RunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponse.ProtoReflect.Descriptor instead.
 func (*RunResponse) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{9}
+	return file_remote_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *RunResponse) GetJobType() isRunResponse_JobType {
+func (x *RunResponse) GetType() isRunResponse_Type {
 	if x != nil {
-		return x.JobType
+		return x.Type
 	}
 	return nil
 }
 
 func (x *RunResponse) GetMcpMessage() *RunResponseMcpMessage {
 	if x != nil {
-		if x, ok := x.JobType.(*RunResponse_McpMessage); ok {
+		if x, ok := x.Type.(*RunResponse_McpMessage); ok {
 			return x.McpMessage
 		}
 	}
@@ -613,7 +613,7 @@ func (x *RunResponse) GetMcpMessage() *RunResponseMcpMessage {
 
 func (x *RunResponse) GetInit() *RunResponseInit {
 	if x != nil {
-		if x, ok := x.JobType.(*RunResponse_Init); ok {
+		if x, ok := x.Type.(*RunResponse_Init); ok {
 			return x.Init
 		}
 	}
@@ -622,7 +622,7 @@ func (x *RunResponse) GetInit() *RunResponseInit {
 
 func (x *RunResponse) GetOutput() *RunResponseOutput {
 	if x != nil {
-		if x, ok := x.JobType.(*RunResponse_Output); ok {
+		if x, ok := x.Type.(*RunResponse_Output); ok {
 			return x.Output
 		}
 	}
@@ -631,7 +631,7 @@ func (x *RunResponse) GetOutput() *RunResponseOutput {
 
 func (x *RunResponse) GetError() *RunResponseError {
 	if x != nil {
-		if x, ok := x.JobType.(*RunResponse_Error); ok {
+		if x, ok := x.Type.(*RunResponse_Error); ok {
 			return x.Error
 		}
 	}
@@ -640,15 +640,15 @@ func (x *RunResponse) GetError() *RunResponseError {
 
 func (x *RunResponse) GetClose() *RunResponseClose {
 	if x != nil {
-		if x, ok := x.JobType.(*RunResponse_Close); ok {
+		if x, ok := x.Type.(*RunResponse_Close); ok {
 			return x.Close
 		}
 	}
 	return nil
 }
 
-type isRunResponse_JobType interface {
-	isRunResponse_JobType()
+type isRunResponse_Type interface {
+	isRunResponse_Type()
 }
 
 type RunResponse_McpMessage struct {
@@ -671,15 +671,15 @@ type RunResponse_Close struct {
 	Close *RunResponseClose `protobuf:"bytes,5,opt,name=close,proto3,oneof"`
 }
 
-func (*RunResponse_McpMessage) isRunResponse_JobType() {}
+func (*RunResponse_McpMessage) isRunResponse_Type() {}
 
-func (*RunResponse_Init) isRunResponse_JobType() {}
+func (*RunResponse_Init) isRunResponse_Type() {}
 
-func (*RunResponse_Output) isRunResponse_JobType() {}
+func (*RunResponse_Output) isRunResponse_Type() {}
 
-func (*RunResponse_Error) isRunResponse_JobType() {}
+func (*RunResponse_Error) isRunResponse_Type() {}
 
-func (*RunResponse_Close) isRunResponse_JobType() {}
+func (*RunResponse_Close) isRunResponse_Type() {}
 
 type RunResponseInit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -689,7 +689,7 @@ type RunResponseInit struct {
 
 func (x *RunResponseInit) Reset() {
 	*x = RunResponseInit{}
-	mi := &file_connector_proto_msgTypes[10]
+	mi := &file_remote_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -701,7 +701,7 @@ func (x *RunResponseInit) String() string {
 func (*RunResponseInit) ProtoMessage() {}
 
 func (x *RunResponseInit) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[10]
+	mi := &file_remote_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -714,7 +714,7 @@ func (x *RunResponseInit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseInit.ProtoReflect.Descriptor instead.
 func (*RunResponseInit) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{10}
+	return file_remote_proto_rawDescGZIP(), []int{10}
 }
 
 type RunResponseMcpMessage struct {
@@ -726,7 +726,7 @@ type RunResponseMcpMessage struct {
 
 func (x *RunResponseMcpMessage) Reset() {
 	*x = RunResponseMcpMessage{}
-	mi := &file_connector_proto_msgTypes[11]
+	mi := &file_remote_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -738,7 +738,7 @@ func (x *RunResponseMcpMessage) String() string {
 func (*RunResponseMcpMessage) ProtoMessage() {}
 
 func (x *RunResponseMcpMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[11]
+	mi := &file_remote_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -751,7 +751,7 @@ func (x *RunResponseMcpMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseMcpMessage.ProtoReflect.Descriptor instead.
 func (*RunResponseMcpMessage) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{11}
+	return file_remote_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RunResponseMcpMessage) GetMessage() *mcp.McpMessageRaw {
@@ -770,7 +770,7 @@ type RunResponseError struct {
 
 func (x *RunResponseError) Reset() {
 	*x = RunResponseError{}
-	mi := &file_connector_proto_msgTypes[12]
+	mi := &file_remote_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -782,7 +782,7 @@ func (x *RunResponseError) String() string {
 func (*RunResponseError) ProtoMessage() {}
 
 func (x *RunResponseError) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[12]
+	mi := &file_remote_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -795,7 +795,7 @@ func (x *RunResponseError) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseError.ProtoReflect.Descriptor instead.
 func (*RunResponseError) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{12}
+	return file_remote_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *RunResponseError) GetMcpError() *mcp.McpError {
@@ -814,7 +814,7 @@ type RunResponseOutput struct {
 
 func (x *RunResponseOutput) Reset() {
 	*x = RunResponseOutput{}
-	mi := &file_connector_proto_msgTypes[13]
+	mi := &file_remote_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -826,7 +826,7 @@ func (x *RunResponseOutput) String() string {
 func (*RunResponseOutput) ProtoMessage() {}
 
 func (x *RunResponseOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[13]
+	mi := &file_remote_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -839,7 +839,7 @@ func (x *RunResponseOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseOutput.ProtoReflect.Descriptor instead.
 func (*RunResponseOutput) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{13}
+	return file_remote_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RunResponseOutput) GetMcpOutput() *mcp.McpOutput {
@@ -857,7 +857,7 @@ type RunResponseClose struct {
 
 func (x *RunResponseClose) Reset() {
 	*x = RunResponseClose{}
-	mi := &file_connector_proto_msgTypes[14]
+	mi := &file_remote_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -869,7 +869,7 @@ func (x *RunResponseClose) String() string {
 func (*RunResponseClose) ProtoMessage() {}
 
 func (x *RunResponseClose) ProtoReflect() protoreflect.Message {
-	mi := &file_connector_proto_msgTypes[14]
+	mi := &file_remote_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -882,62 +882,58 @@ func (x *RunResponseClose) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseClose.ProtoReflect.Descriptor instead.
 func (*RunResponseClose) Descriptor() ([]byte, []int) {
-	return file_connector_proto_rawDescGZIP(), []int{14}
+	return file_remote_proto_rawDescGZIP(), []int{14}
 }
 
-var File_connector_proto protoreflect.FileDescriptor
+var File_remote_proto protoreflect.FileDescriptor
 
-const file_connector_proto_rawDesc = "" +
+const file_remote_proto_rawDesc = "" +
 	"\n" +
-	"\x0fconnector.proto\x12\x10broker.connector\x1a\tmcp.proto\x1a\fworker.proto\"\x16\n" +
-	"\x14ConnectorInfoRequest\"\xb8\x01\n" +
-	"\x15ConnectorInfoResponse\x12\x1b\n" +
-	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12\x1f\n" +
-	"\vactive_runs\x18\x02 \x01(\rR\n" +
-	"activeRuns\x12\x1d\n" +
-	"\n" +
-	"total_runs\x18\x03 \x01(\x04R\ttotalRuns\x12B\n" +
+	"\fremote.proto\x12\rbroker.remote\x1a\tmcp.proto\x1a\fworker.proto\"\x13\n" +
+	"\x11RemoteInfoRequest\"\xd1\x01\n" +
+	"\x12RemoteInfoResponse\x12\x1b\n" +
+	"\tworker_id\x18\x01 \x01(\tR\bworkerId\x12-\n" +
+	"\x12active_connections\x18\x02 \x01(\rR\x11activeConnections\x12+\n" +
+	"\x11total_connections\x18\x03 \x01(\x04R\x10totalConnections\x12B\n" +
 	"\vworker_info\x18\x04 \x01(\v2!.broker.worker.WorkerInfoResponseR\n" +
-	"workerInfo\"\xba\x01\n" +
+	"workerInfo\"\xb7\x01\n" +
 	"\x15RunConfigRemoteServer\x12\x1d\n" +
 	"\n" +
-	"server_uri\x18\x01 \x01(\tR\tserverUri\x12R\n" +
-	"\bprotocol\x18\x02 \x01(\x0e26.broker.connector.RunConfigRemoteServer.ServerProtocolR\bprotocol\".\n" +
+	"server_uri\x18\x01 \x01(\tR\tserverUri\x12O\n" +
+	"\bprotocol\x18\x02 \x01(\x0e23.broker.remote.RunConfigRemoteServer.ServerProtocolR\bprotocol\".\n" +
 	"\x0eServerProtocol\x12\a\n" +
 	"\x03sse\x10\x00\x12\x13\n" +
-	"\x0fstreamable_http\x10\x01\"\xa9\x01\n" +
-	"\x18RunConfigRemoteArguments\x12Q\n" +
-	"\aheaders\x18\x01 \x03(\v27.broker.connector.RunConfigRemoteArguments.HeadersEntryR\aheaders\x1a:\n" +
+	"\x0fstreamable_http\x10\x01\"\xa6\x01\n" +
+	"\x18RunConfigRemoteArguments\x12N\n" +
+	"\aheaders\x18\x01 \x03(\v24.broker.remote.RunConfigRemoteArguments.HeadersEntryR\aheaders\x1a:\n" +
 	"\fHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x96\x01\n" +
-	"\tRunConfig\x12?\n" +
-	"\x06server\x18\x01 \x01(\v2'.broker.connector.RunConfigRemoteServerR\x06server\x12H\n" +
-	"\targuments\x18\x02 \x01(\v2*.broker.connector.RunConfigRemoteArgumentsR\targuments\"\xd6\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x90\x01\n" +
+	"\tRunConfig\x12<\n" +
+	"\x06server\x18\x01 \x01(\v2$.broker.remote.RunConfigRemoteServerR\x06server\x12E\n" +
+	"\targuments\x18\x02 \x01(\v2'.broker.remote.RunConfigRemoteArgumentsR\targuments\"\xc9\x01\n" +
 	"\n" +
-	"RunRequest\x126\n" +
-	"\x04init\x18\x01 \x01(\v2 .broker.connector.RunRequestInitH\x00R\x04init\x12I\n" +
-	"\vmcp_message\x18\x02 \x01(\v2&.broker.connector.RunRequestMcpMessageH\x00R\n" +
-	"mcpMessage\x129\n" +
-	"\x05close\x18\x03 \x01(\v2!.broker.connector.RunRequestCloseH\x00R\x05closeB\n" +
-	"\n" +
-	"\bjob_type\"q\n" +
+	"RunRequest\x123\n" +
+	"\x04init\x18\x01 \x01(\v2\x1d.broker.remote.RunRequestInitH\x00R\x04init\x12F\n" +
+	"\vmcp_message\x18\x02 \x01(\v2#.broker.remote.RunRequestMcpMessageH\x00R\n" +
+	"mcpMessage\x126\n" +
+	"\x05close\x18\x03 \x01(\v2\x1e.broker.remote.RunRequestCloseH\x00R\x05closeB\x06\n" +
+	"\x04type\"n\n" +
 	"\x0eRunRequestInit\x12#\n" +
-	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\x12:\n" +
+	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\x127\n" +
 	"\n" +
-	"run_config\x18\x02 \x01(\v2\x1b.broker.connector.RunConfigR\trunConfig\"K\n" +
+	"run_config\x18\x02 \x01(\v2\x18.broker.remote.RunConfigR\trunConfig\"K\n" +
 	"\x14RunRequestMcpMessage\x123\n" +
 	"\amessage\x18\x01 \x01(\v2\x19.broker.mcp.McpMessageRawR\amessage\"\x11\n" +
-	"\x0fRunRequestClose\"\xd5\x02\n" +
-	"\vRunResponse\x12J\n" +
-	"\vmcp_message\x18\x01 \x01(\v2'.broker.connector.RunResponseMcpMessageH\x00R\n" +
-	"mcpMessage\x127\n" +
-	"\x04init\x18\x02 \x01(\v2!.broker.connector.RunResponseInitH\x00R\x04init\x12=\n" +
-	"\x06output\x18\x03 \x01(\v2#.broker.connector.RunResponseOutputH\x00R\x06output\x12:\n" +
-	"\x05error\x18\x04 \x01(\v2\".broker.connector.RunResponseErrorH\x00R\x05error\x12:\n" +
-	"\x05close\x18\x05 \x01(\v2\".broker.connector.RunResponseCloseH\x00R\x05closeB\n" +
-	"\n" +
-	"\bjob_type\"\x11\n" +
+	"\x0fRunRequestClose\"\xc2\x02\n" +
+	"\vRunResponse\x12G\n" +
+	"\vmcp_message\x18\x01 \x01(\v2$.broker.remote.RunResponseMcpMessageH\x00R\n" +
+	"mcpMessage\x124\n" +
+	"\x04init\x18\x02 \x01(\v2\x1e.broker.remote.RunResponseInitH\x00R\x04init\x12:\n" +
+	"\x06output\x18\x03 \x01(\v2 .broker.remote.RunResponseOutputH\x00R\x06output\x127\n" +
+	"\x05error\x18\x04 \x01(\v2\x1f.broker.remote.RunResponseErrorH\x00R\x05error\x127\n" +
+	"\x05close\x18\x05 \x01(\v2\x1f.broker.remote.RunResponseCloseH\x00R\x05closeB\x06\n" +
+	"\x04type\"\x11\n" +
 	"\x0fRunResponseInit\"L\n" +
 	"\x15RunResponseMcpMessage\x123\n" +
 	"\amessage\x18\x01 \x01(\v2\x19.broker.mcp.McpMessageRawR\amessage\"E\n" +
@@ -946,71 +942,71 @@ const file_connector_proto_rawDesc = "" +
 	"\x11RunResponseOutput\x124\n" +
 	"\n" +
 	"mcp_output\x18\x01 \x01(\v2\x15.broker.mcp.McpOutputR\tmcpOutput\"\x12\n" +
-	"\x10RunResponseClose2\xc4\x01\n" +
-	"\fMcpConnector\x12c\n" +
-	"\x10GetConnectorInfo\x12&.broker.connector.ConnectorInfoRequest\x1a'.broker.connector.ConnectorInfoResponse\x12O\n" +
-	"\fStreamMcpRun\x12\x1c.broker.connector.RunRequest\x1a\x1d.broker.connector.RunResponse(\x010\x01BLZJgithub.com/metorial/metorial/mcp-engine/gen/mcp-engine/connector;connectorb\x06proto3"
+	"\x10RunResponseClose2\xac\x01\n" +
+	"\tMcpRemote\x12T\n" +
+	"\rGetRemoteInfo\x12 .broker.remote.RemoteInfoRequest\x1a!.broker.remote.RemoteInfoResponse\x12I\n" +
+	"\fStreamMcpRun\x12\x19.broker.remote.RunRequest\x1a\x1a.broker.remote.RunResponse(\x010\x01BFZDgithub.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote;remoteb\x06proto3"
 
 var (
-	file_connector_proto_rawDescOnce sync.Once
-	file_connector_proto_rawDescData []byte
+	file_remote_proto_rawDescOnce sync.Once
+	file_remote_proto_rawDescData []byte
 )
 
-func file_connector_proto_rawDescGZIP() []byte {
-	file_connector_proto_rawDescOnce.Do(func() {
-		file_connector_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_connector_proto_rawDesc), len(file_connector_proto_rawDesc)))
+func file_remote_proto_rawDescGZIP() []byte {
+	file_remote_proto_rawDescOnce.Do(func() {
+		file_remote_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_remote_proto_rawDesc), len(file_remote_proto_rawDesc)))
 	})
-	return file_connector_proto_rawDescData
+	return file_remote_proto_rawDescData
 }
 
-var file_connector_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_connector_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
-var file_connector_proto_goTypes = []any{
-	(RunConfigRemoteServer_ServerProtocol)(0), // 0: broker.connector.RunConfigRemoteServer.ServerProtocol
-	(*ConnectorInfoRequest)(nil),              // 1: broker.connector.ConnectorInfoRequest
-	(*ConnectorInfoResponse)(nil),             // 2: broker.connector.ConnectorInfoResponse
-	(*RunConfigRemoteServer)(nil),             // 3: broker.connector.RunConfigRemoteServer
-	(*RunConfigRemoteArguments)(nil),          // 4: broker.connector.RunConfigRemoteArguments
-	(*RunConfig)(nil),                         // 5: broker.connector.RunConfig
-	(*RunRequest)(nil),                        // 6: broker.connector.RunRequest
-	(*RunRequestInit)(nil),                    // 7: broker.connector.RunRequestInit
-	(*RunRequestMcpMessage)(nil),              // 8: broker.connector.RunRequestMcpMessage
-	(*RunRequestClose)(nil),                   // 9: broker.connector.RunRequestClose
-	(*RunResponse)(nil),                       // 10: broker.connector.RunResponse
-	(*RunResponseInit)(nil),                   // 11: broker.connector.RunResponseInit
-	(*RunResponseMcpMessage)(nil),             // 12: broker.connector.RunResponseMcpMessage
-	(*RunResponseError)(nil),                  // 13: broker.connector.RunResponseError
-	(*RunResponseOutput)(nil),                 // 14: broker.connector.RunResponseOutput
-	(*RunResponseClose)(nil),                  // 15: broker.connector.RunResponseClose
-	nil,                                       // 16: broker.connector.RunConfigRemoteArguments.HeadersEntry
+var file_remote_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_remote_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_remote_proto_goTypes = []any{
+	(RunConfigRemoteServer_ServerProtocol)(0), // 0: broker.remote.RunConfigRemoteServer.ServerProtocol
+	(*RemoteInfoRequest)(nil),                 // 1: broker.remote.RemoteInfoRequest
+	(*RemoteInfoResponse)(nil),                // 2: broker.remote.RemoteInfoResponse
+	(*RunConfigRemoteServer)(nil),             // 3: broker.remote.RunConfigRemoteServer
+	(*RunConfigRemoteArguments)(nil),          // 4: broker.remote.RunConfigRemoteArguments
+	(*RunConfig)(nil),                         // 5: broker.remote.RunConfig
+	(*RunRequest)(nil),                        // 6: broker.remote.RunRequest
+	(*RunRequestInit)(nil),                    // 7: broker.remote.RunRequestInit
+	(*RunRequestMcpMessage)(nil),              // 8: broker.remote.RunRequestMcpMessage
+	(*RunRequestClose)(nil),                   // 9: broker.remote.RunRequestClose
+	(*RunResponse)(nil),                       // 10: broker.remote.RunResponse
+	(*RunResponseInit)(nil),                   // 11: broker.remote.RunResponseInit
+	(*RunResponseMcpMessage)(nil),             // 12: broker.remote.RunResponseMcpMessage
+	(*RunResponseError)(nil),                  // 13: broker.remote.RunResponseError
+	(*RunResponseOutput)(nil),                 // 14: broker.remote.RunResponseOutput
+	(*RunResponseClose)(nil),                  // 15: broker.remote.RunResponseClose
+	nil,                                       // 16: broker.remote.RunConfigRemoteArguments.HeadersEntry
 	(*worker.WorkerInfoResponse)(nil),         // 17: broker.worker.WorkerInfoResponse
 	(*mcp.McpMessageRaw)(nil),                 // 18: broker.mcp.McpMessageRaw
 	(*mcp.McpError)(nil),                      // 19: broker.mcp.McpError
 	(*mcp.McpOutput)(nil),                     // 20: broker.mcp.McpOutput
 }
-var file_connector_proto_depIdxs = []int32{
-	17, // 0: broker.connector.ConnectorInfoResponse.worker_info:type_name -> broker.worker.WorkerInfoResponse
-	0,  // 1: broker.connector.RunConfigRemoteServer.protocol:type_name -> broker.connector.RunConfigRemoteServer.ServerProtocol
-	16, // 2: broker.connector.RunConfigRemoteArguments.headers:type_name -> broker.connector.RunConfigRemoteArguments.HeadersEntry
-	3,  // 3: broker.connector.RunConfig.server:type_name -> broker.connector.RunConfigRemoteServer
-	4,  // 4: broker.connector.RunConfig.arguments:type_name -> broker.connector.RunConfigRemoteArguments
-	7,  // 5: broker.connector.RunRequest.init:type_name -> broker.connector.RunRequestInit
-	8,  // 6: broker.connector.RunRequest.mcp_message:type_name -> broker.connector.RunRequestMcpMessage
-	9,  // 7: broker.connector.RunRequest.close:type_name -> broker.connector.RunRequestClose
-	5,  // 8: broker.connector.RunRequestInit.run_config:type_name -> broker.connector.RunConfig
-	18, // 9: broker.connector.RunRequestMcpMessage.message:type_name -> broker.mcp.McpMessageRaw
-	12, // 10: broker.connector.RunResponse.mcp_message:type_name -> broker.connector.RunResponseMcpMessage
-	11, // 11: broker.connector.RunResponse.init:type_name -> broker.connector.RunResponseInit
-	14, // 12: broker.connector.RunResponse.output:type_name -> broker.connector.RunResponseOutput
-	13, // 13: broker.connector.RunResponse.error:type_name -> broker.connector.RunResponseError
-	15, // 14: broker.connector.RunResponse.close:type_name -> broker.connector.RunResponseClose
-	18, // 15: broker.connector.RunResponseMcpMessage.message:type_name -> broker.mcp.McpMessageRaw
-	19, // 16: broker.connector.RunResponseError.mcp_error:type_name -> broker.mcp.McpError
-	20, // 17: broker.connector.RunResponseOutput.mcp_output:type_name -> broker.mcp.McpOutput
-	1,  // 18: broker.connector.McpConnector.GetConnectorInfo:input_type -> broker.connector.ConnectorInfoRequest
-	6,  // 19: broker.connector.McpConnector.StreamMcpRun:input_type -> broker.connector.RunRequest
-	2,  // 20: broker.connector.McpConnector.GetConnectorInfo:output_type -> broker.connector.ConnectorInfoResponse
-	10, // 21: broker.connector.McpConnector.StreamMcpRun:output_type -> broker.connector.RunResponse
+var file_remote_proto_depIdxs = []int32{
+	17, // 0: broker.remote.RemoteInfoResponse.worker_info:type_name -> broker.worker.WorkerInfoResponse
+	0,  // 1: broker.remote.RunConfigRemoteServer.protocol:type_name -> broker.remote.RunConfigRemoteServer.ServerProtocol
+	16, // 2: broker.remote.RunConfigRemoteArguments.headers:type_name -> broker.remote.RunConfigRemoteArguments.HeadersEntry
+	3,  // 3: broker.remote.RunConfig.server:type_name -> broker.remote.RunConfigRemoteServer
+	4,  // 4: broker.remote.RunConfig.arguments:type_name -> broker.remote.RunConfigRemoteArguments
+	7,  // 5: broker.remote.RunRequest.init:type_name -> broker.remote.RunRequestInit
+	8,  // 6: broker.remote.RunRequest.mcp_message:type_name -> broker.remote.RunRequestMcpMessage
+	9,  // 7: broker.remote.RunRequest.close:type_name -> broker.remote.RunRequestClose
+	5,  // 8: broker.remote.RunRequestInit.run_config:type_name -> broker.remote.RunConfig
+	18, // 9: broker.remote.RunRequestMcpMessage.message:type_name -> broker.mcp.McpMessageRaw
+	12, // 10: broker.remote.RunResponse.mcp_message:type_name -> broker.remote.RunResponseMcpMessage
+	11, // 11: broker.remote.RunResponse.init:type_name -> broker.remote.RunResponseInit
+	14, // 12: broker.remote.RunResponse.output:type_name -> broker.remote.RunResponseOutput
+	13, // 13: broker.remote.RunResponse.error:type_name -> broker.remote.RunResponseError
+	15, // 14: broker.remote.RunResponse.close:type_name -> broker.remote.RunResponseClose
+	18, // 15: broker.remote.RunResponseMcpMessage.message:type_name -> broker.mcp.McpMessageRaw
+	19, // 16: broker.remote.RunResponseError.mcp_error:type_name -> broker.mcp.McpError
+	20, // 17: broker.remote.RunResponseOutput.mcp_output:type_name -> broker.mcp.McpOutput
+	1,  // 18: broker.remote.McpRemote.GetRemoteInfo:input_type -> broker.remote.RemoteInfoRequest
+	6,  // 19: broker.remote.McpRemote.StreamMcpRun:input_type -> broker.remote.RunRequest
+	2,  // 20: broker.remote.McpRemote.GetRemoteInfo:output_type -> broker.remote.RemoteInfoResponse
+	10, // 21: broker.remote.McpRemote.StreamMcpRun:output_type -> broker.remote.RunResponse
 	20, // [20:22] is the sub-list for method output_type
 	18, // [18:20] is the sub-list for method input_type
 	18, // [18:18] is the sub-list for extension type_name
@@ -1018,17 +1014,17 @@ var file_connector_proto_depIdxs = []int32{
 	0,  // [0:18] is the sub-list for field type_name
 }
 
-func init() { file_connector_proto_init() }
-func file_connector_proto_init() {
-	if File_connector_proto != nil {
+func init() { file_remote_proto_init() }
+func file_remote_proto_init() {
+	if File_remote_proto != nil {
 		return
 	}
-	file_connector_proto_msgTypes[5].OneofWrappers = []any{
+	file_remote_proto_msgTypes[5].OneofWrappers = []any{
 		(*RunRequest_Init)(nil),
 		(*RunRequest_McpMessage)(nil),
 		(*RunRequest_Close)(nil),
 	}
-	file_connector_proto_msgTypes[9].OneofWrappers = []any{
+	file_remote_proto_msgTypes[9].OneofWrappers = []any{
 		(*RunResponse_McpMessage)(nil),
 		(*RunResponse_Init)(nil),
 		(*RunResponse_Output)(nil),
@@ -1039,18 +1035,18 @@ func file_connector_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_connector_proto_rawDesc), len(file_connector_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_remote_proto_rawDesc), len(file_remote_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_connector_proto_goTypes,
-		DependencyIndexes: file_connector_proto_depIdxs,
-		EnumInfos:         file_connector_proto_enumTypes,
-		MessageInfos:      file_connector_proto_msgTypes,
+		GoTypes:           file_remote_proto_goTypes,
+		DependencyIndexes: file_remote_proto_depIdxs,
+		EnumInfos:         file_remote_proto_enumTypes,
+		MessageInfos:      file_remote_proto_msgTypes,
 	}.Build()
-	File_connector_proto = out.File
-	file_connector_proto_goTypes = nil
-	file_connector_proto_depIdxs = nil
+	File_remote_proto = out.File
+	file_remote_proto_goTypes = nil
+	file_remote_proto_depIdxs = nil
 }

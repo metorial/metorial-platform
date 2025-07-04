@@ -1,25 +1,25 @@
 syntax = "proto3";
 
-package broker.connector;
+package broker.remote;
 
-option go_package = "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/connector;connector";
+option go_package = "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote;remote";
 
 import "mcp.proto";
 import "worker.proto";
 
-service McpConnector {
-  rpc GetConnectorInfo(ConnectorInfoRequest) returns (ConnectorInfoResponse);
+service McpRemote {
+  rpc GetRemoteInfo(RemoteInfoRequest) returns (RemoteInfoResponse);
 
   rpc StreamMcpRun(stream RunRequest) returns (stream RunResponse);
 }
 
-message ConnectorInfoRequest {}
+message RemoteInfoRequest {}
 
-message ConnectorInfoResponse {
-  string runner_id = 1;
+message RemoteInfoResponse {
+  string worker_id = 1;
 
-  uint32 active_runs = 2;
-  uint64 total_runs = 3;
+  uint32 active_connections = 2;
+  uint64 total_connections = 3;
 
   broker.worker.WorkerInfoResponse worker_info = 4;
 }
@@ -44,7 +44,7 @@ message RunConfig {
 }
 
 message RunRequest {
-  oneof job_type {
+  oneof type {
     RunRequestInit init = 1;
     RunRequestMcpMessage mcp_message = 2;
     RunRequestClose close = 3;
@@ -63,7 +63,7 @@ message RunRequestMcpMessage {
 message RunRequestClose {}
 
 message RunResponse {
-  oneof job_type {
+  oneof type {
     RunResponseMcpMessage mcp_message = 1;
     RunResponseInit init = 2;
 

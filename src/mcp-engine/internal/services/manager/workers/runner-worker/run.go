@@ -89,7 +89,7 @@ func (r *Run) SendMessage(msg *mcpPB.McpMessageRaw) error {
 	}
 
 	return r.stream.Send(&runnerPb.RunRequest{
-		JobType: &runnerPb.RunRequest_McpMessage{
+		Type: &runnerPb.RunRequest_McpMessage{
 			McpMessage: &runnerPb.RunRequestMcpMessage{
 				Message: msg,
 			},
@@ -105,7 +105,7 @@ func (r *Run) Close() error {
 	}
 
 	err := r.stream.Send(&runnerPb.RunRequest{
-		JobType: &runnerPb.RunRequest_Close{
+		Type: &runnerPb.RunRequest_Close{
 			Close: &runnerPb.RunRequestClose{},
 		},
 	})
@@ -160,7 +160,7 @@ func (r *Run) handleStream() {
 	defer stream.CloseSend()
 
 	err = stream.Send(&runnerPb.RunRequest{
-		JobType: &runnerPb.RunRequest_Init{
+		Type: &runnerPb.RunRequest_Init{
 			Init: &runnerPb.RunRequestInit{
 				RunConfig:    r.Config,
 				ConnectionId: r.ConnectionID,
@@ -209,7 +209,7 @@ loop:
 			break loop
 		}
 
-		switch msg := resp.JobType.(type) {
+		switch msg := resp.Type.(type) {
 
 		case *runnerPb.RunResponse_McpMessage:
 			if msg.McpMessage == nil || msg.McpMessage.Message == nil {

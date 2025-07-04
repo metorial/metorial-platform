@@ -654,12 +654,12 @@ func (x *RunConfig) GetArguments() *RunConfigContainerArguments {
 
 type RunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to JobType:
+	// Types that are valid to be assigned to Type:
 	//
 	//	*RunRequest_Init
 	//	*RunRequest_McpMessage
 	//	*RunRequest_Close
-	JobType       isRunRequest_JobType `protobuf_oneof:"job_type"`
+	Type          isRunRequest_Type `protobuf_oneof:"type"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -694,16 +694,16 @@ func (*RunRequest) Descriptor() ([]byte, []int) {
 	return file_runner_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *RunRequest) GetJobType() isRunRequest_JobType {
+func (x *RunRequest) GetType() isRunRequest_Type {
 	if x != nil {
-		return x.JobType
+		return x.Type
 	}
 	return nil
 }
 
 func (x *RunRequest) GetInit() *RunRequestInit {
 	if x != nil {
-		if x, ok := x.JobType.(*RunRequest_Init); ok {
+		if x, ok := x.Type.(*RunRequest_Init); ok {
 			return x.Init
 		}
 	}
@@ -712,7 +712,7 @@ func (x *RunRequest) GetInit() *RunRequestInit {
 
 func (x *RunRequest) GetMcpMessage() *RunRequestMcpMessage {
 	if x != nil {
-		if x, ok := x.JobType.(*RunRequest_McpMessage); ok {
+		if x, ok := x.Type.(*RunRequest_McpMessage); ok {
 			return x.McpMessage
 		}
 	}
@@ -721,15 +721,15 @@ func (x *RunRequest) GetMcpMessage() *RunRequestMcpMessage {
 
 func (x *RunRequest) GetClose() *RunRequestClose {
 	if x != nil {
-		if x, ok := x.JobType.(*RunRequest_Close); ok {
+		if x, ok := x.Type.(*RunRequest_Close); ok {
 			return x.Close
 		}
 	}
 	return nil
 }
 
-type isRunRequest_JobType interface {
-	isRunRequest_JobType()
+type isRunRequest_Type interface {
+	isRunRequest_Type()
 }
 
 type RunRequest_Init struct {
@@ -744,11 +744,11 @@ type RunRequest_Close struct {
 	Close *RunRequestClose `protobuf:"bytes,3,opt,name=close,proto3,oneof"`
 }
 
-func (*RunRequest_Init) isRunRequest_JobType() {}
+func (*RunRequest_Init) isRunRequest_Type() {}
 
-func (*RunRequest_McpMessage) isRunRequest_JobType() {}
+func (*RunRequest_McpMessage) isRunRequest_Type() {}
 
-func (*RunRequest_Close) isRunRequest_JobType() {}
+func (*RunRequest_Close) isRunRequest_Type() {}
 
 type RunRequestInit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -884,14 +884,14 @@ func (*RunRequestClose) Descriptor() ([]byte, []int) {
 
 type RunResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to JobType:
+	// Types that are valid to be assigned to Type:
 	//
 	//	*RunResponse_McpMessage
 	//	*RunResponse_Init
 	//	*RunResponse_Output
 	//	*RunResponse_Error
 	//	*RunResponse_Close
-	JobType       isRunResponse_JobType `protobuf_oneof:"job_type"`
+	Type          isRunResponse_Type `protobuf_oneof:"type"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -926,16 +926,16 @@ func (*RunResponse) Descriptor() ([]byte, []int) {
 	return file_runner_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *RunResponse) GetJobType() isRunResponse_JobType {
+func (x *RunResponse) GetType() isRunResponse_Type {
 	if x != nil {
-		return x.JobType
+		return x.Type
 	}
 	return nil
 }
 
 func (x *RunResponse) GetMcpMessage() *RunResponseMcpMessage {
 	if x != nil {
-		if x, ok := x.JobType.(*RunResponse_McpMessage); ok {
+		if x, ok := x.Type.(*RunResponse_McpMessage); ok {
 			return x.McpMessage
 		}
 	}
@@ -944,7 +944,7 @@ func (x *RunResponse) GetMcpMessage() *RunResponseMcpMessage {
 
 func (x *RunResponse) GetInit() *RunResponseInit {
 	if x != nil {
-		if x, ok := x.JobType.(*RunResponse_Init); ok {
+		if x, ok := x.Type.(*RunResponse_Init); ok {
 			return x.Init
 		}
 	}
@@ -953,7 +953,7 @@ func (x *RunResponse) GetInit() *RunResponseInit {
 
 func (x *RunResponse) GetOutput() *RunResponseOutput {
 	if x != nil {
-		if x, ok := x.JobType.(*RunResponse_Output); ok {
+		if x, ok := x.Type.(*RunResponse_Output); ok {
 			return x.Output
 		}
 	}
@@ -962,7 +962,7 @@ func (x *RunResponse) GetOutput() *RunResponseOutput {
 
 func (x *RunResponse) GetError() *RunResponseError {
 	if x != nil {
-		if x, ok := x.JobType.(*RunResponse_Error); ok {
+		if x, ok := x.Type.(*RunResponse_Error); ok {
 			return x.Error
 		}
 	}
@@ -971,15 +971,15 @@ func (x *RunResponse) GetError() *RunResponseError {
 
 func (x *RunResponse) GetClose() *RunResponseClose {
 	if x != nil {
-		if x, ok := x.JobType.(*RunResponse_Close); ok {
+		if x, ok := x.Type.(*RunResponse_Close); ok {
 			return x.Close
 		}
 	}
 	return nil
 }
 
-type isRunResponse_JobType interface {
-	isRunResponse_JobType()
+type isRunResponse_Type interface {
+	isRunResponse_Type()
 }
 
 type RunResponse_McpMessage struct {
@@ -1002,15 +1002,15 @@ type RunResponse_Close struct {
 	Close *RunResponseClose `protobuf:"bytes,5,opt,name=close,proto3,oneof"`
 }
 
-func (*RunResponse_McpMessage) isRunResponse_JobType() {}
+func (*RunResponse_McpMessage) isRunResponse_Type() {}
 
-func (*RunResponse_Init) isRunResponse_JobType() {}
+func (*RunResponse_Init) isRunResponse_Type() {}
 
-func (*RunResponse_Output) isRunResponse_JobType() {}
+func (*RunResponse_Output) isRunResponse_Type() {}
 
-func (*RunResponse_Error) isRunResponse_JobType() {}
+func (*RunResponse_Error) isRunResponse_Type() {}
 
-func (*RunResponse_Close) isRunResponse_JobType() {}
+func (*RunResponse_Close) isRunResponse_Type() {}
 
 type RunResponseInit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1272,31 +1272,29 @@ const file_runner_proto_rawDesc = "" +
 	"\amax_cpu\x18\x03 \x01(\tR\x06maxCpu\"\x96\x01\n" +
 	"\tRunConfig\x12?\n" +
 	"\tcontainer\x18\x01 \x01(\v2!.broker.runner.RunConfigContainerR\tcontainer\x12H\n" +
-	"\targuments\x18\x02 \x01(\v2*.broker.runner.RunConfigContainerArgumentsR\targuments\"\xcd\x01\n" +
+	"\targuments\x18\x02 \x01(\v2*.broker.runner.RunConfigContainerArgumentsR\targuments\"\xc9\x01\n" +
 	"\n" +
 	"RunRequest\x123\n" +
 	"\x04init\x18\x01 \x01(\v2\x1d.broker.runner.RunRequestInitH\x00R\x04init\x12F\n" +
 	"\vmcp_message\x18\x02 \x01(\v2#.broker.runner.RunRequestMcpMessageH\x00R\n" +
 	"mcpMessage\x126\n" +
-	"\x05close\x18\x03 \x01(\v2\x1e.broker.runner.RunRequestCloseH\x00R\x05closeB\n" +
-	"\n" +
-	"\bjob_type\"n\n" +
+	"\x05close\x18\x03 \x01(\v2\x1e.broker.runner.RunRequestCloseH\x00R\x05closeB\x06\n" +
+	"\x04type\"n\n" +
 	"\x0eRunRequestInit\x12#\n" +
 	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\x127\n" +
 	"\n" +
 	"run_config\x18\x02 \x01(\v2\x18.broker.runner.RunConfigR\trunConfig\"K\n" +
 	"\x14RunRequestMcpMessage\x123\n" +
 	"\amessage\x18\x01 \x01(\v2\x19.broker.mcp.McpMessageRawR\amessage\"\x11\n" +
-	"\x0fRunRequestClose\"\xc6\x02\n" +
+	"\x0fRunRequestClose\"\xc2\x02\n" +
 	"\vRunResponse\x12G\n" +
 	"\vmcp_message\x18\x01 \x01(\v2$.broker.runner.RunResponseMcpMessageH\x00R\n" +
 	"mcpMessage\x124\n" +
 	"\x04init\x18\x02 \x01(\v2\x1e.broker.runner.RunResponseInitH\x00R\x04init\x12:\n" +
 	"\x06output\x18\x03 \x01(\v2 .broker.runner.RunResponseOutputH\x00R\x06output\x127\n" +
 	"\x05error\x18\x04 \x01(\v2\x1f.broker.runner.RunResponseErrorH\x00R\x05error\x127\n" +
-	"\x05close\x18\x05 \x01(\v2\x1f.broker.runner.RunResponseCloseH\x00R\x05closeB\n" +
-	"\n" +
-	"\bjob_type\"\x11\n" +
+	"\x05close\x18\x05 \x01(\v2\x1f.broker.runner.RunResponseCloseH\x00R\x05closeB\x06\n" +
+	"\x04type\"\x11\n" +
 	"\x0fRunResponseInit\"L\n" +
 	"\x15RunResponseMcpMessage\x123\n" +
 	"\amessage\x18\x01 \x01(\v2\x19.broker.mcp.McpMessageRawR\amessage\"E\n" +

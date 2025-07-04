@@ -20,7 +20,7 @@ type RunnerState struct {
 	active_runs map[string]*Run
 	total_runs  uint64
 
-	mutex sync.Mutex
+	mutex sync.RWMutex
 	done  <-chan struct{}
 }
 
@@ -33,7 +33,6 @@ func newRunnerState(dockerManager *docker.DockerManager, done <-chan struct{}) *
 		active_runs:   make(map[string]*Run),
 		total_runs:    0,
 		done:          done,
-		mutex:         sync.Mutex{},
 	}
 }
 
@@ -73,6 +72,9 @@ func (state *RunnerState) StartRun(init *RunInit) (*Run, error) {
 }
 
 func (state *RunnerState) StopRun(runID string) error {
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+
 	run, exists := state.active_runs[runID]
 	if !exists {
 		return nil // Run not found, nothing to stop
@@ -87,6 +89,9 @@ func (state *RunnerState) StopRun(runID string) error {
 }
 
 func (state *RunnerState) ListActiveRuns() []*Run {
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+
 	runs := make([]*Run, 0, len(state.active_runs))
 	for _, run := range state.active_runs {
 		runs = append(runs, run)
@@ -95,8 +100,8 @@ func (state *RunnerState) ListActiveRuns() []*Run {
 }
 
 func (state *RunnerState) printState() {
-	state.mutex.Lock()
-	defer state.mutex.Unlock()
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
 
 	log.Println("\n== Runner State ==")
 

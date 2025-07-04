@@ -101,9 +101,9 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 		return err // Other error
 	}
 
-	msg, ok := req.JobType.(*runnerPb.RunRequest_Init)
+	msg, ok := req.Type.(*runnerPb.RunRequest_Init)
 	if !ok {
-		return fmt.Errorf("expected McpInit request, got %T", req.JobType)
+		return fmt.Errorf("expected McpInit request, got %T", req.Type)
 	}
 
 	run, err := s.state.StartRun(&RunInit{
@@ -119,7 +119,7 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 	})
 	if err != nil {
 		return stream.Send(&runnerPb.RunResponse{
-			JobType: &runnerPb.RunResponse_Error{
+			Type: &runnerPb.RunResponse_Error{
 				Error: &runnerPb.RunResponseError{
 					McpError: &mcpPb.McpError{
 						ErrorMessage: err.Error(),
@@ -131,7 +131,7 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 	}
 
 	err = stream.Send(&runnerPb.RunResponse{
-		JobType: &runnerPb.RunResponse_Init{
+		Type: &runnerPb.RunResponse_Init{
 			Init: &runnerPb.RunResponseInit{},
 		},
 	})
@@ -142,7 +142,7 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 	go run.HandleOutput(
 		func(message *mcp.MCPMessage) {
 			err := stream.Send(&runnerPb.RunResponse{
-				JobType: &runnerPb.RunResponse_McpMessage{
+				Type: &runnerPb.RunResponse_McpMessage{
 					McpMessage: &runnerPb.RunResponseMcpMessage{
 						Message: &mcpPb.McpMessageRaw{
 							Message: message.GetStringPayload(),
@@ -177,7 +177,7 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 				}
 			}
 
-			err := stream.Send(&runnerPb.RunResponse{JobType: outputMsg})
+			err := stream.Send(&runnerPb.RunResponse{Type: outputMsg})
 			if err != nil {
 				log.Printf("Failed to send output message: %v\n", err)
 			}
@@ -197,7 +197,7 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 
 		if run.Status() != 0 {
 			stream.Send(&runnerPb.RunResponse{
-				JobType: &runnerPb.RunResponse_Error{
+				Type: &runnerPb.RunResponse_Error{
 					Error: &runnerPb.RunResponseError{
 						McpError: &mcpPb.McpError{
 							ErrorMessage: fmt.Sprintf("Finished with non-zero exit code: %d", run.Status()),
@@ -209,7 +209,7 @@ func (s *runnerServer) StreamMcpRun(stream runnerPb.McpRunner_StreamMcpRunServer
 		}
 
 		stream.Send(&runnerPb.RunResponse{
-			JobType: &runnerPb.RunResponse_Close{
+			Type: &runnerPb.RunResponse_Close{
 				Close: &runnerPb.RunResponseClose{},
 			},
 		})
@@ -230,7 +230,7 @@ loop:
 			return err
 		}
 
-		switch msg := req.JobType.(type) {
+		switch msg := req.Type.(type) {
 		case *runnerPb.RunRequest_Init:
 			continue
 
@@ -238,7 +238,7 @@ loop:
 			err := run.Stop()
 			if err != nil {
 				return stream.Send(&runnerPb.RunResponse{
-					JobType: &runnerPb.RunResponse_Error{
+					Type: &runnerPb.RunResponse_Error{
 						Error: &runnerPb.RunResponseError{
 							McpError: &mcpPb.McpError{
 								ErrorMessage: err.Error(),
@@ -255,7 +255,7 @@ loop:
 			err = run.HandleInput(msg.McpMessage.Message.Message)
 			if err != nil {
 				return stream.Send(&runnerPb.RunResponse{
-					JobType: &runnerPb.RunResponse_Error{
+					Type: &runnerPb.RunResponse_Error{
 						Error: &runnerPb.RunResponseError{
 							McpError: &mcpPb.McpError{
 								ErrorMessage: err.Error(),

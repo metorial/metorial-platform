@@ -82,7 +82,7 @@ message RunConfig {
 }
 
 message RunRequest {
-  oneof job_type {
+  oneof type {
     RunRequestInit init = 1;
     RunRequestMcpMessage mcp_message = 2;
     RunRequestClose close = 3;
@@ -101,7 +101,7 @@ message RunRequestMcpMessage {
 message RunRequestClose {}
 
 message RunResponse {
-  oneof job_type {
+  oneof type {
     RunResponseMcpMessage mcp_message = 1;
     RunResponseInit init = 2;
 

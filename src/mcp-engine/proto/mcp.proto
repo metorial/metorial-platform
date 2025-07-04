@@ -25,6 +25,7 @@ message McpOutput {
   enum McpOutputType {
     stdout = 0;
     stderr = 1;
+    remote = 2; // Output from a remote source
   }
   
   McpOutputType output_type = 1;

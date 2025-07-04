@@ -1,10 +1,16 @@
-.PHONY: build-worker-mcp-runner run-worker-mcp-runner proto-worker-mcp-runner build-manager run-manager proto-mcp-manager proto vet staticcheck lint build-worker-launcher run-worker-launcher
+.PHONY: build-worker-mcp-runner run-worker-mcp-runner proto-worker-mcp-runner build-manager run-manager proto-mcp-manager proto vet staticcheck lint build-worker-launcher run-worker-launcher build-worker-mcp-remote run-worker-mcp-remote
 
 build-worker-mcp-runner:
 	go build -o bin/worker-mcp-runner ./cmd/worker-mcp-runner
 
 run-worker-mcp-runner: build-worker-mcp-runner
 	./bin/worker-mcp-runner $(ARGS)
+
+build-worker-mcp-remote:
+	go build -o bin/worker-mcp-remote ./cmd/worker-mcp-remote
+
+run-worker-mcp-remote: build-worker-mcp-remote
+	./bin/worker-mcp-remote $(ARGS)
 
 build-worker-launcher:
 	go build -o bin/worker-launcher ./cmd/worker-launcher
@@ -38,7 +44,7 @@ proto:
 		manager.proto \
 		workerBroker.proto \
 		launcher.proto \
-		connector.proto \
+		remote.proto \
 		mcp.proto \
 		worker.proto \
 		runner.proto && \

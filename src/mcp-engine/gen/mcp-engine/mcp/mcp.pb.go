@@ -142,6 +142,7 @@ type McpOutput_McpOutputType int32
 const (
 	McpOutput_stdout McpOutput_McpOutputType = 0
 	McpOutput_stderr McpOutput_McpOutputType = 1
+	McpOutput_remote McpOutput_McpOutputType = 2 // Output from a remote source
 )
 
 // Enum value maps for McpOutput_McpOutputType.
@@ -149,10 +150,12 @@ var (
 	McpOutput_McpOutputType_name = map[int32]string{
 		0: "stdout",
 		1: "stderr",
+		2: "remote",
 	}
 	McpOutput_McpOutputType_value = map[string]int32{
 		"stdout": 0,
 		"stderr": 1,
+		"remote": 2,
 	}
 )
 
@@ -559,17 +562,19 @@ const file_mcp_proto_rawDesc = "" +
 	"\runknown_error\x10\x03\x12\v\n" +
 	"\atimeout\x10\x04\x12\x17\n" +
 	"\x13launch_params_error\x10\x05\x12\x13\n" +
-	"\x0fexecution_error\x10\x06\"\xa4\x01\n" +
+	"\x0fexecution_error\x10\x06\"\xb0\x01\n" +
 	"\tMcpOutput\x12D\n" +
 	"\voutput_type\x18\x01 \x01(\x0e2#.broker.mcp.McpOutput.McpOutputTypeR\n" +
 	"outputType\x12\x14\n" +
 	"\x05lines\x18\x02 \x03(\tR\x05lines\x12\x12\n" +
-	"\x04uuid\x18\x03 \x01(\tR\x04uuid\"'\n" +
+	"\x04uuid\x18\x03 \x01(\tR\x04uuid\"3\n" +
 	"\rMcpOutputType\x12\n" +
 	"\n" +
 	"\x06stdout\x10\x00\x12\n" +
 	"\n" +
-	"\x06stderr\x10\x01\"=\n" +
+	"\x06stderr\x10\x01\x12\n" +
+	"\n" +
+	"\x06remote\x10\x02\"=\n" +
 	"\rMcpMessageRaw\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\x12\x12\n" +
 	"\x04uuid\x18\x02 \x01(\tR\x04uuid\"\xd5\x01\n" +
