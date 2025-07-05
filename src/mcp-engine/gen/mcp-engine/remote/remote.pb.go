@@ -719,7 +719,7 @@ func (*RunResponseInit) Descriptor() ([]byte, []int) {
 
 type RunResponseMcpMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Message       *mcp.McpMessageRaw     `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	Message       *mcp.McpMessage        `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -754,7 +754,7 @@ func (*RunResponseMcpMessage) Descriptor() ([]byte, []int) {
 	return file_remote_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *RunResponseMcpMessage) GetMessage() *mcp.McpMessageRaw {
+func (x *RunResponseMcpMessage) GetMessage() *mcp.McpMessage {
 	if x != nil {
 		return x.Message
 	}
@@ -934,9 +934,9 @@ const file_remote_proto_rawDesc = "" +
 	"\x05error\x18\x04 \x01(\v2\x1f.broker.remote.RunResponseErrorH\x00R\x05error\x127\n" +
 	"\x05close\x18\x05 \x01(\v2\x1f.broker.remote.RunResponseCloseH\x00R\x05closeB\x06\n" +
 	"\x04type\"\x11\n" +
-	"\x0fRunResponseInit\"L\n" +
-	"\x15RunResponseMcpMessage\x123\n" +
-	"\amessage\x18\x01 \x01(\v2\x19.broker.mcp.McpMessageRawR\amessage\"E\n" +
+	"\x0fRunResponseInit\"I\n" +
+	"\x15RunResponseMcpMessage\x120\n" +
+	"\amessage\x18\x01 \x01(\v2\x16.broker.mcp.McpMessageR\amessage\"E\n" +
 	"\x10RunResponseError\x121\n" +
 	"\tmcp_error\x18\x01 \x01(\v2\x14.broker.mcp.McpErrorR\bmcpError\"I\n" +
 	"\x11RunResponseOutput\x124\n" +
@@ -981,8 +981,9 @@ var file_remote_proto_goTypes = []any{
 	nil,                                       // 16: broker.remote.RunConfigRemoteArguments.HeadersEntry
 	(*worker.WorkerInfoResponse)(nil),         // 17: broker.worker.WorkerInfoResponse
 	(*mcp.McpMessageRaw)(nil),                 // 18: broker.mcp.McpMessageRaw
-	(*mcp.McpError)(nil),                      // 19: broker.mcp.McpError
-	(*mcp.McpOutput)(nil),                     // 20: broker.mcp.McpOutput
+	(*mcp.McpMessage)(nil),                    // 19: broker.mcp.McpMessage
+	(*mcp.McpError)(nil),                      // 20: broker.mcp.McpError
+	(*mcp.McpOutput)(nil),                     // 21: broker.mcp.McpOutput
 }
 var file_remote_proto_depIdxs = []int32{
 	17, // 0: broker.remote.RemoteInfoResponse.worker_info:type_name -> broker.worker.WorkerInfoResponse
@@ -1000,9 +1001,9 @@ var file_remote_proto_depIdxs = []int32{
 	14, // 12: broker.remote.RunResponse.output:type_name -> broker.remote.RunResponseOutput
 	13, // 13: broker.remote.RunResponse.error:type_name -> broker.remote.RunResponseError
 	15, // 14: broker.remote.RunResponse.close:type_name -> broker.remote.RunResponseClose
-	18, // 15: broker.remote.RunResponseMcpMessage.message:type_name -> broker.mcp.McpMessageRaw
-	19, // 16: broker.remote.RunResponseError.mcp_error:type_name -> broker.mcp.McpError
-	20, // 17: broker.remote.RunResponseOutput.mcp_output:type_name -> broker.mcp.McpOutput
+	19, // 15: broker.remote.RunResponseMcpMessage.message:type_name -> broker.mcp.McpMessage
+	20, // 16: broker.remote.RunResponseError.mcp_error:type_name -> broker.mcp.McpError
+	21, // 17: broker.remote.RunResponseOutput.mcp_output:type_name -> broker.mcp.McpOutput
 	1,  // 18: broker.remote.McpRemote.GetRemoteInfo:input_type -> broker.remote.RemoteInfoRequest
 	6,  // 19: broker.remote.McpRemote.StreamMcpRun:input_type -> broker.remote.RunRequest
 	2,  // 20: broker.remote.McpRemote.GetRemoteInfo:output_type -> broker.remote.RemoteInfoResponse

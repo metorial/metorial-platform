@@ -13,5 +13,8 @@ type Connection interface {
 	Close() error
 	Context() context.Context
 	Send(msg *mcpPb.McpMessageRaw) error
+	SendString(msg string) error
 	Subscribe(cb MessageReceiver)
+	Done() <-chan struct{}
+	Wait() error
 }

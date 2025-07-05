@@ -3,9 +3,13 @@ package remote
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
+	"strings"
 	"sync"
+	"time"
 
+	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	remotePb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote"
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
@@ -61,17 +65,69 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 		return fmt.Errorf("expected McpInit request, got %T", req.Type)
 	}
 
-	var con Connection
+	var conn Connection
 	if msg.Init.RunConfig.Server.Protocol == remotePb.RunConfigRemoteServer_sse {
-		con, err = NewConnectionSSE(stream.Context(), msg.Init.RunConfig)
+		conn, err = NewConnectionSSE(stream.Context(), msg.Init.RunConfig)
 		if err != nil {
-			return fmt.Errorf("failed to create SSE connection: %w", err)
+			return err
 		}
 	} else {
 		return fmt.Errorf("unsupported protocol: %s", msg.Init.RunConfig.Server.Protocol)
 	}
 
-	con.Subscribe(func(response *remotePb.RunResponse) {
+	lastPing := time.Now()
+
+	go func() {
+		ticker := time.NewTicker(15 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-stream.Context().Done():
+			case <-conn.Done():
+				return
+
+			case <-ticker.C:
+				if time.Since(lastPing) > 25*time.Second {
+					// Container has not responded in a while, consider it dead
+					conn.Close()
+					stream.Send(&remotePb.RunResponse{
+						Type: &remotePb.RunResponse_Error{
+							Error: &remotePb.RunResponseError{
+								McpError: &mcpPb.McpError{
+									ErrorMessage: "Connection timed out",
+									ErrorCode:    mcpPb.McpError_timeout,
+								},
+							},
+						},
+					})
+					stream.Send(&remotePb.RunResponse{
+						Type: &remotePb.RunResponse_Close{
+							Close: &remotePb.RunResponseClose{},
+						},
+					})
+
+					return
+				}
+
+				conn.SendString(
+					fmt.Sprintf(`{"jsonrpc": "2.0", "id": "mtr/ping/%d", "method": "ping"}`, time.Now().UnixMicro()),
+				)
+
+			}
+		}
+	}()
+
+	conn.Subscribe(func(response *remotePb.RunResponse) {
+		lastPing = time.Now()
+
+		message := response.Type.(*remotePb.RunResponse_McpMessage)
+		if message != nil {
+			if message.McpMessage.Message.MessageType == mcpPb.McpMessageType_response && strings.HasPrefix(message.McpMessage.Message.IdString, "mtr/ping/") {
+				return // Ignore ping responses
+			}
+		}
+
 		err := stream.Send(response)
 		if err != nil {
 			log.Printf("Failed to send response: %v", err)
@@ -88,49 +144,84 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 		return err
 	}
 
-	for {
-		req, err := stream.Recv()
+	errChan := make(chan error, 1)
+	defer func() {
+		close(errChan)
+		errChan = nil
+	}()
+
+	go func() {
+		for {
+			req, err := stream.Recv()
+			if err != nil {
+				conn.Close()
+
+				if err == context.Canceled || err == io.EOF {
+					return // Client has closed the stream
+				}
+
+				errChan <- fmt.Errorf("failed to receive request: %w", err)
+			}
+
+			switch msg := req.Type.(type) {
+
+			case *remotePb.RunRequest_McpMessage:
+				err = conn.Send(msg.McpMessage.Message)
+				if err != nil {
+					errChan <- fmt.Errorf("failed to send MCP message: %w", err)
+				}
+
+			case *remotePb.RunRequest_Close:
+				err := conn.Close()
+				if err != nil {
+					errChan <- fmt.Errorf("failed to close connection: %w", err)
+				}
+
+				err = stream.Send(&remotePb.RunResponse{
+					Type: &remotePb.RunResponse_Close{
+						Close: &remotePb.RunResponseClose{},
+					},
+				})
+				if err != nil {
+					log.Printf("Failed to send close response: %v", err)
+					errChan <- fmt.Errorf("failed to send close response: %w", err)
+				}
+
+				return
+
+			default:
+				errChan <- fmt.Errorf("unexpected request type: %T", msg)
+				return
+			}
+		}
+	}()
+
+	select {
+	case err := <-errChan:
 		if err != nil {
-			con.Close()
-
-			if err == context.Canceled {
-				return nil // Client has closed the stream
-			}
-
-			return fmt.Errorf("failed to receive request: %w", err)
+			conn.Close()
+			break
 		}
 
-		switch msg := req.Type.(type) {
-		case *remotePb.RunRequest_McpMessage:
-			err = con.Send(msg.McpMessage.Message)
-			if err != nil {
-				log.Printf("Failed to send MCP message: %v", err)
-				return err
-			}
-		case *remotePb.RunRequest_Close:
-			err := con.Close()
-			if err != nil {
-				log.Printf("Failed to close connection: %v", err)
-				return fmt.Errorf("failed to close connection: %w", err)
-			}
+	case <-stream.Context().Done():
+		// Client has closed the stream, clean up
+		conn.Close()
+		break
 
-			r.mutex.Lock()
-			r.activeConnections--
-			r.mutex.Unlock()
-
-			err = stream.Send(&remotePb.RunResponse{
-				Type: &remotePb.RunResponse_Close{
-					Close: &remotePb.RunResponseClose{},
-				},
-			})
-			if err != nil {
-				log.Printf("Failed to send close response: %v", err)
-				return fmt.Errorf("failed to send close response: %w", err)
-			}
-
-		default:
-			return fmt.Errorf("unexpected request type: %T", msg)
-		}
+	case <-conn.Done():
+		// Connection has been closed, clean up
+		conn.Close()
+		stream.Send(&remotePb.RunResponse{
+			Type: &remotePb.RunResponse_Close{
+				Close: &remotePb.RunResponseClose{},
+			},
+		})
+		break
 	}
 
+	r.mutex.Lock()
+	r.activeConnections--
+	r.mutex.Unlock()
+
+	return nil
 }

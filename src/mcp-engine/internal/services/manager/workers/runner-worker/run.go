@@ -3,6 +3,7 @@ package runner_worker
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"sync"
 	"time"
@@ -201,7 +202,7 @@ loop:
 	for {
 		resp, err := stream.Recv()
 		if err != nil {
-			if err == context.Canceled || err.Error() == "EOF" {
+			if err == context.Canceled || err == io.EOF {
 				break loop
 			}
 

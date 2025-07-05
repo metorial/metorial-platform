@@ -24,7 +24,7 @@ func NewRemote() *remote {
 }
 
 func (r *remote) Start(worker *worker.Worker, grpc *grpc.Server) error {
-	remotePb.RegisterMcpRemoteServer(grpc, &remoteServer{})
+	remotePb.RegisterMcpRemoteServer(grpc, &remoteServer{remote: r, worker: worker})
 
 	return nil
 }

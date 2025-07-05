@@ -22,14 +22,22 @@ type ConnectionSSE struct {
 	req  *http.Request
 	conn *sse.Connection
 
-	ctx    context.Context
-	cancel context.CancelCauseFunc
+	context context.Context
+	cancel  context.CancelCauseFunc
 
-	wg sync.WaitGroup
+	extraOutputChan chan *remotePb.RunResponse
+
+	wg    sync.WaitGroup
+	mutex sync.Mutex
 }
 
 func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*ConnectionSSE, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, config.Server.ServerUri, http.NoBody)
+
+	for k, v := range config.Arguments.Headers {
+		req.Header.Set(k, v)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request for SSE endpoint: %w", err)
 	}
@@ -42,8 +50,10 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*Connect
 		req:  req,
 		conn: conn,
 
-		ctx:    ctx,
-		cancel: cancel,
+		context: ctx,
+		cancel:  cancel,
+
+		extraOutputChan: make(chan *remotePb.RunResponse, 10),
 	}
 
 	res.wg.Add(1)
@@ -52,17 +62,35 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*Connect
 
 	go func() {
 		err := conn.Connect()
-		if err != nil {
-			doneOnce.Do(func() {
-				res.wg.Done()
-			})
+		fmt.Println("SSE connection established")
+		fmt.Println("SSE connection error:", err)
 
-			cancelOnce.Do(func() {
-				res.cancel(fmt.Errorf("failed to connect to SSE endpoint: %w", err))
-			})
+		cancelOnce.Do(func() {
+			res.mutex.Lock()
+			defer res.mutex.Unlock()
 
-			return
-		}
+			if res.cancel != nil {
+				fmt.Println("SSE connection error:", err)
+
+				if err != nil {
+					res.cancel(fmt.Errorf("failed to connect to SSE endpoint: %w", err))
+				} else {
+					res.cancel(nil)
+				}
+
+				res.cancel = nil
+			}
+
+			res.conn = nil
+			res.req = nil
+		})
+
+		doneOnce.Do(func() {
+			res.mutex.Lock()
+			defer res.mutex.Unlock()
+
+			res.wg.Done()
+		})
 	}()
 
 	unsubscribe := conn.SubscribeEvent("endpoint", func(event sse.Event) {
@@ -72,7 +100,12 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*Connect
 
 		if event.Data == "" {
 			cancelOnce.Do(func() {
-				res.cancel(fmt.Errorf("server did not respond with a valid SSE endpoint"))
+				if res.cancel != nil {
+					res.mutex.Lock()
+					defer res.mutex.Unlock()
+
+					res.cancel(fmt.Errorf("server did not respond with a valid SSE endpoint"))
+				}
 			})
 
 			return
@@ -88,46 +121,73 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*Connect
 		}
 
 		res.sendEndpoint = uri
-
 	})
 
-	go func() {
-		defer unsubscribe()
-		res.wg.Wait()
-	}()
-
-	if res.sendEndpoint == "" {
-		return nil, fmt.Errorf("server did not respond with a valid SSE endpoint")
-	}
+	defer unsubscribe()
 
 	res.wg.Wait()
 
-	if res.ctx.Err() != nil {
-		return nil, fmt.Errorf("context cancelled: %w", res.ctx.Err())
+	if res.context.Err() != nil {
+		return nil, context.Cause(res.context)
+	}
+
+	if res.sendEndpoint == "" {
+		return nil, fmt.Errorf("server did not respond with a valid SSE endpoint")
 	}
 
 	return res, nil
 }
 
 func (c *ConnectionSSE) Send(msg *mcpPb.McpMessageRaw) error {
+	return c.SendString(msg.Message)
+}
+
+func (c *ConnectionSSE) SendString(msg string) error {
 	c.wg.Wait()
+
+	if c.conn == nil {
+		return fmt.Errorf("connection has ended")
+	}
 
 	if c.sendEndpoint == "" {
 		return fmt.Errorf("send endpoint is not set")
 	}
 
-	req, err := http.NewRequestWithContext(c.ctx, http.MethodPost, c.sendEndpoint, strings.NewReader(string(msg.Message)))
+	req, err := http.NewRequestWithContext(c.context, http.MethodPost, c.sendEndpoint, strings.NewReader(msg))
 	if err != nil {
 		return fmt.Errorf("failed to create request for sending data: %w", err)
 	}
 
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "*/*")
+	req.Header.Set("User-Agent", "Metorial MCP Engine (https://metorial.com)")
+
 	resp, err := http.DefaultClient.Do(req)
+
 	if err != nil {
 		return fmt.Errorf("failed to send data: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode >= 400 || resp.StatusCode < 200 {
+		body, _ := util.ReadAll(resp.Body)
+		bodyString := ""
+		if body != nil {
+			bodyString = string(body)
+		}
+
+		c.extraOutputChan <- &remotePb.RunResponse{
+			Type: &remotePb.RunResponse_Output{
+				Output: &remotePb.RunResponseOutput{
+					McpOutput: &mcpPb.McpOutput{
+						OutputType: mcpPb.McpOutput_remote,
+						Uuid:       util.Must(uuid.NewV7()).String(),
+						Lines:      []string{fmt.Sprintf("Server responded with an error code %d", resp.StatusCode), bodyString},
+					},
+				},
+			},
+		}
+
 		return fmt.Errorf("failed to send data, server responded with status code: %d", resp.StatusCode)
 	}
 
@@ -135,7 +195,7 @@ func (c *ConnectionSSE) Send(msg *mcpPb.McpMessageRaw) error {
 }
 
 func (c *ConnectionSSE) Subscribe(cb MessageReceiver) {
-	c.conn.SubscribeMessages(func(e sse.Event) {
+	c.conn.SubscribeToAll(func(e sse.Event) {
 		msg, err := mcp.ParseMCPMessage(util.Must(uuid.NewV7()).String(), e.Data)
 		if err != nil {
 			cb(&remotePb.RunResponse{
@@ -155,14 +215,28 @@ func (c *ConnectionSSE) Subscribe(cb MessageReceiver) {
 		cb(&remotePb.RunResponse{
 			Type: &remotePb.RunResponse_McpMessage{
 				McpMessage: &remotePb.RunResponseMcpMessage{
-					Message: msg.ToPbRawMessage(),
+					Message: msg.ToPbMessage(),
 				},
 			},
 		})
 	})
+
+	go func() {
+		for {
+			select {
+			case <-c.context.Done():
+				return
+			case resp := <-c.extraOutputChan:
+				cb(resp)
+			}
+		}
+	}()
 }
 
 func (c *ConnectionSSE) Close() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
 	if c.cancel != nil {
 		c.cancel(nil)
 		c.cancel = nil
@@ -175,9 +249,27 @@ func (c *ConnectionSSE) Close() error {
 }
 
 func (c *ConnectionSSE) Context() context.Context {
-	if c.ctx == nil {
+	if c.context == nil {
 		return context.Background()
 	}
 
-	return c.ctx
+	return c.context
+}
+
+func (c *ConnectionSSE) Done() <-chan struct{} {
+	if c.context == nil {
+		return nil
+	}
+
+	return c.context.Done()
+}
+
+func (c *ConnectionSSE) Wait() error {
+	<-c.context.Done()
+
+	if c.context.Err() != nil {
+		return c.context.Err()
+	}
+
+	return nil
 }

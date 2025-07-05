@@ -76,7 +76,7 @@ message RunResponse {
 message RunResponseInit {}
 
 message RunResponseMcpMessage {
-  broker.mcp.McpMessageRaw message = 1; 
+  broker.mcp.McpMessage message = 1; 
 }
 
 message RunResponseError {
