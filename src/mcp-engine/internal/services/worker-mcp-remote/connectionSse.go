@@ -97,6 +97,11 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*Connect
 
 			res.conn = nil
 			res.req = nil
+
+			if res.extraOutputChan != nil {
+				close(res.extraOutputChan)
+				res.extraOutputChan = nil
+			}
 		})
 
 		doneOnce.Do(func() {

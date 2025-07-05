@@ -263,6 +263,8 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 }
 
 func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError {
+	s.touch()
+
 	responsesToWaitFor := 0
 	if req.OnlyIds == nil {
 		responsesToWaitFor = len(req.OnlyIds)
@@ -310,7 +312,10 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 	var outChan chan *mcpPb.McpOutput = nil
 	var eventChan chan *managerPb.SessionEvent = nil
 	var doneChan chan struct{} = nil
-	chansForConId := ""
+	var chansForCon workers.WorkerConnection
+
+	touchTicker := time.NewTicker(time.Second * 15)
+	defer touchTicker.Stop()
 
 	defer func() {
 		s.mutex.RLock()
@@ -321,16 +326,16 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 		}
 
 		if msgChan != nil {
-			s.activeConnection.Messages().Unsubscribe(msgChan)
+			chansForCon.Messages().Unsubscribe(msgChan)
 		}
 		if errChan != nil {
-			s.activeConnection.Errors().Unsubscribe(errChan)
+			chansForCon.Errors().Unsubscribe(errChan)
 		}
 		if outChan != nil {
-			s.activeConnection.Output().Unsubscribe(outChan)
+			chansForCon.Output().Unsubscribe(outChan)
 		}
 		if doneChan != nil {
-			s.activeConnection.Done().Unsubscribe(doneChan)
+			chansForCon.Done().Unsubscribe(doneChan)
 		}
 		if eventChan != nil {
 			s.sessionEventBroadcaster.Unsubscribe(eventChan)
@@ -349,6 +354,8 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 				return nil
 			case <-s.context.Done():
 				return nil
+			case <-touchTicker.C:
+				s.touch()
 
 			case <-s.activeConnectionCreated:
 				// Wait for the mutex to be released
@@ -362,29 +369,26 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 			continue
 		}
 
-		if chansForConId != connection.ConnectionID() {
+		if chansForCon.ConnectionID() != connection.ConnectionID() {
 			if msgChan != nil {
-				connection.Messages().Unsubscribe(msgChan)
+				chansForCon.Messages().Unsubscribe(msgChan)
 			}
 			if errChan != nil {
-				connection.Errors().Unsubscribe(errChan)
+				chansForCon.Errors().Unsubscribe(errChan)
 			}
 			if doneChan != nil {
-				connection.Done().Unsubscribe(doneChan)
+				chansForCon.Done().Unsubscribe(doneChan)
 			}
 			if outChan != nil {
-				connection.Output().Unsubscribe(outChan)
-			}
-			if eventChan != nil {
-				s.sessionEventBroadcaster.Unsubscribe(eventChan)
+				chansForCon.Output().Unsubscribe(outChan)
 			}
 
 			msgChan = connection.Messages().Subscribe()
 			errChan = connection.Errors().Subscribe()
 			outChan = connection.Output().Subscribe()
 			doneChan = connection.Done().Subscribe()
-			eventChan = s.sessionEventBroadcaster.Subscribe()
-			chansForConId = connection.ConnectionID()
+
+			chansForCon = connection
 		}
 
 		select {
@@ -659,8 +663,10 @@ func (s *LocalSession) stop(type_ SessionStopType) error {
 		Event: &managerPb.SessionEvent_SessionStopped{},
 	})
 
-	close(s.activeConnectionCreated)
-	s.activeConnectionCreated = nil
+	if s.activeConnectionCreated != nil {
+		close(s.activeConnectionCreated)
+		s.activeConnectionCreated = nil
+	}
 
 	if s.cancel != nil {
 		s.cancel()

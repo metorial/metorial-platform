@@ -60,9 +60,21 @@ func (s *RemoteSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesReques
 		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to stream MCP messages", err)
 	}
 
-	for {
-		s.touch()
+	go func() {
+		touchTicker := time.NewTicker(time.Second * 15)
+		defer touchTicker.Stop()
 
+		for {
+			select {
+			case <-s.context.Done():
+				return
+			case <-touchTicker.C:
+				s.touch()
+			}
+		}
+	}()
+
+	for {
 		response, err := responseStream.Recv()
 		if err != nil {
 			if err == context.Canceled {
