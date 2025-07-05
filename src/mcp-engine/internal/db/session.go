@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"time"
 
-	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 )
 
@@ -59,15 +58,6 @@ func NewSession(id string, externalId string, status SessionStatus, type_ Sessio
 		UpdatedAt:  time.Now(),
 		StartedAt:  time.Now(),
 		LastPingAt: time.Now(),
-	}
-}
-
-func SessionTypeFromSessionType(type_ managerPb.CreateSessionRequest_SessionType) SessionType {
-	switch type_ {
-	case managerPb.CreateSessionRequest_runner:
-		return SessionTypeRunner
-	default:
-		return SessionTypeRemote
 	}
 }
 

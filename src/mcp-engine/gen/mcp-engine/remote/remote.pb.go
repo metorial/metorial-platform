@@ -228,6 +228,7 @@ func (x *RunConfigRemoteServer) GetProtocol() RunConfigRemoteServer_ServerProtoc
 type RunConfigRemoteArguments struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Headers       map[string]string      `protobuf:"bytes,1,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Query         map[string]string      `protobuf:"bytes,2,rep,name=query,proto3" json:"query,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -265,6 +266,13 @@ func (*RunConfigRemoteArguments) Descriptor() ([]byte, []int) {
 func (x *RunConfigRemoteArguments) GetHeaders() map[string]string {
 	if x != nil {
 		return x.Headers
+	}
+	return nil
+}
+
+func (x *RunConfigRemoteArguments) GetQuery() map[string]string {
+	if x != nil {
+		return x.Query
 	}
 	return nil
 }
@@ -903,10 +911,15 @@ const file_remote_proto_rawDesc = "" +
 	"\bprotocol\x18\x02 \x01(\x0e23.broker.remote.RunConfigRemoteServer.ServerProtocolR\bprotocol\".\n" +
 	"\x0eServerProtocol\x12\a\n" +
 	"\x03sse\x10\x00\x12\x13\n" +
-	"\x0fstreamable_http\x10\x01\"\xa6\x01\n" +
+	"\x0fstreamable_http\x10\x01\"\xaa\x02\n" +
 	"\x18RunConfigRemoteArguments\x12N\n" +
-	"\aheaders\x18\x01 \x03(\v24.broker.remote.RunConfigRemoteArguments.HeadersEntryR\aheaders\x1a:\n" +
+	"\aheaders\x18\x01 \x03(\v24.broker.remote.RunConfigRemoteArguments.HeadersEntryR\aheaders\x12H\n" +
+	"\x05query\x18\x02 \x03(\v22.broker.remote.RunConfigRemoteArguments.QueryEntryR\x05query\x1a:\n" +
 	"\fHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a8\n" +
+	"\n" +
+	"QueryEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x90\x01\n" +
 	"\tRunConfig\x12<\n" +
@@ -960,7 +973,7 @@ func file_remote_proto_rawDescGZIP() []byte {
 }
 
 var file_remote_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_remote_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_remote_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_remote_proto_goTypes = []any{
 	(RunConfigRemoteServer_ServerProtocol)(0), // 0: broker.remote.RunConfigRemoteServer.ServerProtocol
 	(*RemoteInfoRequest)(nil),                 // 1: broker.remote.RemoteInfoRequest
@@ -979,40 +992,42 @@ var file_remote_proto_goTypes = []any{
 	(*RunResponseOutput)(nil),                 // 14: broker.remote.RunResponseOutput
 	(*RunResponseClose)(nil),                  // 15: broker.remote.RunResponseClose
 	nil,                                       // 16: broker.remote.RunConfigRemoteArguments.HeadersEntry
-	(*worker.WorkerInfoResponse)(nil),         // 17: broker.worker.WorkerInfoResponse
-	(*mcp.McpMessageRaw)(nil),                 // 18: broker.mcp.McpMessageRaw
-	(*mcp.McpMessage)(nil),                    // 19: broker.mcp.McpMessage
-	(*mcp.McpError)(nil),                      // 20: broker.mcp.McpError
-	(*mcp.McpOutput)(nil),                     // 21: broker.mcp.McpOutput
+	nil,                                       // 17: broker.remote.RunConfigRemoteArguments.QueryEntry
+	(*worker.WorkerInfoResponse)(nil),         // 18: broker.worker.WorkerInfoResponse
+	(*mcp.McpMessageRaw)(nil),                 // 19: broker.mcp.McpMessageRaw
+	(*mcp.McpMessage)(nil),                    // 20: broker.mcp.McpMessage
+	(*mcp.McpError)(nil),                      // 21: broker.mcp.McpError
+	(*mcp.McpOutput)(nil),                     // 22: broker.mcp.McpOutput
 }
 var file_remote_proto_depIdxs = []int32{
-	17, // 0: broker.remote.RemoteInfoResponse.worker_info:type_name -> broker.worker.WorkerInfoResponse
+	18, // 0: broker.remote.RemoteInfoResponse.worker_info:type_name -> broker.worker.WorkerInfoResponse
 	0,  // 1: broker.remote.RunConfigRemoteServer.protocol:type_name -> broker.remote.RunConfigRemoteServer.ServerProtocol
 	16, // 2: broker.remote.RunConfigRemoteArguments.headers:type_name -> broker.remote.RunConfigRemoteArguments.HeadersEntry
-	3,  // 3: broker.remote.RunConfig.server:type_name -> broker.remote.RunConfigRemoteServer
-	4,  // 4: broker.remote.RunConfig.arguments:type_name -> broker.remote.RunConfigRemoteArguments
-	7,  // 5: broker.remote.RunRequest.init:type_name -> broker.remote.RunRequestInit
-	8,  // 6: broker.remote.RunRequest.mcp_message:type_name -> broker.remote.RunRequestMcpMessage
-	9,  // 7: broker.remote.RunRequest.close:type_name -> broker.remote.RunRequestClose
-	5,  // 8: broker.remote.RunRequestInit.run_config:type_name -> broker.remote.RunConfig
-	18, // 9: broker.remote.RunRequestMcpMessage.message:type_name -> broker.mcp.McpMessageRaw
-	12, // 10: broker.remote.RunResponse.mcp_message:type_name -> broker.remote.RunResponseMcpMessage
-	11, // 11: broker.remote.RunResponse.init:type_name -> broker.remote.RunResponseInit
-	14, // 12: broker.remote.RunResponse.output:type_name -> broker.remote.RunResponseOutput
-	13, // 13: broker.remote.RunResponse.error:type_name -> broker.remote.RunResponseError
-	15, // 14: broker.remote.RunResponse.close:type_name -> broker.remote.RunResponseClose
-	19, // 15: broker.remote.RunResponseMcpMessage.message:type_name -> broker.mcp.McpMessage
-	20, // 16: broker.remote.RunResponseError.mcp_error:type_name -> broker.mcp.McpError
-	21, // 17: broker.remote.RunResponseOutput.mcp_output:type_name -> broker.mcp.McpOutput
-	1,  // 18: broker.remote.McpRemote.GetRemoteInfo:input_type -> broker.remote.RemoteInfoRequest
-	6,  // 19: broker.remote.McpRemote.StreamMcpRun:input_type -> broker.remote.RunRequest
-	2,  // 20: broker.remote.McpRemote.GetRemoteInfo:output_type -> broker.remote.RemoteInfoResponse
-	10, // 21: broker.remote.McpRemote.StreamMcpRun:output_type -> broker.remote.RunResponse
-	20, // [20:22] is the sub-list for method output_type
-	18, // [18:20] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	17, // 3: broker.remote.RunConfigRemoteArguments.query:type_name -> broker.remote.RunConfigRemoteArguments.QueryEntry
+	3,  // 4: broker.remote.RunConfig.server:type_name -> broker.remote.RunConfigRemoteServer
+	4,  // 5: broker.remote.RunConfig.arguments:type_name -> broker.remote.RunConfigRemoteArguments
+	7,  // 6: broker.remote.RunRequest.init:type_name -> broker.remote.RunRequestInit
+	8,  // 7: broker.remote.RunRequest.mcp_message:type_name -> broker.remote.RunRequestMcpMessage
+	9,  // 8: broker.remote.RunRequest.close:type_name -> broker.remote.RunRequestClose
+	5,  // 9: broker.remote.RunRequestInit.run_config:type_name -> broker.remote.RunConfig
+	19, // 10: broker.remote.RunRequestMcpMessage.message:type_name -> broker.mcp.McpMessageRaw
+	12, // 11: broker.remote.RunResponse.mcp_message:type_name -> broker.remote.RunResponseMcpMessage
+	11, // 12: broker.remote.RunResponse.init:type_name -> broker.remote.RunResponseInit
+	14, // 13: broker.remote.RunResponse.output:type_name -> broker.remote.RunResponseOutput
+	13, // 14: broker.remote.RunResponse.error:type_name -> broker.remote.RunResponseError
+	15, // 15: broker.remote.RunResponse.close:type_name -> broker.remote.RunResponseClose
+	20, // 16: broker.remote.RunResponseMcpMessage.message:type_name -> broker.mcp.McpMessage
+	21, // 17: broker.remote.RunResponseError.mcp_error:type_name -> broker.mcp.McpError
+	22, // 18: broker.remote.RunResponseOutput.mcp_output:type_name -> broker.mcp.McpOutput
+	1,  // 19: broker.remote.McpRemote.GetRemoteInfo:input_type -> broker.remote.RemoteInfoRequest
+	6,  // 20: broker.remote.McpRemote.StreamMcpRun:input_type -> broker.remote.RunRequest
+	2,  // 21: broker.remote.McpRemote.GetRemoteInfo:output_type -> broker.remote.RemoteInfoResponse
+	10, // 22: broker.remote.McpRemote.StreamMcpRun:output_type -> broker.remote.RunResponse
+	21, // [21:23] is the sub-list for method output_type
+	19, // [19:21] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_remote_proto_init() }
@@ -1038,7 +1053,7 @@ func file_remote_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_remote_proto_rawDesc), len(file_remote_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   16,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

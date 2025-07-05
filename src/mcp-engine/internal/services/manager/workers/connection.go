@@ -4,6 +4,7 @@ import (
 	"time"
 
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
+	remotePb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote"
 	runnerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
@@ -27,7 +28,9 @@ type WorkerConnection interface {
 }
 
 type WorkerConnectionInput struct {
-	RunConfig *runnerPb.RunConfig
+	ContainerRunConfig *runnerPb.RunConfig
+	RemoteRunConfig    *remotePb.RunConfig
+
 	MCPClient *mcp.MCPClient
 
 	ConnectionID string

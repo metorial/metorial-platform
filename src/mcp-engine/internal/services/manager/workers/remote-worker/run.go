@@ -1,4 +1,4 @@
-package runner_worker
+package remote_worker
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"time"
 
 	mcpPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
-	runnerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
+	remotePb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
 )
@@ -19,10 +19,10 @@ type Run struct {
 	cancel  context.CancelFunc
 
 	ConnectionID string
-	Config       *runnerPb.RunConfig
+	Config       *remotePb.RunConfig
 
-	client runnerPb.McpRunnerClient
-	stream runnerPb.McpRunner_StreamMcpRunClient
+	client remotePb.McpRemoteClient
+	stream remotePb.McpRemote_StreamMcpRunClient
 
 	doneBroadcaster *pubsub.Broadcaster[struct{}]
 
@@ -35,9 +35,9 @@ type Run struct {
 	initError error
 }
 
-func NewRun(config *runnerPb.RunConfig, client runnerPb.McpRunnerClient, connectionId string) *Run {
+func NewRun(config *remotePb.RunConfig, client remotePb.McpRemoteClient, connectionId string) *Run {
 	if client == nil {
-		log.Println("McpRunnerClient is nil, cannot create Run")
+		log.Println("McpRemoteClient is nil, cannot create Run")
 		return nil
 	}
 
@@ -62,7 +62,7 @@ func NewRun(config *runnerPb.RunConfig, client runnerPb.McpRunnerClient, connect
 
 func (r *Run) Start() error {
 	if r.client == nil {
-		return fmt.Errorf("McpRunnerClient is not initialized")
+		return fmt.Errorf("McpRemoteClient is not initialized")
 	}
 
 	if r.stream != nil {
@@ -89,9 +89,9 @@ func (r *Run) SendMessage(msg *mcpPB.McpMessageRaw) error {
 		return fmt.Errorf("Run stream is not initialized")
 	}
 
-	return r.stream.Send(&runnerPb.RunRequest{
-		Type: &runnerPb.RunRequest_McpMessage{
-			McpMessage: &runnerPb.RunRequestMcpMessage{
+	return r.stream.Send(&remotePb.RunRequest{
+		Type: &remotePb.RunRequest_McpMessage{
+			McpMessage: &remotePb.RunRequestMcpMessage{
 				Message: msg,
 			},
 		},
@@ -105,9 +105,9 @@ func (r *Run) Close() error {
 		return fmt.Errorf("Run stream is not initialized")
 	}
 
-	err := r.stream.Send(&runnerPb.RunRequest{
-		Type: &runnerPb.RunRequest_Close{
-			Close: &runnerPb.RunRequestClose{},
+	err := r.stream.Send(&remotePb.RunRequest{
+		Type: &remotePb.RunRequest_Close{
+			Close: &remotePb.RunRequestClose{},
 		},
 	})
 	if err != nil {
@@ -148,7 +148,7 @@ func (r *Run) handleStream() {
 
 	if r.client == nil {
 		r.createStreamWg.Done()
-		r.initError = fmt.Errorf("McpRunnerClient is not initialized")
+		r.initError = fmt.Errorf("McpRemoteClient is not initialized")
 		return
 	}
 
@@ -162,9 +162,9 @@ func (r *Run) handleStream() {
 	r.stream = stream
 	defer stream.CloseSend()
 
-	err = stream.Send(&runnerPb.RunRequest{
-		Type: &runnerPb.RunRequest_Init{
-			Init: &runnerPb.RunRequestInit{
+	err = stream.Send(&remotePb.RunRequest{
+		Type: &remotePb.RunRequest_Init{
+			Init: &remotePb.RunRequestInit{
 				RunConfig:    r.Config,
 				ConnectionId: r.ConnectionID,
 			},
@@ -214,31 +214,31 @@ loop:
 
 		switch msg := resp.Type.(type) {
 
-		case *runnerPb.RunResponse_McpMessage:
+		case *remotePb.RunResponse_McpMessage:
 			if msg.McpMessage == nil || msg.McpMessage.Message == nil {
 				continue
 			}
 
-			parsed, _ := mcp.FromPbRawMessage(msg.McpMessage.Message)
+			parsed, _ := mcp.FromPbMessage(msg.McpMessage.Message)
 			if parsed != nil {
 				r.messages.Publish(parsed)
 			}
 
-		case *runnerPb.RunResponse_Output:
+		case *remotePb.RunResponse_Output:
 			if msg.Output == nil || msg.Output.McpOutput == nil {
 				continue
 			}
 
 			r.output.Publish(msg.Output.McpOutput)
 
-		case *runnerPb.RunResponse_Error:
+		case *remotePb.RunResponse_Error:
 			if msg.Error == nil || msg.Error.McpError == nil {
 				continue
 			}
 
 			go r.Close()
 
-		case *runnerPb.RunResponse_Close:
+		case *remotePb.RunResponse_Close:
 			log.Printf("Run %s closed by server\n", r.ConnectionID)
 			break loop
 

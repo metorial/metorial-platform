@@ -14,6 +14,7 @@ type WorkerType string
 const (
 	WorkerTypeRunner   WorkerType = "runner"
 	WorkerTypeLauncher WorkerType = "launcher"
+	WorkerTypeRemote   WorkerType = "remote"
 )
 
 type Worker interface {
@@ -171,12 +172,22 @@ func (wm *WorkerManager) PickWorkerRandomly(workerType WorkerType) (Worker, bool
 }
 
 func (wm *WorkerManager) GetConnectionHashForWorkerType(workerType WorkerType, input *WorkerConnectionInput) ([]byte, error) {
-	if workerType == WorkerTypeRunner {
-		if input.RunConfig == nil {
-			return nil, fmt.Errorf("RunConfig is required to create a connection hash")
+	switch workerType {
+
+	case WorkerTypeRunner:
+		if input.ContainerRunConfig == nil {
+			return nil, fmt.Errorf("ContainerRunConfig is required to create a connection hash")
 		}
 
-		return []byte(input.RunConfig.Container.DockerImage), nil
+		return []byte(input.ContainerRunConfig.Container.DockerImage), nil
+
+	case WorkerTypeRemote:
+		if input.RemoteRunConfig == nil {
+			return nil, fmt.Errorf("RemoteRunConfig is required to create a connection hash")
+		}
+
+		return []byte(input.RemoteRunConfig.Server.ServerUri), nil
+
 	}
 
 	return nil, fmt.Errorf("unsupported worker type: %v", workerType)

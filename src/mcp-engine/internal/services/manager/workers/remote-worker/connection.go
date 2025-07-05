@@ -1,4 +1,4 @@
-package runner_worker
+package remote_worker
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
 )
 
-type RunnerWorkerConnection struct {
+type RemoteWorkerConnection struct {
 	mcpServer *mcp.MCPServer
 	mcpClient *mcp.MCPClient
 
@@ -20,18 +20,18 @@ type RunnerWorkerConnection struct {
 	run *Run
 }
 
-func (rw *RunnerWorker) CreateConnection(input *workers.WorkerConnectionInput) (workers.WorkerConnection, error) {
-	if input.ContainerRunConfig == nil {
-		return nil, fmt.Errorf("ContainerRunConfig is required to create a connection")
+func (rw *RemoteWorker) CreateConnection(input *workers.WorkerConnectionInput) (workers.WorkerConnection, error) {
+	if input.RemoteRunConfig == nil {
+		return nil, fmt.Errorf("RemoteRunConfig is required to create a connection")
 	}
 
 	if rw.client == nil {
-		return nil, fmt.Errorf("McpRunnerClient is not initialized for worker %s at %s", rw.WorkerID(), rw.Address())
+		return nil, fmt.Errorf("McpRemoteClient is not initialized for worker %s at %s", rw.WorkerID(), rw.Address())
 	}
 
-	run := NewRun(input.ContainerRunConfig, rw.client, input.ConnectionID)
+	run := NewRun(input.RemoteRunConfig, rw.client, input.ConnectionID)
 
-	res := &RunnerWorkerConnection{
+	res := &RemoteWorkerConnection{
 		run:       run,
 		mcpClient: input.MCPClient,
 
@@ -42,7 +42,7 @@ func (rw *RunnerWorker) CreateConnection(input *workers.WorkerConnectionInput) (
 	return res, nil
 }
 
-func (rwc *RunnerWorkerConnection) Start() error {
+func (rwc *RemoteWorkerConnection) Start() error {
 	if err := rwc.run.Start(); err != nil {
 		return fmt.Errorf("failed to start MCP run: %w", err)
 	}
@@ -67,7 +67,7 @@ func (rwc *RunnerWorkerConnection) Start() error {
 	return nil
 }
 
-func (rwc *RunnerWorkerConnection) Close() error {
+func (rwc *RemoteWorkerConnection) Close() error {
 	if err := rwc.run.Close(); err != nil {
 		return fmt.Errorf("failed to close MCP run: %w", err)
 	}
@@ -75,26 +75,26 @@ func (rwc *RunnerWorkerConnection) Close() error {
 	return nil
 }
 
-func (rwc *RunnerWorkerConnection) Done() pubsub.BroadcasterReader[struct{}] {
+func (rwc *RemoteWorkerConnection) Done() pubsub.BroadcasterReader[struct{}] {
 	return rwc.run.Done()
 }
 
-func (rwc *RunnerWorkerConnection) ConnectionID() string {
+func (rwc *RemoteWorkerConnection) ConnectionID() string {
 	return rwc.connectionID
 }
 
-func (rwc *RunnerWorkerConnection) GetServer() (*mcp.MCPServer, error) {
+func (rwc *RemoteWorkerConnection) GetServer() (*mcp.MCPServer, error) {
 	if rwc.mcpServer == nil {
 		return nil, fmt.Errorf("MCP server not initialized")
 	}
 	return rwc.mcpServer, nil
 }
 
-func (rwc *RunnerWorkerConnection) AcceptMessage(message *mcp.MCPMessage) error {
+func (rwc *RemoteWorkerConnection) AcceptMessage(message *mcp.MCPMessage) error {
 	return rwc.run.SendMessage(message.ToPbRawMessage())
 }
 
-func (rws *RunnerWorkerConnection) SendAndWaitForResponse(message *mcp.MCPMessage) (*mcp.MCPMessage, error) {
+func (rws *RemoteWorkerConnection) SendAndWaitForResponse(message *mcp.MCPMessage) (*mcp.MCPMessage, error) {
 	if message.MsgType != mcp.RequestType {
 		return nil, fmt.Errorf("only request messages can be sent and waited for a response")
 	}
@@ -132,7 +132,7 @@ func (rws *RunnerWorkerConnection) SendAndWaitForResponse(message *mcp.MCPMessag
 	}
 }
 
-func (rwc *RunnerWorkerConnection) Messages() pubsub.BroadcasterReader[*mcp.MCPMessage] {
+func (rwc *RemoteWorkerConnection) Messages() pubsub.BroadcasterReader[*mcp.MCPMessage] {
 	if rwc.run == nil {
 		return nil
 	}
@@ -140,7 +140,7 @@ func (rwc *RunnerWorkerConnection) Messages() pubsub.BroadcasterReader[*mcp.MCPM
 	return rwc.run.messages
 }
 
-func (rwc *RunnerWorkerConnection) Output() pubsub.BroadcasterReader[*mcpPB.McpOutput] {
+func (rwc *RemoteWorkerConnection) Output() pubsub.BroadcasterReader[*mcpPB.McpOutput] {
 	if rwc.run == nil {
 		return nil
 	}
@@ -148,7 +148,7 @@ func (rwc *RunnerWorkerConnection) Output() pubsub.BroadcasterReader[*mcpPB.McpO
 	return rwc.run.output
 }
 
-func (rwc *RunnerWorkerConnection) Errors() pubsub.BroadcasterReader[*mcpPB.McpError] {
+func (rwc *RemoteWorkerConnection) Errors() pubsub.BroadcasterReader[*mcpPB.McpError] {
 	if rwc.run == nil {
 		return nil
 	}
@@ -156,6 +156,6 @@ func (rwc *RunnerWorkerConnection) Errors() pubsub.BroadcasterReader[*mcpPB.McpE
 	return rwc.run.errors
 }
 
-func (rwc *RunnerWorkerConnection) InactivityTimeout() time.Duration {
-	return time.Second * 20
+func (rwc *RemoteWorkerConnection) InactivityTimeout() time.Duration {
+	return time.Minute * 5
 }

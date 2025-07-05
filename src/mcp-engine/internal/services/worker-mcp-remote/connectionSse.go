@@ -3,7 +3,9 @@ package remote
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 
@@ -32,14 +34,30 @@ type ConnectionSSE struct {
 }
 
 func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*ConnectionSSE, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, config.Server.ServerUri, http.NoBody)
-
-	for k, v := range config.Arguments.Headers {
-		req.Header.Set(k, v)
+	uri, err := url.Parse(config.Server.ServerUri)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse server URI: %w", err)
 	}
 
+	if config.Arguments.Query != nil {
+		q := uri.Query()
+
+		for k, v := range config.Arguments.Query {
+			q.Set(k, v)
+		}
+
+		uri.RawQuery = q.Encode()
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri.String(), http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request for SSE endpoint: %w", err)
+	}
+
+	if config.Arguments.Headers != nil {
+		for k, v := range config.Arguments.Headers {
+			req.Header.Set(k, v)
+		}
 	}
 
 	conn := sse.DefaultClient.NewConnection(req)
@@ -62,17 +80,13 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*Connect
 
 	go func() {
 		err := conn.Connect()
-		fmt.Println("SSE connection established")
-		fmt.Println("SSE connection error:", err)
 
 		cancelOnce.Do(func() {
 			res.mutex.Lock()
 			defer res.mutex.Unlock()
 
 			if res.cancel != nil {
-				fmt.Println("SSE connection error:", err)
-
-				if err != nil {
+				if err != nil && err != context.Canceled && err != io.EOF {
 					res.cancel(fmt.Errorf("failed to connect to SSE endpoint: %w", err))
 				} else {
 					res.cancel(nil)

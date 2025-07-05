@@ -147,10 +147,30 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 				select {
 				case <-stream.Context().Done():
+					return
 				case <-s.context.Done():
 					return
 
 				case <-doneChan:
+					if responsesToWaitFor > 0 {
+						response := &managerPb.SendMcpMessageResponse{
+							Response: &managerPb.SendMcpMessageResponse_McpError{
+								McpError: &mcpPb.McpError{
+									ErrorCode:    mcpPb.McpError_timeout,
+									ErrorMessage: fmt.Sprintf("timeout waiting for %d MCP responses", responsesToWaitFor),
+								},
+							},
+						}
+
+						err := stream.Send(response)
+						if err != nil {
+							log.Printf("Failed to send response message: %v", err)
+							return
+						}
+					}
+
+					return
+
 				case <-timeout.C:
 					if responsesToWaitFor > 0 {
 						response := &managerPb.SendMcpMessageResponse{
@@ -168,6 +188,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 							return
 						}
 					}
+
 					return
 
 				case message := <-msgChan:
@@ -272,6 +293,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 					Response: &managerPb.StreamMcpMessagesResponse_McpMessage{
 						McpMessage: message,
 					},
+					IsReplay: true,
 				}
 
 				err = stream.Send(response)
@@ -324,6 +346,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 		if connection == nil {
 			select {
 			case <-stream.Context().Done():
+				return nil
 			case <-s.context.Done():
 				return nil
 
@@ -366,6 +389,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 
 		select {
 		case <-stream.Context().Done():
+			return nil
 		case <-s.context.Done():
 			return nil
 
@@ -535,21 +559,31 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 
 	hash, err := s.workerManager.GetConnectionHashForWorkerType(s.WorkerType, connectionInput)
 	if err != nil {
-		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get connection hash for worker type", err)
+		log.Printf("Failed to get connection hash for worker type %s: %v", s.WorkerType, err)
+		return mterror.NewWithInnerError(mterror.InternalErrorKind, fmt.Sprintf("failed to get connection hash for worker type: %s", err.Error()), err)
 	}
 
 	worker, ok := s.workerManager.PickWorkerByHash(s.WorkerType, hash)
 	if !ok {
+		log.Printf("No available worker for worker type %s with hash %s", s.WorkerType, hash)
 		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "runner_connection_error", "no available worker for worker type", err)
 	}
 
 	connection, err := worker.CreateConnection(connectionInput)
 	if err != nil {
+		log.Printf("Failed to create connection for worker %s: %v", worker.WorkerID(), err)
 		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "runner_connection_error", "failed to create connection for worker", err)
 	}
 
-	connectionType := db.SessionConnectionTypeRunner
-	// TODO: get connection type for other worker types
+	var connectionType db.SessionConnectionType
+	switch s.WorkerType {
+	case workers.WorkerTypeRunner:
+		connectionType = db.SessionConnectionTypeRunner
+	case workers.WorkerTypeRemote:
+		connectionType = db.SessionConnectionTypeRemote
+	default:
+		return mterror.New(mterror.InternalErrorKind, "unsupported worker type for local session")
+	}
 
 	s.activeConnectionDb, err = s.db.CreateConnection(
 		db.NewConnection(

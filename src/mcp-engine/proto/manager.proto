@@ -8,6 +8,7 @@ import "runner.proto";
 import "mcp.proto";
 import "workerBroker.proto";
 import "launcher.proto";
+import "remote.proto";
 
 service McpManager {
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
@@ -21,25 +22,28 @@ service McpManager {
 }
 
 message CreateSessionRequest {
-  enum SessionType {
-    runner = 0;
-  }
-
   string session_id = 1;
-  SessionType type = 2;
   SessionConfig config = 3;
   broker.mcp.McpParticipant mcp_client = 4;
 }
 
-message RunConfigWithLauncher {
+message ContainerRunConfigWithLauncher {
   broker.runner.RunConfigContainer container = 1;
+  broker.launcher.LauncherConfig launcher = 2;
+}
+
+message RemoteRunConfigWithLauncher {
+  broker.remote.RunConfigRemoteServer server = 1;
   broker.launcher.LauncherConfig launcher = 2;
 }
 
 message SessionConfig {
   oneof config_type {
-    RunConfigWithLauncher run_config_with_launcher = 1;
-    broker.runner.RunConfig run_config_with_container_arguments = 2;
+    ContainerRunConfigWithLauncher container_run_config_with_launcher = 1;
+    broker.runner.RunConfig container_run_config_with_container_arguments = 2;
+
+    RemoteRunConfigWithLauncher remote_run_config_with_launcher = 3;
+    broker.remote.RunConfig remote_run_config_with_server = 4;
   }
 }
 
@@ -60,8 +64,6 @@ message SendMcpMessageResponse {
     broker.mcp.McpError mcp_error = 2;
     SessionEvent session_event = 3;
   }
-
-  bool isReplay = 10;
 }
 
 message StreamMcpMessagesRequest {
@@ -99,6 +101,8 @@ message StreamMcpMessagesResponse {
     broker.mcp.McpOutput mcp_output = 3;
     SessionEvent session_event = 4;
   }
+
+  bool isReplay = 10;
 }
 
 message GetServerInfoRequest {

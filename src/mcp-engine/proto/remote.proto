@@ -36,6 +36,7 @@ message RunConfigRemoteServer {
 
 message RunConfigRemoteArguments {
   map<string, string> headers = 1;
+  map<string, string> query = 2;
 }
 
 message RunConfig {

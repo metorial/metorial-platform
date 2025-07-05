@@ -84,6 +84,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 		for {
 			select {
 			case <-stream.Context().Done():
+				return
 			case <-conn.Done():
 				return
 
@@ -121,8 +122,8 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 	conn.Subscribe(func(response *remotePb.RunResponse) {
 		lastPing = time.Now()
 
-		message := response.Type.(*remotePb.RunResponse_McpMessage)
-		if message != nil {
+		message, ok := response.Type.(*remotePb.RunResponse_McpMessage)
+		if ok && message != nil {
 			if message.McpMessage.Message.MessageType == mcpPb.McpMessageType_response && strings.HasPrefix(message.McpMessage.Message.IdString, "mtr/ping/") {
 				return // Ignore ping responses
 			}
@@ -130,6 +131,11 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 
 		err := stream.Send(response)
 		if err != nil {
+			if stream.Context().Err() != nil {
+				log.Printf("Stream context error: %v", stream.Context().Err())
+				return // Client has closed the stream
+			}
+
 			log.Printf("Failed to send response: %v", err)
 			return
 		}
@@ -161,6 +167,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 				}
 
 				errChan <- fmt.Errorf("failed to receive request: %w", err)
+				return
 			}
 
 			switch msg := req.Type.(type) {
@@ -222,6 +229,8 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 	r.mutex.Lock()
 	r.activeConnections--
 	r.mutex.Unlock()
+
+	time.Sleep(100 * time.Millisecond) // Give some time for the stream to close gracefully
 
 	return nil
 }

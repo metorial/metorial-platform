@@ -150,10 +150,15 @@ func (s *Sessions) UpsertSession(
 	// need to create a local session for it.
 	if storedSession.ManagerID == s.state.ManagerID {
 		var workerType workers.WorkerType
-		if request.Type == managerPb.CreateSessionRequest_runner {
+		var dbType db.SessionType
+		switch request.Config.ConfigType.(type) {
+		case *managerPb.SessionConfig_ContainerRunConfigWithLauncher, *managerPb.SessionConfig_ContainerRunConfigWithContainerArguments:
 			workerType = workers.WorkerTypeRunner
-		} else {
-			return nil, nil, mterror.New(mterror.InvalidRequestKind, "unsupported session type")
+			dbType = db.SessionTypeRunner
+
+		case *managerPb.SessionConfig_RemoteRunConfigWithLauncher, *managerPb.SessionConfig_RemoteRunConfigWithServer:
+			workerType = workers.WorkerTypeRemote
+			dbType = db.SessionTypeRemote
 		}
 
 		connectionInput := &workers.WorkerConnectionInput{
@@ -166,7 +171,7 @@ func (s *Sessions) UpsertSession(
 			util.Must(uuid.NewV7()).String(),
 			request.SessionId,
 			db.SessionStatusActive,
-			db.SessionTypeFromSessionType(request.Type),
+			dbType,
 			client,
 		))
 		if err != nil {
@@ -174,8 +179,8 @@ func (s *Sessions) UpsertSession(
 			return nil, dbSession, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to create session in DB", err)
 		}
 
-		if request.Config.GetRunConfigWithLauncher() != nil {
-			connectionInput.RunConfig, err = s.launcher.GetRunnerLaunchParams(request.Config.GetRunConfigWithLauncher())
+		if request.Config.GetContainerRunConfigWithLauncher() != nil {
+			connectionInput.ContainerRunConfig, err = s.launcher.GetContainerLaunchParams(request.Config.GetContainerRunConfigWithLauncher())
 			if err != nil {
 				go s.db.CreateError(db.NewErrorStructuredError(
 					dbSession,
@@ -187,8 +192,23 @@ func (s *Sessions) UpsertSession(
 				log.Printf("Failed to get runner launch params: %v\n", err)
 				return nil, dbSession, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err.Error(), err)
 			}
-		} else if request.Config.GetRunConfigWithContainerArguments() != nil {
-			connectionInput.RunConfig = request.Config.GetRunConfigWithContainerArguments()
+		} else if request.Config.GetContainerRunConfigWithContainerArguments() != nil {
+			connectionInput.ContainerRunConfig = request.Config.GetContainerRunConfigWithContainerArguments()
+		} else if request.Config.GetRemoteRunConfigWithLauncher() != nil {
+			connectionInput.RemoteRunConfig, err = s.launcher.GetRemoteLaunchParams(request.Config.GetRemoteRunConfigWithLauncher())
+			if err != nil {
+				go s.db.CreateError(db.NewErrorStructuredError(
+					dbSession,
+					"get_launch_params_error",
+					err.Error(),
+					map[string]string{},
+				))
+
+				log.Printf("Failed to get remote launch params: %v\n", err)
+				return nil, dbSession, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err.Error(), err)
+			}
+		} else if request.Config.GetRemoteRunConfigWithServer() != nil {
+			connectionInput.RemoteRunConfig = request.Config.GetRemoteRunConfigWithServer()
 		} else {
 			return nil, dbSession, mterror.New(mterror.InvalidRequestKind, "session config must contain either RunConfigWithContainerArguments or RunConfigWithLauncher")
 		}

@@ -10,6 +10,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	launcherWorker "github.com/metorial/metorial/mcp-engine/internal/services/manager/workers/launcher-worker"
+	remoteWorker "github.com/metorial/metorial/mcp-engine/internal/services/manager/workers/remote-worker"
 	runnerWorker "github.com/metorial/metorial/mcp-engine/internal/services/manager/workers/runner-worker"
 )
 
@@ -55,6 +56,8 @@ func (s *workerBrokerServer) RegisterWorker(ctx context.Context, req *workerBrok
 		worker = runnerWorker.NewRunnerWorker(context.Background(), s.workerManager, req.WorkerId, req.Address)
 	case workerPb.WorkerType_launcher:
 		worker = launcherWorker.NewLauncherWorker(context.Background(), s.workerManager, req.WorkerId, req.Address)
+	case workerPb.WorkerType_mcp_remote:
+		worker = remoteWorker.NewRemoteWorker(context.Background(), s.workerManager, req.WorkerId, req.Address)
 	default:
 		return nil, fmt.Errorf("unsupported worker type: %v", req.WorkerType)
 
