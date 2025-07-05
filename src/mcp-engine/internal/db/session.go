@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"time"
 
+	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
+	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 )
 
@@ -16,6 +18,21 @@ const (
 	SessionStatusError   SessionStatus = 3
 )
 
+func (s SessionStatus) ToPb() managerPb.EngineSessionStatus {
+	switch s {
+	case SessionStatusActive:
+		return managerPb.EngineSessionStatus_session_status_active
+	case SessionStatusClosed:
+		return managerPb.EngineSessionStatus_session_status_closed
+	case SessionStatusExpired:
+		return managerPb.EngineSessionStatus_session_status_expired
+	case SessionStatusError:
+		return managerPb.EngineSessionStatus_session_status_error
+	default:
+		return managerPb.EngineSessionStatus_session_status_unknown
+	}
+}
+
 type SessionType uint8
 
 const (
@@ -23,6 +40,17 @@ const (
 	SessionTypeRunner  SessionType = 1
 	SessionTypeRemote  SessionType = 2
 )
+
+func (s SessionType) ToPb() managerPb.EngineSessionType {
+	switch s {
+	case SessionTypeRunner:
+		return managerPb.EngineSessionType_session_type_runner
+	case SessionTypeRemote:
+		return managerPb.EngineSessionType_session_type_remote
+	default:
+		return managerPb.EngineSessionType_session_type_unknown
+	}
+}
 
 type Session struct {
 	ID         string `gorm:"primaryKey;type:uuid;not null"`
@@ -71,6 +99,11 @@ func (d *DB) CreateSession(session *Session) (*Session, error) {
 
 func (d *DB) SaveSession(session *Session) error {
 	session.UpdatedAt = time.Now()
+
+	if session.Status == SessionStatusError {
+		session.HasError = true
+	}
+
 	return d.db.Save(session).Error
 }
 
@@ -96,4 +129,47 @@ func (d *DB) cleanupOldSessionsRoutine() {
 			Where("status = ? AND ended_at < ?", SessionStatusExpired, now.Add(-30*24*time.Hour)).
 			Delete(&Session{})
 	}
+}
+
+func (s *Session) ToPb() (*managerPb.EngineSession, error) {
+	var clientPart *mcpPb.McpParticipant
+	if s.McpClient != nil {
+		var err error
+		clientPart, err = s.McpClient.ToPbParticipant()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var serverPart *mcpPb.McpParticipant
+	if s.McpServer != nil {
+		var err error
+		serverPart, err = s.McpServer.ToPbParticipant()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &managerPb.EngineSession{
+		Id:         s.ID,
+		ExternalId: s.ExternalId,
+
+		Status:   s.Status.ToPb(),
+		Type:     s.Type.ToPb(),
+		HasError: s.HasError,
+
+		McpClient: clientPart,
+		McpServer: serverPart,
+
+		CreatedAt:  s.CreatedAt.Unix(),
+		UpdatedAt:  s.UpdatedAt.Unix(),
+		StartedAt:  s.StartedAt.Unix(),
+		LastPingAt: s.LastPingAt.Unix(),
+		EndedAt: func() int64 {
+			if s.EndedAt.Valid {
+				return s.EndedAt.Time.Unix()
+			}
+			return 0
+		}(),
+	}, nil
 }

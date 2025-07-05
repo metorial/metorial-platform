@@ -6,6 +6,7 @@ import (
 	"slices"
 	"time"
 
+	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 )
@@ -17,6 +18,17 @@ const (
 	SessionMessageSenderClient  SessionMessageSender = 1
 	SessionMessageSenderServer  SessionMessageSender = 2
 )
+
+func (s SessionMessageSender) ToPb() managerPb.SessionMessageSender {
+	switch s {
+	case SessionMessageSenderClient:
+		return managerPb.SessionMessageSender_session_message_sender_client
+	case SessionMessageSenderServer:
+		return managerPb.SessionMessageSender_session_message_sender_server
+	default:
+		return managerPb.SessionMessageSender_session_message_sender_unknown
+	}
+}
 
 type SessionMessage struct {
 	ID string `gorm:"primaryKey;type:uuid;not null"`
@@ -139,4 +151,41 @@ func (m *SessionMessage) ToPbRawMessage() (*mcpPb.McpMessageRaw, error) {
 	}
 
 	return mcp.ToPbRawMessage(), nil
+}
+
+func (m *SessionMessage) ToPb() (*managerPb.EngineSessionMessage, error) {
+	var ses *managerPb.EngineSession
+	if m.Session != nil {
+		var err error
+		ses, err = m.Session.ToPb()
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert Session to PB: %w", err)
+		}
+	}
+
+	var conn *managerPb.EngineSessionConnection
+	if m.Connection != nil {
+		var err error
+		conn, err = m.Connection.ToPb()
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert Connection to PB: %w", err)
+		}
+	}
+
+	mcpMsg, err := m.ToPbMessage()
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert SessionMessage to PB: %w", err)
+	}
+
+	return &managerPb.EngineSessionMessage{
+		Id:           m.ID,
+		SessionId:    m.SessionID,
+		ConnectionId: m.ConnectionID.String,
+		Sender:       m.Sender.ToPb(),
+		Connection:   conn,
+		Session:      ses,
+		McpMessage:   mcpMsg,
+		Metadata:     m.Metadata,
+		CreatedAt:    m.CreatedAt.UnixMilli(),
+	}, nil
 }

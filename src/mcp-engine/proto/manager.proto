@@ -127,3 +127,136 @@ message DiscardSessionRequest {
 }
 
 message DiscardSessionResponse {}
+
+enum EngineSessionStatus {
+  session_status_active = 0;
+  session_status_closed = 1;
+  session_status_expired = 2;
+  session_status_error = 3;
+  session_status_unknown = 4;
+}
+
+enum EngineSessionType {
+  session_type_unknown = 0;
+  session_type_runner = 1;
+  session_type_remote = 2;
+}
+
+message EngineSession {
+  string id = 1;
+  string external_id = 2;
+
+  EngineSessionType type = 3;
+  EngineSessionStatus status = 4;
+  bool has_error = 12;
+
+  broker.mcp.McpParticipant mcp_client = 5;
+  broker.mcp.McpParticipant mcp_server = 6;
+
+  int64 created_at = 7; 
+  int64 updated_at = 8; 
+  int64 started_at = 9; 
+  int64 ended_at = 10;
+  int64 last_ping_at = 11; 
+}
+
+enum EngineConnectionStatus {
+  connection_status_active = 0;
+  connection_status_closed = 1;
+  connection_status_expired = 2;
+  connection_status_error = 3;
+  connection_status_unknown = 4;
+}
+
+enum EngineConnectionType {
+  connection_type_unknown = 0;
+  connection_type_runner = 1;
+  connection_type_remote = 2;
+}
+
+message EngineSessionConnection {
+  string id = 1;
+  string session_id = 2;
+
+  EngineConnectionType type = 3;
+  EngineConnectionStatus status = 4;
+  bool has_error = 5;
+
+  string worker_id = 6;
+
+  int64 created_at = 7;
+  int64 updated_at = 8;
+  int64 started_at = 9;
+  int64 ended_at = 10;
+  int64 last_ping_at = 11;
+
+  EngineSession session = 12;
+}
+
+message EngineSessionError {
+  string id = 1;
+  string session_id = 2;
+  string connection_id = 3;
+
+  EngineSessionConnection connection = 4;
+  EngineSession session = 10;
+
+  string error_code = 5;
+  string error_message = 6;
+
+  broker.mcp.McpError mcp_error = 7;
+  map<string, string> metadata = 8;
+
+  int64 created_at = 9;
+}
+
+enum EngineSessionEventType {
+  session_event_type_output = 0;
+  session_event_type_error = 1;
+  session_event_type_log = 2;
+  session_event_type_unknown = 3;
+}
+
+message EngineSessionEvent {
+  string id = 1;
+
+  string session_id = 2;
+  string connection_id = 3;
+  string error_id = 4;
+
+  EngineSessionEventType type = 5;
+
+  EngineSessionConnection connection = 6;
+  EngineSession session = 7;
+
+  EngineSessionError error = 8;
+
+  string content = 9;
+  repeated string lines = 10;
+  map<string, string> metadata = 11;
+
+  int64 created_at = 12;
+}
+
+enum SessionMessageSender {
+  session_message_sender_unknown = 0;
+  session_message_sender_client = 1;
+  session_message_sender_server = 2;
+}
+
+message EngineSessionMessage {
+  string id = 1;
+  int32 index = 2;
+  SessionMessageSender sender = 3;
+
+  string session_id = 4;
+  string connection_id = 5;
+
+  EngineSessionConnection connection = 6;
+  EngineSession session = 7;
+
+  broker.mcp.McpMessage mcp_message = 8;
+  map<string, string> metadata = 9;
+
+  int64 created_at = 10;
+}

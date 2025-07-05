@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/util"
+
+	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 )
 
 type SessionEventType uint8
@@ -16,6 +18,19 @@ const (
 	SessionEventTypeError  SessionEventType = 1
 	SessionEventTypeLog    SessionEventType = 2
 )
+
+func (s SessionEventType) ToPb() managerPb.EngineSessionEventType {
+	switch s {
+	case SessionEventTypeOutput:
+		return managerPb.EngineSessionEventType_session_event_type_output
+	case SessionEventTypeError:
+		return managerPb.EngineSessionEventType_session_event_type_error
+	case SessionEventTypeLog:
+		return managerPb.EngineSessionEventType_session_event_type_log
+	default:
+		return managerPb.EngineSessionEventType_session_event_type_unknown
+	}
+}
 
 type SessionEvent struct {
 	ID string `gorm:"primaryKey;type:uuid;not null"`
@@ -68,4 +83,51 @@ func NewOutputEvent(session *Session, connection *SessionConnection, output *mcp
 		Connection:   connection,
 		Lines:        output.Lines,
 	}
+}
+
+func (e *SessionEvent) ToPb() (*managerPb.EngineSessionEvent, error) {
+	var ses *managerPb.EngineSession
+	if e.Session != nil {
+		var err error
+		ses, err = e.Session.ToPb()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var conn *managerPb.EngineSessionConnection
+	if e.Connection != nil {
+		var err error
+		conn, err = e.Connection.ToPb()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var errPb *managerPb.EngineSessionError
+	if e.Error != nil {
+		var err error
+		errPb, err = e.Error.ToPb()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &managerPb.EngineSessionEvent{
+		Id:           e.ID,
+		SessionId:    e.SessionID,
+		ConnectionId: e.ConnectionID.String,
+		ErrorId:      e.ErrorID.String,
+
+		Type:       e.Type.ToPb(),
+		Connection: conn,
+		Session:    ses,
+		Error:      errPb,
+
+		Content:  e.Content.String,
+		Lines:    e.Lines,
+		Metadata: e.Metadata,
+
+		CreatedAt: e.CreatedAt.Unix(),
+	}, nil
 }

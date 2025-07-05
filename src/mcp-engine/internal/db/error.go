@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/util"
 )
@@ -112,4 +113,46 @@ func (d *DB) CreateError(sessionError *SessionError) error {
 	}
 
 	return nil
+}
+
+func (e *SessionError) ToPb() (*managerPb.EngineSessionError, error) {
+	var err error
+
+	var sessionPb *managerPb.EngineSession
+	if e.Session != nil {
+		sessionPb, err = e.Session.ToPb()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var connectionPb *managerPb.EngineSessionConnection
+	if e.Connection != nil {
+		connectionPb, err = e.Connection.ToPb()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &managerPb.EngineSessionError{
+		Id: e.ID,
+
+		SessionId: e.SessionID,
+		ConnectionId: func() string {
+			if e.ConnectionID.Valid {
+				return e.ConnectionID.String
+			}
+			return ""
+		}(),
+
+		Session:    sessionPb,
+		Connection: connectionPb,
+
+		ErrorCode:    e.ErrorCode,
+		ErrorMessage: e.ErrorMessage,
+		McpError:     e.McpError,
+		Metadata:     e.Metadata,
+
+		CreatedAt: e.CreatedAt.Unix(),
+	}, nil
 }

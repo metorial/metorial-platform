@@ -93,6 +93,20 @@ func (s *MCPServer) ToPbParticipant() (*mcpPb.McpParticipant, error) {
 	return participant, nil
 }
 
+func (s *MCPClient) ToPbParticipant() (*mcpPb.McpParticipant, error) {
+	participantJson, err := json.Marshal(s.Assemble())
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal MCP client info: %w", err)
+	}
+
+	participant := &mcpPb.McpParticipant{
+		Type:            mcpPb.McpParticipant_client,
+		ParticipantJson: string(participantJson),
+	}
+
+	return participant, nil
+}
+
 type mcpResponseMessageWithServerInfo struct {
 	Server MCPServer `json:"result"`
 }
