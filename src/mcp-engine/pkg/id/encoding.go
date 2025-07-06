@@ -7,6 +7,12 @@ import (
 	"strings"
 )
 
+// Base62: a-zA-Z0-9
+const base62Charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+// Base36: a-z0-9
+const base36Charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+
 func encodeBase36(num int64, length int) string {
 	var sb strings.Builder
 	base := int64(len(base36Charset))

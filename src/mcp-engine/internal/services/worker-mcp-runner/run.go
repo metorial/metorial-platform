@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/metorial/metorial/mcp-engine/pkg/docker"
+	lineBuffer "github.com/metorial/metorial/mcp-engine/pkg/line-buffer"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/util"
 )
@@ -144,11 +145,11 @@ func (m *Run) output(handler OutputHandler) {
 type McpMessageHandler func(message *mcp.MCPMessage)
 
 func (m *Run) HandleOutput(messageHandler McpMessageHandler, outputHandler MultiOutputHandler) {
-	stdoutBuffer := NewLineBuffer(100*time.Millisecond, func(line []string) {
+	stdoutBuffer := lineBuffer.NewLineBuffer(100*time.Millisecond, func(line []string) {
 		outputHandler(OutputTypeStdout, line)
 	})
 
-	stderrBuffer := NewLineBuffer(100*time.Millisecond, func(line []string) {
+	stderrBuffer := lineBuffer.NewLineBuffer(100*time.Millisecond, func(line []string) {
 		outputHandler(OutputTypeStderr, line)
 	})
 

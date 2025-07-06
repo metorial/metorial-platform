@@ -1,4 +1,4 @@
-.PHONY: build-worker-mcp-runner run-worker-mcp-runner proto-worker-mcp-runner build-manager run-manager proto-mcp-manager proto vet staticcheck lint build-worker-launcher run-worker-launcher build-worker-mcp-remote run-worker-mcp-remote
+.PHONY: test build-worker-mcp-runner run-worker-mcp-runner proto-worker-mcp-runner build-manager run-manager proto-mcp-manager proto vet staticcheck lint build-worker-launcher run-worker-launcher build-worker-mcp-remote run-worker-mcp-remote
 
 build-worker-mcp-runner:
 	go build -o bin/worker-mcp-runner ./cmd/worker-mcp-runner
@@ -26,6 +26,9 @@ run-manager: build-manager
 
 vet:
 	go vet ./...
+
+test:
+	go test -v ./...
 
 staticcheck:
 	staticcheck ./...
