@@ -8,6 +8,7 @@ import (
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/util"
+	"gorm.io/gorm"
 )
 
 type SessionError struct {
@@ -155,4 +156,32 @@ func (e *SessionError) ToPb() (*managerPb.EngineSessionError, error) {
 
 		CreatedAt: e.CreatedAt.Unix(),
 	}, nil
+}
+
+func (d *DB) ListSessionErrorsBySession(session *Session, pag *managerPb.ListPagination) ([]SessionError, error) {
+	query := d.db.Model(&SessionError{}).Where("session_id = ?", session.ID)
+	return listWithPagination[SessionError](query, pag)
+}
+
+func (d *DB) ListSessionErrorsBySessionExternalId(externalId string, pag *managerPb.ListPagination) ([]SessionError, error) {
+	sessionIds, err := d.getSessionIdsByExternalId(externalId)
+	if err != nil {
+		return nil, err
+	}
+
+	query := d.db.Model(&SessionError{}).Where("session_id IN ?", sessionIds)
+	return listWithPagination[SessionError](query, pag)
+}
+
+func (d *DB) GetSessionErrorById(id string) (*SessionError, error) {
+	var record SessionError
+	err := d.db.Model(&SessionError{}).Where("id = ?", id).First(&record).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return &record, nil
 }

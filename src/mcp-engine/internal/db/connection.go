@@ -5,6 +5,7 @@ import (
 	"time"
 
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
+	"gorm.io/gorm"
 )
 
 type SessionConnectionType uint8
@@ -142,4 +143,32 @@ func (c *SessionConnection) ToPb() (*managerPb.EngineSessionConnection, error) {
 		}(),
 		Session: ses,
 	}, nil
+}
+
+func (d *DB) ListSessionConnectionsBySession(session *Session, pag *managerPb.ListPagination) ([]SessionConnection, error) {
+	query := d.db.Model(&SessionConnection{}).Where("session_id = ?", session.ID)
+	return listWithPagination[SessionConnection](query, pag)
+}
+
+func (d *DB) ListSessionConnectionsBySessionExternalId(externalId string, pag *managerPb.ListPagination) ([]SessionConnection, error) {
+	sessionIds, err := d.getSessionIdsByExternalId(externalId)
+	if err != nil {
+		return nil, err
+	}
+
+	query := d.db.Model(&SessionConnection{}).Where("session_id IN ?", sessionIds)
+	return listWithPagination[SessionConnection](query, pag)
+}
+
+func (d *DB) GetSessionConnectionById(id string) (*SessionConnection, error) {
+	var record SessionConnection
+	err := d.db.Model(&SessionConnection{}).Where("id = ?", id).First(&record).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return &record, nil
 }

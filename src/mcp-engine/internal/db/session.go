@@ -7,6 +7,7 @@ import (
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
+	"gorm.io/gorm"
 )
 
 type SessionStatus uint8
@@ -172,4 +173,36 @@ func (s *Session) ToPb() (*managerPb.EngineSession, error) {
 			return 0
 		}(),
 	}, nil
+}
+
+func (d *DB) ListSessionsByExternalId(externalId string, pag *managerPb.ListPagination) ([]Session, error) {
+	query := d.db.Model(&Session{}).Where("external_id = ?", externalId)
+	return listWithPagination[Session](query, pag)
+}
+
+func (d *DB) GetSessionById(id string) (*Session, error) {
+	var session Session
+	err := d.db.Model(&Session{}).Where("id = ?", id).First(&session).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return &session, nil
+}
+
+func (d *DB) getSessionIdsByExternalId(externalId string) ([]string, error) {
+	var sessions []Session
+	err := d.db.Model(&Session{}).Select("id").Where("external_id = ?", externalId).Find(&sessions).Error
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]string, len(sessions))
+	for i, session := range sessions {
+		ids[i] = session.ID
+	}
+	return ids, nil
 }

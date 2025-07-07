@@ -260,3 +260,15 @@ message EngineSessionMessage {
 
   int64 created_at = 10;
 }
+
+enum ListPaginationOrder {
+  list_cursor_order_asc = 0;
+  list_cursor_order_desc = 1;
+}
+
+message ListPagination {
+  string after_id = 1;
+  string before_id = 2;
+  int32 limit = 3;
+  ListPaginationOrder order = 4;
+}

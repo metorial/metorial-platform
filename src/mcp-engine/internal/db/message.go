@@ -79,24 +79,9 @@ func (d *DB) CreateMessage(message *SessionMessage) error {
 }
 
 func (d *DB) ListGlobalSessionMessagesAfter(sessionId string, afterId string) ([]SessionMessage, error) {
-	two_days_ago := time.Now().Add(-48 * time.Hour)
-
-	var sessions []Session
-	err := d.db.Model(&Session{}).
-		Where("external_id = ?", sessionId).
-		Where("last_ping_at > ?", two_days_ago).
-		Find(&sessions).Error
+	sessionIds, err := d.getSessionIdsByExternalId(sessionId)
 	if err != nil {
 		return nil, err
-	}
-
-	if len(sessions) == 0 {
-		return make([]SessionMessage, 0), nil
-	}
-
-	sessionIds := make([]string, 0, len(sessions))
-	for _, session := range sessions {
-		sessionIds = append(sessionIds, session.ID)
 	}
 
 	// We're fetching in reverse order to get the most recent messages first,
