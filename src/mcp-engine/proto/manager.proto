@@ -12,10 +12,12 @@ import "remote.proto";
 
 service McpManager {
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+  rpc DiscardSession(DiscardSessionRequest) returns (DiscardSessionResponse);
+
   rpc SendMcpMessage(SendMcpMessageRequest) returns (stream SendMcpMessageResponse);
   rpc StreamMcpMessages(StreamMcpMessagesRequest) returns (stream StreamMcpMessagesResponse);
+
   rpc GetServerInfo(GetServerInfoRequest) returns (broker.mcp.McpParticipant);
-  rpc DiscardSession(DiscardSessionRequest) returns (DiscardSessionResponse);
 
   rpc ListManagers(broker.workerBroker.ListManagersRequest) returns (broker.workerBroker.ListManagersResponse);
   rpc ListWorkers(ListWorkersRequest) returns (ListWorkersResponse);
@@ -71,6 +73,7 @@ message SessionConfig {
 
 message CreateSessionResponse {
   string session_id = 1;
+  EngineSession session = 2;
 }
 
 message SendMcpMessageRequest {

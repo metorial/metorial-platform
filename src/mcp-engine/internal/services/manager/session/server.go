@@ -43,13 +43,24 @@ func (s *SessionServer) CreateSession(ctx context.Context, req *managerPb.Create
 		return nil, mterror.New(mterror.InvalidRequestKind, "session config must contain a run config").ToGRPCStatus().Err()
 	}
 
-	_, err := s.sessions.UpsertSession(req)
+	session, err := s.sessions.UpsertSession(req)
 	if err != nil {
 		return nil, err
 	}
 
+	dbSes, err := session.SessionRecord()
+	if err != nil {
+		return nil, err.ToGRPCStatus().Err()
+	}
+
+	pbSes, err2 := dbSes.ToPb()
+	if err2 != nil {
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "unable to get session", err2).ToGRPCStatus().Err()
+	}
+
 	return &managerPb.CreateSessionResponse{
 		SessionId: req.SessionId,
+		Session:   pbSes,
 	}, nil
 }
 

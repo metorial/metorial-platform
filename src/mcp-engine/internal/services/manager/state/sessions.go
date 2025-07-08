@@ -11,13 +11,14 @@ import (
 )
 
 type Session struct {
-	ID         string `json:"id"`
-	ManagerID  string `json:"managerId"`
-	LastPingAt int64  `json:"lastPingAt"`
-	CreatedAt  int64  `json:"createdAt"`
+	ID          string `json:"id"`
+	ManagerID   string `json:"managerId"`
+	LastPingAt  int64  `json:"lastPingAt"`
+	CreatedAt   int64  `json:"createdAt"`
+	SessionUuid string `json:"sessionUuid"` // Optional field for session UUID
 }
 
-func (sm *StateManager) UpsertSession(sessionID, managerID string) (*Session, error) {
+func (sm *StateManager) UpsertSession(sessionID string, managerID string, sessionUuid string) (*Session, error) {
 	key := fmt.Sprintf("/sessions/%s", sessionID)
 
 	return sm.withSessionLock(key, func() (*Session, error) {
@@ -37,10 +38,11 @@ func (sm *StateManager) UpsertSession(sessionID, managerID string) (*Session, er
 		// If not exists, create new session
 		now := time.Now().UnixMilli()
 		session := Session{
-			ID:         sessionID,
-			ManagerID:  managerID,
-			LastPingAt: now,
-			CreatedAt:  now,
+			ID:          sessionID,
+			ManagerID:   managerID,
+			LastPingAt:  now,
+			CreatedAt:   now,
+			SessionUuid: sessionUuid,
 		}
 
 		data, err := json.Marshal(session)

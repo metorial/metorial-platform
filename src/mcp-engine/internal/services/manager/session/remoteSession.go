@@ -7,6 +7,7 @@ import (
 
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
+	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
 	"google.golang.org/grpc"
@@ -137,6 +138,15 @@ func (s *RemoteSession) CanDiscard() bool {
 
 func (s *RemoteSession) StoredSession() *state.Session {
 	return s.storedSession
+}
+
+func (s *RemoteSession) SessionRecord() (*db.Session, *mterror.MTError) {
+	session, err := s.sessionManager.db.GetSessionById(s.storedSession.SessionUuid)
+	if err != nil || session == nil {
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get session record", err)
+	}
+
+	return session, nil
 }
 
 func (s *RemoteSession) stop(SessionStopType) error {

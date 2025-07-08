@@ -37,6 +37,8 @@ type Session interface {
 	StoredSession() *state.Session
 	DiscardSession() *mterror.MTError
 
+	SessionRecord() (*db.Session, *mterror.MTError)
+
 	CanDiscard() bool
 	stop(SessionStopType) error
 }
@@ -132,9 +134,12 @@ func (s *Sessions) UpsertSession(
 		return nil, mterror.NewWithInnerError(mterror.InvalidRequestKind, "failed to parse MCP client", err)
 	}
 
+	prospectiveSessionUuid := util.Must(uuid.NewV7()).String()
+
 	storedSession, err := s.state.UpsertSession(
 		request.SessionId,
 		s.state.ManagerID,
+		prospectiveSessionUuid,
 	)
 	if err != nil {
 		// return nil, fmt.Errorf("failed to upsert session: %w", err)
@@ -167,7 +172,7 @@ func (s *Sessions) UpsertSession(
 		}
 
 		dbSession, err := s.db.CreateSession(db.NewSession(
-			util.Must(uuid.NewV7()).String(),
+			prospectiveSessionUuid,
 			request.SessionId,
 			db.SessionStatusActive,
 			dbType,

@@ -586,6 +586,10 @@ func (s *LocalSession) StoredSession() *state.Session {
 	return s.storedSession
 }
 
+func (s *LocalSession) SessionRecord() (*db.Session, *mterror.MTError) {
+	return s.dbSession, nil
+}
+
 func (s *LocalSession) ensureConnection() *mterror.MTError {
 	s.mutex.RLock()
 
