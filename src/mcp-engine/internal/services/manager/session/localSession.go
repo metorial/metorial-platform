@@ -18,7 +18,6 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
-	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
 	"github.com/metorial/metorial/mcp-engine/pkg/util"
 	"google.golang.org/grpc"
 )
@@ -41,14 +40,12 @@ type LocalSession struct {
 	context context.Context
 	cancel  context.CancelFunc
 
-	sessionEventBroadcaster *pubsub.Broadcaster[*managerPb.SessionEvent]
-
 	hasError bool
 
 	activeConnection          workers.WorkerConnection
-	activeConnectionDb        *db.SessionConnection
 	activeConnectionCreated   chan struct{}
 	lastConnectionInteraction time.Time
+	activeRunDb               *db.SessionRun
 
 	connectionInput *workers.WorkerConnectionInput
 
@@ -85,7 +82,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 		go s.db.CreateMessage(
 			db.NewMessage(
 				s.dbSession,
-				s.activeConnectionDb,
+				s.activeRunDb,
 				int(s.counter.Add(1)),
 				db.SessionMessageSenderClient,
 				message,
@@ -100,10 +97,43 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	// we can just hold on to the current active connection,
 	// and don't need to consider new connections.
 	connection := s.activeConnection
-	if connection == nil {
+	run := s.activeRunDb
+	if connection == nil || run == nil {
 		return mterror.New(mterror.InternalErrorKind, "no active connection for session")
 	}
 	s.mutex.RUnlock()
+
+	go func() {
+		pbSes, err2 := s.dbSession.ToPb()
+		if err2 == nil {
+			stream.Send(&managerPb.SendMcpMessageResponse{
+				Response: &managerPb.SendMcpMessageResponse_SessionEvent{
+					SessionEvent: &managerPb.SessionEvent{
+						Event: &managerPb.SessionEvent_InfoSession{
+							InfoSession: &managerPb.SessionEventInfoSession{
+								Session: pbSes,
+							},
+						},
+					},
+				},
+			})
+		}
+
+		pbRun, err2 := run.ToPb()
+		if err2 == nil {
+			stream.Send(&managerPb.SendMcpMessageResponse{
+				Response: &managerPb.SendMcpMessageResponse_SessionEvent{
+					SessionEvent: &managerPb.SessionEvent{
+						Event: &managerPb.SessionEvent_InfoRun{
+							InfoRun: &managerPb.SessionEventInfoRun{
+								Run: pbRun,
+							},
+						},
+					},
+				},
+			})
+		}
+	}()
 
 	if req.IncludeResponses {
 		wg.Add(1)
@@ -134,9 +164,6 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 			doneChan := connection.Done().Subscribe()
 			defer connection.Done().Unsubscribe(doneChan)
-
-			eventChan := s.sessionEventBroadcaster.Subscribe()
-			defer s.sessionEventBroadcaster.Unsubscribe(eventChan)
 
 			for {
 				if responsesToWaitFor <= 0 {
@@ -221,17 +248,6 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 					return
 
-				case event := <-eventChan:
-					err := stream.Send(&managerPb.SendMcpMessageResponse{
-						Response: &managerPb.SendMcpMessageResponse_SessionEvent{
-							SessionEvent: event,
-						},
-					})
-					if err != nil {
-						log.Printf("Failed to send session event message: %v", err)
-						return
-					}
-
 				}
 			}
 		}()
@@ -240,9 +256,9 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	for _, message := range mcpMessages {
 		err := connection.AcceptMessage(message)
 		if err != nil {
-			go s.db.CreateError(db.NewErrorStructuredErrorWithConnection(
+			go s.db.CreateError(db.NewErrorStructuredErrorWithRun(
 				s.dbSession,
-				s.activeConnectionDb,
+				s.activeRunDb,
 				"mcp_message_processing_failed",
 				"failed to process MCP message",
 				map[string]string{
@@ -264,6 +280,23 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError {
 	s.touch()
+
+	go func() {
+		pbSes, err2 := s.dbSession.ToPb()
+		if err2 == nil {
+			stream.Send(&managerPb.StreamMcpMessagesResponse{
+				Response: &managerPb.StreamMcpMessagesResponse_SessionEvent{
+					SessionEvent: &managerPb.SessionEvent{
+						Event: &managerPb.SessionEvent_InfoSession{
+							InfoSession: &managerPb.SessionEventInfoSession{
+								Session: pbSes,
+							},
+						},
+					},
+				},
+			})
+		}
+	}()
 
 	responsesToWaitFor := 0
 	if req.OnlyIds == nil {
@@ -310,7 +343,6 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 	var msgChan chan *mcp.MCPMessage = nil
 	var errChan chan *mcpPb.McpError = nil
 	var outChan chan *mcpPb.McpOutput = nil
-	var eventChan chan *managerPb.SessionEvent = nil
 	var doneChan chan struct{} = nil
 	var chansForCon workers.WorkerConnection
 
@@ -318,27 +350,19 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 	defer touchTicker.Stop()
 
 	defer func() {
-		s.mutex.RLock()
-		defer s.mutex.RUnlock()
-
-		if s.activeConnection == nil {
-			return
-		}
-
-		if msgChan != nil {
-			chansForCon.Messages().Unsubscribe(msgChan)
-		}
-		if errChan != nil {
-			chansForCon.Errors().Unsubscribe(errChan)
-		}
-		if outChan != nil {
-			chansForCon.Output().Unsubscribe(outChan)
-		}
-		if doneChan != nil {
-			chansForCon.Done().Unsubscribe(doneChan)
-		}
-		if eventChan != nil {
-			s.sessionEventBroadcaster.Unsubscribe(eventChan)
+		if chansForCon != nil {
+			if msgChan != nil {
+				chansForCon.Messages().Unsubscribe(msgChan)
+			}
+			if errChan != nil {
+				chansForCon.Errors().Unsubscribe(errChan)
+			}
+			if outChan != nil {
+				chansForCon.Output().Unsubscribe(outChan)
+			}
+			if doneChan != nil {
+				chansForCon.Done().Unsubscribe(doneChan)
+			}
 		}
 	}()
 
@@ -369,18 +393,20 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 			continue
 		}
 
-		if chansForCon.ConnectionID() != connection.ConnectionID() {
-			if msgChan != nil {
-				chansForCon.Messages().Unsubscribe(msgChan)
-			}
-			if errChan != nil {
-				chansForCon.Errors().Unsubscribe(errChan)
-			}
-			if doneChan != nil {
-				chansForCon.Done().Unsubscribe(doneChan)
-			}
-			if outChan != nil {
-				chansForCon.Output().Unsubscribe(outChan)
+		if chansForCon == nil || chansForCon.ConnectionID() != connection.ConnectionID() {
+			if chansForCon != nil {
+				if msgChan != nil {
+					chansForCon.Messages().Unsubscribe(msgChan)
+				}
+				if errChan != nil {
+					chansForCon.Errors().Unsubscribe(errChan)
+				}
+				if doneChan != nil {
+					chansForCon.Done().Unsubscribe(doneChan)
+				}
+				if outChan != nil {
+					chansForCon.Output().Unsubscribe(outChan)
+				}
 			}
 
 			msgChan = connection.Messages().Subscribe()
@@ -389,6 +415,42 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 			doneChan = connection.Done().Subscribe()
 
 			chansForCon = connection
+
+			s.mutex.RLock()
+			dbRun := s.activeRunDb
+			s.mutex.RUnlock()
+
+			if dbRun != nil {
+				pbRun, err2 := dbRun.ToPb()
+				if err2 == nil {
+					stream.Send(&managerPb.StreamMcpMessagesResponse{
+						Response: &managerPb.StreamMcpMessagesResponse_SessionEvent{
+							SessionEvent: &managerPb.SessionEvent{
+								Event: &managerPb.SessionEvent_InfoRun{
+									InfoRun: &managerPb.SessionEventInfoRun{
+										Run: pbRun,
+									},
+								},
+							},
+						},
+					})
+				}
+
+				pbSes, err2 := s.dbSession.ToPb()
+				if err2 == nil {
+					stream.Send(&managerPb.StreamMcpMessagesResponse{
+						Response: &managerPb.StreamMcpMessagesResponse_SessionEvent{
+							SessionEvent: &managerPb.SessionEvent{
+								Event: &managerPb.SessionEvent_InfoSession{
+									InfoSession: &managerPb.SessionEventInfoSession{
+										Session: pbSes,
+									},
+								},
+							},
+						},
+					})
+				}
+			}
 		}
 
 		select {
@@ -396,6 +458,8 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 			return nil
 		case <-s.context.Done():
 			return nil
+		case <-touchTicker.C:
+			s.touch()
 
 		case <-doneChan:
 			// The connection has been closed, but the stream remains open
@@ -455,17 +519,6 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 				return nil
 			}
 
-		case event := <-eventChan:
-			err := stream.Send(&managerPb.StreamMcpMessagesResponse{
-				Response: &managerPb.StreamMcpMessagesResponse_SessionEvent{
-					SessionEvent: event,
-				},
-			})
-			if err != nil {
-				log.Printf("Failed to send session event message: %v", err)
-				return nil
-			}
-
 		}
 	}
 }
@@ -493,16 +546,12 @@ func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpP
 }
 
 func (s *LocalSession) DiscardSession() *mterror.MTError {
-	s.sessionEventBroadcaster.Publish(&managerPb.SessionEvent{
-		Event: &managerPb.SessionEvent_SessionDiscarded{},
-	})
-
 	// The manager is responsible for discarding the session
 	err := s.sessionManager.DiscardSession(s.storedSession.ID)
 	if err != nil {
-		go s.db.CreateError(db.NewErrorStructuredErrorWithConnection(
+		go s.db.CreateError(db.NewErrorStructuredErrorWithRun(
 			s.dbSession,
-			s.activeConnectionDb,
+			s.activeRunDb,
 			"discard_session_error",
 			"failed to discard session",
 			map[string]string{
@@ -579,46 +628,39 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "runner_connection_error", "failed to create connection for worker", err)
 	}
 
-	var connectionType db.SessionConnectionType
+	var connectionType db.SessionRunType
 	switch s.WorkerType {
 	case workers.WorkerTypeRunner:
-		connectionType = db.SessionConnectionTypeRunner
+		connectionType = db.SessionRunTypeRunner
 	case workers.WorkerTypeRemote:
-		connectionType = db.SessionConnectionTypeRemote
+		connectionType = db.SessionRunTypeRemote
 	default:
 		return mterror.New(mterror.InternalErrorKind, "unsupported worker type for local session")
 	}
 
-	s.activeConnectionDb, err = s.db.CreateConnection(
-		db.NewConnection(
+	run, err := s.db.CreateRun(
+		db.NewRun(
 			connection.ConnectionID(),
 			worker.WorkerID(),
 			s.dbSession,
 			connectionType,
-			db.SessionConnectionStatusActive,
+			db.SessionRunStatusActive,
 		),
 	)
+	s.activeRunDb = run
 	if err != nil {
 		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "runner_connection_error", "failed to create connection in database", err)
 	}
 
 	log.Printf("Created connection %s for session %s with worker %s", connection.ConnectionID(), s.storedSession.ID, worker.WorkerID())
 
-	go s.monitorConnection(s.activeConnectionDb, connection)
-
-	s.sessionEventBroadcaster.Publish(&managerPb.SessionEvent{
-		Event: &managerPb.SessionEvent_StartConnection{
-			StartConnection: &managerPb.SessionEventStartConnection{
-				ConnectionId: connection.ConnectionID(),
-			},
-		},
-	})
+	go s.monitorConnection(run, connection)
 
 	err = connection.Start()
 	if err != nil {
-		go s.db.CreateError(db.NewErrorStructuredErrorWithConnection(
+		go s.db.CreateError(db.NewErrorStructuredErrorWithRun(
 			s.dbSession,
-			s.activeConnectionDb,
+			run,
 			"runner_connection_error",
 			"failed to start connection",
 			map[string]string{
@@ -657,11 +699,6 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 func (s *LocalSession) stop(type_ SessionStopType) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	defer s.sessionEventBroadcaster.Close()
-
-	s.sessionEventBroadcaster.Publish(&managerPb.SessionEvent{
-		Event: &managerPb.SessionEvent_SessionStopped{},
-	})
 
 	if s.activeConnectionCreated != nil {
 		close(s.activeConnectionCreated)
@@ -693,18 +730,18 @@ func (s *LocalSession) stop(type_ SessionStopType) error {
 	if s.activeConnection != nil {
 		err := s.activeConnection.Close()
 
-		if s.activeConnectionDb != nil && s.activeConnectionDb.Status == db.SessionConnectionStatusActive {
-			s.activeConnectionDb.EndedAt = db.NullTimeNow()
+		if s.activeRunDb != nil && s.activeRunDb.Status == db.SessionRunStatusActive {
+			s.activeRunDb.EndedAt = db.NullTimeNow()
 			switch type_ {
 			case SessionStopTypeClose:
-				s.activeConnectionDb.Status = db.SessionConnectionStatusClosed
+				s.activeRunDb.Status = db.SessionRunStatusClosed
 			case SessionStopTypeExpire:
-				s.activeConnectionDb.Status = db.SessionConnectionStatusExpired
+				s.activeRunDb.Status = db.SessionRunStatusExpired
 			case SessionStopTypeError:
-				s.activeConnectionDb.Status = db.SessionConnectionStatusError
+				s.activeRunDb.Status = db.SessionRunStatusError
 			}
 
-			dbErr = s.db.SaveConnection(s.activeConnectionDb)
+			dbErr = s.db.SaveRun(s.activeRunDb)
 		}
 
 		s.activeConnection = nil
@@ -720,7 +757,7 @@ func (s *LocalSession) stop(type_ SessionStopType) error {
 	return nil
 }
 
-func (s *LocalSession) monitorConnection(dbConnection *db.SessionConnection, connection workers.WorkerConnection) {
+func (s *LocalSession) monitorConnection(run *db.SessionRun, connection workers.WorkerConnection) {
 	timeout := connection.InactivityTimeout()
 
 	ticker := time.NewTicker(time.Second * 5)
@@ -747,10 +784,10 @@ loop:
 				if s.activeConnection != nil && s.activeConnection.ConnectionID() == connection.ConnectionID() {
 					s.activeConnection = nil
 
-					if dbConnection.Status == db.SessionConnectionStatusActive {
-						dbConnection.EndedAt = db.NullTimeNow()
-						dbConnection.Status = db.SessionConnectionStatusExpired
-						s.db.SaveConnection(dbConnection)
+					if run.Status == db.SessionRunStatusActive {
+						run.EndedAt = db.NullTimeNow()
+						run.Status = db.SessionRunStatusExpired
+						s.db.SaveRun(run)
 					}
 
 					go connection.Close()
@@ -768,36 +805,30 @@ loop:
 					log.Printf("Failed to close old connection %s: %v", connection.ConnectionID(), err)
 				}
 
-				if dbConnection.Status == db.SessionConnectionStatusActive {
-					dbConnection.EndedAt = db.NullTimeNow()
-					dbConnection.Status = db.SessionConnectionStatusExpired
-					s.db.SaveConnection(dbConnection)
+				s.mutex.Lock()
+				if run.Status == db.SessionRunStatusActive {
+					run.EndedAt = db.NullTimeNow()
+					run.Status = db.SessionRunStatusExpired
+					s.db.SaveRun(run)
 				}
+				s.mutex.Unlock()
 			}
 
 		case <-doneChan:
-			s.sessionEventBroadcaster.Publish(&managerPb.SessionEvent{
-				Event: &managerPb.SessionEvent_StopConnection{
-					StopConnection: &managerPb.SessionEventStopConnection{
-						ConnectionId: connection.ConnectionID(),
-					},
-				},
-			})
-
 			s.mutex.Lock()
 			if s.activeConnection != nil && s.activeConnection.ConnectionID() == connection.ConnectionID() {
 				s.activeConnection = nil
 
-				if dbConnection.Status == db.SessionConnectionStatusActive {
-					dbConnection.EndedAt = db.NullTimeNow()
+				if run.Status == db.SessionRunStatusActive {
+					run.EndedAt = db.NullTimeNow()
 
 					if s.hasError {
-						dbConnection.Status = db.SessionConnectionStatusError
+						run.Status = db.SessionRunStatusError
 					} else {
-						dbConnection.Status = db.SessionConnectionStatusClosed
+						run.Status = db.SessionRunStatusClosed
 					}
 
-					s.db.SaveConnection(dbConnection)
+					s.db.SaveRun(run)
 				}
 			}
 			s.mutex.Unlock()
@@ -809,7 +840,7 @@ loop:
 
 			go s.db.CreateError(db.NewErrorFromMcp(
 				s.dbSession,
-				dbConnection,
+				run,
 				err,
 			))
 
@@ -817,7 +848,7 @@ loop:
 			go s.db.CreateMessage(
 				db.NewMessage(
 					s.dbSession,
-					dbConnection,
+					run,
 					int(s.counter.Add(1)),
 					db.SessionMessageSenderServer,
 					message,
@@ -828,7 +859,7 @@ loop:
 			go s.db.CreateEvent(
 				db.NewOutputEvent(
 					s.dbSession,
-					dbConnection,
+					run,
 					output,
 				),
 			)
@@ -853,11 +884,11 @@ func (s *LocalSession) touch() {
 		}
 	}
 
-	if s.activeConnectionDb != nil && time.Since(s.activeConnectionDb.LastPingAt) > time.Second*60 {
-		s.activeConnectionDb.LastPingAt = time.Now()
-		err := s.db.SaveConnection(s.activeConnectionDb)
+	if s.activeRunDb != nil && time.Since(s.activeRunDb.LastPingAt) > time.Second*60 {
+		s.activeRunDb.LastPingAt = time.Now()
+		err := s.db.SaveRun(s.activeRunDb)
 		if err != nil {
-			log.Printf("Failed to update last ping time for connection %s: %v", s.activeConnectionDb.ID, err)
+			log.Printf("Failed to update last ping time for connection %s: %v", s.activeRunDb.ID, err)
 		}
 	}
 }

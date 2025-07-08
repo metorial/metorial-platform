@@ -19,6 +19,18 @@ service McpManager {
 
   rpc ListManagers(broker.workerBroker.ListManagersRequest) returns (broker.workerBroker.ListManagersResponse);
   rpc ListWorkers(ListWorkersRequest) returns (ListWorkersResponse);
+
+  rpc ListEngineSessions(ListSessionsRequest) returns (ListEngineSessionsResponse);
+  rpc GetEngineSession(GetSessionRequest) returns (GetEngineSessionResponse);
+  rpc ListEngineRuns(ListRunsRequest) returns (ListEngineRunsResponse);
+  rpc GetEngineRun(GetRunRequest) returns (GetEngineSessionRunResponse);
+  rpc ListEngineRunErrors(ListRunErrorsRequest) returns (ListEngineRunErrorsResponse);
+  rpc GetEngineRunError(GetRunErrorRequest) returns (GetEngineRunErrorResponse);
+  rpc ListEngineSessionEvents(ListSessionEventsRequest) returns (ListEngineSessionEventsResponse);
+  rpc GetEngineSessionEvent(GetSessionEventRequest) returns (GetEngineSessionEventResponse);
+  rpc ListEngineSessionMessages(ListSessionMessagesRequest) returns (ListEngineSessionMessagesResponse);
+  rpc GetEngineSessionMessage(GetSessionMessageRequest) returns (GetEngineSessionMessageResponse);
+  rpc ListRecentlyActiveEngineSessions(ListRecentlyActiveSessionsRequest) returns (ListRecentlyActiveSessionsResponse);
 }
 
 message CreateSessionRequest {
@@ -49,7 +61,6 @@ message SessionConfig {
 
 message CreateSessionResponse {
   string session_id = 1;
-  string internal_session_id = 2; // Internal ID used by the MCP Engine
 }
 
 message SendMcpMessageRequest {
@@ -73,24 +84,28 @@ message StreamMcpMessagesRequest {
   string replay_after_uuid = 4; // Include messages after this UUID, useful for resuming streams
 }
 
-message SessionEventStartConnection {
-  string connection_id = 1;
+message SessionEventInfoRun {
+  EngineSessionRun run = 1;
 }
 
-message SessionEventStopConnection {
-  string connection_id = 1;
+message SessionEventInfoSession {
+  EngineSession session = 1;
 }
 
-message SessionEventSessionDiscarded {}
+message SessionEventStartRun {
+  EngineSessionRun run = 1;
+}
 
-message SessionEventSessionStopped {}
+message SessionEventStopRun {
+  EngineSessionRun run = 1;
+}
 
 message SessionEvent {
   oneof event {
-    SessionEventStartConnection start_connection = 1;
-    SessionEventStopConnection stop_connection = 2;
-    SessionEventSessionDiscarded session_discarded = 3;
-    SessionEventSessionStopped session_stopped = 4;
+    SessionEventStartRun start_run = 1;
+    SessionEventStopRun stop_run = 2;
+    SessionEventInfoRun info_run = 3;
+    SessionEventInfoSession info_session = 4;
   }
 }
 
@@ -160,26 +175,26 @@ message EngineSession {
   int64 last_ping_at = 11; 
 }
 
-enum EngineConnectionStatus {
-  connection_status_active = 0;
-  connection_status_closed = 1;
-  connection_status_expired = 2;
-  connection_status_error = 3;
-  connection_status_unknown = 4;
+enum EngineRunStatus {
+  run_status_active = 0;
+  run_status_closed = 1;
+  run_status_expired = 2;
+  run_status_error = 3;
+  run_status_unknown = 4;
 }
 
-enum EngineConnectionType {
-  connection_type_unknown = 0;
-  connection_type_runner = 1;
-  connection_type_remote = 2;
+enum EngineRunType {
+  run_type_unknown = 0;
+  run_type_runner = 1;
+  run_type_remote = 2;
 }
 
-message EngineSessionConnection {
+message EngineSessionRun {
   string id = 1;
   string session_id = 2;
 
-  EngineConnectionType type = 3;
-  EngineConnectionStatus status = 4;
+  EngineRunType type = 3;
+  EngineRunStatus status = 4;
   bool has_error = 5;
 
   string worker_id = 6;
@@ -196,9 +211,9 @@ message EngineSessionConnection {
 message EngineSessionError {
   string id = 1;
   string session_id = 2;
-  string connection_id = 3;
+  string run_id = 3;
 
-  EngineSessionConnection connection = 4;
+  EngineSessionRun run = 4;
   EngineSession session = 10;
 
   string error_code = 5;
@@ -221,12 +236,12 @@ message EngineSessionEvent {
   string id = 1;
 
   string session_id = 2;
-  string connection_id = 3;
+  string run_id = 3;
   string error_id = 4;
 
   EngineSessionEventType type = 5;
 
-  EngineSessionConnection connection = 6;
+  EngineSessionRun run = 6;
   EngineSession session = 7;
 
   EngineSessionError error = 8;
@@ -250,9 +265,9 @@ message EngineSessionMessage {
   SessionMessageSender sender = 3;
 
   string session_id = 4;
-  string connection_id = 5;
+  string run_id = 5;
 
-  EngineSessionConnection connection = 6;
+  EngineSessionRun run = 6;
   EngineSession session = 7;
 
   broker.mcp.McpMessage mcp_message = 8;
@@ -272,3 +287,18 @@ message ListPagination {
   int32 limit = 3;
   ListPaginationOrder order = 4;
 }
+
+message 
+
+ListSessionsRequest) returns (ListEngineSessionsResponse
+GetSessionRequest) returns (GetEngineSessionResponse
+ListRunsRequest) returns (ListEngineRunsResponse
+GetRunRequest) returns (GetEngineSessionRunResponse
+ListRunErrorsRequest) returns (ListEngineRunErrorsResponse
+GetRunErrorRequest) returns (GetEngineRunErrorResponse
+ListSessionEventsRequest) returns (ListEngineSessionEventsResponse
+GetSessionEventRequest) returns (GetEngineSessionEventResponse
+ListSessionMessagesRequest) returns (ListEngineSessionMessagesResponse
+GetSessionMessageRequest) returns (GetEngineSessionMessageResponse
+ListRecentlyActiveSessionsRequest) returns (ListRecentlyActiveSessionsResponse
+

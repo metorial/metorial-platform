@@ -40,8 +40,8 @@ type SessionMessage struct {
 	SessionID string   `gorm:"type:uuid;not null"`
 	Session   *Session `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
-	ConnectionID sql.NullString     `gorm:"type:uuid"`
-	Connection   *SessionConnection `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	RunID sql.NullString `gorm:"type:uuid"`
+	Run   *SessionRun    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
 	MessageType   mcp.MessageType
 	MessageMethod sql.NullString `gorm:"type:text"`
@@ -53,15 +53,15 @@ type SessionMessage struct {
 	CreatedAt time.Time `gorm:"not null"`
 }
 
-func NewMessage(session *Session, connection *SessionConnection, index int, sender SessionMessageSender, mcpMessage *mcp.MCPMessage) *SessionMessage {
+func NewMessage(session *Session, connection *SessionRun, index int, sender SessionMessageSender, mcpMessage *mcp.MCPMessage) *SessionMessage {
 	jsonId := mcpMessage.GetJsonId()
 
 	return &SessionMessage{
 		ID:            mcpMessage.GetUuid(),
 		SessionID:     session.ID,
 		Session:       session,
-		ConnectionID:  sql.NullString{String: connection.ID, Valid: connection != nil},
-		Connection:    connection,
+		RunID:         sql.NullString{String: connection.ID, Valid: connection != nil},
+		Run:           connection,
 		Index:         index,
 		Sender:        sender,
 		MessageType:   mcpMessage.MsgType,
@@ -148,12 +148,12 @@ func (m *SessionMessage) ToPb() (*managerPb.EngineSessionMessage, error) {
 		}
 	}
 
-	var conn *managerPb.EngineSessionConnection
-	if m.Connection != nil {
+	var conn *managerPb.EngineSessionRun
+	if m.Run != nil {
 		var err error
-		conn, err = m.Connection.ToPb()
+		conn, err = m.Run.ToPb()
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert Connection to PB: %w", err)
+			return nil, fmt.Errorf("failed to convert Run to PB: %w", err)
 		}
 	}
 
@@ -163,14 +163,14 @@ func (m *SessionMessage) ToPb() (*managerPb.EngineSessionMessage, error) {
 	}
 
 	return &managerPb.EngineSessionMessage{
-		Id:           m.ID,
-		SessionId:    m.SessionID,
-		ConnectionId: m.ConnectionID.String,
-		Sender:       m.Sender.ToPb(),
-		Connection:   conn,
-		Session:      ses,
-		McpMessage:   mcpMsg,
-		Metadata:     m.Metadata,
-		CreatedAt:    m.CreatedAt.UnixMilli(),
+		Id:         m.ID,
+		SessionId:  m.SessionID,
+		RunId:      m.RunID.String,
+		Sender:     m.Sender.ToPb(),
+		Run:        conn,
+		Session:    ses,
+		McpMessage: mcpMsg,
+		Metadata:   m.Metadata,
+		CreatedAt:  m.CreatedAt.UnixMilli(),
 	}, nil
 }

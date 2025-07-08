@@ -130,107 +130,107 @@ func (EngineSessionType) EnumDescriptor() ([]byte, []int) {
 	return file_manager_proto_rawDescGZIP(), []int{1}
 }
 
-type EngineConnectionStatus int32
+type EngineRunStatus int32
 
 const (
-	EngineConnectionStatus_connection_status_active  EngineConnectionStatus = 0
-	EngineConnectionStatus_connection_status_closed  EngineConnectionStatus = 1
-	EngineConnectionStatus_connection_status_expired EngineConnectionStatus = 2
-	EngineConnectionStatus_connection_status_error   EngineConnectionStatus = 3
-	EngineConnectionStatus_connection_status_unknown EngineConnectionStatus = 4
+	EngineRunStatus_run_status_active  EngineRunStatus = 0
+	EngineRunStatus_run_status_closed  EngineRunStatus = 1
+	EngineRunStatus_run_status_expired EngineRunStatus = 2
+	EngineRunStatus_run_status_error   EngineRunStatus = 3
+	EngineRunStatus_run_status_unknown EngineRunStatus = 4
 )
 
-// Enum value maps for EngineConnectionStatus.
+// Enum value maps for EngineRunStatus.
 var (
-	EngineConnectionStatus_name = map[int32]string{
-		0: "connection_status_active",
-		1: "connection_status_closed",
-		2: "connection_status_expired",
-		3: "connection_status_error",
-		4: "connection_status_unknown",
+	EngineRunStatus_name = map[int32]string{
+		0: "run_status_active",
+		1: "run_status_closed",
+		2: "run_status_expired",
+		3: "run_status_error",
+		4: "run_status_unknown",
 	}
-	EngineConnectionStatus_value = map[string]int32{
-		"connection_status_active":  0,
-		"connection_status_closed":  1,
-		"connection_status_expired": 2,
-		"connection_status_error":   3,
-		"connection_status_unknown": 4,
+	EngineRunStatus_value = map[string]int32{
+		"run_status_active":  0,
+		"run_status_closed":  1,
+		"run_status_expired": 2,
+		"run_status_error":   3,
+		"run_status_unknown": 4,
 	}
 )
 
-func (x EngineConnectionStatus) Enum() *EngineConnectionStatus {
-	p := new(EngineConnectionStatus)
+func (x EngineRunStatus) Enum() *EngineRunStatus {
+	p := new(EngineRunStatus)
 	*p = x
 	return p
 }
 
-func (x EngineConnectionStatus) String() string {
+func (x EngineRunStatus) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (EngineConnectionStatus) Descriptor() protoreflect.EnumDescriptor {
+func (EngineRunStatus) Descriptor() protoreflect.EnumDescriptor {
 	return file_manager_proto_enumTypes[2].Descriptor()
 }
 
-func (EngineConnectionStatus) Type() protoreflect.EnumType {
+func (EngineRunStatus) Type() protoreflect.EnumType {
 	return &file_manager_proto_enumTypes[2]
 }
 
-func (x EngineConnectionStatus) Number() protoreflect.EnumNumber {
+func (x EngineRunStatus) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use EngineConnectionStatus.Descriptor instead.
-func (EngineConnectionStatus) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use EngineRunStatus.Descriptor instead.
+func (EngineRunStatus) EnumDescriptor() ([]byte, []int) {
 	return file_manager_proto_rawDescGZIP(), []int{2}
 }
 
-type EngineConnectionType int32
+type EngineRunType int32
 
 const (
-	EngineConnectionType_connection_type_unknown EngineConnectionType = 0
-	EngineConnectionType_connection_type_runner  EngineConnectionType = 1
-	EngineConnectionType_connection_type_remote  EngineConnectionType = 2
+	EngineRunType_run_type_unknown EngineRunType = 0
+	EngineRunType_run_type_runner  EngineRunType = 1
+	EngineRunType_run_type_remote  EngineRunType = 2
 )
 
-// Enum value maps for EngineConnectionType.
+// Enum value maps for EngineRunType.
 var (
-	EngineConnectionType_name = map[int32]string{
-		0: "connection_type_unknown",
-		1: "connection_type_runner",
-		2: "connection_type_remote",
+	EngineRunType_name = map[int32]string{
+		0: "run_type_unknown",
+		1: "run_type_runner",
+		2: "run_type_remote",
 	}
-	EngineConnectionType_value = map[string]int32{
-		"connection_type_unknown": 0,
-		"connection_type_runner":  1,
-		"connection_type_remote":  2,
+	EngineRunType_value = map[string]int32{
+		"run_type_unknown": 0,
+		"run_type_runner":  1,
+		"run_type_remote":  2,
 	}
 )
 
-func (x EngineConnectionType) Enum() *EngineConnectionType {
-	p := new(EngineConnectionType)
+func (x EngineRunType) Enum() *EngineRunType {
+	p := new(EngineRunType)
 	*p = x
 	return p
 }
 
-func (x EngineConnectionType) String() string {
+func (x EngineRunType) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (EngineConnectionType) Descriptor() protoreflect.EnumDescriptor {
+func (EngineRunType) Descriptor() protoreflect.EnumDescriptor {
 	return file_manager_proto_enumTypes[3].Descriptor()
 }
 
-func (EngineConnectionType) Type() protoreflect.EnumType {
+func (EngineRunType) Type() protoreflect.EnumType {
 	return &file_manager_proto_enumTypes[3]
 }
 
-func (x EngineConnectionType) Number() protoreflect.EnumNumber {
+func (x EngineRunType) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use EngineConnectionType.Descriptor instead.
-func (EngineConnectionType) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use EngineRunType.Descriptor instead.
+func (EngineRunType) EnumDescriptor() ([]byte, []int) {
 	return file_manager_proto_rawDescGZIP(), []int{3}
 }
 
@@ -660,11 +660,10 @@ func (*SessionConfig_RemoteRunConfigWithLauncher) isSessionConfig_ConfigType() {
 func (*SessionConfig_RemoteRunConfigWithServer) isSessionConfig_ConfigType() {}
 
 type CreateSessionResponse struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	SessionId         string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	InternalSessionId string                 `protobuf:"bytes,2,opt,name=internal_session_id,json=internalSessionId,proto3" json:"internal_session_id,omitempty"` // Internal ID used by the MCP Engine
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateSessionResponse) Reset() {
@@ -700,13 +699,6 @@ func (*CreateSessionResponse) Descriptor() ([]byte, []int) {
 func (x *CreateSessionResponse) GetSessionId() string {
 	if x != nil {
 		return x.SessionId
-	}
-	return ""
-}
-
-func (x *CreateSessionResponse) GetInternalSessionId() string {
-	if x != nil {
-		return x.InternalSessionId
 	}
 	return ""
 }
@@ -937,27 +929,27 @@ func (x *StreamMcpMessagesRequest) GetReplayAfterUuid() string {
 	return ""
 }
 
-type SessionEventStartConnection struct {
+type SessionEventInfoRun struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ConnectionId  string                 `protobuf:"bytes,1,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
+	Run           *EngineSessionRun      `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SessionEventStartConnection) Reset() {
-	*x = SessionEventStartConnection{}
+func (x *SessionEventInfoRun) Reset() {
+	*x = SessionEventInfoRun{}
 	mi := &file_manager_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SessionEventStartConnection) String() string {
+func (x *SessionEventInfoRun) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SessionEventStartConnection) ProtoMessage() {}
+func (*SessionEventInfoRun) ProtoMessage() {}
 
-func (x *SessionEventStartConnection) ProtoReflect() protoreflect.Message {
+func (x *SessionEventInfoRun) ProtoReflect() protoreflect.Message {
 	mi := &file_manager_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -969,39 +961,39 @@ func (x *SessionEventStartConnection) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SessionEventStartConnection.ProtoReflect.Descriptor instead.
-func (*SessionEventStartConnection) Descriptor() ([]byte, []int) {
+// Deprecated: Use SessionEventInfoRun.ProtoReflect.Descriptor instead.
+func (*SessionEventInfoRun) Descriptor() ([]byte, []int) {
 	return file_manager_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *SessionEventStartConnection) GetConnectionId() string {
+func (x *SessionEventInfoRun) GetRun() *EngineSessionRun {
 	if x != nil {
-		return x.ConnectionId
+		return x.Run
 	}
-	return ""
+	return nil
 }
 
-type SessionEventStopConnection struct {
+type SessionEventInfoSession struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ConnectionId  string                 `protobuf:"bytes,1,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
+	Session       *EngineSession         `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SessionEventStopConnection) Reset() {
-	*x = SessionEventStopConnection{}
+func (x *SessionEventInfoSession) Reset() {
+	*x = SessionEventInfoSession{}
 	mi := &file_manager_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SessionEventStopConnection) String() string {
+func (x *SessionEventInfoSession) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SessionEventStopConnection) ProtoMessage() {}
+func (*SessionEventInfoSession) ProtoMessage() {}
 
-func (x *SessionEventStopConnection) ProtoReflect() protoreflect.Message {
+func (x *SessionEventInfoSession) ProtoReflect() protoreflect.Message {
 	mi := &file_manager_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1013,38 +1005,39 @@ func (x *SessionEventStopConnection) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SessionEventStopConnection.ProtoReflect.Descriptor instead.
-func (*SessionEventStopConnection) Descriptor() ([]byte, []int) {
+// Deprecated: Use SessionEventInfoSession.ProtoReflect.Descriptor instead.
+func (*SessionEventInfoSession) Descriptor() ([]byte, []int) {
 	return file_manager_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *SessionEventStopConnection) GetConnectionId() string {
+func (x *SessionEventInfoSession) GetSession() *EngineSession {
 	if x != nil {
-		return x.ConnectionId
+		return x.Session
 	}
-	return ""
+	return nil
 }
 
-type SessionEventSessionDiscarded struct {
+type SessionEventStartRun struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Run           *EngineSessionRun      `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SessionEventSessionDiscarded) Reset() {
-	*x = SessionEventSessionDiscarded{}
+func (x *SessionEventStartRun) Reset() {
+	*x = SessionEventStartRun{}
 	mi := &file_manager_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SessionEventSessionDiscarded) String() string {
+func (x *SessionEventStartRun) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SessionEventSessionDiscarded) ProtoMessage() {}
+func (*SessionEventStartRun) ProtoMessage() {}
 
-func (x *SessionEventSessionDiscarded) ProtoReflect() protoreflect.Message {
+func (x *SessionEventStartRun) ProtoReflect() protoreflect.Message {
 	mi := &file_manager_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1056,31 +1049,39 @@ func (x *SessionEventSessionDiscarded) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SessionEventSessionDiscarded.ProtoReflect.Descriptor instead.
-func (*SessionEventSessionDiscarded) Descriptor() ([]byte, []int) {
+// Deprecated: Use SessionEventStartRun.ProtoReflect.Descriptor instead.
+func (*SessionEventStartRun) Descriptor() ([]byte, []int) {
 	return file_manager_proto_rawDescGZIP(), []int{10}
 }
 
-type SessionEventSessionStopped struct {
+func (x *SessionEventStartRun) GetRun() *EngineSessionRun {
+	if x != nil {
+		return x.Run
+	}
+	return nil
+}
+
+type SessionEventStopRun struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Run           *EngineSessionRun      `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SessionEventSessionStopped) Reset() {
-	*x = SessionEventSessionStopped{}
+func (x *SessionEventStopRun) Reset() {
+	*x = SessionEventStopRun{}
 	mi := &file_manager_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SessionEventSessionStopped) String() string {
+func (x *SessionEventStopRun) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SessionEventSessionStopped) ProtoMessage() {}
+func (*SessionEventStopRun) ProtoMessage() {}
 
-func (x *SessionEventSessionStopped) ProtoReflect() protoreflect.Message {
+func (x *SessionEventStopRun) ProtoReflect() protoreflect.Message {
 	mi := &file_manager_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1092,19 +1093,26 @@ func (x *SessionEventSessionStopped) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SessionEventSessionStopped.ProtoReflect.Descriptor instead.
-func (*SessionEventSessionStopped) Descriptor() ([]byte, []int) {
+// Deprecated: Use SessionEventStopRun.ProtoReflect.Descriptor instead.
+func (*SessionEventStopRun) Descriptor() ([]byte, []int) {
 	return file_manager_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *SessionEventStopRun) GetRun() *EngineSessionRun {
+	if x != nil {
+		return x.Run
+	}
+	return nil
 }
 
 type SessionEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Event:
 	//
-	//	*SessionEvent_StartConnection
-	//	*SessionEvent_StopConnection
-	//	*SessionEvent_SessionDiscarded
-	//	*SessionEvent_SessionStopped
+	//	*SessionEvent_StartRun
+	//	*SessionEvent_StopRun
+	//	*SessionEvent_InfoRun
+	//	*SessionEvent_InfoSession
 	Event         isSessionEvent_Event `protobuf_oneof:"event"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1147,37 +1155,37 @@ func (x *SessionEvent) GetEvent() isSessionEvent_Event {
 	return nil
 }
 
-func (x *SessionEvent) GetStartConnection() *SessionEventStartConnection {
+func (x *SessionEvent) GetStartRun() *SessionEventStartRun {
 	if x != nil {
-		if x, ok := x.Event.(*SessionEvent_StartConnection); ok {
-			return x.StartConnection
+		if x, ok := x.Event.(*SessionEvent_StartRun); ok {
+			return x.StartRun
 		}
 	}
 	return nil
 }
 
-func (x *SessionEvent) GetStopConnection() *SessionEventStopConnection {
+func (x *SessionEvent) GetStopRun() *SessionEventStopRun {
 	if x != nil {
-		if x, ok := x.Event.(*SessionEvent_StopConnection); ok {
-			return x.StopConnection
+		if x, ok := x.Event.(*SessionEvent_StopRun); ok {
+			return x.StopRun
 		}
 	}
 	return nil
 }
 
-func (x *SessionEvent) GetSessionDiscarded() *SessionEventSessionDiscarded {
+func (x *SessionEvent) GetInfoRun() *SessionEventInfoRun {
 	if x != nil {
-		if x, ok := x.Event.(*SessionEvent_SessionDiscarded); ok {
-			return x.SessionDiscarded
+		if x, ok := x.Event.(*SessionEvent_InfoRun); ok {
+			return x.InfoRun
 		}
 	}
 	return nil
 }
 
-func (x *SessionEvent) GetSessionStopped() *SessionEventSessionStopped {
+func (x *SessionEvent) GetInfoSession() *SessionEventInfoSession {
 	if x != nil {
-		if x, ok := x.Event.(*SessionEvent_SessionStopped); ok {
-			return x.SessionStopped
+		if x, ok := x.Event.(*SessionEvent_InfoSession); ok {
+			return x.InfoSession
 		}
 	}
 	return nil
@@ -1187,29 +1195,29 @@ type isSessionEvent_Event interface {
 	isSessionEvent_Event()
 }
 
-type SessionEvent_StartConnection struct {
-	StartConnection *SessionEventStartConnection `protobuf:"bytes,1,opt,name=start_connection,json=startConnection,proto3,oneof"`
+type SessionEvent_StartRun struct {
+	StartRun *SessionEventStartRun `protobuf:"bytes,1,opt,name=start_run,json=startRun,proto3,oneof"`
 }
 
-type SessionEvent_StopConnection struct {
-	StopConnection *SessionEventStopConnection `protobuf:"bytes,2,opt,name=stop_connection,json=stopConnection,proto3,oneof"`
+type SessionEvent_StopRun struct {
+	StopRun *SessionEventStopRun `protobuf:"bytes,2,opt,name=stop_run,json=stopRun,proto3,oneof"`
 }
 
-type SessionEvent_SessionDiscarded struct {
-	SessionDiscarded *SessionEventSessionDiscarded `protobuf:"bytes,3,opt,name=session_discarded,json=sessionDiscarded,proto3,oneof"`
+type SessionEvent_InfoRun struct {
+	InfoRun *SessionEventInfoRun `protobuf:"bytes,3,opt,name=info_run,json=infoRun,proto3,oneof"`
 }
 
-type SessionEvent_SessionStopped struct {
-	SessionStopped *SessionEventSessionStopped `protobuf:"bytes,4,opt,name=session_stopped,json=sessionStopped,proto3,oneof"`
+type SessionEvent_InfoSession struct {
+	InfoSession *SessionEventInfoSession `protobuf:"bytes,4,opt,name=info_session,json=infoSession,proto3,oneof"`
 }
 
-func (*SessionEvent_StartConnection) isSessionEvent_Event() {}
+func (*SessionEvent_StartRun) isSessionEvent_Event() {}
 
-func (*SessionEvent_StopConnection) isSessionEvent_Event() {}
+func (*SessionEvent_StopRun) isSessionEvent_Event() {}
 
-func (*SessionEvent_SessionDiscarded) isSessionEvent_Event() {}
+func (*SessionEvent_InfoRun) isSessionEvent_Event() {}
 
-func (*SessionEvent_SessionStopped) isSessionEvent_Event() {}
+func (*SessionEvent_InfoSession) isSessionEvent_Event() {}
 
 type StreamMcpMessagesResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -1737,12 +1745,12 @@ func (x *EngineSession) GetLastPingAt() int64 {
 	return 0
 }
 
-type EngineSessionConnection struct {
+type EngineSessionRun struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	SessionId     string                 `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Type          EngineConnectionType   `protobuf:"varint,3,opt,name=type,proto3,enum=broker.manager.EngineConnectionType" json:"type,omitempty"`
-	Status        EngineConnectionStatus `protobuf:"varint,4,opt,name=status,proto3,enum=broker.manager.EngineConnectionStatus" json:"status,omitempty"`
+	Type          EngineRunType          `protobuf:"varint,3,opt,name=type,proto3,enum=broker.manager.EngineRunType" json:"type,omitempty"`
+	Status        EngineRunStatus        `protobuf:"varint,4,opt,name=status,proto3,enum=broker.manager.EngineRunStatus" json:"status,omitempty"`
 	HasError      bool                   `protobuf:"varint,5,opt,name=has_error,json=hasError,proto3" json:"has_error,omitempty"`
 	WorkerId      string                 `protobuf:"bytes,6,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
 	CreatedAt     int64                  `protobuf:"varint,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
@@ -1755,20 +1763,20 @@ type EngineSessionConnection struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *EngineSessionConnection) Reset() {
-	*x = EngineSessionConnection{}
+func (x *EngineSessionRun) Reset() {
+	*x = EngineSessionRun{}
 	mi := &file_manager_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *EngineSessionConnection) String() string {
+func (x *EngineSessionRun) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*EngineSessionConnection) ProtoMessage() {}
+func (*EngineSessionRun) ProtoMessage() {}
 
-func (x *EngineSessionConnection) ProtoReflect() protoreflect.Message {
+func (x *EngineSessionRun) ProtoReflect() protoreflect.Message {
 	mi := &file_manager_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1780,89 +1788,89 @@ func (x *EngineSessionConnection) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use EngineSessionConnection.ProtoReflect.Descriptor instead.
-func (*EngineSessionConnection) Descriptor() ([]byte, []int) {
+// Deprecated: Use EngineSessionRun.ProtoReflect.Descriptor instead.
+func (*EngineSessionRun) Descriptor() ([]byte, []int) {
 	return file_manager_proto_rawDescGZIP(), []int{21}
 }
 
-func (x *EngineSessionConnection) GetId() string {
+func (x *EngineSessionRun) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *EngineSessionConnection) GetSessionId() string {
+func (x *EngineSessionRun) GetSessionId() string {
 	if x != nil {
 		return x.SessionId
 	}
 	return ""
 }
 
-func (x *EngineSessionConnection) GetType() EngineConnectionType {
+func (x *EngineSessionRun) GetType() EngineRunType {
 	if x != nil {
 		return x.Type
 	}
-	return EngineConnectionType_connection_type_unknown
+	return EngineRunType_run_type_unknown
 }
 
-func (x *EngineSessionConnection) GetStatus() EngineConnectionStatus {
+func (x *EngineSessionRun) GetStatus() EngineRunStatus {
 	if x != nil {
 		return x.Status
 	}
-	return EngineConnectionStatus_connection_status_active
+	return EngineRunStatus_run_status_active
 }
 
-func (x *EngineSessionConnection) GetHasError() bool {
+func (x *EngineSessionRun) GetHasError() bool {
 	if x != nil {
 		return x.HasError
 	}
 	return false
 }
 
-func (x *EngineSessionConnection) GetWorkerId() string {
+func (x *EngineSessionRun) GetWorkerId() string {
 	if x != nil {
 		return x.WorkerId
 	}
 	return ""
 }
 
-func (x *EngineSessionConnection) GetCreatedAt() int64 {
+func (x *EngineSessionRun) GetCreatedAt() int64 {
 	if x != nil {
 		return x.CreatedAt
 	}
 	return 0
 }
 
-func (x *EngineSessionConnection) GetUpdatedAt() int64 {
+func (x *EngineSessionRun) GetUpdatedAt() int64 {
 	if x != nil {
 		return x.UpdatedAt
 	}
 	return 0
 }
 
-func (x *EngineSessionConnection) GetStartedAt() int64 {
+func (x *EngineSessionRun) GetStartedAt() int64 {
 	if x != nil {
 		return x.StartedAt
 	}
 	return 0
 }
 
-func (x *EngineSessionConnection) GetEndedAt() int64 {
+func (x *EngineSessionRun) GetEndedAt() int64 {
 	if x != nil {
 		return x.EndedAt
 	}
 	return 0
 }
 
-func (x *EngineSessionConnection) GetLastPingAt() int64 {
+func (x *EngineSessionRun) GetLastPingAt() int64 {
 	if x != nil {
 		return x.LastPingAt
 	}
 	return 0
 }
 
-func (x *EngineSessionConnection) GetSession() *EngineSession {
+func (x *EngineSessionRun) GetSession() *EngineSession {
 	if x != nil {
 		return x.Session
 	}
@@ -1870,17 +1878,17 @@ func (x *EngineSessionConnection) GetSession() *EngineSession {
 }
 
 type EngineSessionError struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Id            string                   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	SessionId     string                   `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	ConnectionId  string                   `protobuf:"bytes,3,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
-	Connection    *EngineSessionConnection `protobuf:"bytes,4,opt,name=connection,proto3" json:"connection,omitempty"`
-	Session       *EngineSession           `protobuf:"bytes,10,opt,name=session,proto3" json:"session,omitempty"`
-	ErrorCode     string                   `protobuf:"bytes,5,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
-	ErrorMessage  string                   `protobuf:"bytes,6,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
-	McpError      *mcp.McpError            `protobuf:"bytes,7,opt,name=mcp_error,json=mcpError,proto3" json:"mcp_error,omitempty"`
-	Metadata      map[string]string        `protobuf:"bytes,8,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	CreatedAt     int64                    `protobuf:"varint,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SessionId     string                 `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	RunId         string                 `protobuf:"bytes,3,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	Run           *EngineSessionRun      `protobuf:"bytes,4,opt,name=run,proto3" json:"run,omitempty"`
+	Session       *EngineSession         `protobuf:"bytes,10,opt,name=session,proto3" json:"session,omitempty"`
+	ErrorCode     string                 `protobuf:"bytes,5,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
+	ErrorMessage  string                 `protobuf:"bytes,6,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	McpError      *mcp.McpError          `protobuf:"bytes,7,opt,name=mcp_error,json=mcpError,proto3" json:"mcp_error,omitempty"`
+	Metadata      map[string]string      `protobuf:"bytes,8,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	CreatedAt     int64                  `protobuf:"varint,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1929,16 +1937,16 @@ func (x *EngineSessionError) GetSessionId() string {
 	return ""
 }
 
-func (x *EngineSessionError) GetConnectionId() string {
+func (x *EngineSessionError) GetRunId() string {
 	if x != nil {
-		return x.ConnectionId
+		return x.RunId
 	}
 	return ""
 }
 
-func (x *EngineSessionError) GetConnection() *EngineSessionConnection {
+func (x *EngineSessionError) GetRun() *EngineSessionRun {
 	if x != nil {
-		return x.Connection
+		return x.Run
 	}
 	return nil
 }
@@ -1986,19 +1994,19 @@ func (x *EngineSessionError) GetCreatedAt() int64 {
 }
 
 type EngineSessionEvent struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Id            string                   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	SessionId     string                   `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	ConnectionId  string                   `protobuf:"bytes,3,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
-	ErrorId       string                   `protobuf:"bytes,4,opt,name=error_id,json=errorId,proto3" json:"error_id,omitempty"`
-	Type          EngineSessionEventType   `protobuf:"varint,5,opt,name=type,proto3,enum=broker.manager.EngineSessionEventType" json:"type,omitempty"`
-	Connection    *EngineSessionConnection `protobuf:"bytes,6,opt,name=connection,proto3" json:"connection,omitempty"`
-	Session       *EngineSession           `protobuf:"bytes,7,opt,name=session,proto3" json:"session,omitempty"`
-	Error         *EngineSessionError      `protobuf:"bytes,8,opt,name=error,proto3" json:"error,omitempty"`
-	Content       string                   `protobuf:"bytes,9,opt,name=content,proto3" json:"content,omitempty"`
-	Lines         []string                 `protobuf:"bytes,10,rep,name=lines,proto3" json:"lines,omitempty"`
-	Metadata      map[string]string        `protobuf:"bytes,11,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	CreatedAt     int64                    `protobuf:"varint,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SessionId     string                 `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	RunId         string                 `protobuf:"bytes,3,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	ErrorId       string                 `protobuf:"bytes,4,opt,name=error_id,json=errorId,proto3" json:"error_id,omitempty"`
+	Type          EngineSessionEventType `protobuf:"varint,5,opt,name=type,proto3,enum=broker.manager.EngineSessionEventType" json:"type,omitempty"`
+	Run           *EngineSessionRun      `protobuf:"bytes,6,opt,name=run,proto3" json:"run,omitempty"`
+	Session       *EngineSession         `protobuf:"bytes,7,opt,name=session,proto3" json:"session,omitempty"`
+	Error         *EngineSessionError    `protobuf:"bytes,8,opt,name=error,proto3" json:"error,omitempty"`
+	Content       string                 `protobuf:"bytes,9,opt,name=content,proto3" json:"content,omitempty"`
+	Lines         []string               `protobuf:"bytes,10,rep,name=lines,proto3" json:"lines,omitempty"`
+	Metadata      map[string]string      `protobuf:"bytes,11,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	CreatedAt     int64                  `protobuf:"varint,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2047,9 +2055,9 @@ func (x *EngineSessionEvent) GetSessionId() string {
 	return ""
 }
 
-func (x *EngineSessionEvent) GetConnectionId() string {
+func (x *EngineSessionEvent) GetRunId() string {
 	if x != nil {
-		return x.ConnectionId
+		return x.RunId
 	}
 	return ""
 }
@@ -2068,9 +2076,9 @@ func (x *EngineSessionEvent) GetType() EngineSessionEventType {
 	return EngineSessionEventType_session_event_type_output
 }
 
-func (x *EngineSessionEvent) GetConnection() *EngineSessionConnection {
+func (x *EngineSessionEvent) GetRun() *EngineSessionRun {
 	if x != nil {
-		return x.Connection
+		return x.Run
 	}
 	return nil
 }
@@ -2118,17 +2126,17 @@ func (x *EngineSessionEvent) GetCreatedAt() int64 {
 }
 
 type EngineSessionMessage struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Id            string                   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Index         int32                    `protobuf:"varint,2,opt,name=index,proto3" json:"index,omitempty"`
-	Sender        SessionMessageSender     `protobuf:"varint,3,opt,name=sender,proto3,enum=broker.manager.SessionMessageSender" json:"sender,omitempty"`
-	SessionId     string                   `protobuf:"bytes,4,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	ConnectionId  string                   `protobuf:"bytes,5,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
-	Connection    *EngineSessionConnection `protobuf:"bytes,6,opt,name=connection,proto3" json:"connection,omitempty"`
-	Session       *EngineSession           `protobuf:"bytes,7,opt,name=session,proto3" json:"session,omitempty"`
-	McpMessage    *mcp.McpMessage          `protobuf:"bytes,8,opt,name=mcp_message,json=mcpMessage,proto3" json:"mcp_message,omitempty"`
-	Metadata      map[string]string        `protobuf:"bytes,9,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	CreatedAt     int64                    `protobuf:"varint,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Index         int32                  `protobuf:"varint,2,opt,name=index,proto3" json:"index,omitempty"`
+	Sender        SessionMessageSender   `protobuf:"varint,3,opt,name=sender,proto3,enum=broker.manager.SessionMessageSender" json:"sender,omitempty"`
+	SessionId     string                 `protobuf:"bytes,4,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	RunId         string                 `protobuf:"bytes,5,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	Run           *EngineSessionRun      `protobuf:"bytes,6,opt,name=run,proto3" json:"run,omitempty"`
+	Session       *EngineSession         `protobuf:"bytes,7,opt,name=session,proto3" json:"session,omitempty"`
+	McpMessage    *mcp.McpMessage        `protobuf:"bytes,8,opt,name=mcp_message,json=mcpMessage,proto3" json:"mcp_message,omitempty"`
+	Metadata      map[string]string      `protobuf:"bytes,9,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	CreatedAt     int64                  `protobuf:"varint,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2191,16 +2199,16 @@ func (x *EngineSessionMessage) GetSessionId() string {
 	return ""
 }
 
-func (x *EngineSessionMessage) GetConnectionId() string {
+func (x *EngineSessionMessage) GetRunId() string {
 	if x != nil {
-		return x.ConnectionId
+		return x.RunId
 	}
 	return ""
 }
 
-func (x *EngineSessionMessage) GetConnection() *EngineSessionConnection {
+func (x *EngineSessionMessage) GetRun() *EngineSessionRun {
 	if x != nil {
-		return x.Connection
+		return x.Run
 	}
 	return nil
 }
@@ -2323,11 +2331,10 @@ const file_manager_proto_rawDesc = "" +
 	"-container_run_config_with_container_arguments\x18\x02 \x01(\v2\x18.broker.runner.RunConfigH\x00R(containerRunConfigWithContainerArguments\x12s\n" +
 	"\x1fremote_run_config_with_launcher\x18\x03 \x01(\v2+.broker.manager.RemoteRunConfigWithLauncherH\x00R\x1bremoteRunConfigWithLauncher\x12\\\n" +
 	"\x1dremote_run_config_with_server\x18\x04 \x01(\v2\x18.broker.remote.RunConfigH\x00R\x19remoteRunConfigWithServerB\r\n" +
-	"\vconfig_type\"f\n" +
+	"\vconfig_type\"6\n" +
 	"\x15CreateSessionResponse\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12.\n" +
-	"\x13internal_session_id\x18\x02 \x01(\tR\x11internalSessionId\"\xa1\x01\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"\xa1\x01\n" +
 	"\x15SendMcpMessageRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12<\n" +
@@ -2345,18 +2352,20 @@ const file_manager_proto_rawDesc = "" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12H\n" +
 	"\x12only_message_types\x18\x02 \x03(\x0e2\x1a.broker.mcp.McpMessageTypeR\x10onlyMessageTypes\x12\x19\n" +
 	"\bonly_ids\x18\x03 \x03(\tR\aonlyIds\x12*\n" +
-	"\x11replay_after_uuid\x18\x04 \x01(\tR\x0freplayAfterUuid\"B\n" +
-	"\x1bSessionEventStartConnection\x12#\n" +
-	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\"A\n" +
-	"\x1aSessionEventStopConnection\x12#\n" +
-	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\"\x1e\n" +
-	"\x1cSessionEventSessionDiscarded\"\x1c\n" +
-	"\x1aSessionEventSessionStopped\"\xfc\x02\n" +
-	"\fSessionEvent\x12X\n" +
-	"\x10start_connection\x18\x01 \x01(\v2+.broker.manager.SessionEventStartConnectionH\x00R\x0fstartConnection\x12U\n" +
-	"\x0fstop_connection\x18\x02 \x01(\v2*.broker.manager.SessionEventStopConnectionH\x00R\x0estopConnection\x12[\n" +
-	"\x11session_discarded\x18\x03 \x01(\v2,.broker.manager.SessionEventSessionDiscardedH\x00R\x10sessionDiscarded\x12U\n" +
-	"\x0fsession_stopped\x18\x04 \x01(\v2*.broker.manager.SessionEventSessionStoppedH\x00R\x0esessionStoppedB\a\n" +
+	"\x11replay_after_uuid\x18\x04 \x01(\tR\x0freplayAfterUuid\"I\n" +
+	"\x13SessionEventInfoRun\x122\n" +
+	"\x03run\x18\x01 \x01(\v2 .broker.manager.EngineSessionRunR\x03run\"R\n" +
+	"\x17SessionEventInfoSession\x127\n" +
+	"\asession\x18\x01 \x01(\v2\x1d.broker.manager.EngineSessionR\asession\"J\n" +
+	"\x14SessionEventStartRun\x122\n" +
+	"\x03run\x18\x01 \x01(\v2 .broker.manager.EngineSessionRunR\x03run\"I\n" +
+	"\x13SessionEventStopRun\x122\n" +
+	"\x03run\x18\x01 \x01(\v2 .broker.manager.EngineSessionRunR\x03run\"\xae\x02\n" +
+	"\fSessionEvent\x12C\n" +
+	"\tstart_run\x18\x01 \x01(\v2$.broker.manager.SessionEventStartRunH\x00R\bstartRun\x12@\n" +
+	"\bstop_run\x18\x02 \x01(\v2#.broker.manager.SessionEventStopRunH\x00R\astopRun\x12@\n" +
+	"\binfo_run\x18\x03 \x01(\v2#.broker.manager.SessionEventInfoRunH\x00R\ainfoRun\x12L\n" +
+	"\finfo_session\x18\x04 \x01(\v2'.broker.manager.SessionEventInfoSessionH\x00R\vinfoSessionB\a\n" +
 	"\x05event\"\xb0\x02\n" +
 	"\x19StreamMcpMessagesResponse\x129\n" +
 	"\vmcp_message\x18\x01 \x01(\v2\x16.broker.mcp.McpMessageH\x00R\n" +
@@ -2405,13 +2414,13 @@ const file_manager_proto_rawDesc = "" +
 	"\bended_at\x18\n" +
 	" \x01(\x03R\aendedAt\x12 \n" +
 	"\flast_ping_at\x18\v \x01(\x03R\n" +
-	"lastPingAt\"\xcf\x03\n" +
-	"\x17EngineSessionConnection\x12\x0e\n" +
+	"lastPingAt\"\xba\x03\n" +
+	"\x10EngineSessionRun\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x02 \x01(\tR\tsessionId\x128\n" +
-	"\x04type\x18\x03 \x01(\x0e2$.broker.manager.EngineConnectionTypeR\x04type\x12>\n" +
-	"\x06status\x18\x04 \x01(\x0e2&.broker.manager.EngineConnectionStatusR\x06status\x12\x1b\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x121\n" +
+	"\x04type\x18\x03 \x01(\x0e2\x1d.broker.manager.EngineRunTypeR\x04type\x127\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x1f.broker.manager.EngineRunStatusR\x06status\x12\x1b\n" +
 	"\thas_error\x18\x05 \x01(\bR\bhasError\x12\x1b\n" +
 	"\tworker_id\x18\x06 \x01(\tR\bworkerId\x12\x1d\n" +
 	"\n" +
@@ -2424,15 +2433,13 @@ const file_manager_proto_rawDesc = "" +
 	" \x01(\x03R\aendedAt\x12 \n" +
 	"\flast_ping_at\x18\v \x01(\x03R\n" +
 	"lastPingAt\x127\n" +
-	"\asession\x18\f \x01(\v2\x1d.broker.manager.EngineSessionR\asession\"\x8b\x04\n" +
+	"\asession\x18\f \x01(\v2\x1d.broker.manager.EngineSessionR\asession\"\xe8\x03\n" +
 	"\x12EngineSessionError\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x02 \x01(\tR\tsessionId\x12#\n" +
-	"\rconnection_id\x18\x03 \x01(\tR\fconnectionId\x12G\n" +
-	"\n" +
-	"connection\x18\x04 \x01(\v2'.broker.manager.EngineSessionConnectionR\n" +
-	"connection\x127\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x15\n" +
+	"\x06run_id\x18\x03 \x01(\tR\x05runId\x122\n" +
+	"\x03run\x18\x04 \x01(\v2 .broker.manager.EngineSessionRunR\x03run\x127\n" +
 	"\asession\x18\n" +
 	" \x01(\v2\x1d.broker.manager.EngineSessionR\asession\x12\x1d\n" +
 	"\n" +
@@ -2444,17 +2451,15 @@ const file_manager_proto_rawDesc = "" +
 	"created_at\x18\t \x01(\x03R\tcreatedAt\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd5\x04\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb2\x04\n" +
 	"\x12EngineSessionEvent\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x02 \x01(\tR\tsessionId\x12#\n" +
-	"\rconnection_id\x18\x03 \x01(\tR\fconnectionId\x12\x19\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x15\n" +
+	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12\x19\n" +
 	"\berror_id\x18\x04 \x01(\tR\aerrorId\x12:\n" +
-	"\x04type\x18\x05 \x01(\x0e2&.broker.manager.EngineSessionEventTypeR\x04type\x12G\n" +
-	"\n" +
-	"connection\x18\x06 \x01(\v2'.broker.manager.EngineSessionConnectionR\n" +
-	"connection\x127\n" +
+	"\x04type\x18\x05 \x01(\x0e2&.broker.manager.EngineSessionEventTypeR\x04type\x122\n" +
+	"\x03run\x18\x06 \x01(\v2 .broker.manager.EngineSessionRunR\x03run\x127\n" +
 	"\asession\x18\a \x01(\v2\x1d.broker.manager.EngineSessionR\asession\x128\n" +
 	"\x05error\x18\b \x01(\v2\".broker.manager.EngineSessionErrorR\x05error\x12\x18\n" +
 	"\acontent\x18\t \x01(\tR\acontent\x12\x14\n" +
@@ -2465,17 +2470,15 @@ const file_manager_proto_rawDesc = "" +
 	"created_at\x18\f \x01(\x03R\tcreatedAt\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa5\x04\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x82\x04\n" +
 	"\x14EngineSessionMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05index\x18\x02 \x01(\x05R\x05index\x12<\n" +
 	"\x06sender\x18\x03 \x01(\x0e2$.broker.manager.SessionMessageSenderR\x06sender\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x04 \x01(\tR\tsessionId\x12#\n" +
-	"\rconnection_id\x18\x05 \x01(\tR\fconnectionId\x12G\n" +
-	"\n" +
-	"connection\x18\x06 \x01(\v2'.broker.manager.EngineSessionConnectionR\n" +
-	"connection\x127\n" +
+	"session_id\x18\x04 \x01(\tR\tsessionId\x12\x15\n" +
+	"\x06run_id\x18\x05 \x01(\tR\x05runId\x122\n" +
+	"\x03run\x18\x06 \x01(\v2 .broker.manager.EngineSessionRunR\x03run\x127\n" +
 	"\asession\x18\a \x01(\v2\x1d.broker.manager.EngineSessionR\asession\x127\n" +
 	"\vmcp_message\x18\b \x01(\v2\x16.broker.mcp.McpMessageR\n" +
 	"mcpMessage\x12N\n" +
@@ -2500,17 +2503,17 @@ const file_manager_proto_rawDesc = "" +
 	"\x11EngineSessionType\x12\x18\n" +
 	"\x14session_type_unknown\x10\x00\x12\x17\n" +
 	"\x13session_type_runner\x10\x01\x12\x17\n" +
-	"\x13session_type_remote\x10\x02*\xaf\x01\n" +
-	"\x16EngineConnectionStatus\x12\x1c\n" +
-	"\x18connection_status_active\x10\x00\x12\x1c\n" +
-	"\x18connection_status_closed\x10\x01\x12\x1d\n" +
-	"\x19connection_status_expired\x10\x02\x12\x1b\n" +
-	"\x17connection_status_error\x10\x03\x12\x1d\n" +
-	"\x19connection_status_unknown\x10\x04*k\n" +
-	"\x14EngineConnectionType\x12\x1b\n" +
-	"\x17connection_type_unknown\x10\x00\x12\x1a\n" +
-	"\x16connection_type_runner\x10\x01\x12\x1a\n" +
-	"\x16connection_type_remote\x10\x02*\x91\x01\n" +
+	"\x13session_type_remote\x10\x02*\x85\x01\n" +
+	"\x0fEngineRunStatus\x12\x15\n" +
+	"\x11run_status_active\x10\x00\x12\x15\n" +
+	"\x11run_status_closed\x10\x01\x12\x16\n" +
+	"\x12run_status_expired\x10\x02\x12\x14\n" +
+	"\x10run_status_error\x10\x03\x12\x16\n" +
+	"\x12run_status_unknown\x10\x04*O\n" +
+	"\rEngineRunType\x12\x14\n" +
+	"\x10run_type_unknown\x10\x00\x12\x13\n" +
+	"\x0frun_type_runner\x10\x01\x12\x13\n" +
+	"\x0frun_type_remote\x10\x02*\x91\x01\n" +
 	"\x16EngineSessionEventType\x12\x1d\n" +
 	"\x19session_event_type_output\x10\x00\x12\x1c\n" +
 	"\x18session_event_type_error\x10\x01\x12\x1a\n" +
@@ -2550,8 +2553,8 @@ var file_manager_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_manager_proto_goTypes = []any{
 	(EngineSessionStatus)(0),                  // 0: broker.manager.EngineSessionStatus
 	(EngineSessionType)(0),                    // 1: broker.manager.EngineSessionType
-	(EngineConnectionStatus)(0),               // 2: broker.manager.EngineConnectionStatus
-	(EngineConnectionType)(0),                 // 3: broker.manager.EngineConnectionType
+	(EngineRunStatus)(0),                      // 2: broker.manager.EngineRunStatus
+	(EngineRunType)(0),                        // 3: broker.manager.EngineRunType
 	(EngineSessionEventType)(0),               // 4: broker.manager.EngineSessionEventType
 	(SessionMessageSender)(0),                 // 5: broker.manager.SessionMessageSender
 	(ListPaginationOrder)(0),                  // 6: broker.manager.ListPaginationOrder
@@ -2563,10 +2566,10 @@ var file_manager_proto_goTypes = []any{
 	(*SendMcpMessageRequest)(nil),             // 12: broker.manager.SendMcpMessageRequest
 	(*SendMcpMessageResponse)(nil),            // 13: broker.manager.SendMcpMessageResponse
 	(*StreamMcpMessagesRequest)(nil),          // 14: broker.manager.StreamMcpMessagesRequest
-	(*SessionEventStartConnection)(nil),       // 15: broker.manager.SessionEventStartConnection
-	(*SessionEventStopConnection)(nil),        // 16: broker.manager.SessionEventStopConnection
-	(*SessionEventSessionDiscarded)(nil),      // 17: broker.manager.SessionEventSessionDiscarded
-	(*SessionEventSessionStopped)(nil),        // 18: broker.manager.SessionEventSessionStopped
+	(*SessionEventInfoRun)(nil),               // 15: broker.manager.SessionEventInfoRun
+	(*SessionEventInfoSession)(nil),           // 16: broker.manager.SessionEventInfoSession
+	(*SessionEventStartRun)(nil),              // 17: broker.manager.SessionEventStartRun
+	(*SessionEventStopRun)(nil),               // 18: broker.manager.SessionEventStopRun
 	(*SessionEvent)(nil),                      // 19: broker.manager.SessionEvent
 	(*StreamMcpMessagesResponse)(nil),         // 20: broker.manager.StreamMcpMessagesResponse
 	(*GetServerInfoRequest)(nil),              // 21: broker.manager.GetServerInfoRequest
@@ -2576,7 +2579,7 @@ var file_manager_proto_goTypes = []any{
 	(*DiscardSessionRequest)(nil),             // 25: broker.manager.DiscardSessionRequest
 	(*DiscardSessionResponse)(nil),            // 26: broker.manager.DiscardSessionResponse
 	(*EngineSession)(nil),                     // 27: broker.manager.EngineSession
-	(*EngineSessionConnection)(nil),           // 28: broker.manager.EngineSessionConnection
+	(*EngineSessionRun)(nil),                  // 28: broker.manager.EngineSessionRun
 	(*EngineSessionError)(nil),                // 29: broker.manager.EngineSessionError
 	(*EngineSessionEvent)(nil),                // 30: broker.manager.EngineSessionEvent
 	(*EngineSessionMessage)(nil),              // 31: broker.manager.EngineSessionMessage
@@ -2614,56 +2617,60 @@ var file_manager_proto_depIdxs = []int32{
 	44, // 12: broker.manager.SendMcpMessageResponse.mcp_error:type_name -> broker.mcp.McpError
 	19, // 13: broker.manager.SendMcpMessageResponse.session_event:type_name -> broker.manager.SessionEvent
 	45, // 14: broker.manager.StreamMcpMessagesRequest.only_message_types:type_name -> broker.mcp.McpMessageType
-	15, // 15: broker.manager.SessionEvent.start_connection:type_name -> broker.manager.SessionEventStartConnection
-	16, // 16: broker.manager.SessionEvent.stop_connection:type_name -> broker.manager.SessionEventStopConnection
-	17, // 17: broker.manager.SessionEvent.session_discarded:type_name -> broker.manager.SessionEventSessionDiscarded
-	18, // 18: broker.manager.SessionEvent.session_stopped:type_name -> broker.manager.SessionEventSessionStopped
-	43, // 19: broker.manager.StreamMcpMessagesResponse.mcp_message:type_name -> broker.mcp.McpMessage
-	44, // 20: broker.manager.StreamMcpMessagesResponse.mcp_error:type_name -> broker.mcp.McpError
-	46, // 21: broker.manager.StreamMcpMessagesResponse.mcp_output:type_name -> broker.mcp.McpOutput
-	19, // 22: broker.manager.StreamMcpMessagesResponse.session_event:type_name -> broker.manager.SessionEvent
-	24, // 23: broker.manager.ListWorkersResponse.workers:type_name -> broker.manager.WorkerInfo
-	1,  // 24: broker.manager.EngineSession.type:type_name -> broker.manager.EngineSessionType
-	0,  // 25: broker.manager.EngineSession.status:type_name -> broker.manager.EngineSessionStatus
-	36, // 26: broker.manager.EngineSession.mcp_client:type_name -> broker.mcp.McpParticipant
-	36, // 27: broker.manager.EngineSession.mcp_server:type_name -> broker.mcp.McpParticipant
-	3,  // 28: broker.manager.EngineSessionConnection.type:type_name -> broker.manager.EngineConnectionType
-	2,  // 29: broker.manager.EngineSessionConnection.status:type_name -> broker.manager.EngineConnectionStatus
-	27, // 30: broker.manager.EngineSessionConnection.session:type_name -> broker.manager.EngineSession
-	28, // 31: broker.manager.EngineSessionError.connection:type_name -> broker.manager.EngineSessionConnection
-	27, // 32: broker.manager.EngineSessionError.session:type_name -> broker.manager.EngineSession
-	44, // 33: broker.manager.EngineSessionError.mcp_error:type_name -> broker.mcp.McpError
-	33, // 34: broker.manager.EngineSessionError.metadata:type_name -> broker.manager.EngineSessionError.MetadataEntry
-	4,  // 35: broker.manager.EngineSessionEvent.type:type_name -> broker.manager.EngineSessionEventType
-	28, // 36: broker.manager.EngineSessionEvent.connection:type_name -> broker.manager.EngineSessionConnection
-	27, // 37: broker.manager.EngineSessionEvent.session:type_name -> broker.manager.EngineSession
-	29, // 38: broker.manager.EngineSessionEvent.error:type_name -> broker.manager.EngineSessionError
-	34, // 39: broker.manager.EngineSessionEvent.metadata:type_name -> broker.manager.EngineSessionEvent.MetadataEntry
-	5,  // 40: broker.manager.EngineSessionMessage.sender:type_name -> broker.manager.SessionMessageSender
-	28, // 41: broker.manager.EngineSessionMessage.connection:type_name -> broker.manager.EngineSessionConnection
-	27, // 42: broker.manager.EngineSessionMessage.session:type_name -> broker.manager.EngineSession
-	43, // 43: broker.manager.EngineSessionMessage.mcp_message:type_name -> broker.mcp.McpMessage
-	35, // 44: broker.manager.EngineSessionMessage.metadata:type_name -> broker.manager.EngineSessionMessage.MetadataEntry
-	6,  // 45: broker.manager.ListPagination.order:type_name -> broker.manager.ListPaginationOrder
-	7,  // 46: broker.manager.McpManager.CreateSession:input_type -> broker.manager.CreateSessionRequest
-	12, // 47: broker.manager.McpManager.SendMcpMessage:input_type -> broker.manager.SendMcpMessageRequest
-	14, // 48: broker.manager.McpManager.StreamMcpMessages:input_type -> broker.manager.StreamMcpMessagesRequest
-	21, // 49: broker.manager.McpManager.GetServerInfo:input_type -> broker.manager.GetServerInfoRequest
-	25, // 50: broker.manager.McpManager.DiscardSession:input_type -> broker.manager.DiscardSessionRequest
-	47, // 51: broker.manager.McpManager.ListManagers:input_type -> broker.workerBroker.ListManagersRequest
-	22, // 52: broker.manager.McpManager.ListWorkers:input_type -> broker.manager.ListWorkersRequest
-	11, // 53: broker.manager.McpManager.CreateSession:output_type -> broker.manager.CreateSessionResponse
-	13, // 54: broker.manager.McpManager.SendMcpMessage:output_type -> broker.manager.SendMcpMessageResponse
-	20, // 55: broker.manager.McpManager.StreamMcpMessages:output_type -> broker.manager.StreamMcpMessagesResponse
-	36, // 56: broker.manager.McpManager.GetServerInfo:output_type -> broker.mcp.McpParticipant
-	26, // 57: broker.manager.McpManager.DiscardSession:output_type -> broker.manager.DiscardSessionResponse
-	48, // 58: broker.manager.McpManager.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
-	23, // 59: broker.manager.McpManager.ListWorkers:output_type -> broker.manager.ListWorkersResponse
-	53, // [53:60] is the sub-list for method output_type
-	46, // [46:53] is the sub-list for method input_type
-	46, // [46:46] is the sub-list for extension type_name
-	46, // [46:46] is the sub-list for extension extendee
-	0,  // [0:46] is the sub-list for field type_name
+	28, // 15: broker.manager.SessionEventInfoRun.run:type_name -> broker.manager.EngineSessionRun
+	27, // 16: broker.manager.SessionEventInfoSession.session:type_name -> broker.manager.EngineSession
+	28, // 17: broker.manager.SessionEventStartRun.run:type_name -> broker.manager.EngineSessionRun
+	28, // 18: broker.manager.SessionEventStopRun.run:type_name -> broker.manager.EngineSessionRun
+	17, // 19: broker.manager.SessionEvent.start_run:type_name -> broker.manager.SessionEventStartRun
+	18, // 20: broker.manager.SessionEvent.stop_run:type_name -> broker.manager.SessionEventStopRun
+	15, // 21: broker.manager.SessionEvent.info_run:type_name -> broker.manager.SessionEventInfoRun
+	16, // 22: broker.manager.SessionEvent.info_session:type_name -> broker.manager.SessionEventInfoSession
+	43, // 23: broker.manager.StreamMcpMessagesResponse.mcp_message:type_name -> broker.mcp.McpMessage
+	44, // 24: broker.manager.StreamMcpMessagesResponse.mcp_error:type_name -> broker.mcp.McpError
+	46, // 25: broker.manager.StreamMcpMessagesResponse.mcp_output:type_name -> broker.mcp.McpOutput
+	19, // 26: broker.manager.StreamMcpMessagesResponse.session_event:type_name -> broker.manager.SessionEvent
+	24, // 27: broker.manager.ListWorkersResponse.workers:type_name -> broker.manager.WorkerInfo
+	1,  // 28: broker.manager.EngineSession.type:type_name -> broker.manager.EngineSessionType
+	0,  // 29: broker.manager.EngineSession.status:type_name -> broker.manager.EngineSessionStatus
+	36, // 30: broker.manager.EngineSession.mcp_client:type_name -> broker.mcp.McpParticipant
+	36, // 31: broker.manager.EngineSession.mcp_server:type_name -> broker.mcp.McpParticipant
+	3,  // 32: broker.manager.EngineSessionRun.type:type_name -> broker.manager.EngineRunType
+	2,  // 33: broker.manager.EngineSessionRun.status:type_name -> broker.manager.EngineRunStatus
+	27, // 34: broker.manager.EngineSessionRun.session:type_name -> broker.manager.EngineSession
+	28, // 35: broker.manager.EngineSessionError.run:type_name -> broker.manager.EngineSessionRun
+	27, // 36: broker.manager.EngineSessionError.session:type_name -> broker.manager.EngineSession
+	44, // 37: broker.manager.EngineSessionError.mcp_error:type_name -> broker.mcp.McpError
+	33, // 38: broker.manager.EngineSessionError.metadata:type_name -> broker.manager.EngineSessionError.MetadataEntry
+	4,  // 39: broker.manager.EngineSessionEvent.type:type_name -> broker.manager.EngineSessionEventType
+	28, // 40: broker.manager.EngineSessionEvent.run:type_name -> broker.manager.EngineSessionRun
+	27, // 41: broker.manager.EngineSessionEvent.session:type_name -> broker.manager.EngineSession
+	29, // 42: broker.manager.EngineSessionEvent.error:type_name -> broker.manager.EngineSessionError
+	34, // 43: broker.manager.EngineSessionEvent.metadata:type_name -> broker.manager.EngineSessionEvent.MetadataEntry
+	5,  // 44: broker.manager.EngineSessionMessage.sender:type_name -> broker.manager.SessionMessageSender
+	28, // 45: broker.manager.EngineSessionMessage.run:type_name -> broker.manager.EngineSessionRun
+	27, // 46: broker.manager.EngineSessionMessage.session:type_name -> broker.manager.EngineSession
+	43, // 47: broker.manager.EngineSessionMessage.mcp_message:type_name -> broker.mcp.McpMessage
+	35, // 48: broker.manager.EngineSessionMessage.metadata:type_name -> broker.manager.EngineSessionMessage.MetadataEntry
+	6,  // 49: broker.manager.ListPagination.order:type_name -> broker.manager.ListPaginationOrder
+	7,  // 50: broker.manager.McpManager.CreateSession:input_type -> broker.manager.CreateSessionRequest
+	12, // 51: broker.manager.McpManager.SendMcpMessage:input_type -> broker.manager.SendMcpMessageRequest
+	14, // 52: broker.manager.McpManager.StreamMcpMessages:input_type -> broker.manager.StreamMcpMessagesRequest
+	21, // 53: broker.manager.McpManager.GetServerInfo:input_type -> broker.manager.GetServerInfoRequest
+	25, // 54: broker.manager.McpManager.DiscardSession:input_type -> broker.manager.DiscardSessionRequest
+	47, // 55: broker.manager.McpManager.ListManagers:input_type -> broker.workerBroker.ListManagersRequest
+	22, // 56: broker.manager.McpManager.ListWorkers:input_type -> broker.manager.ListWorkersRequest
+	11, // 57: broker.manager.McpManager.CreateSession:output_type -> broker.manager.CreateSessionResponse
+	13, // 58: broker.manager.McpManager.SendMcpMessage:output_type -> broker.manager.SendMcpMessageResponse
+	20, // 59: broker.manager.McpManager.StreamMcpMessages:output_type -> broker.manager.StreamMcpMessagesResponse
+	36, // 60: broker.manager.McpManager.GetServerInfo:output_type -> broker.mcp.McpParticipant
+	26, // 61: broker.manager.McpManager.DiscardSession:output_type -> broker.manager.DiscardSessionResponse
+	48, // 62: broker.manager.McpManager.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
+	23, // 63: broker.manager.McpManager.ListWorkers:output_type -> broker.manager.ListWorkersResponse
+	57, // [57:64] is the sub-list for method output_type
+	50, // [50:57] is the sub-list for method input_type
+	50, // [50:50] is the sub-list for extension type_name
+	50, // [50:50] is the sub-list for extension extendee
+	0,  // [0:50] is the sub-list for field type_name
 }
 
 func init() { file_manager_proto_init() }
@@ -2683,10 +2690,10 @@ func file_manager_proto_init() {
 		(*SendMcpMessageResponse_SessionEvent)(nil),
 	}
 	file_manager_proto_msgTypes[12].OneofWrappers = []any{
-		(*SessionEvent_StartConnection)(nil),
-		(*SessionEvent_StopConnection)(nil),
-		(*SessionEvent_SessionDiscarded)(nil),
-		(*SessionEvent_SessionStopped)(nil),
+		(*SessionEvent_StartRun)(nil),
+		(*SessionEvent_StopRun)(nil),
+		(*SessionEvent_InfoRun)(nil),
+		(*SessionEvent_InfoSession)(nil),
 	}
 	file_manager_proto_msgTypes[13].OneofWrappers = []any{
 		(*StreamMcpMessagesResponse_McpMessage)(nil),

@@ -70,6 +70,8 @@ type Session struct {
 	StartedAt  time.Time `gorm:"not null"`
 	LastPingAt time.Time `gorm:"not null"`
 
+	Metadata map[string]string `gorm:"type:jsonb;serializer:json"`
+
 	EndedAt sql.NullTime
 }
 
@@ -82,6 +84,8 @@ func NewSession(id string, externalId string, status SessionStatus, type_ Sessio
 
 		Status: status,
 		Type:   type_,
+
+		Metadata: make(map[string]string),
 
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),

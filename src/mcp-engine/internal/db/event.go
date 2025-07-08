@@ -40,8 +40,8 @@ type SessionEvent struct {
 	SessionID string   `gorm:"type:uuid;not null"`
 	Session   *Session `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
-	ConnectionID sql.NullString     `gorm:"type:uuid"`
-	Connection   *SessionConnection `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	RunID sql.NullString `gorm:"type:uuid"`
+	Run   *SessionRun    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
 	ErrorID sql.NullString `gorm:"type:uuid"`
 	Error   *SessionError  `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
@@ -60,28 +60,28 @@ func (d *DB) CreateEvent(event *SessionEvent) error {
 
 func newErrorEvent(err *SessionError) *SessionEvent {
 	return &SessionEvent{
-		ID:           util.Must(uuid.NewV7()).String(),
-		Type:         SessionEventTypeError,
-		SessionID:    err.SessionID,
-		Session:      err.Session,
-		ConnectionID: err.ConnectionID,
-		Connection:   err.Connection,
-		ErrorID:      sql.NullString{String: err.ID, Valid: true},
-		Error:        err,
-		Content:      sql.NullString{},
-		Metadata:     make(map[string]string),
+		ID:        util.Must(uuid.NewV7()).String(),
+		Type:      SessionEventTypeError,
+		SessionID: err.SessionID,
+		Session:   err.Session,
+		RunID:     err.RunID,
+		Run:       err.Run,
+		ErrorID:   sql.NullString{String: err.ID, Valid: true},
+		Error:     err,
+		Content:   sql.NullString{},
+		Metadata:  make(map[string]string),
 	}
 }
 
-func NewOutputEvent(session *Session, connection *SessionConnection, output *mcp.McpOutput) *SessionEvent {
+func NewOutputEvent(session *Session, connection *SessionRun, output *mcp.McpOutput) *SessionEvent {
 	return &SessionEvent{
-		ID:           util.Must(uuid.NewV7()).String(),
-		Type:         SessionEventTypeOutput,
-		SessionID:    session.ID,
-		Session:      session,
-		ConnectionID: sql.NullString{String: connection.ID, Valid: connection != nil},
-		Connection:   connection,
-		Lines:        output.Lines,
+		ID:        util.Must(uuid.NewV7()).String(),
+		Type:      SessionEventTypeOutput,
+		SessionID: session.ID,
+		Session:   session,
+		RunID:     sql.NullString{String: connection.ID, Valid: connection != nil},
+		Run:       connection,
+		Lines:     output.Lines,
 	}
 }
 
@@ -95,10 +95,10 @@ func (e *SessionEvent) ToPb() (*managerPb.EngineSessionEvent, error) {
 		}
 	}
 
-	var conn *managerPb.EngineSessionConnection
-	if e.Connection != nil {
+	var conn *managerPb.EngineSessionRun
+	if e.Run != nil {
 		var err error
-		conn, err = e.Connection.ToPb()
+		conn, err = e.Run.ToPb()
 		if err != nil {
 			return nil, err
 		}
@@ -114,15 +114,15 @@ func (e *SessionEvent) ToPb() (*managerPb.EngineSessionEvent, error) {
 	}
 
 	return &managerPb.EngineSessionEvent{
-		Id:           e.ID,
-		SessionId:    e.SessionID,
-		ConnectionId: e.ConnectionID.String,
-		ErrorId:      e.ErrorID.String,
+		Id:        e.ID,
+		SessionId: e.SessionID,
+		RunId:     e.RunID.String,
+		ErrorId:   e.ErrorID.String,
 
-		Type:       e.Type.ToPb(),
-		Connection: conn,
-		Session:    ses,
-		Error:      errPb,
+		Type:    e.Type.ToPb(),
+		Run:     conn,
+		Session: ses,
+		Error:   errPb,
 
 		Content:  e.Content.String,
 		Lines:    e.Lines,

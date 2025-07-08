@@ -17,8 +17,8 @@ type SessionError struct {
 	SessionID string   `gorm:"type:uuid;not null"`
 	Session   *Session `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
-	ConnectionID sql.NullString     `gorm:"type:uuid"`
-	Connection   *SessionConnection `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	RunID sql.NullString `gorm:"type:uuid"`
+	Run   *SessionRun    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
 	ErrorCode    string            `gorm:"type:varchar(64);not null"`
 	ErrorMessage string            `gorm:"type:text;not null"`
@@ -28,15 +28,15 @@ type SessionError struct {
 	CreatedAt time.Time `gorm:"not null"`
 }
 
-func NewErrorFromMcp(session *Session, connection *SessionConnection, mcpError *mcpPb.McpError) *SessionError {
+func NewErrorFromMcp(session *Session, connection *SessionRun, mcpError *mcpPb.McpError) *SessionError {
 	return &SessionError{
 		ID: util.Must(uuid.NewV7()).String(),
 
 		SessionID: session.ID,
 		Session:   session,
 
-		ConnectionID: sql.NullString{String: connection.ID, Valid: connection != nil},
-		Connection:   connection,
+		RunID: sql.NullString{String: connection.ID, Valid: connection != nil},
+		Run:   connection,
 
 		ErrorCode:    mcpError.ErrorCode.String(),
 		ErrorMessage: mcpError.ErrorMessage,
@@ -62,7 +62,7 @@ func NewErrorStructuredError(session *Session, errorCode string, errorMessage st
 	}
 }
 
-func NewErrorStructuredErrorWithConnection(session *Session, connection *SessionConnection, errorCode string, errorMessage string, metadata map[string]string) *SessionError {
+func NewErrorStructuredErrorWithRun(session *Session, connection *SessionRun, errorCode string, errorMessage string, metadata map[string]string) *SessionError {
 	if connection == nil {
 		return NewErrorStructuredError(session, errorCode, errorMessage, metadata)
 	}
@@ -73,8 +73,8 @@ func NewErrorStructuredErrorWithConnection(session *Session, connection *Session
 		SessionID: session.ID,
 		Session:   session,
 
-		ConnectionID: sql.NullString{String: connection.ID, Valid: true},
-		Connection:   connection,
+		RunID: sql.NullString{String: connection.ID, Valid: true},
+		Run:   connection,
 
 		ErrorCode:    errorCode,
 		ErrorMessage: errorMessage,
@@ -97,9 +97,9 @@ func (d *DB) CreateError(sessionError *SessionError) error {
 		return err
 	}
 
-	if sessionError.Connection != nil && !sessionError.Connection.HasError {
-		sessionError.Connection.HasError = true
-		err = d.SaveConnection(sessionError.Connection)
+	if sessionError.Run != nil && !sessionError.Run.HasError {
+		sessionError.Run.HasError = true
+		err = d.SaveRun(sessionError.Run)
 		if err != nil {
 			return err
 		}
@@ -127,9 +127,9 @@ func (e *SessionError) ToPb() (*managerPb.EngineSessionError, error) {
 		}
 	}
 
-	var connectionPb *managerPb.EngineSessionConnection
-	if e.Connection != nil {
-		connectionPb, err = e.Connection.ToPb()
+	var connectionPb *managerPb.EngineSessionRun
+	if e.Run != nil {
+		connectionPb, err = e.Run.ToPb()
 		if err != nil {
 			return nil, err
 		}
@@ -139,15 +139,15 @@ func (e *SessionError) ToPb() (*managerPb.EngineSessionError, error) {
 		Id: e.ID,
 
 		SessionId: e.SessionID,
-		ConnectionId: func() string {
-			if e.ConnectionID.Valid {
-				return e.ConnectionID.String
+		RunId: func() string {
+			if e.RunID.Valid {
+				return e.RunID.String
 			}
 			return ""
 		}(),
 
-		Session:    sessionPb,
-		Connection: connectionPb,
+		Session: sessionPb,
+		Run:     connectionPb,
 
 		ErrorCode:    e.ErrorCode,
 		ErrorMessage: e.ErrorMessage,

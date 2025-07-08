@@ -29,7 +29,7 @@ func NewDB(dsn string) (*DB, error) {
 		return nil, err
 	}
 
-	go res.expireActiveSessionConnectionsRoutine()
+	go res.expireActiveSessionRunsRoutine()
 	go res.expireActiveSessionsRoutine()
 	go res.cleanupOldSessionsRoutine()
 
@@ -37,7 +37,7 @@ func NewDB(dsn string) (*DB, error) {
 }
 
 func (d *DB) autoMigrate() error {
-	return d.db.AutoMigrate(&Session{}, &SessionConnection{}, &SessionError{}, &SessionEvent{}, &SessionMessage{})
+	return d.db.AutoMigrate(&Session{}, &SessionRun{}, &SessionError{}, &SessionEvent{}, &SessionMessage{})
 }
 
 func listWithPagination[T any](query *gorm.DB, pag *managerPb.ListPagination) ([]T, error) {
