@@ -112,7 +112,7 @@ func (wm *WorkerManager) ListWorkersByType(workerType WorkerType) []Worker {
 	return workersList
 }
 
-func (wm *WorkerManager) getWorkerOfTypeByIndex(workerType WorkerType, index int) (Worker, bool) {
+func (wm *WorkerManager) getWorkerOfTypeByIndexOrFallback(workerType WorkerType, index int) (Worker, bool) {
 	wm.mutex.RLock()
 	defer wm.mutex.RUnlock()
 
@@ -125,24 +125,23 @@ func (wm *WorkerManager) getWorkerOfTypeByIndex(workerType WorkerType, index int
 		index = 0 // If the index is out of bounds, we default to the first worker.
 	}
 
-	workerID := workerIDs[index]
-	worker, exists := wm.workers[workerID]
-	if !exists {
-		return nil, false
-	}
+	for i := range workerIDs {
+		// Start at index but wrap around to ensure we check all workers.
+		workerID := workerIDs[(index+i)%len(workerIDs)]
 
-	if !worker.IsHealthy() || !worker.IsAcceptingJobs() {
-		// If the worker is not healthy or not accepting jobs, we need to choose another one.
-		for range workerIDs {
-			workerID = workerIDs[index]
-			worker, exists = wm.workers[workerID]
-			if exists && worker.IsHealthy() && worker.IsAcceptingJobs() {
-				break
-			}
+		worker, exists := wm.workers[workerID]
+		if !exists {
+			continue // If the worker does not exist, skip to the next one.
 		}
+
+		if !worker.IsHealthy() || !worker.IsAcceptingJobs() {
+			continue // If the worker is not healthy or not accepting jobs, skip to the next one.
+		}
+
+		return worker, true
 	}
 
-	return worker, true
+	return nil, false
 }
 
 func (wm *WorkerManager) PickWorkerByHash(workerType WorkerType, data []byte) (Worker, bool) {
@@ -155,7 +154,7 @@ func (wm *WorkerManager) PickWorkerByHash(workerType WorkerType, data []byte) (W
 	}
 
 	index := murmur3.PickByHashIndex(data, len(workerIDs))
-	return wm.getWorkerOfTypeByIndex(workerType, index)
+	return wm.getWorkerOfTypeByIndexOrFallback(workerType, index)
 }
 
 func (wm *WorkerManager) PickWorkerRandomly(workerType WorkerType) (Worker, bool) {
@@ -168,7 +167,7 @@ func (wm *WorkerManager) PickWorkerRandomly(workerType WorkerType) (Worker, bool
 	}
 
 	index := rand.Intn(len(workerIDs))
-	return wm.getWorkerOfTypeByIndex(workerType, index)
+	return wm.getWorkerOfTypeByIndexOrFallback(workerType, index)
 }
 
 func (wm *WorkerManager) GetConnectionHashForWorkerType(workerType WorkerType, input *WorkerConnectionInput) ([]byte, error) {
@@ -198,4 +197,17 @@ func (wm *WorkerManager) SelfUnregisterWorker(workerID string) {
 	defer wm.mutex.Unlock()
 
 	delete(wm.workers, workerID)
+
+	for workerType, workerIDs := range wm.workersByType {
+		for i, id := range workerIDs {
+			if id == workerID {
+				wm.workersByType[workerType] = append(workerIDs[:i], workerIDs[i+1:]...)
+				break
+			}
+		}
+
+		if len(wm.workersByType[workerType]) == 0 {
+			delete(wm.workersByType, workerType)
+		}
+	}
 }

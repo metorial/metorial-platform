@@ -74,7 +74,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 				},
 			))
 
-			return mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "runner_connection_error", "failed to parse MCP message", err)
+			return mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "run_error", "failed to parse MCP message", err)
 		}
 
 		mcpMessages = append(mcpMessages, message)
@@ -526,7 +526,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpPb.McpParticipant, *mterror.MTError) {
 	err := s.ensureConnection()
 	if err != nil {
-		return nil, mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "runner_connection_error", "failed to ensure connection", err)
+		return nil, mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to ensure connection", err)
 	}
 
 	s.mutex.RLock()
@@ -623,13 +623,13 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 	worker, ok := s.workerManager.PickWorkerByHash(s.WorkerType, hash)
 	if !ok {
 		log.Printf("No available worker for worker type %s with hash %s", s.WorkerType, hash)
-		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "runner_connection_error", "no available worker for worker type", err)
+		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "no available worker for worker type", err)
 	}
 
 	connection, err := worker.CreateConnection(connectionInput)
 	if err != nil {
 		log.Printf("Failed to create connection for worker %s: %v", worker.WorkerID(), err)
-		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "runner_connection_error", "failed to create connection for worker", err)
+		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to create connection for worker", err)
 	}
 
 	var connectionType db.SessionRunType
@@ -653,7 +653,7 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 	)
 	s.activeRunDb = run
 	if err != nil {
-		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "runner_connection_error", "failed to create connection in database", err)
+		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to create connection in database", err)
 	}
 
 	log.Printf("Created connection %s for session %s with worker %s", connection.ConnectionID(), s.storedSession.ID, worker.WorkerID())
@@ -665,14 +665,14 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 		go s.db.CreateError(db.NewErrorStructuredErrorWithRun(
 			s.dbSession,
 			run,
-			"runner_connection_error",
-			"failed to start connection",
+			"run_error",
+			"failed to start server",
 			map[string]string{
 				"internal_error": err.Error(),
 			},
 		))
 
-		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "runner_connection_error", "failed to start connection", err)
+		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to start server", err)
 	}
 
 	log.Printf("Started connection %s for session %s with worker %s", connection.ConnectionID(), s.storedSession.ID, worker.WorkerID())
