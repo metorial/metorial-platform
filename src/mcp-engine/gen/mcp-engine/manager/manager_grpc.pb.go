@@ -21,13 +21,28 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	McpManager_CreateSession_FullMethodName     = "/broker.manager.McpManager/CreateSession"
-	McpManager_SendMcpMessage_FullMethodName    = "/broker.manager.McpManager/SendMcpMessage"
-	McpManager_StreamMcpMessages_FullMethodName = "/broker.manager.McpManager/StreamMcpMessages"
-	McpManager_GetServerInfo_FullMethodName     = "/broker.manager.McpManager/GetServerInfo"
-	McpManager_DiscardSession_FullMethodName    = "/broker.manager.McpManager/DiscardSession"
-	McpManager_ListManagers_FullMethodName      = "/broker.manager.McpManager/ListManagers"
-	McpManager_ListWorkers_FullMethodName       = "/broker.manager.McpManager/ListWorkers"
+	McpManager_CreateSession_FullMethodName              = "/broker.manager.McpManager/CreateSession"
+	McpManager_SendMcpMessage_FullMethodName             = "/broker.manager.McpManager/SendMcpMessage"
+	McpManager_StreamMcpMessages_FullMethodName          = "/broker.manager.McpManager/StreamMcpMessages"
+	McpManager_GetServerInfo_FullMethodName              = "/broker.manager.McpManager/GetServerInfo"
+	McpManager_DiscardSession_FullMethodName             = "/broker.manager.McpManager/DiscardSession"
+	McpManager_ListManagers_FullMethodName               = "/broker.manager.McpManager/ListManagers"
+	McpManager_ListWorkers_FullMethodName                = "/broker.manager.McpManager/ListWorkers"
+	McpManager_ListSessions_FullMethodName               = "/broker.manager.McpManager/ListSessions"
+	McpManager_GetSession_FullMethodName                 = "/broker.manager.McpManager/GetSession"
+	McpManager_ListRuns_FullMethodName                   = "/broker.manager.McpManager/ListRuns"
+	McpManager_GetRun_FullMethodName                     = "/broker.manager.McpManager/GetRun"
+	McpManager_ListSessionErrors_FullMethodName          = "/broker.manager.McpManager/ListSessionErrors"
+	McpManager_ListSessionEvents_FullMethodName          = "/broker.manager.McpManager/ListSessionEvents"
+	McpManager_ListSessionMessages_FullMethodName        = "/broker.manager.McpManager/ListSessionMessages"
+	McpManager_ListRunErrors_FullMethodName              = "/broker.manager.McpManager/ListRunErrors"
+	McpManager_ListRunEvents_FullMethodName              = "/broker.manager.McpManager/ListRunEvents"
+	McpManager_ListRunMessages_FullMethodName            = "/broker.manager.McpManager/ListRunMessages"
+	McpManager_GetError_FullMethodName                   = "/broker.manager.McpManager/GetError"
+	McpManager_GetEvent_FullMethodName                   = "/broker.manager.McpManager/GetEvent"
+	McpManager_GetMessage_FullMethodName                 = "/broker.manager.McpManager/GetMessage"
+	McpManager_ListRecentlyActiveRuns_FullMethodName     = "/broker.manager.McpManager/ListRecentlyActiveRuns"
+	McpManager_ListRecentlyActiveSessions_FullMethodName = "/broker.manager.McpManager/ListRecentlyActiveSessions"
 )
 
 // McpManagerClient is the client API for McpManager service.
@@ -41,6 +56,21 @@ type McpManagerClient interface {
 	DiscardSession(ctx context.Context, in *DiscardSessionRequest, opts ...grpc.CallOption) (*DiscardSessionResponse, error)
 	ListManagers(ctx context.Context, in *workerBroker.ListManagersRequest, opts ...grpc.CallOption) (*workerBroker.ListManagersResponse, error)
 	ListWorkers(ctx context.Context, in *ListWorkersRequest, opts ...grpc.CallOption) (*ListWorkersResponse, error)
+	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
+	GetSession(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetSessionResponse, error)
+	ListRuns(ctx context.Context, in *ListRunsRequest, opts ...grpc.CallOption) (*ListRunsResponse, error)
+	GetRun(ctx context.Context, in *GetRunRequest, opts ...grpc.CallOption) (*GetRunResponse, error)
+	ListSessionErrors(ctx context.Context, in *ListSessionErrorsRequest, opts ...grpc.CallOption) (*ListSessionErrorsResponse, error)
+	ListSessionEvents(ctx context.Context, in *ListSessionEventsRequest, opts ...grpc.CallOption) (*ListSessionEventsResponse, error)
+	ListSessionMessages(ctx context.Context, in *ListSessionMessagesRequest, opts ...grpc.CallOption) (*ListSessionMessagesResponse, error)
+	ListRunErrors(ctx context.Context, in *ListRunErrorsRequest, opts ...grpc.CallOption) (*ListRunErrorsResponse, error)
+	ListRunEvents(ctx context.Context, in *ListRunEventsRequest, opts ...grpc.CallOption) (*ListRunEventsResponse, error)
+	ListRunMessages(ctx context.Context, in *ListRunMessagesRequest, opts ...grpc.CallOption) (*ListRunMessagesResponse, error)
+	GetError(ctx context.Context, in *GetErrorRequest, opts ...grpc.CallOption) (*GetErrorResponse, error)
+	GetEvent(ctx context.Context, in *GetEventRequest, opts ...grpc.CallOption) (*GetEventResponse, error)
+	GetMessage(ctx context.Context, in *GetMessageRequest, opts ...grpc.CallOption) (*GetMessageResponse, error)
+	ListRecentlyActiveRuns(ctx context.Context, in *ListRecentlyActiveRunsRequest, opts ...grpc.CallOption) (*ListRecentlyActiveRunsResponse, error)
+	ListRecentlyActiveSessions(ctx context.Context, in *ListRecentlyActiveSessionsRequest, opts ...grpc.CallOption) (*ListRecentlyActiveSessionsResponse, error)
 }
 
 type mcpManagerClient struct {
@@ -139,6 +169,156 @@ func (c *mcpManagerClient) ListWorkers(ctx context.Context, in *ListWorkersReque
 	return out, nil
 }
 
+func (c *mcpManagerClient) ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSessionsResponse)
+	err := c.cc.Invoke(ctx, McpManager_ListSessions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) GetSession(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSessionResponse)
+	err := c.cc.Invoke(ctx, McpManager_GetSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) ListRuns(ctx context.Context, in *ListRunsRequest, opts ...grpc.CallOption) (*ListRunsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRunsResponse)
+	err := c.cc.Invoke(ctx, McpManager_ListRuns_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) GetRun(ctx context.Context, in *GetRunRequest, opts ...grpc.CallOption) (*GetRunResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRunResponse)
+	err := c.cc.Invoke(ctx, McpManager_GetRun_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) ListSessionErrors(ctx context.Context, in *ListSessionErrorsRequest, opts ...grpc.CallOption) (*ListSessionErrorsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSessionErrorsResponse)
+	err := c.cc.Invoke(ctx, McpManager_ListSessionErrors_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) ListSessionEvents(ctx context.Context, in *ListSessionEventsRequest, opts ...grpc.CallOption) (*ListSessionEventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSessionEventsResponse)
+	err := c.cc.Invoke(ctx, McpManager_ListSessionEvents_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) ListSessionMessages(ctx context.Context, in *ListSessionMessagesRequest, opts ...grpc.CallOption) (*ListSessionMessagesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSessionMessagesResponse)
+	err := c.cc.Invoke(ctx, McpManager_ListSessionMessages_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) ListRunErrors(ctx context.Context, in *ListRunErrorsRequest, opts ...grpc.CallOption) (*ListRunErrorsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRunErrorsResponse)
+	err := c.cc.Invoke(ctx, McpManager_ListRunErrors_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) ListRunEvents(ctx context.Context, in *ListRunEventsRequest, opts ...grpc.CallOption) (*ListRunEventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRunEventsResponse)
+	err := c.cc.Invoke(ctx, McpManager_ListRunEvents_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) ListRunMessages(ctx context.Context, in *ListRunMessagesRequest, opts ...grpc.CallOption) (*ListRunMessagesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRunMessagesResponse)
+	err := c.cc.Invoke(ctx, McpManager_ListRunMessages_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) GetError(ctx context.Context, in *GetErrorRequest, opts ...grpc.CallOption) (*GetErrorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetErrorResponse)
+	err := c.cc.Invoke(ctx, McpManager_GetError_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) GetEvent(ctx context.Context, in *GetEventRequest, opts ...grpc.CallOption) (*GetEventResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetEventResponse)
+	err := c.cc.Invoke(ctx, McpManager_GetEvent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) GetMessage(ctx context.Context, in *GetMessageRequest, opts ...grpc.CallOption) (*GetMessageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetMessageResponse)
+	err := c.cc.Invoke(ctx, McpManager_GetMessage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) ListRecentlyActiveRuns(ctx context.Context, in *ListRecentlyActiveRunsRequest, opts ...grpc.CallOption) (*ListRecentlyActiveRunsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRecentlyActiveRunsResponse)
+	err := c.cc.Invoke(ctx, McpManager_ListRecentlyActiveRuns_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) ListRecentlyActiveSessions(ctx context.Context, in *ListRecentlyActiveSessionsRequest, opts ...grpc.CallOption) (*ListRecentlyActiveSessionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRecentlyActiveSessionsResponse)
+	err := c.cc.Invoke(ctx, McpManager_ListRecentlyActiveSessions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // McpManagerServer is the server API for McpManager service.
 // All implementations must embed UnimplementedMcpManagerServer
 // for forward compatibility.
@@ -150,6 +330,21 @@ type McpManagerServer interface {
 	DiscardSession(context.Context, *DiscardSessionRequest) (*DiscardSessionResponse, error)
 	ListManagers(context.Context, *workerBroker.ListManagersRequest) (*workerBroker.ListManagersResponse, error)
 	ListWorkers(context.Context, *ListWorkersRequest) (*ListWorkersResponse, error)
+	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
+	GetSession(context.Context, *GetSessionRequest) (*GetSessionResponse, error)
+	ListRuns(context.Context, *ListRunsRequest) (*ListRunsResponse, error)
+	GetRun(context.Context, *GetRunRequest) (*GetRunResponse, error)
+	ListSessionErrors(context.Context, *ListSessionErrorsRequest) (*ListSessionErrorsResponse, error)
+	ListSessionEvents(context.Context, *ListSessionEventsRequest) (*ListSessionEventsResponse, error)
+	ListSessionMessages(context.Context, *ListSessionMessagesRequest) (*ListSessionMessagesResponse, error)
+	ListRunErrors(context.Context, *ListRunErrorsRequest) (*ListRunErrorsResponse, error)
+	ListRunEvents(context.Context, *ListRunEventsRequest) (*ListRunEventsResponse, error)
+	ListRunMessages(context.Context, *ListRunMessagesRequest) (*ListRunMessagesResponse, error)
+	GetError(context.Context, *GetErrorRequest) (*GetErrorResponse, error)
+	GetEvent(context.Context, *GetEventRequest) (*GetEventResponse, error)
+	GetMessage(context.Context, *GetMessageRequest) (*GetMessageResponse, error)
+	ListRecentlyActiveRuns(context.Context, *ListRecentlyActiveRunsRequest) (*ListRecentlyActiveRunsResponse, error)
+	ListRecentlyActiveSessions(context.Context, *ListRecentlyActiveSessionsRequest) (*ListRecentlyActiveSessionsResponse, error)
 	mustEmbedUnimplementedMcpManagerServer()
 }
 
@@ -180,6 +375,51 @@ func (UnimplementedMcpManagerServer) ListManagers(context.Context, *workerBroker
 }
 func (UnimplementedMcpManagerServer) ListWorkers(context.Context, *ListWorkersRequest) (*ListWorkersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListWorkers not implemented")
+}
+func (UnimplementedMcpManagerServer) ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSessions not implemented")
+}
+func (UnimplementedMcpManagerServer) GetSession(context.Context, *GetSessionRequest) (*GetSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSession not implemented")
+}
+func (UnimplementedMcpManagerServer) ListRuns(context.Context, *ListRunsRequest) (*ListRunsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRuns not implemented")
+}
+func (UnimplementedMcpManagerServer) GetRun(context.Context, *GetRunRequest) (*GetRunResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRun not implemented")
+}
+func (UnimplementedMcpManagerServer) ListSessionErrors(context.Context, *ListSessionErrorsRequest) (*ListSessionErrorsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSessionErrors not implemented")
+}
+func (UnimplementedMcpManagerServer) ListSessionEvents(context.Context, *ListSessionEventsRequest) (*ListSessionEventsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSessionEvents not implemented")
+}
+func (UnimplementedMcpManagerServer) ListSessionMessages(context.Context, *ListSessionMessagesRequest) (*ListSessionMessagesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSessionMessages not implemented")
+}
+func (UnimplementedMcpManagerServer) ListRunErrors(context.Context, *ListRunErrorsRequest) (*ListRunErrorsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRunErrors not implemented")
+}
+func (UnimplementedMcpManagerServer) ListRunEvents(context.Context, *ListRunEventsRequest) (*ListRunEventsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRunEvents not implemented")
+}
+func (UnimplementedMcpManagerServer) ListRunMessages(context.Context, *ListRunMessagesRequest) (*ListRunMessagesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRunMessages not implemented")
+}
+func (UnimplementedMcpManagerServer) GetError(context.Context, *GetErrorRequest) (*GetErrorResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetError not implemented")
+}
+func (UnimplementedMcpManagerServer) GetEvent(context.Context, *GetEventRequest) (*GetEventResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetEvent not implemented")
+}
+func (UnimplementedMcpManagerServer) GetMessage(context.Context, *GetMessageRequest) (*GetMessageResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMessage not implemented")
+}
+func (UnimplementedMcpManagerServer) ListRecentlyActiveRuns(context.Context, *ListRecentlyActiveRunsRequest) (*ListRecentlyActiveRunsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRecentlyActiveRuns not implemented")
+}
+func (UnimplementedMcpManagerServer) ListRecentlyActiveSessions(context.Context, *ListRecentlyActiveSessionsRequest) (*ListRecentlyActiveSessionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRecentlyActiveSessions not implemented")
 }
 func (UnimplementedMcpManagerServer) mustEmbedUnimplementedMcpManagerServer() {}
 func (UnimplementedMcpManagerServer) testEmbeddedByValue()                    {}
@@ -314,6 +554,276 @@ func _McpManager_ListWorkers_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _McpManager_ListSessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSessionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).ListSessions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_ListSessions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).ListSessions(ctx, req.(*ListSessionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_GetSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).GetSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_GetSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).GetSession(ctx, req.(*GetSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_ListRuns_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRunsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).ListRuns(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_ListRuns_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).ListRuns(ctx, req.(*ListRunsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_GetRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).GetRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_GetRun_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).GetRun(ctx, req.(*GetRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_ListSessionErrors_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSessionErrorsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).ListSessionErrors(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_ListSessionErrors_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).ListSessionErrors(ctx, req.(*ListSessionErrorsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_ListSessionEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSessionEventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).ListSessionEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_ListSessionEvents_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).ListSessionEvents(ctx, req.(*ListSessionEventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_ListSessionMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSessionMessagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).ListSessionMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_ListSessionMessages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).ListSessionMessages(ctx, req.(*ListSessionMessagesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_ListRunErrors_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRunErrorsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).ListRunErrors(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_ListRunErrors_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).ListRunErrors(ctx, req.(*ListRunErrorsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_ListRunEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRunEventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).ListRunEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_ListRunEvents_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).ListRunEvents(ctx, req.(*ListRunEventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_ListRunMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRunMessagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).ListRunMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_ListRunMessages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).ListRunMessages(ctx, req.(*ListRunMessagesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_GetError_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetErrorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).GetError(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_GetError_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).GetError(ctx, req.(*GetErrorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_GetEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEventRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).GetEvent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_GetEvent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).GetEvent(ctx, req.(*GetEventRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_GetMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMessageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).GetMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_GetMessage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).GetMessage(ctx, req.(*GetMessageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_ListRecentlyActiveRuns_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRecentlyActiveRunsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).ListRecentlyActiveRuns(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_ListRecentlyActiveRuns_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).ListRecentlyActiveRuns(ctx, req.(*ListRecentlyActiveRunsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_ListRecentlyActiveSessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRecentlyActiveSessionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).ListRecentlyActiveSessions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_ListRecentlyActiveSessions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).ListRecentlyActiveSessions(ctx, req.(*ListRecentlyActiveSessionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // McpManager_ServiceDesc is the grpc.ServiceDesc for McpManager service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -340,6 +850,66 @@ var McpManager_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListWorkers",
 			Handler:    _McpManager_ListWorkers_Handler,
+		},
+		{
+			MethodName: "ListSessions",
+			Handler:    _McpManager_ListSessions_Handler,
+		},
+		{
+			MethodName: "GetSession",
+			Handler:    _McpManager_GetSession_Handler,
+		},
+		{
+			MethodName: "ListRuns",
+			Handler:    _McpManager_ListRuns_Handler,
+		},
+		{
+			MethodName: "GetRun",
+			Handler:    _McpManager_GetRun_Handler,
+		},
+		{
+			MethodName: "ListSessionErrors",
+			Handler:    _McpManager_ListSessionErrors_Handler,
+		},
+		{
+			MethodName: "ListSessionEvents",
+			Handler:    _McpManager_ListSessionEvents_Handler,
+		},
+		{
+			MethodName: "ListSessionMessages",
+			Handler:    _McpManager_ListSessionMessages_Handler,
+		},
+		{
+			MethodName: "ListRunErrors",
+			Handler:    _McpManager_ListRunErrors_Handler,
+		},
+		{
+			MethodName: "ListRunEvents",
+			Handler:    _McpManager_ListRunEvents_Handler,
+		},
+		{
+			MethodName: "ListRunMessages",
+			Handler:    _McpManager_ListRunMessages_Handler,
+		},
+		{
+			MethodName: "GetError",
+			Handler:    _McpManager_GetError_Handler,
+		},
+		{
+			MethodName: "GetEvent",
+			Handler:    _McpManager_GetEvent_Handler,
+		},
+		{
+			MethodName: "GetMessage",
+			Handler:    _McpManager_GetMessage_Handler,
+		},
+		{
+			MethodName: "ListRecentlyActiveRuns",
+			Handler:    _McpManager_ListRecentlyActiveRuns_Handler,
+		},
+		{
+			MethodName: "ListRecentlyActiveSessions",
+			Handler:    _McpManager_ListRecentlyActiveSessions_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

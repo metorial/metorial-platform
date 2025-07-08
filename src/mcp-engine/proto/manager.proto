@@ -19,6 +19,27 @@ service McpManager {
 
   rpc ListManagers(broker.workerBroker.ListManagersRequest) returns (broker.workerBroker.ListManagersResponse);
   rpc ListWorkers(ListWorkersRequest) returns (ListWorkersResponse);
+
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+
+  rpc ListRuns(ListRunsRequest) returns (ListRunsResponse);
+  rpc GetRun(GetRunRequest) returns (GetRunResponse);
+
+  rpc ListSessionErrors(ListSessionErrorsRequest) returns (ListSessionErrorsResponse);
+  rpc ListSessionEvents(ListSessionEventsRequest) returns (ListSessionEventsResponse);
+  rpc ListSessionMessages(ListSessionMessagesRequest) returns (ListSessionMessagesResponse);
+
+  rpc ListRunErrors(ListRunErrorsRequest) returns (ListRunErrorsResponse);
+  rpc ListRunEvents(ListRunEventsRequest) returns (ListRunEventsResponse);
+  rpc ListRunMessages(ListRunMessagesRequest) returns (ListRunMessagesResponse);
+  
+  rpc GetError(GetErrorRequest) returns (GetErrorResponse);
+  rpc GetEvent(GetEventRequest) returns (GetEventResponse);
+  rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+
+  rpc ListRecentlyActiveRuns(ListRecentlyActiveRunsRequest) returns (ListRecentlyActiveRunsResponse);
+  rpc ListRecentlyActiveSessions(ListRecentlyActiveSessionsRequest) returns (ListRecentlyActiveSessionsResponse);
 }
 
 message CreateSessionRequest {
@@ -277,5 +298,131 @@ message ListPagination {
   ListPaginationOrder order = 4;
 }
 
+message ListSessionsRequest {
+  string external_id = 1;
+  ListPagination pagination = 2;
+}
 
+message ListSessionsResponse {
+  repeated EngineSession sessions = 1;
+}
+
+message GetSessionRequest {
+  string session_id = 1;
+}
+
+message GetSessionResponse {
+  EngineSession session = 1;
+}
+
+message ListRunsRequest {
+  string session_id = 1;
+  ListPagination pagination = 2;
+}
+
+message ListRunsResponse {
+  repeated EngineSessionRun runs = 1;
+}
+
+message GetRunRequest {
+  string run_id = 1;
+}
+
+message GetRunResponse {
+  EngineSessionRun run = 1;
+}
+
+message GetErrorRequest {
+  string error_id = 2;
+}
+
+message GetErrorResponse {
+  EngineSessionError error = 1;
+}
+
+message GetEventRequest {
+  string event_id = 1;
+}
+
+message GetEventResponse {
+  EngineSessionEvent event = 1;
+}
+
+message GetMessageRequest {
+  string message_id = 1;
+}
+
+message GetMessageResponse {
+  EngineSessionMessage message = 1;
+}
+
+message ListRunErrorsRequest {
+  string run_id = 1;
+  ListPagination pagination = 2;
+}
+
+message ListRunErrorsResponse {
+  repeated EngineSessionError errors = 1;
+}
+
+message ListRunEventsRequest {
+  string run_id = 1;
+  ListPagination pagination = 2;
+}
+
+message ListRunEventsResponse {
+  repeated EngineSessionEvent events = 1;
+}
+
+message ListRunMessagesRequest {
+  string run_id = 1;
+  ListPagination pagination = 2;
+}
+
+message ListRunMessagesResponse {
+  repeated EngineSessionMessage messages = 1;
+}
+
+message ListSessionEventsRequest {
+  string session_id = 1;
+  ListPagination pagination = 2;
+}
+
+message ListSessionEventsResponse {
+  repeated EngineSessionEvent events = 1;
+}
+
+message ListSessionErrorsRequest {
+  string session_id = 1;
+  ListPagination pagination = 2;
+}
+
+message ListSessionErrorsResponse {
+  repeated EngineSessionError errors = 1;
+}
+
+message ListSessionMessagesRequest {
+  string session_id = 1;
+  ListPagination pagination = 2;
+}
+
+message ListSessionMessagesResponse {
+  repeated EngineSessionMessage messages = 1;
+}
+
+message ListRecentlyActiveRunsRequest {
+  int64 since = 1;
+}
+
+message ListRecentlyActiveRunsResponse {
+  repeated string run_ids = 1;
+}
+
+message ListRecentlyActiveSessionsRequest {
+  int64 since = 1;
+}
+
+message ListRecentlyActiveSessionsResponse {
+  repeated string session_ids = 1;
+}
 

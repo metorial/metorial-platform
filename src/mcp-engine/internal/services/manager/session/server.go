@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"time"
 
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	"github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
@@ -10,6 +11,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
+	"github.com/metorial/metorial/mcp-engine/pkg/util"
 	"google.golang.org/grpc"
 )
 
@@ -146,4 +148,222 @@ func (s *SessionServer) ListWorkers(context.Context, *managerPb.ListWorkersReque
 
 func (s *SessionServer) Stop() error {
 	return s.sessions.Stop()
+}
+
+func (s *SessionServer) ListRuns(ctx context.Context, req *managerPb.ListRunsRequest) (*managerPb.ListRunsResponse, error) {
+	list, err := s.sessions.db.ListSessionRunsBySession(req.SessionId, req.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := util.MapWithError(list, func(rec db.SessionRun) (*managerPb.EngineSessionRun, error) {
+		return rec.ToPb()
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.ListRunsResponse{Runs: res}, nil
+}
+
+func (s *SessionServer) GetRun(ctx context.Context, req *managerPb.GetRunRequest) (*managerPb.GetRunResponse, error) {
+	rec, err := s.sessions.db.GetSessionRunById(req.RunId)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := rec.ToPb()
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.GetRunResponse{Run: res}, nil
+}
+
+func (s *SessionServer) ListSessions(ctx context.Context, req *managerPb.ListSessionsRequest) (*managerPb.ListSessionsResponse, error) {
+	list, err := s.sessions.db.ListSessionsByExternalId(req.ExternalId, req.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := util.MapWithError(list, func(rec db.Session) (*managerPb.EngineSession, error) {
+		return rec.ToPb()
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.ListSessionsResponse{Sessions: res}, nil
+}
+
+func (s *SessionServer) GetSession(ctx context.Context, req *managerPb.GetSessionRequest) (*managerPb.GetSessionResponse, error) {
+	rec, err := s.sessions.db.GetSessionById(req.SessionId)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := rec.ToPb()
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.GetSessionResponse{Session: res}, nil
+}
+
+func (s *SessionServer) ListRunErrors(ctx context.Context, req *managerPb.ListRunErrorsRequest) (*managerPb.ListRunErrorsResponse, error) {
+	list, err := s.sessions.db.ListSessionErrorsByRun(req.RunId, req.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := util.MapWithError(list, func(rec db.SessionError) (*managerPb.EngineSessionError, error) {
+		return rec.ToPb()
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.ListRunErrorsResponse{Errors: res}, nil
+}
+func (s *SessionServer) ListRunEvents(ctx context.Context, req *managerPb.ListRunEventsRequest) (*managerPb.ListRunEventsResponse, error) {
+	list, err := s.sessions.db.ListSessionEventsByRun(req.RunId, req.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := util.MapWithError(list, func(rec db.SessionEvent) (*managerPb.EngineSessionEvent, error) {
+		return rec.ToPb()
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.ListRunEventsResponse{Events: res}, nil
+}
+
+func (s *SessionServer) ListRunMessages(ctx context.Context, req *managerPb.ListRunMessagesRequest) (*managerPb.ListRunMessagesResponse, error) {
+	list, err := s.sessions.db.ListSessionMessagesByRun(req.RunId, req.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := util.MapWithError(list, func(rec db.SessionMessage) (*managerPb.EngineSessionMessage, error) {
+		return rec.ToPb()
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.ListRunMessagesResponse{Messages: res}, nil
+}
+
+func (s *SessionServer) ListSessionErrors(ctx context.Context, req *managerPb.ListSessionErrorsRequest) (*managerPb.ListSessionErrorsResponse, error) {
+	list, err := s.sessions.db.ListSessionErrorsBySession(req.SessionId, req.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := util.MapWithError(list, func(rec db.SessionError) (*managerPb.EngineSessionError, error) {
+		return rec.ToPb()
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.ListSessionErrorsResponse{Errors: res}, nil
+}
+func (s *SessionServer) ListSessionEvents(ctx context.Context, req *managerPb.ListSessionEventsRequest) (*managerPb.ListSessionEventsResponse, error) {
+	list, err := s.sessions.db.ListSessionEventsBySession(req.SessionId, req.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := util.MapWithError(list, func(rec db.SessionEvent) (*managerPb.EngineSessionEvent, error) {
+		return rec.ToPb()
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.ListSessionEventsResponse{Events: res}, nil
+}
+
+func (s *SessionServer) ListSessionMessages(ctx context.Context, req *managerPb.ListSessionMessagesRequest) (*managerPb.ListSessionMessagesResponse, error) {
+	list, err := s.sessions.db.ListSessionMessagesBySession(req.SessionId, req.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := util.MapWithError(list, func(rec db.SessionMessage) (*managerPb.EngineSessionMessage, error) {
+		return rec.ToPb()
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.ListSessionMessagesResponse{Messages: res}, nil
+}
+
+func (s *SessionServer) GetError(ctx context.Context, req *managerPb.GetErrorRequest) (*managerPb.GetErrorResponse, error) {
+	rec, err := s.sessions.db.GetSessionErrorById(req.ErrorId)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := rec.ToPb()
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.GetErrorResponse{Error: res}, nil
+}
+
+func (s *SessionServer) GetEvent(ctx context.Context, req *managerPb.GetEventRequest) (*managerPb.GetEventResponse, error) {
+	rec, err := s.sessions.db.GetSessionEventById(req.EventId)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := rec.ToPb()
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.GetEventResponse{Event: res}, nil
+}
+
+func (s *SessionServer) GetMessage(ctx context.Context, req *managerPb.GetMessageRequest) (*managerPb.GetMessageResponse, error) {
+	rec, err := s.sessions.db.GetSessionMessageById(req.MessageId)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := rec.ToPb()
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.GetMessageResponse{Message: res}, nil
+}
+
+func (s *SessionServer) ListRecentlyActiveRuns(ctx context.Context, req *managerPb.ListRecentlyActiveRunsRequest) (*managerPb.ListRecentlyActiveRunsResponse, error) {
+	ids, err := s.sessions.db.ListRecentlyActiveSessionRuns(time.UnixMilli(req.Since))
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.ListRecentlyActiveRunsResponse{
+		RunIds: ids,
+	}, nil
+}
+
+func (s *SessionServer) ListRecentlyActiveSessions(ctx context.Context, req *managerPb.ListRecentlyActiveSessionsRequest) (*managerPb.ListRecentlyActiveSessionsResponse, error) {
+	ids, err := s.sessions.db.ListRecentlyActiveSessions(time.UnixMilli(req.Since))
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.ListRecentlyActiveSessionsResponse{
+		SessionIds: ids,
+	}, nil
 }

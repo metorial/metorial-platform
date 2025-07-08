@@ -98,6 +98,7 @@ func (d *DB) CreateSession(session *Session) (*Session, error) {
 	session.CreatedAt = time.Now()
 	session.UpdatedAt = session.CreatedAt
 	session.StartedAt = session.CreatedAt
+	session.LastPingAt = session.CreatedAt
 
 	if session.Metadata == nil {
 		session.Metadata = make(map[string]string)
@@ -108,6 +109,7 @@ func (d *DB) CreateSession(session *Session) (*Session, error) {
 
 func (d *DB) SaveSession(session *Session) error {
 	session.UpdatedAt = time.Now()
+	session.LastPingAt = time.Now()
 
 	if session.Status == SessionStatusError {
 		session.HasError = true
@@ -208,6 +210,23 @@ func (d *DB) GetSessionById(id string) (*Session, error) {
 func (d *DB) getSessionIdsByExternalId(externalId string) ([]string, error) {
 	var sessions []Session
 	err := d.db.Model(&Session{}).Select("id").Where("external_id = ?", externalId).Find(&sessions).Error
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]string, len(sessions))
+	for i, session := range sessions {
+		ids[i] = session.ID
+	}
+	return ids, nil
+}
+
+func (d *DB) ListRecentlyActiveSessions(since time.Time) ([]string, error) {
+	var sessions []Session
+	err := d.db.Model(&Session{}).
+		Where("last_ping_at >= ? or updated_at >= ?", since, since).
+		Select("id").
+		Find(&sessions).Error
 	if err != nil {
 		return nil, err
 	}

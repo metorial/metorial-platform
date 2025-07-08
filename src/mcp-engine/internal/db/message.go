@@ -9,6 +9,7 @@ import (
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
+	"gorm.io/gorm"
 )
 
 type SessionMessageSender int8
@@ -40,8 +41,8 @@ type SessionMessage struct {
 	SessionID string   `gorm:"type:uuid;not null"`
 	Session   *Session `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
-	RunID sql.NullString `gorm:"type:uuid"`
-	Run   *SessionRun    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	RunID string      `gorm:"type:uuid;not null"`
+	Run   *SessionRun `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
 	MessageType   mcp.MessageType
 	MessageMethod sql.NullString `gorm:"type:text"`
@@ -60,7 +61,7 @@ func NewMessage(session *Session, connection *SessionRun, index int, sender Sess
 		ID:            mcpMessage.GetUuid(),
 		SessionID:     session.ID,
 		Session:       session,
-		RunID:         sql.NullString{String: connection.ID, Valid: connection != nil},
+		RunID:         connection.ID,
 		Run:           connection,
 		Index:         index,
 		Sender:        sender,
@@ -150,6 +151,10 @@ func (m *SessionMessage) ToPb() (*managerPb.EngineSessionMessage, error) {
 
 	var conn *managerPb.EngineSessionRun
 	if m.Run != nil {
+		if m.Run.Session == nil {
+			m.Run.Session = m.Session
+		}
+
 		var err error
 		conn, err = m.Run.ToPb()
 		if err != nil {
@@ -165,7 +170,7 @@ func (m *SessionMessage) ToPb() (*managerPb.EngineSessionMessage, error) {
 	return &managerPb.EngineSessionMessage{
 		Id:         m.ID,
 		SessionId:  m.SessionID,
-		RunId:      m.RunID.String,
+		RunId:      m.RunID,
 		Sender:     m.Sender.ToPb(),
 		Run:        conn,
 		Session:    ses,
@@ -173,4 +178,37 @@ func (m *SessionMessage) ToPb() (*managerPb.EngineSessionMessage, error) {
 		Metadata:   m.Metadata,
 		CreatedAt:  m.CreatedAt.UnixMilli(),
 	}, nil
+}
+
+func (d *DB) ListSessionMessagesBySession(sessionId string, pag *managerPb.ListPagination) ([]SessionMessage, error) {
+	query := d.db.Model(&SessionMessage{}).Preload("Run").Preload("Session").Where("session_id = ?", sessionId)
+	return listWithPagination[SessionMessage](query, pag)
+}
+
+func (d *DB) ListSessionMessagesByRun(runId string, pag *managerPb.ListPagination) ([]SessionMessage, error) {
+	query := d.db.Model(&SessionMessage{}).Preload("Run").Preload("Session").Where("run_id = ?", runId)
+	return listWithPagination[SessionMessage](query, pag)
+}
+
+func (d *DB) ListSessionMessagesBySessionExternalId(externalId string, pag *managerPb.ListPagination) ([]SessionMessage, error) {
+	sessionIds, err := d.getSessionIdsByExternalId(externalId)
+	if err != nil {
+		return nil, err
+	}
+
+	query := d.db.Model(&SessionMessage{}).Preload("Run").Preload("Session").Where("session_id IN ?", sessionIds)
+	return listWithPagination[SessionMessage](query, pag)
+}
+
+func (d *DB) GetSessionMessageById(id string) (*SessionMessage, error) {
+	var record SessionMessage
+	err := d.db.Model(&SessionMessage{}).Preload("Run").Preload("Session").Where("id = ?", id).First(&record).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return &record, nil
 }

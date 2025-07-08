@@ -129,6 +129,10 @@ func (e *SessionError) ToPb() (*managerPb.EngineSessionError, error) {
 
 	var connectionPb *managerPb.EngineSessionRun
 	if e.Run != nil {
+		if e.Run.Session == nil {
+			e.Run.Session = e.Session
+		}
+
 		connectionPb, err = e.Run.ToPb()
 		if err != nil {
 			return nil, err
@@ -158,8 +162,13 @@ func (e *SessionError) ToPb() (*managerPb.EngineSessionError, error) {
 	}, nil
 }
 
-func (d *DB) ListSessionErrorsBySession(session *Session, pag *managerPb.ListPagination) ([]SessionError, error) {
-	query := d.db.Model(&SessionError{}).Where("session_id = ?", session.ID)
+func (d *DB) ListSessionErrorsBySession(sessionId string, pag *managerPb.ListPagination) ([]SessionError, error) {
+	query := d.db.Model(&SessionError{}).Preload("Run").Preload("Session").Where("session_id = ?", sessionId)
+	return listWithPagination[SessionError](query, pag)
+}
+
+func (d *DB) ListSessionErrorsByRun(runId string, pag *managerPb.ListPagination) ([]SessionError, error) {
+	query := d.db.Model(&SessionError{}).Preload("Run").Preload("Session").Where("run_id = ?", runId)
 	return listWithPagination[SessionError](query, pag)
 }
 
@@ -169,13 +178,13 @@ func (d *DB) ListSessionErrorsBySessionExternalId(externalId string, pag *manage
 		return nil, err
 	}
 
-	query := d.db.Model(&SessionError{}).Where("session_id IN ?", sessionIds)
+	query := d.db.Model(&SessionError{}).Preload("Run").Preload("Session").Where("session_id IN ?", sessionIds)
 	return listWithPagination[SessionError](query, pag)
 }
 
 func (d *DB) GetSessionErrorById(id string) (*SessionError, error) {
 	var record SessionError
-	err := d.db.Model(&SessionError{}).Where("id = ?", id).First(&record).Error
+	err := d.db.Model(&SessionError{}).Preload("Run").Preload("Session").Where("id = ?", id).First(&record).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}

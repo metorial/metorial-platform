@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/util"
+	"gorm.io/gorm"
 
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 )
@@ -97,6 +98,10 @@ func (e *SessionEvent) ToPb() (*managerPb.EngineSessionEvent, error) {
 
 	var conn *managerPb.EngineSessionRun
 	if e.Run != nil {
+		if e.Run.Session == nil {
+			e.Run.Session = e.Session
+		}
+
 		var err error
 		conn, err = e.Run.ToPb()
 		if err != nil {
@@ -106,6 +111,14 @@ func (e *SessionEvent) ToPb() (*managerPb.EngineSessionEvent, error) {
 
 	var errPb *managerPb.EngineSessionError
 	if e.Error != nil {
+		if e.Error.Run == nil {
+			e.Error.Run = e.Run
+		}
+
+		if e.Error.Session == nil {
+			e.Error.Session = e.Session
+		}
+
 		var err error
 		errPb, err = e.Error.ToPb()
 		if err != nil {
@@ -130,4 +143,37 @@ func (e *SessionEvent) ToPb() (*managerPb.EngineSessionEvent, error) {
 
 		CreatedAt: e.CreatedAt.Unix(),
 	}, nil
+}
+
+func (d *DB) ListSessionEventsBySession(sessionId string, pag *managerPb.ListPagination) ([]SessionEvent, error) {
+	query := d.db.Model(&SessionEvent{}).Preload("Run").Preload("Session").Preload("Error").Preload("Error.Connection").Where("session_id = ?", sessionId)
+	return listWithPagination[SessionEvent](query, pag)
+}
+
+func (d *DB) ListSessionEventsByRun(runId string, pag *managerPb.ListPagination) ([]SessionEvent, error) {
+	query := d.db.Model(&SessionEvent{}).Preload("Run").Preload("Session").Preload("Error").Preload("Error.Connection").Where("run_id = ?", runId)
+	return listWithPagination[SessionEvent](query, pag)
+}
+
+func (d *DB) ListSessionEventsBySessionExternalId(externalId string, pag *managerPb.ListPagination) ([]SessionEvent, error) {
+	sessionIds, err := d.getSessionIdsByExternalId(externalId)
+	if err != nil {
+		return nil, err
+	}
+
+	query := d.db.Model(&SessionEvent{}).Preload("Run").Preload("Session").Preload("Error").Preload("Error.Connection").Where("session_id IN ?", sessionIds)
+	return listWithPagination[SessionEvent](query, pag)
+}
+
+func (d *DB) GetSessionEventById(id string) (*SessionEvent, error) {
+	var record SessionEvent
+	err := d.db.Model(&SessionEvent{}).Preload("Run").Preload("Session").Preload("Error").Preload("Error.Connection").Where("id = ?", id).First(&record).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return &record, nil
 }

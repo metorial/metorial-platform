@@ -119,9 +119,14 @@ func (d *DB) expireActiveSessionRunsRoutine() {
 }
 
 func (c *SessionRun) ToPb() (*managerPb.EngineSessionRun, error) {
-	ses, err := c.Session.ToPb()
-	if err != nil {
-		return nil, err
+	var ses *managerPb.EngineSession
+
+	if c.Session != nil {
+		var err error
+		ses, err = c.Session.ToPb()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &managerPb.EngineSessionRun{
@@ -145,8 +150,8 @@ func (c *SessionRun) ToPb() (*managerPb.EngineSessionRun, error) {
 	}, nil
 }
 
-func (d *DB) ListSessionRunsBySession(session *Session, pag *managerPb.ListPagination) ([]SessionRun, error) {
-	query := d.db.Model(&SessionRun{}).Where("session_id = ?", session.ID)
+func (d *DB) ListSessionRunsBySession(sessionId string, pag *managerPb.ListPagination) ([]SessionRun, error) {
+	query := d.db.Model(&SessionRun{}).Preload("Session").Where("session_id = ?", sessionId)
 	return listWithPagination[SessionRun](query, pag)
 }
 
@@ -156,13 +161,13 @@ func (d *DB) ListSessionRunsBySessionExternalId(externalId string, pag *managerP
 		return nil, err
 	}
 
-	query := d.db.Model(&SessionRun{}).Where("session_id IN ?", sessionIds)
+	query := d.db.Model(&SessionRun{}).Preload("Session").Where("session_id IN ?", sessionIds)
 	return listWithPagination[SessionRun](query, pag)
 }
 
 func (d *DB) GetSessionRunById(id string) (*SessionRun, error) {
 	var record SessionRun
-	err := d.db.Model(&SessionRun{}).Where("id = ?", id).First(&record).Error
+	err := d.db.Model(&SessionRun{}).Preload("Session").Where("id = ?", id).First(&record).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
@@ -171,4 +176,21 @@ func (d *DB) GetSessionRunById(id string) (*SessionRun, error) {
 		return nil, err
 	}
 	return &record, nil
+}
+
+func (d *DB) ListRecentlyActiveSessionRuns(since time.Time) ([]string, error) {
+	var sessions []SessionRun
+	err := d.db.Model(&SessionRun{}).
+		Where("last_ping_at >= ? or updated_at >= ?", since, since).
+		Select("id").
+		Find(&sessions).Error
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]string, len(sessions))
+	for i, session := range sessions {
+		ids[i] = session.ID
+	}
+	return ids, nil
 }

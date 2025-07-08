@@ -41,39 +41,49 @@ func (d *DB) autoMigrate() error {
 }
 
 func listWithPagination[T any](query *gorm.DB, pag *managerPb.ListPagination) ([]T, error) {
-	if pag.Limit > 0 {
-		query = query.Limit(int(pag.Limit))
-	}
-
 	mustReverse := false
 
-	if pag.AfterId != "" {
-		query = query.Where("id > ?", pag.AfterId)
-
-		switch pag.Order {
-		case managerPb.ListPaginationOrder_list_cursor_order_asc:
-			query = query.Order("id ASC")
-		case managerPb.ListPaginationOrder_list_cursor_order_desc:
-			query = query.Order("id DESC")
-		}
-	}
-
-	if pag.BeforeId != "" {
-		query = query.Where("id < ?", pag.BeforeId)
-
-		switch pag.Order {
-		case managerPb.ListPaginationOrder_list_cursor_order_asc:
-			query = query.Order("id DESC")
-		case managerPb.ListPaginationOrder_list_cursor_order_desc:
-			query = query.Order("id ASC")
+	if pag != nil {
+		if pag.Limit > 0 {
+			query = query.Limit(int(pag.Limit))
 		}
 
-		mustReverse = true
+		if pag.AfterId != "" {
+			query = query.Where("id < ?", pag.AfterId)
+
+			switch pag.Order {
+			case managerPb.ListPaginationOrder_list_cursor_order_asc:
+				query = query.Order("id ASC")
+			case managerPb.ListPaginationOrder_list_cursor_order_desc:
+				query = query.Order("id DESC")
+			}
+		} else if pag.BeforeId != "" {
+			query = query.Where("id > ?", pag.BeforeId)
+
+			switch pag.Order {
+			case managerPb.ListPaginationOrder_list_cursor_order_asc:
+				query = query.Order("id DESC")
+			case managerPb.ListPaginationOrder_list_cursor_order_desc:
+				query = query.Order("id ASC")
+			}
+
+			mustReverse = true
+		} else {
+			switch pag.Order {
+			case managerPb.ListPaginationOrder_list_cursor_order_asc:
+				query = query.Order("id ASC")
+			case managerPb.ListPaginationOrder_list_cursor_order_desc:
+				query = query.Order("id DESC")
+			}
+		}
+	} else {
+		query = query.Order("id DESC")
 	}
 
 	out := make([]T, 0)
 
 	err := query.Find(&out).Error
+
 	if err != nil {
 		return nil, err
 	}
