@@ -3,6 +3,7 @@ package base_worker
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"sync"
 
@@ -163,15 +164,15 @@ func (bw *BaseWorkerConnection) healthRoutine() error {
 	for {
 		resp, err := stream.Recv()
 		if err != nil {
-			if err == context.Canceled {
-				return nil // Client has closed the stream
+			bw.cancel()
+
+			if err == context.Canceled || err == io.EOF {
+				return nil
 			}
 
-			return err
-		}
+			log.Printf("Error receiving health update: %v\n", err)
 
-		if resp == nil {
-			continue
+			return err
 		}
 
 		bw.mutex.Lock()
