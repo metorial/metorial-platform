@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/util"
 	"gorm.io/gorm"
 
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
+	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 )
 
 type SessionEventType uint8
@@ -33,6 +33,40 @@ func (s SessionEventType) ToPb() managerPb.EngineSessionEventType {
 	}
 }
 
+type SessionEventOutputType uint8
+
+const (
+	SessionEventTypeOutputTypeStdout SessionEventOutputType = 0
+	SessionEventTypeOutputTypeStderr SessionEventOutputType = 1
+	SessionEventTypeOutputTypeRemote SessionEventOutputType = 2
+)
+
+func (s SessionEventOutputType) ToPb() mcpPb.McpOutput_McpOutputType {
+	switch s {
+	case SessionEventTypeOutputTypeStdout:
+		return mcpPb.McpOutput_stderr
+	case SessionEventTypeOutputTypeStderr:
+		return mcpPb.McpOutput_stdout
+	case SessionEventTypeOutputTypeRemote:
+		return mcpPb.McpOutput_remote
+	default:
+		return mcpPb.McpOutput_stdout
+	}
+}
+
+func SessionEventOutputTypeFromPb(outputType mcpPb.McpOutput_McpOutputType) SessionEventOutputType {
+	switch outputType {
+	case mcpPb.McpOutput_stderr:
+		return SessionEventTypeOutputTypeStderr
+	case mcpPb.McpOutput_stdout:
+		return SessionEventTypeOutputTypeStdout
+	case mcpPb.McpOutput_remote:
+		return SessionEventTypeOutputTypeRemote
+	default:
+		return SessionEventTypeOutputTypeStdout
+	}
+}
+
 type SessionEvent struct {
 	ID string `gorm:"primaryKey;type:uuid;not null"`
 
@@ -47,9 +81,10 @@ type SessionEvent struct {
 	ErrorID sql.NullString `gorm:"type:uuid"`
 	Error   *SessionError  `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
-	Content  sql.NullString    `gorm:"type:text"`
-	Lines    []string          `gorm:"type:jsonb;serializer:json"`
-	Metadata map[string]string `gorm:"type:jsonb;serializer:json"`
+	Lines      []string               `gorm:"type:jsonb;serializer:json"`
+	Metadata   map[string]string      `gorm:"type:jsonb;serializer:json"`
+	OutputType SessionEventOutputType `gorm:"type:smallint;not null;default:0"`
+	OutputId   sql.NullString         `gorm:"type:uuid"`
 
 	CreatedAt time.Time `gorm:"not null"`
 }
@@ -69,20 +104,21 @@ func newErrorEvent(err *SessionError) *SessionEvent {
 		Run:       err.Run,
 		ErrorID:   sql.NullString{String: err.ID, Valid: true},
 		Error:     err,
-		Content:   sql.NullString{},
 		Metadata:  make(map[string]string),
 	}
 }
 
-func NewOutputEvent(session *Session, connection *SessionRun, output *mcp.McpOutput) *SessionEvent {
+func NewOutputEvent(session *Session, run *SessionRun, output *mcpPb.McpOutput) *SessionEvent {
 	return &SessionEvent{
-		ID:        util.Must(uuid.NewV7()).String(),
-		Type:      SessionEventTypeOutput,
-		SessionID: session.ID,
-		Session:   session,
-		RunID:     sql.NullString{String: connection.ID, Valid: connection != nil},
-		Run:       connection,
-		Lines:     output.Lines,
+		ID:         util.Must(uuid.NewV7()).String(),
+		Type:       SessionEventTypeOutput,
+		SessionID:  session.ID,
+		Session:    session,
+		RunID:      sql.NullString{String: run.ID, Valid: true},
+		OutputId:   sql.NullString{String: output.Uuid, Valid: output.Uuid != ""},
+		OutputType: SessionEventOutputTypeFromPb(output.OutputType),
+		Run:        run,
+		Lines:      output.Lines,
 	}
 }
 
@@ -126,6 +162,20 @@ func (e *SessionEvent) ToPb() (*managerPb.EngineSessionEvent, error) {
 		}
 	}
 
+	outputId := e.ID
+	if e.OutputId.Valid {
+		outputId = e.OutputId.String
+	}
+
+	var mcpOutput *mcpPb.McpOutput
+	if e.Type == SessionEventTypeOutput {
+		mcpOutput = &mcpPb.McpOutput{
+			OutputType: e.OutputType.ToPb(),
+			Lines:      e.Lines,
+			Uuid:       outputId,
+		}
+	}
+
 	return &managerPb.EngineSessionEvent{
 		Id:        e.ID,
 		SessionId: e.SessionID,
@@ -137,21 +187,21 @@ func (e *SessionEvent) ToPb() (*managerPb.EngineSessionEvent, error) {
 		Session: ses,
 		Error:   errPb,
 
-		Content:  e.Content.String,
-		Lines:    e.Lines,
 		Metadata: e.Metadata,
+
+		McpOutput: mcpOutput,
 
 		CreatedAt: e.CreatedAt.Unix(),
 	}, nil
 }
 
 func (d *DB) ListSessionEventsBySession(sessionId string, pag *managerPb.ListPagination) ([]SessionEvent, error) {
-	query := d.db.Model(&SessionEvent{}).Preload("Run").Preload("Session").Preload("Error").Preload("Error.Connection").Where("session_id = ?", sessionId)
+	query := d.db.Model(&SessionEvent{}).Preload("Run").Preload("Session").Preload("Error").Preload("Error.Run").Where("session_id = ?", sessionId)
 	return listWithPagination[SessionEvent](query, pag)
 }
 
 func (d *DB) ListSessionEventsByRun(runId string, pag *managerPb.ListPagination) ([]SessionEvent, error) {
-	query := d.db.Model(&SessionEvent{}).Preload("Run").Preload("Session").Preload("Error").Preload("Error.Connection").Where("run_id = ?", runId)
+	query := d.db.Model(&SessionEvent{}).Preload("Run").Preload("Session").Preload("Error").Preload("Error.Run").Where("run_id = ?", runId)
 	return listWithPagination[SessionEvent](query, pag)
 }
 
@@ -161,13 +211,13 @@ func (d *DB) ListSessionEventsBySessionExternalId(externalId string, pag *manage
 		return nil, err
 	}
 
-	query := d.db.Model(&SessionEvent{}).Preload("Run").Preload("Session").Preload("Error").Preload("Error.Connection").Where("session_id IN ?", sessionIds)
+	query := d.db.Model(&SessionEvent{}).Preload("Run").Preload("Session").Preload("Error").Preload("Error.Run").Where("session_id IN ?", sessionIds)
 	return listWithPagination[SessionEvent](query, pag)
 }
 
 func (d *DB) GetSessionEventById(id string) (*SessionEvent, error) {
 	var record SessionEvent
-	err := d.db.Model(&SessionEvent{}).Preload("Run").Preload("Session").Preload("Error").Preload("Error.Connection").Where("id = ?", id).First(&record).Error
+	err := d.db.Model(&SessionEvent{}).Preload("Run").Preload("Session").Preload("Error").Preload("Error.Run").Where("id = ?", id).First(&record).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}

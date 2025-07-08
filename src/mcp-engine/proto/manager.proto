@@ -259,9 +259,10 @@ message EngineSessionEvent {
 
   EngineSessionError error = 8;
 
-  string content = 9;
-  repeated string lines = 10;
+  // repeated string lines = 10;
   map<string, string> metadata = 11;
+
+  broker.mcp.McpOutput mcp_output = 10;
 
   int64 created_at = 12;
 }
