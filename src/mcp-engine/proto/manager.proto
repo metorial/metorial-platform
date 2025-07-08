@@ -19,24 +19,13 @@ service McpManager {
 
   rpc ListManagers(broker.workerBroker.ListManagersRequest) returns (broker.workerBroker.ListManagersResponse);
   rpc ListWorkers(ListWorkersRequest) returns (ListWorkersResponse);
-
-  rpc ListEngineSessions(ListSessionsRequest) returns (ListEngineSessionsResponse);
-  rpc GetEngineSession(GetSessionRequest) returns (GetEngineSessionResponse);
-  rpc ListEngineRuns(ListRunsRequest) returns (ListEngineRunsResponse);
-  rpc GetEngineRun(GetRunRequest) returns (GetEngineSessionRunResponse);
-  rpc ListEngineRunErrors(ListRunErrorsRequest) returns (ListEngineRunErrorsResponse);
-  rpc GetEngineRunError(GetRunErrorRequest) returns (GetEngineRunErrorResponse);
-  rpc ListEngineSessionEvents(ListSessionEventsRequest) returns (ListEngineSessionEventsResponse);
-  rpc GetEngineSessionEvent(GetSessionEventRequest) returns (GetEngineSessionEventResponse);
-  rpc ListEngineSessionMessages(ListSessionMessagesRequest) returns (ListEngineSessionMessagesResponse);
-  rpc GetEngineSessionMessage(GetSessionMessageRequest) returns (GetEngineSessionMessageResponse);
-  rpc ListRecentlyActiveEngineSessions(ListRecentlyActiveSessionsRequest) returns (ListRecentlyActiveSessionsResponse);
 }
 
 message CreateSessionRequest {
   string session_id = 1;
   SessionConfig config = 3;
   broker.mcp.McpParticipant mcp_client = 4;
+  map<string, string> metadata = 5; // Optional, Additional metadata for the session
 }
 
 message ContainerRunConfigWithLauncher {
@@ -288,17 +277,5 @@ message ListPagination {
   ListPaginationOrder order = 4;
 }
 
-message 
 
-ListSessionsRequest) returns (ListEngineSessionsResponse
-GetSessionRequest) returns (GetEngineSessionResponse
-ListRunsRequest) returns (ListEngineRunsResponse
-GetRunRequest) returns (GetEngineSessionRunResponse
-ListRunErrorsRequest) returns (ListEngineRunErrorsResponse
-GetRunErrorRequest) returns (GetEngineRunErrorResponse
-ListSessionEventsRequest) returns (ListEngineSessionEventsResponse
-GetSessionEventRequest) returns (GetEngineSessionEventResponse
-ListSessionMessagesRequest) returns (ListEngineSessionMessagesResponse
-GetSessionMessageRequest) returns (GetEngineSessionMessageResponse
-ListRecentlyActiveSessionsRequest) returns (ListRecentlyActiveSessionsResponse
 

@@ -172,6 +172,7 @@ func (s *Sessions) UpsertSession(
 			db.SessionStatusActive,
 			dbType,
 			client,
+			request.Metadata,
 		))
 		if err != nil {
 			log.Printf("Failed to create session in DB: %v\n", err)

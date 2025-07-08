@@ -75,7 +75,7 @@ type Session struct {
 	EndedAt sql.NullTime
 }
 
-func NewSession(id string, externalId string, status SessionStatus, type_ SessionType, client *mcp.MCPClient) *Session {
+func NewSession(id string, externalId string, status SessionStatus, type_ SessionType, client *mcp.MCPClient, metadata map[string]string) *Session {
 	return &Session{
 		ID:         id,
 		ExternalId: externalId,
@@ -85,7 +85,7 @@ func NewSession(id string, externalId string, status SessionStatus, type_ Sessio
 		Status: status,
 		Type:   type_,
 
-		Metadata: make(map[string]string),
+		Metadata: metadata,
 
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
@@ -99,6 +99,10 @@ func (d *DB) CreateSession(session *Session) (*Session, error) {
 	session.UpdatedAt = session.CreatedAt
 	session.StartedAt = session.CreatedAt
 
+	if session.Metadata == nil {
+		session.Metadata = make(map[string]string)
+	}
+
 	return session, d.db.Create(session).Error
 }
 
@@ -107,6 +111,10 @@ func (d *DB) SaveSession(session *Session) error {
 
 	if session.Status == SessionStatusError {
 		session.HasError = true
+	}
+
+	if session.Metadata == nil {
+		session.Metadata = make(map[string]string)
 	}
 
 	return d.db.Save(session).Error
