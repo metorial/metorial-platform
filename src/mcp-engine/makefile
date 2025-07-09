@@ -37,22 +37,7 @@ lint:
 	golangci-lint run ./...
 
 proto:
-	cd proto && \
-	mkdir -p ../gen && \
-	protoc \
-		--proto_path=. \
-		--go_out=../gen \
-		--go-grpc_out=../gen \
-		common.proto \
-		manager.proto \
-		workerBroker.proto \
-		launcher.proto \
-		remote.proto \
-		mcp.proto \
-		worker.proto \
-		runner.proto && \
-	cp -r ../gen/github.com/metorial/metorial/mcp-engine/* ../ && \
-	rm -rf ../gen/github.com 
+	./scripts/ts-proto.sh && ./scripts/go-proto.sh
 
 proto-mcp-manager:
 	cd pkg/proto-mcp-manager && protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative ./proto-mcp-manager.proto
