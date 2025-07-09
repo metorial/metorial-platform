@@ -50,6 +50,7 @@ model ServerSession {
 
   lastClientActionAt DateTime?
   lastServerActionAt DateTime?
+  EngineSession      EngineSession[]
 }
 
 enum SessionStatus {

@@ -31,6 +31,9 @@ model ServerRun {
   serverRunnerOid BigInt?
   serverRunner    ServerRunner? @relation(fields: [serverRunnerOid], references: [oid])
 
+  engineRunId String?    @db.Uuid
+  engineRun   EngineRun? @relation(fields: [engineRunId], references: [id])
+
   events SessionEvent[]
   errors ServerRunError[]
 

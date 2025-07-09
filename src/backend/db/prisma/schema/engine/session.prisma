@@ -1,0 +1,18 @@
+enum EngineSessionType {
+  remote
+  container
+  unknown
+}
+
+model EngineSession {
+  id String @id @db.Uuid
+
+  type EngineSessionType
+
+  hasEnded Boolean @default(false)
+
+  serverSessionOid BigInt
+  serverSession    ServerSession @relation(fields: [serverSessionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}

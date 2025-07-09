@@ -45,6 +45,9 @@ model ServerRunError {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])
 
+  engineErrorId String? @db.Uuid
+  engineRunId   String? @db.Uuid
+
   createdAt DateTime @default(now())
 
   defaultFor ServerRunErrorGroup[] @relation("DefaultServerRunError")

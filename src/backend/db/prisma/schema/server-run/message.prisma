@@ -20,6 +20,8 @@ model SessionMessage {
   senderType SessionMessageSenderType
   senderId   String
 
+  engineMessageId String? @db.Uuid
+
   method String?
 
   /// [SessionMessageOriginalId]
