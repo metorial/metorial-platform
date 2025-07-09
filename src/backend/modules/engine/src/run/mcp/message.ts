@@ -1,5 +1,6 @@
 import { McpMessage } from '@metorial/mcp-engine-generated';
 import { JSONRPCMessage } from '@modelcontextprotocol/sdk/types';
+import { Participant } from './participant';
 import { MCPMessageType, pbToMessageType } from './types';
 
 export interface EngineMcpMessage {
@@ -8,14 +9,16 @@ export interface EngineMcpMessage {
   type: MCPMessageType;
   method?: string;
   uuid: string;
+  from: Participant;
 }
 
-export let engineMcpMessageFromPb = (msg: McpMessage): EngineMcpMessage => {
+export let engineMcpMessageFromPb = (msg: McpMessage, from: Participant): EngineMcpMessage => {
   return {
     message: JSON.parse(msg.mcpMessage!.message),
     id: msg.idJson != '' ? JSON.parse(msg.idJson) : undefined,
     type: pbToMessageType(msg.messageType),
     method: msg.method == '' ? undefined : msg.method,
-    uuid: msg.mcpMessage!.uuid
+    uuid: msg.mcpMessage!.uuid,
+    from
   };
 };

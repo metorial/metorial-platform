@@ -25,14 +25,18 @@ import {
   McpParticipant_ParticipantType
 } from '@metorial/mcp-engine-generated';
 import { secretService } from '@metorial/module-secret';
+import { getSentry } from '@metorial/sentry';
+import { UnifiedID } from '@metorial/unified-id';
 import { InitializeRequest } from '@modelcontextprotocol/sdk/types';
 import { getClientByHash } from './client';
 import { getSessionConfig } from './config';
-import { engineMcpMessageFromPb } from './mcp/message';
+import { EngineMcpMessage, engineMcpMessageFromPb } from './mcp/message';
 import { MCPMessageType, messageTypeToPb } from './mcp/types';
 import { getFullServerSession } from './utils';
 
 type McpClient = InitializeRequest['params'];
+
+let Sentry = getSentry();
 
 export interface EngineRunConfig {
   serverSession: ServerSession & {
@@ -51,6 +55,7 @@ let sessionLock = createLock({
 
 export class EngineSessionInstance {
   #lastInteraction: Date = new Date();
+  #unifiedId: UnifiedID;
 
   constructor(
     private readonly config: EngineRunConfig,
@@ -61,6 +66,8 @@ export class EngineSessionInstance {
     private readonly deployment: ServerDeployment,
     private readonly implementation: ServerImplementation
   ) {
+    this.#unifiedId = new UnifiedID(this.config.serverSession.id);
+
     activeSessions.set(config.serverSession.id, this);
   }
 
@@ -127,7 +134,8 @@ export class EngineSessionInstance {
       data: {
         id: engineSession.session!.id,
         serverSessionOid: srvSes.oid,
-        type: getEngineSessionType(engineSession.session!)
+        type: getEngineSessionType(engineSession.session!),
+        lastSyncAt: new Date(0)
       }
     });
 
@@ -172,27 +180,38 @@ export class EngineSessionInstance {
       this.touch();
     }, 1000 * 30);
 
+    let currentRun: EngineSessionRun | undefined;
+
     try {
       for await (let message of stream) {
         if (message.mcpMessage) {
-          // TODO: store messages in the database
-          yield engineMcpMessageFromPb(message.mcpMessage);
+          let msg = engineMcpMessageFromPb(message.mcpMessage, {
+            type: 'server',
+            id: currentRun?.id ?? this.config.serverSession.id
+          });
+
+          yield msg;
+
+          this.upsertMessageFromEngineMessage(msg).catch(err => Sentry.captureException(err));
         }
 
         if (message.sessionEvent) {
-          if (message.sessionEvent.infoRun) {
-            this.upsertEngineRun(message.sessionEvent.infoRun.run!);
+          if (message.sessionEvent.infoRun?.run) {
+            currentRun = message.sessionEvent.infoRun.run!;
+            this.upsertEngineRun(currentRun);
           }
 
-          if (message.sessionEvent.startRun) {
-            this.upsertEngineRun(message.sessionEvent.startRun.run!);
+          if (message.sessionEvent.startRun?.run) {
+            currentRun = message.sessionEvent.startRun.run!;
+            this.upsertEngineRun(currentRun);
           }
 
-          if (message.sessionEvent.stopRun) {
-            this.upsertEngineRun(message.sessionEvent.stopRun.run!);
+          if (message.sessionEvent.stopRun?.run) {
+            currentRun = message.sessionEvent.stopRun.run!;
+            this.upsertEngineRun(currentRun);
           }
 
-          if (message.sessionEvent.infoSession) {
+          if (message.sessionEvent.infoSession?.session) {
             this.updateEngineSession(message.sessionEvent.infoSession.session!);
           }
         }
@@ -212,6 +231,33 @@ export class EngineSessionInstance {
 
   private touch() {
     this.#lastInteraction = new Date();
+  }
+
+  private async upsertMessageFromEngineMessage(msg: EngineMcpMessage) {
+    return await db.sessionMessage.upsert({
+      where: { engineMessageId: msg.uuid },
+      update: {},
+      create: {
+        id: ID.generateIdSync('sessionMessage'),
+        type: msg.type,
+        method: msg.method,
+        senderType: msg.from.type,
+        senderId: msg.from.id,
+        serverSessionOid: this.config.serverSession.oid,
+        sessionOid: this.config.serverSession.sessionOid,
+        originalId: msg.id,
+        unifiedId:
+          msg.id !== undefined
+            ? String(
+                this.#unifiedId.serialize({
+                  sender: msg.from,
+                  originalId: msg.id
+                })
+              )
+            : null,
+        payload: msg.message
+      }
+    });
   }
 
   private async updateEngineSession(ses: EngineSession) {
@@ -235,7 +281,8 @@ export class EngineSessionInstance {
         data: {
           id: run.id,
           type: getEngineRunType(run),
-          hasEnded: run.status != EngineRunStatus.run_status_active
+          hasEnded: run.status != EngineRunStatus.run_status_active,
+          lastSyncAt: new Date(0)
         }
       });
 

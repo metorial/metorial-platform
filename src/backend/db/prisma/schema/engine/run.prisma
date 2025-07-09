@@ -11,7 +11,8 @@ model EngineRun {
 
   hasEnded Boolean @default(false)
 
-  createdAt DateTime @default(now())
-
   serverRuns ServerRun[]
+
+  createdAt  DateTime @default(now())
+  lastSyncAt DateTime
 }

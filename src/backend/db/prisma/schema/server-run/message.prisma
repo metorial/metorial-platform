@@ -20,7 +20,7 @@ model SessionMessage {
   senderType SessionMessageSenderType
   senderId   String
 
-  engineMessageId String? @db.Uuid
+  engineMessageId String? @unique @db.Uuid
 
   method String?
 
