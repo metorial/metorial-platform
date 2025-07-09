@@ -1,5 +1,5 @@
 export { Empty } from './ts-proto-gen/common';
-export { LauncherConfig } from './ts-proto-gen/launcher';
+export { LauncherConfig, LauncherConfig_LauncherType } from './ts-proto-gen/launcher';
 export {
   ContainerRunConfigWithLauncher,
   CreateSessionRequest,
@@ -7,14 +7,19 @@ export {
   CreateSessionResponse,
   DiscardSessionRequest,
   DiscardSessionResponse,
+  EngineRunStatus,
+  EngineRunType,
   EngineSession,
   EngineSessionError,
   EngineSessionError_MetadataEntry,
   EngineSessionEvent,
   EngineSessionEvent_MetadataEntry,
+  EngineSessionEventType,
   EngineSessionMessage,
   EngineSessionMessage_MetadataEntry,
   EngineSessionRun,
+  EngineSessionStatus,
+  EngineSessionType,
   GetErrorRequest,
   GetErrorResponse,
   GetEventRequest,
@@ -27,6 +32,7 @@ export {
   GetSessionRequest,
   GetSessionResponse,
   ListPagination,
+  ListPaginationOrder,
   ListRecentlyActiveRunsRequest,
   ListRecentlyActiveRunsResponse,
   ListRecentlyActiveSessionsRequest,
@@ -49,7 +55,6 @@ export {
   ListSessionsResponse,
   ListWorkersRequest,
   ListWorkersResponse,
-  McpManagerClient,
   RemoteRunConfigWithLauncher,
   SendMcpMessageRequest,
   SendMcpMessageResponse,
@@ -59,6 +64,7 @@ export {
   SessionEventInfoSession,
   SessionEventStartRun,
   SessionEventStopRun,
+  SessionMessageSender,
   StreamMcpMessagesRequest,
   StreamMcpMessagesResponse,
   WorkerInfo
@@ -69,9 +75,14 @@ export {
   McpMessageRaw,
   McpMessageType,
   McpOutput,
-  McpParticipant
+  McpParticipant,
+  McpParticipant_ParticipantType
 } from './ts-proto-gen/mcp';
-export { RunConfig as RemoteRunConfig, RunConfigRemoteServer } from './ts-proto-gen/remote';
+export {
+  RunConfig as RemoteRunConfig,
+  RunConfigRemoteServer,
+  RunConfigRemoteServer_ServerProtocol
+} from './ts-proto-gen/remote';
 export { RunConfigContainer, RunConfig as RunnerRunConfig } from './ts-proto-gen/runner';
 export { ListManagersRequest, ListManagersResponse } from './ts-proto-gen/workerBroker';
 
@@ -80,12 +91,12 @@ import { createChannel, createClient, type Client } from 'nice-grpc';
 import { McpManagerService } from './ts-proto-gen/manager';
 
 export let createManagerClient = (opts: {
-  host: string;
+  address: string;
   credentials?: ChannelCredentials;
   options?: ChannelOptions;
 }) => {
   let channel = createChannel(
-    opts.host,
+    opts.address,
     opts.credentials || ChannelCredentials.createInsecure(),
     opts.options || {}
   );
@@ -94,3 +105,5 @@ export let createManagerClient = (opts: {
 
   return client;
 };
+
+export type McpManagerClient = Client<McpManagerService>;

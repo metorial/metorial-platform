@@ -157,8 +157,8 @@ func (s *Sessions) UpsertSession(
 		var dbType db.SessionType
 		switch request.Config.ConfigType.(type) {
 		case *managerPb.SessionConfig_ContainerRunConfigWithLauncher, *managerPb.SessionConfig_ContainerRunConfigWithContainerArguments:
-			workerType = workers.WorkerTypeRunner
-			dbType = db.SessionTypeRunner
+			workerType = workers.WorkerTypeContainer
+			dbType = db.SessionTypeContainer
 
 		case *managerPb.SessionConfig_RemoteRunConfigWithLauncher, *managerPb.SessionConfig_RemoteRunConfigWithServer:
 			workerType = workers.WorkerTypeRemote

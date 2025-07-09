@@ -634,8 +634,8 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 
 	var connectionType db.SessionRunType
 	switch s.WorkerType {
-	case workers.WorkerTypeRunner:
-		connectionType = db.SessionRunTypeRunner
+	case workers.WorkerTypeContainer:
+		connectionType = db.SessionRunTypeContainer
 	case workers.WorkerTypeRemote:
 		connectionType = db.SessionRunTypeRemote
 	default:

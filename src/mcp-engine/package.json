@@ -3,6 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "version": "1.0.0",
   "scripts": {
     "proto": "cd ./proto && grpc_tools_node_protoc --plugin=protoc-gen-ts_proto=protoc-gen-ts_proto --ts_proto_out=./compiled_proto --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false --proto_path=. common.proto"
   },

@@ -11,16 +11,16 @@ import (
 type SessionRunType uint8
 
 const (
-	SessionRunTypeRemote SessionRunType = 0
-	SessionRunTypeRunner SessionRunType = 1
+	SessionRunTypeRemote    SessionRunType = 0
+	SessionRunTypeContainer SessionRunType = 1
 )
 
 func (s SessionRunType) ToPb() managerPb.EngineRunType {
 	switch s {
 	case SessionRunTypeRemote:
 		return managerPb.EngineRunType_run_type_remote
-	case SessionRunTypeRunner:
-		return managerPb.EngineRunType_run_type_runner
+	case SessionRunTypeContainer:
+		return managerPb.EngineRunType_run_type_container
 	default:
 		return managerPb.EngineRunType_run_type_unknown
 	}

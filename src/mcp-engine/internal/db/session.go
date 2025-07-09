@@ -37,15 +37,15 @@ func (s SessionStatus) ToPb() managerPb.EngineSessionStatus {
 type SessionType uint8
 
 const (
-	SessionTypeUnknown SessionType = 0
-	SessionTypeRunner  SessionType = 1
-	SessionTypeRemote  SessionType = 2
+	SessionTypeUnknown   SessionType = 0
+	SessionTypeContainer SessionType = 1
+	SessionTypeRemote    SessionType = 2
 )
 
 func (s SessionType) ToPb() managerPb.EngineSessionType {
 	switch s {
-	case SessionTypeRunner:
-		return managerPb.EngineSessionType_session_type_runner
+	case SessionTypeContainer:
+		return managerPb.EngineSessionType_session_type_container
 	case SessionTypeRemote:
 		return managerPb.EngineSessionType_session_type_remote
 	default:

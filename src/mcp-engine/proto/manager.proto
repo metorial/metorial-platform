@@ -9,8 +9,11 @@ import "mcp.proto";
 import "workerBroker.proto";
 import "launcher.proto";
 import "remote.proto";
+import "common.proto";
 
 service McpManager {
+  rpc Ping(broker.common.Empty) returns (broker.common.Empty);
+
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
   rpc DiscardSession(DiscardSessionRequest) returns (DiscardSessionResponse);
 
@@ -166,7 +169,7 @@ enum EngineSessionStatus {
 
 enum EngineSessionType {
   session_type_unknown = 0;
-  session_type_runner = 1;
+  session_type_container = 1;
   session_type_remote = 2;
 }
 
@@ -198,7 +201,7 @@ enum EngineRunStatus {
 
 enum EngineRunType {
   run_type_unknown = 0;
-  run_type_runner = 1;
+  run_type_container = 1;
   run_type_remote = 2;
 }
 

@@ -12,9 +12,9 @@ import (
 type WorkerType string
 
 const (
-	WorkerTypeRunner   WorkerType = "runner"
-	WorkerTypeLauncher WorkerType = "launcher"
-	WorkerTypeRemote   WorkerType = "remote"
+	WorkerTypeContainer WorkerType = "container"
+	WorkerTypeLauncher  WorkerType = "launcher"
+	WorkerTypeRemote    WorkerType = "remote"
 )
 
 type Worker interface {
@@ -173,7 +173,7 @@ func (wm *WorkerManager) PickWorkerRandomly(workerType WorkerType) (Worker, bool
 func (wm *WorkerManager) GetConnectionHashForWorkerType(workerType WorkerType, input *WorkerConnectionInput) ([]byte, error) {
 	switch workerType {
 
-	case WorkerTypeRunner:
+	case WorkerTypeContainer:
 		if input.ContainerRunConfig == nil {
 			return nil, fmt.Errorf("ContainerRunConfig is required to create a connection hash")
 		}

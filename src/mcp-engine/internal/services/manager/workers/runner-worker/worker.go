@@ -72,7 +72,7 @@ func (rw *RunnerWorker) Stop() error {
 }
 
 func (rw *RunnerWorker) Type() workers.WorkerType {
-	return workers.WorkerTypeRunner
+	return workers.WorkerTypeContainer
 }
 
 func (rw *RunnerWorker) monitor() {

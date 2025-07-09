@@ -21,6 +21,7 @@ import {
   type UntypedServiceImplementation,
 } from "@grpc/grpc-js";
 import Long from "long";
+import { Empty } from "./common";
 import { LauncherConfig } from "./launcher";
 import {
   McpError,
@@ -91,7 +92,7 @@ export function engineSessionStatusToJSON(object: EngineSessionStatus): string {
 
 export enum EngineSessionType {
   session_type_unknown = 0,
-  session_type_runner = 1,
+  session_type_container = 1,
   session_type_remote = 2,
   UNRECOGNIZED = -1,
 }
@@ -102,8 +103,8 @@ export function engineSessionTypeFromJSON(object: any): EngineSessionType {
     case "session_type_unknown":
       return EngineSessionType.session_type_unknown;
     case 1:
-    case "session_type_runner":
-      return EngineSessionType.session_type_runner;
+    case "session_type_container":
+      return EngineSessionType.session_type_container;
     case 2:
     case "session_type_remote":
       return EngineSessionType.session_type_remote;
@@ -118,8 +119,8 @@ export function engineSessionTypeToJSON(object: EngineSessionType): string {
   switch (object) {
     case EngineSessionType.session_type_unknown:
       return "session_type_unknown";
-    case EngineSessionType.session_type_runner:
-      return "session_type_runner";
+    case EngineSessionType.session_type_container:
+      return "session_type_container";
     case EngineSessionType.session_type_remote:
       return "session_type_remote";
     case EngineSessionType.UNRECOGNIZED:
@@ -181,7 +182,7 @@ export function engineRunStatusToJSON(object: EngineRunStatus): string {
 
 export enum EngineRunType {
   run_type_unknown = 0,
-  run_type_runner = 1,
+  run_type_container = 1,
   run_type_remote = 2,
   UNRECOGNIZED = -1,
 }
@@ -192,8 +193,8 @@ export function engineRunTypeFromJSON(object: any): EngineRunType {
     case "run_type_unknown":
       return EngineRunType.run_type_unknown;
     case 1:
-    case "run_type_runner":
-      return EngineRunType.run_type_runner;
+    case "run_type_container":
+      return EngineRunType.run_type_container;
     case 2:
     case "run_type_remote":
       return EngineRunType.run_type_remote;
@@ -208,8 +209,8 @@ export function engineRunTypeToJSON(object: EngineRunType): string {
   switch (object) {
     case EngineRunType.run_type_unknown:
       return "run_type_unknown";
-    case EngineRunType.run_type_runner:
-      return "run_type_runner";
+    case EngineRunType.run_type_container:
+      return "run_type_container";
     case EngineRunType.run_type_remote:
       return "run_type_remote";
     case EngineRunType.UNRECOGNIZED:
@@ -5979,6 +5980,15 @@ export const ListRecentlyActiveSessionsResponse: MessageFns<ListRecentlyActiveSe
 
 export type McpManagerService = typeof McpManagerService;
 export const McpManagerService = {
+  ping: {
+    path: "/broker.manager.McpManager/Ping",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: Empty): Buffer => Buffer.from(Empty.encode(value).finish()),
+    requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
+    responseSerialize: (value: Empty): Buffer => Buffer.from(Empty.encode(value).finish()),
+    responseDeserialize: (value: Buffer): Empty => Empty.decode(value),
+  },
   createSession: {
     path: "/broker.manager.McpManager/CreateSession",
     requestStream: false,
@@ -6206,6 +6216,7 @@ export const McpManagerService = {
 } as const;
 
 export interface McpManagerServer extends UntypedServiceImplementation {
+  ping: handleUnaryCall<Empty, Empty>;
   createSession: handleUnaryCall<CreateSessionRequest, CreateSessionResponse>;
   discardSession: handleUnaryCall<DiscardSessionRequest, DiscardSessionResponse>;
   sendMcpMessage: handleServerStreamingCall<SendMcpMessageRequest, SendMcpMessageResponse>;
@@ -6231,6 +6242,18 @@ export interface McpManagerServer extends UntypedServiceImplementation {
 }
 
 export interface McpManagerClient extends Client {
+  ping(request: Empty, callback: (error: ServiceError | null, response: Empty) => void): ClientUnaryCall;
+  ping(
+    request: Empty,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: Empty) => void,
+  ): ClientUnaryCall;
+  ping(
+    request: Empty,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: Empty) => void,
+  ): ClientUnaryCall;
   createSession(
     request: CreateSessionRequest,
     callback: (error: ServiceError | null, response: CreateSessionResponse) => void,
