@@ -20,7 +20,7 @@ model SessionEvent {
   serverRunErrorOid BigInt?
   serverRunError    ServerRunError? @relation(fields: [serverRunErrorOid], references: [oid])
 
-  engineEventsId String? @unique @db.Uuid
+  engineEventId String? @unique @db.Uuid
 
   createdAt DateTime @default(now())
 }

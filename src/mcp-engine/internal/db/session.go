@@ -176,13 +176,13 @@ func (s *Session) ToPb() (*managerPb.EngineSession, error) {
 		McpClient: clientPart,
 		McpServer: serverPart,
 
-		CreatedAt:  s.CreatedAt.Unix(),
-		UpdatedAt:  s.UpdatedAt.Unix(),
-		StartedAt:  s.StartedAt.Unix(),
-		LastPingAt: s.LastPingAt.Unix(),
+		CreatedAt:  s.CreatedAt.UnixMilli(),
+		UpdatedAt:  s.UpdatedAt.UnixMilli(),
+		StartedAt:  s.StartedAt.UnixMilli(),
+		LastPingAt: s.LastPingAt.UnixMilli(),
 		EndedAt: func() int64 {
 			if s.EndedAt.Valid {
-				return s.EndedAt.Time.Unix()
+				return s.EndedAt.Time.UnixMilli()
 			}
 			return 0
 		}(),

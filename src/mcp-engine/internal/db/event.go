@@ -191,17 +191,23 @@ func (e *SessionEvent) ToPb() (*managerPb.EngineSessionEvent, error) {
 
 		McpOutput: mcpOutput,
 
-		CreatedAt: e.CreatedAt.Unix(),
+		CreatedAt: e.CreatedAt.UnixMilli(),
 	}, nil
 }
 
-func (d *DB) ListSessionEventsBySession(sessionId string, pag *managerPb.ListPagination) ([]SessionEvent, error) {
+func (d *DB) ListSessionEventsBySession(sessionId string, pag *managerPb.ListPagination, after int64) ([]SessionEvent, error) {
 	query := d.db.Model(&SessionEvent{}).Preload("Run").Preload("Session").Preload("Error").Preload("Error.Run").Where("session_id = ?", sessionId)
+	if after != 0 {
+		query = query.Where("created_at > ?", time.UnixMilli(after))
+	}
 	return listWithPagination[SessionEvent](query, pag)
 }
 
-func (d *DB) ListSessionEventsByRun(runId string, pag *managerPb.ListPagination) ([]SessionEvent, error) {
+func (d *DB) ListSessionEventsByRun(runId string, pag *managerPb.ListPagination, after int64) ([]SessionEvent, error) {
 	query := d.db.Model(&SessionEvent{}).Preload("Run").Preload("Session").Preload("Error").Preload("Error.Run").Where("run_id = ?", runId)
+	if after != 0 {
+		query = query.Where("created_at > ?", time.UnixMilli(after))
+	}
 	return listWithPagination[SessionEvent](query, pag)
 }
 

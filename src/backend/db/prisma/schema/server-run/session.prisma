@@ -43,14 +43,15 @@ model ServerSession {
   totalProductiveClientMessageCount Int @default(0)
   totalProductiveServerMessageCount Int @default(0)
 
-  messages   SessionMessage[]
-  serverRuns ServerRun[]
+  messages       SessionMessage[]
+  serverRuns     ServerRun[]
+  engineSessions EngineSession[]
+  engineRuns     EngineRun[]
 
   createdAt DateTime @default(now())
 
   lastClientActionAt DateTime?
   lastServerActionAt DateTime?
-  EngineSession      EngineSession[]
 }
 
 enum SessionStatus {

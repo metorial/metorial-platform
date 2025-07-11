@@ -136,13 +136,13 @@ func (c *SessionRun) ToPb() (*managerPb.EngineSessionRun, error) {
 		Status:     c.Status.ToPb(),
 		HasError:   c.HasError,
 		WorkerId:   c.WorkerID,
-		CreatedAt:  c.CreatedAt.Unix(),
-		UpdatedAt:  c.UpdatedAt.Unix(),
-		StartedAt:  c.StartedAt.Unix(),
-		LastPingAt: c.LastPingAt.Unix(),
+		CreatedAt:  c.CreatedAt.UnixMilli(),
+		UpdatedAt:  c.UpdatedAt.UnixMilli(),
+		StartedAt:  c.StartedAt.UnixMilli(),
+		LastPingAt: c.LastPingAt.UnixMilli(),
 		EndedAt: func() int64 {
 			if c.EndedAt.Valid {
-				return c.EndedAt.Time.Unix()
+				return c.EndedAt.Time.UnixMilli()
 			}
 			return 0
 		}(),
@@ -150,8 +150,11 @@ func (c *SessionRun) ToPb() (*managerPb.EngineSessionRun, error) {
 	}, nil
 }
 
-func (d *DB) ListSessionRunsBySession(sessionId string, pag *managerPb.ListPagination) ([]SessionRun, error) {
+func (d *DB) ListSessionRunsBySession(sessionId string, pag *managerPb.ListPagination, after int64) ([]SessionRun, error) {
 	query := d.db.Model(&SessionRun{}).Preload("Session").Where("session_id = ?", sessionId)
+	if after != 0 {
+		query = query.Where("created_at > ?", time.UnixMilli(after))
+	}
 	return listWithPagination[SessionRun](query, pag)
 }
 

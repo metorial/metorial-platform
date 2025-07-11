@@ -162,7 +162,7 @@ func (s *SessionServer) Stop() error {
 }
 
 func (s *SessionServer) ListRuns(ctx context.Context, req *managerPb.ListRunsRequest) (*managerPb.ListRunsResponse, error) {
-	list, err := s.sessions.db.ListSessionRunsBySession(req.SessionId, req.Pagination)
+	list, err := s.sessions.db.ListSessionRunsBySession(req.SessionId, req.Pagination, req.After)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +222,7 @@ func (s *SessionServer) GetSession(ctx context.Context, req *managerPb.GetSessio
 }
 
 func (s *SessionServer) ListRunErrors(ctx context.Context, req *managerPb.ListRunErrorsRequest) (*managerPb.ListRunErrorsResponse, error) {
-	list, err := s.sessions.db.ListSessionErrorsByRun(req.RunId, req.Pagination)
+	list, err := s.sessions.db.ListSessionErrorsByRun(req.RunId, req.Pagination, req.After)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +237,7 @@ func (s *SessionServer) ListRunErrors(ctx context.Context, req *managerPb.ListRu
 	return &managerPb.ListRunErrorsResponse{Errors: res}, nil
 }
 func (s *SessionServer) ListRunEvents(ctx context.Context, req *managerPb.ListRunEventsRequest) (*managerPb.ListRunEventsResponse, error) {
-	list, err := s.sessions.db.ListSessionEventsByRun(req.RunId, req.Pagination)
+	list, err := s.sessions.db.ListSessionEventsByRun(req.RunId, req.Pagination, req.After)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +253,7 @@ func (s *SessionServer) ListRunEvents(ctx context.Context, req *managerPb.ListRu
 }
 
 func (s *SessionServer) ListRunMessages(ctx context.Context, req *managerPb.ListRunMessagesRequest) (*managerPb.ListRunMessagesResponse, error) {
-	list, err := s.sessions.db.ListSessionMessagesByRun(req.RunId, req.Pagination)
+	list, err := s.sessions.db.ListSessionMessagesByRun(req.RunId, req.Pagination, req.After)
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +269,7 @@ func (s *SessionServer) ListRunMessages(ctx context.Context, req *managerPb.List
 }
 
 func (s *SessionServer) ListSessionErrors(ctx context.Context, req *managerPb.ListSessionErrorsRequest) (*managerPb.ListSessionErrorsResponse, error) {
-	list, err := s.sessions.db.ListSessionErrorsBySession(req.SessionId, req.Pagination)
+	list, err := s.sessions.db.ListSessionErrorsBySession(req.SessionId, req.Pagination, req.After)
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +284,7 @@ func (s *SessionServer) ListSessionErrors(ctx context.Context, req *managerPb.Li
 	return &managerPb.ListSessionErrorsResponse{Errors: res}, nil
 }
 func (s *SessionServer) ListSessionEvents(ctx context.Context, req *managerPb.ListSessionEventsRequest) (*managerPb.ListSessionEventsResponse, error) {
-	list, err := s.sessions.db.ListSessionEventsBySession(req.SessionId, req.Pagination)
+	list, err := s.sessions.db.ListSessionEventsBySession(req.SessionId, req.Pagination, req.After)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +300,7 @@ func (s *SessionServer) ListSessionEvents(ctx context.Context, req *managerPb.Li
 }
 
 func (s *SessionServer) ListSessionMessages(ctx context.Context, req *managerPb.ListSessionMessagesRequest) (*managerPb.ListSessionMessagesResponse, error) {
-	list, err := s.sessions.db.ListSessionMessagesBySession(req.SessionId, req.Pagination)
+	list, err := s.sessions.db.ListSessionMessagesBySession(req.SessionId, req.Pagination, req.After)
 	if err != nil {
 		return nil, err
 	}

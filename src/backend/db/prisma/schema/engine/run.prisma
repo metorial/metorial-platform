@@ -9,10 +9,16 @@ model EngineRun {
 
   type EngineRunType
 
-  hasEnded Boolean @default(false)
+  hasEnded    Boolean @default(false)
+  isFinalized Boolean @default(false)
+
+  serverSessionOid BigInt
+  serverSession    ServerSession @relation(fields: [serverSessionOid], references: [oid])
 
   serverRuns ServerRun[]
 
   createdAt  DateTime @default(now())
   lastSyncAt DateTime
+
+  @@index([isFinalized])
 }

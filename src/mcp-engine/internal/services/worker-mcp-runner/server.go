@@ -52,7 +52,7 @@ func (s *runnerServer) ListActiveRuns(ctx context.Context, req *commonPb.Empty) 
 			DockerImage: run.Init.DockerImage,
 			MaxMemory:   run.Init.ContainerMaxMemory,
 			MaxCpu:      run.Init.ContainerMaxCPU,
-			StartTime:   run.StartTime.Unix(),
+			StartTime:   run.StartTime.UnixMilli(),
 		}
 	}
 
@@ -68,7 +68,7 @@ func (s *runnerServer) ListDockerImages(ctx context.Context, req *commonPb.Empty
 			Name:     image.Name,
 			Tag:      image.Tag,
 			ImageId:  image.ImageID,
-			LastUsed: image.LastUsed.Unix(),
+			LastUsed: image.LastUsed.UnixMilli(),
 		}
 	}
 

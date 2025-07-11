@@ -41,7 +41,7 @@ func (r *workerServer) StreamWorkerHealth(req *workerPb.WorkerHealthRequest, str
 func (r *workerServer) getWorkerInfo() *workerPb.WorkerInfoResponse {
 	res := &workerPb.WorkerInfoResponse{
 		WorkerId:  r.worker.WorkerID,
-		StartTime: r.worker.StartTime.Unix(),
+		StartTime: r.worker.StartTime.UnixMilli(),
 
 		WorkerType: r.worker.workerType,
 

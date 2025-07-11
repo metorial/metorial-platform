@@ -81,11 +81,19 @@ export let createServerError = async (d: {
       id: ID.normalizeUUID('serverRunError', d.error.id),
       code: group.code,
       message,
-      metadata: {},
+      metadata: {
+        ...d.error.mcpError?.metadata,
+        ...d.error.metadata
+      },
       serverDeploymentOid: d.deployment.oid,
       serverRunErrorGroupOid: group.oid,
       serverRunOid: d.serverRun.oid,
-      instanceOid: d.instance.oid
+      instanceOid: d.instance.oid,
+
+      engineErrorId: d.error.id,
+      engineRunId: d.serverRun.engineRunId,
+
+      createdAt: new Date(d.error.createdAt.toNumber())
     }
   });
 
@@ -99,18 +107,4 @@ export let createServerError = async (d: {
   }
 
   return error;
-
-  // await db.sessionEvent.createMany({
-  //   data: {
-  //     id: await ID.generateId('sessionEvent'),
-  //     type: 'server_run_error',
-  //     sessionOid: d.session.sessionOid,
-  //     serverRunOid: d.serverRun.oid,
-  //     serverRunErrorOid: error.oid,
-  //     payload: {
-  //       code: d.result.reason,
-  //       exitCode: d.result.exitCode ?? 0
-  //     }
-  //   }
-  // });
 };

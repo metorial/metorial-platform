@@ -575,6 +575,7 @@ export interface GetSessionResponse {
 export interface ListRunsRequest {
   sessionId: string;
   pagination: ListPagination | undefined;
+  after: Long;
 }
 
 export interface ListRunsResponse {
@@ -616,6 +617,7 @@ export interface GetMessageResponse {
 export interface ListRunErrorsRequest {
   runId: string;
   pagination: ListPagination | undefined;
+  after: Long;
 }
 
 export interface ListRunErrorsResponse {
@@ -625,6 +627,7 @@ export interface ListRunErrorsResponse {
 export interface ListRunEventsRequest {
   runId: string;
   pagination: ListPagination | undefined;
+  after: Long;
 }
 
 export interface ListRunEventsResponse {
@@ -634,6 +637,7 @@ export interface ListRunEventsResponse {
 export interface ListRunMessagesRequest {
   runId: string;
   pagination: ListPagination | undefined;
+  after: Long;
 }
 
 export interface ListRunMessagesResponse {
@@ -643,6 +647,7 @@ export interface ListRunMessagesResponse {
 export interface ListSessionEventsRequest {
   sessionId: string;
   pagination: ListPagination | undefined;
+  after: Long;
 }
 
 export interface ListSessionEventsResponse {
@@ -652,6 +657,7 @@ export interface ListSessionEventsResponse {
 export interface ListSessionErrorsRequest {
   sessionId: string;
   pagination: ListPagination | undefined;
+  after: Long;
 }
 
 export interface ListSessionErrorsResponse {
@@ -661,6 +667,7 @@ export interface ListSessionErrorsResponse {
 export interface ListSessionMessagesRequest {
   sessionId: string;
   pagination: ListPagination | undefined;
+  after: Long;
 }
 
 export interface ListSessionMessagesResponse {
@@ -4452,7 +4459,7 @@ export const GetSessionResponse: MessageFns<GetSessionResponse> = {
 };
 
 function createBaseListRunsRequest(): ListRunsRequest {
-  return { sessionId: "", pagination: undefined };
+  return { sessionId: "", pagination: undefined, after: Long.ZERO };
 }
 
 export const ListRunsRequest: MessageFns<ListRunsRequest> = {
@@ -4462,6 +4469,9 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
     }
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
+    }
+    if (!message.after.equals(Long.ZERO)) {
+      writer.uint32(24).int64(message.after.toString());
     }
     return writer;
   },
@@ -4489,6 +4499,14 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
           message.pagination = ListPagination.decode(reader, reader.uint32());
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.after = Long.fromString(reader.int64().toString());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -4502,6 +4520,7 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
     return {
       sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
+      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
     };
   },
 
@@ -4512,6 +4531,9 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
     }
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
+    }
+    if (!message.after.equals(Long.ZERO)) {
+      obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
   },
@@ -4525,6 +4547,7 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
     return message;
   },
 };
@@ -5062,7 +5085,7 @@ export const GetMessageResponse: MessageFns<GetMessageResponse> = {
 };
 
 function createBaseListRunErrorsRequest(): ListRunErrorsRequest {
-  return { runId: "", pagination: undefined };
+  return { runId: "", pagination: undefined, after: Long.ZERO };
 }
 
 export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
@@ -5072,6 +5095,9 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
     }
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
+    }
+    if (!message.after.equals(Long.ZERO)) {
+      writer.uint32(24).int64(message.after.toString());
     }
     return writer;
   },
@@ -5099,6 +5125,14 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
           message.pagination = ListPagination.decode(reader, reader.uint32());
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.after = Long.fromString(reader.int64().toString());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -5112,6 +5146,7 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
     return {
       runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
+      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
     };
   },
 
@@ -5122,6 +5157,9 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
     }
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
+    }
+    if (!message.after.equals(Long.ZERO)) {
+      obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
   },
@@ -5135,6 +5173,7 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
     return message;
   },
 };
@@ -5202,7 +5241,7 @@ export const ListRunErrorsResponse: MessageFns<ListRunErrorsResponse> = {
 };
 
 function createBaseListRunEventsRequest(): ListRunEventsRequest {
-  return { runId: "", pagination: undefined };
+  return { runId: "", pagination: undefined, after: Long.ZERO };
 }
 
 export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
@@ -5212,6 +5251,9 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
     }
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
+    }
+    if (!message.after.equals(Long.ZERO)) {
+      writer.uint32(24).int64(message.after.toString());
     }
     return writer;
   },
@@ -5239,6 +5281,14 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
           message.pagination = ListPagination.decode(reader, reader.uint32());
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.after = Long.fromString(reader.int64().toString());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -5252,6 +5302,7 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
     return {
       runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
+      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
     };
   },
 
@@ -5262,6 +5313,9 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
     }
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
+    }
+    if (!message.after.equals(Long.ZERO)) {
+      obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
   },
@@ -5275,6 +5329,7 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
     return message;
   },
 };
@@ -5342,7 +5397,7 @@ export const ListRunEventsResponse: MessageFns<ListRunEventsResponse> = {
 };
 
 function createBaseListRunMessagesRequest(): ListRunMessagesRequest {
-  return { runId: "", pagination: undefined };
+  return { runId: "", pagination: undefined, after: Long.ZERO };
 }
 
 export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
@@ -5352,6 +5407,9 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
     }
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
+    }
+    if (!message.after.equals(Long.ZERO)) {
+      writer.uint32(24).int64(message.after.toString());
     }
     return writer;
   },
@@ -5379,6 +5437,14 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
           message.pagination = ListPagination.decode(reader, reader.uint32());
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.after = Long.fromString(reader.int64().toString());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -5392,6 +5458,7 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
     return {
       runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
+      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
     };
   },
 
@@ -5402,6 +5469,9 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
     }
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
+    }
+    if (!message.after.equals(Long.ZERO)) {
+      obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
   },
@@ -5415,6 +5485,7 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
     return message;
   },
 };
@@ -5482,7 +5553,7 @@ export const ListRunMessagesResponse: MessageFns<ListRunMessagesResponse> = {
 };
 
 function createBaseListSessionEventsRequest(): ListSessionEventsRequest {
-  return { sessionId: "", pagination: undefined };
+  return { sessionId: "", pagination: undefined, after: Long.ZERO };
 }
 
 export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
@@ -5492,6 +5563,9 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
     }
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
+    }
+    if (!message.after.equals(Long.ZERO)) {
+      writer.uint32(24).int64(message.after.toString());
     }
     return writer;
   },
@@ -5519,6 +5593,14 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
           message.pagination = ListPagination.decode(reader, reader.uint32());
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.after = Long.fromString(reader.int64().toString());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -5532,6 +5614,7 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
     return {
       sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
+      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
     };
   },
 
@@ -5542,6 +5625,9 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
     }
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
+    }
+    if (!message.after.equals(Long.ZERO)) {
+      obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
   },
@@ -5555,6 +5641,7 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
     return message;
   },
 };
@@ -5622,7 +5709,7 @@ export const ListSessionEventsResponse: MessageFns<ListSessionEventsResponse> = 
 };
 
 function createBaseListSessionErrorsRequest(): ListSessionErrorsRequest {
-  return { sessionId: "", pagination: undefined };
+  return { sessionId: "", pagination: undefined, after: Long.ZERO };
 }
 
 export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
@@ -5632,6 +5719,9 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
     }
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
+    }
+    if (!message.after.equals(Long.ZERO)) {
+      writer.uint32(24).int64(message.after.toString());
     }
     return writer;
   },
@@ -5659,6 +5749,14 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
           message.pagination = ListPagination.decode(reader, reader.uint32());
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.after = Long.fromString(reader.int64().toString());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -5672,6 +5770,7 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
     return {
       sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
+      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
     };
   },
 
@@ -5682,6 +5781,9 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
     }
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
+    }
+    if (!message.after.equals(Long.ZERO)) {
+      obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
   },
@@ -5695,6 +5797,7 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
     return message;
   },
 };
@@ -5762,7 +5865,7 @@ export const ListSessionErrorsResponse: MessageFns<ListSessionErrorsResponse> = 
 };
 
 function createBaseListSessionMessagesRequest(): ListSessionMessagesRequest {
-  return { sessionId: "", pagination: undefined };
+  return { sessionId: "", pagination: undefined, after: Long.ZERO };
 }
 
 export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> = {
@@ -5772,6 +5875,9 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
     }
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
+    }
+    if (!message.after.equals(Long.ZERO)) {
+      writer.uint32(24).int64(message.after.toString());
     }
     return writer;
   },
@@ -5799,6 +5905,14 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
           message.pagination = ListPagination.decode(reader, reader.uint32());
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.after = Long.fromString(reader.int64().toString());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -5812,6 +5926,7 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
     return {
       sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
+      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
     };
   },
 
@@ -5822,6 +5937,9 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
     }
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
+    }
+    if (!message.after.equals(Long.ZERO)) {
+      obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
   },
@@ -5835,6 +5953,7 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
     return message;
   },
 };

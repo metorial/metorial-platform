@@ -5,6 +5,7 @@ import {
   Organization,
   ServerDeployment,
   ServerImplementation,
+  ServerRun,
   ServerSession,
   ServerVariant,
   ServerVersion
@@ -33,6 +34,7 @@ import { UnifiedID } from '@metorial/unified-id';
 import { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sdk/types';
 import { getClientByHash } from './client';
 import { getSessionConfig } from './config';
+import { createSessionMessage } from './data/message';
 import {
   EngineMcpMessage,
   engineMcpMessageFromPb,
@@ -64,6 +66,7 @@ let sessionLock = createLock({
 export class EngineSessionInstance {
   #lastInteraction: Date = new Date();
   #unifiedId: UnifiedID;
+  #serverRun: ServerRun | null = null;
 
   constructor(
     private readonly config: EngineRunConfig,
@@ -151,7 +154,8 @@ export class EngineSessionInstance {
           id: engineSession.session!.id,
           serverSessionOid: srvSes.oid,
           type: getEngineSessionType(engineSession.session!),
-          lastSyncAt: new Date(0)
+          lastSyncAt: new Date(0),
+          createdAt: new Date(engineSession.session!.createdAt.toNumber())
         }
       });
 
@@ -243,7 +247,7 @@ export class EngineSessionInstance {
     }
   }
 
-  async *sendMcpMessage(
+  async *sendMcpMessageStream(
     raw: JSONRPCMessage[],
     opts: {
       includeResponses?: boolean;
@@ -298,8 +302,29 @@ export class EngineSessionInstance {
     }
   }
 
+  async sendMcpMessage(raw: JSONRPCMessage[]) {
+    let stream = this.sendMcpMessageStream(raw, {
+      includeResponses: false
+    });
+
+    for await (let _ of stream) {
+      // Just want for the stream to finish
+    }
+  }
+
+  #lastStoredAt = 0;
   private touch() {
     this.#lastInteraction = new Date();
+
+    let timeSinceLastStored = this.#lastInteraction.getTime() - this.#lastStoredAt;
+    if (timeSinceLastStored > 1000 * 45 && this.#serverRun) {
+      db.serverRun
+        .updateMany({
+          where: { oid: this.#serverRun.oid },
+          data: { lastPingAt: this.#lastInteraction }
+        })
+        .catch(err => Sentry.captureException(err));
+    }
   }
 
   private async handleGrpcError(err: any) {
@@ -381,37 +406,13 @@ export class EngineSessionInstance {
 
   private async upsertMessageFromEngineMessage(msg: EngineMcpMessage) {
     try {
-      return await db.sessionMessage.create({
-        data: {
-          id: ID.normalizeUUID('sessionMessage', msg.uuid),
-          type: msg.type,
-          method: msg.method,
-          senderType: msg.from.type,
-          senderId: msg.from.id,
-          engineMessageId: msg.uuid,
-          serverSessionOid: this.config.serverSession.oid,
-          sessionOid: this.config.serverSession.sessionOid,
-          originalId: msg.id,
-          unifiedId:
-            msg.id !== undefined
-              ? String(
-                  this.#unifiedId.serialize({
-                    sender: msg.from,
-                    originalId: msg.id
-                  })
-                )
-              : null,
-          payload: msg.message
-        }
+      await createSessionMessage({
+        message: msg,
+        serverSession: this.config.serverSession,
+        unifiedId: this.#unifiedId
       });
     } catch (err: any) {
-      if (err.code === 'P2002') {
-        return (await db.sessionMessage.findUnique({
-          where: { engineMessageId: msg.uuid }
-        }))!;
-      }
-
-      throw err;
+      if (err.code != 'P2002') throw err;
     }
   }
 
@@ -420,7 +421,8 @@ export class EngineSessionInstance {
       where: { id: ses.id },
       data: {
         serverSessionOid: this.config.serverSession.oid,
-        type: getEngineSessionType(ses)
+        type: getEngineSessionType(ses),
+        createdAt: new Date(ses.createdAt.toNumber())
       }
     });
   }
@@ -437,7 +439,9 @@ export class EngineSessionInstance {
           id: run.id,
           type: getEngineRunType(run),
           hasEnded: run.status != EngineRunStatus.run_status_active,
-          lastSyncAt: new Date(0)
+          lastSyncAt: new Date(0),
+          createdAt: new Date(run.createdAt.toNumber()),
+          serverSessionOid: this.config.serverSession.oid
         }
       });
 
@@ -458,6 +462,7 @@ export class EngineSessionInstance {
           engineRunId: run.id
         }
       });
+      this.#serverRun = serverRun;
 
       await Fabric.fire('server.server_run.created:after', {
         serverRun,

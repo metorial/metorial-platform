@@ -76,6 +76,7 @@ export {
   McpMessageRaw,
   McpMessageType,
   McpOutput,
+  McpOutput_McpOutputType,
   McpParticipant,
   McpParticipant_ParticipantType
 } from './ts-proto-gen/mcp';
