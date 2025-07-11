@@ -33,9 +33,10 @@ let syncSessionsQueueProcessor = syncSessionsQueue.process(async () => {
     });
     if (sessions.length === 0) break;
 
-    await syncSessionQueue.addMany(
+    await syncSessionQueue.addManyWithOps(
       sessions.map(session => ({
-        sessionId: session.id
+        data: { sessionId: session.id },
+        opts: { id: session.id }
       }))
     );
 
@@ -50,6 +51,13 @@ let syncSessionQueue = createQueue<{ sessionId: string }>({
 let syncSessionQueueProcessor = syncSessionQueue.process(async data => {
   await syncEngineSession({ engineSessionId: data.sessionId });
 });
+
+export let addSessionSync = async (data: { engineSessionId: string }) => {
+  await syncSessionQueue.add(
+    { sessionId: data.engineSessionId },
+    { id: data.engineSessionId }
+  );
+};
 
 export let sessionSyncProcessors = combineQueueProcessors([
   syncSessionsQueueProcessor,

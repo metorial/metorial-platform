@@ -18,5 +18,7 @@ model EngineSession {
   createdAt  DateTime @default(now())
   lastSyncAt DateTime
 
+  runs EngineRun[]
+
   @@index([isFinalized])
 }

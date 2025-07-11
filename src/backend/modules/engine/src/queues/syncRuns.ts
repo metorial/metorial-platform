@@ -13,19 +13,20 @@ let runSyncCron = createCron(
   }
 );
 
-let syncRunsQueue = createQueue({
+let syncRunsQueue = createQueue<{ engineSessionId?: string }>({
   name: 'eng/sync/runs',
   workerOpts: { concurrency: 1 }
 });
 
-let syncRunsQueueProcessor = syncRunsQueue.process(async () => {
+let syncRunsQueueProcessor = syncRunsQueue.process(async data => {
   let cursor: string | undefined = undefined;
 
   while (true) {
     let runs: { id: string }[] = await db.engineRun.findMany({
       where: {
         id: cursor ? { gt: cursor } : undefined,
-        isFinalized: false
+        isFinalized: false,
+        engineSessionId: data.engineSessionId
       },
       orderBy: { id: 'asc' },
       take: 100,
@@ -33,9 +34,10 @@ let syncRunsQueueProcessor = syncRunsQueue.process(async () => {
     });
     if (runs.length === 0) break;
 
-    await syncRunQueue.addMany(
+    await syncRunQueue.addManyWithOps(
       runs.map(run => ({
-        runId: run.id
+        data: { runId: run.id },
+        opts: { id: run.id }
       }))
     );
 
@@ -50,6 +52,17 @@ let syncRunQueue = createQueue<{ runId: string }>({
 let syncRunQueueProcessor = syncRunQueue.process(async data => {
   await syncEngineRun({ engineRunId: data.runId });
 });
+
+export let addRunSync = async (data: { engineRunId: string }) => {
+  await syncRunQueue.add({ runId: data.engineRunId }, { id: data.engineRunId });
+};
+
+export let addRunSyncsForSession = async (data: { engineSessionId: string }) => {
+  await syncRunsQueue.add(
+    { engineSessionId: data.engineSessionId },
+    { id: data.engineSessionId }
+  );
+};
 
 export let runSyncProcessors = combineQueueProcessors([
   syncRunsQueueProcessor,

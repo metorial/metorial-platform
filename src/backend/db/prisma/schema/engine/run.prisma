@@ -12,6 +12,9 @@ model EngineRun {
   hasEnded    Boolean @default(false)
   isFinalized Boolean @default(false)
 
+  engineSessionId String        @db.Uuid
+  engineSession   EngineSession @relation(fields: [engineSessionId], references: [id])
+
   serverSessionOid BigInt
   serverSession    ServerSession @relation(fields: [serverSessionOid], references: [oid])
 

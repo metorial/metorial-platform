@@ -1,5 +1,4 @@
 import { db } from '@metorial/db';
-import { subSeconds } from 'date-fns';
 import { getRandomClient } from '../client';
 
 export let syncEngineSession = async (d: { engineSessionId: string }) => {
@@ -11,14 +10,7 @@ export let syncEngineSession = async (d: { engineSessionId: string }) => {
   });
   if (!engineSession || engineSession.isFinalized) return;
 
-  let serverSession = engineSession.serverSession;
-
   let hasEndedBefore = engineSession.hasEnded;
-
-  let syncTime =
-    engineSession.lastSyncAt.getTime() == 0
-      ? engineSession.lastSyncAt
-      : subSeconds(engineSession.lastSyncAt, 5);
 
   let start = new Date();
 
