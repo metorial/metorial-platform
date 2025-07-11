@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package broker.launcher;
+
+option go_package = "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/launcher;launcher";
+
+service Launcher {
+  rpc RunLauncher(RunLauncherRequest) returns (RunLauncherResponse);
+}
+
+message LauncherConfig {
+  enum LauncherType {
+    deno = 0;
+  }
+
+  LauncherType launcher_type = 1;
+  string code = 2;
+  string json_config = 3;
+}
+
+message RunLauncherRequest {
+  LauncherConfig config = 1;
+}
+
+message RunLauncherResponse {
+  enum Type {
+    error = 0;
+    success = 1;
+  }
+
+  Type type = 1;
+  string json_output = 2;
+  string error_message = 3;
+}
