@@ -103,7 +103,10 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	}
 	s.mutex.RUnlock()
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
+
 		pbSes, err2 := s.dbSession.ToPb()
 		if err2 == nil {
 			stream.Send(&managerPb.SendMcpMessageResponse{
@@ -170,7 +173,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 					return
 				}
 
-				s.touch()
+				s.Touch()
 
 				select {
 				case <-stream.Context().Done():
@@ -271,7 +274,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 		}
 	}
 
-	s.touch()
+	s.Touch()
 
 	wg.Wait()
 
@@ -279,7 +282,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 }
 
 func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError {
-	s.touch()
+	s.Touch()
 
 	go func() {
 		pbSes, err2 := s.dbSession.ToPb()
@@ -379,7 +382,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 			case <-s.context.Done():
 				return nil
 			case <-touchTicker.C:
-				s.touch()
+				s.Touch()
 
 			case <-s.activeConnectionCreated:
 				// Wait for the mutex to be released
@@ -459,7 +462,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 		case <-s.context.Done():
 			return nil
 		case <-touchTicker.C:
-			s.touch()
+			s.Touch()
 
 		case <-doneChan:
 			// The connection has been closed, but the stream remains open
@@ -595,7 +598,7 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 
 	if s.activeConnection != nil {
 		s.mutex.RUnlock()
-		s.touch()
+		s.Touch()
 
 		return nil // Connection already exists
 	}
@@ -653,7 +656,7 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 	)
 	s.activeRunDb = run
 	if err != nil {
-		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to create connection in database", err)
+		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to create connection in database", err)
 	}
 
 	log.Printf("Created connection %s for session %s with worker %s", connection.ConnectionID(), s.storedSession.ID, worker.WorkerID())
@@ -666,7 +669,7 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 			s.dbSession,
 			run,
 			"run_error",
-			"failed to start server",
+			"failed to start/connect to server",
 			map[string]string{
 				"internal_error": err.Error(),
 			},
@@ -874,7 +877,7 @@ loop:
 	log.Printf("Connection %s for session %s has been closed", connection.ConnectionID(), s.storedSession.ID)
 }
 
-func (s *LocalSession) touch() {
+func (s *LocalSession) Touch() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 

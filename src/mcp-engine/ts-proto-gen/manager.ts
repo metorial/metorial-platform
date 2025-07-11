@@ -21,7 +21,6 @@ import {
   type UntypedServiceImplementation,
 } from "@grpc/grpc-js";
 import Long from "long";
-import { Empty } from "./common";
 import { LauncherConfig } from "./launcher";
 import {
   McpError,
@@ -334,6 +333,16 @@ export function listPaginationOrderToJSON(object: ListPaginationOrder): string {
     default:
       return "UNRECOGNIZED";
   }
+}
+
+export interface CheckActiveSessionRequest {
+  sessionId: string;
+}
+
+export interface CheckActiveSessionResponse {
+  isActive: boolean;
+  sessionId: string;
+  session: EngineSession | undefined;
 }
 
 export interface CreateSessionRequest {
@@ -673,6 +682,158 @@ export interface ListRecentlyActiveSessionsRequest {
 export interface ListRecentlyActiveSessionsResponse {
   sessionIds: string[];
 }
+
+function createBaseCheckActiveSessionRequest(): CheckActiveSessionRequest {
+  return { sessionId: "" };
+}
+
+export const CheckActiveSessionRequest: MessageFns<CheckActiveSessionRequest> = {
+  encode(message: CheckActiveSessionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.sessionId !== "") {
+      writer.uint32(10).string(message.sessionId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CheckActiveSessionRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCheckActiveSessionRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sessionId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CheckActiveSessionRequest {
+    return { sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "" };
+  },
+
+  toJSON(message: CheckActiveSessionRequest): unknown {
+    const obj: any = {};
+    if (message.sessionId !== "") {
+      obj.sessionId = message.sessionId;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<CheckActiveSessionRequest>): CheckActiveSessionRequest {
+    return CheckActiveSessionRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CheckActiveSessionRequest>): CheckActiveSessionRequest {
+    const message = createBaseCheckActiveSessionRequest();
+    message.sessionId = object.sessionId ?? "";
+    return message;
+  },
+};
+
+function createBaseCheckActiveSessionResponse(): CheckActiveSessionResponse {
+  return { isActive: false, sessionId: "", session: undefined };
+}
+
+export const CheckActiveSessionResponse: MessageFns<CheckActiveSessionResponse> = {
+  encode(message: CheckActiveSessionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.isActive !== false) {
+      writer.uint32(8).bool(message.isActive);
+    }
+    if (message.sessionId !== "") {
+      writer.uint32(18).string(message.sessionId);
+    }
+    if (message.session !== undefined) {
+      EngineSession.encode(message.session, writer.uint32(26).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CheckActiveSessionResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCheckActiveSessionResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.isActive = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.sessionId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.session = EngineSession.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CheckActiveSessionResponse {
+    return {
+      isActive: isSet(object.isActive) ? globalThis.Boolean(object.isActive) : false,
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
+      session: isSet(object.session) ? EngineSession.fromJSON(object.session) : undefined,
+    };
+  },
+
+  toJSON(message: CheckActiveSessionResponse): unknown {
+    const obj: any = {};
+    if (message.isActive !== false) {
+      obj.isActive = message.isActive;
+    }
+    if (message.sessionId !== "") {
+      obj.sessionId = message.sessionId;
+    }
+    if (message.session !== undefined) {
+      obj.session = EngineSession.toJSON(message.session);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<CheckActiveSessionResponse>): CheckActiveSessionResponse {
+    return CheckActiveSessionResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CheckActiveSessionResponse>): CheckActiveSessionResponse {
+    const message = createBaseCheckActiveSessionResponse();
+    message.isActive = object.isActive ?? false;
+    message.sessionId = object.sessionId ?? "";
+    message.session = (object.session !== undefined && object.session !== null)
+      ? EngineSession.fromPartial(object.session)
+      : undefined;
+    return message;
+  },
+};
 
 function createBaseCreateSessionRequest(): CreateSessionRequest {
   return { sessionId: "", config: undefined, mcpClient: undefined, metadata: {} };
@@ -5980,14 +6141,16 @@ export const ListRecentlyActiveSessionsResponse: MessageFns<ListRecentlyActiveSe
 
 export type McpManagerService = typeof McpManagerService;
 export const McpManagerService = {
-  ping: {
-    path: "/broker.manager.McpManager/Ping",
+  checkActiveSession: {
+    path: "/broker.manager.McpManager/CheckActiveSession",
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: Empty): Buffer => Buffer.from(Empty.encode(value).finish()),
-    requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
-    responseSerialize: (value: Empty): Buffer => Buffer.from(Empty.encode(value).finish()),
-    responseDeserialize: (value: Buffer): Empty => Empty.decode(value),
+    requestSerialize: (value: CheckActiveSessionRequest): Buffer =>
+      Buffer.from(CheckActiveSessionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CheckActiveSessionRequest => CheckActiveSessionRequest.decode(value),
+    responseSerialize: (value: CheckActiveSessionResponse): Buffer =>
+      Buffer.from(CheckActiveSessionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CheckActiveSessionResponse => CheckActiveSessionResponse.decode(value),
   },
   createSession: {
     path: "/broker.manager.McpManager/CreateSession",
@@ -6216,7 +6379,7 @@ export const McpManagerService = {
 } as const;
 
 export interface McpManagerServer extends UntypedServiceImplementation {
-  ping: handleUnaryCall<Empty, Empty>;
+  checkActiveSession: handleUnaryCall<CheckActiveSessionRequest, CheckActiveSessionResponse>;
   createSession: handleUnaryCall<CreateSessionRequest, CreateSessionResponse>;
   discardSession: handleUnaryCall<DiscardSessionRequest, DiscardSessionResponse>;
   sendMcpMessage: handleServerStreamingCall<SendMcpMessageRequest, SendMcpMessageResponse>;
@@ -6242,17 +6405,20 @@ export interface McpManagerServer extends UntypedServiceImplementation {
 }
 
 export interface McpManagerClient extends Client {
-  ping(request: Empty, callback: (error: ServiceError | null, response: Empty) => void): ClientUnaryCall;
-  ping(
-    request: Empty,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: Empty) => void,
+  checkActiveSession(
+    request: CheckActiveSessionRequest,
+    callback: (error: ServiceError | null, response: CheckActiveSessionResponse) => void,
   ): ClientUnaryCall;
-  ping(
-    request: Empty,
+  checkActiveSession(
+    request: CheckActiveSessionRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CheckActiveSessionResponse) => void,
+  ): ClientUnaryCall;
+  checkActiveSession(
+    request: CheckActiveSessionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: Empty) => void,
+    callback: (error: ServiceError | null, response: CheckActiveSessionResponse) => void,
   ): ClientUnaryCall;
   createSession(
     request: CreateSessionRequest,

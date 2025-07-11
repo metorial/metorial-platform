@@ -28,7 +28,7 @@ type RemoteSession struct {
 }
 
 func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError {
-	s.touch()
+	s.Touch()
 
 	responseStream, err := s.connection.SendMcpMessage(s.context, req)
 	if err != nil {
@@ -36,7 +36,7 @@ func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, str
 	}
 
 	for {
-		s.touch()
+		s.Touch()
 
 		response, err := responseStream.Recv()
 		if err != nil {
@@ -54,7 +54,7 @@ func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, str
 }
 
 func (s *RemoteSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError {
-	s.touch()
+	s.Touch()
 
 	responseStream, err := s.connection.StreamMcpMessages(s.context, req)
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *RemoteSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesReques
 			case <-s.context.Done():
 				return
 			case <-touchTicker.C:
-				s.touch()
+				s.Touch()
 			}
 		}
 	}()
@@ -92,7 +92,7 @@ func (s *RemoteSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesReques
 }
 
 func (s *RemoteSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpPb.McpParticipant, *mterror.MTError) {
-	s.touch()
+	s.Touch()
 
 	server, err := s.connection.GetServerInfo(s.context, req)
 	if err != nil {
@@ -160,7 +160,7 @@ func (s *RemoteSession) stop(SessionStopType) error {
 	return nil
 }
 
-func (s *RemoteSession) touch() {
+func (s *RemoteSession) Touch() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 

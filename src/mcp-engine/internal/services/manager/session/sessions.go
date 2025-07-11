@@ -36,6 +36,7 @@ type Session interface {
 	GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpPb.McpParticipant, *mterror.MTError)
 	StoredSession() *state.Session
 	DiscardSession() *mterror.MTError
+	Touch()
 
 	SessionRecord() (*db.Session, *mterror.MTError)
 
@@ -89,7 +90,7 @@ func (s *Sessions) GetLocalSession(sessionId string) Session {
 	return s.sessions[sessionId]
 }
 
-func (s *Sessions) GetSessionUnsafe(sessionId string) (Session, *mterror.MTError) {
+func (s *Sessions) GetSessionSafe(sessionId string) (Session, *mterror.MTError) {
 	if sessionId == "" {
 		return nil, mterror.New(mterror.InvalidRequestKind, "session ID cannot be empty")
 	}
@@ -107,15 +108,29 @@ func (s *Sessions) GetSessionUnsafe(sessionId string) (Session, *mterror.MTError
 	storedSession, err := s.state.GetSession(sessionId)
 	if err != nil {
 		if err.Error() == "session not found" {
-			return nil, mterror.NewWithDetails(mterror.NotFoundKind, "session not found", map[string]string{
-				"session_id": sessionId,
-			})
+			return nil, nil
 		}
 
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get session from state", err)
 	}
 
 	return s.EnsureRemoteSession(storedSession)
+}
+
+func (s *Sessions) GetSessionUnsafe(sessionId string) (Session, *mterror.MTError) {
+	nulSes, err := s.GetSessionSafe(sessionId)
+	if err != nil {
+		return nil, err
+	}
+
+	if nulSes == nil {
+		// If the session is not found, we return an error
+		return nil, mterror.NewWithDetails(mterror.NotFoundKind, "session not found", map[string]string{
+			"session_id": sessionId,
+		})
+	}
+
+	return nulSes, nil
 }
 
 func (s *Sessions) UpsertSession(

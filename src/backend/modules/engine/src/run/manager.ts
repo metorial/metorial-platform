@@ -11,7 +11,7 @@ import {
 } from '@metorial/db';
 import { internalServerError, ServiceError } from '@metorial/error';
 import { Fabric } from '@metorial/fabric';
-import { generateCustomId } from '@metorial/id';
+import { generateCustomId, generatePlainId } from '@metorial/id';
 import { createLock } from '@metorial/lock';
 import {
   CreateSessionResponse,
@@ -30,10 +30,15 @@ import {
 import { secretService } from '@metorial/module-secret';
 import { getSentry } from '@metorial/sentry';
 import { UnifiedID } from '@metorial/unified-id';
-import { InitializeRequest } from '@modelcontextprotocol/sdk/types';
+import { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sdk/types';
 import { getClientByHash } from './client';
 import { getSessionConfig } from './config';
-import { EngineMcpMessage, engineMcpMessageFromPb } from './mcp/message';
+import {
+  EngineMcpMessage,
+  engineMcpMessageFromPb,
+  engineMcpMessageToPbRaw,
+  fromJSONRPCMessage
+} from './mcp/message';
 import { MCPMessageType, messageTypeToPb } from './mcp/types';
 import { getFullServerSession } from './utils';
 
@@ -97,15 +102,6 @@ export class EngineSessionInstance {
       serverSession: srvSes
     });
 
-    let engineSessionTracer = generateCustomId('eng_trac_');
-
-    let DANGEROUSLY_UNENCRYPTED_CONFIG = await secretService.DANGEROUSLY_readSecretValue({
-      secretId: deployment.config.configSecretOid,
-      instance: config.instance,
-      type: 'server_deployment_config',
-      metadata: { serverSessionId: srvSes.id, engineSessionTracer }
-    });
-
     let client = getClientByHash(version.identifier);
     if (!client) {
       throw new ServiceError(
@@ -116,45 +112,70 @@ export class EngineSessionInstance {
       );
     }
 
-    let engineSession = await client.createSession({
-      metadata: {
-        serverSessionId: srvSes.id,
-        instanceId: config.instance.id,
-        engineSessionTracer
-      },
-      mcpClient: {
-        type: McpParticipant_ParticipantType.client,
-        participantJson: JSON.stringify({
-          protocolVersion: srvSes.mcpVersion,
-          capabilities: srvSes.clientCapabilities,
-          clientInfo: srvSes.clientInfo
-        } satisfies McpClient)
-      },
-      config: await getSessionConfig(srvSes, DANGEROUSLY_UNENCRYPTED_CONFIG),
+    let active = await client.checkActiveSession({
       sessionId: srvSes.id
     });
 
-    let ses = await db.engineSession.upsert({
-      where: { id: engineSession.session!.id },
-      update: {},
-      create: {
-        id: engineSession.session!.id,
-        serverSessionOid: srvSes.oid,
-        type: getEngineSessionType(engineSession.session!),
-        lastSyncAt: new Date(0)
-      }
-    });
+    if (!active) {
+      let engineSessionTracer = generateCustomId('eng_trac_');
 
-    await Fabric.fire('server.engine_session.created:after', {
-      organization: config.instance.organization,
-      instance: config.instance,
-      serverSession: srvSes,
-      engineSession: ses
-    });
+      let DANGEROUSLY_UNENCRYPTED_CONFIG = await secretService.DANGEROUSLY_readSecretValue({
+        secretId: deployment.config.configSecretOid,
+        instance: config.instance,
+        type: 'server_deployment_config',
+        metadata: { serverSessionId: srvSes.id, engineSessionTracer }
+      });
+
+      let engineSession = await client.createSession({
+        metadata: {
+          serverSessionId: srvSes.id,
+          instanceId: config.instance.id,
+          engineSessionTracer
+        },
+        mcpClient: {
+          type: McpParticipant_ParticipantType.client,
+          participantJson: JSON.stringify({
+            protocolVersion: srvSes.mcpVersion!,
+            capabilities: srvSes.clientCapabilities!,
+            clientInfo: srvSes.clientInfo!
+          } satisfies McpClient)
+        },
+        config: await getSessionConfig(srvSes, DANGEROUSLY_UNENCRYPTED_CONFIG),
+        sessionId: srvSes.id
+      });
+
+      let ses = await db.engineSession.upsert({
+        where: { id: engineSession.session!.id },
+        update: {},
+        create: {
+          id: engineSession.session!.id,
+          serverSessionOid: srvSes.oid,
+          type: getEngineSessionType(engineSession.session!),
+          lastSyncAt: new Date(0)
+        }
+      });
+
+      await Fabric.fire('server.engine_session.created:after', {
+        organization: config.instance.organization,
+        instance: config.instance,
+        serverSession: srvSes,
+        engineSession: ses
+      });
+
+      return new EngineSessionInstance(
+        config,
+        engineSession,
+        client,
+        version,
+        variant,
+        deployment,
+        implementation
+      );
+    }
 
     return new EngineSessionInstance(
       config,
-      engineSession,
+      active,
       client,
       version,
       variant,
@@ -182,9 +203,10 @@ export class EngineSessionInstance {
       ) as any as McpMessageType[]
     });
 
+    this.touch();
     let touchIv = setInterval(() => {
       this.touch();
-    }, 1000 * 30);
+    }, 1000 * 15);
 
     let currentRun: EngineSessionRun | undefined;
 
@@ -214,6 +236,63 @@ export class EngineSessionInstance {
           this.handleMcpOutput(message.mcpOutput).catch(err => Sentry.captureException(err));
         }
       }
+    } catch (err: any) {
+      await this.handleGrpcError(err);
+    } finally {
+      clearInterval(touchIv);
+    }
+  }
+
+  async *sendMcpMessage(
+    raw: JSONRPCMessage[],
+    opts: {
+      includeResponses?: boolean;
+    }
+  ) {
+    this.touch();
+    let touchIv = setInterval(() => {
+      this.touch();
+    }, 1000 * 30);
+
+    try {
+      let messages = raw.map(msg =>
+        fromJSONRPCMessage(msg, {
+          type: 'client',
+          id: this.config.serverSession.oid.toString(36)
+        })
+      );
+
+      let stream = await this.client.sendMcpMessage({
+        sessionId: this.engineSessionInfo.sessionId,
+        mcpMessages: messages.map(m => engineMcpMessageToPbRaw(m)),
+        includeResponses: !!opts.includeResponses
+      });
+
+      let invocationId =
+        this.config.serverSession.id.slice(-10) + Date.now().toString(36) + generatePlainId(5);
+
+      for await (let message of stream) {
+        if (message.mcpMessage) {
+          let msg = engineMcpMessageFromPb(message.mcpMessage, {
+            type: 'server',
+            id: invocationId
+          });
+
+          yield msg;
+
+          this.upsertMessageFromEngineMessage(msg).catch(err => Sentry.captureException(err));
+        }
+
+        if (message.sessionEvent) {
+          await this.handleSessionEvent(message.sessionEvent);
+        }
+
+        if (message.mcpError) {
+          this.handleMcpError(message.mcpError).catch(err => Sentry.captureException(err));
+        }
+      }
+    } catch (err: any) {
+      await this.handleGrpcError(err);
     } finally {
       clearInterval(touchIv);
     }
@@ -221,6 +300,50 @@ export class EngineSessionInstance {
 
   private touch() {
     this.#lastInteraction = new Date();
+  }
+
+  private async handleGrpcError(err: any) {
+    let details = err?.details ?? err?.extra ?? err;
+    let metadata = details?.metadata ?? details;
+
+    let code = metadata?.code ?? details?.reason ?? details?.kind ?? err?.code ?? 'unknown';
+    let message = metadata?.message ?? details?.message ?? err?.message ?? 'unknown';
+
+    Sentry.captureException(err, {
+      extra: {
+        code,
+        message,
+        metadata,
+
+        serverSessionId: this.config.serverSession.id,
+        instanceId: this.config.instance.id,
+        engineSessionId: this.engineSessionInfo.session?.id
+      }
+    });
+
+    if (code == 'run_error') {
+      throw new ServiceError(
+        internalServerError({
+          reason: 'mtengine/run_error',
+          description: `Metorial Engine was able to connect to the server: ${message}.`
+        })
+      );
+    }
+
+    if (code == 'mcp_message_processing_failed') {
+      throw new ServiceError(
+        internalServerError({
+          reason: 'mtengine/mcp_processing_failed',
+          description: `Metorial Engine received a server error while processing the MCP message: ${message}.`
+        })
+      );
+    }
+
+    throw new ServiceError(
+      internalServerError({
+        reason: 'mtengine/session_error'
+      })
+    );
   }
 
   private async handleMcpError(err: McpError) {

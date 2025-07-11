@@ -8,7 +8,6 @@ package manager
 
 import (
 	context "context"
-	common "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/common"
 	mcp "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	workerBroker "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
 	grpc "google.golang.org/grpc"
@@ -22,7 +21,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	McpManager_Ping_FullMethodName                       = "/broker.manager.McpManager/Ping"
+	McpManager_CheckActiveSession_FullMethodName         = "/broker.manager.McpManager/CheckActiveSession"
 	McpManager_CreateSession_FullMethodName              = "/broker.manager.McpManager/CreateSession"
 	McpManager_DiscardSession_FullMethodName             = "/broker.manager.McpManager/DiscardSession"
 	McpManager_SendMcpMessage_FullMethodName             = "/broker.manager.McpManager/SendMcpMessage"
@@ -51,7 +50,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type McpManagerClient interface {
-	Ping(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*common.Empty, error)
+	CheckActiveSession(ctx context.Context, in *CheckActiveSessionRequest, opts ...grpc.CallOption) (*CheckActiveSessionResponse, error)
 	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionResponse, error)
 	DiscardSession(ctx context.Context, in *DiscardSessionRequest, opts ...grpc.CallOption) (*DiscardSessionResponse, error)
 	SendMcpMessage(ctx context.Context, in *SendMcpMessageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SendMcpMessageResponse], error)
@@ -84,10 +83,10 @@ func NewMcpManagerClient(cc grpc.ClientConnInterface) McpManagerClient {
 	return &mcpManagerClient{cc}
 }
 
-func (c *mcpManagerClient) Ping(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*common.Empty, error) {
+func (c *mcpManagerClient) CheckActiveSession(ctx context.Context, in *CheckActiveSessionRequest, opts ...grpc.CallOption) (*CheckActiveSessionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(common.Empty)
-	err := c.cc.Invoke(ctx, McpManager_Ping_FullMethodName, in, out, cOpts...)
+	out := new(CheckActiveSessionResponse)
+	err := c.cc.Invoke(ctx, McpManager_CheckActiveSession_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -336,7 +335,7 @@ func (c *mcpManagerClient) ListRecentlyActiveSessions(ctx context.Context, in *L
 // All implementations must embed UnimplementedMcpManagerServer
 // for forward compatibility.
 type McpManagerServer interface {
-	Ping(context.Context, *common.Empty) (*common.Empty, error)
+	CheckActiveSession(context.Context, *CheckActiveSessionRequest) (*CheckActiveSessionResponse, error)
 	CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error)
 	DiscardSession(context.Context, *DiscardSessionRequest) (*DiscardSessionResponse, error)
 	SendMcpMessage(*SendMcpMessageRequest, grpc.ServerStreamingServer[SendMcpMessageResponse]) error
@@ -369,8 +368,8 @@ type McpManagerServer interface {
 // pointer dereference when methods are called.
 type UnimplementedMcpManagerServer struct{}
 
-func (UnimplementedMcpManagerServer) Ping(context.Context, *common.Empty) (*common.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+func (UnimplementedMcpManagerServer) CheckActiveSession(context.Context, *CheckActiveSessionRequest) (*CheckActiveSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckActiveSession not implemented")
 }
 func (UnimplementedMcpManagerServer) CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateSession not implemented")
@@ -459,20 +458,20 @@ func RegisterMcpManagerServer(s grpc.ServiceRegistrar, srv McpManagerServer) {
 	s.RegisterService(&McpManager_ServiceDesc, srv)
 }
 
-func _McpManager_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(common.Empty)
+func _McpManager_CheckActiveSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckActiveSessionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(McpManagerServer).Ping(ctx, in)
+		return srv.(McpManagerServer).CheckActiveSession(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: McpManager_Ping_FullMethodName,
+		FullMethod: McpManager_CheckActiveSession_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(McpManagerServer).Ping(ctx, req.(*common.Empty))
+		return srv.(McpManagerServer).CheckActiveSession(ctx, req.(*CheckActiveSessionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -867,8 +866,8 @@ var McpManager_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*McpManagerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Ping",
-			Handler:    _McpManager_Ping_Handler,
+			MethodName: "CheckActiveSession",
+			Handler:    _McpManager_CheckActiveSession_Handler,
 		},
 		{
 			MethodName: "CreateSession",

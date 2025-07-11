@@ -378,3 +378,34 @@ func (s *SessionServer) ListRecentlyActiveSessions(ctx context.Context, req *man
 		SessionIds: ids,
 	}, nil
 }
+
+func (s *SessionServer) CheckActiveSession(ctx context.Context, req *managerPb.CheckActiveSessionRequest) (*managerPb.CheckActiveSessionResponse, error) {
+	nulSes, err := s.sessions.GetSessionSafe(req.SessionId)
+	if err != nil {
+		return nil, err.ToGRPCStatus().Err()
+	}
+
+	if nulSes == nil {
+		// No session found, return false
+		return &managerPb.CheckActiveSessionResponse{
+			IsActive:  false,
+			SessionId: req.SessionId,
+		}, nil
+	}
+
+	rec, err := nulSes.SessionRecord()
+	if err != nil {
+		return nil, err.ToGRPCStatus().Err()
+	}
+
+	recPb, err2 := rec.ToPb()
+	if err2 != nil {
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to convert session record to protobuf", err).ToGRPCStatus().Err()
+	}
+
+	return &managerPb.CheckActiveSessionResponse{
+		IsActive:  true,
+		SessionId: req.SessionId,
+		Session:   recPb,
+	}, nil
+}

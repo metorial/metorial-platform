@@ -9,10 +9,9 @@ import "mcp.proto";
 import "workerBroker.proto";
 import "launcher.proto";
 import "remote.proto";
-import "common.proto";
 
 service McpManager {
-  rpc Ping(broker.common.Empty) returns (broker.common.Empty);
+  rpc CheckActiveSession(CheckActiveSessionRequest) returns (CheckActiveSessionResponse);
 
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
   rpc DiscardSession(DiscardSessionRequest) returns (DiscardSessionResponse);
@@ -45,6 +44,16 @@ service McpManager {
 
   rpc ListRecentlyActiveRuns(ListRecentlyActiveRunsRequest) returns (ListRecentlyActiveRunsResponse);
   rpc ListRecentlyActiveSessions(ListRecentlyActiveSessionsRequest) returns (ListRecentlyActiveSessionsResponse);
+}
+
+message CheckActiveSessionRequest {
+  string session_id = 1;
+}
+
+message CheckActiveSessionResponse {
+  bool is_active = 1;
+  string session_id = 2;
+  EngineSession session = 3;
 }
 
 message CreateSessionRequest {
