@@ -50,7 +50,10 @@ export let getSessionConfig = async (
       launcher,
       server: {
         serverUri: version.remoteUrl,
-        protocol: RunConfigRemoteServer_ServerProtocol.sse // TODO: add support for streamable_http
+        protocol:
+          version.mcpTransport == 'sse'
+            ? RunConfigRemoteServer_ServerProtocol.sse
+            : RunConfigRemoteServer_ServerProtocol.streamable_http
       }
     },
 
