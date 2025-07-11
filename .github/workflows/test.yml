@@ -13,8 +13,8 @@ on:
       - main
 
 jobs:
-  build-and-test:
-    name: 'Build and Test'
+  build-and-test-ts:
+    name: 'Build and Test TS'
     runs-on: ubuntu-latest
 
     steps:
@@ -56,3 +56,38 @@ jobs:
 
       - name: Run Go Staticcheck
         run: make staticcheck
+
+  build-and-test-engine:
+    name: 'Build and Test Engine'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '>=1.17.0'
+
+      - name: Instal Go Dependencies
+        run: go mod download
+        working-directory: ./src/mcp-engine
+
+      - name: Run Go Tests
+        run: make test
+        working-directory: ./src/mcp-engine
+
+      - name: Run Go Vet
+        run: make vet
+        working-directory: ./src/mcp-engine
+
+      - name: Run Go Staticcheck
+        run: make staticcheck
+        working-directory: ./src/mcp-engine
