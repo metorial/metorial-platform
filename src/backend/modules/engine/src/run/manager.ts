@@ -20,9 +20,12 @@ import {
   EngineSession,
   EngineSessionRun,
   EngineSessionType,
+  McpError,
   McpManagerClient,
   McpMessageType,
-  McpParticipant_ParticipantType
+  McpOutput,
+  McpParticipant_ParticipantType,
+  SessionEvent
 } from '@metorial/mcp-engine-generated';
 import { secretService } from '@metorial/module-secret';
 import { getSentry } from '@metorial/sentry';
@@ -116,7 +119,8 @@ export class EngineSessionInstance {
     let engineSession = await client.createSession({
       metadata: {
         serverSessionId: srvSes.id,
-        instanceId: config.instance.id
+        instanceId: config.instance.id,
+        engineSessionTracer
       },
       mcpClient: {
         type: McpParticipant_ParticipantType.client,
@@ -130,8 +134,10 @@ export class EngineSessionInstance {
       sessionId: srvSes.id
     });
 
-    let ses = await db.engineSession.create({
-      data: {
+    let ses = await db.engineSession.upsert({
+      where: { id: engineSession.session!.id },
+      update: {},
+      create: {
         id: engineSession.session!.id,
         serverSessionOid: srvSes.oid,
         type: getEngineSessionType(engineSession.session!),
@@ -196,32 +202,16 @@ export class EngineSessionInstance {
         }
 
         if (message.sessionEvent) {
-          if (message.sessionEvent.infoRun?.run) {
-            currentRun = message.sessionEvent.infoRun.run!;
-            this.upsertEngineRun(currentRun);
-          }
-
-          if (message.sessionEvent.startRun?.run) {
-            currentRun = message.sessionEvent.startRun.run!;
-            this.upsertEngineRun(currentRun);
-          }
-
-          if (message.sessionEvent.stopRun?.run) {
-            currentRun = message.sessionEvent.stopRun.run!;
-            this.upsertEngineRun(currentRun);
-          }
-
-          if (message.sessionEvent.infoSession?.session) {
-            this.updateEngineSession(message.sessionEvent.infoSession.session!);
-          }
+          let { currentRun: run } = await this.handleSessionEvent(message.sessionEvent);
+          if (run) currentRun = run;
         }
 
         if (message.mcpError) {
-          // TODO: store errors in the database
+          this.handleMcpError(message.mcpError).catch(err => Sentry.captureException(err));
         }
 
         if (message.mcpOutput) {
-          // TODO: store session events in the database
+          this.handleMcpOutput(message.mcpOutput).catch(err => Sentry.captureException(err));
         }
       }
     } finally {
@@ -233,31 +223,73 @@ export class EngineSessionInstance {
     this.#lastInteraction = new Date();
   }
 
+  private async handleMcpError(err: McpError) {
+    // Noop for now. The error will be picked up the the sync job in the background
+  }
+
+  private async handleMcpOutput(err: McpOutput) {
+    // Noop for now. The output/event will be picked up the the sync job in the background
+  }
+
+  private async handleSessionEvent(evt: SessionEvent) {
+    let currentRun: EngineSessionRun | undefined;
+
+    if (evt.infoRun?.run) {
+      currentRun = evt.infoRun.run!;
+      await this.upsertEngineRun(currentRun);
+    }
+
+    if (evt.startRun?.run) {
+      currentRun = evt.startRun.run!;
+      await this.upsertEngineRun(currentRun);
+    }
+
+    if (evt.stopRun?.run) {
+      currentRun = evt.stopRun.run!;
+      await this.upsertEngineRun(currentRun);
+    }
+
+    if (evt.infoSession?.session) {
+      await this.updateEngineSession(evt.infoSession.session!);
+    }
+
+    return { currentRun };
+  }
+
   private async upsertMessageFromEngineMessage(msg: EngineMcpMessage) {
-    return await db.sessionMessage.upsert({
-      where: { engineMessageId: msg.uuid },
-      update: {},
-      create: {
-        id: ID.generateIdSync('sessionMessage'),
-        type: msg.type,
-        method: msg.method,
-        senderType: msg.from.type,
-        senderId: msg.from.id,
-        serverSessionOid: this.config.serverSession.oid,
-        sessionOid: this.config.serverSession.sessionOid,
-        originalId: msg.id,
-        unifiedId:
-          msg.id !== undefined
-            ? String(
-                this.#unifiedId.serialize({
-                  sender: msg.from,
-                  originalId: msg.id
-                })
-              )
-            : null,
-        payload: msg.message
+    try {
+      return await db.sessionMessage.create({
+        data: {
+          id: ID.normalizeUUID('sessionMessage', msg.uuid),
+          type: msg.type,
+          method: msg.method,
+          senderType: msg.from.type,
+          senderId: msg.from.id,
+          engineMessageId: msg.uuid,
+          serverSessionOid: this.config.serverSession.oid,
+          sessionOid: this.config.serverSession.sessionOid,
+          originalId: msg.id,
+          unifiedId:
+            msg.id !== undefined
+              ? String(
+                  this.#unifiedId.serialize({
+                    sender: msg.from,
+                    originalId: msg.id
+                  })
+                )
+              : null,
+          payload: msg.message
+        }
+      });
+    } catch (err: any) {
+      if (err.code === 'P2002') {
+        return (await db.sessionMessage.findUnique({
+          where: { engineMessageId: msg.uuid }
+        }))!;
       }
-    });
+
+      throw err;
+    }
   }
 
   private async updateEngineSession(ses: EngineSession) {
@@ -293,7 +325,7 @@ export class EngineSessionInstance {
 
       let serverRun = await db.serverRun.create({
         data: {
-          id: await ID.generateId('serverRun'),
+          id: ID.normalizeUUID('serverRun', run.id),
           status: 'active',
           type: this.version.sourceType == 'remote' ? 'external' : 'hosted',
           serverVersionOid: this.version.oid,

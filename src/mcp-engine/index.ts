@@ -71,6 +71,7 @@ export {
 } from './ts-proto-gen/manager';
 export {
   McpError,
+  McpError_McpErrorCode,
   McpMessage,
   McpMessageRaw,
   McpMessageType,
