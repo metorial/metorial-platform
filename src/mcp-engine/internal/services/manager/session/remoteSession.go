@@ -18,10 +18,10 @@ const REMOTE_SESSION_INACTIVITY_TIMEOUT = time.Second * 60
 type RemoteSession struct {
 	sessionManager *Sessions
 
-	storedSession             *state.Session
-	lastConnectionInteraction time.Time
-	mutex                     sync.RWMutex
-	connection                managerPb.McpManagerClient
+	storedSession          *state.Session
+	lastSessionInteraction time.Time
+	mutex                  sync.RWMutex
+	connection             managerPb.McpManagerClient
 
 	context context.Context
 	cancel  context.CancelFunc
@@ -129,7 +129,7 @@ func (s *RemoteSession) CanDiscard() bool {
 	defer s.mutex.RUnlock()
 
 	// If the last interaction with the connection was too long ago, we can discard it
-	if time.Since(s.lastConnectionInteraction) > REMOTE_SESSION_INACTIVITY_TIMEOUT {
+	if time.Since(s.lastSessionInteraction) > REMOTE_SESSION_INACTIVITY_TIMEOUT {
 		return true
 	}
 
@@ -164,5 +164,5 @@ func (s *RemoteSession) Touch() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	s.lastConnectionInteraction = time.Now()
+	s.lastSessionInteraction = time.Now()
 }

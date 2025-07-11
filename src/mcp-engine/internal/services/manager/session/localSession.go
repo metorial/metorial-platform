@@ -47,6 +47,8 @@ type LocalSession struct {
 	lastConnectionInteraction time.Time
 	activeRunDb               *db.SessionRun
 
+	lastSessionInteraction time.Time
+
 	connectionInput *workers.WorkerConnectionInput
 
 	workerManager *workers.WorkerManager
@@ -174,6 +176,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 				}
 
 				s.Touch()
+				s.lastConnectionInteraction = time.Now()
 
 				select {
 				case <-stream.Context().Done():
@@ -275,6 +278,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	}
 
 	s.Touch()
+	s.lastConnectionInteraction = time.Now()
 
 	wg.Wait()
 
@@ -578,7 +582,7 @@ func (s *LocalSession) CanDiscard() bool {
 	}
 
 	// If the last interaction with the connection was too long ago, we can discard it
-	if time.Since(s.lastConnectionInteraction) > LOCAL_SESSION_INACTIVITY_TIMEOUT {
+	if time.Since(s.lastSessionInteraction) > LOCAL_SESSION_INACTIVITY_TIMEOUT {
 		return true
 	}
 
@@ -599,6 +603,7 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 	if s.activeConnection != nil {
 		s.mutex.RUnlock()
 		s.Touch()
+		s.lastConnectionInteraction = time.Now()
 
 		return nil // Connection already exists
 	}
@@ -682,6 +687,7 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 
 	s.activeConnection = connection
 	s.lastConnectionInteraction = time.Now()
+	s.lastSessionInteraction = time.Now()
 
 	if s.dbSession.McpServer == nil {
 		server, err := connection.GetServer()
@@ -881,7 +887,7 @@ func (s *LocalSession) Touch() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	s.lastConnectionInteraction = time.Now()
+	s.lastSessionInteraction = time.Now()
 
 	if s.dbSession != nil && time.Since(s.dbSession.LastPingAt) > time.Second*60 {
 		s.dbSession.LastPingAt = time.Now()

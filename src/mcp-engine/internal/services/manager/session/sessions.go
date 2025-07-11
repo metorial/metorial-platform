@@ -251,6 +251,7 @@ func (s *Sessions) UpsertSession(
 			activeConnection:          nil,
 			activeConnectionCreated:   make(chan struct{}),
 			lastConnectionInteraction: time.Now(),
+			lastSessionInteraction:    time.Now(),
 
 			workerManager: s.workerManager,
 
@@ -285,8 +286,8 @@ func (s *Sessions) EnsureRemoteSession(storedSession *state.Session) (*RemoteSes
 	session := &RemoteSession{
 		sessionManager: s,
 
-		storedSession:             storedSession,
-		lastConnectionInteraction: time.Now(),
+		storedSession:          storedSession,
+		lastSessionInteraction: time.Now(),
 
 		connection: connection,
 
