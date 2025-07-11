@@ -39,3 +39,20 @@ jobs:
 
       - name: Test
         run: bun run test
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '>=1.17.0'
+
+      - name: Instal Go Dependencies
+        run: go mod download
+        working-directory: ./src/mcp-engine
+
+      - name: Run Go Tests
+        run: make test
+
+      - name: Run Go Vet
+        run: make vet
+
+      - name: Run Go Staticcheck
+        run: make staticcheck
