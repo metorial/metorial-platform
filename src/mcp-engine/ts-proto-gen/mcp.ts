@@ -240,6 +240,10 @@ export function mcpParticipant_ParticipantTypeToJSON(object: McpParticipant_Part
   }
 }
 
+export interface McpConfig {
+  mcpVersion: string;
+}
+
 function createBaseMcpError(): McpError {
   return { errorMessage: "", errorCode: 0, metadata: {}, uuid: "" };
 }
@@ -809,6 +813,64 @@ export const McpParticipant: MessageFns<McpParticipant> = {
     const message = createBaseMcpParticipant();
     message.type = object.type ?? 0;
     message.participantJson = object.participantJson ?? "";
+    return message;
+  },
+};
+
+function createBaseMcpConfig(): McpConfig {
+  return { mcpVersion: "" };
+}
+
+export const McpConfig: MessageFns<McpConfig> = {
+  encode(message: McpConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mcpVersion !== "") {
+      writer.uint32(10).string(message.mcpVersion);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): McpConfig {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMcpConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mcpVersion = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): McpConfig {
+    return { mcpVersion: isSet(object.mcpVersion) ? globalThis.String(object.mcpVersion) : "" };
+  },
+
+  toJSON(message: McpConfig): unknown {
+    const obj: any = {};
+    if (message.mcpVersion !== "") {
+      obj.mcpVersion = message.mcpVersion;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<McpConfig>): McpConfig {
+    return McpConfig.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<McpConfig>): McpConfig {
+    const message = createBaseMcpConfig();
+    message.mcpVersion = object.mcpVersion ?? "";
     return message;
   },
 };

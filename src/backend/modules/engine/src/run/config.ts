@@ -29,6 +29,10 @@ export let getSessionConfig = async (
           maxCpu: '0.5',
           maxMemory: '256mb'
         }
+      },
+
+      mcpConfig: {
+        mcpVersion: version.mcpVersion
       }
     };
   }
@@ -48,6 +52,10 @@ export let getSessionConfig = async (
         serverUri: version.remoteUrl,
         protocol: RunConfigRemoteServer_ServerProtocol.sse // TODO: add support for streamable_http
       }
+    },
+
+    mcpConfig: {
+      mcpVersion: version.mcpVersion
     }
   };
 };

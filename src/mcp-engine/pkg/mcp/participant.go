@@ -57,9 +57,13 @@ func (c *MCPClient) Assemble() map[string]any {
 	return data
 }
 
-func (c *MCPClient) ToInitMessage() (*MCPMessage, error) {
+func (c *MCPClient) ToInitMessage(version string) (*MCPMessage, error) {
+	if version == "" {
+		version = "2024-11-05"
+	}
+
 	inner := c.Assemble()
-	inner["protocolVersion"] = "2024-11-05"
+	inner["protocolVersion"] = version
 
 	return NewMCPRequestMessage(fmt.Sprintf("mte/init/%d", time.Now().UnixMilli()), "initialize", inner)
 }

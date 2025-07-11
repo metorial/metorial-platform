@@ -32,6 +32,7 @@ type WorkerConnectionInput struct {
 	RemoteRunConfig    *remotePb.RunConfig
 
 	MCPClient *mcp.MCPClient
+	McpConfig *mcpPb.McpConfig
 
 	ConnectionID string
 	SessionID    string

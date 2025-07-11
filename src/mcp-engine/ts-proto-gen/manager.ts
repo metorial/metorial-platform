@@ -23,6 +23,7 @@ import {
 import Long from "long";
 import { LauncherConfig } from "./launcher";
 import {
+  McpConfig,
   McpError,
   McpMessage,
   McpMessageRaw,
@@ -374,7 +375,11 @@ export interface SessionConfig {
   containerRunConfigWithLauncher?: ContainerRunConfigWithLauncher | undefined;
   containerRunConfigWithContainerArguments?: RunConfig | undefined;
   remoteRunConfigWithLauncher?: RemoteRunConfigWithLauncher | undefined;
-  remoteRunConfigWithServer?: RunConfig1 | undefined;
+  remoteRunConfigWithServer?:
+    | RunConfig1
+    | undefined;
+  /** Optional, MCP specific configuration */
+  mcpConfig: McpConfig | undefined;
 }
 
 export interface CreateSessionResponse {
@@ -473,6 +478,8 @@ export interface EngineSession {
   startedAt: Long;
   endedAt: Long;
   lastPingAt: Long;
+  /** MCP specific configuration */
+  mcpConfig: McpConfig | undefined;
 }
 
 export interface EngineSessionRun {
@@ -1215,6 +1222,7 @@ function createBaseSessionConfig(): SessionConfig {
     containerRunConfigWithContainerArguments: undefined,
     remoteRunConfigWithLauncher: undefined,
     remoteRunConfigWithServer: undefined,
+    mcpConfig: undefined,
   };
 }
 
@@ -1231,6 +1239,9 @@ export const SessionConfig: MessageFns<SessionConfig> = {
     }
     if (message.remoteRunConfigWithServer !== undefined) {
       RunConfig1.encode(message.remoteRunConfigWithServer, writer.uint32(34).fork()).join();
+    }
+    if (message.mcpConfig !== undefined) {
+      McpConfig.encode(message.mcpConfig, writer.uint32(82).fork()).join();
     }
     return writer;
   },
@@ -1274,6 +1285,14 @@ export const SessionConfig: MessageFns<SessionConfig> = {
           message.remoteRunConfigWithServer = RunConfig1.decode(reader, reader.uint32());
           continue;
         }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.mcpConfig = McpConfig.decode(reader, reader.uint32());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1297,6 +1316,7 @@ export const SessionConfig: MessageFns<SessionConfig> = {
       remoteRunConfigWithServer: isSet(object.remoteRunConfigWithServer)
         ? RunConfig1.fromJSON(object.remoteRunConfigWithServer)
         : undefined,
+      mcpConfig: isSet(object.mcpConfig) ? McpConfig.fromJSON(object.mcpConfig) : undefined,
     };
   },
 
@@ -1315,6 +1335,9 @@ export const SessionConfig: MessageFns<SessionConfig> = {
     }
     if (message.remoteRunConfigWithServer !== undefined) {
       obj.remoteRunConfigWithServer = RunConfig1.toJSON(message.remoteRunConfigWithServer);
+    }
+    if (message.mcpConfig !== undefined) {
+      obj.mcpConfig = McpConfig.toJSON(message.mcpConfig);
     }
     return obj;
   },
@@ -1341,6 +1364,9 @@ export const SessionConfig: MessageFns<SessionConfig> = {
       (object.remoteRunConfigWithServer !== undefined && object.remoteRunConfigWithServer !== null)
         ? RunConfig1.fromPartial(object.remoteRunConfigWithServer)
         : undefined;
+    message.mcpConfig = (object.mcpConfig !== undefined && object.mcpConfig !== null)
+      ? McpConfig.fromPartial(object.mcpConfig)
+      : undefined;
     return message;
   },
 };
@@ -2609,6 +2635,7 @@ function createBaseEngineSession(): EngineSession {
     startedAt: Long.ZERO,
     endedAt: Long.ZERO,
     lastPingAt: Long.ZERO,
+    mcpConfig: undefined,
   };
 }
 
@@ -2649,6 +2676,9 @@ export const EngineSession: MessageFns<EngineSession> = {
     }
     if (!message.lastPingAt.equals(Long.ZERO)) {
       writer.uint32(88).int64(message.lastPingAt.toString());
+    }
+    if (message.mcpConfig !== undefined) {
+      McpConfig.encode(message.mcpConfig, writer.uint32(106).fork()).join();
     }
     return writer;
   },
@@ -2756,6 +2786,14 @@ export const EngineSession: MessageFns<EngineSession> = {
           message.lastPingAt = Long.fromString(reader.int64().toString());
           continue;
         }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.mcpConfig = McpConfig.decode(reader, reader.uint32());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2779,6 +2817,7 @@ export const EngineSession: MessageFns<EngineSession> = {
       startedAt: isSet(object.startedAt) ? Long.fromValue(object.startedAt) : Long.ZERO,
       endedAt: isSet(object.endedAt) ? Long.fromValue(object.endedAt) : Long.ZERO,
       lastPingAt: isSet(object.lastPingAt) ? Long.fromValue(object.lastPingAt) : Long.ZERO,
+      mcpConfig: isSet(object.mcpConfig) ? McpConfig.fromJSON(object.mcpConfig) : undefined,
     };
   },
 
@@ -2820,6 +2859,9 @@ export const EngineSession: MessageFns<EngineSession> = {
     if (!message.lastPingAt.equals(Long.ZERO)) {
       obj.lastPingAt = (message.lastPingAt || Long.ZERO).toString();
     }
+    if (message.mcpConfig !== undefined) {
+      obj.mcpConfig = McpConfig.toJSON(message.mcpConfig);
+    }
     return obj;
   },
 
@@ -2854,6 +2896,9 @@ export const EngineSession: MessageFns<EngineSession> = {
     message.lastPingAt = (object.lastPingAt !== undefined && object.lastPingAt !== null)
       ? Long.fromValue(object.lastPingAt)
       : Long.ZERO;
+    message.mcpConfig = (object.mcpConfig !== undefined && object.mcpConfig !== null)
+      ? McpConfig.fromPartial(object.mcpConfig)
+      : undefined;
     return message;
   },
 };

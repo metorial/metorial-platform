@@ -23,6 +23,8 @@ model ServerVariant {
   dockerImage String?
   remoteUrl   String?
 
+  mcpVersion String @default("2024-11-05")
+
   /// [ServerVersionTools]
   tools Json @default("null")
 

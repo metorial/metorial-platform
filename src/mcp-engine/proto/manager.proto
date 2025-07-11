@@ -81,6 +81,8 @@ message SessionConfig {
     RemoteRunConfigWithLauncher remote_run_config_with_launcher = 3;
     broker.remote.RunConfig remote_run_config_with_server = 4;
   }
+
+  broker.mcp.McpConfig mcp_config = 10; // Optional, MCP specific configuration
 }
 
 message CreateSessionResponse {
@@ -198,6 +200,8 @@ message EngineSession {
   int64 started_at = 9; 
   int64 ended_at = 10;
   int64 last_ping_at = 11; 
+
+  broker.mcp.McpConfig mcp_config = 13; // MCP specific configuration
 }
 
 enum EngineRunStatus {

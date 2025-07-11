@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	mcpPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
+	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
@@ -13,6 +13,7 @@ import (
 type RunnerWorkerConnection struct {
 	mcpServer *mcp.MCPServer
 	mcpClient *mcp.MCPClient
+	mcpConfig *mcpPb.McpConfig
 
 	connectionID string
 	sessionID    string
@@ -34,6 +35,7 @@ func (rw *RunnerWorker) CreateConnection(input *workers.WorkerConnectionInput) (
 	res := &RunnerWorkerConnection{
 		run:       run,
 		mcpClient: input.MCPClient,
+		mcpConfig: input.McpConfig,
 
 		connectionID: input.ConnectionID,
 		sessionID:    input.SessionID,
@@ -47,7 +49,7 @@ func (rwc *RunnerWorkerConnection) Start() error {
 		return fmt.Errorf("failed to start MCP run: %w", err)
 	}
 
-	init, err := rwc.mcpClient.ToInitMessage()
+	init, err := rwc.mcpClient.ToInitMessage(rwc.mcpConfig.McpVersion)
 	if err != nil {
 		return fmt.Errorf("failed to create MCP init message: %w", err)
 	}
@@ -140,7 +142,7 @@ func (rwc *RunnerWorkerConnection) Messages() pubsub.BroadcasterReader[*mcp.MCPM
 	return rwc.run.messages
 }
 
-func (rwc *RunnerWorkerConnection) Output() pubsub.BroadcasterReader[*mcpPB.McpOutput] {
+func (rwc *RunnerWorkerConnection) Output() pubsub.BroadcasterReader[*mcpPb.McpOutput] {
 	if rwc.run == nil {
 		return nil
 	}
@@ -148,7 +150,7 @@ func (rwc *RunnerWorkerConnection) Output() pubsub.BroadcasterReader[*mcpPB.McpO
 	return rwc.run.output
 }
 
-func (rwc *RunnerWorkerConnection) Errors() pubsub.BroadcasterReader[*mcpPB.McpError] {
+func (rwc *RunnerWorkerConnection) Errors() pubsub.BroadcasterReader[*mcpPb.McpError] {
 	if rwc.run == nil {
 		return nil
 	}

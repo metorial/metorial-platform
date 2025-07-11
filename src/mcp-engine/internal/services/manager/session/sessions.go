@@ -136,6 +136,14 @@ func (s *Sessions) GetSessionUnsafe(sessionId string) (Session, *mterror.MTError
 func (s *Sessions) UpsertSession(
 	request *managerPb.CreateSessionRequest,
 ) (Session, *mterror.MTError) {
+	if request.Config == nil {
+		return nil, mterror.New(mterror.InvalidRequestKind, "Config must be provided in session config")
+	}
+
+	if request.Config.McpConfig == nil || request.Config.McpConfig.McpVersion == "" {
+		return nil, mterror.New(mterror.InvalidRequestKind, "McpConfig must be provided in session config")
+	}
+
 	existing := s.GetLocalSession(request.SessionId)
 	if existing != nil {
 		return existing, nil
@@ -184,6 +192,7 @@ func (s *Sessions) UpsertSession(
 			SessionID:    request.SessionId,
 			ConnectionID: "",
 			MCPClient:    client,
+			McpConfig:    request.Config.McpConfig,
 		}
 
 		dbSession, err := s.db.CreateSession(db.NewSession(
@@ -192,6 +201,7 @@ func (s *Sessions) UpsertSession(
 			db.SessionStatusActive,
 			dbType,
 			client,
+			request.Config.McpConfig.McpVersion,
 			request.Metadata,
 		))
 		if err != nil {
@@ -230,7 +240,7 @@ func (s *Sessions) UpsertSession(
 		} else if request.Config.GetRemoteRunConfigWithServer() != nil {
 			connectionInput.RemoteRunConfig = request.Config.GetRemoteRunConfigWithServer()
 		} else {
-			return nil, mterror.New(mterror.InvalidRequestKind, "session config must contain either RunConfigWithContainerArguments or RunConfigWithLauncher")
+			return nil, mterror.New(mterror.InvalidRequestKind, "session must have a valid run config")
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())

@@ -666,6 +666,7 @@ type SessionConfig struct {
 	//	*SessionConfig_RemoteRunConfigWithLauncher
 	//	*SessionConfig_RemoteRunConfigWithServer
 	ConfigType    isSessionConfig_ConfigType `protobuf_oneof:"config_type"`
+	McpConfig     *mcp.McpConfig             `protobuf:"bytes,10,opt,name=mcp_config,json=mcpConfig,proto3" json:"mcp_config,omitempty"` // Optional, MCP specific configuration
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -739,6 +740,13 @@ func (x *SessionConfig) GetRemoteRunConfigWithServer() *remote.RunConfig {
 		if x, ok := x.ConfigType.(*SessionConfig_RemoteRunConfigWithServer); ok {
 			return x.RemoteRunConfigWithServer
 		}
+	}
+	return nil
+}
+
+func (x *SessionConfig) GetMcpConfig() *mcp.McpConfig {
+	if x != nil {
+		return x.McpConfig
 	}
 	return nil
 }
@@ -1747,6 +1755,7 @@ type EngineSession struct {
 	StartedAt     int64                  `protobuf:"varint,9,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	EndedAt       int64                  `protobuf:"varint,10,opt,name=ended_at,json=endedAt,proto3" json:"ended_at,omitempty"`
 	LastPingAt    int64                  `protobuf:"varint,11,opt,name=last_ping_at,json=lastPingAt,proto3" json:"last_ping_at,omitempty"`
+	McpConfig     *mcp.McpConfig         `protobuf:"bytes,13,opt,name=mcp_config,json=mcpConfig,proto3" json:"mcp_config,omitempty"` // MCP specific configuration
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1863,6 +1872,13 @@ func (x *EngineSession) GetLastPingAt() int64 {
 		return x.LastPingAt
 	}
 	return 0
+}
+
+func (x *EngineSession) GetMcpConfig() *mcp.McpConfig {
+	if x != nil {
+		return x.McpConfig
+	}
+	return nil
 }
 
 type EngineSessionRun struct {
@@ -3890,12 +3906,15 @@ const file_manager_proto_rawDesc = "" +
 	"\blauncher\x18\x02 \x01(\v2\x1f.broker.launcher.LauncherConfigR\blauncher\"\x98\x01\n" +
 	"\x1bRemoteRunConfigWithLauncher\x12<\n" +
 	"\x06server\x18\x01 \x01(\v2$.broker.remote.RunConfigRemoteServerR\x06server\x12;\n" +
-	"\blauncher\x18\x02 \x01(\v2\x1f.broker.launcher.LauncherConfigR\blauncher\"\xec\x03\n" +
+	"\blauncher\x18\x02 \x01(\v2\x1f.broker.launcher.LauncherConfigR\blauncher\"\xa2\x04\n" +
 	"\rSessionConfig\x12|\n" +
 	"\"container_run_config_with_launcher\x18\x01 \x01(\v2..broker.manager.ContainerRunConfigWithLauncherH\x00R\x1econtainerRunConfigWithLauncher\x12{\n" +
 	"-container_run_config_with_container_arguments\x18\x02 \x01(\v2\x18.broker.runner.RunConfigH\x00R(containerRunConfigWithContainerArguments\x12s\n" +
 	"\x1fremote_run_config_with_launcher\x18\x03 \x01(\v2+.broker.manager.RemoteRunConfigWithLauncherH\x00R\x1bremoteRunConfigWithLauncher\x12\\\n" +
-	"\x1dremote_run_config_with_server\x18\x04 \x01(\v2\x18.broker.remote.RunConfigH\x00R\x19remoteRunConfigWithServerB\r\n" +
+	"\x1dremote_run_config_with_server\x18\x04 \x01(\v2\x18.broker.remote.RunConfigH\x00R\x19remoteRunConfigWithServer\x124\n" +
+	"\n" +
+	"mcp_config\x18\n" +
+	" \x01(\v2\x15.broker.mcp.McpConfigR\tmcpConfigB\r\n" +
 	"\vconfig_type\"o\n" +
 	"\x15CreateSessionResponse\x12\x1d\n" +
 	"\n" +
@@ -3959,7 +3978,7 @@ const file_manager_proto_rawDesc = "" +
 	"\x15DiscardSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"\x18\n" +
-	"\x16DiscardSessionResponse\"\xe1\x03\n" +
+	"\x16DiscardSessionResponse\"\x97\x04\n" +
 	"\rEngineSession\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vexternal_id\x18\x02 \x01(\tR\n" +
@@ -3980,7 +3999,9 @@ const file_manager_proto_rawDesc = "" +
 	"\bended_at\x18\n" +
 	" \x01(\x03R\aendedAt\x12 \n" +
 	"\flast_ping_at\x18\v \x01(\x03R\n" +
-	"lastPingAt\"\xba\x03\n" +
+	"lastPingAt\x124\n" +
+	"\n" +
+	"mcp_config\x18\r \x01(\v2\x15.broker.mcp.McpConfigR\tmcpConfig\"\xba\x03\n" +
 	"\x10EngineSessionRun\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -4309,141 +4330,144 @@ var file_manager_proto_goTypes = []any{
 	(*remote.RunConfigRemoteServer)(nil),     // 72: broker.remote.RunConfigRemoteServer
 	(*runner.RunConfig)(nil),                 // 73: broker.runner.RunConfig
 	(*remote.RunConfig)(nil),                 // 74: broker.remote.RunConfig
-	(*mcp.McpMessageRaw)(nil),                // 75: broker.mcp.McpMessageRaw
-	(*mcp.McpMessage)(nil),                   // 76: broker.mcp.McpMessage
-	(*mcp.McpError)(nil),                     // 77: broker.mcp.McpError
-	(mcp.McpMessageType)(0),                  // 78: broker.mcp.McpMessageType
-	(*mcp.McpOutput)(nil),                    // 79: broker.mcp.McpOutput
-	(*workerBroker.ListManagersRequest)(nil), // 80: broker.workerBroker.ListManagersRequest
-	(*workerBroker.ListManagersResponse)(nil), // 81: broker.workerBroker.ListManagersResponse
+	(*mcp.McpConfig)(nil),                    // 75: broker.mcp.McpConfig
+	(*mcp.McpMessageRaw)(nil),                // 76: broker.mcp.McpMessageRaw
+	(*mcp.McpMessage)(nil),                   // 77: broker.mcp.McpMessage
+	(*mcp.McpError)(nil),                     // 78: broker.mcp.McpError
+	(mcp.McpMessageType)(0),                  // 79: broker.mcp.McpMessageType
+	(*mcp.McpOutput)(nil),                    // 80: broker.mcp.McpOutput
+	(*workerBroker.ListManagersRequest)(nil), // 81: broker.workerBroker.ListManagersRequest
+	(*workerBroker.ListManagersResponse)(nil), // 82: broker.workerBroker.ListManagersResponse
 }
 var file_manager_proto_depIdxs = []int32{
-	29, // 0: broker.manager.CheckActiveSessionResponse.session:type_name -> broker.manager.EngineSession
-	12, // 1: broker.manager.CreateSessionRequest.config:type_name -> broker.manager.SessionConfig
-	69, // 2: broker.manager.CreateSessionRequest.mcp_client:type_name -> broker.mcp.McpParticipant
-	65, // 3: broker.manager.CreateSessionRequest.metadata:type_name -> broker.manager.CreateSessionRequest.MetadataEntry
-	70, // 4: broker.manager.ContainerRunConfigWithLauncher.container:type_name -> broker.runner.RunConfigContainer
-	71, // 5: broker.manager.ContainerRunConfigWithLauncher.launcher:type_name -> broker.launcher.LauncherConfig
-	72, // 6: broker.manager.RemoteRunConfigWithLauncher.server:type_name -> broker.remote.RunConfigRemoteServer
-	71, // 7: broker.manager.RemoteRunConfigWithLauncher.launcher:type_name -> broker.launcher.LauncherConfig
-	10, // 8: broker.manager.SessionConfig.container_run_config_with_launcher:type_name -> broker.manager.ContainerRunConfigWithLauncher
-	73, // 9: broker.manager.SessionConfig.container_run_config_with_container_arguments:type_name -> broker.runner.RunConfig
-	11, // 10: broker.manager.SessionConfig.remote_run_config_with_launcher:type_name -> broker.manager.RemoteRunConfigWithLauncher
-	74, // 11: broker.manager.SessionConfig.remote_run_config_with_server:type_name -> broker.remote.RunConfig
-	29, // 12: broker.manager.CreateSessionResponse.session:type_name -> broker.manager.EngineSession
-	75, // 13: broker.manager.SendMcpMessageRequest.mcp_messages:type_name -> broker.mcp.McpMessageRaw
-	76, // 14: broker.manager.SendMcpMessageResponse.mcp_message:type_name -> broker.mcp.McpMessage
-	77, // 15: broker.manager.SendMcpMessageResponse.mcp_error:type_name -> broker.mcp.McpError
-	21, // 16: broker.manager.SendMcpMessageResponse.session_event:type_name -> broker.manager.SessionEvent
-	78, // 17: broker.manager.StreamMcpMessagesRequest.only_message_types:type_name -> broker.mcp.McpMessageType
-	30, // 18: broker.manager.SessionEventInfoRun.run:type_name -> broker.manager.EngineSessionRun
-	29, // 19: broker.manager.SessionEventInfoSession.session:type_name -> broker.manager.EngineSession
-	30, // 20: broker.manager.SessionEventStartRun.run:type_name -> broker.manager.EngineSessionRun
-	30, // 21: broker.manager.SessionEventStopRun.run:type_name -> broker.manager.EngineSessionRun
-	19, // 22: broker.manager.SessionEvent.start_run:type_name -> broker.manager.SessionEventStartRun
-	20, // 23: broker.manager.SessionEvent.stop_run:type_name -> broker.manager.SessionEventStopRun
-	17, // 24: broker.manager.SessionEvent.info_run:type_name -> broker.manager.SessionEventInfoRun
-	18, // 25: broker.manager.SessionEvent.info_session:type_name -> broker.manager.SessionEventInfoSession
-	76, // 26: broker.manager.StreamMcpMessagesResponse.mcp_message:type_name -> broker.mcp.McpMessage
-	77, // 27: broker.manager.StreamMcpMessagesResponse.mcp_error:type_name -> broker.mcp.McpError
-	79, // 28: broker.manager.StreamMcpMessagesResponse.mcp_output:type_name -> broker.mcp.McpOutput
-	21, // 29: broker.manager.StreamMcpMessagesResponse.session_event:type_name -> broker.manager.SessionEvent
-	26, // 30: broker.manager.ListWorkersResponse.workers:type_name -> broker.manager.WorkerInfo
-	1,  // 31: broker.manager.EngineSession.type:type_name -> broker.manager.EngineSessionType
-	0,  // 32: broker.manager.EngineSession.status:type_name -> broker.manager.EngineSessionStatus
-	69, // 33: broker.manager.EngineSession.mcp_client:type_name -> broker.mcp.McpParticipant
-	69, // 34: broker.manager.EngineSession.mcp_server:type_name -> broker.mcp.McpParticipant
-	3,  // 35: broker.manager.EngineSessionRun.type:type_name -> broker.manager.EngineRunType
-	2,  // 36: broker.manager.EngineSessionRun.status:type_name -> broker.manager.EngineRunStatus
-	29, // 37: broker.manager.EngineSessionRun.session:type_name -> broker.manager.EngineSession
-	30, // 38: broker.manager.EngineSessionError.run:type_name -> broker.manager.EngineSessionRun
-	29, // 39: broker.manager.EngineSessionError.session:type_name -> broker.manager.EngineSession
-	77, // 40: broker.manager.EngineSessionError.mcp_error:type_name -> broker.mcp.McpError
-	66, // 41: broker.manager.EngineSessionError.metadata:type_name -> broker.manager.EngineSessionError.MetadataEntry
-	4,  // 42: broker.manager.EngineSessionEvent.type:type_name -> broker.manager.EngineSessionEventType
-	30, // 43: broker.manager.EngineSessionEvent.run:type_name -> broker.manager.EngineSessionRun
-	29, // 44: broker.manager.EngineSessionEvent.session:type_name -> broker.manager.EngineSession
-	31, // 45: broker.manager.EngineSessionEvent.error:type_name -> broker.manager.EngineSessionError
-	67, // 46: broker.manager.EngineSessionEvent.metadata:type_name -> broker.manager.EngineSessionEvent.MetadataEntry
-	79, // 47: broker.manager.EngineSessionEvent.mcp_output:type_name -> broker.mcp.McpOutput
-	5,  // 48: broker.manager.EngineSessionMessage.sender:type_name -> broker.manager.SessionMessageSender
-	30, // 49: broker.manager.EngineSessionMessage.run:type_name -> broker.manager.EngineSessionRun
-	29, // 50: broker.manager.EngineSessionMessage.session:type_name -> broker.manager.EngineSession
-	76, // 51: broker.manager.EngineSessionMessage.mcp_message:type_name -> broker.mcp.McpMessage
-	68, // 52: broker.manager.EngineSessionMessage.metadata:type_name -> broker.manager.EngineSessionMessage.MetadataEntry
-	6,  // 53: broker.manager.ListPagination.order:type_name -> broker.manager.ListPaginationOrder
-	34, // 54: broker.manager.ListSessionsRequest.pagination:type_name -> broker.manager.ListPagination
-	29, // 55: broker.manager.ListSessionsResponse.sessions:type_name -> broker.manager.EngineSession
-	29, // 56: broker.manager.GetSessionResponse.session:type_name -> broker.manager.EngineSession
-	34, // 57: broker.manager.ListRunsRequest.pagination:type_name -> broker.manager.ListPagination
-	30, // 58: broker.manager.ListRunsResponse.runs:type_name -> broker.manager.EngineSessionRun
-	30, // 59: broker.manager.GetRunResponse.run:type_name -> broker.manager.EngineSessionRun
-	31, // 60: broker.manager.GetErrorResponse.error:type_name -> broker.manager.EngineSessionError
-	32, // 61: broker.manager.GetEventResponse.event:type_name -> broker.manager.EngineSessionEvent
-	33, // 62: broker.manager.GetMessageResponse.message:type_name -> broker.manager.EngineSessionMessage
-	34, // 63: broker.manager.ListRunErrorsRequest.pagination:type_name -> broker.manager.ListPagination
-	31, // 64: broker.manager.ListRunErrorsResponse.errors:type_name -> broker.manager.EngineSessionError
-	34, // 65: broker.manager.ListRunEventsRequest.pagination:type_name -> broker.manager.ListPagination
-	32, // 66: broker.manager.ListRunEventsResponse.events:type_name -> broker.manager.EngineSessionEvent
-	34, // 67: broker.manager.ListRunMessagesRequest.pagination:type_name -> broker.manager.ListPagination
-	33, // 68: broker.manager.ListRunMessagesResponse.messages:type_name -> broker.manager.EngineSessionMessage
-	34, // 69: broker.manager.ListSessionEventsRequest.pagination:type_name -> broker.manager.ListPagination
-	32, // 70: broker.manager.ListSessionEventsResponse.events:type_name -> broker.manager.EngineSessionEvent
-	34, // 71: broker.manager.ListSessionErrorsRequest.pagination:type_name -> broker.manager.ListPagination
-	31, // 72: broker.manager.ListSessionErrorsResponse.errors:type_name -> broker.manager.EngineSessionError
-	34, // 73: broker.manager.ListSessionMessagesRequest.pagination:type_name -> broker.manager.ListPagination
-	33, // 74: broker.manager.ListSessionMessagesResponse.messages:type_name -> broker.manager.EngineSessionMessage
-	7,  // 75: broker.manager.McpManager.CheckActiveSession:input_type -> broker.manager.CheckActiveSessionRequest
-	9,  // 76: broker.manager.McpManager.CreateSession:input_type -> broker.manager.CreateSessionRequest
-	27, // 77: broker.manager.McpManager.DiscardSession:input_type -> broker.manager.DiscardSessionRequest
-	14, // 78: broker.manager.McpManager.SendMcpMessage:input_type -> broker.manager.SendMcpMessageRequest
-	16, // 79: broker.manager.McpManager.StreamMcpMessages:input_type -> broker.manager.StreamMcpMessagesRequest
-	23, // 80: broker.manager.McpManager.GetServerInfo:input_type -> broker.manager.GetServerInfoRequest
-	80, // 81: broker.manager.McpManager.ListManagers:input_type -> broker.workerBroker.ListManagersRequest
-	24, // 82: broker.manager.McpManager.ListWorkers:input_type -> broker.manager.ListWorkersRequest
-	35, // 83: broker.manager.McpManager.ListSessions:input_type -> broker.manager.ListSessionsRequest
-	37, // 84: broker.manager.McpManager.GetSession:input_type -> broker.manager.GetSessionRequest
-	39, // 85: broker.manager.McpManager.ListRuns:input_type -> broker.manager.ListRunsRequest
-	41, // 86: broker.manager.McpManager.GetRun:input_type -> broker.manager.GetRunRequest
-	57, // 87: broker.manager.McpManager.ListSessionErrors:input_type -> broker.manager.ListSessionErrorsRequest
-	55, // 88: broker.manager.McpManager.ListSessionEvents:input_type -> broker.manager.ListSessionEventsRequest
-	59, // 89: broker.manager.McpManager.ListSessionMessages:input_type -> broker.manager.ListSessionMessagesRequest
-	49, // 90: broker.manager.McpManager.ListRunErrors:input_type -> broker.manager.ListRunErrorsRequest
-	51, // 91: broker.manager.McpManager.ListRunEvents:input_type -> broker.manager.ListRunEventsRequest
-	53, // 92: broker.manager.McpManager.ListRunMessages:input_type -> broker.manager.ListRunMessagesRequest
-	43, // 93: broker.manager.McpManager.GetError:input_type -> broker.manager.GetErrorRequest
-	45, // 94: broker.manager.McpManager.GetEvent:input_type -> broker.manager.GetEventRequest
-	47, // 95: broker.manager.McpManager.GetMessage:input_type -> broker.manager.GetMessageRequest
-	61, // 96: broker.manager.McpManager.ListRecentlyActiveRuns:input_type -> broker.manager.ListRecentlyActiveRunsRequest
-	63, // 97: broker.manager.McpManager.ListRecentlyActiveSessions:input_type -> broker.manager.ListRecentlyActiveSessionsRequest
-	8,  // 98: broker.manager.McpManager.CheckActiveSession:output_type -> broker.manager.CheckActiveSessionResponse
-	13, // 99: broker.manager.McpManager.CreateSession:output_type -> broker.manager.CreateSessionResponse
-	28, // 100: broker.manager.McpManager.DiscardSession:output_type -> broker.manager.DiscardSessionResponse
-	15, // 101: broker.manager.McpManager.SendMcpMessage:output_type -> broker.manager.SendMcpMessageResponse
-	22, // 102: broker.manager.McpManager.StreamMcpMessages:output_type -> broker.manager.StreamMcpMessagesResponse
-	69, // 103: broker.manager.McpManager.GetServerInfo:output_type -> broker.mcp.McpParticipant
-	81, // 104: broker.manager.McpManager.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
-	25, // 105: broker.manager.McpManager.ListWorkers:output_type -> broker.manager.ListWorkersResponse
-	36, // 106: broker.manager.McpManager.ListSessions:output_type -> broker.manager.ListSessionsResponse
-	38, // 107: broker.manager.McpManager.GetSession:output_type -> broker.manager.GetSessionResponse
-	40, // 108: broker.manager.McpManager.ListRuns:output_type -> broker.manager.ListRunsResponse
-	42, // 109: broker.manager.McpManager.GetRun:output_type -> broker.manager.GetRunResponse
-	58, // 110: broker.manager.McpManager.ListSessionErrors:output_type -> broker.manager.ListSessionErrorsResponse
-	56, // 111: broker.manager.McpManager.ListSessionEvents:output_type -> broker.manager.ListSessionEventsResponse
-	60, // 112: broker.manager.McpManager.ListSessionMessages:output_type -> broker.manager.ListSessionMessagesResponse
-	50, // 113: broker.manager.McpManager.ListRunErrors:output_type -> broker.manager.ListRunErrorsResponse
-	52, // 114: broker.manager.McpManager.ListRunEvents:output_type -> broker.manager.ListRunEventsResponse
-	54, // 115: broker.manager.McpManager.ListRunMessages:output_type -> broker.manager.ListRunMessagesResponse
-	44, // 116: broker.manager.McpManager.GetError:output_type -> broker.manager.GetErrorResponse
-	46, // 117: broker.manager.McpManager.GetEvent:output_type -> broker.manager.GetEventResponse
-	48, // 118: broker.manager.McpManager.GetMessage:output_type -> broker.manager.GetMessageResponse
-	62, // 119: broker.manager.McpManager.ListRecentlyActiveRuns:output_type -> broker.manager.ListRecentlyActiveRunsResponse
-	64, // 120: broker.manager.McpManager.ListRecentlyActiveSessions:output_type -> broker.manager.ListRecentlyActiveSessionsResponse
-	98, // [98:121] is the sub-list for method output_type
-	75, // [75:98] is the sub-list for method input_type
-	75, // [75:75] is the sub-list for extension type_name
-	75, // [75:75] is the sub-list for extension extendee
-	0,  // [0:75] is the sub-list for field type_name
+	29,  // 0: broker.manager.CheckActiveSessionResponse.session:type_name -> broker.manager.EngineSession
+	12,  // 1: broker.manager.CreateSessionRequest.config:type_name -> broker.manager.SessionConfig
+	69,  // 2: broker.manager.CreateSessionRequest.mcp_client:type_name -> broker.mcp.McpParticipant
+	65,  // 3: broker.manager.CreateSessionRequest.metadata:type_name -> broker.manager.CreateSessionRequest.MetadataEntry
+	70,  // 4: broker.manager.ContainerRunConfigWithLauncher.container:type_name -> broker.runner.RunConfigContainer
+	71,  // 5: broker.manager.ContainerRunConfigWithLauncher.launcher:type_name -> broker.launcher.LauncherConfig
+	72,  // 6: broker.manager.RemoteRunConfigWithLauncher.server:type_name -> broker.remote.RunConfigRemoteServer
+	71,  // 7: broker.manager.RemoteRunConfigWithLauncher.launcher:type_name -> broker.launcher.LauncherConfig
+	10,  // 8: broker.manager.SessionConfig.container_run_config_with_launcher:type_name -> broker.manager.ContainerRunConfigWithLauncher
+	73,  // 9: broker.manager.SessionConfig.container_run_config_with_container_arguments:type_name -> broker.runner.RunConfig
+	11,  // 10: broker.manager.SessionConfig.remote_run_config_with_launcher:type_name -> broker.manager.RemoteRunConfigWithLauncher
+	74,  // 11: broker.manager.SessionConfig.remote_run_config_with_server:type_name -> broker.remote.RunConfig
+	75,  // 12: broker.manager.SessionConfig.mcp_config:type_name -> broker.mcp.McpConfig
+	29,  // 13: broker.manager.CreateSessionResponse.session:type_name -> broker.manager.EngineSession
+	76,  // 14: broker.manager.SendMcpMessageRequest.mcp_messages:type_name -> broker.mcp.McpMessageRaw
+	77,  // 15: broker.manager.SendMcpMessageResponse.mcp_message:type_name -> broker.mcp.McpMessage
+	78,  // 16: broker.manager.SendMcpMessageResponse.mcp_error:type_name -> broker.mcp.McpError
+	21,  // 17: broker.manager.SendMcpMessageResponse.session_event:type_name -> broker.manager.SessionEvent
+	79,  // 18: broker.manager.StreamMcpMessagesRequest.only_message_types:type_name -> broker.mcp.McpMessageType
+	30,  // 19: broker.manager.SessionEventInfoRun.run:type_name -> broker.manager.EngineSessionRun
+	29,  // 20: broker.manager.SessionEventInfoSession.session:type_name -> broker.manager.EngineSession
+	30,  // 21: broker.manager.SessionEventStartRun.run:type_name -> broker.manager.EngineSessionRun
+	30,  // 22: broker.manager.SessionEventStopRun.run:type_name -> broker.manager.EngineSessionRun
+	19,  // 23: broker.manager.SessionEvent.start_run:type_name -> broker.manager.SessionEventStartRun
+	20,  // 24: broker.manager.SessionEvent.stop_run:type_name -> broker.manager.SessionEventStopRun
+	17,  // 25: broker.manager.SessionEvent.info_run:type_name -> broker.manager.SessionEventInfoRun
+	18,  // 26: broker.manager.SessionEvent.info_session:type_name -> broker.manager.SessionEventInfoSession
+	77,  // 27: broker.manager.StreamMcpMessagesResponse.mcp_message:type_name -> broker.mcp.McpMessage
+	78,  // 28: broker.manager.StreamMcpMessagesResponse.mcp_error:type_name -> broker.mcp.McpError
+	80,  // 29: broker.manager.StreamMcpMessagesResponse.mcp_output:type_name -> broker.mcp.McpOutput
+	21,  // 30: broker.manager.StreamMcpMessagesResponse.session_event:type_name -> broker.manager.SessionEvent
+	26,  // 31: broker.manager.ListWorkersResponse.workers:type_name -> broker.manager.WorkerInfo
+	1,   // 32: broker.manager.EngineSession.type:type_name -> broker.manager.EngineSessionType
+	0,   // 33: broker.manager.EngineSession.status:type_name -> broker.manager.EngineSessionStatus
+	69,  // 34: broker.manager.EngineSession.mcp_client:type_name -> broker.mcp.McpParticipant
+	69,  // 35: broker.manager.EngineSession.mcp_server:type_name -> broker.mcp.McpParticipant
+	75,  // 36: broker.manager.EngineSession.mcp_config:type_name -> broker.mcp.McpConfig
+	3,   // 37: broker.manager.EngineSessionRun.type:type_name -> broker.manager.EngineRunType
+	2,   // 38: broker.manager.EngineSessionRun.status:type_name -> broker.manager.EngineRunStatus
+	29,  // 39: broker.manager.EngineSessionRun.session:type_name -> broker.manager.EngineSession
+	30,  // 40: broker.manager.EngineSessionError.run:type_name -> broker.manager.EngineSessionRun
+	29,  // 41: broker.manager.EngineSessionError.session:type_name -> broker.manager.EngineSession
+	78,  // 42: broker.manager.EngineSessionError.mcp_error:type_name -> broker.mcp.McpError
+	66,  // 43: broker.manager.EngineSessionError.metadata:type_name -> broker.manager.EngineSessionError.MetadataEntry
+	4,   // 44: broker.manager.EngineSessionEvent.type:type_name -> broker.manager.EngineSessionEventType
+	30,  // 45: broker.manager.EngineSessionEvent.run:type_name -> broker.manager.EngineSessionRun
+	29,  // 46: broker.manager.EngineSessionEvent.session:type_name -> broker.manager.EngineSession
+	31,  // 47: broker.manager.EngineSessionEvent.error:type_name -> broker.manager.EngineSessionError
+	67,  // 48: broker.manager.EngineSessionEvent.metadata:type_name -> broker.manager.EngineSessionEvent.MetadataEntry
+	80,  // 49: broker.manager.EngineSessionEvent.mcp_output:type_name -> broker.mcp.McpOutput
+	5,   // 50: broker.manager.EngineSessionMessage.sender:type_name -> broker.manager.SessionMessageSender
+	30,  // 51: broker.manager.EngineSessionMessage.run:type_name -> broker.manager.EngineSessionRun
+	29,  // 52: broker.manager.EngineSessionMessage.session:type_name -> broker.manager.EngineSession
+	77,  // 53: broker.manager.EngineSessionMessage.mcp_message:type_name -> broker.mcp.McpMessage
+	68,  // 54: broker.manager.EngineSessionMessage.metadata:type_name -> broker.manager.EngineSessionMessage.MetadataEntry
+	6,   // 55: broker.manager.ListPagination.order:type_name -> broker.manager.ListPaginationOrder
+	34,  // 56: broker.manager.ListSessionsRequest.pagination:type_name -> broker.manager.ListPagination
+	29,  // 57: broker.manager.ListSessionsResponse.sessions:type_name -> broker.manager.EngineSession
+	29,  // 58: broker.manager.GetSessionResponse.session:type_name -> broker.manager.EngineSession
+	34,  // 59: broker.manager.ListRunsRequest.pagination:type_name -> broker.manager.ListPagination
+	30,  // 60: broker.manager.ListRunsResponse.runs:type_name -> broker.manager.EngineSessionRun
+	30,  // 61: broker.manager.GetRunResponse.run:type_name -> broker.manager.EngineSessionRun
+	31,  // 62: broker.manager.GetErrorResponse.error:type_name -> broker.manager.EngineSessionError
+	32,  // 63: broker.manager.GetEventResponse.event:type_name -> broker.manager.EngineSessionEvent
+	33,  // 64: broker.manager.GetMessageResponse.message:type_name -> broker.manager.EngineSessionMessage
+	34,  // 65: broker.manager.ListRunErrorsRequest.pagination:type_name -> broker.manager.ListPagination
+	31,  // 66: broker.manager.ListRunErrorsResponse.errors:type_name -> broker.manager.EngineSessionError
+	34,  // 67: broker.manager.ListRunEventsRequest.pagination:type_name -> broker.manager.ListPagination
+	32,  // 68: broker.manager.ListRunEventsResponse.events:type_name -> broker.manager.EngineSessionEvent
+	34,  // 69: broker.manager.ListRunMessagesRequest.pagination:type_name -> broker.manager.ListPagination
+	33,  // 70: broker.manager.ListRunMessagesResponse.messages:type_name -> broker.manager.EngineSessionMessage
+	34,  // 71: broker.manager.ListSessionEventsRequest.pagination:type_name -> broker.manager.ListPagination
+	32,  // 72: broker.manager.ListSessionEventsResponse.events:type_name -> broker.manager.EngineSessionEvent
+	34,  // 73: broker.manager.ListSessionErrorsRequest.pagination:type_name -> broker.manager.ListPagination
+	31,  // 74: broker.manager.ListSessionErrorsResponse.errors:type_name -> broker.manager.EngineSessionError
+	34,  // 75: broker.manager.ListSessionMessagesRequest.pagination:type_name -> broker.manager.ListPagination
+	33,  // 76: broker.manager.ListSessionMessagesResponse.messages:type_name -> broker.manager.EngineSessionMessage
+	7,   // 77: broker.manager.McpManager.CheckActiveSession:input_type -> broker.manager.CheckActiveSessionRequest
+	9,   // 78: broker.manager.McpManager.CreateSession:input_type -> broker.manager.CreateSessionRequest
+	27,  // 79: broker.manager.McpManager.DiscardSession:input_type -> broker.manager.DiscardSessionRequest
+	14,  // 80: broker.manager.McpManager.SendMcpMessage:input_type -> broker.manager.SendMcpMessageRequest
+	16,  // 81: broker.manager.McpManager.StreamMcpMessages:input_type -> broker.manager.StreamMcpMessagesRequest
+	23,  // 82: broker.manager.McpManager.GetServerInfo:input_type -> broker.manager.GetServerInfoRequest
+	81,  // 83: broker.manager.McpManager.ListManagers:input_type -> broker.workerBroker.ListManagersRequest
+	24,  // 84: broker.manager.McpManager.ListWorkers:input_type -> broker.manager.ListWorkersRequest
+	35,  // 85: broker.manager.McpManager.ListSessions:input_type -> broker.manager.ListSessionsRequest
+	37,  // 86: broker.manager.McpManager.GetSession:input_type -> broker.manager.GetSessionRequest
+	39,  // 87: broker.manager.McpManager.ListRuns:input_type -> broker.manager.ListRunsRequest
+	41,  // 88: broker.manager.McpManager.GetRun:input_type -> broker.manager.GetRunRequest
+	57,  // 89: broker.manager.McpManager.ListSessionErrors:input_type -> broker.manager.ListSessionErrorsRequest
+	55,  // 90: broker.manager.McpManager.ListSessionEvents:input_type -> broker.manager.ListSessionEventsRequest
+	59,  // 91: broker.manager.McpManager.ListSessionMessages:input_type -> broker.manager.ListSessionMessagesRequest
+	49,  // 92: broker.manager.McpManager.ListRunErrors:input_type -> broker.manager.ListRunErrorsRequest
+	51,  // 93: broker.manager.McpManager.ListRunEvents:input_type -> broker.manager.ListRunEventsRequest
+	53,  // 94: broker.manager.McpManager.ListRunMessages:input_type -> broker.manager.ListRunMessagesRequest
+	43,  // 95: broker.manager.McpManager.GetError:input_type -> broker.manager.GetErrorRequest
+	45,  // 96: broker.manager.McpManager.GetEvent:input_type -> broker.manager.GetEventRequest
+	47,  // 97: broker.manager.McpManager.GetMessage:input_type -> broker.manager.GetMessageRequest
+	61,  // 98: broker.manager.McpManager.ListRecentlyActiveRuns:input_type -> broker.manager.ListRecentlyActiveRunsRequest
+	63,  // 99: broker.manager.McpManager.ListRecentlyActiveSessions:input_type -> broker.manager.ListRecentlyActiveSessionsRequest
+	8,   // 100: broker.manager.McpManager.CheckActiveSession:output_type -> broker.manager.CheckActiveSessionResponse
+	13,  // 101: broker.manager.McpManager.CreateSession:output_type -> broker.manager.CreateSessionResponse
+	28,  // 102: broker.manager.McpManager.DiscardSession:output_type -> broker.manager.DiscardSessionResponse
+	15,  // 103: broker.manager.McpManager.SendMcpMessage:output_type -> broker.manager.SendMcpMessageResponse
+	22,  // 104: broker.manager.McpManager.StreamMcpMessages:output_type -> broker.manager.StreamMcpMessagesResponse
+	69,  // 105: broker.manager.McpManager.GetServerInfo:output_type -> broker.mcp.McpParticipant
+	82,  // 106: broker.manager.McpManager.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
+	25,  // 107: broker.manager.McpManager.ListWorkers:output_type -> broker.manager.ListWorkersResponse
+	36,  // 108: broker.manager.McpManager.ListSessions:output_type -> broker.manager.ListSessionsResponse
+	38,  // 109: broker.manager.McpManager.GetSession:output_type -> broker.manager.GetSessionResponse
+	40,  // 110: broker.manager.McpManager.ListRuns:output_type -> broker.manager.ListRunsResponse
+	42,  // 111: broker.manager.McpManager.GetRun:output_type -> broker.manager.GetRunResponse
+	58,  // 112: broker.manager.McpManager.ListSessionErrors:output_type -> broker.manager.ListSessionErrorsResponse
+	56,  // 113: broker.manager.McpManager.ListSessionEvents:output_type -> broker.manager.ListSessionEventsResponse
+	60,  // 114: broker.manager.McpManager.ListSessionMessages:output_type -> broker.manager.ListSessionMessagesResponse
+	50,  // 115: broker.manager.McpManager.ListRunErrors:output_type -> broker.manager.ListRunErrorsResponse
+	52,  // 116: broker.manager.McpManager.ListRunEvents:output_type -> broker.manager.ListRunEventsResponse
+	54,  // 117: broker.manager.McpManager.ListRunMessages:output_type -> broker.manager.ListRunMessagesResponse
+	44,  // 118: broker.manager.McpManager.GetError:output_type -> broker.manager.GetErrorResponse
+	46,  // 119: broker.manager.McpManager.GetEvent:output_type -> broker.manager.GetEventResponse
+	48,  // 120: broker.manager.McpManager.GetMessage:output_type -> broker.manager.GetMessageResponse
+	62,  // 121: broker.manager.McpManager.ListRecentlyActiveRuns:output_type -> broker.manager.ListRecentlyActiveRunsResponse
+	64,  // 122: broker.manager.McpManager.ListRecentlyActiveSessions:output_type -> broker.manager.ListRecentlyActiveSessionsResponse
+	100, // [100:123] is the sub-list for method output_type
+	77,  // [77:100] is the sub-list for method input_type
+	77,  // [77:77] is the sub-list for extension type_name
+	77,  // [77:77] is the sub-list for extension extendee
+	0,   // [0:77] is the sub-list for field type_name
 }
 
 func init() { file_manager_proto_init() }

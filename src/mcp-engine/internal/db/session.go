@@ -70,17 +70,20 @@ type Session struct {
 	StartedAt  time.Time `gorm:"not null"`
 	LastPingAt time.Time `gorm:"not null"`
 
+	McpVersion string `gorm:"type:varchar(50);not null;default:'2024-11-05'"`
+
 	Metadata map[string]string `gorm:"type:jsonb;serializer:json"`
 
 	EndedAt sql.NullTime
 }
 
-func NewSession(id string, externalId string, status SessionStatus, type_ SessionType, client *mcp.MCPClient, metadata map[string]string) *Session {
+func NewSession(id string, externalId string, status SessionStatus, type_ SessionType, client *mcp.MCPClient, mcpVersion string, metadata map[string]string) *Session {
 	return &Session{
 		ID:         id,
 		ExternalId: externalId,
 
-		McpClient: client,
+		McpClient:  client,
+		McpVersion: mcpVersion,
 
 		Status: status,
 		Type:   type_,
@@ -186,6 +189,10 @@ func (s *Session) ToPb() (*managerPb.EngineSession, error) {
 			}
 			return 0
 		}(),
+
+		McpConfig: &mcpPb.McpConfig{
+			McpVersion: s.McpVersion,
+		},
 	}, nil
 }
 

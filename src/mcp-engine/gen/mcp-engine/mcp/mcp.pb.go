@@ -540,6 +540,50 @@ func (x *McpParticipant) GetParticipantJson() string {
 	return ""
 }
 
+type McpConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	McpVersion    string                 `protobuf:"bytes,1,opt,name=mcp_version,json=mcpVersion,proto3" json:"mcp_version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *McpConfig) Reset() {
+	*x = McpConfig{}
+	mi := &file_mcp_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *McpConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*McpConfig) ProtoMessage() {}
+
+func (x *McpConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_mcp_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use McpConfig.ProtoReflect.Descriptor instead.
+func (*McpConfig) Descriptor() ([]byte, []int) {
+	return file_mcp_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *McpConfig) GetMcpVersion() string {
+	if x != nil {
+		return x.McpVersion
+	}
+	return ""
+}
+
 var File_mcp_proto protoreflect.FileDescriptor
 
 const file_mcp_proto_rawDesc = "" +
@@ -593,7 +637,10 @@ const file_mcp_proto_rawDesc = "" +
 	"\n" +
 	"\x06server\x10\x00\x12\n" +
 	"\n" +
-	"\x06client\x10\x01*U\n" +
+	"\x06client\x10\x01\",\n" +
+	"\tMcpConfig\x12\x1f\n" +
+	"\vmcp_version\x18\x01 \x01(\tR\n" +
+	"mcpVersion*U\n" +
 	"\x0eMcpMessageType\x12\v\n" +
 	"\arequest\x10\x00\x12\f\n" +
 	"\bresponse\x10\x01\x12\x10\n" +
@@ -614,7 +661,7 @@ func file_mcp_proto_rawDescGZIP() []byte {
 }
 
 var file_mcp_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_mcp_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_mcp_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_mcp_proto_goTypes = []any{
 	(McpMessageType)(0),                 // 0: broker.mcp.McpMessageType
 	(McpError_McpErrorCode)(0),          // 1: broker.mcp.McpError.McpErrorCode
@@ -625,20 +672,21 @@ var file_mcp_proto_goTypes = []any{
 	(*McpMessageRaw)(nil),               // 6: broker.mcp.McpMessageRaw
 	(*McpMessage)(nil),                  // 7: broker.mcp.McpMessage
 	(*McpParticipant)(nil),              // 8: broker.mcp.McpParticipant
-	nil,                                 // 9: broker.mcp.McpError.MetadataEntry
+	(*McpConfig)(nil),                   // 9: broker.mcp.McpConfig
+	nil,                                 // 10: broker.mcp.McpError.MetadataEntry
 }
 var file_mcp_proto_depIdxs = []int32{
-	1, // 0: broker.mcp.McpError.error_code:type_name -> broker.mcp.McpError.McpErrorCode
-	9, // 1: broker.mcp.McpError.metadata:type_name -> broker.mcp.McpError.MetadataEntry
-	2, // 2: broker.mcp.McpOutput.output_type:type_name -> broker.mcp.McpOutput.McpOutputType
-	6, // 3: broker.mcp.McpMessage.mcp_message:type_name -> broker.mcp.McpMessageRaw
-	0, // 4: broker.mcp.McpMessage.message_type:type_name -> broker.mcp.McpMessageType
-	3, // 5: broker.mcp.McpParticipant.type:type_name -> broker.mcp.McpParticipant.ParticipantType
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	1,  // 0: broker.mcp.McpError.error_code:type_name -> broker.mcp.McpError.McpErrorCode
+	10, // 1: broker.mcp.McpError.metadata:type_name -> broker.mcp.McpError.MetadataEntry
+	2,  // 2: broker.mcp.McpOutput.output_type:type_name -> broker.mcp.McpOutput.McpOutputType
+	6,  // 3: broker.mcp.McpMessage.mcp_message:type_name -> broker.mcp.McpMessageRaw
+	0,  // 4: broker.mcp.McpMessage.message_type:type_name -> broker.mcp.McpMessageType
+	3,  // 5: broker.mcp.McpParticipant.type:type_name -> broker.mcp.McpParticipant.ParticipantType
+	6,  // [6:6] is the sub-list for method output_type
+	6,  // [6:6] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_mcp_proto_init() }
@@ -652,7 +700,7 @@ func file_mcp_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_mcp_proto_rawDesc), len(file_mcp_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
