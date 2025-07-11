@@ -5,11 +5,9 @@
 <h1 align="center">Metorial</h1>
 
 <p align="center">
-The open source integration platform for agentic AI. 
+The open source integration platform for agentic AI. <br />
 Connect any AI model to thousands of APIs, data sources, and tools with a single function call.
 </p>
-
-<p align="center">Containerized versions of hundreds of <a href="https://modelcontextprotocol.io">MCP servers</a> 📡 🧠</p>
 
 <br />
 
