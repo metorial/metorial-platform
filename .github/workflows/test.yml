@@ -78,7 +78,7 @@ jobs:
 
       - name: Install Staticcheck
         run: go install honnef.co/go/tools/cmd/staticcheck@latest
-        working-directory: ./src/mcp-engin
+        working-directory: ./src/mcp-engine
 
       - name: Instal Go Dependencies
         run: go mod download
