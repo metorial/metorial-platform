@@ -70,5 +70,6 @@ export let ID = createIdGenerator({
   oauthConnectionProfile: idType.sorted('ocp'),
   oauthConnectionAuthAttempt: idType.sorted('ocat'),
   oauthConnectionAuthToken: idType.sorted('octk'),
-  oauthDiscoveryDocument: idType.sorted('ocdd')
+  oauthDiscoveryDocument: idType.sorted('ocdd'),
+  oauthConnectionEvent: idType.sorted('ocev')
 });

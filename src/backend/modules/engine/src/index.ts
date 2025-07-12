@@ -4,7 +4,7 @@ import { sessionSyncProcessors } from './queues/syncSessions';
 
 export * from './run';
 
-export let catalogQueueProcessor = combineQueueProcessors([
+export let engineQueueProcessor = combineQueueProcessors([
   sessionSyncProcessors,
   runSyncProcessors
 ]);

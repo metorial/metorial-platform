@@ -71,6 +71,29 @@ model OAuthConnection {
   profiles OAuthConnectionProfile[]
   tokens   OAuthConnectionAuthToken[]
   attempts OAuthConnectionAuthAttempt[]
+  events   OAuthConnectionEvent[]
+}
+
+enum OAuthConnectionEventType {
+  errors
+  config_auto_updated
+}
+
+model OAuthConnectionEvent {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  event         OAuthConnectionEventType
+  discriminator String?
+
+  metadata Json?
+
+  connectionOid BigInt
+  connection    OAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([connectionOid, event, discriminator])
 }
 
 model OAuthConnectionProfile {
