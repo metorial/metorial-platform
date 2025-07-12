@@ -8,3 +8,5 @@ export let oauthQueueProcessor = combineQueueProcessors([
   oauthCleanupCron,
   autoUpdateQueueProcessor
 ]);
+
+import './templates';

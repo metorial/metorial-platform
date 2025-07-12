@@ -234,8 +234,8 @@ declare global {
       description?: string;
     }[];
     type ProviderOAuthConfigTemplateScopes = {
-      name: string;
       identifier: string;
+      description: string;
     }[];
 
     type ProviderOAuthConfig = any;

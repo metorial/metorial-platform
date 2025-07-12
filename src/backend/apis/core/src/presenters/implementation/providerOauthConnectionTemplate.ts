@@ -27,8 +27,8 @@ export let v1ProviderOauthConnectionTemplatePresenter = Presenter.create(
       description: variable.description ?? null
     })),
     scopes: providerOauthConnectionTemplate.scopes.map(scope => ({
-      name: scope.name,
-      identifier: scope.identifier
+      identifier: scope.identifier,
+      description: scope.description
     })),
 
     profile: await v1ProfilePresenter
@@ -60,8 +60,8 @@ export let v1ProviderOauthConnectionTemplatePresenter = Presenter.create(
 
       scopes: v.array(
         v.object({
-          name: v.string(),
-          identifier: v.string()
+          identifier: v.string(),
+          description: v.string()
         })
       ),
       variables: v.array(
