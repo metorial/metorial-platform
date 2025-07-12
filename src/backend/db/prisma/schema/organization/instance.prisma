@@ -41,4 +41,5 @@ model Instance {
   serverDeploymentConfigs ServerDeploymentConfig[]
   sessions                Session[]
   serverRunErrors         ServerRunError[]
+  oAuthConnections        OAuthConnection[]
 }

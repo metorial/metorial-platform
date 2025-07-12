@@ -1,0 +1,167 @@
+enum OAuthConnectionTemplateStatus {
+  active
+  archived
+}
+
+model OAuthConnectionTemplate {
+  oid    BigInt                        @id @default(autoincrement())
+  id     String                        @unique
+  status OAuthConnectionTemplateStatus @default(active)
+
+  slug String @unique
+
+  name         String
+  providerName String
+
+  discoveryUrl String?
+
+  configJsonata String
+
+  /// [OAuthConfigTemplateVariables]
+  variables Json
+
+  /// [OAuthConfigTemplateScopes]
+  scopes Json
+
+  profileOid BigInt
+  profile    Profile @relation(fields: [profileOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  connections OAuthConnection[]
+}
+
+enum OAuthConnectionStatus {
+  active
+  archived
+}
+
+model OAuthConnection {
+  oid    BigInt                @id @default(autoincrement())
+  id     String                @unique
+  status OAuthConnectionStatus @default(active)
+
+  metorialClientId String @unique
+
+  name         String
+  providerName String
+  providerUrl  String
+
+  discoveryUrl String?
+
+  /// [OAuthConfig]
+  config     Json
+  configHash String
+
+  scopes String[]
+
+  clientId     String
+  clientSecret String
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  templateOid BigInt?
+  template    OAuthConnectionTemplate? @relation(fields: [templateOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  profiles OAuthConnectionProfile[]
+  tokens   OAuthConnectionAuthToken[]
+  attempts OAuthConnectionAuthAttempt[]
+}
+
+model OAuthConnectionProfile {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  sub String
+
+  name  String?
+  email String?
+
+  connectionOid BigInt
+  connection    OAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  tokens OAuthConnectionAuthToken[]
+
+  @@unique([connectionOid, sub])
+}
+
+enum OAuthConnectionAuthAttemptStatus {
+  pending
+  success
+  failed
+}
+
+model OAuthConnectionAuthAttempt {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  stateIdentifier String @unique
+
+  status OAuthConnectionAuthAttemptStatus
+
+  errorCode    String?
+  errorMessage String?
+
+  redirectUri String
+
+  connectionOid BigInt
+  connection    OAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  tokens OAuthConnectionAuthToken[]
+}
+
+model OAuthConnectionAuthToken {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  accessToken  String
+  refreshToken String?
+
+  scope     String?
+  tokenType String?
+  idToken   String?
+
+  expiresAt DateTime?
+
+  connectionProfileOid BigInt?
+  connectionProfile    OAuthConnectionProfile? @relation(fields: [connectionProfileOid], references: [oid], onDelete: SetNull)
+
+  attemptOid BigInt?
+  attempt    OAuthConnectionAuthAttempt? @relation(fields: [attemptOid], references: [oid], onDelete: SetNull)
+
+  connectionOid BigInt
+  connection    OAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime  @default(now())
+  refreshedAt DateTime?
+}
+
+model OAuthDiscoveryDocument {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  providerName String
+  providerUrl  String
+  discoveryUrl String @unique
+
+  /// [OAuthConfig]
+  config     Json
+  configHash String
+
+  version Int
+
+  createdAt   DateTime @default(now())
+  refreshedAt DateTime @default(now()) @updatedAt
+}
