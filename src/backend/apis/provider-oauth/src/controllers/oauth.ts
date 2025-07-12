@@ -65,6 +65,6 @@ export let providerOauthController = createHono()
             `${getConfig().urls.providerOauthUrl}/provider-oauth/callback`
         });
 
-        return c.html(redirectHtml({ url: redirectUrl }));
+        return c.redirect(redirectUrl, 302);
       })
   );

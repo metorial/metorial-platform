@@ -68,6 +68,15 @@ export let errorHtml = (d: {
       text-align: center;
       margin-bottom: 20px;
     }
+
+    pre {
+      background: #f8f8f8;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 14px;
+      color: #333;
+    }
   </style>
 </head>
 
@@ -80,7 +89,7 @@ export let errorHtml = (d: {
 
       <p>${d.message}</p>
 
-      ${d.details ? `<p style="color: #777; font-size: 12px;">${d.details}</p>` : ''}
+      ${d.details ? `<pre>${d.details}</pre>` : ''}
     </section>
   </main>
 </body>

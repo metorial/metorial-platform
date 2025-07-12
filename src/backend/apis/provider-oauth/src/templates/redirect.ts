@@ -56,13 +56,12 @@ export let redirectHtml = (d: { url: string }) => `<!DOCTYPE html>
 
   <section>
     <img src="https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg" alt="Metorial" />
-
   </section>
 
   <script>
     setTimeout(() => {
       window.location.href = '${d.url}';
-    }, 500);
+    }, 1000);
   </script>
     
 </body>

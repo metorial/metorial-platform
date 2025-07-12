@@ -2,22 +2,40 @@ import { zValidator } from '@hono/zod-validator';
 import { validationError } from '@metorial/error';
 import { ValidationTargets } from 'hono';
 import { ZodSchema } from 'zod';
+import { errorHtml } from '../templates/error';
 
 export let useValidation = <Target extends keyof ValidationTargets, T extends ZodSchema>(
   target: Target,
   schema: T
 ) =>
   zValidator(target, schema, (data, c) => {
-    if (!data.success)
-      return c.json(
-        validationError({
-          entity: 'query',
-          errors: data.error.issues.map(e => ({
-            code: e.code,
-            message: e.message,
-            path: e.path.map(p => p.toString())
-          }))
-        }).toResponse(),
-        400
+    if (!data.success) {
+      // return c.json(
+      //   validationError({
+      //     entity: 'query',
+      //     errors: data.error.issues.map(e => ({
+      //       code: e.code,
+      //       message: e.message,
+      //       path: e.path.map(p => p.toString())
+      //     }))
+      //   }).toResponse(),
+      //   400
+      // );
+
+      return c.html(
+        errorHtml({
+          title: 'Invalid Request',
+          message: `The request ${target} is invalid.`,
+          details: JSON.stringify(
+            data.error.issues.map(e => ({
+              code: e.code,
+              message: e.message,
+              path: e.path.map(p => p.toString())
+            })),
+            null,
+            2
+          )
+        })
       );
+    }
   });
