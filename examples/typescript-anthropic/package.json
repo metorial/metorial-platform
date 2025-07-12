@@ -1,0 +1,20 @@
+{
+  "name": "@metorial-examples/typescript-anthropic",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun ./src/index.ts"
+  },
+  "dependencies": {
+    "@metorial/anthropic": "^1.0.0",
+    "metorial": "^1.0.0",
+    "@anthropic-ai/sdk": "^0.32.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
