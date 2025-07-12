@@ -66,10 +66,25 @@ console.log(JSON.stringify({ type: 'success', data: output }));
 
   await fs.writeFile(tempFile, script, 'utf-8');
 
-  let out =
-    await $`timeout 5s deno run --v8-flags=--max-old-space-size=20 --allow-read=${tempFile} --deny-write --deny-env --deny-sys --deny-net --deny-run --deny-ffi ${tempFile}`
-      .throws(false)
-      .quiet();
+  // determine which timeout command to use based on platform
+  let timeoutCmd = '';
+  if (process.platform === 'darwin') {
+    // macOS: use gtimeout if available, otherwise no timeout
+    try {
+      await $`which gtimeout`.quiet();
+      timeoutCmd = 'gtimeout 5s';
+    } catch {
+      timeoutCmd = '';
+    }
+  } else {
+    // Linux: use timeout
+    timeoutCmd = 'timeout 5s';
+  }
+
+  let denoCmd = `deno run --v8-flags=--max-old-space-size=20 --allow-read=${tempFile} --deny-write --deny-env --deny-sys --deny-net --deny-run --deny-ffi ${tempFile}`;
+  let fullCmd = timeoutCmd ? `${timeoutCmd} ${denoCmd}` : denoCmd;
+
+  let out = await $`${{ raw: fullCmd }}`.throws(false).quiet();
 
   let stdout = await new Response(out.stdout).text();
   let stderr = await new Response(out.stderr).text();
