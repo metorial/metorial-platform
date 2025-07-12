@@ -1,10 +1,10 @@
 import { oauthTemplateService } from '../services';
 
 oauthTemplateService.ensureTemplate({
-  slug: 'google',
-  name: 'Google',
-  providerName: 'Google',
-  providerUrl: 'https://www.google.com',
+  slug: 'github',
+  name: 'GitHub',
+  providerName: 'GitHub',
+  providerUrl: 'https://www.github.com',
 
   variables: [],
 

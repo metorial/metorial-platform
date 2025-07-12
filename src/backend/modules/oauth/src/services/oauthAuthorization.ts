@@ -41,18 +41,19 @@ class OauthAuthorizationServiceImpl {
       ? await OAuthUtils.generateCodeChallenge(authAttempt.codeVerifier)
       : undefined;
 
-    return OAuthUtils.buildAuthorizationUrl({
-      authEndpoint: config.authorization_endpoint,
-      clientId: d.connection.clientId,
-      redirectUri: callbackUrl,
-      scopes: d.connection.scopes,
-      state: authAttempt.stateIdentifier!,
-      codeChallenge
-    });
+    return {
+      redirectUrl: OAuthUtils.buildAuthorizationUrl({
+        authEndpoint: config.authorization_endpoint,
+        clientId: d.connection.clientId,
+        redirectUri: callbackUrl,
+        scopes: d.connection.scopes,
+        state: authAttempt.stateIdentifier!,
+        codeChallenge
+      })
+    };
   }
 
   async completeAuthorization(d: {
-    connection: ProviderOAuthConnection;
     response: {
       code?: string;
       state?: string;
@@ -62,44 +63,52 @@ class OauthAuthorizationServiceImpl {
     getCallbackUrl: (d: { connection: ProviderOAuthConnection }) => string;
   }) {
     if (d.response.error) {
-      await db.providerOAuthConnectionAuthAttempt.update({
-        where: {
-          connectionOid: d.connection.oid,
-          stateIdentifier: d.response.state!,
-          status: 'pending'
-        },
-        data: {
-          status: 'failed',
-          stateIdentifier: null,
-          clientSecret: null,
+      if (d.response.state) {
+        await db.providerOAuthConnectionAuthAttempt.update({
+          where: {
+            stateIdentifier: d.response.state!,
+            status: 'pending'
+          },
+          data: {
+            status: 'failed',
+            stateIdentifier: null,
+            clientSecret: null,
 
-          errorCode: d.response.error,
-          errorMessage:
-            d.response.errorDescription ??
-            oauthErrorDescriptions[d.response.error] ??
-            d.response.error
-        }
-      });
+            errorCode: d.response.error,
+            errorMessage:
+              d.response.errorDescription ??
+              oauthErrorDescriptions[d.response.error] ??
+              d.response.error
+          }
+        });
+      }
 
       throw new ServiceError(
         badRequestError({
           message: 'Authorization failed',
-          description: `The provider "${d.connection.providerName}" returned an error: ${d.response.error} - ${d.response.errorDescription}`
+          description: `The provider returned an error: ${d.response.error} - ${d.response.errorDescription}`
         })
       );
     }
 
-    let callbackUrl = d.getCallbackUrl({ connection: d.connection });
+    if (!d.response.code || !d.response.state) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Invalid authorization response',
+          description: 'The response must contain a code and state parameter.'
+        })
+      );
+    }
 
     let attempt = await db.providerOAuthConnectionAuthAttempt.findFirst({
       where: {
         stateIdentifier: d.response.state!,
-        connectionOid: d.connection.oid,
         status: 'pending',
         createdAt: {
           gte: subMinutes(new Date(), 60 * 2)
         }
-      }
+      },
+      include: { connection: true }
     });
     if (!attempt) {
       throw new ServiceError(
@@ -110,14 +119,17 @@ class OauthAuthorizationServiceImpl {
         })
       );
     }
+    let connection = attempt.connection;
+
+    let callbackUrl = d.getCallbackUrl({ connection });
 
     let tokenResponse: TokenResponse;
 
     try {
       tokenResponse = await OAuthUtils.exchangeCodeForTokens({
-        tokenEndpoint: d.connection.config.token_endpoint,
-        clientId: d.connection.clientId,
-        clientSecret: d.connection.clientSecret,
+        tokenEndpoint: connection.config.token_endpoint,
+        clientId: connection.clientId,
+        clientSecret: connection.clientSecret,
         code: d.response.code!,
         redirectUri: callbackUrl,
         codeVerifier: attempt.codeVerifier ?? undefined
@@ -125,7 +137,7 @@ class OauthAuthorizationServiceImpl {
     } catch (error) {
       await db.providerOAuthConnectionAuthAttempt.update({
         where: {
-          connectionOid: d.connection.oid,
+          connectionOid: connection.oid,
           stateIdentifier: d.response.state!,
           status: 'pending'
         },
@@ -143,10 +155,10 @@ class OauthAuthorizationServiceImpl {
     }
 
     let providerProfile: UserProfile | null = null;
-    if (d.connection.config.userinfo_endpoint) {
+    if (connection.config.userinfo_endpoint) {
       try {
         providerProfile = await OAuthUtils.getUserProfile({
-          userInfoEndpoint: d.connection.config.userinfo_endpoint,
+          userInfoEndpoint: connection.config.userinfo_endpoint,
           accessToken: tokenResponse.access_token
         });
       } catch (error) {
@@ -158,7 +170,7 @@ class OauthAuthorizationServiceImpl {
       ? await db.providerOAuthConnectionProfile.upsert({
           where: {
             connectionOid_sub: {
-              connectionOid: d.connection.oid,
+              connectionOid: connection.oid,
               sub: providerProfile.sub
             }
           },
@@ -171,7 +183,7 @@ class OauthAuthorizationServiceImpl {
           create: {
             id: await ID.generateId('oauthConnectionProfile'),
 
-            connectionOid: d.connection.oid,
+            connectionOid: connection.oid,
 
             sub: providerProfile.sub,
             name: providerProfile.name,
@@ -196,14 +208,14 @@ class OauthAuthorizationServiceImpl {
         idToken: tokenResponse.id_token || null,
         scope: tokenResponse.scope || null,
 
-        connectionOid: d.connection.oid,
+        connectionOid: connection.oid,
         connectionProfileOid: profile?.oid
       }
     });
 
-    attempt = await db.providerOAuthConnectionAuthAttempt.update({
+    let updatedAuthAttempt = await db.providerOAuthConnectionAuthAttempt.update({
       where: {
-        connectionOid: d.connection.oid,
+        connectionOid: connection.oid,
         stateIdentifier: d.response.state!,
         status: 'pending'
       },
@@ -215,14 +227,14 @@ class OauthAuthorizationServiceImpl {
       }
     });
 
-    let url = new URL(attempt.redirectUri);
+    let url = new URL(updatedAuthAttempt.redirectUri);
     url.searchParams.set('metorial_token_type', 'oauth');
-    url.searchParams.set('metorial_auth_attempt_id', attempt.id);
-    url.searchParams.set('metorial_token', attempt.clientSecret!);
+    url.searchParams.set('metorial_auth_attempt_id', updatedAuthAttempt.id);
+    url.searchParams.set('metorial_token', updatedAuthAttempt.clientSecret!);
 
     return {
-      url: url.toString(),
-      authAttempt: attempt
+      redirectUrl: url.toString(),
+      authAttempt: updatedAuthAttempt
     };
   }
 

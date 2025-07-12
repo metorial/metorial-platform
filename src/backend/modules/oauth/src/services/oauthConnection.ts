@@ -118,6 +118,16 @@ class OauthConnectionServiceImpl {
     return connection;
   }
 
+  async getConnectionByClientId(d: { clientId: string }) {
+    let connection = await db.providerOAuthConnection.findUnique({
+      where: { metorialClientId: d.clientId },
+      include
+    });
+    if (!connection) throw new ServiceError(notFoundError('connection'));
+
+    return connection;
+  }
+
   async listConnections(d: { instance: Instance }) {
     return Paginator.create(({ prisma }) =>
       prisma(

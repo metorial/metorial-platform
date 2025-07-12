@@ -21,7 +21,6 @@ class OauthTemplateServiceImpl {
     variables: PrismaJson.ProviderOAuthConfigTemplateVariables;
   }) {
     let data = {
-      slug: d.slug,
       name: d.name,
       providerName: d.providerName,
       providerUrl: d.providerUrl,
@@ -40,6 +39,7 @@ class OauthTemplateServiceImpl {
         id: await ID.generateId('oauthConnectionTemplate'),
 
         profileOid: (await systemProfile).oid,
+        slug: d.slug,
 
         ...data
       },
