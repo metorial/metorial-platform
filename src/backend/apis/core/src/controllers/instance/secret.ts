@@ -22,14 +22,15 @@ export let secretGroup = instanceGroup.use(async ctx => {
 
 export let secretController = Controller.create(
   {
-    name: 'Secret',
-    description: 'Read and write secret information'
+    name: 'Secrets',
+    description: 'Endpoints for retrieving and managing secrets associated with an instance.'
   },
   {
     list: instanceGroup
       .get(instancePath('secrets', 'secrets.list'), {
         name: 'List secrets',
-        description: 'List all  secrets'
+        description:
+          'Returns a paginated list of secrets for the instance, optionally filtered by type or status.'
       })
       .use(checkAccess({ possibleScopes: ['instance.secret:read'] }))
       .outputList(secretPresenter)
@@ -66,8 +67,8 @@ export let secretController = Controller.create(
 
     get: secretGroup
       .get(instancePath('secrets/:secretId', 'secrets.get'), {
-        name: 'Get secret',
-        description: 'Get the information of a specific secret'
+        name: 'Get secret by ID',
+        description: 'Retrieves detailed information about a specific secret by ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.secret:read'] }))
       .output(secretPresenter)

@@ -20,14 +20,14 @@ export let serverListingCollectionGroup = apiGroup.use(async ctx => {
 
 export let serverListingCollectionController = Controller.create(
   {
-    name: 'Server Collection',
-    description: 'Read and write server version information'
+    name: 'ServerListingCollection',
+    description: 'Read and write server listing collection information'
   },
   {
     list: apiGroup
       .get(Path('server-listing-collections', 'servers.listings.collections.list'), {
-        name: 'List server versions',
-        description: 'List all server versions'
+        name: 'List server listing collections',
+        description: 'List all server listing collections'
       })
       .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
       .outputList(serverListingCollectionPresenter)
@@ -49,8 +49,8 @@ export let serverListingCollectionController = Controller.create(
           'servers.listings.collections.get'
         ),
         {
-          name: 'Get server version',
-          description: 'Get the information of a specific server version'
+          name: 'Get server listing collection',
+          description: 'Get the information of a specific server listing collection'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
