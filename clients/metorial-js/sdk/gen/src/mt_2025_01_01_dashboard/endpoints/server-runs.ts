@@ -35,9 +35,12 @@ export class MetorialServerRunsEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  list(query?: DashboardInstanceServerRunsListQuery) {
+  list(
+    query?: DashboardInstanceServerRunsListQuery
+  ): Promise<DashboardInstanceServerRunsListOutput> {
+    let path = 'server-runs';
     return this._get({
-      path: ['server-runs'],
+      path,
 
       query: query
         ? mapDashboardInstanceServerRunsListQuery.transformTo(query)
@@ -56,9 +59,10 @@ export class MetorialServerRunsEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(serverRunId: string) {
+  get(serverRunId: string): Promise<DashboardInstanceServerRunsGetOutput> {
+    let path = `server-runs/${serverRunId}`;
     return this._get({
-      path: ['server-runs', serverRunId]
+      path
     }).transform(mapDashboardInstanceServerRunsGetOutput);
   }
 }

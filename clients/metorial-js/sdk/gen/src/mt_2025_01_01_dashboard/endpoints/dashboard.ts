@@ -33,9 +33,10 @@ export class MetorialDashboardEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  boot(body: DashboardBootBody) {
+  boot(body: DashboardBootBody): Promise<DashboardBootOutput> {
+    let path = 'dashboard/boot';
     return this._post({
-      path: ['dashboard', 'boot'],
+      path,
       body: mapDashboardBootBody.transformTo(body)
     }).transform(mapDashboardBootOutput);
   }

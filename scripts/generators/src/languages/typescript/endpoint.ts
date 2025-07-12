@@ -111,9 +111,10 @@ let createEndpoint = (i: {
        */    
       ${Cases.toCamelCase(methodName)}(
         ${inputs.map(i => `${i.name}${i.optional ? '?' : ''}: ${i.type}`).join(', ')}
-      ) {
+      ): Promise<${outputType.typeName}> {
+        ${pathParams.length > 0 ? `let path = \`${pathParts.map(p => p.startsWith(':') ? `\${${p.slice(1)}}` : p).join('/')}\`;` : `let path = '${pathParts.join('/')}';`}
         return this._${i.endpoint.method.toLowerCase()}({
-          path: [${pathParts.map(p => (p.startsWith(':') ? p.replace(':', '') : `'${p}'`)).join(', ')}],
+          path,
           ${bodyType ? `body: ${bodyType.mapperName}.transformTo(body),` : ''}
           ${queryType ? `query: query ? ${queryType.mapperName}.transformTo(query) : undefined,` : ''}
         }).transform(${outputType.mapperName});  

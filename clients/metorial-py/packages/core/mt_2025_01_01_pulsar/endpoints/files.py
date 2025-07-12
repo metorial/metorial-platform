@@ -2,62 +2,62 @@ from metorial_util_endpoint import BaseMetorialEndpoint, MetorialEndpointManager
 from ..resources import mapDashboardInstanceFilesListOutput, DashboardInstanceFilesListOutput, mapDashboardInstanceFilesListQuery, DashboardInstanceFilesListQuery, mapDashboardInstanceFilesGetOutput, DashboardInstanceFilesGetOutput, mapDashboardInstanceFilesUpdateOutput, DashboardInstanceFilesUpdateOutput, mapDashboardInstanceFilesUpdateBody, DashboardInstanceFilesUpdateBody, mapDashboardInstanceFilesDeleteOutput, DashboardInstanceFilesDeleteOutput
 
 class MetorialFilesEndpoint(BaseMetorialEndpoint):
-    """Read and write file information"""
+  """Read and write file information"""
 
-    def __init__(self, config: MetorialEndpointManager):
-        super().__init__(config)
+  def __init__(self, config: MetorialEndpointManager):
+    super().__init__(config)
 
-    def list(self, query: DashboardInstanceFilesListQuery = None):
-        """
-    List  files
-    List all  files
-
-    :param query: DashboardInstanceFilesListQuery
-    :return: DashboardInstanceFilesListOutput
+  def list(self, query: DashboardInstanceFilesListQuery = None):
     """
-        request = MetorialRequest(
-            path=['files'],
-            query=mapDashboardInstanceFilesListQuery.transform_to(query) if query is not None else None,
-        )
-        return self._get(request).transform(mapDashboardInstanceFilesListOutput)
+  List  files
+  List all  files
 
-    def get(self, fileId: str):
-        """
-    Get file
-    Get the information of a specific file
+  :param query: DashboardInstanceFilesListQuery
+  :return: DashboardInstanceFilesListOutput
+  """
+    request = MetorialRequest(
+      path=['files'],
+      query=mapDashboardInstanceFilesListQuery.transform_to(query) if query is not None else None,
+    )
+    return self._get(request).transform(mapDashboardInstanceFilesListOutput)
 
-    :param fileId: str
-    :return: DashboardInstanceFilesGetOutput
+  def get(self, fileId: str):
     """
-        request = MetorialRequest(
-            path=['files', fileId]
-        )
-        return self._get(request).transform(mapDashboardInstanceFilesGetOutput)
+  Get file
+  Get the information of a specific file
 
-    def update(self, fileId: str, body: DashboardInstanceFilesUpdateBody):
-        """
-    Update file
-    Update the information of a specific file
+  :param fileId: str
+  :return: DashboardInstanceFilesGetOutput
+  """
+    request = MetorialRequest(
+      path=['files', fileId]
+    )
+    return self._get(request).transform(mapDashboardInstanceFilesGetOutput)
 
-    :param fileId: str
-    :param body: DashboardInstanceFilesUpdateBody
-    :return: DashboardInstanceFilesUpdateOutput
+  def update(self, fileId: str, body: DashboardInstanceFilesUpdateBody):
     """
-        request = MetorialRequest(
-            path=['files', fileId],
-            body=mapDashboardInstanceFilesUpdateBody.transform_to(body),
-        )
-        return self._patch(request).transform(mapDashboardInstanceFilesUpdateOutput)
+  Update file
+  Update the information of a specific file
 
-    def delete(self, fileId: str):
-        """
-    Delete file
-    Delete a specific file
+  :param fileId: str
+  :param body: DashboardInstanceFilesUpdateBody
+  :return: DashboardInstanceFilesUpdateOutput
+  """
+    request = MetorialRequest(
+      path=['files', fileId],
+      body=mapDashboardInstanceFilesUpdateBody.transform_to(body),
+    )
+    return self._patch(request).transform(mapDashboardInstanceFilesUpdateOutput)
 
-    :param fileId: str
-    :return: DashboardInstanceFilesDeleteOutput
+  def delete(self, fileId: str):
     """
-        request = MetorialRequest(
-            path=['files', fileId]
-        )
-        return self._delete(request).transform(mapDashboardInstanceFilesDeleteOutput)
+  Delete file
+  Delete a specific file
+
+  :param fileId: str
+  :return: DashboardInstanceFilesDeleteOutput
+  """
+    request = MetorialRequest(
+      path=['files', fileId]
+    )
+    return self._delete(request).transform(mapDashboardInstanceFilesDeleteOutput)

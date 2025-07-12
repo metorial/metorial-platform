@@ -35,9 +35,12 @@ export class MetorialSecretsEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  list(query?: DashboardInstanceSecretsListQuery) {
+  list(
+    query?: DashboardInstanceSecretsListQuery
+  ): Promise<DashboardInstanceSecretsListOutput> {
+    let path = 'secrets';
     return this._get({
-      path: ['secrets'],
+      path,
 
       query: query
         ? mapDashboardInstanceSecretsListQuery.transformTo(query)
@@ -56,9 +59,10 @@ export class MetorialSecretsEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(secretId: string) {
+  get(secretId: string): Promise<DashboardInstanceSecretsGetOutput> {
+    let path = `secrets/${secretId}`;
     return this._get({
-      path: ['secrets', secretId]
+      path
     }).transform(mapDashboardInstanceSecretsGetOutput);
   }
 }

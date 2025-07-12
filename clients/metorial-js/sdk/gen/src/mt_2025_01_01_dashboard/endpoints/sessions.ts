@@ -41,9 +41,12 @@ export class MetorialSessionsEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  list(query?: DashboardInstanceSessionsListQuery) {
+  list(
+    query?: DashboardInstanceSessionsListQuery
+  ): Promise<DashboardInstanceSessionsListOutput> {
+    let path = 'sessions';
     return this._get({
-      path: ['sessions'],
+      path,
 
       query: query
         ? mapDashboardInstanceSessionsListQuery.transformTo(query)
@@ -62,9 +65,10 @@ export class MetorialSessionsEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(sessionId: string) {
+  get(sessionId: string): Promise<DashboardInstanceSessionsGetOutput> {
+    let path = `sessions/${sessionId}`;
     return this._get({
-      path: ['sessions', sessionId]
+      path
     }).transform(mapDashboardInstanceSessionsGetOutput);
   }
 
@@ -79,9 +83,12 @@ export class MetorialSessionsEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  create(body: DashboardInstanceSessionsCreateBody) {
+  create(
+    body: DashboardInstanceSessionsCreateBody
+  ): Promise<DashboardInstanceSessionsCreateOutput> {
+    let path = 'sessions';
     return this._post({
-      path: ['sessions'],
+      path,
       body: mapDashboardInstanceSessionsCreateBody.transformTo(body)
     }).transform(mapDashboardInstanceSessionsCreateOutput);
   }
@@ -97,9 +104,10 @@ export class MetorialSessionsEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  delete(sessionId: string) {
+  delete(sessionId: string): Promise<DashboardInstanceSessionsDeleteOutput> {
+    let path = `sessions/${sessionId}`;
     return this._delete({
-      path: ['sessions', sessionId]
+      path
     }).transform(mapDashboardInstanceSessionsDeleteOutput);
   }
 }

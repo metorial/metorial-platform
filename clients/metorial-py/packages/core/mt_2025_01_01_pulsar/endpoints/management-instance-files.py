@@ -2,66 +2,66 @@ from metorial_util_endpoint import BaseMetorialEndpoint, MetorialEndpointManager
 from ..resources import mapDashboardInstanceFilesListOutput, DashboardInstanceFilesListOutput, mapDashboardInstanceFilesListQuery, DashboardInstanceFilesListQuery, mapDashboardInstanceFilesGetOutput, DashboardInstanceFilesGetOutput, mapDashboardInstanceFilesUpdateOutput, DashboardInstanceFilesUpdateOutput, mapDashboardInstanceFilesUpdateBody, DashboardInstanceFilesUpdateBody, mapDashboardInstanceFilesDeleteOutput, DashboardInstanceFilesDeleteOutput
 
 class MetorialManagementInstanceFilesEndpoint(BaseMetorialEndpoint):
-    """Read and write file information"""
+  """Read and write file information"""
 
-    def __init__(self, config: MetorialEndpointManager):
-        super().__init__(config)
+  def __init__(self, config: MetorialEndpointManager):
+    super().__init__(config)
 
-    def list(self, instanceId: str, query: DashboardInstanceFilesListQuery = None):
-        """
-    List  files
-    List all  files
-
-    :param instanceId: str
-    :param query: DashboardInstanceFilesListQuery
-    :return: DashboardInstanceFilesListOutput
+  def list(self, instanceId: str, query: DashboardInstanceFilesListQuery = None):
     """
-        request = MetorialRequest(
-            path=['instances', instanceId, 'files'],
-            query=mapDashboardInstanceFilesListQuery.transform_to(query) if query is not None else None,
-        )
-        return self._get(request).transform(mapDashboardInstanceFilesListOutput)
+  List  files
+  List all  files
 
-    def get(self, instanceId: str, fileId: str):
-        """
-    Get file
-    Get the information of a specific file
+  :param instanceId: str
+  :param query: DashboardInstanceFilesListQuery
+  :return: DashboardInstanceFilesListOutput
+  """
+    request = MetorialRequest(
+      path=['instances', instanceId, 'files'],
+      query=mapDashboardInstanceFilesListQuery.transform_to(query) if query is not None else None,
+    )
+    return self._get(request).transform(mapDashboardInstanceFilesListOutput)
 
-    :param instanceId: str
-    :param fileId: str
-    :return: DashboardInstanceFilesGetOutput
+  def get(self, instanceId: str, fileId: str):
     """
-        request = MetorialRequest(
-            path=['instances', instanceId, 'files', fileId]
-        )
-        return self._get(request).transform(mapDashboardInstanceFilesGetOutput)
+  Get file
+  Get the information of a specific file
 
-    def update(self, instanceId: str, fileId: str, body: DashboardInstanceFilesUpdateBody):
-        """
-    Update file
-    Update the information of a specific file
+  :param instanceId: str
+  :param fileId: str
+  :return: DashboardInstanceFilesGetOutput
+  """
+    request = MetorialRequest(
+      path=['instances', instanceId, 'files', fileId]
+    )
+    return self._get(request).transform(mapDashboardInstanceFilesGetOutput)
 
-    :param instanceId: str
-    :param fileId: str
-    :param body: DashboardInstanceFilesUpdateBody
-    :return: DashboardInstanceFilesUpdateOutput
+  def update(self, instanceId: str, fileId: str, body: DashboardInstanceFilesUpdateBody):
     """
-        request = MetorialRequest(
-            path=['instances', instanceId, 'files', fileId],
-            body=mapDashboardInstanceFilesUpdateBody.transform_to(body),
-        )
-        return self._patch(request).transform(mapDashboardInstanceFilesUpdateOutput)
+  Update file
+  Update the information of a specific file
 
-    def delete(self, instanceId: str, fileId: str):
-        """
-    Delete file
-    Delete a specific file
+  :param instanceId: str
+  :param fileId: str
+  :param body: DashboardInstanceFilesUpdateBody
+  :return: DashboardInstanceFilesUpdateOutput
+  """
+    request = MetorialRequest(
+      path=['instances', instanceId, 'files', fileId],
+      body=mapDashboardInstanceFilesUpdateBody.transform_to(body),
+    )
+    return self._patch(request).transform(mapDashboardInstanceFilesUpdateOutput)
 
-    :param instanceId: str
-    :param fileId: str
-    :return: DashboardInstanceFilesDeleteOutput
+  def delete(self, instanceId: str, fileId: str):
     """
-        request = MetorialRequest(
-            path=['instances', instanceId, 'files', fileId]
-        )
-        return self._delete(request).transform(mapDashboardInstanceFilesDeleteOutput)
+  Delete file
+  Delete a specific file
+
+  :param instanceId: str
+  :param fileId: str
+  :return: DashboardInstanceFilesDeleteOutput
+  """
+    request = MetorialRequest(
+      path=['instances', instanceId, 'files', fileId]
+    )
+    return self._delete(request).transform(mapDashboardInstanceFilesDeleteOutput)

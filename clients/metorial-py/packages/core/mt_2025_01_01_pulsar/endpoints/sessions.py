@@ -2,61 +2,61 @@ from metorial_util_endpoint import BaseMetorialEndpoint, MetorialEndpointManager
 from ..resources import mapDashboardInstanceSessionsListOutput, DashboardInstanceSessionsListOutput, mapDashboardInstanceSessionsListQuery, DashboardInstanceSessionsListQuery, mapDashboardInstanceSessionsGetOutput, DashboardInstanceSessionsGetOutput, mapDashboardInstanceSessionsCreateOutput, DashboardInstanceSessionsCreateOutput, mapDashboardInstanceSessionsCreateBody, DashboardInstanceSessionsCreateBody, mapDashboardInstanceSessionsDeleteOutput, DashboardInstanceSessionsDeleteOutput
 
 class MetorialSessionsEndpoint(BaseMetorialEndpoint):
-    """Read and write session information"""
+  """Read and write session information"""
 
-    def __init__(self, config: MetorialEndpointManager):
-        super().__init__(config)
+  def __init__(self, config: MetorialEndpointManager):
+    super().__init__(config)
 
-    def list(self, query: DashboardInstanceSessionsListQuery = None):
-        """
-    List server deployments
-    List all server deployments
-
-    :param query: DashboardInstanceSessionsListQuery
-    :return: DashboardInstanceSessionsListOutput
+  def list(self, query: DashboardInstanceSessionsListQuery = None):
     """
-        request = MetorialRequest(
-            path=['sessions'],
-            query=mapDashboardInstanceSessionsListQuery.transform_to(query) if query is not None else None,
-        )
-        return self._get(request).transform(mapDashboardInstanceSessionsListOutput)
+  List server deployments
+  List all server deployments
 
-    def get(self, sessionId: str):
-        """
-    Get session
-    Get the information of a specific session
+  :param query: DashboardInstanceSessionsListQuery
+  :return: DashboardInstanceSessionsListOutput
+  """
+    request = MetorialRequest(
+      path=['sessions'],
+      query=mapDashboardInstanceSessionsListQuery.transform_to(query) if query is not None else None,
+    )
+    return self._get(request).transform(mapDashboardInstanceSessionsListOutput)
 
-    :param sessionId: str
-    :return: DashboardInstanceSessionsGetOutput
+  def get(self, sessionId: str):
     """
-        request = MetorialRequest(
-            path=['sessions', sessionId]
-        )
-        return self._get(request).transform(mapDashboardInstanceSessionsGetOutput)
+  Get session
+  Get the information of a specific session
 
-    def create(self, body: DashboardInstanceSessionsCreateBody):
-        """
-    Create session
-    Create a new session
+  :param sessionId: str
+  :return: DashboardInstanceSessionsGetOutput
+  """
+    request = MetorialRequest(
+      path=['sessions', sessionId]
+    )
+    return self._get(request).transform(mapDashboardInstanceSessionsGetOutput)
 
-    :param body: DashboardInstanceSessionsCreateBody
-    :return: DashboardInstanceSessionsCreateOutput
+  def create(self, body: DashboardInstanceSessionsCreateBody):
     """
-        request = MetorialRequest(
-            path=['sessions'],
-            body=mapDashboardInstanceSessionsCreateBody.transform_to(body),
-        )
-        return self._post(request).transform(mapDashboardInstanceSessionsCreateOutput)
+  Create session
+  Create a new session
 
-    def delete(self, sessionId: str):
-        """
-    Delete session
-    Delete a session
+  :param body: DashboardInstanceSessionsCreateBody
+  :return: DashboardInstanceSessionsCreateOutput
+  """
+    request = MetorialRequest(
+      path=['sessions'],
+      body=mapDashboardInstanceSessionsCreateBody.transform_to(body),
+    )
+    return self._post(request).transform(mapDashboardInstanceSessionsCreateOutput)
 
-    :param sessionId: str
-    :return: DashboardInstanceSessionsDeleteOutput
+  def delete(self, sessionId: str):
     """
-        request = MetorialRequest(
-            path=['sessions', sessionId]
-        )
-        return self._delete(request).transform(mapDashboardInstanceSessionsDeleteOutput)
+  Delete session
+  Delete a session
+
+  :param sessionId: str
+  :return: DashboardInstanceSessionsDeleteOutput
+  """
+    request = MetorialRequest(
+      path=['sessions', sessionId]
+    )
+    return self._delete(request).transform(mapDashboardInstanceSessionsDeleteOutput)

@@ -2,79 +2,79 @@ from metorial_util_endpoint import BaseMetorialEndpoint, MetorialEndpointManager
 from ..resources import mapDashboardInstanceLinksListOutput, DashboardInstanceLinksListOutput, mapDashboardInstanceLinksGetOutput, DashboardInstanceLinksGetOutput, mapDashboardInstanceLinksCreateOutput, DashboardInstanceLinksCreateOutput, mapDashboardInstanceLinksCreateBody, DashboardInstanceLinksCreateBody, mapDashboardInstanceLinksUpdateOutput, DashboardInstanceLinksUpdateOutput, mapDashboardInstanceLinksUpdateBody, DashboardInstanceLinksUpdateBody, mapDashboardInstanceLinksDeleteOutput, DashboardInstanceLinksDeleteOutput
 
 class MetorialLinksEndpoint(BaseMetorialEndpoint):
-    """Read and write file link information"""
+  """Read and write file link information"""
 
-    def __init__(self, config: MetorialEndpointManager):
-        super().__init__(config)
+  def __init__(self, config: MetorialEndpointManager):
+    super().__init__(config)
 
-    def list(self, fileId: str):
-        """
-    List file links
-    List all file links
-
-    :param fileId: str
-    :return: DashboardInstanceLinksListOutput
+  def list(self, fileId: str):
     """
-        request = MetorialRequest(
-            path=['files', fileId, 'links']
-        )
-        return self._get(request).transform(mapDashboardInstanceLinksListOutput)
+  List file links
+  List all file links
 
-    def get(self, fileId: str, linkId: str):
-        """
-    Get file link
-    Get the information of a specific file link
+  :param fileId: str
+  :return: DashboardInstanceLinksListOutput
+  """
+    request = MetorialRequest(
+      path=['files', fileId, 'links']
+    )
+    return self._get(request).transform(mapDashboardInstanceLinksListOutput)
 
-    :param fileId: str
-    :param linkId: str
-    :return: DashboardInstanceLinksGetOutput
+  def get(self, fileId: str, linkId: str):
     """
-        request = MetorialRequest(
-            path=['files', fileId, 'links', linkId]
-        )
-        return self._get(request).transform(mapDashboardInstanceLinksGetOutput)
+  Get file link
+  Get the information of a specific file link
 
-    def create(self, fileId: str, body: DashboardInstanceLinksCreateBody):
-        """
-    Create file link
-    Create a new file link
+  :param fileId: str
+  :param linkId: str
+  :return: DashboardInstanceLinksGetOutput
+  """
+    request = MetorialRequest(
+      path=['files', fileId, 'links', linkId]
+    )
+    return self._get(request).transform(mapDashboardInstanceLinksGetOutput)
 
-    :param fileId: str
-    :param body: DashboardInstanceLinksCreateBody
-    :return: DashboardInstanceLinksCreateOutput
+  def create(self, fileId: str, body: DashboardInstanceLinksCreateBody):
     """
-        request = MetorialRequest(
-            path=['files', fileId, 'links'],
-            body=mapDashboardInstanceLinksCreateBody.transform_to(body),
-        )
-        return self._post(request).transform(mapDashboardInstanceLinksCreateOutput)
+  Create file link
+  Create a new file link
 
-    def update(self, fileId: str, linkId: str, body: DashboardInstanceLinksUpdateBody):
-        """
-    Update file link
-    Update the information of a specific file link
+  :param fileId: str
+  :param body: DashboardInstanceLinksCreateBody
+  :return: DashboardInstanceLinksCreateOutput
+  """
+    request = MetorialRequest(
+      path=['files', fileId, 'links'],
+      body=mapDashboardInstanceLinksCreateBody.transform_to(body),
+    )
+    return self._post(request).transform(mapDashboardInstanceLinksCreateOutput)
 
-    :param fileId: str
-    :param linkId: str
-    :param body: DashboardInstanceLinksUpdateBody
-    :return: DashboardInstanceLinksUpdateOutput
+  def update(self, fileId: str, linkId: str, body: DashboardInstanceLinksUpdateBody):
     """
-        request = MetorialRequest(
-            path=['files', fileId, 'links', linkId],
-            body=mapDashboardInstanceLinksUpdateBody.transform_to(body),
-        )
-        return self._patch(request).transform(mapDashboardInstanceLinksUpdateOutput)
+  Update file link
+  Update the information of a specific file link
 
-    def delete(self, fileId: str, linkId: str):
-        """
-    Delete file link
-    Delete a specific file link
+  :param fileId: str
+  :param linkId: str
+  :param body: DashboardInstanceLinksUpdateBody
+  :return: DashboardInstanceLinksUpdateOutput
+  """
+    request = MetorialRequest(
+      path=['files', fileId, 'links', linkId],
+      body=mapDashboardInstanceLinksUpdateBody.transform_to(body),
+    )
+    return self._patch(request).transform(mapDashboardInstanceLinksUpdateOutput)
 
-    :param fileId: str
-    :param linkId: str
-    :return: DashboardInstanceLinksDeleteOutput
+  def delete(self, fileId: str, linkId: str):
     """
-        request = MetorialRequest(
-            path=['files', fileId, 'links', linkId]
-        )
-        return self._delete(request).transform(mapDashboardInstanceLinksDeleteOutput)
+  Delete file link
+  Delete a specific file link
+
+  :param fileId: str
+  :param linkId: str
+  :return: DashboardInstanceLinksDeleteOutput
+  """
+    request = MetorialRequest(
+      path=['files', fileId, 'links', linkId]
+    )
+    return self._delete(request).transform(mapDashboardInstanceLinksDeleteOutput)

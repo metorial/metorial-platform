@@ -41,9 +41,12 @@ export class MetorialFilesEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  list(query?: DashboardInstanceFilesListQuery) {
+  list(
+    query?: DashboardInstanceFilesListQuery
+  ): Promise<DashboardInstanceFilesListOutput> {
+    let path = 'files';
     return this._get({
-      path: ['files'],
+      path,
 
       query: query
         ? mapDashboardInstanceFilesListQuery.transformTo(query)
@@ -62,9 +65,10 @@ export class MetorialFilesEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(fileId: string) {
+  get(fileId: string): Promise<DashboardInstanceFilesGetOutput> {
+    let path = `files/${fileId}`;
     return this._get({
-      path: ['files', fileId]
+      path
     }).transform(mapDashboardInstanceFilesGetOutput);
   }
 
@@ -80,9 +84,13 @@ export class MetorialFilesEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  update(fileId: string, body: DashboardInstanceFilesUpdateBody) {
+  update(
+    fileId: string,
+    body: DashboardInstanceFilesUpdateBody
+  ): Promise<DashboardInstanceFilesUpdateOutput> {
+    let path = `files/${fileId}`;
     return this._patch({
-      path: ['files', fileId],
+      path,
       body: mapDashboardInstanceFilesUpdateBody.transformTo(body)
     }).transform(mapDashboardInstanceFilesUpdateOutput);
   }
@@ -98,9 +106,10 @@ export class MetorialFilesEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  delete(fileId: string) {
+  delete(fileId: string): Promise<DashboardInstanceFilesDeleteOutput> {
+    let path = `files/${fileId}`;
     return this._delete({
-      path: ['files', fileId]
+      path
     }).transform(mapDashboardInstanceFilesDeleteOutput);
   }
 }

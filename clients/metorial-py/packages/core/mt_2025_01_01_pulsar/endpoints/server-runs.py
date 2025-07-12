@@ -2,34 +2,34 @@ from metorial_util_endpoint import BaseMetorialEndpoint, MetorialEndpointManager
 from ..resources import mapDashboardInstanceServerRunsListOutput, DashboardInstanceServerRunsListOutput, mapDashboardInstanceServerRunsListQuery, DashboardInstanceServerRunsListQuery, mapDashboardInstanceServerRunsGetOutput, DashboardInstanceServerRunsGetOutput
 
 class MetorialServerRunsEndpoint(BaseMetorialEndpoint):
-    """Read and write server run information"""
+  """Read and write server run information"""
 
-    def __init__(self, config: MetorialEndpointManager):
-        super().__init__(config)
+  def __init__(self, config: MetorialEndpointManager):
+    super().__init__(config)
 
-    def list(self, query: DashboardInstanceServerRunsListQuery = None):
-        """
-    List server deployments
-    List all server deployments
-
-    :param query: DashboardInstanceServerRunsListQuery
-    :return: DashboardInstanceServerRunsListOutput
+  def list(self, query: DashboardInstanceServerRunsListQuery = None):
     """
-        request = MetorialRequest(
-            path=['server-runs'],
-            query=mapDashboardInstanceServerRunsListQuery.transform_to(query) if query is not None else None,
-        )
-        return self._get(request).transform(mapDashboardInstanceServerRunsListOutput)
+  List server deployments
+  List all server deployments
 
-    def get(self, serverRunId: str):
-        """
-    Get server run
-    Get the information of a specific server run
+  :param query: DashboardInstanceServerRunsListQuery
+  :return: DashboardInstanceServerRunsListOutput
+  """
+    request = MetorialRequest(
+      path=['server-runs'],
+      query=mapDashboardInstanceServerRunsListQuery.transform_to(query) if query is not None else None,
+    )
+    return self._get(request).transform(mapDashboardInstanceServerRunsListOutput)
 
-    :param serverRunId: str
-    :return: DashboardInstanceServerRunsGetOutput
+  def get(self, serverRunId: str):
     """
-        request = MetorialRequest(
-            path=['server-runs', serverRunId]
-        )
-        return self._get(request).transform(mapDashboardInstanceServerRunsGetOutput)
+  Get server run
+  Get the information of a specific server run
+
+  :param serverRunId: str
+  :return: DashboardInstanceServerRunsGetOutput
+  """
+    request = MetorialRequest(
+      path=['server-runs', serverRunId]
+    )
+    return self._get(request).transform(mapDashboardInstanceServerRunsGetOutput)

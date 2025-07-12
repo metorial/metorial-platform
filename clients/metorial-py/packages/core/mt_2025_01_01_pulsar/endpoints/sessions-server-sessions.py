@@ -2,36 +2,36 @@ from metorial_util_endpoint import BaseMetorialEndpoint, MetorialEndpointManager
 from ..resources import mapDashboardInstanceSessionsServerSessionsListOutput, DashboardInstanceSessionsServerSessionsListOutput, mapDashboardInstanceSessionsServerSessionsListQuery, DashboardInstanceSessionsServerSessionsListQuery, mapDashboardInstanceSessionsServerSessionsGetOutput, DashboardInstanceSessionsServerSessionsGetOutput
 
 class MetorialSessionsServerSessionsEndpoint(BaseMetorialEndpoint):
-    """Read and write server session information"""
+  """Read and write server session information"""
 
-    def __init__(self, config: MetorialEndpointManager):
-        super().__init__(config)
+  def __init__(self, config: MetorialEndpointManager):
+    super().__init__(config)
 
-    def list(self, sessionId: str, query: DashboardInstanceSessionsServerSessionsListQuery = None):
-        """
-    List server sessions
-    List all server sessions
-
-    :param sessionId: str
-    :param query: DashboardInstanceSessionsServerSessionsListQuery
-    :return: DashboardInstanceSessionsServerSessionsListOutput
+  def list(self, sessionId: str, query: DashboardInstanceSessionsServerSessionsListQuery = None):
     """
-        request = MetorialRequest(
-            path=['sessions', sessionId, 'server-sessions'],
-            query=mapDashboardInstanceSessionsServerSessionsListQuery.transform_to(query) if query is not None else None,
-        )
-        return self._get(request).transform(mapDashboardInstanceSessionsServerSessionsListOutput)
+  List server sessions
+  List all server sessions
 
-    def get(self, sessionId: str, serverSessionId: str):
-        """
-    Get server session
-    Get the information of a specific server session
+  :param sessionId: str
+  :param query: DashboardInstanceSessionsServerSessionsListQuery
+  :return: DashboardInstanceSessionsServerSessionsListOutput
+  """
+    request = MetorialRequest(
+      path=['sessions', sessionId, 'server-sessions'],
+      query=mapDashboardInstanceSessionsServerSessionsListQuery.transform_to(query) if query is not None else None,
+    )
+    return self._get(request).transform(mapDashboardInstanceSessionsServerSessionsListOutput)
 
-    :param sessionId: str
-    :param serverSessionId: str
-    :return: DashboardInstanceSessionsServerSessionsGetOutput
+  def get(self, sessionId: str, serverSessionId: str):
     """
-        request = MetorialRequest(
-            path=['sessions', sessionId, 'server-sessions', serverSessionId]
-        )
-        return self._get(request).transform(mapDashboardInstanceSessionsServerSessionsGetOutput)
+  Get server session
+  Get the information of a specific server session
+
+  :param sessionId: str
+  :param serverSessionId: str
+  :return: DashboardInstanceSessionsServerSessionsGetOutput
+  """
+    request = MetorialRequest(
+      path=['sessions', sessionId, 'server-sessions', serverSessionId]
+    )
+    return self._get(request).transform(mapDashboardInstanceSessionsServerSessionsGetOutput)

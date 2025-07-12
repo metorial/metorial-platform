@@ -2,36 +2,36 @@ from metorial_util_endpoint import BaseMetorialEndpoint, MetorialEndpointManager
 from ..resources import mapDashboardInstanceServersVersionsListOutput, DashboardInstanceServersVersionsListOutput, mapDashboardInstanceServersVersionsListQuery, DashboardInstanceServersVersionsListQuery, mapDashboardInstanceServersVersionsGetOutput, DashboardInstanceServersVersionsGetOutput
 
 class MetorialServersVersionsEndpoint(BaseMetorialEndpoint):
-    """Read and write server version information"""
+  """Read and write server version information"""
 
-    def __init__(self, config: MetorialEndpointManager):
-        super().__init__(config)
+  def __init__(self, config: MetorialEndpointManager):
+    super().__init__(config)
 
-    def list(self, serverId: str, query: DashboardInstanceServersVersionsListQuery = None):
-        """
-    List server versions
-    List all server versions
-
-    :param serverId: str
-    :param query: DashboardInstanceServersVersionsListQuery
-    :return: DashboardInstanceServersVersionsListOutput
+  def list(self, serverId: str, query: DashboardInstanceServersVersionsListQuery = None):
     """
-        request = MetorialRequest(
-            path=['servers', serverId, 'versions'],
-            query=mapDashboardInstanceServersVersionsListQuery.transform_to(query) if query is not None else None,
-        )
-        return self._get(request).transform(mapDashboardInstanceServersVersionsListOutput)
+  List server versions
+  List all server versions
 
-    def get(self, serverId: str, serverVersionId: str):
-        """
-    Get server version
-    Get the information of a specific server version
+  :param serverId: str
+  :param query: DashboardInstanceServersVersionsListQuery
+  :return: DashboardInstanceServersVersionsListOutput
+  """
+    request = MetorialRequest(
+      path=['servers', serverId, 'versions'],
+      query=mapDashboardInstanceServersVersionsListQuery.transform_to(query) if query is not None else None,
+    )
+    return self._get(request).transform(mapDashboardInstanceServersVersionsListOutput)
 
-    :param serverId: str
-    :param serverVersionId: str
-    :return: DashboardInstanceServersVersionsGetOutput
+  def get(self, serverId: str, serverVersionId: str):
     """
-        request = MetorialRequest(
-            path=['servers', serverId, 'versions', serverVersionId]
-        )
-        return self._get(request).transform(mapDashboardInstanceServersVersionsGetOutput)
+  Get server version
+  Get the information of a specific server version
+
+  :param serverId: str
+  :param serverVersionId: str
+  :return: DashboardInstanceServersVersionsGetOutput
+  """
+    request = MetorialRequest(
+      path=['servers', serverId, 'versions', serverVersionId]
+    )
+    return self._get(request).transform(mapDashboardInstanceServersVersionsGetOutput)

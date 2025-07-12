@@ -42,15 +42,20 @@ let typeModule = await import(`./languages/${language}/type`);
 let endpointModule = await import(`./languages/${language}/endpoint`);
 
 let urls = url.split(',');
+let workingUrl = null;
 for (let u of urls) {
   try {
     await fetch(u);
-    url = u;
+    workingUrl = u;
     break;
   } catch (e) {}
 }
 
-let versions = await getEndpointVersions(url);
+if (!workingUrl) {
+  throw new Error('None of the provided URLs are reachable.');
+}
+
+let versions = await getEndpointVersions(workingUrl);
 
 for (let version of versions.versions) {
   let { endpoints, types, controllers } = await getEndpoints(url, version.version);
@@ -104,7 +109,10 @@ for (let version of versions.versions) {
 
   for (let endpoint of endpoints) {
     for (let path of endpoint.allPaths) {
-      let parts = path.sdkPath.split('.').map(Cases.toKebabCase).map(toPyFolderName); // <-- ensure folder names use underscores
+      let parts = path.sdkPath.split('.').map(Cases.toKebabCase);
+      if (language === 'python') {
+        parts = parts.map(toPyFolderName);
+      }
       let methodName = parts.pop()!;
 
       let folder = `${resourcesFolder}/${parts.join('/')}`;
@@ -176,7 +184,6 @@ for (let version of versions.versions) {
         if (language === 'python') {
           return `from .${toPyIdentifier(name)} import *`;
         } else {
-          let name = file.replace('.ts', '');
           return `export * from './${name}';`;
         }
       })
@@ -242,20 +249,34 @@ for (let version of versions.versions) {
     let controller = controllers.find(c => c.id == resourceEndpoints[0].controllerId);
     if (!controller) continue;
 
+    let controllerPath = resourceParts.map(Cases.toKebabCase);
+    if (language === 'python') {
+      controllerPath = controllerPath.map(toPyFolderName);
+    }
     let source = await endpointModule.createController({
       endpoints: resourceEndpoints,
       controller,
-      path: resourceParts.map(toPyFolderName), // Use toPyFolderName for folder path
+      path: controllerPath,
       typeIdToName
     });
 
-    let file = `${endpointsDir}/${Cases.toKebabCase(resourceParts.map(toPyFolderName).join('_'))}${fileExtension}`;
+    let fileNameParts = resourceParts.map(Cases.toKebabCase);
+    if (language === 'python') {
+      fileNameParts = fileNameParts.map(toPyFolderName);
+    }
+    let file = `${endpointsDir}/${fileNameParts.join('_')}${fileExtension}`;
 
     await fs.writeFile(file, source);
   }
 
-  let endpointsFiles = await fs.readdir(endpointsDir);
-  let endpointsImports = endpointsFiles
+  let endpointsFiles = (await fs.readdir(endpointsDir)).filter(f => f.endsWith(fileExtension));
+  let endpointsIndexContent = endpointsFiles
+    .filter(file => {
+      // Exclude index.ts or __init__.py itself
+      if (language === 'typescript') return file !== 'index.ts';
+      if (language === 'python') return file !== '__init__.py';
+      return true;
+    })
     .map(file => {
       let name = file.replace(fileExtension, '');
       if (language === 'python') {
@@ -267,9 +288,9 @@ for (let version of versions.versions) {
     .join('\n');
 
   if (language === 'typescript') {
-    await fs.writeFile(`${outputFolder}/index.ts`, endpointsImports);
+    await fs.writeFile(`${endpointsDir}/index.ts`, endpointsIndexContent);
   } else if (language === 'python') {
-    await fs.writeFile(`${outputFolder}/__init__.py`, endpointsImports);
+    await fs.writeFile(path.join(endpointsDir, '__init__.py'), endpointsIndexContent);
   }
 
   if (language === 'python') {

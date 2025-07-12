@@ -43,9 +43,10 @@ export class MetorialLinksEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  list(fileId: string) {
+  list(fileId: string): Promise<DashboardInstanceLinksListOutput> {
+    let path = `files/${fileId}/links`;
     return this._get({
-      path: ['files', fileId, 'links']
+      path
     }).transform(mapDashboardInstanceLinksListOutput);
   }
 
@@ -61,9 +62,13 @@ export class MetorialLinksEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(fileId: string, linkId: string) {
+  get(
+    fileId: string,
+    linkId: string
+  ): Promise<DashboardInstanceLinksGetOutput> {
+    let path = `files/${fileId}/links/${linkId}`;
     return this._get({
-      path: ['files', fileId, 'links', linkId]
+      path
     }).transform(mapDashboardInstanceLinksGetOutput);
   }
 
@@ -79,9 +84,13 @@ export class MetorialLinksEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  create(fileId: string, body: DashboardInstanceLinksCreateBody) {
+  create(
+    fileId: string,
+    body: DashboardInstanceLinksCreateBody
+  ): Promise<DashboardInstanceLinksCreateOutput> {
+    let path = `files/${fileId}/links`;
     return this._post({
-      path: ['files', fileId, 'links'],
+      path,
       body: mapDashboardInstanceLinksCreateBody.transformTo(body)
     }).transform(mapDashboardInstanceLinksCreateOutput);
   }
@@ -103,9 +112,10 @@ export class MetorialLinksEndpoint extends BaseMetorialEndpoint<any> {
     fileId: string,
     linkId: string,
     body: DashboardInstanceLinksUpdateBody
-  ) {
+  ): Promise<DashboardInstanceLinksUpdateOutput> {
+    let path = `files/${fileId}/links/${linkId}`;
     return this._patch({
-      path: ['files', fileId, 'links', linkId],
+      path,
       body: mapDashboardInstanceLinksUpdateBody.transformTo(body)
     }).transform(mapDashboardInstanceLinksUpdateOutput);
   }
@@ -122,9 +132,13 @@ export class MetorialLinksEndpoint extends BaseMetorialEndpoint<any> {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  delete(fileId: string, linkId: string) {
+  delete(
+    fileId: string,
+    linkId: string
+  ): Promise<DashboardInstanceLinksDeleteOutput> {
+    let path = `files/${fileId}/links/${linkId}`;
     return this._delete({
-      path: ['files', fileId, 'links', linkId]
+      path
     }).transform(mapDashboardInstanceLinksDeleteOutput);
   }
 }

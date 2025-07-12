@@ -1,0 +1,10 @@
+include README.md
+include LICENSE
+include VERSION
+include INSTALLATION_SUCCESS.md
+recursive-include metorial *.py
+recursive-include packages *.py
+recursive-include mcp *.py
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * .DS_Store

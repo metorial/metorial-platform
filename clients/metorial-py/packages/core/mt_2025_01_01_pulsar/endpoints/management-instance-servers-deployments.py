@@ -2,81 +2,81 @@ from metorial_util_endpoint import BaseMetorialEndpoint, MetorialEndpointManager
 from ..resources import mapDashboardInstanceServersDeploymentsListOutput, DashboardInstanceServersDeploymentsListOutput, mapDashboardInstanceServersDeploymentsListQuery, DashboardInstanceServersDeploymentsListQuery, mapDashboardInstanceServersDeploymentsGetOutput, DashboardInstanceServersDeploymentsGetOutput, mapDashboardInstanceServersDeploymentsCreateOutput, DashboardInstanceServersDeploymentsCreateOutput, mapDashboardInstanceServersDeploymentsCreateBody, DashboardInstanceServersDeploymentsCreateBody, mapDashboardInstanceServersDeploymentsUpdateOutput, DashboardInstanceServersDeploymentsUpdateOutput, mapDashboardInstanceServersDeploymentsUpdateBody, DashboardInstanceServersDeploymentsUpdateBody, mapDashboardInstanceServersDeploymentsDeleteOutput, DashboardInstanceServersDeploymentsDeleteOutput
 
 class MetorialManagementInstanceServersDeploymentsEndpoint(BaseMetorialEndpoint):
-    """Read and write server instance information"""
+  """Read and write server instance information"""
 
-    def __init__(self, config: MetorialEndpointManager):
-        super().__init__(config)
+  def __init__(self, config: MetorialEndpointManager):
+    super().__init__(config)
 
-    def list(self, instanceId: str, query: DashboardInstanceServersDeploymentsListQuery = None):
-        """
-    List server deployments
-    List all server deployments
-
-    :param instanceId: str
-    :param query: DashboardInstanceServersDeploymentsListQuery
-    :return: DashboardInstanceServersDeploymentsListOutput
+  def list(self, instanceId: str, query: DashboardInstanceServersDeploymentsListQuery = None):
     """
-        request = MetorialRequest(
-            path=['instances', instanceId, 'server-deployments'],
-            query=mapDashboardInstanceServersDeploymentsListQuery.transform_to(query) if query is not None else None,
-        )
-        return self._get(request).transform(mapDashboardInstanceServersDeploymentsListOutput)
+  List server deployments
+  List all server deployments
 
-    def get(self, instanceId: str, serverDeploymentId: str):
-        """
-    Get server instance
-    Get the information of a specific server instance
+  :param instanceId: str
+  :param query: DashboardInstanceServersDeploymentsListQuery
+  :return: DashboardInstanceServersDeploymentsListOutput
+  """
+    request = MetorialRequest(
+      path=['instances', instanceId, 'server-deployments'],
+      query=mapDashboardInstanceServersDeploymentsListQuery.transform_to(query) if query is not None else None,
+    )
+    return self._get(request).transform(mapDashboardInstanceServersDeploymentsListOutput)
 
-    :param instanceId: str
-    :param serverDeploymentId: str
-    :return: DashboardInstanceServersDeploymentsGetOutput
+  def get(self, instanceId: str, serverDeploymentId: str):
     """
-        request = MetorialRequest(
-            path=['instances', instanceId, 'server-deployments', serverDeploymentId]
-        )
-        return self._get(request).transform(mapDashboardInstanceServersDeploymentsGetOutput)
+  Get server instance
+  Get the information of a specific server instance
 
-    def create(self, instanceId: str, body: DashboardInstanceServersDeploymentsCreateBody):
-        """
-    Create server instance
-    Create a new server instance
+  :param instanceId: str
+  :param serverDeploymentId: str
+  :return: DashboardInstanceServersDeploymentsGetOutput
+  """
+    request = MetorialRequest(
+      path=['instances', instanceId, 'server-deployments', serverDeploymentId]
+    )
+    return self._get(request).transform(mapDashboardInstanceServersDeploymentsGetOutput)
 
-    :param instanceId: str
-    :param body: DashboardInstanceServersDeploymentsCreateBody
-    :return: DashboardInstanceServersDeploymentsCreateOutput
+  def create(self, instanceId: str, body: DashboardInstanceServersDeploymentsCreateBody):
     """
-        request = MetorialRequest(
-            path=['instances', instanceId, 'server-deployments'],
-            body=mapDashboardInstanceServersDeploymentsCreateBody.transform_to(body),
-        )
-        return self._post(request).transform(mapDashboardInstanceServersDeploymentsCreateOutput)
+  Create server instance
+  Create a new server instance
 
-    def update(self, instanceId: str, serverDeploymentId: str, body: DashboardInstanceServersDeploymentsUpdateBody):
-        """
-    Update server instance
-    Update a server instance
+  :param instanceId: str
+  :param body: DashboardInstanceServersDeploymentsCreateBody
+  :return: DashboardInstanceServersDeploymentsCreateOutput
+  """
+    request = MetorialRequest(
+      path=['instances', instanceId, 'server-deployments'],
+      body=mapDashboardInstanceServersDeploymentsCreateBody.transform_to(body),
+    )
+    return self._post(request).transform(mapDashboardInstanceServersDeploymentsCreateOutput)
 
-    :param instanceId: str
-    :param serverDeploymentId: str
-    :param body: DashboardInstanceServersDeploymentsUpdateBody
-    :return: DashboardInstanceServersDeploymentsUpdateOutput
+  def update(self, instanceId: str, serverDeploymentId: str, body: DashboardInstanceServersDeploymentsUpdateBody):
     """
-        request = MetorialRequest(
-            path=['instances', instanceId, 'server-deployments', serverDeploymentId],
-            body=mapDashboardInstanceServersDeploymentsUpdateBody.transform_to(body),
-        )
-        return self._patch(request).transform(mapDashboardInstanceServersDeploymentsUpdateOutput)
+  Update server instance
+  Update a server instance
 
-    def delete(self, instanceId: str, serverDeploymentId: str):
-        """
-    Delete server instance
-    Delete a server instance
+  :param instanceId: str
+  :param serverDeploymentId: str
+  :param body: DashboardInstanceServersDeploymentsUpdateBody
+  :return: DashboardInstanceServersDeploymentsUpdateOutput
+  """
+    request = MetorialRequest(
+      path=['instances', instanceId, 'server-deployments', serverDeploymentId],
+      body=mapDashboardInstanceServersDeploymentsUpdateBody.transform_to(body),
+    )
+    return self._patch(request).transform(mapDashboardInstanceServersDeploymentsUpdateOutput)
 
-    :param instanceId: str
-    :param serverDeploymentId: str
-    :return: DashboardInstanceServersDeploymentsDeleteOutput
+  def delete(self, instanceId: str, serverDeploymentId: str):
     """
-        request = MetorialRequest(
-            path=['instances', instanceId, 'server-deployments', serverDeploymentId]
-        )
-        return self._delete(request).transform(mapDashboardInstanceServersDeploymentsDeleteOutput)
+  Delete server instance
+  Delete a server instance
+
+  :param instanceId: str
+  :param serverDeploymentId: str
+  :return: DashboardInstanceServersDeploymentsDeleteOutput
+  """
+    request = MetorialRequest(
+      path=['instances', instanceId, 'server-deployments', serverDeploymentId]
+    )
+    return self._delete(request).transform(mapDashboardInstanceServersDeploymentsDeleteOutput)

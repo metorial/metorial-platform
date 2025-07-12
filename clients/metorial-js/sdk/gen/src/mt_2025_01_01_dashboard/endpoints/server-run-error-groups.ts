@@ -35,9 +35,12 @@ export class MetorialServerRunErrorGroupsEndpoint extends BaseMetorialEndpoint<a
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  list(query?: DashboardInstanceServerRunErrorGroupsListQuery) {
+  list(
+    query?: DashboardInstanceServerRunErrorGroupsListQuery
+  ): Promise<DashboardInstanceServerRunErrorGroupsListOutput> {
+    let path = 'server-run-error-groups';
     return this._get({
-      path: ['server-run-error-groups'],
+      path,
 
       query: query
         ? mapDashboardInstanceServerRunErrorGroupsListQuery.transformTo(query)
@@ -56,9 +59,12 @@ export class MetorialServerRunErrorGroupsEndpoint extends BaseMetorialEndpoint<a
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(serverRunErrorGroupId: string) {
+  get(
+    serverRunErrorGroupId: string
+  ): Promise<DashboardInstanceServerRunErrorGroupsGetOutput> {
+    let path = `server-run-error-groups/${serverRunErrorGroupId}`;
     return this._get({
-      path: ['server-run-error-groups', serverRunErrorGroupId]
+      path
     }).transform(mapDashboardInstanceServerRunErrorGroupsGetOutput);
   }
 }

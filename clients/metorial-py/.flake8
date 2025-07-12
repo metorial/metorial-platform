@@ -1,0 +1,16 @@
+[flake8]
+max-line-length = 88
+select = E,W,F
+ignore = E203,W503,E501,E111,E114,E121
+exclude = 
+    .git,
+    __pycache__,
+    build,
+    dist,
+    *.egg-info,
+    .venv,
+    .pytest_cache,
+    .mypy_cache,
+    sdk/gen,
+    packages/core/mt_2025_01_01_dashboard,
+    packages/core/mt_2025_01_01_pulsar

@@ -2,36 +2,36 @@ from metorial_util_endpoint import BaseMetorialEndpoint, MetorialEndpointManager
 from ..resources import mapDashboardInstanceSecretsListOutput, DashboardInstanceSecretsListOutput, mapDashboardInstanceSecretsListQuery, DashboardInstanceSecretsListQuery, mapDashboardInstanceSecretsGetOutput, DashboardInstanceSecretsGetOutput
 
 class MetorialDashboardInstanceSecretsEndpoint(BaseMetorialEndpoint):
-    """Read and write secret information"""
+  """Read and write secret information"""
 
-    def __init__(self, config: MetorialEndpointManager):
-        super().__init__(config)
+  def __init__(self, config: MetorialEndpointManager):
+    super().__init__(config)
 
-    def list(self, instanceId: str, query: DashboardInstanceSecretsListQuery = None):
-        """
-    List secrets
-    List all  secrets
-
-    :param instanceId: str
-    :param query: DashboardInstanceSecretsListQuery
-    :return: DashboardInstanceSecretsListOutput
+  def list(self, instanceId: str, query: DashboardInstanceSecretsListQuery = None):
     """
-        request = MetorialRequest(
-            path=['dashboard', 'instances', instanceId, 'secrets'],
-            query=mapDashboardInstanceSecretsListQuery.transform_to(query) if query is not None else None,
-        )
-        return self._get(request).transform(mapDashboardInstanceSecretsListOutput)
+  List secrets
+  List all  secrets
 
-    def get(self, instanceId: str, secretId: str):
-        """
-    Get secret
-    Get the information of a specific secret
+  :param instanceId: str
+  :param query: DashboardInstanceSecretsListQuery
+  :return: DashboardInstanceSecretsListOutput
+  """
+    request = MetorialRequest(
+      path=['dashboard', 'instances', instanceId, 'secrets'],
+      query=mapDashboardInstanceSecretsListQuery.transform_to(query) if query is not None else None,
+    )
+    return self._get(request).transform(mapDashboardInstanceSecretsListOutput)
 
-    :param instanceId: str
-    :param secretId: str
-    :return: DashboardInstanceSecretsGetOutput
+  def get(self, instanceId: str, secretId: str):
     """
-        request = MetorialRequest(
-            path=['dashboard', 'instances', instanceId, 'secrets', secretId]
-        )
-        return self._get(request).transform(mapDashboardInstanceSecretsGetOutput)
+  Get secret
+  Get the information of a specific secret
+
+  :param instanceId: str
+  :param secretId: str
+  :return: DashboardInstanceSecretsGetOutput
+  """
+    request = MetorialRequest(
+      path=['dashboard', 'instances', instanceId, 'secrets', secretId]
+    )
+    return self._get(request).transform(mapDashboardInstanceSecretsGetOutput)

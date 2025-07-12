@@ -2,36 +2,36 @@ from metorial_util_endpoint import BaseMetorialEndpoint, MetorialEndpointManager
 from ..resources import mapDashboardInstanceSessionsEventsListOutput, DashboardInstanceSessionsEventsListOutput, mapDashboardInstanceSessionsEventsListQuery, DashboardInstanceSessionsEventsListQuery, mapDashboardInstanceSessionsEventsGetOutput, DashboardInstanceSessionsEventsGetOutput
 
 class MetorialSessionsEventsEndpoint(BaseMetorialEndpoint):
-    """Read and write session event information"""
+  """Read and write session event information"""
 
-    def __init__(self, config: MetorialEndpointManager):
-        super().__init__(config)
+  def __init__(self, config: MetorialEndpointManager):
+    super().__init__(config)
 
-    def list(self, sessionId: str, query: DashboardInstanceSessionsEventsListQuery = None):
-        """
-    List session events
-    List all session events
-
-    :param sessionId: str
-    :param query: DashboardInstanceSessionsEventsListQuery
-    :return: DashboardInstanceSessionsEventsListOutput
+  def list(self, sessionId: str, query: DashboardInstanceSessionsEventsListQuery = None):
     """
-        request = MetorialRequest(
-            path=['sessions', sessionId, 'events'],
-            query=mapDashboardInstanceSessionsEventsListQuery.transform_to(query) if query is not None else None,
-        )
-        return self._get(request).transform(mapDashboardInstanceSessionsEventsListOutput)
+  List session events
+  List all session events
 
-    def get(self, sessionId: str, sessionEventId: str):
-        """
-    Get session event
-    Get the information of a specific session event
+  :param sessionId: str
+  :param query: DashboardInstanceSessionsEventsListQuery
+  :return: DashboardInstanceSessionsEventsListOutput
+  """
+    request = MetorialRequest(
+      path=['sessions', sessionId, 'events'],
+      query=mapDashboardInstanceSessionsEventsListQuery.transform_to(query) if query is not None else None,
+    )
+    return self._get(request).transform(mapDashboardInstanceSessionsEventsListOutput)
 
-    :param sessionId: str
-    :param sessionEventId: str
-    :return: DashboardInstanceSessionsEventsGetOutput
+  def get(self, sessionId: str, sessionEventId: str):
     """
-        request = MetorialRequest(
-            path=['sessions', sessionId, 'events', sessionEventId]
-        )
-        return self._get(request).transform(mapDashboardInstanceSessionsEventsGetOutput)
+  Get session event
+  Get the information of a specific session event
+
+  :param sessionId: str
+  :param sessionEventId: str
+  :return: DashboardInstanceSessionsEventsGetOutput
+  """
+    request = MetorialRequest(
+      path=['sessions', sessionId, 'events', sessionEventId]
+    )
+    return self._get(request).transform(mapDashboardInstanceSessionsEventsGetOutput)
