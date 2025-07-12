@@ -23,7 +23,7 @@ let autoDiscoverQueueProcessor = autoDiscoverQueue.process(async () => {
   let cursor: string | undefined = undefined;
 
   while (true) {
-    let chunk = (await db.oAuthDiscoveryDocument.findMany({
+    let chunk = (await db.providerOAuthDiscoveryDocument.findMany({
       where: {
         id: cursor ? { gt: cursor } : undefined
       },
@@ -50,7 +50,7 @@ let autoDiscoverSingleQueue = createQueue<{ discoveryDocumentId: string }>({
 });
 
 let autoDiscoverSingleQueueProcessor = autoDiscoverSingleQueue.process(async data => {
-  let discoveryDocument = await db.oAuthDiscoveryDocument.findUnique({
+  let discoveryDocument = await db.providerOAuthDiscoveryDocument.findUnique({
     where: { id: data.discoveryDocumentId }
   });
   if (!discoveryDocument) return;
@@ -66,7 +66,7 @@ let autoDiscoverSingleQueueProcessor = autoDiscoverSingleQueue.process(async dat
   let valRes = oauthConfigValidator.validate(doc);
   if (!valRes.success) return;
 
-  await db.oAuthDiscoveryDocument.updateMany({
+  await db.providerOAuthDiscoveryDocument.updateMany({
     where: { oid: discoveryDocument.oid },
     data: {
       config: doc,
@@ -103,7 +103,7 @@ let autoDiscoverPropagateQueueProcessor = autoDiscoverPropagateQueue.process(asy
   let cursor: string | undefined = undefined;
 
   while (true) {
-    let chunk = (await db.oAuthConnection.findMany({
+    let chunk = (await db.providerOAuthConnection.findMany({
       where: {
         configHash: data.oldConfigHash,
         discoveryUrl: data.discoveryUrl,
@@ -138,12 +138,12 @@ let autoDiscoverPropagateApplyQueue = createQueue<{
 
 let autoDiscoverPropagateApplyQueueProcessor = autoDiscoverPropagateApplyQueue.process(
   async data => {
-    let discoveryDocument = await db.oAuthDiscoveryDocument.findUnique({
+    let discoveryDocument = await db.providerOAuthDiscoveryDocument.findUnique({
       where: { id: data.discoveryDocumentId }
     });
     if (!discoveryDocument) return;
 
-    let connection = await db.oAuthConnection.update({
+    let connection = await db.providerOAuthConnection.update({
       where: { id: data.connectionId },
       data: {
         config: discoveryDocument.config,
@@ -153,7 +153,7 @@ let autoDiscoverPropagateApplyQueueProcessor = autoDiscoverPropagateApplyQueue.p
       }
     });
 
-    await db.oAuthConnectionEvent.create({
+    await db.providerOAuthConnectionEvent.create({
       data: {
         id: await ID.generateId('oauthConnectionEvent'),
         event: 'config_auto_updated',

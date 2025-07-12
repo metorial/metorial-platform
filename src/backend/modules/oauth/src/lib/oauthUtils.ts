@@ -1,11 +1,10 @@
 import { canonicalize } from '@metorial/canonicalize';
-import { OAuthConnectionAuthToken } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { Hash } from '@metorial/hash';
 import { getSentry } from '@metorial/sentry';
 import axios from 'axios';
 import { customAlphabet } from 'nanoid';
-import { OAuthConfiguration, TokenResponse } from '../types';
+import { OAuthConfiguration, TokenResponse, UserProfile } from '../types';
 import { getAxiosSsrfFilter } from './ssrfProtection';
 
 let id = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 21);
@@ -14,11 +13,11 @@ let Sentry = getSentry();
 
 export class OAuthUtils {
   static generateState(): string {
-    return this.generateRandomString(32);
+    return id(32);
   }
 
   static generateCodeVerifier(): string {
-    return this.generateRandomString(128);
+    return id(128);
   }
 
   static async generateCodeChallenge(verifier: string): Promise<string> {
@@ -28,23 +27,26 @@ export class OAuthUtils {
     return this.base64UrlEncode(new Uint8Array(digest));
   }
 
-  private static generateRandomString(length: number): string {
-    return id(length);
-  }
-
   private static base64UrlEncode(buffer: Uint8Array): string {
     let base64 = btoa(String.fromCharCode(...buffer));
     return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
   }
 
-  static buildAuthorizationUrl(
-    authEndpoint: string,
-    clientId: string,
-    redirectUri: string,
-    scopes: string[],
-    state?: string,
-    codeChallenge?: string
-  ): string {
+  static buildAuthorizationUrl({
+    authEndpoint,
+    clientId,
+    redirectUri,
+    scopes,
+    state,
+    codeChallenge
+  }: {
+    authEndpoint: string;
+    clientId: string;
+    redirectUri: string;
+    scopes: string[];
+    state?: string;
+    codeChallenge?: string;
+  }): string {
     let url = new URL(authEndpoint);
 
     url.searchParams.set('response_type', 'code');
@@ -67,14 +69,21 @@ export class OAuthUtils {
     return url.toString();
   }
 
-  static async exchangeCodeForTokens(
-    tokenEndpoint: string,
-    clientId: string,
-    clientSecret: string,
-    code: string,
-    redirectUri: string,
-    codeVerifier?: string
-  ): Promise<TokenResponse> {
+  static async exchangeCodeForTokens({
+    tokenEndpoint,
+    clientId,
+    clientSecret,
+    code,
+    redirectUri,
+    codeVerifier
+  }: {
+    tokenEndpoint: string;
+    clientId: string;
+    clientSecret: string;
+    code: string;
+    redirectUri: string;
+    codeVerifier?: string;
+  }): Promise<TokenResponse> {
     let body = new URLSearchParams({
       grant_type: 'authorization_code',
       code,
@@ -116,20 +125,17 @@ export class OAuthUtils {
     }
   }
 
-  static isTokenExpired(token: OAuthConnectionAuthToken): boolean {
-    if (!token.expiresAt) {
-      return false;
-    }
-
-    return new Date() >= token.expiresAt;
-  }
-
-  static async refreshAccessToken(
-    tokenEndpoint: string,
-    clientId: string,
-    clientSecret: string,
-    refreshToken: string
-  ): Promise<TokenResponse> {
+  static async refreshAccessToken({
+    tokenEndpoint,
+    clientId,
+    clientSecret,
+    refreshToken
+  }: {
+    tokenEndpoint: string;
+    clientId: string;
+    clientSecret: string;
+    refreshToken: string;
+  }): Promise<TokenResponse> {
     let body = new URLSearchParams({
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
@@ -162,10 +168,13 @@ export class OAuthUtils {
     }
   }
 
-  static async getUserProfile(
-    userInfoEndpoint: string,
-    accessToken: string
-  ): Promise<Record<string, any>> {
+  static async getUserProfile({
+    userInfoEndpoint,
+    accessToken
+  }: {
+    userInfoEndpoint: string;
+    accessToken: string;
+  }): Promise<UserProfile | null> {
     try {
       let response = await axios.get(userInfoEndpoint, {
         headers: {
@@ -174,7 +183,16 @@ export class OAuthUtils {
         }
       });
 
-      return response.data;
+      let data = response.data;
+
+      if (!data.sub) return null;
+
+      return {
+        raw: data,
+        sub: data.sub,
+        name: typeof data.name === 'string' ? data.name : undefined,
+        email: typeof data.email === 'string' ? data.email : undefined
+      };
     } catch (error: any) {
       Sentry.captureException(error, {
         extra: { userInfoEndpoint }
@@ -187,22 +205,6 @@ export class OAuthUtils {
         })
       );
     }
-  }
-
-  static tokenResponseToPrismaToken(tokenResponse: TokenResponse) {
-    let expiresAt = tokenResponse.expires_in
-      ? new Date(Date.now() + tokenResponse.expires_in * 1000)
-      : undefined;
-
-    return {
-      accessToken: tokenResponse.access_token,
-      tokenType: tokenResponse.token_type,
-      expiresAt: expiresAt === undefined ? null : expiresAt,
-      refreshToken:
-        tokenResponse.refresh_token === undefined ? null : tokenResponse.refresh_token,
-      idToken: tokenResponse.id_token === undefined ? null : tokenResponse.id_token,
-      scope: tokenResponse.scope === undefined ? null : tokenResponse.scope
-    } satisfies Partial<OAuthConnectionAuthToken>;
   }
 
   static getProviderName(config: OAuthConfiguration): string {

@@ -31,14 +31,6 @@ export interface CreateConnectionRequest {
   scopes: string[];
 }
 
-// export interface AuthState {
-//   connectionId: string;
-//   redirectUri: string;
-//   state?: string;
-//   codeVerifier?: string;
-//   timestamp: number;
-// }
-
 export interface TokenResponse {
   access_token: string;
   token_type: string;
@@ -46,4 +38,11 @@ export interface TokenResponse {
   refresh_token?: string;
   id_token?: string;
   scope?: string;
+}
+
+export interface UserProfile {
+  raw: Record<string, any>;
+  sub: string;
+  name?: string;
+  email?: string;
 }

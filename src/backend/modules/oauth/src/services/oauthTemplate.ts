@@ -1,4 +1,4 @@
-import { db, ID, OAuthConnectionTemplate, systemProfile } from '@metorial/db';
+import { db, ID, ProviderOAuthConnectionTemplate, systemProfile } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -16,8 +16,8 @@ class OauthTemplateServiceImpl {
     discoveryUrl?: string;
 
     configJsonata: string;
-    scopes: PrismaJson.OAuthConfigTemplateScopes;
-    variables: PrismaJson.OAuthConfigTemplateVariables;
+    scopes: PrismaJson.ProviderOAuthConfigTemplateScopes;
+    variables: PrismaJson.ProviderOAuthConfigTemplateVariables;
   }) {
     let data = {
       slug: d.slug,
@@ -29,9 +29,9 @@ class OauthTemplateServiceImpl {
       configJsonata: d.configJsonata,
       scopes: d.scopes,
       variables: d.variables
-    } satisfies Partial<OAuthConnectionTemplate>;
+    } satisfies Partial<ProviderOAuthConnectionTemplate>;
 
-    return await db.oAuthConnectionTemplate.upsert({
+    return await db.providerOAuthConnectionTemplate.upsert({
       where: { slug: d.slug },
       update: data,
       create: {
@@ -46,7 +46,7 @@ class OauthTemplateServiceImpl {
   }
 
   async getTemplateById(d: { templateId: string }) {
-    let template = await db.oAuthConnectionTemplate.findUnique({
+    let template = await db.providerOAuthConnectionTemplate.findUnique({
       where: { id: d.templateId },
       include
     });
@@ -66,7 +66,7 @@ class OauthTemplateServiceImpl {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
-          await db.oAuthConnectionTemplate.findMany({
+          await db.providerOAuthConnectionTemplate.findMany({
             ...opts,
             where: {
               profileOid: profiles ? { in: profiles.map(p => p.oid) } : undefined

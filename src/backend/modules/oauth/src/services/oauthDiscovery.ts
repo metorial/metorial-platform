@@ -7,7 +7,7 @@ import { oauthConfigValidator } from '../types';
 
 class OauthDiscoveryServiceImpl {
   async discoverOauthConfig(d: { discoveryUrl: string }) {
-    let existingDoc = await db.oAuthDiscoveryDocument.findUnique({
+    let existingDoc = await db.providerOAuthDiscoveryDocument.findUnique({
       where: { discoveryUrl: d.discoveryUrl }
     });
     if (existingDoc) return existingDoc;
@@ -33,7 +33,7 @@ class OauthDiscoveryServiceImpl {
 
     let configHash = await OAuthUtils.getConfigHash(doc);
 
-    return await db.oAuthDiscoveryDocument.upsert({
+    return await db.providerOAuthDiscoveryDocument.upsert({
       where: { discoveryUrl: d.discoveryUrl },
       update: {},
       create: {

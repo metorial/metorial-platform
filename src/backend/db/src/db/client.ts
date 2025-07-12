@@ -227,16 +227,16 @@ declare global {
 
     type SessionMessageMcpPayload = JSONRPCMessage;
 
-    type OAuthConfigTemplateVariables = {
+    type ProviderOAuthConfigTemplateVariables = {
       type: 'string';
       label: string;
       description?: string;
     }[];
-    type OAuthConfigTemplateScopes = {
+    type ProviderOAuthConfigTemplateScopes = {
       name: string;
       identifier: string;
     }[];
 
-    type OAuthConfig = any;
+    type ProviderOAuthConfig = any;
   }
 }

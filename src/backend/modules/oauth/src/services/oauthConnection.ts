@@ -1,4 +1,10 @@
-import { db, ID, Instance, OAuthConnection, OAuthConnectionTemplate } from '@metorial/db';
+import {
+  db,
+  ID,
+  Instance,
+  ProviderOAuthConnection,
+  ProviderOAuthConnectionTemplate
+} from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
 import { badRequestError } from '@metorial/error/src/defaultErrors';
 import { generateCustomId } from '@metorial/id';
@@ -24,9 +30,9 @@ class OauthConnectionServiceImpl {
       scopes: string[];
     };
     instance: Instance;
-    template?: OAuthConnectionTemplate;
+    template?: ProviderOAuthConnectionTemplate;
   }) {
-    return await db.oAuthConnection.create({
+    return await db.providerOAuthConnection.create({
       data: {
         id: await ID.generateId('oauthConnection'),
         metorialClientId: generateCustomId('metorial_oauthcon_', 35),
@@ -52,7 +58,7 @@ class OauthConnectionServiceImpl {
   }
 
   async updateConnection(d: {
-    connection: OAuthConnection;
+    connection: ProviderOAuthConnection;
     input: {
       name?: string;
       config?: OAuthConfiguration;
@@ -70,7 +76,7 @@ class OauthConnectionServiceImpl {
       );
     }
 
-    let updateData: Partial<OAuthConnection> = {};
+    let updateData: Partial<ProviderOAuthConnection> = {};
 
     if (d.input.name) {
       updateData.name = d.input.name;
@@ -95,7 +101,7 @@ class OauthConnectionServiceImpl {
       updateData.scopes = d.input.scopes;
     }
 
-    return await db.oAuthConnection.update({
+    return await db.providerOAuthConnection.update({
       where: { oid: d.connection.oid },
       data: updateData,
       include
@@ -103,7 +109,7 @@ class OauthConnectionServiceImpl {
   }
 
   async getConnectionById(d: { connectionId: string; instance: Instance }) {
-    let connection = await db.oAuthConnection.findUnique({
+    let connection = await db.providerOAuthConnection.findUnique({
       where: { id: d.connectionId, instanceOid: d.instance.oid },
       include
     });
@@ -112,11 +118,11 @@ class OauthConnectionServiceImpl {
     return connection;
   }
 
-  async listTemplates(d: { instance: Instance }) {
+  async listConnections(d: { instance: Instance }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
-          await db.oAuthConnection.findMany({
+          await db.providerOAuthConnection.findMany({
             ...opts,
             where: {
               instanceOid: d.instance.oid,
@@ -128,7 +134,34 @@ class OauthConnectionServiceImpl {
     );
   }
 
-  async archiveConnection(d: { connection: OAuthConnection }) {
+  async listConnectionEvents(d: { connection: ProviderOAuthConnection }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.providerOAuthConnectionEvent.findMany({
+            ...opts,
+            where: {
+              connectionOid: d.connection.oid
+            },
+            include: {
+              connection: true
+            }
+          })
+      )
+    );
+  }
+
+  async getConnectionEventById(d: { connection: ProviderOAuthConnection; eventId: string }) {
+    let event = await db.providerOAuthConnectionEvent.findUnique({
+      where: { id: d.eventId, connectionOid: d.connection.oid },
+      include: { connection: true }
+    });
+    if (!event) throw new ServiceError(notFoundError('connection_event', d.eventId));
+
+    return event;
+  }
+
+  async archiveConnection(d: { connection: ProviderOAuthConnection }) {
     if (d.connection.status === 'archived') {
       throw new ServiceError(
         badRequestError({
@@ -137,7 +170,7 @@ class OauthConnectionServiceImpl {
       );
     }
 
-    return await db.oAuthConnection.update({
+    return await db.providerOAuthConnection.update({
       where: { oid: d.connection.oid },
       data: { status: 'archived' },
       include

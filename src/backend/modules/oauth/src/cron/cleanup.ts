@@ -11,7 +11,7 @@ export let oauthCleanupCron = createCron(
     let twoWeeksAgo = subDays(new Date(), 14);
     let oneMonthAgo = subDays(new Date(), 30);
 
-    await db.oAuthConnectionAuthAttempt.deleteMany({
+    await db.providerOAuthConnectionAuthAttempt.deleteMany({
       where: {
         createdAt: {
           lte: twoWeeksAgo
@@ -19,7 +19,7 @@ export let oauthCleanupCron = createCron(
       }
     });
 
-    await db.oAuthConnectionEvent.deleteMany({
+    await db.providerOAuthConnectionEvent.deleteMany({
       where: {
         createdAt: {
           lte: oneMonthAgo
@@ -27,20 +27,20 @@ export let oauthCleanupCron = createCron(
       }
     });
 
-    await db.oAuthConnectionAuthToken.deleteMany({
-      where: {
-        lastUsedAt: {
-          lte: oneMonthAgo
-        }
-      }
-    });
+    // await db.providerOAuthConnectionAuthToken.deleteMany({
+    //   where: {
+    //     lastUsedAt: {
+    //       lte: oneMonthAgo
+    //     }
+    //   }
+    // });
 
-    await db.oAuthConnectionProfile.deleteMany({
-      where: {
-        lastUsedAt: {
-          lte: oneMonthAgo
-        }
-      }
-    });
+    // await db.providerOAuthConnectionProfile.deleteMany({
+    //   where: {
+    //     lastUsedAt: {
+    //       lte: oneMonthAgo
+    //     }
+    //   }
+    // });
   }
 );
