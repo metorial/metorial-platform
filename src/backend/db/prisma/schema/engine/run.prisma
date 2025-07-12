@@ -1,0 +1,27 @@
+enum EngineRunType {
+  remote
+  container
+  unknown
+}
+
+model EngineRun {
+  id String @id @db.Uuid
+
+  type EngineRunType
+
+  hasEnded    Boolean @default(false)
+  isFinalized Boolean @default(false)
+
+  engineSessionId String        @db.Uuid
+  engineSession   EngineSession @relation(fields: [engineSessionId], references: [id])
+
+  serverSessionOid BigInt
+  serverSession    ServerSession @relation(fields: [serverSessionOid], references: [oid])
+
+  serverRuns ServerRun[]
+
+  createdAt  DateTime @default(now())
+  lastSyncAt DateTime
+
+  @@index([isFinalized])
+}

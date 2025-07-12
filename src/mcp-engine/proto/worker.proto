@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package broker.worker;
+
+option go_package = "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker;worker";
+
+service Worker {
+  rpc GetWorkerInfo(WorkerInfoRequest) returns (WorkerInfoResponse);
+  rpc StreamWorkerHealth(WorkerHealthRequest) returns (stream WorkerInfoResponse);
+}
+
+enum WorkerType {
+  mcp_runner = 0;
+  mcp_remote = 1;
+  launcher = 10;
+}
+
+enum WorkerStatus {
+  healthy = 0;
+  unhealthy = 1;
+}
+
+enum WorkerAcceptingJobs {
+  accepting = 0;
+  not_accepting = 1;
+}
+
+message WorkerInfoRequest {}
+
+message WorkerInfoResponse {
+  string worker_id = 1;
+  int64 start_time = 2;
+
+  WorkerAcceptingJobs accepting_jobs = 3;
+  WorkerStatus status = 4;
+  WorkerType worker_type = 5;
+}
+
+message WorkerHealthRequest {}

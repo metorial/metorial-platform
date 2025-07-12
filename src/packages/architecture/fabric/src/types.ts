@@ -1,6 +1,7 @@
 import { Context } from '@metorial/context';
 import {
   ApiKey,
+  EngineSession,
   Instance,
   MachineAccess,
   Organization,
@@ -145,4 +146,7 @@ export interface FabricEvents {
 
   'session.session_message.created:before': { organization: Organization, instance: Instance, session: ServerSession };
   'session.session_message.created.many:after': { organization: Organization, instance: Instance, session: ServerSession, sessionMessages: SessionMessage[] };
+
+  'server.engine_session.created:before': {  organization: Organization, instance: Instance, serverSession: ServerSession };
+  'server.engine_session.created:after': {  organization: Organization, instance: Instance, serverSession: ServerSession, engineSession: EngineSession };
 }

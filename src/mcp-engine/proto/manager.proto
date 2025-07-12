@@ -1,0 +1,451 @@
+syntax = "proto3";
+
+package broker.manager;
+
+option go_package = "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager;manager";
+
+import "runner.proto";
+import "mcp.proto";
+import "workerBroker.proto";
+import "launcher.proto";
+import "remote.proto";
+
+service McpManager {
+  rpc CheckActiveSession(CheckActiveSessionRequest) returns (CheckActiveSessionResponse);
+
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+  rpc DiscardSession(DiscardSessionRequest) returns (DiscardSessionResponse);
+
+  rpc SendMcpMessage(SendMcpMessageRequest) returns (stream SendMcpMessageResponse);
+  rpc StreamMcpMessages(StreamMcpMessagesRequest) returns (stream StreamMcpMessagesResponse);
+
+  rpc GetServerInfo(GetServerInfoRequest) returns (broker.mcp.McpParticipant);
+
+  rpc ListManagers(broker.workerBroker.ListManagersRequest) returns (broker.workerBroker.ListManagersResponse);
+  rpc ListWorkers(ListWorkersRequest) returns (ListWorkersResponse);
+
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+
+  rpc ListRuns(ListRunsRequest) returns (ListRunsResponse);
+  rpc GetRun(GetRunRequest) returns (GetRunResponse);
+
+  rpc ListSessionErrors(ListSessionErrorsRequest) returns (ListSessionErrorsResponse);
+  rpc ListSessionEvents(ListSessionEventsRequest) returns (ListSessionEventsResponse);
+  rpc ListSessionMessages(ListSessionMessagesRequest) returns (ListSessionMessagesResponse);
+
+  rpc ListRunErrors(ListRunErrorsRequest) returns (ListRunErrorsResponse);
+  rpc ListRunEvents(ListRunEventsRequest) returns (ListRunEventsResponse);
+  rpc ListRunMessages(ListRunMessagesRequest) returns (ListRunMessagesResponse);
+  
+  rpc GetError(GetErrorRequest) returns (GetErrorResponse);
+  rpc GetEvent(GetEventRequest) returns (GetEventResponse);
+  rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+
+  rpc ListRecentlyActiveRuns(ListRecentlyActiveRunsRequest) returns (ListRecentlyActiveRunsResponse);
+  rpc ListRecentlyActiveSessions(ListRecentlyActiveSessionsRequest) returns (ListRecentlyActiveSessionsResponse);
+}
+
+message CheckActiveSessionRequest {
+  string session_id = 1;
+}
+
+message CheckActiveSessionResponse {
+  bool is_active = 1;
+  string session_id = 2;
+  EngineSession session = 3;
+}
+
+message CreateSessionRequest {
+  string session_id = 1;
+  SessionConfig config = 3;
+  broker.mcp.McpParticipant mcp_client = 4;
+  map<string, string> metadata = 5; // Optional, Additional metadata for the session
+}
+
+message ContainerRunConfigWithLauncher {
+  broker.runner.RunConfigContainer container = 1;
+  broker.launcher.LauncherConfig launcher = 2;
+}
+
+message RemoteRunConfigWithLauncher {
+  broker.remote.RunConfigRemoteServer server = 1;
+  broker.launcher.LauncherConfig launcher = 2;
+}
+
+message SessionConfig {
+  oneof config_type {
+    ContainerRunConfigWithLauncher container_run_config_with_launcher = 1;
+    broker.runner.RunConfig container_run_config_with_container_arguments = 2;
+
+    RemoteRunConfigWithLauncher remote_run_config_with_launcher = 3;
+    broker.remote.RunConfig remote_run_config_with_server = 4;
+  }
+}
+
+message CreateSessionResponse {
+  string session_id = 1;
+  EngineSession session = 2;
+}
+
+message SendMcpMessageRequest {
+  string session_id = 1;
+  repeated broker.mcp.McpMessageRaw mcp_messages = 2;
+  bool include_responses = 3;
+}
+
+message SendMcpMessageResponse {
+  oneof response {
+    broker.mcp.McpMessage mcp_message = 1; 
+    broker.mcp.McpError mcp_error = 2;
+    SessionEvent session_event = 3;
+  }
+}
+
+message StreamMcpMessagesRequest {
+  string session_id = 1;
+  repeated broker.mcp.McpMessageType only_message_types = 2; // Optional, if empty, all message types are streamed
+  repeated string only_ids = 3; // Optional, if empty, all messages are streamed
+  string replay_after_uuid = 4; // Include messages after this UUID, useful for resuming streams
+}
+
+message SessionEventInfoRun {
+  EngineSessionRun run = 1;
+}
+
+message SessionEventInfoSession {
+  EngineSession session = 1;
+}
+
+message SessionEventStartRun {
+  EngineSessionRun run = 1;
+}
+
+message SessionEventStopRun {
+  EngineSessionRun run = 1;
+}
+
+message SessionEvent {
+  oneof event {
+    SessionEventStartRun start_run = 1;
+    SessionEventStopRun stop_run = 2;
+    SessionEventInfoRun info_run = 3;
+    SessionEventInfoSession info_session = 4;
+  }
+}
+
+message StreamMcpMessagesResponse {
+  oneof response {
+    broker.mcp.McpMessage mcp_message = 1; 
+    broker.mcp.McpError mcp_error = 2;
+    broker.mcp.McpOutput mcp_output = 3;
+    SessionEvent session_event = 4;
+  }
+
+  bool isReplay = 10;
+}
+
+message GetServerInfoRequest {
+  string session_id = 1;
+}
+
+message ListWorkersRequest {}
+
+message ListWorkersResponse {
+  repeated WorkerInfo workers = 1;
+}
+
+message WorkerInfo {
+  string worker_id = 1;
+  string address = 2;
+  bool accepting_runs = 3;
+  bool healthy = 4;
+}
+
+message DiscardSessionRequest {
+  string session_id = 1;
+}
+
+message DiscardSessionResponse {}
+
+enum EngineSessionStatus {
+  session_status_active = 0;
+  session_status_closed = 1;
+  session_status_expired = 2;
+  session_status_error = 3;
+  session_status_unknown = 4;
+}
+
+enum EngineSessionType {
+  session_type_unknown = 0;
+  session_type_container = 1;
+  session_type_remote = 2;
+}
+
+message EngineSession {
+  string id = 1;
+  string external_id = 2;
+
+  EngineSessionType type = 3;
+  EngineSessionStatus status = 4;
+  bool has_error = 12;
+
+  broker.mcp.McpParticipant mcp_client = 5;
+  broker.mcp.McpParticipant mcp_server = 6;
+
+  int64 created_at = 7; 
+  int64 updated_at = 8; 
+  int64 started_at = 9; 
+  int64 ended_at = 10;
+  int64 last_ping_at = 11; 
+}
+
+enum EngineRunStatus {
+  run_status_active = 0;
+  run_status_closed = 1;
+  run_status_expired = 2;
+  run_status_error = 3;
+  run_status_unknown = 4;
+}
+
+enum EngineRunType {
+  run_type_unknown = 0;
+  run_type_container = 1;
+  run_type_remote = 2;
+}
+
+message EngineSessionRun {
+  string id = 1;
+  string session_id = 2;
+
+  EngineRunType type = 3;
+  EngineRunStatus status = 4;
+  bool has_error = 5;
+
+  string worker_id = 6;
+
+  int64 created_at = 7;
+  int64 updated_at = 8;
+  int64 started_at = 9;
+  int64 ended_at = 10;
+  int64 last_ping_at = 11;
+
+  EngineSession session = 12;
+}
+
+message EngineSessionError {
+  string id = 1;
+  string session_id = 2;
+  string run_id = 3;
+
+  EngineSessionRun run = 4;
+  EngineSession session = 10;
+
+  string error_code = 5;
+  string error_message = 6;
+
+  broker.mcp.McpError mcp_error = 7;
+  map<string, string> metadata = 8;
+
+  int64 created_at = 9;
+}
+
+enum EngineSessionEventType {
+  session_event_type_output = 0;
+  session_event_type_error = 1;
+  session_event_type_log = 2;
+  session_event_type_unknown = 3;
+}
+
+message EngineSessionEvent {
+  string id = 1;
+
+  string session_id = 2;
+  string run_id = 3;
+  string error_id = 4;
+
+  EngineSessionEventType type = 5;
+
+  EngineSessionRun run = 6;
+  EngineSession session = 7;
+
+  EngineSessionError error = 8;
+
+  // repeated string lines = 10;
+  map<string, string> metadata = 11;
+
+  broker.mcp.McpOutput mcp_output = 10;
+
+  int64 created_at = 12;
+}
+
+enum SessionMessageSender {
+  session_message_sender_unknown = 0;
+  session_message_sender_client = 1;
+  session_message_sender_server = 2;
+}
+
+message EngineSessionMessage {
+  string id = 1;
+  int32 index = 2;
+  SessionMessageSender sender = 3;
+
+  string session_id = 4;
+  string run_id = 5;
+
+  EngineSessionRun run = 6;
+  EngineSession session = 7;
+
+  broker.mcp.McpMessage mcp_message = 8;
+  map<string, string> metadata = 9;
+
+  int64 created_at = 10;
+}
+
+enum ListPaginationOrder {
+  list_cursor_order_asc = 0;
+  list_cursor_order_desc = 1;
+}
+
+message ListPagination {
+  string after_id = 1;
+  string before_id = 2;
+  int32 limit = 3;
+  ListPaginationOrder order = 4;
+}
+
+message ListSessionsRequest {
+  string external_id = 1;
+  ListPagination pagination = 2;
+}
+
+message ListSessionsResponse {
+  repeated EngineSession sessions = 1;
+}
+
+message GetSessionRequest {
+  string session_id = 1;
+}
+
+message GetSessionResponse {
+  EngineSession session = 1;
+}
+
+message ListRunsRequest {
+  string session_id = 1;
+  ListPagination pagination = 2;
+  int64 after = 3;
+}
+
+message ListRunsResponse {
+  repeated EngineSessionRun runs = 1;
+}
+
+message GetRunRequest {
+  string run_id = 1;
+}
+
+message GetRunResponse {
+  EngineSessionRun run = 1;
+}
+
+message GetErrorRequest {
+  string error_id = 2;
+}
+
+message GetErrorResponse {
+  EngineSessionError error = 1;
+}
+
+message GetEventRequest {
+  string event_id = 1;
+}
+
+message GetEventResponse {
+  EngineSessionEvent event = 1;
+}
+
+message GetMessageRequest {
+  string message_id = 1;
+}
+
+message GetMessageResponse {
+  EngineSessionMessage message = 1;
+}
+
+message ListRunErrorsRequest {
+  string run_id = 1;
+  ListPagination pagination = 2;
+  int64 after = 3;
+}
+
+message ListRunErrorsResponse {
+  repeated EngineSessionError errors = 1;
+}
+
+message ListRunEventsRequest {
+  string run_id = 1;
+  ListPagination pagination = 2;
+  int64 after = 3;
+}
+
+message ListRunEventsResponse {
+  repeated EngineSessionEvent events = 1;
+}
+
+message ListRunMessagesRequest {
+  string run_id = 1;
+  ListPagination pagination = 2;
+  int64 after = 3;
+}
+
+message ListRunMessagesResponse {
+  repeated EngineSessionMessage messages = 1;
+}
+
+message ListSessionEventsRequest {
+  string session_id = 1;
+  ListPagination pagination = 2;
+  int64 after = 3;
+}
+
+message ListSessionEventsResponse {
+  repeated EngineSessionEvent events = 1;
+}
+
+message ListSessionErrorsRequest {
+  string session_id = 1;
+  ListPagination pagination = 2;
+  int64 after = 3;
+}
+
+message ListSessionErrorsResponse {
+  repeated EngineSessionError errors = 1;
+}
+
+message ListSessionMessagesRequest {
+  string session_id = 1;
+  ListPagination pagination = 2;
+  int64 after = 3;
+}
+
+message ListSessionMessagesResponse {
+  repeated EngineSessionMessage messages = 1;
+}
+
+message ListRecentlyActiveRunsRequest {
+  int64 since = 1;
+}
+
+message ListRecentlyActiveRunsResponse {
+  repeated string run_ids = 1;
+}
+
+message ListRecentlyActiveSessionsRequest {
+  int64 since = 1;
+}
+
+message ListRecentlyActiveSessionsResponse {
+  repeated string session_ids = 1;
+}
+

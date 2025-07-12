@@ -1,6 +1,7 @@
 import { MetorialCoreSDK, MetorialSDK } from '@metorial/core';
 import { DashboardInstanceSessionsCreateBody } from '@metorial/generated';
 import { MetorialMcpClient } from './mcpClient';
+import { Capability } from './mcpTool';
 import { MetorialMcpToolManager } from './mcpToolManager';
 
 export type MetorialMcpSessionInitServerDeployments = (DashboardInstanceSessionsCreateBody & {
@@ -38,9 +39,94 @@ export class MetorialMcpSession {
   async getCapabilities() {
     let deployments = await this.getServerDeployments();
 
-    return this.sdk.servers.capabilities.list({
+    let capabilities = await this.sdk.servers.capabilities.list({
       serverDeploymentId: deployments.map(d => d.id)
     });
+
+    let serversMap = new Map(capabilities.mcpServers.map(server => [server.id, server]));
+
+    let capabilitiesByDeploymentId = new Map<string, Capability[]>();
+    for (let capability of capabilities.tools) {
+      let server = serversMap.get(capability.mcpServerId);
+      if (!server || !server.serverDeployment) continue;
+
+      let current = capabilitiesByDeploymentId.get(server.serverDeployment.id) || [];
+      current.push({
+        type: 'tool',
+        tool: capability,
+        serverDeployment: server.serverDeployment
+      });
+
+      capabilitiesByDeploymentId.set(server.serverDeployment.id, current);
+    }
+
+    for (let capability of capabilities.resourceTemplates) {
+      let server = serversMap.get(capability.mcpServerId);
+      if (!server || !server.serverDeployment) continue;
+
+      let current = capabilitiesByDeploymentId.get(server.serverDeployment.id) || [];
+      current.push({
+        type: 'resource-template',
+        resourceTemplate: capability,
+        serverDeployment: server.serverDeployment
+      });
+
+      capabilitiesByDeploymentId.set(server.serverDeployment.id, current);
+    }
+
+    let deploymentCapabilities = await Promise.all(
+      deployments.map(async deployment => {
+        let capabilities = capabilitiesByDeploymentId.get(deployment.id);
+        if (!capabilities) capabilities = [];
+
+        // Metorial has auto-discovered capabilities, so we
+        // don't need to do it again.
+        if (capabilities.length) return capabilities;
+
+        // Get a client to manually fetch capabilities using MCP
+        let client = await this.getClient({ deploymentId: deployment.id });
+
+        try {
+          let tools = await client.listTools();
+
+          capabilities.push(
+            ...tools.tools.map(tool => ({
+              type: 'tool' as const,
+              tool: {
+                name: tool.name,
+                description: tool.description,
+                inputSchema: tool.inputSchema
+              },
+              serverDeployment: deployment
+            }))
+          );
+        } catch (error) {
+          // Maybe the server doesn't support tool listing.
+        }
+
+        try {
+          let resourceTemplates = await client.listResourceTemplates();
+
+          capabilities.push(
+            ...resourceTemplates.resourceTemplates.map(resourceTemplate => ({
+              type: 'resource-template' as const,
+              resourceTemplate: {
+                name: resourceTemplate.name,
+                description: resourceTemplate.description,
+                uriTemplate: resourceTemplate.uriTemplate
+              },
+              serverDeployment: deployment
+            }))
+          );
+        } catch (error) {
+          // Maybe the server doesn't support resource templates.
+        }
+
+        return capabilities;
+      })
+    );
+
+    return Array.from(deploymentCapabilities.values()).flat();
   }
 
   async getToolManager() {
