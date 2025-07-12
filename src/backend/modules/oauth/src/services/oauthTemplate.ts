@@ -12,6 +12,7 @@ class OauthTemplateServiceImpl {
     slug: string;
     name: string;
     providerName: string;
+    providerUrl: string;
 
     discoveryUrl?: string;
 
@@ -23,6 +24,7 @@ class OauthTemplateServiceImpl {
       slug: d.slug,
       name: d.name,
       providerName: d.providerName,
+      providerUrl: d.providerUrl,
 
       discoveryUrl: d.discoveryUrl,
 

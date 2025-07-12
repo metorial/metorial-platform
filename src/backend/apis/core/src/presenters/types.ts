@@ -14,7 +14,13 @@ import {
   OrganizationActor,
   OrganizationInvite,
   OrganizationMember,
+  Profile,
   Project,
+  ProviderOAuthConnection,
+  ProviderOAuthConnectionAuthAttempt,
+  ProviderOAuthConnectionEvent,
+  ProviderOAuthConnectionProfile,
+  ProviderOAuthConnectionTemplate,
   Secret,
   SecretType,
   Server,
@@ -294,3 +300,39 @@ export let serverRunErrorGroupType = PresentableType.create<{
 export let serverCapabilitiesType = PresentableType.create<{
   serverCapabilities: ServerCapabilities[];
 }>()('server.capabilities');
+
+export let profileType = PresentableType.create<{
+  profile: Profile;
+}>()('profile');
+
+export let providerOauthConnectionType = PresentableType.create<{
+  providerOauthConnection: ProviderOAuthConnection & {
+    instance: Instance;
+    template: ProviderOAuthConnectionTemplate | null;
+  };
+}>()('provider_oauth.connection');
+
+export let providerOauthConnectionTemplateType = PresentableType.create<{
+  providerOauthConnectionTemplate: ProviderOAuthConnectionTemplate & {
+    profile: Profile;
+  };
+}>()('provider_oauth.connection_template');
+
+export let providerOauthConnectionEventType = PresentableType.create<{
+  providerOauthConnectionEvent: ProviderOAuthConnectionEvent & {
+    connection: ProviderOAuthConnection;
+  };
+}>()('provider_oauth.connection.event');
+
+export let providerOauthConnectionProfileType = PresentableType.create<{
+  providerOauthConnectionProfile: ProviderOAuthConnectionProfile & {
+    connection: ProviderOAuthConnection;
+  };
+}>()('provider_oauth.connection.profile');
+
+export let providerOauthConnectionAuthenticationType = PresentableType.create<{
+  providerOauthConnectionAuthAttempt: ProviderOAuthConnectionAuthAttempt & {
+    connection: ProviderOAuthConnection;
+    profile: ProviderOAuthConnectionProfile | null;
+  };
+}>()('provider_oauth.connection.authentication');

@@ -230,6 +230,7 @@ declare global {
     type ProviderOAuthConfigTemplateVariables = {
       type: 'string';
       label: string;
+      key: string;
       description?: string;
     }[];
     type ProviderOAuthConfigTemplateScopes = {

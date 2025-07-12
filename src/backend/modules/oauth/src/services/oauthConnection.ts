@@ -161,6 +161,39 @@ class OauthConnectionServiceImpl {
     return event;
   }
 
+  async listConnectionAuthentications(d: { connection: ProviderOAuthConnection }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.providerOAuthConnectionAuthAttempt.findMany({
+            ...opts,
+            where: {
+              connectionOid: d.connection.oid,
+              status: { in: ['completed', 'failed'] }
+            },
+            include: {
+              connection: true,
+              profile: true
+            }
+          })
+      )
+    );
+  }
+
+  async getConnectionAuthenticationById(d: {
+    connection: ProviderOAuthConnection;
+    authenticationId: string;
+  }) {
+    let event = await db.providerOAuthConnectionAuthAttempt.findUnique({
+      where: { id: d.authenticationId, connectionOid: d.connection.oid },
+      include: { connection: true, profile: true }
+    });
+    if (!event)
+      throw new ServiceError(notFoundError('connection_authentication', d.authenticationId));
+
+    return event;
+  }
+
   async archiveConnection(d: { connection: ProviderOAuthConnection }) {
     if (d.connection.status === 'archived') {
       throw new ServiceError(

@@ -12,6 +12,7 @@ model ProviderOAuthConnectionTemplate {
 
   name         String
   providerName String
+  providerUrl  String
 
   discoveryUrl String?
 
@@ -114,7 +115,8 @@ model ProviderOAuthConnectionProfile {
   lastUsedAt DateTime @default(now())
   updatedAt  DateTime @default(now()) @updatedAt
 
-  tokens ProviderOAuthConnectionAuthToken[]
+  tokens                             ProviderOAuthConnectionAuthToken[]
+  ProviderOAuthConnectionAuthAttempt ProviderOAuthConnectionAuthAttempt[]
 
   @@unique([connectionOid, sub])
 }
@@ -147,7 +149,12 @@ model ProviderOAuthConnectionAuthAttempt {
   authTokenOid BigInt?
   authToken    ProviderOAuthConnectionAuthToken? @relation(fields: [authTokenOid], references: [oid], onDelete: SetNull)
 
+  profileOid BigInt?
+  profile    ProviderOAuthConnectionProfile? @relation(fields: [profileOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime @default(now())
+
+  @@index([status])
 }
 
 model ProviderOAuthConnectionAuthToken {
