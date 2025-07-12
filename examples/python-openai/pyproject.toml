@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "metorial-openai-example"
+version = "0.1.0"
+description = "Example showing how to use Metorial with OpenAI in Python"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Metorial Team", email = "support@metorial.com"},
+]
+dependencies = [
+    "metorial>=1.0.0",
+    "openai>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://metorial.com"
+Documentation = "https://metorial.com/docs"
+Repository = "https://github.com/metorial/metorial"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+]
+asyncio_mode = "auto"
