@@ -21,6 +21,7 @@ import {
   ProviderOAuthConnectionEvent,
   ProviderOAuthConnectionProfile,
   ProviderOAuthConnectionTemplate,
+  ProviderOAuthDiscoveryDocument,
   Secret,
   SecretType,
   Server,
@@ -336,3 +337,7 @@ export let providerOauthConnectionAuthenticationType = PresentableType.create<{
     profile: ProviderOAuthConnectionProfile | null;
   };
 }>()('provider_oauth.connection.authentication');
+
+export let providerOauthConnectionDiscoveryType = PresentableType.create<{
+  providerOauthDiscoveryDocument: ProviderOAuthDiscoveryDocument;
+}>()('provider_oauth.discovery');

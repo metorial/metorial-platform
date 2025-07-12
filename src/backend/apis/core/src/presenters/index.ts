@@ -16,6 +16,7 @@ import { v1ProviderOauthConnectionAuthenticationPresenter } from './implementati
 import { v1ProviderOauthConnectionEventPresenter } from './implementation/providerOauthConnectionEvent';
 import { v1ProviderOauthConnectionProfilePresenter } from './implementation/providerOauthConnectionProfile';
 import { v1ProviderOauthConnectionTemplatePresenter } from './implementation/providerOauthConnectionTemplate';
+import { v1ProviderOauthDiscoveryPresenter } from './implementation/providerOauthDiscovery';
 import { v1SecretPresenter } from './implementation/secret';
 import { v1ServerPresenter } from './implementation/server';
 import { v1ServerCapabilitiesPresenter } from './implementation/serverCapabilities';
@@ -79,7 +80,8 @@ import {
   sessionMessageType,
   sessionType,
   usageType,
-  userType
+  userType,
+  providerOauthConnectionDiscoveryType
 } from './types';
 
 export let apiKeyPresenter = declarePresenter(apiKeyType, {
@@ -276,5 +278,13 @@ export let providerOauthConnectionTemplatePresenter = declarePresenter(
   {
     mt_2025_01_01_pulsar: v1ProviderOauthConnectionTemplatePresenter,
     mt_2025_01_01_dashboard: v1ProviderOauthConnectionTemplatePresenter
+  }
+);
+
+export let providerOauthDiscoveryPresenter = declarePresenter(
+  providerOauthConnectionDiscoveryType,
+  {
+    mt_2025_01_01_pulsar: v1ProviderOauthDiscoveryPresenter,
+    mt_2025_01_01_dashboard: v1ProviderOauthDiscoveryPresenter
   }
 );

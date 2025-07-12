@@ -16,18 +16,18 @@ export let oauthTemplateGroup = apiGroup.use(async ctx => {
   return { oauthTemplate };
 });
 
-export let dashboardAuthConnectionTemplateController = Controller.create(
+export let dashboardOAuthConnectionTemplateController = Controller.create(
   {
-    name: 'Auth Connection Template',
-    description: 'Get auth connection template information'
+    name: 'OAuth Connection Template',
+    description: 'Get OAuth connection template information'
   },
   {
     list: apiGroup
       .get(
         Path('provider-oauth-connection-template', 'provider_oauth.connection_template.list'),
         {
-          name: 'List auth connection templates',
-          description: 'List all auth connection templates'
+          name: 'List oauth connection templates',
+          description: 'List all oauth connection templates'
         }
       )
       .outputList(providerOauthConnectionTemplatePresenter)
@@ -58,8 +58,8 @@ export let dashboardAuthConnectionTemplateController = Controller.create(
           'provider_oauth.connection_template.get'
         ),
         {
-          name: 'Get auth connection template',
-          description: 'Get the information of a specific auth connection template'
+          name: 'Get oauth connection template',
+          description: 'Get the information of a specific oauth connection template'
         }
       )
       .output(providerOauthConnectionTemplatePresenter)
