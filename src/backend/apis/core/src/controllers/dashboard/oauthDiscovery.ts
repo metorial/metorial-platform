@@ -4,7 +4,7 @@ import { v } from '@metorial/validation';
 import { apiGroup } from '../../middleware/apiGroup';
 import { providerOauthDiscoveryPresenter } from '../../presenters';
 
-export let dashboardOAuthConnectionTemplateController = Controller.create(
+export let dashboardOauthDiscoveryController = Controller.create(
   {
     name: 'OAuth Connection Template',
     description: 'Get OAuth connection template information'

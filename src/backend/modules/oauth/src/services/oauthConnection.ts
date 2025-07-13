@@ -2,6 +2,8 @@ import {
   db,
   ID,
   Instance,
+  Organization,
+  OrganizationActor,
   ProviderOAuthConnection,
   ProviderOAuthConnectionTemplate
 } from '@metorial/db';
@@ -20,6 +22,10 @@ let include = {
 
 class OauthConnectionServiceImpl {
   async createConnection(d: {
+    organization: Organization;
+    performedBy: OrganizationActor;
+    instance: Instance;
+
     input: {
       name: string;
       discoveryUrl?: string;
@@ -29,7 +35,6 @@ class OauthConnectionServiceImpl {
       clientSecret: string;
       scopes: string[];
     };
-    instance: Instance;
     template?: ProviderOAuthConnectionTemplate;
   }) {
     return await db.providerOAuthConnection.create({
@@ -58,6 +63,10 @@ class OauthConnectionServiceImpl {
   }
 
   async updateConnection(d: {
+    organization: Organization;
+    performedBy: OrganizationActor;
+    instance: Instance;
+
     connection: ProviderOAuthConnection;
     input: {
       name?: string;
@@ -204,7 +213,43 @@ class OauthConnectionServiceImpl {
     return event;
   }
 
-  async archiveConnection(d: { connection: ProviderOAuthConnection }) {
+  async listConnectionProfiles(d: { connection: ProviderOAuthConnection }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.providerOAuthConnectionProfile.findMany({
+            ...opts,
+            where: {
+              connectionOid: d.connection.oid
+            },
+            include: {
+              connection: true
+            }
+          })
+      )
+    );
+  }
+
+  async getConnectionProfileById(d: {
+    connection: ProviderOAuthConnection;
+    profileId: string;
+  }) {
+    let event = await db.providerOAuthConnectionProfile.findUnique({
+      where: { id: d.profileId, connectionOid: d.connection.oid },
+      include: { connection: true }
+    });
+    if (!event) throw new ServiceError(notFoundError('connection_profile', d.profileId));
+
+    return event;
+  }
+
+  async archiveConnection(d: {
+    organization: Organization;
+    performedBy: OrganizationActor;
+    instance: Instance;
+
+    connection: ProviderOAuthConnection;
+  }) {
     if (d.connection.status === 'archived') {
       throw new ServiceError(
         badRequestError({

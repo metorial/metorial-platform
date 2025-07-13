@@ -16,7 +16,7 @@ export let oauthTemplateGroup = apiGroup.use(async ctx => {
   return { oauthTemplate };
 });
 
-export let dashboardOAuthConnectionTemplateController = Controller.create(
+export let dashboardOauthConnectionTemplateController = Controller.create(
   {
     name: 'OAuth Connection Template',
     description: 'Get OAuth connection template information'

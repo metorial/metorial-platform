@@ -25,18 +25,55 @@ export let v1ProviderOauthConnectionProfilePresenter = Presenter.create(
     v.object({
       object: v.literal('provider_oauth.connection.profile'),
 
-      id: v.string(),
-      status: v.enumOf(['active']),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier for this OAuth profile'
+      }),
 
-      sub: v.string(),
-      name: v.nullable(v.string()),
-      email: v.nullable(v.string()),
+      status: v.enumOf(['active'], {
+        name: 'status',
+        description: 'The current status of the OAuth profile'
+      }),
 
-      connection_id: v.string(),
+      sub: v.string({
+        name: 'sub',
+        description:
+          'The subject identifier provided by the OAuth provider (usually a unique user ID)'
+      }),
 
-      created_at: v.date(),
-      last_used_at: v.date(),
-      updated_at: v.date()
+      name: v.nullable(
+        v.string({
+          name: 'name',
+          description: 'The display name of the user associated with this profile'
+        })
+      ),
+
+      email: v.nullable(
+        v.string({
+          name: 'email',
+          description: 'The email address of the user associated with this profile'
+        })
+      ),
+
+      connection_id: v.string({
+        name: 'connection_id',
+        description: 'The ID of the related OAuth connection'
+      }),
+
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the OAuth profile was created'
+      }),
+
+      last_used_at: v.date({
+        name: 'last_used_at',
+        description: 'Timestamp when this profile was last used'
+      }),
+
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when the profile was last updated'
+      })
     })
   )
   .build();
