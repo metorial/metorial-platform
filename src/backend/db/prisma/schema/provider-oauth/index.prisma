@@ -139,6 +139,8 @@ model ProviderOAuthConnectionAuthAttempt {
   errorCode    String?
   errorMessage String?
 
+  associatedTokenErrorDisabledAt DateTime?
+
   redirectUri String
 
   codeVerifier String?
@@ -175,6 +177,12 @@ model ProviderOAuthConnectionAuthToken {
 
   connectionOid BigInt
   connection    ProviderOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  /// [ProviderOAuthConnectionAuthTokenErrors]
+  firstErrorAt    DateTime?
+  lastErrorAt     DateTime?
+  errorDisabledAt DateTime?
+  errorCount      Int       @default(0)
 
   createdAt   DateTime  @default(now())
   lastUsedAt  DateTime  @default(now())

@@ -1,4 +1,5 @@
 import { Presenter } from '@metorial/presenter';
+import { shadowId } from '@metorial/shadow-id';
 import { v } from '@metorial/validation';
 import { providerOauthConnectionTemplateType } from '../types';
 import { v1ProfilePresenter } from './profile';
@@ -21,12 +22,16 @@ export let v1ProviderOauthConnectionTemplatePresenter = Presenter.create(
     },
 
     variables: providerOauthConnectionTemplate.variables.map(variable => ({
+      id: shadowId('poctv_', [providerOauthConnectionTemplate.id], [variable.key]),
+
       key: variable.key,
       type: variable.type,
       label: variable.label,
       description: variable.description ?? null
     })),
     scopes: providerOauthConnectionTemplate.scopes.map(scope => ({
+      id: shadowId('poctv_', [providerOauthConnectionTemplate.id], [scope.identifier]),
+
       identifier: scope.identifier,
       description: scope.description
     })),
@@ -87,6 +92,11 @@ export let v1ProviderOauthConnectionTemplatePresenter = Presenter.create(
       scopes: v.array(
         v.object(
           {
+            id: v.string({
+              name: 'id',
+              description: 'The unique identifier for the scope within the template'
+            }),
+
             identifier: v.string({
               name: 'identifier',
               description: 'The unique identifier for the scope (as defined by the provider)'
@@ -110,6 +120,11 @@ export let v1ProviderOauthConnectionTemplatePresenter = Presenter.create(
       variables: v.array(
         v.object(
           {
+            id: v.string({
+              name: 'id',
+              description: 'The unique identifier for this variable within the template'
+            }),
+
             key: v.string({
               name: 'key',
               description: 'The internal key used to reference this variable'

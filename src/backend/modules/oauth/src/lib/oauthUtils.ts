@@ -135,7 +135,7 @@ export class OAuthUtils {
     clientId: string;
     clientSecret: string;
     refreshToken: string;
-  }): Promise<TokenResponse> {
+  }): Promise<{ ok: true; response: TokenResponse } | { ok: false; message: string }> {
     let body = new URLSearchParams({
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
@@ -151,7 +151,10 @@ export class OAuthUtils {
         },
         ...getAxiosSsrfFilter(tokenEndpoint)
       });
-      return response.data;
+      return {
+        ok: true,
+        response: response.data
+      };
     } catch (error: any) {
       Sentry.captureException(error, {
         extra: {
@@ -159,12 +162,12 @@ export class OAuthUtils {
           clientId
         }
       });
-      let errorMessage = error.response?.data?.error_description || error.message;
-      throw new ServiceError(
-        badRequestError({
-          message: `Token refresh failed: ${error.response?.status ?? 'unknown'} ${errorMessage}`
-        })
-      );
+      return {
+        ok: false,
+        message:
+          error.response?.data?.error_description ||
+          (error.response?.data ? JSON.stringify(error.response?.data) : error.message)
+      };
     }
   }
 

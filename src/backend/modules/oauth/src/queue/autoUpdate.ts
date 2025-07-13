@@ -69,7 +69,7 @@ let autoDiscoverSingleQueueProcessor = autoDiscoverSingleQueue.process(async dat
   await db.providerOAuthDiscoveryDocument.updateMany({
     where: { oid: discoveryDocument.oid },
     data: {
-      config: doc,
+      config: doc as any,
       configHash,
       refreshedAt: new Date(),
 
@@ -146,7 +146,7 @@ let autoDiscoverPropagateApplyQueueProcessor = autoDiscoverPropagateApplyQueue.p
     let connection = await db.providerOAuthConnection.update({
       where: { id: data.connectionId },
       data: {
-        config: discoveryDocument.config,
+        config: discoveryDocument.config as any,
         configHash: discoveryDocument.configHash,
         providerName: discoveryDocument.providerName,
         providerUrl: discoveryDocument.providerUrl

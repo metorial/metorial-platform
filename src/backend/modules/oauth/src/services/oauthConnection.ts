@@ -59,7 +59,7 @@ class OauthConnectionServiceImpl {
           providerUrl: OAuthUtils.getProviderUrl(d.input.config),
           discoveryUrl: d.input.discoveryUrl,
 
-          config: d.input.config,
+          config: d.input.config as any,
           configHash: await OAuthUtils.getConfigHash(d.input.config),
 
           scopes: d.input.scopes,

@@ -1,4 +1,5 @@
 import { Presenter } from '@metorial/presenter';
+import { shadowId } from '@metorial/shadow-id';
 import { v } from '@metorial/validation';
 import { providerOauthConnectionType } from '../types';
 
@@ -11,6 +12,12 @@ export let v1ProviderOauthConnectionPresenter = Presenter.create(providerOauthCo
 
     name: providerOauthConnection.name,
     provider: {
+      id: shadowId(
+        'pop_',
+        [],
+        [providerOauthConnection.instance.organizationOid, providerOauthConnection.providerUrl]
+      ),
+
       name: providerOauthConnection.providerName,
       url: providerOauthConnection.providerUrl
     },
@@ -48,6 +55,10 @@ export let v1ProviderOauthConnectionPresenter = Presenter.create(providerOauthCo
       }),
 
       provider: v.object({
+        id: v.string({
+          name: 'id',
+          description: 'The unique identifier for the OAuth provider'
+        }),
         name: v.string({
           name: 'name',
           description: 'The name of the OAuth provider',
