@@ -13,7 +13,7 @@ export let errorCheckQueueProcessor = errorCheckQueue.process(async data => {
   });
   if (!connection) return;
 
-  let timeframe = subDays(new Date(), 7);
+  let timeframe = subDays(new Date(), 4);
 
   let totalRecentTokens = await db.providerOAuthConnectionAuthToken.count({
     where: {

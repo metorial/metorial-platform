@@ -65,6 +65,7 @@ class OauthAuthorizationServiceImpl {
     });
 
     return {
+      authAttempt,
       redirectUrl: OAuthUtils.buildAuthorizationUrl({
         authEndpoint: config.authorization_endpoint,
         clientId: d.connection.clientId,
@@ -89,7 +90,7 @@ class OauthAuthorizationServiceImpl {
   }) {
     if (d.response.error) {
       if (d.response.state) {
-        await db.providerOAuthConnectionAuthAttempt.update({
+        await db.providerOAuthConnectionAuthAttempt.updateMany({
           where: {
             stateIdentifier: d.response.state!,
             status: 'pending'
