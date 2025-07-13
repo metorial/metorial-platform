@@ -111,6 +111,27 @@ export let ServerOverviewPage = () => {
             type: 'code' as const,
             code: `pip install ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
           }
+        },
+        {
+          label: 'pipx',
+          item: {
+            type: 'code' as const,
+            code: `pipx install ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
+          }
+        },
+        {
+          label: 'conda',
+          item: {
+            type: 'code' as const,
+            code: `conda install -c conda-forge ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
+          }
+        },
+        {
+          label: 'uv',
+          item: {
+            type: 'code' as const,
+            code: `uv add ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
+          }
         }
       ]
     },
