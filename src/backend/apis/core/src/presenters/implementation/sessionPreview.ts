@@ -26,20 +26,56 @@ export let v1SessionPreview = Object.assign(
     schema: v.object({
       object: v.literal('session#preview'),
 
-      id: v.string(),
-      status: v.enumOf(['active', 'deleted']),
-      connection_status: v.enumOf(['connected', 'disconnected']),
-
-      usage: v.object({
-        total_productive_message_count: v.number(),
-        total_productive_client_message_count: v.number(),
-        total_productive_server_message_count: v.number()
+      id: v.string({
+        name: 'id',
+        description: 'Unique identifier for the session preview'
       }),
 
-      metadata: v.record(v.any()),
+      status: v.enumOf(['active', 'deleted'], {
+        name: 'status',
+        description: 'Current status of the session'
+      }),
 
-      created_at: v.date(),
-      updated_at: v.date()
+      connection_status: v.enumOf(['connected', 'disconnected'], {
+        name: 'connection_status',
+        description: 'Connection state of the session'
+      }),
+
+      usage: v.object(
+        {
+          total_productive_message_count: v.number({
+            name: 'total_productive_message_count',
+            description: 'Total count of productive messages in the session'
+          }),
+          total_productive_client_message_count: v.number({
+            name: 'total_productive_client_message_count',
+            description: 'Count of productive messages sent by the client'
+          }),
+          total_productive_server_message_count: v.number({
+            name: 'total_productive_server_message_count',
+            description: 'Count of productive messages sent by the server'
+          })
+        },
+        {
+          name: 'usage',
+          description: 'Message usage statistics for the session'
+        }
+      ),
+
+      metadata: v.record(v.any(), {
+        name: 'metadata',
+        description: 'Additional metadata related to the session'
+      }),
+
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the session was created'
+      }),
+
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when the session was last updated'
+      })
     })
   }
 );

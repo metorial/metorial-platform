@@ -36,20 +36,55 @@ export let v1ServerRunPresenter = Presenter.create(serverRunType)
     v.object({
       object: v.literal('server.server_run'),
 
-      id: v.string(),
-      type: v.enumOf(['hosted', 'external']),
-      status: v.enumOf(['active', 'failed', 'completed']),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier of the server run'
+      }),
 
-      server_version_id: v.string(),
+      type: v.enumOf(['hosted', 'external'], {
+        name: 'type',
+        description: 'The type of the server run'
+      }),
+
+      status: v.enumOf(['active', 'failed', 'completed'], {
+        name: 'status',
+        description: 'The current status of the server run'
+      }),
+
+      server_version_id: v.string({
+        name: 'server_version_id',
+        description: 'The unique identifier of the server version associated with this run'
+      }),
 
       server: v1ServerPreview.schema,
+
       server_deployment: v1ServerDeploymentPreview.schema,
+
       server_session: v1ServerSessionPreview.schema,
 
-      created_at: v.date(),
-      updated_at: v.date(),
-      started_at: v.nullable(v.date()),
-      stopped_at: v.nullable(v.date())
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the server run was created'
+      }),
+
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when the server run was last updated'
+      }),
+
+      started_at: v.nullable(
+        v.date({
+          name: 'started_at',
+          description: 'Timestamp when the server run was started'
+        })
+      ),
+
+      stopped_at: v.nullable(
+        v.date({
+          name: 'stopped_at',
+          description: 'Timestamp when the server run was stopped'
+        })
+      )
     })
   )
   .build();

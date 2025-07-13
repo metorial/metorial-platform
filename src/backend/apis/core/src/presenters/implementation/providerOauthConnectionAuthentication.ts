@@ -41,20 +41,48 @@ export let v1ProviderOauthConnectionAuthenticationPresenter = Presenter.create(
     v.object({
       object: v.literal('provider_oauth.connection.profile'),
 
-      id: v.string(),
-      status: v.enumOf(['completed', 'failed']),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier for this OAuth connection profile'
+      }),
+
+      status: v.enumOf(['completed', 'failed'], {
+        name: 'status',
+        description: 'The result status of the OAuth connection attempt'
+      }),
 
       error: v.nullable(
-        v.object({
-          code: v.string(),
-          message: v.nullable(v.string())
-        })
+        v.object(
+          {
+            code: v.string({
+              name: 'code',
+              description: 'A machine-readable error code'
+            }),
+            message: v.nullable(
+              v.string({
+                name: 'message',
+                description: 'A human-readable explanation of the error'
+              })
+            )
+          },
+          {
+            name: 'error',
+            description: 'Details of any error that occurred during the connection attempt'
+          }
+        )
       ),
 
-      connection_id: v.string(),
+      connection_id: v.string({
+        name: 'connection_id',
+        description: 'The ID of the related OAuth connection'
+      }),
+
       profile: v1ProviderOauthConnectionProfilePresenter.schema,
 
-      created_at: v.date()
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the connection profile was created'
+      })
     })
   )
   .build();

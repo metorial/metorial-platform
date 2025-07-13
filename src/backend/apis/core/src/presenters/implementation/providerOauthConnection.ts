@@ -32,25 +32,77 @@ export let v1ProviderOauthConnectionPresenter = Presenter.create(providerOauthCo
     v.object({
       object: v.literal('provider_oauth.connection'),
 
-      id: v.string(),
-      status: v.enumOf(['active', 'archived']),
-
-      name: v.string(),
-      provider: v.object({
-        name: v.string(),
-        url: v.string()
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier for this OAuth connection'
       }),
 
-      config: v.record(v.any()),
-      scopes: v.array(v.string()),
+      status: v.enumOf(['active', 'archived'], {
+        name: 'status',
+        description: 'The current state of the connection'
+      }),
 
-      client_id: v.string(),
+      name: v.string({
+        name: 'name',
+        description: 'A human-readable name for the connection'
+      }),
 
-      instance_id: v.string(),
-      template_id: v.nullable(v.string()),
+      provider: v.object({
+        name: v.string({
+          name: 'name',
+          description: 'The name of the OAuth provider',
+          examples: ['GitHub', 'Google']
+        }),
+        url: v.string({
+          name: 'url',
+          description: 'The base URL or homepage of the OAuth provider',
+          examples: ['https://github.com', 'https://accounts.google.com']
+        })
+      }),
 
-      created_at: v.date(),
-      updated_at: v.date()
+      config: v.record(v.any(), {
+        name: 'config',
+        description: 'A key-value map of custom configuration options specific to the provider'
+      }),
+
+      scopes: v.array(
+        v.string({
+          name: 'scope',
+          description: 'A requested OAuth scope for this connection',
+          examples: ['repo', 'openid', 'email']
+        }),
+        {
+          name: 'scopes',
+          description: 'The list of OAuth scopes associated with this connection'
+        }
+      ),
+
+      client_id: v.string({
+        name: 'client_id',
+        description: 'The OAuth client ID used to authenticate with the provider'
+      }),
+
+      instance_id: v.string({
+        name: 'instance_id',
+        description: 'The instance that this connection belongs to'
+      }),
+
+      template_id: v.nullable(
+        v.string({
+          name: 'template_id',
+          description: 'The template ID this connection was based on, if any'
+        })
+      ),
+
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the connection was created'
+      }),
+
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when the connection was last updated'
+      })
     })
   )
   .build();

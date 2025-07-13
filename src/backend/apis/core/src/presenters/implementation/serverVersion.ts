@@ -53,45 +53,107 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
     v.object({
       object: v.literal('server.server_version'),
 
-      id: v.string(),
-      identifier: v.string(),
-
-      server_id: v.string(),
-      server_variant_id: v.string(),
-
-      get_launch_params: v.string(),
-
-      source: v.union([
-        v.object({
-          type: v.literal('docker'),
-          docker: v.object({
-            image: v.string(),
-            tag: v.string()
-          })
-        }),
-        v.object({
-          type: v.literal('remote'),
-          remote: v.object({
-            domain: v.string()
-          })
-        })
-      ]),
-
-      schema: v.object({
-        id: v.string(),
-        fingerprint: v.string(),
-        schema: v.record(v.any()),
-
-        server_id: v.string(),
-        server_variant_id: v.string(),
-        server_version_id: v.string(),
-
-        created_at: v.date()
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier of the server version'
       }),
+
+      identifier: v.string({
+        name: 'identifier',
+        description: 'A unique string identifier for the server version'
+      }),
+
+      server_id: v.string({
+        name: 'server_id',
+        description: 'The ID of the associated server'
+      }),
+
+      server_variant_id: v.string({
+        name: 'server_variant_id',
+        description: 'The ID of the associated server variant'
+      }),
+
+      get_launch_params: v.string({
+        name: 'get_launch_params',
+        description: 'Parameters used to launch this server version'
+      }),
+
+      source: v.union(
+        [
+          v.object({
+            type: v.literal('docker'),
+            docker: v.object({
+              image: v.string({
+                name: 'image',
+                description: 'Docker image name for this server version'
+              }),
+              tag: v.string({
+                name: 'tag',
+                description: 'Docker image tag/version'
+              })
+            })
+          }),
+          v.object({
+            type: v.literal('remote'),
+            remote: v.object({
+              domain: v.string({
+                name: 'domain',
+                description: 'Remote domain hosting the server version'
+              })
+            })
+          })
+        ],
+        {
+          name: 'source',
+          description: 'The source configuration for this server version'
+        }
+      ),
+
+      schema: v.object(
+        {
+          id: v.string({
+            name: 'id',
+            description: 'Unique identifier of the schema'
+          }),
+          fingerprint: v.string({
+            name: 'fingerprint',
+            description: 'Fingerprint hash for schema versioning'
+          }),
+          schema: v.record(v.any(), {
+            name: 'schema',
+            description: 'The actual schema definition'
+          }),
+
+          server_id: v.string({
+            name: 'server_id',
+            description: 'The ID of the server this schema belongs to'
+          }),
+          server_variant_id: v.string({
+            name: 'server_variant_id',
+            description: 'The ID of the server variant this schema belongs to'
+          }),
+          server_version_id: v.string({
+            name: 'server_version_id',
+            description: 'The ID of the server version this schema belongs to'
+          }),
+
+          created_at: v.date({
+            name: 'created_at',
+            description: 'Timestamp when the schema was created'
+          })
+        },
+        {
+          name: 'schema',
+          description: 'Schema details associated with the server version'
+        }
+      ),
 
       server: v1ServerPreview.schema,
 
-      created_at: v.date()
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the server version was created'
+      })
     })
   )
   .build();

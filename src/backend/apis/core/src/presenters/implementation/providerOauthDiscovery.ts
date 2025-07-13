@@ -1,7 +1,6 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { providerOauthConnectionDiscoveryType } from '../types';
-import { v1ProviderOauthConnectionProfilePresenter } from './providerOauthConnectionProfile';
 
 export let v1ProviderOauthDiscoveryPresenter = Presenter.create(
   providerOauthConnectionDiscoveryType
@@ -23,15 +22,35 @@ export let v1ProviderOauthDiscoveryPresenter = Presenter.create(
     v.object({
       object: v.literal('provider_oauth.discovery'),
 
-      id: v.string(),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier for this OAuth discovery record'
+      }),
 
-      provider_name: v.string(),
-      provider_url: v.string(),
+      provider_name: v.string({
+        name: 'provider_name',
+        description: 'The name of the OAuth provider (e.g., Google, GitHub)'
+      }),
 
-      config: v.record(v.any()),
+      provider_url: v.string({
+        name: 'provider_url',
+        description: 'The base URL of the OAuth provider used during discovery'
+      }),
 
-      created_at: v.date(),
-      refreshed_at: v.date()
+      config: v.record(v.any(), {
+        name: 'config',
+        description: 'The raw configuration data retrieved from the provider'
+      }),
+
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the discovery record was created'
+      }),
+
+      refreshed_at: v.date({
+        name: 'refreshed_at',
+        description: 'Timestamp when the discovery configuration was last refreshed'
+      })
     })
   )
   .build();
