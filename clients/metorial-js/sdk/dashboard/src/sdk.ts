@@ -4,10 +4,15 @@ import {
   MetorialDashboardEndpoint,
   MetorialDashboardInstanceFilesEndpoint,
   MetorialDashboardInstanceLinksEndpoint,
+  MetorialDashboardInstanceProviderOauthConnectionsAuthenticationsEndpoint,
+  MetorialDashboardInstanceProviderOauthConnectionsEndpoint,
+  MetorialDashboardInstanceProviderOauthConnectionsEventsEndpoint,
+  MetorialDashboardInstanceProviderOauthConnectionsProfilesEndpoint,
   MetorialDashboardInstanceSecretsEndpoint,
   MetorialDashboardInstanceServerRunErrorGroupsEndpoint,
   MetorialDashboardInstanceServerRunErrorsEndpoint,
   MetorialDashboardInstanceServerRunsEndpoint,
+  MetorialDashboardInstanceServersCapabilitiesEndpoint,
   MetorialDashboardInstanceServersDeploymentsEndpoint,
   MetorialDashboardInstanceServersEndpoint,
   MetorialDashboardInstanceServersImplementationsEndpoint,
@@ -25,6 +30,8 @@ import {
   MetorialDashboardOrganizationsProjectsEndpoint,
   MetorialDashboardUsageEndpoint,
   MetorialManagementUserEndpoint,
+  MetorialProviderOauthConnectionTemplateEndpoint,
+  MetorialProviderOauthEndpoint,
   MetorialServersListingsCategoriesEndpoint,
   MetorialServersListingsCollectionsEndpoint,
   MetorialServersListingsEndpoint
@@ -107,7 +114,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       groups: new MetorialDashboardInstanceServerRunErrorGroupsEndpoint(manager)
     }),
 
-    runs: new MetorialDashboardInstanceServerRunsEndpoint(manager)
+    runs: new MetorialDashboardInstanceServerRunsEndpoint(manager),
+
+    capabilities: new MetorialDashboardInstanceServersCapabilitiesEndpoint(manager)
   }),
 
   sessions: Object.assign(new MetorialDashboardInstanceSessionsEndpoint(manager), {
@@ -116,7 +125,23 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     serverSessions: new MetorialDashboardInstanceSessionsServerSessionsEndpoint(manager)
   }),
 
-  usage: new MetorialDashboardUsageEndpoint(manager)
+  usage: new MetorialDashboardUsageEndpoint(manager),
+
+  providerOauth: Object.assign(new MetorialProviderOauthEndpoint(manager), {
+    templates: new MetorialProviderOauthConnectionTemplateEndpoint(manager),
+
+    connections: Object.assign(
+      new MetorialDashboardInstanceProviderOauthConnectionsEndpoint(manager),
+      {
+        profiles: new MetorialDashboardInstanceProviderOauthConnectionsProfilesEndpoint(
+          manager
+        ),
+        events: new MetorialDashboardInstanceProviderOauthConnectionsEventsEndpoint(manager),
+        authentications:
+          new MetorialDashboardInstanceProviderOauthConnectionsAuthenticationsEndpoint(manager)
+      }
+    )
+  })
 }));
 
 export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>;

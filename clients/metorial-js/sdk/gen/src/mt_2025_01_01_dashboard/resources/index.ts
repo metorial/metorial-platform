@@ -3,6 +3,7 @@ export * from './dashboard';
 export * from './files';
 export * from './links';
 export * from './management';
+export * from './provider-oauth';
 export * from './secrets';
 export * from './server-run-error-groups';
 export * from './server-run-errors';
