@@ -16,7 +16,7 @@ async def session_callback(session):
   messages: List[Dict[str, Any]] = [
     {
       "role": "user",
-      "content": "What are the contents of the microsoft/vscode repository on GitHub?"
+      "content": "Summarize the README.md in the metorial/mcp-containers repository on GitHub."
     }
   ]
   
