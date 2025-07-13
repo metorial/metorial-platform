@@ -79,23 +79,63 @@ export let dashboardServerImplementationPresenter = Presenter.create(serverImple
     v.object({
       object: v.literal('server.server_implementation'),
 
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'deleted']),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier of the server implementation'
+      }),
 
-      is_default: v.boolean(),
-      is_ephemeral: v.boolean(),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        name: 'status',
+        description: 'The current status of the server implementation'
+      }),
 
-      name: v.string(),
-      description: v.nullable(v.string()),
-      metadata: v.record(v.any()),
+      is_default: v.boolean({
+        name: 'is_default',
+        description: 'Indicates if this implementation is the default one'
+      }),
 
-      get_launch_params: v.nullable(v.string()),
+      is_ephemeral: v.boolean({
+        name: 'is_ephemeral',
+        description: 'Indicates if this implementation is ephemeral (temporary)'
+      }),
+
+      name: v.string({
+        name: 'name',
+        description: 'The name of the server implementation'
+      }),
+
+      description: v.nullable(
+        v.string({
+          name: 'description',
+          description: 'A description of the server implementation, if any'
+        })
+      ),
+
+      metadata: v.record(v.any(), {
+        name: 'metadata',
+        description: 'Additional metadata related to the server implementation'
+      }),
+
+      get_launch_params: v.nullable(
+        v.string({
+          name: 'get_launch_params',
+          description: 'Launch parameters for this server implementation, if any'
+        })
+      ),
 
       server_variant: v1ServerVariantPreview.schema,
+
       server: v1ServerPreview.schema,
 
-      created_at: v.date(),
-      updated_at: v.date()
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the server implementation was created'
+      }),
+
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when the server implementation was last updated'
+      })
     })
   )
   .build();

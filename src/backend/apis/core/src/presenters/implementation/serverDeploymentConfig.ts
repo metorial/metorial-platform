@@ -17,11 +17,25 @@ export let v1ServerDeploymentConfigPresenter = Presenter.create(serverDeployment
     v.object({
       object: v.literal('server.server_deployment.config'),
 
-      id: v.string(),
-      status: v.enumOf(['active', 'inactive']),
-      secret_id: v.string(),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier of the server deployment configuration'
+      }),
 
-      created_at: v.date()
+      status: v.enumOf(['active', 'inactive'], {
+        name: 'status',
+        description: 'The current status of the server deployment configuration'
+      }),
+
+      secret_id: v.string({
+        name: 'secret_id',
+        description: 'Identifier for the secret associated with this configuration'
+      }),
+
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the server deployment configuration was created'
+      })
     })
   )
   .build();

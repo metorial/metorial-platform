@@ -20,46 +20,64 @@ export let v1UserPresenter = Presenter.create(userType)
   }))
   .schema(
     v.object({
-      object: v.literal('user'),
+      object: v.literal('user', {
+        name: 'object',
+        description: "Type of the object, fixed as 'user'"
+      }),
 
-      id: v.string({ name: 'id', description: `The user's unique identifier` }),
+      id: v.string({
+        name: 'id',
+        description: "The user's unique identifier"
+      }),
+
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
-        description: `The user's status`
+        description: "The user's status"
       }),
+
       type: v.enumOf(['user'], {
         name: 'type',
-        description: `The user's type`
+        description: "The user's type"
       }),
+
       email: v.string({
         name: 'email',
-        description: `The user's email address`,
+        description: "The user's email address",
         examples: ['sam@example.com']
       }),
+
       name: v.string({
         name: 'name',
-        description: `The user's name`,
+        description: "The user's full name",
         examples: ['Sam']
       }),
+
       first_name: v.string({
         name: 'first_name',
-        description: `The user's first name`,
+        description: "The user's first name",
         examples: ['Sam']
       }),
+
       last_name: v.string({
         name: 'last_name',
-        description: `The user's last name`,
+        description: "The user's last name",
         examples: ['Smith']
       }),
+
       image_url: v.string({
-        name: 'imageUrl',
-        description: `The user's image URL`,
+        name: 'image_url',
+        description: "The user's image URL",
         examples: ['https://avatar-cdn.metorial.com/aimg_1234567890']
       }),
-      created_at: v.date({ name: 'created_at', description: `The user's creation date` }),
+
+      created_at: v.date({
+        name: 'created_at',
+        description: "The user's creation date"
+      }),
+
       updated_at: v.date({
         name: 'updated_at',
-        description: `The user's last update date`
+        description: "The user's last update date"
       })
     })
   )

@@ -62,49 +62,121 @@ export let v1ServerSessionPresenter = Presenter.create(serverSessionType)
     v.object({
       object: v.literal('session.server_session'),
 
-      id: v.string(),
-      status: v.enumOf(['active']),
-
-      mcp: v.object({
-        object: v.literal('mcp'),
-
-        version: v.string(),
-        connection_type: v.enumOf(['sse', 'streamable_http', 'websocket']),
-
-        client: v.nullable(
-          v.object({
-            object: v.literal('session.server_session.client'),
-            name: v.string(),
-            version: v.string(),
-
-            capabilities: v.record(v.any())
-          })
-        ),
-
-        server: v.nullable(
-          v.object({
-            object: v.literal('session.server_session.server'),
-
-            name: v.string(),
-            version: v.string(),
-
-            capabilities: v.record(v.any())
-          })
-        )
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier for the server session'
       }),
 
-      usage: v.object({
-        total_productive_message_count: v.number(),
-        total_productive_client_message_count: v.number(),
-        total_productive_server_message_count: v.number()
+      status: v.enumOf(['active'], {
+        name: 'status',
+        description: 'Current status of the server session'
       }),
+
+      mcp: v.object(
+        {
+          object: v.literal('mcp'),
+
+          version: v.string({
+            name: 'version',
+            description: 'The version of the MCP protocol in use'
+          }),
+
+          connection_type: v.enumOf(['sse', 'streamable_http', 'websocket'], {
+            name: 'connection_type',
+            description: 'The type of connection used by MCP'
+          }),
+
+          client: v.nullable(
+            v.object(
+              {
+                object: v.literal('session.server_session.client'),
+
+                name: v.string({
+                  name: 'name',
+                  description: 'Name of the client application'
+                }),
+
+                version: v.string({
+                  name: 'version',
+                  description: 'Version of the client application'
+                }),
+
+                capabilities: v.record(v.any(), {
+                  name: 'capabilities',
+                  description: 'Capabilities advertised by the client'
+                })
+              },
+              {
+                name: 'client',
+                description: 'Client details connected to this session, or null if none'
+              }
+            )
+          ),
+
+          server: v.nullable(
+            v.object(
+              {
+                object: v.literal('session.server_session.server'),
+
+                name: v.string({
+                  name: 'name',
+                  description: 'Name of the server application'
+                }),
+
+                version: v.string({
+                  name: 'version',
+                  description: 'Version of the server application'
+                }),
+
+                capabilities: v.record(v.any(), {
+                  name: 'capabilities',
+                  description: 'Capabilities advertised by the server'
+                })
+              },
+              {
+                name: 'server',
+                description: 'Server details associated with this session, or null if none'
+              }
+            )
+          )
+        },
+        {
+          name: 'mcp',
+          description: 'MCP connection details for this session'
+        }
+      ),
+
+      usage: v.object(
+        {
+          total_productive_message_count: v.number({
+            name: 'total_productive_message_count',
+            description: 'Total number of productive messages in this session'
+          }),
+          total_productive_client_message_count: v.number({
+            name: 'total_productive_client_message_count',
+            description: 'Number of productive messages sent by the client'
+          }),
+          total_productive_server_message_count: v.number({
+            name: 'total_productive_server_message_count',
+            description: 'Number of productive messages sent by the server'
+          })
+        },
+        {
+          name: 'usage',
+          description: 'Usage statistics for this session'
+        }
+      ),
 
       server: v1ServerPreview.schema,
 
       session: v1SessionPreview.schema,
+
       server_deployment: v1ServerDeploymentPreview.schema,
 
-      created_at: v.date()
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the server session was created'
+      })
     })
   )
   .build();

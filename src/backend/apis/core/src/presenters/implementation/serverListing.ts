@@ -100,81 +100,250 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
     v.object({
       object: v.literal('server_listing'),
 
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'banned']),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier of the server listing'
+      }),
 
-      slug: v.string(),
-      name: v.string(),
-      description: v.string(),
-      readme: v.string(),
-      categories: v.array(v1ServerListingCategoryPresenter.schema),
-      skills: v.array(v.string()),
+      status: v.enumOf(['active', 'archived', 'banned'], {
+        name: 'status',
+        description: 'The current status of the server listing'
+      }),
 
-      is_official: v.boolean(),
-      is_community: v.boolean(),
-      is_hostable: v.boolean(),
+      slug: v.string({
+        name: 'slug',
+        description: 'A URL-friendly unique string identifier for the listing'
+      }),
+
+      name: v.string({
+        name: 'name',
+        description: 'The name of the server listing'
+      }),
+
+      description: v.string({
+        name: 'description',
+        description: 'A detailed description of the server listing'
+      }),
+
+      readme: v.string({
+        name: 'readme',
+        description: 'README content or notes related to the server listing'
+      }),
+
+      categories: v.array(v1ServerListingCategoryPresenter.schema, {
+        name: 'categories',
+        description: 'Categories associated with the server listing'
+      }),
+
+      skills: v.array(v.string(), {
+        name: 'skills',
+        description: 'List of skills relevant to the server listing'
+      }),
+
+      is_official: v.boolean({
+        name: 'is_official',
+        description: 'Indicates if the listing is officially recognized'
+      }),
+
+      is_community: v.boolean({
+        name: 'is_community',
+        description: 'Indicates if the listing is community contributed'
+      }),
+
+      is_hostable: v.boolean({
+        name: 'is_hostable',
+        description: 'Indicates if the listing can be hosted'
+      }),
 
       server: v1ServerPreview.schema,
 
       vendor: v.nullable(
-        v.object({
-          id: v.string(),
-          identifier: v.string(),
-          name: v.string(),
-          description: v.nullable(v.string()),
+        v.object(
+          {
+            id: v.string({
+              name: 'id',
+              description: 'Unique identifier of the vendor'
+            }),
+            identifier: v.string({
+              name: 'identifier',
+              description: 'Vendor unique identifier string'
+            }),
+            name: v.string({
+              name: 'name',
+              description: 'Vendor name'
+            }),
+            description: v.nullable(
+              v.string({
+                name: 'description',
+                description: 'Description of the vendor'
+              })
+            ),
 
-          image_url: v.string(),
+            image_url: v.string({
+              name: 'image_url',
+              description: 'URL to the vendor image'
+            }),
 
-          attributes: v.optional(v.any()),
+            attributes: v.optional(v.any()),
 
-          created_at: v.date(),
-          updated_at: v.date()
-        })
+            created_at: v.date({
+              name: 'created_at',
+              description: 'Vendor creation timestamp'
+            }),
+            updated_at: v.date({
+              name: 'updated_at',
+              description: 'Vendor last update timestamp'
+            })
+          },
+          {
+            name: 'vendor',
+            description: 'Information about the vendor, if any'
+          }
+        )
       ),
 
       repository: v.nullable(
-        v.object({
-          id: v.string(),
-          identifier: v.string(),
-          slug: v.string(),
-          name: v.string(),
-          provider_url: v.string(),
-          website_url: v.string(),
-          provider: v.string(),
+        v.object(
+          {
+            id: v.string({
+              name: 'id',
+              description: 'Repository unique identifier'
+            }),
+            identifier: v.string({
+              name: 'identifier',
+              description: 'Repository identifier string'
+            }),
+            slug: v.string({
+              name: 'slug',
+              description: 'Repository slug'
+            }),
+            name: v.string({
+              name: 'name',
+              description: 'Repository name'
+            }),
+            provider_url: v.string({
+              name: 'provider_url',
+              description: 'URL of the repository provider'
+            }),
+            website_url: v.string({
+              name: 'website_url',
+              description: 'Repository website URL'
+            }),
+            provider: v.string({
+              name: 'provider',
+              description: 'Repository provider name'
+            }),
 
-          star_count: v.number(),
-          fork_count: v.number(),
-          watcher_count: v.number(),
-          open_issues_count: v.number(),
-          subscription_count: v.number(),
+            star_count: v.number({
+              name: 'star_count',
+              description: 'Number of stars on the repository'
+            }),
+            fork_count: v.number({
+              name: 'fork_count',
+              description: 'Number of forks on the repository'
+            }),
+            watcher_count: v.number({
+              name: 'watcher_count',
+              description: 'Number of watchers on the repository'
+            }),
+            open_issues_count: v.number({
+              name: 'open_issues_count',
+              description: 'Number of open issues'
+            }),
+            subscription_count: v.number({
+              name: 'subscription_count',
+              description: 'Number of subscriptions'
+            }),
 
-          default_branch: v.string(),
+            default_branch: v.string({
+              name: 'default_branch',
+              description: 'Default branch name of the repository'
+            }),
 
-          license_name: v.string(),
-          license_url: v.string(),
-          license_spdx_id: v.string(),
+            license_name: v.string({
+              name: 'license_name',
+              description: 'Name of the license'
+            }),
+            license_url: v.string({
+              name: 'license_url',
+              description: 'URL of the license'
+            }),
+            license_spdx_id: v.string({
+              name: 'license_spdx_id',
+              description: 'SPDX license identifier'
+            }),
 
-          topics: v.array(v.string()),
+            topics: v.array(v.string(), {
+              name: 'topics',
+              description: 'List of topics associated with the repository'
+            }),
 
-          language: v.nullable(v.string()),
-          description: v.nullable(v.string()),
+            language: v.nullable(
+              v.string({
+                name: 'language',
+                description: 'Primary programming language of the repository'
+              })
+            ),
+            description: v.nullable(
+              v.string({
+                name: 'description',
+                description: 'Repository description'
+              })
+            ),
 
-          created_at: v.date(),
-          updated_at: v.date(),
-          pushed_at: v.nullable(v.date())
-        })
+            created_at: v.date({
+              name: 'created_at',
+              description: 'Repository creation timestamp'
+            }),
+            updated_at: v.date({
+              name: 'updated_at',
+              description: 'Repository last update timestamp'
+            }),
+            pushed_at: v.nullable(
+              v.date({
+                name: 'pushed_at',
+                description: 'Timestamp of last push to the repository'
+              })
+            )
+          },
+          {
+            name: 'repository',
+            description: 'Repository details, if any'
+          }
+        )
       ),
 
       installation: v.nullable(
-        v.object({
-          id: v.string(),
-          instance_id: v.string(),
-          created_at: v.date()
-        })
+        v.object(
+          {
+            id: v.string({
+              name: 'id',
+              description: 'Installation unique identifier'
+            }),
+            instance_id: v.string({
+              name: 'instance_id',
+              description: 'Instance identifier associated with the installation'
+            }),
+            created_at: v.date({
+              name: 'created_at',
+              description: 'Installation creation timestamp'
+            })
+          },
+          {
+            name: 'installation',
+            description: 'Installation details, if any'
+          }
+        )
       ),
 
-      created_at: v.date(),
-      updated_at: v.date()
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Server listing creation timestamp'
+      }),
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Server listing last update timestamp'
+      })
     })
   )
   .build();

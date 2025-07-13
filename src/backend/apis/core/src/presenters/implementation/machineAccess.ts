@@ -43,7 +43,7 @@ export let v1MachineAccessPresenter = Presenter.create(machineAccessType)
             )
             .run()
         : null,
-    organization_id: machineAccess.organization
+    organization: machineAccess.organization
       ? await v1OrganizationPresenter
           .present(
             {
@@ -93,7 +93,7 @@ export let v1MachineAccessPresenter = Presenter.create(machineAccessType)
       name: v.string({ name: 'name', description: `The machineAccess's name` }),
       actor: v.nullable(v1OrganizationActorPresenter.schema),
       instance: v.nullable(v1InstancePresenter.schema),
-      organization_id: v.nullable(v1OrganizationPresenter.schema),
+      organization: v.nullable(v1OrganizationPresenter.schema),
       user: v.nullable(v1UserPresenter.schema),
       deleted_at: v.date({
         name: 'deleted_at',
