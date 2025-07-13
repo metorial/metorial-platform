@@ -1,3 +1,4 @@
+import { Context } from '@metorial/context';
 import {
   db,
   ID,
@@ -5,10 +6,12 @@ import {
   Organization,
   OrganizationActor,
   ProviderOAuthConnection,
-  ProviderOAuthConnectionTemplate
+  ProviderOAuthConnectionTemplate,
+  withTransaction
 } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
 import { badRequestError } from '@metorial/error/src/defaultErrors';
+import { Fabric } from '@metorial/fabric';
 import { generateCustomId } from '@metorial/id';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -25,6 +28,7 @@ class OauthConnectionServiceImpl {
     organization: Organization;
     performedBy: OrganizationActor;
     instance: Instance;
+    context?: Context;
 
     input: {
       name: string;
@@ -37,28 +41,47 @@ class OauthConnectionServiceImpl {
     };
     template?: ProviderOAuthConnectionTemplate;
   }) {
-    return await db.providerOAuthConnection.create({
-      data: {
-        id: await ID.generateId('oauthConnection'),
-        metorialClientId: generateCustomId('metorial_oauthcon_', 35),
+    await Fabric.fire('provider_oauth.connection.created:before', {
+      organization: d.organization,
+      instance: d.instance,
+      performedBy: d.performedBy,
+      context: d.context
+    });
 
-        name: d.input.name,
-        providerName: OAuthUtils.getProviderName(d.input.config),
-        providerUrl: OAuthUtils.getProviderUrl(d.input.config),
-        discoveryUrl: d.input.discoveryUrl,
+    return await withTransaction(async db => {
+      let con = await db.providerOAuthConnection.create({
+        data: {
+          id: await ID.generateId('oauthConnection'),
+          metorialClientId: generateCustomId('metorial_oauthcon_', 35),
 
-        config: d.input.config,
-        configHash: await OAuthUtils.getConfigHash(d.input.config),
+          name: d.input.name,
+          providerName: OAuthUtils.getProviderName(d.input.config),
+          providerUrl: OAuthUtils.getProviderUrl(d.input.config),
+          discoveryUrl: d.input.discoveryUrl,
 
-        scopes: d.input.scopes,
+          config: d.input.config,
+          configHash: await OAuthUtils.getConfigHash(d.input.config),
 
-        clientId: d.input.clientId,
-        clientSecret: d.input.clientSecret,
+          scopes: d.input.scopes,
 
-        instanceOid: d.instance.oid,
-        templateOid: d.template?.oid
-      },
-      include
+          clientId: d.input.clientId,
+          clientSecret: d.input.clientSecret,
+
+          instanceOid: d.instance.oid,
+          templateOid: d.template?.oid
+        },
+        include
+      });
+
+      await Fabric.fire('provider_oauth.connection.created:after', {
+        organization: d.organization,
+        instance: d.instance,
+        performedBy: d.performedBy,
+        context: d.context,
+        providerOauthConnection: con
+      });
+
+      return con;
     });
   }
 
@@ -66,6 +89,7 @@ class OauthConnectionServiceImpl {
     organization: Organization;
     performedBy: OrganizationActor;
     instance: Instance;
+    context?: Context;
 
     connection: ProviderOAuthConnection;
     input: {
@@ -84,6 +108,14 @@ class OauthConnectionServiceImpl {
         })
       );
     }
+
+    await Fabric.fire('provider_oauth.connection.updated:before', {
+      organization: d.organization,
+      instance: d.instance,
+      performedBy: d.performedBy,
+      context: d.context,
+      providerOauthConnection: d.connection
+    });
 
     let updateData: Partial<ProviderOAuthConnection> = {};
 
@@ -110,10 +142,65 @@ class OauthConnectionServiceImpl {
       updateData.scopes = d.input.scopes;
     }
 
-    return await db.providerOAuthConnection.update({
-      where: { oid: d.connection.oid },
-      data: updateData,
-      include
+    return await withTransaction(async db => {
+      let con = await db.providerOAuthConnection.update({
+        where: { oid: d.connection.oid },
+        data: updateData,
+        include
+      });
+
+      await Fabric.fire('provider_oauth.connection.updated:after', {
+        organization: d.organization,
+        instance: d.instance,
+        performedBy: d.performedBy,
+        context: d.context,
+        providerOauthConnection: con
+      });
+
+      return con;
+    });
+  }
+
+  async archiveConnection(d: {
+    organization: Organization;
+    performedBy: OrganizationActor;
+    instance: Instance;
+    context?: Context;
+
+    connection: ProviderOAuthConnection;
+  }) {
+    if (d.connection.status === 'archived') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot archive an already archived connection'
+        })
+      );
+    }
+
+    await Fabric.fire('provider_oauth.connection.archived:before', {
+      organization: d.organization,
+      instance: d.instance,
+      performedBy: d.performedBy,
+      context: d.context,
+      providerOauthConnection: d.connection
+    });
+
+    return await withTransaction(async db => {
+      let con = await db.providerOAuthConnection.update({
+        where: { oid: d.connection.oid },
+        data: { status: 'archived' },
+        include
+      });
+
+      await Fabric.fire('provider_oauth.connection.archived:after', {
+        organization: d.organization,
+        instance: d.instance,
+        performedBy: d.performedBy,
+        context: d.context,
+        providerOauthConnection: con
+      });
+
+      return con;
     });
   }
 
@@ -241,28 +328,6 @@ class OauthConnectionServiceImpl {
     if (!event) throw new ServiceError(notFoundError('connection_profile', d.profileId));
 
     return event;
-  }
-
-  async archiveConnection(d: {
-    organization: Organization;
-    performedBy: OrganizationActor;
-    instance: Instance;
-
-    connection: ProviderOAuthConnection;
-  }) {
-    if (d.connection.status === 'archived') {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Cannot archive an already archived connection'
-        })
-      );
-    }
-
-    return await db.providerOAuthConnection.update({
-      where: { oid: d.connection.oid },
-      data: { status: 'archived' },
-      include
-    });
   }
 }
 
