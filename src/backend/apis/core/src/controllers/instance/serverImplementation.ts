@@ -118,14 +118,16 @@ export let ensureDefaultServerImplementation = async (
 
 export let serverImplementationController = Controller.create(
   {
-    name: 'Server Instance',
-    description: 'Read and write server instance information'
+    name: 'Server Implementation',
+    description:
+      'Manage server implementations tied to a server or server variant within an instance.'
   },
   {
     list: instanceGroup
       .get(instancePath('server-implementations', 'servers.implementations.list'), {
-        name: 'List server instances',
-        description: 'List all server instances'
+        name: 'List server implementations',
+        description:
+          'Retrieve all server implementations in the instance. Supports filtering by status, server, or variant.'
       })
       .use(checkAccess({ possibleScopes: ['instance.server.implementation:read'] }))
       .outputList(serverImplementationPresenter)
@@ -166,8 +168,8 @@ export let serverImplementationController = Controller.create(
           'servers.implementations.get'
         ),
         {
-          name: 'Get server instance',
-          description: 'Get the information of a specific server instance'
+          name: 'Get server implementation',
+          description: 'Fetch detailed information about a specific server implementation.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.server.implementation:read'] }))
@@ -180,8 +182,9 @@ export let serverImplementationController = Controller.create(
 
     create: instanceGroup
       .post(instancePath('server-implementations', 'servers.implementations.create'), {
-        name: 'Create server instance',
-        description: 'Create a new server instance'
+        name: 'Create server implementation',
+        description:
+          'Create a new server implementation for a specific server or server variant.'
       })
       .use(checkAccess({ possibleScopes: ['instance.server.implementation:write'] }))
       .body('default', createServerImplementationSchema)
@@ -199,8 +202,9 @@ export let serverImplementationController = Controller.create(
           'servers.implementations.update'
         ),
         {
-          name: 'Update server instance',
-          description: 'Update a server instance'
+          name: 'Update server implementation',
+          description:
+            'Update metadata, launch parameters, or other fields of a server implementation.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.server.implementation:write'] }))
@@ -239,8 +243,8 @@ export let serverImplementationController = Controller.create(
           'servers.implementations.delete'
         ),
         {
-          name: 'Delete server instance',
-          description: 'Delete a server instance'
+          name: 'Delete server implementation',
+          description: 'Delete a specific server implementation from the instance.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.server.implementation:write'] }))

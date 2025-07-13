@@ -27,8 +27,8 @@ export let serverRunController = Controller.create(
   {
     list: instanceGroup
       .get(instancePath('server-runs', 'serverRuns.list'), {
-        name: 'List server deployments',
-        description: 'List all server deployments'
+        name: 'List server runs',
+        description: 'List all server runs'
       })
       .use(checkAccess({ possibleScopes: ['instance.server.server_run:read'] }))
       .outputList(serverRunPresenter)
