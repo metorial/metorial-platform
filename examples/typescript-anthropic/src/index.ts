@@ -13,18 +13,24 @@ let anthropic = new Anthropic({
 metorial.withProviderSession(
   metorialAnthropic,
   {
-    serverDeployments: ['...server-deployment-id...']
+    serverDeployments: ['...server-deployment-id...'] // crawler like Firecrawl MCP Server
   },
   async session => {
     // Message history for the chat completion
     let messages: Anthropic.Messages.MessageParam[] = [
       {
         role: 'user',
-        content: 'What is metorial.com about? '
+        content: `Please crawl every publicly accessible page on https://metorial.com, 
+                    extract the page title, H1 headings, meta description, and all internal links, 
+                    and return a JSON array where each item has:
+                    - url
+                    - title
+                    - h1
+                    - metaDescription
+                    - links[]
+                  `
       }
     ];
-
-    console.log(session.tools);
 
     for (let i = 0; i < 10; i++) {
       // Get next response from Anthropic
