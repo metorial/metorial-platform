@@ -1,0 +1,70 @@
+name: 🐞 Bug Report
+description: Report a bug in Metorial. Please provide as much detail as possible to help us understand and resolve the issue.
+body:
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Where are you using Metorial?
+      options:
+        - Metorial.com
+        - Self-hosted
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
+      description: How can we see what you're seeing? Specific is terrific.
+      placeholder: |-
+        1. foo
+        2. bar
+        3. baz
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Result
+      description: Logs? Screenshots? Yes, please.
+    validations:
+      required: true
+  - type: dropdown
+    id: product-area
+    attributes:
+      label: Product Area
+      description: Where in Metorial are you seeing this bug?
+      options:
+        - 'Unknown'
+        - 'Authentication'
+        - 'Billing'
+        - 'MCP Servers'
+        - 'MCP Connections'
+        - 'Server Catalog or Configuration'
+        - 'Dashboard'
+        - 'Account/Organization Management'
+        - 'Other'
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Link
+      placeholder: https://app.metorial.com/...
+      description: If you can, please provide a link to the page where you found the bug. This helps us find it faster.
+    validations:
+      required: false
+  - type: input
+    id: Organization, Project, or Instance Identifier
+    attributes:
+      label: identifier
+      placeholder: my-metorial-org
+      description: If you're using metorial.com, please provide the identifier for your organization, project, or instance. Alternatively, you can just paste a dashboard URL and we can extract it from there.
+    validations:
+      required: false
