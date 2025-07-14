@@ -65,6 +65,7 @@ jobs:
             type=ref,event=tag,prefix=tag-
             type=ref,event=pr,prefix=pr-
             type=raw,value=${{ env.CONTAINER_TAG }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
 
       - name: Build and push Docker image
         id: push
