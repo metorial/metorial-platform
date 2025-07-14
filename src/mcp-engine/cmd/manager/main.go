@@ -16,7 +16,7 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		// ignore error if .env file is not found
 	}
 
 	address, etcdEndpoints, dsn := getConfig()
