@@ -36,7 +36,7 @@ body:
     validations:
       required: true
   - type: dropdown
-    id: product-area
+    id: productArea
     attributes:
       label: Product Area
       description: Where in Metorial are you seeing this bug?
