@@ -159,6 +159,9 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 			timeout := time.NewTimer(time.Second * 60)
 			defer timeout.Stop()
 
+			refreshTicker := time.NewTicker(time.Second * 15)
+			defer refreshTicker.Stop()
+
 			responsesToWaitFor := len(mcpRequestMessageIdsToListenFor)
 
 			msgChan := connection.Messages().Subscribe()
@@ -183,6 +186,9 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 					return
 				case <-s.context.Done():
 					return
+
+				case <-refreshTicker.C:
+					// Touch the session to keep it alive
 
 				case <-doneChan:
 					if responsesToWaitFor > 0 {
