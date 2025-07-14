@@ -39,7 +39,7 @@ class OauthDiscoveryServiceImpl {
       create: {
         id: await ID.generateId('oauthDiscoveryDocument'),
 
-        config: doc,
+        config: doc as any,
         configHash,
         refreshedAt: new Date(),
 

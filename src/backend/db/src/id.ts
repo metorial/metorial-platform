@@ -71,7 +71,7 @@ export let ID = createIdGenerator({
   oauthConnectionAuthAttempt: idType.sorted('poca'),
   oauthConnectionAuthAttempt_State: idType.unsorted('poca_state'),
   oauthConnectionAuthAttempt_ClientSecret: idType.unsorted('poca_sec'),
-  oauthConnectionAuthToken: idType.sorted('poct'),
+  oauthConnectionAuthToken: idType.sorted('potk'),
   oauthDiscoveryDocument: idType.sorted('pod'),
   oauthConnectionEvent: idType.sorted('poce')
 });
