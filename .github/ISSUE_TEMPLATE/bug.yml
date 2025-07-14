@@ -61,9 +61,9 @@ body:
     validations:
       required: false
   - type: input
-    id: Organization, Project, or Instance Identifier
+    id: identifier
     attributes:
-      label: identifier
+      label: Organization, Project, or Instance Identifier
       placeholder: my-metorial-org
       description: If you're using metorial.com, please provide the identifier for your organization, project, or instance. Alternatively, you can just paste a dashboard URL and we can extract it from there.
     validations:
