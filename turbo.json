@@ -17,8 +17,14 @@
       ]
     },
     "prisma:push": {
+      "cache": false,
       "dependsOn": [
         "^prisma:push"
+      ],
+      "env": [
+        "DATABASE_URL",
+        "PAYMENT_DATABASE_URL",
+        "FEDERATION_CORE_DATABASE_URL"
       ]
     },
     "generate:client": {

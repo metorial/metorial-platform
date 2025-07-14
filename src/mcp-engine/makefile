@@ -1,4 +1,4 @@
-.PHONY: test build-worker-mcp-runner run-worker-mcp-runner proto-worker-mcp-runner build-manager run-manager proto-mcp-manager proto vet staticcheck lint build-worker-launcher run-worker-launcher build-worker-mcp-remote run-worker-mcp-remote
+.PHONY: test build-worker-mcp-runner run-worker-mcp-runner proto-worker-mcp-runner build-manager run-manager proto-mcp-manager proto vet staticcheck lint build-worker-launcher run-worker-launcher build-worker-mcp-remote run-worker-mcp-remote build-unified run-unified dev
 
 build-worker-mcp-runner:
 	go build -o bin/worker-mcp-runner ./cmd/worker-mcp-runner
@@ -23,6 +23,15 @@ build-manager:
 
 run-manager: build-manager
 	./bin/manager $(ARGS)
+
+build-unified:
+	go build -o bin/unified ./cmd/unified
+
+run-unified: build-unified
+	./bin/unified $(ARGS)
+
+dev:
+	air --build.cmd "go build -o bin/unified ./cmd/unified" --build.bin "./bin/unified"
 
 vet:
 	go vet ./...
