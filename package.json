@@ -7,7 +7,7 @@
     "dev": "turbo run --ui=stream dev",
     "test": "turbo run --concurrency=1 --ui=stream test",
     "prisma:generate": "turbo run --ui=stream prisma:generate",
-    "prisma:push": "turbo run --ui=stream prisma:push",
+    "prisma:push": "turbo run --ui=stream --concurrency=1 prisma:push --",
     "prepare": "echo prepare",
     "postinstall": "echo postinstall",
     "preinstall": "[ -f \"../metorial_enterprise_install.sh\" ] && { ../metorial_enterprise_install.sh; } || { [ ! -f \"../metorial_enterprise_install.sh\" ] && echo \"Ignoring enterprise dependencies.\"; }"

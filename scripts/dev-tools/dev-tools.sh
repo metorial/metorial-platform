@@ -8,7 +8,6 @@ cd ./scripts
 source ./init.sh
 cd ..
 
-
 if [ "$1" = "start" ]; then
   bun ./src/cli.ts set-env
 
