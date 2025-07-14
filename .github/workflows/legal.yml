@@ -17,6 +17,14 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            let staffContributors = ['herber', 'RahmeKarim'];
+            let prAuthor = context.payload.pull_request.user.login;
+
+            if (staffContributors.includes(prAuthor)) {
+              console.log(`Skipping legal check: ${prAuthor} is in staff list.`);
+              return;
+            }
+
             let requiredText = `By submitting this pull request, I'm saying I wrote these changes (or have the right to submit them), and that Metorial can use them however they like - including in their open source projects or any proprietary versions they offer. I still keep the rights to my code, but Metorial can use, modify, and relicense it however they like.`;
 
             let body = context.payload.pull_request.body || "";
