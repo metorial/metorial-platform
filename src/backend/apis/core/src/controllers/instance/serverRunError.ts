@@ -26,8 +26,8 @@ export let serverRunErrorController = Controller.create(
   {
     list: instanceGroup
       .get(instancePath('server-run-errors', 'serverRunErrors.list'), {
-        name: 'List server deployments',
-        description: 'List all server deployments'
+        name: 'List server run errors',
+        description: 'List all server run errors'
       })
       .use(checkAccess({ possibleScopes: ['instance.server.server_error:read'] }))
       .outputList(serverRunErrorPresenter)

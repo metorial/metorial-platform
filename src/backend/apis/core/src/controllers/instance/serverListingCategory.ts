@@ -19,21 +19,21 @@ export let serverListingCategoryGroup = apiGroup.use(async ctx => {
 
 export let serverListingCategoryController = Controller.create(
   {
-    name: 'Server Category',
-    description: 'Read and write server version information'
+    name: 'ServerListingCategory',
+    description:
+      'Provides access to server listing categories, used for organizing and filtering server listings.'
   },
   {
     list: apiGroup
       .get(Path('server-listing-categories', 'servers.listings.categories.list'), {
-        name: 'List server versions',
-        description: 'List all server versions'
+        name: 'List server listing categories',
+        description: 'Returns a list of all available server listing categories.'
       })
       .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
       .outputList(serverListingCategoryPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
         let paginator = await serverListingCategoryService.listServerListingCategories({});
-
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, category =>
@@ -48,8 +48,8 @@ export let serverListingCategoryController = Controller.create(
           'servers.listings.categories.get'
         ),
         {
-          name: 'Get server version',
-          description: 'Get the information of a specific server version'
+          name: 'Get server listing category',
+          description: 'Returns information for a specific server listing category.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))

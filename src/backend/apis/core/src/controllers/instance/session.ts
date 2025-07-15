@@ -24,14 +24,14 @@ export let sessionGroup = instanceGroup.use(async ctx => {
 
 export let sessionController = Controller.create(
   {
-    name: 'Server Instance',
+    name: 'Session',
     description: 'Read and write session information'
   },
   {
     list: instanceGroup
       .get(instancePath('sessions', 'sessions.list'), {
-        name: 'List server deployments',
-        description: 'List all server deployments'
+        name: 'List sessions',
+        description: 'List all sessions'
       })
       .use(checkAccess({ possibleScopes: ['instance.session:read'] }))
       .outputList(sessionPresenter)
@@ -118,6 +118,7 @@ export let sessionController = Controller.create(
             return 'server_deployment_id' in d ? d.server_deployment_id : undefined!;
           })
           .filter(Boolean);
+
         let existingServerDeployments = deploymentIds.length
           ? await serverDeploymentService.getManyServerDeployments({
               instance: ctx.instance,
@@ -135,10 +136,11 @@ export let sessionController = Controller.create(
 
         let deploymentsToCreate = serverDeploymentInputs
           .map(d => {
-            if (typeof d != 'object' || 'server_deployment_id' in d) return undefined!;
+            if (typeof d !== 'object' || 'server_deployment_id' in d) return undefined!;
             return d;
           })
           .filter(Boolean);
+
         let newServerDeployments = await Promise.all(
           deploymentsToCreate.map(async d =>
             createServerDeployment(

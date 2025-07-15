@@ -31,27 +31,52 @@ export let v1ServerVariantPreview = Object.assign(
     schema: v.object({
       object: v.literal('server.server_variant#preview'),
 
-      id: v.string(),
-      identifier: v.string(),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier of the server variant preview'
+      }),
 
-      server_id: v.string(),
+      identifier: v.string({
+        name: 'identifier',
+        description: 'A unique string identifier for the server variant'
+      }),
 
-      source: v.union([
-        v.object({
-          type: v.literal('docker'),
-          docker: v.object({
-            image: v.string()
+      server_id: v.string({
+        name: 'server_id',
+        description: 'The unique identifier of the parent server'
+      }),
+
+      source: v.union(
+        [
+          v.object({
+            type: v.literal('docker'),
+            docker: v.object({
+              image: v.string({
+                name: 'image',
+                description: 'The Docker image used by this server variant'
+              })
+            })
+          }),
+          v.object({
+            type: v.literal('remote'),
+            remote: v.object({
+              domain: v.string({
+                name: 'domain',
+                description: 'The remote domain hosting this server variant'
+              })
+            })
           })
-        }),
-        v.object({
-          type: v.literal('remote'),
-          remote: v.object({
-            domain: v.string()
-          })
-        })
-      ]),
+        ],
+        {
+          name: 'source',
+          description: 'The source configuration for the server variant preview'
+        }
+      ),
 
-      created_at: v.date()
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the server variant preview was created'
+      })
     })
   }
 );

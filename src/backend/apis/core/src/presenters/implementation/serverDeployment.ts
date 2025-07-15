@@ -34,14 +34,37 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
     v.object({
       object: v.literal('server.server_deployment'),
 
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'deleted']),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier of the server deployment'
+      }),
 
-      name: v.string(),
-      description: v.nullable(v.string()),
-      metadata: v.record(v.any()),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        name: 'status',
+        description: 'The current status of the server deployment'
+      }),
 
-      secret_id: v.string(),
+      name: v.string({
+        name: 'name',
+        description: 'The name of the server deployment'
+      }),
+
+      description: v.nullable(
+        v.string({
+          name: 'description',
+          description: 'An optional description of the server deployment'
+        })
+      ),
+
+      metadata: v.record(v.any(), {
+        name: 'metadata',
+        description: 'Additional arbitrary metadata related to the server deployment'
+      }),
+
+      secret_id: v.string({
+        name: 'secret_id',
+        description: 'Identifier for associated secrets related to this deployment'
+      }),
 
       server: v1ServerPreview.schema,
 
@@ -49,8 +72,15 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
 
       server_implementation: v1ServerImplementationPresenter.schema,
 
-      created_at: v.date(),
-      updated_at: v.date()
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the server deployment was created'
+      }),
+
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when the server deployment was last updated'
+      })
     })
   )
   .build();
