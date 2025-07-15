@@ -1,7 +1,6 @@
 package session
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"sync"
@@ -243,31 +242,14 @@ func (s *Sessions) UpsertSession(
 			return nil, mterror.New(mterror.InvalidRequestKind, "session must have a valid run config")
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
-
-		session := &LocalSession{
-			McpClient:  client,
-			WorkerType: workerType,
-
-			sessionManager: s,
-			dbSession:      dbSession,
-			db:             s.db,
-
-			hasError: false,
-
-			storedSession:   storedSession,
-			connectionInput: connectionInput,
-
-			activeConnection:          nil,
-			activeConnectionCreated:   make(chan struct{}),
-			lastConnectionInteraction: time.Now(),
-			lastSessionInteraction:    time.Now(),
-
-			workerManager: s.workerManager,
-
-			context: ctx,
-			cancel:  cancel,
-		}
+		session := newLocalSession(
+			s,
+			storedSession,
+			connectionInput,
+			dbSession,
+			workerType,
+			client,
+		)
 
 		s.mutex.Lock()
 		s.sessions[storedSession.ID] = session
@@ -291,19 +273,11 @@ func (s *Sessions) EnsureRemoteSession(storedSession *state.Session) (*RemoteSes
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get manager connection", err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-
-	session := &RemoteSession{
-		sessionManager: s,
-
-		storedSession:          storedSession,
-		lastSessionInteraction: time.Now(),
-
-		connection: connection,
-
-		context: ctx,
-		cancel:  cancel,
-	}
+	session := newRemoteSession(
+		s,
+		storedSession,
+		connection,
+	)
 
 	s.mutex.Lock()
 	s.sessions[storedSession.ID] = session

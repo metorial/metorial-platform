@@ -26,7 +26,13 @@ const LOCAL_SESSION_INACTIVITY_TIMEOUT = time.Second * 60 * 5
 
 type LocalSession struct {
 	WorkerType workers.WorkerType
-	McpClient  *mcp.MCPClient
+
+	mcpClientInitWg    *sync.WaitGroup
+	mcpClientInitMutex sync.Mutex
+	mcpClient          *mcp.MCPClient
+
+	mcpServerInitMutex sync.Mutex
+	mcpServer          *mcp.MCPServer
 
 	dbSession *db.Session
 	db        *db.DB
@@ -56,12 +62,50 @@ type LocalSession struct {
 	mutex sync.RWMutex
 }
 
-func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError {
-	err := s.ensureConnection()
-	if err != nil {
-		return err
+func newLocalSession(
+	sessions *Sessions,
+	storedSession *state.Session,
+	connectionInput *workers.WorkerConnectionInput,
+	dbSession *db.Session,
+	workerType workers.WorkerType,
+	client *mcp.MCPClient,
+) *LocalSession {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	mcpClientInitWg := &sync.WaitGroup{}
+	if client == nil {
+		mcpClientInitWg.Add(1)
 	}
 
+	return &LocalSession{
+		WorkerType: workerType,
+
+		mcpClient:          client,
+		mcpClientInitWg:    mcpClientInitWg,
+		mcpClientInitMutex: sync.Mutex{},
+
+		sessionManager: sessions,
+		dbSession:      dbSession,
+		db:             sessions.db,
+
+		hasError: false,
+
+		storedSession:   storedSession,
+		connectionInput: connectionInput,
+
+		activeConnection:          nil,
+		activeConnectionCreated:   make(chan struct{}),
+		lastConnectionInteraction: time.Now(),
+		lastSessionInteraction:    time.Now(),
+
+		workerManager: sessions.workerManager,
+
+		context: ctx,
+		cancel:  cancel,
+	}
+}
+
+func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError {
 	mcpMessages := make([]*mcp.MCPMessage, 0, len(req.McpMessages))
 	for _, rawMessage := range req.McpMessages {
 		message, err := mcp.FromPbRawMessage(rawMessage)
@@ -79,6 +123,25 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 			return mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "run_error", "failed to parse MCP message", err)
 		}
 
+		// thisIsInit := *message.Method == "initialize"
+		// if thisIsInit {
+		// 	client, err := mcp.McpClientFromInitMessage(message)
+		// 	if err != nil {
+		// 		go s.db.CreateError(db.NewErrorStructuredError(
+		// 			s.dbSession,
+		// 			"mcp_message_parse_error",
+		// 			"failed to parse MCP message, invalid initialize message",
+		// 			map[string]string{
+		// 				"message":        rawMessage.Message,
+		// 				"internal_error": err.Error(),
+		// 			},
+		// 		))
+		// 	}
+
+		// 	s.setMcpClient(client)
+		// 	initMessage = message
+		// } else {}
+
 		mcpMessages = append(mcpMessages, message)
 
 		go s.db.CreateMessage(
@@ -92,18 +155,16 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 		)
 	}
 
-	wg := sync.WaitGroup{}
+	connection, run, err := s.ensureConnection()
+	if err != nil {
+		return err
+	}
 
-	s.mutex.RLock()
-	// Since the messages are sent to the same connection,
-	// we can just hold on to the current active connection,
-	// and don't need to consider new connections.
-	connection := s.activeConnection
-	run := s.activeRunDb
 	if connection == nil || run == nil {
 		return mterror.New(mterror.InternalErrorKind, "no active connection for session")
 	}
-	s.mutex.RUnlock()
+
+	wg := sync.WaitGroup{}
 
 	wg.Add(1)
 	go func() {
@@ -537,21 +598,28 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 }
 
 func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpPb.McpParticipant, *mterror.MTError) {
-	err := s.ensureConnection()
+	s.mcpServerInitMutex.Lock()
+	defer s.mcpServerInitMutex.Unlock()
+
+	if s.mcpServer == nil {
+		connection, _, err := s.ensureConnection()
+		if err != nil {
+			return nil, mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to ensure connection", err)
+		}
+
+		s.mutex.RLock()
+		defer s.mutex.RUnlock()
+
+		server, err2 := connection.GetServer()
+		if err2 != nil {
+			return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get server info", err)
+		}
+
+		s.mcpServer = server
+	}
+
+	participant, err := s.mcpServer.ToPbParticipant()
 	if err != nil {
-		return nil, mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to ensure connection", err)
-	}
-
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-
-	server, err2 := s.activeConnection.GetServer()
-	if err2 != nil {
-		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get server info", err)
-	}
-
-	participant, err2 := server.ToPbParticipant()
-	if err2 != nil {
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to convert server to participant", err)
 	}
 
@@ -603,7 +671,22 @@ func (s *LocalSession) SessionRecord() (*db.Session, *mterror.MTError) {
 	return s.dbSession, nil
 }
 
-func (s *LocalSession) ensureConnection() *mterror.MTError {
+func (s *LocalSession) setMcpClient(client *mcp.MCPClient) {
+	s.mcpClientInitMutex.Lock()
+	defer s.mcpClientInitMutex.Unlock()
+
+	if s.mcpClient != nil {
+		return
+	}
+
+	s.mcpClient = client
+	s.mcpClientInitWg.Done()
+}
+
+func (s *LocalSession) ensureConnection() (workers.WorkerConnection, *db.SessionRun, *mterror.MTError) {
+	// Wait until the MCP client is initialized
+	s.mcpClientInitWg.Wait()
+
 	s.mutex.RLock()
 
 	if s.activeConnection != nil {
@@ -611,7 +694,7 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 		s.Touch()
 		s.lastConnectionInteraction = time.Now()
 
-		return nil // Connection already exists
+		return s.activeConnection, s.activeRunDb, nil // Connection already exists
 	}
 
 	s.mutex.RUnlock()
@@ -621,7 +704,7 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 
 	// Double-check if the connection was created while waiting for the lock
 	if s.activeConnection != nil {
-		return nil
+		return s.activeConnection, s.activeRunDb, nil
 	}
 
 	connectionInput := s.connectionInput
@@ -631,19 +714,19 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 	hash, err := s.workerManager.GetConnectionHashForWorkerType(s.WorkerType, connectionInput)
 	if err != nil {
 		log.Printf("Failed to get connection hash for worker type %s: %v", s.WorkerType, err)
-		return mterror.NewWithInnerError(mterror.InternalErrorKind, fmt.Sprintf("failed to get connection hash for worker type: %s", err.Error()), err)
+		return nil, nil, mterror.NewWithInnerError(mterror.InternalErrorKind, fmt.Sprintf("failed to get connection hash for worker type: %s", err.Error()), err)
 	}
 
 	worker, ok := s.workerManager.PickWorkerByHash(s.WorkerType, hash)
 	if !ok {
 		log.Printf("No available worker for worker type %s with hash %s", s.WorkerType, hash)
-		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "no available worker for worker type", err)
+		return nil, nil, mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "no available worker for worker type", err)
 	}
 
 	connection, err := worker.CreateConnection(connectionInput)
 	if err != nil {
 		log.Printf("Failed to create connection for worker %s: %v", worker.WorkerID(), err)
-		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to create connection for worker", err)
+		return nil, nil, mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to create connection for worker", err)
 	}
 
 	var connectionType db.SessionRunType
@@ -653,7 +736,7 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 	case workers.WorkerTypeRemote:
 		connectionType = db.SessionRunTypeRemote
 	default:
-		return mterror.New(mterror.InternalErrorKind, "unsupported worker type for local session")
+		return nil, nil, mterror.New(mterror.InternalErrorKind, "unsupported worker type for local session")
 	}
 
 	run, err := s.db.CreateRun(
@@ -667,7 +750,7 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 	)
 	s.activeRunDb = run
 	if err != nil {
-		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to create connection in database", err)
+		return nil, nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to create connection in database", err)
 	}
 
 	log.Printf("Created connection %s for session %s with worker %s", connection.ConnectionID(), s.storedSession.ID, worker.WorkerID())
@@ -686,7 +769,7 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 			},
 		))
 
-		return mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to start server", err)
+		return nil, nil, mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to start server", err)
 	}
 
 	log.Printf("Started connection %s for session %s with worker %s", connection.ConnectionID(), s.storedSession.ID, worker.WorkerID())
@@ -699,7 +782,7 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 		server, err := connection.GetServer()
 		if err == nil {
 			s.dbSession.McpServer = server
-			s.dbSession.McpClient = s.McpClient
+			s.dbSession.McpClient = s.mcpClient
 			s.db.SaveSession(s.dbSession)
 		}
 	}
@@ -712,7 +795,7 @@ func (s *LocalSession) ensureConnection() *mterror.MTError {
 		}
 	}()
 
-	return nil
+	return connection, run, nil
 }
 
 func (s *LocalSession) stop(type_ SessionStopType) error {

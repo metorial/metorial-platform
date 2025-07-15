@@ -23,6 +23,11 @@ type MCPClient struct {
 	Extra        map[string]any  `json:"-"`
 }
 
+type MCPClientInitMessage struct {
+	ProtocolVersion string    `json:"protocolVersion"`
+	McpClient       MCPClient `json:"params"`
+}
+
 type MCPServer struct {
 	Info         ParticipantInfo `json:"serverInfo"`
 	Capabilities Capabilities    `json:"capabilities"`
@@ -37,6 +42,32 @@ func ParseMcpClient(data []byte) (*MCPClient, error) {
 
 	if client.Info.Name == "" {
 		client.Info.Name = "MCP Client"
+	}
+
+	return &client, nil
+}
+
+func McpClientFromInitMessage(message *MCPMessage) (*MCPClient, error) {
+	if message == nil || message.MsgType != RequestType {
+		return nil, fmt.Errorf("invalid MCP message for client info")
+	}
+
+	if message.Method == nil || *message.Method != "initialize" {
+		return nil, fmt.Errorf("invalid MCP message method for client info: %s", *message.Method)
+	}
+
+	var init MCPClientInitMessage
+	if err := json.Unmarshal(message.GetRawPayload(), &init); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal MCP client init message: %w", err)
+	}
+
+	client := init.McpClient
+	if client.Info.Name == "" {
+		client.Info.Name = "MCP Client"
+	}
+
+	if client.Capabilities == nil {
+		client.Capabilities = make(Capabilities)
 	}
 
 	return &client, nil

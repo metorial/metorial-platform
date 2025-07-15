@@ -27,6 +27,26 @@ type RemoteSession struct {
 	cancel  context.CancelFunc
 }
 
+func newRemoteSession(
+	sessions *Sessions,
+	storedSession *state.Session,
+	connection managerPb.McpManagerClient,
+) *RemoteSession {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	return &RemoteSession{
+		sessionManager: sessions,
+
+		storedSession:          storedSession,
+		lastSessionInteraction: time.Now(),
+
+		connection: connection,
+
+		context: ctx,
+		cancel:  cancel,
+	}
+}
+
 func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError {
 	s.Touch()
 
