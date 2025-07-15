@@ -22,4 +22,16 @@ if [ "$1" = "stop" ]; then
   exit 0
 fi
 
+if [ "$1" = "reset" ]; then
+  cd ./scripts
+  ./dbReset.sh
+  exit 0
+fi
+
+if [ "$1" = "migrate" ]; then
+  cd ./scripts
+  ./migrate.sh "$2"
+  exit 0
+fi
+
 bun ./src/cli.ts "$@"

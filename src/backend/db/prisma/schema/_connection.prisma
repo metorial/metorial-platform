@@ -12,3 +12,11 @@ generator client {
 generator json {
   provider = "prisma-json-types-generator"
 }
+
+model Test {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  value     Int
+}
