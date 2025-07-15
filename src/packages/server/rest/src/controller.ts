@@ -290,9 +290,10 @@ export class Handler<
     mapper: (body: HandlerInput) => Body
   ): Handler<AuthInfo, Body, Query, Output, Context>;
   body(...[version, validation, mapper]: any[]) {
-    if (this._validationBody != undefined) throw new Error('Input validation already defined');
-
     if (version === 'default') {
+      if (this._validationBody != undefined)
+        throw new Error('Input validation already defined');
+
       // @ts-ignore
       this._validationBody = validation;
     } else {
@@ -387,13 +388,17 @@ export class Handler<
       body: this._validationBody
         ? {
             name: 'Body',
-            object: introspectType(this._validationBody)
+            object: introspectType(
+              this._specificBodies.get(i.apiVersion)?.validation ?? this._validationBody
+            )
           }
         : undefined,
       query: this._validationQuery
         ? {
             name: 'Query',
-            object: introspectType(this._validationQuery)
+            object: introspectType(
+              this._specificQueries.get(i.apiVersion)?.validation ?? this._validationQuery
+            )
           }
         : undefined,
       output: this.introspectResponse!(i)

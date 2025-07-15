@@ -10,6 +10,8 @@ import {
   OrganizationInviteJoin,
   OrganizationMember,
   Project,
+  ProviderOAuthConnection,
+  ProviderOAuthConnectionAuthAttempt,
   ServerDeployment,
   ServerImplementation,
   ServerRun,
@@ -147,6 +149,18 @@ export interface FabricEvents {
   'session.session_message.created:before': { organization: Organization, instance: Instance, session: ServerSession };
   'session.session_message.created.many:after': { organization: Organization, instance: Instance, session: ServerSession, sessionMessages: SessionMessage[] };
 
-  'server.engine_session.created:before': {  organization: Organization, instance: Instance, serverSession: ServerSession };
-  'server.engine_session.created:after': {  organization: Organization, instance: Instance, serverSession: ServerSession, engineSession: EngineSession };
+  'server.engine_session.created:before': { organization: Organization, instance: Instance, serverSession: ServerSession };
+  'server.engine_session.created:after': { organization: Organization, instance: Instance, serverSession: ServerSession, engineSession: EngineSession };
+
+  'provider_oauth.connection.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context };
+  'provider_oauth.connection.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; providerOauthConnection: ProviderOAuthConnection };
+  'provider_oauth.connection.updated:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; providerOauthConnection: ProviderOAuthConnection };
+  'provider_oauth.connection.updated:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; providerOauthConnection: ProviderOAuthConnection };
+  'provider_oauth.connection.archived:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; providerOauthConnection: ProviderOAuthConnection };
+  'provider_oauth.connection.archived:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; providerOauthConnection: ProviderOAuthConnection };
+
+  'provider_oauth.connection.authentication.started:before': { context?: Context; providerOauthConnection: ProviderOAuthConnection };
+  'provider_oauth.connection.authentication.started:after': { context?: Context; providerOauthConnection: ProviderOAuthConnection; authAttempt: ProviderOAuthConnectionAuthAttempt };
+  'provider_oauth.connection.authentication.completed:before': { context?: Context; providerOauthConnection: ProviderOAuthConnection; authAttempt: ProviderOAuthConnectionAuthAttempt };
+  'provider_oauth.connection.authentication.completed:after': { context?: Context; providerOauthConnection: ProviderOAuthConnection; authAttempt: ProviderOAuthConnectionAuthAttempt };
 }

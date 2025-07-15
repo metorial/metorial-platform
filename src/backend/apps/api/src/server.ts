@@ -12,9 +12,11 @@ import { startRunnerGateway } from '@metorial/api-runner-gateway';
 import { authenticate } from '@metorial/auth';
 import { createHono } from '@metorial/hono';
 import { initLogger } from '@metorial/logging';
+import { providerOauthApp } from '@metorial/api-oauth'
 
 let apiPort = parseInt(process.env.PORT || '3310');
 let mcpPort = parseInt(process.env.PORT || '3311');
+let oauthPort = parseInt(process.env.PORT || '3312');
 let runnerPort = parseInt(process.env.PORT || '3399');
 
 let server = apiMux(
@@ -45,6 +47,11 @@ let server = apiMux(
 Bun.serve({
   port: apiPort,
   fetch: server
+});
+
+Bun.serve({
+  port: oauthPort,
+  fetch: providerOauthApp
 });
 
 console.log(`Listening on port ${apiPort}`);

@@ -1,0 +1,218 @@
+enum ProviderOAuthConnectionTemplateStatus {
+  active
+  archived
+}
+
+model ProviderOAuthConnectionTemplate {
+  oid    BigInt                                @id @default(autoincrement())
+  id     String                                @unique
+  status ProviderOAuthConnectionTemplateStatus @default(active)
+
+  slug String @unique
+
+  name         String
+  providerName String
+  providerUrl  String
+
+  discoveryUrl String?
+
+  configJsonata String
+
+  /// [ProviderOAuthConfigTemplateVariables]
+  variables Json
+
+  /// [ProviderOAuthConfigTemplateScopes]
+  scopes Json
+
+  profileOid BigInt
+  profile    Profile @relation(fields: [profileOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  connections ProviderOAuthConnection[]
+}
+
+enum ProviderOAuthConnectionStatus {
+  active
+  archived
+}
+
+model ProviderOAuthConnection {
+  oid    BigInt                        @id @default(autoincrement())
+  id     String                        @unique
+  status ProviderOAuthConnectionStatus @default(active)
+
+  metorialClientId String @unique
+
+  name         String
+  providerName String
+  providerUrl  String
+
+  discoveryUrl String?
+
+  /// [ProviderOAuthConfig]
+  config     Json
+  configHash String
+
+  scopes String[]
+
+  clientId     String
+  clientSecret String
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  templateOid BigInt?
+  template    ProviderOAuthConnectionTemplate? @relation(fields: [templateOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  profiles ProviderOAuthConnectionProfile[]
+  tokens   ProviderOAuthConnectionAuthToken[]
+  attempts ProviderOAuthConnectionAuthAttempt[]
+  events   ProviderOAuthConnectionEvent[]
+}
+
+enum ProviderOAuthConnectionEventType {
+  errors
+  config_auto_updated
+}
+
+model ProviderOAuthConnectionEvent {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  event         ProviderOAuthConnectionEventType
+  discriminator String?
+
+  metadata Json?
+
+  connectionOid BigInt
+  connection    ProviderOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([connectionOid, event, discriminator])
+}
+
+model ProviderOAuthConnectionProfile {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  sub String
+
+  name  String?
+  email String?
+
+  rawProfile Json?
+
+  connectionOid BigInt
+  connection    ProviderOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  tokens                             ProviderOAuthConnectionAuthToken[]
+  ProviderOAuthConnectionAuthAttempt ProviderOAuthConnectionAuthAttempt[]
+
+  @@unique([connectionOid, sub])
+}
+
+enum ProviderOAuthConnectionAuthAttemptStatus {
+  pending
+  completed
+  failed
+}
+
+model ProviderOAuthConnectionAuthAttempt {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  stateIdentifier String? @unique
+  clientSecret    String? @unique
+
+  status ProviderOAuthConnectionAuthAttemptStatus
+
+  errorCode    String?
+  errorMessage String?
+
+  associatedTokenErrorDisabledAt DateTime?
+
+  redirectUri String
+
+  codeVerifier String?
+
+  connectionOid BigInt
+  connection    ProviderOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  authTokenOid BigInt?
+  authToken    ProviderOAuthConnectionAuthToken? @relation(fields: [authTokenOid], references: [oid], onDelete: SetNull)
+
+  profileOid BigInt?
+  profile    ProviderOAuthConnectionProfile? @relation(fields: [profileOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([status])
+}
+
+model ProviderOAuthConnectionAuthToken {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  accessToken  String
+  refreshToken String?
+
+  scope     String?
+  tokenType String?
+  idToken   String?
+
+  expiresAt DateTime?
+
+  connectionProfileOid BigInt?
+  connectionProfile    ProviderOAuthConnectionProfile? @relation(fields: [connectionProfileOid], references: [oid], onDelete: SetNull)
+
+  connectionOid BigInt
+  connection    ProviderOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  /// [ProviderOAuthConnectionAuthTokenErrors]
+  firstErrorAt    DateTime?
+  lastErrorAt     DateTime?
+  errorDisabledAt DateTime?
+  errorCount      Int       @default(0)
+
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime  @default(now())
+  refreshedAt DateTime?
+
+  authAttempts ProviderOAuthConnectionAuthAttempt[]
+  references   ProviderOAuthConnectionAuthTokenReference[]
+}
+
+model ProviderOAuthConnectionAuthTokenReference {
+  oid BigInt @id @default(autoincrement())
+
+  authTokenOid BigInt?
+  authToken    ProviderOAuthConnectionAuthToken? @relation(fields: [authTokenOid], references: [oid], onDelete: SetNull)
+}
+
+model ProviderOAuthDiscoveryDocument {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  providerName String
+  providerUrl  String
+  discoveryUrl String @unique
+
+  /// [ProviderOAuthConfig]
+  config     Json
+  configHash String
+
+  version Int
+
+  createdAt   DateTime @default(now())
+  refreshedAt DateTime @default(now()) @updatedAt
+}

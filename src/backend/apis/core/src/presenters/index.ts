@@ -16,7 +16,14 @@ import { v1OrganizationPresenter } from './implementation/organization';
 import { v1OrganizationActorPresenter } from './implementation/organizationActor';
 import { v1OrganizationInvitePresenter } from './implementation/organizationInvite';
 import { v1OrganizationMemberPresenter } from './implementation/organizationMember';
+import { v1ProfilePresenter } from './implementation/profile';
 import { v1ProjectPresenter } from './implementation/project';
+import { v1ProviderOauthConnectionPresenter } from './implementation/providerOauthConnection';
+import { v1ProviderOauthConnectionAuthenticationPresenter } from './implementation/providerOauthConnectionAuthentication';
+import { v1ProviderOauthConnectionEventPresenter } from './implementation/providerOauthConnectionEvent';
+import { v1ProviderOauthConnectionProfilePresenter } from './implementation/providerOauthConnectionProfile';
+import { v1ProviderOauthConnectionTemplatePresenter } from './implementation/providerOauthConnectionTemplate';
+import { v1ProviderOauthDiscoveryPresenter } from './implementation/providerOauthDiscovery';
 import { v1SecretPresenter } from './implementation/secret';
 import { v1ServerPresenter } from './implementation/server';
 import { v1ServerCapabilitiesPresenter } from './implementation/serverCapabilities';
@@ -81,7 +88,8 @@ import {
   sessionMessageType,
   sessionType,
   usageType,
-  userType
+  userType,
+  providerOauthConnectionDiscoveryType
 } from './types';
 
 export let apiKeyPresenter = declarePresenter(apiKeyType, {
