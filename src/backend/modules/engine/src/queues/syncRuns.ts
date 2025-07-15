@@ -5,7 +5,7 @@ import { syncEngineRun } from '../run/sync/run';
 
 let runSyncCron = createCron(
   {
-    name: 'eng/sync/run',
+    name: 'eng/sync/run/cron',
     cron: '* * * * *'
   },
   async () => {
@@ -50,6 +50,7 @@ let syncRunQueue = createQueue<{ runId: string }>({
 });
 
 let syncRunQueueProcessor = syncRunQueue.process(async data => {
+  if (!data) return;
   await syncEngineRun({ engineRunId: data.runId });
 });
 

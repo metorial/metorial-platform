@@ -1,6 +1,6 @@
 import { db, ID, Instance, ServerDeployment, ServerRun } from '@metorial/db';
 import { Hash } from '@metorial/hash';
-import { EngineSessionError, McpError_McpErrorCode } from '@metorial/mcp-engine-generated';
+import { EngineSessionError } from '@metorial/mcp-engine-generated';
 
 let errorCodeToString = (code: string) => {
   switch (code) {
@@ -27,19 +27,6 @@ export let createServerError = async (d: {
     JSON.stringify([d.error.errorCode, String(d.deployment.serverImplementationOid)])
   );
 
-  let message =
-    {
-      [McpError_McpErrorCode.failed_to_start]: 'Server failed to start',
-      [McpError_McpErrorCode.failed_to_stop]: 'Server failed to stop',
-      [McpError_McpErrorCode.invalid_mcp_message]: 'Invalid MCP message',
-      [McpError_McpErrorCode.unknown_error]: 'Unknown error',
-      [McpError_McpErrorCode.timeout]: 'Server timeout',
-      [McpError_McpErrorCode.launch_params_error]: 'Get launch params function failed',
-      [McpError_McpErrorCode.execution_error]: 'Server exited with error',
-
-      [McpError_McpErrorCode.UNRECOGNIZED]: 'Unknown error'
-    }[d.error.errorCode] ?? 'Unknown error';
-
   let group = await db.serverRunErrorGroup.findUnique({
     where: {
       fingerprint_serverOid_instanceOid: {
@@ -62,7 +49,7 @@ export let createServerError = async (d: {
       create: {
         id: await ID.generateId('serverRunErrorGroup'),
         fingerprint: errorFingerprint,
-        message,
+        message: d.error.errorMessage,
         code: errorCodeToString(d.error.errorCode),
         count: 1,
         serverOid: d.deployment.serverOid,
@@ -80,7 +67,7 @@ export let createServerError = async (d: {
     data: {
       id: ID.normalizeUUID('serverRunError', d.error.id),
       code: group.code,
-      message,
+      message: d.error.errorMessage,
       metadata: {
         ...d.error.mcpError?.metadata,
         ...d.error.metadata
@@ -105,6 +92,11 @@ export let createServerError = async (d: {
       data: { defaultServerRunErrorOid: error.oid }
     });
   }
+
+  await db.serverRun.update({
+    where: { oid: d.serverRun.oid },
+    data: { status: 'failed' }
+  });
 
   return error;
 };

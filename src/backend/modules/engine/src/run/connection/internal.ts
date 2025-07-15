@@ -144,14 +144,16 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
           instanceId: config.instance.id,
           engineSessionTracer
         },
-        mcpClient: {
-          type: McpParticipant_ParticipantType.client,
-          participantJson: JSON.stringify({
-            protocolVersion: srvSes.mcpVersion!,
-            capabilities: srvSes.clientCapabilities!,
-            clientInfo: srvSes.clientInfo!
-          } satisfies McpClient)
-        },
+        mcpClient: srvSes.clientCapabilities
+          ? {
+              type: McpParticipant_ParticipantType.client,
+              participantJson: JSON.stringify({
+                protocolVersion: srvSes.mcpVersion!,
+                capabilities: srvSes.clientCapabilities!,
+                clientInfo: srvSes.clientInfo!
+              } satisfies McpClient)
+            }
+          : undefined,
         config: await getSessionConfig(srvSes, DANGEROUSLY_UNENCRYPTED_CONFIG),
         sessionId: srvSes.id
       });
@@ -293,6 +295,8 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
       signal: AbortSignal;
     }
   ) {
+    if (raw.length === 0) return;
+
     this.touch();
     let touchIv = setInterval(() => {
       this.touch();
@@ -304,11 +308,15 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
           msg,
           {
             type: 'client',
-            id: this.config.serverSession.oid.toString(36)
+            id: `mccl_${this.config.serverSession.oid.toString(36)}`
           },
           this.#unifiedId
         )
       );
+
+      for (let msg of messages) {
+        this.upsertMessageFromEngineMessage(msg).catch(err => Sentry.captureException(err));
+      }
 
       let stream = this.client.sendMcpMessage(
         {
@@ -404,6 +412,8 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
   }
 
   private async handleGrpcError(err: any) {
+    if (err.message?.includes('aborted')) return;
+
     debug.error('Engine Session Connection Error', {
       error: err,
       serverSessionId: this.config.serverSession.id
@@ -412,16 +422,10 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
     await forceSync({ engineSessionId: this.engineSessionInfo.session!.id });
 
     let details = err?.details ?? err?.extra ?? err;
-    let metadata = details?.metadata ?? details;
-
-    let code = metadata?.code ?? details?.reason ?? details?.kind ?? err?.code ?? 'unknown';
-    let message = metadata?.message ?? details?.message ?? err?.message ?? 'unknown';
 
     Sentry.captureException(err, {
       extra: {
-        code,
-        message,
-        metadata,
+        details,
 
         serverSessionId: this.config.serverSession.id,
         instanceId: this.config.instance.id,
@@ -429,22 +433,24 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
       }
     });
 
-    if (code == 'run_error') {
-      throw new ServiceError(
-        internalServerError({
-          reason: 'mtengine/run_error',
-          description: `Metorial Engine was able to connect to the server: ${message}.`
-        })
-      );
-    }
+    if (typeof details == 'string') {
+      if (details.includes('failed to start server')) {
+        throw new ServiceError(
+          internalServerError({
+            reason: 'mtengine/run_error',
+            description: `Metorial Engine was able to connect to the server.`
+          })
+        );
+      }
 
-    if (code == 'mcp_message_processing_failed') {
-      throw new ServiceError(
-        internalServerError({
-          reason: 'mtengine/mcp_processing_failed',
-          description: `Metorial Engine received a server error while processing the MCP message: ${message}.`
-        })
-      );
+      if (details.includes('failed to process MCP message')) {
+        throw new ServiceError(
+          internalServerError({
+            reason: 'mtengine/mcp_processing_failed',
+            description: `Metorial Engine received a server error while processing the MCP message.`
+          })
+        );
+      }
     }
 
     throw new ServiceError(
