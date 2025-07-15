@@ -1,0 +1,17 @@
+name: 💡 Feature Request
+description: Suggest a new feature for Metorial. Please provide as much detail as possible to help us understand your idea.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem are you trying to solve with this feature? Be as specific as possible.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Solution Idea
+      description: What is your proposed solution or feature? How does it address the problem?
+    validations:
+      required: false

@@ -17,14 +17,15 @@ export let serverGroup = instanceGroup.use(async ctx => {
 
 export let serverController = Controller.create(
   {
-    name: 'Server',
-    description: 'Read and write server information'
+    name: 'Servers',
+    description:
+      'Endpoint for retrieving information about a specific server within an instance.'
   },
   {
     get: serverGroup
       .get(instancePath('servers/:serverId', 'servers.get'), {
-        name: 'Get server',
-        description: 'Get the information of a specific server'
+        name: 'Get server by ID',
+        description: 'Retrieves detailed information for a server identified by its ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.server:read'] }))
       .output(serverPresenter)

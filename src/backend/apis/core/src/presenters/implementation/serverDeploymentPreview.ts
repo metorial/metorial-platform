@@ -20,12 +20,41 @@ export let v1ServerDeploymentPreview = Object.assign(
   {
     schema: v.object({
       object: v.literal('server.server_deployment#preview'),
-      id: v.string(),
-      name: v.nullable(v.string()),
-      description: v.nullable(v.string()),
-      metadata: v.record(v.any()),
-      created_at: v.date(),
-      updated_at: v.date(),
+
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier of the server deployment preview'
+      }),
+
+      name: v.nullable(
+        v.string({
+          name: 'name',
+          description: 'The name of the server deployment preview, if available'
+        })
+      ),
+
+      description: v.nullable(
+        v.string({
+          name: 'description',
+          description: 'A description of the server deployment preview, if available'
+        })
+      ),
+
+      metadata: v.record(v.any(), {
+        name: 'metadata',
+        description: 'Additional metadata related to the server deployment preview'
+      }),
+
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the server deployment preview was created'
+      }),
+
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when the server deployment preview was last updated'
+      }),
+
       server: v1ServerPreview.schema
     })
   }

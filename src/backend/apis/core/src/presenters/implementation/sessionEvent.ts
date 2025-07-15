@@ -67,22 +67,46 @@ export let v1SessionEventPresenter = Presenter.create(sessionEventType)
     v.object({
       object: v.literal('session.event'),
 
-      id: v.string(),
-      type: v.enumOf(['server_logs', 'server_run_error']),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier for the session event'
+      }),
 
-      session_id: v.string(),
+      type: v.enumOf(['server_logs', 'server_run_error'], {
+        name: 'type',
+        description: 'The type of session event'
+      }),
+
+      session_id: v.string({
+        name: 'session_id',
+        description: 'The ID of the related session'
+      }),
 
       server_run: v.nullable(v1ServerRunPresenter.schema),
+
       server_run_error: v.nullable(v1ServerRunErrorPresenter.schema),
 
       log_lines: v.array(
         v.object({
-          type: v.enumOf(['stdout', 'stderr']),
-          line: v.string()
-        })
+          type: v.enumOf(['stdout', 'stderr'], {
+            name: 'type',
+            description: 'The type of log line'
+          }),
+          line: v.string({
+            name: 'line',
+            description: 'The content of the log line'
+          })
+        }),
+        {
+          name: 'log_lines',
+          description: 'Array of log lines associated with the event'
+        }
       ),
 
-      created_at: v.date()
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the event was created'
+      })
     })
   )
   .build();

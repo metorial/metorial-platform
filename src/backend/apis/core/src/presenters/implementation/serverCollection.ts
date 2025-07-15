@@ -19,14 +19,35 @@ export let v1ServerListingCollectionPresenter = Presenter.create(serverListingCo
     v.object({
       object: v.literal('server_listing.collection'),
 
-      id: v.string(),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier of the server listing collection'
+      }),
 
-      name: v.string(),
-      slug: v.string(),
-      description: v.string(),
+      name: v.string({
+        name: 'name',
+        description: 'The human-readable name of the collection'
+      }),
 
-      created_at: v.date(),
-      updated_at: v.date()
+      slug: v.string({
+        name: 'slug',
+        description: 'A URL-safe identifier for the collection'
+      }),
+
+      description: v.string({
+        name: 'description',
+        description: 'A description of what the collection represents'
+      }),
+
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the collection was created'
+      }),
+
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when the collection was last updated'
+      })
     })
   )
   .build();

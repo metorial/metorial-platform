@@ -1,4 +1,11 @@
 import { declarePresenter } from '@metorial/presenter';
+import { v1ProfilePresenter } from '../../../../../../../_/oauth/profile';
+import { v1ProviderOauthConnectionPresenter } from '../../../../../../../_/oauth/providerOauthConnection';
+import { v1ProviderOauthConnectionAuthenticationPresenter } from '../../../../../../../_/oauth/providerOauthConnectionAuthentication';
+import { v1ProviderOauthConnectionEventPresenter } from '../../../../../../../_/oauth/providerOauthConnectionEvent';
+import { v1ProviderOauthConnectionProfilePresenter } from '../../../../../../../_/oauth/providerOauthConnectionProfile';
+import { v1ProviderOauthConnectionTemplatePresenter } from '../../../../../../../_/oauth/providerOauthConnectionTemplate';
+import { v1ProviderOauthDiscoveryPresenter } from '../../../../../../../_/oauth/providerOauthDiscovery';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
 import { v1FilePresenter } from './implementation/file';
@@ -57,6 +64,7 @@ import {
   profileType,
   projectType,
   providerOauthConnectionAuthenticationType,
+  providerOauthConnectionDiscoveryType,
   providerOauthConnectionEventType,
   providerOauthConnectionProfileType,
   providerOauthConnectionTemplateType,

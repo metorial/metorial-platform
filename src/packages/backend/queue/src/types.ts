@@ -1,9 +1,9 @@
-import type { DebounceOptions, Job } from 'bullmq';
+import type { DeduplicationOptions, Job } from 'bullmq';
 
 export interface IQueueOptions {
   delay?: number;
   id?: string;
-  deduplication?: DebounceOptions;
+  deduplication?: DeduplicationOptions;
 }
 
 export interface IQueueProcessor {

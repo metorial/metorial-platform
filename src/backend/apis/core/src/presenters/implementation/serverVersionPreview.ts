@@ -33,29 +33,61 @@ export let v1ServerVersionPreview = Object.assign(
     schema: v.object({
       object: v.literal('server.server_version#preview'),
 
-      id: v.string(),
-      identifier: v.string(),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier of the server version preview'
+      }),
 
-      server_id: v.string(),
-      server_variant_id: v.string(),
+      identifier: v.string({
+        name: 'identifier',
+        description: 'A unique string identifier for the server version preview'
+      }),
 
-      source: v.union([
-        v.object({
-          type: v.literal('docker'),
-          docker: v.object({
-            image: v.string(),
-            tag: v.string()
+      server_id: v.string({
+        name: 'server_id',
+        description: 'The ID of the associated server'
+      }),
+
+      server_variant_id: v.string({
+        name: 'server_variant_id',
+        description: 'The ID of the associated server variant'
+      }),
+
+      source: v.union(
+        [
+          v.object({
+            type: v.literal('docker'),
+            docker: v.object({
+              image: v.string({
+                name: 'image',
+                description: 'Docker image name for this server version'
+              }),
+              tag: v.string({
+                name: 'tag',
+                description: 'Docker image tag/version'
+              })
+            })
+          }),
+          v.object({
+            type: v.literal('remote'),
+            remote: v.object({
+              domain: v.string({
+                name: 'domain',
+                description: 'Remote domain hosting the server version'
+              })
+            })
           })
-        }),
-        v.object({
-          type: v.literal('remote'),
-          remote: v.object({
-            domain: v.string()
-          })
-        })
-      ]),
+        ],
+        {
+          name: 'source',
+          description: 'Source details for the server version preview'
+        }
+      ),
 
-      created_at: v.date()
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the server version preview was created'
+      })
     })
   }
 );

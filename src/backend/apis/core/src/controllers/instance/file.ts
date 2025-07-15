@@ -23,14 +23,15 @@ export let fileGroup = instanceGroup.use(async ctx => {
 
 export let fileController = Controller.create(
   {
-    name: 'File',
-    description: 'Read and write file information'
+    name: 'Files',
+    description:
+      'Endpoints for listing, retrieving, updating, and deleting files associated with an instance.'
   },
   {
     list: instanceGroup
       .get(instancePath('files', 'files.list'), {
-        name: 'List  files',
-        description: 'List all  files'
+        name: 'List instance files',
+        description: 'Returns a paginated list of files owned by the instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
       .outputList(filePresenter)
@@ -59,8 +60,8 @@ export let fileController = Controller.create(
 
     get: fileGroup
       .get(instancePath('files/:fileId', 'files.get'), {
-        name: 'Get file',
-        description: 'Get the information of a specific file'
+        name: 'Get file by ID',
+        description: 'Retrieves details for a specific file by its ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.file:read'] }))
       .output(filePresenter)
@@ -70,8 +71,8 @@ export let fileController = Controller.create(
 
     update: fileGroup
       .patch(instancePath('files/:fileId', 'files.update'), {
-        name: 'Update file',
-        description: 'Update the information of a specific file'
+        name: 'Update file by ID',
+        description: 'Updates editable fields of a specific file by its ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .body(
@@ -94,8 +95,8 @@ export let fileController = Controller.create(
 
     delete: fileGroup
       .delete(instancePath('files/:fileId', 'files.delete'), {
-        name: 'Delete file',
-        description: 'Delete a specific file'
+        name: 'Delete file by ID',
+        description: 'Deletes a specific file by its ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .output(filePresenter)
