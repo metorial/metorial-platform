@@ -46,6 +46,7 @@ export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: str
       ).toString()
     );
     url.searchParams.set('transport_type', 'sse');
+    url.searchParams.set('direction', 'vertical');
     if (session.data.clientSecret.secret)
       url.searchParams.set('bearer_token', session.data.clientSecret.secret);
 

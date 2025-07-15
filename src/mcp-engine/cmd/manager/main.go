@@ -8,17 +8,11 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/joho/godotenv"
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager"
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
 	address, etcdEndpoints, dsn := getConfig()
 
 	db, error := db.NewDB(dsn)
@@ -59,9 +53,9 @@ func getConfig() (string, []string, string) {
 		etcdEndpoints = strings.Split(etcdEndpointsEnv, ",")
 	}
 
-	dsn := os.Getenv("DATABASE_DSN")
+	dsn := os.Getenv("ENGINE_DATABASE_DSN")
 	if dsn == "" {
-		log.Fatal("DATABASE_DSN environment variable is not set")
+		log.Fatal("ENGINE_DATABASE_DSN environment variable is not set")
 	}
 
 	return address, etcdEndpoints, dsn

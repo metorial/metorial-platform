@@ -1,6 +1,6 @@
 module github.com/metorial/metorial/mcp-engine
 
-go 1.24.4
+go 1.24
 
 require (
 	github.com/coreos/go-semver v0.3.1 // indirect

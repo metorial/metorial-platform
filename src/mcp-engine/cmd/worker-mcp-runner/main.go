@@ -47,6 +47,15 @@ func getConfig() (string, int, string) {
 	address := *ownAddressArg
 	managerAddress := *managerAddressArg
 
+	addressEnv := os.Getenv("WORKER_ADDRESS")
+	if addressEnv != "" {
+		address = addressEnv
+	}
+	managerAddressEnv := os.Getenv("MANAGER_ADDRESS")
+	if managerAddressEnv != "" {
+		managerAddress = managerAddressEnv
+	}
+
 	port, err := addr.ExtractPort(address)
 	if err != nil {
 		log.Fatalf("Invalid port number: %v", err)
