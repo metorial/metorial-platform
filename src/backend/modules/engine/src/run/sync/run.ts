@@ -74,15 +74,18 @@ export let syncEngineRun = async (d: { engineRunId: string }) => {
     pagination: undefined as any
   });
   for (let full of messages) {
-    let message = engineMcpMessageFromPb(full.mcpMessage!, {
-      type: 'server',
-      id: engineRun.id
-    });
+    let message = engineMcpMessageFromPb(
+      full.mcpMessage!,
+      {
+        type: 'server',
+        id: engineRun.id
+      },
+      unifiedId
+    );
 
     try {
       await createSessionMessage({
         serverSession,
-        unifiedId,
         message
       });
     } catch (err: any) {

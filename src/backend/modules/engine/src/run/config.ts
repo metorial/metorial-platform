@@ -25,7 +25,7 @@ export let getSessionConfig = async (
       containerRunConfigWithLauncher: {
         launcher,
         container: {
-          dockerImage: `${version.dockerImage}:${version.dockerTag}`,
+          dockerImage: `${version.dockerImage}:${version.dockerTag ?? 'latest'}`,
           maxCpu: '0.5',
           maxMemory: '256mb'
         }

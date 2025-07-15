@@ -7,6 +7,7 @@ import {
   ServerVariant,
   ServerVersion
 } from '@metorial/db';
+import { debug } from '@metorial/debug';
 import { internalServerError, ServiceError } from '@metorial/error';
 import { Fabric } from '@metorial/fabric';
 import { generatePlainId } from '@metorial/id';
@@ -18,7 +19,6 @@ import {
   EngineSessionRun,
   McpError,
   McpManagerClient,
-  McpMessageType,
   McpOutput,
   McpParticipant_ParticipantType,
   SessionEvent
@@ -40,7 +40,7 @@ import {
 import { MCPMessageType, messageTypeToPb } from '../mcp/types';
 import { forceSync } from '../sync/force';
 import { getFullServerSession } from '../utils';
-import { EngineSessionConnection } from './connection';
+import { EngineSessionConnectionBase } from './base';
 import { EngineSessionProxy } from './proxy';
 import { EngineRunConfig, McpClient } from './types';
 import { getEngineRunType, getEngineSessionType } from './util';
@@ -55,7 +55,7 @@ let sessionLock = createLock({
   name: 'eng/eses'
 });
 
-export class EngineSessionConnectionInternal extends EngineSessionConnection {
+export class EngineSessionConnectionInternal extends EngineSessionConnectionBase {
   #lastInteraction: Date = new Date();
   #unifiedId: UnifiedID;
   #serverRun: ServerRun | null = null;
@@ -95,11 +95,11 @@ export class EngineSessionConnectionInternal extends EngineSessionConnection {
     let srvSes = await getFullServerSession(config.serverSession);
     if (!srvSes) return null;
 
-    if (!srvSes.mcpVersion || !srvSes.clientCapabilities || !srvSes.clientInfo) {
-      throw new Error(
-        'WTF - Engine Session instance created before client sent MCP initialization'
-      );
-    }
+    // if (!srvSes.mcpVersion || !srvSes.clientCapabilities || !srvSes.clientInfo) {
+    //   throw new Error(
+    //     'WTF - Engine Session instance created before client sent MCP initialization'
+    //   );
+    // }
 
     let deployment = srvSes.serverDeployment;
     let implementation = deployment.serverImplementation;
@@ -128,7 +128,7 @@ export class EngineSessionConnectionInternal extends EngineSessionConnection {
       sessionId: srvSes.id
     });
 
-    if (!active) {
+    if (!active.isActive) {
       let engineSessionTracer = generatePlainId(15);
 
       let DANGEROUSLY_UNENCRYPTED_CONFIG = await secretService.DANGEROUSLY_readSecretValue({
@@ -228,11 +228,9 @@ export class EngineSessionConnectionInternal extends EngineSessionConnection {
       {
         sessionId: this.engineSessionInfo.sessionId,
 
-        replayAfterUuid: i.replayAfterUuid as string,
-        onlyIds: i.onlyIds as string[],
-        onlyMessageTypes: i.onlyMessageTypes?.map(t =>
-          messageTypeToPb(t)
-        ) as any as McpMessageType[]
+        replayAfterUuid: i.replayAfterUuid,
+        onlyIds: i.onlyIds ?? [],
+        onlyMessageTypes: (i.onlyMessageTypes ?? []).map(t => messageTypeToPb(t))
       },
       {
         signal: AbortSignal.any([this.#abort.signal, i.signal])
@@ -406,6 +404,11 @@ export class EngineSessionConnectionInternal extends EngineSessionConnection {
   }
 
   private async handleGrpcError(err: any) {
+    debug.error('Engine Session Connection Error', {
+      error: err,
+      serverSessionId: this.config.serverSession.id
+    });
+
     await forceSync({ engineSessionId: this.engineSessionInfo.session!.id });
 
     let details = err?.details ?? err?.extra ?? err;
@@ -523,42 +526,51 @@ export class EngineSessionConnectionInternal extends EngineSessionConnection {
 
       if (lastRunId) await addRunSync({ engineRunId: lastRunId });
 
-      await db.engineRun.create({
-        data: {
-          id: run.id,
-          type: getEngineRunType(run),
-          hasEnded: run.status != EngineRunStatus.run_status_active,
-          lastSyncAt: new Date(0),
-          createdAt: new Date(run.createdAt.toNumber()),
-          serverSessionOid: this.config.serverSession.oid,
-          engineSessionId: this.engineSessionInfo.session!.id
-        }
-      });
+      try {
+        await db.engineRun.create({
+          data: {
+            id: run.id,
+            type: getEngineRunType(run),
+            hasEnded: run.status != EngineRunStatus.run_status_active,
+            lastSyncAt: new Date(0),
+            createdAt: new Date(run.createdAt.toNumber()),
+            serverSessionOid: this.config.serverSession.oid,
+            engineSessionId: this.engineSessionInfo.session!.id
+          }
+        });
 
-      await Fabric.fire('server.server_run.created:before', {
-        organization: this.config.instance.organization,
-        instance: this.config.instance
-      });
+        await Fabric.fire('server.server_run.created:before', {
+          organization: this.config.instance.organization,
+          instance: this.config.instance
+        });
 
-      let serverRun = await db.serverRun.create({
-        data: {
-          id: ID.normalizeUUID('serverRun', run.id),
-          status: 'active',
-          type: this.version.sourceType == 'remote' ? 'external' : 'hosted',
-          serverVersionOid: this.version.oid,
-          serverDeploymentOid: this.deployment.oid,
-          instanceOid: this.config.instance.oid,
-          serverSessionOid: this.config.serverSession.oid,
-          engineRunId: run.id
-        }
-      });
-      this.#serverRun = serverRun;
+        let serverRun = await db.serverRun.create({
+          data: {
+            id: ID.normalizeUUID('serverRun', run.id),
+            status: 'active',
+            type: this.version.sourceType == 'remote' ? 'external' : 'hosted',
+            serverVersionOid: this.version.oid,
+            serverDeploymentOid: this.deployment.oid,
+            instanceOid: this.config.instance.oid,
+            serverSessionOid: this.config.serverSession.oid,
+            engineRunId: run.id
+          }
+        });
+        this.#serverRun = serverRun;
 
-      await Fabric.fire('server.server_run.created:after', {
-        serverRun,
-        organization: this.config.instance.organization,
-        instance: this.config.instance
-      });
+        await Fabric.fire('server.server_run.created:after', {
+          serverRun,
+          organization: this.config.instance.organization,
+          instance: this.config.instance
+        });
+      } catch (err: any) {
+        if (err.code != 'P2002') throw err;
+
+        // If the run already exists, we just return it
+        return db.engineRun.findUnique({
+          where: { id: run.id }
+        })!;
+      }
     });
   }
 }

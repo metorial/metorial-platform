@@ -1,10 +1,10 @@
 import { JSONRPCMessage } from '@metorial/mcp-utils';
 import { EngineMcpMessage } from '../mcp/message';
 import { MCPMessageType } from '../mcp/types';
-import { EngineSessionConnection } from './connection';
+import { EngineSessionConnectionBase } from './base';
 import { EngineSessionConnectionInternal } from './internal';
 
-export class EngineSessionProxy extends EngineSessionConnection {
+export class EngineSessionProxy extends EngineSessionConnectionBase {
   #abort = new AbortController();
 
   constructor(private readonly inner: EngineSessionConnectionInternal) {
