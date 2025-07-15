@@ -44,6 +44,11 @@ export let backendEnv: Env = [
     defaultValue: `host=localhost user=postgres password=postgres dbname=${DB_PREFIX}-engine port=5432 sslmode=disable`
   },
 
+  {
+    key: 'ENGINE_MANAGER_ADDRESSES',
+    defaultValue: `localhost:50050`
+  },
+
   { key: 'AUTH_TICKET_SECRET', defaultValue: `auth-ticket-secret` },
   {
     key: 'AUTH_INVISIBLE_TURNSTILE_SECRET_KEY',

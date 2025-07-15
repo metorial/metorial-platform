@@ -7,8 +7,9 @@ import {
   Session
 } from '@metorial/db';
 import { debug } from '@metorial/debug';
-import { JSONRPCMessage, JSONRPCMessageSchema, McpError } from '@metorial/mcp-utils';
+import { JSONRPCMessageSchema, McpError } from '@metorial/mcp-utils';
 import { SessionConnection } from '@metorial/module-session';
+import { ConnectionMessage } from '@metorial/module-session/src/connection/handler/base';
 
 export class McpServerConnection {
   #sendAndReceiveConnection: SessionConnection | null = null;
@@ -24,13 +25,13 @@ export class McpServerConnection {
     private instance: Instance & { organization: Organization }
   ) {}
 
-  ensureReceiveConnection() {
+  async ensureReceiveConnection() {
     let connection =
       this.#sendAndReceiveConnection ??
-      new SessionConnection(this.serverSession, this.instance, {
+      (await SessionConnection.create(this.serverSession, this.instance, {
         mode: 'send-and-receive',
         receiveControlMessages: true
-      });
+      }));
     this.#sendAndReceiveConnection = connection;
 
     let close = async () => {
@@ -38,7 +39,7 @@ export class McpServerConnection {
       connection.close();
     };
 
-    let onMessage = (cb: (msg: JSONRPCMessage) => Promise<any>) => {
+    let onMessage = (cb: (msg: ConnectionMessage) => Promise<any>) => {
       connection.onMessage(
         {
           type: ['error', 'notification', 'response', 'request']
@@ -78,11 +79,17 @@ export class McpServerConnection {
     let connection =
       this.#sendAndReceiveConnection ??
       this.#sendOnlyConnection ??
-      new SessionConnection(this.serverSession, this.instance, {
+      (await SessionConnection.create(this.serverSession, this.instance, {
         mode: 'send-only',
         receiveControlMessages: true
-      });
+      }));
     this.#sendOnlyConnection = connection;
+
+    // Engine sessions are always send-and-receive, even if we
+    // request send-only, so we set it here as well
+    if (connection.mode == 'send-and-receive') {
+      this.#sendAndReceiveConnection = connection;
+    }
 
     await connection.sendMessage(res.map(item => item.message!));
   }

@@ -5,7 +5,6 @@ import {
   ServerDeployment,
   ServerSession,
   ServerVariant,
-  type SessionMessage,
   type SessionMessageType
 } from '@metorial/db';
 import { debug } from '@metorial/debug';
@@ -17,8 +16,9 @@ import {
 } from '@metorial/mcp-utils';
 import { ProgrammablePromise } from '@metorial/programmable-promise';
 import { getSentry } from '@metorial/sentry';
+import { ConnectionHandler } from './handler';
+import { BaseConnectionHandler, ConnectionMessage } from './handler/base';
 import { SessionControlMessageBackend } from './sessionControlMessageBackend';
-import { SessionManager } from './sessionManager';
 
 let Sentry = getSentry();
 
@@ -29,27 +29,36 @@ let connections = new Map<string, SessionConnection>();
 
 export class SessionConnection {
   #controlMessageBackend: SessionControlMessageBackend;
-  #manager: SessionManager;
   #lastMessageAt: number;
   #closePromise = new ProgrammablePromise<void>();
   #pingIv?: NodeJS.Timeout;
 
-  constructor(
+  static async create(
+    session: ServerSession & {
+      serverDeployment: ServerDeployment & {
+        serverVariant: ServerVariant;
+      };
+    },
+    instance: Instance & { organization: Organization },
+    opts: { mode: 'send-only' | 'send-and-receive'; receiveControlMessages: boolean }
+  ): Promise<SessionConnection> {
+    let manager = await ConnectionHandler.create(session, instance, opts);
+    return new SessionConnection(session, instance, opts, manager);
+  }
+
+  private constructor(
     private session: ServerSession & {
       serverDeployment: ServerDeployment & {
         serverVariant: ServerVariant;
       };
     },
     private instance: Instance & { organization: Organization },
-    private opts: { mode: 'send-only' | 'send-and-receive'; receiveControlMessages: boolean }
+    private opts: { mode: 'send-only' | 'send-and-receive'; receiveControlMessages: boolean },
+    private readonly manager: BaseConnectionHandler
   ) {
     this.#lastMessageAt = Date.now();
 
     this.#controlMessageBackend = new SessionControlMessageBackend(session, {
-      mode: opts.mode
-    });
-
-    this.#manager = new SessionManager(session, instance, {
       mode: opts.mode
     });
 
@@ -89,15 +98,19 @@ export class SessionConnection {
     if (this.#pingIv) clearInterval(this.#pingIv);
 
     await this.#controlMessageBackend.close();
-    await this.#manager.close();
+    await this.manager.close();
 
     connections.delete(this.session.id);
   }
 
-  async stop() {
-    await this.#manager.stop();
-    await this.close();
+  get mode() {
+    return this.manager.mode;
   }
+
+  // async stop() {
+  //   await this.#manager.stop();
+  //   await this.close();
+  // }
 
   async sendMessage(message: JSONRPCMessage | JSONRPCMessage[]) {
     let messages = Array.isArray(message) ? message : [message];
@@ -126,7 +139,7 @@ export class SessionConnection {
       messagesToSend.push(message);
     }
 
-    if (messagesToSend.length) return await this.#manager.sendMessage(messagesToSend);
+    if (messagesToSend.length) return await this.manager.sendMessage(messagesToSend, {});
 
     return [];
   }
@@ -140,60 +153,20 @@ export class SessionConnection {
         type: SessionMessageType[];
       };
     },
-    handler: (message: JSONRPCMessage, stored?: SessionMessage) => void
+    handler: (message: ConnectionMessage) => void
   ) {
-    this.#manager.onMessage(opts, handler);
+    this.manager.onMessage(opts, handler);
     if (this.opts.receiveControlMessages && !opts.ids)
       this.#controlMessageBackend.onMessage(handler);
   }
 
   async sendMessagesAndWaitForResponse(
     messages: JSONRPCMessage[],
-    handler: (message: JSONRPCMessage, stored?: SessionMessage) => void
+    handler: (message: ConnectionMessage) => void
   ) {
-    let sentMessages = await this.#manager.sendMessage(messages);
-    let idsToWaitFor = new Set(
-      sentMessages
-        .filter(m => m.type == 'request')
-        .map(m => m.unifiedId)
-        .filter(Boolean)
-        .map(String)
-    );
-
-    if (idsToWaitFor.size == 0) return Promise.resolve();
-
-    return new Promise<void>((resolve, reject) => {
-      let closedRef = { current: false };
-
-      let timeout = setTimeout(
-        () => {
-          closedRef.current = true;
-          reject(new Error('Timeout waiting for response'));
-        },
-        1000 * 60 * 2
-      );
-
-      this.onMessage(
-        {
-          type: ['error', 'notification', 'response', 'request'],
-          ids: Array.from(idsToWaitFor)
-        },
-        async (message, stored) => {
-          if (closedRef.current) return;
-
-          if (stored?.type != 'request' && stored?.unifiedId) {
-            idsToWaitFor.delete(stored?.unifiedId);
-          }
-
-          await handler(message, stored);
-
-          if (idsToWaitFor.size == 0) {
-            closedRef.current = true;
-            clearTimeout(timeout);
-            resolve();
-          }
-        }
-      );
+    let sentMessages = await this.manager.sendMessage(messages, {
+      includeResponses: true,
+      onResponse: handler
     });
   }
 

@@ -1,3 +1,4 @@
+import { ServiceError, badRequestError } from '@metorial/error';
 import { Hash } from '@metorial/hash';
 import { customAlphabet } from 'nanoid';
 import short from 'short-uuid';
@@ -136,6 +137,44 @@ export let createIdGenerator = <
       let desc = getIdDescription(prefix);
 
       return `${desc.prefix}${translator.fromUUID(uuid)}`;
+    }
+
+    // toUUID: (prefix: keyof T, id: string) => {
+    //   let desc = getIdDescription(prefix);
+
+    //   if (!id.startsWith(desc.prefix)) {
+    //     throw new ServiceError(
+    //       badRequestError({
+    //         message: `ID ${id} does not start with prefix ${desc.prefix}`
+    //       })
+    //     );
+    //   }
+
+    //   return translator.toUUID(id.slice(desc.prefix.length));
+    // }
+  };
+};
+
+export let createUuidTranslator = (prefix: string) => {
+  if (!prefix.endsWith('_')) prefix = `${prefix}_`;
+
+  if (seenPrefixes.has(prefix)) {
+    throw new Error(`Prefix ${prefix} already exists`);
+  }
+  seenPrefixes.add(prefix);
+
+  return {
+    fromUUID: (uuid: string) => `${prefix}${translator.fromUUID(uuid)}`,
+    toUUID: (id: string) => {
+      if (!id.startsWith(prefix)) {
+        throw new ServiceError(
+          badRequestError({
+            message: `ID ${id} does not start with prefix ${prefix}`
+          })
+        );
+      }
+
+      return translator.toUUID(id.slice(prefix.length));
     }
   };
 };
