@@ -23,15 +23,32 @@ export let v1ServerRunErrorPresenter = Presenter.create(serverRunErrorType)
     v.object({
       object: v.literal('server.server_run.error'),
 
-      id: v.string(),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier of the server run error'
+      }),
 
-      code: v.string(),
-      message: v.string(),
-      metadata: v.record(v.any()),
+      code: v.string({
+        name: 'code',
+        description: 'A machine-readable error code'
+      }),
+
+      message: v.string({
+        name: 'message',
+        description: 'A human-readable description of the error'
+      }),
+
+      metadata: v.record(v.any(), {
+        name: 'metadata',
+        description: 'Additional metadata related to the error'
+      }),
 
       server_run: v1ServerRunPresenter.schema,
 
-      created_at: v.date()
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the error was created'
+      })
     })
   )
   .build();

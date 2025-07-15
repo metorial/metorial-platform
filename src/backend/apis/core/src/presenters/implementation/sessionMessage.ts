@@ -38,37 +38,78 @@ export let v1SessionMessagePresenter = Presenter.create(sessionMessageType)
     v.object({
       object: v.literal('session.message'),
 
-      id: v.string(),
-      type: v.enumOf([
-        'request',
-        'response',
-        'notification',
-        'error',
-        'server_error',
-        'unknown',
-        'debug'
-      ]),
-
-      sender: v.object({
-        object: v.literal('session.message.sender'),
-
-        type: v.enumOf(['client', 'server']),
-        id: v.string()
+      id: v.string({
+        name: 'id',
+        description: 'Unique identifier for the session message'
       }),
 
-      mcp_message: v.object({
-        object: v.literal('session.message.mcp_message'),
+      type: v.enumOf(
+        ['request', 'response', 'notification', 'error', 'server_error', 'unknown', 'debug'],
+        {
+          name: 'type',
+          description: 'Type of the session message'
+        }
+      ),
 
-        id: v.string(),
-        method: v.string(),
+      sender: v.object(
+        {
+          object: v.literal('session.message.sender'),
 
-        payload: v.record(v.any())
+          type: v.enumOf(['client', 'server'], {
+            name: 'type',
+            description: 'Indicates if the sender is client or server'
+          }),
+
+          id: v.string({
+            name: 'id',
+            description: 'Unique identifier for the sender'
+          })
+        },
+        {
+          name: 'sender',
+          description: 'Information about the sender of the message'
+        }
+      ),
+
+      mcp_message: v.object(
+        {
+          object: v.literal('session.message.mcp_message'),
+
+          id: v.string({
+            name: 'id',
+            description: 'Unique identifier for the MCP message'
+          }),
+
+          method: v.string({
+            name: 'method',
+            description: 'Method name associated with the MCP message'
+          }),
+
+          payload: v.record(v.any(), {
+            name: 'payload',
+            description: 'Payload content of the MCP message'
+          })
+        },
+        {
+          name: 'mcp_message',
+          description: 'Details of the MCP message'
+        }
+      ),
+
+      session_id: v.string({
+        name: 'session_id',
+        description: 'Identifier for the related session'
       }),
 
-      session_id: v.string(),
-      server_session_id: v.string(),
+      server_session_id: v.string({
+        name: 'server_session_id',
+        description: 'Identifier for the related server session'
+      }),
 
-      created_at: v.date()
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the message was created'
+      })
     })
   )
   .build();

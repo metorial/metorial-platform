@@ -49,29 +49,53 @@ export let v1ServerVariantPresenter = Presenter.create(serverVariantType)
     v.object({
       object: v.literal('server.server_variant'),
 
-      id: v.string(),
-      identifier: v.string(),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier for this server variant'
+      }),
+
+      identifier: v.string({
+        name: 'identifier',
+        description: 'A unique string identifier for the server variant'
+      }),
 
       server: v1ServerPreview.schema,
 
       current_version: v.nullable(v1ServerVersionPresenter.schema),
 
-      source: v.union([
-        v.object({
-          type: v.literal('docker'),
-          docker: v.object({
-            image: v.string()
-          })
-        }),
-        v.object({
-          type: v.literal('remote'),
-          remote: v.object({
-            domain: v.string()
-          })
-        })
-      ]),
+      source: v.union(
+        [
+          v.object({
+            type: v.literal('docker'),
 
-      created_at: v.date()
+            docker: v.object({
+              image: v.string({
+                name: 'image',
+                description: 'The Docker image used by this server variant'
+              })
+            })
+          }),
+          v.object({
+            type: v.literal('remote'),
+
+            remote: v.object({
+              domain: v.string({
+                name: 'domain',
+                description: 'The remote domain hosting this server variant'
+              })
+            })
+          })
+        ],
+        {
+          name: 'source',
+          description: 'The source type and configuration for this server variant'
+        }
+      ),
+
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the server variant was created'
+      })
     })
   )
   .build();

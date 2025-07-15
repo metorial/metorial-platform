@@ -38,19 +38,54 @@ export let v1ServerPresenter = Presenter.create(serverType)
     v.object({
       object: v.literal('server'),
 
-      id: v.string(),
-      type: v.enumOf(['public']),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier for the server'
+      }),
 
-      name: v.string(),
-      description: v.nullable(v.string()),
-      imported_server_id: v.nullable(v.string()),
+      type: v.enumOf(['public'], {
+        name: 'type',
+        description: 'The visibility type of the server; currently only "public" is supported'
+      }),
 
-      variants: v.array(v1ServerVariantPresenter.schema),
+      name: v.string({
+        name: 'name',
+        description: 'The display name of the server'
+      }),
 
-      metadata: v.record(v.any()),
+      description: v.nullable(
+        v.string({
+          name: 'description',
+          description: 'An optional description providing more details about the server'
+        })
+      ),
 
-      created_at: v.date(),
-      updated_at: v.date()
+      imported_server_id: v.nullable(
+        v.string({
+          name: 'imported_server_id',
+          description: 'ID of the server this one was imported from, if applicable'
+        })
+      ),
+
+      variants: v.array(v1ServerVariantPresenter.schema, {
+        name: 'variants',
+        description: 'A list of available variants for this server'
+      }),
+
+      metadata: v.record(v.any(), {
+        name: 'metadata',
+        description: 'Arbitrary key-value metadata associated with the server'
+      }),
+
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the server was created'
+      }),
+
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when the server was last updated'
+      })
     })
   )
   .build();

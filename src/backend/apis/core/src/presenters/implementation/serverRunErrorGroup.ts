@@ -29,20 +29,47 @@ export let v1ServerRunErrorGroupPresenter = Presenter.create(serverRunErrorGroup
     v.object({
       object: v.literal('server.server_run.error'),
 
-      id: v.string(),
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier of the server run error instance'
+      }),
 
-      code: v.string(),
-      message: v.string(),
+      code: v.string({
+        name: 'code',
+        description: 'A machine-readable error code'
+      }),
 
-      fingerprint: v.string(),
+      message: v.string({
+        name: 'message',
+        description: 'A human-readable description of the error'
+      }),
 
-      count: v.number(),
+      fingerprint: v.string({
+        name: 'fingerprint',
+        description: 'A unique fingerprint representing this error for grouping similar errors'
+      }),
+
+      count: v.number({
+        name: 'count',
+        description: 'The number of times this error has occurred'
+      }),
 
       default_error: v.nullable(v1ServerRunErrorPresenter.schema),
 
-      created_at: v.date(),
-      first_seen_at: v.date(),
-      last_seen_at: v.date()
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when this error record was created'
+      }),
+
+      first_seen_at: v.date({
+        name: 'first_seen_at',
+        description: 'Timestamp when this error was first observed'
+      }),
+
+      last_seen_at: v.date({
+        name: 'last_seen_at',
+        description: 'Timestamp when this error was last observed'
+      })
     })
   )
   .build();
