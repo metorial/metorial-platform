@@ -162,18 +162,18 @@ func (e *SessionError) ToPb() (*managerPb.EngineSessionError, error) {
 	}, nil
 }
 
-func (d *DB) ListSessionErrorsBySession(sessionId string, pag *managerPb.ListPagination, after int64) ([]SessionError, error) {
+func (d *DB) ListSessionErrorsBySession(sessionId string, pag *managerPb.ListPagination, after *int64) ([]SessionError, error) {
 	query := d.db.Model(&SessionError{}).Preload("Run").Preload("Session").Where("session_id = ?", sessionId)
-	if after != 0 {
-		query = query.Where("created_at > ?", time.UnixMilli(after))
+	if after != nil {
+		query = query.Where("created_at > ?", time.UnixMilli(*after))
 	}
 	return listWithPagination[SessionError](query, pag)
 }
 
-func (d *DB) ListSessionErrorsByRun(runId string, pag *managerPb.ListPagination, after int64) ([]SessionError, error) {
+func (d *DB) ListSessionErrorsByRun(runId string, pag *managerPb.ListPagination, after *int64) ([]SessionError, error) {
 	query := d.db.Model(&SessionError{}).Preload("Run").Preload("Session").Where("run_id = ?", runId)
-	if after != 0 {
-		query = query.Where("created_at > ?", time.UnixMilli(after))
+	if after != nil {
+		query = query.Where("created_at > ?", time.UnixMilli(*after))
 	}
 	return listWithPagination[SessionError](query, pag)
 }

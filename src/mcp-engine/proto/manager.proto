@@ -108,7 +108,7 @@ message StreamMcpMessagesRequest {
   string session_id = 1;
   repeated broker.mcp.McpMessageType only_message_types = 2; // Optional, if empty, all message types are streamed
   repeated string only_ids = 3; // Optional, if empty, all messages are streamed
-  string replay_after_uuid = 4; // Include messages after this UUID, useful for resuming streams
+  optional string replay_after_uuid = 4; // Include messages after this UUID, useful for resuming streams
 }
 
 message SessionEventInfoRun {
@@ -320,7 +320,7 @@ message ListPagination {
 
 message ListSessionsRequest {
   string external_id = 1;
-  ListPagination pagination = 2;
+  optional ListPagination pagination = 2;
 }
 
 message ListSessionsResponse {
@@ -337,8 +337,8 @@ message GetSessionResponse {
 
 message ListRunsRequest {
   string session_id = 1;
-  ListPagination pagination = 2;
-  int64 after = 3;
+  optional ListPagination pagination = 2;
+  optional int64 after = 3;
 }
 
 message ListRunsResponse {
@@ -379,8 +379,8 @@ message GetMessageResponse {
 
 message ListRunErrorsRequest {
   string run_id = 1;
-  ListPagination pagination = 2;
-  int64 after = 3;
+  optional ListPagination pagination = 2;
+  optional int64 after = 3;
 }
 
 message ListRunErrorsResponse {
@@ -389,8 +389,8 @@ message ListRunErrorsResponse {
 
 message ListRunEventsRequest {
   string run_id = 1;
-  ListPagination pagination = 2;
-  int64 after = 3;
+  optional ListPagination pagination = 2;
+  optional int64 after = 3;
 }
 
 message ListRunEventsResponse {
@@ -399,8 +399,8 @@ message ListRunEventsResponse {
 
 message ListRunMessagesRequest {
   string run_id = 1;
-  ListPagination pagination = 2;
-  int64 after = 3;
+  optional ListPagination pagination = 2;
+  optional int64 after = 3;
 }
 
 message ListRunMessagesResponse {
@@ -409,8 +409,8 @@ message ListRunMessagesResponse {
 
 message ListSessionEventsRequest {
   string session_id = 1;
-  ListPagination pagination = 2;
-  int64 after = 3;
+  optional ListPagination pagination = 2;
+  optional int64 after = 3;
 }
 
 message ListSessionEventsResponse {
@@ -419,8 +419,8 @@ message ListSessionEventsResponse {
 
 message ListSessionErrorsRequest {
   string session_id = 1;
-  ListPagination pagination = 2;
-  int64 after = 3;
+  optional ListPagination pagination = 2;
+  optional int64 after = 3;
 }
 
 message ListSessionErrorsResponse {
@@ -429,8 +429,8 @@ message ListSessionErrorsResponse {
 
 message ListSessionMessagesRequest {
   string session_id = 1;
-  ListPagination pagination = 2;
-  int64 after = 3;
+  optional ListPagination pagination = 2;
+  optional int64 after = 3;
 }
 
 message ListSessionMessagesResponse {

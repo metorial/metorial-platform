@@ -62,7 +62,7 @@ type Session struct {
 
 	HasError bool `gorm:"default:false;not null"`
 
-	McpClient *mcp.MCPClient `gorm:"type:jsonb;serializer:json;not null"`
+	McpClient *mcp.MCPClient `gorm:"type:jsonb;serializer:json"`
 	McpServer *mcp.MCPServer `gorm:"type:jsonb;serializer:json"`
 
 	CreatedAt  time.Time `gorm:"not null"`

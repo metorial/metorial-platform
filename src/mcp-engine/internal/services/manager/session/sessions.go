@@ -151,9 +151,13 @@ func (s *Sessions) UpsertSession(
 	s.keylock.Lock(request.SessionId)
 	defer s.keylock.Unlock(request.SessionId)
 
-	client, err := mcp.ParseMcpClient([]byte(request.McpClient.ParticipantJson))
-	if err != nil {
-		return nil, mterror.NewWithInnerError(mterror.InvalidRequestKind, "failed to parse MCP client", err)
+	var client *mcp.MCPClient
+	if request.McpClient != nil {
+		var err error
+		client, err = mcp.ParseMcpClient([]byte(request.McpClient.ParticipantJson))
+		if err != nil {
+			return nil, mterror.NewWithInnerError(mterror.InvalidRequestKind, "failed to parse MCP client", err)
+		}
 	}
 
 	prospectiveSessionUuid := util.Must(uuid.NewV7()).String()

@@ -994,7 +994,7 @@ type StreamMcpMessagesRequest struct {
 	SessionId        string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	OnlyMessageTypes []mcp.McpMessageType   `protobuf:"varint,2,rep,packed,name=only_message_types,json=onlyMessageTypes,proto3,enum=broker.mcp.McpMessageType" json:"only_message_types,omitempty"` // Optional, if empty, all message types are streamed
 	OnlyIds          []string               `protobuf:"bytes,3,rep,name=only_ids,json=onlyIds,proto3" json:"only_ids,omitempty"`                                                                     // Optional, if empty, all messages are streamed
-	ReplayAfterUuid  string                 `protobuf:"bytes,4,opt,name=replay_after_uuid,json=replayAfterUuid,proto3" json:"replay_after_uuid,omitempty"`                                           // Include messages after this UUID, useful for resuming streams
+	ReplayAfterUuid  *string                `protobuf:"bytes,4,opt,name=replay_after_uuid,json=replayAfterUuid,proto3,oneof" json:"replay_after_uuid,omitempty"`                                     // Include messages after this UUID, useful for resuming streams
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -1051,8 +1051,8 @@ func (x *StreamMcpMessagesRequest) GetOnlyIds() []string {
 }
 
 func (x *StreamMcpMessagesRequest) GetReplayAfterUuid() string {
-	if x != nil {
-		return x.ReplayAfterUuid
+	if x != nil && x.ReplayAfterUuid != nil {
+		return *x.ReplayAfterUuid
 	}
 	return ""
 }
@@ -2441,7 +2441,7 @@ func (x *ListPagination) GetOrder() ListPaginationOrder {
 type ListSessionsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ExternalId    string                 `protobuf:"bytes,1,opt,name=external_id,json=externalId,proto3" json:"external_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2625,8 +2625,8 @@ func (x *GetSessionResponse) GetSession() *EngineSession {
 type ListRunsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	After         int64                  `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	After         *int64                 `protobuf:"varint,3,opt,name=after,proto3,oneof" json:"after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2676,8 +2676,8 @@ func (x *ListRunsRequest) GetPagination() *ListPagination {
 }
 
 func (x *ListRunsRequest) GetAfter() int64 {
-	if x != nil {
-		return x.After
+	if x != nil && x.After != nil {
+		return *x.After
 	}
 	return 0
 }
@@ -3081,8 +3081,8 @@ func (x *GetMessageResponse) GetMessage() *EngineSessionMessage {
 type ListRunErrorsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	After         int64                  `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	After         *int64                 `protobuf:"varint,3,opt,name=after,proto3,oneof" json:"after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3132,8 +3132,8 @@ func (x *ListRunErrorsRequest) GetPagination() *ListPagination {
 }
 
 func (x *ListRunErrorsRequest) GetAfter() int64 {
-	if x != nil {
-		return x.After
+	if x != nil && x.After != nil {
+		return *x.After
 	}
 	return 0
 }
@@ -3185,8 +3185,8 @@ func (x *ListRunErrorsResponse) GetErrors() []*EngineSessionError {
 type ListRunEventsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	After         int64                  `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	After         *int64                 `protobuf:"varint,3,opt,name=after,proto3,oneof" json:"after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3236,8 +3236,8 @@ func (x *ListRunEventsRequest) GetPagination() *ListPagination {
 }
 
 func (x *ListRunEventsRequest) GetAfter() int64 {
-	if x != nil {
-		return x.After
+	if x != nil && x.After != nil {
+		return *x.After
 	}
 	return 0
 }
@@ -3289,8 +3289,8 @@ func (x *ListRunEventsResponse) GetEvents() []*EngineSessionEvent {
 type ListRunMessagesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	After         int64                  `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	After         *int64                 `protobuf:"varint,3,opt,name=after,proto3,oneof" json:"after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3340,8 +3340,8 @@ func (x *ListRunMessagesRequest) GetPagination() *ListPagination {
 }
 
 func (x *ListRunMessagesRequest) GetAfter() int64 {
-	if x != nil {
-		return x.After
+	if x != nil && x.After != nil {
+		return *x.After
 	}
 	return 0
 }
@@ -3393,8 +3393,8 @@ func (x *ListRunMessagesResponse) GetMessages() []*EngineSessionMessage {
 type ListSessionEventsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	After         int64                  `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	After         *int64                 `protobuf:"varint,3,opt,name=after,proto3,oneof" json:"after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3444,8 +3444,8 @@ func (x *ListSessionEventsRequest) GetPagination() *ListPagination {
 }
 
 func (x *ListSessionEventsRequest) GetAfter() int64 {
-	if x != nil {
-		return x.After
+	if x != nil && x.After != nil {
+		return *x.After
 	}
 	return 0
 }
@@ -3497,8 +3497,8 @@ func (x *ListSessionEventsResponse) GetEvents() []*EngineSessionEvent {
 type ListSessionErrorsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	After         int64                  `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	After         *int64                 `protobuf:"varint,3,opt,name=after,proto3,oneof" json:"after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3548,8 +3548,8 @@ func (x *ListSessionErrorsRequest) GetPagination() *ListPagination {
 }
 
 func (x *ListSessionErrorsRequest) GetAfter() int64 {
-	if x != nil {
-		return x.After
+	if x != nil && x.After != nil {
+		return *x.After
 	}
 	return 0
 }
@@ -3601,8 +3601,8 @@ func (x *ListSessionErrorsResponse) GetErrors() []*EngineSessionError {
 type ListSessionMessagesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	After         int64                  `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	After         *int64                 `protobuf:"varint,3,opt,name=after,proto3,oneof" json:"after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3652,8 +3652,8 @@ func (x *ListSessionMessagesRequest) GetPagination() *ListPagination {
 }
 
 func (x *ListSessionMessagesRequest) GetAfter() int64 {
-	if x != nil {
-		return x.After
+	if x != nil && x.After != nil {
+		return *x.After
 	}
 	return 0
 }
@@ -3931,13 +3931,14 @@ const file_manager_proto_rawDesc = "" +
 	"\tmcp_error\x18\x02 \x01(\v2\x14.broker.mcp.McpErrorH\x00R\bmcpError\x12C\n" +
 	"\rsession_event\x18\x03 \x01(\v2\x1c.broker.manager.SessionEventH\x00R\fsessionEventB\n" +
 	"\n" +
-	"\bresponse\"\xca\x01\n" +
+	"\bresponse\"\xe5\x01\n" +
 	"\x18StreamMcpMessagesRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12H\n" +
 	"\x12only_message_types\x18\x02 \x03(\x0e2\x1a.broker.mcp.McpMessageTypeR\x10onlyMessageTypes\x12\x19\n" +
-	"\bonly_ids\x18\x03 \x03(\tR\aonlyIds\x12*\n" +
-	"\x11replay_after_uuid\x18\x04 \x01(\tR\x0freplayAfterUuid\"I\n" +
+	"\bonly_ids\x18\x03 \x03(\tR\aonlyIds\x12/\n" +
+	"\x11replay_after_uuid\x18\x04 \x01(\tH\x00R\x0freplayAfterUuid\x88\x01\x01B\x14\n" +
+	"\x12_replay_after_uuid\"I\n" +
 	"\x13SessionEventInfoRun\x122\n" +
 	"\x03run\x18\x01 \x01(\v2 .broker.manager.EngineSessionRunR\x03run\"R\n" +
 	"\x17SessionEventInfoSession\x127\n" +
@@ -4080,27 +4081,30 @@ const file_manager_proto_rawDesc = "" +
 	"\bafter_id\x18\x01 \x01(\tR\aafterId\x12\x1b\n" +
 	"\tbefore_id\x18\x02 \x01(\tR\bbeforeId\x12\x14\n" +
 	"\x05limit\x18\x03 \x01(\x05R\x05limit\x129\n" +
-	"\x05order\x18\x04 \x01(\x0e2#.broker.manager.ListPaginationOrderR\x05order\"v\n" +
+	"\x05order\x18\x04 \x01(\x0e2#.broker.manager.ListPaginationOrderR\x05order\"\x8a\x01\n" +
 	"\x13ListSessionsRequest\x12\x1f\n" +
 	"\vexternal_id\x18\x01 \x01(\tR\n" +
-	"externalId\x12>\n" +
+	"externalId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\"Q\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01B\r\n" +
+	"\v_pagination\"Q\n" +
 	"\x14ListSessionsResponse\x129\n" +
 	"\bsessions\x18\x01 \x03(\v2\x1d.broker.manager.EngineSessionR\bsessions\"2\n" +
 	"\x11GetSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"M\n" +
 	"\x12GetSessionResponse\x127\n" +
-	"\asession\x18\x01 \x01(\v2\x1d.broker.manager.EngineSessionR\asession\"\x86\x01\n" +
+	"\asession\x18\x01 \x01(\v2\x1d.broker.manager.EngineSessionR\asession\"\xa9\x01\n" +
 	"\x0fListRunsRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12>\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\x12\x14\n" +
-	"\x05after\x18\x03 \x01(\x03R\x05after\"H\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01\x12\x19\n" +
+	"\x05after\x18\x03 \x01(\x03H\x01R\x05after\x88\x01\x01B\r\n" +
+	"\v_paginationB\b\n" +
+	"\x06_after\"H\n" +
 	"\x10ListRunsResponse\x124\n" +
 	"\x04runs\x18\x01 \x03(\v2 .broker.manager.EngineSessionRunR\x04runs\"&\n" +
 	"\rGetRunRequest\x12\x15\n" +
@@ -4119,56 +4123,68 @@ const file_manager_proto_rawDesc = "" +
 	"\n" +
 	"message_id\x18\x01 \x01(\tR\tmessageId\"T\n" +
 	"\x12GetMessageResponse\x12>\n" +
-	"\amessage\x18\x01 \x01(\v2$.broker.manager.EngineSessionMessageR\amessage\"\x83\x01\n" +
+	"\amessage\x18\x01 \x01(\v2$.broker.manager.EngineSessionMessageR\amessage\"\xa6\x01\n" +
 	"\x14ListRunErrorsRequest\x12\x15\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12>\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\x12\x14\n" +
-	"\x05after\x18\x03 \x01(\x03R\x05after\"S\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01\x12\x19\n" +
+	"\x05after\x18\x03 \x01(\x03H\x01R\x05after\x88\x01\x01B\r\n" +
+	"\v_paginationB\b\n" +
+	"\x06_after\"S\n" +
 	"\x15ListRunErrorsResponse\x12:\n" +
-	"\x06errors\x18\x01 \x03(\v2\".broker.manager.EngineSessionErrorR\x06errors\"\x83\x01\n" +
+	"\x06errors\x18\x01 \x03(\v2\".broker.manager.EngineSessionErrorR\x06errors\"\xa6\x01\n" +
 	"\x14ListRunEventsRequest\x12\x15\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12>\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\x12\x14\n" +
-	"\x05after\x18\x03 \x01(\x03R\x05after\"S\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01\x12\x19\n" +
+	"\x05after\x18\x03 \x01(\x03H\x01R\x05after\x88\x01\x01B\r\n" +
+	"\v_paginationB\b\n" +
+	"\x06_after\"S\n" +
 	"\x15ListRunEventsResponse\x12:\n" +
-	"\x06events\x18\x01 \x03(\v2\".broker.manager.EngineSessionEventR\x06events\"\x85\x01\n" +
+	"\x06events\x18\x01 \x03(\v2\".broker.manager.EngineSessionEventR\x06events\"\xa8\x01\n" +
 	"\x16ListRunMessagesRequest\x12\x15\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12>\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\x12\x14\n" +
-	"\x05after\x18\x03 \x01(\x03R\x05after\"[\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01\x12\x19\n" +
+	"\x05after\x18\x03 \x01(\x03H\x01R\x05after\x88\x01\x01B\r\n" +
+	"\v_paginationB\b\n" +
+	"\x06_after\"[\n" +
 	"\x17ListRunMessagesResponse\x12@\n" +
-	"\bmessages\x18\x01 \x03(\v2$.broker.manager.EngineSessionMessageR\bmessages\"\x8f\x01\n" +
+	"\bmessages\x18\x01 \x03(\v2$.broker.manager.EngineSessionMessageR\bmessages\"\xb2\x01\n" +
 	"\x18ListSessionEventsRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12>\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\x12\x14\n" +
-	"\x05after\x18\x03 \x01(\x03R\x05after\"W\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01\x12\x19\n" +
+	"\x05after\x18\x03 \x01(\x03H\x01R\x05after\x88\x01\x01B\r\n" +
+	"\v_paginationB\b\n" +
+	"\x06_after\"W\n" +
 	"\x19ListSessionEventsResponse\x12:\n" +
-	"\x06events\x18\x01 \x03(\v2\".broker.manager.EngineSessionEventR\x06events\"\x8f\x01\n" +
+	"\x06events\x18\x01 \x03(\v2\".broker.manager.EngineSessionEventR\x06events\"\xb2\x01\n" +
 	"\x18ListSessionErrorsRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12>\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\x12\x14\n" +
-	"\x05after\x18\x03 \x01(\x03R\x05after\"W\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01\x12\x19\n" +
+	"\x05after\x18\x03 \x01(\x03H\x01R\x05after\x88\x01\x01B\r\n" +
+	"\v_paginationB\b\n" +
+	"\x06_after\"W\n" +
 	"\x19ListSessionErrorsResponse\x12:\n" +
-	"\x06errors\x18\x01 \x03(\v2\".broker.manager.EngineSessionErrorR\x06errors\"\x91\x01\n" +
+	"\x06errors\x18\x01 \x03(\v2\".broker.manager.EngineSessionErrorR\x06errors\"\xb4\x01\n" +
 	"\x1aListSessionMessagesRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12>\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\x12\x14\n" +
-	"\x05after\x18\x03 \x01(\x03R\x05after\"_\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01\x12\x19\n" +
+	"\x05after\x18\x03 \x01(\x03H\x01R\x05after\x88\x01\x01B\r\n" +
+	"\v_paginationB\b\n" +
+	"\x06_after\"_\n" +
 	"\x1bListSessionMessagesResponse\x12@\n" +
 	"\bmessages\x18\x01 \x03(\v2$.broker.manager.EngineSessionMessageR\bmessages\"5\n" +
 	"\x1dListRecentlyActiveRunsRequest\x12\x14\n" +
@@ -4486,6 +4502,7 @@ func file_manager_proto_init() {
 		(*SendMcpMessageResponse_McpError)(nil),
 		(*SendMcpMessageResponse_SessionEvent)(nil),
 	}
+	file_manager_proto_msgTypes[9].OneofWrappers = []any{}
 	file_manager_proto_msgTypes[14].OneofWrappers = []any{
 		(*SessionEvent_StartRun)(nil),
 		(*SessionEvent_StopRun)(nil),
@@ -4498,6 +4515,14 @@ func file_manager_proto_init() {
 		(*StreamMcpMessagesResponse_McpOutput)(nil),
 		(*StreamMcpMessagesResponse_SessionEvent)(nil),
 	}
+	file_manager_proto_msgTypes[28].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[32].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[42].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[44].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[46].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[48].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[50].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[52].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

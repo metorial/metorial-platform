@@ -18,6 +18,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
+	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
 	"github.com/metorial/metorial/mcp-engine/pkg/util"
 	"google.golang.org/grpc"
 )
@@ -54,6 +55,8 @@ type LocalSession struct {
 	activeRunDb               *db.SessionRun
 
 	lastSessionInteraction time.Time
+
+	internalMessages *pubsub.Broadcaster[*mcp.MCPMessage]
 
 	connectionInput *workers.WorkerConnectionInput
 
@@ -100,12 +103,17 @@ func newLocalSession(
 
 		workerManager: sessions.workerManager,
 
+		internalMessages: pubsub.NewBroadcaster[*mcp.MCPMessage](),
+
 		context: ctx,
 		cancel:  cancel,
 	}
 }
 
 func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError {
+	var initMessage *mcp.MCPMessage = nil
+
+	// Parse the MCP messages from the request
 	mcpMessages := make([]*mcp.MCPMessage, 0, len(req.McpMessages))
 	for _, rawMessage := range req.McpMessages {
 		message, err := mcp.FromPbRawMessage(rawMessage)
@@ -123,38 +131,51 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 			return mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "run_error", "failed to parse MCP message", err)
 		}
 
-		// thisIsInit := *message.Method == "initialize"
-		// if thisIsInit {
-		// 	client, err := mcp.McpClientFromInitMessage(message)
-		// 	if err != nil {
-		// 		go s.db.CreateError(db.NewErrorStructuredError(
-		// 			s.dbSession,
-		// 			"mcp_message_parse_error",
-		// 			"failed to parse MCP message, invalid initialize message",
-		// 			map[string]string{
-		// 				"message":        rawMessage.Message,
-		// 				"internal_error": err.Error(),
-		// 			},
-		// 		))
-		// 	}
+		// Initializations are handled separately
+		// they are not sent to the worker directly
+		// but we need them to set the MCP client.
+		// If the MCP client is not set, the `ensureConnection`
+		// method will block until it is set.
+		thisIsInit := *message.Method == "initialize"
+		if thisIsInit {
+			if initMessage != nil {
+				go s.db.CreateError(db.NewErrorStructuredError(
+					s.dbSession,
+					"mcp_message_parse_error",
+					"multiple initialize messages in request",
+					map[string]string{
+						"message": rawMessage.Message,
+					},
+				))
 
-		// 	s.setMcpClient(client)
-		// 	initMessage = message
-		// } else {}
+				return mterror.New(mterror.InvalidRequestKind, "multiple initialize messages in request")
+			}
 
-		mcpMessages = append(mcpMessages, message)
+			client, err := mcp.McpClientFromInitMessage(message)
+			if err != nil {
+				go s.db.CreateError(db.NewErrorStructuredError(
+					s.dbSession,
+					"mcp_message_parse_error",
+					"failed to parse MCP message, invalid initialize message",
+					map[string]string{
+						"message":        rawMessage.Message,
+						"internal_error": err.Error(),
+					},
+				))
 
-		go s.db.CreateMessage(
-			db.NewMessage(
-				s.dbSession,
-				s.activeRunDb,
-				int(s.counter.Add(1)),
-				db.SessionMessageSenderClient,
-				message,
-			),
-		)
+				return mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "run_error", "failed to parse MCP message, invalid initialize message", err)
+			}
+
+			s.setMcpClient(client)
+			initMessage = message
+		} else {
+			mcpMessages = append(mcpMessages, message)
+		}
 	}
 
+	// Now we need to get a handle on the connection
+	// this will block until the MCP client is set
+	// and the connection is established.
 	connection, run, err := s.ensureConnection()
 	if err != nil {
 		return err
@@ -164,8 +185,27 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 		return mterror.New(mterror.InternalErrorKind, "no active connection for session")
 	}
 
+	go func() {
+		// Persist the message in the database
+		for _, message := range mcpMessages {
+			s.db.CreateMessage(
+				db.NewMessage(
+					s.dbSession,
+					run,
+					int(s.counter.Add(1)),
+					db.SessionMessageSenderClient,
+					message,
+				),
+			)
+		}
+	}()
+
+	// Wait group for this function
+	// 1. Wait for responses to be sent (if enabled)
+	// 2. Wait for the session and run info to be sent
 	wg := sync.WaitGroup{}
 
+	// Send session and run info
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -201,6 +241,55 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 		}
 	}()
 
+	// If the client has sent and initialization message,
+	// we need to handle it separately.
+	if initMessage != nil {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			server, err := connection.GetServer()
+			if err != nil {
+				s.db.CreateError(db.NewErrorStructuredErrorWithRun(
+					s.dbSession,
+					run,
+					"run_error",
+					"failed to get server info",
+					map[string]string{
+						"internal_error": err.Error(),
+					},
+				))
+				return
+			}
+
+			message, err := server.ToInitMessage(initMessage)
+			if err != nil {
+				return
+			}
+
+			s.internalMessages.Publish(message)
+
+			// If the client has requested a response,
+			// we need to send it back.
+			if req.IncludeResponses {
+				response := &managerPb.SendMcpMessageResponse{
+					Response: &managerPb.SendMcpMessageResponse_McpMessage{
+						McpMessage: message.ToPbMessage(),
+					},
+				}
+
+				err = stream.Send(response)
+				if err != nil {
+					return
+				}
+			}
+
+		}()
+	}
+
+	// If the client want responses to be sent back,
+	// we need to listen for the responses
 	if req.IncludeResponses {
 		wg.Add(1)
 
@@ -326,6 +415,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 		}()
 	}
 
+	// Send the messages to the connection
 	for _, message := range mcpMessages {
 		err := connection.AcceptMessage(message)
 		if err != nil {
@@ -372,16 +462,24 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 		}
 	}()
 
+	if req.OnlyIds != nil && len(req.OnlyIds) == 0 {
+		req.OnlyIds = nil // If no IDs are requested, we don't need to filter
+	}
+
+	if req.OnlyMessageTypes != nil && len(req.OnlyMessageTypes) == 0 {
+		req.OnlyMessageTypes = nil // If no message types are requested, we don't need to filter
+	}
+
 	responsesToWaitFor := 0
 	if req.OnlyIds == nil {
 		responsesToWaitFor = len(req.OnlyIds)
 	}
 
-	if req.ReplayAfterUuid != "" {
+	if req.ReplayAfterUuid != nil {
 		go func() {
-			messages, err := s.db.ListGlobalSessionMessagesAfter(req.SessionId, req.ReplayAfterUuid)
+			messages, err := s.db.ListGlobalSessionMessagesAfter(req.SessionId, *req.ReplayAfterUuid)
 			if err != nil {
-				log.Printf("Failed to list messages after UUID %s: %v", req.ReplayAfterUuid, err)
+				log.Printf("Failed to list messages after UUID %s: %v", *req.ReplayAfterUuid, err)
 				return
 			}
 
@@ -420,6 +518,9 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 	var doneChan chan struct{} = nil
 	var chansForCon workers.WorkerConnection
 
+	internalMessages := s.internalMessages.Subscribe()
+	defer s.internalMessages.Unsubscribe(internalMessages)
+
 	touchTicker := time.NewTicker(time.Second * 15)
 	defer touchTicker.Stop()
 
@@ -454,6 +555,23 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 				return nil
 			case <-touchTicker.C:
 				s.Touch()
+
+			case message := <-internalMessages:
+				if s.canSendMessage(req, message) {
+					responsesToWaitFor--
+
+					response := &managerPb.StreamMcpMessagesResponse{
+						Response: &managerPb.StreamMcpMessagesResponse_McpMessage{
+							McpMessage: message.ToPbMessage(),
+						},
+					}
+
+					err := stream.Send(response)
+					if err != nil {
+						log.Printf("Failed to send response message: %v", err)
+						return nil
+					}
+				}
 
 			case <-s.activeConnectionCreated:
 				// Wait for the mutex to be released
@@ -541,23 +659,26 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 			continue
 
 		case message := <-msgChan:
-			canSend := true
+			if s.canSendMessage(req, message) {
+				responsesToWaitFor--
 
-			if req.OnlyIds != nil {
-				if slices.Contains(req.OnlyIds, message.GetStringId()) {
-					responsesToWaitFor--
-				} else {
-					canSend = false
+				response := &managerPb.StreamMcpMessagesResponse{
+					Response: &managerPb.StreamMcpMessagesResponse_McpMessage{
+						McpMessage: message.ToPbMessage(),
+					},
+				}
+
+				err := stream.Send(response)
+				if err != nil {
+					log.Printf("Failed to send response message: %v", err)
+					return nil
 				}
 			}
 
-			if req.OnlyMessageTypes != nil {
-				if !slices.Contains(req.OnlyMessageTypes, message.GetPbMessageType()) {
-					canSend = false
-				}
-			}
+		case message := <-internalMessages:
+			if s.canSendMessage(req, message) {
+				responsesToWaitFor--
 
-			if canSend {
 				response := &managerPb.StreamMcpMessagesResponse{
 					Response: &managerPb.StreamMcpMessagesResponse_McpMessage{
 						McpMessage: message.ToPbMessage(),
@@ -679,8 +800,29 @@ func (s *LocalSession) setMcpClient(client *mcp.MCPClient) {
 		return
 	}
 
+	if s.dbSession.McpClient == nil {
+		if s.mcpServer != nil {
+			s.dbSession.McpServer = s.mcpServer
+		}
+
+		s.dbSession.McpClient = s.mcpClient
+		go s.db.SaveSession(s.dbSession)
+	}
+
 	s.mcpClient = client
 	s.mcpClientInitWg.Done()
+}
+
+func (s *LocalSession) canSendMessage(req *managerPb.StreamMcpMessagesRequest, message *mcp.MCPMessage) bool {
+	if req.OnlyIds != nil && !slices.Contains(req.OnlyIds, message.GetStringId()) {
+		return false
+	}
+
+	if req.OnlyMessageTypes != nil && !slices.Contains(req.OnlyMessageTypes, message.GetPbMessageType()) {
+		return false
+	}
+
+	return true
 }
 
 func (s *LocalSession) ensureConnection() (workers.WorkerConnection, *db.SessionRun, *mterror.MTError) {
@@ -710,6 +852,7 @@ func (s *LocalSession) ensureConnection() (workers.WorkerConnection, *db.Session
 	connectionInput := s.connectionInput
 	// Update the connection input with the session ID and a new connection ID
 	connectionInput.ConnectionID = util.Must(uuid.NewV7()).String()
+	connectionInput.MCPClient = s.mcpClient
 
 	hash, err := s.workerManager.GetConnectionHashForWorkerType(s.WorkerType, connectionInput)
 	if err != nil {
@@ -778,13 +921,31 @@ func (s *LocalSession) ensureConnection() (workers.WorkerConnection, *db.Session
 	s.lastConnectionInteraction = time.Now()
 	s.lastSessionInteraction = time.Now()
 
-	if s.dbSession.McpServer == nil {
-		server, err := connection.GetServer()
-		if err == nil {
-			s.dbSession.McpServer = server
-			s.dbSession.McpClient = s.mcpClient
-			s.db.SaveSession(s.dbSession)
-		}
+	if s.mcpServer == nil {
+		go func() {
+			if s.dbSession.McpServer == nil {
+				server, err := connection.GetServer()
+				if err == nil {
+					s.dbSession.McpServer = server
+					s.dbSession.McpClient = s.mcpClient
+					s.db.SaveSession(s.dbSession)
+				}
+			}
+
+			s.mcpServerInitMutex.Lock()
+			defer s.mcpServerInitMutex.Unlock()
+
+			if s.mcpServer != nil {
+				return // MCP server already initialized
+			}
+
+			server, err2 := connection.GetServer()
+			if err2 != nil {
+				return
+			}
+
+			s.mcpServer = server
+		}()
 	}
 
 	defer func() {

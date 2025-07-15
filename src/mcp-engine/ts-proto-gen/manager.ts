@@ -406,7 +406,7 @@ export interface StreamMcpMessagesRequest {
   /** Optional, if empty, all messages are streamed */
   onlyIds: string[];
   /** Include messages after this UUID, useful for resuming streams */
-  replayAfterUuid: string;
+  replayAfterUuid?: string | undefined;
 }
 
 export interface SessionEventInfoRun {
@@ -564,7 +564,7 @@ export interface ListPagination {
 
 export interface ListSessionsRequest {
   externalId: string;
-  pagination: ListPagination | undefined;
+  pagination?: ListPagination | undefined;
 }
 
 export interface ListSessionsResponse {
@@ -581,8 +581,8 @@ export interface GetSessionResponse {
 
 export interface ListRunsRequest {
   sessionId: string;
-  pagination: ListPagination | undefined;
-  after: Long;
+  pagination?: ListPagination | undefined;
+  after?: Long | undefined;
 }
 
 export interface ListRunsResponse {
@@ -623,8 +623,8 @@ export interface GetMessageResponse {
 
 export interface ListRunErrorsRequest {
   runId: string;
-  pagination: ListPagination | undefined;
-  after: Long;
+  pagination?: ListPagination | undefined;
+  after?: Long | undefined;
 }
 
 export interface ListRunErrorsResponse {
@@ -633,8 +633,8 @@ export interface ListRunErrorsResponse {
 
 export interface ListRunEventsRequest {
   runId: string;
-  pagination: ListPagination | undefined;
-  after: Long;
+  pagination?: ListPagination | undefined;
+  after?: Long | undefined;
 }
 
 export interface ListRunEventsResponse {
@@ -643,8 +643,8 @@ export interface ListRunEventsResponse {
 
 export interface ListRunMessagesRequest {
   runId: string;
-  pagination: ListPagination | undefined;
-  after: Long;
+  pagination?: ListPagination | undefined;
+  after?: Long | undefined;
 }
 
 export interface ListRunMessagesResponse {
@@ -653,8 +653,8 @@ export interface ListRunMessagesResponse {
 
 export interface ListSessionEventsRequest {
   sessionId: string;
-  pagination: ListPagination | undefined;
-  after: Long;
+  pagination?: ListPagination | undefined;
+  after?: Long | undefined;
 }
 
 export interface ListSessionEventsResponse {
@@ -663,8 +663,8 @@ export interface ListSessionEventsResponse {
 
 export interface ListSessionErrorsRequest {
   sessionId: string;
-  pagination: ListPagination | undefined;
-  after: Long;
+  pagination?: ListPagination | undefined;
+  after?: Long | undefined;
 }
 
 export interface ListSessionErrorsResponse {
@@ -673,8 +673,8 @@ export interface ListSessionErrorsResponse {
 
 export interface ListSessionMessagesRequest {
   sessionId: string;
-  pagination: ListPagination | undefined;
-  after: Long;
+  pagination?: ListPagination | undefined;
+  after?: Long | undefined;
 }
 
 export interface ListSessionMessagesResponse {
@@ -1642,7 +1642,7 @@ export const SendMcpMessageResponse: MessageFns<SendMcpMessageResponse> = {
 };
 
 function createBaseStreamMcpMessagesRequest(): StreamMcpMessagesRequest {
-  return { sessionId: "", onlyMessageTypes: [], onlyIds: [], replayAfterUuid: "" };
+  return { sessionId: "", onlyMessageTypes: [], onlyIds: [], replayAfterUuid: undefined };
 }
 
 export const StreamMcpMessagesRequest: MessageFns<StreamMcpMessagesRequest> = {
@@ -1658,7 +1658,7 @@ export const StreamMcpMessagesRequest: MessageFns<StreamMcpMessagesRequest> = {
     for (const v of message.onlyIds) {
       writer.uint32(26).string(v!);
     }
-    if (message.replayAfterUuid !== "") {
+    if (message.replayAfterUuid !== undefined) {
       writer.uint32(34).string(message.replayAfterUuid);
     }
     return writer;
@@ -1729,7 +1729,7 @@ export const StreamMcpMessagesRequest: MessageFns<StreamMcpMessagesRequest> = {
         ? object.onlyMessageTypes.map((e: any) => mcpMessageTypeFromJSON(e))
         : [],
       onlyIds: globalThis.Array.isArray(object?.onlyIds) ? object.onlyIds.map((e: any) => globalThis.String(e)) : [],
-      replayAfterUuid: isSet(object.replayAfterUuid) ? globalThis.String(object.replayAfterUuid) : "",
+      replayAfterUuid: isSet(object.replayAfterUuid) ? globalThis.String(object.replayAfterUuid) : undefined,
     };
   },
 
@@ -1744,7 +1744,7 @@ export const StreamMcpMessagesRequest: MessageFns<StreamMcpMessagesRequest> = {
     if (message.onlyIds?.length) {
       obj.onlyIds = message.onlyIds;
     }
-    if (message.replayAfterUuid !== "") {
+    if (message.replayAfterUuid !== undefined) {
       obj.replayAfterUuid = message.replayAfterUuid;
     }
     return obj;
@@ -1758,7 +1758,7 @@ export const StreamMcpMessagesRequest: MessageFns<StreamMcpMessagesRequest> = {
     message.sessionId = object.sessionId ?? "";
     message.onlyMessageTypes = object.onlyMessageTypes?.map((e) => e) || [];
     message.onlyIds = object.onlyIds?.map((e) => e) || [];
-    message.replayAfterUuid = object.replayAfterUuid ?? "";
+    message.replayAfterUuid = object.replayAfterUuid ?? undefined;
     return message;
   },
 };
@@ -4504,7 +4504,7 @@ export const GetSessionResponse: MessageFns<GetSessionResponse> = {
 };
 
 function createBaseListRunsRequest(): ListRunsRequest {
-  return { sessionId: "", pagination: undefined, after: Long.ZERO };
+  return { sessionId: "", pagination: undefined, after: undefined };
 }
 
 export const ListRunsRequest: MessageFns<ListRunsRequest> = {
@@ -4515,7 +4515,7 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       writer.uint32(24).int64(message.after.toString());
     }
     return writer;
@@ -4565,7 +4565,7 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
     return {
       sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
     };
   },
 
@@ -4577,7 +4577,7 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
@@ -4592,7 +4592,7 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
     return message;
   },
 };
@@ -5130,7 +5130,7 @@ export const GetMessageResponse: MessageFns<GetMessageResponse> = {
 };
 
 function createBaseListRunErrorsRequest(): ListRunErrorsRequest {
-  return { runId: "", pagination: undefined, after: Long.ZERO };
+  return { runId: "", pagination: undefined, after: undefined };
 }
 
 export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
@@ -5141,7 +5141,7 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       writer.uint32(24).int64(message.after.toString());
     }
     return writer;
@@ -5191,7 +5191,7 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
     return {
       runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
     };
   },
 
@@ -5203,7 +5203,7 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
@@ -5218,7 +5218,7 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
     return message;
   },
 };
@@ -5286,7 +5286,7 @@ export const ListRunErrorsResponse: MessageFns<ListRunErrorsResponse> = {
 };
 
 function createBaseListRunEventsRequest(): ListRunEventsRequest {
-  return { runId: "", pagination: undefined, after: Long.ZERO };
+  return { runId: "", pagination: undefined, after: undefined };
 }
 
 export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
@@ -5297,7 +5297,7 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       writer.uint32(24).int64(message.after.toString());
     }
     return writer;
@@ -5347,7 +5347,7 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
     return {
       runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
     };
   },
 
@@ -5359,7 +5359,7 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
@@ -5374,7 +5374,7 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
     return message;
   },
 };
@@ -5442,7 +5442,7 @@ export const ListRunEventsResponse: MessageFns<ListRunEventsResponse> = {
 };
 
 function createBaseListRunMessagesRequest(): ListRunMessagesRequest {
-  return { runId: "", pagination: undefined, after: Long.ZERO };
+  return { runId: "", pagination: undefined, after: undefined };
 }
 
 export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
@@ -5453,7 +5453,7 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       writer.uint32(24).int64(message.after.toString());
     }
     return writer;
@@ -5503,7 +5503,7 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
     return {
       runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
     };
   },
 
@@ -5515,7 +5515,7 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
@@ -5530,7 +5530,7 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
     return message;
   },
 };
@@ -5598,7 +5598,7 @@ export const ListRunMessagesResponse: MessageFns<ListRunMessagesResponse> = {
 };
 
 function createBaseListSessionEventsRequest(): ListSessionEventsRequest {
-  return { sessionId: "", pagination: undefined, after: Long.ZERO };
+  return { sessionId: "", pagination: undefined, after: undefined };
 }
 
 export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
@@ -5609,7 +5609,7 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       writer.uint32(24).int64(message.after.toString());
     }
     return writer;
@@ -5659,7 +5659,7 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
     return {
       sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
     };
   },
 
@@ -5671,7 +5671,7 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
@@ -5686,7 +5686,7 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
     return message;
   },
 };
@@ -5754,7 +5754,7 @@ export const ListSessionEventsResponse: MessageFns<ListSessionEventsResponse> = 
 };
 
 function createBaseListSessionErrorsRequest(): ListSessionErrorsRequest {
-  return { sessionId: "", pagination: undefined, after: Long.ZERO };
+  return { sessionId: "", pagination: undefined, after: undefined };
 }
 
 export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
@@ -5765,7 +5765,7 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       writer.uint32(24).int64(message.after.toString());
     }
     return writer;
@@ -5815,7 +5815,7 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
     return {
       sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
     };
   },
 
@@ -5827,7 +5827,7 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
@@ -5842,7 +5842,7 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
     return message;
   },
 };
@@ -5910,7 +5910,7 @@ export const ListSessionErrorsResponse: MessageFns<ListSessionErrorsResponse> = 
 };
 
 function createBaseListSessionMessagesRequest(): ListSessionMessagesRequest {
-  return { sessionId: "", pagination: undefined, after: Long.ZERO };
+  return { sessionId: "", pagination: undefined, after: undefined };
 }
 
 export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> = {
@@ -5921,7 +5921,7 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       writer.uint32(24).int64(message.after.toString());
     }
     return writer;
@@ -5971,7 +5971,7 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
     return {
       sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
     };
   },
 
@@ -5983,7 +5983,7 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
@@ -5998,7 +5998,7 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
     return message;
   },
 };

@@ -99,6 +99,12 @@ func (c *MCPClient) ToInitMessage(version string) (*MCPMessage, error) {
 	return NewMCPRequestMessage(fmt.Sprintf("mte/init/%d", time.Now().UnixMilli()), "initialize", inner)
 }
 
+func (c *MCPServer) ToInitMessage(inResponseTo *MCPMessage) (*MCPMessage, error) {
+	inner := c.Assemble()
+
+	return NewMCPResponseMessage(inResponseTo, inner)
+}
+
 func (s *MCPServer) Assemble() map[string]any {
 	data := map[string]any{
 		"serverInfo":   s.Info,
