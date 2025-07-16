@@ -263,7 +263,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 				return
 			}
 
-			message, err := server.ToInitMessage(initMessage)
+			message, err := server.ToInitMessage(s.mcpClient, initMessage)
 			if err != nil {
 				return
 			}
@@ -1108,6 +1108,12 @@ loop:
 			))
 
 		case message := <-msgChan:
+			if strings.HasPrefix(message.GetStringId(), "mte/init/") {
+				// Skip initialization messages, as they are always handled internally
+				// and not by the MCP client.
+				continue
+			}
+
 			go s.db.CreateMessage(
 				db.NewMessage(
 					s.dbSession,

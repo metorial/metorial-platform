@@ -18,20 +18,21 @@ type ParticipantInfo struct {
 }
 
 type MCPClient struct {
-	Info         ParticipantInfo `json:"clientInfo"`
-	Capabilities Capabilities    `json:"capabilities"`
-	Extra        map[string]any  `json:"-"`
+	Info            ParticipantInfo `json:"clientInfo"`
+	Capabilities    Capabilities    `json:"capabilities"`
+	ProtocolVersion string          `json:"protocolVersion"`
+	Extra           map[string]any  `json:"-"`
 }
 
 type MCPClientInitMessage struct {
-	ProtocolVersion string    `json:"protocolVersion"`
-	McpClient       MCPClient `json:"params"`
+	McpClient MCPClient `json:"params"`
 }
 
 type MCPServer struct {
-	Info         ParticipantInfo `json:"serverInfo"`
-	Capabilities Capabilities    `json:"capabilities"`
-	Extra        map[string]any  `json:"-"`
+	Info            ParticipantInfo `json:"serverInfo"`
+	Capabilities    Capabilities    `json:"capabilities"`
+	ProtocolVersion string          `json:"protocolVersion"`
+	Extra           map[string]any  `json:"-"`
 }
 
 func ParseMcpClient(data []byte) (*MCPClient, error) {
@@ -99,8 +100,9 @@ func (c *MCPClient) ToInitMessage(version string) (*MCPMessage, error) {
 	return NewMCPRequestMessage(fmt.Sprintf("mte/init/%d", time.Now().UnixMilli()), "initialize", inner)
 }
 
-func (c *MCPServer) ToInitMessage(inResponseTo *MCPMessage) (*MCPMessage, error) {
+func (c *MCPServer) ToInitMessage(client *MCPClient, inResponseTo *MCPMessage) (*MCPMessage, error) {
 	inner := c.Assemble()
+	inner["protocolVersion"] = client.ProtocolVersion
 
 	return NewMCPResponseMessage(inResponseTo, inner)
 }

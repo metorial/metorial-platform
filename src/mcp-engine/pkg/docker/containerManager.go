@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"strings"
 	"sync"
 )
 
@@ -92,7 +93,14 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 	dockerArgs = append(dockerArgs, opts.ImageRef)
 
 	if opts.Command != "" {
-		dockerArgs = append(dockerArgs, opts.Command)
+		// dockerArgs = append(dockerArgs, opts.Command)
+
+		finalCommand := []string{opts.Command}
+		if len(opts.Args) > 0 {
+			finalCommand = append(finalCommand, opts.Args...)
+		}
+
+		dockerArgs = append(dockerArgs, strings.Join(finalCommand, " "))
 	}
 
 	cmd := exec.CommandContext(ctx, "docker", dockerArgs...)

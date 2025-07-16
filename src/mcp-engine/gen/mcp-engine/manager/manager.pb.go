@@ -237,10 +237,12 @@ func (EngineRunType) EnumDescriptor() ([]byte, []int) {
 type EngineSessionEventType int32
 
 const (
-	EngineSessionEventType_session_event_type_output  EngineSessionEventType = 0
-	EngineSessionEventType_session_event_type_error   EngineSessionEventType = 1
-	EngineSessionEventType_session_event_type_log     EngineSessionEventType = 2
-	EngineSessionEventType_session_event_type_unknown EngineSessionEventType = 3
+	EngineSessionEventType_session_event_type_output               EngineSessionEventType = 0
+	EngineSessionEventType_session_event_type_error                EngineSessionEventType = 1
+	EngineSessionEventType_session_event_type_log                  EngineSessionEventType = 2
+	EngineSessionEventType_session_event_type_unknown              EngineSessionEventType = 3
+	EngineSessionEventType_session_event_type_launcher_run_success EngineSessionEventType = 4
+	EngineSessionEventType_session_event_type_launcher_run_error   EngineSessionEventType = 5
 )
 
 // Enum value maps for EngineSessionEventType.
@@ -250,12 +252,16 @@ var (
 		1: "session_event_type_error",
 		2: "session_event_type_log",
 		3: "session_event_type_unknown",
+		4: "session_event_type_launcher_run_success",
+		5: "session_event_type_launcher_run_error",
 	}
 	EngineSessionEventType_value = map[string]int32{
-		"session_event_type_output":  0,
-		"session_event_type_error":   1,
-		"session_event_type_log":     2,
-		"session_event_type_unknown": 3,
+		"session_event_type_output":               0,
+		"session_event_type_error":                1,
+		"session_event_type_log":                  2,
+		"session_event_type_unknown":              3,
+		"session_event_type_launcher_run_success": 4,
+		"session_event_type_launcher_run_error":   5,
 	}
 )
 
@@ -4215,12 +4221,14 @@ const file_manager_proto_rawDesc = "" +
 	"\rEngineRunType\x12\x14\n" +
 	"\x10run_type_unknown\x10\x00\x12\x16\n" +
 	"\x12run_type_container\x10\x01\x12\x13\n" +
-	"\x0frun_type_remote\x10\x02*\x91\x01\n" +
+	"\x0frun_type_remote\x10\x02*\xe9\x01\n" +
 	"\x16EngineSessionEventType\x12\x1d\n" +
 	"\x19session_event_type_output\x10\x00\x12\x1c\n" +
 	"\x18session_event_type_error\x10\x01\x12\x1a\n" +
 	"\x16session_event_type_log\x10\x02\x12\x1e\n" +
-	"\x1asession_event_type_unknown\x10\x03*\x80\x01\n" +
+	"\x1asession_event_type_unknown\x10\x03\x12+\n" +
+	"'session_event_type_launcher_run_success\x10\x04\x12)\n" +
+	"%session_event_type_launcher_run_error\x10\x05*\x80\x01\n" +
 	"\x14SessionMessageSender\x12\"\n" +
 	"\x1esession_message_sender_unknown\x10\x00\x12!\n" +
 	"\x1dsession_message_sender_client\x10\x01\x12!\n" +

@@ -259,6 +259,8 @@ enum EngineSessionEventType {
   session_event_type_error = 1;
   session_event_type_log = 2;
   session_event_type_unknown = 3;
+  session_event_type_launcher_run_success = 4;
+  session_event_type_launcher_run_error = 5;
 }
 
 message EngineSessionEvent {

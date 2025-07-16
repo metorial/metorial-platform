@@ -224,6 +224,8 @@ export enum EngineSessionEventType {
   session_event_type_error = 1,
   session_event_type_log = 2,
   session_event_type_unknown = 3,
+  session_event_type_launcher_run_success = 4,
+  session_event_type_launcher_run_error = 5,
   UNRECOGNIZED = -1,
 }
 
@@ -241,6 +243,12 @@ export function engineSessionEventTypeFromJSON(object: any): EngineSessionEventT
     case 3:
     case "session_event_type_unknown":
       return EngineSessionEventType.session_event_type_unknown;
+    case 4:
+    case "session_event_type_launcher_run_success":
+      return EngineSessionEventType.session_event_type_launcher_run_success;
+    case 5:
+    case "session_event_type_launcher_run_error":
+      return EngineSessionEventType.session_event_type_launcher_run_error;
     case -1:
     case "UNRECOGNIZED":
     default:
@@ -258,6 +266,10 @@ export function engineSessionEventTypeToJSON(object: EngineSessionEventType): st
       return "session_event_type_log";
     case EngineSessionEventType.session_event_type_unknown:
       return "session_event_type_unknown";
+    case EngineSessionEventType.session_event_type_launcher_run_success:
+      return "session_event_type_launcher_run_success";
+    case EngineSessionEventType.session_event_type_launcher_run_error:
+      return "session_event_type_launcher_run_error";
     case EngineSessionEventType.UNRECOGNIZED:
     default:
       return "UNRECOGNIZED";

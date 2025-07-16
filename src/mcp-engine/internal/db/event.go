@@ -15,9 +15,11 @@ import (
 type SessionEventType uint8
 
 const (
-	SessionEventTypeOutput SessionEventType = 0
-	SessionEventTypeError  SessionEventType = 1
-	SessionEventTypeLog    SessionEventType = 2
+	SessionEventTypeOutput              SessionEventType = 0
+	SessionEventTypeError               SessionEventType = 1
+	SessionEventTypeLog                 SessionEventType = 2
+	SessionEventTypeLauncherRun_Success SessionEventType = 3
+	SessionEventTypeLauncherRun_Error   SessionEventType = 4
 )
 
 func (s SessionEventType) ToPb() managerPb.EngineSessionEventType {
@@ -28,6 +30,10 @@ func (s SessionEventType) ToPb() managerPb.EngineSessionEventType {
 		return managerPb.EngineSessionEventType_session_event_type_error
 	case SessionEventTypeLog:
 		return managerPb.EngineSessionEventType_session_event_type_log
+	case SessionEventTypeLauncherRun_Success:
+		return managerPb.EngineSessionEventType_session_event_type_launcher_run_success
+	case SessionEventTypeLauncherRun_Error:
+		return managerPb.EngineSessionEventType_session_event_type_launcher_run_error
 	default:
 		return managerPb.EngineSessionEventType_session_event_type_unknown
 	}
@@ -39,6 +45,8 @@ const (
 	SessionEventTypeOutputTypeStdout SessionEventOutputType = 0
 	SessionEventTypeOutputTypeStderr SessionEventOutputType = 1
 	SessionEventTypeOutputTypeRemote SessionEventOutputType = 2
+
+	SessionEventTypeOutputTypeUnknown SessionEventOutputType = 255
 )
 
 func (s SessionEventOutputType) ToPb() mcpPb.McpOutput_McpOutputType {
@@ -63,7 +71,7 @@ func SessionEventOutputTypeFromPb(outputType mcpPb.McpOutput_McpOutputType) Sess
 	case mcpPb.McpOutput_remote:
 		return SessionEventTypeOutputTypeRemote
 	default:
-		return SessionEventTypeOutputTypeStdout
+		return SessionEventTypeOutputTypeUnknown
 	}
 }
 
@@ -83,7 +91,7 @@ type SessionEvent struct {
 
 	Lines      []string               `gorm:"type:jsonb;serializer:json"`
 	Metadata   map[string]string      `gorm:"type:jsonb;serializer:json"`
-	OutputType SessionEventOutputType `gorm:"type:smallint;not null;default:0"`
+	OutputType SessionEventOutputType `gorm:"type:smallint;default:255"` // Default to unknown
 	OutputId   sql.NullString         `gorm:"type:uuid"`
 
 	CreatedAt time.Time `gorm:"not null"`
@@ -119,6 +127,16 @@ func NewOutputEvent(session *Session, run *SessionRun, output *mcpPb.McpOutput) 
 		OutputType: SessionEventOutputTypeFromPb(output.OutputType),
 		Run:        run,
 		Lines:      output.Lines,
+	}
+}
+
+func NewLauncherEvent(session *Session, eventType SessionEventType) *SessionEvent {
+	return &SessionEvent{
+		ID:         util.Must(uuid.NewV7()).String(),
+		Type:       eventType,
+		SessionID:  session.ID,
+		Session:    session,
+		OutputType: SessionEventTypeOutputTypeUnknown,
 	}
 }
 

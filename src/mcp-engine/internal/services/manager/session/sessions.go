@@ -215,6 +215,11 @@ func (s *Sessions) UpsertSession(
 		if request.Config.GetContainerRunConfigWithLauncher() != nil {
 			connectionInput.ContainerRunConfig, err = s.launcher.GetContainerLaunchParams(request.Config.GetContainerRunConfigWithLauncher())
 			if err != nil {
+				go s.db.CreateEvent(db.NewLauncherEvent(
+					dbSession,
+					db.SessionEventTypeLauncherRun_Error,
+				))
+
 				go s.db.CreateError(db.NewErrorStructuredError(
 					dbSession,
 					"get_launch_params_error",
@@ -225,6 +230,11 @@ func (s *Sessions) UpsertSession(
 				log.Printf("Failed to get runner launch params: %v\n", err)
 				return nil, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err.Error(), err)
 			}
+
+			go s.db.CreateEvent(db.NewLauncherEvent(
+				dbSession,
+				db.SessionEventTypeLauncherRun_Success,
+			))
 		} else if request.Config.GetContainerRunConfigWithContainerArguments() != nil {
 			connectionInput.ContainerRunConfig = request.Config.GetContainerRunConfigWithContainerArguments()
 		} else if request.Config.GetRemoteRunConfigWithLauncher() != nil {
