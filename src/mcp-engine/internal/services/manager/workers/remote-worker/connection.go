@@ -161,3 +161,15 @@ func (rwc *RemoteWorkerConnection) Errors() pubsub.BroadcasterReader[*mcpPb.McpE
 func (rwc *RemoteWorkerConnection) InactivityTimeout() time.Duration {
 	return time.Minute * 5
 }
+
+func (rwc *RemoteWorkerConnection) Clone() (workers.WorkerConnection, error) {
+	res := &RemoteWorkerConnection{
+		run:          rwc.run.Clone(),
+		mcpClient:    rwc.mcpClient,
+		mcpConfig:    rwc.mcpConfig,
+		connectionID: rwc.connectionID,
+		sessionID:    rwc.sessionID,
+	}
+
+	return res, nil
+}

@@ -25,6 +25,8 @@ type WorkerConnection interface {
 	Errors() pubsub.BroadcasterReader[*mcpPb.McpError]
 
 	InactivityTimeout() time.Duration
+
+	Clone() (WorkerConnection, error)
 }
 
 type WorkerConnectionInput struct {

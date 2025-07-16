@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	mcpPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	remotePb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
@@ -133,6 +134,26 @@ func (r *Run) Close() error {
 
 func (r *Run) Done() pubsub.BroadcasterReader[struct{}] {
 	return r.doneBroadcaster
+}
+
+func (r *Run) Clone() *Run {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	newRun := &Run{
+		context: ctx,
+		cancel:  cancel,
+
+		ConnectionID: uuid.Must(uuid.NewV7()).String(),
+
+		Config:          r.Config,
+		client:          r.client,
+		doneBroadcaster: pubsub.NewBroadcaster[struct{}](),
+		messages:        pubsub.NewBroadcaster[*mcp.MCPMessage](),
+		output:          pubsub.NewBroadcaster[*mcpPB.McpOutput](),
+		errors:          pubsub.NewBroadcaster[*mcpPB.McpError](),
+	}
+
+	return newRun
 }
 
 func (r *Run) handleStream() {
