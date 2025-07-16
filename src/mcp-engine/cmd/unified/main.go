@@ -32,7 +32,7 @@ func main() {
 
 	go runManager(managerAddress, etcdEndpoints, dsn)
 
-	timer := time.NewTimer(2 * time.Second)
+	timer := time.NewTimer(1 * time.Second)
 	<-timer.C
 
 	go runLauncher(managerAddress)

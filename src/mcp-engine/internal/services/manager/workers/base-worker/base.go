@@ -6,13 +6,16 @@ import (
 	"io"
 	"log"
 	"sync"
+	"time"
 
 	launcherPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/launcher"
 	workerPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 )
 
 type BaseWorkerConnection struct {
@@ -62,7 +65,23 @@ func (bw *BaseWorkerConnection) Start() error {
 	bw.mutex.Lock()
 	defer bw.mutex.Unlock()
 
-	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(address,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.Config{
+				BaseDelay:  1 * time.Second,
+				Multiplier: 1.2,
+				Jitter:     0.2,
+				MaxDelay:   5 * time.Second,
+			},
+			MinConnectTimeout: 5 * time.Second,
+		}),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                60 * time.Second, // safer: 60s or more
+			Timeout:             20 * time.Second,
+			PermitWithoutStream: false, // only send pings when RPCs are active
+		}),
+	)
 	if err != nil {
 		return err
 	}

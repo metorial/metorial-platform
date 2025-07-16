@@ -12,6 +12,7 @@ import (
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
 	"github.com/metorial/metorial/mcp-engine/pkg/addr"
+	grpc_util "github.com/metorial/metorial/mcp-engine/pkg/grpc-util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
@@ -100,7 +101,7 @@ func (w *Worker) start() error {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc_util.NewGrpcServer(fmt.Sprintf("worker.%s", w.workerType.String()))
 	w.grpcServer = grpcServer
 
 	w.workerServer = &workerServer{worker: w}
