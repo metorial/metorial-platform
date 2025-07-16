@@ -32,6 +32,10 @@ import {
   mcpMessageTypeToJSON,
   McpOutput,
   McpParticipant,
+  McpPrompt,
+  McpResource,
+  McpResourceTemplate,
+  McpTool,
 } from "./mcp";
 import { RunConfig as RunConfig1, RunConfigRemoteServer } from "./remote";
 import { RunConfig, RunConfigContainer } from "./runner";
@@ -315,6 +319,39 @@ export function sessionMessageSenderToJSON(object: SessionMessageSender): string
   }
 }
 
+export enum EngineServerStatus {
+  session_status_discovered = 0,
+  session_status_not_discovered = 1,
+  UNRECOGNIZED = -1,
+}
+
+export function engineServerStatusFromJSON(object: any): EngineServerStatus {
+  switch (object) {
+    case 0:
+    case "session_status_discovered":
+      return EngineServerStatus.session_status_discovered;
+    case 1:
+    case "session_status_not_discovered":
+      return EngineServerStatus.session_status_not_discovered;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return EngineServerStatus.UNRECOGNIZED;
+  }
+}
+
+export function engineServerStatusToJSON(object: EngineServerStatus): string {
+  switch (object) {
+    case EngineServerStatus.session_status_discovered:
+      return "session_status_discovered";
+    case EngineServerStatus.session_status_not_discovered:
+      return "session_status_not_discovered";
+    case EngineServerStatus.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
 export enum ListPaginationOrder {
   list_cursor_order_asc = 0,
   list_cursor_order_desc = 1,
@@ -485,6 +522,7 @@ export interface EngineSession {
   hasError: boolean;
   mcpClient: McpParticipant | undefined;
   mcpServer: McpParticipant | undefined;
+  server: EngineServer | undefined;
   createdAt: Long;
   updatedAt: Long;
   startedAt: Long;
@@ -563,6 +601,31 @@ export interface EngineSessionMessage {
 }
 
 export interface EngineSessionMessage_MetadataEntry {
+  key: string;
+  value: string;
+}
+
+export interface EngineServer {
+  id: string;
+  identifier: string;
+  type: EngineSessionType;
+  status: EngineServerStatus;
+  mcpServer: McpParticipant | undefined;
+  tools: McpTool[];
+  prompts: McpPrompt[];
+  resources: McpResource[];
+  resourceTemplates: McpResourceTemplate[];
+  /** Optional, Additional metadata for the server */
+  metadata: { [key: string]: string };
+  /** Timestamp when the server was created */
+  createdAt: Long;
+  /** Timestamp when the server was last updated */
+  updatedAt: Long;
+  /** Timestamp when the server was last discovered */
+  lastDiscoveryAt?: Long | undefined;
+}
+
+export interface EngineServer_MetadataEntry {
   key: string;
   value: string;
 }
@@ -707,6 +770,22 @@ export interface ListRecentlyActiveSessionsRequest {
 
 export interface ListRecentlyActiveSessionsResponse {
   sessionIds: string[];
+}
+
+export interface GetServerRequest {
+  serverId: string;
+}
+
+export interface GetServerResponse {
+  server: EngineServer | undefined;
+}
+
+export interface ListServersRequest {
+  pagination?: ListPagination | undefined;
+}
+
+export interface ListServersResponse {
+  servers: EngineServer[];
 }
 
 function createBaseCheckActiveSessionRequest(): CheckActiveSessionRequest {
@@ -2642,6 +2721,7 @@ function createBaseEngineSession(): EngineSession {
     hasError: false,
     mcpClient: undefined,
     mcpServer: undefined,
+    server: undefined,
     createdAt: Long.ZERO,
     updatedAt: Long.ZERO,
     startedAt: Long.ZERO,
@@ -2673,6 +2753,9 @@ export const EngineSession: MessageFns<EngineSession> = {
     }
     if (message.mcpServer !== undefined) {
       McpParticipant.encode(message.mcpServer, writer.uint32(50).fork()).join();
+    }
+    if (message.server !== undefined) {
+      EngineServer.encode(message.server, writer.uint32(114).fork()).join();
     }
     if (!message.createdAt.equals(Long.ZERO)) {
       writer.uint32(56).int64(message.createdAt.toString());
@@ -2758,6 +2841,14 @@ export const EngineSession: MessageFns<EngineSession> = {
           message.mcpServer = McpParticipant.decode(reader, reader.uint32());
           continue;
         }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.server = EngineServer.decode(reader, reader.uint32());
+          continue;
+        }
         case 7: {
           if (tag !== 56) {
             break;
@@ -2824,6 +2915,7 @@ export const EngineSession: MessageFns<EngineSession> = {
       hasError: isSet(object.hasError) ? globalThis.Boolean(object.hasError) : false,
       mcpClient: isSet(object.mcpClient) ? McpParticipant.fromJSON(object.mcpClient) : undefined,
       mcpServer: isSet(object.mcpServer) ? McpParticipant.fromJSON(object.mcpServer) : undefined,
+      server: isSet(object.server) ? EngineServer.fromJSON(object.server) : undefined,
       createdAt: isSet(object.createdAt) ? Long.fromValue(object.createdAt) : Long.ZERO,
       updatedAt: isSet(object.updatedAt) ? Long.fromValue(object.updatedAt) : Long.ZERO,
       startedAt: isSet(object.startedAt) ? Long.fromValue(object.startedAt) : Long.ZERO,
@@ -2855,6 +2947,9 @@ export const EngineSession: MessageFns<EngineSession> = {
     }
     if (message.mcpServer !== undefined) {
       obj.mcpServer = McpParticipant.toJSON(message.mcpServer);
+    }
+    if (message.server !== undefined) {
+      obj.server = EngineServer.toJSON(message.server);
     }
     if (!message.createdAt.equals(Long.ZERO)) {
       obj.createdAt = (message.createdAt || Long.ZERO).toString();
@@ -2892,6 +2987,9 @@ export const EngineSession: MessageFns<EngineSession> = {
       : undefined;
     message.mcpServer = (object.mcpServer !== undefined && object.mcpServer !== null)
       ? McpParticipant.fromPartial(object.mcpServer)
+      : undefined;
+    message.server = (object.server !== undefined && object.server !== null)
+      ? EngineServer.fromPartial(object.server)
       : undefined;
     message.createdAt = (object.createdAt !== undefined && object.createdAt !== null)
       ? Long.fromValue(object.createdAt)
@@ -4143,6 +4241,379 @@ export const EngineSessionMessage_MetadataEntry: MessageFns<EngineSessionMessage
   },
   fromPartial(object: DeepPartial<EngineSessionMessage_MetadataEntry>): EngineSessionMessage_MetadataEntry {
     const message = createBaseEngineSessionMessage_MetadataEntry();
+    message.key = object.key ?? "";
+    message.value = object.value ?? "";
+    return message;
+  },
+};
+
+function createBaseEngineServer(): EngineServer {
+  return {
+    id: "",
+    identifier: "",
+    type: 0,
+    status: 0,
+    mcpServer: undefined,
+    tools: [],
+    prompts: [],
+    resources: [],
+    resourceTemplates: [],
+    metadata: {},
+    createdAt: Long.ZERO,
+    updatedAt: Long.ZERO,
+    lastDiscoveryAt: undefined,
+  };
+}
+
+export const EngineServer: MessageFns<EngineServer> = {
+  encode(message: EngineServer, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.identifier !== "") {
+      writer.uint32(18).string(message.identifier);
+    }
+    if (message.type !== 0) {
+      writer.uint32(24).int32(message.type);
+    }
+    if (message.status !== 0) {
+      writer.uint32(32).int32(message.status);
+    }
+    if (message.mcpServer !== undefined) {
+      McpParticipant.encode(message.mcpServer, writer.uint32(42).fork()).join();
+    }
+    for (const v of message.tools) {
+      McpTool.encode(v!, writer.uint32(50).fork()).join();
+    }
+    for (const v of message.prompts) {
+      McpPrompt.encode(v!, writer.uint32(58).fork()).join();
+    }
+    for (const v of message.resources) {
+      McpResource.encode(v!, writer.uint32(66).fork()).join();
+    }
+    for (const v of message.resourceTemplates) {
+      McpResourceTemplate.encode(v!, writer.uint32(74).fork()).join();
+    }
+    Object.entries(message.metadata).forEach(([key, value]) => {
+      EngineServer_MetadataEntry.encode({ key: key as any, value }, writer.uint32(82).fork()).join();
+    });
+    if (!message.createdAt.equals(Long.ZERO)) {
+      writer.uint32(88).int64(message.createdAt.toString());
+    }
+    if (!message.updatedAt.equals(Long.ZERO)) {
+      writer.uint32(96).int64(message.updatedAt.toString());
+    }
+    if (message.lastDiscoveryAt !== undefined) {
+      writer.uint32(104).int64(message.lastDiscoveryAt.toString());
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EngineServer {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEngineServer();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.identifier = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.mcpServer = McpParticipant.decode(reader, reader.uint32());
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.tools.push(McpTool.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.prompts.push(McpPrompt.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.resources.push(McpResource.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.resourceTemplates.push(McpResourceTemplate.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          const entry10 = EngineServer_MetadataEntry.decode(reader, reader.uint32());
+          if (entry10.value !== undefined) {
+            message.metadata[entry10.key] = entry10.value;
+          }
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.createdAt = Long.fromString(reader.int64().toString());
+          continue;
+        }
+        case 12: {
+          if (tag !== 96) {
+            break;
+          }
+
+          message.updatedAt = Long.fromString(reader.int64().toString());
+          continue;
+        }
+        case 13: {
+          if (tag !== 104) {
+            break;
+          }
+
+          message.lastDiscoveryAt = Long.fromString(reader.int64().toString());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EngineServer {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      identifier: isSet(object.identifier) ? globalThis.String(object.identifier) : "",
+      type: isSet(object.type) ? engineSessionTypeFromJSON(object.type) : 0,
+      status: isSet(object.status) ? engineServerStatusFromJSON(object.status) : 0,
+      mcpServer: isSet(object.mcpServer) ? McpParticipant.fromJSON(object.mcpServer) : undefined,
+      tools: globalThis.Array.isArray(object?.tools) ? object.tools.map((e: any) => McpTool.fromJSON(e)) : [],
+      prompts: globalThis.Array.isArray(object?.prompts) ? object.prompts.map((e: any) => McpPrompt.fromJSON(e)) : [],
+      resources: globalThis.Array.isArray(object?.resources)
+        ? object.resources.map((e: any) => McpResource.fromJSON(e))
+        : [],
+      resourceTemplates: globalThis.Array.isArray(object?.resourceTemplates)
+        ? object.resourceTemplates.map((e: any) => McpResourceTemplate.fromJSON(e))
+        : [],
+      metadata: isObject(object.metadata)
+        ? Object.entries(object.metadata).reduce<{ [key: string]: string }>((acc, [key, value]) => {
+          acc[key] = String(value);
+          return acc;
+        }, {})
+        : {},
+      createdAt: isSet(object.createdAt) ? Long.fromValue(object.createdAt) : Long.ZERO,
+      updatedAt: isSet(object.updatedAt) ? Long.fromValue(object.updatedAt) : Long.ZERO,
+      lastDiscoveryAt: isSet(object.lastDiscoveryAt) ? Long.fromValue(object.lastDiscoveryAt) : undefined,
+    };
+  },
+
+  toJSON(message: EngineServer): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.identifier !== "") {
+      obj.identifier = message.identifier;
+    }
+    if (message.type !== 0) {
+      obj.type = engineSessionTypeToJSON(message.type);
+    }
+    if (message.status !== 0) {
+      obj.status = engineServerStatusToJSON(message.status);
+    }
+    if (message.mcpServer !== undefined) {
+      obj.mcpServer = McpParticipant.toJSON(message.mcpServer);
+    }
+    if (message.tools?.length) {
+      obj.tools = message.tools.map((e) => McpTool.toJSON(e));
+    }
+    if (message.prompts?.length) {
+      obj.prompts = message.prompts.map((e) => McpPrompt.toJSON(e));
+    }
+    if (message.resources?.length) {
+      obj.resources = message.resources.map((e) => McpResource.toJSON(e));
+    }
+    if (message.resourceTemplates?.length) {
+      obj.resourceTemplates = message.resourceTemplates.map((e) => McpResourceTemplate.toJSON(e));
+    }
+    if (message.metadata) {
+      const entries = Object.entries(message.metadata);
+      if (entries.length > 0) {
+        obj.metadata = {};
+        entries.forEach(([k, v]) => {
+          obj.metadata[k] = v;
+        });
+      }
+    }
+    if (!message.createdAt.equals(Long.ZERO)) {
+      obj.createdAt = (message.createdAt || Long.ZERO).toString();
+    }
+    if (!message.updatedAt.equals(Long.ZERO)) {
+      obj.updatedAt = (message.updatedAt || Long.ZERO).toString();
+    }
+    if (message.lastDiscoveryAt !== undefined) {
+      obj.lastDiscoveryAt = (message.lastDiscoveryAt || Long.ZERO).toString();
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<EngineServer>): EngineServer {
+    return EngineServer.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<EngineServer>): EngineServer {
+    const message = createBaseEngineServer();
+    message.id = object.id ?? "";
+    message.identifier = object.identifier ?? "";
+    message.type = object.type ?? 0;
+    message.status = object.status ?? 0;
+    message.mcpServer = (object.mcpServer !== undefined && object.mcpServer !== null)
+      ? McpParticipant.fromPartial(object.mcpServer)
+      : undefined;
+    message.tools = object.tools?.map((e) => McpTool.fromPartial(e)) || [];
+    message.prompts = object.prompts?.map((e) => McpPrompt.fromPartial(e)) || [];
+    message.resources = object.resources?.map((e) => McpResource.fromPartial(e)) || [];
+    message.resourceTemplates = object.resourceTemplates?.map((e) => McpResourceTemplate.fromPartial(e)) || [];
+    message.metadata = Object.entries(object.metadata ?? {}).reduce<{ [key: string]: string }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = globalThis.String(value);
+      }
+      return acc;
+    }, {});
+    message.createdAt = (object.createdAt !== undefined && object.createdAt !== null)
+      ? Long.fromValue(object.createdAt)
+      : Long.ZERO;
+    message.updatedAt = (object.updatedAt !== undefined && object.updatedAt !== null)
+      ? Long.fromValue(object.updatedAt)
+      : Long.ZERO;
+    message.lastDiscoveryAt = (object.lastDiscoveryAt !== undefined && object.lastDiscoveryAt !== null)
+      ? Long.fromValue(object.lastDiscoveryAt)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseEngineServer_MetadataEntry(): EngineServer_MetadataEntry {
+  return { key: "", value: "" };
+}
+
+export const EngineServer_MetadataEntry: MessageFns<EngineServer_MetadataEntry> = {
+  encode(message: EngineServer_MetadataEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== "") {
+      writer.uint32(18).string(message.value);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EngineServer_MetadataEntry {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEngineServer_MetadataEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.key = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.value = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EngineServer_MetadataEntry {
+    return {
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      value: isSet(object.value) ? globalThis.String(object.value) : "",
+    };
+  },
+
+  toJSON(message: EngineServer_MetadataEntry): unknown {
+    const obj: any = {};
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== "") {
+      obj.value = message.value;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<EngineServer_MetadataEntry>): EngineServer_MetadataEntry {
+    return EngineServer_MetadataEntry.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<EngineServer_MetadataEntry>): EngineServer_MetadataEntry {
+    const message = createBaseEngineServer_MetadataEntry();
     message.key = object.key ?? "";
     message.value = object.value ?? "";
     return message;
@@ -6315,6 +6786,246 @@ export const ListRecentlyActiveSessionsResponse: MessageFns<ListRecentlyActiveSe
   },
 };
 
+function createBaseGetServerRequest(): GetServerRequest {
+  return { serverId: "" };
+}
+
+export const GetServerRequest: MessageFns<GetServerRequest> = {
+  encode(message: GetServerRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.serverId !== "") {
+      writer.uint32(10).string(message.serverId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetServerRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetServerRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.serverId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetServerRequest {
+    return { serverId: isSet(object.serverId) ? globalThis.String(object.serverId) : "" };
+  },
+
+  toJSON(message: GetServerRequest): unknown {
+    const obj: any = {};
+    if (message.serverId !== "") {
+      obj.serverId = message.serverId;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<GetServerRequest>): GetServerRequest {
+    return GetServerRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<GetServerRequest>): GetServerRequest {
+    const message = createBaseGetServerRequest();
+    message.serverId = object.serverId ?? "";
+    return message;
+  },
+};
+
+function createBaseGetServerResponse(): GetServerResponse {
+  return { server: undefined };
+}
+
+export const GetServerResponse: MessageFns<GetServerResponse> = {
+  encode(message: GetServerResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.server !== undefined) {
+      EngineServer.encode(message.server, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetServerResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetServerResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.server = EngineServer.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetServerResponse {
+    return { server: isSet(object.server) ? EngineServer.fromJSON(object.server) : undefined };
+  },
+
+  toJSON(message: GetServerResponse): unknown {
+    const obj: any = {};
+    if (message.server !== undefined) {
+      obj.server = EngineServer.toJSON(message.server);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<GetServerResponse>): GetServerResponse {
+    return GetServerResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<GetServerResponse>): GetServerResponse {
+    const message = createBaseGetServerResponse();
+    message.server = (object.server !== undefined && object.server !== null)
+      ? EngineServer.fromPartial(object.server)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseListServersRequest(): ListServersRequest {
+  return { pagination: undefined };
+}
+
+export const ListServersRequest: MessageFns<ListServersRequest> = {
+  encode(message: ListServersRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.pagination !== undefined) {
+      ListPagination.encode(message.pagination, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListServersRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListServersRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.pagination = ListPagination.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListServersRequest {
+    return { pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined };
+  },
+
+  toJSON(message: ListServersRequest): unknown {
+    const obj: any = {};
+    if (message.pagination !== undefined) {
+      obj.pagination = ListPagination.toJSON(message.pagination);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<ListServersRequest>): ListServersRequest {
+    return ListServersRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ListServersRequest>): ListServersRequest {
+    const message = createBaseListServersRequest();
+    message.pagination = (object.pagination !== undefined && object.pagination !== null)
+      ? ListPagination.fromPartial(object.pagination)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseListServersResponse(): ListServersResponse {
+  return { servers: [] };
+}
+
+export const ListServersResponse: MessageFns<ListServersResponse> = {
+  encode(message: ListServersResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.servers) {
+      EngineServer.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListServersResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListServersResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.servers.push(EngineServer.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListServersResponse {
+    return {
+      servers: globalThis.Array.isArray(object?.servers)
+        ? object.servers.map((e: any) => EngineServer.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListServersResponse): unknown {
+    const obj: any = {};
+    if (message.servers?.length) {
+      obj.servers = message.servers.map((e) => EngineServer.toJSON(e));
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<ListServersResponse>): ListServersResponse {
+    return ListServersResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ListServersResponse>): ListServersResponse {
+    const message = createBaseListServersResponse();
+    message.servers = object.servers?.map((e) => EngineServer.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 export type McpManagerService = typeof McpManagerService;
 export const McpManagerService = {
   checkActiveSession: {
@@ -6552,6 +7263,24 @@ export const McpManagerService = {
     responseDeserialize: (value: Buffer): ListRecentlyActiveSessionsResponse =>
       ListRecentlyActiveSessionsResponse.decode(value),
   },
+  getServer: {
+    path: "/broker.manager.McpManager/GetServer",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: GetServerRequest): Buffer => Buffer.from(GetServerRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetServerRequest => GetServerRequest.decode(value),
+    responseSerialize: (value: GetServerResponse): Buffer => Buffer.from(GetServerResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetServerResponse => GetServerResponse.decode(value),
+  },
+  listServers: {
+    path: "/broker.manager.McpManager/ListServers",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: ListServersRequest): Buffer => Buffer.from(ListServersRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListServersRequest => ListServersRequest.decode(value),
+    responseSerialize: (value: ListServersResponse): Buffer => Buffer.from(ListServersResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListServersResponse => ListServersResponse.decode(value),
+  },
 } as const;
 
 export interface McpManagerServer extends UntypedServiceImplementation {
@@ -6578,6 +7307,8 @@ export interface McpManagerServer extends UntypedServiceImplementation {
   getMessage: handleUnaryCall<GetMessageRequest, GetMessageResponse>;
   listRecentlyActiveRuns: handleUnaryCall<ListRecentlyActiveRunsRequest, ListRecentlyActiveRunsResponse>;
   listRecentlyActiveSessions: handleUnaryCall<ListRecentlyActiveSessionsRequest, ListRecentlyActiveSessionsResponse>;
+  getServer: handleUnaryCall<GetServerRequest, GetServerResponse>;
+  listServers: handleUnaryCall<ListServersRequest, ListServersResponse>;
 }
 
 export interface McpManagerClient extends Client {
@@ -6913,6 +7644,36 @@ export interface McpManagerClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ListRecentlyActiveSessionsResponse) => void,
+  ): ClientUnaryCall;
+  getServer(
+    request: GetServerRequest,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
+  getServer(
+    request: GetServerRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
+  getServer(
+    request: GetServerRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
+  listServers(
+    request: ListServersRequest,
+    callback: (error: ServiceError | null, response: ListServersResponse) => void,
+  ): ClientUnaryCall;
+  listServers(
+    request: ListServersRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListServersResponse) => void,
+  ): ClientUnaryCall;
+  listServers(
+    request: ListServersRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListServersResponse) => void,
   ): ClientUnaryCall;
 }
 

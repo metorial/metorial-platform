@@ -44,6 +44,8 @@ const (
 	McpManager_GetMessage_FullMethodName                 = "/broker.manager.McpManager/GetMessage"
 	McpManager_ListRecentlyActiveRuns_FullMethodName     = "/broker.manager.McpManager/ListRecentlyActiveRuns"
 	McpManager_ListRecentlyActiveSessions_FullMethodName = "/broker.manager.McpManager/ListRecentlyActiveSessions"
+	McpManager_GetServer_FullMethodName                  = "/broker.manager.McpManager/GetServer"
+	McpManager_ListServers_FullMethodName                = "/broker.manager.McpManager/ListServers"
 )
 
 // McpManagerClient is the client API for McpManager service.
@@ -73,6 +75,8 @@ type McpManagerClient interface {
 	GetMessage(ctx context.Context, in *GetMessageRequest, opts ...grpc.CallOption) (*GetMessageResponse, error)
 	ListRecentlyActiveRuns(ctx context.Context, in *ListRecentlyActiveRunsRequest, opts ...grpc.CallOption) (*ListRecentlyActiveRunsResponse, error)
 	ListRecentlyActiveSessions(ctx context.Context, in *ListRecentlyActiveSessionsRequest, opts ...grpc.CallOption) (*ListRecentlyActiveSessionsResponse, error)
+	GetServer(ctx context.Context, in *GetServerRequest, opts ...grpc.CallOption) (*GetServerResponse, error)
+	ListServers(ctx context.Context, in *ListServersRequest, opts ...grpc.CallOption) (*ListServersResponse, error)
 }
 
 type mcpManagerClient struct {
@@ -331,6 +335,26 @@ func (c *mcpManagerClient) ListRecentlyActiveSessions(ctx context.Context, in *L
 	return out, nil
 }
 
+func (c *mcpManagerClient) GetServer(ctx context.Context, in *GetServerRequest, opts ...grpc.CallOption) (*GetServerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetServerResponse)
+	err := c.cc.Invoke(ctx, McpManager_GetServer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) ListServers(ctx context.Context, in *ListServersRequest, opts ...grpc.CallOption) (*ListServersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListServersResponse)
+	err := c.cc.Invoke(ctx, McpManager_ListServers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // McpManagerServer is the server API for McpManager service.
 // All implementations must embed UnimplementedMcpManagerServer
 // for forward compatibility.
@@ -358,6 +382,8 @@ type McpManagerServer interface {
 	GetMessage(context.Context, *GetMessageRequest) (*GetMessageResponse, error)
 	ListRecentlyActiveRuns(context.Context, *ListRecentlyActiveRunsRequest) (*ListRecentlyActiveRunsResponse, error)
 	ListRecentlyActiveSessions(context.Context, *ListRecentlyActiveSessionsRequest) (*ListRecentlyActiveSessionsResponse, error)
+	GetServer(context.Context, *GetServerRequest) (*GetServerResponse, error)
+	ListServers(context.Context, *ListServersRequest) (*ListServersResponse, error)
 	mustEmbedUnimplementedMcpManagerServer()
 }
 
@@ -436,6 +462,12 @@ func (UnimplementedMcpManagerServer) ListRecentlyActiveRuns(context.Context, *Li
 }
 func (UnimplementedMcpManagerServer) ListRecentlyActiveSessions(context.Context, *ListRecentlyActiveSessionsRequest) (*ListRecentlyActiveSessionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListRecentlyActiveSessions not implemented")
+}
+func (UnimplementedMcpManagerServer) GetServer(context.Context, *GetServerRequest) (*GetServerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetServer not implemented")
+}
+func (UnimplementedMcpManagerServer) ListServers(context.Context, *ListServersRequest) (*ListServersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListServers not implemented")
 }
 func (UnimplementedMcpManagerServer) mustEmbedUnimplementedMcpManagerServer() {}
 func (UnimplementedMcpManagerServer) testEmbeddedByValue()                    {}
@@ -858,6 +890,42 @@ func _McpManager_ListRecentlyActiveSessions_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _McpManager_GetServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetServerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).GetServer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_GetServer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).GetServer(ctx, req.(*GetServerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_ListServers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListServersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).ListServers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_ListServers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).ListServers(ctx, req.(*ListServersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // McpManager_ServiceDesc is the grpc.ServiceDesc for McpManager service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -948,6 +1016,14 @@ var McpManager_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListRecentlyActiveSessions",
 			Handler:    _McpManager_ListRecentlyActiveSessions_Handler,
+		},
+		{
+			MethodName: "GetServer",
+			Handler:    _McpManager_GetServer_Handler,
+		},
+		{
+			MethodName: "ListServers",
+			Handler:    _McpManager_ListServers_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

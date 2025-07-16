@@ -67,3 +67,28 @@ message McpParticipant {
 message McpConfig {
   string mcp_version = 1;
 }
+
+message McpTool {
+  string name = 1;
+  optional string description = 2;
+  string json = 3;
+}
+
+message McpPrompt {
+  string name = 1;
+  optional string description = 2;
+  string json = 3;
+}
+
+message McpResource {
+  string name = 1;
+  optional string description = 2;
+  string json = 3;
+}
+
+message McpResourceTemplate {
+  string name = 1;
+  optional string description = 2;
+  string uri_template = 3;
+  string json = 4;
+}

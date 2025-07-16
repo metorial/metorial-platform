@@ -70,6 +70,9 @@ type Session struct {
 	StartedAt  time.Time `gorm:"not null"`
 	LastPingAt time.Time `gorm:"not null"`
 
+	ServerID string  `gorm:"type:uuid;not null"`
+	Server   *Server `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+
 	McpVersion string `gorm:"type:varchar(50);not null;default:'2024-11-05'"`
 
 	Metadata map[string]string `gorm:"type:jsonb;serializer:json"`
@@ -77,13 +80,16 @@ type Session struct {
 	EndedAt sql.NullTime
 }
 
-func NewSession(id string, externalId string, status SessionStatus, type_ SessionType, client *mcp.MCPClient, mcpVersion string, metadata map[string]string) *Session {
+func NewSession(id string, externalId string, server *Server, status SessionStatus, type_ SessionType, client *mcp.MCPClient, mcpVersion string, metadata map[string]string) *Session {
 	return &Session{
 		ID:         id,
 		ExternalId: externalId,
 
 		McpClient:  client,
 		McpVersion: mcpVersion,
+
+		Server:   server,
+		ServerID: server.ID,
 
 		Status: status,
 		Type:   type_,
@@ -168,6 +174,15 @@ func (s *Session) ToPb() (*managerPb.EngineSession, error) {
 		}
 	}
 
+	var server *managerPb.EngineServer
+	if s.McpServer != nil {
+		var err error
+		server, err = s.Server.ToPb()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &managerPb.EngineSession{
 		Id:         s.ID,
 		ExternalId: s.ExternalId,
@@ -178,6 +193,8 @@ func (s *Session) ToPb() (*managerPb.EngineSession, error) {
 
 		McpClient: clientPart,
 		McpServer: serverPart,
+
+		Server: server,
 
 		CreatedAt:  s.CreatedAt.UnixMilli(),
 		UpdatedAt:  s.UpdatedAt.UnixMilli(),

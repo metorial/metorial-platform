@@ -44,6 +44,9 @@ service McpManager {
 
   rpc ListRecentlyActiveRuns(ListRecentlyActiveRunsRequest) returns (ListRecentlyActiveRunsResponse);
   rpc ListRecentlyActiveSessions(ListRecentlyActiveSessionsRequest) returns (ListRecentlyActiveSessionsResponse);
+
+  rpc GetServer(GetServerRequest) returns (GetServerResponse);
+  rpc ListServers(ListServersRequest) returns (ListServersResponse);
 }
 
 message CheckActiveSessionRequest {
@@ -195,6 +198,8 @@ message EngineSession {
   broker.mcp.McpParticipant mcp_client = 5;
   broker.mcp.McpParticipant mcp_server = 6;
 
+  EngineServer server = 14;
+
   int64 created_at = 7; 
   int64 updated_at = 8; 
   int64 started_at = 9; 
@@ -306,6 +311,32 @@ message EngineSessionMessage {
   map<string, string> metadata = 9;
 
   int64 created_at = 10;
+}
+
+enum EngineServerStatus {
+  session_status_discovered = 0;
+  session_status_not_discovered = 1;
+}
+
+message EngineServer {
+  string id = 1;
+  string identifier = 2;
+
+  EngineSessionType type = 3;
+  EngineServerStatus status = 4;
+
+  broker.mcp.McpParticipant mcp_server = 5;
+
+  repeated broker.mcp.McpTool tools = 6;
+  repeated broker.mcp.McpPrompt prompts = 7;
+  repeated broker.mcp.McpResource resources = 8;
+  repeated broker.mcp.McpResourceTemplate resource_templates = 9;
+
+  map<string, string> metadata = 10; // Optional, Additional metadata for the server
+
+  int64 created_at = 11; // Timestamp when the server was created
+  int64 updated_at = 12; // Timestamp when the server was last updated
+  optional int64 last_discovery_at = 13; // Timestamp when the server was last discovered
 }
 
 enum ListPaginationOrder {
@@ -454,4 +485,21 @@ message ListRecentlyActiveSessionsRequest {
 message ListRecentlyActiveSessionsResponse {
   repeated string session_ids = 1;
 }
+
+message GetServerRequest {
+  string server_id = 1;
+}
+
+message GetServerResponse {
+  EngineServer server = 1;
+}
+
+message ListServersRequest {
+  optional ListPagination pagination = 1;
+}
+
+message ListServersResponse {
+  repeated EngineServer servers = 1;
+}
+
 

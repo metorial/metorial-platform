@@ -283,6 +283,7 @@ func (s *SessionServer) ListSessionErrors(ctx context.Context, req *managerPb.Li
 
 	return &managerPb.ListSessionErrorsResponse{Errors: res}, nil
 }
+
 func (s *SessionServer) ListSessionEvents(ctx context.Context, req *managerPb.ListSessionEventsRequest) (*managerPb.ListSessionEventsResponse, error) {
 	list, err := s.sessions.db.ListSessionEventsBySession(req.SessionId, req.Pagination, req.After)
 	if err != nil {
@@ -408,4 +409,34 @@ func (s *SessionServer) CheckActiveSession(ctx context.Context, req *managerPb.C
 		SessionId: req.SessionId,
 		Session:   recPb,
 	}, nil
+}
+
+func (s *SessionServer) ListServers(ctx context.Context, req *managerPb.ListServersRequest) (*managerPb.ListServersResponse, error) {
+	list, err := s.sessions.db.ListServers(req.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := util.MapWithError(list, func(rec db.Server) (*managerPb.EngineServer, error) {
+		return rec.ToPb()
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.ListServersResponse{Servers: res}, nil
+}
+
+func (s *SessionServer) GetServer(ctx context.Context, req *managerPb.GetServerRequest) (*managerPb.GetServerResponse, error) {
+	rec, err := s.sessions.db.GetServerById(req.ServerId)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := rec.ToPb()
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.GetServerResponse{Server: res}, nil
 }

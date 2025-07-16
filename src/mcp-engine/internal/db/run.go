@@ -153,7 +153,7 @@ func (c *SessionRun) ToPb() (*managerPb.EngineSessionRun, error) {
 func (d *DB) ListSessionRunsBySession(sessionId string, pag *managerPb.ListPagination, after *int64) ([]SessionRun, error) {
 	query := d.db.Model(&SessionRun{}).Preload("Session").Where("session_id = ?", sessionId)
 	if after != nil {
-		query = query.Where("created_at > ?", time.UnixMilli(*after))
+		query = query.Where("last_ping_at >= ? or updated_at >= ?", time.UnixMilli(*after), time.UnixMilli(*after))
 	}
 	return listWithPagination[SessionRun](query, pag)
 }

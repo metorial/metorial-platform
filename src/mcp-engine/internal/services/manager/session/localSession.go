@@ -485,11 +485,6 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 
 			for _, message := range messages {
 				message, err := message.ToPbMessage()
-				if strings.HasPrefix(message.IdString, "mte/init/") {
-					// Skip initialization messages, as they are always handled internally
-					// and not by the MCP client.
-					continue
-				}
 
 				if err != nil {
 					log.Printf("Failed to convert message to PB message: %v", err)
@@ -1108,7 +1103,7 @@ loop:
 			))
 
 		case message := <-msgChan:
-			if strings.HasPrefix(message.GetStringId(), "mte/init/") {
+			if strings.HasPrefix(message.GetStringId(), "mte/") {
 				// Skip initialization messages, as they are always handled internally
 				// and not by the MCP client.
 				continue

@@ -181,14 +181,32 @@ func (s *Sessions) UpsertSession(
 	if storedSession.ManagerID == s.state.ManagerID {
 		var workerType workers.WorkerType
 		var dbType db.SessionType
+		serverIdentifier := ""
+
 		switch request.Config.ConfigType.(type) {
 		case *managerPb.SessionConfig_ContainerRunConfigWithLauncher, *managerPb.SessionConfig_ContainerRunConfigWithContainerArguments:
 			workerType = workers.WorkerTypeContainer
 			dbType = db.SessionTypeContainer
 
+			if request.Config.GetContainerRunConfigWithLauncher() != nil {
+				serverIdentifier = request.Config.GetContainerRunConfigWithLauncher().Container.DockerImage
+			} else if request.Config.GetContainerRunConfigWithContainerArguments() != nil {
+				serverIdentifier = request.Config.GetContainerRunConfigWithContainerArguments().Container.DockerImage
+			}
+
 		case *managerPb.SessionConfig_RemoteRunConfigWithLauncher, *managerPb.SessionConfig_RemoteRunConfigWithServer:
 			workerType = workers.WorkerTypeRemote
 			dbType = db.SessionTypeRemote
+
+			if request.Config.GetRemoteRunConfigWithLauncher() != nil {
+				serverIdentifier = request.Config.GetRemoteRunConfigWithLauncher().Server.ServerUri
+			} else if request.Config.GetRemoteRunConfigWithServer() != nil {
+				serverIdentifier = request.Config.GetRemoteRunConfigWithServer().Server.ServerUri
+			}
+		}
+
+		if serverIdentifier == "" {
+			serverIdentifier = uuid.NewString()
 		}
 
 		connectionInput := &workers.WorkerConnectionInput{
@@ -198,9 +216,16 @@ func (s *Sessions) UpsertSession(
 			McpConfig:    request.Config.McpConfig,
 		}
 
+		server, err := s.db.EnsureServerByIdentifier(serverIdentifier)
+		if err != nil {
+			log.Printf("Failed to ensure server by identifier: %v\n", err)
+			return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to ensure server by identifier", err)
+		}
+
 		dbSession, err := s.db.CreateSession(db.NewSession(
 			prospectiveSessionUuid,
 			request.SessionId,
+			server,
 			db.SessionStatusActive,
 			dbType,
 			client,

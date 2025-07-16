@@ -15,7 +15,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/keepalive"
 )
 
 type BaseWorkerConnection struct {
@@ -76,11 +75,11 @@ func (bw *BaseWorkerConnection) Start() error {
 			},
 			MinConnectTimeout: 5 * time.Second,
 		}),
-		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                60 * time.Second, // safer: 60s or more
-			Timeout:             20 * time.Second,
-			PermitWithoutStream: false, // only send pings when RPCs are active
-		}),
+		// grpc.WithKeepaliveParams(keepalive.ClientParameters{
+		// 	Time:                60 * time.Second, // safer: 60s or more
+		// 	Timeout:             20 * time.Second,
+		// 	PermitWithoutStream: false, // only send pings when RPCs are active
+		// }),
 	)
 	if err != nil {
 		return err
