@@ -14,6 +14,7 @@ service McpManager {
   rpc CheckActiveSession(CheckActiveSessionRequest) returns (CheckActiveSessionResponse);
 
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+  rpc DiscoverServer(DiscoverRequest) returns (GetServerResponse);
   rpc DiscardSession(DiscardSessionRequest) returns (DiscardSessionResponse);
 
   rpc SendMcpMessage(SendMcpMessageRequest) returns (stream SendMcpMessageResponse);
@@ -26,6 +27,7 @@ service McpManager {
 
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+  rpc GetSessionServer(GetSessionRequest) returns (GetServerResponse);
 
   rpc ListRuns(ListRunsRequest) returns (ListRunsResponse);
   rpc GetRun(GetRunRequest) returns (GetRunResponse);
@@ -76,7 +78,7 @@ message RemoteRunConfigWithLauncher {
   broker.launcher.LauncherConfig launcher = 2;
 }
 
-message SessionConfig {
+message ServerConfig {
   oneof config_type {
     ContainerRunConfigWithLauncher container_run_config_with_launcher = 1;
     broker.runner.RunConfig container_run_config_with_container_arguments = 2;
@@ -84,13 +86,20 @@ message SessionConfig {
     RemoteRunConfigWithLauncher remote_run_config_with_launcher = 3;
     broker.remote.RunConfig remote_run_config_with_server = 4;
   }
+}
 
+message SessionConfig {
+  ServerConfig server_config = 1;
   broker.mcp.McpConfig mcp_config = 10; // Optional, MCP specific configuration
 }
 
 message CreateSessionResponse {
   string session_id = 1;
   EngineSession session = 2;
+}
+
+message DiscoverRequest {
+  ServerConfig server_config = 1;
 }
 
 message SendMcpMessageRequest {

@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	McpManager_CheckActiveSession_FullMethodName         = "/broker.manager.McpManager/CheckActiveSession"
 	McpManager_CreateSession_FullMethodName              = "/broker.manager.McpManager/CreateSession"
+	McpManager_DiscoverServer_FullMethodName             = "/broker.manager.McpManager/DiscoverServer"
 	McpManager_DiscardSession_FullMethodName             = "/broker.manager.McpManager/DiscardSession"
 	McpManager_SendMcpMessage_FullMethodName             = "/broker.manager.McpManager/SendMcpMessage"
 	McpManager_StreamMcpMessages_FullMethodName          = "/broker.manager.McpManager/StreamMcpMessages"
@@ -31,6 +32,7 @@ const (
 	McpManager_ListWorkers_FullMethodName                = "/broker.manager.McpManager/ListWorkers"
 	McpManager_ListSessions_FullMethodName               = "/broker.manager.McpManager/ListSessions"
 	McpManager_GetSession_FullMethodName                 = "/broker.manager.McpManager/GetSession"
+	McpManager_GetSessionServer_FullMethodName           = "/broker.manager.McpManager/GetSessionServer"
 	McpManager_ListRuns_FullMethodName                   = "/broker.manager.McpManager/ListRuns"
 	McpManager_GetRun_FullMethodName                     = "/broker.manager.McpManager/GetRun"
 	McpManager_ListSessionErrors_FullMethodName          = "/broker.manager.McpManager/ListSessionErrors"
@@ -54,6 +56,7 @@ const (
 type McpManagerClient interface {
 	CheckActiveSession(ctx context.Context, in *CheckActiveSessionRequest, opts ...grpc.CallOption) (*CheckActiveSessionResponse, error)
 	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionResponse, error)
+	DiscoverServer(ctx context.Context, in *DiscoverRequest, opts ...grpc.CallOption) (*GetServerResponse, error)
 	DiscardSession(ctx context.Context, in *DiscardSessionRequest, opts ...grpc.CallOption) (*DiscardSessionResponse, error)
 	SendMcpMessage(ctx context.Context, in *SendMcpMessageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SendMcpMessageResponse], error)
 	StreamMcpMessages(ctx context.Context, in *StreamMcpMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamMcpMessagesResponse], error)
@@ -62,6 +65,7 @@ type McpManagerClient interface {
 	ListWorkers(ctx context.Context, in *ListWorkersRequest, opts ...grpc.CallOption) (*ListWorkersResponse, error)
 	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
 	GetSession(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetSessionResponse, error)
+	GetSessionServer(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetServerResponse, error)
 	ListRuns(ctx context.Context, in *ListRunsRequest, opts ...grpc.CallOption) (*ListRunsResponse, error)
 	GetRun(ctx context.Context, in *GetRunRequest, opts ...grpc.CallOption) (*GetRunResponse, error)
 	ListSessionErrors(ctx context.Context, in *ListSessionErrorsRequest, opts ...grpc.CallOption) (*ListSessionErrorsResponse, error)
@@ -101,6 +105,16 @@ func (c *mcpManagerClient) CreateSession(ctx context.Context, in *CreateSessionR
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateSessionResponse)
 	err := c.cc.Invoke(ctx, McpManager_CreateSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) DiscoverServer(ctx context.Context, in *DiscoverRequest, opts ...grpc.CallOption) (*GetServerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetServerResponse)
+	err := c.cc.Invoke(ctx, McpManager_DiscoverServer_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -199,6 +213,16 @@ func (c *mcpManagerClient) GetSession(ctx context.Context, in *GetSessionRequest
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetSessionResponse)
 	err := c.cc.Invoke(ctx, McpManager_GetSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) GetSessionServer(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetServerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetServerResponse)
+	err := c.cc.Invoke(ctx, McpManager_GetSessionServer_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -361,6 +385,7 @@ func (c *mcpManagerClient) ListServers(ctx context.Context, in *ListServersReque
 type McpManagerServer interface {
 	CheckActiveSession(context.Context, *CheckActiveSessionRequest) (*CheckActiveSessionResponse, error)
 	CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error)
+	DiscoverServer(context.Context, *DiscoverRequest) (*GetServerResponse, error)
 	DiscardSession(context.Context, *DiscardSessionRequest) (*DiscardSessionResponse, error)
 	SendMcpMessage(*SendMcpMessageRequest, grpc.ServerStreamingServer[SendMcpMessageResponse]) error
 	StreamMcpMessages(*StreamMcpMessagesRequest, grpc.ServerStreamingServer[StreamMcpMessagesResponse]) error
@@ -369,6 +394,7 @@ type McpManagerServer interface {
 	ListWorkers(context.Context, *ListWorkersRequest) (*ListWorkersResponse, error)
 	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
 	GetSession(context.Context, *GetSessionRequest) (*GetSessionResponse, error)
+	GetSessionServer(context.Context, *GetSessionRequest) (*GetServerResponse, error)
 	ListRuns(context.Context, *ListRunsRequest) (*ListRunsResponse, error)
 	GetRun(context.Context, *GetRunRequest) (*GetRunResponse, error)
 	ListSessionErrors(context.Context, *ListSessionErrorsRequest) (*ListSessionErrorsResponse, error)
@@ -400,6 +426,9 @@ func (UnimplementedMcpManagerServer) CheckActiveSession(context.Context, *CheckA
 func (UnimplementedMcpManagerServer) CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateSession not implemented")
 }
+func (UnimplementedMcpManagerServer) DiscoverServer(context.Context, *DiscoverRequest) (*GetServerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DiscoverServer not implemented")
+}
 func (UnimplementedMcpManagerServer) DiscardSession(context.Context, *DiscardSessionRequest) (*DiscardSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DiscardSession not implemented")
 }
@@ -423,6 +452,9 @@ func (UnimplementedMcpManagerServer) ListSessions(context.Context, *ListSessions
 }
 func (UnimplementedMcpManagerServer) GetSession(context.Context, *GetSessionRequest) (*GetSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSession not implemented")
+}
+func (UnimplementedMcpManagerServer) GetSessionServer(context.Context, *GetSessionRequest) (*GetServerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSessionServer not implemented")
 }
 func (UnimplementedMcpManagerServer) ListRuns(context.Context, *ListRunsRequest) (*ListRunsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListRuns not implemented")
@@ -522,6 +554,24 @@ func _McpManager_CreateSession_Handler(srv interface{}, ctx context.Context, dec
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(McpManagerServer).CreateSession(ctx, req.(*CreateSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_DiscoverServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DiscoverRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).DiscoverServer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_DiscoverServer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).DiscoverServer(ctx, req.(*DiscoverRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -652,6 +702,24 @@ func _McpManager_GetSession_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(McpManagerServer).GetSession(ctx, req.(*GetSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_GetSessionServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).GetSessionServer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_GetSessionServer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).GetSessionServer(ctx, req.(*GetSessionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -942,6 +1010,10 @@ var McpManager_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _McpManager_CreateSession_Handler,
 		},
 		{
+			MethodName: "DiscoverServer",
+			Handler:    _McpManager_DiscoverServer_Handler,
+		},
+		{
 			MethodName: "DiscardSession",
 			Handler:    _McpManager_DiscardSession_Handler,
 		},
@@ -964,6 +1036,10 @@ var McpManager_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSession",
 			Handler:    _McpManager_GetSession_Handler,
+		},
+		{
+			MethodName: "GetSessionServer",
+			Handler:    _McpManager_GetSessionServer_Handler,
 		},
 		{
 			MethodName: "ListRuns",

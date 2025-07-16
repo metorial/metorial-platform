@@ -2,7 +2,6 @@ package session
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"slices"
@@ -11,17 +10,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/google/uuid"
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/internal/db"
-	"github.com/metorial/metorial/mcp-engine/internal/services/manager/client"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
 	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
-	"github.com/metorial/metorial/mcp-engine/pkg/util"
 	"google.golang.org/grpc"
 )
 
@@ -848,27 +844,18 @@ func (s *LocalSession) ensureConnection() (workers.WorkerConnection, *db.Session
 		return s.activeConnection, s.activeRunDb, nil
 	}
 
-	connectionInput := s.connectionInput
-	// Update the connection input with the session ID and a new connection ID
-	connectionInput.ConnectionID = util.Must(uuid.NewV7()).String()
-	connectionInput.MCPClient = s.mcpClient
-
-	hash, err := s.workerManager.GetConnectionHashForWorkerType(s.WorkerType, connectionInput)
-	if err != nil {
-		log.Printf("Failed to get connection hash for worker type %s: %v", s.WorkerType, err)
-		return nil, nil, mterror.NewWithInnerError(mterror.InternalErrorKind, fmt.Sprintf("failed to get connection hash for worker type: %s", err.Error()), err)
-	}
-
-	worker, ok := s.workerManager.PickWorkerByHash(s.WorkerType, hash)
-	if !ok {
-		log.Printf("No available worker for worker type %s with hash %s", s.WorkerType, hash)
-		return nil, nil, mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "no available worker for worker type", err)
-	}
-
-	connection, err := worker.CreateConnection(connectionInput)
-	if err != nil {
-		log.Printf("Failed to create connection for worker %s: %v", worker.WorkerID(), err)
-		return nil, nil, mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to create connection for worker", err)
+	connection, worker, err2 := createConnection(s.workerManager, s.connectionInput, s.mcpClient, s.WorkerType)
+	if err2 != nil {
+		go s.db.CreateError(db.NewErrorStructuredErrorWithRun(
+			s.dbSession,
+			s.activeRunDb,
+			"run_error",
+			"failed to create connection",
+			map[string]string{
+				"internal_error": err2.Error(),
+			},
+		))
+		return nil, nil, err2
 	}
 
 	var connectionType db.SessionRunType
@@ -890,6 +877,7 @@ func (s *LocalSession) ensureConnection() (workers.WorkerConnection, *db.Session
 			db.SessionRunStatusActive,
 		),
 	)
+
 	s.activeRunDb = run
 	if err != nil {
 		return nil, nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to create connection in database", err)
@@ -899,7 +887,7 @@ func (s *LocalSession) ensureConnection() (workers.WorkerConnection, *db.Session
 
 	go s.monitorConnection(run, connection)
 
-	err = connection.Start()
+	err = connection.Start(true)
 	if err != nil {
 		go s.db.CreateError(db.NewErrorStructuredErrorWithRun(
 			s.dbSession,
@@ -1166,38 +1154,8 @@ func (s *LocalSession) Touch() {
 }
 
 func (s *LocalSession) discoverServer(connection workers.WorkerConnection) {
-	if s.dbSession.Server == nil {
-		log.Printf("No server information available for session %s, skipping discovery", s.storedSession.ID)
-		return
-	}
-
-	if s.dbSession.Server.DiscoveryErroredAt.Valid &&
-		time.Since(s.dbSession.Server.DiscoveryErroredAt.Time) < time.Hour*2 {
-		log.Printf("Server discovery for session %s is still in error state, skipping discovery", s.storedSession.ID)
-		return
-	}
-
 	s.serverDiscoveryMutex.Lock()
 	defer s.serverDiscoveryMutex.Unlock()
 
-	log.Printf("Discovering server for session %s with connection %s", s.storedSession.ID, connection.ConnectionID())
-
-	err := client.WithEphemeralClient(connection, func(c *client.Client) error {
-		log.Printf("Discovering server and applying updates for session %s", s.dbSession.ID)
-
-		c.DiscoverServerAndApplyUpdates(s.dbSession.Server)
-		s.dbSession.Server.LastDiscoveryAt = db.NullTimeNow()
-		s.dbSession.Server.DiscoveryCount++
-		s.dbSession.Server.Type = s.dbSession.Type
-		s.dbSession.Server.DiscoveryErroredAt = sql.NullTime{}
-		return s.db.SaveServer(s.dbSession.Server)
-	})
-
-	if err != nil {
-		log.Printf("Failed to discover server for session %s: %v", s.storedSession.ID, err)
-
-		s.dbSession.Server.DiscoveryErroredAt = db.NullTimeNow()
-		s.dbSession.Server.DiscoveryCount++
-		s.db.SaveServer(s.dbSession.Server)
-	}
+	discoverServerWithEphemeralConnection(s.db, s.dbSession.Server, connection)
 }

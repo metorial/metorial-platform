@@ -420,12 +420,16 @@ export interface RemoteRunConfigWithLauncher {
   launcher: LauncherConfig | undefined;
 }
 
-export interface SessionConfig {
+export interface ServerConfig {
   containerRunConfigWithLauncher?: ContainerRunConfigWithLauncher | undefined;
   containerRunConfigWithContainerArguments?: RunConfig | undefined;
   remoteRunConfigWithLauncher?: RemoteRunConfigWithLauncher | undefined;
-  remoteRunConfigWithServer?:
-    | RunConfig1
+  remoteRunConfigWithServer?: RunConfig1 | undefined;
+}
+
+export interface SessionConfig {
+  serverConfig:
+    | ServerConfig
     | undefined;
   /** Optional, MCP specific configuration */
   mcpConfig: McpConfig | undefined;
@@ -434,6 +438,10 @@ export interface SessionConfig {
 export interface CreateSessionResponse {
   sessionId: string;
   session: EngineSession | undefined;
+}
+
+export interface DiscoverRequest {
+  serverConfig: ServerConfig | undefined;
 }
 
 export interface SendMcpMessageRequest {
@@ -1307,18 +1315,17 @@ export const RemoteRunConfigWithLauncher: MessageFns<RemoteRunConfigWithLauncher
   },
 };
 
-function createBaseSessionConfig(): SessionConfig {
+function createBaseServerConfig(): ServerConfig {
   return {
     containerRunConfigWithLauncher: undefined,
     containerRunConfigWithContainerArguments: undefined,
     remoteRunConfigWithLauncher: undefined,
     remoteRunConfigWithServer: undefined,
-    mcpConfig: undefined,
   };
 }
 
-export const SessionConfig: MessageFns<SessionConfig> = {
-  encode(message: SessionConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const ServerConfig: MessageFns<ServerConfig> = {
+  encode(message: ServerConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.containerRunConfigWithLauncher !== undefined) {
       ContainerRunConfigWithLauncher.encode(message.containerRunConfigWithLauncher, writer.uint32(10).fork()).join();
     }
@@ -1331,16 +1338,13 @@ export const SessionConfig: MessageFns<SessionConfig> = {
     if (message.remoteRunConfigWithServer !== undefined) {
       RunConfig1.encode(message.remoteRunConfigWithServer, writer.uint32(34).fork()).join();
     }
-    if (message.mcpConfig !== undefined) {
-      McpConfig.encode(message.mcpConfig, writer.uint32(82).fork()).join();
-    }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SessionConfig {
+  decode(input: BinaryReader | Uint8Array, length?: number): ServerConfig {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSessionConfig();
+    const message = createBaseServerConfig();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1376,6 +1380,107 @@ export const SessionConfig: MessageFns<SessionConfig> = {
           message.remoteRunConfigWithServer = RunConfig1.decode(reader, reader.uint32());
           continue;
         }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ServerConfig {
+    return {
+      containerRunConfigWithLauncher: isSet(object.containerRunConfigWithLauncher)
+        ? ContainerRunConfigWithLauncher.fromJSON(object.containerRunConfigWithLauncher)
+        : undefined,
+      containerRunConfigWithContainerArguments: isSet(object.containerRunConfigWithContainerArguments)
+        ? RunConfig.fromJSON(object.containerRunConfigWithContainerArguments)
+        : undefined,
+      remoteRunConfigWithLauncher: isSet(object.remoteRunConfigWithLauncher)
+        ? RemoteRunConfigWithLauncher.fromJSON(object.remoteRunConfigWithLauncher)
+        : undefined,
+      remoteRunConfigWithServer: isSet(object.remoteRunConfigWithServer)
+        ? RunConfig1.fromJSON(object.remoteRunConfigWithServer)
+        : undefined,
+    };
+  },
+
+  toJSON(message: ServerConfig): unknown {
+    const obj: any = {};
+    if (message.containerRunConfigWithLauncher !== undefined) {
+      obj.containerRunConfigWithLauncher = ContainerRunConfigWithLauncher.toJSON(
+        message.containerRunConfigWithLauncher,
+      );
+    }
+    if (message.containerRunConfigWithContainerArguments !== undefined) {
+      obj.containerRunConfigWithContainerArguments = RunConfig.toJSON(message.containerRunConfigWithContainerArguments);
+    }
+    if (message.remoteRunConfigWithLauncher !== undefined) {
+      obj.remoteRunConfigWithLauncher = RemoteRunConfigWithLauncher.toJSON(message.remoteRunConfigWithLauncher);
+    }
+    if (message.remoteRunConfigWithServer !== undefined) {
+      obj.remoteRunConfigWithServer = RunConfig1.toJSON(message.remoteRunConfigWithServer);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<ServerConfig>): ServerConfig {
+    return ServerConfig.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ServerConfig>): ServerConfig {
+    const message = createBaseServerConfig();
+    message.containerRunConfigWithLauncher =
+      (object.containerRunConfigWithLauncher !== undefined && object.containerRunConfigWithLauncher !== null)
+        ? ContainerRunConfigWithLauncher.fromPartial(object.containerRunConfigWithLauncher)
+        : undefined;
+    message.containerRunConfigWithContainerArguments =
+      (object.containerRunConfigWithContainerArguments !== undefined &&
+          object.containerRunConfigWithContainerArguments !== null)
+        ? RunConfig.fromPartial(object.containerRunConfigWithContainerArguments)
+        : undefined;
+    message.remoteRunConfigWithLauncher =
+      (object.remoteRunConfigWithLauncher !== undefined && object.remoteRunConfigWithLauncher !== null)
+        ? RemoteRunConfigWithLauncher.fromPartial(object.remoteRunConfigWithLauncher)
+        : undefined;
+    message.remoteRunConfigWithServer =
+      (object.remoteRunConfigWithServer !== undefined && object.remoteRunConfigWithServer !== null)
+        ? RunConfig1.fromPartial(object.remoteRunConfigWithServer)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseSessionConfig(): SessionConfig {
+  return { serverConfig: undefined, mcpConfig: undefined };
+}
+
+export const SessionConfig: MessageFns<SessionConfig> = {
+  encode(message: SessionConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.serverConfig !== undefined) {
+      ServerConfig.encode(message.serverConfig, writer.uint32(10).fork()).join();
+    }
+    if (message.mcpConfig !== undefined) {
+      McpConfig.encode(message.mcpConfig, writer.uint32(82).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SessionConfig {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSessionConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.serverConfig = ServerConfig.decode(reader, reader.uint32());
+          continue;
+        }
         case 10: {
           if (tag !== 82) {
             break;
@@ -1395,37 +1500,15 @@ export const SessionConfig: MessageFns<SessionConfig> = {
 
   fromJSON(object: any): SessionConfig {
     return {
-      containerRunConfigWithLauncher: isSet(object.containerRunConfigWithLauncher)
-        ? ContainerRunConfigWithLauncher.fromJSON(object.containerRunConfigWithLauncher)
-        : undefined,
-      containerRunConfigWithContainerArguments: isSet(object.containerRunConfigWithContainerArguments)
-        ? RunConfig.fromJSON(object.containerRunConfigWithContainerArguments)
-        : undefined,
-      remoteRunConfigWithLauncher: isSet(object.remoteRunConfigWithLauncher)
-        ? RemoteRunConfigWithLauncher.fromJSON(object.remoteRunConfigWithLauncher)
-        : undefined,
-      remoteRunConfigWithServer: isSet(object.remoteRunConfigWithServer)
-        ? RunConfig1.fromJSON(object.remoteRunConfigWithServer)
-        : undefined,
+      serverConfig: isSet(object.serverConfig) ? ServerConfig.fromJSON(object.serverConfig) : undefined,
       mcpConfig: isSet(object.mcpConfig) ? McpConfig.fromJSON(object.mcpConfig) : undefined,
     };
   },
 
   toJSON(message: SessionConfig): unknown {
     const obj: any = {};
-    if (message.containerRunConfigWithLauncher !== undefined) {
-      obj.containerRunConfigWithLauncher = ContainerRunConfigWithLauncher.toJSON(
-        message.containerRunConfigWithLauncher,
-      );
-    }
-    if (message.containerRunConfigWithContainerArguments !== undefined) {
-      obj.containerRunConfigWithContainerArguments = RunConfig.toJSON(message.containerRunConfigWithContainerArguments);
-    }
-    if (message.remoteRunConfigWithLauncher !== undefined) {
-      obj.remoteRunConfigWithLauncher = RemoteRunConfigWithLauncher.toJSON(message.remoteRunConfigWithLauncher);
-    }
-    if (message.remoteRunConfigWithServer !== undefined) {
-      obj.remoteRunConfigWithServer = RunConfig1.toJSON(message.remoteRunConfigWithServer);
+    if (message.serverConfig !== undefined) {
+      obj.serverConfig = ServerConfig.toJSON(message.serverConfig);
     }
     if (message.mcpConfig !== undefined) {
       obj.mcpConfig = McpConfig.toJSON(message.mcpConfig);
@@ -1438,23 +1521,9 @@ export const SessionConfig: MessageFns<SessionConfig> = {
   },
   fromPartial(object: DeepPartial<SessionConfig>): SessionConfig {
     const message = createBaseSessionConfig();
-    message.containerRunConfigWithLauncher =
-      (object.containerRunConfigWithLauncher !== undefined && object.containerRunConfigWithLauncher !== null)
-        ? ContainerRunConfigWithLauncher.fromPartial(object.containerRunConfigWithLauncher)
-        : undefined;
-    message.containerRunConfigWithContainerArguments =
-      (object.containerRunConfigWithContainerArguments !== undefined &&
-          object.containerRunConfigWithContainerArguments !== null)
-        ? RunConfig.fromPartial(object.containerRunConfigWithContainerArguments)
-        : undefined;
-    message.remoteRunConfigWithLauncher =
-      (object.remoteRunConfigWithLauncher !== undefined && object.remoteRunConfigWithLauncher !== null)
-        ? RemoteRunConfigWithLauncher.fromPartial(object.remoteRunConfigWithLauncher)
-        : undefined;
-    message.remoteRunConfigWithServer =
-      (object.remoteRunConfigWithServer !== undefined && object.remoteRunConfigWithServer !== null)
-        ? RunConfig1.fromPartial(object.remoteRunConfigWithServer)
-        : undefined;
+    message.serverConfig = (object.serverConfig !== undefined && object.serverConfig !== null)
+      ? ServerConfig.fromPartial(object.serverConfig)
+      : undefined;
     message.mcpConfig = (object.mcpConfig !== undefined && object.mcpConfig !== null)
       ? McpConfig.fromPartial(object.mcpConfig)
       : undefined;
@@ -1535,6 +1604,66 @@ export const CreateSessionResponse: MessageFns<CreateSessionResponse> = {
     message.sessionId = object.sessionId ?? "";
     message.session = (object.session !== undefined && object.session !== null)
       ? EngineSession.fromPartial(object.session)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseDiscoverRequest(): DiscoverRequest {
+  return { serverConfig: undefined };
+}
+
+export const DiscoverRequest: MessageFns<DiscoverRequest> = {
+  encode(message: DiscoverRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.serverConfig !== undefined) {
+      ServerConfig.encode(message.serverConfig, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DiscoverRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDiscoverRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.serverConfig = ServerConfig.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DiscoverRequest {
+    return { serverConfig: isSet(object.serverConfig) ? ServerConfig.fromJSON(object.serverConfig) : undefined };
+  },
+
+  toJSON(message: DiscoverRequest): unknown {
+    const obj: any = {};
+    if (message.serverConfig !== undefined) {
+      obj.serverConfig = ServerConfig.toJSON(message.serverConfig);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<DiscoverRequest>): DiscoverRequest {
+    return DiscoverRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DiscoverRequest>): DiscoverRequest {
+    const message = createBaseDiscoverRequest();
+    message.serverConfig = (object.serverConfig !== undefined && object.serverConfig !== null)
+      ? ServerConfig.fromPartial(object.serverConfig)
       : undefined;
     return message;
   },
@@ -7049,6 +7178,15 @@ export const McpManagerService = {
       Buffer.from(CreateSessionResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): CreateSessionResponse => CreateSessionResponse.decode(value),
   },
+  discoverServer: {
+    path: "/broker.manager.McpManager/DiscoverServer",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: DiscoverRequest): Buffer => Buffer.from(DiscoverRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DiscoverRequest => DiscoverRequest.decode(value),
+    responseSerialize: (value: GetServerResponse): Buffer => Buffer.from(GetServerResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetServerResponse => GetServerResponse.decode(value),
+  },
   discardSession: {
     path: "/broker.manager.McpManager/DiscardSession",
     requestStream: false,
@@ -7128,6 +7266,15 @@ export const McpManagerService = {
     requestDeserialize: (value: Buffer): GetSessionRequest => GetSessionRequest.decode(value),
     responseSerialize: (value: GetSessionResponse): Buffer => Buffer.from(GetSessionResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetSessionResponse => GetSessionResponse.decode(value),
+  },
+  getSessionServer: {
+    path: "/broker.manager.McpManager/GetSessionServer",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: GetSessionRequest): Buffer => Buffer.from(GetSessionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetSessionRequest => GetSessionRequest.decode(value),
+    responseSerialize: (value: GetServerResponse): Buffer => Buffer.from(GetServerResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetServerResponse => GetServerResponse.decode(value),
   },
   listRuns: {
     path: "/broker.manager.McpManager/ListRuns",
@@ -7286,6 +7433,7 @@ export const McpManagerService = {
 export interface McpManagerServer extends UntypedServiceImplementation {
   checkActiveSession: handleUnaryCall<CheckActiveSessionRequest, CheckActiveSessionResponse>;
   createSession: handleUnaryCall<CreateSessionRequest, CreateSessionResponse>;
+  discoverServer: handleUnaryCall<DiscoverRequest, GetServerResponse>;
   discardSession: handleUnaryCall<DiscardSessionRequest, DiscardSessionResponse>;
   sendMcpMessage: handleServerStreamingCall<SendMcpMessageRequest, SendMcpMessageResponse>;
   streamMcpMessages: handleServerStreamingCall<StreamMcpMessagesRequest, StreamMcpMessagesResponse>;
@@ -7294,6 +7442,7 @@ export interface McpManagerServer extends UntypedServiceImplementation {
   listWorkers: handleUnaryCall<ListWorkersRequest, ListWorkersResponse>;
   listSessions: handleUnaryCall<ListSessionsRequest, ListSessionsResponse>;
   getSession: handleUnaryCall<GetSessionRequest, GetSessionResponse>;
+  getSessionServer: handleUnaryCall<GetSessionRequest, GetServerResponse>;
   listRuns: handleUnaryCall<ListRunsRequest, ListRunsResponse>;
   getRun: handleUnaryCall<GetRunRequest, GetRunResponse>;
   listSessionErrors: handleUnaryCall<ListSessionErrorsRequest, ListSessionErrorsResponse>;
@@ -7342,6 +7491,21 @@ export interface McpManagerClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: CreateSessionResponse) => void,
   ): ClientUnaryCall;
+  discoverServer(
+    request: DiscoverRequest,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
+  discoverServer(
+    request: DiscoverRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
+  discoverServer(
+    request: DiscoverRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
   discardSession(
     request: DiscardSessionRequest,
     callback: (error: ServiceError | null, response: DiscardSessionResponse) => void,
@@ -7449,6 +7613,21 @@ export interface McpManagerClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetSessionResponse) => void,
+  ): ClientUnaryCall;
+  getSessionServer(
+    request: GetSessionRequest,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
+  getSessionServer(
+    request: GetSessionRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
+  getSessionServer(
+    request: GetSessionRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
   ): ClientUnaryCall;
   listRuns(
     request: ListRunsRequest,

@@ -175,7 +175,7 @@ func (s *Session) ToPb() (*managerPb.EngineSession, error) {
 	}
 
 	var server *managerPb.EngineServer
-	if s.McpServer != nil {
+	if s.Server != nil {
 		var err error
 		server, err = s.Server.ToPb()
 		if err != nil {

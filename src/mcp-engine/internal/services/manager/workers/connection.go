@@ -16,7 +16,7 @@ type WorkerConnection interface {
 	AcceptMessage(message *mcp.MCPMessage) error
 	GetServer() (*mcp.MCPServer, error)
 
-	Start() error
+	Start(shouldAutoInit bool) error
 	Close() error
 
 	Done() pubsub.BroadcasterReader[struct{}]
@@ -30,6 +30,8 @@ type WorkerConnection interface {
 }
 
 type WorkerConnectionInput struct {
+	WorkerType WorkerType
+
 	ContainerRunConfig *runnerPb.RunConfig
 	RemoteRunConfig    *remotePb.RunConfig
 

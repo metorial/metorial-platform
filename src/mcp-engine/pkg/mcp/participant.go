@@ -91,7 +91,7 @@ func (c *MCPClient) Assemble() map[string]any {
 
 func (c *MCPClient) ToInitMessage(version string) (*MCPMessage, error) {
 	if version == "" {
-		version = "2024-11-05"
+		version = DEFAULT_MCP_VERSION.String()
 	}
 
 	inner := c.Assemble()

@@ -44,27 +44,34 @@ func (rw *RemoteWorker) CreateConnection(input *workers.WorkerConnectionInput) (
 	return res, nil
 }
 
-func (rwc *RemoteWorkerConnection) Start() error {
+func (rwc *RemoteWorkerConnection) Start(shouldAutoInit bool) error {
+
+	if shouldAutoInit && rwc.mcpClient == nil {
+		return fmt.Errorf("MCP client is not initialized, cannot auto-initialize")
+	}
+
 	if err := rwc.run.Start(); err != nil {
 		return fmt.Errorf("failed to start MCP run: %w", err)
 	}
 
-	init, err := rwc.mcpClient.ToInitMessage(rwc.mcpConfig.McpVersion)
-	if err != nil {
-		return fmt.Errorf("failed to create MCP init message: %w", err)
-	}
+	if shouldAutoInit {
+		init, err := rwc.mcpClient.ToInitMessage(rwc.mcpConfig.McpVersion)
+		if err != nil {
+			return fmt.Errorf("failed to create MCP init message: %w", err)
+		}
 
-	serverInitMsg, err := rwc.SendAndWaitForResponse(init)
-	if err != nil {
-		return fmt.Errorf("failed to send MCP init message: %w", err)
-	}
+		serverInitMsg, err := rwc.SendAndWaitForResponse(init)
+		if err != nil {
+			return fmt.Errorf("failed to send MCP init message: %w", err)
+		}
 
-	mcpServer, err := mcp.ServerInfoFromMessage(serverInitMsg)
-	if err != nil {
-		return fmt.Errorf("failed to parse server info from MCP init message: %w", err)
-	}
+		mcpServer, err := mcp.ServerInfoFromMessage(serverInitMsg)
+		if err != nil {
+			return fmt.Errorf("failed to parse server info from MCP init message: %w", err)
+		}
 
-	rwc.mcpServer = mcpServer
+		rwc.mcpServer = mcpServer
+	}
 
 	return nil
 }

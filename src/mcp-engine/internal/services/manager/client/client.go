@@ -3,11 +3,11 @@ package client
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
+	ourMcp "github.com/metorial/metorial/mcp-engine/pkg/mcp"
 )
 
 type Client struct {
@@ -31,7 +31,7 @@ func (c *Client) Start(ctx context.Context) error {
 	}
 
 	initRequest := mcp.InitializeRequest{}
-	initRequest.Params.ProtocolVersion = "2024-11-05"
+	initRequest.Params.ProtocolVersion = ourMcp.DEFAULT_MCP_VERSION.String()
 	initRequest.Params.ClientInfo = mcp.Implementation{
 		Name:    "Metorial Auto Discovery (https://metorial.com)",
 		Version: "1.0.0",
@@ -49,20 +49,9 @@ func (c *Client) Start(ctx context.Context) error {
 	return nil
 }
 
-func WithEphemeralClient(originalConnection workers.WorkerConnection, fn func(*Client) error) error {
-	connection, err := originalConnection.Clone()
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Creating ephemeral MCP client for connection %s", connection.ConnectionID())
-
+func WithClient(connection workers.WorkerConnection, fn func(*Client) error) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	defer connection.Close()
-
-	connection.Start()
 
 	mcpClient, err := newMcpClient(connection)
 	if err != nil {
