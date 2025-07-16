@@ -1,5 +1,6 @@
 import { db, ID, ServerSession } from '@metorial/db';
 import { getSentry } from '@metorial/sentry';
+import { getOriginalIdIfNeeded } from '@metorial/unified-id';
 import { EngineMcpMessage } from '../mcp/message';
 
 let Sentry = getSentry();
@@ -19,7 +20,7 @@ export let createSessionMessage = async (d: {
       engineMessageId: msg.uuid,
       serverSessionOid: d.serverSession.oid,
       sessionOid: d.serverSession.sessionOid,
-      originalId: msg.originalId,
+      originalId: getOriginalIdIfNeeded(msg.originalId),
       unifiedId: msg.unifiedId,
       payload: msg.message
     }

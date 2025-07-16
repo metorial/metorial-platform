@@ -102,3 +102,12 @@ export let getUnifiedIdIfNeeded = (
 
   return UnifiedID.normalizeId(message.originalId);
 };
+
+export let getOriginalIdIfNeeded = (id: string | number | undefined | null) => {
+  if (!id || typeof id != 'string') return id ?? undefined;
+
+  let parsed = parseUnifiedId(id);
+  if (parsed) return parsed.originalId;
+
+  return id ?? undefined;
+};

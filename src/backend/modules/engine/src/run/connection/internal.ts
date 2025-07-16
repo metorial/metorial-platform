@@ -131,12 +131,13 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
     if (!active.isActive) {
       let engineSessionTracer = generatePlainId(15);
 
-      let DANGEROUSLY_UNENCRYPTED_CONFIG = await secretService.DANGEROUSLY_readSecretValue({
-        secretId: deployment.config.configSecretOid,
-        instance: config.instance,
-        type: 'server_deployment_config',
-        metadata: { serverSessionId: srvSes.id, engineSessionTracer }
-      });
+      let { secret, data: DANGEROUSLY_UNENCRYPTED_CONFIG } =
+        await secretService.DANGEROUSLY_readSecretValue({
+          secretId: deployment.config.configSecretOid,
+          instance: config.instance,
+          type: 'server_deployment_config',
+          metadata: { serverSessionId: srvSes.id, engineSessionTracer }
+        });
 
       let engineSession = await client.createSession({
         metadata: {

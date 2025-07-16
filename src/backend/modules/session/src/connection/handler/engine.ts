@@ -73,8 +73,6 @@ export class EngineConnectionHandler extends BaseConnectionHandler {
       onResponse?: (message: ConnectionMessage) => void;
     }
   ) {
-    console.log('Sending message:', message);
-
     let stream = this.connection.sendMcpMessageStream(message, {
       includeResponses: opts.includeResponses
     });
