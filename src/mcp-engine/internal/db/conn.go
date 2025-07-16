@@ -15,6 +15,11 @@ type DB struct {
 }
 
 func NewDB(dsn string) (*DB, error) {
+	err := ensureDatabaseExists(dsn)
+	if err != nil {
+		return nil, err
+	}
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, err
