@@ -19,7 +19,7 @@ type MetorialTransport struct {
 	connection workers.WorkerConnection
 
 	responses      map[string]chan *transport.JSONRPCResponse
-	mu             sync.RWMutex
+	responsesMu    sync.RWMutex
 	onNotification func(mcp.JSONRPCNotification)
 	notifyMu       sync.RWMutex
 
@@ -50,8 +50,8 @@ func (t *MetorialTransport) Start(ctx context.Context) error {
 }
 
 func (t *MetorialTransport) Close() error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
+	t.responsesMu.Lock()
+	defer t.responsesMu.Unlock()
 
 	// t.connection.Close()
 
@@ -59,8 +59,6 @@ func (t *MetorialTransport) Close() error {
 }
 
 func (t *MetorialTransport) SendRequest(ctx context.Context, request transport.JSONRPCRequest) (*transport.JSONRPCResponse, error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
 
 	request.ID = wrapRequestId(request.ID)
 
@@ -68,11 +66,15 @@ func (t *MetorialTransport) SendRequest(ctx context.Context, request transport.J
 
 	// Create a channel for the response
 	responseChan := make(chan *transport.JSONRPCResponse, 1)
+
+	t.responsesMu.Lock()
 	t.responses[id] = responseChan
+	t.responsesMu.Unlock()
+
 	defer func() {
-		t.mu.Lock()
+		t.responsesMu.Lock()
 		delete(t.responses, id)
-		t.mu.Unlock()
+		t.responsesMu.Unlock()
 		close(responseChan)
 	}()
 
@@ -108,8 +110,8 @@ func (t *MetorialTransport) SendRequest(ctx context.Context, request transport.J
 }
 
 func (t *MetorialTransport) SendNotification(ctx context.Context, notification mcp.JSONRPCNotification) error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
+	t.responsesMu.Lock()
+	defer t.responsesMu.Unlock()
 
 	json, err := json.Marshal(notification)
 	if err != nil {
@@ -150,10 +152,6 @@ func (t *MetorialTransport) handleMessages() {
 		case <-done:
 			return
 		case message := <-msgChan:
-			if message == nil {
-				continue
-			}
-
 			go func() {
 				switch message.MsgType {
 
@@ -173,11 +171,11 @@ func (t *MetorialTransport) handleMessages() {
 					if err := json.Unmarshal(message.GetRawPayload(), &response); err != nil {
 						return
 					}
-					t.mu.Lock()
+					t.responsesMu.Lock()
 					if responseChan, ok := t.responses[response.ID.String()]; ok {
 						responseChan <- &response
 					}
-					t.mu.Unlock()
+					t.responsesMu.Unlock()
 
 				}
 			}()

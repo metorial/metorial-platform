@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"slices"
@@ -14,6 +15,7 @@ import (
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/internal/db"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/client"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
@@ -34,6 +36,8 @@ type LocalSession struct {
 
 	mcpServerInitMutex sync.Mutex
 	mcpServer          *mcp.MCPServer
+
+	serverDiscoveryMutex sync.Mutex
 
 	dbSession *db.Session
 	db        *db.DB
@@ -943,6 +947,10 @@ func (s *LocalSession) ensureConnection() (workers.WorkerConnection, *db.Session
 		}()
 	}
 
+	if !s.dbSession.Server.LastDiscoveryAt.Valid || time.Since(s.dbSession.Server.LastDiscoveryAt.Time) > time.Hour*24 {
+		go s.discoverServer(connection)
+	}
+
 	defer func() {
 		// Send to activeConnectionCreated without blocking
 		select {
@@ -1154,5 +1162,42 @@ func (s *LocalSession) Touch() {
 		if err != nil {
 			log.Printf("Failed to update last ping time for connection %s: %v", s.activeRunDb.ID, err)
 		}
+	}
+}
+
+func (s *LocalSession) discoverServer(connection workers.WorkerConnection) {
+	if s.dbSession.Server == nil {
+		log.Printf("No server information available for session %s, skipping discovery", s.storedSession.ID)
+		return
+	}
+
+	if s.dbSession.Server.DiscoveryErroredAt.Valid &&
+		time.Since(s.dbSession.Server.DiscoveryErroredAt.Time) < time.Hour*2 {
+		log.Printf("Server discovery for session %s is still in error state, skipping discovery", s.storedSession.ID)
+		return
+	}
+
+	s.serverDiscoveryMutex.Lock()
+	defer s.serverDiscoveryMutex.Unlock()
+
+	log.Printf("Discovering server for session %s with connection %s", s.storedSession.ID, connection.ConnectionID())
+
+	err := client.WithEphemeralClient(connection, func(c *client.Client) error {
+		log.Printf("Discovering server and applying updates for session %s", s.dbSession.ID)
+
+		c.DiscoverServerAndApplyUpdates(s.dbSession.Server)
+		s.dbSession.Server.LastDiscoveryAt = db.NullTimeNow()
+		s.dbSession.Server.DiscoveryCount++
+		s.dbSession.Server.Type = s.dbSession.Type
+		s.dbSession.Server.DiscoveryErroredAt = sql.NullTime{}
+		return s.db.SaveServer(s.dbSession.Server)
+	})
+
+	if err != nil {
+		log.Printf("Failed to discover server for session %s: %v", s.storedSession.ID, err)
+
+		s.dbSession.Server.DiscoveryErroredAt = db.NullTimeNow()
+		s.dbSession.Server.DiscoveryCount++
+		s.db.SaveServer(s.dbSession.Server)
 	}
 }

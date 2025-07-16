@@ -214,13 +214,13 @@ func (s *Session) ToPb() (*managerPb.EngineSession, error) {
 }
 
 func (d *DB) ListSessionsByExternalId(externalId string, pag *managerPb.ListPagination) ([]Session, error) {
-	query := d.db.Model(&Session{}).Where("external_id = ?", externalId)
+	query := d.db.Model(&Session{}).Preload("Server").Where("external_id = ?", externalId)
 	return listWithPagination[Session](query, pag)
 }
 
 func (d *DB) GetSessionById(id string) (*Session, error) {
 	var session Session
-	err := d.db.Model(&Session{}).Where("id = ?", id).First(&session).Error
+	err := d.db.Model(&Session{}).Preload("Server").Where("id = ?", id).First(&session).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}

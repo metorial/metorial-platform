@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,15 +30,21 @@ type Server struct {
 
 	Metadata map[string]string `gorm:"type:jsonb;serializer:json;not null"`
 
+	DiscoveryCount int `gorm:"type:int;not null;default:0"`
+
+	DiscoveryErroredAt sql.NullTime `gorm:"type:timestamp;default:NULL"`
+
 	CreatedAt       time.Time    `gorm:"not null"`
 	UpdatedAt       time.Time    `gorm:"not null"`
 	LastDiscoveryAt sql.NullTime `gorm:"type:timestamp;default:NULL"`
 }
 
-func NewServer(id string, identifier string, mcpServer *mcp.MCPServer, tools []mcpTypes.Tool, prompts []mcpTypes.Prompt, resources []mcpTypes.Resource, resourceTemplates []mcpTypes.ResourceTemplate) *Server {
+func NewServer(id string, identifier string, type_ SessionType, mcpServer *mcp.MCPServer, tools []mcpTypes.Tool, prompts []mcpTypes.Prompt, resources []mcpTypes.Resource, resourceTemplates []mcpTypes.ResourceTemplate) *Server {
 	return &Server{
 		ID:         id,
 		Identifier: identifier,
+
+		Type: type_,
 
 		McpServer: mcpServer,
 
@@ -140,24 +147,25 @@ func (d *DB) GetServerById(id string) (*Server, error) {
 
 var recentlySeenServer = datastructures.NewTransientMap[string, Server](time.Minute * 5)
 
-func (d *DB) EnsureServerByIdentifier(identifier string) (*Server, error) {
+func (d *DB) EnsureServerByIdentifier(type_ SessionType, identifier string) (*Server, error) {
 	if server, exists := recentlySeenServer.Get(identifier); exists {
 		return &server, nil
 	}
 
-	var server *Server
-	err := d.db.Model(&Server{}).Where("identifier = ?", identifier).First(server).Error
+	var server Server
+	err := d.db.Model(&Server{}).Where("identifier = ?", identifier).First(&server).Error
 	if err == gorm.ErrRecordNotFound {
-		server = NewServer(
+		server = *NewServer(
 			util.Must(uuid.NewV7()).String(),
 			identifier,
+			type_,
 			nil,
-			[]mcpTypes.Tool{},
-			[]mcpTypes.Prompt{},
-			[]mcpTypes.Resource{},
-			[]mcpTypes.ResourceTemplate{},
+			make([]mcpTypes.Tool, 0),
+			make([]mcpTypes.Prompt, 0),
+			make([]mcpTypes.Resource, 0),
+			make([]mcpTypes.ResourceTemplate, 0),
 		)
-		server, err := d.CreateServer(server)
+		server, err := d.CreateServer(&server)
 
 		if err == nil {
 			return server, nil
@@ -166,7 +174,7 @@ func (d *DB) EnsureServerByIdentifier(identifier string) (*Server, error) {
 		// Ignore duplicate error, as it might happen if multiple
 		// instances try to create the same server
 		if err != gorm.ErrDuplicatedKey {
-			return nil, err
+			return nil, fmt.Errorf("failed to create server: %w", err)
 		}
 
 		// Try to get the server again after the duplicate error
@@ -182,5 +190,5 @@ func (d *DB) EnsureServerByIdentifier(identifier string) (*Server, error) {
 		return nil, err
 	}
 
-	return server, nil
+	return &server, nil
 }

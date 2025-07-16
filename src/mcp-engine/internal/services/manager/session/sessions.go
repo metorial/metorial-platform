@@ -216,7 +216,7 @@ func (s *Sessions) UpsertSession(
 			McpConfig:    request.Config.McpConfig,
 		}
 
-		server, err := s.db.EnsureServerByIdentifier(serverIdentifier)
+		server, err := s.db.EnsureServerByIdentifier(dbType, serverIdentifier)
 		if err != nil {
 			log.Printf("Failed to ensure server by identifier: %v\n", err)
 			return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to ensure server by identifier", err)

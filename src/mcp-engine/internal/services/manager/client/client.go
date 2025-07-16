@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -38,6 +39,7 @@ func (c *Client) Start(ctx context.Context) error {
 	initRequest.Params.Capabilities = mcp.ClientCapabilities{}
 
 	serverInfo, err := c.Client.Initialize(ctx, initRequest)
+
 	if err != nil {
 		c.Client.Close()
 		return fmt.Errorf("failed to initialize MCP client: %w", err)
@@ -53,15 +55,14 @@ func WithEphemeralClient(originalConnection workers.WorkerConnection, fn func(*C
 		return err
 	}
 
+	log.Printf("Creating ephemeral MCP client for connection %s", connection.ConnectionID())
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	defer connection.Close()
 
-	err = connection.Start()
-	if err != nil {
-		return err
-	}
+	connection.Start()
 
 	mcpClient, err := newMcpClient(connection)
 	if err != nil {
