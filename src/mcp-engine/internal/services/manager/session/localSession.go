@@ -251,25 +251,36 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 		go func() {
 			defer wg.Done()
 
-			server, err := connection.GetServer()
-			if err != nil {
-				sentry.CaptureException(err)
-				s.db.CreateError(db.NewErrorStructuredErrorWithRun(
-					s.dbSession,
-					run,
-					"run_error",
-					"failed to get server info",
-					map[string]string{
-						"internal_error": err.Error(),
-					},
-				))
-				return
-			}
+			var err error
 
-			message, err := server.ToInitMessage(s.mcpClient, initMessage)
-			if err != nil {
-				sentry.CaptureException(err)
-				return
+			var message *mcp.MCPMessage
+
+			if s.dbSession.Server != nil && s.dbSession.Server.McpServer != nil {
+				message, err = s.dbSession.Server.McpServer.ToInitMessage(s.mcpClient, initMessage)
+				if err != nil {
+					return
+				}
+			} else {
+				server, err := connection.GetServer()
+				if err != nil {
+					sentry.CaptureException(err)
+					s.db.CreateError(db.NewErrorStructuredErrorWithRun(
+						s.dbSession,
+						run,
+						"run_error",
+						"failed to get server info",
+						map[string]string{
+							"internal_error": err.Error(),
+						},
+					))
+					return
+				}
+
+				message, err = server.ToInitMessage(s.mcpClient, initMessage)
+				if err != nil {
+					sentry.CaptureException(err)
+					return
+				}
 			}
 
 			s.internalMessages.Publish(message)
@@ -288,7 +299,6 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 					return
 				}
 			}
-
 		}()
 	}
 
@@ -326,6 +336,9 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 			doneChan := connection.Done().Subscribe()
 			defer connection.Done().Unsubscribe(doneChan)
+
+			internalMessages := s.internalMessages.Subscribe()
+			defer s.internalMessages.Unsubscribe(internalMessages)
 
 			for {
 				if responsesToWaitFor <= 0 {
@@ -385,6 +398,23 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 					return
 
 				case message := <-msgChan:
+					if slices.Contains(mcpRequestMessageIdsToListenFor, message.GetStringId()) {
+						response := &managerPb.SendMcpMessageResponse{
+							Response: &managerPb.SendMcpMessageResponse_McpMessage{
+								McpMessage: message.ToPbMessage(),
+							},
+						}
+
+						err := stream.Send(response)
+						if err != nil {
+							log.Printf("Failed to send response message: %v", err)
+							return
+						}
+
+						responsesToWaitFor--
+					}
+
+				case message := <-internalMessages:
 					if slices.Contains(mcpRequestMessageIdsToListenFor, message.GetStringId()) {
 						response := &managerPb.SendMcpMessageResponse{
 							Response: &managerPb.SendMcpMessageResponse_McpMessage{
