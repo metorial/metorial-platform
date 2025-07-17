@@ -220,6 +220,7 @@ export let syncProcessor = syncQueue.process(async () => {
 
                   sourceType: version.sourceType,
                   dockerImage: version.dockerImage,
+                  dockerTag: version.dockerTag,
                   remoteUrl: version.remoteUrl,
 
                   tools: ourVariant.tools,
