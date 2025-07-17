@@ -34,4 +34,18 @@ if [ "$1" = "migrate" ]; then
   exit 0
 fi
 
+if [ "$1" = "build" ]; then
+  cd ./scripts
+  
+  if [ "$2" = "server" ]; then
+    ./buildServer.sh
+  else
+    echo "Unknown build target: $2"
+    exit 1
+  fi
+fi
+
+
+buildServer
+
 bun ./src/cli.ts "$@"
