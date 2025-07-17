@@ -2,9 +2,11 @@ package worker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"slices"
 	"sync"
 	"time"
@@ -35,8 +37,9 @@ type Worker struct {
 	port       int
 	grpcServer *grpc.Server
 
-	managerConn   *grpc.ClientConn
-	managerClient workerBrokerPb.McpWorkerBrokerClient
+	managerMutex   sync.RWMutex
+	managerConns   map[string]*grpc.ClientConn
+	managerClients map[string]workerBrokerPb.McpWorkerBrokerClient
 
 	impl WorkerImpl
 
@@ -52,19 +55,37 @@ type Worker struct {
 	seenManagers []string
 }
 
+var managerAddressMapping map[string]string
+
+func getManagerAddressMapping() map[string]string {
+	if managerAddressMapping == nil {
+		envMapping := os.Getenv("MANAGER_ADDRESS_MAPPING")
+		if envMapping == "" {
+			managerAddressMapping = make(map[string]string)
+		} else {
+			managerAddressMapping = make(map[string]string)
+			err := json.Unmarshal([]byte(envMapping), &managerAddressMapping)
+			if err != nil {
+				log.Fatalf("Failed to parse MANAGER_ADDRESS_MAPPING: %v", err)
+			}
+		}
+	}
+	return managerAddressMapping
+}
+
+func getManagerAddress(address string) string {
+	mapping := getManagerAddressMapping()
+	if mappedAddress, ok := mapping[address]; ok {
+		return mappedAddress
+	}
+	return address
+}
+
 func NewWorker(ctx context.Context, workerType workerPb.WorkerType, ownAddress string, managerAddress string, impl WorkerImpl) (*Worker, error) {
 	port, err := addr.ExtractPort(ownAddress)
 	if err != nil {
 		return nil, err
 	}
-
-	conn, err := grpc.NewClient(managerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		sentry.CaptureException(err)
-		return nil, err
-	}
-
-	client := workerBrokerPb.NewMcpWorkerBrokerClient(conn)
 
 	ctx, cancel := context.WithCancel(ctx)
 
@@ -79,8 +100,8 @@ func NewWorker(ctx context.Context, workerType workerPb.WorkerType, ownAddress s
 
 		health: *newWorkerHealthManager(),
 
-		managerConn:   conn,
-		managerClient: client,
+		managerConns:   make(map[string]*grpc.ClientConn),
+		managerClients: make(map[string]workerBrokerPb.McpWorkerBrokerClient),
 
 		impl: impl,
 
@@ -91,6 +112,15 @@ func NewWorker(ctx context.Context, workerType workerPb.WorkerType, ownAddress s
 	}
 
 	go worker.start()
+
+	wait := time.NewTimer(5 * time.Second)
+	<-wait.C
+
+	err = worker.registerWithManager(getManagerAddress(managerAddress))
+	if err != nil {
+		sentry.CaptureException(err)
+		log.Fatalf("Failed to register with initial manager: %v", err)
+	}
 
 	go worker.connectToNewManagersRoutine()
 
@@ -139,13 +169,15 @@ func (w *Worker) Stop() error {
 		w.grpcServer = nil
 	}
 
-	if w.managerConn != nil {
-		err := w.managerConn.Close()
+	w.managerMutex.Lock()
+	defer w.managerMutex.Unlock()
+
+	for _, conn := range w.managerConns {
+		err := conn.Close()
 		if err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
-		w.managerConn = nil
 	}
 
 	if w.impl != nil {
@@ -169,9 +201,20 @@ func (w *Worker) registerWithManager(address string) error {
 		return err
 	}
 
-	defer conn.Close()
-
 	client := workerBrokerPb.NewMcpWorkerBrokerClient(conn)
+
+	w.managerMutex.Lock()
+	defer w.managerMutex.Unlock()
+
+	if _, exists := w.managerClients[address]; exists {
+		// log.Printf("Already registered with manager at %s", address)
+		return nil
+	}
+
+	log.Printf("Registering worker %s with manager at %s", w.WorkerID, address)
+
+	w.managerConns[address] = conn
+	w.managerClients[address] = client
 
 	_, err = client.RegisterWorker(context.Background(), &workerBrokerPb.RegisterWorkerRequest{
 		WorkerId:   w.WorkerID,
@@ -188,14 +231,24 @@ func (w *Worker) registerWithManager(address string) error {
 }
 
 func (w *Worker) connectToNewManagers() error {
-	if w.managerClient == nil {
-		return nil
+	var managers *workerBrokerPb.ListManagersResponse
+	var err error
+
+	w.managerMutex.RLock()
+
+	for _, conn := range w.managerClients {
+		managers, err = conn.ListManagers(context.Background(), &workerBrokerPb.ListManagersRequest{})
+		if err != nil {
+			sentry.CaptureException(err)
+		} else {
+			break
+		}
 	}
 
-	managers, err := w.managerClient.ListManagers(context.Background(), &workerBrokerPb.ListManagersRequest{})
+	w.managerMutex.RUnlock()
+
 	if err != nil {
-		sentry.CaptureException(err)
-		return err
+		return fmt.Errorf("failed to connect to any manager: %w", err)
 	}
 
 	w.mutex.Lock()
@@ -208,7 +261,7 @@ func (w *Worker) connectToNewManagers() error {
 
 		w.seenManagers = append(w.seenManagers, manager.Id)
 
-		w.registerWithManager(manager.Address)
+		w.registerWithManager(getManagerAddress(manager.Address))
 	}
 
 	return nil
@@ -220,7 +273,8 @@ func (w *Worker) connectToNewManagersRoutine() {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
-	if err := w.connectToNewManagers(); err != nil {
+	err := w.connectToNewManagers()
+	if err != nil {
 		log.Printf("Failed to connect to new managers: %v", err)
 	}
 
@@ -229,7 +283,8 @@ func (w *Worker) connectToNewManagersRoutine() {
 		case <-w.context.Done():
 			return
 		case <-ticker.C:
-			if err := w.connectToNewManagers(); err != nil {
+			err := w.connectToNewManagers()
+			if err != nil {
 				log.Printf("Failed to connect to new managers: %v", err)
 			}
 		}

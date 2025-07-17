@@ -323,8 +323,8 @@ func (s *Sessions) EnsureLocalSession(
 			map[string]string{},
 		))
 
-		log.Printf("Failed to get runner launch params: %v\n", err)
-		return nil, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err2.Error(), err)
+		log.Printf("Failed to get runner launch params: %v\n", err2)
+		return nil, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err2.Error(), err2)
 	}
 
 	go s.db.CreateEvent(db.NewLauncherEvent(

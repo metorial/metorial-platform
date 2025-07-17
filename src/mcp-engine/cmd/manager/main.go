@@ -51,6 +51,11 @@ func getConfig() (string, []string, string) {
 
 	address := *addressArg
 
+	managerAddressEnv := os.Getenv("MANAGER_ADDRESS")
+	if managerAddressEnv != "" {
+		address = managerAddressEnv
+	}
+
 	etcdEndpoints := []string{"http://localhost:2379"}
 	etcdEndpointsEnv := os.Getenv("ETCD_ENDPOINTS")
 	if etcdEndpointsEnv != "" {
