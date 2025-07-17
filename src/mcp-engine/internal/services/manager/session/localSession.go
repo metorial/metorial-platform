@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/internal/db"
@@ -178,6 +179,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	// and the connection is established.
 	connection, run, err := s.ensureConnection()
 	if err != nil {
+		sentry.CaptureException(err)
 		return err
 	}
 
@@ -251,6 +253,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 			server, err := connection.GetServer()
 			if err != nil {
+				sentry.CaptureException(err)
 				s.db.CreateError(db.NewErrorStructuredErrorWithRun(
 					s.dbSession,
 					run,
@@ -265,6 +268,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 			message, err := server.ToInitMessage(s.mcpClient, initMessage)
 			if err != nil {
+				sentry.CaptureException(err)
 				return
 			}
 
@@ -419,6 +423,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	for _, message := range mcpMessages {
 		err := connection.AcceptMessage(message)
 		if err != nil {
+			sentry.CaptureException(err)
 			go s.db.CreateError(db.NewErrorStructuredErrorWithRun(
 				s.dbSession,
 				s.activeRunDb,
@@ -479,6 +484,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 		go func() {
 			messages, err := s.db.ListGlobalSessionMessagesAfter(req.SessionId, *req.ReplayAfterUuid)
 			if err != nil {
+				sentry.CaptureException(err)
 				log.Printf("Failed to list messages after UUID %s: %v", *req.ReplayAfterUuid, err)
 				return
 			}
@@ -720,6 +726,7 @@ func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpP
 	if s.mcpServer == nil {
 		connection, _, err := s.ensureConnection()
 		if err != nil {
+			sentry.CaptureException(err)
 			return nil, mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to ensure connection", err)
 		}
 
@@ -728,6 +735,7 @@ func (s *LocalSession) GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpP
 
 		server, err2 := connection.GetServer()
 		if err2 != nil {
+			sentry.CaptureException(err2)
 			return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get server info", err)
 		}
 
@@ -1000,6 +1008,7 @@ func (s *LocalSession) stop(type_ SessionStopType) error {
 
 		s.activeConnection = nil
 		if err != nil {
+			sentry.CaptureException(err)
 			return fmt.Errorf("failed to close active connection: %w", err)
 		}
 	}
@@ -1056,6 +1065,7 @@ loop:
 				// clean up the old connection if it has been replaced
 				err := connection.Close()
 				if err != nil {
+					sentry.CaptureException(err)
 					log.Printf("Failed to close old connection %s: %v", connection.ConnectionID(), err)
 				}
 
@@ -1140,6 +1150,7 @@ func (s *LocalSession) Touch() {
 		s.dbSession.LastPingAt = time.Now()
 		err := s.db.SaveSession(s.dbSession)
 		if err != nil {
+			sentry.CaptureException(err)
 			log.Printf("Failed to update last ping time for session %s: %v", s.dbSession.ID, err)
 		}
 	}
@@ -1148,6 +1159,7 @@ func (s *LocalSession) Touch() {
 		s.activeRunDb.LastPingAt = time.Now()
 		err := s.db.SaveRun(s.activeRunDb)
 		if err != nil {
+			sentry.CaptureException(err)
 			log.Printf("Failed to update last ping time for connection %s: %v", s.activeRunDb.ID, err)
 		}
 	}

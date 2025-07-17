@@ -1,4 +1,4 @@
-package mterror
+package mtError
 
 import (
 	"encoding/json"

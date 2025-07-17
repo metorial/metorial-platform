@@ -10,9 +10,13 @@ import (
 
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager"
+	"github.com/metorial/metorial/mcp-engine/pkg/sentryUtil"
 )
 
 func main() {
+	sentryUtil.InitSentryIfNeeded()
+	defer sentryUtil.ShutdownSentry()
+
 	address, etcdEndpoints, dsn := getConfig()
 
 	db, error := db.NewDB(dsn)

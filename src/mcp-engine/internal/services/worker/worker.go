@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
 	"github.com/metorial/metorial/mcp-engine/pkg/addr"
@@ -59,6 +60,7 @@ func NewWorker(ctx context.Context, workerType workerPb.WorkerType, ownAddress s
 
 	conn, err := grpc.NewClient(managerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
@@ -98,6 +100,7 @@ func NewWorker(ctx context.Context, workerType workerPb.WorkerType, ownAddress s
 func (w *Worker) start() error {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", w.port))
 	if err != nil {
+		sentry.CaptureException(err)
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
@@ -116,7 +119,9 @@ func (w *Worker) start() error {
 
 	log.Printf("Starting worker server at %s", w.Address)
 
-	if err := w.grpcServer.Serve(lis); err != nil {
+	err = w.grpcServer.Serve(lis)
+	if err != nil {
+		sentry.CaptureException(err)
 		log.Fatalf("Failed to serve: %v", err)
 	}
 
@@ -135,14 +140,18 @@ func (w *Worker) Stop() error {
 	}
 
 	if w.managerConn != nil {
-		if err := w.managerConn.Close(); err != nil {
+		err := w.managerConn.Close()
+		if err != nil {
+			sentry.CaptureException(err)
 			return err
 		}
 		w.managerConn = nil
 	}
 
 	if w.impl != nil {
-		if err := w.impl.Stop(); err != nil {
+		err := w.impl.Stop()
+		if err != nil {
+			sentry.CaptureException(err)
 			return err
 		}
 		w.impl = nil
@@ -156,6 +165,7 @@ func (w *Worker) Stop() error {
 func (w *Worker) registerWithManager(address string) error {
 	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
+		sentry.CaptureException(err)
 		return err
 	}
 
@@ -184,6 +194,7 @@ func (w *Worker) connectToNewManagers() error {
 
 	managers, err := w.managerClient.ListManagers(context.Background(), &workerBrokerPb.ListManagersRequest{})
 	if err != nil {
+		sentry.CaptureException(err)
 		return err
 	}
 

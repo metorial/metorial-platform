@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 
+	"github.com/getsentry/sentry-go"
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"google.golang.org/grpc"
 )
@@ -22,6 +23,7 @@ func (r *workerServer) GetWorkerInfo(ctx context.Context, req *workerPb.WorkerIn
 func (r *workerServer) StreamWorkerHealth(req *workerPb.WorkerHealthRequest, stream grpc.ServerStreamingServer[workerPb.WorkerInfoResponse]) error {
 	err := stream.Send(r.getWorkerInfo())
 	if err != nil {
+		sentry.CaptureException(err)
 		return err
 	}
 

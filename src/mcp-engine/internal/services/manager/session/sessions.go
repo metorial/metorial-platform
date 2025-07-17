@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
@@ -201,12 +202,14 @@ func (s *Sessions) UpsertSession(
 			request.Metadata,
 		))
 		if err != nil {
+			sentry.CaptureException(err)
 			log.Printf("Failed to create session in DB: %v\n", err)
 			return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to create session in DB", err)
 		}
 
 		err2 = runLauncherForServerConfigIfNeeded(s.launcher, connectionInput, request.Config.ServerConfig)
 		if err2 != nil {
+			sentry.CaptureException(err2)
 			go s.db.CreateEvent(db.NewLauncherEvent(
 				dbSession,
 				db.SessionEventTypeLauncherRun_Error,
@@ -251,11 +254,13 @@ func (s *Sessions) UpsertSession(
 func (s *Sessions) EnsureRemoteSession(storedSession *state.Session) (*RemoteSession, *mterror.MTError) {
 	manager, err := s.managers.GetManager(storedSession.ManagerID)
 	if err != nil {
+		sentry.CaptureException(err)
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get manager for session", err)
 	}
 
 	connection, err := s.managers.GetManagerConnection(manager.ID)
 	if err != nil {
+		sentry.CaptureException(err)
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get manager connection", err)
 	}
 
@@ -305,9 +310,11 @@ func (s *Sessions) Stop() error {
 		err := session.stop(SessionStopTypeExpire)
 		_, err2 := s.state.DeleteSession(id)
 		if err != nil {
+			sentry.CaptureException(err)
 			log.Panicf("failed to stop session %s: %v\n", id, err)
 		}
 		if err2 != nil {
+			sentry.CaptureException(err2)
 			log.Panicf("failed to delete session %s from state: %v\n", id, err2)
 		}
 	}

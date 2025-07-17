@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
@@ -19,6 +20,8 @@ func createConnection(workerManager *workers.WorkerManager, connectionInput *wor
 
 	hash, err := workerManager.GetConnectionHashForWorkerType(workerType, connectionInput)
 	if err != nil {
+		sentry.CaptureException(err)
+
 		log.Printf("Failed to get connection hash for worker type %s: %v", workerType, err)
 		return nil, nil, mterror.NewWithInnerError(mterror.InternalErrorKind, fmt.Sprintf("failed to get connection hash for worker type: %s", err.Error()), err)
 	}
@@ -31,6 +34,8 @@ func createConnection(workerManager *workers.WorkerManager, connectionInput *wor
 
 	connection, err := worker.CreateConnection(connectionInput)
 	if err != nil {
+		sentry.CaptureException(err)
+
 		log.Printf("Failed to create connection for worker %s: %v", worker.WorkerID(), err)
 		return nil, nil, mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to create connection for worker", err)
 	}

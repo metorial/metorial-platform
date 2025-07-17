@@ -3,6 +3,7 @@ package session
 import (
 	"log"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mtError"
@@ -16,6 +17,7 @@ func discoverManual(
 ) (*db.Server, *mterror.MTError) {
 	connection, _, err := createConnection(sessions.workerManager, connectionInput, nil, connectionInput.WorkerType)
 	if err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
@@ -27,11 +29,13 @@ func discoverManual(
 
 	err2 := connection.Start(false)
 	if err2 != nil {
+		sentry.CaptureException(err2)
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to start connection", err2)
 	}
 
 	err2 = discoverServer(sessions.db, server, connection, force)
 	if err2 != nil {
+		sentry.CaptureException(err2)
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to discover server", err2)
 	}
 

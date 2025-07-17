@@ -18,9 +18,13 @@ import (
 	workerMcpRemote "github.com/metorial/metorial/mcp-engine/internal/services/worker-mcp-remote"
 	workerMcpRunner "github.com/metorial/metorial/mcp-engine/internal/services/worker-mcp-runner"
 	"github.com/metorial/metorial/mcp-engine/pkg/docker"
+	"github.com/metorial/metorial/mcp-engine/pkg/sentryUtil"
 )
 
 func main() {
+	sentryUtil.InitSentryIfNeeded()
+	defer sentryUtil.ShutdownSentry()
+
 	err := godotenv.Load()
 	if err != nil {
 		// ignore error if .env file is not found

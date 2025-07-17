@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/client"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
@@ -49,6 +50,8 @@ func discoverServer(db_ *db.DB, server *db.Server, connection workers.WorkerConn
 	})
 
 	if err != nil {
+		sentry.CaptureException(err)
+
 		log.Printf("Failed to discover server for server %s: %v", server.ID, err)
 
 		server.DiscoveryErroredAt = db.NullTimeNow()
