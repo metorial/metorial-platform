@@ -152,15 +152,6 @@ func (s *Sessions) UpsertSession(
 	s.keylock.Lock(request.SessionId)
 	defer s.keylock.Unlock(request.SessionId)
 
-	var client *mcp.MCPClient
-	if request.McpClient != nil {
-		var err error
-		client, err = mcp.ParseMcpClient([]byte(request.McpClient.ParticipantJson))
-		if err != nil {
-			return nil, mterror.NewWithInnerError(mterror.InvalidRequestKind, "failed to parse MCP client", err)
-		}
-	}
-
 	prospectiveSessionUuid := util.Must(uuid.NewV7()).String()
 
 	storedSession, err := s.state.UpsertSession(
@@ -180,78 +171,22 @@ func (s *Sessions) UpsertSession(
 	// This manager is responsible for the session, so we
 	// need to create a local session for it.
 	if storedSession.ManagerID == s.state.ManagerID {
-		server, connectionInput, err2 := processServerConfig(
-			storedSession.ID,
-			client,
-			request.Config.ServerConfig,
-			request.Config.McpConfig,
-			s.db,
-		)
-		if err2 != nil {
-			return nil, err2
-		}
-
-		dbSession, err := s.db.CreateSession(db.NewSession(
-			prospectiveSessionUuid,
-			request.SessionId,
-			server,
-			db.SessionStatusActive,
-			workerTypeToDbType(connectionInput.WorkerType),
-			client,
-			request.Config.McpConfig.McpVersion,
-			request.Metadata,
-		))
-		if err != nil {
-			sentry.CaptureException(err)
-			log.Printf("Failed to create session in DB: %v\n", err)
-			return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to create session in DB", err)
-		}
-
-		err2 = runLauncherForServerConfigIfNeeded(s.launcher, connectionInput, request.Config.ServerConfig)
-		if err2 != nil {
-			sentry.CaptureException(err2)
-			go s.db.CreateEvent(db.NewLauncherEvent(
-				dbSession,
-				db.SessionEventTypeLauncherRun_Error,
-			))
-
-			go s.db.CreateError(db.NewErrorStructuredError(
-				dbSession,
-				"get_launch_params_error",
-				err2.Error(),
-				map[string]string{},
-			))
-
-			log.Printf("Failed to get runner launch params: %v\n", err)
-			return nil, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err2.Error(), err)
-		}
-
-		go s.db.CreateEvent(db.NewLauncherEvent(
-			dbSession,
-			db.SessionEventTypeLauncherRun_Success,
-		))
-
-		session := newLocalSession(
-			s,
+		return s.EnsureLocalSession(
 			storedSession,
-			connectionInput,
-			dbSession,
-			connectionInput.WorkerType,
-			client,
+			request,
+			prospectiveSessionUuid,
+			false, // Not a takeover
 		)
-
-		s.mutex.Lock()
-		s.sessions[storedSession.ID] = session
-		s.mutex.Unlock()
-
-		return session, nil
 	}
 
-	ses, err2 := s.EnsureRemoteSession(storedSession)
-	return ses, err2
+	return s.EnsureRemoteSessionOrTakeOver(
+		storedSession,
+		request,
+		prospectiveSessionUuid,
+	)
 }
 
-func (s *Sessions) EnsureRemoteSession(storedSession *state.Session) (*RemoteSession, *mterror.MTError) {
+func (s *Sessions) tryToGetManagerForRemoteSession(storedSession *state.Session) (managerPb.McpManagerClient, *mterror.MTError) {
 	manager, err := s.managers.GetManager(storedSession.ManagerID)
 	if err != nil {
 		sentry.CaptureException(err)
@@ -264,10 +199,146 @@ func (s *Sessions) EnsureRemoteSession(storedSession *state.Session) (*RemoteSes
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get manager connection", err)
 	}
 
+	return connection, nil
+}
+
+func (s *Sessions) EnsureRemoteSession(storedSession *state.Session) (*RemoteSession, *mterror.MTError) {
+	connection, err := s.tryToGetManagerForRemoteSession(storedSession)
+	if err != nil {
+		return nil, err
+	}
+
 	session := newRemoteSession(
 		s,
 		storedSession,
 		connection,
+	)
+
+	s.mutex.Lock()
+	s.sessions[storedSession.ID] = session
+	s.mutex.Unlock()
+
+	return session, nil
+}
+
+func (s *Sessions) EnsureRemoteSessionOrTakeOver(
+	storedSession *state.Session,
+	request *managerPb.CreateSessionRequest,
+	prospectiveSessionUuid string,
+) (Session, *mterror.MTError) {
+	connection, err := s.tryToGetManagerForRemoteSession(storedSession)
+	if err != nil {
+		fmt.Printf("Failed to get manager connection for session %s: %v ... taking over\n", storedSession.ID, err)
+
+		return s.EnsureLocalSession(
+			storedSession,
+			request,
+			prospectiveSessionUuid,
+			true,
+		)
+	}
+
+	session := newRemoteSession(
+		s,
+		storedSession,
+		connection,
+	)
+
+	s.mutex.Lock()
+	s.sessions[storedSession.ID] = session
+	s.mutex.Unlock()
+
+	return session, nil
+}
+
+func (s *Sessions) EnsureLocalSession(
+	storedSession *state.Session,
+	request *managerPb.CreateSessionRequest,
+	prospectiveSessionUuid string,
+	isTakeover bool,
+) (Session, *mterror.MTError) {
+	var client *mcp.MCPClient
+	if request.McpClient != nil {
+		var err error
+		client, err = mcp.ParseMcpClient([]byte(request.McpClient.ParticipantJson))
+		if err != nil {
+			return nil, mterror.NewWithInnerError(mterror.InvalidRequestKind, "failed to parse MCP client", err)
+		}
+	}
+
+	if isTakeover {
+		prospectiveSessionUuid = util.Must(uuid.NewV7()).String()
+
+		storedSession.ManagerID = s.state.ManagerID
+		storedSession.SessionUuid = prospectiveSessionUuid
+		storedSession.CreatedAt = time.Now().UnixMilli()
+
+		err := s.state.UpdateSession(storedSession)
+		if err != nil {
+			sentry.CaptureException(err)
+			log.Printf("Failed to update session %s during takeover: %v\n", storedSession.ID, err)
+			return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to update session during takeover", err)
+		}
+	}
+
+	server, connectionInput, err2 := processServerConfig(
+		storedSession.ID,
+		client,
+		request.Config.ServerConfig,
+		request.Config.McpConfig,
+		s.db,
+	)
+	if err2 != nil {
+		return nil, err2
+	}
+
+	dbSession, err := s.db.CreateSession(db.NewSession(
+		prospectiveSessionUuid,
+		request.SessionId,
+		server,
+		db.SessionStatusActive,
+		workerTypeToDbType(connectionInput.WorkerType),
+		client,
+		request.Config.McpConfig.McpVersion,
+		request.Metadata,
+	))
+	if err != nil {
+		sentry.CaptureException(err)
+		log.Printf("Failed to create session in DB: %v\n", err)
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to create session in DB", err)
+	}
+
+	err2 = runLauncherForServerConfigIfNeeded(s.launcher, connectionInput, request.Config.ServerConfig)
+	if err2 != nil {
+		sentry.CaptureException(err2)
+		go s.db.CreateEvent(db.NewLauncherEvent(
+			dbSession,
+			db.SessionEventTypeLauncherRun_Error,
+		))
+
+		go s.db.CreateError(db.NewErrorStructuredError(
+			dbSession,
+			"get_launch_params_error",
+			err2.Error(),
+			map[string]string{},
+		))
+
+		log.Printf("Failed to get runner launch params: %v\n", err)
+		return nil, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err2.Error(), err)
+	}
+
+	go s.db.CreateEvent(db.NewLauncherEvent(
+		dbSession,
+		db.SessionEventTypeLauncherRun_Success,
+	))
+
+	session := newLocalSession(
+		s,
+		storedSession,
+		connectionInput,
+		dbSession,
+		connectionInput.WorkerType,
+		client,
 	)
 
 	s.mutex.Lock()
