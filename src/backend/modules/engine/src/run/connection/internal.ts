@@ -27,6 +27,7 @@ import { secretService } from '@metorial/module-secret';
 import { getSentry } from '@metorial/sentry';
 import { getUnifiedIdIfNeeded, UnifiedID } from '@metorial/unified-id';
 import { JSONRPCMessage } from '@modelcontextprotocol/sdk/types';
+import { addServerDeploymentDiscovery } from '../../queues/discoverServer';
 import { addRunSync } from '../../queues/syncRuns';
 import { getClientByHash } from '../client';
 import { getSessionConfig } from '../config';
@@ -180,6 +181,13 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
         serverSession: srvSes,
         engineSession: ses
       });
+
+      if (!srvSes.serverDeployment.serverVariant.lastDiscoveredAt) {
+        await addServerDeploymentDiscovery({
+          serverDeploymentId: srvSes.serverDeployment.id,
+          delay: 1000 * 5 // 5 seconds
+        });
+      }
 
       return new EngineSessionConnectionInternal(
         config,

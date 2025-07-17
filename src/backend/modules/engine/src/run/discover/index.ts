@@ -1,16 +1,17 @@
-import { db, ID, ServerDeployment } from '@metorial/db';
+import { db, ID } from '@metorial/db';
 import { internalServerError, ServiceError } from '@metorial/error';
 import { secretService } from '@metorial/module-secret';
 import { getSentry } from '@metorial/sentry';
 import { InitializeResult } from '@modelcontextprotocol/sdk/types';
+import { subMinutes } from 'date-fns';
 import { getClientByHash } from '../client';
 import { getSessionConfig } from '../config';
 
 let Sentry = getSentry();
 
-export let discoverServer = async (initialServerDeployment: ServerDeployment) => {
+export let discoverServer = async (serverDeploymentId: string) => {
   let serverDeployment = await db.serverDeployment.findFirst({
-    where: { oid: initialServerDeployment.oid },
+    where: { id: serverDeploymentId },
     include: {
       config: true,
       serverVariant: {
@@ -23,6 +24,14 @@ export let discoverServer = async (initialServerDeployment: ServerDeployment) =>
   if (!serverDeployment) throw new Error('WTF - Missing server deployment');
   if (!serverDeployment.serverVariant.currentVersion)
     throw new Error('WTF - Missing current server version');
+
+  let discoveryInterval = subMinutes(new Date(), 15);
+  if (
+    serverDeployment.serverVariant.lastDiscoveredAt &&
+    serverDeployment.serverVariant.lastDiscoveredAt > discoveryInterval
+  ) {
+    return serverDeployment;
+  }
 
   let id = await ID.generateId('serverAutoDiscoveryJob');
 
@@ -60,7 +69,9 @@ export let discoverServer = async (initialServerDeployment: ServerDeployment) =>
       resourceTemplates: report.resourceTemplates.map(t => JSON.parse(t.json)),
 
       serverCapabilities: serverInfo.capabilities,
-      serverInfo: serverInfo.serverInfo
+      serverInfo: serverInfo.serverInfo,
+
+      lastDiscoveredAt: new Date()
     };
 
     let updatedVariant = await db.serverVariant.update({
@@ -83,9 +94,11 @@ export let discoverServer = async (initialServerDeployment: ServerDeployment) =>
         id,
         status: 'completed',
         serverDeploymentOid: serverDeployment.oid,
-        serverOid: serverDeployment.serverOid
+        serverVariantOid: serverDeployment.serverVariant.oid
       }
     });
+
+    return serverDeployment;
   } catch (error: any) {
     Sentry.captureException(error, {
       extra: {
@@ -99,7 +112,7 @@ export let discoverServer = async (initialServerDeployment: ServerDeployment) =>
         id,
         status: 'failed',
         serverDeploymentOid: serverDeployment.oid,
-        serverOid: serverDeployment.serverOid,
+        serverVariantOid: serverDeployment.serverVariant.oid,
         internalMetadata: {
           error: error.message
         }

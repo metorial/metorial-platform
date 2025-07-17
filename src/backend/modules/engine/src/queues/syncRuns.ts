@@ -46,11 +46,14 @@ let syncRunsQueueProcessor = syncRunsQueue.process(async data => {
 });
 
 let syncRunQueue = createQueue<{ runId: string }>({
-  name: 'eng/sync/run'
+  name: 'eng/sync/run',
+  workerOpts: {
+    concurrency: 20,
+    limiter: { max: 50, duration: 1000 }
+  }
 });
 
 let syncRunQueueProcessor = syncRunQueue.process(async data => {
-  if (!data) return;
   await syncEngineRun({ engineRunId: data.runId });
 });
 

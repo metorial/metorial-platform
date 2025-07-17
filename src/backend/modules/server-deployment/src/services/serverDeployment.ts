@@ -15,6 +15,7 @@ import {
 import { badRequestError, forbiddenError, notFoundError, ServiceError } from '@metorial/error';
 import { Fabric } from '@metorial/fabric';
 import { serverVariantService } from '@metorial/module-catalog';
+import { engineServerDiscoveryService } from '@metorial/module-engine';
 import { ingestEventService } from '@metorial/module-event';
 import { secretService } from '@metorial/module-secret';
 import { Paginator } from '@metorial/pagination';
@@ -155,7 +156,7 @@ class ServerDeploymentServiceImpl {
       implementation: d.serverImplementation.instance
     });
 
-    return withTransaction(async db => {
+    let serverDeployment = await withTransaction(async db => {
       if (
         !d.serverImplementation.isNewEphemeral &&
         d.serverImplementation.instance.status != 'active'
@@ -228,6 +229,14 @@ class ServerDeploymentServiceImpl {
 
       return serverDeployment;
     });
+
+    if (!serverDeployment.serverImplementation.serverVariant.lastDiscoveredAt) {
+      await engineServerDiscoveryService.discoverServerAsync({
+        serverDeployment
+      });
+    }
+
+    return serverDeployment;
   }
 
   async updateServerDeployment(d: {

@@ -45,11 +45,14 @@ let syncSessionsQueueProcessor = syncSessionsQueue.process(async () => {
 });
 
 let syncSessionQueue = createQueue<{ sessionId: string }>({
-  name: 'eng/sync/ses'
+  name: 'eng/sync/ses',
+  workerOpts: {
+    concurrency: 20,
+    limiter: { max: 50, duration: 1000 }
+  }
 });
 
 let syncSessionQueueProcessor = syncSessionQueue.process(async data => {
-  if (!data) return;
   await syncEngineSession({ engineSessionId: data.sessionId });
 });
 

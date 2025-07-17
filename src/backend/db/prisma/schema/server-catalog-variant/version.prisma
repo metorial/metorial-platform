@@ -45,10 +45,10 @@ model ServerVersion {
   serverCapabilities Json @default("null")
 
   currentConfigFor ServerVariant[] @relation("ServerVariantCurrentServerConfig")
+  serverRuns       ServerRun[]
 
-  createdAt DateTime @default(now())
-
-  serverRuns ServerRun[]
+  createdAt        DateTime  @default(now())
+  lastDiscoveredAt DateTime?
 
   @@unique([identifier, serverVariantOid])
 }
