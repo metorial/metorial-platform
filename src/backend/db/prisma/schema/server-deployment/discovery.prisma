@@ -1,0 +1,21 @@
+enum ServerAutoDiscoveryJobStatus {
+  failed
+  completed
+}
+
+model ServerAutoDiscoveryJob {
+  oid    BigInt                       @id @default(autoincrement())
+  id     String                       @unique
+  status ServerAutoDiscoveryJobStatus
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  serverDeploymentOid BigInt
+  serverDeployment    ServerDeployment @relation(fields: [serverDeploymentOid], references: [oid])
+
+  metadata         Json?
+  internalMetadata Json?
+
+  createdAt DateTime @default(now())
+}

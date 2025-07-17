@@ -15,6 +15,14 @@ echo "Applying migration to shadow database..."
 
 cd $METORIAL_PWD
 NAME_ARG=$1
+
+# If another argument is provided, people might have a space in the
+# migration name, so we abort and ask for a single argument.
+if [ -z "$NAME_ARG" ]; then
+  echo "Please provide a migration name as the first argument."
+  exit 1
+fi
+
 bun prisma migrate reset --force --skip-generate
 bun prisma migrate dev --create-only --skip-generate --name "$NAME_ARG"
 

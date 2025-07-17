@@ -114,7 +114,7 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
       serverSession: srvSes
     });
 
-    let client = getClientByHash(version.identifier);
+    let client = getClientByHash(variant.identifier);
     if (!client) {
       throw new ServiceError(
         internalServerError({
@@ -155,7 +155,10 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
               } satisfies McpClient)
             }
           : undefined,
-        config: await getSessionConfig(srvSes, DANGEROUSLY_UNENCRYPTED_CONFIG),
+        config: await getSessionConfig(
+          srvSes.serverDeployment,
+          DANGEROUSLY_UNENCRYPTED_CONFIG
+        ),
         sessionId: srvSes.id
       });
 

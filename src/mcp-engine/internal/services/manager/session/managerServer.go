@@ -471,13 +471,13 @@ func (s *SessionServer) DiscoverServer(ctx context.Context, req *managerPb.Disco
 		return nil, err.ToGRPCStatus().Err()
 	}
 
-	if !server.LastDiscoveryAt.Valid {
+	if shouldDiscoverServer(server) {
 		err = runLauncherForServerConfigIfNeeded(s.sessions.launcher, connectionInput, req.ServerConfig)
 		if err != nil {
 			return nil, err.ToGRPCStatus().Err()
 		}
 
-		server, err = discoverManual(s.sessions, connectionInput, server)
+		server, err = discoverManual(s.sessions, connectionInput, server, true)
 		if err != nil {
 			return nil, err.ToGRPCStatus().Err()
 		}

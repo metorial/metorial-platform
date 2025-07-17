@@ -31,8 +31,8 @@ func shouldDiscoverServer(server *db.Server) bool {
 	return true
 }
 
-func discoverServer(db_ *db.DB, server *db.Server, connection workers.WorkerConnection) error {
-	if !shouldDiscoverServer(server) {
+func discoverServer(db_ *db.DB, server *db.Server, connection workers.WorkerConnection, force bool) error {
+	if !force && !shouldDiscoverServer(server) {
 		return nil
 	}
 
@@ -67,7 +67,7 @@ func discoverServerWithEphemeralConnection(db_ *db.DB, server *db.Server, connec
 	log.Printf("Creating ephemeral connection for server %s with connection %s", server.ID, connection.ConnectionID())
 
 	err := withEphemeralConnectionForAutoDiscovery(connection, func(conn workers.WorkerConnection) error {
-		discoverServer(db_, server, conn)
+		discoverServer(db_, server, conn, true)
 		return nil
 	})
 
@@ -88,7 +88,13 @@ func withEphemeralConnectionForAutoDiscovery(originalConnection workers.WorkerCo
 		return err
 	}
 
-	defer connection.Close()
+	defer func() {
+		err := connection.Close()
+		if err != nil {
+			log.Printf("Failed to close ephemeral connection: %v", err)
+		}
+	}()
+
 	connection.Start(false)
 
 	return fn(connection)

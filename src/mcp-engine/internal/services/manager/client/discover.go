@@ -68,6 +68,10 @@ func (c *Client) DiscoverServerAndApplyUpdates(server *db.Server) {
 
 	server.Tools = c.DiscoverTools()
 	server.Prompts = c.DiscoverPrompts()
-	server.Resources = c.DiscoverResources()
 	server.ResourceTemplates = c.DiscoverResourceTemplates()
+	// server.Resources = c.DiscoverResources()
+
+	// Resource might require the server to make actual requests,
+	// or process some data, so we do not discover them here.
+	server.Resources = make([]mcp.Resource, 0)
 }

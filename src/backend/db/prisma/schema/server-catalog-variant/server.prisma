@@ -17,14 +17,15 @@ model Server {
   ownerOrganizationOid BigInt?
   ownerOrganization    Organization? @relation(fields: [ownerOrganizationOid], references: [oid])
 
-  variants        ServerVariant[]
-  versions        ServerVersion[]
-  schemas         ServerConfigSchema[]
-  listing         ServerListing?
-  deployments     ServerDeployment[]
-  errorGroups     ServerRunErrorGroup[]
-  implementations ServerImplementation[]
-  instanceServers InstanceServer[]
+  variants                ServerVariant[]
+  versions                ServerVersion[]
+  schemas                 ServerConfigSchema[]
+  listing                 ServerListing?
+  deployments             ServerDeployment[]
+  errorGroups             ServerRunErrorGroup[]
+  implementations         ServerImplementation[]
+  instanceServers         InstanceServer[]
+  serverAutoDiscoveryJobs ServerAutoDiscoveryJob[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
