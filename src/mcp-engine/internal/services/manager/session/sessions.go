@@ -228,8 +228,6 @@ func (s *Sessions) EnsureRemoteSessionOrTakeOver(
 ) (Session, *mterror.MTError) {
 	connection, err := s.tryToGetManagerForRemoteSession(storedSession)
 	if err != nil {
-		fmt.Printf("Failed to get manager connection for session %s: %v ... taking over\n", storedSession.ID, err)
-
 		return s.EnsureLocalSession(
 			storedSession,
 			request,

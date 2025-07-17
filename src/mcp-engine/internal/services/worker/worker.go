@@ -2,11 +2,9 @@ package worker
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"slices"
 	"sync"
 	"time"
@@ -16,6 +14,7 @@ import (
 	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
 	"github.com/metorial/metorial/mcp-engine/pkg/addr"
 	grpc_util "github.com/metorial/metorial/mcp-engine/pkg/grpcUtil"
+	"github.com/metorial/metorial/mcp-engine/pkg/managerUtils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
@@ -55,32 +54,6 @@ type Worker struct {
 	seenManagers []string
 }
 
-var managerAddressMapping map[string]string
-
-func getManagerAddressMapping() map[string]string {
-	if managerAddressMapping == nil {
-		envMapping := os.Getenv("MANAGER_ADDRESS_MAPPING")
-		if envMapping == "" {
-			managerAddressMapping = make(map[string]string)
-		} else {
-			managerAddressMapping = make(map[string]string)
-			err := json.Unmarshal([]byte(envMapping), &managerAddressMapping)
-			if err != nil {
-				log.Fatalf("Failed to parse MANAGER_ADDRESS_MAPPING: %v", err)
-			}
-		}
-	}
-	return managerAddressMapping
-}
-
-func getManagerAddress(address string) string {
-	mapping := getManagerAddressMapping()
-	if mappedAddress, ok := mapping[address]; ok {
-		return mappedAddress
-	}
-	return address
-}
-
 func NewWorker(ctx context.Context, workerType workerPb.WorkerType, ownAddress string, managerAddress string, impl WorkerImpl) (*Worker, error) {
 	port, err := addr.ExtractPort(ownAddress)
 	if err != nil {
@@ -116,7 +89,7 @@ func NewWorker(ctx context.Context, workerType workerPb.WorkerType, ownAddress s
 	wait := time.NewTimer(5 * time.Second)
 	<-wait.C
 
-	err = worker.registerWithManager(getManagerAddress(managerAddress))
+	err = worker.registerWithManager(managerUtils.GetManagerAddress(managerAddress))
 	if err != nil {
 		sentry.CaptureException(err)
 		log.Fatalf("Failed to register with initial manager: %v", err)
@@ -261,7 +234,7 @@ func (w *Worker) connectToNewManagers() error {
 
 		w.seenManagers = append(w.seenManagers, manager.Id)
 
-		w.registerWithManager(getManagerAddress(manager.Address))
+		w.registerWithManager(managerUtils.GetManagerAddress(manager.Address))
 	}
 
 	return nil
