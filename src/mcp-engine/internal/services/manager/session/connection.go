@@ -9,7 +9,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/util"
 
-	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
+	mterror "github.com/metorial/metorial/mcp-engine/pkg/mtError"
 )
 
 func createConnection(workerManager *workers.WorkerManager, connectionInput *workers.WorkerConnectionInput, mcpClient *mcp.MCPClient, workerType workers.WorkerType) (workers.WorkerConnection, workers.Worker, *mterror.MTError) {

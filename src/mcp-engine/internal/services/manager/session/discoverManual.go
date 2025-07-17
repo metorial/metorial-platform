@@ -5,7 +5,7 @@ import (
 
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
-	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
+	mterror "github.com/metorial/metorial/mcp-engine/pkg/mtError"
 )
 
 func discoverManual(

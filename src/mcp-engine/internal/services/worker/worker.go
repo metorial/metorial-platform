@@ -12,7 +12,7 @@ import (
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
 	"github.com/metorial/metorial/mcp-engine/pkg/addr"
-	grpc_util "github.com/metorial/metorial/mcp-engine/pkg/grpc-util"
+	grpc_util "github.com/metorial/metorial/mcp-engine/pkg/grpcUtil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"

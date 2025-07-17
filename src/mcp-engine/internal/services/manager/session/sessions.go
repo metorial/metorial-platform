@@ -16,7 +16,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/pkg/limiter"
 	"github.com/metorial/metorial/mcp-engine/pkg/lock"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
-	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
+	mterror "github.com/metorial/metorial/mcp-engine/pkg/mtError"
 	"github.com/metorial/metorial/mcp-engine/pkg/util"
 	"google.golang.org/grpc"
 )

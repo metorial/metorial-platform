@@ -10,7 +10,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/launcher"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
-	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
+	mterror "github.com/metorial/metorial/mcp-engine/pkg/mtError"
 )
 
 func processServerConfig(sessionId string, mcpClient *mcp.MCPClient, config *managerPb.ServerConfig, mcpConfig *mcpPb.McpConfig, db_ *db.DB) (*db.Server, *workers.WorkerConnectionInput, *mterror.MTError) {

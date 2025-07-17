@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/metorial/metorial/mcp-engine/pkg/docker"
-	lineBuffer "github.com/metorial/metorial/mcp-engine/pkg/line-buffer"
+	lineBuffer "github.com/metorial/metorial/mcp-engine/pkg/lineBuffer"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/util"
 )
