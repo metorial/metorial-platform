@@ -53,6 +53,7 @@ let syncSessionQueue = createQueue<{ sessionId: string }>({
 });
 
 let syncSessionQueueProcessor = syncSessionQueue.process(async data => {
+  if (!data) return;
   await syncEngineSession({ engineSessionId: data.sessionId });
 });
 

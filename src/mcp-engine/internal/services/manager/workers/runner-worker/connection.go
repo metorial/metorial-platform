@@ -165,7 +165,7 @@ func (rwc *RunnerWorkerConnection) Errors() pubsub.BroadcasterReader[*mcpPb.McpE
 }
 
 func (rwc *RunnerWorkerConnection) InactivityTimeout() time.Duration {
-	return time.Second * 15
+	return time.Second * 11
 }
 
 func (rwc *RunnerWorkerConnection) Clone() (workers.WorkerConnection, error) {

@@ -54,6 +54,7 @@ let syncRunQueue = createQueue<{ runId: string }>({
 });
 
 let syncRunQueueProcessor = syncRunQueue.process(async data => {
+  if (!data) return;
   await syncEngineRun({ engineRunId: data.runId });
 });
 

@@ -11,6 +11,7 @@ let discoverServerDeploymentQueue = createQueue<{ serverDeploymentId: string }>(
 
 export let discoverServerDeploymentQueueProcessor = discoverServerDeploymentQueue.process(
   async data => {
+    if (!data) return;
     await discoverServer(data.serverDeploymentId);
   }
 );

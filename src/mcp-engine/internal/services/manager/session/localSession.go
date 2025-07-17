@@ -145,13 +145,13 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			s.handleInitMessage(initMessage, req.IncludeResponses, stream)
+			s.handleInitMessage(initMessage, req.IncludeResponses)
 		}()
 	}
 
 	// Wait for responses if requested
 	if req.IncludeResponses {
-		requestIDs := extractRequestIds(mcpMessages)
+		requestIDs := extractRequestIds(mcpMessages, initMessage)
 		if len(requestIDs) > 0 {
 			wg.Add(1)
 			go func() {
@@ -508,7 +508,6 @@ func (s *LocalSession) sendSessionAndRunInfo(stream grpc.ServerStreamingServer[m
 func (s *LocalSession) handleInitMessage(
 	initMessage *mcp.MCPMessage,
 	includeResponses bool,
-	stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse],
 ) {
 	var err error
 	var message *mcp.MCPMessage
@@ -517,9 +516,11 @@ func (s *LocalSession) handleInitMessage(
 	if s.dbSession.Server != nil && s.dbSession.Server.McpServer != nil {
 		message, err = s.dbSession.Server.McpServer.ToInitMessage(s.mcpClient, initMessage)
 	} else {
-		s.mutex.RLock()
-		connection := s.activeConnection
-		s.mutex.RUnlock()
+		connection, _, err2 := s.ensureConnection()
+		if err2 != nil {
+			sentry.CaptureException(err2)
+			return
+		}
 
 		if connection == nil {
 			return
@@ -546,21 +547,11 @@ func (s *LocalSession) handleInitMessage(
 	}
 
 	s.internalMessages.Publish(message)
-
-	// Send response if requested
-	if includeResponses {
-		response := &managerPb.SendMcpMessageResponse{
-			Response: &managerPb.SendMcpMessageResponse_McpMessage{
-				McpMessage: message.ToPbMessage(),
-			},
-		}
-
-		stream.Send(response)
-	}
 }
 
-func extractRequestIds(messages []*mcp.MCPMessage) []string {
+func extractRequestIds(messages []*mcp.MCPMessage, initMessage *mcp.MCPMessage) []string {
 	requestIds := make([]string, 0)
+
 	for _, message := range messages {
 		if message.MsgType == mcp.RequestType {
 			id := message.GetStringId()
@@ -569,6 +560,14 @@ func extractRequestIds(messages []*mcp.MCPMessage) []string {
 			}
 		}
 	}
+
+	if initMessage != nil && initMessage.MsgType == mcp.RequestType {
+		id := initMessage.GetStringId()
+		if id != "" && !slices.Contains(requestIds, id) {
+			requestIds = append(requestIds, id)
+		}
+	}
+
 	return requestIds
 }
 
