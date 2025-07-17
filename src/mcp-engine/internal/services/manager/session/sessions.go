@@ -304,8 +304,17 @@ func (s *Sessions) DiscardSession(sessionId string) error {
 }
 
 func (s *Sessions) Stop() error {
-	for id, session := range s.sessions {
+	sessionIds := make([]string, 0, len(s.sessions))
+	s.mutex.RLock()
+	for id := range s.sessions {
+		sessionIds = append(sessionIds, id)
+	}
+	s.mutex.RUnlock()
+
+	for _, id := range sessionIds {
 		log.Printf("Stopping session %s\n", id)
+
+		session := s.GetLocalSession(id)
 
 		err := session.stop(SessionStopTypeExpire)
 		_, err2 := s.state.DeleteSession(id)
@@ -361,8 +370,8 @@ func (s *Sessions) pingRoutine() {
 }
 
 func printState(s *Sessions) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 
 	log.Println("== Sessions State ==")
 
