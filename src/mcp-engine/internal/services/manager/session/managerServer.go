@@ -10,7 +10,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
-	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
+	mterror "github.com/metorial/metorial/mcp-engine/pkg/mtError"
 	"github.com/metorial/metorial/mcp-engine/pkg/util"
 	"google.golang.org/grpc"
 )
@@ -36,10 +36,10 @@ func NewSessionServer(
 }
 
 func (s *SessionServer) CreateSession(ctx context.Context, req *managerPb.CreateSessionRequest) (*managerPb.CreateSessionResponse, error) {
-	if req.Config.GetContainerRunConfigWithContainerArguments() == nil &&
-		req.Config.GetContainerRunConfigWithLauncher() == nil &&
-		req.Config.GetRemoteRunConfigWithLauncher() == nil &&
-		req.Config.GetRemoteRunConfigWithServer() == nil {
+	if req.Config.ServerConfig.GetContainerRunConfigWithContainerArguments() == nil &&
+		req.Config.ServerConfig.GetContainerRunConfigWithLauncher() == nil &&
+		req.Config.ServerConfig.GetRemoteRunConfigWithLauncher() == nil &&
+		req.Config.ServerConfig.GetRemoteRunConfigWithServer() == nil {
 		return nil, mterror.New(mterror.InvalidRequestKind, "session config must contain a run config").ToGRPCStatus().Err()
 	}
 
@@ -64,7 +64,7 @@ func (s *SessionServer) CreateSession(ctx context.Context, req *managerPb.Create
 	}, nil
 }
 
-func (s *SessionServer) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) error {
+func (s *SessionServer) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse]) error {
 	session, err := s.sessions.GetSessionUnsafe(req.SessionId)
 	if err != nil {
 		return err.ToGRPCStatus().Err()
@@ -78,7 +78,7 @@ func (s *SessionServer) SendMcpMessage(req *managerPb.SendMcpMessageRequest, str
 	return nil
 }
 
-func (s *SessionServer) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) error {
+func (s *SessionServer) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse]) error {
 	session, err := s.sessions.GetSessionUnsafe(req.SessionId)
 	if err != nil {
 		return err.ToGRPCStatus().Err()
@@ -283,6 +283,7 @@ func (s *SessionServer) ListSessionErrors(ctx context.Context, req *managerPb.Li
 
 	return &managerPb.ListSessionErrorsResponse{Errors: res}, nil
 }
+
 func (s *SessionServer) ListSessionEvents(ctx context.Context, req *managerPb.ListSessionEventsRequest) (*managerPb.ListSessionEventsResponse, error) {
 	list, err := s.sessions.db.ListSessionEventsBySession(req.SessionId, req.Pagination, req.After)
 	if err != nil {
@@ -408,4 +409,84 @@ func (s *SessionServer) CheckActiveSession(ctx context.Context, req *managerPb.C
 		SessionId: req.SessionId,
 		Session:   recPb,
 	}, nil
+}
+
+func (s *SessionServer) ListServers(ctx context.Context, req *managerPb.ListServersRequest) (*managerPb.ListServersResponse, error) {
+	list, err := s.sessions.db.ListServers(req.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := util.MapWithError(list, func(rec db.Server) (*managerPb.EngineServer, error) {
+		return rec.ToPb()
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.ListServersResponse{Servers: res}, nil
+}
+
+func (s *SessionServer) GetServer(ctx context.Context, req *managerPb.GetServerRequest) (*managerPb.GetServerResponse, error) {
+	rec, err := s.sessions.db.GetServerById(req.ServerId)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := rec.ToPb()
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.GetServerResponse{Server: res}, nil
+}
+
+func (s *SessionServer) GetSessionServer(ctx context.Context, req *managerPb.GetSessionRequest) (*managerPb.GetServerResponse, error) {
+	rec, err := s.sessions.db.GetSessionById(req.SessionId)
+	if err != nil {
+		return nil, err
+	}
+
+	if rec.Server == nil {
+		return nil, mterror.New(mterror.NotFoundKind, "session server not found").ToGRPCStatus().Err()
+	}
+
+	res, err := rec.Server.ToPb()
+	if err != nil {
+		return nil, err
+	}
+
+	return &managerPb.GetServerResponse{Server: res}, nil
+}
+
+func (s *SessionServer) DiscoverServer(ctx context.Context, req *managerPb.DiscoverRequest) (*managerPb.GetServerResponse, error) {
+	server, connectionInput, err := processServerConfig(
+		"",
+		nil,
+		req.ServerConfig,
+		nil,
+		s.sessions.db,
+	)
+	if err != nil {
+		return nil, err.ToGRPCStatus().Err()
+	}
+
+	if shouldDiscoverServer(server) {
+		err = runLauncherForServerConfigIfNeeded(s.sessions.launcher, connectionInput, req.ServerConfig)
+		if err != nil {
+			return nil, err.ToGRPCStatus().Err()
+		}
+
+		server, err = discoverManual(s.sessions, connectionInput, server, true)
+		if err != nil {
+			return nil, err.ToGRPCStatus().Err()
+		}
+	}
+
+	res, err2 := server.ToPb()
+	if err2 != nil {
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to convert server to protobuf", err).ToGRPCStatus().Err()
+	}
+
+	return &managerPb.GetServerResponse{Server: res}, nil
 }

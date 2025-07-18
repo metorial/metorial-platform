@@ -18,9 +18,13 @@ import (
 	workerMcpRemote "github.com/metorial/metorial/mcp-engine/internal/services/worker-mcp-remote"
 	workerMcpRunner "github.com/metorial/metorial/mcp-engine/internal/services/worker-mcp-runner"
 	"github.com/metorial/metorial/mcp-engine/pkg/docker"
+	"github.com/metorial/metorial/mcp-engine/pkg/sentryUtil"
 )
 
 func main() {
+	sentryUtil.InitSentryIfNeeded()
+	defer sentryUtil.ShutdownSentry()
+
 	err := godotenv.Load()
 	if err != nil {
 		// ignore error if .env file is not found
@@ -32,7 +36,7 @@ func main() {
 
 	go runManager(managerAddress, etcdEndpoints, dsn)
 
-	timer := time.NewTimer(2 * time.Second)
+	timer := time.NewTimer(1 * time.Second)
 	<-timer.C
 
 	go runLauncher(managerAddress)

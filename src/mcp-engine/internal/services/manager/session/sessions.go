@@ -1,12 +1,12 @@
 package session
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"sync"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
@@ -17,7 +17,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/pkg/limiter"
 	"github.com/metorial/metorial/mcp-engine/pkg/lock"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
-	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
+	mterror "github.com/metorial/metorial/mcp-engine/pkg/mtError"
 	"github.com/metorial/metorial/mcp-engine/pkg/util"
 	"google.golang.org/grpc"
 )
@@ -31,8 +31,8 @@ const (
 )
 
 type Session interface {
-	SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError
-	StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError
+	SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse]) *mterror.MTError
+	StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse]) *mterror.MTError
 	GetServerInfo(req *managerPb.GetServerInfoRequest) (*mcpPb.McpParticipant, *mterror.MTError)
 	StoredSession() *state.Session
 	DiscardSession() *mterror.MTError
@@ -136,6 +136,14 @@ func (s *Sessions) GetSessionUnsafe(sessionId string) (Session, *mterror.MTError
 func (s *Sessions) UpsertSession(
 	request *managerPb.CreateSessionRequest,
 ) (Session, *mterror.MTError) {
+	if request.Config == nil {
+		return nil, mterror.New(mterror.InvalidRequestKind, "Config must be provided in session config")
+	}
+
+	if request.Config.McpConfig == nil || request.Config.McpConfig.McpVersion == "" {
+		return nil, mterror.New(mterror.InvalidRequestKind, "McpConfig must be provided in session config")
+	}
+
 	existing := s.GetLocalSession(request.SessionId)
 	if existing != nil {
 		return existing, nil
@@ -143,11 +151,6 @@ func (s *Sessions) UpsertSession(
 
 	s.keylock.Lock(request.SessionId)
 	defer s.keylock.Unlock(request.SessionId)
-
-	client, err := mcp.ParseMcpClient([]byte(request.McpClient.ParticipantJson))
-	if err != nil {
-		return nil, mterror.NewWithInnerError(mterror.InvalidRequestKind, "failed to parse MCP client", err)
-	}
 
 	prospectiveSessionUuid := util.Must(uuid.NewV7()).String()
 
@@ -161,139 +164,180 @@ func (s *Sessions) UpsertSession(
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to upsert session", err)
 	}
 
-	if request.Config.ConfigType == nil {
+	if request.Config.ServerConfig.ConfigType == nil {
 		return nil, mterror.New(mterror.InvalidRequestKind, "session config must not be nil")
 	}
 
 	// This manager is responsible for the session, so we
 	// need to create a local session for it.
 	if storedSession.ManagerID == s.state.ManagerID {
-		var workerType workers.WorkerType
-		var dbType db.SessionType
-		switch request.Config.ConfigType.(type) {
-		case *managerPb.SessionConfig_ContainerRunConfigWithLauncher, *managerPb.SessionConfig_ContainerRunConfigWithContainerArguments:
-			workerType = workers.WorkerTypeContainer
-			dbType = db.SessionTypeContainer
-
-		case *managerPb.SessionConfig_RemoteRunConfigWithLauncher, *managerPb.SessionConfig_RemoteRunConfigWithServer:
-			workerType = workers.WorkerTypeRemote
-			dbType = db.SessionTypeRemote
-		}
-
-		connectionInput := &workers.WorkerConnectionInput{
-			SessionID:    request.SessionId,
-			ConnectionID: "",
-			MCPClient:    client,
-		}
-
-		dbSession, err := s.db.CreateSession(db.NewSession(
+		return s.EnsureLocalSession(
+			storedSession,
+			request,
 			prospectiveSessionUuid,
-			request.SessionId,
-			db.SessionStatusActive,
-			dbType,
-			client,
-			request.Metadata,
-		))
-		if err != nil {
-			log.Printf("Failed to create session in DB: %v\n", err)
-			return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to create session in DB", err)
-		}
-
-		if request.Config.GetContainerRunConfigWithLauncher() != nil {
-			connectionInput.ContainerRunConfig, err = s.launcher.GetContainerLaunchParams(request.Config.GetContainerRunConfigWithLauncher())
-			if err != nil {
-				go s.db.CreateError(db.NewErrorStructuredError(
-					dbSession,
-					"get_launch_params_error",
-					err.Error(),
-					map[string]string{},
-				))
-
-				log.Printf("Failed to get runner launch params: %v\n", err)
-				return nil, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err.Error(), err)
-			}
-		} else if request.Config.GetContainerRunConfigWithContainerArguments() != nil {
-			connectionInput.ContainerRunConfig = request.Config.GetContainerRunConfigWithContainerArguments()
-		} else if request.Config.GetRemoteRunConfigWithLauncher() != nil {
-			connectionInput.RemoteRunConfig, err = s.launcher.GetRemoteLaunchParams(request.Config.GetRemoteRunConfigWithLauncher())
-			if err != nil {
-				go s.db.CreateError(db.NewErrorStructuredError(
-					dbSession,
-					"get_launch_params_error",
-					err.Error(),
-					map[string]string{},
-				))
-
-				log.Printf("Failed to get remote launch params: %v\n", err)
-				return nil, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err.Error(), err)
-			}
-		} else if request.Config.GetRemoteRunConfigWithServer() != nil {
-			connectionInput.RemoteRunConfig = request.Config.GetRemoteRunConfigWithServer()
-		} else {
-			return nil, mterror.New(mterror.InvalidRequestKind, "session config must contain either RunConfigWithContainerArguments or RunConfigWithLauncher")
-		}
-
-		ctx, cancel := context.WithCancel(context.Background())
-
-		session := &LocalSession{
-			McpClient:  client,
-			WorkerType: workerType,
-
-			sessionManager: s,
-			dbSession:      dbSession,
-			db:             s.db,
-
-			hasError: false,
-
-			storedSession:   storedSession,
-			connectionInput: connectionInput,
-
-			activeConnection:          nil,
-			activeConnectionCreated:   make(chan struct{}),
-			lastConnectionInteraction: time.Now(),
-			lastSessionInteraction:    time.Now(),
-
-			workerManager: s.workerManager,
-
-			context: ctx,
-			cancel:  cancel,
-		}
-
-		s.mutex.Lock()
-		s.sessions[storedSession.ID] = session
-		s.mutex.Unlock()
-
-		return session, nil
+			false, // Not a takeover
+		)
 	}
 
-	ses, err2 := s.EnsureRemoteSession(storedSession)
-	return ses, err2
+	return s.EnsureRemoteSessionOrTakeOver(
+		storedSession,
+		request,
+		prospectiveSessionUuid,
+	)
 }
 
-func (s *Sessions) EnsureRemoteSession(storedSession *state.Session) (*RemoteSession, *mterror.MTError) {
+func (s *Sessions) tryToGetManagerForRemoteSession(storedSession *state.Session) (managerPb.McpManagerClient, *mterror.MTError) {
 	manager, err := s.managers.GetManager(storedSession.ManagerID)
 	if err != nil {
+		sentry.CaptureException(err)
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get manager for session", err)
 	}
 
 	connection, err := s.managers.GetManagerConnection(manager.ID)
 	if err != nil {
+		sentry.CaptureException(err)
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get manager connection", err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	return connection, nil
+}
 
-	session := &RemoteSession{
-		sessionManager: s,
-
-		storedSession:          storedSession,
-		lastSessionInteraction: time.Now(),
-
-		connection: connection,
-
-		context: ctx,
-		cancel:  cancel,
+func (s *Sessions) EnsureRemoteSession(storedSession *state.Session) (*RemoteSession, *mterror.MTError) {
+	connection, err := s.tryToGetManagerForRemoteSession(storedSession)
+	if err != nil {
+		return nil, err
 	}
+
+	session := newRemoteSession(
+		s,
+		storedSession,
+		connection,
+	)
+
+	s.mutex.Lock()
+	s.sessions[storedSession.ID] = session
+	s.mutex.Unlock()
+
+	return session, nil
+}
+
+func (s *Sessions) EnsureRemoteSessionOrTakeOver(
+	storedSession *state.Session,
+	request *managerPb.CreateSessionRequest,
+	prospectiveSessionUuid string,
+) (Session, *mterror.MTError) {
+	connection, err := s.tryToGetManagerForRemoteSession(storedSession)
+	if err != nil {
+		return s.EnsureLocalSession(
+			storedSession,
+			request,
+			prospectiveSessionUuid,
+			true,
+		)
+	}
+
+	session := newRemoteSession(
+		s,
+		storedSession,
+		connection,
+	)
+
+	s.mutex.Lock()
+	s.sessions[storedSession.ID] = session
+	s.mutex.Unlock()
+
+	return session, nil
+}
+
+func (s *Sessions) EnsureLocalSession(
+	storedSession *state.Session,
+	request *managerPb.CreateSessionRequest,
+	prospectiveSessionUuid string,
+	isTakeover bool,
+) (Session, *mterror.MTError) {
+	var client *mcp.MCPClient
+	if request.McpClient != nil {
+		var err error
+		client, err = mcp.ParseMcpClient([]byte(request.McpClient.ParticipantJson))
+		if err != nil {
+			return nil, mterror.NewWithInnerError(mterror.InvalidRequestKind, "failed to parse MCP client", err)
+		}
+	}
+
+	if isTakeover {
+		prospectiveSessionUuid = util.Must(uuid.NewV7()).String()
+
+		storedSession.ManagerID = s.state.ManagerID
+		storedSession.SessionUuid = prospectiveSessionUuid
+		storedSession.CreatedAt = time.Now().UnixMilli()
+
+		err := s.state.UpdateSession(storedSession)
+		if err != nil {
+			sentry.CaptureException(err)
+			log.Printf("Failed to update session %s during takeover: %v\n", storedSession.ID, err)
+			return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to update session during takeover", err)
+		}
+	}
+
+	server, connectionInput, err2 := processServerConfig(
+		storedSession.ID,
+		client,
+		request.Config.ServerConfig,
+		request.Config.McpConfig,
+		s.db,
+	)
+	if err2 != nil {
+		return nil, err2
+	}
+
+	dbSession, err := s.db.CreateSession(db.NewSession(
+		prospectiveSessionUuid,
+		request.SessionId,
+		server,
+		db.SessionStatusActive,
+		workerTypeToDbType(connectionInput.WorkerType),
+		client,
+		request.Config.McpConfig.McpVersion,
+		request.Metadata,
+	))
+	if err != nil {
+		sentry.CaptureException(err)
+		log.Printf("Failed to create session in DB: %v\n", err)
+		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to create session in DB", err)
+	}
+
+	err2 = runLauncherForServerConfigIfNeeded(s.launcher, connectionInput, request.Config.ServerConfig)
+	if err2 != nil {
+		sentry.CaptureException(err2)
+		go s.db.CreateEvent(db.NewLauncherEvent(
+			dbSession,
+			db.SessionEventTypeLauncherRun_Error,
+		))
+
+		go s.db.CreateError(db.NewErrorStructuredError(
+			dbSession,
+			"get_launch_params_error",
+			err2.Error(),
+			map[string]string{},
+		))
+
+		log.Printf("Failed to get runner launch params: %v\n", err2)
+		return nil, mterror.NewWithCodeAndInnerError(mterror.InvalidRequestKind, "failed_to_get_launch_params", err2.Error(), err2)
+	}
+
+	go s.db.CreateEvent(db.NewLauncherEvent(
+		dbSession,
+		db.SessionEventTypeLauncherRun_Success,
+	))
+
+	session := newLocalSession(
+		s,
+		storedSession,
+		connectionInput,
+		dbSession,
+		connectionInput.WorkerType,
+		client,
+	)
 
 	s.mutex.Lock()
 	s.sessions[storedSession.ID] = session
@@ -329,15 +373,26 @@ func (s *Sessions) DiscardSession(sessionId string) error {
 }
 
 func (s *Sessions) Stop() error {
-	for id, session := range s.sessions {
+	sessionIds := make([]string, 0, len(s.sessions))
+	s.mutex.RLock()
+	for id := range s.sessions {
+		sessionIds = append(sessionIds, id)
+	}
+	s.mutex.RUnlock()
+
+	for _, id := range sessionIds {
 		log.Printf("Stopping session %s\n", id)
+
+		session := s.GetLocalSession(id)
 
 		err := session.stop(SessionStopTypeExpire)
 		_, err2 := s.state.DeleteSession(id)
 		if err != nil {
+			sentry.CaptureException(err)
 			log.Panicf("failed to stop session %s: %v\n", id, err)
 		}
 		if err2 != nil {
+			sentry.CaptureException(err2)
 			log.Panicf("failed to delete session %s from state: %v\n", id, err2)
 		}
 	}
@@ -384,8 +439,8 @@ func (s *Sessions) pingRoutine() {
 }
 
 func printState(s *Sessions) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 
 	log.Println("== Sessions State ==")
 

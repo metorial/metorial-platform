@@ -21,6 +21,7 @@
     "@metorial/id": "^1.0.0",
     "@metorial/mcp-utils": "1.0.0",
     "@metorial/module-event": "1.0.0",
+    "@metorial/module-engine": "1.0.0",
     "@metorial/module-server-runner": "1.0.0",
     "@metorial/pagination": "^1.0.0",
     "@metorial/programmable-promise": "1.0.0",

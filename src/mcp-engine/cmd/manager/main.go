@@ -10,9 +10,13 @@ import (
 
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager"
+	"github.com/metorial/metorial/mcp-engine/pkg/sentryUtil"
 )
 
 func main() {
+	sentryUtil.InitSentryIfNeeded()
+	defer sentryUtil.ShutdownSentry()
+
 	address, etcdEndpoints, dsn := getConfig()
 
 	db, error := db.NewDB(dsn)
@@ -46,6 +50,11 @@ func getConfig() (string, []string, string) {
 	flag.Parse()
 
 	address := *addressArg
+
+	managerAddressEnv := os.Getenv("MANAGER_ADDRESS")
+	if managerAddressEnv != "" {
+		address = managerAddressEnv
+	}
 
 	etcdEndpoints := []string{"http://localhost:2379"}
 	etcdEndpointsEnv := os.Getenv("ETCD_ENDPOINTS")

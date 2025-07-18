@@ -1,3 +1,8 @@
+enum McpTransport {
+  sse
+  streamable_http
+}
+
 model ServerVersion {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -21,6 +26,9 @@ model ServerVersion {
 
   remoteUrl String?
 
+  mcpVersion   String       @default("2024-11-05")
+  mcpTransport McpTransport @default(sse) // For remote servers
+
   /// [ServerVersionTools]
   tools Json @default("null")
 
@@ -37,10 +45,10 @@ model ServerVersion {
   serverCapabilities Json @default("null")
 
   currentConfigFor ServerVariant[] @relation("ServerVariantCurrentServerConfig")
+  serverRuns       ServerRun[]
 
-  createdAt DateTime @default(now())
-
-  serverRuns ServerRun[]
+  createdAt        DateTime  @default(now())
+  lastDiscoveredAt DateTime?
 
   @@unique([identifier, serverVariantOid])
 }

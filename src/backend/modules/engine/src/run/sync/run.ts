@@ -47,9 +47,13 @@ export let syncEngineRun = async (d: { engineRunId: string }) => {
     await db.serverRun.updateMany({
       where: {
         oid: serverRun.oid,
-        status: run.status == EngineRunStatus.run_status_error ? 'failed' : 'completed'
+        status: 'active'
       },
-      data: { status: 'completed', lastPingAt: start }
+      data: {
+        status: run.status == EngineRunStatus.run_status_error ? 'failed' : 'completed',
+        lastPingAt: start,
+        stoppedAt: run?.endedAt ? new Date(run.endedAt.toNumber()) : new Date()
+      }
     });
   }
 
@@ -74,15 +78,18 @@ export let syncEngineRun = async (d: { engineRunId: string }) => {
     pagination: undefined as any
   });
   for (let full of messages) {
-    let message = engineMcpMessageFromPb(full.mcpMessage!, {
-      type: 'server',
-      id: engineRun.id
-    });
+    let message = engineMcpMessageFromPb(
+      full.mcpMessage!,
+      {
+        type: 'server',
+        id: engineRun.id
+      },
+      unifiedId
+    );
 
     try {
       await createSessionMessage({
         serverSession,
-        unifiedId,
         message
       });
     } catch (err: any) {

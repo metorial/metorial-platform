@@ -16,7 +16,7 @@ type WorkerConnection interface {
 	AcceptMessage(message *mcp.MCPMessage) error
 	GetServer() (*mcp.MCPServer, error)
 
-	Start() error
+	Start(shouldAutoInit bool) error
 	Close() error
 
 	Done() pubsub.BroadcasterReader[struct{}]
@@ -25,13 +25,18 @@ type WorkerConnection interface {
 	Errors() pubsub.BroadcasterReader[*mcpPb.McpError]
 
 	InactivityTimeout() time.Duration
+
+	Clone() (WorkerConnection, error)
 }
 
 type WorkerConnectionInput struct {
+	WorkerType WorkerType
+
 	ContainerRunConfig *runnerPb.RunConfig
 	RemoteRunConfig    *remotePb.RunConfig
 
 	MCPClient *mcp.MCPClient
+	McpConfig *mcpPb.McpConfig
 
 	ConnectionID string
 	SessionID    string

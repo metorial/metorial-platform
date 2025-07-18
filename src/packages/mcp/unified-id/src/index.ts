@@ -1,5 +1,5 @@
 import { base62 } from '@metorial/base62';
-import type { SessionMessage } from '@metorial/db';
+import type { SessionMessageType } from '@metorial/db';
 import { MCP_IDS } from '@metorial/mcp-utils';
 
 let PREFIX = MCP_IDS.UNIFIED;
@@ -45,7 +45,7 @@ let parseUnifiedId = (id: string) => {
 export class UnifiedID {
   constructor(private sessionId: string) {}
 
-  static normalizeId(id: string | number) {
+  static normalizeId(id: string | number | undefined | null) {
     if (typeof id != 'number' && typeof id != 'string') return undefined;
 
     if (typeof id == 'number') return id;
@@ -85,7 +85,12 @@ export class UnifiedID {
 
 export let getUnifiedIdIfNeeded = (
   participantType: 'client' | 'server',
-  message: SessionMessage
+  message: {
+    senderType: 'client' | 'server';
+    originalId?: string | number | null;
+    unifiedId?: string | null;
+    type: SessionMessageType;
+  }
 ) => {
   if (
     participantType != message.senderType &&
@@ -96,4 +101,13 @@ export let getUnifiedIdIfNeeded = (
   }
 
   return UnifiedID.normalizeId(message.originalId);
+};
+
+export let getOriginalIdIfNeeded = (id: string | number | undefined | null) => {
+  if (!id || typeof id != 'string') return id ?? undefined;
+
+  let parsed = parseUnifiedId(id);
+  if (parsed) return parsed.originalId;
+
+  return id ?? undefined;
 };

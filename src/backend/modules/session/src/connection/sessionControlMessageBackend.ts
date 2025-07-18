@@ -3,13 +3,14 @@ import type { JSONRPCMessage } from '@metorial/mcp-utils';
 import { createRedisClient } from '@metorial/redis';
 import mitt from 'mitt';
 import Redis from 'redis';
+import { ConnectionMessage } from './handler/base';
 
 let redisPromise = createRedisClient({
   url: process.env.REDIS_URL
 }).eager();
 
 export type SessionControlMessageBackendEvents = {
-  message: JSONRPCMessage;
+  message: ConnectionMessage;
   close: void;
 };
 
@@ -66,10 +67,12 @@ export class SessionControlMessageBackend {
   }
 
   sendMessage(message: JSONRPCMessage) {
-    this.emit('message', message);
+    this.emit('message', {
+      message
+    });
   }
 
-  onMessage(handler: (message: JSONRPCMessage) => void) {
+  onMessage(handler: (message: ConnectionMessage) => void) {
     this.#emitter.on('message', handler);
     return () => this.#emitter.off('message', handler);
   }

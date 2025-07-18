@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	mcpPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
+	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
@@ -13,6 +13,7 @@ import (
 type RemoteWorkerConnection struct {
 	mcpServer *mcp.MCPServer
 	mcpClient *mcp.MCPClient
+	mcpConfig *mcpPb.McpConfig
 
 	connectionID string
 	sessionID    string
@@ -34,6 +35,7 @@ func (rw *RemoteWorker) CreateConnection(input *workers.WorkerConnectionInput) (
 	res := &RemoteWorkerConnection{
 		run:       run,
 		mcpClient: input.MCPClient,
+		mcpConfig: input.McpConfig,
 
 		connectionID: input.ConnectionID,
 		sessionID:    input.SessionID,
@@ -42,27 +44,34 @@ func (rw *RemoteWorker) CreateConnection(input *workers.WorkerConnectionInput) (
 	return res, nil
 }
 
-func (rwc *RemoteWorkerConnection) Start() error {
+func (rwc *RemoteWorkerConnection) Start(shouldAutoInit bool) error {
+
+	if shouldAutoInit && rwc.mcpClient == nil {
+		return fmt.Errorf("MCP client is not initialized, cannot auto-initialize")
+	}
+
 	if err := rwc.run.Start(); err != nil {
 		return fmt.Errorf("failed to start MCP run: %w", err)
 	}
 
-	init, err := rwc.mcpClient.ToInitMessage()
-	if err != nil {
-		return fmt.Errorf("failed to create MCP init message: %w", err)
-	}
+	if shouldAutoInit {
+		init, err := rwc.mcpClient.ToInitMessage(rwc.mcpConfig.McpVersion)
+		if err != nil {
+			return fmt.Errorf("failed to create MCP init message: %w", err)
+		}
 
-	serverInitMsg, err := rwc.SendAndWaitForResponse(init)
-	if err != nil {
-		return fmt.Errorf("failed to send MCP init message: %w", err)
-	}
+		serverInitMsg, err := rwc.SendAndWaitForResponse(init)
+		if err != nil {
+			return fmt.Errorf("failed to send MCP init message: %w", err)
+		}
 
-	mcpServer, err := mcp.ServerInfoFromMessage(serverInitMsg)
-	if err != nil {
-		return fmt.Errorf("failed to parse server info from MCP init message: %w", err)
-	}
+		mcpServer, err := mcp.ServerInfoFromMessage(serverInitMsg)
+		if err != nil {
+			return fmt.Errorf("failed to parse server info from MCP init message: %w", err)
+		}
 
-	rwc.mcpServer = mcpServer
+		rwc.mcpServer = mcpServer
+	}
 
 	return nil
 }
@@ -140,7 +149,7 @@ func (rwc *RemoteWorkerConnection) Messages() pubsub.BroadcasterReader[*mcp.MCPM
 	return rwc.run.messages
 }
 
-func (rwc *RemoteWorkerConnection) Output() pubsub.BroadcasterReader[*mcpPB.McpOutput] {
+func (rwc *RemoteWorkerConnection) Output() pubsub.BroadcasterReader[*mcpPb.McpOutput] {
 	if rwc.run == nil {
 		return nil
 	}
@@ -148,7 +157,7 @@ func (rwc *RemoteWorkerConnection) Output() pubsub.BroadcasterReader[*mcpPB.McpO
 	return rwc.run.output
 }
 
-func (rwc *RemoteWorkerConnection) Errors() pubsub.BroadcasterReader[*mcpPB.McpError] {
+func (rwc *RemoteWorkerConnection) Errors() pubsub.BroadcasterReader[*mcpPb.McpError] {
 	if rwc.run == nil {
 		return nil
 	}
@@ -158,4 +167,16 @@ func (rwc *RemoteWorkerConnection) Errors() pubsub.BroadcasterReader[*mcpPB.McpE
 
 func (rwc *RemoteWorkerConnection) InactivityTimeout() time.Duration {
 	return time.Minute * 5
+}
+
+func (rwc *RemoteWorkerConnection) Clone() (workers.WorkerConnection, error) {
+	res := &RemoteWorkerConnection{
+		run:          rwc.run.Clone(),
+		mcpClient:    rwc.mcpClient,
+		mcpConfig:    rwc.mcpConfig,
+		connectionID: rwc.connectionID,
+		sessionID:    rwc.sessionID,
+	}
+
+	return res, nil
 }

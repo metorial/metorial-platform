@@ -75,7 +75,7 @@ export let mcpConnectionHandler = async (
   );
 
   if (connectionType == 'websocket') {
-    let { onMessage, close } = manager.ensureReceiveConnection();
+    let { onMessage, close } = await manager.ensureReceiveConnection();
 
     return opts.upgradeWebSocket(c => ({
       onClose: () => close(),
@@ -106,7 +106,7 @@ export let mcpConnectionHandler = async (
 
   if (connectionType == 'sse') {
     if (c.req.method == 'GET') {
-      let { connection, onMessage, close } = manager.ensureReceiveConnection();
+      let { connection, onMessage, close } = await manager.ensureReceiveConnection();
       requestCloseSignal.addEventListener('abort', close);
 
       return streamSSE(
@@ -124,7 +124,12 @@ export let mcpConnectionHandler = async (
             });
           }
 
-          onMessage(async msg => stream.writeSSE({ data: JSON.stringify(msg) }));
+          onMessage(async msg =>
+            stream.writeSSE({
+              data: JSON.stringify(msg.message),
+              id: msg.trackingId
+            })
+          );
 
           await connection.waitForClose;
         },
@@ -156,7 +161,7 @@ export let mcpConnectionHandler = async (
 
   if (connectionType == 'streamable_http') {
     if (c.req.method == 'POST') {
-      let { connection, onMessage, close } = manager.ensureReceiveConnection();
+      let { connection, onMessage, close } = await manager.ensureReceiveConnection();
       requestCloseSignal.addEventListener('abort', close);
 
       let data: any;
@@ -182,10 +187,10 @@ export let mcpConnectionHandler = async (
 
           await connection.sendMessagesAndWaitForResponse(
             messages.filter(m => m.status == 'ok').map(m => m.message),
-            async (msg, stor) => {
+            async msg => {
               stream.writeSSE({
-                id: stor?.unifiedId ?? undefined,
-                data: JSON.stringify(msg)
+                id: msg.trackingId,
+                data: JSON.stringify(msg.message)
               });
             }
           );
@@ -201,7 +206,7 @@ export let mcpConnectionHandler = async (
     }
 
     if (c.req.method == 'GET') {
-      let { connection, onMessage, close } = manager.ensureReceiveConnection();
+      let { connection, onMessage, close } = await manager.ensureReceiveConnection();
       requestCloseSignal.addEventListener('abort', close);
 
       let lastEventId = c.req.header('Last-Event-ID') || undefined;
@@ -217,7 +222,11 @@ export let mcpConnectionHandler = async (
                 type: ['error', 'notification', 'response', 'request']
               }
             },
-            async msg => stream.writeSSE({ data: JSON.stringify(msg) })
+            async msg =>
+              stream.writeSSE({
+                data: JSON.stringify(msg.message),
+                id: msg.trackingId
+              })
           );
 
           await connection.waitForClose;

@@ -34,8 +34,9 @@ model ServerDeployment {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  serverRunErrors ServerRunError[]
-  serverSessions  ServerSession[]
-  serverRuns      ServerRun[]
-  sessions        Session[]
+  serverRunErrors         ServerRunError[]
+  serverSessions          ServerSession[]
+  serverRuns              ServerRun[]
+  sessions                Session[]
+  serverAutoDiscoveryJobs ServerAutoDiscoveryJob[]
 }

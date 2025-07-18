@@ -58,6 +58,7 @@ export let ID = createIdGenerator({
   serverRun: idType.sorted('srr'),
   serverRunErrorGroup: idType.sorted('sreg'),
   serverRunError: idType.sorted('sre'),
+  serverAutoDiscoveryJob: idType.sorted('sadj'),
 
   instanceServer: idType.sorted('isv'),
 

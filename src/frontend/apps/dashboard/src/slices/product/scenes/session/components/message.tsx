@@ -62,6 +62,11 @@ let Main = styled.main`
 //   overflow-wrap: break-word;
 // `;
 
+let shorten = (id: string, length = 15) => {
+  if (id.length <= length) return id;
+  return `${id.substring(0, length)}...`;
+};
+
 export let Message = ({
   message,
   aggregatedMessages
@@ -77,7 +82,7 @@ export let Message = ({
       <Wrapper>
         <Header>
           <HeaderSection>
-            {agg?.originalId && <ID>{agg?.originalId}</ID>}
+            {agg?.originalId && <ID>{shorten(agg?.originalId)}</ID>}
             <p>
               {agg?.method} {isResponse && '(response)'}
             </p>

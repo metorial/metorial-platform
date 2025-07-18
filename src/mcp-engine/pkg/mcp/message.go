@@ -199,6 +199,27 @@ func NewMCPRequestMessage(id string, method string, params map[string]any) (*MCP
 	}, nil
 }
 
+func NewMCPResponseMessage(inResponseTo *MCPMessage, result map[string]any) (*MCPMessage, error) {
+	rawMessage := map[string]any{
+		"jsonrpc": "2.0",
+		"id":      inResponseTo.rawId,
+		"result":  result,
+	}
+
+	rawData, err := json.Marshal(rawMessage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal MCP message: %w", err)
+	}
+
+	return &MCPMessage{
+		rawId:    inResponseTo.rawId,
+		stringId: inResponseTo.stringId,
+		MsgType:  ResponseType,
+		raw:      rawData,
+		// payload:  params,
+	}, nil
+}
+
 func (m *MCPMessage) GetStringId() string {
 	if m.rawId != nil {
 		str, err := strconv.Unquote(string(*m.rawId))

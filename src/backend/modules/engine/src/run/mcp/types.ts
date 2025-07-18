@@ -1,6 +1,7 @@
+import { SessionMessageType } from '@metorial/db';
 import { McpMessageType } from '@metorial/mcp-engine-generated';
 
-export type MCPMessageType = 'request' | 'response' | 'notification' | 'error' | 'unknown';
+export type MCPMessageType = SessionMessageType;
 
 export let pbToMessageType = (type: McpMessageType): MCPMessageType => {
   switch (type) {

@@ -12,9 +12,13 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	workerMcpRemote "github.com/metorial/metorial/mcp-engine/internal/services/worker-mcp-remote"
 	"github.com/metorial/metorial/mcp-engine/pkg/addr"
+	"github.com/metorial/metorial/mcp-engine/pkg/sentryUtil"
 )
 
 func main() {
+	sentryUtil.InitSentryIfNeeded()
+	defer sentryUtil.ShutdownSentry()
+
 	ownAddress, port, managerAddress := getConfig()
 
 	remote := workerMcpRemote.NewRemote()

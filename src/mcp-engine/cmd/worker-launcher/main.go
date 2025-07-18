@@ -12,9 +12,13 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	workerLauncher "github.com/metorial/metorial/mcp-engine/internal/services/worker-launcher"
 	"github.com/metorial/metorial/mcp-engine/pkg/addr"
+	"github.com/metorial/metorial/mcp-engine/pkg/sentryUtil"
 )
 
 func main() {
+	sentryUtil.InitSentryIfNeeded()
+	defer sentryUtil.ShutdownSentry()
+
 	ownAddress, port, managerAddress := getConfig()
 
 	runner := workerLauncher.NewLauncher()

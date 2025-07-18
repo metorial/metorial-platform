@@ -1,0 +1,120 @@
+services:
+  etcd:
+    image: bitnami/etcd:latest
+    environment:
+      ALLOW_NONE_AUTHENTICATION: yes
+    restart: unless-stopped
+    networks:
+      - manager-private
+    expose:
+      - '2379'
+      - '2380'
+
+  pg:
+    image: postgres:16-alpine
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+    restart: unless-stopped
+    networks:
+      - manager-private
+    expose:
+      - '5432'
+
+  manager-1:
+    image: ghcr.io/metorial/metorial-mcp-engine-manager:latest
+    depends_on:
+      - etcd
+      - pg
+    restart: unless-stopped
+    networks:
+      - manager-services
+      - manager-public
+      - manager-private
+    ports:
+      - '51050:51050'
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      ENGINE_DATABASE_DSN: "host=pg user=postgres password=postgres dbname=metorial-engine port=5432 sslmode=disable"
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      MANAGER_ADDRESS: manager-1:51050
+    healthcheck:
+      test: ["CMD", "grpc-health-probe", "-addr=:51050"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  launcher-1:
+    image: ghcr.io/metorial/metorial-mcp-engine-launcher:latest
+    depends_on:
+      - etcd
+      - pg
+      - manager-1
+    restart: unless-stopped
+    networks:
+      - manager-services
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      WORKER_ADDRESS: launcher-1:51060
+      MANAGER_ADDRESS: manager-1:51050
+    healthcheck:
+      test: ["CMD", "grpc-health-probe", "-addr=:51060"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  remote-1:
+    image: ghcr.io/metorial/metorial-mcp-engine-remote:latest
+    depends_on:
+      - etcd
+      - pg
+      - manager-1
+    restart: unless-stopped
+    networks:
+      - manager-services
+      - untrusted-public
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      WORKER_ADDRESS: remote-1:51070
+      MANAGER_ADDRESS: manager-1:51050
+    healthcheck:
+      test: ["CMD", "grpc-health-probe", "-addr=:51070"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  runner-1:
+    image: ghcr.io/metorial/metorial-mcp-engine-runner:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - manager-services
+      - untrusted-public
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      MANAGER_ADDRESS: manager-1:51050
+      WORKER_ADDRESS: runner-1:51080
+      CONTAINER_ENHANCED_SECURITY: ${CONTAINER_ENHANCED_SECURITY:-true}
+      CONTAINER_RUNTIME: ${CONTAINER_RUNTIME:-}
+    healthcheck:
+      test: ["CMD", "grpc-health-probe", "-addr=:51080"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+networks:
+  manager-public:
+    driver: bridge
+  manager-private:
+    internal: true
+  manager-services:
+    internal: true
+  untrusted-public:
+    external: true
+    name: mt-untrusted-net
+
+volumes:
+  pg_data:

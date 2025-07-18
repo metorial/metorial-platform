@@ -125,11 +125,11 @@ class ServerCapabilitiesService {
               ? ((v.serverDeployments as ServerDeployment[]) || undefined)?.[0]
               : undefined,
 
-          prompts: v.prompts,
-          tools: v.tools,
-          resourceTemplates: v.resourceTemplates,
-          capabilities: v.serverCapabilities,
-          info: v.serverInfo
+          prompts: version?.prompts ?? variant.prompts,
+          tools: version?.tools ?? variant.tools,
+          resourceTemplates: version?.resourceTemplates ?? variant.resourceTemplates,
+          capabilities: version?.serverCapabilities ?? variant.serverCapabilities,
+          info: version?.serverInfo ?? variant.serverInfo
         } satisfies ServerCapabilities;
       })
     );

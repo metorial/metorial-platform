@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
+	"strings"
 	"sync"
 )
 
@@ -77,6 +79,23 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 		"--env", "Metorial/Runner@2.0",
 	}
 
+	if os.Getenv("CONTAINER_ENHANCED_SECURITY") == "true" {
+		dockerArgs = append(dockerArgs, "--cap-drop", "ALL")
+		dockerArgs = append(dockerArgs, "--security-opt", "no-new-privileges")
+		dockerArgs = append(dockerArgs, "--read-only")
+		dockerArgs = append(dockerArgs, "--tmpfs", "/tmp:rw,noexec,nosuid,nodev")
+		dockerArgs = append(dockerArgs, "--tmpfs", "/run:rw,noexec,nosuid,nodev")
+		dockerArgs = append(dockerArgs, "--privileged=false")
+		dockerArgs = append(dockerArgs, "--user", "1001:1001") // Use a non-root user for enhanced security
+		dockerArgs = append(dockerArgs, "--network", "mt-untrusted-net")
+		dockerArgs = append(dockerArgs, "--pids-limit", "64")
+		dockerArgs = append(dockerArgs, "--memory-swap", "512m")
+	}
+
+	if os.Getenv("CONTAINER_RUNTIME") != "" {
+		dockerArgs = append(dockerArgs, "--runtime", os.Getenv("CONTAINER_RUNTIME"))
+	}
+
 	for key, value := range opts.Env {
 		dockerArgs = append(dockerArgs, "--env", fmt.Sprintf("%s=%s", key, value))
 	}
@@ -92,7 +111,14 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 	dockerArgs = append(dockerArgs, opts.ImageRef)
 
 	if opts.Command != "" {
-		dockerArgs = append(dockerArgs, opts.Command)
+		// dockerArgs = append(dockerArgs, opts.Command)
+
+		finalCommand := []string{opts.Command}
+		if len(opts.Args) > 0 {
+			finalCommand = append(finalCommand, opts.Args...)
+		}
+
+		dockerArgs = append(dockerArgs, strings.Join(finalCommand, " "))
 	}
 
 	cmd := exec.CommandContext(ctx, "docker", dockerArgs...)

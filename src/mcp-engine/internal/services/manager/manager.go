@@ -12,6 +12,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/addr"
+	grpc_util "github.com/metorial/metorial/mcp-engine/pkg/grpcUtil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -57,7 +58,7 @@ func (m *Manager) Start() error {
 		return err
 	}
 
-	s := grpc.NewServer()
+	s := grpc_util.NewGrpcServer("manager")
 	m.grpcServer = s
 
 	workerBrokerPb.RegisterMcpWorkerBrokerServer(s, m.workerServer)

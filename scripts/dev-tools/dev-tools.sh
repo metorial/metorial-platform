@@ -12,7 +12,13 @@ if [ "$1" = "start" ]; then
   bun ./src/cli.ts set-env
 
   cd ./scripts
-  ./dev.sh
+
+  if [ "$2" = "engine" ]; then
+    ./startEngineMinicluster.sh
+  else
+    ./dev.sh
+  fi
+
   exit 0
 fi
 
@@ -39,13 +45,14 @@ if [ "$1" = "build" ]; then
   
   if [ "$2" = "server" ]; then
     ./buildServer.sh
+  elif [ "$2" = "engine" ]; then
+    ./buildEngine.sh
   else
-    echo "Unknown build target: $2"
+    echo "Unknown build target: $2. Supported targets are 'server' and 'engine'."
     exit 1
   fi
+
+  exit 0
 fi
-
-
-buildServer
 
 bun ./src/cli.ts "$@"
