@@ -48,7 +48,7 @@ if [ "$1" = "build" ]; then
   elif [ "$2" = "engine" ]; then
     ./buildEngine.sh
   else
-    echo "Unknown build target: $2"
+    echo "Unknown build target: $2. Supported targets are 'server' and 'engine'."
     exit 1
   fi
 
