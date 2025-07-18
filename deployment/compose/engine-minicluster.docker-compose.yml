@@ -5,7 +5,7 @@ services:
       ALLOW_NONE_AUTHENTICATION: yes
     restart: unless-stopped
     networks:
-      - minicluster-manager-private
+      - manager-private
     expose:
       - '2379'
       - '2380'
@@ -19,7 +19,7 @@ services:
       POSTGRES_USER: postgres
     restart: unless-stopped
     networks:
-      - minicluster-manager-private
+      - manager-private
     expose:
       - '5432'
 
@@ -30,9 +30,9 @@ services:
       - pg
     restart: unless-stopped
     networks:
-      - minicluster
+      - manager-services
       - manager-public
-      - minicluster-manager-private
+      - manager-private
     ports:
       - '51050:51050'
     environment:
@@ -54,7 +54,7 @@ services:
       - manager-1
     restart: unless-stopped
     networks:
-      - minicluster
+      - manager-services
     environment:
       SENTRY_DSN: ${SENTRY_DSN:-}
       WORKER_ADDRESS: launcher-1:51060
@@ -73,7 +73,7 @@ services:
       - manager-1
     restart: unless-stopped
     networks:
-      - minicluster
+      - manager-services
       - untrusted-public
     environment:
       SENTRY_DSN: ${SENTRY_DSN:-}
@@ -91,7 +91,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
-      - minicluster
+      - manager-services
+      - untrusted-public
     environment:
       SENTRY_DSN: ${SENTRY_DSN:-}
       MANAGER_ADDRESS: manager-1:51050
@@ -107,9 +108,9 @@ services:
 networks:
   manager-public:
     driver: bridge
-  minicluster-manager-private:
+  manager-private:
     internal: true
-  minicluster:
+  manager-services:
     internal: true
   untrusted-public:
     external: true
