@@ -17,8 +17,8 @@ service McpManager {
   rpc DiscoverServer(DiscoverRequest) returns (GetServerResponse);
   rpc DiscardSession(DiscardSessionRequest) returns (DiscardSessionResponse);
 
-  rpc SendMcpMessage(SendMcpMessageRequest) returns (stream SendMcpMessageResponse);
-  rpc StreamMcpMessages(StreamMcpMessagesRequest) returns (stream StreamMcpMessagesResponse);
+  rpc SendMcpMessage(SendMcpMessageRequest) returns (stream McpConnectionStreamResponse);
+  rpc StreamMcpMessages(StreamMcpMessagesRequest) returns (stream McpConnectionStreamResponse);
 
   rpc GetServerInfo(GetServerInfoRequest) returns (broker.mcp.McpParticipant);
 
@@ -108,13 +108,6 @@ message SendMcpMessageRequest {
   bool include_responses = 3;
 }
 
-message SendMcpMessageResponse {
-  oneof response {
-    broker.mcp.McpMessage mcp_message = 1; 
-    broker.mcp.McpError mcp_error = 2;
-    SessionEvent session_event = 3;
-  }
-}
 
 message StreamMcpMessagesRequest {
   string session_id = 1;
@@ -148,7 +141,7 @@ message SessionEvent {
   }
 }
 
-message StreamMcpMessagesResponse {
+message McpConnectionStreamResponse {
   oneof response {
     broker.mcp.McpMessage mcp_message = 1; 
     broker.mcp.McpError mcp_error = 2;

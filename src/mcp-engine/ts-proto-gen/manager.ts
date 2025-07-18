@@ -450,12 +450,6 @@ export interface SendMcpMessageRequest {
   includeResponses: boolean;
 }
 
-export interface SendMcpMessageResponse {
-  mcpMessage?: McpMessage | undefined;
-  mcpError?: McpError | undefined;
-  sessionEvent?: SessionEvent | undefined;
-}
-
 export interface StreamMcpMessagesRequest {
   sessionId: string;
   /** Optional, if empty, all message types are streamed */
@@ -489,7 +483,7 @@ export interface SessionEvent {
   infoSession?: SessionEventInfoSession | undefined;
 }
 
-export interface StreamMcpMessagesResponse {
+export interface McpConnectionStreamResponse {
   mcpMessage?: McpMessage | undefined;
   mcpError?: McpError | undefined;
   mcpOutput?: McpOutput | undefined;
@@ -1763,104 +1757,6 @@ export const SendMcpMessageRequest: MessageFns<SendMcpMessageRequest> = {
   },
 };
 
-function createBaseSendMcpMessageResponse(): SendMcpMessageResponse {
-  return { mcpMessage: undefined, mcpError: undefined, sessionEvent: undefined };
-}
-
-export const SendMcpMessageResponse: MessageFns<SendMcpMessageResponse> = {
-  encode(message: SendMcpMessageResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.mcpMessage !== undefined) {
-      McpMessage.encode(message.mcpMessage, writer.uint32(10).fork()).join();
-    }
-    if (message.mcpError !== undefined) {
-      McpError.encode(message.mcpError, writer.uint32(18).fork()).join();
-    }
-    if (message.sessionEvent !== undefined) {
-      SessionEvent.encode(message.sessionEvent, writer.uint32(26).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): SendMcpMessageResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSendMcpMessageResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.mcpMessage = McpMessage.decode(reader, reader.uint32());
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.mcpError = McpError.decode(reader, reader.uint32());
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.sessionEvent = SessionEvent.decode(reader, reader.uint32());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): SendMcpMessageResponse {
-    return {
-      mcpMessage: isSet(object.mcpMessage) ? McpMessage.fromJSON(object.mcpMessage) : undefined,
-      mcpError: isSet(object.mcpError) ? McpError.fromJSON(object.mcpError) : undefined,
-      sessionEvent: isSet(object.sessionEvent) ? SessionEvent.fromJSON(object.sessionEvent) : undefined,
-    };
-  },
-
-  toJSON(message: SendMcpMessageResponse): unknown {
-    const obj: any = {};
-    if (message.mcpMessage !== undefined) {
-      obj.mcpMessage = McpMessage.toJSON(message.mcpMessage);
-    }
-    if (message.mcpError !== undefined) {
-      obj.mcpError = McpError.toJSON(message.mcpError);
-    }
-    if (message.sessionEvent !== undefined) {
-      obj.sessionEvent = SessionEvent.toJSON(message.sessionEvent);
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<SendMcpMessageResponse>): SendMcpMessageResponse {
-    return SendMcpMessageResponse.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<SendMcpMessageResponse>): SendMcpMessageResponse {
-    const message = createBaseSendMcpMessageResponse();
-    message.mcpMessage = (object.mcpMessage !== undefined && object.mcpMessage !== null)
-      ? McpMessage.fromPartial(object.mcpMessage)
-      : undefined;
-    message.mcpError = (object.mcpError !== undefined && object.mcpError !== null)
-      ? McpError.fromPartial(object.mcpError)
-      : undefined;
-    message.sessionEvent = (object.sessionEvent !== undefined && object.sessionEvent !== null)
-      ? SessionEvent.fromPartial(object.sessionEvent)
-      : undefined;
-    return message;
-  },
-};
-
 function createBaseStreamMcpMessagesRequest(): StreamMcpMessagesRequest {
   return { sessionId: "", onlyMessageTypes: [], onlyIds: [], replayAfterUuid: undefined };
 }
@@ -2339,12 +2235,12 @@ export const SessionEvent: MessageFns<SessionEvent> = {
   },
 };
 
-function createBaseStreamMcpMessagesResponse(): StreamMcpMessagesResponse {
+function createBaseMcpConnectionStreamResponse(): McpConnectionStreamResponse {
   return { mcpMessage: undefined, mcpError: undefined, mcpOutput: undefined, sessionEvent: undefined, isReplay: false };
 }
 
-export const StreamMcpMessagesResponse: MessageFns<StreamMcpMessagesResponse> = {
-  encode(message: StreamMcpMessagesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const McpConnectionStreamResponse: MessageFns<McpConnectionStreamResponse> = {
+  encode(message: McpConnectionStreamResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.mcpMessage !== undefined) {
       McpMessage.encode(message.mcpMessage, writer.uint32(10).fork()).join();
     }
@@ -2363,10 +2259,10 @@ export const StreamMcpMessagesResponse: MessageFns<StreamMcpMessagesResponse> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StreamMcpMessagesResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number): McpConnectionStreamResponse {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStreamMcpMessagesResponse();
+    const message = createBaseMcpConnectionStreamResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -2419,7 +2315,7 @@ export const StreamMcpMessagesResponse: MessageFns<StreamMcpMessagesResponse> = 
     return message;
   },
 
-  fromJSON(object: any): StreamMcpMessagesResponse {
+  fromJSON(object: any): McpConnectionStreamResponse {
     return {
       mcpMessage: isSet(object.mcpMessage) ? McpMessage.fromJSON(object.mcpMessage) : undefined,
       mcpError: isSet(object.mcpError) ? McpError.fromJSON(object.mcpError) : undefined,
@@ -2429,7 +2325,7 @@ export const StreamMcpMessagesResponse: MessageFns<StreamMcpMessagesResponse> = 
     };
   },
 
-  toJSON(message: StreamMcpMessagesResponse): unknown {
+  toJSON(message: McpConnectionStreamResponse): unknown {
     const obj: any = {};
     if (message.mcpMessage !== undefined) {
       obj.mcpMessage = McpMessage.toJSON(message.mcpMessage);
@@ -2449,11 +2345,11 @@ export const StreamMcpMessagesResponse: MessageFns<StreamMcpMessagesResponse> = 
     return obj;
   },
 
-  create(base?: DeepPartial<StreamMcpMessagesResponse>): StreamMcpMessagesResponse {
-    return StreamMcpMessagesResponse.fromPartial(base ?? {});
+  create(base?: DeepPartial<McpConnectionStreamResponse>): McpConnectionStreamResponse {
+    return McpConnectionStreamResponse.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<StreamMcpMessagesResponse>): StreamMcpMessagesResponse {
-    const message = createBaseStreamMcpMessagesResponse();
+  fromPartial(object: DeepPartial<McpConnectionStreamResponse>): McpConnectionStreamResponse {
+    const message = createBaseMcpConnectionStreamResponse();
     message.mcpMessage = (object.mcpMessage !== undefined && object.mcpMessage !== null)
       ? McpMessage.fromPartial(object.mcpMessage)
       : undefined;
@@ -7205,9 +7101,9 @@ export const McpManagerService = {
     requestSerialize: (value: SendMcpMessageRequest): Buffer =>
       Buffer.from(SendMcpMessageRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): SendMcpMessageRequest => SendMcpMessageRequest.decode(value),
-    responseSerialize: (value: SendMcpMessageResponse): Buffer =>
-      Buffer.from(SendMcpMessageResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): SendMcpMessageResponse => SendMcpMessageResponse.decode(value),
+    responseSerialize: (value: McpConnectionStreamResponse): Buffer =>
+      Buffer.from(McpConnectionStreamResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): McpConnectionStreamResponse => McpConnectionStreamResponse.decode(value),
   },
   streamMcpMessages: {
     path: "/broker.manager.McpManager/StreamMcpMessages",
@@ -7216,9 +7112,9 @@ export const McpManagerService = {
     requestSerialize: (value: StreamMcpMessagesRequest): Buffer =>
       Buffer.from(StreamMcpMessagesRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): StreamMcpMessagesRequest => StreamMcpMessagesRequest.decode(value),
-    responseSerialize: (value: StreamMcpMessagesResponse): Buffer =>
-      Buffer.from(StreamMcpMessagesResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): StreamMcpMessagesResponse => StreamMcpMessagesResponse.decode(value),
+    responseSerialize: (value: McpConnectionStreamResponse): Buffer =>
+      Buffer.from(McpConnectionStreamResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): McpConnectionStreamResponse => McpConnectionStreamResponse.decode(value),
   },
   getServerInfo: {
     path: "/broker.manager.McpManager/GetServerInfo",
@@ -7435,8 +7331,8 @@ export interface McpManagerServer extends UntypedServiceImplementation {
   createSession: handleUnaryCall<CreateSessionRequest, CreateSessionResponse>;
   discoverServer: handleUnaryCall<DiscoverRequest, GetServerResponse>;
   discardSession: handleUnaryCall<DiscardSessionRequest, DiscardSessionResponse>;
-  sendMcpMessage: handleServerStreamingCall<SendMcpMessageRequest, SendMcpMessageResponse>;
-  streamMcpMessages: handleServerStreamingCall<StreamMcpMessagesRequest, StreamMcpMessagesResponse>;
+  sendMcpMessage: handleServerStreamingCall<SendMcpMessageRequest, McpConnectionStreamResponse>;
+  streamMcpMessages: handleServerStreamingCall<StreamMcpMessagesRequest, McpConnectionStreamResponse>;
   getServerInfo: handleUnaryCall<GetServerInfoRequest, McpParticipant>;
   listManagers: handleUnaryCall<ListManagersRequest, ListManagersResponse>;
   listWorkers: handleUnaryCall<ListWorkersRequest, ListWorkersResponse>;
@@ -7524,21 +7420,21 @@ export interface McpManagerClient extends Client {
   sendMcpMessage(
     request: SendMcpMessageRequest,
     options?: Partial<CallOptions>,
-  ): ClientReadableStream<SendMcpMessageResponse>;
+  ): ClientReadableStream<McpConnectionStreamResponse>;
   sendMcpMessage(
     request: SendMcpMessageRequest,
     metadata?: Metadata,
     options?: Partial<CallOptions>,
-  ): ClientReadableStream<SendMcpMessageResponse>;
+  ): ClientReadableStream<McpConnectionStreamResponse>;
   streamMcpMessages(
     request: StreamMcpMessagesRequest,
     options?: Partial<CallOptions>,
-  ): ClientReadableStream<StreamMcpMessagesResponse>;
+  ): ClientReadableStream<McpConnectionStreamResponse>;
   streamMcpMessages(
     request: StreamMcpMessagesRequest,
     metadata?: Metadata,
     options?: Partial<CallOptions>,
-  ): ClientReadableStream<StreamMcpMessagesResponse>;
+  ): ClientReadableStream<McpConnectionStreamResponse>;
   getServerInfo(
     request: GetServerInfoRequest,
     callback: (error: ServiceError | null, response: McpParticipant) => void,

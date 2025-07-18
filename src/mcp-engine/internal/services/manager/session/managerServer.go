@@ -64,7 +64,7 @@ func (s *SessionServer) CreateSession(ctx context.Context, req *managerPb.Create
 	}, nil
 }
 
-func (s *SessionServer) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) error {
+func (s *SessionServer) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse]) error {
 	session, err := s.sessions.GetSessionUnsafe(req.SessionId)
 	if err != nil {
 		return err.ToGRPCStatus().Err()
@@ -78,7 +78,7 @@ func (s *SessionServer) SendMcpMessage(req *managerPb.SendMcpMessageRequest, str
 	return nil
 }
 
-func (s *SessionServer) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) error {
+func (s *SessionServer) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse]) error {
 	session, err := s.sessions.GetSessionUnsafe(req.SessionId)
 	if err != nil {
 		return err.ToGRPCStatus().Err()

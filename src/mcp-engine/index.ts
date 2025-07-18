@@ -55,9 +55,9 @@ export {
   ListSessionsResponse,
   ListWorkersRequest,
   ListWorkersResponse,
+  McpConnectionStreamResponse,
   RemoteRunConfigWithLauncher,
   SendMcpMessageRequest,
-  SendMcpMessageResponse,
   SessionConfig,
   SessionEvent,
   SessionEventInfoRun,
@@ -66,7 +66,6 @@ export {
   SessionEventStopRun,
   SessionMessageSender,
   StreamMcpMessagesRequest,
-  StreamMcpMessagesResponse,
   WorkerInfo
 } from './ts-proto-gen/manager';
 export {

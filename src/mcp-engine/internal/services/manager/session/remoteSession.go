@@ -49,7 +49,7 @@ func newRemoteSession(
 	}
 }
 
-func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError {
+func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse]) *mterror.MTError {
 	s.Touch()
 
 	responseStream, err := s.connection.SendMcpMessage(s.context, req)
@@ -77,7 +77,7 @@ func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, str
 	}
 }
 
-func (s *RemoteSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError {
+func (s *RemoteSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse]) *mterror.MTError {
 	s.Touch()
 
 	responseStream, err := s.connection.StreamMcpMessages(s.context, req)

@@ -21,7 +21,7 @@ func NewBroadcaster[T any]() *Broadcaster[T] {
 }
 
 func (b *Broadcaster[T]) Subscribe() chan T {
-	ch := make(chan T, 10) // buffered to avoid blocking
+	ch := make(chan T, 16) // buffered to avoid blocking
 	b.mu.Lock()
 	b.subscribers[ch] = struct{}{}
 	b.mu.Unlock()

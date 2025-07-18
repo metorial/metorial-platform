@@ -58,8 +58,8 @@ type McpManagerClient interface {
 	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionResponse, error)
 	DiscoverServer(ctx context.Context, in *DiscoverRequest, opts ...grpc.CallOption) (*GetServerResponse, error)
 	DiscardSession(ctx context.Context, in *DiscardSessionRequest, opts ...grpc.CallOption) (*DiscardSessionResponse, error)
-	SendMcpMessage(ctx context.Context, in *SendMcpMessageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SendMcpMessageResponse], error)
-	StreamMcpMessages(ctx context.Context, in *StreamMcpMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamMcpMessagesResponse], error)
+	SendMcpMessage(ctx context.Context, in *SendMcpMessageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[McpConnectionStreamResponse], error)
+	StreamMcpMessages(ctx context.Context, in *StreamMcpMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[McpConnectionStreamResponse], error)
 	GetServerInfo(ctx context.Context, in *GetServerInfoRequest, opts ...grpc.CallOption) (*mcp.McpParticipant, error)
 	ListManagers(ctx context.Context, in *workerBroker.ListManagersRequest, opts ...grpc.CallOption) (*workerBroker.ListManagersResponse, error)
 	ListWorkers(ctx context.Context, in *ListWorkersRequest, opts ...grpc.CallOption) (*ListWorkersResponse, error)
@@ -131,13 +131,13 @@ func (c *mcpManagerClient) DiscardSession(ctx context.Context, in *DiscardSessio
 	return out, nil
 }
 
-func (c *mcpManagerClient) SendMcpMessage(ctx context.Context, in *SendMcpMessageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SendMcpMessageResponse], error) {
+func (c *mcpManagerClient) SendMcpMessage(ctx context.Context, in *SendMcpMessageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[McpConnectionStreamResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &McpManager_ServiceDesc.Streams[0], McpManager_SendMcpMessage_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[SendMcpMessageRequest, SendMcpMessageResponse]{ClientStream: stream}
+	x := &grpc.GenericClientStream[SendMcpMessageRequest, McpConnectionStreamResponse]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -148,15 +148,15 @@ func (c *mcpManagerClient) SendMcpMessage(ctx context.Context, in *SendMcpMessag
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type McpManager_SendMcpMessageClient = grpc.ServerStreamingClient[SendMcpMessageResponse]
+type McpManager_SendMcpMessageClient = grpc.ServerStreamingClient[McpConnectionStreamResponse]
 
-func (c *mcpManagerClient) StreamMcpMessages(ctx context.Context, in *StreamMcpMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamMcpMessagesResponse], error) {
+func (c *mcpManagerClient) StreamMcpMessages(ctx context.Context, in *StreamMcpMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[McpConnectionStreamResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &McpManager_ServiceDesc.Streams[1], McpManager_StreamMcpMessages_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[StreamMcpMessagesRequest, StreamMcpMessagesResponse]{ClientStream: stream}
+	x := &grpc.GenericClientStream[StreamMcpMessagesRequest, McpConnectionStreamResponse]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (c *mcpManagerClient) StreamMcpMessages(ctx context.Context, in *StreamMcpM
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type McpManager_StreamMcpMessagesClient = grpc.ServerStreamingClient[StreamMcpMessagesResponse]
+type McpManager_StreamMcpMessagesClient = grpc.ServerStreamingClient[McpConnectionStreamResponse]
 
 func (c *mcpManagerClient) GetServerInfo(ctx context.Context, in *GetServerInfoRequest, opts ...grpc.CallOption) (*mcp.McpParticipant, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -387,8 +387,8 @@ type McpManagerServer interface {
 	CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error)
 	DiscoverServer(context.Context, *DiscoverRequest) (*GetServerResponse, error)
 	DiscardSession(context.Context, *DiscardSessionRequest) (*DiscardSessionResponse, error)
-	SendMcpMessage(*SendMcpMessageRequest, grpc.ServerStreamingServer[SendMcpMessageResponse]) error
-	StreamMcpMessages(*StreamMcpMessagesRequest, grpc.ServerStreamingServer[StreamMcpMessagesResponse]) error
+	SendMcpMessage(*SendMcpMessageRequest, grpc.ServerStreamingServer[McpConnectionStreamResponse]) error
+	StreamMcpMessages(*StreamMcpMessagesRequest, grpc.ServerStreamingServer[McpConnectionStreamResponse]) error
 	GetServerInfo(context.Context, *GetServerInfoRequest) (*mcp.McpParticipant, error)
 	ListManagers(context.Context, *workerBroker.ListManagersRequest) (*workerBroker.ListManagersResponse, error)
 	ListWorkers(context.Context, *ListWorkersRequest) (*ListWorkersResponse, error)
@@ -432,10 +432,10 @@ func (UnimplementedMcpManagerServer) DiscoverServer(context.Context, *DiscoverRe
 func (UnimplementedMcpManagerServer) DiscardSession(context.Context, *DiscardSessionRequest) (*DiscardSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DiscardSession not implemented")
 }
-func (UnimplementedMcpManagerServer) SendMcpMessage(*SendMcpMessageRequest, grpc.ServerStreamingServer[SendMcpMessageResponse]) error {
+func (UnimplementedMcpManagerServer) SendMcpMessage(*SendMcpMessageRequest, grpc.ServerStreamingServer[McpConnectionStreamResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method SendMcpMessage not implemented")
 }
-func (UnimplementedMcpManagerServer) StreamMcpMessages(*StreamMcpMessagesRequest, grpc.ServerStreamingServer[StreamMcpMessagesResponse]) error {
+func (UnimplementedMcpManagerServer) StreamMcpMessages(*StreamMcpMessagesRequest, grpc.ServerStreamingServer[McpConnectionStreamResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method StreamMcpMessages not implemented")
 }
 func (UnimplementedMcpManagerServer) GetServerInfo(context.Context, *GetServerInfoRequest) (*mcp.McpParticipant, error) {
@@ -599,22 +599,22 @@ func _McpManager_SendMcpMessage_Handler(srv interface{}, stream grpc.ServerStrea
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(McpManagerServer).SendMcpMessage(m, &grpc.GenericServerStream[SendMcpMessageRequest, SendMcpMessageResponse]{ServerStream: stream})
+	return srv.(McpManagerServer).SendMcpMessage(m, &grpc.GenericServerStream[SendMcpMessageRequest, McpConnectionStreamResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type McpManager_SendMcpMessageServer = grpc.ServerStreamingServer[SendMcpMessageResponse]
+type McpManager_SendMcpMessageServer = grpc.ServerStreamingServer[McpConnectionStreamResponse]
 
 func _McpManager_StreamMcpMessages_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(StreamMcpMessagesRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(McpManagerServer).StreamMcpMessages(m, &grpc.GenericServerStream[StreamMcpMessagesRequest, StreamMcpMessagesResponse]{ServerStream: stream})
+	return srv.(McpManagerServer).StreamMcpMessages(m, &grpc.GenericServerStream[StreamMcpMessagesRequest, McpConnectionStreamResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type McpManager_StreamMcpMessagesServer = grpc.ServerStreamingServer[StreamMcpMessagesResponse]
+type McpManager_StreamMcpMessagesServer = grpc.ServerStreamingServer[McpConnectionStreamResponse]
 
 func _McpManager_GetServerInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetServerInfoRequest)
