@@ -10,10 +10,6 @@ WORKDIR /app/src/mcp-engine
 
 RUN go mod download
 
-COPY ./src/mcp-engine /app/src/mcp-engine
-
-RUN make build-worker-launcher
-
 RUN apt update && apt install -y make git curl unzip wget
 RUN apt install -y ca-certificates curl
 RUN update-ca-certificates
@@ -21,6 +17,10 @@ RUN update-ca-certificates
 RUN wget https://github.com/denoland/deno/releases/download/v2.4.2/deno-x86_64-unknown-linux-gnu.zip  
 RUN unzip deno-x86_64-unknown-linux-gnu.zip -d /app
 RUN chmod +x /app/deno
+
+COPY ./src/mcp-engine /app/src/mcp-engine
+
+RUN make build-worker-launcher
 
 # --------- Runner stage ---------
 FROM debian:bookworm-slim
@@ -34,6 +34,9 @@ RUN chmod +x /bin/grpc-health-probe
 # Copy built binary
 COPY --from=builder /app/src/mcp-engine/bin/worker-launcher .
 COPY --from=builder /app/deno /usr/local/bin/deno
+
+RUN useradd -m -u 1001 mt-user
+USER mt-user
 
 EXPOSE 50052
 
