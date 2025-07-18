@@ -27,8 +27,3 @@ docker buildx build \
   -t ghcr.io/metorial/metorial-mcp-engine-runner:latest \
   -f ./deployment/dockerfiles/engine-runner.Dockerfile \
   .
-
-docker buildx build \
-  -t ghcr.io/metorial/metorial-mcp-engine-unified:latest \
-  -f ./deployment/dockerfiles/engine-unified.Dockerfile \
-  .
