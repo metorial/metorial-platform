@@ -3,6 +3,7 @@ import { AuthInfo } from '@metorial/module-access';
 import { Authenticator } from '@metorial/rest';
 import type { ServerWebSocket } from 'bun';
 import { createBunWebSocket } from 'hono/bun';
+import { ALL_CONNECTION_TYPES } from './constants';
 import { getServerSession } from './getServerSession';
 import { getSessionAndAuthenticate } from './getSession';
 import { mcpConnectionHandler } from './handler';
@@ -30,9 +31,20 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       return c.text('');
     })
     .get('/ping', c => c.text('OK'))
-    .all('/mcp/:sessionId/:serverDeploymentId/:connectionType', async (c, next) => {
+    .all('/mcp/:sessionId/:serverDeploymentId?/:connectionType?', async (c, next) => {
       let { sessionId, serverDeploymentId, connectionType } = c.req.param();
       let context = useRequestContext(c);
+
+      if (
+        !connectionType &&
+        serverDeploymentId &&
+        ALL_CONNECTION_TYPES.has(serverDeploymentId)
+      ) {
+        connectionType = sessionId;
+        serverDeploymentId = undefined;
+      }
+
+      if (!connectionType) connectionType = 'sse';
 
       let url = new URL(c.req.url);
       let req = c.req.raw;
@@ -51,7 +63,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       );
 
       return await mcpConnectionHandler(c, next, sessionInfo, serverSession, {
-        connectionType: connectionType,
+        connectionType,
         upgradeWebSocket,
         sessionCreated
       });
