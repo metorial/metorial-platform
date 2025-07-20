@@ -9,8 +9,8 @@ import {
 } from '../resources';
 
 /**
- * @name Server controller
- * @description Read and write server information
+ * @name Servers controller
+ * @description Endpoint for retrieving information about a specific server within an instance.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -21,8 +21,8 @@ export class MetorialServersEndpoint extends BaseMetorialEndpoint<any> {
   }
 
   /**
-   * @name Get server
-   * @description Get the information of a specific server
+   * @name Get server by ID
+   * @description Retrieves detailed information for a server identified by its ID.
    *
    * @param `serverId` - string
    *

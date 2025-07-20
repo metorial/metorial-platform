@@ -25,8 +25,8 @@ export class MetorialDashboardInstanceServerRunErrorsEndpoint extends BaseMetori
   }
 
   /**
-   * @name List server deployments
-   * @description List all server deployments
+   * @name List server run errors
+   * @description List all server run errors
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceServerRunErrorsListQuery

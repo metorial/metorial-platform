@@ -13,8 +13,8 @@ import {
 } from '../resources';
 
 /**
- * @name Server Collection controller
- * @description Read and write server version information
+ * @name ServerListingCollection controller
+ * @description Read and write server listing collection information
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -25,8 +25,8 @@ export class MetorialServersListingsCollectionsEndpoint extends BaseMetorialEndp
   }
 
   /**
-   * @name List server versions
-   * @description List all server versions
+   * @name List server listing collections
+   * @description List all server listing collections
    *
    * @param `query` - ServersListingsCollectionsListQuery
    *
@@ -46,8 +46,8 @@ export class MetorialServersListingsCollectionsEndpoint extends BaseMetorialEndp
   }
 
   /**
-   * @name Get server version
-   * @description Get the information of a specific server version
+   * @name Get server listing collection
+   * @description Get the information of a specific server listing collection
    *
    * @param `serverListingCollectionId` - string
    *

@@ -13,8 +13,8 @@ import {
 } from '../resources';
 
 /**
- * @name Secret controller
- * @description Read and write secret information
+ * @name Secrets controller
+ * @description Endpoints for retrieving and managing secrets associated with an instance.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -26,7 +26,7 @@ export class MetorialDashboardInstanceSecretsEndpoint extends BaseMetorialEndpoi
 
   /**
    * @name List secrets
-   * @description List all  secrets
+   * @description Returns a paginated list of secrets for the instance, optionally filtered by type or status.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceSecretsListQuery
@@ -47,8 +47,8 @@ export class MetorialDashboardInstanceSecretsEndpoint extends BaseMetorialEndpoi
   }
 
   /**
-   * @name Get secret
-   * @description Get the information of a specific secret
+   * @name Get secret by ID
+   * @description Retrieves detailed information about a specific secret by ID.
    *
    * @param `instanceId` - string
    * @param `secretId` - string

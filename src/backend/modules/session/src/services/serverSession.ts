@@ -1,3 +1,4 @@
+import { Context } from '@metorial/context';
 import { db, ID, ServerDeployment, Session } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
 import { ingestEventService } from '@metorial/module-event';
@@ -11,11 +12,16 @@ let include = {
       server: true,
       serverVariant: true
     }
-  }
+  },
+  sessionConnection: true
 };
 
 class ServerSessionImpl {
-  async createServerSession(d: { session: Session; serverDeployment: ServerDeployment }) {
+  async createServerSession(d: {
+    session: Session;
+    serverDeployment: ServerDeployment;
+    context: Context;
+  }) {
     let session = await db.serverSession.create({
       data: {
         id: await ID.generateId('serverSession'),
@@ -43,7 +49,8 @@ class ServerSessionImpl {
     });
 
     await serverSessionCreatedQueue.add({
-      serverSessionId: session.id
+      serverSessionId: session.id,
+      context: d.context
     });
 
     return session;

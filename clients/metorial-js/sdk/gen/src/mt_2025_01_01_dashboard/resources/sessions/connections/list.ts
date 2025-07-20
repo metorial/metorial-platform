@@ -1,22 +1,22 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type DashboardInstanceSessionsServerSessionsListOutput = {
+export type SessionsConnectionsListOutput = {
   items: {
-    object: 'session.server_session';
+    object: 'session.session_connection';
     id: string;
-    status: 'active';
+    status: 'active' | 'ended';
     mcp: {
       object: 'mcp';
       version: string;
       connectionType: 'sse' | 'streamable_http' | 'websocket';
       client: {
-        object: 'session.server_session.client';
+        object: 'session.session_connection.client';
         name: string;
         version: string;
         capabilities: Record<string, any>;
       } | null;
       server: {
-        object: 'session.server_session.server';
+        object: 'session.session_connection.server';
         name: string;
         version: string;
         capabilities: Record<string, any>;
@@ -69,12 +69,14 @@ export type DashboardInstanceSessionsServerSessionsListOutput = {
       };
     };
     createdAt: Date;
+    startedAt: Date;
+    endedAt: Date | null;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapDashboardInstanceSessionsServerSessionsListOutput =
-  mtMap.object<DashboardInstanceSessionsServerSessionsListOutput>({
+export let mapSessionsConnectionsListOutput =
+  mtMap.object<SessionsConnectionsListOutput>({
     items: mtMap.objectField(
       'items',
       mtMap.array(
@@ -211,7 +213,9 @@ export let mapDashboardInstanceSessionsServerSessionsListOutput =
               )
             })
           ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          startedAt: mtMap.objectField('started_at', mtMap.date()),
+          endedAt: mtMap.objectField('ended_at', mtMap.date())
         })
       )
     ),
@@ -227,7 +231,7 @@ export let mapDashboardInstanceSessionsServerSessionsListOutput =
     )
   });
 
-export type DashboardInstanceSessionsServerSessionsListQuery = {
+export type SessionsConnectionsListQuery = {
   limit?: number | undefined;
   after?: string | undefined;
   before?: string | undefined;
@@ -235,7 +239,7 @@ export type DashboardInstanceSessionsServerSessionsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {};
 
-export let mapDashboardInstanceSessionsServerSessionsListQuery = mtMap.union([
+export let mapSessionsConnectionsListQuery = mtMap.union([
   mtMap.unionOption(
     'object',
     mtMap.object({

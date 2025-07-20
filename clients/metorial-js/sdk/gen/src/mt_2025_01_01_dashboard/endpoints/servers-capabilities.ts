@@ -11,8 +11,8 @@ import {
 } from '../resources';
 
 /**
- * @name Server Capabilities controller
- * @description Get server capabilities information
+ * @name ServerCapabilities controller
+ * @description Provides access to server capability definitions for the current instance.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -24,7 +24,7 @@ export class MetorialServersCapabilitiesEndpoint extends BaseMetorialEndpoint<an
 
   /**
    * @name List server capabilities
-   * @description List all server capabilities
+   * @description Returns a list of server capabilities, filterable by server attributes such as deployment, variant, or version.
    *
    * @param `query` - DashboardInstanceServersCapabilitiesListQuery
    *

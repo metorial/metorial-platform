@@ -57,7 +57,7 @@ export type ApiKeysUpdateOutput = {
       createdAt: Date;
       updatedAt: Date;
     } | null;
-    organizationId: {
+    organization: {
       object: 'organization';
       id: string;
       status: 'active' | 'deleted';
@@ -167,8 +167,8 @@ export let mapApiKeysUpdateOutput = mtMap.object<ApiKeysUpdateOutput>({
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
         })
       ),
-      organizationId: mtMap.objectField(
-        'organization_id',
+      organization: mtMap.objectField(
+        'organization',
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),

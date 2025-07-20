@@ -1,9 +1,9 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { SessionsServerSessionsGetOutput } from '@metorial/generated';
+import { DashboardInstanceSessionsServerSessionsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useServerRuns } from '@metorial/state';
 import { theme } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
-import { RiRadarLine, RiServerLine } from '@remixicon/react';
+import { RiRadarLine, RiSendPlane2Line, RiServerLine } from '@remixicon/react';
 import { useInView } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
@@ -42,7 +42,7 @@ let Main = styled.main`
 export let ServerSession = ({
   serverSession
 }: {
-  serverSession: SessionsServerSessionsGetOutput;
+  serverSession: DashboardInstanceSessionsServerSessionsGetOutput;
 }) => {
   let ref = useRef<HTMLDivElement>(null);
   let inView = useInView(ref, {});
@@ -71,7 +71,7 @@ export let ServerSession = ({
       <Header>
         <span>{serverSession.serverDeployment.name ?? serverSession.server.name}</span>
         <span>
-          <ID id={serverSession.id} />
+          <ID id={serverSession.connection?.id ?? serverSession.id} />
         </span>
       </Header>
 
@@ -89,6 +89,21 @@ export let ServerSession = ({
                 ),
                 time: serverSession.createdAt
               },
+
+              ...(serverSession.connection
+                ? [
+                    {
+                      component: (
+                        <Entry
+                          icon={<RiSendPlane2Line />}
+                          title={`Session connection created`}
+                          time={serverSession.createdAt}
+                        />
+                      ),
+                      time: serverSession.createdAt
+                    }
+                  ]
+                : []),
 
               ...serverRuns.data.items.flatMap(serverRun => [
                 {

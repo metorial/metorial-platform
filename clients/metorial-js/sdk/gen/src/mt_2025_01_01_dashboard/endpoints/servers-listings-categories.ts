@@ -13,8 +13,8 @@ import {
 } from '../resources';
 
 /**
- * @name Server Category controller
- * @description Read and write server version information
+ * @name ServerListingCategory controller
+ * @description Provides access to server listing categories, used for organizing and filtering server listings.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -25,8 +25,8 @@ export class MetorialServersListingsCategoriesEndpoint extends BaseMetorialEndpo
   }
 
   /**
-   * @name List server versions
-   * @description List all server versions
+   * @name List server listing categories
+   * @description Returns a list of all available server listing categories.
    *
    * @param `query` - ServersListingsCategoriesListQuery
    *
@@ -46,8 +46,8 @@ export class MetorialServersListingsCategoriesEndpoint extends BaseMetorialEndpo
   }
 
   /**
-   * @name Get server version
-   * @description Get the information of a specific server version
+   * @name Get server listing category
+   * @description Returns information for a specific server listing category.
    *
    * @param `serverListingCategoryId` - string
    *

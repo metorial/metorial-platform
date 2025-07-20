@@ -13,7 +13,7 @@ import {
 } from '../resources';
 
 /**
- * @name Session Message controller
+ * @name SessionMessage controller
  * @description Read and write session message information
  *
  * @see https://metorial.com/api
@@ -26,7 +26,7 @@ export class MetorialManagementInstanceSessionsMessagesEndpoint extends BaseMeto
 
   /**
    * @name List session messages
-   * @description List all session messages
+   * @description List all messages for a specific session
    *
    * @param `instanceId` - string
    * @param `sessionId` - string
@@ -53,7 +53,7 @@ export class MetorialManagementInstanceSessionsMessagesEndpoint extends BaseMeto
 
   /**
    * @name Get session message
-   * @description Get the information of a specific session message
+   * @description Get details of a specific session message
    *
    * @param `instanceId` - string
    * @param `sessionId` - string
