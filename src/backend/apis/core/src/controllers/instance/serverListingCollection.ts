@@ -20,8 +20,9 @@ export let serverListingCollectionGroup = apiGroup.use(async ctx => {
 
 export let serverListingCollectionController = Controller.create(
   {
-    name: 'ServerListingCollection',
-    description: 'Read and write server listing collection information'
+    name: 'Server Listing Collection',
+    description: 'Read and write server listing collection information',
+    hideInDocs: true
   },
   {
     list: apiGroup

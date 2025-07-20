@@ -20,8 +20,9 @@ export let serverVersionGroup = serverGroup.use(async ctx => {
 
 export let serverVersionController = Controller.create(
   {
-    name: 'ServerVersion',
-    description: 'Manage server version data'
+    name: 'Server Version',
+    description:
+      'Servers in Metorial are version controlled. Metorial automatically updates servers to the latest version when available. These endpoints help you keep track of server versions in the Metorial catalog.'
   },
   {
     list: serverGroup

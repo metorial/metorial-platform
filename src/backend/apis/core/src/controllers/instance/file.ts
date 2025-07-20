@@ -25,7 +25,7 @@ export let fileController = Controller.create(
   {
     name: 'Files',
     description:
-      'Endpoints for listing, retrieving, updating, and deleting files associated with an instance.'
+      'Represents files that you have uploaded to Metorial. Files can be linked to various resources based on their purpose. Metorial can also automatically extract files for you, for example for data exports.'
   },
   {
     list: instanceGroup

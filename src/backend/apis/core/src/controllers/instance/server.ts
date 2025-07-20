@@ -18,8 +18,7 @@ export let serverGroup = instanceGroup.use(async ctx => {
 export let serverController = Controller.create(
   {
     name: 'Servers',
-    description:
-      'Endpoint for retrieving information about a specific server within an instance.'
+    description: `A server represents a deployable MCP server in Metorial\'s catalog. You can use server deployments to create MCP server instances that you can connect to.`
   },
   {
     get: serverGroup

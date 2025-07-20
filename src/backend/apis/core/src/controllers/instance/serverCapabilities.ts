@@ -9,8 +9,9 @@ import { serverCapabilitiesPresenter } from '../../presenters';
 
 export let serverCapabilitiesController = Controller.create(
   {
-    name: 'ServerCapabilities',
-    description: 'Provides access to server capability definitions for the current instance.'
+    name: 'Server Capabilities',
+    description:
+      'Describes the capabilities, i.e., the tools, resources, and prompts, that certain servers support.'
   },
   {
     list: instanceGroup

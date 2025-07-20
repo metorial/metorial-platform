@@ -25,7 +25,8 @@ export let sessionGroup = instanceGroup.use(async ctx => {
 export let sessionController = Controller.create(
   {
     name: 'Session',
-    description: 'Read and write session information'
+    description:
+      'Before you can connect to an MCP server, you need to create a session. Each session can be linked to one or more server deployments, allowing you to connect to multiple servers simultaneously. Once you have created a session, you can use the provided MCP URL to connect to the server deployments via MCP.'
   },
   {
     list: instanceGroup

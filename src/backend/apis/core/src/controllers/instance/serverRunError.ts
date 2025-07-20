@@ -21,7 +21,8 @@ export let serverRunErrorGroup = instanceGroup.use(async ctx => {
 export let serverRunErrorController = Controller.create(
   {
     name: 'Server Run Error',
-    description: 'Read and write server run error information'
+    description:
+      'Sometimes, an MCP server may fail to run correctly, resulting in an error. Metorial captures these errors to help you diagnose issues with your server runs. You may also want to check the Metorial dashboard for more details on the error.'
   },
   {
     list: instanceGroup

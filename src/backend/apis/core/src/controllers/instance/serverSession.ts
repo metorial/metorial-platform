@@ -21,7 +21,8 @@ export let serverSessionGroup = sessionGroup.use(async ctx => {
 export let serverSessionController = Controller.create(
   {
     name: 'Server Session',
-    description: 'Read and write server session information'
+    description: 'Read and write server session information',
+    hideInDocs: true
   },
   {
     list: sessionGroup
