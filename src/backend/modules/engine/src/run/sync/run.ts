@@ -68,6 +68,11 @@ export let syncEngineRun = async (d: { engineRunId: string }) => {
       where: { oid: serverSession.oid },
       data: { status: 'stopped' }
     });
+
+    await db.sessionConnection.updateMany({
+      where: { serverSessionOid: serverSession.oid, endedAt: null },
+      data: { endedAt: start }
+    });
   }
 
   let unifiedId = new UnifiedID(engineRun.serverSession.id);

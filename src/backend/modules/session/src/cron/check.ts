@@ -74,7 +74,7 @@ let disconnectSessionQueueProcessor = disconnectSessionQueue.process(async data 
     }
   });
 
-  await db.serverSession.updateMany({
+  let updated = await db.serverSession.updateManyAndReturn({
     where: {
       sessionOid: session.oid,
       status: { in: ['running'] }
@@ -83,6 +83,13 @@ let disconnectSessionQueueProcessor = disconnectSessionQueue.process(async data 
       status: 'stopped'
     }
   });
+
+  for (let serverSession of updated) {
+    await db.sessionConnection.updateMany({
+      where: { serverSessionOid: serverSession.oid, endedAt: null },
+      data: { endedAt: new Date() }
+    });
+  }
 });
 
 export let checkSessionsProcessors = combineQueueProcessors([
