@@ -14,11 +14,11 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/launcher"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
-	"github.com/metorial/metorial/mcp-engine/pkg/limiter"
-	"github.com/metorial/metorial/mcp-engine/pkg/lock"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mtError"
-	"github.com/metorial/metorial/mcp-engine/pkg/util"
+	"github.com/metorial/metorial/modules/limiter"
+	"github.com/metorial/metorial/modules/lock"
+	"github.com/metorial/metorial/modules/util"
 	"google.golang.org/grpc"
 )
 

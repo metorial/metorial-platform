@@ -12,7 +12,7 @@ import (
 	mcpPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	remotePb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
-	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
+	"github.com/metorial/metorial/modules/pubsub"
 )
 
 type Run struct {

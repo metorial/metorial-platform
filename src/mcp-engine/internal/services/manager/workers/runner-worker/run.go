@@ -12,8 +12,8 @@ import (
 	mcpPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	runnerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
-	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
-	"github.com/metorial/metorial/mcp-engine/pkg/util"
+	"github.com/metorial/metorial/modules/pubsub"
+	"github.com/metorial/metorial/modules/util"
 )
 
 type Run struct {

@@ -10,7 +10,7 @@ import (
 
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager"
-	"github.com/metorial/metorial/mcp-engine/pkg/sentryUtil"
+	sentryUtil "github.com/metorial/metorial/modules/sentry-util"
 )
 
 func main() {

@@ -11,7 +11,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mtError"
-	"github.com/metorial/metorial/mcp-engine/pkg/util"
+	"github.com/metorial/metorial/modules/util"
 	"google.golang.org/grpc"
 )
 
