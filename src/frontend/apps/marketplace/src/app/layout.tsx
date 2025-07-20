@@ -19,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Metorial Index',
+  title: 'Metorial Marketplace',
   applicationName: 'Metorial',
   description: 'The open source integration platform for agentic AI.',
   metadataBase: new URL('https://metorial.com'),
