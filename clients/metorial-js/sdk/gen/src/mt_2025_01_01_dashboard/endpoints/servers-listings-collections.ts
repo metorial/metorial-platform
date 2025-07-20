@@ -13,7 +13,7 @@ import {
 } from '../resources';
 
 /**
- * @name ServerListingCollection controller
+ * @name Server Listing Collection controller
  * @description Read and write server listing collection information
  *
  * @see https://metorial.com/api

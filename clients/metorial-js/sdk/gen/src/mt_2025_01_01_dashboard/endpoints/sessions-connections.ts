@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Session Connection controller
- * @description Read and write session connection information
+ * @description Each time a new MCP connection to a server is established, a session connection is created. This allows you to track and manage the connections made during a session.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

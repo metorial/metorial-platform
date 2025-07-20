@@ -13,7 +13,7 @@ import {
 } from '../resources';
 
 /**
- * @name ServerListingCategory controller
+ * @name Server Listing Category controller
  * @description Provides access to server listing categories, used for organizing and filtering server listings.
  *
  * @see https://metorial.com/api

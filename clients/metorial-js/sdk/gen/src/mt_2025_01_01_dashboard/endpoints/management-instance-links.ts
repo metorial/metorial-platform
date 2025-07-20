@@ -21,8 +21,8 @@ import {
 } from '../resources';
 
 /**
- * @name FileLinks controller
- * @description Endpoints for managing links to access or share specific files.
+ * @name File Links controller
+ * @description Files are private by default. If you want to share a file, you can create a link for it. Links are public and do not require authentication to access, so be careful with what you share.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

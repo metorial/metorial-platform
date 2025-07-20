@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Files controller
- * @description Endpoints for listing, retrieving, updating, and deleting files associated with an instance.
+ * @description Represents files that you have uploaded to Metorial. Files can be linked to various resources based on their purpose. Metorial can also automatically extract files for you, for example for data exports.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
