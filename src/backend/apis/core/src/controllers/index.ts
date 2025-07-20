@@ -53,7 +53,6 @@ export let pulsarController = Controller.create<any>(
     serverDeploymentController,
 
     sessionController,
-    sessionEventController,
     sessionMessageController,
 
     serverRunController,

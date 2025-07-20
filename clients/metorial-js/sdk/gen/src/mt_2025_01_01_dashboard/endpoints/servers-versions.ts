@@ -13,8 +13,8 @@ import {
 } from '../resources';
 
 /**
- * @name ServerVersion controller
- * @description Manage server version data
+ * @name Server Version controller
+ * @description Servers in Metorial are version controlled. Metorial automatically updates servers to the latest version when available. These endpoints help you keep track of server versions in the Metorial catalog.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

@@ -20,9 +20,10 @@ export let serverListingGroup = apiGroup.use(async ctx => {
 
 export let serverListingController = Controller.create(
   {
-    name: 'ServerListing',
+    name: 'Server Listing',
     description:
-      'Provides access to public server listings, including metadata, filtering, and ranking.'
+      'Provides access to public server listings, including metadata, filtering, and ranking.',
+    hideInDocs: true
   },
   {
     list: apiGroup

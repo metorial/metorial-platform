@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Secrets controller
- * @description Endpoints for retrieving and managing secrets associated with an instance.
+ * @description Secrets represent sensitive information securely stored by Metorial. Secrets are automatically created by Metorial, for example for server deployment configurations.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

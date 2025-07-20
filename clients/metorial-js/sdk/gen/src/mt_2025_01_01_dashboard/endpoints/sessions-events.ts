@@ -13,7 +13,7 @@ import {
 } from '../resources';
 
 /**
- * @name SessionEvent controller
+ * @name Session Event controller
  * @description Read and write session event information
  *
  * @see https://metorial.com/api

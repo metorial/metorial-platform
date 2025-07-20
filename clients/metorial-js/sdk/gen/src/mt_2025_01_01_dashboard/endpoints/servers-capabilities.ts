@@ -11,8 +11,8 @@ import {
 } from '../resources';
 
 /**
- * @name ServerCapabilities controller
- * @description Provides access to server capability definitions for the current instance.
+ * @name Server Capabilities controller
+ * @description Describes the capabilities, i.e., the tools, resources, and prompts, that certain servers support.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

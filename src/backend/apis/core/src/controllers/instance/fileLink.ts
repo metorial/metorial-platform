@@ -20,8 +20,9 @@ let fileLinkGroup = fileGroup.use(async ctx => {
 
 export let fileLinkController = Controller.create(
   {
-    name: 'FileLinks',
-    description: 'Endpoints for managing links to access or share specific files.'
+    name: 'File Links',
+    description:
+      'Files are private by default. If you want to share a file, you can create a link for it. Links are public and do not require authentication to access, so be careful with what you share.'
   },
   {
     list: fileGroup

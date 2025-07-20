@@ -120,7 +120,7 @@ export let serverImplementationController = Controller.create(
   {
     name: 'Server Implementation',
     description:
-      'Manage server implementations tied to a server or server variant within an instance.'
+      'Server implementations allow you to customize predefined MCP servers with specific configurations, launch parameters, and metadata. You can create server deployments based on these implementations to connect to the underlying MCP servers.'
   },
   {
     list: instanceGroup

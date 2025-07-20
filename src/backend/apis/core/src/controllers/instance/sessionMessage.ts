@@ -21,8 +21,9 @@ export let sessionMessageGroup = sessionGroup.use(async ctx => {
 
 export let sessionMessageController = Controller.create(
   {
-    name: 'SessionMessage',
-    description: 'Read and write session message information'
+    name: 'Session Message',
+    description:
+      'When MCP servers and clients communicate, Metorial captures the messages they send. This allows you to see the raw messages exchanged between the server and client, which can be useful for debugging or understanding the communication flow.'
   },
   {
     list: sessionGroup
