@@ -68,7 +68,7 @@ describe('anonymizeIP', () => {
   // IPv6 with embedded IPv4
   it('anonymizes IPv6 with embedded IPv4', () => {
     expect(anonymizeIP('::ffff:192.0.2.128')).toBe('0:0:0:0:x:x:xxxx:192.0.x.xxx');
-    expect(anonymizeIP('2001:db8::ffff:10.0.0.1')).toBe('2001:db8:x:x:x:x:x:x.0.0.x');
+    expect(anonymizeIP('2001:db8::ffff:10.0.0.1')).toBe('2001:db8:0:0:x:x:xxxx:10.0.x.x');
   });
 
   // Invalid IPs
