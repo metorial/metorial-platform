@@ -12,7 +12,8 @@ let include = {
       server: true,
       serverVariant: true
     }
-  }
+  },
+  sessionConnection: true
 };
 
 class ServerSessionImpl {

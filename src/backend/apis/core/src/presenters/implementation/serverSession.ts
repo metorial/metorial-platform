@@ -10,7 +10,7 @@ export let v1ServerSessionPresenter = Presenter.create(serverSessionType)
     object: 'session.server_session',
 
     id: serverSession.id,
-    status: 'active',
+    status: serverSession.status,
 
     mcp: {
       object: 'mcp',
@@ -56,6 +56,23 @@ export let v1ServerSessionPresenter = Presenter.create(serverSessionType)
       serverSession.serverDeployment.server
     ),
 
+    connection: serverSession.sessionConnection
+      ? {
+          object: 'session.session_connection#preview',
+
+          id: serverSession.sessionConnection.id,
+
+          client: {
+            user_agent: serverSession.sessionConnection.userAgent,
+            anonymized_ip_address: serverSession.sessionConnection.anonIp
+          },
+
+          created_at: serverSession.sessionConnection.createdAt,
+          started_at: serverSession.sessionConnection.createdAt,
+          ended_at: serverSession.sessionConnection.endedAt
+        }
+      : null,
+
     created_at: serverSession.createdAt
   }))
   .schema(
@@ -67,7 +84,7 @@ export let v1ServerSessionPresenter = Presenter.create(serverSessionType)
         description: 'The unique identifier for the server session'
       }),
 
-      status: v.enumOf(['active'], {
+      status: v.enumOf(['pending', 'running', 'stopped'], {
         name: 'status',
         description: 'Current status of the server session'
       }),
@@ -172,6 +189,44 @@ export let v1ServerSessionPresenter = Presenter.create(serverSessionType)
       session: v1SessionPreview.schema,
 
       server_deployment: v1ServerDeploymentPreview.schema,
+
+      connection: v.nullable(
+        v.object({
+          object: v.literal('session.session_connection#preview'),
+
+          id: v.string({
+            name: 'id',
+            description: 'The unique identifier for the session connection'
+          }),
+
+          client: v.object({
+            user_agent: v.string({
+              name: 'user_agent',
+              description: 'User agent string of the client'
+            }),
+            anonymized_ip_address: v.string({
+              name: 'anonymized_ip_address',
+              description: 'Anonymized IP address of the client'
+            })
+          }),
+
+          created_at: v.date({
+            name: 'created_at',
+            description: 'Timestamp when the server session was created'
+          }),
+          started_at: v.date({
+            name: 'started_at',
+            description: 'Timestamp when the session connection started'
+          }),
+          ended_at: v.nullable(
+            v.date({
+              name: 'ended_at',
+              description:
+                'Timestamp when the session connection ended, or null if still active'
+            })
+          )
+        })
+      ),
 
       created_at: v.date({
         name: 'created_at',

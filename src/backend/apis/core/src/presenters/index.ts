@@ -29,6 +29,7 @@ import { v1ServerSessionPresenter } from './implementation/serverSession';
 import { v1ServerVariantPresenter } from './implementation/serverVariant';
 import { v1ServerVersionPresenter } from './implementation/serverVersion';
 import { v1SessionPresenter } from './implementation/session';
+import { v1SessionConnectionPresenter } from './implementation/sessionConnection';
 import { v1SessionEventPresenter } from './implementation/sessionEvent';
 import {
   dashboardSessionMessagePresenter,
@@ -63,6 +64,7 @@ import {
   serverType,
   serverVariantType,
   serverVersionType,
+  sessionConnectionType,
   sessionEventType,
   sessionMessageType,
   sessionType,
@@ -208,6 +210,11 @@ export let serverRunErrorGroupPresenter = declarePresenter(serverRunErrorGroupTy
 export let serverSessionPresenter = declarePresenter(serverSessionType, {
   mt_2025_01_01_pulsar: v1ServerSessionPresenter,
   mt_2025_01_01_dashboard: v1ServerSessionPresenter
+});
+
+export let sessionConnectionPresenter = declarePresenter(sessionConnectionType, {
+  mt_2025_01_01_pulsar: v1SessionConnectionPresenter,
+  mt_2025_01_01_dashboard: v1SessionConnectionPresenter
 });
 
 export let sessionEventPresenter = declarePresenter(sessionEventType, {
