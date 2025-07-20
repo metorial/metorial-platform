@@ -1,5 +1,6 @@
+import { delay } from '@metorial/delay';
 import { murmur3_32 } from '@metorial/murmur3';
-import { getManagers } from './managers';
+import { getManagers, Manager } from './managers';
 
 let getClientByIndex = (index: number) => {
   let managers = getManagers();
@@ -26,4 +27,22 @@ export let getRandomClient = () => {
   if (managers.length === 0) return null;
 
   return getClientByIndex(++offset % managers.length);
+};
+
+let MUST_GET_MAX_ATTEMPTS = 10;
+export let mustGetClient = async (
+  provider: () => Manager['client'] | null | Promise<Manager['client'] | null>
+) => {
+  let attempts = 0;
+
+  while (attempts < MUST_GET_MAX_ATTEMPTS) {
+    let client = await provider();
+    if (client) return client;
+
+    attempts++;
+
+    await delay(Math.min(1000 * attempts, 5000));
+  }
+
+  return null;
 };

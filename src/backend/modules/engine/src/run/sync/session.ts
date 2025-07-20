@@ -25,7 +25,7 @@ export let syncEngineSession = async (d: { engineSessionId: string }) => {
       : subSeconds(engineSession.lastSyncAt, 5);
 
   let client = getRandomClient();
-  if (!client) return;
+  if (!client) throw new Error('WTF - No manager found for engine run');
 
   let { session } = await client.getSession({
     sessionId: engineSession.id

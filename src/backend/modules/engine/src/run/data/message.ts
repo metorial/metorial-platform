@@ -1,4 +1,5 @@
-import { db, ID, ServerSession } from '@metorial/db';
+import { db, ID, Instance, Organization, ServerSession } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { getSentry } from '@metorial/sentry';
 import { getOriginalIdIfNeeded } from '@metorial/unified-id';
 import { EngineMcpMessage } from '../mcp/message';
@@ -8,8 +9,17 @@ let Sentry = getSentry();
 export let createSessionMessage = async (d: {
   message: EngineMcpMessage;
   serverSession: ServerSession;
+  instance: Instance & { organization: Organization };
 }) => {
   let msg = d.message;
+
+  await Fabric.fire('session.session_message.created:before', {
+    organization: d.instance.organization,
+    instance: d.instance,
+    session: d.serverSession,
+    participant: { type: msg.sender.type }
+  });
+
   let message = await db.sessionMessage.create({
     data: {
       id: ID.normalizeUUID('sessionMessage', msg.uuid),
@@ -27,6 +37,13 @@ export let createSessionMessage = async (d: {
   });
 
   (async () => {
+    await Fabric.fire('session.session_message.created.many:after', {
+      organization: d.instance.organization,
+      instance: d.instance,
+      session: d.serverSession,
+      sessionMessages: [message]
+    });
+
     await db.serverSession.update({
       where: { oid: d.serverSession.oid },
       data:

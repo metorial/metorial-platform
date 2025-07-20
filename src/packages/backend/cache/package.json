@@ -12,7 +12,7 @@
     "@metorial/memo": "^1.0.0",
     "@metorial/serialize": "^1.0.0",
     "lru-cache": "^11.0.2",
-    "redis": "^4.7.0"
+    "redis": "^5.6.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

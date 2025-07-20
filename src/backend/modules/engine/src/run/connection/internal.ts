@@ -1,6 +1,5 @@
 import {
   db,
-  ID,
   ServerDeployment,
   ServerImplementation,
   ServerRun,
@@ -14,7 +13,6 @@ import { generatePlainId } from '@metorial/id';
 import { createLock } from '@metorial/lock';
 import {
   CreateSessionResponse,
-  EngineRunStatus,
   EngineSession,
   EngineSessionRun,
   McpError,
@@ -29,8 +27,9 @@ import { getUnifiedIdIfNeeded, UnifiedID } from '@metorial/unified-id';
 import { JSONRPCMessage } from '@modelcontextprotocol/sdk/types';
 import { addServerDeploymentDiscovery } from '../../queues/discoverServer';
 import { addRunSync } from '../../queues/syncRuns';
-import { getClientByHash } from '../client';
+import { getClientByHash, mustGetClient } from '../client';
 import { getSessionConfig } from '../config';
+import { createEngineRun } from '../data/engineRun';
 import { createSessionMessage } from '../data/message';
 import {
   EngineMcpMessage,
@@ -44,7 +43,7 @@ import { getFullServerSession } from '../utils';
 import { EngineSessionConnectionBase } from './base';
 import { EngineSessionProxy } from './proxy';
 import { EngineRunConfig, McpClient } from './types';
-import { getEngineRunType, getEngineSessionType } from './util';
+import { getEngineSessionType } from './util';
 
 const INACTIVITY_TIMEOUT = 1000 * 60;
 
@@ -115,7 +114,7 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
       serverSession: srvSes
     });
 
-    let client = getClientByHash(variant.identifier);
+    let client = await mustGetClient(() => getClientByHash(variant.identifier));
     if (!client) {
       throw new ServiceError(
         internalServerError({
@@ -510,7 +509,8 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
     try {
       await createSessionMessage({
         message: msg,
-        serverSession: this.config.serverSession
+        serverSession: this.config.serverSession,
+        instance: this.config.instance
       });
     } catch (err: any) {
       if (err.code != 'P2002') throw err;
@@ -545,42 +545,14 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
       if (lastRunId) await addRunSync({ engineRunId: lastRunId });
 
       try {
-        await db.engineRun.create({
-          data: {
-            id: run.id,
-            type: getEngineRunType(run),
-            hasEnded: run.status != EngineRunStatus.run_status_active,
-            lastSyncAt: new Date(0),
-            createdAt: new Date(run.createdAt.toNumber()),
-            serverSessionOid: this.config.serverSession.oid,
-            engineSessionId: this.engineSessionInfo.session!.id
-          }
-        });
-
-        await Fabric.fire('server.server_run.created:before', {
-          organization: this.config.instance.organization,
+        let { serverRun } = await createEngineRun({
+          run,
+          serverSession: this.config.serverSession,
+          version: this.version,
           instance: this.config.instance
         });
 
-        let serverRun = await db.serverRun.create({
-          data: {
-            id: ID.normalizeUUID('serverRun', run.id),
-            status: 'active',
-            type: this.version.sourceType == 'remote' ? 'external' : 'hosted',
-            serverVersionOid: this.version.oid,
-            serverDeploymentOid: this.deployment.oid,
-            instanceOid: this.config.instance.oid,
-            serverSessionOid: this.config.serverSession.oid,
-            engineRunId: run.id
-          }
-        });
         this.#serverRun = serverRun;
-
-        await Fabric.fire('server.server_run.created:after', {
-          serverRun,
-          organization: this.config.instance.organization,
-          instance: this.config.instance
-        });
       } catch (err: any) {
         if (err.code != 'P2002') throw err;
 

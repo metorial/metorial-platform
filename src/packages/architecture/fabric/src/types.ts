@@ -144,7 +144,7 @@ export interface FabricEvents {
   'server.server_run.created:before': { organization: Organization, instance: Instance };
   'server.server_run.created:after': { organization: Organization, instance: Instance, serverRun: ServerRun };
 
-  'session.session_message.created:before': { organization: Organization, instance: Instance, session: ServerSession };
+  'session.session_message.created:before': { organization: Organization, instance: Instance, session: ServerSession, participant: {type: 'client' | 'server'} };
   'session.session_message.created.many:after': { organization: Organization, instance: Instance, session: ServerSession, sessionMessages: SessionMessage[] };
 
   'server.engine_session.created:before': {  organization: Organization, instance: Instance, serverSession: ServerSession };
