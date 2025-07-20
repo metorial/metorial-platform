@@ -1,6 +1,7 @@
 import { Context } from '@metorial/context';
 import { db, ID, ServerDeployment, Session } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
+import { createLock } from '@metorial/lock';
 import { ingestEventService } from '@metorial/module-event';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -16,7 +17,31 @@ let include = {
   sessionConnection: true
 };
 
+let sessionLock = createLock({
+  name: 'ses/srs/lock'
+});
+
 class ServerSessionImpl {
+  async ensureServerSession(d: {
+    session: Session;
+    serverDeployment: ServerDeployment;
+    context: Context;
+  }) {
+    return sessionLock.usingLock(d.session.id, async () => {
+      let serverSession = await db.serverSession.findFirst({
+        where: {
+          sessionOid: d.session.oid,
+          serverDeploymentOid: d.serverDeployment.oid,
+          status: 'running'
+        },
+        include
+      });
+      if (serverSession) return serverSession;
+
+      return this.createServerSession(d);
+    });
+  }
+
   async createServerSession(d: {
     session: Session;
     serverDeployment: ServerDeployment;
