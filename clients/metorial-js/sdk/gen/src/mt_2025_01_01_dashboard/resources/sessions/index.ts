@@ -1,3 +1,4 @@
+export * from './connections';
 export * from './create';
 export * from './delete';
 export * from './events';

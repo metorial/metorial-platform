@@ -19,7 +19,7 @@ import {
 } from '../resources';
 
 /**
- * @name Server Instance controller
+ * @name Session controller
  * @description Read and write session information
  *
  * @see https://metorial.com/api
@@ -31,8 +31,8 @@ export class MetorialDashboardInstanceSessionsEndpoint extends BaseMetorialEndpo
   }
 
   /**
-   * @name List server deployments
-   * @description List all server deployments
+   * @name List sessions
+   * @description List all sessions
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceSessionsListQuery

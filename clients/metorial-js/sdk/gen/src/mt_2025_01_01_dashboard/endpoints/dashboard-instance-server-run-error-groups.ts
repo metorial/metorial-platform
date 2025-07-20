@@ -25,8 +25,8 @@ export class MetorialDashboardInstanceServerRunErrorGroupsEndpoint extends BaseM
   }
 
   /**
-   * @name List server deployments
-   * @description List all server deployments
+   * @name List server run error groups
+   * @description List all server run error groups
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceServerRunErrorGroupsListQuery

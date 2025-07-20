@@ -10,7 +10,7 @@ import {
 
 /**
  * @name Instance controller
- * @description Read and write instance information
+ * @description Endpoint for retrieving information about a specific instance.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -21,8 +21,8 @@ export class MetorialManagementInstanceInstanceEndpoint extends BaseMetorialEndp
   }
 
   /**
-   * @name Get  instance
-   * @description Get the information of a specific  instance
+   * @name Get instance details
+   * @description Retrieves metadata and configuration details for a specific instance.
    *
    * @param `instanceId` - string
    *

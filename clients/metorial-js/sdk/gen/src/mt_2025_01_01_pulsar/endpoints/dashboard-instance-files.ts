@@ -19,8 +19,8 @@ import {
 } from '../resources';
 
 /**
- * @name File controller
- * @description Read and write file information
+ * @name Files controller
+ * @description Endpoints for listing, retrieving, updating, and deleting files associated with an instance.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -31,8 +31,8 @@ export class MetorialDashboardInstanceFilesEndpoint extends BaseMetorialEndpoint
   }
 
   /**
-   * @name List  files
-   * @description List all  files
+   * @name List instance files
+   * @description Returns a paginated list of files owned by the instance.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceFilesListQuery
@@ -53,8 +53,8 @@ export class MetorialDashboardInstanceFilesEndpoint extends BaseMetorialEndpoint
   }
 
   /**
-   * @name Get file
-   * @description Get the information of a specific file
+   * @name Get file by ID
+   * @description Retrieves details for a specific file by its ID.
    *
    * @param `instanceId` - string
    * @param `fileId` - string
@@ -71,8 +71,8 @@ export class MetorialDashboardInstanceFilesEndpoint extends BaseMetorialEndpoint
   }
 
   /**
-   * @name Update file
-   * @description Update the information of a specific file
+   * @name Update file by ID
+   * @description Updates editable fields of a specific file by its ID.
    *
    * @param `instanceId` - string
    * @param `fileId` - string
@@ -95,8 +95,8 @@ export class MetorialDashboardInstanceFilesEndpoint extends BaseMetorialEndpoint
   }
 
   /**
-   * @name Delete file
-   * @description Delete a specific file
+   * @name Delete file by ID
+   * @description Deletes a specific file by its ID.
    *
    * @param `instanceId` - string
    * @param `fileId` - string

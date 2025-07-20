@@ -23,8 +23,8 @@ import {
 } from '../resources';
 
 /**
- * @name Server Instance controller
- * @description Read and write server instance information
+ * @name ServerDeployment controller
+ * @description Manage the lifecycle of server deployments tied to a specific instance.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -36,7 +36,7 @@ export class MetorialServersDeploymentsEndpoint extends BaseMetorialEndpoint<any
 
   /**
    * @name List server deployments
-   * @description List all server deployments
+   * @description Retrieve a list of server deployments within the instance. Supports filtering by status, server, variant, and session.
    *
    * @param `query` - DashboardInstanceServersDeploymentsListQuery
    *
@@ -56,8 +56,8 @@ export class MetorialServersDeploymentsEndpoint extends BaseMetorialEndpoint<any
   }
 
   /**
-   * @name Get server instance
-   * @description Get the information of a specific server instance
+   * @name Get server deployment
+   * @description Fetch detailed information about a specific server deployment.
    *
    * @param `serverDeploymentId` - string
    *
@@ -73,8 +73,8 @@ export class MetorialServersDeploymentsEndpoint extends BaseMetorialEndpoint<any
   }
 
   /**
-   * @name Create server instance
-   * @description Create a new server instance
+   * @name Create server deployment
+   * @description Create a new server deployment using an existing or newly defined server implementation.
    *
    * @param `body` - DashboardInstanceServersDeploymentsCreateBody
    *
@@ -91,8 +91,8 @@ export class MetorialServersDeploymentsEndpoint extends BaseMetorialEndpoint<any
   }
 
   /**
-   * @name Update server instance
-   * @description Update a server instance
+   * @name Update server deployment
+   * @description Update metadata, configuration, or other properties of a server deployment.
    *
    * @param `serverDeploymentId` - string
    * @param `body` - DashboardInstanceServersDeploymentsUpdateBody
@@ -113,8 +113,8 @@ export class MetorialServersDeploymentsEndpoint extends BaseMetorialEndpoint<any
   }
 
   /**
-   * @name Delete server instance
-   * @description Delete a server instance
+   * @name Delete server deployment
+   * @description Delete a server deployment from the instance.
    *
    * @param `serverDeploymentId` - string
    *

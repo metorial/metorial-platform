@@ -21,8 +21,8 @@ import {
 } from '../resources';
 
 /**
- * @name FileLink controller
- * @description Read and write file link information
+ * @name FileLinks controller
+ * @description Endpoints for managing links to access or share specific files.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -34,7 +34,7 @@ export class MetorialDashboardInstanceLinksEndpoint extends BaseMetorialEndpoint
 
   /**
    * @name List file links
-   * @description List all file links
+   * @description Returns a list of links associated with a specific file.
    *
    * @param `instanceId` - string
    * @param `fileId` - string
@@ -51,8 +51,8 @@ export class MetorialDashboardInstanceLinksEndpoint extends BaseMetorialEndpoint
   }
 
   /**
-   * @name Get file link
-   * @description Get the information of a specific file link
+   * @name Get file link by ID
+   * @description Retrieves the details of a specific file link by its ID.
    *
    * @param `instanceId` - string
    * @param `fileId` - string
@@ -79,7 +79,7 @@ export class MetorialDashboardInstanceLinksEndpoint extends BaseMetorialEndpoint
 
   /**
    * @name Create file link
-   * @description Create a new file link
+   * @description Creates a new link for a specific file.
    *
    * @param `instanceId` - string
    * @param `fileId` - string
@@ -102,8 +102,8 @@ export class MetorialDashboardInstanceLinksEndpoint extends BaseMetorialEndpoint
   }
 
   /**
-   * @name Update file link
-   * @description Update the information of a specific file link
+   * @name Update file link by ID
+   * @description Updates a file link’s properties, such as expiration.
    *
    * @param `instanceId` - string
    * @param `fileId` - string
@@ -136,8 +136,8 @@ export class MetorialDashboardInstanceLinksEndpoint extends BaseMetorialEndpoint
   }
 
   /**
-   * @name Delete file link
-   * @description Delete a specific file link
+   * @name Delete file link by ID
+   * @description Deletes a specific file link by its ID.
    *
    * @param `instanceId` - string
    * @param `fileId` - string

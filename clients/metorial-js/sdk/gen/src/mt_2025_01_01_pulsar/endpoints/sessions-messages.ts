@@ -13,7 +13,7 @@ import {
 } from '../resources';
 
 /**
- * @name Session Message controller
+ * @name SessionMessage controller
  * @description Read and write session message information
  *
  * @see https://metorial.com/api
@@ -26,7 +26,7 @@ export class MetorialSessionsMessagesEndpoint extends BaseMetorialEndpoint<any> 
 
   /**
    * @name List session messages
-   * @description List all session messages
+   * @description List all messages for a specific session
    *
    * @param `sessionId` - string
    * @param `query` - DashboardInstanceSessionsMessagesListQuery
@@ -48,7 +48,7 @@ export class MetorialSessionsMessagesEndpoint extends BaseMetorialEndpoint<any> 
 
   /**
    * @name Get session message
-   * @description Get the information of a specific session message
+   * @description Get details of a specific session message
    *
    * @param `sessionId` - string
    * @param `sessionMessageId` - string
