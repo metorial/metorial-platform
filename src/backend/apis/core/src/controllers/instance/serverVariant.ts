@@ -20,8 +20,9 @@ export let serverVariantGroup = serverGroup.use(async ctx => {
 
 export let serverVariantController = Controller.create(
   {
-    name: 'ServerVariant',
-    description: 'Manage server variant data'
+    name: 'Server Variant',
+    description:
+      'Server variants define different instances of a server, each with its own configuration and capabilities. By default, Metorial picks the best variant automatically, but you can specify a variant if needed.'
   },
   {
     list: serverGroup

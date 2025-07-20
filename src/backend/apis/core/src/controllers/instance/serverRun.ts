@@ -22,7 +22,8 @@ export let serverRunGroup = instanceGroup.use(async ctx => {
 export let serverRunController = Controller.create(
   {
     name: 'Server Run',
-    description: 'Read and write server run information'
+    description:
+      'Each time an MCP server is executed by the Metorial platform, a server run is created. This allows you to track the execution of MCP servers, including their status and associated sessions. Metorial may create multiple server runs for a single session or session connection.'
   },
   {
     list: instanceGroup

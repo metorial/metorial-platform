@@ -97,7 +97,7 @@ export class MetorialMcpSession {
                 description: tool.description,
                 inputSchema: tool.inputSchema
               },
-              serverDeployment: deployment
+              serverDeployment: deployment as any
             }))
           );
         } catch (error) {
@@ -115,7 +115,7 @@ export class MetorialMcpSession {
                 description: resourceTemplate.description,
                 uriTemplate: resourceTemplate.uriTemplate
               },
-              serverDeployment: deployment
+              serverDeployment: deployment as any
             }))
           );
         } catch (error) {

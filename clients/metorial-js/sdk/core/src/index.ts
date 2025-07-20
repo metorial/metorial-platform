@@ -14,7 +14,6 @@ export type {
   MetorialServersVersionsEndpoint,
   MetorialSessionsConnectionsEndpoint,
   MetorialSessionsEndpoint,
-  MetorialSessionsEventsEndpoint,
   MetorialSessionsMessagesEndpoint
 } from '@metorial/generated';
 
@@ -75,10 +74,6 @@ export namespace MetorialSDK {
   export type SessionsCreateBody = MetorialGenerated.SessionsCreateBody;
   export type SessionsCreateOutput = MetorialGenerated.SessionsCreateOutput;
   export type SessionsDeleteOutput = MetorialGenerated.SessionsDeleteOutput;
-  export type SessionEventsGetOutput = MetorialGenerated.SessionsEventsGetOutput;
-  export type SessionEvent = MetorialGenerated.SessionsEventsGetOutput;
-  export type SessionEventsListOutput = MetorialGenerated.SessionsEventsListOutput;
-  export type SessionEventsListQuery = MetorialGenerated.SessionsEventsListQuery;
   export type SessionsGetOutput = MetorialGenerated.SessionsGetOutput;
   export type Session = MetorialGenerated.SessionsGetOutput;
   export type SessionsListOutput = MetorialGenerated.SessionsListOutput;

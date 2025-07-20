@@ -13,7 +13,7 @@ export type DashboardInstanceSessionsGetOutput = {
     expiresAt: Date;
   };
   serverDeployments: {
-    object: 'server.server_deployment#preview';
+    object: 'session.server_deployment#preview';
     id: string;
     name: string | null;
     description: string | null;
@@ -29,6 +29,7 @@ export type DashboardInstanceSessionsGetOutput = {
       createdAt: Date;
       updatedAt: Date;
     };
+    connectionUrls: { sse: string; streamableHttp: string; websocket: string };
   }[];
   usage: {
     totalProductiveMessageCount: number;
@@ -83,6 +84,17 @@ export let mapDashboardInstanceSessionsGetOutput =
               type: mtMap.objectField('type', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
+            })
+          ),
+          connectionUrls: mtMap.objectField(
+            'connection_urls',
+            mtMap.object({
+              sse: mtMap.objectField('sse', mtMap.passthrough()),
+              streamableHttp: mtMap.objectField(
+                'streamable_http',
+                mtMap.passthrough()
+              ),
+              websocket: mtMap.objectField('websocket', mtMap.passthrough())
             })
           )
         })

@@ -10,7 +10,7 @@ import {
 
 /**
  * @name Servers controller
- * @description Endpoint for retrieving information about a specific server within an instance.
+ * @description A server represents a deployable MCP server in Metorial's catalog. You can use server deployments to create MCP server instances that you can connect to.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

@@ -104,8 +104,9 @@ export let createServerDeployment = async (
 
 export let serverDeploymentController = Controller.create(
   {
-    name: 'ServerDeployment',
-    description: 'Manage the lifecycle of server deployments tied to a specific instance.'
+    name: 'Server Deployment',
+    description:
+      'A server deployment represents a specific instance of an MCP server that can be connected to. It contains configuration for the MCP server, such as API keys for the underlying MCP server.'
   },
   {
     list: instanceGroup

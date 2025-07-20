@@ -21,7 +21,8 @@ export let sessionConnectionGroup = sessionGroup.use(async ctx => {
 export let sessionConnectionController = Controller.create(
   {
     name: 'Session Connection',
-    description: 'Read and write session connection information'
+    description:
+      'Each time a new MCP connection to a server is established, a session connection is created. This allows you to track and manage the connections made during a session.'
   },
   {
     list: sessionGroup

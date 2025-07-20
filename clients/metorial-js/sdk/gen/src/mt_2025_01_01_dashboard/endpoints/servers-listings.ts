@@ -13,7 +13,7 @@ import {
 } from '../resources';
 
 /**
- * @name ServerListing controller
+ * @name Server Listing controller
  * @description Provides access to public server listings, including metadata, filtering, and ranking.
  *
  * @see https://metorial.com/api

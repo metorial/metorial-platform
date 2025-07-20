@@ -11,7 +11,6 @@ import {
   MetorialServersVersionsEndpoint,
   MetorialSessionsConnectionsEndpoint,
   MetorialSessionsEndpoint,
-  MetorialSessionsEventsEndpoint,
   MetorialSessionsMessagesEndpoint
 } from '@metorial/generated';
 import { MetorialKeyPrefix, sdkBuilder } from './builder';
@@ -49,7 +48,6 @@ export let createMetorialCoreSDK = sdkBuilder.build(
   }),
 
   sessions: Object.assign(new MetorialSessionsEndpoint(manager), {
-    events: new MetorialSessionsEventsEndpoint(manager),
     messages: new MetorialSessionsMessagesEndpoint(manager),
     connections: new MetorialSessionsConnectionsEndpoint(manager)
   })

@@ -19,9 +19,10 @@ export let serverListingCategoryGroup = apiGroup.use(async ctx => {
 
 export let serverListingCategoryController = Controller.create(
   {
-    name: 'ServerListingCategory',
+    name: 'Server Listing Category',
     description:
-      'Provides access to server listing categories, used for organizing and filtering server listings.'
+      'Provides access to server listing categories, used for organizing and filtering server listings.',
+    hideInDocs: true
   },
   {
     list: apiGroup

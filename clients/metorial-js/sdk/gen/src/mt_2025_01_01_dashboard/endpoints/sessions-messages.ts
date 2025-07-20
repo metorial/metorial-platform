@@ -13,8 +13,8 @@ import {
 } from '../resources';
 
 /**
- * @name SessionMessage controller
- * @description Read and write session message information
+ * @name Session Message controller
+ * @description When MCP servers and clients communicate, Metorial captures the messages they send. This allows you to see the raw messages exchanged between the server and client, which can be useful for debugging or understanding the communication flow.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
