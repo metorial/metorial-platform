@@ -15,7 +15,7 @@ export let createRedisClient = (opts: RedisClientOptions & { url: string | undef
   let connect = async () => {
     let client = createClient({
       ...opts,
-      pingInterval: 10000,
+      pingInterval: 3000,
       socket: {
         reconnectStrategy: retries => {
           console.log(`Checking redis reconnection: ${sanitizedUrl}`);

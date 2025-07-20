@@ -1,5 +1,4 @@
 import { db, ID } from '@metorial/db';
-import { internalServerError, ServiceError } from '@metorial/error';
 import { secretService } from '@metorial/module-secret';
 import { getSentry } from '@metorial/sentry';
 import { InitializeResult } from '@modelcontextprotocol/sdk/types';
@@ -46,14 +45,7 @@ export let discoverServer = async (serverDeploymentId: string) => {
   let config = await getSessionConfig(serverDeployment, DANGEROUSLY_UNENCRYPTED_CONFIG);
 
   let client = getClientByHash(serverDeployment.serverVariant.identifier);
-  if (!client) {
-    throw new ServiceError(
-      internalServerError({
-        message: 'Unable run the server for discovery.',
-        reason: 'mtengine/no_manager'
-      })
-    );
-  }
+  if (!client) throw new Error('WTF - No manager found');
 
   try {
     let { server: report } = await client.discoverServer({
