@@ -33,6 +33,7 @@ import {
   ServerVariant,
   ServerVersion,
   Session,
+  SessionConnection,
   SessionEvent,
   SessionMessage,
   User
@@ -227,8 +228,21 @@ export let serverSessionType = PresentableType.create<{
       serverVariant: ServerVariant;
       server: Server;
     };
+    sessionConnection: SessionConnection | null;
   };
 }>()('session.server_session');
+
+export let sessionConnectionType = PresentableType.create<{
+  session: Session;
+  sessionConnection: SessionConnection & {
+    serverSession: ServerSession & {
+      serverDeployment: ServerDeployment & {
+        serverVariant: ServerVariant;
+        server: Server;
+      };
+    };
+  };
+}>()('session.session_connection');
 
 export let sessionMessageType = PresentableType.create<{
   session: Session;

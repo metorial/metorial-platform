@@ -10,7 +10,7 @@ enum MetorialConfigId {
 model MetorialConfig {
   id MetorialConfigId @id @default(metorial)
 
-  sessionRunner      MetorialConfigSessionRunner @default(legacy)
+  sessionRunner      MetorialConfigSessionRunner @default(engine)
   instanceIdentifier String                      @default(uuid())
 
   createdAt DateTime @default(now())

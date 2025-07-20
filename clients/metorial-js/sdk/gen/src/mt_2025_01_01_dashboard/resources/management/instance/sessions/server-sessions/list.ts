@@ -4,7 +4,7 @@ export type ManagementInstanceSessionsServerSessionsListOutput = {
   items: {
     object: 'session.server_session';
     id: string;
-    status: 'active';
+    status: 'pending' | 'running' | 'stopped';
     mcp: {
       object: 'mcp';
       version: string;
@@ -68,6 +68,14 @@ export type ManagementInstanceSessionsServerSessionsListOutput = {
         updatedAt: Date;
       };
     };
+    connection: {
+      object: 'session.session_connection#preview';
+      id: string;
+      client: { userAgent: string; anonymizedIpAddress: string };
+      createdAt: Date;
+      startedAt: Date;
+      endedAt: Date | null;
+    } | null;
     createdAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
@@ -209,6 +217,29 @@ export let mapManagementInstanceSessionsServerSessionsListOutput =
                   updatedAt: mtMap.objectField('updated_at', mtMap.date())
                 })
               )
+            })
+          ),
+          connection: mtMap.objectField(
+            'connection',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              client: mtMap.objectField(
+                'client',
+                mtMap.object({
+                  userAgent: mtMap.objectField(
+                    'user_agent',
+                    mtMap.passthrough()
+                  ),
+                  anonymizedIpAddress: mtMap.objectField(
+                    'anonymized_ip_address',
+                    mtMap.passthrough()
+                  )
+                })
+              ),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              startedAt: mtMap.objectField('started_at', mtMap.date()),
+              endedAt: mtMap.objectField('ended_at', mtMap.date())
             })
           ),
           createdAt: mtMap.objectField('created_at', mtMap.date())

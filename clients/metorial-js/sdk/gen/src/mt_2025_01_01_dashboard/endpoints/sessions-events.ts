@@ -13,7 +13,7 @@ import {
 } from '../resources';
 
 /**
- * @name Session Event controller
+ * @name SessionEvent controller
  * @description Read and write session event information
  *
  * @see https://metorial.com/api
@@ -26,7 +26,7 @@ export class MetorialSessionsEventsEndpoint extends BaseMetorialEndpoint<any> {
 
   /**
    * @name List session events
-   * @description List all session events
+   * @description List all events for a specific session
    *
    * @param `sessionId` - string
    * @param `query` - DashboardInstanceSessionsEventsListQuery
@@ -48,7 +48,7 @@ export class MetorialSessionsEventsEndpoint extends BaseMetorialEndpoint<any> {
 
   /**
    * @name Get session event
-   * @description Get the information of a specific session event
+   * @description Get details of a specific session event
    *
    * @param `sessionId` - string
    * @param `sessionEventId` - string

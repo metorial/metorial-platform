@@ -13,8 +13,8 @@ import {
 } from '../resources';
 
 /**
- * @name Server Version controller
- * @description Read and write server version information
+ * @name ServerVersion controller
+ * @description Manage server version data
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -26,7 +26,7 @@ export class MetorialManagementInstanceServersVersionsEndpoint extends BaseMetor
 
   /**
    * @name List server versions
-   * @description List all server versions
+   * @description Retrieve all versions for a given server
    *
    * @param `instanceId` - string
    * @param `serverId` - string
@@ -53,7 +53,7 @@ export class MetorialManagementInstanceServersVersionsEndpoint extends BaseMetor
 
   /**
    * @name Get server version
-   * @description Get the information of a specific server version
+   * @description Retrieve details for a specific server version
    *
    * @param `instanceId` - string
    * @param `serverId` - string

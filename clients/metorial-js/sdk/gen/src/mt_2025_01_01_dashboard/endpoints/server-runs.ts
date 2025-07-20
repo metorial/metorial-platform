@@ -25,8 +25,8 @@ export class MetorialServerRunsEndpoint extends BaseMetorialEndpoint<any> {
   }
 
   /**
-   * @name List server deployments
-   * @description List all server deployments
+   * @name List server runs
+   * @description List all server runs
    *
    * @param `query` - DashboardInstanceServerRunsListQuery
    *

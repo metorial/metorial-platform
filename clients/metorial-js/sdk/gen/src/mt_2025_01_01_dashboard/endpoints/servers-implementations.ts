@@ -23,8 +23,8 @@ import {
 } from '../resources';
 
 /**
- * @name Server Instance controller
- * @description Read and write server instance information
+ * @name Server Implementation controller
+ * @description Manage server implementations tied to a server or server variant within an instance.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -35,8 +35,8 @@ export class MetorialServersImplementationsEndpoint extends BaseMetorialEndpoint
   }
 
   /**
-   * @name List server instances
-   * @description List all server instances
+   * @name List server implementations
+   * @description Retrieve all server implementations in the instance. Supports filtering by status, server, or variant.
    *
    * @param `query` - DashboardInstanceServersImplementationsListQuery
    *
@@ -56,8 +56,8 @@ export class MetorialServersImplementationsEndpoint extends BaseMetorialEndpoint
   }
 
   /**
-   * @name Get server instance
-   * @description Get the information of a specific server instance
+   * @name Get server implementation
+   * @description Fetch detailed information about a specific server implementation.
    *
    * @param `serverImplementationId` - string
    *
@@ -73,8 +73,8 @@ export class MetorialServersImplementationsEndpoint extends BaseMetorialEndpoint
   }
 
   /**
-   * @name Create server instance
-   * @description Create a new server instance
+   * @name Create server implementation
+   * @description Create a new server implementation for a specific server or server variant.
    *
    * @param `body` - DashboardInstanceServersImplementationsCreateBody
    *
@@ -93,8 +93,8 @@ export class MetorialServersImplementationsEndpoint extends BaseMetorialEndpoint
   }
 
   /**
-   * @name Update server instance
-   * @description Update a server instance
+   * @name Update server implementation
+   * @description Update metadata, launch parameters, or other fields of a server implementation.
    *
    * @param `serverImplementationId` - string
    * @param `body` - DashboardInstanceServersImplementationsUpdateBody
@@ -117,8 +117,8 @@ export class MetorialServersImplementationsEndpoint extends BaseMetorialEndpoint
   }
 
   /**
-   * @name Delete server instance
-   * @description Delete a server instance
+   * @name Delete server implementation
+   * @description Delete a specific server implementation from the instance.
    *
    * @param `serverImplementationId` - string
    *

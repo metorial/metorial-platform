@@ -22,6 +22,7 @@ import { serverSessionController } from './instance/serverSession';
 import { serverVariantController } from './instance/serverVariant';
 import { serverVersionController } from './instance/serverVersion';
 import { sessionController } from './instance/session';
+import { sessionConnectionController } from './instance/sessionConnection';
 import { sessionEventController } from './instance/sessionEvent';
 import { sessionMessageController } from './instance/sessionMessage';
 import { instanceManagementController } from './management/instance';
@@ -58,7 +59,7 @@ export let pulsarController = Controller.create<any>(
     serverRunController,
     serverRunErrorController,
 
-    serverSessionController,
+    sessionConnectionController,
 
     serverCapabilitiesController
   }
@@ -107,6 +108,7 @@ export let dashboardController = Controller.create<any>(
     serverRunErrorGroupController,
 
     serverSessionController,
+    sessionConnectionController,
 
     serverCapabilitiesController
   }

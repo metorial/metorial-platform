@@ -1,4 +1,4 @@
-import { createHono } from '@metorial/hono';
+import { createHono, useRequestContext } from '@metorial/hono';
 import { AuthInfo } from '@metorial/module-access';
 import { Authenticator } from '@metorial/rest';
 import type { ServerWebSocket } from 'bun';
@@ -32,6 +32,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
     .get('/ping', c => c.text('OK'))
     .all('/mcp/:sessionId/:serverDeploymentId/:connectionType', async (c, next) => {
       let { sessionId, serverDeploymentId, connectionType } = c.req.param();
+      let context = useRequestContext(c);
 
       let url = new URL(c.req.url);
       let req = c.req.raw;
@@ -44,6 +45,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       let sessionInfo = await getSessionAndAuthenticate(sessionId, req, url, d.authenticate);
       let { serverSession, sessionCreated } = await getServerSession(
         sessionInfo,
+        context,
         serverDeploymentId ?? null,
         serverSessionId ?? null
       );

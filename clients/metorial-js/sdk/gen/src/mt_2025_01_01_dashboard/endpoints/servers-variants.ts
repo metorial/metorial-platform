@@ -13,8 +13,8 @@ import {
 } from '../resources';
 
 /**
- * @name Server Variant controller
- * @description Read and write server variant information
+ * @name ServerVariant controller
+ * @description Manage server variant data
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -26,7 +26,7 @@ export class MetorialServersVariantsEndpoint extends BaseMetorialEndpoint<any> {
 
   /**
    * @name List server variants
-   * @description List all server variants
+   * @description Retrieve all variants for a given server
    *
    * @param `serverId` - string
    * @param `query` - DashboardInstanceServersVariantsListQuery
@@ -48,7 +48,7 @@ export class MetorialServersVariantsEndpoint extends BaseMetorialEndpoint<any> {
 
   /**
    * @name Get server variant
-   * @description Get the information of a specific server variant
+   * @description Retrieve details for a specific server variant
    *
    * @param `serverId` - string
    * @param `serverVariantId` - string

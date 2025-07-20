@@ -8,11 +8,13 @@ import {
   MetorialDashboardInstanceServerRunErrorGroupsEndpoint,
   MetorialDashboardInstanceServerRunErrorsEndpoint,
   MetorialDashboardInstanceServerRunsEndpoint,
+  MetorialDashboardInstanceServersCapabilitiesEndpoint,
   MetorialDashboardInstanceServersDeploymentsEndpoint,
   MetorialDashboardInstanceServersEndpoint,
   MetorialDashboardInstanceServersImplementationsEndpoint,
   MetorialDashboardInstanceServersVariantsEndpoint,
   MetorialDashboardInstanceServersVersionsEndpoint,
+  MetorialDashboardInstanceSessionsConnectionsEndpoint,
   MetorialDashboardInstanceSessionsEndpoint,
   MetorialDashboardInstanceSessionsEventsEndpoint,
   MetorialDashboardInstanceSessionsMessagesEndpoint,
@@ -107,13 +109,16 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       groups: new MetorialDashboardInstanceServerRunErrorGroupsEndpoint(manager)
     }),
 
-    runs: new MetorialDashboardInstanceServerRunsEndpoint(manager)
+    runs: new MetorialDashboardInstanceServerRunsEndpoint(manager),
+
+    capabilities: new MetorialDashboardInstanceServersCapabilitiesEndpoint(manager)
   }),
 
   sessions: Object.assign(new MetorialDashboardInstanceSessionsEndpoint(manager), {
     events: new MetorialDashboardInstanceSessionsEventsEndpoint(manager),
     messages: new MetorialDashboardInstanceSessionsMessagesEndpoint(manager),
-    serverSessions: new MetorialDashboardInstanceSessionsServerSessionsEndpoint(manager)
+    serverSessions: new MetorialDashboardInstanceSessionsServerSessionsEndpoint(manager),
+    connections: new MetorialDashboardInstanceSessionsConnectionsEndpoint(manager)
   }),
 
   usage: new MetorialDashboardUsageEndpoint(manager)

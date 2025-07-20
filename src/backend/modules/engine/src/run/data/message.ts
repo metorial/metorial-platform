@@ -48,8 +48,14 @@ export let createSessionMessage = async (d: {
       where: { oid: d.serverSession.oid },
       data:
         msg.sender.type == 'server'
-          ? { totalProductiveServerMessageCount: { increment: 1 } }
-          : { totalProductiveClientMessageCount: { increment: 1 } }
+          ? {
+              totalProductiveServerMessageCount: { increment: 1 },
+              lastServerActionAt: new Date()
+            }
+          : {
+              totalProductiveClientMessageCount: { increment: 1 },
+              lastClientActionAt: new Date()
+            }
     });
 
     await db.session.updateMany({

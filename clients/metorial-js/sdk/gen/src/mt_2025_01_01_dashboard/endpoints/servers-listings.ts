@@ -13,8 +13,8 @@ import {
 } from '../resources';
 
 /**
- * @name Server Listing controller
- * @description Read and write server listing information
+ * @name ServerListing controller
+ * @description Provides access to public server listings, including metadata, filtering, and ranking.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -26,7 +26,7 @@ export class MetorialServersListingsEndpoint extends BaseMetorialEndpoint<any> {
 
   /**
    * @name List server listings
-   * @description List all server listings
+   * @description Returns a paginated list of server listings, filterable by collection, category, profile, or instance.
    *
    * @param `query` - ServersListingsListQuery
    *
@@ -45,7 +45,7 @@ export class MetorialServersListingsEndpoint extends BaseMetorialEndpoint<any> {
 
   /**
    * @name Get server listing
-   * @description Get the information of a specific server listing
+   * @description Returns metadata and readme content for a specific server listing.
    *
    * @param `serverListingId` - string
    *

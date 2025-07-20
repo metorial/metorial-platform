@@ -4,6 +4,7 @@
   "scripts": {
     "build": "turbo run --ui=stream build",
     "generate:client": "turbo run generate:client && turbo run build",
+    "client:generate": "bun run generate:client",
     "dev": "turbo run --ui=stream dev",
     "test": "turbo run --concurrency=1 --ui=stream test",
     "prisma:generate": "turbo run --ui=stream prisma:generate",
