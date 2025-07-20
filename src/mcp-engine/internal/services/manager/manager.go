@@ -11,8 +11,8 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/session"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
-	"github.com/metorial/metorial/mcp-engine/pkg/addr"
 	grpc_util "github.com/metorial/metorial/mcp-engine/pkg/grpcUtil"
+	"github.com/metorial/metorial/modules/addr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )

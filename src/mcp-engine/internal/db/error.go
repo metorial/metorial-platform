@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
-	"github.com/metorial/metorial/mcp-engine/pkg/util"
+	"github.com/metorial/metorial/modules/util"
 	"gorm.io/gorm"
 )
 

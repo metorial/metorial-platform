@@ -12,9 +12,9 @@ import (
 	"github.com/google/uuid"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	remotePb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote"
-	"github.com/metorial/metorial/mcp-engine/pkg/addr"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
-	"github.com/metorial/metorial/mcp-engine/pkg/util"
+	"github.com/metorial/metorial/modules/addr"
+	"github.com/metorial/metorial/modules/util"
 	"github.com/tmaxmax/go-sse"
 )
 

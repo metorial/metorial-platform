@@ -11,7 +11,7 @@ import (
 	launcherPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/launcher"
 	workerPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
-	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
+	"github.com/metorial/metorial/modules/pubsub"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"

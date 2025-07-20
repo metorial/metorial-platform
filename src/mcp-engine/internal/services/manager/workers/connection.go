@@ -7,7 +7,7 @@ import (
 	remotePb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote"
 	runnerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
-	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
+	"github.com/metorial/metorial/modules/pubsub"
 )
 
 type WorkerConnection interface {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
-	"github.com/metorial/metorial/mcp-engine/pkg/util"
+	"github.com/metorial/metorial/modules/util"
 )
 
 type MessageType string

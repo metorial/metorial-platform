@@ -18,7 +18,7 @@ import (
 	workerMcpRemote "github.com/metorial/metorial/mcp-engine/internal/services/worker-mcp-remote"
 	workerMcpRunner "github.com/metorial/metorial/mcp-engine/internal/services/worker-mcp-runner"
 	"github.com/metorial/metorial/mcp-engine/pkg/docker"
-	"github.com/metorial/metorial/mcp-engine/pkg/sentryUtil"
+	sentryUtil "github.com/metorial/metorial/modules/sentry-util"
 )
 
 func main() {

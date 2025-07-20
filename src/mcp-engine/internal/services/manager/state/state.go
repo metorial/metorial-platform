@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/metorial/metorial/mcp-engine/pkg/util"
+	"github.com/metorial/metorial/modules/util"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 

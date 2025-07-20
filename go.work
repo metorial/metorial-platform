@@ -1,0 +1,13 @@
+go 1.24.4
+
+use (
+	./src/mcp-engine
+	./src/modules/addr
+	./src/modules/datastructures
+	./src/modules/id
+	./src/modules/limiter
+	./src/modules/lock
+	./src/modules/pubsub
+	./src/modules/sentry-util
+	./src/modules/util
+)

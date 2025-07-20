@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
-	"github.com/metorial/metorial/mcp-engine/pkg/util"
+	"github.com/metorial/metorial/modules/util"
 	"google.golang.org/grpc"
 
 	launcherPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/launcher"

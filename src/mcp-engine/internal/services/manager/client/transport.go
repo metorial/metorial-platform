@@ -12,7 +12,7 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 
 	ourMcp "github.com/metorial/metorial/mcp-engine/pkg/mcp"
-	"github.com/metorial/metorial/mcp-engine/pkg/util"
+	"github.com/metorial/metorial/modules/util"
 )
 
 type MetorialTransport struct {

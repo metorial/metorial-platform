@@ -11,8 +11,8 @@ import (
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	workerMcpRemote "github.com/metorial/metorial/mcp-engine/internal/services/worker-mcp-remote"
-	"github.com/metorial/metorial/mcp-engine/pkg/addr"
-	"github.com/metorial/metorial/mcp-engine/pkg/sentryUtil"
+	"github.com/metorial/metorial/modules/addr"
+	sentryUtil "github.com/metorial/metorial/modules/sentry-util"
 )
 
 func main() {

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/metorial/metorial/mcp-engine/pkg/util"
+	"github.com/metorial/metorial/modules/util"
 	"gorm.io/gorm"
 
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
