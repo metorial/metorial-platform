@@ -5,14 +5,14 @@ RUN apk add --no-cache make git
 
 WORKDIR /app
 
-COPY ./src/mcp-engine/go.mod /app/src/mcp-engine/go.mod
-COPY ./src/mcp-engine/go.sum /app/src/mcp-engine/go.sum
+COPY ./src/mcp-engine /app/src/mcp-engine
+COPY ./src/modules /app/src/modules
+COPY ./go.work /app/go.work
+COPY ./go.work.sum /app/go.work.sum
 
 WORKDIR /app/src/mcp-engine
 
 RUN go mod download
-
-COPY ./src/mcp-engine /app/src/mcp-engine
 
 RUN make build-worker-mcp-remote
 

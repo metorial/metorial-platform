@@ -3,13 +3,6 @@ FROM golang:1.24-bookworm AS builder
 
 WORKDIR /app
 
-COPY ./src/mcp-engine/go.mod /app/src/mcp-engine/go.mod
-COPY ./src/mcp-engine/go.sum /app/src/mcp-engine/go.sum
-
-WORKDIR /app/src/mcp-engine
-
-RUN go mod download
-
 RUN apt update && apt install -y make git curl unzip wget
 RUN apt install -y ca-certificates curl
 RUN update-ca-certificates
@@ -19,6 +12,13 @@ RUN unzip deno-x86_64-unknown-linux-gnu.zip -d /app
 RUN chmod +x /app/deno
 
 COPY ./src/mcp-engine /app/src/mcp-engine
+COPY ./src/modules /app/src/modules
+COPY ./go.work /app/go.work
+COPY ./go.work.sum /app/go.work.sum
+
+WORKDIR /app/src/mcp-engine
+
+RUN go mod download
 
 RUN make build-worker-launcher
 
