@@ -69,6 +69,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 	if msg.Init.RunConfig.Server.Protocol == remotePb.RunConfigRemoteServer_sse {
 		conn, err = NewConnectionSSE(stream.Context(), msg.Init.RunConfig)
 		if err != nil {
+			log.Printf("Failed to create SSE connection: %v", err)
 			return err
 		}
 	} else {

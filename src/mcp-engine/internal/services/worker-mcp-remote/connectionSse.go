@@ -8,12 +8,14 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	remotePb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	"github.com/metorial/metorial/modules/addr"
+	ssrfProtection "github.com/metorial/metorial/modules/ssrf-protection"
 	"github.com/metorial/metorial/modules/util"
 	"github.com/tmaxmax/go-sse"
 )
@@ -33,7 +35,25 @@ type ConnectionSSE struct {
 	mutex sync.Mutex
 }
 
+var ignoreHeaders = map[string]bool{
+	"Content-Type":  true,
+	"Accept":        true,
+	"User-Agent":    true,
+	"Host":          true,
+	"Origin":        true,
+	"Referer":       true,
+	"Connection":    true,
+	"Cache-Control": true,
+	"Pragma":        true,
+	"Upgrade":       true,
+}
+
 func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*ConnectionSSE, error) {
+	err := ssrfProtection.ValidateURL(config.Server.ServerUri)
+	if err != nil {
+		return nil, fmt.Errorf("server URI validation failed: %w", err)
+	}
+
 	uri, err := url.Parse(config.Server.ServerUri)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse server URI: %w", err)
@@ -49,18 +69,39 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*Connect
 		uri.RawQuery = q.Encode()
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri.String(), http.NoBody)
+	finalUrl := uri.String()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, finalUrl, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request for SSE endpoint: %w", err)
 	}
 
 	if config.Arguments.Headers != nil {
 		for k, v := range config.Arguments.Headers {
+			if ignoreHeaders[strings.ToLower(k)] {
+				continue
+			}
+			if strings.Contains(k, "Sec-WebSocket") {
+				continue // Ignore WebSocket headers
+			}
+
 			req.Header.Set(k, v)
 		}
 	}
 
-	conn := sse.DefaultClient.NewConnection(req)
+	secureClient := &sse.Client{
+		// Use our own HTTP client with SSRF protection
+		HTTPClient: ssrfProtection.CreateSecureHTTPClient(),
+
+		ResponseValidator: sse.DefaultValidator,
+		Backoff: sse.Backoff{
+			InitialInterval: time.Millisecond * 500,
+			Multiplier:      1.5,
+			Jitter:          0.5,
+		},
+	}
+
+	conn := secureClient.NewConnection(req)
 
 	ctx, cancel := context.WithCancelCause(ctx)
 
