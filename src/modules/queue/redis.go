@@ -3,22 +3,21 @@ package queue
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 )
 
-func createRedis(uri string) (*redis.Client, error) {
+func createRedis(redisURL string) (*redis.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	parsed, err := parseRedisURI(uri)
+	opt, err := redis.ParseURL(redisURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse Redis URI: %w", err)
+		return nil, fmt.Errorf("failed to parse Redis URL: %w", err)
 	}
 
-	client := redis.NewClient(parsed)
+	client := redis.NewClient(opt)
 
 	err = client.Ping(ctx).Err()
 	if err != nil {
@@ -26,28 +25,6 @@ func createRedis(uri string) (*redis.Client, error) {
 	}
 
 	return client, nil
-}
-
-func parseRedisURI(uri string) (*redis.Options, error) {
-	parsedURL, err := url.Parse(uri)
-	if err != nil {
-		panic(fmt.Sprintf("invalid Redis URI: %s", uri))
-	}
-
-	options := &redis.Options{
-		Addr: parsedURL.Host,
-	}
-
-	if parsedURL.User != nil {
-		options.Password, _ = parsedURL.User.Password()
-	}
-
-	db := parsedURL.Query().Get("db")
-	if db != "" {
-		options.DB = 0 // Default to DB 0
-	}
-
-	return options, nil
 }
 
 func (q *Queue[_]) pendingKey() string {
