@@ -153,7 +153,7 @@ export let anonymizeIP = (ip: string, options: AnonymizationOptions = {}) => {
       keepGroups:
         typeof options.keepGroups === 'number' ? options.keepGroups : options.keepGroups?.ipv6,
       maskChar: options.maskChar
-    }).replace(/:0+:/g, '::'); // Ensure no double colons with zeros in IPv6
+    });
   }
 
   throw new Error('Invalid IP address format');
