@@ -87,13 +87,16 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 		dockerArgs = append(dockerArgs, "--tmpfs", "/run:rw,noexec,nosuid,nodev")
 		dockerArgs = append(dockerArgs, "--privileged=false")
 		dockerArgs = append(dockerArgs, "--user", "1001:1001") // Use a non-root user for enhanced security
-		// dockerArgs = append(dockerArgs, "--network", "mt-untrusted-net")
 		dockerArgs = append(dockerArgs, "--pids-limit", "64")
 		dockerArgs = append(dockerArgs, "--memory-swap", "512m")
 	}
 
 	if os.Getenv("CONTAINER_RUNTIME") != "" {
 		dockerArgs = append(dockerArgs, "--runtime", os.Getenv("CONTAINER_RUNTIME"))
+	}
+
+	if os.Getenv("CONTAINER_NETWORK") != "" {
+		dockerArgs = append(dockerArgs, "--network", os.Getenv("CONTAINER_NETWORK"))
 	}
 
 	for key, value := range opts.Env {
