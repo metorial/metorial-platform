@@ -29,9 +29,11 @@ export let getRandomClient = () => {
   return getClientByIndex(++offset % managers.length);
 };
 
+export type ManagerClient = Manager['client'];
+
 let MUST_GET_MAX_ATTEMPTS = 10;
 export let mustGetClient = async (
-  provider: () => Manager['client'] | null | Promise<Manager['client'] | null>
+  provider: () => ManagerClient | null | Promise<ManagerClient | null>
 ) => {
   let attempts = 0;
 
