@@ -17,7 +17,7 @@ type ImageUse struct {
 }
 
 type ImageHandle struct {
-	Name       string
+	Repository string
 	Tag        string
 	ImageID    string
 	LastUsed   time.Time
@@ -25,10 +25,10 @@ type ImageHandle struct {
 	mu         sync.RWMutex
 }
 
-func newDockerImage(name, tag, imageID string) *ImageHandle {
+func newDockerImage(repository, tag, imageID string) *ImageHandle {
 	now := time.Now().UTC()
 	return &ImageHandle{
-		Name:       name,
+		Repository: repository,
 		Tag:        tag,
 		ImageID:    imageID,
 		LastUsed:   now,
@@ -49,9 +49,7 @@ func (img *ImageHandle) markUsed(containerID string) {
 }
 
 func (img *ImageHandle) FullName() string {
-	img.mu.RLock()
-	defer img.mu.RUnlock()
-	return fmt.Sprintf("%s:%s", img.Name, img.Tag)
+	return fmt.Sprintf("%s:%s", img.Repository, img.Tag)
 }
 
 func (img *ImageHandle) IsUnused() bool {
