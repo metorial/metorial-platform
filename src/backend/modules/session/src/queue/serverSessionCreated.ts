@@ -42,8 +42,11 @@ export let serverSessionCreatedQueueProcessor = serverSessionCreatedQueue.proces
 
         userAgent: data.context.ua,
         anonIp: anonymizeIP(data.context.ip, {
-          keepGroups: 2,
-          maskChar: '0'
+          maskChar: '0',
+          keepGroups: {
+            ipv4: 3,
+            ipv6: 4
+          }
         }),
 
         createdAt: serverSession.createdAt

@@ -1,9 +1,19 @@
-interface AnonymizationOptions {
+interface AnonymizationOptionsSingle {
   // For IPv4: number of octets to keep (1-3, default: 2)
   // For IPv6: number of groups to keep (1-7, default: 4)
   keepGroups?: number;
   // Character to use for masking (default: 'x')
   maskChar?: string;
+}
+
+interface AnonymizationOptions {
+  maskChar?: string;
+  keepGroups?:
+    | {
+        ipv4?: number;
+        ipv6?: number;
+      }
+    | number;
 }
 
 let isIPv4 = (ip: string) => {
@@ -48,7 +58,7 @@ let isIPv6Simple = (ip: string) => {
   return ipv6Regex.test(ip) || ip === '::';
 };
 
-let anonymizeIPv4 = (ip: string, options: AnonymizationOptions = {}) => {
+let anonymizeIPv4 = (ip: string, options: AnonymizationOptionsSingle = {}) => {
   let { keepGroups = 2, maskChar = 'x' } = options;
   let octets = ip.split('.');
 
@@ -66,7 +76,7 @@ let anonymizeIPv4 = (ip: string, options: AnonymizationOptions = {}) => {
   return maskedOctets.join('.');
 };
 
-let anonymizeIPv6 = (ip: string, options: AnonymizationOptions = {}) => {
+let anonymizeIPv6 = (ip: string, options: AnonymizationOptionsSingle = {}) => {
   let { keepGroups = 4, maskChar = 'x' } = options;
 
   if (keepGroups < 1 || keepGroups > 7) {
@@ -131,10 +141,20 @@ export let anonymizeIP = (ip: string, options: AnonymizationOptions = {}) => {
   let trimmedIP = ip.trim();
 
   if (isIPv4(trimmedIP)) {
-    return anonymizeIPv4(trimmedIP, options);
-  } else if (isIPv6(trimmedIP)) {
-    return anonymizeIPv6(trimmedIP, options);
-  } else {
-    throw new Error('Invalid IP address format');
+    return anonymizeIPv4(trimmedIP, {
+      keepGroups:
+        typeof options.keepGroups === 'number' ? options.keepGroups : options.keepGroups?.ipv4,
+      maskChar: options.maskChar
+    }).replace('000', '0'); // Ensure no triple zeros in IPv4
   }
+
+  if (isIPv6(trimmedIP)) {
+    return anonymizeIPv6(trimmedIP, {
+      keepGroups:
+        typeof options.keepGroups === 'number' ? options.keepGroups : options.keepGroups?.ipv6,
+      maskChar: options.maskChar
+    }).replace(/:0+:/g, '::'); // Ensure no double colons with zeros in IPv6
+  }
+
+  throw new Error('Invalid IP address format');
 };
