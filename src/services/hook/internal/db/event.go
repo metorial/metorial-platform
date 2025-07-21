@@ -10,8 +10,8 @@ import (
 )
 
 type Event struct {
-	ID         string `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	InstanceID string `gorm:"type:varchar(255);not null;index" json:"instance_id"`
+	ID         string `gorm:"primaryKey;type:uuid;not null"`
+	InstanceID string `gorm:"type:varchar(255);not null;index"`
 
 	EventType string `gorm:"type:varchar(255);not null;index" json:"event_type"`
 	Payload   string `gorm:"type:text" json:"payload"`

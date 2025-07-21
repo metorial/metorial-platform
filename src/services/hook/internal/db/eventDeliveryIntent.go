@@ -19,20 +19,20 @@ const (
 )
 
 type EventDeliveryIntent struct {
-	ID string `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	ID string `gorm:"primaryKey;type:uuid;not null"`
 
-	Status       IntentStatus `gorm:"type:varchar(50);not null;default:'pending';index" json:"status"`
-	AttemptCount uint         `gorm:"default:0" json:"attempt_count"`
+	Status       IntentStatus `gorm:"type:varchar(50);not null;default:'pending';index"`
+	AttemptCount uint         `gorm:"default:0"`
 
-	EventID string `gorm:"type:uuid;not null;index" json:"event_id"`
-	Event   *Event `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"event,omitempty"`
+	EventID string `gorm:"type:uuid;not null;index"`
+	Event   *Event `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
-	DestinationID string            `gorm:"type:uuid;not null;index" json:"destination_id"`
-	Destination   *EventDestination `gorm:"foreignKey:DestinationID" json:"destination,omitempty"`
+	DestinationID string            `gorm:"type:uuid;not null;index"`
+	Destination   *EventDestination `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
-	Attempts []EventDeliveryAttempt `gorm:"foreignKey:IntentID" json:"attempts,omitempty"`
+	Attempts []*EventDeliveryAttempt
 
-	NextAttemptAt *time.Time `gorm:"index" json:"next_attempt_at"`
+	NextAttemptAt *time.Time `gorm:"index"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
 }
@@ -45,6 +45,17 @@ func NewEventDeliveryIntent(event *Event, destination *EventDestination) *EventD
 		Event:         event,
 		DestinationID: destination.ID,
 		Destination:   destination,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+}
+
+func NewEventDeliveryIntentLight(eventID, destinationID string) *EventDeliveryIntent {
+	return &EventDeliveryIntent{
+		ID:            util.Must(uuid.NewV7()).String(),
+		Status:        IntentStatusPending,
+		DestinationID: destinationID,
+		EventID:       eventID,
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
 	}
@@ -65,7 +76,12 @@ func (d *DB) SaveEventDeliveryIntent(intent *EventDeliveryIntent) error {
 
 func (d *DB) GetEventDeliveryIntentByID(id string) (*EventDeliveryIntent, error) {
 	var intent EventDeliveryIntent
-	err := d.db.Where("id = ?", id).First(&intent).Error
+	err := d.db.Where("id = ?", id).
+		Preload("Event").
+		Preload("Destination").
+		Preload("Destination.Webhook").
+		Preload("Destination.Listener").
+		First(&intent).Error
 
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil

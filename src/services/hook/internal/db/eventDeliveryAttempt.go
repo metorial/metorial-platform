@@ -10,28 +10,30 @@ import (
 )
 
 type EventDeliveryAttempt struct {
-	ID string `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	ID string `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 
-	IntentID string              `gorm:"type:uuid;not null;index" json:"intent_id"`
-	Intent   EventDeliveryIntent `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"intent,omitempty"`
+	IntentID string               `gorm:"type:uuid;not null;index"`
+	Intent   *EventDeliveryIntent `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
-	Success       bool  `gorm:"default:false" json:"success"`
-	AttemptNumber uint  `gorm:"not null" json:"attempt_number"`
-	DurationMs    int64 `gorm:"default:0" json:"duration_ms"`
+	Success       bool  `gorm:"default:false"`
+	AttemptNumber uint  `gorm:"not null"`
+	DurationMs    int64 `gorm:"default:0"`
 
-	ResponseStatus  int            `json:"response_status"`
-	ResponseBody    string         `gorm:"type:text" json:"response_body"`
-	ResponseHeaders map[string]any `gorm:"type:jsonb" json:"response_headers"`
-	ErrorMessage    string         `gorm:"type:text" json:"error_message"`
+	RequestHeaders map[string]any `gorm:"type:jsonb"`
 
-	CreatedAt time.Time `json:"created_at"`
+	ResponseStatus  int
+	ResponseBody    string         `gorm:"type:text"`
+	ResponseHeaders map[string]any `gorm:"type:jsonb"`
+	ErrorMessage    string         `gorm:"type:text"`
+
+	CreatedAt time.Time
 }
 
 func NewEventDeliveryAttempt(intent *EventDeliveryIntent, attemptNumber uint) *EventDeliveryAttempt {
 	return &EventDeliveryAttempt{
 		ID:            util.Must(uuid.NewV7()).String(),
 		IntentID:      intent.ID,
-		Intent:        *intent,
+		Intent:        intent,
 		AttemptNumber: attemptNumber,
 		CreatedAt:     time.Now(),
 	}
