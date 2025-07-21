@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand/v2"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -21,17 +20,16 @@ type Job[T any] struct {
 	ProcessAt  time.Time `json:"process_at"`
 }
 
-const LOCK_DURATION_SECONDS = 45
+const LOCK_DURATION_SECONDS = 60
 
 func (q *Queue[T]) processNextJob(ctx context.Context, workerID string) error {
 	// Use Lua script to atomically move job from pending to processing
 	luaScript := `
 		local pending_key = KEYS[1]
-		local processing_key = KEYS[2]
+		local job_key_prefix = KEYS[2]
 		local current_time = tonumber(ARGV[1])
 		local worker_id = ARGV[2]
 		local lock_duration = tonumber(ARGV[3])
-		local lock_value = ARGV[4]
 
 		-- Get jobs that are ready to process (score <= current_time)
 		local jobs = redis.call('ZRANGEBYSCORE', pending_key, '-inf', current_time, 'LIMIT', 0, 1)
@@ -40,36 +38,41 @@ func (q *Queue[T]) processNextJob(ctx context.Context, workerID string) error {
 			return nil
 		end
 
-		local job_data = jobs[1]
+		local job_id = jobs[1]
 		
-		-- Remove from pending queue
-		redis.call('ZREM', pending_key, job_data)
+		-- Lock the job by changing its score to the current time + lock duration
+		local new_score = current_time + lock_duration
+		redis.call('ZADD', pending_key, new_score, job_id)
+
+		local job_data = redis.call('GET', job_key_prefix .. job_id)
+		if not job_data then
+			return nil
+		end
 		
-		-- Add to processing queue with lock expiration
-		local lock_score = current_time + lock_duration
-		redis.call('ZADD', processing_key, lock_score, lock_value)
-		
-		return job_data
+		return {job_data, job_id}
 	`
 
 	currentTime := time.Now().Unix()
 	lockDuration := int64(LOCK_DURATION_SECONDS)
-	lockValue := fmt.Sprintf("%s:%d", workerID, rand.Int64())
 
 	result, err := q.client.Eval(ctx, luaScript, []string{
 		q.pendingKey(),
-		q.processingKey(),
-	}, currentTime, workerID, lockDuration, lockValue).Result()
+		q.jobKeyPrefix(),
+	}, currentTime, workerID, lockDuration).Result()
 
 	if err != nil {
 		return fmt.Errorf("failed to get job: %w", err)
 	}
 
 	if result == nil {
-		return nil // No jobs available
+		time.Sleep(1 * time.Second) // No jobs available, wait before retrying
+		return nil
 	}
 
-	jobData := result.(string)
+	values := result.([]any)
+	jobData := values[0].(string)
+	jobId := values[1].(string)
+
 	var job Job[T]
 	if err := json.Unmarshal([]byte(jobData), &job); err != nil {
 		return fmt.Errorf("failed to unmarshal job: %w", err)
@@ -78,8 +81,8 @@ func (q *Queue[T]) processNextJob(ctx context.Context, workerID string) error {
 	// Set up lock extension
 	lock := newLockManager(
 		q.client,
-		q.processingKey(),
-		lockValue,
+		q.pendingKey(),
+		jobId,
 		LOCK_DURATION_SECONDS*time.Second,
 	)
 
@@ -88,7 +91,6 @@ func (q *Queue[T]) processNextJob(ctx context.Context, workerID string) error {
 	// Ensure we always stop the extender and clean up
 	defer func() {
 		lock.stop()
-		q.client.ZRem(context.Background(), q.processingKey(), lockValue)
 	}()
 
 	// Process the job with panic recovery
@@ -110,9 +112,14 @@ func (q *Queue[T]) processNextJob(ctx context.Context, workerID string) error {
 	}
 
 	// Remove job from pending queue
-	err = q.client.ZRem(ctx, q.processingKey(), lockValue).Err()
+	err = q.client.ZRem(ctx, q.pendingKey(), jobId).Err()
 	if err != nil {
 		return fmt.Errorf("failed to remove job from processing queue: %w", err)
+	}
+
+	err = q.client.Del(ctx, q.jobKeyPrefix()+job.ID).Err()
+	if err != nil {
+		return fmt.Errorf("failed to delete job data: %w", err)
 	}
 
 	return nil
@@ -126,13 +133,12 @@ func (q *Queue[T]) handleFailedJob(ctx context.Context, job *Job[T], jobErr erro
 		delay := time.Duration(job.Retries*job.Retries) * q.retryDelay
 		job.ProcessAt = time.Now().Add(delay)
 
-		jobData := mustMarshal(job)
 		score := float64(job.ProcessAt.Unix())
 
 		log.Printf("Retrying job %s (attempt %d/%d) in %v", job.ID, job.Retries, job.MaxRetries, delay)
 		return q.client.ZAdd(ctx, q.pendingKey(), &redis.Z{
 			Score:  score,
-			Member: string(jobData),
+			Member: job.ID,
 		}).Err()
 	}
 
@@ -150,5 +156,20 @@ func (q *Queue[T]) handleFailedJob(ctx context.Context, job *Job[T], jobErr erro
 	return q.client.ZAdd(ctx, q.failedKey(), &redis.Z{
 		Score:  float64(failedAt),
 		Member: string(failedData),
+	}).Err()
+}
+
+func (q *Queue[T]) addJob(ctx context.Context, job *Job[T]) error {
+	jobData := mustMarshal(job)
+	score := float64(job.ProcessAt.Unix())
+
+	err := q.client.Set(ctx, q.jobKeyPrefix()+job.ID, jobData, 0).Err()
+	if err != nil {
+		return fmt.Errorf("failed to set job data: %w", err)
+	}
+
+	return q.client.ZAdd(ctx, q.pendingKey(), &redis.Z{
+		Score:  score,
+		Member: job.ID,
 	}).Err()
 }

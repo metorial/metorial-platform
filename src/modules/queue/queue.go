@@ -12,12 +12,11 @@ import (
 type JobHandler[T any] func(ctx context.Context, job *Job[T]) error
 
 type Queue[T any] struct {
-	name         string
-	client       *redis.Client
-	handler      JobHandler[T]
-	maxRetries   int
-	retryDelay   time.Duration
-	pollInterval time.Duration
+	name       string
+	client     *redis.Client
+	handler    JobHandler[T]
+	maxRetries int
+	retryDelay time.Duration
 }
 
 func CreateQueue[T any](qm *QueueManager, name string, handler JobHandler[T], opts ...QueueOption[T]) *Queue[T] {
@@ -25,12 +24,11 @@ func CreateQueue[T any](qm *QueueManager, name string, handler JobHandler[T], op
 	defer qm.mu.Unlock()
 
 	queue := &Queue[T]{
-		name:         name,
-		client:       qm.client,
-		handler:      handler,
-		maxRetries:   3,
-		retryDelay:   time.Minute,
-		pollInterval: 3 * time.Second,
+		name:       name,
+		client:     qm.client,
+		handler:    handler,
+		maxRetries: 3,
+		retryDelay: time.Minute,
 	}
 
 	for _, opt := range opts {

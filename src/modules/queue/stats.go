@@ -15,7 +15,6 @@ type QueueStats struct {
 func (q *Queue[_]) GetQueueStats(ctx context.Context) (*QueueStats, error) {
 	pipe := q.client.Pipeline()
 	pendingCmd := pipe.ZCard(ctx, q.pendingKey())
-	processingCmd := pipe.ZCard(ctx, q.processingKey())
 	failedCmd := pipe.LLen(ctx, q.failedKey())
 
 	_, err := pipe.Exec(ctx)
@@ -24,9 +23,8 @@ func (q *Queue[_]) GetQueueStats(ctx context.Context) (*QueueStats, error) {
 	}
 
 	return &QueueStats{
-		QueueName:  q.name,
-		Pending:    pendingCmd.Val(),
-		Processing: processingCmd.Val(),
-		Failed:     failedCmd.Val(),
+		QueueName: q.name,
+		Pending:   pendingCmd.Val(),
+		Failed:    failedCmd.Val(),
 	}, nil
 }

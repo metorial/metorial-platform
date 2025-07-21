@@ -14,9 +14,8 @@ type RetentionPeriod struct {
 }
 
 var DEFAULT_RETENTION_PERIOD = RetentionPeriod{
-	Failed:     7 * 24 * time.Hour,
-	Processing: 1 * time.Hour,
-	// Pending:    30 * 24 * time.Hour,
+	Failed: 7 * 24 * time.Hour,
+	// Processing: 3 * 24 * time.Hour,
 }
 
 func (q *Queue[_]) cleanupOldJobs(ctx context.Context, retentionPeriods RetentionPeriod) error {
@@ -25,7 +24,7 @@ func (q *Queue[_]) cleanupOldJobs(ctx context.Context, retentionPeriods Retentio
 	var totalCleaned int64
 
 	failedRetention := retentionPeriods.Failed
-	processingRetention := retentionPeriods.Processing
+	// processingRetention := retentionPeriods.Processing
 	// pendingRetention := retentionPeriods.Pending
 
 	cutoffTime := currentTime - int64(failedRetention.Seconds())
@@ -36,18 +35,10 @@ func (q *Queue[_]) cleanupOldJobs(ctx context.Context, retentionPeriods Retentio
 		totalCleaned += cleaned
 	}
 
-	cutoffTime = currentTime - int64(processingRetention.Seconds())
-	cleaned, err = q.client.ZRemRangeByScore(ctx, q.processingKey(), "-inf", fmt.Sprintf("%d", cutoffTime)).Result()
-	if err != nil {
-		log.Printf("Failed to clean up old processing jobs: %v", err)
-	} else {
-		totalCleaned += cleaned
-	}
-
-	// cutoffTime = currentTime - int64(pendingRetention.Seconds())
+	// cutoffTime = currentTime - int64(processingRetention.Seconds())
 	// cleaned, err = q.client.ZRemRangeByScore(ctx, q.pendingKey(), "-inf", fmt.Sprintf("%d", cutoffTime)).Result()
 	// if err != nil {
-	// 	log.Printf("Failed to clean up old pending jobs: %v", err)
+	// 	log.Printf("Failed to clean up old processing jobs: %v", err)
 	// } else {
 	// 	totalCleaned += cleaned
 	// }

@@ -54,8 +54,8 @@ func (q *Queue[_]) pendingKey() string {
 	return fmt.Sprintf("queue:%s:pending", q.name)
 }
 
-func (q *Queue[_]) processingKey() string {
-	return fmt.Sprintf("queue:%s:processing", q.name)
+func (q *Queue[_]) jobKeyPrefix() string {
+	return fmt.Sprintf("queue:%s:jobs:", q.name)
 }
 
 func (q *Queue[_]) failedKey() string {

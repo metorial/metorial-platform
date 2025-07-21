@@ -15,9 +15,3 @@ func WithRetryDelay[T any](delay time.Duration) QueueOption[T] {
 		q.retryDelay = delay
 	}
 }
-
-func WithPollInterval[T any](interval time.Duration) QueueOption[T] {
-	return func(q *Queue[T]) {
-		q.pollInterval = interval
-	}
-}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"time"
 )
 
 func (q *Queue[_]) StartWorker(ctx context.Context, workerID string) error {
@@ -15,10 +14,10 @@ func (q *Queue[_]) StartWorker(ctx context.Context, workerID string) error {
 			log.Printf("Worker %s for queue %s shutting down", workerID, q.name)
 			return ctx.Err()
 		default:
-			if err := q.processNextJob(ctx, workerID); err != nil {
+			err := q.processNextJob(ctx, workerID)
+			if err != nil {
 				log.Printf("Worker %s error: %v", workerID, err)
 			}
-			time.Sleep(q.pollInterval)
 		}
 	}
 }
