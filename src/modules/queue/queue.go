@@ -2,8 +2,6 @@ package queue
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -53,19 +51,5 @@ func (q *Queue[T]) Enqueue(ctx context.Context, data T) error {
 		ProcessAt:  time.Now(),
 	}
 
-	jobData, err := json.Marshal(job)
-	if err != nil {
-		return fmt.Errorf("failed to marshal job: %w", err)
-	}
-
-	// Add job to the pending queue (sorted set with score as process time)
-	score := float64(job.ProcessAt.Unix())
-	if err := q.client.ZAdd(ctx, q.pendingKey(), &redis.Z{
-		Score:  score,
-		Member: string(jobData),
-	}).Err(); err != nil {
-		return fmt.Errorf("failed to enqueue job: %w", err)
-	}
-
-	return nil
+	return q.addJob(ctx, job)
 }
