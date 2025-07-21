@@ -36,9 +36,10 @@ type Worker struct {
 	port       int
 	grpcServer *grpc.Server
 
-	managerMutex   sync.RWMutex
-	managerConns   map[string]*grpc.ClientConn
-	managerClients map[string]workerBrokerPb.McpWorkerBrokerClient
+	managerMutex       sync.RWMutex
+	managerConns       map[string]*grpc.ClientConn
+	managerClients     map[string]workerBrokerPb.McpWorkerBrokerClient
+	managerAddressToId map[string]string
 
 	impl WorkerImpl
 
@@ -73,8 +74,9 @@ func NewWorker(ctx context.Context, workerType workerPb.WorkerType, ownAddress s
 
 		health: *newWorkerHealthManager(),
 
-		managerConns:   make(map[string]*grpc.ClientConn),
-		managerClients: make(map[string]workerBrokerPb.McpWorkerBrokerClient),
+		managerConns:       make(map[string]*grpc.ClientConn),
+		managerClients:     make(map[string]workerBrokerPb.McpWorkerBrokerClient),
+		managerAddressToId: make(map[string]string),
 
 		impl: impl,
 
@@ -179,15 +181,18 @@ func (w *Worker) registerWithManager(address string) error {
 	w.managerMutex.Lock()
 	defer w.managerMutex.Unlock()
 
-	if _, exists := w.managerClients[address]; exists {
-		// log.Printf("Already registered with manager at %s", address)
-		return nil
+	if currentWorkerId, exists := w.managerAddressToId[address]; exists {
+		if currentWorkerId == w.WorkerID {
+			// Already registered with this manager
+			return nil
+		}
 	}
 
 	log.Printf("Registering worker %s with manager at %s", w.WorkerID, address)
 
 	w.managerConns[address] = conn
 	w.managerClients[address] = client
+	w.managerAddressToId[address] = w.WorkerID
 
 	_, err = client.RegisterWorker(context.Background(), &workerBrokerPb.RegisterWorkerRequest{
 		WorkerId:   w.WorkerID,
@@ -233,7 +238,6 @@ func (w *Worker) connectToNewManagers() error {
 		}
 
 		w.seenManagers = append(w.seenManagers, manager.Id)
-
 		w.registerWithManager(managerUtils.GetManagerAddress(manager.Address))
 	}
 
@@ -243,7 +247,7 @@ func (w *Worker) connectToNewManagers() error {
 func (w *Worker) connectToNewManagersRoutine() {
 	time.Sleep(time.Second) // Wait for server to be ready
 
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 
 	err := w.connectToNewManagers()
