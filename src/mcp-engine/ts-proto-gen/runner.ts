@@ -57,11 +57,9 @@ export interface DockerImagesResponse {
 }
 
 export interface DockerImageInfo {
-  name: string;
+  repository: string;
   tag: string;
   imageId: string;
-  /** Unix timestamp in seconds */
-  lastUsed: Long;
 }
 
 export interface DockerContainersResponse {
@@ -70,7 +68,8 @@ export interface DockerContainersResponse {
 
 export interface DockerContainerInfo {
   containerId: string;
-  imageName: string;
+  imageRepository: string;
+  imageTag: string;
   exitCode: number;
   running: boolean;
 }
@@ -564,22 +563,19 @@ export const DockerImagesResponse: MessageFns<DockerImagesResponse> = {
 };
 
 function createBaseDockerImageInfo(): DockerImageInfo {
-  return { name: "", tag: "", imageId: "", lastUsed: Long.ZERO };
+  return { repository: "", tag: "", imageId: "" };
 }
 
 export const DockerImageInfo: MessageFns<DockerImageInfo> = {
   encode(message: DockerImageInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.name !== "") {
-      writer.uint32(10).string(message.name);
+    if (message.repository !== "") {
+      writer.uint32(10).string(message.repository);
     }
     if (message.tag !== "") {
       writer.uint32(18).string(message.tag);
     }
     if (message.imageId !== "") {
       writer.uint32(26).string(message.imageId);
-    }
-    if (!message.lastUsed.equals(Long.ZERO)) {
-      writer.uint32(32).int64(message.lastUsed.toString());
     }
     return writer;
   },
@@ -596,7 +592,7 @@ export const DockerImageInfo: MessageFns<DockerImageInfo> = {
             break;
           }
 
-          message.name = reader.string();
+          message.repository = reader.string();
           continue;
         }
         case 2: {
@@ -615,14 +611,6 @@ export const DockerImageInfo: MessageFns<DockerImageInfo> = {
           message.imageId = reader.string();
           continue;
         }
-        case 4: {
-          if (tag !== 32) {
-            break;
-          }
-
-          message.lastUsed = Long.fromString(reader.int64().toString());
-          continue;
-        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -634,26 +622,22 @@ export const DockerImageInfo: MessageFns<DockerImageInfo> = {
 
   fromJSON(object: any): DockerImageInfo {
     return {
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      repository: isSet(object.repository) ? globalThis.String(object.repository) : "",
       tag: isSet(object.tag) ? globalThis.String(object.tag) : "",
       imageId: isSet(object.imageId) ? globalThis.String(object.imageId) : "",
-      lastUsed: isSet(object.lastUsed) ? Long.fromValue(object.lastUsed) : Long.ZERO,
     };
   },
 
   toJSON(message: DockerImageInfo): unknown {
     const obj: any = {};
-    if (message.name !== "") {
-      obj.name = message.name;
+    if (message.repository !== "") {
+      obj.repository = message.repository;
     }
     if (message.tag !== "") {
       obj.tag = message.tag;
     }
     if (message.imageId !== "") {
       obj.imageId = message.imageId;
-    }
-    if (!message.lastUsed.equals(Long.ZERO)) {
-      obj.lastUsed = (message.lastUsed || Long.ZERO).toString();
     }
     return obj;
   },
@@ -663,12 +647,9 @@ export const DockerImageInfo: MessageFns<DockerImageInfo> = {
   },
   fromPartial(object: DeepPartial<DockerImageInfo>): DockerImageInfo {
     const message = createBaseDockerImageInfo();
-    message.name = object.name ?? "";
+    message.repository = object.repository ?? "";
     message.tag = object.tag ?? "";
     message.imageId = object.imageId ?? "";
-    message.lastUsed = (object.lastUsed !== undefined && object.lastUsed !== null)
-      ? Long.fromValue(object.lastUsed)
-      : Long.ZERO;
     return message;
   },
 };
@@ -736,7 +717,7 @@ export const DockerContainersResponse: MessageFns<DockerContainersResponse> = {
 };
 
 function createBaseDockerContainerInfo(): DockerContainerInfo {
-  return { containerId: "", imageName: "", exitCode: 0, running: false };
+  return { containerId: "", imageRepository: "", imageTag: "", exitCode: 0, running: false };
 }
 
 export const DockerContainerInfo: MessageFns<DockerContainerInfo> = {
@@ -744,8 +725,11 @@ export const DockerContainerInfo: MessageFns<DockerContainerInfo> = {
     if (message.containerId !== "") {
       writer.uint32(10).string(message.containerId);
     }
-    if (message.imageName !== "") {
-      writer.uint32(18).string(message.imageName);
+    if (message.imageRepository !== "") {
+      writer.uint32(18).string(message.imageRepository);
+    }
+    if (message.imageTag !== "") {
+      writer.uint32(42).string(message.imageTag);
     }
     if (message.exitCode !== 0) {
       writer.uint32(24).int32(message.exitCode);
@@ -776,7 +760,15 @@ export const DockerContainerInfo: MessageFns<DockerContainerInfo> = {
             break;
           }
 
-          message.imageName = reader.string();
+          message.imageRepository = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.imageTag = reader.string();
           continue;
         }
         case 3: {
@@ -807,7 +799,8 @@ export const DockerContainerInfo: MessageFns<DockerContainerInfo> = {
   fromJSON(object: any): DockerContainerInfo {
     return {
       containerId: isSet(object.containerId) ? globalThis.String(object.containerId) : "",
-      imageName: isSet(object.imageName) ? globalThis.String(object.imageName) : "",
+      imageRepository: isSet(object.imageRepository) ? globalThis.String(object.imageRepository) : "",
+      imageTag: isSet(object.imageTag) ? globalThis.String(object.imageTag) : "",
       exitCode: isSet(object.exitCode) ? globalThis.Number(object.exitCode) : 0,
       running: isSet(object.running) ? globalThis.Boolean(object.running) : false,
     };
@@ -818,8 +811,11 @@ export const DockerContainerInfo: MessageFns<DockerContainerInfo> = {
     if (message.containerId !== "") {
       obj.containerId = message.containerId;
     }
-    if (message.imageName !== "") {
-      obj.imageName = message.imageName;
+    if (message.imageRepository !== "") {
+      obj.imageRepository = message.imageRepository;
+    }
+    if (message.imageTag !== "") {
+      obj.imageTag = message.imageTag;
     }
     if (message.exitCode !== 0) {
       obj.exitCode = Math.round(message.exitCode);
@@ -836,7 +832,8 @@ export const DockerContainerInfo: MessageFns<DockerContainerInfo> = {
   fromPartial(object: DeepPartial<DockerContainerInfo>): DockerContainerInfo {
     const message = createBaseDockerContainerInfo();
     message.containerId = object.containerId ?? "";
-    message.imageName = object.imageName ?? "";
+    message.imageRepository = object.imageRepository ?? "";
+    message.imageTag = object.imageTag ?? "";
     message.exitCode = object.exitCode ?? 0;
     message.running = object.running ?? false;
     return message;

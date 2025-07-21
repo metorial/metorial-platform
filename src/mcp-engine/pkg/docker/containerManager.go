@@ -64,7 +64,8 @@ func (m *ContainerManager) close() error {
 }
 
 func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*ContainerHandle, error) {
-	if err := m.imageManager.ensureImage(opts.ImageRef); err != nil {
+	image, err := m.imageManager.ensureImageByFullName(opts.ImageRef)
+	if err != nil {
 		return nil, fmt.Errorf("failed to update image usage: %w", err)
 	}
 
@@ -160,8 +161,11 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 	}
 
 	container := &ContainerHandle{
-		ID:       containerID,
-		ImageRef: opts.ImageRef,
+		ID: containerID,
+
+		ImageRepository: image.Repository,
+		ImageTag:        image.Tag,
+
 		Running:  true,
 		ExitCode: -1,
 
@@ -177,8 +181,6 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 	m.mutex.Lock()
 	m.containers[containerID] = container
 	m.mutex.Unlock()
-
-	m.imageManager.reportImageUse(opts.ImageRef, containerID)
 
 	go container.monitor()
 

@@ -39,10 +39,10 @@ func (dm *DockerManager) GetContainer(containerID string) (*ContainerHandle, err
 	return dm.containerManager.getContainer(containerID)
 }
 
-func (dm *DockerManager) ListImages() []*ImageHandle {
+func (dm *DockerManager) ListImages() []*localImage {
 	return dm.imageManager.listImages()
 }
 
-func (dm *DockerManager) GetImage(imageName string) (*ImageHandle, error) {
+func (dm *DockerManager) GetImage(imageName string) (*localImage, error) {
 	return dm.imageManager.getImage(imageName)
 }
