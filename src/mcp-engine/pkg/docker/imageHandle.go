@@ -48,21 +48,6 @@ func (img *ImageHandle) markUsed(containerID string) {
 	})
 }
 
-func (img *ImageHandle) cleanupOldUses() {
-	img.mu.Lock()
-	defer img.mu.Unlock()
-
-	cutoff := time.Now().UTC().Add(-time.Duration(ImageMaxAge) * time.Second)
-
-	validUses := make([]ImageUse, 0, len(img.RecentUses))
-	for _, use := range img.RecentUses {
-		if use.Timestamp.After(cutoff) {
-			validUses = append(validUses, use)
-		}
-	}
-	img.RecentUses = validUses
-}
-
 func (img *ImageHandle) FullName() string {
 	img.mu.RLock()
 	defer img.mu.RUnlock()
@@ -81,4 +66,19 @@ func (img *ImageHandle) GetLastUsed() time.Time {
 	img.mu.RLock()
 	defer img.mu.RUnlock()
 	return img.LastUsed
+}
+
+func (img *ImageHandle) cleanupOldUses() {
+	img.mu.Lock()
+	defer img.mu.Unlock()
+
+	cutoff := time.Now().UTC().Add(-time.Duration(ImageMaxAge) * time.Second)
+
+	validUses := make([]ImageUse, 0, len(img.RecentUses))
+	for _, use := range img.RecentUses {
+		if use.Timestamp.After(cutoff) {
+			validUses = append(validUses, use)
+		}
+	}
+	img.RecentUses = validUses
 }
