@@ -7,7 +7,7 @@ type Set[T struct{} | string] struct {
 	mu       sync.RWMutex
 }
 
-func NewSet[T struct{}]() *Set[T] {
+func NewSet[T struct{} | string]() *Set[T] {
 	res := &Set[T]{
 		elements: make(map[T]struct{}),
 	}

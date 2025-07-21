@@ -12,8 +12,7 @@ const (
 )
 
 type ImageUse struct {
-	Timestamp   time.Time
-	ContainerID string
+	Timestamp time.Time
 }
 
 type ImageHandle struct {
@@ -36,15 +35,14 @@ func newDockerImage(repository, tag, imageID string) *ImageHandle {
 	}
 }
 
-func (img *ImageHandle) markUsed(containerID string) {
+func (img *ImageHandle) markUsed() {
 	img.mu.Lock()
 	defer img.mu.Unlock()
 
 	now := time.Now().UTC()
 	img.LastUsed = now
 	img.RecentUses = append(img.RecentUses, ImageUse{
-		Timestamp:   now,
-		ContainerID: containerID,
+		Timestamp: now,
 	})
 }
 

@@ -179,8 +179,6 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 	m.containers[containerID] = container
 	m.mutex.Unlock()
 
-	m.imageManager.reportImageUse(image.Repository, image.Tag, containerID)
-
 	go container.monitor()
 
 	return container, nil

@@ -37,7 +37,7 @@ type localImageManager struct {
 	imagePullLocks   map[string]*sync.Mutex
 	imageRemoveLocks map[string]*sync.Mutex
 
-	OwnedImages datastructures.Set[string]
+	ownedImages *datastructures.Set[string]
 
 	context context.Context
 	mu      sync.RWMutex
@@ -50,6 +50,8 @@ func newLocalImageManager(ctx context.Context) *localImageManager {
 		imagesByFullName:   make(map[string]*localImage),
 
 		context: ctx,
+
+		ownedImages: datastructures.NewSet[string](),
 
 		imagePullLocks:   make(map[string]*sync.Mutex),
 		imageRemoveLocks: make(map[string]*sync.Mutex),
@@ -102,7 +104,7 @@ func (m *localImageManager) updateImages() error {
 	m.imagesByFullName = make(map[string]*localImage)
 
 	for _, img := range images {
-		m.setImageWithoutMutex(&img)
+		m.setImageWithoutMutex(&img, true)
 	}
 
 	return nil
@@ -167,7 +169,7 @@ func (m *localImageManager) pullImage(repository, tag string) (*localImage, erro
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.setImageWithoutMutex(&img)
+	m.setImageWithoutMutex(&img, false)
 
 	log.Printf("Successfully pulled image: %s\n", fullName)
 
@@ -224,6 +226,11 @@ func (m *localImageManager) removeImage(imageId string) error {
 		cmd := exec.Command("docker", "image", "rm", img.ID)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
+			if strings.Contains(string(output), "No such image") ||
+				strings.Contains(string(output), "image is being used by running container") {
+				return // Ignore these errors
+			}
+
 			log.Printf("Error removing image %s: %v\nOutput: %s\n", img.ID, err, string(output))
 		}
 	}()
@@ -263,7 +270,7 @@ func (m *localImageManager) removeImageFromIndex(imageId string) (*localImage, e
 	return image, nil
 }
 
-func (m *localImageManager) setImageWithoutMutex(img *localImage) {
+func (m *localImageManager) setImageWithoutMutex(img *localImage, isAutoDiscovered bool) {
 	fullName := fmt.Sprintf("%s:%s", img.Repository, img.Tag)
 
 	if current, exists := m.imagesByFullName[fullName]; exists {
@@ -276,12 +283,19 @@ func (m *localImageManager) setImageWithoutMutex(img *localImage) {
 			current.LastUsedAt = img.LastUsedAt
 		}
 
+		if !isAutoDiscovered {
+			m.ownedImages.Add(img.Repository)
+		}
+
 		return
 	}
 
 	m.imagesByFullName[fullName] = img
 	m.imagesByID[img.ID] = img
-	m.OwnedImages.Add(img.Repository)
+
+	if !isAutoDiscovered {
+		m.ownedImages.Add(img.Repository)
+	}
 
 	if _, exists := m.imagesByRepository[img.Repository]; !exists {
 		m.imagesByRepository[img.Repository] = make([]*localImage, 0)
@@ -318,7 +332,7 @@ func (m *localImageManager) isOwnedImage(repository string) bool {
 		return true // We always own MCP container images
 	}
 
-	return m.OwnedImages.Contains(repository)
+	return m.ownedImages.Contains(repository)
 }
 
 func (m *localImageManager) cleanupDuplicateImages() {
@@ -328,21 +342,23 @@ func (m *localImageManager) cleanupDuplicateImages() {
 		}
 
 		sort.Slice(images, func(i, j int) bool {
-			return images[i].CreatedAt.Time.Before(images[j].CreatedAt.Time)
+			return images[i].CreatedAt.Time.After(images[j].CreatedAt.Time)
 		})
+
+		mostRecentImage := images[0]
 
 		// Keep the most recent image, and all images that
 		// have been used in the last 15 minutes
 		threshold := time.Now().Add(-15 * time.Minute)
 		keptImages := make([]*localImage, 0, len(images))
 		for _, img := range images {
-			if img.LastUsedAt.After(threshold) || img == images[len(images)-1] {
+			if img.LastUsedAt.After(threshold) || img == mostRecentImage {
 				keptImages = append(keptImages, img)
 			} else {
 				go func() {
 					err := m.removeImage(img.ID)
 					if err != nil {
-						log.Printf("Error removing image %s: %v\n", img.ID, err)
+						log.Printf("Error removing duplicate image %s: %v\n", img.ID, err)
 					}
 				}()
 			}
@@ -359,6 +375,8 @@ func (m *localImageManager) cleanupDuplicateImages() {
 
 func (m *localImageManager) cleanupUnused() {
 	usage, err := GetSystemStorageUsage()
+	log.Printf("Current system storage usage: %d bytes\n", usage)
+
 	if err != nil {
 		log.Printf("Error getting system storage usage: %v\n", err)
 		return
@@ -373,23 +391,22 @@ func (m *localImageManager) cleanupUnused() {
 	defer m.mu.Unlock()
 
 	// Remove old images until we are below the threshold
-	sortedImages := make([]*localImage, 0, len(m.imagesByFullName))
+	// imagesSortedByLastUsed is sorted in ascending order of LastUsedAt
+	imagesSortedByLastUsed := make([]*localImage, 0, len(m.imagesByFullName))
 	for _, img := range m.imagesByFullName {
-		sortedImages = append(sortedImages, img)
+		imagesSortedByLastUsed = append(imagesSortedByLastUsed, img)
 	}
-	sort.Slice(sortedImages, func(i, j int) bool {
-		return sortedImages[i].LastUsedAt.Before(sortedImages[j].LastUsedAt)
+	sort.Slice(imagesSortedByLastUsed, func(i, j int) bool {
+		return imagesSortedByLastUsed[i].LastUsedAt.Before(imagesSortedByLastUsed[j].LastUsedAt)
 	})
 
-	for _, img := range sortedImages {
-		if img.LastUsedAt.Before(time.Now().Add(-30 * 24 * time.Hour)) { // 30 days old
-			go func() {
-				err := m.removeImage(img.ID)
-				if err != nil {
-					log.Printf("Error removing image %s: %v\n", img.ID, err)
-				}
-			}()
-		}
+	for _, img := range imagesSortedByLastUsed {
+		go func() {
+			err := m.removeImage(img.ID)
+			if err != nil {
+				log.Printf("Error removing unused image %s: %v\n", img.ID, err)
+			}
+		}()
 
 		// Check if we are below the threshold after each removal
 		currentUsage, err := GetSystemStorageUsage()

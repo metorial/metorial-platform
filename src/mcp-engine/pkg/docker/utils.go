@@ -6,6 +6,13 @@ import (
 	"strings"
 )
 
+var units = map[string]float64{
+	"kB": 1e3,
+	"MB": 1e6,
+	"GB": 1e9,
+	"TB": 1e12,
+}
+
 func getImageFullName(repository, tag string) (string, error) {
 	if repository == "" || tag == "" {
 		return "", fmt.Errorf("repository and tag must be specified")
@@ -39,14 +46,6 @@ func parseDockerSize(sizeStr string) (uint64, error) {
 		return 0, fmt.Errorf("empty size string")
 	}
 
-	units := map[string]float64{
-		"B":  1,
-		"kB": 1e3,
-		"MB": 1e6,
-		"GB": 1e9,
-		"TB": 1e12,
-	}
-
 	// Find unit suffix
 	for unit, multiplier := range units {
 		if strings.HasSuffix(sizeStr, unit) {
@@ -57,6 +56,16 @@ func parseDockerSize(sizeStr string) (uint64, error) {
 			}
 			return uint64(value * multiplier), nil
 		}
+	}
+
+	if strings.HasSuffix(sizeStr, "B") {
+		// Handle plain bytes without unit
+		valueStr := strings.TrimSuffix(sizeStr, "B")
+		value, err := strconv.ParseUint(valueStr, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("invalid size value: %v", err)
+		}
+		return value, nil
 	}
 
 	value, err := strconv.ParseUint(sizeStr, 10, 64)

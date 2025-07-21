@@ -53,11 +53,14 @@ func (im *ImageManager) ensureImage(repository, tag string) (*ImageHandle, error
 
 	handle, exists := im.images[imageName]
 	if !exists {
-		imageHandle := newDockerImage(localImage.Repository, localImage.Tag, localImage.ID)
-		im.images[imageName] = imageHandle
+		handle = newDockerImage(localImage.Repository, localImage.Tag, localImage.ID)
+		im.images[imageName] = handle
 	}
 
 	handle.ImageID = localImage.ID
+	handle.markUsed()
+
+	localImage.LastUsedAt = time.Now()
 
 	return im.images[imageName], nil
 }
@@ -71,46 +74,12 @@ func (im *ImageManager) ensureImageByFullName(fullName string) (*ImageHandle, er
 	return im.ensureImage(repository, tag)
 }
 
-func (im *ImageManager) reportImageUse(repository, tag, containerID string) {
-	imageName, err := getImageFullName(repository, tag)
-	if err != nil {
-		log.Printf("Error getting image full name: %v\n", err)
-		return
-	}
-
-	im.mu.RLock()
-	image, exists := im.images[imageName]
-	im.mu.RUnlock()
-
-	if !exists {
-		return
-	}
-
-	image.markUsed(containerID)
-}
-
 func (im *ImageManager) listImages() []*localImage {
 	return im.localImageManager.listImages()
 }
 
 func (im *ImageManager) getImage(imageId string) (*localImage, error) {
 	return im.localImageManager.getImage(imageId)
-}
-
-func (im *ImageManager) removeImage(imageId string) error {
-	if imageId == "" {
-		return fmt.Errorf("image ID cannot be empty")
-	}
-
-	im.mu.Lock()
-	defer im.mu.Unlock()
-
-	_, exists := im.images[imageId]
-	if exists {
-		delete(im.images, imageId)
-	}
-
-	return im.localImageManager.removeImage(imageId)
 }
 
 func (im *ImageManager) removeOldImageUses() {

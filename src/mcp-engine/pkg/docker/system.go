@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 type Sizes struct {
@@ -26,9 +27,15 @@ func GetDockerSizes() (*Sizes, error) {
 		return nil, fmt.Errorf("failed to get Docker sizes: %w", err)
 	}
 
-	var entries []DockerSizeEntry
-	if err := json.Unmarshal(output, &entries); err != nil {
-		return nil, fmt.Errorf("failed to parse Docker sizes output: %w", err)
+	entries := make([]DockerSizeEntry, 0)
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, line := range lines {
+		var entry DockerSizeEntry
+		if err := json.Unmarshal([]byte(line), &entry); err != nil {
+			return nil, fmt.Errorf("failed to parse Docker size entry: %w", err)
+		}
+		entries = append(entries, entry)
 	}
 
 	sizes := &Sizes{}
@@ -56,7 +63,7 @@ func GetDockerSizes() (*Sizes, error) {
 func GetSystemStorageTotalAvailable() (uint64, error) {
 	env := os.Getenv("CONTAINER_STORAGE_TOTAL_AVAILABLE")
 	if env == "" {
-		return 0, fmt.Errorf("environment variable CONTAINER_STORAGE_TOTAL_AVAILABLE is not set")
+		return 0, nil
 	}
 
 	total, err := parseDockerSize(env)
