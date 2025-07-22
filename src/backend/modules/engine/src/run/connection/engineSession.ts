@@ -7,13 +7,14 @@ import {
   McpManagerClient,
   McpParticipant_ParticipantType
 } from '@metorial/mcp-engine-generated';
+import { McpClient } from '@metorial/mcp-utils';
 import { secretService } from '@metorial/module-secret';
 import { getSentry } from '@metorial/sentry';
 import { addServerDeploymentDiscovery } from '../../queues/discoverServer';
 import { getClientByHash, ManagerClient, mustGetClient } from '../client';
 import { getSessionConfig } from '../config';
 import { FullServerSession, getFullServerSession } from '../utils';
-import { EngineRunConfig, McpClient } from './types';
+import { EngineRunConfig } from './types';
 import { getEngineSessionType } from './util';
 
 let Sentry = getSentry();
@@ -22,6 +23,7 @@ let createEngineSession = async (
   config: EngineRunConfig & {
     client: ManagerClient;
     serverSession: FullServerSession;
+    mcpClient?: McpClient;
   }
 ) => {
   let srvSes = config.serverSession;
@@ -49,16 +51,20 @@ let createEngineSession = async (
         instanceId: config.instance.id,
         engineSessionTracer
       },
-      mcpClient: srvSes.clientCapabilities
-        ? {
-            type: McpParticipant_ParticipantType.client,
-            participantJson: JSON.stringify({
-              protocolVersion: srvSes.mcpVersion!,
-              capabilities: srvSes.clientCapabilities!,
-              clientInfo: srvSes.clientInfo!
-            } satisfies McpClient)
-          }
-        : undefined,
+      mcpClient:
+        srvSes.clientCapabilities || config.mcpClient
+          ? {
+              type: McpParticipant_ParticipantType.client,
+              participantJson: JSON.stringify(
+                config.mcpClient ??
+                  ({
+                    protocolVersion: srvSes.mcpVersion!,
+                    capabilities: srvSes.clientCapabilities!,
+                    clientInfo: srvSes.clientInfo!
+                  } satisfies McpClient)
+              )
+            }
+          : undefined,
       config: await getSessionConfig(srvSes.serverDeployment, DANGEROUSLY_UNENCRYPTED_CONFIG),
       sessionId: srvSes.id
     });
@@ -95,8 +101,13 @@ let createEngineSession = async (
   return active.session;
 };
 
+export type EngineSessionManagerContext = {
+  setEngineSession: (engineSession: EngineSession) => void;
+};
+
 export class EngineSessionManager {
   #engineSessionPromise: Promise<EngineSession> | null = null;
+  #mcpClient: McpClient | undefined;
 
   private constructor(
     public readonly config: EngineRunConfig,
@@ -165,12 +176,32 @@ export class EngineSessionManager {
     return new EngineSessionManager(config, engineSession, client, srvSes);
   }
 
+  private get context(): EngineSessionManagerContext {
+    let self = this;
+
+    return {
+      setEngineSession: (engineSession: EngineSession) => self.setEngineSession(engineSession)
+    };
+  }
+
+  setEngineSession(engineSession: EngineSession) {
+    this.engineSessionCurrent = engineSession;
+
+    if (engineSession.mcpClient?.participantJson) {
+      this.#mcpClient = JSON.parse(engineSession.mcpClient.participantJson);
+    }
+  }
+
   async withClient<T>(
-    provider: (client: McpManagerClient, engineSession: EngineSession) => Promise<T>,
+    provider: (
+      client: McpManagerClient,
+      engineSession: EngineSession,
+      ctx: EngineSessionManagerContext
+    ) => Promise<T>,
     engineSession: EngineSession = this.engineSessionCurrent
   ): Promise<T> {
     try {
-      return await provider(this.client, this.engineSessionCurrent);
+      return await provider(this.client, this.engineSessionCurrent, this.context);
     } catch (err: any) {
       let engineSession = await this.handleError(err);
       return this.withClient(provider, engineSession);
@@ -178,11 +209,15 @@ export class EngineSessionManager {
   }
 
   async *withClientGenerator<T>(
-    provider: (client: McpManagerClient, engineSession: EngineSession) => AsyncGenerator<T>,
+    provider: (
+      client: McpManagerClient,
+      engineSession: EngineSession,
+      ctx: EngineSessionManagerContext
+    ) => AsyncGenerator<T>,
     engineSession: EngineSession = this.engineSessionCurrent
   ): AsyncGenerator<T> {
     try {
-      yield* provider(this.client, this.engineSessionCurrent);
+      yield* provider(this.client, this.engineSessionCurrent, this.context);
     } catch (err: any) {
       let engineSession = await this.handleError(err);
       yield* this.withClientGenerator(provider, engineSession);
@@ -202,7 +237,8 @@ export class EngineSessionManager {
         let engineSession = await createEngineSession({
           ...this.config,
           client: this.client,
-          serverSession: this.srvSes
+          serverSession: this.srvSes,
+          mcpClient: this.#mcpClient
         });
 
         if (!engineSession) {

@@ -32,7 +32,11 @@ export let syncEngineSession = async (d: { engineSessionId: string }) => {
   });
   await db.engineSession.update({
     where: { id: engineSession.id },
-    data: { lastSyncAt: start, hasEnded: !!session?.endedAt, isFinalized: hasEndedBefore }
+    data: {
+      lastSyncAt: start,
+      hasEnded: !!session?.endedAt,
+      isFinalized: hasEndedBefore
+    }
   });
 
   let { runs } = await client.listRuns({
