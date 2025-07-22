@@ -19,12 +19,11 @@ type EventDeliveryAttempt struct {
 	AttemptNumber uint  `gorm:"not null"`
 	DurationMs    int64 `gorm:"default:0"`
 
-	RequestHeaders map[string]any `gorm:"type:jsonb"`
-
-	ResponseStatus  int
-	ResponseBody    string         `gorm:"type:text"`
-	ResponseHeaders map[string]any `gorm:"type:jsonb"`
-	ErrorMessage    string         `gorm:"type:text"`
+	// RequestHeaders map[string]any `gorm:"type:jsonb"`
+	ResponseStatus int
+	// ResponseBody    string         `gorm:"type:text"`
+	// ResponseHeaders map[string]any `gorm:"type:jsonb"`
+	// ErrorMessage    string         `gorm:"type:text"`
 
 	CreatedAt time.Time
 }
