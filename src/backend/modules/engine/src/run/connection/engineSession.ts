@@ -7,7 +7,7 @@ import {
   McpManagerClient,
   McpParticipant_ParticipantType
 } from '@metorial/mcp-engine-generated';
-import { McpClient } from '@metorial/mcp-utils';
+import { McpClient, McpServer } from '@metorial/mcp-utils';
 import { secretService } from '@metorial/module-secret';
 import { getSentry } from '@metorial/sentry';
 import { addServerDeploymentDiscovery } from '../../queues/discoverServer';
@@ -180,15 +180,45 @@ export class EngineSessionManager {
     let self = this;
 
     return {
-      setEngineSession: (engineSession: EngineSession) => self.setEngineSession(engineSession)
+      setEngineSession: (engineSession: EngineSession) =>
+        self.updateEngineSession(engineSession)
     };
   }
 
-  setEngineSession(engineSession: EngineSession) {
+  async updateEngineSession(engineSession: EngineSession) {
     this.engineSessionCurrent = engineSession;
 
     if (engineSession.mcpClient?.participantJson) {
       this.#mcpClient = JSON.parse(engineSession.mcpClient.participantJson);
+    }
+
+    await db.engineSession.updateMany({
+      where: { id: engineSession.id },
+      data: {
+        serverSessionOid: this.config.serverSession.oid,
+        type: getEngineSessionType(engineSession),
+        createdAt: new Date(engineSession.createdAt.toNumber())
+      }
+    });
+
+    let clientInfo = engineSession.mcpClient?.participantJson
+      ? (JSON.parse(engineSession.mcpClient.participantJson) as McpClient)
+      : null;
+    let serverInfo = engineSession.mcpServer?.participantJson
+      ? (JSON.parse(engineSession.mcpServer.participantJson) as McpServer)
+      : null;
+
+    if (clientInfo || serverInfo) {
+      await db.serverSession.updateMany({
+        where: { oid: this.config.serverSession.oid },
+        data: {
+          clientInfo: clientInfo?.clientInfo,
+          clientCapabilities: clientInfo?.capabilities,
+
+          serverInfo: serverInfo?.serverInfo,
+          serverCapabilities: serverInfo?.capabilities
+        }
+      });
     }
   }
 
@@ -201,7 +231,7 @@ export class EngineSessionManager {
     engineSession: EngineSession = this.engineSessionCurrent
   ): Promise<T> {
     try {
-      return await provider(this.client, this.engineSessionCurrent, this.context);
+      return await provider(this.client, engineSession, this.context);
     } catch (err: any) {
       let engineSession = await this.handleError(err);
       return this.withClient(provider, engineSession);
@@ -217,7 +247,7 @@ export class EngineSessionManager {
     engineSession: EngineSession = this.engineSessionCurrent
   ): AsyncGenerator<T> {
     try {
-      yield* provider(this.client, this.engineSessionCurrent, this.context);
+      yield* provider(this.client, engineSession, this.context);
     } catch (err: any) {
       let engineSession = await this.handleError(err);
       yield* this.withClientGenerator(provider, engineSession);
@@ -234,11 +264,22 @@ export class EngineSessionManager {
       }
 
       this.#engineSessionPromise = (async () => {
+        // Get the most recent server session
+        let currentServerSession = await db.serverSession.findUnique({
+          where: { id: this.srvSes.id }
+        });
+
         let engineSession = await createEngineSession({
           ...this.config,
           client: this.client,
           serverSession: this.srvSes,
-          mcpClient: this.#mcpClient
+          mcpClient: currentServerSession?.clientInfo
+            ? ({
+                clientInfo: currentServerSession.clientInfo,
+                capabilities: currentServerSession.clientCapabilities,
+                protocolVersion: currentServerSession.mcpVersion
+              } as McpClient)
+            : this.#mcpClient
         });
 
         if (!engineSession) {

@@ -3,13 +3,11 @@ import { debug } from '@metorial/debug';
 import { internalServerError, ServiceError } from '@metorial/error';
 import { createLock } from '@metorial/lock';
 import {
-  EngineSession,
   EngineSessionRun,
   McpError,
   McpOutput,
   SessionEvent
 } from '@metorial/mcp-engine-generated';
-import { McpClient, McpServer } from '@metorial/mcp-utils';
 import { getSentry } from '@metorial/sentry';
 import { getUnifiedIdIfNeeded, UnifiedID } from '@metorial/unified-id';
 import { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sdk/types';
@@ -28,7 +26,6 @@ import { EngineSessionConnectionBase } from './base';
 import { EngineSessionManager } from './engineSession';
 import { EngineSessionProxy } from './proxy';
 import { EngineRunConfig } from './types';
-import { getEngineSessionType } from './util';
 
 const INACTIVITY_TIMEOUT = 1000 * 60;
 
@@ -437,8 +434,7 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
       }
 
       if (evt.infoSession?.session) {
-        this.engineSessionManager.setEngineSession(evt.infoSession.session);
-        await this.updateEngineSession(evt.infoSession.session);
+        await this.engineSessionManager.updateEngineSession(evt.infoSession.session);
       }
     })().catch(e => Sentry.captureException(e));
   }
@@ -453,35 +449,6 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
     } catch (err: any) {
       if (err.code != 'P2002') throw err;
     }
-  }
-
-  private async updateEngineSession(ses: EngineSession) {
-    await db.engineSession.updateMany({
-      where: { id: ses.id },
-      data: {
-        serverSessionOid: this.config.serverSession.oid,
-        type: getEngineSessionType(ses),
-        createdAt: new Date(ses.createdAt.toNumber())
-      }
-    });
-
-    let clientInfo = ses.mcpClient?.participantJson
-      ? (JSON.parse(ses.mcpClient.participantJson) as McpClient)
-      : null;
-    let serverInfo = ses.mcpServer?.participantJson
-      ? (JSON.parse(ses.mcpServer.participantJson) as McpServer)
-      : null;
-
-    await db.serverSession.updateMany({
-      where: { oid: this.config.serverSession.oid },
-      data: {
-        clientInfo: clientInfo?.clientInfo,
-        clientCapabilities: clientInfo?.capabilities,
-
-        serverInfo: serverInfo?.serverInfo,
-        serverCapabilities: serverInfo?.capabilities
-      }
-    });
   }
 
   #lastSeenRunId: string | null = null;
