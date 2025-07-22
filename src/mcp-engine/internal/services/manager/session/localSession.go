@@ -114,6 +114,10 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 		return err
 	}
 
+	go func() {
+		sendStreamResponseSessionEventInfoSession(stream, s.dbSession)
+	}()
+
 	// Now we need to get a handle on the connection
 	// this will block until the MCP client is set
 	// and the connection is established.
