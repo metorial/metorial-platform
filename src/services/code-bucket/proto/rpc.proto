@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package rpc.rpc;
+
+option go_package = "github.com/metorial/metorial/services/rpc/gen/rpc;rpc";
+
+service CodeBucket {
+  rpc CreateBucket(CreateBucketRequest) returns (CreateBucketResponse);
+  rpc CloneBucket(CloneBucketRequest) returns (CloneBucketResponse);
+  rpc GetBucketToken(GetBucketTokenRequest) returns (GetBucketTokenResponse);
+  rpc GetBucketFile(GetBucketFileRequest) returns (GetBucketFileResponse);
+  rpc GetBucketFiles(GetBucketFilesRequest) returns (GetBucketFilesResponse);
+  rpc GetBucketFilesAsZip(GetBucketFilesAsZipRequest) returns (GetBucketFilesAsZipResponse);
+}
+
+message CreateBucketRequest {
+  string name = 1;
+}
+
+message CreateBucketResponse {
+  string bucket_id = 1;
+}
+
+message CloneBucketRequest {
+  string source_bucket_id = 1;
+  string name = 2;
+}
+
+message CloneBucketResponse {
+  string bucket_id = 1;
+}
+
+message GetBucketTokenRequest {
+  string bucket_id = 1;
+  int64 expires_in_seconds = 2; // Optional, defaults to 24h
+}
+
+message GetBucketTokenResponse {
+  string token = 1;
+}
+
+message GetBucketFileRequest {
+  string bucket_id = 1;
+  string path = 2;
+}
+
+message GetBucketFileResponse {
+  bytes content = 1;
+  string content_type = 2;
+  int64 size = 3;
+  int64 modified_at = 4;
+}
+
+message GetBucketFilesRequest {
+  string bucket_id = 1;
+  string prefix = 2; // Optional filter
+}
+
+message FileInfo {
+  string path = 1;
+  int64 size = 2;
+  string content_type = 3;
+  int64 modified_at = 4;
+}
+
+message GetBucketFilesResponse {
+  repeated FileInfo files = 1;
+}
+
+message GetBucketFilesAsZipRequest {
+  string bucket_id = 1;
+  string prefix = 2; // Optional filter
+}
+
+message GetBucketFilesAsZipResponse {
+  string download_url = 1;
+  int64 expires_at = 2;
+}
