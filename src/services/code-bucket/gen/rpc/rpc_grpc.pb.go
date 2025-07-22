@@ -19,7 +19,6 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CodeBucket_CreateBucket_FullMethodName        = "/rpc.rpc.CodeBucket/CreateBucket"
 	CodeBucket_CloneBucket_FullMethodName         = "/rpc.rpc.CodeBucket/CloneBucket"
 	CodeBucket_GetBucketToken_FullMethodName      = "/rpc.rpc.CodeBucket/GetBucketToken"
 	CodeBucket_GetBucketFile_FullMethodName       = "/rpc.rpc.CodeBucket/GetBucketFile"
@@ -31,7 +30,6 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CodeBucketClient interface {
-	CreateBucket(ctx context.Context, in *CreateBucketRequest, opts ...grpc.CallOption) (*CreateBucketResponse, error)
 	CloneBucket(ctx context.Context, in *CloneBucketRequest, opts ...grpc.CallOption) (*CloneBucketResponse, error)
 	GetBucketToken(ctx context.Context, in *GetBucketTokenRequest, opts ...grpc.CallOption) (*GetBucketTokenResponse, error)
 	GetBucketFile(ctx context.Context, in *GetBucketFileRequest, opts ...grpc.CallOption) (*GetBucketFileResponse, error)
@@ -45,16 +43,6 @@ type codeBucketClient struct {
 
 func NewCodeBucketClient(cc grpc.ClientConnInterface) CodeBucketClient {
 	return &codeBucketClient{cc}
-}
-
-func (c *codeBucketClient) CreateBucket(ctx context.Context, in *CreateBucketRequest, opts ...grpc.CallOption) (*CreateBucketResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateBucketResponse)
-	err := c.cc.Invoke(ctx, CodeBucket_CreateBucket_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *codeBucketClient) CloneBucket(ctx context.Context, in *CloneBucketRequest, opts ...grpc.CallOption) (*CloneBucketResponse, error) {
@@ -111,7 +99,6 @@ func (c *codeBucketClient) GetBucketFilesAsZip(ctx context.Context, in *GetBucke
 // All implementations must embed UnimplementedCodeBucketServer
 // for forward compatibility.
 type CodeBucketServer interface {
-	CreateBucket(context.Context, *CreateBucketRequest) (*CreateBucketResponse, error)
 	CloneBucket(context.Context, *CloneBucketRequest) (*CloneBucketResponse, error)
 	GetBucketToken(context.Context, *GetBucketTokenRequest) (*GetBucketTokenResponse, error)
 	GetBucketFile(context.Context, *GetBucketFileRequest) (*GetBucketFileResponse, error)
@@ -127,9 +114,6 @@ type CodeBucketServer interface {
 // pointer dereference when methods are called.
 type UnimplementedCodeBucketServer struct{}
 
-func (UnimplementedCodeBucketServer) CreateBucket(context.Context, *CreateBucketRequest) (*CreateBucketResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateBucket not implemented")
-}
 func (UnimplementedCodeBucketServer) CloneBucket(context.Context, *CloneBucketRequest) (*CloneBucketResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CloneBucket not implemented")
 }
@@ -164,24 +148,6 @@ func RegisterCodeBucketServer(s grpc.ServiceRegistrar, srv CodeBucketServer) {
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&CodeBucket_ServiceDesc, srv)
-}
-
-func _CodeBucket_CreateBucket_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateBucketRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CodeBucketServer).CreateBucket(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: CodeBucket_CreateBucket_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CodeBucketServer).CreateBucket(ctx, req.(*CreateBucketRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _CodeBucket_CloneBucket_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -281,10 +247,6 @@ var CodeBucket_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "rpc.rpc.CodeBucket",
 	HandlerType: (*CodeBucketServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "CreateBucket",
-			Handler:    _CodeBucket_CreateBucket_Handler,
-		},
 		{
 			MethodName: "CloneBucket",
 			Handler:    _CodeBucket_CloneBucket_Handler,

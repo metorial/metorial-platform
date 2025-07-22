@@ -44,6 +44,10 @@ func WithAwsSecretKey(secretKey string) FileSystemManagerOption {
 
 func WithAwsEndpoint(endpoint string) FileSystemManagerOption {
 	return func(opts *FileSystemManagerOptions) {
+		if endpoint == "" {
+			return
+		}
+
 		opts.AwsEndpoint = endpoint
 	}
 }

@@ -22,21 +22,13 @@ import Long from "long";
 
 export const protobufPackage = "rpc.rpc";
 
-export interface CreateBucketRequest {
-  name: string;
-}
-
-export interface CreateBucketResponse {
-  bucketId: string;
-}
-
 export interface CloneBucketRequest {
   sourceBucketId: string;
   name: string;
+  newBucketId: string;
 }
 
 export interface CloneBucketResponse {
-  bucketId: string;
 }
 
 export interface GetBucketTokenRequest {
@@ -89,124 +81,8 @@ export interface GetBucketFilesAsZipResponse {
   expiresAt: Long;
 }
 
-function createBaseCreateBucketRequest(): CreateBucketRequest {
-  return { name: "" };
-}
-
-export const CreateBucketRequest: MessageFns<CreateBucketRequest> = {
-  encode(message: CreateBucketRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.name !== "") {
-      writer.uint32(10).string(message.name);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): CreateBucketRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCreateBucketRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.name = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): CreateBucketRequest {
-    return { name: isSet(object.name) ? globalThis.String(object.name) : "" };
-  },
-
-  toJSON(message: CreateBucketRequest): unknown {
-    const obj: any = {};
-    if (message.name !== "") {
-      obj.name = message.name;
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<CreateBucketRequest>): CreateBucketRequest {
-    return CreateBucketRequest.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<CreateBucketRequest>): CreateBucketRequest {
-    const message = createBaseCreateBucketRequest();
-    message.name = object.name ?? "";
-    return message;
-  },
-};
-
-function createBaseCreateBucketResponse(): CreateBucketResponse {
-  return { bucketId: "" };
-}
-
-export const CreateBucketResponse: MessageFns<CreateBucketResponse> = {
-  encode(message: CreateBucketResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.bucketId !== "") {
-      writer.uint32(10).string(message.bucketId);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): CreateBucketResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCreateBucketResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.bucketId = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): CreateBucketResponse {
-    return { bucketId: isSet(object.bucketId) ? globalThis.String(object.bucketId) : "" };
-  },
-
-  toJSON(message: CreateBucketResponse): unknown {
-    const obj: any = {};
-    if (message.bucketId !== "") {
-      obj.bucketId = message.bucketId;
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<CreateBucketResponse>): CreateBucketResponse {
-    return CreateBucketResponse.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<CreateBucketResponse>): CreateBucketResponse {
-    const message = createBaseCreateBucketResponse();
-    message.bucketId = object.bucketId ?? "";
-    return message;
-  },
-};
-
 function createBaseCloneBucketRequest(): CloneBucketRequest {
-  return { sourceBucketId: "", name: "" };
+  return { sourceBucketId: "", name: "", newBucketId: "" };
 }
 
 export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
@@ -216,6 +92,9 @@ export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
     }
     if (message.name !== "") {
       writer.uint32(18).string(message.name);
+    }
+    if (message.newBucketId !== "") {
+      writer.uint32(26).string(message.newBucketId);
     }
     return writer;
   },
@@ -243,6 +122,14 @@ export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
           message.name = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.newBucketId = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -256,6 +143,7 @@ export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
     return {
       sourceBucketId: isSet(object.sourceBucketId) ? globalThis.String(object.sourceBucketId) : "",
       name: isSet(object.name) ? globalThis.String(object.name) : "",
+      newBucketId: isSet(object.newBucketId) ? globalThis.String(object.newBucketId) : "",
     };
   },
 
@@ -267,6 +155,9 @@ export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
     if (message.name !== "") {
       obj.name = message.name;
     }
+    if (message.newBucketId !== "") {
+      obj.newBucketId = message.newBucketId;
+    }
     return obj;
   },
 
@@ -277,19 +168,17 @@ export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
     const message = createBaseCloneBucketRequest();
     message.sourceBucketId = object.sourceBucketId ?? "";
     message.name = object.name ?? "";
+    message.newBucketId = object.newBucketId ?? "";
     return message;
   },
 };
 
 function createBaseCloneBucketResponse(): CloneBucketResponse {
-  return { bucketId: "" };
+  return {};
 }
 
 export const CloneBucketResponse: MessageFns<CloneBucketResponse> = {
-  encode(message: CloneBucketResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.bucketId !== "") {
-      writer.uint32(10).string(message.bucketId);
-    }
+  encode(_: CloneBucketResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     return writer;
   },
 
@@ -300,14 +189,6 @@ export const CloneBucketResponse: MessageFns<CloneBucketResponse> = {
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.bucketId = reader.string();
-          continue;
-        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -317,24 +198,20 @@ export const CloneBucketResponse: MessageFns<CloneBucketResponse> = {
     return message;
   },
 
-  fromJSON(object: any): CloneBucketResponse {
-    return { bucketId: isSet(object.bucketId) ? globalThis.String(object.bucketId) : "" };
+  fromJSON(_: any): CloneBucketResponse {
+    return {};
   },
 
-  toJSON(message: CloneBucketResponse): unknown {
+  toJSON(_: CloneBucketResponse): unknown {
     const obj: any = {};
-    if (message.bucketId !== "") {
-      obj.bucketId = message.bucketId;
-    }
     return obj;
   },
 
   create(base?: DeepPartial<CloneBucketResponse>): CloneBucketResponse {
     return CloneBucketResponse.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<CloneBucketResponse>): CloneBucketResponse {
+  fromPartial(_: DeepPartial<CloneBucketResponse>): CloneBucketResponse {
     const message = createBaseCloneBucketResponse();
-    message.bucketId = object.bucketId ?? "";
     return message;
   },
 };
@@ -1061,16 +938,6 @@ export const GetBucketFilesAsZipResponse: MessageFns<GetBucketFilesAsZipResponse
 
 export type CodeBucketService = typeof CodeBucketService;
 export const CodeBucketService = {
-  createBucket: {
-    path: "/rpc.rpc.CodeBucket/CreateBucket",
-    requestStream: false,
-    responseStream: false,
-    requestSerialize: (value: CreateBucketRequest): Buffer => Buffer.from(CreateBucketRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CreateBucketRequest => CreateBucketRequest.decode(value),
-    responseSerialize: (value: CreateBucketResponse): Buffer =>
-      Buffer.from(CreateBucketResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateBucketResponse => CreateBucketResponse.decode(value),
-  },
   cloneBucket: {
     path: "/rpc.rpc.CodeBucket/CloneBucket",
     requestStream: false,
@@ -1126,7 +993,6 @@ export const CodeBucketService = {
 } as const;
 
 export interface CodeBucketServer extends UntypedServiceImplementation {
-  createBucket: handleUnaryCall<CreateBucketRequest, CreateBucketResponse>;
   cloneBucket: handleUnaryCall<CloneBucketRequest, CloneBucketResponse>;
   getBucketToken: handleUnaryCall<GetBucketTokenRequest, GetBucketTokenResponse>;
   getBucketFile: handleUnaryCall<GetBucketFileRequest, GetBucketFileResponse>;
@@ -1135,21 +1001,6 @@ export interface CodeBucketServer extends UntypedServiceImplementation {
 }
 
 export interface CodeBucketClient extends Client {
-  createBucket(
-    request: CreateBucketRequest,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
-  ): ClientUnaryCall;
-  createBucket(
-    request: CreateBucketRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
-  ): ClientUnaryCall;
-  createBucket(
-    request: CreateBucketRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
-  ): ClientUnaryCall;
   cloneBucket(
     request: CloneBucketRequest,
     callback: (error: ServiceError | null, response: CloneBucketResponse) => void,

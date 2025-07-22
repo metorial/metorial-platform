@@ -21,6 +21,8 @@ func (fsm *FileSystemManager) backgroundFlush() {
 }
 
 func (fsm *FileSystemManager) flushPendingFiles() {
+	log.Println("Flushing pending files to S3...")
+
 	ctx := context.Background()
 	pattern := "flush:*"
 

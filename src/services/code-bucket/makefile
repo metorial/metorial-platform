@@ -1,25 +1,13 @@
-.PHONY: test proto vet staticcheck lint build-worker build-manager build-unified run-worker run-manager run-unified dev
+.PHONY: test proto vet staticcheck lint build run dev
 
-build-manager:
-	go build -o bin/manager ./cmd/manager
+build:
+	go build -o bin/server ./cmd/server
 
-run-manager: build-manager
-	./bin/manager $(ARGS)
-
-build-worker:
-	go build -o bin/worker ./cmd/worker
-
-run-worker: build-worker
-	./bin/worker $(ARGS)
-
-build-unified:
-	go build -o bin/unified ./cmd/unified
-
-run-unified: build-unified
-	./bin/unified $(ARGS)
+run: build
+	./bin/server $(ARGS)
 
 dev:
-	air --build.cmd "go build -o bin/unified ./cmd/unified" --build.bin "./bin/unified"
+	air --build.cmd "go build -o bin/server ./cmd/server" --build.bin "./bin/server"
 
 vet:
 	go vet ./...

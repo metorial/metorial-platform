@@ -55,7 +55,6 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 
 	rdb := redis.NewClient(util.Must(redis.ParseURL(options.RedisURL)))
 
-	// Initialize S3
 	awsConfig := aws.NewConfig().
 		WithRegion(options.AwsRegion).
 		WithCredentials(credentials.NewStaticCredentials(
@@ -75,7 +74,7 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 		redis:       rdb,
 		s3Client:    s3Client,
 		bucketName:  options.S3Bucket,
-		flushTicker: time.NewTicker(30 * time.Second),
+		flushTicker: time.NewTicker(5 * time.Second),
 	}
 
 	// Start background flush routine
@@ -125,7 +124,7 @@ func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, fileP
 		ModifiedAt:  time.Now(),
 	}
 	if data, err := json.Marshal(fileData); err == nil {
-		fsm.redis.Set(ctx, redisKey, data, redisFlushDelay*2)
+		fsm.redis.Set(ctx, redisKey, data, redisFlushDelay*10)
 	}
 
 	return content, contentType, nil
@@ -145,14 +144,14 @@ func (fsm *FileSystemManager) PutBucketFile(ctx context.Context, bucketID, fileP
 		return err
 	}
 
-	err = fsm.redis.Set(ctx, redisKey, data, redisFlushDelay*2).Err()
+	err = fsm.redis.Set(ctx, redisKey, data, redisFlushDelay*10).Err()
 	if err != nil {
 		return err
 	}
 
 	// Mark for flush
 	flushKey := fmt.Sprintf("flush:%s:%s", bucketID, filePath)
-	fsm.redis.Set(ctx, flushKey, time.Now().Unix(), redisFlushDelay*2)
+	fsm.redis.Set(ctx, flushKey, time.Now().Unix(), redisFlushDelay*10)
 
 	return nil
 }
@@ -188,7 +187,7 @@ func (fsm *FileSystemManager) DeleteBucketFile(ctx context.Context, bucketID, fi
 }
 
 func (fsm *FileSystemManager) GetBucketFiles(ctx context.Context, bucketID, prefix string) ([]FileInfo, error) {
-	var files []FileInfo
+	files := make([]FileInfo, 0)
 
 	// Get files from Redis
 	pattern := fmt.Sprintf("bucket:%s:file:*", bucketID)
@@ -327,4 +326,13 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 	expiresAt := time.Now().Add(s3ZipExpiration)
 
 	return &url, &expiresAt, nil
+}
+
+func (fsm *FileSystemManager) Close() {
+	fsm.flushPendingFiles()
+
+	if fsm.flushTicker != nil {
+		fsm.flushTicker.Stop()
+	}
+	fsm.redis.Close()
 }
