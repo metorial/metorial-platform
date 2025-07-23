@@ -11,4 +11,5 @@ use (
 	./src/modules/sentry-util
 	./src/modules/util
 	./src/modules/ssrf-protection
+	./src/services/code-bucket
 )
