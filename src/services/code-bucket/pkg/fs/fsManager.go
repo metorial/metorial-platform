@@ -74,7 +74,7 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 		redis:       rdb,
 		s3Client:    s3Client,
 		bucketName:  options.S3Bucket,
-		flushTicker: time.NewTicker(5 * time.Second),
+		flushTicker: time.NewTicker(60 * time.Second),
 	}
 
 	// Start background flush routine
@@ -84,7 +84,7 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 	return fsm
 }
 
-func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, filePath string) ([]byte, string, error) {
+func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, filePath string) (*FileInfo, *FileData, error) {
 	// First check Redis
 	redisKey := fmt.Sprintf("bucket:%s:file:%s", bucketID, filePath)
 
@@ -92,7 +92,16 @@ func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, fileP
 	if err == nil {
 		var fileData FileData
 		if err := json.Unmarshal([]byte(result), &fileData); err == nil {
-			return fileData.Content, fileData.ContentType, nil
+			// return fileData.Content, fileData.ContentType, nil
+
+			info := &FileInfo{
+				Path:        filePath,
+				Size:        int64(len(fileData.Content)),
+				ContentType: fileData.ContentType,
+				ModifiedAt:  fileData.ModifiedAt,
+			}
+
+			return info, &fileData, nil
 		}
 	}
 
@@ -103,13 +112,13 @@ func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, fileP
 		Key:    aws.String(s3Key),
 	})
 	if err != nil {
-		return nil, "", fmt.Errorf("file not found")
+		return nil, nil, fmt.Errorf("file not found")
 	}
 	defer obj.Body.Close()
 
 	content, err := io.ReadAll(obj.Body)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	contentType := "application/octet-stream"
@@ -117,17 +126,29 @@ func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, fileP
 		contentType = *obj.ContentType
 	}
 
+	modifiedAt := time.Now()
+	if obj.LastModified != nil {
+		modifiedAt = *obj.LastModified
+	}
+
 	// Cache in Redis
 	fileData := FileData{
 		Content:     content,
 		ContentType: contentType,
-		ModifiedAt:  time.Now(),
+		ModifiedAt:  modifiedAt,
 	}
 	if data, err := json.Marshal(fileData); err == nil {
 		fsm.redis.Set(ctx, redisKey, data, redisFlushDelay*10)
 	}
 
-	return content, contentType, nil
+	info := &FileInfo{
+		Path:        filePath,
+		Size:        int64(len(content)),
+		ContentType: contentType,
+		ModifiedAt:  modifiedAt,
+	}
+
+	return info, &fileData, nil
 }
 
 func (fsm *FileSystemManager) PutBucketFile(ctx context.Context, bucketID, filePath string, content []byte, contentType string) error {
@@ -161,20 +182,10 @@ func (fsm *FileSystemManager) DeleteBucketFile(ctx context.Context, bucketID, fi
 	redisKey := fmt.Sprintf("bucket:%s:file:%s", bucketID, filePath)
 	exists := fsm.redis.Exists(ctx, redisKey).Val()
 
-	if exists == 0 {
-		// Check S3
-		s3Key := fmt.Sprintf("%s/%s", bucketID, filePath)
-		_, err := fsm.s3Client.HeadObjectWithContext(ctx, &s3.HeadObjectInput{
-			Bucket: aws.String(fsm.bucketName),
-			Key:    aws.String(s3Key),
-		})
-		if err != nil {
-			return fmt.Errorf("file not found")
-		}
-	}
-
 	// Delete from Redis
-	fsm.redis.Del(ctx, redisKey)
+	if exists != 0 {
+		fsm.redis.Del(ctx, redisKey)
+	}
 
 	// Delete from S3
 	s3Key := fmt.Sprintf("%s/%s", bucketID, filePath)
@@ -279,7 +290,7 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 	zipWriter := zip.NewWriter(&buf)
 
 	for _, file := range files {
-		content, _, err := fsm.GetBucketFile(ctx, bucketId, file.Path)
+		_, data, err := fsm.GetBucketFile(ctx, bucketId, file.Path)
 		if err != nil {
 			continue
 		}
@@ -289,7 +300,7 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 			continue
 		}
 
-		f.Write(content)
+		f.Write(data.Content)
 	}
 
 	zipWriter.Close()

@@ -91,7 +91,7 @@ func (hs *HttpService) handleGetFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content, contentType, err := hs.fsm.GetBucketFile(r.Context(), authBucketID, filePath)
+	_, content, err := hs.fsm.GetBucketFile(r.Context(), authBucketID, filePath)
 	if err != nil {
 		if err.Error() == "file not found" {
 			http.Error(w, "File not found", http.StatusNotFound)
@@ -101,8 +101,8 @@ func (hs *HttpService) handleGetFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", contentType)
-	w.Write(content)
+	w.Header().Set("Content-Type", content.ContentType)
+	w.Write(content.Content)
 }
 
 func (hs *HttpService) handlePutFile(w http.ResponseWriter, r *http.Request) {

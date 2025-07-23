@@ -108,7 +108,7 @@ func (fsm *FileSystemManager) flushFileToS3(ctx context.Context, bucketID, fileP
 }
 
 func (fsm *FileSystemManager) cleanupZipFiles() {
-	ticker := time.NewTicker(1 * time.Hour)
+	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
 
 	for range ticker.C {
