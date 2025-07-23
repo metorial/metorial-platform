@@ -1,5 +1,5 @@
 {
-  "name": "@metorial/code-bucket-service-generated",
+  "name": "@metorial/usage-service-generated",
   "module": "index.ts",
   "type": "module",
   "private": true,
