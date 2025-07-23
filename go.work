@@ -12,4 +12,5 @@ use (
 	./src/modules/util
 	./src/modules/ssrf-protection
 	./src/services/code-bucket
+	./src/services/usage
 )
