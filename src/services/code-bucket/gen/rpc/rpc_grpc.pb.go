@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CodeBucket_CloneBucket_FullMethodName         = "/rpc.rpc.CodeBucket/CloneBucket"
-	CodeBucket_GetBucketToken_FullMethodName      = "/rpc.rpc.CodeBucket/GetBucketToken"
-	CodeBucket_GetBucketFile_FullMethodName       = "/rpc.rpc.CodeBucket/GetBucketFile"
-	CodeBucket_GetBucketFiles_FullMethodName      = "/rpc.rpc.CodeBucket/GetBucketFiles"
-	CodeBucket_GetBucketFilesAsZip_FullMethodName = "/rpc.rpc.CodeBucket/GetBucketFilesAsZip"
+	CodeBucket_CloneBucket_FullMethodName               = "/rpc.rpc.CodeBucket/CloneBucket"
+	CodeBucket_GetBucketToken_FullMethodName            = "/rpc.rpc.CodeBucket/GetBucketToken"
+	CodeBucket_GetBucketFile_FullMethodName             = "/rpc.rpc.CodeBucket/GetBucketFile"
+	CodeBucket_GetBucketFiles_FullMethodName            = "/rpc.rpc.CodeBucket/GetBucketFiles"
+	CodeBucket_GetBucketFilesWithContent_FullMethodName = "/rpc.rpc.CodeBucket/GetBucketFilesWithContent"
+	CodeBucket_GetBucketFilesAsZip_FullMethodName       = "/rpc.rpc.CodeBucket/GetBucketFilesAsZip"
 )
 
 // CodeBucketClient is the client API for CodeBucket service.
@@ -34,6 +35,7 @@ type CodeBucketClient interface {
 	GetBucketToken(ctx context.Context, in *GetBucketTokenRequest, opts ...grpc.CallOption) (*GetBucketTokenResponse, error)
 	GetBucketFile(ctx context.Context, in *GetBucketFileRequest, opts ...grpc.CallOption) (*GetBucketFileResponse, error)
 	GetBucketFiles(ctx context.Context, in *GetBucketFilesRequest, opts ...grpc.CallOption) (*GetBucketFilesResponse, error)
+	GetBucketFilesWithContent(ctx context.Context, in *GetBucketFilesRequest, opts ...grpc.CallOption) (*GetBucketFilesWithContentResponse, error)
 	GetBucketFilesAsZip(ctx context.Context, in *GetBucketFilesAsZipRequest, opts ...grpc.CallOption) (*GetBucketFilesAsZipResponse, error)
 }
 
@@ -85,6 +87,16 @@ func (c *codeBucketClient) GetBucketFiles(ctx context.Context, in *GetBucketFile
 	return out, nil
 }
 
+func (c *codeBucketClient) GetBucketFilesWithContent(ctx context.Context, in *GetBucketFilesRequest, opts ...grpc.CallOption) (*GetBucketFilesWithContentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetBucketFilesWithContentResponse)
+	err := c.cc.Invoke(ctx, CodeBucket_GetBucketFilesWithContent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *codeBucketClient) GetBucketFilesAsZip(ctx context.Context, in *GetBucketFilesAsZipRequest, opts ...grpc.CallOption) (*GetBucketFilesAsZipResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetBucketFilesAsZipResponse)
@@ -103,6 +115,7 @@ type CodeBucketServer interface {
 	GetBucketToken(context.Context, *GetBucketTokenRequest) (*GetBucketTokenResponse, error)
 	GetBucketFile(context.Context, *GetBucketFileRequest) (*GetBucketFileResponse, error)
 	GetBucketFiles(context.Context, *GetBucketFilesRequest) (*GetBucketFilesResponse, error)
+	GetBucketFilesWithContent(context.Context, *GetBucketFilesRequest) (*GetBucketFilesWithContentResponse, error)
 	GetBucketFilesAsZip(context.Context, *GetBucketFilesAsZipRequest) (*GetBucketFilesAsZipResponse, error)
 	mustEmbedUnimplementedCodeBucketServer()
 }
@@ -125,6 +138,9 @@ func (UnimplementedCodeBucketServer) GetBucketFile(context.Context, *GetBucketFi
 }
 func (UnimplementedCodeBucketServer) GetBucketFiles(context.Context, *GetBucketFilesRequest) (*GetBucketFilesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBucketFiles not implemented")
+}
+func (UnimplementedCodeBucketServer) GetBucketFilesWithContent(context.Context, *GetBucketFilesRequest) (*GetBucketFilesWithContentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBucketFilesWithContent not implemented")
 }
 func (UnimplementedCodeBucketServer) GetBucketFilesAsZip(context.Context, *GetBucketFilesAsZipRequest) (*GetBucketFilesAsZipResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBucketFilesAsZip not implemented")
@@ -222,6 +238,24 @@ func _CodeBucket_GetBucketFiles_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CodeBucket_GetBucketFilesWithContent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBucketFilesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CodeBucketServer).GetBucketFilesWithContent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CodeBucket_GetBucketFilesWithContent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CodeBucketServer).GetBucketFilesWithContent(ctx, req.(*GetBucketFilesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CodeBucket_GetBucketFilesAsZip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetBucketFilesAsZipRequest)
 	if err := dec(in); err != nil {
@@ -262,6 +296,10 @@ var CodeBucket_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetBucketFiles",
 			Handler:    _CodeBucket_GetBucketFiles_Handler,
+		},
+		{
+			MethodName: "GetBucketFilesWithContent",
+			Handler:    _CodeBucket_GetBucketFilesWithContent_Handler,
 		},
 		{
 			MethodName: "GetBucketFilesAsZip",

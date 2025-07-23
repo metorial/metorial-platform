@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/metorial/metorial/services/code-bucket/gen/rpc"
@@ -35,12 +36,12 @@ func (rs *RcpService) CloneBucket(ctx context.Context, req *rpc.CloneBucketReque
 
 	// Copy all files to new bucket
 	for _, file := range files {
-		content, contentType, err := rs.fsm.GetBucketFile(ctx, req.SourceBucketId, file.Path)
+		info, content, err := rs.fsm.GetBucketFile(ctx, req.SourceBucketId, file.Path)
 		if err != nil {
 			continue
 		}
 
-		rs.fsm.PutBucketFile(ctx, req.NewBucketId, file.Path, content, contentType)
+		rs.fsm.PutBucketFile(ctx, req.NewBucketId, file.Path, content.Content, info.ContentType)
 	}
 
 	return &rpc.CloneBucketResponse{}, nil
@@ -57,6 +58,8 @@ func (rs *RcpService) GetBucketToken(ctx context.Context, req *rpc.GetBucketToke
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiresIn) * time.Second)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Audience:  jwt.ClaimStrings{fmt.Sprintf("https://code-bucket.service.metorial.com/bucket/%s", req.BucketId)},
+			Issuer:    "https://code-bucket.service.metorial.com",
 		},
 	}
 
@@ -70,7 +73,7 @@ func (rs *RcpService) GetBucketToken(ctx context.Context, req *rpc.GetBucketToke
 }
 
 func (rs *RcpService) GetBucketFile(ctx context.Context, req *rpc.GetBucketFileRequest) (*rpc.GetBucketFileResponse, error) {
-	content, contentType, err := rs.fsm.GetBucketFile(ctx, req.BucketId, req.Path)
+	info, content, err := rs.fsm.GetBucketFile(ctx, req.BucketId, req.Path)
 	if err != nil {
 		if err.Error() == "file not found" {
 			return nil, status.Errorf(codes.NotFound, "file not found")
@@ -79,10 +82,15 @@ func (rs *RcpService) GetBucketFile(ctx context.Context, req *rpc.GetBucketFileR
 	}
 
 	return &rpc.GetBucketFileResponse{
-		Content:     content,
-		ContentType: contentType,
-		Size:        int64(len(content)),
-		ModifiedAt:  time.Now().Unix(),
+		Content: &rpc.FileContent{
+			Content: content.Content,
+			FileInfo: &rpc.FileInfo{
+				Path:        info.Path,
+				Size:        info.Size,
+				ContentType: info.ContentType,
+				ModifiedAt:  info.ModifiedAt.Unix(),
+			},
+		},
 	}, nil
 }
 
@@ -115,4 +123,31 @@ func (rs *RcpService) GetBucketFilesAsZip(ctx context.Context, req *rpc.GetBucke
 		DownloadUrl: *url,
 		ExpiresAt:   expiresAt.Unix(),
 	}, nil
+}
+
+func (rs *RcpService) GetBucketFilesWithContent(ctx context.Context, req *rpc.GetBucketFilesRequest) (*rpc.GetBucketFilesWithContentResponse, error) {
+	files, err := rs.fsm.GetBucketFiles(ctx, req.BucketId, req.Prefix)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get files: %v", err)
+	}
+
+	var pbFiles []*rpc.FileContent
+	for _, file := range files {
+		_, content, err := rs.fsm.GetBucketFile(ctx, req.BucketId, file.Path)
+		if err != nil {
+			continue
+		}
+
+		pbFiles = append(pbFiles, &rpc.FileContent{
+			FileInfo: &rpc.FileInfo{
+				Path:        file.Path,
+				Size:        file.Size,
+				ContentType: file.ContentType,
+				ModifiedAt:  file.ModifiedAt.Unix(),
+			},
+			Content: content.Content,
+		})
+	}
+
+	return &rpc.GetBucketFilesWithContentResponse{Files: pbFiles}, nil
 }

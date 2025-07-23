@@ -22,6 +22,18 @@ import Long from "long";
 
 export const protobufPackage = "rpc.rpc";
 
+export interface FileInfo {
+  path: string;
+  size: Long;
+  contentType: string;
+  modifiedAt: Long;
+}
+
+export interface FileContent {
+  content: Uint8Array;
+  fileInfo: FileInfo | undefined;
+}
+
 export interface CloneBucketRequest {
   sourceBucketId: string;
   name: string;
@@ -33,7 +45,6 @@ export interface CloneBucketResponse {
 
 export interface GetBucketTokenRequest {
   bucketId: string;
-  /** Optional, defaults to 24h */
   expiresInSeconds: Long;
 }
 
@@ -47,10 +58,7 @@ export interface GetBucketFileRequest {
 }
 
 export interface GetBucketFileResponse {
-  content: Uint8Array;
-  contentType: string;
-  size: Long;
-  modifiedAt: Long;
+  content: FileContent | undefined;
 }
 
 export interface GetBucketFilesRequest {
@@ -59,15 +67,12 @@ export interface GetBucketFilesRequest {
   prefix: string;
 }
 
-export interface FileInfo {
-  path: string;
-  size: Long;
-  contentType: string;
-  modifiedAt: Long;
-}
-
 export interface GetBucketFilesResponse {
   files: FileInfo[];
+}
+
+export interface GetBucketFilesWithContentResponse {
+  files: FileContent[];
 }
 
 export interface GetBucketFilesAsZipRequest {
@@ -80,6 +85,194 @@ export interface GetBucketFilesAsZipResponse {
   downloadUrl: string;
   expiresAt: Long;
 }
+
+function createBaseFileInfo(): FileInfo {
+  return { path: "", size: Long.ZERO, contentType: "", modifiedAt: Long.ZERO };
+}
+
+export const FileInfo: MessageFns<FileInfo> = {
+  encode(message: FileInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.path !== "") {
+      writer.uint32(10).string(message.path);
+    }
+    if (!message.size.equals(Long.ZERO)) {
+      writer.uint32(16).int64(message.size.toString());
+    }
+    if (message.contentType !== "") {
+      writer.uint32(26).string(message.contentType);
+    }
+    if (!message.modifiedAt.equals(Long.ZERO)) {
+      writer.uint32(32).int64(message.modifiedAt.toString());
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): FileInfo {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseFileInfo();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.path = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.size = Long.fromString(reader.int64().toString());
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.contentType = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.modifiedAt = Long.fromString(reader.int64().toString());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): FileInfo {
+    return {
+      path: isSet(object.path) ? globalThis.String(object.path) : "",
+      size: isSet(object.size) ? Long.fromValue(object.size) : Long.ZERO,
+      contentType: isSet(object.contentType) ? globalThis.String(object.contentType) : "",
+      modifiedAt: isSet(object.modifiedAt) ? Long.fromValue(object.modifiedAt) : Long.ZERO,
+    };
+  },
+
+  toJSON(message: FileInfo): unknown {
+    const obj: any = {};
+    if (message.path !== "") {
+      obj.path = message.path;
+    }
+    if (!message.size.equals(Long.ZERO)) {
+      obj.size = (message.size || Long.ZERO).toString();
+    }
+    if (message.contentType !== "") {
+      obj.contentType = message.contentType;
+    }
+    if (!message.modifiedAt.equals(Long.ZERO)) {
+      obj.modifiedAt = (message.modifiedAt || Long.ZERO).toString();
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<FileInfo>): FileInfo {
+    return FileInfo.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<FileInfo>): FileInfo {
+    const message = createBaseFileInfo();
+    message.path = object.path ?? "";
+    message.size = (object.size !== undefined && object.size !== null) ? Long.fromValue(object.size) : Long.ZERO;
+    message.contentType = object.contentType ?? "";
+    message.modifiedAt = (object.modifiedAt !== undefined && object.modifiedAt !== null)
+      ? Long.fromValue(object.modifiedAt)
+      : Long.ZERO;
+    return message;
+  },
+};
+
+function createBaseFileContent(): FileContent {
+  return { content: new Uint8Array(0), fileInfo: undefined };
+}
+
+export const FileContent: MessageFns<FileContent> = {
+  encode(message: FileContent, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.content.length !== 0) {
+      writer.uint32(10).bytes(message.content);
+    }
+    if (message.fileInfo !== undefined) {
+      FileInfo.encode(message.fileInfo, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): FileContent {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseFileContent();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.content = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.fileInfo = FileInfo.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): FileContent {
+    return {
+      content: isSet(object.content) ? bytesFromBase64(object.content) : new Uint8Array(0),
+      fileInfo: isSet(object.fileInfo) ? FileInfo.fromJSON(object.fileInfo) : undefined,
+    };
+  },
+
+  toJSON(message: FileContent): unknown {
+    const obj: any = {};
+    if (message.content.length !== 0) {
+      obj.content = base64FromBytes(message.content);
+    }
+    if (message.fileInfo !== undefined) {
+      obj.fileInfo = FileInfo.toJSON(message.fileInfo);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<FileContent>): FileContent {
+    return FileContent.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<FileContent>): FileContent {
+    const message = createBaseFileContent();
+    message.content = object.content ?? new Uint8Array(0);
+    message.fileInfo = (object.fileInfo !== undefined && object.fileInfo !== null)
+      ? FileInfo.fromPartial(object.fileInfo)
+      : undefined;
+    return message;
+  },
+};
 
 function createBaseCloneBucketRequest(): CloneBucketRequest {
   return { sourceBucketId: "", name: "", newBucketId: "" };
@@ -429,22 +622,13 @@ export const GetBucketFileRequest: MessageFns<GetBucketFileRequest> = {
 };
 
 function createBaseGetBucketFileResponse(): GetBucketFileResponse {
-  return { content: new Uint8Array(0), contentType: "", size: Long.ZERO, modifiedAt: Long.ZERO };
+  return { content: undefined };
 }
 
 export const GetBucketFileResponse: MessageFns<GetBucketFileResponse> = {
   encode(message: GetBucketFileResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.content.length !== 0) {
-      writer.uint32(10).bytes(message.content);
-    }
-    if (message.contentType !== "") {
-      writer.uint32(18).string(message.contentType);
-    }
-    if (!message.size.equals(Long.ZERO)) {
-      writer.uint32(24).int64(message.size.toString());
-    }
-    if (!message.modifiedAt.equals(Long.ZERO)) {
-      writer.uint32(32).int64(message.modifiedAt.toString());
+    if (message.content !== undefined) {
+      FileContent.encode(message.content, writer.uint32(10).fork()).join();
     }
     return writer;
   },
@@ -461,31 +645,7 @@ export const GetBucketFileResponse: MessageFns<GetBucketFileResponse> = {
             break;
           }
 
-          message.content = reader.bytes();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.contentType = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 24) {
-            break;
-          }
-
-          message.size = Long.fromString(reader.int64().toString());
-          continue;
-        }
-        case 4: {
-          if (tag !== 32) {
-            break;
-          }
-
-          message.modifiedAt = Long.fromString(reader.int64().toString());
+          message.content = FileContent.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -498,27 +658,13 @@ export const GetBucketFileResponse: MessageFns<GetBucketFileResponse> = {
   },
 
   fromJSON(object: any): GetBucketFileResponse {
-    return {
-      content: isSet(object.content) ? bytesFromBase64(object.content) : new Uint8Array(0),
-      contentType: isSet(object.contentType) ? globalThis.String(object.contentType) : "",
-      size: isSet(object.size) ? Long.fromValue(object.size) : Long.ZERO,
-      modifiedAt: isSet(object.modifiedAt) ? Long.fromValue(object.modifiedAt) : Long.ZERO,
-    };
+    return { content: isSet(object.content) ? FileContent.fromJSON(object.content) : undefined };
   },
 
   toJSON(message: GetBucketFileResponse): unknown {
     const obj: any = {};
-    if (message.content.length !== 0) {
-      obj.content = base64FromBytes(message.content);
-    }
-    if (message.contentType !== "") {
-      obj.contentType = message.contentType;
-    }
-    if (!message.size.equals(Long.ZERO)) {
-      obj.size = (message.size || Long.ZERO).toString();
-    }
-    if (!message.modifiedAt.equals(Long.ZERO)) {
-      obj.modifiedAt = (message.modifiedAt || Long.ZERO).toString();
+    if (message.content !== undefined) {
+      obj.content = FileContent.toJSON(message.content);
     }
     return obj;
   },
@@ -528,12 +674,9 @@ export const GetBucketFileResponse: MessageFns<GetBucketFileResponse> = {
   },
   fromPartial(object: DeepPartial<GetBucketFileResponse>): GetBucketFileResponse {
     const message = createBaseGetBucketFileResponse();
-    message.content = object.content ?? new Uint8Array(0);
-    message.contentType = object.contentType ?? "";
-    message.size = (object.size !== undefined && object.size !== null) ? Long.fromValue(object.size) : Long.ZERO;
-    message.modifiedAt = (object.modifiedAt !== undefined && object.modifiedAt !== null)
-      ? Long.fromValue(object.modifiedAt)
-      : Long.ZERO;
+    message.content = (object.content !== undefined && object.content !== null)
+      ? FileContent.fromPartial(object.content)
+      : undefined;
     return message;
   },
 };
@@ -614,116 +757,6 @@ export const GetBucketFilesRequest: MessageFns<GetBucketFilesRequest> = {
   },
 };
 
-function createBaseFileInfo(): FileInfo {
-  return { path: "", size: Long.ZERO, contentType: "", modifiedAt: Long.ZERO };
-}
-
-export const FileInfo: MessageFns<FileInfo> = {
-  encode(message: FileInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.path !== "") {
-      writer.uint32(10).string(message.path);
-    }
-    if (!message.size.equals(Long.ZERO)) {
-      writer.uint32(16).int64(message.size.toString());
-    }
-    if (message.contentType !== "") {
-      writer.uint32(26).string(message.contentType);
-    }
-    if (!message.modifiedAt.equals(Long.ZERO)) {
-      writer.uint32(32).int64(message.modifiedAt.toString());
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): FileInfo {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseFileInfo();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.path = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 16) {
-            break;
-          }
-
-          message.size = Long.fromString(reader.int64().toString());
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.contentType = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 32) {
-            break;
-          }
-
-          message.modifiedAt = Long.fromString(reader.int64().toString());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): FileInfo {
-    return {
-      path: isSet(object.path) ? globalThis.String(object.path) : "",
-      size: isSet(object.size) ? Long.fromValue(object.size) : Long.ZERO,
-      contentType: isSet(object.contentType) ? globalThis.String(object.contentType) : "",
-      modifiedAt: isSet(object.modifiedAt) ? Long.fromValue(object.modifiedAt) : Long.ZERO,
-    };
-  },
-
-  toJSON(message: FileInfo): unknown {
-    const obj: any = {};
-    if (message.path !== "") {
-      obj.path = message.path;
-    }
-    if (!message.size.equals(Long.ZERO)) {
-      obj.size = (message.size || Long.ZERO).toString();
-    }
-    if (message.contentType !== "") {
-      obj.contentType = message.contentType;
-    }
-    if (!message.modifiedAt.equals(Long.ZERO)) {
-      obj.modifiedAt = (message.modifiedAt || Long.ZERO).toString();
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<FileInfo>): FileInfo {
-    return FileInfo.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<FileInfo>): FileInfo {
-    const message = createBaseFileInfo();
-    message.path = object.path ?? "";
-    message.size = (object.size !== undefined && object.size !== null) ? Long.fromValue(object.size) : Long.ZERO;
-    message.contentType = object.contentType ?? "";
-    message.modifiedAt = (object.modifiedAt !== undefined && object.modifiedAt !== null)
-      ? Long.fromValue(object.modifiedAt)
-      : Long.ZERO;
-    return message;
-  },
-};
-
 function createBaseGetBucketFilesResponse(): GetBucketFilesResponse {
   return { files: [] };
 }
@@ -778,6 +811,66 @@ export const GetBucketFilesResponse: MessageFns<GetBucketFilesResponse> = {
   fromPartial(object: DeepPartial<GetBucketFilesResponse>): GetBucketFilesResponse {
     const message = createBaseGetBucketFilesResponse();
     message.files = object.files?.map((e) => FileInfo.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseGetBucketFilesWithContentResponse(): GetBucketFilesWithContentResponse {
+  return { files: [] };
+}
+
+export const GetBucketFilesWithContentResponse: MessageFns<GetBucketFilesWithContentResponse> = {
+  encode(message: GetBucketFilesWithContentResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.files) {
+      FileContent.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetBucketFilesWithContentResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetBucketFilesWithContentResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.files.push(FileContent.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetBucketFilesWithContentResponse {
+    return {
+      files: globalThis.Array.isArray(object?.files) ? object.files.map((e: any) => FileContent.fromJSON(e)) : [],
+    };
+  },
+
+  toJSON(message: GetBucketFilesWithContentResponse): unknown {
+    const obj: any = {};
+    if (message.files?.length) {
+      obj.files = message.files.map((e) => FileContent.toJSON(e));
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<GetBucketFilesWithContentResponse>): GetBucketFilesWithContentResponse {
+    return GetBucketFilesWithContentResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<GetBucketFilesWithContentResponse>): GetBucketFilesWithContentResponse {
+    const message = createBaseGetBucketFilesWithContentResponse();
+    message.files = object.files?.map((e) => FileContent.fromPartial(e)) || [];
     return message;
   },
 };
@@ -979,6 +1072,18 @@ export const CodeBucketService = {
       Buffer.from(GetBucketFilesResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetBucketFilesResponse => GetBucketFilesResponse.decode(value),
   },
+  getBucketFilesWithContent: {
+    path: "/rpc.rpc.CodeBucket/GetBucketFilesWithContent",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: GetBucketFilesRequest): Buffer =>
+      Buffer.from(GetBucketFilesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetBucketFilesRequest => GetBucketFilesRequest.decode(value),
+    responseSerialize: (value: GetBucketFilesWithContentResponse): Buffer =>
+      Buffer.from(GetBucketFilesWithContentResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetBucketFilesWithContentResponse =>
+      GetBucketFilesWithContentResponse.decode(value),
+  },
   getBucketFilesAsZip: {
     path: "/rpc.rpc.CodeBucket/GetBucketFilesAsZip",
     requestStream: false,
@@ -997,6 +1102,7 @@ export interface CodeBucketServer extends UntypedServiceImplementation {
   getBucketToken: handleUnaryCall<GetBucketTokenRequest, GetBucketTokenResponse>;
   getBucketFile: handleUnaryCall<GetBucketFileRequest, GetBucketFileResponse>;
   getBucketFiles: handleUnaryCall<GetBucketFilesRequest, GetBucketFilesResponse>;
+  getBucketFilesWithContent: handleUnaryCall<GetBucketFilesRequest, GetBucketFilesWithContentResponse>;
   getBucketFilesAsZip: handleUnaryCall<GetBucketFilesAsZipRequest, GetBucketFilesAsZipResponse>;
 }
 
@@ -1060,6 +1166,21 @@ export interface CodeBucketClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetBucketFilesResponse) => void,
+  ): ClientUnaryCall;
+  getBucketFilesWithContent(
+    request: GetBucketFilesRequest,
+    callback: (error: ServiceError | null, response: GetBucketFilesWithContentResponse) => void,
+  ): ClientUnaryCall;
+  getBucketFilesWithContent(
+    request: GetBucketFilesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetBucketFilesWithContentResponse) => void,
+  ): ClientUnaryCall;
+  getBucketFilesWithContent(
+    request: GetBucketFilesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetBucketFilesWithContentResponse) => void,
   ): ClientUnaryCall;
   getBucketFilesAsZip(
     request: GetBucketFilesAsZipRequest,

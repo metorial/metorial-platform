@@ -9,7 +9,20 @@ service CodeBucket {
   rpc GetBucketToken(GetBucketTokenRequest) returns (GetBucketTokenResponse);
   rpc GetBucketFile(GetBucketFileRequest) returns (GetBucketFileResponse);
   rpc GetBucketFiles(GetBucketFilesRequest) returns (GetBucketFilesResponse);
+  rpc GetBucketFilesWithContent(GetBucketFilesRequest) returns (GetBucketFilesWithContentResponse);
   rpc GetBucketFilesAsZip(GetBucketFilesAsZipRequest) returns (GetBucketFilesAsZipResponse);
+}
+
+message FileInfo {
+  string path = 1;
+  int64 size = 2;
+  string content_type = 3;
+  int64 modified_at = 4;
+}
+
+message FileContent {
+  bytes content = 1;
+  FileInfo file_info = 2;
 }
 
 message CloneBucketRequest {
@@ -35,10 +48,7 @@ message GetBucketFileRequest {
 }
 
 message GetBucketFileResponse {
-  bytes content = 1;
-  string content_type = 2;
-  int64 size = 3;
-  int64 modified_at = 4;
+  FileContent content = 1;
 }
 
 message GetBucketFilesRequest {
@@ -46,15 +56,12 @@ message GetBucketFilesRequest {
   string prefix = 2; // Optional filter
 }
 
-message FileInfo {
-  string path = 1;
-  int64 size = 2;
-  string content_type = 3;
-  int64 modified_at = 4;
-}
-
 message GetBucketFilesResponse {
   repeated FileInfo files = 1;
+}
+
+message GetBucketFilesWithContentResponse {
+  repeated FileContent files = 1;
 }
 
 message GetBucketFilesAsZipRequest {
