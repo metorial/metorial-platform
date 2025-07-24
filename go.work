@@ -13,4 +13,5 @@ use (
 	./src/modules/util
 	./src/services/code-bucket
 	./src/services/usage
+	./src/services/listener
 )
