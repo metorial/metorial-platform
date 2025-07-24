@@ -121,11 +121,16 @@ export interface Interval {
   count: number;
 }
 
-export interface IngestUsageRecordRequest {
+export interface IngestUsageRecord {
   owner: Owner | undefined;
   entity: Entity | undefined;
-  type: string;
+  eventType: string;
   count: Long;
+}
+
+export interface IngestUsageRecordRequest {
+  records: IngestUsageRecord[];
+  ts: Long;
 }
 
 export interface IngestUsageRecordResponse {
@@ -135,6 +140,7 @@ export interface GetUsageTimelineRequest {
   owners: Owner[];
   entityIds: string[];
   entityTypes: string[];
+  eventTypes: string[];
   from: Long;
   to: Long;
   interval: Interval | undefined;
@@ -152,8 +158,13 @@ export interface TimelineSeries {
   entries: TimelineEntry[];
 }
 
-export interface GetUsageTimelineResponse {
+export interface TimelineEvent {
+  eventType: string;
   series: TimelineSeries[];
+}
+
+export interface GetUsageTimelineResponse {
+  events: TimelineEvent[];
 }
 
 function createBaseOwner(): Owner {
@@ -384,20 +395,20 @@ export const Interval: MessageFns<Interval> = {
   },
 };
 
-function createBaseIngestUsageRecordRequest(): IngestUsageRecordRequest {
-  return { owner: undefined, entity: undefined, type: "", count: Long.ZERO };
+function createBaseIngestUsageRecord(): IngestUsageRecord {
+  return { owner: undefined, entity: undefined, eventType: "", count: Long.ZERO };
 }
 
-export const IngestUsageRecordRequest: MessageFns<IngestUsageRecordRequest> = {
-  encode(message: IngestUsageRecordRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const IngestUsageRecord: MessageFns<IngestUsageRecord> = {
+  encode(message: IngestUsageRecord, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.owner !== undefined) {
       Owner.encode(message.owner, writer.uint32(10).fork()).join();
     }
     if (message.entity !== undefined) {
       Entity.encode(message.entity, writer.uint32(18).fork()).join();
     }
-    if (message.type !== "") {
-      writer.uint32(26).string(message.type);
+    if (message.eventType !== "") {
+      writer.uint32(26).string(message.eventType);
     }
     if (!message.count.equals(Long.ZERO)) {
       writer.uint32(32).int64(message.count.toString());
@@ -405,10 +416,10 @@ export const IngestUsageRecordRequest: MessageFns<IngestUsageRecordRequest> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): IngestUsageRecordRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number): IngestUsageRecord {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseIngestUsageRecordRequest();
+    const message = createBaseIngestUsageRecord();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -433,7 +444,7 @@ export const IngestUsageRecordRequest: MessageFns<IngestUsageRecordRequest> = {
             break;
           }
 
-          message.type = reader.string();
+          message.eventType = reader.string();
           continue;
         }
         case 4: {
@@ -453,16 +464,16 @@ export const IngestUsageRecordRequest: MessageFns<IngestUsageRecordRequest> = {
     return message;
   },
 
-  fromJSON(object: any): IngestUsageRecordRequest {
+  fromJSON(object: any): IngestUsageRecord {
     return {
       owner: isSet(object.owner) ? Owner.fromJSON(object.owner) : undefined,
       entity: isSet(object.entity) ? Entity.fromJSON(object.entity) : undefined,
-      type: isSet(object.type) ? globalThis.String(object.type) : "",
+      eventType: isSet(object.eventType) ? globalThis.String(object.eventType) : "",
       count: isSet(object.count) ? Long.fromValue(object.count) : Long.ZERO,
     };
   },
 
-  toJSON(message: IngestUsageRecordRequest): unknown {
+  toJSON(message: IngestUsageRecord): unknown {
     const obj: any = {};
     if (message.owner !== undefined) {
       obj.owner = Owner.toJSON(message.owner);
@@ -470,11 +481,93 @@ export const IngestUsageRecordRequest: MessageFns<IngestUsageRecordRequest> = {
     if (message.entity !== undefined) {
       obj.entity = Entity.toJSON(message.entity);
     }
-    if (message.type !== "") {
-      obj.type = message.type;
+    if (message.eventType !== "") {
+      obj.eventType = message.eventType;
     }
     if (!message.count.equals(Long.ZERO)) {
       obj.count = (message.count || Long.ZERO).toString();
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<IngestUsageRecord>): IngestUsageRecord {
+    return IngestUsageRecord.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<IngestUsageRecord>): IngestUsageRecord {
+    const message = createBaseIngestUsageRecord();
+    message.owner = (object.owner !== undefined && object.owner !== null) ? Owner.fromPartial(object.owner) : undefined;
+    message.entity = (object.entity !== undefined && object.entity !== null)
+      ? Entity.fromPartial(object.entity)
+      : undefined;
+    message.eventType = object.eventType ?? "";
+    message.count = (object.count !== undefined && object.count !== null) ? Long.fromValue(object.count) : Long.ZERO;
+    return message;
+  },
+};
+
+function createBaseIngestUsageRecordRequest(): IngestUsageRecordRequest {
+  return { records: [], ts: Long.ZERO };
+}
+
+export const IngestUsageRecordRequest: MessageFns<IngestUsageRecordRequest> = {
+  encode(message: IngestUsageRecordRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.records) {
+      IngestUsageRecord.encode(v!, writer.uint32(10).fork()).join();
+    }
+    if (!message.ts.equals(Long.ZERO)) {
+      writer.uint32(16).int64(message.ts.toString());
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): IngestUsageRecordRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseIngestUsageRecordRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.records.push(IngestUsageRecord.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.ts = Long.fromString(reader.int64().toString());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): IngestUsageRecordRequest {
+    return {
+      records: globalThis.Array.isArray(object?.records)
+        ? object.records.map((e: any) => IngestUsageRecord.fromJSON(e))
+        : [],
+      ts: isSet(object.ts) ? Long.fromValue(object.ts) : Long.ZERO,
+    };
+  },
+
+  toJSON(message: IngestUsageRecordRequest): unknown {
+    const obj: any = {};
+    if (message.records?.length) {
+      obj.records = message.records.map((e) => IngestUsageRecord.toJSON(e));
+    }
+    if (!message.ts.equals(Long.ZERO)) {
+      obj.ts = (message.ts || Long.ZERO).toString();
     }
     return obj;
   },
@@ -484,12 +577,8 @@ export const IngestUsageRecordRequest: MessageFns<IngestUsageRecordRequest> = {
   },
   fromPartial(object: DeepPartial<IngestUsageRecordRequest>): IngestUsageRecordRequest {
     const message = createBaseIngestUsageRecordRequest();
-    message.owner = (object.owner !== undefined && object.owner !== null) ? Owner.fromPartial(object.owner) : undefined;
-    message.entity = (object.entity !== undefined && object.entity !== null)
-      ? Entity.fromPartial(object.entity)
-      : undefined;
-    message.type = object.type ?? "";
-    message.count = (object.count !== undefined && object.count !== null) ? Long.fromValue(object.count) : Long.ZERO;
+    message.records = object.records?.map((e) => IngestUsageRecord.fromPartial(e)) || [];
+    message.ts = (object.ts !== undefined && object.ts !== null) ? Long.fromValue(object.ts) : Long.ZERO;
     return message;
   },
 };
@@ -538,7 +627,15 @@ export const IngestUsageRecordResponse: MessageFns<IngestUsageRecordResponse> = 
 };
 
 function createBaseGetUsageTimelineRequest(): GetUsageTimelineRequest {
-  return { owners: [], entityIds: [], entityTypes: [], from: Long.ZERO, to: Long.ZERO, interval: undefined };
+  return {
+    owners: [],
+    entityIds: [],
+    entityTypes: [],
+    eventTypes: [],
+    from: Long.ZERO,
+    to: Long.ZERO,
+    interval: undefined,
+  };
 }
 
 export const GetUsageTimelineRequest: MessageFns<GetUsageTimelineRequest> = {
@@ -551,6 +648,9 @@ export const GetUsageTimelineRequest: MessageFns<GetUsageTimelineRequest> = {
     }
     for (const v of message.entityTypes) {
       writer.uint32(26).string(v!);
+    }
+    for (const v of message.eventTypes) {
+      writer.uint32(58).string(v!);
     }
     if (!message.from.equals(Long.ZERO)) {
       writer.uint32(32).int64(message.from.toString());
@@ -595,6 +695,14 @@ export const GetUsageTimelineRequest: MessageFns<GetUsageTimelineRequest> = {
           message.entityTypes.push(reader.string());
           continue;
         }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.eventTypes.push(reader.string());
+          continue;
+        }
         case 4: {
           if (tag !== 32) {
             break;
@@ -637,6 +745,9 @@ export const GetUsageTimelineRequest: MessageFns<GetUsageTimelineRequest> = {
       entityTypes: globalThis.Array.isArray(object?.entityTypes)
         ? object.entityTypes.map((e: any) => globalThis.String(e))
         : [],
+      eventTypes: globalThis.Array.isArray(object?.eventTypes)
+        ? object.eventTypes.map((e: any) => globalThis.String(e))
+        : [],
       from: isSet(object.from) ? Long.fromValue(object.from) : Long.ZERO,
       to: isSet(object.to) ? Long.fromValue(object.to) : Long.ZERO,
       interval: isSet(object.interval) ? Interval.fromJSON(object.interval) : undefined,
@@ -653,6 +764,9 @@ export const GetUsageTimelineRequest: MessageFns<GetUsageTimelineRequest> = {
     }
     if (message.entityTypes?.length) {
       obj.entityTypes = message.entityTypes;
+    }
+    if (message.eventTypes?.length) {
+      obj.eventTypes = message.eventTypes;
     }
     if (!message.from.equals(Long.ZERO)) {
       obj.from = (message.from || Long.ZERO).toString();
@@ -674,6 +788,7 @@ export const GetUsageTimelineRequest: MessageFns<GetUsageTimelineRequest> = {
     message.owners = object.owners?.map((e) => Owner.fromPartial(e)) || [];
     message.entityIds = object.entityIds?.map((e) => e) || [];
     message.entityTypes = object.entityTypes?.map((e) => e) || [];
+    message.eventTypes = object.eventTypes?.map((e) => e) || [];
     message.from = (object.from !== undefined && object.from !== null) ? Long.fromValue(object.from) : Long.ZERO;
     message.to = (object.to !== undefined && object.to !== null) ? Long.fromValue(object.to) : Long.ZERO;
     message.interval = (object.interval !== undefined && object.interval !== null)
@@ -869,14 +984,90 @@ export const TimelineSeries: MessageFns<TimelineSeries> = {
   },
 };
 
+function createBaseTimelineEvent(): TimelineEvent {
+  return { eventType: "", series: [] };
+}
+
+export const TimelineEvent: MessageFns<TimelineEvent> = {
+  encode(message: TimelineEvent, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.eventType !== "") {
+      writer.uint32(10).string(message.eventType);
+    }
+    for (const v of message.series) {
+      TimelineSeries.encode(v!, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): TimelineEvent {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseTimelineEvent();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.eventType = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.series.push(TimelineSeries.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): TimelineEvent {
+    return {
+      eventType: isSet(object.eventType) ? globalThis.String(object.eventType) : "",
+      series: globalThis.Array.isArray(object?.series) ? object.series.map((e: any) => TimelineSeries.fromJSON(e)) : [],
+    };
+  },
+
+  toJSON(message: TimelineEvent): unknown {
+    const obj: any = {};
+    if (message.eventType !== "") {
+      obj.eventType = message.eventType;
+    }
+    if (message.series?.length) {
+      obj.series = message.series.map((e) => TimelineSeries.toJSON(e));
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<TimelineEvent>): TimelineEvent {
+    return TimelineEvent.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<TimelineEvent>): TimelineEvent {
+    const message = createBaseTimelineEvent();
+    message.eventType = object.eventType ?? "";
+    message.series = object.series?.map((e) => TimelineSeries.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 function createBaseGetUsageTimelineResponse(): GetUsageTimelineResponse {
-  return { series: [] };
+  return { events: [] };
 }
 
 export const GetUsageTimelineResponse: MessageFns<GetUsageTimelineResponse> = {
   encode(message: GetUsageTimelineResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.series) {
-      TimelineSeries.encode(v!, writer.uint32(10).fork()).join();
+    for (const v of message.events) {
+      TimelineEvent.encode(v!, writer.uint32(10).fork()).join();
     }
     return writer;
   },
@@ -893,7 +1084,7 @@ export const GetUsageTimelineResponse: MessageFns<GetUsageTimelineResponse> = {
             break;
           }
 
-          message.series.push(TimelineSeries.decode(reader, reader.uint32()));
+          message.events.push(TimelineEvent.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -907,14 +1098,14 @@ export const GetUsageTimelineResponse: MessageFns<GetUsageTimelineResponse> = {
 
   fromJSON(object: any): GetUsageTimelineResponse {
     return {
-      series: globalThis.Array.isArray(object?.series) ? object.series.map((e: any) => TimelineSeries.fromJSON(e)) : [],
+      events: globalThis.Array.isArray(object?.events) ? object.events.map((e: any) => TimelineEvent.fromJSON(e)) : [],
     };
   },
 
   toJSON(message: GetUsageTimelineResponse): unknown {
     const obj: any = {};
-    if (message.series?.length) {
-      obj.series = message.series.map((e) => TimelineSeries.toJSON(e));
+    if (message.events?.length) {
+      obj.events = message.events.map((e) => TimelineEvent.toJSON(e));
     }
     return obj;
   },
@@ -924,7 +1115,7 @@ export const GetUsageTimelineResponse: MessageFns<GetUsageTimelineResponse> = {
   },
   fromPartial(object: DeepPartial<GetUsageTimelineResponse>): GetUsageTimelineResponse {
     const message = createBaseGetUsageTimelineResponse();
-    message.series = object.series?.map((e) => TimelineSeries.fromPartial(e)) || [];
+    message.events = object.events?.map((e) => TimelineEvent.fromPartial(e)) || [];
     return message;
   },
 };

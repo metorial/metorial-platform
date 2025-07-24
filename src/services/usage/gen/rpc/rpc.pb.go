@@ -278,19 +278,85 @@ func (x *Interval) GetCount() int32 {
 	return 0
 }
 
-type IngestUsageRecordRequest struct {
+type IngestUsageRecord struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Owner         *Owner                 `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
 	Entity        *Entity                `protobuf:"bytes,2,opt,name=entity,proto3" json:"entity,omitempty"`
-	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	EventType     string                 `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
 	Count         int64                  `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IngestUsageRecord) Reset() {
+	*x = IngestUsageRecord{}
+	mi := &file_rpc_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IngestUsageRecord) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IngestUsageRecord) ProtoMessage() {}
+
+func (x *IngestUsageRecord) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IngestUsageRecord.ProtoReflect.Descriptor instead.
+func (*IngestUsageRecord) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *IngestUsageRecord) GetOwner() *Owner {
+	if x != nil {
+		return x.Owner
+	}
+	return nil
+}
+
+func (x *IngestUsageRecord) GetEntity() *Entity {
+	if x != nil {
+		return x.Entity
+	}
+	return nil
+}
+
+func (x *IngestUsageRecord) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *IngestUsageRecord) GetCount() int64 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+type IngestUsageRecordRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Records       []*IngestUsageRecord   `protobuf:"bytes,1,rep,name=records,proto3" json:"records,omitempty"`
+	Ts            int64                  `protobuf:"varint,2,opt,name=ts,proto3" json:"ts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *IngestUsageRecordRequest) Reset() {
 	*x = IngestUsageRecordRequest{}
-	mi := &file_rpc_proto_msgTypes[3]
+	mi := &file_rpc_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -302,7 +368,7 @@ func (x *IngestUsageRecordRequest) String() string {
 func (*IngestUsageRecordRequest) ProtoMessage() {}
 
 func (x *IngestUsageRecordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[3]
+	mi := &file_rpc_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -315,33 +381,19 @@ func (x *IngestUsageRecordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IngestUsageRecordRequest.ProtoReflect.Descriptor instead.
 func (*IngestUsageRecordRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{3}
+	return file_rpc_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *IngestUsageRecordRequest) GetOwner() *Owner {
+func (x *IngestUsageRecordRequest) GetRecords() []*IngestUsageRecord {
 	if x != nil {
-		return x.Owner
+		return x.Records
 	}
 	return nil
 }
 
-func (x *IngestUsageRecordRequest) GetEntity() *Entity {
+func (x *IngestUsageRecordRequest) GetTs() int64 {
 	if x != nil {
-		return x.Entity
-	}
-	return nil
-}
-
-func (x *IngestUsageRecordRequest) GetType() string {
-	if x != nil {
-		return x.Type
-	}
-	return ""
-}
-
-func (x *IngestUsageRecordRequest) GetCount() int64 {
-	if x != nil {
-		return x.Count
+		return x.Ts
 	}
 	return 0
 }
@@ -354,7 +406,7 @@ type IngestUsageRecordResponse struct {
 
 func (x *IngestUsageRecordResponse) Reset() {
 	*x = IngestUsageRecordResponse{}
-	mi := &file_rpc_proto_msgTypes[4]
+	mi := &file_rpc_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -366,7 +418,7 @@ func (x *IngestUsageRecordResponse) String() string {
 func (*IngestUsageRecordResponse) ProtoMessage() {}
 
 func (x *IngestUsageRecordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[4]
+	mi := &file_rpc_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -379,7 +431,7 @@ func (x *IngestUsageRecordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IngestUsageRecordResponse.ProtoReflect.Descriptor instead.
 func (*IngestUsageRecordResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{4}
+	return file_rpc_proto_rawDescGZIP(), []int{5}
 }
 
 type GetUsageTimelineRequest struct {
@@ -387,6 +439,7 @@ type GetUsageTimelineRequest struct {
 	Owners        []*Owner               `protobuf:"bytes,1,rep,name=owners,proto3" json:"owners,omitempty"`
 	EntityIds     []string               `protobuf:"bytes,2,rep,name=entity_ids,json=entityIds,proto3" json:"entity_ids,omitempty"`
 	EntityTypes   []string               `protobuf:"bytes,3,rep,name=entity_types,json=entityTypes,proto3" json:"entity_types,omitempty"`
+	EventTypes    []string               `protobuf:"bytes,7,rep,name=event_types,json=eventTypes,proto3" json:"event_types,omitempty"`
 	From          int64                  `protobuf:"varint,4,opt,name=from,proto3" json:"from,omitempty"`
 	To            int64                  `protobuf:"varint,5,opt,name=to,proto3" json:"to,omitempty"`
 	Interval      *Interval              `protobuf:"bytes,6,opt,name=interval,proto3" json:"interval,omitempty"`
@@ -396,7 +449,7 @@ type GetUsageTimelineRequest struct {
 
 func (x *GetUsageTimelineRequest) Reset() {
 	*x = GetUsageTimelineRequest{}
-	mi := &file_rpc_proto_msgTypes[5]
+	mi := &file_rpc_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -408,7 +461,7 @@ func (x *GetUsageTimelineRequest) String() string {
 func (*GetUsageTimelineRequest) ProtoMessage() {}
 
 func (x *GetUsageTimelineRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[5]
+	mi := &file_rpc_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -421,7 +474,7 @@ func (x *GetUsageTimelineRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsageTimelineRequest.ProtoReflect.Descriptor instead.
 func (*GetUsageTimelineRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{5}
+	return file_rpc_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetUsageTimelineRequest) GetOwners() []*Owner {
@@ -441,6 +494,13 @@ func (x *GetUsageTimelineRequest) GetEntityIds() []string {
 func (x *GetUsageTimelineRequest) GetEntityTypes() []string {
 	if x != nil {
 		return x.EntityTypes
+	}
+	return nil
+}
+
+func (x *GetUsageTimelineRequest) GetEventTypes() []string {
+	if x != nil {
+		return x.EventTypes
 	}
 	return nil
 }
@@ -476,7 +536,7 @@ type TimelineEntry struct {
 
 func (x *TimelineEntry) Reset() {
 	*x = TimelineEntry{}
-	mi := &file_rpc_proto_msgTypes[6]
+	mi := &file_rpc_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -488,7 +548,7 @@ func (x *TimelineEntry) String() string {
 func (*TimelineEntry) ProtoMessage() {}
 
 func (x *TimelineEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[6]
+	mi := &file_rpc_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -501,7 +561,7 @@ func (x *TimelineEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimelineEntry.ProtoReflect.Descriptor instead.
 func (*TimelineEntry) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{6}
+	return file_rpc_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *TimelineEntry) GetTs() int64 {
@@ -530,7 +590,7 @@ type TimelineSeries struct {
 
 func (x *TimelineSeries) Reset() {
 	*x = TimelineSeries{}
-	mi := &file_rpc_proto_msgTypes[7]
+	mi := &file_rpc_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -542,7 +602,7 @@ func (x *TimelineSeries) String() string {
 func (*TimelineSeries) ProtoMessage() {}
 
 func (x *TimelineSeries) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[7]
+	mi := &file_rpc_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -555,7 +615,7 @@ func (x *TimelineSeries) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimelineSeries.ProtoReflect.Descriptor instead.
 func (*TimelineSeries) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{7}
+	return file_rpc_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *TimelineSeries) GetEntityId() string {
@@ -586,16 +646,68 @@ func (x *TimelineSeries) GetEntries() []*TimelineEntry {
 	return nil
 }
 
+type TimelineEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EventType     string                 `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	Series        []*TimelineSeries      `protobuf:"bytes,2,rep,name=series,proto3" json:"series,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TimelineEvent) Reset() {
+	*x = TimelineEvent{}
+	mi := &file_rpc_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TimelineEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TimelineEvent) ProtoMessage() {}
+
+func (x *TimelineEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TimelineEvent.ProtoReflect.Descriptor instead.
+func (*TimelineEvent) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *TimelineEvent) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *TimelineEvent) GetSeries() []*TimelineSeries {
+	if x != nil {
+		return x.Series
+	}
+	return nil
+}
+
 type GetUsageTimelineResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Series        []*TimelineSeries      `protobuf:"bytes,1,rep,name=series,proto3" json:"series,omitempty"`
+	Events        []*TimelineEvent       `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetUsageTimelineResponse) Reset() {
 	*x = GetUsageTimelineResponse{}
-	mi := &file_rpc_proto_msgTypes[8]
+	mi := &file_rpc_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -607,7 +719,7 @@ func (x *GetUsageTimelineResponse) String() string {
 func (*GetUsageTimelineResponse) ProtoMessage() {}
 
 func (x *GetUsageTimelineResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[8]
+	mi := &file_rpc_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -620,12 +732,12 @@ func (x *GetUsageTimelineResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsageTimelineResponse.ProtoReflect.Descriptor instead.
 func (*GetUsageTimelineResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{8}
+	return file_rpc_proto_rawDescGZIP(), []int{10}
 }
 
-func (x *GetUsageTimelineResponse) GetSeries() []*TimelineSeries {
+func (x *GetUsageTimelineResponse) GetEvents() []*TimelineEvent {
 	if x != nil {
-		return x.Series
+		return x.Events
 	}
 	return nil
 }
@@ -643,18 +755,24 @@ const file_rpc_proto_rawDesc = "" +
 	"\x04type\x18\x02 \x01(\tR\x04type\"K\n" +
 	"\bInterval\x12)\n" +
 	"\x04unit\x18\x01 \x01(\x0e2\x15.rpc.rpc.IntervalUnitR\x04unit\x12\x14\n" +
-	"\x05count\x18\x02 \x01(\x05R\x05count\"\x93\x01\n" +
-	"\x18IngestUsageRecordRequest\x12$\n" +
+	"\x05count\x18\x02 \x01(\x05R\x05count\"\x97\x01\n" +
+	"\x11IngestUsageRecord\x12$\n" +
 	"\x05owner\x18\x01 \x01(\v2\x0e.rpc.rpc.OwnerR\x05owner\x12'\n" +
-	"\x06entity\x18\x02 \x01(\v2\x0f.rpc.rpc.EntityR\x06entity\x12\x12\n" +
-	"\x04type\x18\x03 \x01(\tR\x04type\x12\x14\n" +
-	"\x05count\x18\x04 \x01(\x03R\x05count\"\x1b\n" +
-	"\x19IngestUsageRecordResponse\"\xd6\x01\n" +
+	"\x06entity\x18\x02 \x01(\v2\x0f.rpc.rpc.EntityR\x06entity\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x03 \x01(\tR\teventType\x12\x14\n" +
+	"\x05count\x18\x04 \x01(\x03R\x05count\"`\n" +
+	"\x18IngestUsageRecordRequest\x124\n" +
+	"\arecords\x18\x01 \x03(\v2\x1a.rpc.rpc.IngestUsageRecordR\arecords\x12\x0e\n" +
+	"\x02ts\x18\x02 \x01(\x03R\x02ts\"\x1b\n" +
+	"\x19IngestUsageRecordResponse\"\xf7\x01\n" +
 	"\x17GetUsageTimelineRequest\x12&\n" +
 	"\x06owners\x18\x01 \x03(\v2\x0e.rpc.rpc.OwnerR\x06owners\x12\x1d\n" +
 	"\n" +
 	"entity_ids\x18\x02 \x03(\tR\tentityIds\x12!\n" +
-	"\fentity_types\x18\x03 \x03(\tR\ventityTypes\x12\x12\n" +
+	"\fentity_types\x18\x03 \x03(\tR\ventityTypes\x12\x1f\n" +
+	"\vevent_types\x18\a \x03(\tR\n" +
+	"eventTypes\x12\x12\n" +
 	"\x04from\x18\x04 \x01(\x03R\x04from\x12\x0e\n" +
 	"\x02to\x18\x05 \x01(\x03R\x02to\x12-\n" +
 	"\binterval\x18\x06 \x01(\v2\x11.rpc.rpc.IntervalR\binterval\"5\n" +
@@ -666,9 +784,13 @@ const file_rpc_proto_rawDesc = "" +
 	"\ventity_type\x18\x02 \x01(\tR\n" +
 	"entityType\x12\x19\n" +
 	"\bowner_id\x18\x03 \x01(\tR\aownerId\x120\n" +
-	"\aentries\x18\x04 \x03(\v2\x16.rpc.rpc.TimelineEntryR\aentries\"K\n" +
-	"\x18GetUsageTimelineResponse\x12/\n" +
-	"\x06series\x18\x01 \x03(\v2\x17.rpc.rpc.TimelineSeriesR\x06series*]\n" +
+	"\aentries\x18\x04 \x03(\v2\x16.rpc.rpc.TimelineEntryR\aentries\"_\n" +
+	"\rTimelineEvent\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x01 \x01(\tR\teventType\x12/\n" +
+	"\x06series\x18\x02 \x03(\v2\x17.rpc.rpc.TimelineSeriesR\x06series\"J\n" +
+	"\x18GetUsageTimelineResponse\x12.\n" +
+	"\x06events\x18\x01 \x03(\v2\x16.rpc.rpc.TimelineEventR\x06events*]\n" +
 	"\tOwnerType\x12\x1a\n" +
 	"\x16owner_type_unspecified\x10\x00\x12\x17\n" +
 	"\x13owner_type_instance\x10\x01\x12\x1b\n" +
@@ -695,38 +817,42 @@ func file_rpc_proto_rawDescGZIP() []byte {
 }
 
 var file_rpc_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_rpc_proto_goTypes = []any{
 	(OwnerType)(0),                    // 0: rpc.rpc.OwnerType
 	(IntervalUnit)(0),                 // 1: rpc.rpc.IntervalUnit
 	(*Owner)(nil),                     // 2: rpc.rpc.Owner
 	(*Entity)(nil),                    // 3: rpc.rpc.Entity
 	(*Interval)(nil),                  // 4: rpc.rpc.Interval
-	(*IngestUsageRecordRequest)(nil),  // 5: rpc.rpc.IngestUsageRecordRequest
-	(*IngestUsageRecordResponse)(nil), // 6: rpc.rpc.IngestUsageRecordResponse
-	(*GetUsageTimelineRequest)(nil),   // 7: rpc.rpc.GetUsageTimelineRequest
-	(*TimelineEntry)(nil),             // 8: rpc.rpc.TimelineEntry
-	(*TimelineSeries)(nil),            // 9: rpc.rpc.TimelineSeries
-	(*GetUsageTimelineResponse)(nil),  // 10: rpc.rpc.GetUsageTimelineResponse
+	(*IngestUsageRecord)(nil),         // 5: rpc.rpc.IngestUsageRecord
+	(*IngestUsageRecordRequest)(nil),  // 6: rpc.rpc.IngestUsageRecordRequest
+	(*IngestUsageRecordResponse)(nil), // 7: rpc.rpc.IngestUsageRecordResponse
+	(*GetUsageTimelineRequest)(nil),   // 8: rpc.rpc.GetUsageTimelineRequest
+	(*TimelineEntry)(nil),             // 9: rpc.rpc.TimelineEntry
+	(*TimelineSeries)(nil),            // 10: rpc.rpc.TimelineSeries
+	(*TimelineEvent)(nil),             // 11: rpc.rpc.TimelineEvent
+	(*GetUsageTimelineResponse)(nil),  // 12: rpc.rpc.GetUsageTimelineResponse
 }
 var file_rpc_proto_depIdxs = []int32{
 	0,  // 0: rpc.rpc.Owner.type:type_name -> rpc.rpc.OwnerType
 	1,  // 1: rpc.rpc.Interval.unit:type_name -> rpc.rpc.IntervalUnit
-	2,  // 2: rpc.rpc.IngestUsageRecordRequest.owner:type_name -> rpc.rpc.Owner
-	3,  // 3: rpc.rpc.IngestUsageRecordRequest.entity:type_name -> rpc.rpc.Entity
-	2,  // 4: rpc.rpc.GetUsageTimelineRequest.owners:type_name -> rpc.rpc.Owner
-	4,  // 5: rpc.rpc.GetUsageTimelineRequest.interval:type_name -> rpc.rpc.Interval
-	8,  // 6: rpc.rpc.TimelineSeries.entries:type_name -> rpc.rpc.TimelineEntry
-	9,  // 7: rpc.rpc.GetUsageTimelineResponse.series:type_name -> rpc.rpc.TimelineSeries
-	5,  // 8: rpc.rpc.UsageService.IngestUsageRecord:input_type -> rpc.rpc.IngestUsageRecordRequest
-	7,  // 9: rpc.rpc.UsageService.GetUsageTimeline:input_type -> rpc.rpc.GetUsageTimelineRequest
-	6,  // 10: rpc.rpc.UsageService.IngestUsageRecord:output_type -> rpc.rpc.IngestUsageRecordResponse
-	10, // 11: rpc.rpc.UsageService.GetUsageTimeline:output_type -> rpc.rpc.GetUsageTimelineResponse
-	10, // [10:12] is the sub-list for method output_type
-	8,  // [8:10] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	2,  // 2: rpc.rpc.IngestUsageRecord.owner:type_name -> rpc.rpc.Owner
+	3,  // 3: rpc.rpc.IngestUsageRecord.entity:type_name -> rpc.rpc.Entity
+	5,  // 4: rpc.rpc.IngestUsageRecordRequest.records:type_name -> rpc.rpc.IngestUsageRecord
+	2,  // 5: rpc.rpc.GetUsageTimelineRequest.owners:type_name -> rpc.rpc.Owner
+	4,  // 6: rpc.rpc.GetUsageTimelineRequest.interval:type_name -> rpc.rpc.Interval
+	9,  // 7: rpc.rpc.TimelineSeries.entries:type_name -> rpc.rpc.TimelineEntry
+	10, // 8: rpc.rpc.TimelineEvent.series:type_name -> rpc.rpc.TimelineSeries
+	11, // 9: rpc.rpc.GetUsageTimelineResponse.events:type_name -> rpc.rpc.TimelineEvent
+	6,  // 10: rpc.rpc.UsageService.IngestUsageRecord:input_type -> rpc.rpc.IngestUsageRecordRequest
+	8,  // 11: rpc.rpc.UsageService.GetUsageTimeline:input_type -> rpc.rpc.GetUsageTimelineRequest
+	7,  // 12: rpc.rpc.UsageService.IngestUsageRecord:output_type -> rpc.rpc.IngestUsageRecordResponse
+	12, // 13: rpc.rpc.UsageService.GetUsageTimeline:output_type -> rpc.rpc.GetUsageTimelineResponse
+	12, // [12:14] is the sub-list for method output_type
+	10, // [10:12] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_rpc_proto_init() }
@@ -740,7 +866,7 @@ func file_rpc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rpc_proto_rawDesc), len(file_rpc_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

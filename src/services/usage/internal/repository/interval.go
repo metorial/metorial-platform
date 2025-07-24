@@ -1,8 +1,21 @@
-package db
+package repository
 
 import "time"
 
-func adjustTimeBoundaries(from, to time.Time, unit IntervalConfigUnit) (time.Time, time.Time) {
+type IntervalConfigUnit string
+
+const (
+	IntervalUnitHour   IntervalConfigUnit = "hour"
+	IntervalUnitMinute IntervalConfigUnit = "minute"
+	IntervalUnitDay    IntervalConfigUnit = "day"
+)
+
+type IntervalConfig struct {
+	Unit  IntervalConfigUnit
+	Count int32
+}
+
+func AdjustTimeBoundaries(from, to time.Time, unit IntervalConfigUnit) (time.Time, time.Time) {
 	switch unit {
 	case IntervalUnitDay:
 		from = time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, from.Location())
@@ -18,7 +31,7 @@ func adjustTimeBoundaries(from, to time.Time, unit IntervalConfigUnit) (time.Tim
 	return from, to
 }
 
-func calculateIntervalMs(interval IntervalConfig) int64 {
+func CalculateIntervalMs(interval IntervalConfig) int64 {
 	baseMs := int64(60 * 60 * 1000) // 1 hour in ms
 	if interval.Unit == "day" {
 		baseMs = 24 * 60 * 60 * 1000 // 1 day in ms

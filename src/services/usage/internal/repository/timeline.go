@@ -1,101 +1,52 @@
-package db
+package repository
 
 import (
 	"context"
 	"fmt"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type AggregationResult struct {
-	ID struct {
-		OwnerID    string    `bson:"ownerId"`
-		EntityID   string    `bson:"entityId"`
-		EntityType string    `bson:"entityType"`
-		Type       string    `bson:"type"`
-		Timestamp  time.Time `bson:"ts"`
-	} `bson:"_id"`
-	Count int64 `bson:"count"`
+	OwnerID    string
+	EntityID   string
+	EntityType string
+	Timestamp  time.Time
+	Count      int64
 }
 
-func GetUsageTimeline(ctx context.Context, opts TimelineOptions) ([]TimelineSeries, error) {
-	if !IsEnabled() {
-		return createEmptyTimeline(opts), nil
-	}
+type TimelineOptions struct {
+	EventType   string
+	OwnerIDs    []string
+	EntityTypes []string
+	EntityIDs   []string
+	From        time.Time
+	To          time.Time
+	Interval    IntervalConfig
+}
 
-	// Adjust time boundaries based on interval
-	from, to := adjustTimeBoundaries(opts.From, opts.To, opts.Interval.Unit)
-	intervalMs := calculateIntervalMs(opts.Interval)
+type TimelineEntry struct {
+	Timestamp time.Time `json:"ts"`
+	Count     int64     `json:"count"`
+}
 
-	// Build match stage
-	matchStage := bson.M{
-		"ts": bson.M{
-			"$gte": from,
-			"$lt":  to,
-		},
-	}
+type TimelineSeries struct {
+	EntityID   string          `json:"entityId"`
+	EntityType string          `json:"entityType"`
+	OwnerID    string          `json:"ownerId"`
+	Entries    []TimelineEntry `json:"entries"`
+}
 
-	if len(opts.OwnerIDs) > 0 {
-		matchStage["ownerId"] = bson.M{"$in": opts.OwnerIDs}
-	}
-	if len(opts.EntityTypes) > 0 {
-		matchStage["entityType"] = bson.M{"$in": opts.EntityTypes}
-	}
-	if len(opts.EntityIDs) > 0 {
-		matchStage["entityId"] = bson.M{"$in": opts.EntityIDs}
-	}
-
-	// Build group stage
-	groupStage := bson.M{
-		"_id": bson.M{
-			"ownerId":    "$ownerId",
-			"entityId":   "$entityId",
-			"entityType": "$entityType",
-			"type":       "$type",
-			"ts": bson.M{
-				"$add": []interface{}{
-					bson.M{
-						"$subtract": []interface{}{
-							bson.M{
-								"$subtract": []interface{}{"$ts", primitive.NewDateTimeFromTime(time.Unix(0, 0))},
-							},
-							bson.M{
-								"$mod": []interface{}{
-									bson.M{
-										"$subtract": []interface{}{"$ts", primitive.NewDateTimeFromTime(time.Unix(0, 0))},
-									},
-									intervalMs,
-								},
-							},
-						},
-					},
-					primitive.NewDateTimeFromTime(time.Unix(0, 0)),
-				},
-			},
-		},
-		"count": bson.M{"$sum": "$count"},
-	}
-
-	// Execute aggregation pipeline
-	pipeline := []bson.M{
-		{"$match": matchStage},
-		{"$group": groupStage},
-	}
-
-	cursor, err := collection.Aggregate(ctx, pipeline)
+func (r *Repository) GetUsageTimeline(ctx context.Context, opts TimelineOptions) ([]TimelineSeries, error) {
+	result, err := r.store.GetUsageTimeline(ctx, opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute aggregation: %w", err)
-	}
-	defer cursor.Close(ctx)
-
-	var results []AggregationResult
-	if err := cursor.All(ctx, &results); err != nil {
-		return nil, fmt.Errorf("failed to decode aggregation results: %w", err)
+		return nil, fmt.Errorf("failed to get usage timeline: %w", err)
 	}
 
-	return buildTimeline(results, opts, from, to, intervalMs), nil
+	from, to := AdjustTimeBoundaries(opts.From, opts.To, opts.Interval.Unit)
+	intervalMs := CalculateIntervalMs(opts.Interval)
+	timeline := buildTimeline(result, opts, from, to, intervalMs)
+
+	return timeline, nil
 }
 
 func buildTimeline(results []AggregationResult, opts TimelineOptions, from, to time.Time, intervalMs int64) []TimelineSeries {
@@ -121,21 +72,21 @@ func buildTimeline(results []AggregationResult, opts TimelineOptions, from, to t
 
 	// Process aggregation results
 	for _, result := range results {
-		key := fmt.Sprintf("%s:%s:%s", result.ID.OwnerID, result.ID.EntityID, result.ID.EntityType)
+		key := fmt.Sprintf("%s:%s:%s", result.OwnerID, result.EntityID, result.EntityType)
 
 		series, exists := timelineMap[key]
 		if !exists {
 			series = &TimelineSeries{
-				OwnerID:    result.ID.OwnerID,
-				EntityID:   result.ID.EntityID,
-				EntityType: result.ID.EntityType,
+				OwnerID:    result.OwnerID,
+				EntityID:   result.EntityID,
+				EntityType: result.EntityType,
 				Entries:    []TimelineEntry{},
 			}
 			timelineMap[key] = series
 		}
 
 		series.Entries = append(series.Entries, TimelineEntry{
-			Timestamp: result.ID.Timestamp,
+			Timestamp: result.Timestamp,
 			Count:     result.Count,
 		})
 	}
