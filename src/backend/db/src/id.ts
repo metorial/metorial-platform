@@ -54,10 +54,12 @@ export let ID = createIdGenerator({
   sessionMessage: idType.sorted('msg'),
   sessionEvent: idType.sorted('sev'),
   session: idType.sorted('ses'),
+  sessionConnection: idType.sorted('sco'),
   serverSession: idType.sorted('srs'),
   serverRun: idType.sorted('srr'),
   serverRunErrorGroup: idType.sorted('sreg'),
   serverRunError: idType.sorted('sre'),
+  serverAutoDiscoveryJob: idType.sorted('sadj'),
 
   instanceServer: idType.sorted('isv'),
 

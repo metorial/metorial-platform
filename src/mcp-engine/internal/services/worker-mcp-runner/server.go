@@ -14,7 +14,7 @@ import (
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
-	"github.com/metorial/metorial/mcp-engine/pkg/util"
+	"github.com/metorial/metorial/modules/util"
 )
 
 type runnerServer struct {
@@ -65,10 +65,9 @@ func (s *runnerServer) ListDockerImages(ctx context.Context, req *commonPb.Empty
 	imageInfos := make([]*runnerPb.DockerImageInfo, len(images))
 	for i, image := range images {
 		imageInfos[i] = &runnerPb.DockerImageInfo{
-			Name:     image.Name,
-			Tag:      image.Tag,
-			ImageId:  image.ImageID,
-			LastUsed: image.LastUsed.UnixMilli(),
+			Repository: image.Repository,
+			Tag:        image.Tag,
+			ImageId:    image.ID,
 		}
 	}
 
@@ -81,10 +80,11 @@ func (s *runnerServer) ListDockerContainers(ctx context.Context, req *commonPb.E
 	containerInfos := make([]*runnerPb.DockerContainerInfo, len(containers))
 	for i, container := range containers {
 		containerInfos[i] = &runnerPb.DockerContainerInfo{
-			ContainerId: container.ID,
-			ImageName:   container.ImageRef,
-			ExitCode:    int32(container.ExitCode),
-			Running:     container.Running,
+			ContainerId:     container.ID,
+			ImageRepository: container.ImageRepository,
+			ImageTag:        container.ImageTag,
+			ExitCode:        int32(container.ExitCode),
+			Running:         container.Running,
 		}
 	}
 

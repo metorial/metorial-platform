@@ -9,9 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
-	"github.com/metorial/metorial/mcp-engine/pkg/addr"
+	grpc_util "github.com/metorial/metorial/mcp-engine/pkg/grpcUtil"
+	"github.com/metorial/metorial/mcp-engine/pkg/managerUtils"
+	"github.com/metorial/metorial/modules/addr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
@@ -33,8 +36,10 @@ type Worker struct {
 	port       int
 	grpcServer *grpc.Server
 
-	managerConn   *grpc.ClientConn
-	managerClient workerBrokerPb.McpWorkerBrokerClient
+	managerMutex       sync.RWMutex
+	managerConns       map[string]*grpc.ClientConn
+	managerClients     map[string]workerBrokerPb.McpWorkerBrokerClient
+	managerAddressToId map[string]string
 
 	impl WorkerImpl
 
@@ -56,13 +61,6 @@ func NewWorker(ctx context.Context, workerType workerPb.WorkerType, ownAddress s
 		return nil, err
 	}
 
-	conn, err := grpc.NewClient(managerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, err
-	}
-
-	client := workerBrokerPb.NewMcpWorkerBrokerClient(conn)
-
 	ctx, cancel := context.WithCancel(ctx)
 
 	worker := &Worker{
@@ -76,8 +74,9 @@ func NewWorker(ctx context.Context, workerType workerPb.WorkerType, ownAddress s
 
 		health: *newWorkerHealthManager(),
 
-		managerConn:   conn,
-		managerClient: client,
+		managerConns:       make(map[string]*grpc.ClientConn),
+		managerClients:     make(map[string]workerBrokerPb.McpWorkerBrokerClient),
+		managerAddressToId: make(map[string]string),
 
 		impl: impl,
 
@@ -89,6 +88,15 @@ func NewWorker(ctx context.Context, workerType workerPb.WorkerType, ownAddress s
 
 	go worker.start()
 
+	wait := time.NewTimer(5 * time.Second)
+	<-wait.C
+
+	err = worker.registerWithManager(managerUtils.GetManagerAddress(managerAddress))
+	if err != nil {
+		sentry.CaptureException(err)
+		log.Fatalf("Failed to register with initial manager: %v", err)
+	}
+
 	go worker.connectToNewManagersRoutine()
 
 	return worker, nil
@@ -97,10 +105,11 @@ func NewWorker(ctx context.Context, workerType workerPb.WorkerType, ownAddress s
 func (w *Worker) start() error {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", w.port))
 	if err != nil {
+		sentry.CaptureException(err)
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc_util.NewGrpcServer(fmt.Sprintf("worker.%s", w.workerType.String()))
 	w.grpcServer = grpcServer
 
 	w.workerServer = &workerServer{worker: w}
@@ -115,7 +124,9 @@ func (w *Worker) start() error {
 
 	log.Printf("Starting worker server at %s", w.Address)
 
-	if err := w.grpcServer.Serve(lis); err != nil {
+	err = w.grpcServer.Serve(lis)
+	if err != nil {
+		sentry.CaptureException(err)
 		log.Fatalf("Failed to serve: %v", err)
 	}
 
@@ -133,15 +144,21 @@ func (w *Worker) Stop() error {
 		w.grpcServer = nil
 	}
 
-	if w.managerConn != nil {
-		if err := w.managerConn.Close(); err != nil {
+	w.managerMutex.Lock()
+	defer w.managerMutex.Unlock()
+
+	for _, conn := range w.managerConns {
+		err := conn.Close()
+		if err != nil {
+			sentry.CaptureException(err)
 			return err
 		}
-		w.managerConn = nil
 	}
 
 	if w.impl != nil {
-		if err := w.impl.Stop(); err != nil {
+		err := w.impl.Stop()
+		if err != nil {
+			sentry.CaptureException(err)
 			return err
 		}
 		w.impl = nil
@@ -155,12 +172,27 @@ func (w *Worker) Stop() error {
 func (w *Worker) registerWithManager(address string) error {
 	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
+		sentry.CaptureException(err)
 		return err
 	}
 
-	defer conn.Close()
-
 	client := workerBrokerPb.NewMcpWorkerBrokerClient(conn)
+
+	w.managerMutex.Lock()
+	defer w.managerMutex.Unlock()
+
+	if currentWorkerId, exists := w.managerAddressToId[address]; exists {
+		if currentWorkerId == w.WorkerID {
+			// Already registered with this manager
+			return nil
+		}
+	}
+
+	log.Printf("Registering worker %s with manager at %s", w.WorkerID, address)
+
+	w.managerConns[address] = conn
+	w.managerClients[address] = client
+	w.managerAddressToId[address] = w.WorkerID
 
 	_, err = client.RegisterWorker(context.Background(), &workerBrokerPb.RegisterWorkerRequest{
 		WorkerId:   w.WorkerID,
@@ -177,13 +209,24 @@ func (w *Worker) registerWithManager(address string) error {
 }
 
 func (w *Worker) connectToNewManagers() error {
-	if w.managerClient == nil {
-		return nil
+	var managers *workerBrokerPb.ListManagersResponse
+	var err error
+
+	w.managerMutex.RLock()
+
+	for _, conn := range w.managerClients {
+		managers, err = conn.ListManagers(context.Background(), &workerBrokerPb.ListManagersRequest{})
+		if err != nil {
+			sentry.CaptureException(err)
+		} else {
+			break
+		}
 	}
 
-	managers, err := w.managerClient.ListManagers(context.Background(), &workerBrokerPb.ListManagersRequest{})
+	w.managerMutex.RUnlock()
+
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to connect to any manager: %w", err)
 	}
 
 	w.mutex.Lock()
@@ -195,8 +238,7 @@ func (w *Worker) connectToNewManagers() error {
 		}
 
 		w.seenManagers = append(w.seenManagers, manager.Id)
-
-		w.registerWithManager(manager.Address)
+		w.registerWithManager(managerUtils.GetManagerAddress(manager.Address))
 	}
 
 	return nil
@@ -205,10 +247,11 @@ func (w *Worker) connectToNewManagers() error {
 func (w *Worker) connectToNewManagersRoutine() {
 	time.Sleep(time.Second) // Wait for server to be ready
 
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 
-	if err := w.connectToNewManagers(); err != nil {
+	err := w.connectToNewManagers()
+	if err != nil {
 		log.Printf("Failed to connect to new managers: %v", err)
 	}
 
@@ -217,7 +260,8 @@ func (w *Worker) connectToNewManagersRoutine() {
 		case <-w.context.Done():
 			return
 		case <-ticker.C:
-			if err := w.connectToNewManagers(); err != nil {
+			err := w.connectToNewManagers()
+			if err != nil {
 				log.Printf("Failed to connect to new managers: %v", err)
 			}
 		}

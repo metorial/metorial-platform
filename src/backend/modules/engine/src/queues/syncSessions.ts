@@ -5,7 +5,7 @@ import { syncEngineSession } from '../run/sync/session';
 
 let sessionSyncCron = createCron(
   {
-    name: 'eng/sync/session',
+    name: 'eng/sync/ses/cron',
     cron: '* * * * *'
   },
   async () => {
@@ -14,7 +14,7 @@ let sessionSyncCron = createCron(
 );
 
 let syncSessionsQueue = createQueue({
-  name: 'eng/sync/sessions',
+  name: 'eng/sync/sess',
   workerOpts: { concurrency: 1 }
 });
 
@@ -45,10 +45,15 @@ let syncSessionsQueueProcessor = syncSessionsQueue.process(async () => {
 });
 
 let syncSessionQueue = createQueue<{ sessionId: string }>({
-  name: 'eng/sync/session'
+  name: 'eng/sync/ses',
+  workerOpts: {
+    concurrency: 20,
+    limiter: { max: 50, duration: 1000 }
+  }
 });
 
 let syncSessionQueueProcessor = syncSessionQueue.process(async data => {
+  if (!data) return;
   await syncEngineSession({ engineSessionId: data.sessionId });
 });
 

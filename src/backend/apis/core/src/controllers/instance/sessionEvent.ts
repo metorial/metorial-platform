@@ -21,8 +21,9 @@ export let sessionEventGroup = sessionGroup.use(async ctx => {
 
 export let sessionEventController = Controller.create(
   {
-    name: 'SessionEvent',
-    description: 'Read and write session event information'
+    name: 'Session Event',
+    description: 'Read and write session event information',
+    hideInDocs: true
   },
   {
     list: sessionGroup

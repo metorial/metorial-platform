@@ -1,4 +1,5 @@
 import { defaultConfig } from './defaultConfig';
+import { getDistributedConfig } from './persistedConfig';
 import { MetorialConfig } from './types';
 
 if (typeof window !== 'undefined') {
@@ -14,3 +15,8 @@ export let setConfig = (newConfig: Partial<MetorialConfig>) => {
 };
 
 export let getConfig = () => config;
+
+export let getFullConfig = async () => ({
+  ...config,
+  ...(await getDistributedConfig())
+});

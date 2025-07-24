@@ -11,11 +11,15 @@ import (
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	workerMcpRunner "github.com/metorial/metorial/mcp-engine/internal/services/worker-mcp-runner"
-	"github.com/metorial/metorial/mcp-engine/pkg/addr"
 	"github.com/metorial/metorial/mcp-engine/pkg/docker"
+	"github.com/metorial/metorial/modules/addr"
+	sentryUtil "github.com/metorial/metorial/modules/sentry-util"
 )
 
 func main() {
+	sentryUtil.InitSentryIfNeeded()
+	defer sentryUtil.ShutdownSentry()
+
 	ownAddress, port, managerAddress := getConfig()
 
 	dockerManager := docker.NewDockerManager(docker.RuntimeDocker)

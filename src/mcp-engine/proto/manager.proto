@@ -14,10 +14,11 @@ service McpManager {
   rpc CheckActiveSession(CheckActiveSessionRequest) returns (CheckActiveSessionResponse);
 
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+  rpc DiscoverServer(DiscoverRequest) returns (GetServerResponse);
   rpc DiscardSession(DiscardSessionRequest) returns (DiscardSessionResponse);
 
-  rpc SendMcpMessage(SendMcpMessageRequest) returns (stream SendMcpMessageResponse);
-  rpc StreamMcpMessages(StreamMcpMessagesRequest) returns (stream StreamMcpMessagesResponse);
+  rpc SendMcpMessage(SendMcpMessageRequest) returns (stream McpConnectionStreamResponse);
+  rpc StreamMcpMessages(StreamMcpMessagesRequest) returns (stream McpConnectionStreamResponse);
 
   rpc GetServerInfo(GetServerInfoRequest) returns (broker.mcp.McpParticipant);
 
@@ -26,6 +27,7 @@ service McpManager {
 
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+  rpc GetSessionServer(GetSessionRequest) returns (GetServerResponse);
 
   rpc ListRuns(ListRunsRequest) returns (ListRunsResponse);
   rpc GetRun(GetRunRequest) returns (GetRunResponse);
@@ -44,6 +46,9 @@ service McpManager {
 
   rpc ListRecentlyActiveRuns(ListRecentlyActiveRunsRequest) returns (ListRecentlyActiveRunsResponse);
   rpc ListRecentlyActiveSessions(ListRecentlyActiveSessionsRequest) returns (ListRecentlyActiveSessionsResponse);
+
+  rpc GetServer(GetServerRequest) returns (GetServerResponse);
+  rpc ListServers(ListServersRequest) returns (ListServersResponse);
 }
 
 message CheckActiveSessionRequest {
@@ -73,7 +78,7 @@ message RemoteRunConfigWithLauncher {
   broker.launcher.LauncherConfig launcher = 2;
 }
 
-message SessionConfig {
+message ServerConfig {
   oneof config_type {
     ContainerRunConfigWithLauncher container_run_config_with_launcher = 1;
     broker.runner.RunConfig container_run_config_with_container_arguments = 2;
@@ -83,9 +88,18 @@ message SessionConfig {
   }
 }
 
+message SessionConfig {
+  ServerConfig server_config = 1;
+  broker.mcp.McpConfig mcp_config = 10; // Optional, MCP specific configuration
+}
+
 message CreateSessionResponse {
   string session_id = 1;
   EngineSession session = 2;
+}
+
+message DiscoverRequest {
+  ServerConfig server_config = 1;
 }
 
 message SendMcpMessageRequest {
@@ -94,19 +108,12 @@ message SendMcpMessageRequest {
   bool include_responses = 3;
 }
 
-message SendMcpMessageResponse {
-  oneof response {
-    broker.mcp.McpMessage mcp_message = 1; 
-    broker.mcp.McpError mcp_error = 2;
-    SessionEvent session_event = 3;
-  }
-}
 
 message StreamMcpMessagesRequest {
   string session_id = 1;
   repeated broker.mcp.McpMessageType only_message_types = 2; // Optional, if empty, all message types are streamed
   repeated string only_ids = 3; // Optional, if empty, all messages are streamed
-  string replay_after_uuid = 4; // Include messages after this UUID, useful for resuming streams
+  optional string replay_after_uuid = 4; // Include messages after this UUID, useful for resuming streams
 }
 
 message SessionEventInfoRun {
@@ -134,7 +141,7 @@ message SessionEvent {
   }
 }
 
-message StreamMcpMessagesResponse {
+message McpConnectionStreamResponse {
   oneof response {
     broker.mcp.McpMessage mcp_message = 1; 
     broker.mcp.McpError mcp_error = 2;
@@ -193,11 +200,15 @@ message EngineSession {
   broker.mcp.McpParticipant mcp_client = 5;
   broker.mcp.McpParticipant mcp_server = 6;
 
+  EngineServer server = 14;
+
   int64 created_at = 7; 
   int64 updated_at = 8; 
   int64 started_at = 9; 
   int64 ended_at = 10;
   int64 last_ping_at = 11; 
+
+  broker.mcp.McpConfig mcp_config = 13; // MCP specific configuration
 }
 
 enum EngineRunStatus {
@@ -255,6 +266,8 @@ enum EngineSessionEventType {
   session_event_type_error = 1;
   session_event_type_log = 2;
   session_event_type_unknown = 3;
+  session_event_type_launcher_run_success = 4;
+  session_event_type_launcher_run_error = 5;
 }
 
 message EngineSessionEvent {
@@ -302,6 +315,32 @@ message EngineSessionMessage {
   int64 created_at = 10;
 }
 
+enum EngineServerStatus {
+  session_status_discovered = 0;
+  session_status_not_discovered = 1;
+}
+
+message EngineServer {
+  string id = 1;
+  string identifier = 2;
+
+  EngineSessionType type = 3;
+  EngineServerStatus status = 4;
+
+  broker.mcp.McpParticipant mcp_server = 5;
+
+  repeated broker.mcp.McpTool tools = 6;
+  repeated broker.mcp.McpPrompt prompts = 7;
+  repeated broker.mcp.McpResource resources = 8;
+  repeated broker.mcp.McpResourceTemplate resource_templates = 9;
+
+  map<string, string> metadata = 10; // Optional, Additional metadata for the server
+
+  int64 created_at = 11; // Timestamp when the server was created
+  int64 updated_at = 12; // Timestamp when the server was last updated
+  optional int64 last_discovery_at = 13; // Timestamp when the server was last discovered
+}
+
 enum ListPaginationOrder {
   list_cursor_order_asc = 0;
   list_cursor_order_desc = 1;
@@ -316,7 +355,7 @@ message ListPagination {
 
 message ListSessionsRequest {
   string external_id = 1;
-  ListPagination pagination = 2;
+  optional ListPagination pagination = 2;
 }
 
 message ListSessionsResponse {
@@ -333,8 +372,8 @@ message GetSessionResponse {
 
 message ListRunsRequest {
   string session_id = 1;
-  ListPagination pagination = 2;
-  int64 after = 3;
+  optional ListPagination pagination = 2;
+  optional int64 after = 3;
 }
 
 message ListRunsResponse {
@@ -375,8 +414,8 @@ message GetMessageResponse {
 
 message ListRunErrorsRequest {
   string run_id = 1;
-  ListPagination pagination = 2;
-  int64 after = 3;
+  optional ListPagination pagination = 2;
+  optional int64 after = 3;
 }
 
 message ListRunErrorsResponse {
@@ -385,8 +424,8 @@ message ListRunErrorsResponse {
 
 message ListRunEventsRequest {
   string run_id = 1;
-  ListPagination pagination = 2;
-  int64 after = 3;
+  optional ListPagination pagination = 2;
+  optional int64 after = 3;
 }
 
 message ListRunEventsResponse {
@@ -395,8 +434,8 @@ message ListRunEventsResponse {
 
 message ListRunMessagesRequest {
   string run_id = 1;
-  ListPagination pagination = 2;
-  int64 after = 3;
+  optional ListPagination pagination = 2;
+  optional int64 after = 3;
 }
 
 message ListRunMessagesResponse {
@@ -405,8 +444,8 @@ message ListRunMessagesResponse {
 
 message ListSessionEventsRequest {
   string session_id = 1;
-  ListPagination pagination = 2;
-  int64 after = 3;
+  optional ListPagination pagination = 2;
+  optional int64 after = 3;
 }
 
 message ListSessionEventsResponse {
@@ -415,8 +454,8 @@ message ListSessionEventsResponse {
 
 message ListSessionErrorsRequest {
   string session_id = 1;
-  ListPagination pagination = 2;
-  int64 after = 3;
+  optional ListPagination pagination = 2;
+  optional int64 after = 3;
 }
 
 message ListSessionErrorsResponse {
@@ -425,8 +464,8 @@ message ListSessionErrorsResponse {
 
 message ListSessionMessagesRequest {
   string session_id = 1;
-  ListPagination pagination = 2;
-  int64 after = 3;
+  optional ListPagination pagination = 2;
+  optional int64 after = 3;
 }
 
 message ListSessionMessagesResponse {
@@ -448,4 +487,21 @@ message ListRecentlyActiveSessionsRequest {
 message ListRecentlyActiveSessionsResponse {
   repeated string session_ids = 1;
 }
+
+message GetServerRequest {
+  string server_id = 1;
+}
+
+message GetServerResponse {
+  EngineServer server = 1;
+}
+
+message ListServersRequest {
+  optional ListPagination pagination = 1;
+}
+
+message ListServersResponse {
+  repeated EngineServer servers = 1;
+}
+
 

@@ -1,0 +1,25 @@
+services:
+  runner:
+    image: ghcr.io/metorial/metorial-mcp-engine-runner:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - runner-trusted
+    ports:
+      - '${RUNNER_PORT:-51080}:${RUNNER_PORT:-51080}'
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      MANAGER_ADDRESS: ${MANAGER_ADDRESS:-host.docker.internal:51050}
+      WORKER_ADDRESS: ${RUNNER_HOST:-host.docker.internal}:${RUNNER_PORT:-51080}
+      CONTAINER_ENHANCED_SECURITY: ${CONTAINER_ENHANCED_SECURITY:-true}
+      CONTAINER_RUNTIME: ${CONTAINER_RUNTIME:-}
+    healthcheck:
+      test: ["CMD", "grpc-health-probe", "-addr=:${RUNNER_PORT:-51080}"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+networks:
+  runner-trusted:
+    driver: bridge

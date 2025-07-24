@@ -1,11 +1,4 @@
 import { declarePresenter } from '@metorial/presenter';
-import { v1ProfilePresenter } from '../../../../../../../_/oauth/profile';
-import { v1ProviderOauthConnectionPresenter } from '../../../../../../../_/oauth/providerOauthConnection';
-import { v1ProviderOauthConnectionAuthenticationPresenter } from '../../../../../../../_/oauth/providerOauthConnectionAuthentication';
-import { v1ProviderOauthConnectionEventPresenter } from '../../../../../../../_/oauth/providerOauthConnectionEvent';
-import { v1ProviderOauthConnectionProfilePresenter } from '../../../../../../../_/oauth/providerOauthConnectionProfile';
-import { v1ProviderOauthConnectionTemplatePresenter } from '../../../../../../../_/oauth/providerOauthConnectionTemplate';
-import { v1ProviderOauthDiscoveryPresenter } from '../../../../../../../_/oauth/providerOauthDiscovery';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
 import { v1FilePresenter } from './implementation/file';
@@ -43,6 +36,7 @@ import { v1ServerSessionPresenter } from './implementation/serverSession';
 import { v1ServerVariantPresenter } from './implementation/serverVariant';
 import { v1ServerVersionPresenter } from './implementation/serverVersion';
 import { v1SessionPresenter } from './implementation/session';
+import { v1SessionConnectionPresenter } from './implementation/sessionConnection';
 import { v1SessionEventPresenter } from './implementation/sessionEvent';
 import {
   dashboardSessionMessagePresenter,
@@ -61,14 +55,7 @@ import {
   organizationInviteType,
   organizationMemberType,
   organizationType,
-  profileType,
   projectType,
-  providerOauthConnectionAuthenticationType,
-  providerOauthConnectionDiscoveryType,
-  providerOauthConnectionEventType,
-  providerOauthConnectionProfileType,
-  providerOauthConnectionTemplateType,
-  providerOauthConnectionType,
   secretType,
   serverCapabilitiesType,
   serverDeploymentConfigType,
@@ -84,6 +71,7 @@ import {
   serverType,
   serverVariantType,
   serverVersionType,
+  sessionConnectionType,
   sessionEventType,
   sessionMessageType,
   sessionType,
@@ -232,6 +220,11 @@ export let serverSessionPresenter = declarePresenter(serverSessionType, {
   mt_2025_01_01_dashboard: v1ServerSessionPresenter
 });
 
+export let sessionConnectionPresenter = declarePresenter(sessionConnectionType, {
+  mt_2025_01_01_pulsar: v1SessionConnectionPresenter,
+  mt_2025_01_01_dashboard: v1SessionConnectionPresenter
+});
+
 export let sessionEventPresenter = declarePresenter(sessionEventType, {
   mt_2025_01_01_pulsar: v1SessionEventPresenter,
   mt_2025_01_01_dashboard: v1SessionEventPresenter
@@ -246,53 +239,3 @@ export let serverCapabilitiesPresenter = declarePresenter(serverCapabilitiesType
   mt_2025_01_01_pulsar: v1ServerCapabilitiesPresenter,
   mt_2025_01_01_dashboard: v1ServerCapabilitiesPresenter
 });
-
-export let profilePresenter = declarePresenter(profileType, {
-  mt_2025_01_01_pulsar: v1ProfilePresenter,
-  mt_2025_01_01_dashboard: v1ProfilePresenter
-});
-
-export let providerOauthConnectionPresenter = declarePresenter(providerOauthConnectionType, {
-  mt_2025_01_01_pulsar: v1ProviderOauthConnectionPresenter,
-  mt_2025_01_01_dashboard: v1ProviderOauthConnectionPresenter
-});
-
-export let providerOauthConnectionAuthenticationPresenter = declarePresenter(
-  providerOauthConnectionAuthenticationType,
-  {
-    mt_2025_01_01_pulsar: v1ProviderOauthConnectionAuthenticationPresenter,
-    mt_2025_01_01_dashboard: v1ProviderOauthConnectionAuthenticationPresenter
-  }
-);
-
-export let providerOauthConnectionEventPresenter = declarePresenter(
-  providerOauthConnectionEventType,
-  {
-    mt_2025_01_01_pulsar: v1ProviderOauthConnectionEventPresenter,
-    mt_2025_01_01_dashboard: v1ProviderOauthConnectionEventPresenter
-  }
-);
-
-export let providerOauthConnectionProfilePresenter = declarePresenter(
-  providerOauthConnectionProfileType,
-  {
-    mt_2025_01_01_pulsar: v1ProviderOauthConnectionProfilePresenter,
-    mt_2025_01_01_dashboard: v1ProviderOauthConnectionProfilePresenter
-  }
-);
-
-export let providerOauthConnectionTemplatePresenter = declarePresenter(
-  providerOauthConnectionTemplateType,
-  {
-    mt_2025_01_01_pulsar: v1ProviderOauthConnectionTemplatePresenter,
-    mt_2025_01_01_dashboard: v1ProviderOauthConnectionTemplatePresenter
-  }
-);
-
-export let providerOauthDiscoveryPresenter = declarePresenter(
-  providerOauthConnectionDiscoveryType,
-  {
-    mt_2025_01_01_pulsar: v1ProviderOauthDiscoveryPresenter,
-    mt_2025_01_01_dashboard: v1ProviderOauthDiscoveryPresenter
-  }
-);

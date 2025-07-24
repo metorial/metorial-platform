@@ -10,8 +10,10 @@ import (
 )
 
 type ContainerHandle struct {
-	ID       string
-	ImageRef string
+	ID              string
+	ImageRepository string
+	ImageTag        string
+
 	Running  bool
 	ExitCode int
 

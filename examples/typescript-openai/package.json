@@ -7,8 +7,8 @@
     "start": "bun ./src/index.ts"
   },
   "dependencies": {
-    "@metorial/openai": "^1.0.0",
-    "metorial": "^1.0.0",
+    "@metorial/openai": "latest",
+    "metorial": "latest",
     "openai": "^5.3.0"
   },
   "devDependencies": {

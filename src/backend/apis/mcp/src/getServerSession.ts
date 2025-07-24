@@ -1,3 +1,4 @@
+import { Context } from '@metorial/context';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { serverDeploymentService } from '@metorial/module-server-deployment';
 import { serverSessionService, sessionService } from '@metorial/module-session';
@@ -5,6 +6,7 @@ import { SessionInfo } from './getSession';
 
 export let getServerSession = async (
   d: SessionInfo,
+  context: Context,
   deploymentId: string | null,
   serverSessionId: string | null
 ) => {
@@ -24,7 +26,8 @@ export let getServerSession = async (
 
   let serverSession = await serverSessionService.createServerSession({
     session: d.session,
-    serverDeployment
+    serverDeployment,
+    context
   });
 
   return {

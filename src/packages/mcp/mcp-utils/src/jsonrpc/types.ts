@@ -15,3 +15,8 @@ export {
   type ResourceTemplate,
   type Tool
 } from '@modelcontextprotocol/sdk/types.js';
+
+import { InitializeRequest, InitializeResult } from '@modelcontextprotocol/sdk/types.js';
+
+export type McpClient = InitializeRequest['params'];
+export type McpServer = InitializeResult;

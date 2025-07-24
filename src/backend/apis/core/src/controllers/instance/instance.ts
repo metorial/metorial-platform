@@ -6,7 +6,8 @@ import { instancePresenter } from '../../presenters';
 export let instanceController = Controller.create(
   {
     name: 'Instance',
-    description: 'Endpoint for retrieving information about a specific instance.'
+    description:
+      'Instances are independent environments within Metorial, each with its own configuration and data. Each instance is a port of a Metorial project. You can for example create production, staging, and development instances for your project.'
   },
   {
     get: instanceGroup

@@ -180,18 +180,18 @@ func (m *SessionMessage) ToPb() (*managerPb.EngineSessionMessage, error) {
 	}, nil
 }
 
-func (d *DB) ListSessionMessagesBySession(sessionId string, pag *managerPb.ListPagination, after int64) ([]SessionMessage, error) {
+func (d *DB) ListSessionMessagesBySession(sessionId string, pag *managerPb.ListPagination, after *int64) ([]SessionMessage, error) {
 	query := d.db.Model(&SessionMessage{}).Preload("Run").Preload("Session").Where("session_id = ?", sessionId)
-	if after != 0 {
-		query = query.Where("created_at > ?", time.UnixMilli(after))
+	if after != nil {
+		query = query.Where("created_at > ?", time.UnixMilli(*after))
 	}
 	return listWithPagination[SessionMessage](query, pag)
 }
 
-func (d *DB) ListSessionMessagesByRun(runId string, pag *managerPb.ListPagination, after int64) ([]SessionMessage, error) {
+func (d *DB) ListSessionMessagesByRun(runId string, pag *managerPb.ListPagination, after *int64) ([]SessionMessage, error) {
 	query := d.db.Model(&SessionMessage{}).Preload("Run").Preload("Session").Where("run_id = ?", runId)
-	if after != 0 {
-		query = query.Where("created_at > ?", time.UnixMilli(after))
+	if after != nil {
+		query = query.Where("created_at > ?", time.UnixMilli(*after))
 	}
 	return listWithPagination[SessionMessage](query, pag)
 }

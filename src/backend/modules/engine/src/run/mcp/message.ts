@@ -1,5 +1,6 @@
 import { McpMessage, McpMessageRaw, McpMessageType } from '@metorial/mcp-engine-generated';
 import { getMessageType } from '@metorial/mcp-utils';
+import { UnifiedID } from '@metorial/unified-id';
 import { JSONRPCMessage } from '@modelcontextprotocol/sdk/types';
 import { uuidv7 } from 'uuidv7';
 import { Participant } from './participant';
@@ -7,21 +8,42 @@ import { MCPMessageType, pbToMessageType } from './types';
 
 export interface EngineMcpMessage {
   message: JSONRPCMessage;
-  id?: string | number;
+  originalId: string | number | undefined;
+  unifiedId: string | undefined;
   type: MCPMessageType;
   method?: string;
   uuid: string;
-  from: Participant;
+
+  sender: Participant;
+  senderType: 'client' | 'server';
 }
 
-export let engineMcpMessageFromPb = (msg: McpMessage, from: Participant): EngineMcpMessage => {
+export let engineMcpMessageFromPb = (
+  msg: McpMessage,
+  sender: Participant,
+  unifiedIdGen: UnifiedID
+): EngineMcpMessage => {
+  let originalId = msg.idJson != '' ? JSON.parse(msg.idJson) : undefined;
+  let unifiedId =
+    originalId !== undefined
+      ? unifiedIdGen.serialize({
+          originalId,
+          sender
+        })
+      : undefined;
+
   return {
     message: JSON.parse(msg.mcpMessage!.message),
-    id: msg.idJson != '' ? JSON.parse(msg.idJson) : undefined,
+
+    originalId,
+    unifiedId,
+
     type: pbToMessageType(msg.messageType),
     method: msg.method == '' ? undefined : msg.method,
     uuid: msg.mcpMessage!.uuid,
-    from
+
+    sender,
+    senderType: sender.type
   };
 };
 
@@ -31,8 +53,8 @@ export let engineMcpMessageToPb = (msg: EngineMcpMessage): McpMessage => {
       message: JSON.stringify(msg.message),
       uuid: msg.uuid
     },
-    idJson: msg.id !== undefined ? JSON.stringify(msg.id) : '',
-    idString: msg.id !== undefined ? String(msg.id) : '',
+    idJson: msg.originalId !== undefined ? JSON.stringify(msg.originalId) : '',
+    idString: msg.originalId !== undefined ? String(msg.originalId) : '',
     messageType: messageTypeToPb(msg.type),
     method: msg.method ?? ''
   };
@@ -60,13 +82,31 @@ export let messageTypeToPb = (type: MCPMessageType): McpMessageType => {
   }
 };
 
-export let fromJSONRPCMessage = (msg: JSONRPCMessage, from: Participant): EngineMcpMessage => {
+export let fromJSONRPCMessage = (
+  msg: JSONRPCMessage,
+  sender: Participant,
+  unifiedIdGen: UnifiedID
+): EngineMcpMessage => {
+  let originalId = 'id' in msg ? msg.id : undefined;
+  let unifiedId =
+    originalId !== undefined
+      ? unifiedIdGen.serialize({
+          originalId,
+          sender
+        })
+      : undefined;
+
   return {
     message: msg,
-    id: 'id' in msg ? msg.id : undefined,
+
+    originalId,
+    unifiedId,
+
     type: getMessageType(msg),
     method: 'method' in msg ? msg.method : undefined,
     uuid: uuidv7(),
-    from
+
+    sender,
+    senderType: sender.type
   };
 };

@@ -47,10 +47,9 @@ message DockerImagesResponse {
 }
 
 message DockerImageInfo {
-  string name = 1;
+  string repository = 1;
   string tag = 2;
   string image_id = 3;
-  int64 last_used = 4; // Unix timestamp in seconds
 }
 
 message DockerContainersResponse {
@@ -59,7 +58,8 @@ message DockerContainersResponse {
 
 message DockerContainerInfo {
   string container_id = 1;
-  string image_name = 2;
+  string image_repository = 2;
+  string image_tag = 5;
   int32 exit_code = 3;
   bool running = 4;
 }

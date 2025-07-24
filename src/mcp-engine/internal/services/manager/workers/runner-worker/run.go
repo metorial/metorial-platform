@@ -8,10 +8,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	mcpPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	runnerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
-	"github.com/metorial/metorial/mcp-engine/pkg/pubsub"
+	"github.com/metorial/metorial/modules/pubsub"
+	"github.com/metorial/metorial/modules/util"
 )
 
 type Run struct {
@@ -133,6 +135,10 @@ func (r *Run) Close() error {
 
 func (r *Run) Done() pubsub.BroadcasterReader[struct{}] {
 	return r.doneBroadcaster
+}
+
+func (r *Run) Clone() *Run {
+	return NewRun(r.Config, r.client, util.Must(uuid.NewV7()).String())
 }
 
 func (r *Run) handleStream() {

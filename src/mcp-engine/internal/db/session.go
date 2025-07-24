@@ -62,7 +62,7 @@ type Session struct {
 
 	HasError bool `gorm:"default:false;not null"`
 
-	McpClient *mcp.MCPClient `gorm:"type:jsonb;serializer:json;not null"`
+	McpClient *mcp.MCPClient `gorm:"type:jsonb;serializer:json"`
 	McpServer *mcp.MCPServer `gorm:"type:jsonb;serializer:json"`
 
 	CreatedAt  time.Time `gorm:"not null"`
@@ -70,17 +70,26 @@ type Session struct {
 	StartedAt  time.Time `gorm:"not null"`
 	LastPingAt time.Time `gorm:"not null"`
 
+	ServerID string  `gorm:"type:uuid;not null"`
+	Server   *Server `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+
+	McpVersion string `gorm:"type:varchar(50);not null;default:'2024-11-05'"`
+
 	Metadata map[string]string `gorm:"type:jsonb;serializer:json"`
 
 	EndedAt sql.NullTime
 }
 
-func NewSession(id string, externalId string, status SessionStatus, type_ SessionType, client *mcp.MCPClient, metadata map[string]string) *Session {
+func NewSession(id string, externalId string, server *Server, status SessionStatus, type_ SessionType, client *mcp.MCPClient, mcpVersion string, metadata map[string]string) *Session {
 	return &Session{
 		ID:         id,
 		ExternalId: externalId,
 
-		McpClient: client,
+		McpClient:  client,
+		McpVersion: mcpVersion,
+
+		Server:   server,
+		ServerID: server.ID,
 
 		Status: status,
 		Type:   type_,
@@ -165,6 +174,15 @@ func (s *Session) ToPb() (*managerPb.EngineSession, error) {
 		}
 	}
 
+	var server *managerPb.EngineServer
+	if s.Server != nil {
+		var err error
+		server, err = s.Server.ToPb()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &managerPb.EngineSession{
 		Id:         s.ID,
 		ExternalId: s.ExternalId,
@@ -176,6 +194,8 @@ func (s *Session) ToPb() (*managerPb.EngineSession, error) {
 		McpClient: clientPart,
 		McpServer: serverPart,
 
+		Server: server,
+
 		CreatedAt:  s.CreatedAt.UnixMilli(),
 		UpdatedAt:  s.UpdatedAt.UnixMilli(),
 		StartedAt:  s.StartedAt.UnixMilli(),
@@ -186,17 +206,21 @@ func (s *Session) ToPb() (*managerPb.EngineSession, error) {
 			}
 			return 0
 		}(),
+
+		McpConfig: &mcpPb.McpConfig{
+			McpVersion: s.McpVersion,
+		},
 	}, nil
 }
 
 func (d *DB) ListSessionsByExternalId(externalId string, pag *managerPb.ListPagination) ([]Session, error) {
-	query := d.db.Model(&Session{}).Where("external_id = ?", externalId)
+	query := d.db.Model(&Session{}).Preload("Server").Where("external_id = ?", externalId)
 	return listWithPagination[Session](query, pag)
 }
 
 func (d *DB) GetSessionById(id string) (*Session, error) {
 	var session Session
-	err := d.db.Model(&Session{}).Where("id = ?", id).First(&session).Error
+	err := d.db.Model(&Session{}).Preload("Server").Where("id = ?", id).First(&session).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}

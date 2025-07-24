@@ -42,4 +42,5 @@ model Instance {
   sessions                 Session[]
   serverRunErrors          ServerRunError[]
   providerOAuthConnections ProviderOAuthConnection[]
+  sessionConnections       SessionConnection[]
 }

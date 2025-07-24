@@ -23,7 +23,8 @@ export let secretGroup = instanceGroup.use(async ctx => {
 export let secretController = Controller.create(
   {
     name: 'Secrets',
-    description: 'Endpoints for retrieving and managing secrets associated with an instance.'
+    description:
+      'Secrets represent sensitive information securely stored by Metorial. Secrets are automatically created by Metorial, for example for server deployment configurations.'
   },
   {
     list: instanceGroup

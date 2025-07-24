@@ -10,6 +10,12 @@ export let destinations: Destination[] = [
   },
 
   {
+    type: 'oss',
+    env: backendEnv,
+    path: 'src/mcp-engine'
+  },
+
+  {
     type: 'enterprise',
     env: backendEnv,
     path: 'federation/backend/apps/api'

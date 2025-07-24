@@ -302,10 +302,9 @@ func (x *DockerImagesResponse) GetImages() []*DockerImageInfo {
 
 type DockerImageInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Repository    string                 `protobuf:"bytes,1,opt,name=repository,proto3" json:"repository,omitempty"`
 	Tag           string                 `protobuf:"bytes,2,opt,name=tag,proto3" json:"tag,omitempty"`
 	ImageId       string                 `protobuf:"bytes,3,opt,name=image_id,json=imageId,proto3" json:"image_id,omitempty"`
-	LastUsed      int64                  `protobuf:"varint,4,opt,name=last_used,json=lastUsed,proto3" json:"last_used,omitempty"` // Unix timestamp in seconds
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -340,9 +339,9 @@ func (*DockerImageInfo) Descriptor() ([]byte, []int) {
 	return file_runner_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *DockerImageInfo) GetName() string {
+func (x *DockerImageInfo) GetRepository() string {
 	if x != nil {
-		return x.Name
+		return x.Repository
 	}
 	return ""
 }
@@ -359,13 +358,6 @@ func (x *DockerImageInfo) GetImageId() string {
 		return x.ImageId
 	}
 	return ""
-}
-
-func (x *DockerImageInfo) GetLastUsed() int64 {
-	if x != nil {
-		return x.LastUsed
-	}
-	return 0
 }
 
 type DockerContainersResponse struct {
@@ -413,13 +405,14 @@ func (x *DockerContainersResponse) GetContainers() []*DockerContainerInfo {
 }
 
 type DockerContainerInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ContainerId   string                 `protobuf:"bytes,1,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
-	ImageName     string                 `protobuf:"bytes,2,opt,name=image_name,json=imageName,proto3" json:"image_name,omitempty"`
-	ExitCode      int32                  `protobuf:"varint,3,opt,name=exit_code,json=exitCode,proto3" json:"exit_code,omitempty"`
-	Running       bool                   `protobuf:"varint,4,opt,name=running,proto3" json:"running,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ContainerId     string                 `protobuf:"bytes,1,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	ImageRepository string                 `protobuf:"bytes,2,opt,name=image_repository,json=imageRepository,proto3" json:"image_repository,omitempty"`
+	ImageTag        string                 `protobuf:"bytes,5,opt,name=image_tag,json=imageTag,proto3" json:"image_tag,omitempty"`
+	ExitCode        int32                  `protobuf:"varint,3,opt,name=exit_code,json=exitCode,proto3" json:"exit_code,omitempty"`
+	Running         bool                   `protobuf:"varint,4,opt,name=running,proto3" json:"running,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *DockerContainerInfo) Reset() {
@@ -459,9 +452,16 @@ func (x *DockerContainerInfo) GetContainerId() string {
 	return ""
 }
 
-func (x *DockerContainerInfo) GetImageName() string {
+func (x *DockerContainerInfo) GetImageRepository() string {
 	if x != nil {
-		return x.ImageName
+		return x.ImageRepository
+	}
+	return ""
+}
+
+func (x *DockerContainerInfo) GetImageTag() string {
+	if x != nil {
+		return x.ImageTag
 	}
 	return ""
 }
@@ -1242,20 +1242,21 @@ const file_runner_proto_rawDesc = "" +
 	"start_time\x18\x03 \x01(\x03R\tstartTime\x12\x19\n" +
 	"\bend_time\x18\x04 \x01(\x03R\aendTime\"N\n" +
 	"\x14DockerImagesResponse\x126\n" +
-	"\x06images\x18\x01 \x03(\v2\x1e.broker.runner.DockerImageInfoR\x06images\"o\n" +
-	"\x0fDockerImageInfo\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
+	"\x06images\x18\x01 \x03(\v2\x1e.broker.runner.DockerImageInfoR\x06images\"^\n" +
+	"\x0fDockerImageInfo\x12\x1e\n" +
+	"\n" +
+	"repository\x18\x01 \x01(\tR\n" +
+	"repository\x12\x10\n" +
 	"\x03tag\x18\x02 \x01(\tR\x03tag\x12\x19\n" +
-	"\bimage_id\x18\x03 \x01(\tR\aimageId\x12\x1b\n" +
-	"\tlast_used\x18\x04 \x01(\x03R\blastUsed\"^\n" +
+	"\bimage_id\x18\x03 \x01(\tR\aimageId\"^\n" +
 	"\x18DockerContainersResponse\x12B\n" +
 	"\n" +
 	"containers\x18\x01 \x03(\v2\".broker.runner.DockerContainerInfoR\n" +
-	"containers\"\x8e\x01\n" +
+	"containers\"\xb7\x01\n" +
 	"\x13DockerContainerInfo\x12!\n" +
-	"\fcontainer_id\x18\x01 \x01(\tR\vcontainerId\x12\x1d\n" +
-	"\n" +
-	"image_name\x18\x02 \x01(\tR\timageName\x12\x1b\n" +
+	"\fcontainer_id\x18\x01 \x01(\tR\vcontainerId\x12)\n" +
+	"\x10image_repository\x18\x02 \x01(\tR\x0fimageRepository\x12\x1b\n" +
+	"\timage_tag\x18\x05 \x01(\tR\bimageTag\x12\x1b\n" +
 	"\texit_code\x18\x03 \x01(\x05R\bexitCode\x12\x18\n" +
 	"\arunning\x18\x04 \x01(\bR\arunning\"\xdb\x01\n" +
 	"\x1bRunConfigContainerArguments\x12\x18\n" +

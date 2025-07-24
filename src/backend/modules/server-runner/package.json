@@ -39,7 +39,7 @@
     "hono": "^4.7.10",
     "mitt": "^3.0.1",
     "mongoose": "^8.14.2",
-    "redis": "^5.0.1"
+    "redis": "^5.6.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
