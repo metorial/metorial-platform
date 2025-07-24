@@ -1,0 +1,219 @@
+syntax = "proto3";
+
+package hook.hook;
+
+option go_package = "github.com/metorial/metorial/services/hook/gen/hook;hook";
+
+service HookService {
+  rpc CreateEvent(CreateEventRequest) returns (CreateEventResponse);
+  rpc GetEvent(GetEventRequest) returns (GetEventResponse);
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
+
+  rpc CreateEventDestination(CreateEventDestinationRequest) returns (CreateEventDestinationResponse);
+  rpc GetEventDestination(GetEventDestinationRequest) returns (GetEventDestinationResponse);
+  rpc ListEventDestinations(ListEventDestinationsRequest) returns (ListEventDestinationsResponse);
+  rpc UpdateEventDestination(UpdateEventDestinationRequest) returns (UpdateEventDestinationResponse);
+  rpc DeleteEventDestination(DeleteEventDestinationRequest) returns (DeleteEventDestinationResponse);
+  rpc PingEventDestination(PingEventDestinationRequest) returns (PingEventDestinationResponse);
+  
+  rpc GetEventDeliveryIntent(GetEventDeliveryIntentRequest) returns (GetEventDeliveryIntentResponse);
+  rpc ListEventDeliveryIntents(ListEventDeliveryIntentsRequest) returns (ListEventDeliveryIntentsResponse);
+  
+  rpc GetEventDeliveryAttempt(GetEventDeliveryAttemptRequest) returns (GetEventDeliveryAttemptResponse);
+  rpc ListEventDeliveryAttempts(ListEventDeliveryAttemptsRequest) returns (ListEventDeliveryAttemptsResponse);
+}
+
+enum ListPaginationOrder {
+  list_cursor_order_asc = 0;
+  list_cursor_order_desc = 1;
+}
+
+message ListPagination {
+  string after_id = 1;
+  string before_id = 2;
+  int32 limit = 3;
+  ListPaginationOrder order = 4;
+}
+
+enum RetryType {
+  linear = 0;
+  exponential = 1;
+}
+
+enum IntentStatus {
+  pending = 0;
+  success = 1;
+  error_retry = 2;
+  error_failed = 3;
+}
+
+message RetryConfig {
+  RetryType type = 1;
+  uint32 delay = 2;
+  uint32 max_attempts = 3;
+}
+
+message EventDestination {
+  string id = 1;
+  string instance_id = 2;
+  string url = 3;
+  string method = 4;
+  repeated string events = 5;
+  RetryConfig retry_config = 6;
+  int64 created_at = 7;
+  int64 updated_at = 8;
+}
+
+message Event {
+  string id = 1;
+  string instance_id = 2;
+  string event_type = 3;
+  string payload = 4;
+  int64 created_at = 5;
+}
+
+message EventDeliveryIntent {
+  string id = 1;
+  string event_id = 2;
+  string destination_id = 3;
+  IntentStatus status = 4;
+  int64 created_at = 5;
+  int64 updated_at = 6;
+  int64 next_attempt_at = 7;
+  uint32 attempt_count = 8;
+}
+
+message EventDeliveryAttempt {
+  string id = 1;
+  string intent_id = 2;
+  uint32 attempt_number = 3;
+  int64 executed_at = 4;
+  int32 response_status = 5;
+  string response_body = 6;
+  map<string, string> response_headers = 7;
+  bool success = 8;
+  string error_message = 9;
+}
+
+// Request/Response messages
+message CreateEventDestinationRequest {
+  string instance_id = 1;
+  string url = 2;
+  string method = 3;
+  repeated string events = 4;
+  RetryConfig retry_config = 5;
+}
+
+message CreateEventDestinationResponse {
+  EventDestination destination = 1;
+}
+
+message GetEventDestinationRequest {
+  string destination_id = 1;
+}
+
+message GetEventDestinationResponse {
+  EventDestination destination = 1;
+}
+
+message ListEventDestinationsRequest {
+  string instance_id = 1;
+  ListPagination pagination = 2;
+}
+
+message ListEventDestinationsResponse {
+  repeated EventDestination destinations = 1;
+}
+
+message UpdateEventDestinationRequest {
+  string destination_id = 1;
+  string url = 2;
+  string method = 3;
+  repeated string events = 4;
+  RetryConfig retry_config = 5;
+}
+
+message UpdateEventDestinationResponse {
+  EventDestination destination = 1;
+}
+
+message DeleteEventDestinationRequest {
+  string destination_id = 1;
+}
+
+message DeleteEventDestinationResponse {
+}
+
+message PingEventDestinationRequest {
+  string destination_id = 1;
+}
+
+message PingEventDestinationResponse {
+  bool success = 1;
+  string message = 2; // Optional message for success or failure
+}
+
+message CreateEventRequest {
+  string instance_id = 1;
+  string event_type = 2;
+  string payload = 3;
+}
+
+message CreateEventResponse {
+  Event event = 1;
+  repeated EventDeliveryIntent intents = 2;
+}
+
+message GetEventRequest {
+  string id = 1;
+}
+
+message GetEventResponse {
+  Event event = 1;
+}
+
+message ListEventsRequest {
+  string instance_id = 1;
+  string event_type = 2;
+  ListPagination pagination = 3;
+}
+
+message ListEventsResponse {
+  repeated Event events = 1;
+}
+
+message GetEventDeliveryIntentRequest {
+  string id = 1;
+}
+
+message GetEventDeliveryIntentResponse {
+  EventDeliveryIntent intent = 1;
+}
+
+message ListEventDeliveryIntentsRequest {
+  string event_id = 1;
+  string destination_id = 2;
+  IntentStatus status = 3;
+  ListPagination pagination = 4;
+}
+
+message ListEventDeliveryIntentsResponse {
+  repeated EventDeliveryIntent intents = 1;
+}
+
+message GetEventDeliveryAttemptRequest {
+  string id = 1;
+}
+
+message GetEventDeliveryAttemptResponse {
+  EventDeliveryAttempt attempt = 1;
+}
+
+message ListEventDeliveryAttemptsRequest {
+  string intent_id = 1;
+  ListPagination pagination = 2;
+}
+
+message ListEventDeliveryAttemptsResponse {
+  repeated EventDeliveryAttempt attempts = 1;
+}

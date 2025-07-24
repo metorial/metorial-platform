@@ -8,10 +8,12 @@ use (
 	./src/modules/limiter
 	./src/modules/lock
 	./src/modules/pubsub
+	./src/modules/queue
 	./src/modules/sentry-util
 	./src/modules/ssrf-protection
 	./src/modules/util
 	./src/services/code-bucket
-	./src/services/usage
+	./src/services/hook
 	./src/services/listener
+	./src/services/usage
 )
