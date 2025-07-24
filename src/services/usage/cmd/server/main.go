@@ -9,11 +9,14 @@ import (
 
 	"github.com/joho/godotenv"
 	sentryUtil "github.com/metorial/metorial/modules/sentry-util"
-	"github.com/metorial/metorial/services/usage/internal/db"
+	mongoStore "github.com/metorial/metorial/services/usage/internal/mongo-store"
+	"github.com/metorial/metorial/services/usage/internal/repository"
 	"github.com/metorial/metorial/services/usage/internal/service"
 )
 
 func main() {
+	os.Setenv("TZ", "UTC") // Ensure UTC timezone for consistent timestamps
+
 	err := godotenv.Load()
 	if err != nil {
 		// ignore error if .env file is not found
@@ -30,10 +33,17 @@ func main() {
 	}
 
 	mongoURI := mustGetEnv("MONGO_URI")
+	mongoDb := getEnvOrDefault("MONGO_DB", "usage")
+	mongoCollection := getEnvOrDefault("MONGO_COLLECTION", "usage_records")
 
-	db.Connect(context.Background(), mongoURI)
+	store, err := mongoStore.NewMongoStore(context.Background(), mongoURI, mongoDb, mongoCollection)
+	if err != nil {
+		log.Fatalf("Failed to create MongoDB store: %v", err)
+	}
 
-	service := service.NewService()
+	repo := repository.NewRepository(store)
+
+	service := service.NewService(repo)
 
 	service.Start(rpcAddress)
 
@@ -48,7 +58,7 @@ func main() {
 		log.Printf("Error during shutdown: %v", err)
 	}
 
-	if err := db.Close(context.Background()); err != nil {
+	if err := store.Close(context.Background()); err != nil {
 		log.Printf("Error during shutdown: %v", err)
 	}
 }
@@ -57,6 +67,14 @@ func mustGetEnv(key string) string {
 	value := os.Getenv(key)
 	if value == "" {
 		log.Fatalf("Environment variable %s is required but not set", key)
+	}
+	return value
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
 	}
 	return value
 }
