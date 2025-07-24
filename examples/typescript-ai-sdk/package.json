@@ -8,8 +8,7 @@
   },
   "dependencies": {
     "@metorial/ai-sdk": "latest",
-    "ai": "^4.3.16",
-    "metorial": "latest"
+    "ai": "^4.3.16"
   },
   "devDependencies": {
     "@types/bun": "latest"

@@ -7,8 +7,6 @@
     "start": "bun ./src/index.ts"
   },
   "dependencies": {
-    "@metorial/anthropic": "^1.0.0",
-    "metorial": "^1.0.0",
     "@anthropic-ai/sdk": "^0.32.1"
   },
   "devDependencies": {
