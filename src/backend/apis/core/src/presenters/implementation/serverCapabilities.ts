@@ -60,51 +60,177 @@ export let v1ServerCapabilitiesPresenter = Presenter.create(serverCapabilitiesTy
         v.object({
           object: v.literal('server.capabilities.mcp_server'),
 
-          id: v.string(),
+          id: v.string({
+            name: 'id',
+            description: 'The unique identifier for this MCP server capability entry'
+          }),
 
-          server: v1ServerPreview.schema,
+          server: v1ServerPreview.schema, // assumed to already be annotated
           server_variant: v1ServerVariantPreview.schema,
           server_version: v.nullable(v1ServerVersionPreview.schema),
           server_deployment: v.nullable(v1ServerDeploymentPreview.schema),
 
-          capabilities: v.record(v.record(v.any())),
+          capabilities: v.record(v.record(v.any()), {
+            name: 'capabilities',
+            description: 'Nested key-value object describing capability types and details'
+          }),
 
-          info: v.object({
-            name: v.string(),
-            version: v.nullable(v.string())
-          })
-        })
+          info: v.object(
+            {
+              name: v.string({
+                name: 'name',
+                description: 'Human-readable name of the MCP server'
+              }),
+              version: v.nullable(
+                v.string({
+                  name: 'version',
+                  description: 'Optional version string of the MCP server'
+                })
+              )
+            },
+            {
+              name: 'info',
+              description: 'Metadata about the MCP server'
+            }
+          )
+        }),
+        {
+          name: 'mcp_servers',
+          description: 'List of MCP servers and their capabilities'
+        }
       ),
 
       tools: v.array(
-        v.object({
-          mcp_server_id: v.string(),
+        v.object(
+          {
+            mcp_server_id: v.string({
+              name: 'mcp_server_id',
+              description: 'Identifier linking this tool to a specific MCP server'
+            }),
 
-          name: v.string(),
-          description: v.optional(v.string()),
-          inputSchema: v.optional(v.any()),
-          outputSchema: v.optional(v.any()),
-          annotations: v.optional(v.any())
-        })
+            name: v.string({
+              name: 'name',
+              description: 'Name of the tool'
+            }),
+
+            description: v.optional(
+              v.string({
+                name: 'description',
+                description: 'Optional description of the tool'
+              })
+            ),
+
+            inputSchema: v.optional(
+              v.any({
+                name: 'inputSchema',
+                description: 'Optional JSON schema for the tool’s input'
+              })
+            ),
+
+            outputSchema: v.optional(
+              v.any({
+                name: 'outputSchema',
+                description: 'Optional JSON schema for the tool’s output'
+              })
+            ),
+
+            annotations: v.optional(
+              v.any({
+                name: 'annotations',
+                description: 'Optional annotations associated with the tool'
+              })
+            )
+          },
+          {
+            name: 'tool',
+            description: 'A tool provided by an MCP server'
+          }
+        ),
+        {
+          name: 'tools',
+          description: 'List of tools available on MCP servers'
+        }
       ),
+
       prompts: v.array(
-        v.object({
-          mcp_server_id: v.string(),
+        v.object(
+          {
+            mcp_server_id: v.string({
+              name: 'mcp_server_id',
+              description: 'Identifier linking this prompt to a specific MCP server'
+            }),
 
-          name: v.string(),
-          description: v.optional(v.string()),
-          arguments: v.optional(v.any())
-        })
+            name: v.string({
+              name: 'name',
+              description: 'Name of the prompt'
+            }),
+
+            description: v.optional(
+              v.string({
+                name: 'description',
+                description: 'Optional description of the prompt'
+              })
+            ),
+
+            arguments: v.optional(
+              v.any({
+                name: 'arguments',
+                description: 'Optional argument specification for the prompt'
+              })
+            )
+          },
+          {
+            name: 'prompt',
+            description: 'A prompt associated with an MCP server'
+          }
+        ),
+        {
+          name: 'prompts',
+          description: 'List of prompts available on MCP servers'
+        }
       ),
-      resourceTemplates: v.array(
-        v.object({
-          mcp_server_id: v.string(),
 
-          uriTemplate: v.string(),
-          name: v.string(),
-          description: v.optional(v.string()),
-          mimeType: v.optional(v.string())
-        })
+      resourceTemplates: v.array(
+        v.object(
+          {
+            mcp_server_id: v.string({
+              name: 'mcp_server_id',
+              description: 'Identifier linking this resource template to a specific MCP server'
+            }),
+
+            uriTemplate: v.string({
+              name: 'uriTemplate',
+              description: 'URI template used to access this resource'
+            }),
+
+            name: v.string({
+              name: 'name',
+              description: 'Name of the resource template'
+            }),
+
+            description: v.optional(
+              v.string({
+                name: 'description',
+                description: 'Optional description of the resource template'
+              })
+            ),
+
+            mimeType: v.optional(
+              v.string({
+                name: 'mimeType',
+                description: 'Optional MIME type for the resource template output'
+              })
+            )
+          },
+          {
+            name: 'resourceTemplate',
+            description: 'A resource template provided by an MCP server'
+          }
+        ),
+        {
+          name: 'resourceTemplates',
+          description: 'List of resource templates available on MCP servers'
+        }
       )
     })
   )

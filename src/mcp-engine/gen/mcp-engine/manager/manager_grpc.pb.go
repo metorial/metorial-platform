@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	McpManager_CheckActiveSession_FullMethodName         = "/broker.manager.McpManager/CheckActiveSession"
 	McpManager_CreateSession_FullMethodName              = "/broker.manager.McpManager/CreateSession"
+	McpManager_DiscoverServer_FullMethodName             = "/broker.manager.McpManager/DiscoverServer"
 	McpManager_DiscardSession_FullMethodName             = "/broker.manager.McpManager/DiscardSession"
 	McpManager_SendMcpMessage_FullMethodName             = "/broker.manager.McpManager/SendMcpMessage"
 	McpManager_StreamMcpMessages_FullMethodName          = "/broker.manager.McpManager/StreamMcpMessages"
@@ -31,6 +32,7 @@ const (
 	McpManager_ListWorkers_FullMethodName                = "/broker.manager.McpManager/ListWorkers"
 	McpManager_ListSessions_FullMethodName               = "/broker.manager.McpManager/ListSessions"
 	McpManager_GetSession_FullMethodName                 = "/broker.manager.McpManager/GetSession"
+	McpManager_GetSessionServer_FullMethodName           = "/broker.manager.McpManager/GetSessionServer"
 	McpManager_ListRuns_FullMethodName                   = "/broker.manager.McpManager/ListRuns"
 	McpManager_GetRun_FullMethodName                     = "/broker.manager.McpManager/GetRun"
 	McpManager_ListSessionErrors_FullMethodName          = "/broker.manager.McpManager/ListSessionErrors"
@@ -44,6 +46,8 @@ const (
 	McpManager_GetMessage_FullMethodName                 = "/broker.manager.McpManager/GetMessage"
 	McpManager_ListRecentlyActiveRuns_FullMethodName     = "/broker.manager.McpManager/ListRecentlyActiveRuns"
 	McpManager_ListRecentlyActiveSessions_FullMethodName = "/broker.manager.McpManager/ListRecentlyActiveSessions"
+	McpManager_GetServer_FullMethodName                  = "/broker.manager.McpManager/GetServer"
+	McpManager_ListServers_FullMethodName                = "/broker.manager.McpManager/ListServers"
 )
 
 // McpManagerClient is the client API for McpManager service.
@@ -52,14 +56,16 @@ const (
 type McpManagerClient interface {
 	CheckActiveSession(ctx context.Context, in *CheckActiveSessionRequest, opts ...grpc.CallOption) (*CheckActiveSessionResponse, error)
 	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionResponse, error)
+	DiscoverServer(ctx context.Context, in *DiscoverRequest, opts ...grpc.CallOption) (*GetServerResponse, error)
 	DiscardSession(ctx context.Context, in *DiscardSessionRequest, opts ...grpc.CallOption) (*DiscardSessionResponse, error)
-	SendMcpMessage(ctx context.Context, in *SendMcpMessageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SendMcpMessageResponse], error)
-	StreamMcpMessages(ctx context.Context, in *StreamMcpMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamMcpMessagesResponse], error)
+	SendMcpMessage(ctx context.Context, in *SendMcpMessageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[McpConnectionStreamResponse], error)
+	StreamMcpMessages(ctx context.Context, in *StreamMcpMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[McpConnectionStreamResponse], error)
 	GetServerInfo(ctx context.Context, in *GetServerInfoRequest, opts ...grpc.CallOption) (*mcp.McpParticipant, error)
 	ListManagers(ctx context.Context, in *workerBroker.ListManagersRequest, opts ...grpc.CallOption) (*workerBroker.ListManagersResponse, error)
 	ListWorkers(ctx context.Context, in *ListWorkersRequest, opts ...grpc.CallOption) (*ListWorkersResponse, error)
 	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
 	GetSession(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetSessionResponse, error)
+	GetSessionServer(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetServerResponse, error)
 	ListRuns(ctx context.Context, in *ListRunsRequest, opts ...grpc.CallOption) (*ListRunsResponse, error)
 	GetRun(ctx context.Context, in *GetRunRequest, opts ...grpc.CallOption) (*GetRunResponse, error)
 	ListSessionErrors(ctx context.Context, in *ListSessionErrorsRequest, opts ...grpc.CallOption) (*ListSessionErrorsResponse, error)
@@ -73,6 +79,8 @@ type McpManagerClient interface {
 	GetMessage(ctx context.Context, in *GetMessageRequest, opts ...grpc.CallOption) (*GetMessageResponse, error)
 	ListRecentlyActiveRuns(ctx context.Context, in *ListRecentlyActiveRunsRequest, opts ...grpc.CallOption) (*ListRecentlyActiveRunsResponse, error)
 	ListRecentlyActiveSessions(ctx context.Context, in *ListRecentlyActiveSessionsRequest, opts ...grpc.CallOption) (*ListRecentlyActiveSessionsResponse, error)
+	GetServer(ctx context.Context, in *GetServerRequest, opts ...grpc.CallOption) (*GetServerResponse, error)
+	ListServers(ctx context.Context, in *ListServersRequest, opts ...grpc.CallOption) (*ListServersResponse, error)
 }
 
 type mcpManagerClient struct {
@@ -103,6 +111,16 @@ func (c *mcpManagerClient) CreateSession(ctx context.Context, in *CreateSessionR
 	return out, nil
 }
 
+func (c *mcpManagerClient) DiscoverServer(ctx context.Context, in *DiscoverRequest, opts ...grpc.CallOption) (*GetServerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetServerResponse)
+	err := c.cc.Invoke(ctx, McpManager_DiscoverServer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *mcpManagerClient) DiscardSession(ctx context.Context, in *DiscardSessionRequest, opts ...grpc.CallOption) (*DiscardSessionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DiscardSessionResponse)
@@ -113,13 +131,13 @@ func (c *mcpManagerClient) DiscardSession(ctx context.Context, in *DiscardSessio
 	return out, nil
 }
 
-func (c *mcpManagerClient) SendMcpMessage(ctx context.Context, in *SendMcpMessageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SendMcpMessageResponse], error) {
+func (c *mcpManagerClient) SendMcpMessage(ctx context.Context, in *SendMcpMessageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[McpConnectionStreamResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &McpManager_ServiceDesc.Streams[0], McpManager_SendMcpMessage_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[SendMcpMessageRequest, SendMcpMessageResponse]{ClientStream: stream}
+	x := &grpc.GenericClientStream[SendMcpMessageRequest, McpConnectionStreamResponse]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -130,15 +148,15 @@ func (c *mcpManagerClient) SendMcpMessage(ctx context.Context, in *SendMcpMessag
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type McpManager_SendMcpMessageClient = grpc.ServerStreamingClient[SendMcpMessageResponse]
+type McpManager_SendMcpMessageClient = grpc.ServerStreamingClient[McpConnectionStreamResponse]
 
-func (c *mcpManagerClient) StreamMcpMessages(ctx context.Context, in *StreamMcpMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamMcpMessagesResponse], error) {
+func (c *mcpManagerClient) StreamMcpMessages(ctx context.Context, in *StreamMcpMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[McpConnectionStreamResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &McpManager_ServiceDesc.Streams[1], McpManager_StreamMcpMessages_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[StreamMcpMessagesRequest, StreamMcpMessagesResponse]{ClientStream: stream}
+	x := &grpc.GenericClientStream[StreamMcpMessagesRequest, McpConnectionStreamResponse]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -149,7 +167,7 @@ func (c *mcpManagerClient) StreamMcpMessages(ctx context.Context, in *StreamMcpM
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type McpManager_StreamMcpMessagesClient = grpc.ServerStreamingClient[StreamMcpMessagesResponse]
+type McpManager_StreamMcpMessagesClient = grpc.ServerStreamingClient[McpConnectionStreamResponse]
 
 func (c *mcpManagerClient) GetServerInfo(ctx context.Context, in *GetServerInfoRequest, opts ...grpc.CallOption) (*mcp.McpParticipant, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -195,6 +213,16 @@ func (c *mcpManagerClient) GetSession(ctx context.Context, in *GetSessionRequest
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetSessionResponse)
 	err := c.cc.Invoke(ctx, McpManager_GetSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) GetSessionServer(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetServerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetServerResponse)
+	err := c.cc.Invoke(ctx, McpManager_GetSessionServer_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -331,20 +359,42 @@ func (c *mcpManagerClient) ListRecentlyActiveSessions(ctx context.Context, in *L
 	return out, nil
 }
 
+func (c *mcpManagerClient) GetServer(ctx context.Context, in *GetServerRequest, opts ...grpc.CallOption) (*GetServerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetServerResponse)
+	err := c.cc.Invoke(ctx, McpManager_GetServer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpManagerClient) ListServers(ctx context.Context, in *ListServersRequest, opts ...grpc.CallOption) (*ListServersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListServersResponse)
+	err := c.cc.Invoke(ctx, McpManager_ListServers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // McpManagerServer is the server API for McpManager service.
 // All implementations must embed UnimplementedMcpManagerServer
 // for forward compatibility.
 type McpManagerServer interface {
 	CheckActiveSession(context.Context, *CheckActiveSessionRequest) (*CheckActiveSessionResponse, error)
 	CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error)
+	DiscoverServer(context.Context, *DiscoverRequest) (*GetServerResponse, error)
 	DiscardSession(context.Context, *DiscardSessionRequest) (*DiscardSessionResponse, error)
-	SendMcpMessage(*SendMcpMessageRequest, grpc.ServerStreamingServer[SendMcpMessageResponse]) error
-	StreamMcpMessages(*StreamMcpMessagesRequest, grpc.ServerStreamingServer[StreamMcpMessagesResponse]) error
+	SendMcpMessage(*SendMcpMessageRequest, grpc.ServerStreamingServer[McpConnectionStreamResponse]) error
+	StreamMcpMessages(*StreamMcpMessagesRequest, grpc.ServerStreamingServer[McpConnectionStreamResponse]) error
 	GetServerInfo(context.Context, *GetServerInfoRequest) (*mcp.McpParticipant, error)
 	ListManagers(context.Context, *workerBroker.ListManagersRequest) (*workerBroker.ListManagersResponse, error)
 	ListWorkers(context.Context, *ListWorkersRequest) (*ListWorkersResponse, error)
 	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
 	GetSession(context.Context, *GetSessionRequest) (*GetSessionResponse, error)
+	GetSessionServer(context.Context, *GetSessionRequest) (*GetServerResponse, error)
 	ListRuns(context.Context, *ListRunsRequest) (*ListRunsResponse, error)
 	GetRun(context.Context, *GetRunRequest) (*GetRunResponse, error)
 	ListSessionErrors(context.Context, *ListSessionErrorsRequest) (*ListSessionErrorsResponse, error)
@@ -358,6 +408,8 @@ type McpManagerServer interface {
 	GetMessage(context.Context, *GetMessageRequest) (*GetMessageResponse, error)
 	ListRecentlyActiveRuns(context.Context, *ListRecentlyActiveRunsRequest) (*ListRecentlyActiveRunsResponse, error)
 	ListRecentlyActiveSessions(context.Context, *ListRecentlyActiveSessionsRequest) (*ListRecentlyActiveSessionsResponse, error)
+	GetServer(context.Context, *GetServerRequest) (*GetServerResponse, error)
+	ListServers(context.Context, *ListServersRequest) (*ListServersResponse, error)
 	mustEmbedUnimplementedMcpManagerServer()
 }
 
@@ -374,13 +426,16 @@ func (UnimplementedMcpManagerServer) CheckActiveSession(context.Context, *CheckA
 func (UnimplementedMcpManagerServer) CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateSession not implemented")
 }
+func (UnimplementedMcpManagerServer) DiscoverServer(context.Context, *DiscoverRequest) (*GetServerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DiscoverServer not implemented")
+}
 func (UnimplementedMcpManagerServer) DiscardSession(context.Context, *DiscardSessionRequest) (*DiscardSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DiscardSession not implemented")
 }
-func (UnimplementedMcpManagerServer) SendMcpMessage(*SendMcpMessageRequest, grpc.ServerStreamingServer[SendMcpMessageResponse]) error {
+func (UnimplementedMcpManagerServer) SendMcpMessage(*SendMcpMessageRequest, grpc.ServerStreamingServer[McpConnectionStreamResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method SendMcpMessage not implemented")
 }
-func (UnimplementedMcpManagerServer) StreamMcpMessages(*StreamMcpMessagesRequest, grpc.ServerStreamingServer[StreamMcpMessagesResponse]) error {
+func (UnimplementedMcpManagerServer) StreamMcpMessages(*StreamMcpMessagesRequest, grpc.ServerStreamingServer[McpConnectionStreamResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method StreamMcpMessages not implemented")
 }
 func (UnimplementedMcpManagerServer) GetServerInfo(context.Context, *GetServerInfoRequest) (*mcp.McpParticipant, error) {
@@ -397,6 +452,9 @@ func (UnimplementedMcpManagerServer) ListSessions(context.Context, *ListSessions
 }
 func (UnimplementedMcpManagerServer) GetSession(context.Context, *GetSessionRequest) (*GetSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSession not implemented")
+}
+func (UnimplementedMcpManagerServer) GetSessionServer(context.Context, *GetSessionRequest) (*GetServerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSessionServer not implemented")
 }
 func (UnimplementedMcpManagerServer) ListRuns(context.Context, *ListRunsRequest) (*ListRunsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListRuns not implemented")
@@ -436,6 +494,12 @@ func (UnimplementedMcpManagerServer) ListRecentlyActiveRuns(context.Context, *Li
 }
 func (UnimplementedMcpManagerServer) ListRecentlyActiveSessions(context.Context, *ListRecentlyActiveSessionsRequest) (*ListRecentlyActiveSessionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListRecentlyActiveSessions not implemented")
+}
+func (UnimplementedMcpManagerServer) GetServer(context.Context, *GetServerRequest) (*GetServerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetServer not implemented")
+}
+func (UnimplementedMcpManagerServer) ListServers(context.Context, *ListServersRequest) (*ListServersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListServers not implemented")
 }
 func (UnimplementedMcpManagerServer) mustEmbedUnimplementedMcpManagerServer() {}
 func (UnimplementedMcpManagerServer) testEmbeddedByValue()                    {}
@@ -494,6 +558,24 @@ func _McpManager_CreateSession_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _McpManager_DiscoverServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DiscoverRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).DiscoverServer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_DiscoverServer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).DiscoverServer(ctx, req.(*DiscoverRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _McpManager_DiscardSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DiscardSessionRequest)
 	if err := dec(in); err != nil {
@@ -517,22 +599,22 @@ func _McpManager_SendMcpMessage_Handler(srv interface{}, stream grpc.ServerStrea
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(McpManagerServer).SendMcpMessage(m, &grpc.GenericServerStream[SendMcpMessageRequest, SendMcpMessageResponse]{ServerStream: stream})
+	return srv.(McpManagerServer).SendMcpMessage(m, &grpc.GenericServerStream[SendMcpMessageRequest, McpConnectionStreamResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type McpManager_SendMcpMessageServer = grpc.ServerStreamingServer[SendMcpMessageResponse]
+type McpManager_SendMcpMessageServer = grpc.ServerStreamingServer[McpConnectionStreamResponse]
 
 func _McpManager_StreamMcpMessages_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(StreamMcpMessagesRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(McpManagerServer).StreamMcpMessages(m, &grpc.GenericServerStream[StreamMcpMessagesRequest, StreamMcpMessagesResponse]{ServerStream: stream})
+	return srv.(McpManagerServer).StreamMcpMessages(m, &grpc.GenericServerStream[StreamMcpMessagesRequest, McpConnectionStreamResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type McpManager_StreamMcpMessagesServer = grpc.ServerStreamingServer[StreamMcpMessagesResponse]
+type McpManager_StreamMcpMessagesServer = grpc.ServerStreamingServer[McpConnectionStreamResponse]
 
 func _McpManager_GetServerInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetServerInfoRequest)
@@ -620,6 +702,24 @@ func _McpManager_GetSession_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(McpManagerServer).GetSession(ctx, req.(*GetSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_GetSessionServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).GetSessionServer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_GetSessionServer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).GetSessionServer(ctx, req.(*GetSessionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -858,6 +958,42 @@ func _McpManager_ListRecentlyActiveSessions_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _McpManager_GetServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetServerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).GetServer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_GetServer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).GetServer(ctx, req.(*GetServerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McpManager_ListServers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListServersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpManagerServer).ListServers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpManager_ListServers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpManagerServer).ListServers(ctx, req.(*ListServersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // McpManager_ServiceDesc is the grpc.ServiceDesc for McpManager service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -872,6 +1008,10 @@ var McpManager_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateSession",
 			Handler:    _McpManager_CreateSession_Handler,
+		},
+		{
+			MethodName: "DiscoverServer",
+			Handler:    _McpManager_DiscoverServer_Handler,
 		},
 		{
 			MethodName: "DiscardSession",
@@ -896,6 +1036,10 @@ var McpManager_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSession",
 			Handler:    _McpManager_GetSession_Handler,
+		},
+		{
+			MethodName: "GetSessionServer",
+			Handler:    _McpManager_GetSessionServer_Handler,
 		},
 		{
 			MethodName: "ListRuns",
@@ -948,6 +1092,14 @@ var McpManager_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListRecentlyActiveSessions",
 			Handler:    _McpManager_ListRecentlyActiveSessions_Handler,
+		},
+		{
+			MethodName: "GetServer",
+			Handler:    _McpManager_GetServer_Handler,
+		},
+		{
+			MethodName: "ListServers",
+			Handler:    _McpManager_ListServers_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

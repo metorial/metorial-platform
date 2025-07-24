@@ -23,6 +23,7 @@ import {
 import Long from "long";
 import { LauncherConfig } from "./launcher";
 import {
+  McpConfig,
   McpError,
   McpMessage,
   McpMessageRaw,
@@ -31,6 +32,10 @@ import {
   mcpMessageTypeToJSON,
   McpOutput,
   McpParticipant,
+  McpPrompt,
+  McpResource,
+  McpResourceTemplate,
+  McpTool,
 } from "./mcp";
 import { RunConfig as RunConfig1, RunConfigRemoteServer } from "./remote";
 import { RunConfig, RunConfigContainer } from "./runner";
@@ -223,6 +228,8 @@ export enum EngineSessionEventType {
   session_event_type_error = 1,
   session_event_type_log = 2,
   session_event_type_unknown = 3,
+  session_event_type_launcher_run_success = 4,
+  session_event_type_launcher_run_error = 5,
   UNRECOGNIZED = -1,
 }
 
@@ -240,6 +247,12 @@ export function engineSessionEventTypeFromJSON(object: any): EngineSessionEventT
     case 3:
     case "session_event_type_unknown":
       return EngineSessionEventType.session_event_type_unknown;
+    case 4:
+    case "session_event_type_launcher_run_success":
+      return EngineSessionEventType.session_event_type_launcher_run_success;
+    case 5:
+    case "session_event_type_launcher_run_error":
+      return EngineSessionEventType.session_event_type_launcher_run_error;
     case -1:
     case "UNRECOGNIZED":
     default:
@@ -257,6 +270,10 @@ export function engineSessionEventTypeToJSON(object: EngineSessionEventType): st
       return "session_event_type_log";
     case EngineSessionEventType.session_event_type_unknown:
       return "session_event_type_unknown";
+    case EngineSessionEventType.session_event_type_launcher_run_success:
+      return "session_event_type_launcher_run_success";
+    case EngineSessionEventType.session_event_type_launcher_run_error:
+      return "session_event_type_launcher_run_error";
     case EngineSessionEventType.UNRECOGNIZED:
     default:
       return "UNRECOGNIZED";
@@ -297,6 +314,39 @@ export function sessionMessageSenderToJSON(object: SessionMessageSender): string
     case SessionMessageSender.session_message_sender_server:
       return "session_message_sender_server";
     case SessionMessageSender.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
+export enum EngineServerStatus {
+  session_status_discovered = 0,
+  session_status_not_discovered = 1,
+  UNRECOGNIZED = -1,
+}
+
+export function engineServerStatusFromJSON(object: any): EngineServerStatus {
+  switch (object) {
+    case 0:
+    case "session_status_discovered":
+      return EngineServerStatus.session_status_discovered;
+    case 1:
+    case "session_status_not_discovered":
+      return EngineServerStatus.session_status_not_discovered;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return EngineServerStatus.UNRECOGNIZED;
+  }
+}
+
+export function engineServerStatusToJSON(object: EngineServerStatus): string {
+  switch (object) {
+    case EngineServerStatus.session_status_discovered:
+      return "session_status_discovered";
+    case EngineServerStatus.session_status_not_discovered:
+      return "session_status_not_discovered";
+    case EngineServerStatus.UNRECOGNIZED:
     default:
       return "UNRECOGNIZED";
   }
@@ -370,11 +420,19 @@ export interface RemoteRunConfigWithLauncher {
   launcher: LauncherConfig | undefined;
 }
 
-export interface SessionConfig {
+export interface ServerConfig {
   containerRunConfigWithLauncher?: ContainerRunConfigWithLauncher | undefined;
   containerRunConfigWithContainerArguments?: RunConfig | undefined;
   remoteRunConfigWithLauncher?: RemoteRunConfigWithLauncher | undefined;
   remoteRunConfigWithServer?: RunConfig1 | undefined;
+}
+
+export interface SessionConfig {
+  serverConfig:
+    | ServerConfig
+    | undefined;
+  /** Optional, MCP specific configuration */
+  mcpConfig: McpConfig | undefined;
 }
 
 export interface CreateSessionResponse {
@@ -382,16 +440,14 @@ export interface CreateSessionResponse {
   session: EngineSession | undefined;
 }
 
+export interface DiscoverRequest {
+  serverConfig: ServerConfig | undefined;
+}
+
 export interface SendMcpMessageRequest {
   sessionId: string;
   mcpMessages: McpMessageRaw[];
   includeResponses: boolean;
-}
-
-export interface SendMcpMessageResponse {
-  mcpMessage?: McpMessage | undefined;
-  mcpError?: McpError | undefined;
-  sessionEvent?: SessionEvent | undefined;
 }
 
 export interface StreamMcpMessagesRequest {
@@ -401,7 +457,7 @@ export interface StreamMcpMessagesRequest {
   /** Optional, if empty, all messages are streamed */
   onlyIds: string[];
   /** Include messages after this UUID, useful for resuming streams */
-  replayAfterUuid: string;
+  replayAfterUuid?: string | undefined;
 }
 
 export interface SessionEventInfoRun {
@@ -427,7 +483,7 @@ export interface SessionEvent {
   infoSession?: SessionEventInfoSession | undefined;
 }
 
-export interface StreamMcpMessagesResponse {
+export interface McpConnectionStreamResponse {
   mcpMessage?: McpMessage | undefined;
   mcpError?: McpError | undefined;
   mcpOutput?: McpOutput | undefined;
@@ -468,11 +524,14 @@ export interface EngineSession {
   hasError: boolean;
   mcpClient: McpParticipant | undefined;
   mcpServer: McpParticipant | undefined;
+  server: EngineServer | undefined;
   createdAt: Long;
   updatedAt: Long;
   startedAt: Long;
   endedAt: Long;
   lastPingAt: Long;
+  /** MCP specific configuration */
+  mcpConfig: McpConfig | undefined;
 }
 
 export interface EngineSessionRun {
@@ -548,6 +607,31 @@ export interface EngineSessionMessage_MetadataEntry {
   value: string;
 }
 
+export interface EngineServer {
+  id: string;
+  identifier: string;
+  type: EngineSessionType;
+  status: EngineServerStatus;
+  mcpServer: McpParticipant | undefined;
+  tools: McpTool[];
+  prompts: McpPrompt[];
+  resources: McpResource[];
+  resourceTemplates: McpResourceTemplate[];
+  /** Optional, Additional metadata for the server */
+  metadata: { [key: string]: string };
+  /** Timestamp when the server was created */
+  createdAt: Long;
+  /** Timestamp when the server was last updated */
+  updatedAt: Long;
+  /** Timestamp when the server was last discovered */
+  lastDiscoveryAt?: Long | undefined;
+}
+
+export interface EngineServer_MetadataEntry {
+  key: string;
+  value: string;
+}
+
 export interface ListPagination {
   afterId: string;
   beforeId: string;
@@ -557,7 +641,7 @@ export interface ListPagination {
 
 export interface ListSessionsRequest {
   externalId: string;
-  pagination: ListPagination | undefined;
+  pagination?: ListPagination | undefined;
 }
 
 export interface ListSessionsResponse {
@@ -574,8 +658,8 @@ export interface GetSessionResponse {
 
 export interface ListRunsRequest {
   sessionId: string;
-  pagination: ListPagination | undefined;
-  after: Long;
+  pagination?: ListPagination | undefined;
+  after?: Long | undefined;
 }
 
 export interface ListRunsResponse {
@@ -616,8 +700,8 @@ export interface GetMessageResponse {
 
 export interface ListRunErrorsRequest {
   runId: string;
-  pagination: ListPagination | undefined;
-  after: Long;
+  pagination?: ListPagination | undefined;
+  after?: Long | undefined;
 }
 
 export interface ListRunErrorsResponse {
@@ -626,8 +710,8 @@ export interface ListRunErrorsResponse {
 
 export interface ListRunEventsRequest {
   runId: string;
-  pagination: ListPagination | undefined;
-  after: Long;
+  pagination?: ListPagination | undefined;
+  after?: Long | undefined;
 }
 
 export interface ListRunEventsResponse {
@@ -636,8 +720,8 @@ export interface ListRunEventsResponse {
 
 export interface ListRunMessagesRequest {
   runId: string;
-  pagination: ListPagination | undefined;
-  after: Long;
+  pagination?: ListPagination | undefined;
+  after?: Long | undefined;
 }
 
 export interface ListRunMessagesResponse {
@@ -646,8 +730,8 @@ export interface ListRunMessagesResponse {
 
 export interface ListSessionEventsRequest {
   sessionId: string;
-  pagination: ListPagination | undefined;
-  after: Long;
+  pagination?: ListPagination | undefined;
+  after?: Long | undefined;
 }
 
 export interface ListSessionEventsResponse {
@@ -656,8 +740,8 @@ export interface ListSessionEventsResponse {
 
 export interface ListSessionErrorsRequest {
   sessionId: string;
-  pagination: ListPagination | undefined;
-  after: Long;
+  pagination?: ListPagination | undefined;
+  after?: Long | undefined;
 }
 
 export interface ListSessionErrorsResponse {
@@ -666,8 +750,8 @@ export interface ListSessionErrorsResponse {
 
 export interface ListSessionMessagesRequest {
   sessionId: string;
-  pagination: ListPagination | undefined;
-  after: Long;
+  pagination?: ListPagination | undefined;
+  after?: Long | undefined;
 }
 
 export interface ListSessionMessagesResponse {
@@ -688,6 +772,22 @@ export interface ListRecentlyActiveSessionsRequest {
 
 export interface ListRecentlyActiveSessionsResponse {
   sessionIds: string[];
+}
+
+export interface GetServerRequest {
+  serverId: string;
+}
+
+export interface GetServerResponse {
+  server: EngineServer | undefined;
+}
+
+export interface ListServersRequest {
+  pagination?: ListPagination | undefined;
+}
+
+export interface ListServersResponse {
+  servers: EngineServer[];
 }
 
 function createBaseCheckActiveSessionRequest(): CheckActiveSessionRequest {
@@ -1209,7 +1309,7 @@ export const RemoteRunConfigWithLauncher: MessageFns<RemoteRunConfigWithLauncher
   },
 };
 
-function createBaseSessionConfig(): SessionConfig {
+function createBaseServerConfig(): ServerConfig {
   return {
     containerRunConfigWithLauncher: undefined,
     containerRunConfigWithContainerArguments: undefined,
@@ -1218,8 +1318,8 @@ function createBaseSessionConfig(): SessionConfig {
   };
 }
 
-export const SessionConfig: MessageFns<SessionConfig> = {
-  encode(message: SessionConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const ServerConfig: MessageFns<ServerConfig> = {
+  encode(message: ServerConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.containerRunConfigWithLauncher !== undefined) {
       ContainerRunConfigWithLauncher.encode(message.containerRunConfigWithLauncher, writer.uint32(10).fork()).join();
     }
@@ -1235,10 +1335,10 @@ export const SessionConfig: MessageFns<SessionConfig> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SessionConfig {
+  decode(input: BinaryReader | Uint8Array, length?: number): ServerConfig {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSessionConfig();
+    const message = createBaseServerConfig();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1283,7 +1383,7 @@ export const SessionConfig: MessageFns<SessionConfig> = {
     return message;
   },
 
-  fromJSON(object: any): SessionConfig {
+  fromJSON(object: any): ServerConfig {
     return {
       containerRunConfigWithLauncher: isSet(object.containerRunConfigWithLauncher)
         ? ContainerRunConfigWithLauncher.fromJSON(object.containerRunConfigWithLauncher)
@@ -1300,7 +1400,7 @@ export const SessionConfig: MessageFns<SessionConfig> = {
     };
   },
 
-  toJSON(message: SessionConfig): unknown {
+  toJSON(message: ServerConfig): unknown {
     const obj: any = {};
     if (message.containerRunConfigWithLauncher !== undefined) {
       obj.containerRunConfigWithLauncher = ContainerRunConfigWithLauncher.toJSON(
@@ -1319,11 +1419,11 @@ export const SessionConfig: MessageFns<SessionConfig> = {
     return obj;
   },
 
-  create(base?: DeepPartial<SessionConfig>): SessionConfig {
-    return SessionConfig.fromPartial(base ?? {});
+  create(base?: DeepPartial<ServerConfig>): ServerConfig {
+    return ServerConfig.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<SessionConfig>): SessionConfig {
-    const message = createBaseSessionConfig();
+  fromPartial(object: DeepPartial<ServerConfig>): ServerConfig {
+    const message = createBaseServerConfig();
     message.containerRunConfigWithLauncher =
       (object.containerRunConfigWithLauncher !== undefined && object.containerRunConfigWithLauncher !== null)
         ? ContainerRunConfigWithLauncher.fromPartial(object.containerRunConfigWithLauncher)
@@ -1341,6 +1441,86 @@ export const SessionConfig: MessageFns<SessionConfig> = {
       (object.remoteRunConfigWithServer !== undefined && object.remoteRunConfigWithServer !== null)
         ? RunConfig1.fromPartial(object.remoteRunConfigWithServer)
         : undefined;
+    return message;
+  },
+};
+
+function createBaseSessionConfig(): SessionConfig {
+  return { serverConfig: undefined, mcpConfig: undefined };
+}
+
+export const SessionConfig: MessageFns<SessionConfig> = {
+  encode(message: SessionConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.serverConfig !== undefined) {
+      ServerConfig.encode(message.serverConfig, writer.uint32(10).fork()).join();
+    }
+    if (message.mcpConfig !== undefined) {
+      McpConfig.encode(message.mcpConfig, writer.uint32(82).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SessionConfig {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSessionConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.serverConfig = ServerConfig.decode(reader, reader.uint32());
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.mcpConfig = McpConfig.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SessionConfig {
+    return {
+      serverConfig: isSet(object.serverConfig) ? ServerConfig.fromJSON(object.serverConfig) : undefined,
+      mcpConfig: isSet(object.mcpConfig) ? McpConfig.fromJSON(object.mcpConfig) : undefined,
+    };
+  },
+
+  toJSON(message: SessionConfig): unknown {
+    const obj: any = {};
+    if (message.serverConfig !== undefined) {
+      obj.serverConfig = ServerConfig.toJSON(message.serverConfig);
+    }
+    if (message.mcpConfig !== undefined) {
+      obj.mcpConfig = McpConfig.toJSON(message.mcpConfig);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<SessionConfig>): SessionConfig {
+    return SessionConfig.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<SessionConfig>): SessionConfig {
+    const message = createBaseSessionConfig();
+    message.serverConfig = (object.serverConfig !== undefined && object.serverConfig !== null)
+      ? ServerConfig.fromPartial(object.serverConfig)
+      : undefined;
+    message.mcpConfig = (object.mcpConfig !== undefined && object.mcpConfig !== null)
+      ? McpConfig.fromPartial(object.mcpConfig)
+      : undefined;
     return message;
   },
 };
@@ -1418,6 +1598,66 @@ export const CreateSessionResponse: MessageFns<CreateSessionResponse> = {
     message.sessionId = object.sessionId ?? "";
     message.session = (object.session !== undefined && object.session !== null)
       ? EngineSession.fromPartial(object.session)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseDiscoverRequest(): DiscoverRequest {
+  return { serverConfig: undefined };
+}
+
+export const DiscoverRequest: MessageFns<DiscoverRequest> = {
+  encode(message: DiscoverRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.serverConfig !== undefined) {
+      ServerConfig.encode(message.serverConfig, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DiscoverRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDiscoverRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.serverConfig = ServerConfig.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DiscoverRequest {
+    return { serverConfig: isSet(object.serverConfig) ? ServerConfig.fromJSON(object.serverConfig) : undefined };
+  },
+
+  toJSON(message: DiscoverRequest): unknown {
+    const obj: any = {};
+    if (message.serverConfig !== undefined) {
+      obj.serverConfig = ServerConfig.toJSON(message.serverConfig);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<DiscoverRequest>): DiscoverRequest {
+    return DiscoverRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DiscoverRequest>): DiscoverRequest {
+    const message = createBaseDiscoverRequest();
+    message.serverConfig = (object.serverConfig !== undefined && object.serverConfig !== null)
+      ? ServerConfig.fromPartial(object.serverConfig)
       : undefined;
     return message;
   },
@@ -1517,106 +1757,8 @@ export const SendMcpMessageRequest: MessageFns<SendMcpMessageRequest> = {
   },
 };
 
-function createBaseSendMcpMessageResponse(): SendMcpMessageResponse {
-  return { mcpMessage: undefined, mcpError: undefined, sessionEvent: undefined };
-}
-
-export const SendMcpMessageResponse: MessageFns<SendMcpMessageResponse> = {
-  encode(message: SendMcpMessageResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.mcpMessage !== undefined) {
-      McpMessage.encode(message.mcpMessage, writer.uint32(10).fork()).join();
-    }
-    if (message.mcpError !== undefined) {
-      McpError.encode(message.mcpError, writer.uint32(18).fork()).join();
-    }
-    if (message.sessionEvent !== undefined) {
-      SessionEvent.encode(message.sessionEvent, writer.uint32(26).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): SendMcpMessageResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSendMcpMessageResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.mcpMessage = McpMessage.decode(reader, reader.uint32());
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.mcpError = McpError.decode(reader, reader.uint32());
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.sessionEvent = SessionEvent.decode(reader, reader.uint32());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): SendMcpMessageResponse {
-    return {
-      mcpMessage: isSet(object.mcpMessage) ? McpMessage.fromJSON(object.mcpMessage) : undefined,
-      mcpError: isSet(object.mcpError) ? McpError.fromJSON(object.mcpError) : undefined,
-      sessionEvent: isSet(object.sessionEvent) ? SessionEvent.fromJSON(object.sessionEvent) : undefined,
-    };
-  },
-
-  toJSON(message: SendMcpMessageResponse): unknown {
-    const obj: any = {};
-    if (message.mcpMessage !== undefined) {
-      obj.mcpMessage = McpMessage.toJSON(message.mcpMessage);
-    }
-    if (message.mcpError !== undefined) {
-      obj.mcpError = McpError.toJSON(message.mcpError);
-    }
-    if (message.sessionEvent !== undefined) {
-      obj.sessionEvent = SessionEvent.toJSON(message.sessionEvent);
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<SendMcpMessageResponse>): SendMcpMessageResponse {
-    return SendMcpMessageResponse.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<SendMcpMessageResponse>): SendMcpMessageResponse {
-    const message = createBaseSendMcpMessageResponse();
-    message.mcpMessage = (object.mcpMessage !== undefined && object.mcpMessage !== null)
-      ? McpMessage.fromPartial(object.mcpMessage)
-      : undefined;
-    message.mcpError = (object.mcpError !== undefined && object.mcpError !== null)
-      ? McpError.fromPartial(object.mcpError)
-      : undefined;
-    message.sessionEvent = (object.sessionEvent !== undefined && object.sessionEvent !== null)
-      ? SessionEvent.fromPartial(object.sessionEvent)
-      : undefined;
-    return message;
-  },
-};
-
 function createBaseStreamMcpMessagesRequest(): StreamMcpMessagesRequest {
-  return { sessionId: "", onlyMessageTypes: [], onlyIds: [], replayAfterUuid: "" };
+  return { sessionId: "", onlyMessageTypes: [], onlyIds: [], replayAfterUuid: undefined };
 }
 
 export const StreamMcpMessagesRequest: MessageFns<StreamMcpMessagesRequest> = {
@@ -1632,7 +1774,7 @@ export const StreamMcpMessagesRequest: MessageFns<StreamMcpMessagesRequest> = {
     for (const v of message.onlyIds) {
       writer.uint32(26).string(v!);
     }
-    if (message.replayAfterUuid !== "") {
+    if (message.replayAfterUuid !== undefined) {
       writer.uint32(34).string(message.replayAfterUuid);
     }
     return writer;
@@ -1703,7 +1845,7 @@ export const StreamMcpMessagesRequest: MessageFns<StreamMcpMessagesRequest> = {
         ? object.onlyMessageTypes.map((e: any) => mcpMessageTypeFromJSON(e))
         : [],
       onlyIds: globalThis.Array.isArray(object?.onlyIds) ? object.onlyIds.map((e: any) => globalThis.String(e)) : [],
-      replayAfterUuid: isSet(object.replayAfterUuid) ? globalThis.String(object.replayAfterUuid) : "",
+      replayAfterUuid: isSet(object.replayAfterUuid) ? globalThis.String(object.replayAfterUuid) : undefined,
     };
   },
 
@@ -1718,7 +1860,7 @@ export const StreamMcpMessagesRequest: MessageFns<StreamMcpMessagesRequest> = {
     if (message.onlyIds?.length) {
       obj.onlyIds = message.onlyIds;
     }
-    if (message.replayAfterUuid !== "") {
+    if (message.replayAfterUuid !== undefined) {
       obj.replayAfterUuid = message.replayAfterUuid;
     }
     return obj;
@@ -1732,7 +1874,7 @@ export const StreamMcpMessagesRequest: MessageFns<StreamMcpMessagesRequest> = {
     message.sessionId = object.sessionId ?? "";
     message.onlyMessageTypes = object.onlyMessageTypes?.map((e) => e) || [];
     message.onlyIds = object.onlyIds?.map((e) => e) || [];
-    message.replayAfterUuid = object.replayAfterUuid ?? "";
+    message.replayAfterUuid = object.replayAfterUuid ?? undefined;
     return message;
   },
 };
@@ -2093,12 +2235,12 @@ export const SessionEvent: MessageFns<SessionEvent> = {
   },
 };
 
-function createBaseStreamMcpMessagesResponse(): StreamMcpMessagesResponse {
+function createBaseMcpConnectionStreamResponse(): McpConnectionStreamResponse {
   return { mcpMessage: undefined, mcpError: undefined, mcpOutput: undefined, sessionEvent: undefined, isReplay: false };
 }
 
-export const StreamMcpMessagesResponse: MessageFns<StreamMcpMessagesResponse> = {
-  encode(message: StreamMcpMessagesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const McpConnectionStreamResponse: MessageFns<McpConnectionStreamResponse> = {
+  encode(message: McpConnectionStreamResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.mcpMessage !== undefined) {
       McpMessage.encode(message.mcpMessage, writer.uint32(10).fork()).join();
     }
@@ -2117,10 +2259,10 @@ export const StreamMcpMessagesResponse: MessageFns<StreamMcpMessagesResponse> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StreamMcpMessagesResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number): McpConnectionStreamResponse {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStreamMcpMessagesResponse();
+    const message = createBaseMcpConnectionStreamResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -2173,7 +2315,7 @@ export const StreamMcpMessagesResponse: MessageFns<StreamMcpMessagesResponse> = 
     return message;
   },
 
-  fromJSON(object: any): StreamMcpMessagesResponse {
+  fromJSON(object: any): McpConnectionStreamResponse {
     return {
       mcpMessage: isSet(object.mcpMessage) ? McpMessage.fromJSON(object.mcpMessage) : undefined,
       mcpError: isSet(object.mcpError) ? McpError.fromJSON(object.mcpError) : undefined,
@@ -2183,7 +2325,7 @@ export const StreamMcpMessagesResponse: MessageFns<StreamMcpMessagesResponse> = 
     };
   },
 
-  toJSON(message: StreamMcpMessagesResponse): unknown {
+  toJSON(message: McpConnectionStreamResponse): unknown {
     const obj: any = {};
     if (message.mcpMessage !== undefined) {
       obj.mcpMessage = McpMessage.toJSON(message.mcpMessage);
@@ -2203,11 +2345,11 @@ export const StreamMcpMessagesResponse: MessageFns<StreamMcpMessagesResponse> = 
     return obj;
   },
 
-  create(base?: DeepPartial<StreamMcpMessagesResponse>): StreamMcpMessagesResponse {
-    return StreamMcpMessagesResponse.fromPartial(base ?? {});
+  create(base?: DeepPartial<McpConnectionStreamResponse>): McpConnectionStreamResponse {
+    return McpConnectionStreamResponse.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<StreamMcpMessagesResponse>): StreamMcpMessagesResponse {
-    const message = createBaseStreamMcpMessagesResponse();
+  fromPartial(object: DeepPartial<McpConnectionStreamResponse>): McpConnectionStreamResponse {
+    const message = createBaseMcpConnectionStreamResponse();
     message.mcpMessage = (object.mcpMessage !== undefined && object.mcpMessage !== null)
       ? McpMessage.fromPartial(object.mcpMessage)
       : undefined;
@@ -2604,11 +2746,13 @@ function createBaseEngineSession(): EngineSession {
     hasError: false,
     mcpClient: undefined,
     mcpServer: undefined,
+    server: undefined,
     createdAt: Long.ZERO,
     updatedAt: Long.ZERO,
     startedAt: Long.ZERO,
     endedAt: Long.ZERO,
     lastPingAt: Long.ZERO,
+    mcpConfig: undefined,
   };
 }
 
@@ -2635,6 +2779,9 @@ export const EngineSession: MessageFns<EngineSession> = {
     if (message.mcpServer !== undefined) {
       McpParticipant.encode(message.mcpServer, writer.uint32(50).fork()).join();
     }
+    if (message.server !== undefined) {
+      EngineServer.encode(message.server, writer.uint32(114).fork()).join();
+    }
     if (!message.createdAt.equals(Long.ZERO)) {
       writer.uint32(56).int64(message.createdAt.toString());
     }
@@ -2649,6 +2796,9 @@ export const EngineSession: MessageFns<EngineSession> = {
     }
     if (!message.lastPingAt.equals(Long.ZERO)) {
       writer.uint32(88).int64(message.lastPingAt.toString());
+    }
+    if (message.mcpConfig !== undefined) {
+      McpConfig.encode(message.mcpConfig, writer.uint32(106).fork()).join();
     }
     return writer;
   },
@@ -2716,6 +2866,14 @@ export const EngineSession: MessageFns<EngineSession> = {
           message.mcpServer = McpParticipant.decode(reader, reader.uint32());
           continue;
         }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.server = EngineServer.decode(reader, reader.uint32());
+          continue;
+        }
         case 7: {
           if (tag !== 56) {
             break;
@@ -2756,6 +2914,14 @@ export const EngineSession: MessageFns<EngineSession> = {
           message.lastPingAt = Long.fromString(reader.int64().toString());
           continue;
         }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.mcpConfig = McpConfig.decode(reader, reader.uint32());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2774,11 +2940,13 @@ export const EngineSession: MessageFns<EngineSession> = {
       hasError: isSet(object.hasError) ? globalThis.Boolean(object.hasError) : false,
       mcpClient: isSet(object.mcpClient) ? McpParticipant.fromJSON(object.mcpClient) : undefined,
       mcpServer: isSet(object.mcpServer) ? McpParticipant.fromJSON(object.mcpServer) : undefined,
+      server: isSet(object.server) ? EngineServer.fromJSON(object.server) : undefined,
       createdAt: isSet(object.createdAt) ? Long.fromValue(object.createdAt) : Long.ZERO,
       updatedAt: isSet(object.updatedAt) ? Long.fromValue(object.updatedAt) : Long.ZERO,
       startedAt: isSet(object.startedAt) ? Long.fromValue(object.startedAt) : Long.ZERO,
       endedAt: isSet(object.endedAt) ? Long.fromValue(object.endedAt) : Long.ZERO,
       lastPingAt: isSet(object.lastPingAt) ? Long.fromValue(object.lastPingAt) : Long.ZERO,
+      mcpConfig: isSet(object.mcpConfig) ? McpConfig.fromJSON(object.mcpConfig) : undefined,
     };
   },
 
@@ -2805,6 +2973,9 @@ export const EngineSession: MessageFns<EngineSession> = {
     if (message.mcpServer !== undefined) {
       obj.mcpServer = McpParticipant.toJSON(message.mcpServer);
     }
+    if (message.server !== undefined) {
+      obj.server = EngineServer.toJSON(message.server);
+    }
     if (!message.createdAt.equals(Long.ZERO)) {
       obj.createdAt = (message.createdAt || Long.ZERO).toString();
     }
@@ -2819,6 +2990,9 @@ export const EngineSession: MessageFns<EngineSession> = {
     }
     if (!message.lastPingAt.equals(Long.ZERO)) {
       obj.lastPingAt = (message.lastPingAt || Long.ZERO).toString();
+    }
+    if (message.mcpConfig !== undefined) {
+      obj.mcpConfig = McpConfig.toJSON(message.mcpConfig);
     }
     return obj;
   },
@@ -2839,6 +3013,9 @@ export const EngineSession: MessageFns<EngineSession> = {
     message.mcpServer = (object.mcpServer !== undefined && object.mcpServer !== null)
       ? McpParticipant.fromPartial(object.mcpServer)
       : undefined;
+    message.server = (object.server !== undefined && object.server !== null)
+      ? EngineServer.fromPartial(object.server)
+      : undefined;
     message.createdAt = (object.createdAt !== undefined && object.createdAt !== null)
       ? Long.fromValue(object.createdAt)
       : Long.ZERO;
@@ -2854,6 +3031,9 @@ export const EngineSession: MessageFns<EngineSession> = {
     message.lastPingAt = (object.lastPingAt !== undefined && object.lastPingAt !== null)
       ? Long.fromValue(object.lastPingAt)
       : Long.ZERO;
+    message.mcpConfig = (object.mcpConfig !== undefined && object.mcpConfig !== null)
+      ? McpConfig.fromPartial(object.mcpConfig)
+      : undefined;
     return message;
   },
 };
@@ -4092,6 +4272,379 @@ export const EngineSessionMessage_MetadataEntry: MessageFns<EngineSessionMessage
   },
 };
 
+function createBaseEngineServer(): EngineServer {
+  return {
+    id: "",
+    identifier: "",
+    type: 0,
+    status: 0,
+    mcpServer: undefined,
+    tools: [],
+    prompts: [],
+    resources: [],
+    resourceTemplates: [],
+    metadata: {},
+    createdAt: Long.ZERO,
+    updatedAt: Long.ZERO,
+    lastDiscoveryAt: undefined,
+  };
+}
+
+export const EngineServer: MessageFns<EngineServer> = {
+  encode(message: EngineServer, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.identifier !== "") {
+      writer.uint32(18).string(message.identifier);
+    }
+    if (message.type !== 0) {
+      writer.uint32(24).int32(message.type);
+    }
+    if (message.status !== 0) {
+      writer.uint32(32).int32(message.status);
+    }
+    if (message.mcpServer !== undefined) {
+      McpParticipant.encode(message.mcpServer, writer.uint32(42).fork()).join();
+    }
+    for (const v of message.tools) {
+      McpTool.encode(v!, writer.uint32(50).fork()).join();
+    }
+    for (const v of message.prompts) {
+      McpPrompt.encode(v!, writer.uint32(58).fork()).join();
+    }
+    for (const v of message.resources) {
+      McpResource.encode(v!, writer.uint32(66).fork()).join();
+    }
+    for (const v of message.resourceTemplates) {
+      McpResourceTemplate.encode(v!, writer.uint32(74).fork()).join();
+    }
+    Object.entries(message.metadata).forEach(([key, value]) => {
+      EngineServer_MetadataEntry.encode({ key: key as any, value }, writer.uint32(82).fork()).join();
+    });
+    if (!message.createdAt.equals(Long.ZERO)) {
+      writer.uint32(88).int64(message.createdAt.toString());
+    }
+    if (!message.updatedAt.equals(Long.ZERO)) {
+      writer.uint32(96).int64(message.updatedAt.toString());
+    }
+    if (message.lastDiscoveryAt !== undefined) {
+      writer.uint32(104).int64(message.lastDiscoveryAt.toString());
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EngineServer {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEngineServer();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.identifier = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.mcpServer = McpParticipant.decode(reader, reader.uint32());
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.tools.push(McpTool.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.prompts.push(McpPrompt.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.resources.push(McpResource.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.resourceTemplates.push(McpResourceTemplate.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          const entry10 = EngineServer_MetadataEntry.decode(reader, reader.uint32());
+          if (entry10.value !== undefined) {
+            message.metadata[entry10.key] = entry10.value;
+          }
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.createdAt = Long.fromString(reader.int64().toString());
+          continue;
+        }
+        case 12: {
+          if (tag !== 96) {
+            break;
+          }
+
+          message.updatedAt = Long.fromString(reader.int64().toString());
+          continue;
+        }
+        case 13: {
+          if (tag !== 104) {
+            break;
+          }
+
+          message.lastDiscoveryAt = Long.fromString(reader.int64().toString());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EngineServer {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      identifier: isSet(object.identifier) ? globalThis.String(object.identifier) : "",
+      type: isSet(object.type) ? engineSessionTypeFromJSON(object.type) : 0,
+      status: isSet(object.status) ? engineServerStatusFromJSON(object.status) : 0,
+      mcpServer: isSet(object.mcpServer) ? McpParticipant.fromJSON(object.mcpServer) : undefined,
+      tools: globalThis.Array.isArray(object?.tools) ? object.tools.map((e: any) => McpTool.fromJSON(e)) : [],
+      prompts: globalThis.Array.isArray(object?.prompts) ? object.prompts.map((e: any) => McpPrompt.fromJSON(e)) : [],
+      resources: globalThis.Array.isArray(object?.resources)
+        ? object.resources.map((e: any) => McpResource.fromJSON(e))
+        : [],
+      resourceTemplates: globalThis.Array.isArray(object?.resourceTemplates)
+        ? object.resourceTemplates.map((e: any) => McpResourceTemplate.fromJSON(e))
+        : [],
+      metadata: isObject(object.metadata)
+        ? Object.entries(object.metadata).reduce<{ [key: string]: string }>((acc, [key, value]) => {
+          acc[key] = String(value);
+          return acc;
+        }, {})
+        : {},
+      createdAt: isSet(object.createdAt) ? Long.fromValue(object.createdAt) : Long.ZERO,
+      updatedAt: isSet(object.updatedAt) ? Long.fromValue(object.updatedAt) : Long.ZERO,
+      lastDiscoveryAt: isSet(object.lastDiscoveryAt) ? Long.fromValue(object.lastDiscoveryAt) : undefined,
+    };
+  },
+
+  toJSON(message: EngineServer): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.identifier !== "") {
+      obj.identifier = message.identifier;
+    }
+    if (message.type !== 0) {
+      obj.type = engineSessionTypeToJSON(message.type);
+    }
+    if (message.status !== 0) {
+      obj.status = engineServerStatusToJSON(message.status);
+    }
+    if (message.mcpServer !== undefined) {
+      obj.mcpServer = McpParticipant.toJSON(message.mcpServer);
+    }
+    if (message.tools?.length) {
+      obj.tools = message.tools.map((e) => McpTool.toJSON(e));
+    }
+    if (message.prompts?.length) {
+      obj.prompts = message.prompts.map((e) => McpPrompt.toJSON(e));
+    }
+    if (message.resources?.length) {
+      obj.resources = message.resources.map((e) => McpResource.toJSON(e));
+    }
+    if (message.resourceTemplates?.length) {
+      obj.resourceTemplates = message.resourceTemplates.map((e) => McpResourceTemplate.toJSON(e));
+    }
+    if (message.metadata) {
+      const entries = Object.entries(message.metadata);
+      if (entries.length > 0) {
+        obj.metadata = {};
+        entries.forEach(([k, v]) => {
+          obj.metadata[k] = v;
+        });
+      }
+    }
+    if (!message.createdAt.equals(Long.ZERO)) {
+      obj.createdAt = (message.createdAt || Long.ZERO).toString();
+    }
+    if (!message.updatedAt.equals(Long.ZERO)) {
+      obj.updatedAt = (message.updatedAt || Long.ZERO).toString();
+    }
+    if (message.lastDiscoveryAt !== undefined) {
+      obj.lastDiscoveryAt = (message.lastDiscoveryAt || Long.ZERO).toString();
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<EngineServer>): EngineServer {
+    return EngineServer.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<EngineServer>): EngineServer {
+    const message = createBaseEngineServer();
+    message.id = object.id ?? "";
+    message.identifier = object.identifier ?? "";
+    message.type = object.type ?? 0;
+    message.status = object.status ?? 0;
+    message.mcpServer = (object.mcpServer !== undefined && object.mcpServer !== null)
+      ? McpParticipant.fromPartial(object.mcpServer)
+      : undefined;
+    message.tools = object.tools?.map((e) => McpTool.fromPartial(e)) || [];
+    message.prompts = object.prompts?.map((e) => McpPrompt.fromPartial(e)) || [];
+    message.resources = object.resources?.map((e) => McpResource.fromPartial(e)) || [];
+    message.resourceTemplates = object.resourceTemplates?.map((e) => McpResourceTemplate.fromPartial(e)) || [];
+    message.metadata = Object.entries(object.metadata ?? {}).reduce<{ [key: string]: string }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = globalThis.String(value);
+      }
+      return acc;
+    }, {});
+    message.createdAt = (object.createdAt !== undefined && object.createdAt !== null)
+      ? Long.fromValue(object.createdAt)
+      : Long.ZERO;
+    message.updatedAt = (object.updatedAt !== undefined && object.updatedAt !== null)
+      ? Long.fromValue(object.updatedAt)
+      : Long.ZERO;
+    message.lastDiscoveryAt = (object.lastDiscoveryAt !== undefined && object.lastDiscoveryAt !== null)
+      ? Long.fromValue(object.lastDiscoveryAt)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseEngineServer_MetadataEntry(): EngineServer_MetadataEntry {
+  return { key: "", value: "" };
+}
+
+export const EngineServer_MetadataEntry: MessageFns<EngineServer_MetadataEntry> = {
+  encode(message: EngineServer_MetadataEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== "") {
+      writer.uint32(18).string(message.value);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EngineServer_MetadataEntry {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEngineServer_MetadataEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.key = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.value = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EngineServer_MetadataEntry {
+    return {
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      value: isSet(object.value) ? globalThis.String(object.value) : "",
+    };
+  },
+
+  toJSON(message: EngineServer_MetadataEntry): unknown {
+    const obj: any = {};
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== "") {
+      obj.value = message.value;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<EngineServer_MetadataEntry>): EngineServer_MetadataEntry {
+    return EngineServer_MetadataEntry.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<EngineServer_MetadataEntry>): EngineServer_MetadataEntry {
+    const message = createBaseEngineServer_MetadataEntry();
+    message.key = object.key ?? "";
+    message.value = object.value ?? "";
+    return message;
+  },
+};
+
 function createBaseListPagination(): ListPagination {
   return { afterId: "", beforeId: "", limit: 0, order: 0 };
 }
@@ -4459,7 +5012,7 @@ export const GetSessionResponse: MessageFns<GetSessionResponse> = {
 };
 
 function createBaseListRunsRequest(): ListRunsRequest {
-  return { sessionId: "", pagination: undefined, after: Long.ZERO };
+  return { sessionId: "", pagination: undefined, after: undefined };
 }
 
 export const ListRunsRequest: MessageFns<ListRunsRequest> = {
@@ -4470,7 +5023,7 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       writer.uint32(24).int64(message.after.toString());
     }
     return writer;
@@ -4520,7 +5073,7 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
     return {
       sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
     };
   },
 
@@ -4532,7 +5085,7 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
@@ -4547,7 +5100,7 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
     return message;
   },
 };
@@ -5085,7 +5638,7 @@ export const GetMessageResponse: MessageFns<GetMessageResponse> = {
 };
 
 function createBaseListRunErrorsRequest(): ListRunErrorsRequest {
-  return { runId: "", pagination: undefined, after: Long.ZERO };
+  return { runId: "", pagination: undefined, after: undefined };
 }
 
 export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
@@ -5096,7 +5649,7 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       writer.uint32(24).int64(message.after.toString());
     }
     return writer;
@@ -5146,7 +5699,7 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
     return {
       runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
     };
   },
 
@@ -5158,7 +5711,7 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
@@ -5173,7 +5726,7 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
     return message;
   },
 };
@@ -5241,7 +5794,7 @@ export const ListRunErrorsResponse: MessageFns<ListRunErrorsResponse> = {
 };
 
 function createBaseListRunEventsRequest(): ListRunEventsRequest {
-  return { runId: "", pagination: undefined, after: Long.ZERO };
+  return { runId: "", pagination: undefined, after: undefined };
 }
 
 export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
@@ -5252,7 +5805,7 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       writer.uint32(24).int64(message.after.toString());
     }
     return writer;
@@ -5302,7 +5855,7 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
     return {
       runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
     };
   },
 
@@ -5314,7 +5867,7 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
@@ -5329,7 +5882,7 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
     return message;
   },
 };
@@ -5397,7 +5950,7 @@ export const ListRunEventsResponse: MessageFns<ListRunEventsResponse> = {
 };
 
 function createBaseListRunMessagesRequest(): ListRunMessagesRequest {
-  return { runId: "", pagination: undefined, after: Long.ZERO };
+  return { runId: "", pagination: undefined, after: undefined };
 }
 
 export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
@@ -5408,7 +5961,7 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       writer.uint32(24).int64(message.after.toString());
     }
     return writer;
@@ -5458,7 +6011,7 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
     return {
       runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
     };
   },
 
@@ -5470,7 +6023,7 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
@@ -5485,7 +6038,7 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
     return message;
   },
 };
@@ -5553,7 +6106,7 @@ export const ListRunMessagesResponse: MessageFns<ListRunMessagesResponse> = {
 };
 
 function createBaseListSessionEventsRequest(): ListSessionEventsRequest {
-  return { sessionId: "", pagination: undefined, after: Long.ZERO };
+  return { sessionId: "", pagination: undefined, after: undefined };
 }
 
 export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
@@ -5564,7 +6117,7 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       writer.uint32(24).int64(message.after.toString());
     }
     return writer;
@@ -5614,7 +6167,7 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
     return {
       sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
     };
   },
 
@@ -5626,7 +6179,7 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
@@ -5641,7 +6194,7 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
     return message;
   },
 };
@@ -5709,7 +6262,7 @@ export const ListSessionEventsResponse: MessageFns<ListSessionEventsResponse> = 
 };
 
 function createBaseListSessionErrorsRequest(): ListSessionErrorsRequest {
-  return { sessionId: "", pagination: undefined, after: Long.ZERO };
+  return { sessionId: "", pagination: undefined, after: undefined };
 }
 
 export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
@@ -5720,7 +6273,7 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       writer.uint32(24).int64(message.after.toString());
     }
     return writer;
@@ -5770,7 +6323,7 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
     return {
       sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
     };
   },
 
@@ -5782,7 +6335,7 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
@@ -5797,7 +6350,7 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
     return message;
   },
 };
@@ -5865,7 +6418,7 @@ export const ListSessionErrorsResponse: MessageFns<ListSessionErrorsResponse> = 
 };
 
 function createBaseListSessionMessagesRequest(): ListSessionMessagesRequest {
-  return { sessionId: "", pagination: undefined, after: Long.ZERO };
+  return { sessionId: "", pagination: undefined, after: undefined };
 }
 
 export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> = {
@@ -5876,7 +6429,7 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       writer.uint32(24).int64(message.after.toString());
     }
     return writer;
@@ -5926,7 +6479,7 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
     return {
       sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
       pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : Long.ZERO,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
     };
   },
 
@@ -5938,7 +6491,7 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
     if (message.pagination !== undefined) {
       obj.pagination = ListPagination.toJSON(message.pagination);
     }
-    if (!message.after.equals(Long.ZERO)) {
+    if (message.after !== undefined) {
       obj.after = (message.after || Long.ZERO).toString();
     }
     return obj;
@@ -5953,7 +6506,7 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
     message.pagination = (object.pagination !== undefined && object.pagination !== null)
       ? ListPagination.fromPartial(object.pagination)
       : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : Long.ZERO;
+    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
     return message;
   },
 };
@@ -6258,6 +6811,246 @@ export const ListRecentlyActiveSessionsResponse: MessageFns<ListRecentlyActiveSe
   },
 };
 
+function createBaseGetServerRequest(): GetServerRequest {
+  return { serverId: "" };
+}
+
+export const GetServerRequest: MessageFns<GetServerRequest> = {
+  encode(message: GetServerRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.serverId !== "") {
+      writer.uint32(10).string(message.serverId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetServerRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetServerRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.serverId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetServerRequest {
+    return { serverId: isSet(object.serverId) ? globalThis.String(object.serverId) : "" };
+  },
+
+  toJSON(message: GetServerRequest): unknown {
+    const obj: any = {};
+    if (message.serverId !== "") {
+      obj.serverId = message.serverId;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<GetServerRequest>): GetServerRequest {
+    return GetServerRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<GetServerRequest>): GetServerRequest {
+    const message = createBaseGetServerRequest();
+    message.serverId = object.serverId ?? "";
+    return message;
+  },
+};
+
+function createBaseGetServerResponse(): GetServerResponse {
+  return { server: undefined };
+}
+
+export const GetServerResponse: MessageFns<GetServerResponse> = {
+  encode(message: GetServerResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.server !== undefined) {
+      EngineServer.encode(message.server, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetServerResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetServerResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.server = EngineServer.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetServerResponse {
+    return { server: isSet(object.server) ? EngineServer.fromJSON(object.server) : undefined };
+  },
+
+  toJSON(message: GetServerResponse): unknown {
+    const obj: any = {};
+    if (message.server !== undefined) {
+      obj.server = EngineServer.toJSON(message.server);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<GetServerResponse>): GetServerResponse {
+    return GetServerResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<GetServerResponse>): GetServerResponse {
+    const message = createBaseGetServerResponse();
+    message.server = (object.server !== undefined && object.server !== null)
+      ? EngineServer.fromPartial(object.server)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseListServersRequest(): ListServersRequest {
+  return { pagination: undefined };
+}
+
+export const ListServersRequest: MessageFns<ListServersRequest> = {
+  encode(message: ListServersRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.pagination !== undefined) {
+      ListPagination.encode(message.pagination, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListServersRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListServersRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.pagination = ListPagination.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListServersRequest {
+    return { pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined };
+  },
+
+  toJSON(message: ListServersRequest): unknown {
+    const obj: any = {};
+    if (message.pagination !== undefined) {
+      obj.pagination = ListPagination.toJSON(message.pagination);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<ListServersRequest>): ListServersRequest {
+    return ListServersRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ListServersRequest>): ListServersRequest {
+    const message = createBaseListServersRequest();
+    message.pagination = (object.pagination !== undefined && object.pagination !== null)
+      ? ListPagination.fromPartial(object.pagination)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseListServersResponse(): ListServersResponse {
+  return { servers: [] };
+}
+
+export const ListServersResponse: MessageFns<ListServersResponse> = {
+  encode(message: ListServersResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.servers) {
+      EngineServer.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListServersResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListServersResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.servers.push(EngineServer.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListServersResponse {
+    return {
+      servers: globalThis.Array.isArray(object?.servers)
+        ? object.servers.map((e: any) => EngineServer.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListServersResponse): unknown {
+    const obj: any = {};
+    if (message.servers?.length) {
+      obj.servers = message.servers.map((e) => EngineServer.toJSON(e));
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<ListServersResponse>): ListServersResponse {
+    return ListServersResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ListServersResponse>): ListServersResponse {
+    const message = createBaseListServersResponse();
+    message.servers = object.servers?.map((e) => EngineServer.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 export type McpManagerService = typeof McpManagerService;
 export const McpManagerService = {
   checkActiveSession: {
@@ -6281,6 +7074,15 @@ export const McpManagerService = {
       Buffer.from(CreateSessionResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): CreateSessionResponse => CreateSessionResponse.decode(value),
   },
+  discoverServer: {
+    path: "/broker.manager.McpManager/DiscoverServer",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: DiscoverRequest): Buffer => Buffer.from(DiscoverRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DiscoverRequest => DiscoverRequest.decode(value),
+    responseSerialize: (value: GetServerResponse): Buffer => Buffer.from(GetServerResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetServerResponse => GetServerResponse.decode(value),
+  },
   discardSession: {
     path: "/broker.manager.McpManager/DiscardSession",
     requestStream: false,
@@ -6299,9 +7101,9 @@ export const McpManagerService = {
     requestSerialize: (value: SendMcpMessageRequest): Buffer =>
       Buffer.from(SendMcpMessageRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): SendMcpMessageRequest => SendMcpMessageRequest.decode(value),
-    responseSerialize: (value: SendMcpMessageResponse): Buffer =>
-      Buffer.from(SendMcpMessageResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): SendMcpMessageResponse => SendMcpMessageResponse.decode(value),
+    responseSerialize: (value: McpConnectionStreamResponse): Buffer =>
+      Buffer.from(McpConnectionStreamResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): McpConnectionStreamResponse => McpConnectionStreamResponse.decode(value),
   },
   streamMcpMessages: {
     path: "/broker.manager.McpManager/StreamMcpMessages",
@@ -6310,9 +7112,9 @@ export const McpManagerService = {
     requestSerialize: (value: StreamMcpMessagesRequest): Buffer =>
       Buffer.from(StreamMcpMessagesRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): StreamMcpMessagesRequest => StreamMcpMessagesRequest.decode(value),
-    responseSerialize: (value: StreamMcpMessagesResponse): Buffer =>
-      Buffer.from(StreamMcpMessagesResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): StreamMcpMessagesResponse => StreamMcpMessagesResponse.decode(value),
+    responseSerialize: (value: McpConnectionStreamResponse): Buffer =>
+      Buffer.from(McpConnectionStreamResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): McpConnectionStreamResponse => McpConnectionStreamResponse.decode(value),
   },
   getServerInfo: {
     path: "/broker.manager.McpManager/GetServerInfo",
@@ -6360,6 +7162,15 @@ export const McpManagerService = {
     requestDeserialize: (value: Buffer): GetSessionRequest => GetSessionRequest.decode(value),
     responseSerialize: (value: GetSessionResponse): Buffer => Buffer.from(GetSessionResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetSessionResponse => GetSessionResponse.decode(value),
+  },
+  getSessionServer: {
+    path: "/broker.manager.McpManager/GetSessionServer",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: GetSessionRequest): Buffer => Buffer.from(GetSessionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetSessionRequest => GetSessionRequest.decode(value),
+    responseSerialize: (value: GetServerResponse): Buffer => Buffer.from(GetServerResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetServerResponse => GetServerResponse.decode(value),
   },
   listRuns: {
     path: "/broker.manager.McpManager/ListRuns",
@@ -6495,19 +7306,39 @@ export const McpManagerService = {
     responseDeserialize: (value: Buffer): ListRecentlyActiveSessionsResponse =>
       ListRecentlyActiveSessionsResponse.decode(value),
   },
+  getServer: {
+    path: "/broker.manager.McpManager/GetServer",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: GetServerRequest): Buffer => Buffer.from(GetServerRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetServerRequest => GetServerRequest.decode(value),
+    responseSerialize: (value: GetServerResponse): Buffer => Buffer.from(GetServerResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetServerResponse => GetServerResponse.decode(value),
+  },
+  listServers: {
+    path: "/broker.manager.McpManager/ListServers",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: ListServersRequest): Buffer => Buffer.from(ListServersRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListServersRequest => ListServersRequest.decode(value),
+    responseSerialize: (value: ListServersResponse): Buffer => Buffer.from(ListServersResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListServersResponse => ListServersResponse.decode(value),
+  },
 } as const;
 
 export interface McpManagerServer extends UntypedServiceImplementation {
   checkActiveSession: handleUnaryCall<CheckActiveSessionRequest, CheckActiveSessionResponse>;
   createSession: handleUnaryCall<CreateSessionRequest, CreateSessionResponse>;
+  discoverServer: handleUnaryCall<DiscoverRequest, GetServerResponse>;
   discardSession: handleUnaryCall<DiscardSessionRequest, DiscardSessionResponse>;
-  sendMcpMessage: handleServerStreamingCall<SendMcpMessageRequest, SendMcpMessageResponse>;
-  streamMcpMessages: handleServerStreamingCall<StreamMcpMessagesRequest, StreamMcpMessagesResponse>;
+  sendMcpMessage: handleServerStreamingCall<SendMcpMessageRequest, McpConnectionStreamResponse>;
+  streamMcpMessages: handleServerStreamingCall<StreamMcpMessagesRequest, McpConnectionStreamResponse>;
   getServerInfo: handleUnaryCall<GetServerInfoRequest, McpParticipant>;
   listManagers: handleUnaryCall<ListManagersRequest, ListManagersResponse>;
   listWorkers: handleUnaryCall<ListWorkersRequest, ListWorkersResponse>;
   listSessions: handleUnaryCall<ListSessionsRequest, ListSessionsResponse>;
   getSession: handleUnaryCall<GetSessionRequest, GetSessionResponse>;
+  getSessionServer: handleUnaryCall<GetSessionRequest, GetServerResponse>;
   listRuns: handleUnaryCall<ListRunsRequest, ListRunsResponse>;
   getRun: handleUnaryCall<GetRunRequest, GetRunResponse>;
   listSessionErrors: handleUnaryCall<ListSessionErrorsRequest, ListSessionErrorsResponse>;
@@ -6521,6 +7352,8 @@ export interface McpManagerServer extends UntypedServiceImplementation {
   getMessage: handleUnaryCall<GetMessageRequest, GetMessageResponse>;
   listRecentlyActiveRuns: handleUnaryCall<ListRecentlyActiveRunsRequest, ListRecentlyActiveRunsResponse>;
   listRecentlyActiveSessions: handleUnaryCall<ListRecentlyActiveSessionsRequest, ListRecentlyActiveSessionsResponse>;
+  getServer: handleUnaryCall<GetServerRequest, GetServerResponse>;
+  listServers: handleUnaryCall<ListServersRequest, ListServersResponse>;
 }
 
 export interface McpManagerClient extends Client {
@@ -6554,6 +7387,21 @@ export interface McpManagerClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: CreateSessionResponse) => void,
   ): ClientUnaryCall;
+  discoverServer(
+    request: DiscoverRequest,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
+  discoverServer(
+    request: DiscoverRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
+  discoverServer(
+    request: DiscoverRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
   discardSession(
     request: DiscardSessionRequest,
     callback: (error: ServiceError | null, response: DiscardSessionResponse) => void,
@@ -6572,21 +7420,21 @@ export interface McpManagerClient extends Client {
   sendMcpMessage(
     request: SendMcpMessageRequest,
     options?: Partial<CallOptions>,
-  ): ClientReadableStream<SendMcpMessageResponse>;
+  ): ClientReadableStream<McpConnectionStreamResponse>;
   sendMcpMessage(
     request: SendMcpMessageRequest,
     metadata?: Metadata,
     options?: Partial<CallOptions>,
-  ): ClientReadableStream<SendMcpMessageResponse>;
+  ): ClientReadableStream<McpConnectionStreamResponse>;
   streamMcpMessages(
     request: StreamMcpMessagesRequest,
     options?: Partial<CallOptions>,
-  ): ClientReadableStream<StreamMcpMessagesResponse>;
+  ): ClientReadableStream<McpConnectionStreamResponse>;
   streamMcpMessages(
     request: StreamMcpMessagesRequest,
     metadata?: Metadata,
     options?: Partial<CallOptions>,
-  ): ClientReadableStream<StreamMcpMessagesResponse>;
+  ): ClientReadableStream<McpConnectionStreamResponse>;
   getServerInfo(
     request: GetServerInfoRequest,
     callback: (error: ServiceError | null, response: McpParticipant) => void,
@@ -6661,6 +7509,21 @@ export interface McpManagerClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetSessionResponse) => void,
+  ): ClientUnaryCall;
+  getSessionServer(
+    request: GetSessionRequest,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
+  getSessionServer(
+    request: GetSessionRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
+  getSessionServer(
+    request: GetSessionRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
   ): ClientUnaryCall;
   listRuns(
     request: ListRunsRequest,
@@ -6856,6 +7719,36 @@ export interface McpManagerClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ListRecentlyActiveSessionsResponse) => void,
+  ): ClientUnaryCall;
+  getServer(
+    request: GetServerRequest,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
+  getServer(
+    request: GetServerRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
+  getServer(
+    request: GetServerRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+  ): ClientUnaryCall;
+  listServers(
+    request: ListServersRequest,
+    callback: (error: ServiceError | null, response: ListServersResponse) => void,
+  ): ClientUnaryCall;
+  listServers(
+    request: ListServersRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListServersResponse) => void,
+  ): ClientUnaryCall;
+  listServers(
+    request: ListServersRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListServersResponse) => void,
   ): ClientUnaryCall;
 }
 

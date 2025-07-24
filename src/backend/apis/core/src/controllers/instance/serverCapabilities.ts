@@ -10,13 +10,15 @@ import { serverCapabilitiesPresenter } from '../../presenters';
 export let serverCapabilitiesController = Controller.create(
   {
     name: 'Server Capabilities',
-    description: 'Get server capabilities information'
+    description:
+      'Describes the capabilities, i.e., the tools, resources, and prompts, that certain servers support.'
   },
   {
     list: instanceGroup
       .get(instancePath('server-capabilities', 'servers.capabilities.list'), {
         name: 'List server capabilities',
-        description: 'List all server capabilities'
+        description:
+          'Returns a list of server capabilities, filterable by server attributes such as deployment, variant, or version.'
       })
       .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
       .output(serverCapabilitiesPresenter)
@@ -39,7 +41,6 @@ export let serverCapabilitiesController = Controller.create(
           serverIds: normalizeArrayParam(ctx.query.server_id),
           serverVersionIds: normalizeArrayParam(ctx.query.server_version_id),
           serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_id),
-
           instance: ctx.instance
         });
 

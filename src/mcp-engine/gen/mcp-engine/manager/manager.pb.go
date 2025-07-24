@@ -237,10 +237,12 @@ func (EngineRunType) EnumDescriptor() ([]byte, []int) {
 type EngineSessionEventType int32
 
 const (
-	EngineSessionEventType_session_event_type_output  EngineSessionEventType = 0
-	EngineSessionEventType_session_event_type_error   EngineSessionEventType = 1
-	EngineSessionEventType_session_event_type_log     EngineSessionEventType = 2
-	EngineSessionEventType_session_event_type_unknown EngineSessionEventType = 3
+	EngineSessionEventType_session_event_type_output               EngineSessionEventType = 0
+	EngineSessionEventType_session_event_type_error                EngineSessionEventType = 1
+	EngineSessionEventType_session_event_type_log                  EngineSessionEventType = 2
+	EngineSessionEventType_session_event_type_unknown              EngineSessionEventType = 3
+	EngineSessionEventType_session_event_type_launcher_run_success EngineSessionEventType = 4
+	EngineSessionEventType_session_event_type_launcher_run_error   EngineSessionEventType = 5
 )
 
 // Enum value maps for EngineSessionEventType.
@@ -250,12 +252,16 @@ var (
 		1: "session_event_type_error",
 		2: "session_event_type_log",
 		3: "session_event_type_unknown",
+		4: "session_event_type_launcher_run_success",
+		5: "session_event_type_launcher_run_error",
 	}
 	EngineSessionEventType_value = map[string]int32{
-		"session_event_type_output":  0,
-		"session_event_type_error":   1,
-		"session_event_type_log":     2,
-		"session_event_type_unknown": 3,
+		"session_event_type_output":               0,
+		"session_event_type_error":                1,
+		"session_event_type_log":                  2,
+		"session_event_type_unknown":              3,
+		"session_event_type_launcher_run_success": 4,
+		"session_event_type_launcher_run_error":   5,
 	}
 )
 
@@ -335,6 +341,52 @@ func (SessionMessageSender) EnumDescriptor() ([]byte, []int) {
 	return file_manager_proto_rawDescGZIP(), []int{5}
 }
 
+type EngineServerStatus int32
+
+const (
+	EngineServerStatus_session_status_discovered     EngineServerStatus = 0
+	EngineServerStatus_session_status_not_discovered EngineServerStatus = 1
+)
+
+// Enum value maps for EngineServerStatus.
+var (
+	EngineServerStatus_name = map[int32]string{
+		0: "session_status_discovered",
+		1: "session_status_not_discovered",
+	}
+	EngineServerStatus_value = map[string]int32{
+		"session_status_discovered":     0,
+		"session_status_not_discovered": 1,
+	}
+)
+
+func (x EngineServerStatus) Enum() *EngineServerStatus {
+	p := new(EngineServerStatus)
+	*p = x
+	return p
+}
+
+func (x EngineServerStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (EngineServerStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_manager_proto_enumTypes[6].Descriptor()
+}
+
+func (EngineServerStatus) Type() protoreflect.EnumType {
+	return &file_manager_proto_enumTypes[6]
+}
+
+func (x EngineServerStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use EngineServerStatus.Descriptor instead.
+func (EngineServerStatus) EnumDescriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{6}
+}
+
 type ListPaginationOrder int32
 
 const (
@@ -365,11 +417,11 @@ func (x ListPaginationOrder) String() string {
 }
 
 func (ListPaginationOrder) Descriptor() protoreflect.EnumDescriptor {
-	return file_manager_proto_enumTypes[6].Descriptor()
+	return file_manager_proto_enumTypes[7].Descriptor()
 }
 
 func (ListPaginationOrder) Type() protoreflect.EnumType {
-	return &file_manager_proto_enumTypes[6]
+	return &file_manager_proto_enumTypes[7]
 }
 
 func (x ListPaginationOrder) Number() protoreflect.EnumNumber {
@@ -378,7 +430,7 @@ func (x ListPaginationOrder) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ListPaginationOrder.Descriptor instead.
 func (ListPaginationOrder) EnumDescriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{6}
+	return file_manager_proto_rawDescGZIP(), []int{7}
 }
 
 type CheckActiveSessionRequest struct {
@@ -657,22 +709,131 @@ func (x *RemoteRunConfigWithLauncher) GetLauncher() *launcher.LauncherConfig {
 	return nil
 }
 
-type SessionConfig struct {
+type ServerConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to ConfigType:
 	//
-	//	*SessionConfig_ContainerRunConfigWithLauncher
-	//	*SessionConfig_ContainerRunConfigWithContainerArguments
-	//	*SessionConfig_RemoteRunConfigWithLauncher
-	//	*SessionConfig_RemoteRunConfigWithServer
-	ConfigType    isSessionConfig_ConfigType `protobuf_oneof:"config_type"`
+	//	*ServerConfig_ContainerRunConfigWithLauncher
+	//	*ServerConfig_ContainerRunConfigWithContainerArguments
+	//	*ServerConfig_RemoteRunConfigWithLauncher
+	//	*ServerConfig_RemoteRunConfigWithServer
+	ConfigType    isServerConfig_ConfigType `protobuf_oneof:"config_type"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServerConfig) Reset() {
+	*x = ServerConfig{}
+	mi := &file_manager_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServerConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServerConfig) ProtoMessage() {}
+
+func (x *ServerConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServerConfig.ProtoReflect.Descriptor instead.
+func (*ServerConfig) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ServerConfig) GetConfigType() isServerConfig_ConfigType {
+	if x != nil {
+		return x.ConfigType
+	}
+	return nil
+}
+
+func (x *ServerConfig) GetContainerRunConfigWithLauncher() *ContainerRunConfigWithLauncher {
+	if x != nil {
+		if x, ok := x.ConfigType.(*ServerConfig_ContainerRunConfigWithLauncher); ok {
+			return x.ContainerRunConfigWithLauncher
+		}
+	}
+	return nil
+}
+
+func (x *ServerConfig) GetContainerRunConfigWithContainerArguments() *runner.RunConfig {
+	if x != nil {
+		if x, ok := x.ConfigType.(*ServerConfig_ContainerRunConfigWithContainerArguments); ok {
+			return x.ContainerRunConfigWithContainerArguments
+		}
+	}
+	return nil
+}
+
+func (x *ServerConfig) GetRemoteRunConfigWithLauncher() *RemoteRunConfigWithLauncher {
+	if x != nil {
+		if x, ok := x.ConfigType.(*ServerConfig_RemoteRunConfigWithLauncher); ok {
+			return x.RemoteRunConfigWithLauncher
+		}
+	}
+	return nil
+}
+
+func (x *ServerConfig) GetRemoteRunConfigWithServer() *remote.RunConfig {
+	if x != nil {
+		if x, ok := x.ConfigType.(*ServerConfig_RemoteRunConfigWithServer); ok {
+			return x.RemoteRunConfigWithServer
+		}
+	}
+	return nil
+}
+
+type isServerConfig_ConfigType interface {
+	isServerConfig_ConfigType()
+}
+
+type ServerConfig_ContainerRunConfigWithLauncher struct {
+	ContainerRunConfigWithLauncher *ContainerRunConfigWithLauncher `protobuf:"bytes,1,opt,name=container_run_config_with_launcher,json=containerRunConfigWithLauncher,proto3,oneof"`
+}
+
+type ServerConfig_ContainerRunConfigWithContainerArguments struct {
+	ContainerRunConfigWithContainerArguments *runner.RunConfig `protobuf:"bytes,2,opt,name=container_run_config_with_container_arguments,json=containerRunConfigWithContainerArguments,proto3,oneof"`
+}
+
+type ServerConfig_RemoteRunConfigWithLauncher struct {
+	RemoteRunConfigWithLauncher *RemoteRunConfigWithLauncher `protobuf:"bytes,3,opt,name=remote_run_config_with_launcher,json=remoteRunConfigWithLauncher,proto3,oneof"`
+}
+
+type ServerConfig_RemoteRunConfigWithServer struct {
+	RemoteRunConfigWithServer *remote.RunConfig `protobuf:"bytes,4,opt,name=remote_run_config_with_server,json=remoteRunConfigWithServer,proto3,oneof"`
+}
+
+func (*ServerConfig_ContainerRunConfigWithLauncher) isServerConfig_ConfigType() {}
+
+func (*ServerConfig_ContainerRunConfigWithContainerArguments) isServerConfig_ConfigType() {}
+
+func (*ServerConfig_RemoteRunConfigWithLauncher) isServerConfig_ConfigType() {}
+
+func (*ServerConfig_RemoteRunConfigWithServer) isServerConfig_ConfigType() {}
+
+type SessionConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ServerConfig  *ServerConfig          `protobuf:"bytes,1,opt,name=server_config,json=serverConfig,proto3" json:"server_config,omitempty"`
+	McpConfig     *mcp.McpConfig         `protobuf:"bytes,10,opt,name=mcp_config,json=mcpConfig,proto3" json:"mcp_config,omitempty"` // Optional, MCP specific configuration
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SessionConfig) Reset() {
 	*x = SessionConfig{}
-	mi := &file_manager_proto_msgTypes[5]
+	mi := &file_manager_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -684,7 +845,7 @@ func (x *SessionConfig) String() string {
 func (*SessionConfig) ProtoMessage() {}
 
 func (x *SessionConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[5]
+	mi := &file_manager_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -697,79 +858,22 @@ func (x *SessionConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionConfig.ProtoReflect.Descriptor instead.
 func (*SessionConfig) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{5}
+	return file_manager_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *SessionConfig) GetConfigType() isSessionConfig_ConfigType {
+func (x *SessionConfig) GetServerConfig() *ServerConfig {
 	if x != nil {
-		return x.ConfigType
+		return x.ServerConfig
 	}
 	return nil
 }
 
-func (x *SessionConfig) GetContainerRunConfigWithLauncher() *ContainerRunConfigWithLauncher {
+func (x *SessionConfig) GetMcpConfig() *mcp.McpConfig {
 	if x != nil {
-		if x, ok := x.ConfigType.(*SessionConfig_ContainerRunConfigWithLauncher); ok {
-			return x.ContainerRunConfigWithLauncher
-		}
+		return x.McpConfig
 	}
 	return nil
 }
-
-func (x *SessionConfig) GetContainerRunConfigWithContainerArguments() *runner.RunConfig {
-	if x != nil {
-		if x, ok := x.ConfigType.(*SessionConfig_ContainerRunConfigWithContainerArguments); ok {
-			return x.ContainerRunConfigWithContainerArguments
-		}
-	}
-	return nil
-}
-
-func (x *SessionConfig) GetRemoteRunConfigWithLauncher() *RemoteRunConfigWithLauncher {
-	if x != nil {
-		if x, ok := x.ConfigType.(*SessionConfig_RemoteRunConfigWithLauncher); ok {
-			return x.RemoteRunConfigWithLauncher
-		}
-	}
-	return nil
-}
-
-func (x *SessionConfig) GetRemoteRunConfigWithServer() *remote.RunConfig {
-	if x != nil {
-		if x, ok := x.ConfigType.(*SessionConfig_RemoteRunConfigWithServer); ok {
-			return x.RemoteRunConfigWithServer
-		}
-	}
-	return nil
-}
-
-type isSessionConfig_ConfigType interface {
-	isSessionConfig_ConfigType()
-}
-
-type SessionConfig_ContainerRunConfigWithLauncher struct {
-	ContainerRunConfigWithLauncher *ContainerRunConfigWithLauncher `protobuf:"bytes,1,opt,name=container_run_config_with_launcher,json=containerRunConfigWithLauncher,proto3,oneof"`
-}
-
-type SessionConfig_ContainerRunConfigWithContainerArguments struct {
-	ContainerRunConfigWithContainerArguments *runner.RunConfig `protobuf:"bytes,2,opt,name=container_run_config_with_container_arguments,json=containerRunConfigWithContainerArguments,proto3,oneof"`
-}
-
-type SessionConfig_RemoteRunConfigWithLauncher struct {
-	RemoteRunConfigWithLauncher *RemoteRunConfigWithLauncher `protobuf:"bytes,3,opt,name=remote_run_config_with_launcher,json=remoteRunConfigWithLauncher,proto3,oneof"`
-}
-
-type SessionConfig_RemoteRunConfigWithServer struct {
-	RemoteRunConfigWithServer *remote.RunConfig `protobuf:"bytes,4,opt,name=remote_run_config_with_server,json=remoteRunConfigWithServer,proto3,oneof"`
-}
-
-func (*SessionConfig_ContainerRunConfigWithLauncher) isSessionConfig_ConfigType() {}
-
-func (*SessionConfig_ContainerRunConfigWithContainerArguments) isSessionConfig_ConfigType() {}
-
-func (*SessionConfig_RemoteRunConfigWithLauncher) isSessionConfig_ConfigType() {}
-
-func (*SessionConfig_RemoteRunConfigWithServer) isSessionConfig_ConfigType() {}
 
 type CreateSessionResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -781,7 +885,7 @@ type CreateSessionResponse struct {
 
 func (x *CreateSessionResponse) Reset() {
 	*x = CreateSessionResponse{}
-	mi := &file_manager_proto_msgTypes[6]
+	mi := &file_manager_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -793,7 +897,7 @@ func (x *CreateSessionResponse) String() string {
 func (*CreateSessionResponse) ProtoMessage() {}
 
 func (x *CreateSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[6]
+	mi := &file_manager_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -806,7 +910,7 @@ func (x *CreateSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSessionResponse.ProtoReflect.Descriptor instead.
 func (*CreateSessionResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{6}
+	return file_manager_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateSessionResponse) GetSessionId() string {
@@ -823,6 +927,50 @@ func (x *CreateSessionResponse) GetSession() *EngineSession {
 	return nil
 }
 
+type DiscoverRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ServerConfig  *ServerConfig          `protobuf:"bytes,1,opt,name=server_config,json=serverConfig,proto3" json:"server_config,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiscoverRequest) Reset() {
+	*x = DiscoverRequest{}
+	mi := &file_manager_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiscoverRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiscoverRequest) ProtoMessage() {}
+
+func (x *DiscoverRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiscoverRequest.ProtoReflect.Descriptor instead.
+func (*DiscoverRequest) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *DiscoverRequest) GetServerConfig() *ServerConfig {
+	if x != nil {
+		return x.ServerConfig
+	}
+	return nil
+}
+
 type SendMcpMessageRequest struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	SessionId        string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
@@ -834,7 +982,7 @@ type SendMcpMessageRequest struct {
 
 func (x *SendMcpMessageRequest) Reset() {
 	*x = SendMcpMessageRequest{}
-	mi := &file_manager_proto_msgTypes[7]
+	mi := &file_manager_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -846,7 +994,7 @@ func (x *SendMcpMessageRequest) String() string {
 func (*SendMcpMessageRequest) ProtoMessage() {}
 
 func (x *SendMcpMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[7]
+	mi := &file_manager_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -859,7 +1007,7 @@ func (x *SendMcpMessageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendMcpMessageRequest.ProtoReflect.Descriptor instead.
 func (*SendMcpMessageRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{7}
+	return file_manager_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *SendMcpMessageRequest) GetSessionId() string {
@@ -883,117 +1031,19 @@ func (x *SendMcpMessageRequest) GetIncludeResponses() bool {
 	return false
 }
 
-type SendMcpMessageResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Response:
-	//
-	//	*SendMcpMessageResponse_McpMessage
-	//	*SendMcpMessageResponse_McpError
-	//	*SendMcpMessageResponse_SessionEvent
-	Response      isSendMcpMessageResponse_Response `protobuf_oneof:"response"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendMcpMessageResponse) Reset() {
-	*x = SendMcpMessageResponse{}
-	mi := &file_manager_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendMcpMessageResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendMcpMessageResponse) ProtoMessage() {}
-
-func (x *SendMcpMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendMcpMessageResponse.ProtoReflect.Descriptor instead.
-func (*SendMcpMessageResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *SendMcpMessageResponse) GetResponse() isSendMcpMessageResponse_Response {
-	if x != nil {
-		return x.Response
-	}
-	return nil
-}
-
-func (x *SendMcpMessageResponse) GetMcpMessage() *mcp.McpMessage {
-	if x != nil {
-		if x, ok := x.Response.(*SendMcpMessageResponse_McpMessage); ok {
-			return x.McpMessage
-		}
-	}
-	return nil
-}
-
-func (x *SendMcpMessageResponse) GetMcpError() *mcp.McpError {
-	if x != nil {
-		if x, ok := x.Response.(*SendMcpMessageResponse_McpError); ok {
-			return x.McpError
-		}
-	}
-	return nil
-}
-
-func (x *SendMcpMessageResponse) GetSessionEvent() *SessionEvent {
-	if x != nil {
-		if x, ok := x.Response.(*SendMcpMessageResponse_SessionEvent); ok {
-			return x.SessionEvent
-		}
-	}
-	return nil
-}
-
-type isSendMcpMessageResponse_Response interface {
-	isSendMcpMessageResponse_Response()
-}
-
-type SendMcpMessageResponse_McpMessage struct {
-	McpMessage *mcp.McpMessage `protobuf:"bytes,1,opt,name=mcp_message,json=mcpMessage,proto3,oneof"`
-}
-
-type SendMcpMessageResponse_McpError struct {
-	McpError *mcp.McpError `protobuf:"bytes,2,opt,name=mcp_error,json=mcpError,proto3,oneof"`
-}
-
-type SendMcpMessageResponse_SessionEvent struct {
-	SessionEvent *SessionEvent `protobuf:"bytes,3,opt,name=session_event,json=sessionEvent,proto3,oneof"`
-}
-
-func (*SendMcpMessageResponse_McpMessage) isSendMcpMessageResponse_Response() {}
-
-func (*SendMcpMessageResponse_McpError) isSendMcpMessageResponse_Response() {}
-
-func (*SendMcpMessageResponse_SessionEvent) isSendMcpMessageResponse_Response() {}
-
 type StreamMcpMessagesRequest struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	SessionId        string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	OnlyMessageTypes []mcp.McpMessageType   `protobuf:"varint,2,rep,packed,name=only_message_types,json=onlyMessageTypes,proto3,enum=broker.mcp.McpMessageType" json:"only_message_types,omitempty"` // Optional, if empty, all message types are streamed
 	OnlyIds          []string               `protobuf:"bytes,3,rep,name=only_ids,json=onlyIds,proto3" json:"only_ids,omitempty"`                                                                     // Optional, if empty, all messages are streamed
-	ReplayAfterUuid  string                 `protobuf:"bytes,4,opt,name=replay_after_uuid,json=replayAfterUuid,proto3" json:"replay_after_uuid,omitempty"`                                           // Include messages after this UUID, useful for resuming streams
+	ReplayAfterUuid  *string                `protobuf:"bytes,4,opt,name=replay_after_uuid,json=replayAfterUuid,proto3,oneof" json:"replay_after_uuid,omitempty"`                                     // Include messages after this UUID, useful for resuming streams
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
 
 func (x *StreamMcpMessagesRequest) Reset() {
 	*x = StreamMcpMessagesRequest{}
-	mi := &file_manager_proto_msgTypes[9]
+	mi := &file_manager_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1005,7 +1055,7 @@ func (x *StreamMcpMessagesRequest) String() string {
 func (*StreamMcpMessagesRequest) ProtoMessage() {}
 
 func (x *StreamMcpMessagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[9]
+	mi := &file_manager_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1018,7 +1068,7 @@ func (x *StreamMcpMessagesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamMcpMessagesRequest.ProtoReflect.Descriptor instead.
 func (*StreamMcpMessagesRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{9}
+	return file_manager_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *StreamMcpMessagesRequest) GetSessionId() string {
@@ -1043,8 +1093,8 @@ func (x *StreamMcpMessagesRequest) GetOnlyIds() []string {
 }
 
 func (x *StreamMcpMessagesRequest) GetReplayAfterUuid() string {
-	if x != nil {
-		return x.ReplayAfterUuid
+	if x != nil && x.ReplayAfterUuid != nil {
+		return *x.ReplayAfterUuid
 	}
 	return ""
 }
@@ -1058,7 +1108,7 @@ type SessionEventInfoRun struct {
 
 func (x *SessionEventInfoRun) Reset() {
 	*x = SessionEventInfoRun{}
-	mi := &file_manager_proto_msgTypes[10]
+	mi := &file_manager_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1070,7 +1120,7 @@ func (x *SessionEventInfoRun) String() string {
 func (*SessionEventInfoRun) ProtoMessage() {}
 
 func (x *SessionEventInfoRun) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[10]
+	mi := &file_manager_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1083,7 +1133,7 @@ func (x *SessionEventInfoRun) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionEventInfoRun.ProtoReflect.Descriptor instead.
 func (*SessionEventInfoRun) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{10}
+	return file_manager_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SessionEventInfoRun) GetRun() *EngineSessionRun {
@@ -1102,7 +1152,7 @@ type SessionEventInfoSession struct {
 
 func (x *SessionEventInfoSession) Reset() {
 	*x = SessionEventInfoSession{}
-	mi := &file_manager_proto_msgTypes[11]
+	mi := &file_manager_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1114,7 +1164,7 @@ func (x *SessionEventInfoSession) String() string {
 func (*SessionEventInfoSession) ProtoMessage() {}
 
 func (x *SessionEventInfoSession) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[11]
+	mi := &file_manager_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1127,7 +1177,7 @@ func (x *SessionEventInfoSession) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionEventInfoSession.ProtoReflect.Descriptor instead.
 func (*SessionEventInfoSession) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{11}
+	return file_manager_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SessionEventInfoSession) GetSession() *EngineSession {
@@ -1146,7 +1196,7 @@ type SessionEventStartRun struct {
 
 func (x *SessionEventStartRun) Reset() {
 	*x = SessionEventStartRun{}
-	mi := &file_manager_proto_msgTypes[12]
+	mi := &file_manager_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1158,7 +1208,7 @@ func (x *SessionEventStartRun) String() string {
 func (*SessionEventStartRun) ProtoMessage() {}
 
 func (x *SessionEventStartRun) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[12]
+	mi := &file_manager_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1171,7 +1221,7 @@ func (x *SessionEventStartRun) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionEventStartRun.ProtoReflect.Descriptor instead.
 func (*SessionEventStartRun) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{12}
+	return file_manager_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SessionEventStartRun) GetRun() *EngineSessionRun {
@@ -1190,7 +1240,7 @@ type SessionEventStopRun struct {
 
 func (x *SessionEventStopRun) Reset() {
 	*x = SessionEventStopRun{}
-	mi := &file_manager_proto_msgTypes[13]
+	mi := &file_manager_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1202,7 +1252,7 @@ func (x *SessionEventStopRun) String() string {
 func (*SessionEventStopRun) ProtoMessage() {}
 
 func (x *SessionEventStopRun) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[13]
+	mi := &file_manager_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1215,7 +1265,7 @@ func (x *SessionEventStopRun) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionEventStopRun.ProtoReflect.Descriptor instead.
 func (*SessionEventStopRun) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{13}
+	return file_manager_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SessionEventStopRun) GetRun() *EngineSessionRun {
@@ -1240,7 +1290,7 @@ type SessionEvent struct {
 
 func (x *SessionEvent) Reset() {
 	*x = SessionEvent{}
-	mi := &file_manager_proto_msgTypes[14]
+	mi := &file_manager_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1252,7 +1302,7 @@ func (x *SessionEvent) String() string {
 func (*SessionEvent) ProtoMessage() {}
 
 func (x *SessionEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[14]
+	mi := &file_manager_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1265,7 +1315,7 @@ func (x *SessionEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionEvent.ProtoReflect.Descriptor instead.
 func (*SessionEvent) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{14}
+	return file_manager_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SessionEvent) GetEvent() isSessionEvent_Event {
@@ -1339,35 +1389,35 @@ func (*SessionEvent_InfoRun) isSessionEvent_Event() {}
 
 func (*SessionEvent_InfoSession) isSessionEvent_Event() {}
 
-type StreamMcpMessagesResponse struct {
+type McpConnectionStreamResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Response:
 	//
-	//	*StreamMcpMessagesResponse_McpMessage
-	//	*StreamMcpMessagesResponse_McpError
-	//	*StreamMcpMessagesResponse_McpOutput
-	//	*StreamMcpMessagesResponse_SessionEvent
-	Response      isStreamMcpMessagesResponse_Response `protobuf_oneof:"response"`
-	IsReplay      bool                                 `protobuf:"varint,10,opt,name=isReplay,proto3" json:"isReplay,omitempty"`
+	//	*McpConnectionStreamResponse_McpMessage
+	//	*McpConnectionStreamResponse_McpError
+	//	*McpConnectionStreamResponse_McpOutput
+	//	*McpConnectionStreamResponse_SessionEvent
+	Response      isMcpConnectionStreamResponse_Response `protobuf_oneof:"response"`
+	IsReplay      bool                                   `protobuf:"varint,10,opt,name=isReplay,proto3" json:"isReplay,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StreamMcpMessagesResponse) Reset() {
-	*x = StreamMcpMessagesResponse{}
-	mi := &file_manager_proto_msgTypes[15]
+func (x *McpConnectionStreamResponse) Reset() {
+	*x = McpConnectionStreamResponse{}
+	mi := &file_manager_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StreamMcpMessagesResponse) String() string {
+func (x *McpConnectionStreamResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StreamMcpMessagesResponse) ProtoMessage() {}
+func (*McpConnectionStreamResponse) ProtoMessage() {}
 
-func (x *StreamMcpMessagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[15]
+func (x *McpConnectionStreamResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1378,88 +1428,88 @@ func (x *StreamMcpMessagesResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StreamMcpMessagesResponse.ProtoReflect.Descriptor instead.
-func (*StreamMcpMessagesResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{15}
+// Deprecated: Use McpConnectionStreamResponse.ProtoReflect.Descriptor instead.
+func (*McpConnectionStreamResponse) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{16}
 }
 
-func (x *StreamMcpMessagesResponse) GetResponse() isStreamMcpMessagesResponse_Response {
+func (x *McpConnectionStreamResponse) GetResponse() isMcpConnectionStreamResponse_Response {
 	if x != nil {
 		return x.Response
 	}
 	return nil
 }
 
-func (x *StreamMcpMessagesResponse) GetMcpMessage() *mcp.McpMessage {
+func (x *McpConnectionStreamResponse) GetMcpMessage() *mcp.McpMessage {
 	if x != nil {
-		if x, ok := x.Response.(*StreamMcpMessagesResponse_McpMessage); ok {
+		if x, ok := x.Response.(*McpConnectionStreamResponse_McpMessage); ok {
 			return x.McpMessage
 		}
 	}
 	return nil
 }
 
-func (x *StreamMcpMessagesResponse) GetMcpError() *mcp.McpError {
+func (x *McpConnectionStreamResponse) GetMcpError() *mcp.McpError {
 	if x != nil {
-		if x, ok := x.Response.(*StreamMcpMessagesResponse_McpError); ok {
+		if x, ok := x.Response.(*McpConnectionStreamResponse_McpError); ok {
 			return x.McpError
 		}
 	}
 	return nil
 }
 
-func (x *StreamMcpMessagesResponse) GetMcpOutput() *mcp.McpOutput {
+func (x *McpConnectionStreamResponse) GetMcpOutput() *mcp.McpOutput {
 	if x != nil {
-		if x, ok := x.Response.(*StreamMcpMessagesResponse_McpOutput); ok {
+		if x, ok := x.Response.(*McpConnectionStreamResponse_McpOutput); ok {
 			return x.McpOutput
 		}
 	}
 	return nil
 }
 
-func (x *StreamMcpMessagesResponse) GetSessionEvent() *SessionEvent {
+func (x *McpConnectionStreamResponse) GetSessionEvent() *SessionEvent {
 	if x != nil {
-		if x, ok := x.Response.(*StreamMcpMessagesResponse_SessionEvent); ok {
+		if x, ok := x.Response.(*McpConnectionStreamResponse_SessionEvent); ok {
 			return x.SessionEvent
 		}
 	}
 	return nil
 }
 
-func (x *StreamMcpMessagesResponse) GetIsReplay() bool {
+func (x *McpConnectionStreamResponse) GetIsReplay() bool {
 	if x != nil {
 		return x.IsReplay
 	}
 	return false
 }
 
-type isStreamMcpMessagesResponse_Response interface {
-	isStreamMcpMessagesResponse_Response()
+type isMcpConnectionStreamResponse_Response interface {
+	isMcpConnectionStreamResponse_Response()
 }
 
-type StreamMcpMessagesResponse_McpMessage struct {
+type McpConnectionStreamResponse_McpMessage struct {
 	McpMessage *mcp.McpMessage `protobuf:"bytes,1,opt,name=mcp_message,json=mcpMessage,proto3,oneof"`
 }
 
-type StreamMcpMessagesResponse_McpError struct {
+type McpConnectionStreamResponse_McpError struct {
 	McpError *mcp.McpError `protobuf:"bytes,2,opt,name=mcp_error,json=mcpError,proto3,oneof"`
 }
 
-type StreamMcpMessagesResponse_McpOutput struct {
+type McpConnectionStreamResponse_McpOutput struct {
 	McpOutput *mcp.McpOutput `protobuf:"bytes,3,opt,name=mcp_output,json=mcpOutput,proto3,oneof"`
 }
 
-type StreamMcpMessagesResponse_SessionEvent struct {
+type McpConnectionStreamResponse_SessionEvent struct {
 	SessionEvent *SessionEvent `protobuf:"bytes,4,opt,name=session_event,json=sessionEvent,proto3,oneof"`
 }
 
-func (*StreamMcpMessagesResponse_McpMessage) isStreamMcpMessagesResponse_Response() {}
+func (*McpConnectionStreamResponse_McpMessage) isMcpConnectionStreamResponse_Response() {}
 
-func (*StreamMcpMessagesResponse_McpError) isStreamMcpMessagesResponse_Response() {}
+func (*McpConnectionStreamResponse_McpError) isMcpConnectionStreamResponse_Response() {}
 
-func (*StreamMcpMessagesResponse_McpOutput) isStreamMcpMessagesResponse_Response() {}
+func (*McpConnectionStreamResponse_McpOutput) isMcpConnectionStreamResponse_Response() {}
 
-func (*StreamMcpMessagesResponse_SessionEvent) isStreamMcpMessagesResponse_Response() {}
+func (*McpConnectionStreamResponse_SessionEvent) isMcpConnectionStreamResponse_Response() {}
 
 type GetServerInfoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1470,7 +1520,7 @@ type GetServerInfoRequest struct {
 
 func (x *GetServerInfoRequest) Reset() {
 	*x = GetServerInfoRequest{}
-	mi := &file_manager_proto_msgTypes[16]
+	mi := &file_manager_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1482,7 +1532,7 @@ func (x *GetServerInfoRequest) String() string {
 func (*GetServerInfoRequest) ProtoMessage() {}
 
 func (x *GetServerInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[16]
+	mi := &file_manager_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1495,7 +1545,7 @@ func (x *GetServerInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServerInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetServerInfoRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{16}
+	return file_manager_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetServerInfoRequest) GetSessionId() string {
@@ -1513,7 +1563,7 @@ type ListWorkersRequest struct {
 
 func (x *ListWorkersRequest) Reset() {
 	*x = ListWorkersRequest{}
-	mi := &file_manager_proto_msgTypes[17]
+	mi := &file_manager_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1525,7 +1575,7 @@ func (x *ListWorkersRequest) String() string {
 func (*ListWorkersRequest) ProtoMessage() {}
 
 func (x *ListWorkersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[17]
+	mi := &file_manager_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1538,7 +1588,7 @@ func (x *ListWorkersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkersRequest.ProtoReflect.Descriptor instead.
 func (*ListWorkersRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{17}
+	return file_manager_proto_rawDescGZIP(), []int{18}
 }
 
 type ListWorkersResponse struct {
@@ -1550,7 +1600,7 @@ type ListWorkersResponse struct {
 
 func (x *ListWorkersResponse) Reset() {
 	*x = ListWorkersResponse{}
-	mi := &file_manager_proto_msgTypes[18]
+	mi := &file_manager_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1562,7 +1612,7 @@ func (x *ListWorkersResponse) String() string {
 func (*ListWorkersResponse) ProtoMessage() {}
 
 func (x *ListWorkersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[18]
+	mi := &file_manager_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1575,7 +1625,7 @@ func (x *ListWorkersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkersResponse.ProtoReflect.Descriptor instead.
 func (*ListWorkersResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{18}
+	return file_manager_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ListWorkersResponse) GetWorkers() []*WorkerInfo {
@@ -1597,7 +1647,7 @@ type WorkerInfo struct {
 
 func (x *WorkerInfo) Reset() {
 	*x = WorkerInfo{}
-	mi := &file_manager_proto_msgTypes[19]
+	mi := &file_manager_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1609,7 +1659,7 @@ func (x *WorkerInfo) String() string {
 func (*WorkerInfo) ProtoMessage() {}
 
 func (x *WorkerInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[19]
+	mi := &file_manager_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1622,7 +1672,7 @@ func (x *WorkerInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkerInfo.ProtoReflect.Descriptor instead.
 func (*WorkerInfo) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{19}
+	return file_manager_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *WorkerInfo) GetWorkerId() string {
@@ -1662,7 +1712,7 @@ type DiscardSessionRequest struct {
 
 func (x *DiscardSessionRequest) Reset() {
 	*x = DiscardSessionRequest{}
-	mi := &file_manager_proto_msgTypes[20]
+	mi := &file_manager_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1674,7 +1724,7 @@ func (x *DiscardSessionRequest) String() string {
 func (*DiscardSessionRequest) ProtoMessage() {}
 
 func (x *DiscardSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[20]
+	mi := &file_manager_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1687,7 +1737,7 @@ func (x *DiscardSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscardSessionRequest.ProtoReflect.Descriptor instead.
 func (*DiscardSessionRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{20}
+	return file_manager_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *DiscardSessionRequest) GetSessionId() string {
@@ -1705,7 +1755,7 @@ type DiscardSessionResponse struct {
 
 func (x *DiscardSessionResponse) Reset() {
 	*x = DiscardSessionResponse{}
-	mi := &file_manager_proto_msgTypes[21]
+	mi := &file_manager_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1717,7 +1767,7 @@ func (x *DiscardSessionResponse) String() string {
 func (*DiscardSessionResponse) ProtoMessage() {}
 
 func (x *DiscardSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[21]
+	mi := &file_manager_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1730,7 +1780,7 @@ func (x *DiscardSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscardSessionResponse.ProtoReflect.Descriptor instead.
 func (*DiscardSessionResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{21}
+	return file_manager_proto_rawDescGZIP(), []int{22}
 }
 
 type EngineSession struct {
@@ -1742,18 +1792,20 @@ type EngineSession struct {
 	HasError      bool                   `protobuf:"varint,12,opt,name=has_error,json=hasError,proto3" json:"has_error,omitempty"`
 	McpClient     *mcp.McpParticipant    `protobuf:"bytes,5,opt,name=mcp_client,json=mcpClient,proto3" json:"mcp_client,omitempty"`
 	McpServer     *mcp.McpParticipant    `protobuf:"bytes,6,opt,name=mcp_server,json=mcpServer,proto3" json:"mcp_server,omitempty"`
+	Server        *EngineServer          `protobuf:"bytes,14,opt,name=server,proto3" json:"server,omitempty"`
 	CreatedAt     int64                  `protobuf:"varint,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     int64                  `protobuf:"varint,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	StartedAt     int64                  `protobuf:"varint,9,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	EndedAt       int64                  `protobuf:"varint,10,opt,name=ended_at,json=endedAt,proto3" json:"ended_at,omitempty"`
 	LastPingAt    int64                  `protobuf:"varint,11,opt,name=last_ping_at,json=lastPingAt,proto3" json:"last_ping_at,omitempty"`
+	McpConfig     *mcp.McpConfig         `protobuf:"bytes,13,opt,name=mcp_config,json=mcpConfig,proto3" json:"mcp_config,omitempty"` // MCP specific configuration
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *EngineSession) Reset() {
 	*x = EngineSession{}
-	mi := &file_manager_proto_msgTypes[22]
+	mi := &file_manager_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1765,7 +1817,7 @@ func (x *EngineSession) String() string {
 func (*EngineSession) ProtoMessage() {}
 
 func (x *EngineSession) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[22]
+	mi := &file_manager_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1778,7 +1830,7 @@ func (x *EngineSession) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EngineSession.ProtoReflect.Descriptor instead.
 func (*EngineSession) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{22}
+	return file_manager_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *EngineSession) GetId() string {
@@ -1830,6 +1882,13 @@ func (x *EngineSession) GetMcpServer() *mcp.McpParticipant {
 	return nil
 }
 
+func (x *EngineSession) GetServer() *EngineServer {
+	if x != nil {
+		return x.Server
+	}
+	return nil
+}
+
 func (x *EngineSession) GetCreatedAt() int64 {
 	if x != nil {
 		return x.CreatedAt
@@ -1865,6 +1924,13 @@ func (x *EngineSession) GetLastPingAt() int64 {
 	return 0
 }
 
+func (x *EngineSession) GetMcpConfig() *mcp.McpConfig {
+	if x != nil {
+		return x.McpConfig
+	}
+	return nil
+}
+
 type EngineSessionRun struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1885,7 +1951,7 @@ type EngineSessionRun struct {
 
 func (x *EngineSessionRun) Reset() {
 	*x = EngineSessionRun{}
-	mi := &file_manager_proto_msgTypes[23]
+	mi := &file_manager_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1897,7 +1963,7 @@ func (x *EngineSessionRun) String() string {
 func (*EngineSessionRun) ProtoMessage() {}
 
 func (x *EngineSessionRun) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[23]
+	mi := &file_manager_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1910,7 +1976,7 @@ func (x *EngineSessionRun) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EngineSessionRun.ProtoReflect.Descriptor instead.
 func (*EngineSessionRun) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{23}
+	return file_manager_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *EngineSessionRun) GetId() string {
@@ -2015,7 +2081,7 @@ type EngineSessionError struct {
 
 func (x *EngineSessionError) Reset() {
 	*x = EngineSessionError{}
-	mi := &file_manager_proto_msgTypes[24]
+	mi := &file_manager_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2027,7 +2093,7 @@ func (x *EngineSessionError) String() string {
 func (*EngineSessionError) ProtoMessage() {}
 
 func (x *EngineSessionError) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[24]
+	mi := &file_manager_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2040,7 +2106,7 @@ func (x *EngineSessionError) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EngineSessionError.ProtoReflect.Descriptor instead.
 func (*EngineSessionError) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{24}
+	return file_manager_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *EngineSessionError) GetId() string {
@@ -2133,7 +2199,7 @@ type EngineSessionEvent struct {
 
 func (x *EngineSessionEvent) Reset() {
 	*x = EngineSessionEvent{}
-	mi := &file_manager_proto_msgTypes[25]
+	mi := &file_manager_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2145,7 +2211,7 @@ func (x *EngineSessionEvent) String() string {
 func (*EngineSessionEvent) ProtoMessage() {}
 
 func (x *EngineSessionEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[25]
+	mi := &file_manager_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2158,7 +2224,7 @@ func (x *EngineSessionEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EngineSessionEvent.ProtoReflect.Descriptor instead.
 func (*EngineSessionEvent) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{25}
+	return file_manager_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *EngineSessionEvent) GetId() string {
@@ -2256,7 +2322,7 @@ type EngineSessionMessage struct {
 
 func (x *EngineSessionMessage) Reset() {
 	*x = EngineSessionMessage{}
-	mi := &file_manager_proto_msgTypes[26]
+	mi := &file_manager_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2268,7 +2334,7 @@ func (x *EngineSessionMessage) String() string {
 func (*EngineSessionMessage) ProtoMessage() {}
 
 func (x *EngineSessionMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[26]
+	mi := &file_manager_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2281,7 +2347,7 @@ func (x *EngineSessionMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EngineSessionMessage.ProtoReflect.Descriptor instead.
 func (*EngineSessionMessage) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{26}
+	return file_manager_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *EngineSessionMessage) GetId() string {
@@ -2354,6 +2420,146 @@ func (x *EngineSessionMessage) GetCreatedAt() int64 {
 	return 0
 }
 
+type EngineServer struct {
+	state             protoimpl.MessageState     `protogen:"open.v1"`
+	Id                string                     `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Identifier        string                     `protobuf:"bytes,2,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	Type              EngineSessionType          `protobuf:"varint,3,opt,name=type,proto3,enum=broker.manager.EngineSessionType" json:"type,omitempty"`
+	Status            EngineServerStatus         `protobuf:"varint,4,opt,name=status,proto3,enum=broker.manager.EngineServerStatus" json:"status,omitempty"`
+	McpServer         *mcp.McpParticipant        `protobuf:"bytes,5,opt,name=mcp_server,json=mcpServer,proto3" json:"mcp_server,omitempty"`
+	Tools             []*mcp.McpTool             `protobuf:"bytes,6,rep,name=tools,proto3" json:"tools,omitempty"`
+	Prompts           []*mcp.McpPrompt           `protobuf:"bytes,7,rep,name=prompts,proto3" json:"prompts,omitempty"`
+	Resources         []*mcp.McpResource         `protobuf:"bytes,8,rep,name=resources,proto3" json:"resources,omitempty"`
+	ResourceTemplates []*mcp.McpResourceTemplate `protobuf:"bytes,9,rep,name=resource_templates,json=resourceTemplates,proto3" json:"resource_templates,omitempty"`
+	Metadata          map[string]string          `protobuf:"bytes,10,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Optional, Additional metadata for the server
+	CreatedAt         int64                      `protobuf:"varint,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`                                                       // Timestamp when the server was created
+	UpdatedAt         int64                      `protobuf:"varint,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`                                                       // Timestamp when the server was last updated
+	LastDiscoveryAt   *int64                     `protobuf:"varint,13,opt,name=last_discovery_at,json=lastDiscoveryAt,proto3,oneof" json:"last_discovery_at,omitempty"`                             // Timestamp when the server was last discovered
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *EngineServer) Reset() {
+	*x = EngineServer{}
+	mi := &file_manager_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EngineServer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EngineServer) ProtoMessage() {}
+
+func (x *EngineServer) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EngineServer.ProtoReflect.Descriptor instead.
+func (*EngineServer) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *EngineServer) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *EngineServer) GetIdentifier() string {
+	if x != nil {
+		return x.Identifier
+	}
+	return ""
+}
+
+func (x *EngineServer) GetType() EngineSessionType {
+	if x != nil {
+		return x.Type
+	}
+	return EngineSessionType_session_type_unknown
+}
+
+func (x *EngineServer) GetStatus() EngineServerStatus {
+	if x != nil {
+		return x.Status
+	}
+	return EngineServerStatus_session_status_discovered
+}
+
+func (x *EngineServer) GetMcpServer() *mcp.McpParticipant {
+	if x != nil {
+		return x.McpServer
+	}
+	return nil
+}
+
+func (x *EngineServer) GetTools() []*mcp.McpTool {
+	if x != nil {
+		return x.Tools
+	}
+	return nil
+}
+
+func (x *EngineServer) GetPrompts() []*mcp.McpPrompt {
+	if x != nil {
+		return x.Prompts
+	}
+	return nil
+}
+
+func (x *EngineServer) GetResources() []*mcp.McpResource {
+	if x != nil {
+		return x.Resources
+	}
+	return nil
+}
+
+func (x *EngineServer) GetResourceTemplates() []*mcp.McpResourceTemplate {
+	if x != nil {
+		return x.ResourceTemplates
+	}
+	return nil
+}
+
+func (x *EngineServer) GetMetadata() map[string]string {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+func (x *EngineServer) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+func (x *EngineServer) GetUpdatedAt() int64 {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return 0
+}
+
+func (x *EngineServer) GetLastDiscoveryAt() int64 {
+	if x != nil && x.LastDiscoveryAt != nil {
+		return *x.LastDiscoveryAt
+	}
+	return 0
+}
+
 type ListPagination struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AfterId       string                 `protobuf:"bytes,1,opt,name=after_id,json=afterId,proto3" json:"after_id,omitempty"`
@@ -2366,7 +2572,7 @@ type ListPagination struct {
 
 func (x *ListPagination) Reset() {
 	*x = ListPagination{}
-	mi := &file_manager_proto_msgTypes[27]
+	mi := &file_manager_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2378,7 +2584,7 @@ func (x *ListPagination) String() string {
 func (*ListPagination) ProtoMessage() {}
 
 func (x *ListPagination) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[27]
+	mi := &file_manager_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2391,7 +2597,7 @@ func (x *ListPagination) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPagination.ProtoReflect.Descriptor instead.
 func (*ListPagination) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{27}
+	return file_manager_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ListPagination) GetAfterId() string {
@@ -2425,14 +2631,14 @@ func (x *ListPagination) GetOrder() ListPaginationOrder {
 type ListSessionsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ExternalId    string                 `protobuf:"bytes,1,opt,name=external_id,json=externalId,proto3" json:"external_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListSessionsRequest) Reset() {
 	*x = ListSessionsRequest{}
-	mi := &file_manager_proto_msgTypes[28]
+	mi := &file_manager_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2444,7 +2650,7 @@ func (x *ListSessionsRequest) String() string {
 func (*ListSessionsRequest) ProtoMessage() {}
 
 func (x *ListSessionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[28]
+	mi := &file_manager_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2457,7 +2663,7 @@ func (x *ListSessionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionsRequest.ProtoReflect.Descriptor instead.
 func (*ListSessionsRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{28}
+	return file_manager_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ListSessionsRequest) GetExternalId() string {
@@ -2483,7 +2689,7 @@ type ListSessionsResponse struct {
 
 func (x *ListSessionsResponse) Reset() {
 	*x = ListSessionsResponse{}
-	mi := &file_manager_proto_msgTypes[29]
+	mi := &file_manager_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2495,7 +2701,7 @@ func (x *ListSessionsResponse) String() string {
 func (*ListSessionsResponse) ProtoMessage() {}
 
 func (x *ListSessionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[29]
+	mi := &file_manager_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2508,7 +2714,7 @@ func (x *ListSessionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionsResponse.ProtoReflect.Descriptor instead.
 func (*ListSessionsResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{29}
+	return file_manager_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ListSessionsResponse) GetSessions() []*EngineSession {
@@ -2527,7 +2733,7 @@ type GetSessionRequest struct {
 
 func (x *GetSessionRequest) Reset() {
 	*x = GetSessionRequest{}
-	mi := &file_manager_proto_msgTypes[30]
+	mi := &file_manager_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2539,7 +2745,7 @@ func (x *GetSessionRequest) String() string {
 func (*GetSessionRequest) ProtoMessage() {}
 
 func (x *GetSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[30]
+	mi := &file_manager_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2552,7 +2758,7 @@ func (x *GetSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionRequest.ProtoReflect.Descriptor instead.
 func (*GetSessionRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{30}
+	return file_manager_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *GetSessionRequest) GetSessionId() string {
@@ -2571,7 +2777,7 @@ type GetSessionResponse struct {
 
 func (x *GetSessionResponse) Reset() {
 	*x = GetSessionResponse{}
-	mi := &file_manager_proto_msgTypes[31]
+	mi := &file_manager_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2583,7 +2789,7 @@ func (x *GetSessionResponse) String() string {
 func (*GetSessionResponse) ProtoMessage() {}
 
 func (x *GetSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[31]
+	mi := &file_manager_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2596,7 +2802,7 @@ func (x *GetSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionResponse.ProtoReflect.Descriptor instead.
 func (*GetSessionResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{31}
+	return file_manager_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *GetSessionResponse) GetSession() *EngineSession {
@@ -2609,15 +2815,15 @@ func (x *GetSessionResponse) GetSession() *EngineSession {
 type ListRunsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	After         int64                  `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	After         *int64                 `protobuf:"varint,3,opt,name=after,proto3,oneof" json:"after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListRunsRequest) Reset() {
 	*x = ListRunsRequest{}
-	mi := &file_manager_proto_msgTypes[32]
+	mi := &file_manager_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2629,7 +2835,7 @@ func (x *ListRunsRequest) String() string {
 func (*ListRunsRequest) ProtoMessage() {}
 
 func (x *ListRunsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[32]
+	mi := &file_manager_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2642,7 +2848,7 @@ func (x *ListRunsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunsRequest.ProtoReflect.Descriptor instead.
 func (*ListRunsRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{32}
+	return file_manager_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *ListRunsRequest) GetSessionId() string {
@@ -2660,8 +2866,8 @@ func (x *ListRunsRequest) GetPagination() *ListPagination {
 }
 
 func (x *ListRunsRequest) GetAfter() int64 {
-	if x != nil {
-		return x.After
+	if x != nil && x.After != nil {
+		return *x.After
 	}
 	return 0
 }
@@ -2675,7 +2881,7 @@ type ListRunsResponse struct {
 
 func (x *ListRunsResponse) Reset() {
 	*x = ListRunsResponse{}
-	mi := &file_manager_proto_msgTypes[33]
+	mi := &file_manager_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2687,7 +2893,7 @@ func (x *ListRunsResponse) String() string {
 func (*ListRunsResponse) ProtoMessage() {}
 
 func (x *ListRunsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[33]
+	mi := &file_manager_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2700,7 +2906,7 @@ func (x *ListRunsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunsResponse.ProtoReflect.Descriptor instead.
 func (*ListRunsResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{33}
+	return file_manager_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ListRunsResponse) GetRuns() []*EngineSessionRun {
@@ -2719,7 +2925,7 @@ type GetRunRequest struct {
 
 func (x *GetRunRequest) Reset() {
 	*x = GetRunRequest{}
-	mi := &file_manager_proto_msgTypes[34]
+	mi := &file_manager_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2731,7 +2937,7 @@ func (x *GetRunRequest) String() string {
 func (*GetRunRequest) ProtoMessage() {}
 
 func (x *GetRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[34]
+	mi := &file_manager_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2744,7 +2950,7 @@ func (x *GetRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRunRequest.ProtoReflect.Descriptor instead.
 func (*GetRunRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{34}
+	return file_manager_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *GetRunRequest) GetRunId() string {
@@ -2763,7 +2969,7 @@ type GetRunResponse struct {
 
 func (x *GetRunResponse) Reset() {
 	*x = GetRunResponse{}
-	mi := &file_manager_proto_msgTypes[35]
+	mi := &file_manager_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2775,7 +2981,7 @@ func (x *GetRunResponse) String() string {
 func (*GetRunResponse) ProtoMessage() {}
 
 func (x *GetRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[35]
+	mi := &file_manager_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2788,7 +2994,7 @@ func (x *GetRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRunResponse.ProtoReflect.Descriptor instead.
 func (*GetRunResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{35}
+	return file_manager_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *GetRunResponse) GetRun() *EngineSessionRun {
@@ -2807,7 +3013,7 @@ type GetErrorRequest struct {
 
 func (x *GetErrorRequest) Reset() {
 	*x = GetErrorRequest{}
-	mi := &file_manager_proto_msgTypes[36]
+	mi := &file_manager_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2819,7 +3025,7 @@ func (x *GetErrorRequest) String() string {
 func (*GetErrorRequest) ProtoMessage() {}
 
 func (x *GetErrorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[36]
+	mi := &file_manager_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2832,7 +3038,7 @@ func (x *GetErrorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetErrorRequest.ProtoReflect.Descriptor instead.
 func (*GetErrorRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{36}
+	return file_manager_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *GetErrorRequest) GetErrorId() string {
@@ -2851,7 +3057,7 @@ type GetErrorResponse struct {
 
 func (x *GetErrorResponse) Reset() {
 	*x = GetErrorResponse{}
-	mi := &file_manager_proto_msgTypes[37]
+	mi := &file_manager_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2863,7 +3069,7 @@ func (x *GetErrorResponse) String() string {
 func (*GetErrorResponse) ProtoMessage() {}
 
 func (x *GetErrorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[37]
+	mi := &file_manager_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2876,7 +3082,7 @@ func (x *GetErrorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetErrorResponse.ProtoReflect.Descriptor instead.
 func (*GetErrorResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{37}
+	return file_manager_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *GetErrorResponse) GetError() *EngineSessionError {
@@ -2895,7 +3101,7 @@ type GetEventRequest struct {
 
 func (x *GetEventRequest) Reset() {
 	*x = GetEventRequest{}
-	mi := &file_manager_proto_msgTypes[38]
+	mi := &file_manager_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2907,7 +3113,7 @@ func (x *GetEventRequest) String() string {
 func (*GetEventRequest) ProtoMessage() {}
 
 func (x *GetEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[38]
+	mi := &file_manager_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2920,7 +3126,7 @@ func (x *GetEventRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEventRequest.ProtoReflect.Descriptor instead.
 func (*GetEventRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{38}
+	return file_manager_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *GetEventRequest) GetEventId() string {
@@ -2939,7 +3145,7 @@ type GetEventResponse struct {
 
 func (x *GetEventResponse) Reset() {
 	*x = GetEventResponse{}
-	mi := &file_manager_proto_msgTypes[39]
+	mi := &file_manager_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2951,7 +3157,7 @@ func (x *GetEventResponse) String() string {
 func (*GetEventResponse) ProtoMessage() {}
 
 func (x *GetEventResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[39]
+	mi := &file_manager_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2964,7 +3170,7 @@ func (x *GetEventResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEventResponse.ProtoReflect.Descriptor instead.
 func (*GetEventResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{39}
+	return file_manager_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *GetEventResponse) GetEvent() *EngineSessionEvent {
@@ -2983,7 +3189,7 @@ type GetMessageRequest struct {
 
 func (x *GetMessageRequest) Reset() {
 	*x = GetMessageRequest{}
-	mi := &file_manager_proto_msgTypes[40]
+	mi := &file_manager_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2995,7 +3201,7 @@ func (x *GetMessageRequest) String() string {
 func (*GetMessageRequest) ProtoMessage() {}
 
 func (x *GetMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[40]
+	mi := &file_manager_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3008,7 +3214,7 @@ func (x *GetMessageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMessageRequest.ProtoReflect.Descriptor instead.
 func (*GetMessageRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{40}
+	return file_manager_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *GetMessageRequest) GetMessageId() string {
@@ -3027,7 +3233,7 @@ type GetMessageResponse struct {
 
 func (x *GetMessageResponse) Reset() {
 	*x = GetMessageResponse{}
-	mi := &file_manager_proto_msgTypes[41]
+	mi := &file_manager_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3039,7 +3245,7 @@ func (x *GetMessageResponse) String() string {
 func (*GetMessageResponse) ProtoMessage() {}
 
 func (x *GetMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[41]
+	mi := &file_manager_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3052,7 +3258,7 @@ func (x *GetMessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMessageResponse.ProtoReflect.Descriptor instead.
 func (*GetMessageResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{41}
+	return file_manager_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *GetMessageResponse) GetMessage() *EngineSessionMessage {
@@ -3065,15 +3271,15 @@ func (x *GetMessageResponse) GetMessage() *EngineSessionMessage {
 type ListRunErrorsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	After         int64                  `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	After         *int64                 `protobuf:"varint,3,opt,name=after,proto3,oneof" json:"after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListRunErrorsRequest) Reset() {
 	*x = ListRunErrorsRequest{}
-	mi := &file_manager_proto_msgTypes[42]
+	mi := &file_manager_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3085,7 +3291,7 @@ func (x *ListRunErrorsRequest) String() string {
 func (*ListRunErrorsRequest) ProtoMessage() {}
 
 func (x *ListRunErrorsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[42]
+	mi := &file_manager_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3098,7 +3304,7 @@ func (x *ListRunErrorsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunErrorsRequest.ProtoReflect.Descriptor instead.
 func (*ListRunErrorsRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{42}
+	return file_manager_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *ListRunErrorsRequest) GetRunId() string {
@@ -3116,8 +3322,8 @@ func (x *ListRunErrorsRequest) GetPagination() *ListPagination {
 }
 
 func (x *ListRunErrorsRequest) GetAfter() int64 {
-	if x != nil {
-		return x.After
+	if x != nil && x.After != nil {
+		return *x.After
 	}
 	return 0
 }
@@ -3131,7 +3337,7 @@ type ListRunErrorsResponse struct {
 
 func (x *ListRunErrorsResponse) Reset() {
 	*x = ListRunErrorsResponse{}
-	mi := &file_manager_proto_msgTypes[43]
+	mi := &file_manager_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3143,7 +3349,7 @@ func (x *ListRunErrorsResponse) String() string {
 func (*ListRunErrorsResponse) ProtoMessage() {}
 
 func (x *ListRunErrorsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[43]
+	mi := &file_manager_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3156,7 +3362,7 @@ func (x *ListRunErrorsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunErrorsResponse.ProtoReflect.Descriptor instead.
 func (*ListRunErrorsResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{43}
+	return file_manager_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *ListRunErrorsResponse) GetErrors() []*EngineSessionError {
@@ -3169,15 +3375,15 @@ func (x *ListRunErrorsResponse) GetErrors() []*EngineSessionError {
 type ListRunEventsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	After         int64                  `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	After         *int64                 `protobuf:"varint,3,opt,name=after,proto3,oneof" json:"after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListRunEventsRequest) Reset() {
 	*x = ListRunEventsRequest{}
-	mi := &file_manager_proto_msgTypes[44]
+	mi := &file_manager_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3189,7 +3395,7 @@ func (x *ListRunEventsRequest) String() string {
 func (*ListRunEventsRequest) ProtoMessage() {}
 
 func (x *ListRunEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[44]
+	mi := &file_manager_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3202,7 +3408,7 @@ func (x *ListRunEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunEventsRequest.ProtoReflect.Descriptor instead.
 func (*ListRunEventsRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{44}
+	return file_manager_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *ListRunEventsRequest) GetRunId() string {
@@ -3220,8 +3426,8 @@ func (x *ListRunEventsRequest) GetPagination() *ListPagination {
 }
 
 func (x *ListRunEventsRequest) GetAfter() int64 {
-	if x != nil {
-		return x.After
+	if x != nil && x.After != nil {
+		return *x.After
 	}
 	return 0
 }
@@ -3235,7 +3441,7 @@ type ListRunEventsResponse struct {
 
 func (x *ListRunEventsResponse) Reset() {
 	*x = ListRunEventsResponse{}
-	mi := &file_manager_proto_msgTypes[45]
+	mi := &file_manager_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3247,7 +3453,7 @@ func (x *ListRunEventsResponse) String() string {
 func (*ListRunEventsResponse) ProtoMessage() {}
 
 func (x *ListRunEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[45]
+	mi := &file_manager_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3260,7 +3466,7 @@ func (x *ListRunEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunEventsResponse.ProtoReflect.Descriptor instead.
 func (*ListRunEventsResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{45}
+	return file_manager_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *ListRunEventsResponse) GetEvents() []*EngineSessionEvent {
@@ -3273,15 +3479,15 @@ func (x *ListRunEventsResponse) GetEvents() []*EngineSessionEvent {
 type ListRunMessagesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	After         int64                  `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	After         *int64                 `protobuf:"varint,3,opt,name=after,proto3,oneof" json:"after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListRunMessagesRequest) Reset() {
 	*x = ListRunMessagesRequest{}
-	mi := &file_manager_proto_msgTypes[46]
+	mi := &file_manager_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3293,7 +3499,7 @@ func (x *ListRunMessagesRequest) String() string {
 func (*ListRunMessagesRequest) ProtoMessage() {}
 
 func (x *ListRunMessagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[46]
+	mi := &file_manager_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3306,7 +3512,7 @@ func (x *ListRunMessagesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunMessagesRequest.ProtoReflect.Descriptor instead.
 func (*ListRunMessagesRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{46}
+	return file_manager_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *ListRunMessagesRequest) GetRunId() string {
@@ -3324,8 +3530,8 @@ func (x *ListRunMessagesRequest) GetPagination() *ListPagination {
 }
 
 func (x *ListRunMessagesRequest) GetAfter() int64 {
-	if x != nil {
-		return x.After
+	if x != nil && x.After != nil {
+		return *x.After
 	}
 	return 0
 }
@@ -3339,7 +3545,7 @@ type ListRunMessagesResponse struct {
 
 func (x *ListRunMessagesResponse) Reset() {
 	*x = ListRunMessagesResponse{}
-	mi := &file_manager_proto_msgTypes[47]
+	mi := &file_manager_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3351,7 +3557,7 @@ func (x *ListRunMessagesResponse) String() string {
 func (*ListRunMessagesResponse) ProtoMessage() {}
 
 func (x *ListRunMessagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[47]
+	mi := &file_manager_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3364,7 +3570,7 @@ func (x *ListRunMessagesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunMessagesResponse.ProtoReflect.Descriptor instead.
 func (*ListRunMessagesResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{47}
+	return file_manager_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *ListRunMessagesResponse) GetMessages() []*EngineSessionMessage {
@@ -3377,15 +3583,15 @@ func (x *ListRunMessagesResponse) GetMessages() []*EngineSessionMessage {
 type ListSessionEventsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	After         int64                  `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	After         *int64                 `protobuf:"varint,3,opt,name=after,proto3,oneof" json:"after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListSessionEventsRequest) Reset() {
 	*x = ListSessionEventsRequest{}
-	mi := &file_manager_proto_msgTypes[48]
+	mi := &file_manager_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3397,7 +3603,7 @@ func (x *ListSessionEventsRequest) String() string {
 func (*ListSessionEventsRequest) ProtoMessage() {}
 
 func (x *ListSessionEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[48]
+	mi := &file_manager_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3410,7 +3616,7 @@ func (x *ListSessionEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionEventsRequest.ProtoReflect.Descriptor instead.
 func (*ListSessionEventsRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{48}
+	return file_manager_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *ListSessionEventsRequest) GetSessionId() string {
@@ -3428,8 +3634,8 @@ func (x *ListSessionEventsRequest) GetPagination() *ListPagination {
 }
 
 func (x *ListSessionEventsRequest) GetAfter() int64 {
-	if x != nil {
-		return x.After
+	if x != nil && x.After != nil {
+		return *x.After
 	}
 	return 0
 }
@@ -3443,7 +3649,7 @@ type ListSessionEventsResponse struct {
 
 func (x *ListSessionEventsResponse) Reset() {
 	*x = ListSessionEventsResponse{}
-	mi := &file_manager_proto_msgTypes[49]
+	mi := &file_manager_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3455,7 +3661,7 @@ func (x *ListSessionEventsResponse) String() string {
 func (*ListSessionEventsResponse) ProtoMessage() {}
 
 func (x *ListSessionEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[49]
+	mi := &file_manager_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3468,7 +3674,7 @@ func (x *ListSessionEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionEventsResponse.ProtoReflect.Descriptor instead.
 func (*ListSessionEventsResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{49}
+	return file_manager_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *ListSessionEventsResponse) GetEvents() []*EngineSessionEvent {
@@ -3481,15 +3687,15 @@ func (x *ListSessionEventsResponse) GetEvents() []*EngineSessionEvent {
 type ListSessionErrorsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	After         int64                  `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	After         *int64                 `protobuf:"varint,3,opt,name=after,proto3,oneof" json:"after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListSessionErrorsRequest) Reset() {
 	*x = ListSessionErrorsRequest{}
-	mi := &file_manager_proto_msgTypes[50]
+	mi := &file_manager_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3501,7 +3707,7 @@ func (x *ListSessionErrorsRequest) String() string {
 func (*ListSessionErrorsRequest) ProtoMessage() {}
 
 func (x *ListSessionErrorsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[50]
+	mi := &file_manager_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3514,7 +3720,7 @@ func (x *ListSessionErrorsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionErrorsRequest.ProtoReflect.Descriptor instead.
 func (*ListSessionErrorsRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{50}
+	return file_manager_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *ListSessionErrorsRequest) GetSessionId() string {
@@ -3532,8 +3738,8 @@ func (x *ListSessionErrorsRequest) GetPagination() *ListPagination {
 }
 
 func (x *ListSessionErrorsRequest) GetAfter() int64 {
-	if x != nil {
-		return x.After
+	if x != nil && x.After != nil {
+		return *x.After
 	}
 	return 0
 }
@@ -3547,7 +3753,7 @@ type ListSessionErrorsResponse struct {
 
 func (x *ListSessionErrorsResponse) Reset() {
 	*x = ListSessionErrorsResponse{}
-	mi := &file_manager_proto_msgTypes[51]
+	mi := &file_manager_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3559,7 +3765,7 @@ func (x *ListSessionErrorsResponse) String() string {
 func (*ListSessionErrorsResponse) ProtoMessage() {}
 
 func (x *ListSessionErrorsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[51]
+	mi := &file_manager_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3572,7 +3778,7 @@ func (x *ListSessionErrorsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionErrorsResponse.ProtoReflect.Descriptor instead.
 func (*ListSessionErrorsResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{51}
+	return file_manager_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *ListSessionErrorsResponse) GetErrors() []*EngineSessionError {
@@ -3585,15 +3791,15 @@ func (x *ListSessionErrorsResponse) GetErrors() []*EngineSessionError {
 type ListSessionMessagesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	After         int64                  `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	After         *int64                 `protobuf:"varint,3,opt,name=after,proto3,oneof" json:"after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListSessionMessagesRequest) Reset() {
 	*x = ListSessionMessagesRequest{}
-	mi := &file_manager_proto_msgTypes[52]
+	mi := &file_manager_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3605,7 +3811,7 @@ func (x *ListSessionMessagesRequest) String() string {
 func (*ListSessionMessagesRequest) ProtoMessage() {}
 
 func (x *ListSessionMessagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[52]
+	mi := &file_manager_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3618,7 +3824,7 @@ func (x *ListSessionMessagesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionMessagesRequest.ProtoReflect.Descriptor instead.
 func (*ListSessionMessagesRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{52}
+	return file_manager_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *ListSessionMessagesRequest) GetSessionId() string {
@@ -3636,8 +3842,8 @@ func (x *ListSessionMessagesRequest) GetPagination() *ListPagination {
 }
 
 func (x *ListSessionMessagesRequest) GetAfter() int64 {
-	if x != nil {
-		return x.After
+	if x != nil && x.After != nil {
+		return *x.After
 	}
 	return 0
 }
@@ -3651,7 +3857,7 @@ type ListSessionMessagesResponse struct {
 
 func (x *ListSessionMessagesResponse) Reset() {
 	*x = ListSessionMessagesResponse{}
-	mi := &file_manager_proto_msgTypes[53]
+	mi := &file_manager_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3663,7 +3869,7 @@ func (x *ListSessionMessagesResponse) String() string {
 func (*ListSessionMessagesResponse) ProtoMessage() {}
 
 func (x *ListSessionMessagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[53]
+	mi := &file_manager_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3676,7 +3882,7 @@ func (x *ListSessionMessagesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionMessagesResponse.ProtoReflect.Descriptor instead.
 func (*ListSessionMessagesResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{53}
+	return file_manager_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *ListSessionMessagesResponse) GetMessages() []*EngineSessionMessage {
@@ -3695,7 +3901,7 @@ type ListRecentlyActiveRunsRequest struct {
 
 func (x *ListRecentlyActiveRunsRequest) Reset() {
 	*x = ListRecentlyActiveRunsRequest{}
-	mi := &file_manager_proto_msgTypes[54]
+	mi := &file_manager_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3707,7 +3913,7 @@ func (x *ListRecentlyActiveRunsRequest) String() string {
 func (*ListRecentlyActiveRunsRequest) ProtoMessage() {}
 
 func (x *ListRecentlyActiveRunsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[54]
+	mi := &file_manager_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3720,7 +3926,7 @@ func (x *ListRecentlyActiveRunsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRecentlyActiveRunsRequest.ProtoReflect.Descriptor instead.
 func (*ListRecentlyActiveRunsRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{54}
+	return file_manager_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *ListRecentlyActiveRunsRequest) GetSince() int64 {
@@ -3739,7 +3945,7 @@ type ListRecentlyActiveRunsResponse struct {
 
 func (x *ListRecentlyActiveRunsResponse) Reset() {
 	*x = ListRecentlyActiveRunsResponse{}
-	mi := &file_manager_proto_msgTypes[55]
+	mi := &file_manager_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3751,7 +3957,7 @@ func (x *ListRecentlyActiveRunsResponse) String() string {
 func (*ListRecentlyActiveRunsResponse) ProtoMessage() {}
 
 func (x *ListRecentlyActiveRunsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[55]
+	mi := &file_manager_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3764,7 +3970,7 @@ func (x *ListRecentlyActiveRunsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRecentlyActiveRunsResponse.ProtoReflect.Descriptor instead.
 func (*ListRecentlyActiveRunsResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{55}
+	return file_manager_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *ListRecentlyActiveRunsResponse) GetRunIds() []string {
@@ -3783,7 +3989,7 @@ type ListRecentlyActiveSessionsRequest struct {
 
 func (x *ListRecentlyActiveSessionsRequest) Reset() {
 	*x = ListRecentlyActiveSessionsRequest{}
-	mi := &file_manager_proto_msgTypes[56]
+	mi := &file_manager_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3795,7 +4001,7 @@ func (x *ListRecentlyActiveSessionsRequest) String() string {
 func (*ListRecentlyActiveSessionsRequest) ProtoMessage() {}
 
 func (x *ListRecentlyActiveSessionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[56]
+	mi := &file_manager_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3808,7 +4014,7 @@ func (x *ListRecentlyActiveSessionsRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ListRecentlyActiveSessionsRequest.ProtoReflect.Descriptor instead.
 func (*ListRecentlyActiveSessionsRequest) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{56}
+	return file_manager_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *ListRecentlyActiveSessionsRequest) GetSince() int64 {
@@ -3827,7 +4033,7 @@ type ListRecentlyActiveSessionsResponse struct {
 
 func (x *ListRecentlyActiveSessionsResponse) Reset() {
 	*x = ListRecentlyActiveSessionsResponse{}
-	mi := &file_manager_proto_msgTypes[57]
+	mi := &file_manager_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3839,7 +4045,7 @@ func (x *ListRecentlyActiveSessionsResponse) String() string {
 func (*ListRecentlyActiveSessionsResponse) ProtoMessage() {}
 
 func (x *ListRecentlyActiveSessionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[57]
+	mi := &file_manager_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3852,12 +4058,188 @@ func (x *ListRecentlyActiveSessionsResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use ListRecentlyActiveSessionsResponse.ProtoReflect.Descriptor instead.
 func (*ListRecentlyActiveSessionsResponse) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{57}
+	return file_manager_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *ListRecentlyActiveSessionsResponse) GetSessionIds() []string {
 	if x != nil {
 		return x.SessionIds
+	}
+	return nil
+}
+
+type GetServerRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ServerId      string                 `protobuf:"bytes,1,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetServerRequest) Reset() {
+	*x = GetServerRequest{}
+	mi := &file_manager_proto_msgTypes[60]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetServerRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetServerRequest) ProtoMessage() {}
+
+func (x *GetServerRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[60]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetServerRequest.ProtoReflect.Descriptor instead.
+func (*GetServerRequest) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{60}
+}
+
+func (x *GetServerRequest) GetServerId() string {
+	if x != nil {
+		return x.ServerId
+	}
+	return ""
+}
+
+type GetServerResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Server        *EngineServer          `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetServerResponse) Reset() {
+	*x = GetServerResponse{}
+	mi := &file_manager_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetServerResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetServerResponse) ProtoMessage() {}
+
+func (x *GetServerResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetServerResponse.ProtoReflect.Descriptor instead.
+func (*GetServerResponse) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{61}
+}
+
+func (x *GetServerResponse) GetServer() *EngineServer {
+	if x != nil {
+		return x.Server
+	}
+	return nil
+}
+
+type ListServersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pagination    *ListPagination        `protobuf:"bytes,1,opt,name=pagination,proto3,oneof" json:"pagination,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListServersRequest) Reset() {
+	*x = ListServersRequest{}
+	mi := &file_manager_proto_msgTypes[62]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListServersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListServersRequest) ProtoMessage() {}
+
+func (x *ListServersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[62]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListServersRequest.ProtoReflect.Descriptor instead.
+func (*ListServersRequest) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{62}
+}
+
+func (x *ListServersRequest) GetPagination() *ListPagination {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
+type ListServersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Servers       []*EngineServer        `protobuf:"bytes,1,rep,name=servers,proto3" json:"servers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListServersResponse) Reset() {
+	*x = ListServersResponse{}
+	mi := &file_manager_proto_msgTypes[63]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListServersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListServersResponse) ProtoMessage() {}
+
+func (x *ListServersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[63]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListServersResponse.ProtoReflect.Descriptor instead.
+func (*ListServersResponse) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{63}
+}
+
+func (x *ListServersResponse) GetServers() []*EngineServer {
+	if x != nil {
+		return x.Servers
 	}
 	return nil
 }
@@ -3890,35 +4272,36 @@ const file_manager_proto_rawDesc = "" +
 	"\blauncher\x18\x02 \x01(\v2\x1f.broker.launcher.LauncherConfigR\blauncher\"\x98\x01\n" +
 	"\x1bRemoteRunConfigWithLauncher\x12<\n" +
 	"\x06server\x18\x01 \x01(\v2$.broker.remote.RunConfigRemoteServerR\x06server\x12;\n" +
-	"\blauncher\x18\x02 \x01(\v2\x1f.broker.launcher.LauncherConfigR\blauncher\"\xec\x03\n" +
-	"\rSessionConfig\x12|\n" +
+	"\blauncher\x18\x02 \x01(\v2\x1f.broker.launcher.LauncherConfigR\blauncher\"\xeb\x03\n" +
+	"\fServerConfig\x12|\n" +
 	"\"container_run_config_with_launcher\x18\x01 \x01(\v2..broker.manager.ContainerRunConfigWithLauncherH\x00R\x1econtainerRunConfigWithLauncher\x12{\n" +
 	"-container_run_config_with_container_arguments\x18\x02 \x01(\v2\x18.broker.runner.RunConfigH\x00R(containerRunConfigWithContainerArguments\x12s\n" +
 	"\x1fremote_run_config_with_launcher\x18\x03 \x01(\v2+.broker.manager.RemoteRunConfigWithLauncherH\x00R\x1bremoteRunConfigWithLauncher\x12\\\n" +
 	"\x1dremote_run_config_with_server\x18\x04 \x01(\v2\x18.broker.remote.RunConfigH\x00R\x19remoteRunConfigWithServerB\r\n" +
-	"\vconfig_type\"o\n" +
+	"\vconfig_type\"\x88\x01\n" +
+	"\rSessionConfig\x12A\n" +
+	"\rserver_config\x18\x01 \x01(\v2\x1c.broker.manager.ServerConfigR\fserverConfig\x124\n" +
+	"\n" +
+	"mcp_config\x18\n" +
+	" \x01(\v2\x15.broker.mcp.McpConfigR\tmcpConfig\"o\n" +
 	"\x15CreateSessionResponse\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x127\n" +
-	"\asession\x18\x02 \x01(\v2\x1d.broker.manager.EngineSessionR\asession\"\xa1\x01\n" +
+	"\asession\x18\x02 \x01(\v2\x1d.broker.manager.EngineSessionR\asession\"T\n" +
+	"\x0fDiscoverRequest\x12A\n" +
+	"\rserver_config\x18\x01 \x01(\v2\x1c.broker.manager.ServerConfigR\fserverConfig\"\xa1\x01\n" +
 	"\x15SendMcpMessageRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12<\n" +
 	"\fmcp_messages\x18\x02 \x03(\v2\x19.broker.mcp.McpMessageRawR\vmcpMessages\x12+\n" +
-	"\x11include_responses\x18\x03 \x01(\bR\x10includeResponses\"\xd9\x01\n" +
-	"\x16SendMcpMessageResponse\x129\n" +
-	"\vmcp_message\x18\x01 \x01(\v2\x16.broker.mcp.McpMessageH\x00R\n" +
-	"mcpMessage\x123\n" +
-	"\tmcp_error\x18\x02 \x01(\v2\x14.broker.mcp.McpErrorH\x00R\bmcpError\x12C\n" +
-	"\rsession_event\x18\x03 \x01(\v2\x1c.broker.manager.SessionEventH\x00R\fsessionEventB\n" +
-	"\n" +
-	"\bresponse\"\xca\x01\n" +
+	"\x11include_responses\x18\x03 \x01(\bR\x10includeResponses\"\xe5\x01\n" +
 	"\x18StreamMcpMessagesRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12H\n" +
 	"\x12only_message_types\x18\x02 \x03(\x0e2\x1a.broker.mcp.McpMessageTypeR\x10onlyMessageTypes\x12\x19\n" +
-	"\bonly_ids\x18\x03 \x03(\tR\aonlyIds\x12*\n" +
-	"\x11replay_after_uuid\x18\x04 \x01(\tR\x0freplayAfterUuid\"I\n" +
+	"\bonly_ids\x18\x03 \x03(\tR\aonlyIds\x12/\n" +
+	"\x11replay_after_uuid\x18\x04 \x01(\tH\x00R\x0freplayAfterUuid\x88\x01\x01B\x14\n" +
+	"\x12_replay_after_uuid\"I\n" +
 	"\x13SessionEventInfoRun\x122\n" +
 	"\x03run\x18\x01 \x01(\v2 .broker.manager.EngineSessionRunR\x03run\"R\n" +
 	"\x17SessionEventInfoSession\x127\n" +
@@ -3932,8 +4315,8 @@ const file_manager_proto_rawDesc = "" +
 	"\bstop_run\x18\x02 \x01(\v2#.broker.manager.SessionEventStopRunH\x00R\astopRun\x12@\n" +
 	"\binfo_run\x18\x03 \x01(\v2#.broker.manager.SessionEventInfoRunH\x00R\ainfoRun\x12L\n" +
 	"\finfo_session\x18\x04 \x01(\v2'.broker.manager.SessionEventInfoSessionH\x00R\vinfoSessionB\a\n" +
-	"\x05event\"\xb0\x02\n" +
-	"\x19StreamMcpMessagesResponse\x129\n" +
+	"\x05event\"\xb2\x02\n" +
+	"\x1bMcpConnectionStreamResponse\x129\n" +
 	"\vmcp_message\x18\x01 \x01(\v2\x16.broker.mcp.McpMessageH\x00R\n" +
 	"mcpMessage\x123\n" +
 	"\tmcp_error\x18\x02 \x01(\v2\x14.broker.mcp.McpErrorH\x00R\bmcpError\x126\n" +
@@ -3959,7 +4342,7 @@ const file_manager_proto_rawDesc = "" +
 	"\x15DiscardSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"\x18\n" +
-	"\x16DiscardSessionResponse\"\xe1\x03\n" +
+	"\x16DiscardSessionResponse\"\xcd\x04\n" +
 	"\rEngineSession\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vexternal_id\x18\x02 \x01(\tR\n" +
@@ -3970,7 +4353,8 @@ const file_manager_proto_rawDesc = "" +
 	"\n" +
 	"mcp_client\x18\x05 \x01(\v2\x1a.broker.mcp.McpParticipantR\tmcpClient\x129\n" +
 	"\n" +
-	"mcp_server\x18\x06 \x01(\v2\x1a.broker.mcp.McpParticipantR\tmcpServer\x12\x1d\n" +
+	"mcp_server\x18\x06 \x01(\v2\x1a.broker.mcp.McpParticipantR\tmcpServer\x124\n" +
+	"\x06server\x18\x0e \x01(\v2\x1c.broker.manager.EngineServerR\x06server\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\a \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
@@ -3980,7 +4364,9 @@ const file_manager_proto_rawDesc = "" +
 	"\bended_at\x18\n" +
 	" \x01(\x03R\aendedAt\x12 \n" +
 	"\flast_ping_at\x18\v \x01(\x03R\n" +
-	"lastPingAt\"\xba\x03\n" +
+	"lastPingAt\x124\n" +
+	"\n" +
+	"mcp_config\x18\r \x01(\v2\x15.broker.mcp.McpConfigR\tmcpConfig\"\xba\x03\n" +
 	"\x10EngineSessionRun\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -4054,32 +4440,59 @@ const file_manager_proto_rawDesc = "" +
 	" \x01(\x03R\tcreatedAt\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x99\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd9\x05\n" +
+	"\fEngineServer\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1e\n" +
+	"\n" +
+	"identifier\x18\x02 \x01(\tR\n" +
+	"identifier\x125\n" +
+	"\x04type\x18\x03 \x01(\x0e2!.broker.manager.EngineSessionTypeR\x04type\x12:\n" +
+	"\x06status\x18\x04 \x01(\x0e2\".broker.manager.EngineServerStatusR\x06status\x129\n" +
+	"\n" +
+	"mcp_server\x18\x05 \x01(\v2\x1a.broker.mcp.McpParticipantR\tmcpServer\x12)\n" +
+	"\x05tools\x18\x06 \x03(\v2\x13.broker.mcp.McpToolR\x05tools\x12/\n" +
+	"\aprompts\x18\a \x03(\v2\x15.broker.mcp.McpPromptR\aprompts\x125\n" +
+	"\tresources\x18\b \x03(\v2\x17.broker.mcp.McpResourceR\tresources\x12N\n" +
+	"\x12resource_templates\x18\t \x03(\v2\x1f.broker.mcp.McpResourceTemplateR\x11resourceTemplates\x12F\n" +
+	"\bmetadata\x18\n" +
+	" \x03(\v2*.broker.manager.EngineServer.MetadataEntryR\bmetadata\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\v \x01(\x03R\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\f \x01(\x03R\tupdatedAt\x12/\n" +
+	"\x11last_discovery_at\x18\r \x01(\x03H\x00R\x0flastDiscoveryAt\x88\x01\x01\x1a;\n" +
+	"\rMetadataEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x14\n" +
+	"\x12_last_discovery_at\"\x99\x01\n" +
 	"\x0eListPagination\x12\x19\n" +
 	"\bafter_id\x18\x01 \x01(\tR\aafterId\x12\x1b\n" +
 	"\tbefore_id\x18\x02 \x01(\tR\bbeforeId\x12\x14\n" +
 	"\x05limit\x18\x03 \x01(\x05R\x05limit\x129\n" +
-	"\x05order\x18\x04 \x01(\x0e2#.broker.manager.ListPaginationOrderR\x05order\"v\n" +
+	"\x05order\x18\x04 \x01(\x0e2#.broker.manager.ListPaginationOrderR\x05order\"\x8a\x01\n" +
 	"\x13ListSessionsRequest\x12\x1f\n" +
 	"\vexternal_id\x18\x01 \x01(\tR\n" +
-	"externalId\x12>\n" +
+	"externalId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\"Q\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01B\r\n" +
+	"\v_pagination\"Q\n" +
 	"\x14ListSessionsResponse\x129\n" +
 	"\bsessions\x18\x01 \x03(\v2\x1d.broker.manager.EngineSessionR\bsessions\"2\n" +
 	"\x11GetSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"M\n" +
 	"\x12GetSessionResponse\x127\n" +
-	"\asession\x18\x01 \x01(\v2\x1d.broker.manager.EngineSessionR\asession\"\x86\x01\n" +
+	"\asession\x18\x01 \x01(\v2\x1d.broker.manager.EngineSessionR\asession\"\xa9\x01\n" +
 	"\x0fListRunsRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12>\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\x12\x14\n" +
-	"\x05after\x18\x03 \x01(\x03R\x05after\"H\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01\x12\x19\n" +
+	"\x05after\x18\x03 \x01(\x03H\x01R\x05after\x88\x01\x01B\r\n" +
+	"\v_paginationB\b\n" +
+	"\x06_after\"H\n" +
 	"\x10ListRunsResponse\x124\n" +
 	"\x04runs\x18\x01 \x03(\v2 .broker.manager.EngineSessionRunR\x04runs\"&\n" +
 	"\rGetRunRequest\x12\x15\n" +
@@ -4098,56 +4511,68 @@ const file_manager_proto_rawDesc = "" +
 	"\n" +
 	"message_id\x18\x01 \x01(\tR\tmessageId\"T\n" +
 	"\x12GetMessageResponse\x12>\n" +
-	"\amessage\x18\x01 \x01(\v2$.broker.manager.EngineSessionMessageR\amessage\"\x83\x01\n" +
+	"\amessage\x18\x01 \x01(\v2$.broker.manager.EngineSessionMessageR\amessage\"\xa6\x01\n" +
 	"\x14ListRunErrorsRequest\x12\x15\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12>\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\x12\x14\n" +
-	"\x05after\x18\x03 \x01(\x03R\x05after\"S\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01\x12\x19\n" +
+	"\x05after\x18\x03 \x01(\x03H\x01R\x05after\x88\x01\x01B\r\n" +
+	"\v_paginationB\b\n" +
+	"\x06_after\"S\n" +
 	"\x15ListRunErrorsResponse\x12:\n" +
-	"\x06errors\x18\x01 \x03(\v2\".broker.manager.EngineSessionErrorR\x06errors\"\x83\x01\n" +
+	"\x06errors\x18\x01 \x03(\v2\".broker.manager.EngineSessionErrorR\x06errors\"\xa6\x01\n" +
 	"\x14ListRunEventsRequest\x12\x15\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12>\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\x12\x14\n" +
-	"\x05after\x18\x03 \x01(\x03R\x05after\"S\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01\x12\x19\n" +
+	"\x05after\x18\x03 \x01(\x03H\x01R\x05after\x88\x01\x01B\r\n" +
+	"\v_paginationB\b\n" +
+	"\x06_after\"S\n" +
 	"\x15ListRunEventsResponse\x12:\n" +
-	"\x06events\x18\x01 \x03(\v2\".broker.manager.EngineSessionEventR\x06events\"\x85\x01\n" +
+	"\x06events\x18\x01 \x03(\v2\".broker.manager.EngineSessionEventR\x06events\"\xa8\x01\n" +
 	"\x16ListRunMessagesRequest\x12\x15\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12>\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\x12\x14\n" +
-	"\x05after\x18\x03 \x01(\x03R\x05after\"[\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01\x12\x19\n" +
+	"\x05after\x18\x03 \x01(\x03H\x01R\x05after\x88\x01\x01B\r\n" +
+	"\v_paginationB\b\n" +
+	"\x06_after\"[\n" +
 	"\x17ListRunMessagesResponse\x12@\n" +
-	"\bmessages\x18\x01 \x03(\v2$.broker.manager.EngineSessionMessageR\bmessages\"\x8f\x01\n" +
+	"\bmessages\x18\x01 \x03(\v2$.broker.manager.EngineSessionMessageR\bmessages\"\xb2\x01\n" +
 	"\x18ListSessionEventsRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12>\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\x12\x14\n" +
-	"\x05after\x18\x03 \x01(\x03R\x05after\"W\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01\x12\x19\n" +
+	"\x05after\x18\x03 \x01(\x03H\x01R\x05after\x88\x01\x01B\r\n" +
+	"\v_paginationB\b\n" +
+	"\x06_after\"W\n" +
 	"\x19ListSessionEventsResponse\x12:\n" +
-	"\x06events\x18\x01 \x03(\v2\".broker.manager.EngineSessionEventR\x06events\"\x8f\x01\n" +
+	"\x06events\x18\x01 \x03(\v2\".broker.manager.EngineSessionEventR\x06events\"\xb2\x01\n" +
 	"\x18ListSessionErrorsRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12>\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\x12\x14\n" +
-	"\x05after\x18\x03 \x01(\x03R\x05after\"W\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01\x12\x19\n" +
+	"\x05after\x18\x03 \x01(\x03H\x01R\x05after\x88\x01\x01B\r\n" +
+	"\v_paginationB\b\n" +
+	"\x06_after\"W\n" +
 	"\x19ListSessionErrorsResponse\x12:\n" +
-	"\x06errors\x18\x01 \x03(\v2\".broker.manager.EngineSessionErrorR\x06errors\"\x91\x01\n" +
+	"\x06errors\x18\x01 \x03(\v2\".broker.manager.EngineSessionErrorR\x06errors\"\xb4\x01\n" +
 	"\x1aListSessionMessagesRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12>\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12C\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationR\n" +
-	"pagination\x12\x14\n" +
-	"\x05after\x18\x03 \x01(\x03R\x05after\"_\n" +
+	"pagination\x18\x02 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01\x12\x19\n" +
+	"\x05after\x18\x03 \x01(\x03H\x01R\x05after\x88\x01\x01B\r\n" +
+	"\v_paginationB\b\n" +
+	"\x06_after\"_\n" +
 	"\x1bListSessionMessagesResponse\x12@\n" +
 	"\bmessages\x18\x01 \x03(\v2$.broker.manager.EngineSessionMessageR\bmessages\"5\n" +
 	"\x1dListRecentlyActiveRunsRequest\x12\x14\n" +
@@ -4158,7 +4583,18 @@ const file_manager_proto_rawDesc = "" +
 	"\x05since\x18\x01 \x01(\x03R\x05since\"E\n" +
 	"\"ListRecentlyActiveSessionsResponse\x12\x1f\n" +
 	"\vsession_ids\x18\x01 \x03(\tR\n" +
-	"sessionIds*\x9d\x01\n" +
+	"sessionIds\"/\n" +
+	"\x10GetServerRequest\x12\x1b\n" +
+	"\tserver_id\x18\x01 \x01(\tR\bserverId\"I\n" +
+	"\x11GetServerResponse\x124\n" +
+	"\x06server\x18\x01 \x01(\v2\x1c.broker.manager.EngineServerR\x06server\"h\n" +
+	"\x12ListServersRequest\x12C\n" +
+	"\n" +
+	"pagination\x18\x01 \x01(\v2\x1e.broker.manager.ListPaginationH\x00R\n" +
+	"pagination\x88\x01\x01B\r\n" +
+	"\v_pagination\"M\n" +
+	"\x13ListServersResponse\x126\n" +
+	"\aservers\x18\x01 \x03(\v2\x1c.broker.manager.EngineServerR\aservers*\x9d\x01\n" +
 	"\x13EngineSessionStatus\x12\x19\n" +
 	"\x15session_status_active\x10\x00\x12\x19\n" +
 	"\x15session_status_closed\x10\x01\x12\x1a\n" +
@@ -4178,32 +4614,39 @@ const file_manager_proto_rawDesc = "" +
 	"\rEngineRunType\x12\x14\n" +
 	"\x10run_type_unknown\x10\x00\x12\x16\n" +
 	"\x12run_type_container\x10\x01\x12\x13\n" +
-	"\x0frun_type_remote\x10\x02*\x91\x01\n" +
+	"\x0frun_type_remote\x10\x02*\xe9\x01\n" +
 	"\x16EngineSessionEventType\x12\x1d\n" +
 	"\x19session_event_type_output\x10\x00\x12\x1c\n" +
 	"\x18session_event_type_error\x10\x01\x12\x1a\n" +
 	"\x16session_event_type_log\x10\x02\x12\x1e\n" +
-	"\x1asession_event_type_unknown\x10\x03*\x80\x01\n" +
+	"\x1asession_event_type_unknown\x10\x03\x12+\n" +
+	"'session_event_type_launcher_run_success\x10\x04\x12)\n" +
+	"%session_event_type_launcher_run_error\x10\x05*\x80\x01\n" +
 	"\x14SessionMessageSender\x12\"\n" +
 	"\x1esession_message_sender_unknown\x10\x00\x12!\n" +
 	"\x1dsession_message_sender_client\x10\x01\x12!\n" +
-	"\x1dsession_message_sender_server\x10\x02*L\n" +
+	"\x1dsession_message_sender_server\x10\x02*V\n" +
+	"\x12EngineServerStatus\x12\x1d\n" +
+	"\x19session_status_discovered\x10\x00\x12!\n" +
+	"\x1dsession_status_not_discovered\x10\x01*L\n" +
 	"\x13ListPaginationOrder\x12\x19\n" +
 	"\x15list_cursor_order_asc\x10\x00\x12\x1a\n" +
-	"\x16list_cursor_order_desc\x10\x012\xb5\x11\n" +
+	"\x16list_cursor_order_desc\x10\x012\x96\x14\n" +
 	"\n" +
 	"McpManager\x12k\n" +
 	"\x12CheckActiveSession\x12).broker.manager.CheckActiveSessionRequest\x1a*.broker.manager.CheckActiveSessionResponse\x12\\\n" +
-	"\rCreateSession\x12$.broker.manager.CreateSessionRequest\x1a%.broker.manager.CreateSessionResponse\x12_\n" +
-	"\x0eDiscardSession\x12%.broker.manager.DiscardSessionRequest\x1a&.broker.manager.DiscardSessionResponse\x12a\n" +
-	"\x0eSendMcpMessage\x12%.broker.manager.SendMcpMessageRequest\x1a&.broker.manager.SendMcpMessageResponse0\x01\x12j\n" +
-	"\x11StreamMcpMessages\x12(.broker.manager.StreamMcpMessagesRequest\x1a).broker.manager.StreamMcpMessagesResponse0\x01\x12Q\n" +
+	"\rCreateSession\x12$.broker.manager.CreateSessionRequest\x1a%.broker.manager.CreateSessionResponse\x12T\n" +
+	"\x0eDiscoverServer\x12\x1f.broker.manager.DiscoverRequest\x1a!.broker.manager.GetServerResponse\x12_\n" +
+	"\x0eDiscardSession\x12%.broker.manager.DiscardSessionRequest\x1a&.broker.manager.DiscardSessionResponse\x12f\n" +
+	"\x0eSendMcpMessage\x12%.broker.manager.SendMcpMessageRequest\x1a+.broker.manager.McpConnectionStreamResponse0\x01\x12l\n" +
+	"\x11StreamMcpMessages\x12(.broker.manager.StreamMcpMessagesRequest\x1a+.broker.manager.McpConnectionStreamResponse0\x01\x12Q\n" +
 	"\rGetServerInfo\x12$.broker.manager.GetServerInfoRequest\x1a\x1a.broker.mcp.McpParticipant\x12c\n" +
 	"\fListManagers\x12(.broker.workerBroker.ListManagersRequest\x1a).broker.workerBroker.ListManagersResponse\x12V\n" +
 	"\vListWorkers\x12\".broker.manager.ListWorkersRequest\x1a#.broker.manager.ListWorkersResponse\x12Y\n" +
 	"\fListSessions\x12#.broker.manager.ListSessionsRequest\x1a$.broker.manager.ListSessionsResponse\x12S\n" +
 	"\n" +
-	"GetSession\x12!.broker.manager.GetSessionRequest\x1a\".broker.manager.GetSessionResponse\x12M\n" +
+	"GetSession\x12!.broker.manager.GetSessionRequest\x1a\".broker.manager.GetSessionResponse\x12X\n" +
+	"\x10GetSessionServer\x12!.broker.manager.GetSessionRequest\x1a!.broker.manager.GetServerResponse\x12M\n" +
 	"\bListRuns\x12\x1f.broker.manager.ListRunsRequest\x1a .broker.manager.ListRunsResponse\x12G\n" +
 	"\x06GetRun\x12\x1d.broker.manager.GetRunRequest\x1a\x1e.broker.manager.GetRunResponse\x12h\n" +
 	"\x11ListSessionErrors\x12(.broker.manager.ListSessionErrorsRequest\x1a).broker.manager.ListSessionErrorsResponse\x12h\n" +
@@ -4217,7 +4660,9 @@ const file_manager_proto_rawDesc = "" +
 	"\n" +
 	"GetMessage\x12!.broker.manager.GetMessageRequest\x1a\".broker.manager.GetMessageResponse\x12w\n" +
 	"\x16ListRecentlyActiveRuns\x12-.broker.manager.ListRecentlyActiveRunsRequest\x1a..broker.manager.ListRecentlyActiveRunsResponse\x12\x83\x01\n" +
-	"\x1aListRecentlyActiveSessions\x121.broker.manager.ListRecentlyActiveSessionsRequest\x1a2.broker.manager.ListRecentlyActiveSessionsResponseBHZFgithub.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager;managerb\x06proto3"
+	"\x1aListRecentlyActiveSessions\x121.broker.manager.ListRecentlyActiveSessionsRequest\x1a2.broker.manager.ListRecentlyActiveSessionsResponse\x12P\n" +
+	"\tGetServer\x12 .broker.manager.GetServerRequest\x1a!.broker.manager.GetServerResponse\x12V\n" +
+	"\vListServers\x12\".broker.manager.ListServersRequest\x1a#.broker.manager.ListServersResponseBHZFgithub.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager;managerb\x06proto3"
 
 var (
 	file_manager_proto_rawDescOnce sync.Once
@@ -4231,8 +4676,8 @@ func file_manager_proto_rawDescGZIP() []byte {
 	return file_manager_proto_rawDescData
 }
 
-var file_manager_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_manager_proto_msgTypes = make([]protoimpl.MessageInfo, 62)
+var file_manager_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
+var file_manager_proto_msgTypes = make([]protoimpl.MessageInfo, 69)
 var file_manager_proto_goTypes = []any{
 	(EngineSessionStatus)(0),                   // 0: broker.manager.EngineSessionStatus
 	(EngineSessionType)(0),                     // 1: broker.manager.EngineSessionType
@@ -4240,210 +4685,244 @@ var file_manager_proto_goTypes = []any{
 	(EngineRunType)(0),                         // 3: broker.manager.EngineRunType
 	(EngineSessionEventType)(0),                // 4: broker.manager.EngineSessionEventType
 	(SessionMessageSender)(0),                  // 5: broker.manager.SessionMessageSender
-	(ListPaginationOrder)(0),                   // 6: broker.manager.ListPaginationOrder
-	(*CheckActiveSessionRequest)(nil),          // 7: broker.manager.CheckActiveSessionRequest
-	(*CheckActiveSessionResponse)(nil),         // 8: broker.manager.CheckActiveSessionResponse
-	(*CreateSessionRequest)(nil),               // 9: broker.manager.CreateSessionRequest
-	(*ContainerRunConfigWithLauncher)(nil),     // 10: broker.manager.ContainerRunConfigWithLauncher
-	(*RemoteRunConfigWithLauncher)(nil),        // 11: broker.manager.RemoteRunConfigWithLauncher
-	(*SessionConfig)(nil),                      // 12: broker.manager.SessionConfig
-	(*CreateSessionResponse)(nil),              // 13: broker.manager.CreateSessionResponse
-	(*SendMcpMessageRequest)(nil),              // 14: broker.manager.SendMcpMessageRequest
-	(*SendMcpMessageResponse)(nil),             // 15: broker.manager.SendMcpMessageResponse
-	(*StreamMcpMessagesRequest)(nil),           // 16: broker.manager.StreamMcpMessagesRequest
-	(*SessionEventInfoRun)(nil),                // 17: broker.manager.SessionEventInfoRun
-	(*SessionEventInfoSession)(nil),            // 18: broker.manager.SessionEventInfoSession
-	(*SessionEventStartRun)(nil),               // 19: broker.manager.SessionEventStartRun
-	(*SessionEventStopRun)(nil),                // 20: broker.manager.SessionEventStopRun
-	(*SessionEvent)(nil),                       // 21: broker.manager.SessionEvent
-	(*StreamMcpMessagesResponse)(nil),          // 22: broker.manager.StreamMcpMessagesResponse
-	(*GetServerInfoRequest)(nil),               // 23: broker.manager.GetServerInfoRequest
-	(*ListWorkersRequest)(nil),                 // 24: broker.manager.ListWorkersRequest
-	(*ListWorkersResponse)(nil),                // 25: broker.manager.ListWorkersResponse
-	(*WorkerInfo)(nil),                         // 26: broker.manager.WorkerInfo
-	(*DiscardSessionRequest)(nil),              // 27: broker.manager.DiscardSessionRequest
-	(*DiscardSessionResponse)(nil),             // 28: broker.manager.DiscardSessionResponse
-	(*EngineSession)(nil),                      // 29: broker.manager.EngineSession
-	(*EngineSessionRun)(nil),                   // 30: broker.manager.EngineSessionRun
-	(*EngineSessionError)(nil),                 // 31: broker.manager.EngineSessionError
-	(*EngineSessionEvent)(nil),                 // 32: broker.manager.EngineSessionEvent
-	(*EngineSessionMessage)(nil),               // 33: broker.manager.EngineSessionMessage
-	(*ListPagination)(nil),                     // 34: broker.manager.ListPagination
-	(*ListSessionsRequest)(nil),                // 35: broker.manager.ListSessionsRequest
-	(*ListSessionsResponse)(nil),               // 36: broker.manager.ListSessionsResponse
-	(*GetSessionRequest)(nil),                  // 37: broker.manager.GetSessionRequest
-	(*GetSessionResponse)(nil),                 // 38: broker.manager.GetSessionResponse
-	(*ListRunsRequest)(nil),                    // 39: broker.manager.ListRunsRequest
-	(*ListRunsResponse)(nil),                   // 40: broker.manager.ListRunsResponse
-	(*GetRunRequest)(nil),                      // 41: broker.manager.GetRunRequest
-	(*GetRunResponse)(nil),                     // 42: broker.manager.GetRunResponse
-	(*GetErrorRequest)(nil),                    // 43: broker.manager.GetErrorRequest
-	(*GetErrorResponse)(nil),                   // 44: broker.manager.GetErrorResponse
-	(*GetEventRequest)(nil),                    // 45: broker.manager.GetEventRequest
-	(*GetEventResponse)(nil),                   // 46: broker.manager.GetEventResponse
-	(*GetMessageRequest)(nil),                  // 47: broker.manager.GetMessageRequest
-	(*GetMessageResponse)(nil),                 // 48: broker.manager.GetMessageResponse
-	(*ListRunErrorsRequest)(nil),               // 49: broker.manager.ListRunErrorsRequest
-	(*ListRunErrorsResponse)(nil),              // 50: broker.manager.ListRunErrorsResponse
-	(*ListRunEventsRequest)(nil),               // 51: broker.manager.ListRunEventsRequest
-	(*ListRunEventsResponse)(nil),              // 52: broker.manager.ListRunEventsResponse
-	(*ListRunMessagesRequest)(nil),             // 53: broker.manager.ListRunMessagesRequest
-	(*ListRunMessagesResponse)(nil),            // 54: broker.manager.ListRunMessagesResponse
-	(*ListSessionEventsRequest)(nil),           // 55: broker.manager.ListSessionEventsRequest
-	(*ListSessionEventsResponse)(nil),          // 56: broker.manager.ListSessionEventsResponse
-	(*ListSessionErrorsRequest)(nil),           // 57: broker.manager.ListSessionErrorsRequest
-	(*ListSessionErrorsResponse)(nil),          // 58: broker.manager.ListSessionErrorsResponse
-	(*ListSessionMessagesRequest)(nil),         // 59: broker.manager.ListSessionMessagesRequest
-	(*ListSessionMessagesResponse)(nil),        // 60: broker.manager.ListSessionMessagesResponse
-	(*ListRecentlyActiveRunsRequest)(nil),      // 61: broker.manager.ListRecentlyActiveRunsRequest
-	(*ListRecentlyActiveRunsResponse)(nil),     // 62: broker.manager.ListRecentlyActiveRunsResponse
-	(*ListRecentlyActiveSessionsRequest)(nil),  // 63: broker.manager.ListRecentlyActiveSessionsRequest
-	(*ListRecentlyActiveSessionsResponse)(nil), // 64: broker.manager.ListRecentlyActiveSessionsResponse
-	nil,                                      // 65: broker.manager.CreateSessionRequest.MetadataEntry
-	nil,                                      // 66: broker.manager.EngineSessionError.MetadataEntry
-	nil,                                      // 67: broker.manager.EngineSessionEvent.MetadataEntry
-	nil,                                      // 68: broker.manager.EngineSessionMessage.MetadataEntry
-	(*mcp.McpParticipant)(nil),               // 69: broker.mcp.McpParticipant
-	(*runner.RunConfigContainer)(nil),        // 70: broker.runner.RunConfigContainer
-	(*launcher.LauncherConfig)(nil),          // 71: broker.launcher.LauncherConfig
-	(*remote.RunConfigRemoteServer)(nil),     // 72: broker.remote.RunConfigRemoteServer
-	(*runner.RunConfig)(nil),                 // 73: broker.runner.RunConfig
-	(*remote.RunConfig)(nil),                 // 74: broker.remote.RunConfig
-	(*mcp.McpMessageRaw)(nil),                // 75: broker.mcp.McpMessageRaw
-	(*mcp.McpMessage)(nil),                   // 76: broker.mcp.McpMessage
-	(*mcp.McpError)(nil),                     // 77: broker.mcp.McpError
-	(mcp.McpMessageType)(0),                  // 78: broker.mcp.McpMessageType
-	(*mcp.McpOutput)(nil),                    // 79: broker.mcp.McpOutput
-	(*workerBroker.ListManagersRequest)(nil), // 80: broker.workerBroker.ListManagersRequest
-	(*workerBroker.ListManagersResponse)(nil), // 81: broker.workerBroker.ListManagersResponse
+	(EngineServerStatus)(0),                    // 6: broker.manager.EngineServerStatus
+	(ListPaginationOrder)(0),                   // 7: broker.manager.ListPaginationOrder
+	(*CheckActiveSessionRequest)(nil),          // 8: broker.manager.CheckActiveSessionRequest
+	(*CheckActiveSessionResponse)(nil),         // 9: broker.manager.CheckActiveSessionResponse
+	(*CreateSessionRequest)(nil),               // 10: broker.manager.CreateSessionRequest
+	(*ContainerRunConfigWithLauncher)(nil),     // 11: broker.manager.ContainerRunConfigWithLauncher
+	(*RemoteRunConfigWithLauncher)(nil),        // 12: broker.manager.RemoteRunConfigWithLauncher
+	(*ServerConfig)(nil),                       // 13: broker.manager.ServerConfig
+	(*SessionConfig)(nil),                      // 14: broker.manager.SessionConfig
+	(*CreateSessionResponse)(nil),              // 15: broker.manager.CreateSessionResponse
+	(*DiscoverRequest)(nil),                    // 16: broker.manager.DiscoverRequest
+	(*SendMcpMessageRequest)(nil),              // 17: broker.manager.SendMcpMessageRequest
+	(*StreamMcpMessagesRequest)(nil),           // 18: broker.manager.StreamMcpMessagesRequest
+	(*SessionEventInfoRun)(nil),                // 19: broker.manager.SessionEventInfoRun
+	(*SessionEventInfoSession)(nil),            // 20: broker.manager.SessionEventInfoSession
+	(*SessionEventStartRun)(nil),               // 21: broker.manager.SessionEventStartRun
+	(*SessionEventStopRun)(nil),                // 22: broker.manager.SessionEventStopRun
+	(*SessionEvent)(nil),                       // 23: broker.manager.SessionEvent
+	(*McpConnectionStreamResponse)(nil),        // 24: broker.manager.McpConnectionStreamResponse
+	(*GetServerInfoRequest)(nil),               // 25: broker.manager.GetServerInfoRequest
+	(*ListWorkersRequest)(nil),                 // 26: broker.manager.ListWorkersRequest
+	(*ListWorkersResponse)(nil),                // 27: broker.manager.ListWorkersResponse
+	(*WorkerInfo)(nil),                         // 28: broker.manager.WorkerInfo
+	(*DiscardSessionRequest)(nil),              // 29: broker.manager.DiscardSessionRequest
+	(*DiscardSessionResponse)(nil),             // 30: broker.manager.DiscardSessionResponse
+	(*EngineSession)(nil),                      // 31: broker.manager.EngineSession
+	(*EngineSessionRun)(nil),                   // 32: broker.manager.EngineSessionRun
+	(*EngineSessionError)(nil),                 // 33: broker.manager.EngineSessionError
+	(*EngineSessionEvent)(nil),                 // 34: broker.manager.EngineSessionEvent
+	(*EngineSessionMessage)(nil),               // 35: broker.manager.EngineSessionMessage
+	(*EngineServer)(nil),                       // 36: broker.manager.EngineServer
+	(*ListPagination)(nil),                     // 37: broker.manager.ListPagination
+	(*ListSessionsRequest)(nil),                // 38: broker.manager.ListSessionsRequest
+	(*ListSessionsResponse)(nil),               // 39: broker.manager.ListSessionsResponse
+	(*GetSessionRequest)(nil),                  // 40: broker.manager.GetSessionRequest
+	(*GetSessionResponse)(nil),                 // 41: broker.manager.GetSessionResponse
+	(*ListRunsRequest)(nil),                    // 42: broker.manager.ListRunsRequest
+	(*ListRunsResponse)(nil),                   // 43: broker.manager.ListRunsResponse
+	(*GetRunRequest)(nil),                      // 44: broker.manager.GetRunRequest
+	(*GetRunResponse)(nil),                     // 45: broker.manager.GetRunResponse
+	(*GetErrorRequest)(nil),                    // 46: broker.manager.GetErrorRequest
+	(*GetErrorResponse)(nil),                   // 47: broker.manager.GetErrorResponse
+	(*GetEventRequest)(nil),                    // 48: broker.manager.GetEventRequest
+	(*GetEventResponse)(nil),                   // 49: broker.manager.GetEventResponse
+	(*GetMessageRequest)(nil),                  // 50: broker.manager.GetMessageRequest
+	(*GetMessageResponse)(nil),                 // 51: broker.manager.GetMessageResponse
+	(*ListRunErrorsRequest)(nil),               // 52: broker.manager.ListRunErrorsRequest
+	(*ListRunErrorsResponse)(nil),              // 53: broker.manager.ListRunErrorsResponse
+	(*ListRunEventsRequest)(nil),               // 54: broker.manager.ListRunEventsRequest
+	(*ListRunEventsResponse)(nil),              // 55: broker.manager.ListRunEventsResponse
+	(*ListRunMessagesRequest)(nil),             // 56: broker.manager.ListRunMessagesRequest
+	(*ListRunMessagesResponse)(nil),            // 57: broker.manager.ListRunMessagesResponse
+	(*ListSessionEventsRequest)(nil),           // 58: broker.manager.ListSessionEventsRequest
+	(*ListSessionEventsResponse)(nil),          // 59: broker.manager.ListSessionEventsResponse
+	(*ListSessionErrorsRequest)(nil),           // 60: broker.manager.ListSessionErrorsRequest
+	(*ListSessionErrorsResponse)(nil),          // 61: broker.manager.ListSessionErrorsResponse
+	(*ListSessionMessagesRequest)(nil),         // 62: broker.manager.ListSessionMessagesRequest
+	(*ListSessionMessagesResponse)(nil),        // 63: broker.manager.ListSessionMessagesResponse
+	(*ListRecentlyActiveRunsRequest)(nil),      // 64: broker.manager.ListRecentlyActiveRunsRequest
+	(*ListRecentlyActiveRunsResponse)(nil),     // 65: broker.manager.ListRecentlyActiveRunsResponse
+	(*ListRecentlyActiveSessionsRequest)(nil),  // 66: broker.manager.ListRecentlyActiveSessionsRequest
+	(*ListRecentlyActiveSessionsResponse)(nil), // 67: broker.manager.ListRecentlyActiveSessionsResponse
+	(*GetServerRequest)(nil),                   // 68: broker.manager.GetServerRequest
+	(*GetServerResponse)(nil),                  // 69: broker.manager.GetServerResponse
+	(*ListServersRequest)(nil),                 // 70: broker.manager.ListServersRequest
+	(*ListServersResponse)(nil),                // 71: broker.manager.ListServersResponse
+	nil,                                        // 72: broker.manager.CreateSessionRequest.MetadataEntry
+	nil,                                        // 73: broker.manager.EngineSessionError.MetadataEntry
+	nil,                                        // 74: broker.manager.EngineSessionEvent.MetadataEntry
+	nil,                                        // 75: broker.manager.EngineSessionMessage.MetadataEntry
+	nil,                                        // 76: broker.manager.EngineServer.MetadataEntry
+	(*mcp.McpParticipant)(nil),                 // 77: broker.mcp.McpParticipant
+	(*runner.RunConfigContainer)(nil),          // 78: broker.runner.RunConfigContainer
+	(*launcher.LauncherConfig)(nil),            // 79: broker.launcher.LauncherConfig
+	(*remote.RunConfigRemoteServer)(nil),       // 80: broker.remote.RunConfigRemoteServer
+	(*runner.RunConfig)(nil),                   // 81: broker.runner.RunConfig
+	(*remote.RunConfig)(nil),                   // 82: broker.remote.RunConfig
+	(*mcp.McpConfig)(nil),                      // 83: broker.mcp.McpConfig
+	(*mcp.McpMessageRaw)(nil),                  // 84: broker.mcp.McpMessageRaw
+	(mcp.McpMessageType)(0),                    // 85: broker.mcp.McpMessageType
+	(*mcp.McpMessage)(nil),                     // 86: broker.mcp.McpMessage
+	(*mcp.McpError)(nil),                       // 87: broker.mcp.McpError
+	(*mcp.McpOutput)(nil),                      // 88: broker.mcp.McpOutput
+	(*mcp.McpTool)(nil),                        // 89: broker.mcp.McpTool
+	(*mcp.McpPrompt)(nil),                      // 90: broker.mcp.McpPrompt
+	(*mcp.McpResource)(nil),                    // 91: broker.mcp.McpResource
+	(*mcp.McpResourceTemplate)(nil),            // 92: broker.mcp.McpResourceTemplate
+	(*workerBroker.ListManagersRequest)(nil),   // 93: broker.workerBroker.ListManagersRequest
+	(*workerBroker.ListManagersResponse)(nil),  // 94: broker.workerBroker.ListManagersResponse
 }
 var file_manager_proto_depIdxs = []int32{
-	29, // 0: broker.manager.CheckActiveSessionResponse.session:type_name -> broker.manager.EngineSession
-	12, // 1: broker.manager.CreateSessionRequest.config:type_name -> broker.manager.SessionConfig
-	69, // 2: broker.manager.CreateSessionRequest.mcp_client:type_name -> broker.mcp.McpParticipant
-	65, // 3: broker.manager.CreateSessionRequest.metadata:type_name -> broker.manager.CreateSessionRequest.MetadataEntry
-	70, // 4: broker.manager.ContainerRunConfigWithLauncher.container:type_name -> broker.runner.RunConfigContainer
-	71, // 5: broker.manager.ContainerRunConfigWithLauncher.launcher:type_name -> broker.launcher.LauncherConfig
-	72, // 6: broker.manager.RemoteRunConfigWithLauncher.server:type_name -> broker.remote.RunConfigRemoteServer
-	71, // 7: broker.manager.RemoteRunConfigWithLauncher.launcher:type_name -> broker.launcher.LauncherConfig
-	10, // 8: broker.manager.SessionConfig.container_run_config_with_launcher:type_name -> broker.manager.ContainerRunConfigWithLauncher
-	73, // 9: broker.manager.SessionConfig.container_run_config_with_container_arguments:type_name -> broker.runner.RunConfig
-	11, // 10: broker.manager.SessionConfig.remote_run_config_with_launcher:type_name -> broker.manager.RemoteRunConfigWithLauncher
-	74, // 11: broker.manager.SessionConfig.remote_run_config_with_server:type_name -> broker.remote.RunConfig
-	29, // 12: broker.manager.CreateSessionResponse.session:type_name -> broker.manager.EngineSession
-	75, // 13: broker.manager.SendMcpMessageRequest.mcp_messages:type_name -> broker.mcp.McpMessageRaw
-	76, // 14: broker.manager.SendMcpMessageResponse.mcp_message:type_name -> broker.mcp.McpMessage
-	77, // 15: broker.manager.SendMcpMessageResponse.mcp_error:type_name -> broker.mcp.McpError
-	21, // 16: broker.manager.SendMcpMessageResponse.session_event:type_name -> broker.manager.SessionEvent
-	78, // 17: broker.manager.StreamMcpMessagesRequest.only_message_types:type_name -> broker.mcp.McpMessageType
-	30, // 18: broker.manager.SessionEventInfoRun.run:type_name -> broker.manager.EngineSessionRun
-	29, // 19: broker.manager.SessionEventInfoSession.session:type_name -> broker.manager.EngineSession
-	30, // 20: broker.manager.SessionEventStartRun.run:type_name -> broker.manager.EngineSessionRun
-	30, // 21: broker.manager.SessionEventStopRun.run:type_name -> broker.manager.EngineSessionRun
-	19, // 22: broker.manager.SessionEvent.start_run:type_name -> broker.manager.SessionEventStartRun
-	20, // 23: broker.manager.SessionEvent.stop_run:type_name -> broker.manager.SessionEventStopRun
-	17, // 24: broker.manager.SessionEvent.info_run:type_name -> broker.manager.SessionEventInfoRun
-	18, // 25: broker.manager.SessionEvent.info_session:type_name -> broker.manager.SessionEventInfoSession
-	76, // 26: broker.manager.StreamMcpMessagesResponse.mcp_message:type_name -> broker.mcp.McpMessage
-	77, // 27: broker.manager.StreamMcpMessagesResponse.mcp_error:type_name -> broker.mcp.McpError
-	79, // 28: broker.manager.StreamMcpMessagesResponse.mcp_output:type_name -> broker.mcp.McpOutput
-	21, // 29: broker.manager.StreamMcpMessagesResponse.session_event:type_name -> broker.manager.SessionEvent
-	26, // 30: broker.manager.ListWorkersResponse.workers:type_name -> broker.manager.WorkerInfo
-	1,  // 31: broker.manager.EngineSession.type:type_name -> broker.manager.EngineSessionType
-	0,  // 32: broker.manager.EngineSession.status:type_name -> broker.manager.EngineSessionStatus
-	69, // 33: broker.manager.EngineSession.mcp_client:type_name -> broker.mcp.McpParticipant
-	69, // 34: broker.manager.EngineSession.mcp_server:type_name -> broker.mcp.McpParticipant
-	3,  // 35: broker.manager.EngineSessionRun.type:type_name -> broker.manager.EngineRunType
-	2,  // 36: broker.manager.EngineSessionRun.status:type_name -> broker.manager.EngineRunStatus
-	29, // 37: broker.manager.EngineSessionRun.session:type_name -> broker.manager.EngineSession
-	30, // 38: broker.manager.EngineSessionError.run:type_name -> broker.manager.EngineSessionRun
-	29, // 39: broker.manager.EngineSessionError.session:type_name -> broker.manager.EngineSession
-	77, // 40: broker.manager.EngineSessionError.mcp_error:type_name -> broker.mcp.McpError
-	66, // 41: broker.manager.EngineSessionError.metadata:type_name -> broker.manager.EngineSessionError.MetadataEntry
-	4,  // 42: broker.manager.EngineSessionEvent.type:type_name -> broker.manager.EngineSessionEventType
-	30, // 43: broker.manager.EngineSessionEvent.run:type_name -> broker.manager.EngineSessionRun
-	29, // 44: broker.manager.EngineSessionEvent.session:type_name -> broker.manager.EngineSession
-	31, // 45: broker.manager.EngineSessionEvent.error:type_name -> broker.manager.EngineSessionError
-	67, // 46: broker.manager.EngineSessionEvent.metadata:type_name -> broker.manager.EngineSessionEvent.MetadataEntry
-	79, // 47: broker.manager.EngineSessionEvent.mcp_output:type_name -> broker.mcp.McpOutput
-	5,  // 48: broker.manager.EngineSessionMessage.sender:type_name -> broker.manager.SessionMessageSender
-	30, // 49: broker.manager.EngineSessionMessage.run:type_name -> broker.manager.EngineSessionRun
-	29, // 50: broker.manager.EngineSessionMessage.session:type_name -> broker.manager.EngineSession
-	76, // 51: broker.manager.EngineSessionMessage.mcp_message:type_name -> broker.mcp.McpMessage
-	68, // 52: broker.manager.EngineSessionMessage.metadata:type_name -> broker.manager.EngineSessionMessage.MetadataEntry
-	6,  // 53: broker.manager.ListPagination.order:type_name -> broker.manager.ListPaginationOrder
-	34, // 54: broker.manager.ListSessionsRequest.pagination:type_name -> broker.manager.ListPagination
-	29, // 55: broker.manager.ListSessionsResponse.sessions:type_name -> broker.manager.EngineSession
-	29, // 56: broker.manager.GetSessionResponse.session:type_name -> broker.manager.EngineSession
-	34, // 57: broker.manager.ListRunsRequest.pagination:type_name -> broker.manager.ListPagination
-	30, // 58: broker.manager.ListRunsResponse.runs:type_name -> broker.manager.EngineSessionRun
-	30, // 59: broker.manager.GetRunResponse.run:type_name -> broker.manager.EngineSessionRun
-	31, // 60: broker.manager.GetErrorResponse.error:type_name -> broker.manager.EngineSessionError
-	32, // 61: broker.manager.GetEventResponse.event:type_name -> broker.manager.EngineSessionEvent
-	33, // 62: broker.manager.GetMessageResponse.message:type_name -> broker.manager.EngineSessionMessage
-	34, // 63: broker.manager.ListRunErrorsRequest.pagination:type_name -> broker.manager.ListPagination
-	31, // 64: broker.manager.ListRunErrorsResponse.errors:type_name -> broker.manager.EngineSessionError
-	34, // 65: broker.manager.ListRunEventsRequest.pagination:type_name -> broker.manager.ListPagination
-	32, // 66: broker.manager.ListRunEventsResponse.events:type_name -> broker.manager.EngineSessionEvent
-	34, // 67: broker.manager.ListRunMessagesRequest.pagination:type_name -> broker.manager.ListPagination
-	33, // 68: broker.manager.ListRunMessagesResponse.messages:type_name -> broker.manager.EngineSessionMessage
-	34, // 69: broker.manager.ListSessionEventsRequest.pagination:type_name -> broker.manager.ListPagination
-	32, // 70: broker.manager.ListSessionEventsResponse.events:type_name -> broker.manager.EngineSessionEvent
-	34, // 71: broker.manager.ListSessionErrorsRequest.pagination:type_name -> broker.manager.ListPagination
-	31, // 72: broker.manager.ListSessionErrorsResponse.errors:type_name -> broker.manager.EngineSessionError
-	34, // 73: broker.manager.ListSessionMessagesRequest.pagination:type_name -> broker.manager.ListPagination
-	33, // 74: broker.manager.ListSessionMessagesResponse.messages:type_name -> broker.manager.EngineSessionMessage
-	7,  // 75: broker.manager.McpManager.CheckActiveSession:input_type -> broker.manager.CheckActiveSessionRequest
-	9,  // 76: broker.manager.McpManager.CreateSession:input_type -> broker.manager.CreateSessionRequest
-	27, // 77: broker.manager.McpManager.DiscardSession:input_type -> broker.manager.DiscardSessionRequest
-	14, // 78: broker.manager.McpManager.SendMcpMessage:input_type -> broker.manager.SendMcpMessageRequest
-	16, // 79: broker.manager.McpManager.StreamMcpMessages:input_type -> broker.manager.StreamMcpMessagesRequest
-	23, // 80: broker.manager.McpManager.GetServerInfo:input_type -> broker.manager.GetServerInfoRequest
-	80, // 81: broker.manager.McpManager.ListManagers:input_type -> broker.workerBroker.ListManagersRequest
-	24, // 82: broker.manager.McpManager.ListWorkers:input_type -> broker.manager.ListWorkersRequest
-	35, // 83: broker.manager.McpManager.ListSessions:input_type -> broker.manager.ListSessionsRequest
-	37, // 84: broker.manager.McpManager.GetSession:input_type -> broker.manager.GetSessionRequest
-	39, // 85: broker.manager.McpManager.ListRuns:input_type -> broker.manager.ListRunsRequest
-	41, // 86: broker.manager.McpManager.GetRun:input_type -> broker.manager.GetRunRequest
-	57, // 87: broker.manager.McpManager.ListSessionErrors:input_type -> broker.manager.ListSessionErrorsRequest
-	55, // 88: broker.manager.McpManager.ListSessionEvents:input_type -> broker.manager.ListSessionEventsRequest
-	59, // 89: broker.manager.McpManager.ListSessionMessages:input_type -> broker.manager.ListSessionMessagesRequest
-	49, // 90: broker.manager.McpManager.ListRunErrors:input_type -> broker.manager.ListRunErrorsRequest
-	51, // 91: broker.manager.McpManager.ListRunEvents:input_type -> broker.manager.ListRunEventsRequest
-	53, // 92: broker.manager.McpManager.ListRunMessages:input_type -> broker.manager.ListRunMessagesRequest
-	43, // 93: broker.manager.McpManager.GetError:input_type -> broker.manager.GetErrorRequest
-	45, // 94: broker.manager.McpManager.GetEvent:input_type -> broker.manager.GetEventRequest
-	47, // 95: broker.manager.McpManager.GetMessage:input_type -> broker.manager.GetMessageRequest
-	61, // 96: broker.manager.McpManager.ListRecentlyActiveRuns:input_type -> broker.manager.ListRecentlyActiveRunsRequest
-	63, // 97: broker.manager.McpManager.ListRecentlyActiveSessions:input_type -> broker.manager.ListRecentlyActiveSessionsRequest
-	8,  // 98: broker.manager.McpManager.CheckActiveSession:output_type -> broker.manager.CheckActiveSessionResponse
-	13, // 99: broker.manager.McpManager.CreateSession:output_type -> broker.manager.CreateSessionResponse
-	28, // 100: broker.manager.McpManager.DiscardSession:output_type -> broker.manager.DiscardSessionResponse
-	15, // 101: broker.manager.McpManager.SendMcpMessage:output_type -> broker.manager.SendMcpMessageResponse
-	22, // 102: broker.manager.McpManager.StreamMcpMessages:output_type -> broker.manager.StreamMcpMessagesResponse
-	69, // 103: broker.manager.McpManager.GetServerInfo:output_type -> broker.mcp.McpParticipant
-	81, // 104: broker.manager.McpManager.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
-	25, // 105: broker.manager.McpManager.ListWorkers:output_type -> broker.manager.ListWorkersResponse
-	36, // 106: broker.manager.McpManager.ListSessions:output_type -> broker.manager.ListSessionsResponse
-	38, // 107: broker.manager.McpManager.GetSession:output_type -> broker.manager.GetSessionResponse
-	40, // 108: broker.manager.McpManager.ListRuns:output_type -> broker.manager.ListRunsResponse
-	42, // 109: broker.manager.McpManager.GetRun:output_type -> broker.manager.GetRunResponse
-	58, // 110: broker.manager.McpManager.ListSessionErrors:output_type -> broker.manager.ListSessionErrorsResponse
-	56, // 111: broker.manager.McpManager.ListSessionEvents:output_type -> broker.manager.ListSessionEventsResponse
-	60, // 112: broker.manager.McpManager.ListSessionMessages:output_type -> broker.manager.ListSessionMessagesResponse
-	50, // 113: broker.manager.McpManager.ListRunErrors:output_type -> broker.manager.ListRunErrorsResponse
-	52, // 114: broker.manager.McpManager.ListRunEvents:output_type -> broker.manager.ListRunEventsResponse
-	54, // 115: broker.manager.McpManager.ListRunMessages:output_type -> broker.manager.ListRunMessagesResponse
-	44, // 116: broker.manager.McpManager.GetError:output_type -> broker.manager.GetErrorResponse
-	46, // 117: broker.manager.McpManager.GetEvent:output_type -> broker.manager.GetEventResponse
-	48, // 118: broker.manager.McpManager.GetMessage:output_type -> broker.manager.GetMessageResponse
-	62, // 119: broker.manager.McpManager.ListRecentlyActiveRuns:output_type -> broker.manager.ListRecentlyActiveRunsResponse
-	64, // 120: broker.manager.McpManager.ListRecentlyActiveSessions:output_type -> broker.manager.ListRecentlyActiveSessionsResponse
-	98, // [98:121] is the sub-list for method output_type
-	75, // [75:98] is the sub-list for method input_type
-	75, // [75:75] is the sub-list for extension type_name
-	75, // [75:75] is the sub-list for extension extendee
-	0,  // [0:75] is the sub-list for field type_name
+	31,  // 0: broker.manager.CheckActiveSessionResponse.session:type_name -> broker.manager.EngineSession
+	14,  // 1: broker.manager.CreateSessionRequest.config:type_name -> broker.manager.SessionConfig
+	77,  // 2: broker.manager.CreateSessionRequest.mcp_client:type_name -> broker.mcp.McpParticipant
+	72,  // 3: broker.manager.CreateSessionRequest.metadata:type_name -> broker.manager.CreateSessionRequest.MetadataEntry
+	78,  // 4: broker.manager.ContainerRunConfigWithLauncher.container:type_name -> broker.runner.RunConfigContainer
+	79,  // 5: broker.manager.ContainerRunConfigWithLauncher.launcher:type_name -> broker.launcher.LauncherConfig
+	80,  // 6: broker.manager.RemoteRunConfigWithLauncher.server:type_name -> broker.remote.RunConfigRemoteServer
+	79,  // 7: broker.manager.RemoteRunConfigWithLauncher.launcher:type_name -> broker.launcher.LauncherConfig
+	11,  // 8: broker.manager.ServerConfig.container_run_config_with_launcher:type_name -> broker.manager.ContainerRunConfigWithLauncher
+	81,  // 9: broker.manager.ServerConfig.container_run_config_with_container_arguments:type_name -> broker.runner.RunConfig
+	12,  // 10: broker.manager.ServerConfig.remote_run_config_with_launcher:type_name -> broker.manager.RemoteRunConfigWithLauncher
+	82,  // 11: broker.manager.ServerConfig.remote_run_config_with_server:type_name -> broker.remote.RunConfig
+	13,  // 12: broker.manager.SessionConfig.server_config:type_name -> broker.manager.ServerConfig
+	83,  // 13: broker.manager.SessionConfig.mcp_config:type_name -> broker.mcp.McpConfig
+	31,  // 14: broker.manager.CreateSessionResponse.session:type_name -> broker.manager.EngineSession
+	13,  // 15: broker.manager.DiscoverRequest.server_config:type_name -> broker.manager.ServerConfig
+	84,  // 16: broker.manager.SendMcpMessageRequest.mcp_messages:type_name -> broker.mcp.McpMessageRaw
+	85,  // 17: broker.manager.StreamMcpMessagesRequest.only_message_types:type_name -> broker.mcp.McpMessageType
+	32,  // 18: broker.manager.SessionEventInfoRun.run:type_name -> broker.manager.EngineSessionRun
+	31,  // 19: broker.manager.SessionEventInfoSession.session:type_name -> broker.manager.EngineSession
+	32,  // 20: broker.manager.SessionEventStartRun.run:type_name -> broker.manager.EngineSessionRun
+	32,  // 21: broker.manager.SessionEventStopRun.run:type_name -> broker.manager.EngineSessionRun
+	21,  // 22: broker.manager.SessionEvent.start_run:type_name -> broker.manager.SessionEventStartRun
+	22,  // 23: broker.manager.SessionEvent.stop_run:type_name -> broker.manager.SessionEventStopRun
+	19,  // 24: broker.manager.SessionEvent.info_run:type_name -> broker.manager.SessionEventInfoRun
+	20,  // 25: broker.manager.SessionEvent.info_session:type_name -> broker.manager.SessionEventInfoSession
+	86,  // 26: broker.manager.McpConnectionStreamResponse.mcp_message:type_name -> broker.mcp.McpMessage
+	87,  // 27: broker.manager.McpConnectionStreamResponse.mcp_error:type_name -> broker.mcp.McpError
+	88,  // 28: broker.manager.McpConnectionStreamResponse.mcp_output:type_name -> broker.mcp.McpOutput
+	23,  // 29: broker.manager.McpConnectionStreamResponse.session_event:type_name -> broker.manager.SessionEvent
+	28,  // 30: broker.manager.ListWorkersResponse.workers:type_name -> broker.manager.WorkerInfo
+	1,   // 31: broker.manager.EngineSession.type:type_name -> broker.manager.EngineSessionType
+	0,   // 32: broker.manager.EngineSession.status:type_name -> broker.manager.EngineSessionStatus
+	77,  // 33: broker.manager.EngineSession.mcp_client:type_name -> broker.mcp.McpParticipant
+	77,  // 34: broker.manager.EngineSession.mcp_server:type_name -> broker.mcp.McpParticipant
+	36,  // 35: broker.manager.EngineSession.server:type_name -> broker.manager.EngineServer
+	83,  // 36: broker.manager.EngineSession.mcp_config:type_name -> broker.mcp.McpConfig
+	3,   // 37: broker.manager.EngineSessionRun.type:type_name -> broker.manager.EngineRunType
+	2,   // 38: broker.manager.EngineSessionRun.status:type_name -> broker.manager.EngineRunStatus
+	31,  // 39: broker.manager.EngineSessionRun.session:type_name -> broker.manager.EngineSession
+	32,  // 40: broker.manager.EngineSessionError.run:type_name -> broker.manager.EngineSessionRun
+	31,  // 41: broker.manager.EngineSessionError.session:type_name -> broker.manager.EngineSession
+	87,  // 42: broker.manager.EngineSessionError.mcp_error:type_name -> broker.mcp.McpError
+	73,  // 43: broker.manager.EngineSessionError.metadata:type_name -> broker.manager.EngineSessionError.MetadataEntry
+	4,   // 44: broker.manager.EngineSessionEvent.type:type_name -> broker.manager.EngineSessionEventType
+	32,  // 45: broker.manager.EngineSessionEvent.run:type_name -> broker.manager.EngineSessionRun
+	31,  // 46: broker.manager.EngineSessionEvent.session:type_name -> broker.manager.EngineSession
+	33,  // 47: broker.manager.EngineSessionEvent.error:type_name -> broker.manager.EngineSessionError
+	74,  // 48: broker.manager.EngineSessionEvent.metadata:type_name -> broker.manager.EngineSessionEvent.MetadataEntry
+	88,  // 49: broker.manager.EngineSessionEvent.mcp_output:type_name -> broker.mcp.McpOutput
+	5,   // 50: broker.manager.EngineSessionMessage.sender:type_name -> broker.manager.SessionMessageSender
+	32,  // 51: broker.manager.EngineSessionMessage.run:type_name -> broker.manager.EngineSessionRun
+	31,  // 52: broker.manager.EngineSessionMessage.session:type_name -> broker.manager.EngineSession
+	86,  // 53: broker.manager.EngineSessionMessage.mcp_message:type_name -> broker.mcp.McpMessage
+	75,  // 54: broker.manager.EngineSessionMessage.metadata:type_name -> broker.manager.EngineSessionMessage.MetadataEntry
+	1,   // 55: broker.manager.EngineServer.type:type_name -> broker.manager.EngineSessionType
+	6,   // 56: broker.manager.EngineServer.status:type_name -> broker.manager.EngineServerStatus
+	77,  // 57: broker.manager.EngineServer.mcp_server:type_name -> broker.mcp.McpParticipant
+	89,  // 58: broker.manager.EngineServer.tools:type_name -> broker.mcp.McpTool
+	90,  // 59: broker.manager.EngineServer.prompts:type_name -> broker.mcp.McpPrompt
+	91,  // 60: broker.manager.EngineServer.resources:type_name -> broker.mcp.McpResource
+	92,  // 61: broker.manager.EngineServer.resource_templates:type_name -> broker.mcp.McpResourceTemplate
+	76,  // 62: broker.manager.EngineServer.metadata:type_name -> broker.manager.EngineServer.MetadataEntry
+	7,   // 63: broker.manager.ListPagination.order:type_name -> broker.manager.ListPaginationOrder
+	37,  // 64: broker.manager.ListSessionsRequest.pagination:type_name -> broker.manager.ListPagination
+	31,  // 65: broker.manager.ListSessionsResponse.sessions:type_name -> broker.manager.EngineSession
+	31,  // 66: broker.manager.GetSessionResponse.session:type_name -> broker.manager.EngineSession
+	37,  // 67: broker.manager.ListRunsRequest.pagination:type_name -> broker.manager.ListPagination
+	32,  // 68: broker.manager.ListRunsResponse.runs:type_name -> broker.manager.EngineSessionRun
+	32,  // 69: broker.manager.GetRunResponse.run:type_name -> broker.manager.EngineSessionRun
+	33,  // 70: broker.manager.GetErrorResponse.error:type_name -> broker.manager.EngineSessionError
+	34,  // 71: broker.manager.GetEventResponse.event:type_name -> broker.manager.EngineSessionEvent
+	35,  // 72: broker.manager.GetMessageResponse.message:type_name -> broker.manager.EngineSessionMessage
+	37,  // 73: broker.manager.ListRunErrorsRequest.pagination:type_name -> broker.manager.ListPagination
+	33,  // 74: broker.manager.ListRunErrorsResponse.errors:type_name -> broker.manager.EngineSessionError
+	37,  // 75: broker.manager.ListRunEventsRequest.pagination:type_name -> broker.manager.ListPagination
+	34,  // 76: broker.manager.ListRunEventsResponse.events:type_name -> broker.manager.EngineSessionEvent
+	37,  // 77: broker.manager.ListRunMessagesRequest.pagination:type_name -> broker.manager.ListPagination
+	35,  // 78: broker.manager.ListRunMessagesResponse.messages:type_name -> broker.manager.EngineSessionMessage
+	37,  // 79: broker.manager.ListSessionEventsRequest.pagination:type_name -> broker.manager.ListPagination
+	34,  // 80: broker.manager.ListSessionEventsResponse.events:type_name -> broker.manager.EngineSessionEvent
+	37,  // 81: broker.manager.ListSessionErrorsRequest.pagination:type_name -> broker.manager.ListPagination
+	33,  // 82: broker.manager.ListSessionErrorsResponse.errors:type_name -> broker.manager.EngineSessionError
+	37,  // 83: broker.manager.ListSessionMessagesRequest.pagination:type_name -> broker.manager.ListPagination
+	35,  // 84: broker.manager.ListSessionMessagesResponse.messages:type_name -> broker.manager.EngineSessionMessage
+	36,  // 85: broker.manager.GetServerResponse.server:type_name -> broker.manager.EngineServer
+	37,  // 86: broker.manager.ListServersRequest.pagination:type_name -> broker.manager.ListPagination
+	36,  // 87: broker.manager.ListServersResponse.servers:type_name -> broker.manager.EngineServer
+	8,   // 88: broker.manager.McpManager.CheckActiveSession:input_type -> broker.manager.CheckActiveSessionRequest
+	10,  // 89: broker.manager.McpManager.CreateSession:input_type -> broker.manager.CreateSessionRequest
+	16,  // 90: broker.manager.McpManager.DiscoverServer:input_type -> broker.manager.DiscoverRequest
+	29,  // 91: broker.manager.McpManager.DiscardSession:input_type -> broker.manager.DiscardSessionRequest
+	17,  // 92: broker.manager.McpManager.SendMcpMessage:input_type -> broker.manager.SendMcpMessageRequest
+	18,  // 93: broker.manager.McpManager.StreamMcpMessages:input_type -> broker.manager.StreamMcpMessagesRequest
+	25,  // 94: broker.manager.McpManager.GetServerInfo:input_type -> broker.manager.GetServerInfoRequest
+	93,  // 95: broker.manager.McpManager.ListManagers:input_type -> broker.workerBroker.ListManagersRequest
+	26,  // 96: broker.manager.McpManager.ListWorkers:input_type -> broker.manager.ListWorkersRequest
+	38,  // 97: broker.manager.McpManager.ListSessions:input_type -> broker.manager.ListSessionsRequest
+	40,  // 98: broker.manager.McpManager.GetSession:input_type -> broker.manager.GetSessionRequest
+	40,  // 99: broker.manager.McpManager.GetSessionServer:input_type -> broker.manager.GetSessionRequest
+	42,  // 100: broker.manager.McpManager.ListRuns:input_type -> broker.manager.ListRunsRequest
+	44,  // 101: broker.manager.McpManager.GetRun:input_type -> broker.manager.GetRunRequest
+	60,  // 102: broker.manager.McpManager.ListSessionErrors:input_type -> broker.manager.ListSessionErrorsRequest
+	58,  // 103: broker.manager.McpManager.ListSessionEvents:input_type -> broker.manager.ListSessionEventsRequest
+	62,  // 104: broker.manager.McpManager.ListSessionMessages:input_type -> broker.manager.ListSessionMessagesRequest
+	52,  // 105: broker.manager.McpManager.ListRunErrors:input_type -> broker.manager.ListRunErrorsRequest
+	54,  // 106: broker.manager.McpManager.ListRunEvents:input_type -> broker.manager.ListRunEventsRequest
+	56,  // 107: broker.manager.McpManager.ListRunMessages:input_type -> broker.manager.ListRunMessagesRequest
+	46,  // 108: broker.manager.McpManager.GetError:input_type -> broker.manager.GetErrorRequest
+	48,  // 109: broker.manager.McpManager.GetEvent:input_type -> broker.manager.GetEventRequest
+	50,  // 110: broker.manager.McpManager.GetMessage:input_type -> broker.manager.GetMessageRequest
+	64,  // 111: broker.manager.McpManager.ListRecentlyActiveRuns:input_type -> broker.manager.ListRecentlyActiveRunsRequest
+	66,  // 112: broker.manager.McpManager.ListRecentlyActiveSessions:input_type -> broker.manager.ListRecentlyActiveSessionsRequest
+	68,  // 113: broker.manager.McpManager.GetServer:input_type -> broker.manager.GetServerRequest
+	70,  // 114: broker.manager.McpManager.ListServers:input_type -> broker.manager.ListServersRequest
+	9,   // 115: broker.manager.McpManager.CheckActiveSession:output_type -> broker.manager.CheckActiveSessionResponse
+	15,  // 116: broker.manager.McpManager.CreateSession:output_type -> broker.manager.CreateSessionResponse
+	69,  // 117: broker.manager.McpManager.DiscoverServer:output_type -> broker.manager.GetServerResponse
+	30,  // 118: broker.manager.McpManager.DiscardSession:output_type -> broker.manager.DiscardSessionResponse
+	24,  // 119: broker.manager.McpManager.SendMcpMessage:output_type -> broker.manager.McpConnectionStreamResponse
+	24,  // 120: broker.manager.McpManager.StreamMcpMessages:output_type -> broker.manager.McpConnectionStreamResponse
+	77,  // 121: broker.manager.McpManager.GetServerInfo:output_type -> broker.mcp.McpParticipant
+	94,  // 122: broker.manager.McpManager.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
+	27,  // 123: broker.manager.McpManager.ListWorkers:output_type -> broker.manager.ListWorkersResponse
+	39,  // 124: broker.manager.McpManager.ListSessions:output_type -> broker.manager.ListSessionsResponse
+	41,  // 125: broker.manager.McpManager.GetSession:output_type -> broker.manager.GetSessionResponse
+	69,  // 126: broker.manager.McpManager.GetSessionServer:output_type -> broker.manager.GetServerResponse
+	43,  // 127: broker.manager.McpManager.ListRuns:output_type -> broker.manager.ListRunsResponse
+	45,  // 128: broker.manager.McpManager.GetRun:output_type -> broker.manager.GetRunResponse
+	61,  // 129: broker.manager.McpManager.ListSessionErrors:output_type -> broker.manager.ListSessionErrorsResponse
+	59,  // 130: broker.manager.McpManager.ListSessionEvents:output_type -> broker.manager.ListSessionEventsResponse
+	63,  // 131: broker.manager.McpManager.ListSessionMessages:output_type -> broker.manager.ListSessionMessagesResponse
+	53,  // 132: broker.manager.McpManager.ListRunErrors:output_type -> broker.manager.ListRunErrorsResponse
+	55,  // 133: broker.manager.McpManager.ListRunEvents:output_type -> broker.manager.ListRunEventsResponse
+	57,  // 134: broker.manager.McpManager.ListRunMessages:output_type -> broker.manager.ListRunMessagesResponse
+	47,  // 135: broker.manager.McpManager.GetError:output_type -> broker.manager.GetErrorResponse
+	49,  // 136: broker.manager.McpManager.GetEvent:output_type -> broker.manager.GetEventResponse
+	51,  // 137: broker.manager.McpManager.GetMessage:output_type -> broker.manager.GetMessageResponse
+	65,  // 138: broker.manager.McpManager.ListRecentlyActiveRuns:output_type -> broker.manager.ListRecentlyActiveRunsResponse
+	67,  // 139: broker.manager.McpManager.ListRecentlyActiveSessions:output_type -> broker.manager.ListRecentlyActiveSessionsResponse
+	69,  // 140: broker.manager.McpManager.GetServer:output_type -> broker.manager.GetServerResponse
+	71,  // 141: broker.manager.McpManager.ListServers:output_type -> broker.manager.ListServersResponse
+	115, // [115:142] is the sub-list for method output_type
+	88,  // [88:115] is the sub-list for method input_type
+	88,  // [88:88] is the sub-list for extension type_name
+	88,  // [88:88] is the sub-list for extension extendee
+	0,   // [0:88] is the sub-list for field type_name
 }
 
 func init() { file_manager_proto_init() }
@@ -4452,35 +4931,41 @@ func file_manager_proto_init() {
 		return
 	}
 	file_manager_proto_msgTypes[5].OneofWrappers = []any{
-		(*SessionConfig_ContainerRunConfigWithLauncher)(nil),
-		(*SessionConfig_ContainerRunConfigWithContainerArguments)(nil),
-		(*SessionConfig_RemoteRunConfigWithLauncher)(nil),
-		(*SessionConfig_RemoteRunConfigWithServer)(nil),
+		(*ServerConfig_ContainerRunConfigWithLauncher)(nil),
+		(*ServerConfig_ContainerRunConfigWithContainerArguments)(nil),
+		(*ServerConfig_RemoteRunConfigWithLauncher)(nil),
+		(*ServerConfig_RemoteRunConfigWithServer)(nil),
 	}
-	file_manager_proto_msgTypes[8].OneofWrappers = []any{
-		(*SendMcpMessageResponse_McpMessage)(nil),
-		(*SendMcpMessageResponse_McpError)(nil),
-		(*SendMcpMessageResponse_SessionEvent)(nil),
-	}
-	file_manager_proto_msgTypes[14].OneofWrappers = []any{
+	file_manager_proto_msgTypes[10].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[15].OneofWrappers = []any{
 		(*SessionEvent_StartRun)(nil),
 		(*SessionEvent_StopRun)(nil),
 		(*SessionEvent_InfoRun)(nil),
 		(*SessionEvent_InfoSession)(nil),
 	}
-	file_manager_proto_msgTypes[15].OneofWrappers = []any{
-		(*StreamMcpMessagesResponse_McpMessage)(nil),
-		(*StreamMcpMessagesResponse_McpError)(nil),
-		(*StreamMcpMessagesResponse_McpOutput)(nil),
-		(*StreamMcpMessagesResponse_SessionEvent)(nil),
+	file_manager_proto_msgTypes[16].OneofWrappers = []any{
+		(*McpConnectionStreamResponse_McpMessage)(nil),
+		(*McpConnectionStreamResponse_McpError)(nil),
+		(*McpConnectionStreamResponse_McpOutput)(nil),
+		(*McpConnectionStreamResponse_SessionEvent)(nil),
 	}
+	file_manager_proto_msgTypes[28].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[30].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[34].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[44].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[46].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[48].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[50].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[52].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[54].OneofWrappers = []any{}
+	file_manager_proto_msgTypes[62].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_manager_proto_rawDesc), len(file_manager_proto_rawDesc)),
-			NumEnums:      7,
-			NumMessages:   62,
+			NumEnums:      8,
+			NumMessages:   69,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

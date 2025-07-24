@@ -2,6 +2,8 @@ package session
 
 import (
 	"context"
+	"io"
+	"log"
 	"sync"
 	"time"
 
@@ -9,7 +11,7 @@ import (
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
-	mterror "github.com/metorial/metorial/mcp-engine/pkg/mt-error"
+	mterror "github.com/metorial/metorial/mcp-engine/pkg/mtError"
 	"google.golang.org/grpc"
 )
 
@@ -27,11 +29,32 @@ type RemoteSession struct {
 	cancel  context.CancelFunc
 }
 
-func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.SendMcpMessageResponse]) *mterror.MTError {
+func newRemoteSession(
+	sessions *Sessions,
+	storedSession *state.Session,
+	connection managerPb.McpManagerClient,
+) *RemoteSession {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	return &RemoteSession{
+		sessionManager: sessions,
+
+		storedSession:          storedSession,
+		lastSessionInteraction: time.Now(),
+
+		connection: connection,
+
+		context: ctx,
+		cancel:  cancel,
+	}
+}
+
+func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse]) *mterror.MTError {
 	s.Touch()
 
 	responseStream, err := s.connection.SendMcpMessage(s.context, req)
 	if err != nil {
+		log.Printf("Failed to send MCP message: %v", err)
 		return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to send MCP message", err)
 	}
 
@@ -40,20 +63,21 @@ func (s *RemoteSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, str
 
 		response, err := responseStream.Recv()
 		if err != nil {
-			if err == context.Canceled {
+			if err == context.Canceled || err == io.EOF {
 				return nil // Client has closed the stream
 			}
 
 			return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to receive MCP message response", err)
 		}
 
-		if err := stream.Send(response); err != nil {
+		err = stream.Send(response)
+		if err != nil {
 			return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to send MCP message response to client", err)
 		}
 	}
 }
 
-func (s *RemoteSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.StreamMcpMessagesResponse]) *mterror.MTError {
+func (s *RemoteSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse]) *mterror.MTError {
 	s.Touch()
 
 	responseStream, err := s.connection.StreamMcpMessages(s.context, req)
@@ -78,14 +102,15 @@ func (s *RemoteSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesReques
 	for {
 		response, err := responseStream.Recv()
 		if err != nil {
-			if err == context.Canceled {
+			if err == context.Canceled || err == io.EOF {
 				return nil // Client has closed the stream
 			}
 
 			return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to receive MCP message stream response", err)
 		}
 
-		if err := stream.Send(response); err != nil {
+		err = stream.Send(response)
+		if err != nil {
 			return mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to send MCP message stream response to client", err)
 		}
 	}
@@ -128,12 +153,7 @@ func (s *RemoteSession) CanDiscard() bool {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	// If the last interaction with the connection was too long ago, we can discard it
-	if time.Since(s.lastSessionInteraction) > REMOTE_SESSION_INACTIVITY_TIMEOUT {
-		return true
-	}
-
-	return false
+	return s.connection == nil || time.Since(s.lastSessionInteraction) > REMOTE_SESSION_INACTIVITY_TIMEOUT
 }
 
 func (s *RemoteSession) StoredSession() *state.Session {

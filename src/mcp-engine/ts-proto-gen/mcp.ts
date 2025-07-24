@@ -240,6 +240,35 @@ export function mcpParticipant_ParticipantTypeToJSON(object: McpParticipant_Part
   }
 }
 
+export interface McpConfig {
+  mcpVersion: string;
+}
+
+export interface McpTool {
+  name: string;
+  description?: string | undefined;
+  json: string;
+}
+
+export interface McpPrompt {
+  name: string;
+  description?: string | undefined;
+  json: string;
+}
+
+export interface McpResource {
+  name: string;
+  description?: string | undefined;
+  json: string;
+}
+
+export interface McpResourceTemplate {
+  name: string;
+  description?: string | undefined;
+  uriTemplate: string;
+  json: string;
+}
+
 function createBaseMcpError(): McpError {
   return { errorMessage: "", errorCode: 0, metadata: {}, uuid: "" };
 }
@@ -809,6 +838,448 @@ export const McpParticipant: MessageFns<McpParticipant> = {
     const message = createBaseMcpParticipant();
     message.type = object.type ?? 0;
     message.participantJson = object.participantJson ?? "";
+    return message;
+  },
+};
+
+function createBaseMcpConfig(): McpConfig {
+  return { mcpVersion: "" };
+}
+
+export const McpConfig: MessageFns<McpConfig> = {
+  encode(message: McpConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mcpVersion !== "") {
+      writer.uint32(10).string(message.mcpVersion);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): McpConfig {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMcpConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mcpVersion = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): McpConfig {
+    return { mcpVersion: isSet(object.mcpVersion) ? globalThis.String(object.mcpVersion) : "" };
+  },
+
+  toJSON(message: McpConfig): unknown {
+    const obj: any = {};
+    if (message.mcpVersion !== "") {
+      obj.mcpVersion = message.mcpVersion;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<McpConfig>): McpConfig {
+    return McpConfig.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<McpConfig>): McpConfig {
+    const message = createBaseMcpConfig();
+    message.mcpVersion = object.mcpVersion ?? "";
+    return message;
+  },
+};
+
+function createBaseMcpTool(): McpTool {
+  return { name: "", description: undefined, json: "" };
+}
+
+export const McpTool: MessageFns<McpTool> = {
+  encode(message: McpTool, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.name !== "") {
+      writer.uint32(10).string(message.name);
+    }
+    if (message.description !== undefined) {
+      writer.uint32(18).string(message.description);
+    }
+    if (message.json !== "") {
+      writer.uint32(26).string(message.json);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): McpTool {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMcpTool();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.json = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): McpTool {
+    return {
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
+      json: isSet(object.json) ? globalThis.String(object.json) : "",
+    };
+  },
+
+  toJSON(message: McpTool): unknown {
+    const obj: any = {};
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.description !== undefined) {
+      obj.description = message.description;
+    }
+    if (message.json !== "") {
+      obj.json = message.json;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<McpTool>): McpTool {
+    return McpTool.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<McpTool>): McpTool {
+    const message = createBaseMcpTool();
+    message.name = object.name ?? "";
+    message.description = object.description ?? undefined;
+    message.json = object.json ?? "";
+    return message;
+  },
+};
+
+function createBaseMcpPrompt(): McpPrompt {
+  return { name: "", description: undefined, json: "" };
+}
+
+export const McpPrompt: MessageFns<McpPrompt> = {
+  encode(message: McpPrompt, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.name !== "") {
+      writer.uint32(10).string(message.name);
+    }
+    if (message.description !== undefined) {
+      writer.uint32(18).string(message.description);
+    }
+    if (message.json !== "") {
+      writer.uint32(26).string(message.json);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): McpPrompt {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMcpPrompt();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.json = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): McpPrompt {
+    return {
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
+      json: isSet(object.json) ? globalThis.String(object.json) : "",
+    };
+  },
+
+  toJSON(message: McpPrompt): unknown {
+    const obj: any = {};
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.description !== undefined) {
+      obj.description = message.description;
+    }
+    if (message.json !== "") {
+      obj.json = message.json;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<McpPrompt>): McpPrompt {
+    return McpPrompt.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<McpPrompt>): McpPrompt {
+    const message = createBaseMcpPrompt();
+    message.name = object.name ?? "";
+    message.description = object.description ?? undefined;
+    message.json = object.json ?? "";
+    return message;
+  },
+};
+
+function createBaseMcpResource(): McpResource {
+  return { name: "", description: undefined, json: "" };
+}
+
+export const McpResource: MessageFns<McpResource> = {
+  encode(message: McpResource, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.name !== "") {
+      writer.uint32(10).string(message.name);
+    }
+    if (message.description !== undefined) {
+      writer.uint32(18).string(message.description);
+    }
+    if (message.json !== "") {
+      writer.uint32(26).string(message.json);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): McpResource {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMcpResource();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.json = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): McpResource {
+    return {
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
+      json: isSet(object.json) ? globalThis.String(object.json) : "",
+    };
+  },
+
+  toJSON(message: McpResource): unknown {
+    const obj: any = {};
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.description !== undefined) {
+      obj.description = message.description;
+    }
+    if (message.json !== "") {
+      obj.json = message.json;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<McpResource>): McpResource {
+    return McpResource.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<McpResource>): McpResource {
+    const message = createBaseMcpResource();
+    message.name = object.name ?? "";
+    message.description = object.description ?? undefined;
+    message.json = object.json ?? "";
+    return message;
+  },
+};
+
+function createBaseMcpResourceTemplate(): McpResourceTemplate {
+  return { name: "", description: undefined, uriTemplate: "", json: "" };
+}
+
+export const McpResourceTemplate: MessageFns<McpResourceTemplate> = {
+  encode(message: McpResourceTemplate, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.name !== "") {
+      writer.uint32(10).string(message.name);
+    }
+    if (message.description !== undefined) {
+      writer.uint32(18).string(message.description);
+    }
+    if (message.uriTemplate !== "") {
+      writer.uint32(26).string(message.uriTemplate);
+    }
+    if (message.json !== "") {
+      writer.uint32(34).string(message.json);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): McpResourceTemplate {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMcpResourceTemplate();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.uriTemplate = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.json = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): McpResourceTemplate {
+    return {
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
+      uriTemplate: isSet(object.uriTemplate) ? globalThis.String(object.uriTemplate) : "",
+      json: isSet(object.json) ? globalThis.String(object.json) : "",
+    };
+  },
+
+  toJSON(message: McpResourceTemplate): unknown {
+    const obj: any = {};
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.description !== undefined) {
+      obj.description = message.description;
+    }
+    if (message.uriTemplate !== "") {
+      obj.uriTemplate = message.uriTemplate;
+    }
+    if (message.json !== "") {
+      obj.json = message.json;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<McpResourceTemplate>): McpResourceTemplate {
+    return McpResourceTemplate.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<McpResourceTemplate>): McpResourceTemplate {
+    const message = createBaseMcpResourceTemplate();
+    message.name = object.name ?? "";
+    message.description = object.description ?? undefined;
+    message.uriTemplate = object.uriTemplate ?? "";
+    message.json = object.json ?? "";
     return message;
   },
 };

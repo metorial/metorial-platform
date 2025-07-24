@@ -20,14 +20,15 @@ let fileLinkGroup = fileGroup.use(async ctx => {
 
 export let fileLinkController = Controller.create(
   {
-    name: 'FileLink',
-    description: 'Read and write file link information'
+    name: 'File Links',
+    description:
+      'Files are private by default. If you want to share a file, you can create a link for it. Links are public and do not require authentication to access, so be careful with what you share.'
   },
   {
     list: fileGroup
       .get(instancePath('files/:fileId/links', 'links.list'), {
         name: 'List file links',
-        description: 'List all file links'
+        description: 'Returns a list of links associated with a specific file.'
       })
       .use(checkAccess({ possibleScopes: ['instance.file:read', 'instance.file_link:read'] }))
       .outputList(filePresenter)
@@ -43,8 +44,8 @@ export let fileLinkController = Controller.create(
 
     get: fileLinkGroup
       .get(instancePath('files/:fileId/links/:linkId', 'links.get'), {
-        name: 'Get file link',
-        description: 'Get the information of a specific file link'
+        name: 'Get file link by ID',
+        description: 'Retrieves the details of a specific file link by its ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.file:read', 'instance.file_link:read'] }))
       .output(fileLinkPresenter)
@@ -55,7 +56,7 @@ export let fileLinkController = Controller.create(
     create: fileGroup
       .post(instancePath('files/:fileId/links', 'links.create'), {
         name: 'Create file link',
-        description: 'Create a new file link'
+        description: 'Creates a new link for a specific file.'
       })
       .use(
         checkAccess({ possibleScopes: ['instance.file:write', 'instance.file_link:write'] })
@@ -80,8 +81,8 @@ export let fileLinkController = Controller.create(
 
     update: fileLinkGroup
       .patch(instancePath('files/:fileId/links/:linkId', 'links.update'), {
-        name: 'Update file link',
-        description: 'Update the information of a specific file link'
+        name: 'Update file link by ID',
+        description: 'Updates a file link’s properties, such as expiration.'
       })
       .use(
         checkAccess({ possibleScopes: ['instance.file:write', 'instance.file_link:write'] })
@@ -106,8 +107,8 @@ export let fileLinkController = Controller.create(
 
     delete: fileLinkGroup
       .delete(instancePath('files/:fileId/links/:linkId', 'links.delete'), {
-        name: 'Delete file link',
-        description: 'Delete a specific file link'
+        name: 'Delete file link by ID',
+        description: 'Deletes a specific file link by its ID.'
       })
       .use(
         checkAccess({ possibleScopes: ['instance.file:write', 'instance.file_link:write'] })

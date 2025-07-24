@@ -21,13 +21,16 @@ export let serverListingGroup = apiGroup.use(async ctx => {
 export let serverListingController = Controller.create(
   {
     name: 'Server Listing',
-    description: 'Read and write server listing information'
+    description:
+      'Provides access to public server listings, including metadata, filtering, and ranking.',
+    hideInDocs: true
   },
   {
     list: apiGroup
       .get(Path('server-listings', 'servers.listings.list'), {
         name: 'List server listings',
-        description: 'List all server listings'
+        description:
+          'Returns a paginated list of server listings, filterable by collection, category, profile, or instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
       .outputList(serverListingPresenter)
@@ -73,7 +76,7 @@ export let serverListingController = Controller.create(
     get: serverListingGroup
       .get(Path('server-listings/:serverListingId', 'servers.listings.get'), {
         name: 'Get server listing',
-        description: 'Get the information of a specific server listing'
+        description: 'Returns metadata and readme content for a specific server listing.'
       })
       .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
       .output(serverListingPresenter)

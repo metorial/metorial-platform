@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-export function useDraggablePane(initialHeight: number) {
+export function useDraggablePane(initialHeight: number, direction: 'horizontal' | 'vertical') {
   const [height, setHeight] = useState(initialHeight);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartY = useRef<number>(0);
@@ -9,38 +9,35 @@ export function useDraggablePane(initialHeight: number) {
   const handleDragStart = useCallback(
     (e: React.MouseEvent) => {
       setIsDragging(true);
-      dragStartY.current = e.clientX;
+      dragStartY.current = direction === 'horizontal' ? e.clientX : e.clientY;
       dragStartHeight.current = height;
-      document.body.style.userSelect = "none";
+      document.body.style.userSelect = 'none';
     },
-    [height],
+    [height]
   );
 
   const handleDragMove = useCallback(
     (e: MouseEvent) => {
       if (!isDragging) return;
-      const deltaY = dragStartY.current - e.clientX;
-      const newHeight = Math.max(
-        100,
-        Math.min(800, dragStartHeight.current + deltaY),
-      );
+      const deltaY = dragStartY.current - (direction === 'horizontal' ? e.clientX : e.clientY);
+      const newHeight = Math.max(100, Math.min(800, dragStartHeight.current + deltaY));
       setHeight(newHeight);
     },
-    [isDragging],
+    [isDragging]
   );
 
   const handleDragEnd = useCallback(() => {
     setIsDragging(false);
-    document.body.style.userSelect = "";
+    document.body.style.userSelect = '';
   }, []);
 
   useEffect(() => {
     if (isDragging) {
-      window.addEventListener("mousemove", handleDragMove);
-      window.addEventListener("mouseup", handleDragEnd);
+      window.addEventListener('mousemove', handleDragMove);
+      window.addEventListener('mouseup', handleDragEnd);
       return () => {
-        window.removeEventListener("mousemove", handleDragMove);
-        window.removeEventListener("mouseup", handleDragEnd);
+        window.removeEventListener('mousemove', handleDragMove);
+        window.removeEventListener('mouseup', handleDragEnd);
       };
     }
   }, [isDragging, handleDragMove, handleDragEnd]);
@@ -48,6 +45,6 @@ export function useDraggablePane(initialHeight: number) {
   return {
     height,
     isDragging,
-    handleDragStart,
+    handleDragStart
   };
 }

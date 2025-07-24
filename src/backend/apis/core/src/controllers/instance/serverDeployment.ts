@@ -104,14 +104,16 @@ export let createServerDeployment = async (
 
 export let serverDeploymentController = Controller.create(
   {
-    name: 'Server Instance',
-    description: 'Read and write server instance information'
+    name: 'Server Deployment',
+    description:
+      'A server deployment represents a specific instance of an MCP server that can be connected to. It contains configuration for the MCP server, such as API keys for the underlying MCP server.'
   },
   {
     list: instanceGroup
       .get(instancePath('server-deployments', 'servers.deployments.list'), {
         name: 'List server deployments',
-        description: 'List all server deployments'
+        description:
+          'Retrieve a list of server deployments within the instance. Supports filtering by status, server, variant, and session.'
       })
       .use(checkAccess({ possibleScopes: ['instance.server.deployment:read'] }))
       .outputList(serverDeploymentPresenter)
@@ -151,8 +153,8 @@ export let serverDeploymentController = Controller.create(
 
     get: serverDeploymentGroup
       .get(instancePath('server-deployments/:serverDeploymentId', 'servers.deployments.get'), {
-        name: 'Get server instance',
-        description: 'Get the information of a specific server instance'
+        name: 'Get server deployment',
+        description: 'Fetch detailed information about a specific server deployment.'
       })
       .use(checkAccess({ possibleScopes: ['instance.server.deployment:read'] }))
       .output(serverDeploymentPresenter)
@@ -162,8 +164,9 @@ export let serverDeploymentController = Controller.create(
 
     create: instanceGroup
       .post(instancePath('server-deployments', 'servers.deployments.create'), {
-        name: 'Create server instance',
-        description: 'Create a new server instance'
+        name: 'Create server deployment',
+        description:
+          'Create a new server deployment using an existing or newly defined server implementation.'
       })
       .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
       .body('default', createServerDeploymentSchema)
@@ -186,8 +189,9 @@ export let serverDeploymentController = Controller.create(
       .patch(
         instancePath('server-deployments/:serverDeploymentId', 'servers.deployments.update'),
         {
-          name: 'Update server instance',
-          description: 'Update a server instance'
+          name: 'Update server deployment',
+          description:
+            'Update metadata, configuration, or other properties of a server deployment.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
@@ -222,8 +226,8 @@ export let serverDeploymentController = Controller.create(
       .delete(
         instancePath('server-deployments/:serverDeploymentId', 'servers.deployments.delete'),
         {
-          name: 'Delete server instance',
-          description: 'Delete a server instance'
+          name: 'Delete server deployment',
+          description: 'Delete a server deployment from the instance.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))

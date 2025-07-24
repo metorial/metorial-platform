@@ -22,13 +22,14 @@ export let sessionEventGroup = sessionGroup.use(async ctx => {
 export let sessionEventController = Controller.create(
   {
     name: 'Session Event',
-    description: 'Read and write session event information'
+    description: 'Read and write session event information',
+    hideInDocs: true
   },
   {
     list: sessionGroup
       .get(instancePath('sessions/:sessionId/events', 'sessions.events.list'), {
         name: 'List session events',
-        description: 'List all session events'
+        description: 'List all events for a specific session'
       })
       .use(checkAccess({ possibleScopes: ['instance.session:read'] }))
       .outputList(sessionEventPresenter)
@@ -58,7 +59,7 @@ export let sessionEventController = Controller.create(
     get: sessionEventGroup
       .get(instancePath('sessions/:sessionId/events/:sessionEventId', 'sessions.events.get'), {
         name: 'Get session event',
-        description: 'Get the information of a specific session event'
+        description: 'Get details of a specific session event'
       })
       .use(checkAccess({ possibleScopes: ['instance.session:read'] }))
       .output(sessionEventPresenter)

@@ -21,13 +21,14 @@ export let serverVersionGroup = serverGroup.use(async ctx => {
 export let serverVersionController = Controller.create(
   {
     name: 'Server Version',
-    description: 'Read and write server version information'
+    description:
+      'Servers in Metorial are version controlled. Metorial automatically updates servers to the latest version when available. These endpoints help you keep track of server versions in the Metorial catalog.'
   },
   {
     list: serverGroup
       .get(instancePath('servers/:serverId/versions', 'servers.versions.list'), {
         name: 'List server versions',
-        description: 'List all server versions'
+        description: 'Retrieve all versions for a given server'
       })
       .use(checkAccess({ possibleScopes: ['instance.server:read'] }))
       .outputList(serverVersionPresenter)
@@ -64,7 +65,7 @@ export let serverVersionController = Controller.create(
         instancePath('servers/:serverId/versions/:serverVersionId', 'servers.versions.get'),
         {
           name: 'Get server version',
-          description: 'Get the information of a specific server version'
+          description: 'Retrieve details for a specific server version'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.server:read'] }))

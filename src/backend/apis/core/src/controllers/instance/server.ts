@@ -17,14 +17,14 @@ export let serverGroup = instanceGroup.use(async ctx => {
 
 export let serverController = Controller.create(
   {
-    name: 'Server',
-    description: 'Read and write server information'
+    name: 'Servers',
+    description: `A server represents a deployable MCP server in Metorial\'s catalog. You can use server deployments to create MCP server instances that you can connect to.`
   },
   {
     get: serverGroup
       .get(instancePath('servers/:serverId', 'servers.get'), {
-        name: 'Get server',
-        description: 'Get the information of a specific server'
+        name: 'Get server by ID',
+        description: 'Retrieves detailed information for a server identified by its ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.server:read'] }))
       .output(serverPresenter)

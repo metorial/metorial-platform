@@ -69,6 +69,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 	if msg.Init.RunConfig.Server.Protocol == remotePb.RunConfigRemoteServer_sse {
 		conn, err = NewConnectionSSE(stream.Context(), msg.Init.RunConfig)
 		if err != nil {
+			log.Printf("Failed to create SSE connection: %v", err)
 			return err
 		}
 	} else {
@@ -112,9 +113,8 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 				}
 
 				conn.SendString(
-					fmt.Sprintf(`{"jsonrpc": "2.0", "id": "mtr/ping/%d", "method": "ping"}`, time.Now().UnixMicro()),
+					fmt.Sprintf(`{"jsonrpc": "2.0", "id": "mtr/ping/%d", "method": "ping", "params": {}}`, time.Now().UnixMicro()),
 				)
-
 			}
 		}
 	}()
@@ -124,8 +124,18 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 
 		message, ok := response.Type.(*remotePb.RunResponse_McpMessage)
 		if ok && message != nil {
-			if message.McpMessage.Message.MessageType == mcpPb.McpMessageType_response && strings.HasPrefix(message.McpMessage.Message.IdString, "mtr/ping/") {
+			if message.McpMessage.Message.MessageType == mcpPb.McpMessageType_response &&
+				strings.HasPrefix(message.McpMessage.Message.IdString, "mtr/ping/") {
 				return // Ignore ping responses
+			}
+
+			if message.McpMessage.Message.MessageType == mcpPb.McpMessageType_request &&
+				message.McpMessage.Message.Method == "ping" {
+				conn.SendString(
+					fmt.Sprintf(`{"jsonrpc": "2.0", "id": %s, "result": {}}`, message.McpMessage.Message.IdJson),
+				)
+
+				return // Ignore ping requests
 			}
 		}
 

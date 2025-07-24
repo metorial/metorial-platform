@@ -1,0 +1,17 @@
+enum MetorialConfigSessionRunner {
+  legacy
+  engine
+}
+
+enum MetorialConfigId {
+  metorial
+}
+
+model MetorialConfig {
+  id MetorialConfigId @id @default(metorial)
+
+  sessionRunner      MetorialConfigSessionRunner @default(engine)
+  instanceIdentifier String                      @default(uuid())
+
+  createdAt DateTime @default(now())
+}

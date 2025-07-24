@@ -3,8 +3,10 @@ package session
 import (
 	"sync"
 
+	"github.com/getsentry/sentry-go"
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
+	"github.com/metorial/metorial/mcp-engine/pkg/managerUtils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -42,6 +44,7 @@ func (om *OtherManagers) GetManager(managerID string) (*state.Manager, error) {
 
 		manager, err := om.state.GetManager(managerID)
 		if err != nil {
+			sentry.CaptureException(err)
 			return nil, err
 		}
 
@@ -57,6 +60,7 @@ func (om *OtherManagers) GetManager(managerID string) (*state.Manager, error) {
 func (om *OtherManagers) GetManagerConnection(managerID string) (managerPb.McpManagerClient, error) {
 	manager, err := om.GetManager(managerID)
 	if err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
@@ -76,8 +80,9 @@ func (om *OtherManagers) GetManagerConnection(managerID string) (managerPb.McpMa
 		return connection, nil
 	}
 
-	conn, err := grpc.NewClient(manager.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(managerUtils.GetManagerAddress(manager.Address), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 

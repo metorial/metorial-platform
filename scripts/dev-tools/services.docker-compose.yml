@@ -1,0 +1,49 @@
+services:
+  etcd:
+    image: bitnami/etcd:latest
+    ports:
+      - '32379:2379'
+      - '32380:2380'
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - '32707:27017'
+    volumes:
+      - ./_volumes/mongodb:/data/db
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: mongo
+
+  redis-db:
+    image: redis:latest
+    ports:
+      - '36379:6379'
+    volumes:
+      - ./_volumes/redis:/data
+    restart: unless-stopped
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.14
+    ports:
+      - '37700:7700'
+    volumes:
+      - ./_volumes/meilisearch:/meili_data
+    environment:
+      - MEILI_ENV=development
+    restart: unless-stopped
+
+  postgres-db:
+    image: postgres:latest
+    ports:
+      - '35432:5432'
+    volumes:
+      - ./_volumes/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+    restart: unless-stopped

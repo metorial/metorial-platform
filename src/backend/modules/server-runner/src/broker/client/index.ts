@@ -78,6 +78,8 @@ export class BrokerClientManager {
     handler: (message: JSONRPCMessage, stored: SessionMessage) => void
   ) {
     this.#bus.then(bus => {
+      let remainingToWaitFor = opts.ids ? new Set(opts.ids) : undefined;
+
       let pull = async (initial?: boolean) => {
         let messages = await (
           await this.#bus
@@ -91,6 +93,11 @@ export class BrokerClientManager {
         );
 
         for (let message of messages) {
+          if (remainingToWaitFor?.size) {
+            remainingToWaitFor.delete(message.id);
+            if (!remainingToWaitFor.size) close();
+          }
+
           try {
             await handler(
               {
@@ -103,7 +110,7 @@ export class BrokerClientManager {
         }
       };
 
-      bus.onMessage(pull);
+      let close = bus.onMessage(pull);
 
       pull(true);
     });

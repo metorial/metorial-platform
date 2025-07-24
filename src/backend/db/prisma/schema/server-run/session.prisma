@@ -1,59 +1,3 @@
-enum SessionMcpConnectionType {
-  sse
-  streamable_http
-  websocket
-}
-
-enum ServerSessionStatus {
-  pending
-  running
-  stopped
-}
-
-model ServerSession {
-  oid    BigInt              @id @default(autoincrement())
-  id     String              @unique
-  status ServerSessionStatus
-
-  mcpVersion        String?
-  mcpInitialized    Boolean?
-  mcpConnectionType SessionMcpConnectionType?
-
-  serverDeploymentOid BigInt
-  serverDeployment    ServerDeployment @relation(fields: [serverDeploymentOid], references: [oid])
-
-  instanceOid BigInt
-  instance    Instance @relation(fields: [instanceOid], references: [oid])
-
-  sessionOid BigInt
-  session    Session @relation(fields: [sessionOid], references: [oid])
-
-  /// [SessionClientInfo]
-  clientInfo Json?
-
-  /// [SessionClientCapabilities]
-  clientCapabilities Json?
-
-  /// [SessionServerInfo]
-  serverInfo Json?
-
-  /// [SessionServerCapabilities]
-  serverCapabilities Json?
-
-  totalProductiveClientMessageCount Int @default(0)
-  totalProductiveServerMessageCount Int @default(0)
-
-  messages       SessionMessage[]
-  serverRuns     ServerRun[]
-  engineSessions EngineSession[]
-  engineRuns     EngineRun[]
-
-  createdAt DateTime @default(now())
-
-  lastClientActionAt DateTime?
-  lastServerActionAt DateTime?
-}
-
 enum SessionStatus {
   active
   deleted
@@ -100,6 +44,7 @@ model Session {
   serverSessions    ServerSession[]
   messages          SessionMessage[]
   events            SessionEvent[]
+  connections       SessionConnection[]
 
   @@index([connectionStatus])
   @@index([lastClientPingAt])

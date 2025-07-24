@@ -23,6 +23,9 @@ model ServerVariant {
   dockerImage String?
   remoteUrl   String?
 
+  mcpVersion   String       @default("2024-11-05")
+  mcpTransport McpTransport @default(sse) // For remote servers
+
   /// [ServerVersionTools]
   tools Json @default("null")
 
@@ -38,10 +41,12 @@ model ServerVariant {
   /// [ServerVersionServerCapabilities]
   serverCapabilities Json @default("null")
 
-  versions              ServerVersion[]
-  schemas               ServerConfigSchema[]
-  serverImplementations ServerImplementation[]
-  serverDeployments     ServerDeployment[]
+  versions                ServerVersion[]
+  schemas                 ServerConfigSchema[]
+  serverImplementations   ServerImplementation[]
+  serverDeployments       ServerDeployment[]
+  serverAutoDiscoveryJobs ServerAutoDiscoveryJob[]
 
-  createdAt DateTime @default(now())
+  createdAt        DateTime  @default(now())
+  lastDiscoveredAt DateTime?
 }

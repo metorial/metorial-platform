@@ -22,13 +22,14 @@ export let sessionMessageGroup = sessionGroup.use(async ctx => {
 export let sessionMessageController = Controller.create(
   {
     name: 'Session Message',
-    description: 'Read and write session message information'
+    description:
+      'When MCP servers and clients communicate, Metorial captures the messages they send. This allows you to see the raw messages exchanged between the server and client, which can be useful for debugging or understanding the communication flow.'
   },
   {
     list: sessionGroup
       .get(instancePath('sessions/:sessionId/messages', 'sessions.messages.list'), {
         name: 'List session messages',
-        description: 'List all session messages'
+        description: 'List all messages for a specific session'
       })
       .use(checkAccess({ possibleScopes: ['instance.session:read'] }))
       .outputList(sessionMessagePresenter)
@@ -63,7 +64,7 @@ export let sessionMessageController = Controller.create(
         ),
         {
           name: 'Get session message',
-          description: 'Get the information of a specific session message'
+          description: 'Get details of a specific session message'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.session:read'] }))

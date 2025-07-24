@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os/exec"
-	"strings"
 	"sync"
 	"time"
 )
@@ -18,6 +16,8 @@ type ImageManager struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
+
+	localImageManager *localImageManager
 }
 
 func newImageManager() *ImageManager {
@@ -27,6 +27,8 @@ func newImageManager() *ImageManager {
 		images: make(map[string]*ImageHandle),
 		ctx:    ctx,
 		cancel: cancel,
+
+		localImageManager: newLocalImageManager(ctx),
 	}
 
 	manager.startCleanupTask()
@@ -38,152 +40,46 @@ func (im *ImageManager) close() {
 	im.wg.Wait()
 }
 
-func (im *ImageManager) downloadImage(name string, tag *string) error {
-	imageTag := "latest"
-	if tag != nil {
-		imageTag = *tag
-	}
-
-	fullName := fmt.Sprintf("%s:%s", name, imageTag)
-
-	log.Printf("Pulling image %s", fullName)
-
-	cmd := exec.Command("docker", "pull", fullName)
-	output, err := cmd.CombinedOutput()
+func (im *ImageManager) ensureImage(repository, tag string) (*ImageHandle, error) {
+	localImage, err := im.localImageManager.getImageOrFallback(repository, tag)
 	if err != nil {
-		return fmt.Errorf("failed to pull image %s: %w\nOutput: %s", fullName, err, string(output))
+		return nil, fmt.Errorf("failed to get local image: %w", err)
 	}
 
-	imageID, err := im.getImageID(fullName)
-	if err != nil {
-		return err
-	}
-
-	image := newDockerImage(name, imageTag, imageID)
+	imageName := localImage.FullName()
 
 	im.mu.Lock()
-	im.images[fullName] = image
-	im.mu.Unlock()
+	defer im.mu.Unlock()
 
-	log.Printf("Successfully downloaded image: %s\n", fullName)
-
-	return nil
-}
-
-func (im *ImageManager) parseImageName(imageName string) (string, string, error) {
-	parts := strings.Split(imageName, ":")
-
-	switch len(parts) {
-	case 1:
-		return parts[0], "latest", nil
-	case 2:
-		return parts[0], parts[1], nil
-	default:
-		return "", "", fmt.Errorf("invalid image name format: %s", imageName)
-	}
-}
-
-func (im *ImageManager) hasImage(imageName string) bool {
-	im.mu.RLock()
-	defer im.mu.RUnlock()
-
-	_, exists := im.images[imageName]
-	return exists
-}
-
-func (im *ImageManager) ensureImage(imageName string) error {
-	if im.hasImage(imageName) {
-		return nil
-	}
-
-	name, tag, err := im.parseImageName(imageName)
-	if err != nil {
-		return err
-	}
-
-	return im.downloadImage(name, &tag)
-}
-
-func (im *ImageManager) reportImageUse(imageName, containerID string) {
-	im.mu.RLock()
-	image, exists := im.images[imageName]
-	im.mu.RUnlock()
-
+	handle, exists := im.images[imageName]
 	if !exists {
-		return
+		handle = newDockerImage(localImage.Repository, localImage.Tag, localImage.ID)
+		im.images[imageName] = handle
 	}
 
-	image.markUsed(containerID)
+	handle.ImageID = localImage.ID
+	handle.markUsed()
+
+	localImage.LastUsedAt = time.Now()
+
+	return im.images[imageName], nil
 }
 
-func (im *ImageManager) listImages() []*ImageHandle {
-	im.mu.RLock()
-	defer im.mu.RUnlock()
-
-	images := make([]*ImageHandle, 0, len(im.images))
-	for _, image := range im.images {
-		images = append(images, image)
-	}
-
-	return images
-}
-
-func (im *ImageManager) getImageID(imageName string) (string, error) {
-	cmd := exec.Command("docker", "images", "--format", "{{.ID}}", imageName)
-	output, err := cmd.Output()
+func (im *ImageManager) ensureImageByFullName(fullName string) (*ImageHandle, error) {
+	repository, tag, err := parseImageFullName(fullName)
 	if err != nil {
-		return "", fmt.Errorf("failed to get image ID for %s: %w", imageName, err)
+		return nil, fmt.Errorf("failed to parse image full name: %w", err)
 	}
 
-	imageID := strings.TrimSpace(string(output))
-	if imageID == "" {
-		return "", fmt.Errorf("image %s not found", imageName)
-	}
-
-	return imageID, nil
+	return im.ensureImage(repository, tag)
 }
 
-func (im *ImageManager) getImage(imageName string) (*ImageHandle, error) {
-	im.mu.RLock()
-	image, exists := im.images[imageName]
-	im.mu.RUnlock()
-	if !exists {
-		return nil, fmt.Errorf("image %s not found", imageName)
-	}
-	return image, nil
+func (im *ImageManager) listImages() []*localImage {
+	return im.localImageManager.listImages()
 }
 
-func (im *ImageManager) removeImage(imageName string) error {
-	cmd := exec.Command("docker", "rmi", imageName)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to remove image %s: %w\nOutput: %s", imageName, err, string(output))
-	}
-
-	im.mu.Lock()
-	delete(im.images, imageName)
-	im.mu.Unlock()
-
-	return nil
-}
-
-func (im *ImageManager) removeUnusedImages() {
-	im.mu.RLock()
-
-	var imagesToRemove []string
-	for name, image := range im.images {
-		if image.IsUnused() {
-			imagesToRemove = append(imagesToRemove, name)
-		}
-	}
-
-	im.mu.RUnlock()
-
-	for _, imageName := range imagesToRemove {
-		if err := im.removeImage(imageName); err != nil {
-			log.Printf("Error removing unused image %s: %v\n", imageName, err)
-		}
-	}
+func (im *ImageManager) getImage(imageId string) (*localImage, error) {
+	return im.localImageManager.getImage(imageId)
 }
 
 func (im *ImageManager) removeOldImageUses() {
@@ -216,8 +112,9 @@ func (im *ImageManager) startCleanupTask() {
 }
 
 func (im *ImageManager) performCleanup() {
-	im.removeUnusedImages()
 	im.removeOldImageUses()
+	im.localImageManager.cleanupUnused()
+	im.localImageManager.cleanupDuplicateImages()
 
 	log.Println("Image cleanup completed")
 }

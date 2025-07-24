@@ -66,7 +66,7 @@ export let syncUserUpdateSingleQueueProcessor = syncUserUpdateSingleQueue.proces
       where: { id: member.actor.id },
       data: {
         name: user.name,
-        image: user.image,
+        image: user.image as any,
         email: user.email
       }
     });

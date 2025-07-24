@@ -17,12 +17,38 @@ export let v1ServerPreview = Object.assign(
   {
     schema: v.object({
       object: v.literal('server#preview'),
-      id: v.string(),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      type: v.enumOf(['public']),
-      created_at: v.date(),
-      updated_at: v.date()
+
+      id: v.string({
+        name: 'id',
+        description: 'The unique identifier of the server'
+      }),
+
+      name: v.string({
+        name: 'name',
+        description: 'The name of the server'
+      }),
+
+      description: v.nullable(
+        v.string({
+          name: 'description',
+          description: 'An optional description of the server'
+        })
+      ),
+
+      type: v.enumOf(['public'], {
+        name: 'type',
+        description: 'The type of the server'
+      }),
+
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the server was created'
+      }),
+
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when the server was last updated'
+      })
     })
   }
 );

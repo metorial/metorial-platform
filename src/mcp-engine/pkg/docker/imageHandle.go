@@ -12,12 +12,11 @@ const (
 )
 
 type ImageUse struct {
-	Timestamp   time.Time
-	ContainerID string
+	Timestamp time.Time
 }
 
 type ImageHandle struct {
-	Name       string
+	Repository string
 	Tag        string
 	ImageID    string
 	LastUsed   time.Time
@@ -25,10 +24,10 @@ type ImageHandle struct {
 	mu         sync.RWMutex
 }
 
-func newDockerImage(name, tag, imageID string) *ImageHandle {
+func newDockerImage(repository, tag, imageID string) *ImageHandle {
 	now := time.Now().UTC()
 	return &ImageHandle{
-		Name:       name,
+		Repository: repository,
 		Tag:        tag,
 		ImageID:    imageID,
 		LastUsed:   now,
@@ -36,16 +35,33 @@ func newDockerImage(name, tag, imageID string) *ImageHandle {
 	}
 }
 
-func (img *ImageHandle) markUsed(containerID string) {
+func (img *ImageHandle) markUsed() {
 	img.mu.Lock()
 	defer img.mu.Unlock()
 
 	now := time.Now().UTC()
 	img.LastUsed = now
 	img.RecentUses = append(img.RecentUses, ImageUse{
-		Timestamp:   now,
-		ContainerID: containerID,
+		Timestamp: now,
 	})
+}
+
+func (img *ImageHandle) FullName() string {
+	return fmt.Sprintf("%s:%s", img.Repository, img.Tag)
+}
+
+func (img *ImageHandle) IsUnused() bool {
+	img.mu.RLock()
+	defer img.mu.RUnlock()
+
+	threshold := time.Now().UTC().Add(-time.Duration(ImageUnusedThreshold) * time.Second)
+	return img.LastUsed.Before(threshold)
+}
+
+func (img *ImageHandle) GetLastUsed() time.Time {
+	img.mu.RLock()
+	defer img.mu.RUnlock()
+	return img.LastUsed
 }
 
 func (img *ImageHandle) cleanupOldUses() {
@@ -61,24 +77,4 @@ func (img *ImageHandle) cleanupOldUses() {
 		}
 	}
 	img.RecentUses = validUses
-}
-
-func (img *ImageHandle) FullName() string {
-	img.mu.RLock()
-	defer img.mu.RUnlock()
-	return fmt.Sprintf("%s:%s", img.Name, img.Tag)
-}
-
-func (img *ImageHandle) IsUnused() bool {
-	img.mu.RLock()
-	defer img.mu.RUnlock()
-
-	threshold := time.Now().UTC().Add(-time.Duration(ImageUnusedThreshold) * time.Second)
-	return img.LastUsed.Before(threshold)
-}
-
-func (img *ImageHandle) GetLastUsed() time.Time {
-	img.mu.RLock()
-	defer img.mu.RUnlock()
-	return img.LastUsed
 }

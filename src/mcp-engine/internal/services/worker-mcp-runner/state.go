@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/metorial/metorial/mcp-engine/pkg/docker"
-	"github.com/metorial/metorial/mcp-engine/pkg/util"
+	"github.com/metorial/metorial/modules/util"
 )
 
 type RunnerState struct {

@@ -33,7 +33,7 @@ export let syncEngineRun = async (d: { engineRunId: string }) => {
   let start = new Date();
 
   let client = getRandomClient();
-  if (!client) return;
+  if (!client) throw new Error('WTF - No manager found for engine run');
 
   let { run } = await client.getRun({
     runId: engineRun.id
@@ -47,9 +47,13 @@ export let syncEngineRun = async (d: { engineRunId: string }) => {
     await db.serverRun.updateMany({
       where: {
         oid: serverRun.oid,
-        status: run.status == EngineRunStatus.run_status_error ? 'failed' : 'completed'
+        status: 'active'
       },
-      data: { status: 'completed', lastPingAt: start }
+      data: {
+        status: run.status == EngineRunStatus.run_status_error ? 'failed' : 'completed',
+        lastPingAt: start,
+        stoppedAt: run?.endedAt ? new Date(run.endedAt.toNumber()) : new Date()
+      }
     });
   }
 
@@ -64,6 +68,11 @@ export let syncEngineRun = async (d: { engineRunId: string }) => {
       where: { oid: serverSession.oid },
       data: { status: 'stopped' }
     });
+
+    await db.sessionConnection.updateMany({
+      where: { serverSessionOid: serverSession.oid, endedAt: null },
+      data: { endedAt: start }
+    });
   }
 
   let unifiedId = new UnifiedID(engineRun.serverSession.id);
@@ -73,20 +82,35 @@ export let syncEngineRun = async (d: { engineRunId: string }) => {
     after: Long.fromNumber(syncTime.getTime()),
     pagination: undefined as any
   });
-  for (let full of messages) {
-    let message = engineMcpMessageFromPb(full.mcpMessage!, {
-      type: 'server',
-      id: engineRun.id
+  if (messages.length) {
+    let organization = await db.organization.findUniqueOrThrow({
+      where: { oid: instance.organizationOid }
     });
 
-    try {
-      await createSessionMessage({
-        serverSession,
-        unifiedId,
-        message
-      });
-    } catch (err: any) {
-      if (err.code != 'P2002') throw err; // Ignore unique constraint errors
+    let instanceWithOrg = {
+      ...instance,
+      organization
+    };
+
+    for (let full of messages) {
+      let message = engineMcpMessageFromPb(
+        full.mcpMessage!,
+        {
+          type: 'server',
+          id: engineRun.id
+        },
+        unifiedId
+      );
+
+      try {
+        await createSessionMessage({
+          serverSession,
+          message,
+          instance: instanceWithOrg
+        });
+      } catch (err: any) {
+        if (err.code != 'P2002') throw err; // Ignore unique constraint errors
+      }
     }
   }
 

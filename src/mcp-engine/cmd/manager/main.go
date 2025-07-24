@@ -8,16 +8,14 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/joho/godotenv"
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager"
+	sentryUtil "github.com/metorial/metorial/modules/sentry-util"
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	sentryUtil.InitSentryIfNeeded()
+	defer sentryUtil.ShutdownSentry()
 
 	address, etcdEndpoints, dsn := getConfig()
 
@@ -53,15 +51,20 @@ func getConfig() (string, []string, string) {
 
 	address := *addressArg
 
+	managerAddressEnv := os.Getenv("MANAGER_ADDRESS")
+	if managerAddressEnv != "" {
+		address = managerAddressEnv
+	}
+
 	etcdEndpoints := []string{"http://localhost:2379"}
 	etcdEndpointsEnv := os.Getenv("ETCD_ENDPOINTS")
 	if etcdEndpointsEnv != "" {
 		etcdEndpoints = strings.Split(etcdEndpointsEnv, ",")
 	}
 
-	dsn := os.Getenv("DATABASE_DSN")
+	dsn := os.Getenv("ENGINE_DATABASE_DSN")
 	if dsn == "" {
-		log.Fatal("DATABASE_DSN environment variable is not set")
+		log.Fatal("ENGINE_DATABASE_DSN environment variable is not set")
 	}
 
 	return address, etcdEndpoints, dsn

@@ -78,7 +78,7 @@ export let Footer = () => {
                 <a href="/pricing">Pricing</a>
               </li>
               <li>
-                <a href="/changelog">Changelog</a>
+                <a href="/marketplace">Marketplace</a>
               </li>
               <li>
                 <a href="/docs">Docs</a>
@@ -112,6 +112,15 @@ export let Footer = () => {
             <ul>
               <li>
                 <a href="/websocket-explorer">Websocket Explorer</a>
+              </li>
+              <li>
+                <a href="/marketplace">Metorial Marketplace</a>
+              </li>
+              <li>
+                <a href="https://github.com/metorial/mcp-containers">MCP Containers</a>
+              </li>
+              <li>
+                <a href="https://github.com/metorial/mcp-index">MCP Index</a>
               </li>
             </ul>
           </Column>

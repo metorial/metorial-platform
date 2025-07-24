@@ -1,13 +1,16 @@
-import { ServerNotification } from "@modelcontextprotocol/sdk/types.js";
-import { useState } from "react";
-import JsonView from "./JsonView";
+import { ServerNotification } from '@modelcontextprotocol/sdk/types.js';
+import { cx } from 'class-variance-authority';
+import { useState } from 'react';
+import JsonView from './JsonView';
 
 const HistoryAndNotifications = ({
   requestHistory,
   serverNotifications,
+  direction
 }: {
   requestHistory: Array<{ request: string; response?: string }>;
   serverNotifications: ServerNotification[];
+  direction: 'horizontal' | 'vertical';
 }) => {
   const [expandedRequests, setExpandedRequests] = useState<{
     [key: number]: boolean;
@@ -17,16 +20,26 @@ const HistoryAndNotifications = ({
   }>({});
 
   const toggleRequestExpansion = (index: number) => {
-    setExpandedRequests((prev) => ({ ...prev, [index]: !prev[index] }));
+    setExpandedRequests(prev => ({ ...prev, [index]: !prev[index] }));
   };
 
   const toggleNotificationExpansion = (index: number) => {
-    setExpandedNotifications((prev) => ({ ...prev, [index]: !prev[index] }));
+    setExpandedNotifications(prev => ({ ...prev, [index]: !prev[index] }));
   };
 
   return (
-    <div className="bg-card overflow-hidden flex h-full flex-col">
-      <div className="flex-1 overflow-y-auto p-4 border-b">
+    <div
+      className={cx('bg-card overflow-hidden flex h-full', {
+        'flex-col': direction == 'horizontal',
+        'flex-row': direction == 'vertical'
+      })}
+    >
+      <div
+        className={cx('flex-1 overflow-y-auto p-4', {
+          'border-b': direction == 'horizontal',
+          'border-r': direction == 'vertical'
+        })}
+      >
         <h2 className="text-lg font-semibold mb-4">History</h2>
         {requestHistory.length === 0 ? (
           <p className="text-sm text-gray-500 italic">No history yet</p>
@@ -36,51 +49,33 @@ const HistoryAndNotifications = ({
               .slice()
               .reverse()
               .map((request, index) => (
-                <li
-                  key={index}
-                  className="text-sm text-foreground bg-secondary p-2 rounded"
-                >
+                <li key={index} className="text-sm text-foreground bg-secondary p-2 rounded">
                   <div
                     className="flex justify-between items-center cursor-pointer"
-                    onClick={() =>
-                      toggleRequestExpansion(requestHistory.length - 1 - index)
-                    }
+                    onClick={() => toggleRequestExpansion(requestHistory.length - 1 - index)}
                   >
                     <span className="font-mono">
-                      {requestHistory.length - index}.{" "}
-                      {JSON.parse(request.request).method}
+                      {requestHistory.length - index}. {JSON.parse(request.request).method}
                     </span>
                     <span>
-                      {expandedRequests[requestHistory.length - 1 - index]
-                        ? "▼"
-                        : "▶"}
+                      {expandedRequests[requestHistory.length - 1 - index] ? '▼' : '▶'}
                     </span>
                   </div>
                   {expandedRequests[requestHistory.length - 1 - index] && (
                     <>
                       <div className="mt-2">
                         <div className="flex justify-between items-center mb-1">
-                          <span className="font-semibold text-blue-600">
-                            Request:
-                          </span>
+                          <span className="font-semibold text-blue-600">Request:</span>
                         </div>
 
-                        <JsonView
-                          data={request.request}
-                          className="bg-background"
-                        />
+                        <JsonView data={request.request} className="bg-background" />
                       </div>
                       {request.response && (
                         <div className="mt-2">
                           <div className="flex justify-between items-center mb-1">
-                            <span className="font-semibold text-green-600">
-                              Response:
-                            </span>
+                            <span className="font-semibold text-green-600">Response:</span>
                           </div>
-                          <JsonView
-                            data={request.response}
-                            className="bg-background"
-                          />
+                          <JsonView data={request.response} className="bg-background" />
                         </div>
                       )}
                     </>
@@ -100,10 +95,12 @@ const HistoryAndNotifications = ({
               .slice()
               .reverse()
               .map((notification, index) => {
-                let isDebug = notification.method.startsWith('notifications/metorial_gateway/debug/')
+                let isDebug = notification.method.startsWith(
+                  'notifications/metorial_gateway/debug/'
+                );
                 let expanded = expandedNotifications[serverNotifications.length - 1 - index];
                 let method: string = notification.method;
-                let payload = JSON.stringify(notification, null, 2)
+                let payload = JSON.stringify(notification, null, 2);
                 let title = method;
 
                 if (isDebug) {
@@ -117,51 +114,42 @@ const HistoryAndNotifications = ({
 
                   if (method == 'output') {
                     title = 'MCP Server Output';
-                    payload = (notification.params?.lines ?? [] as any).join('\n');
+                    payload = (notification.params?.lines ?? ([] as any)).join('\n');
                   } else if (method == 'note') {
                     title = (notification.params?.title ?? '') as string;
                     payload = (notification.params?.message ?? '') as string;
-                    if (!payload) 
-                      expanded = false;
+                    if (!payload) expanded = false;
                   } else {
                     payload = JSON.stringify(notification.params ?? {});
 
-                    title = {
-                      init: 'Initialization',
-                    }[method] ?? method;
+                    title =
+                      {
+                        init: 'Initialization'
+                      }[method] ?? method;
                   }
                 }
 
-                
-
                 return (
-                  <li
-                    key={index}
-                    className="text-sm text-foreground bg-secondary p-2 rounded"
-                  >
+                  <li key={index} className="text-sm text-foreground bg-secondary p-2 rounded">
                     <div
                       className="flex justify-between items-center cursor-pointer"
                       onClick={() => toggleNotificationExpansion(index)}
                     >
                       <div className="flex items-center">
-                        {
-                          isDebug && (
-                            <span className="bg-blue-400 text-white px-2 py-1 rounded-full text-xs font-semibold mr-2">
-                              Debug
-                            </span>
-                          )
-                        }
+                        {isDebug && (
+                          <span className="bg-blue-400 text-white px-2 py-1 rounded-full text-xs font-semibold mr-2">
+                            Debug
+                          </span>
+                        )}
 
                         <span className="font-mono">
-                          {!isDebug && (<>{serverNotifications.length - index}.{" "}</>)}
-                          
+                          {!isDebug && <>{serverNotifications.length - index}. </>}
+
                           {title ?? method}
                         </span>
                       </div>
-                      
-                      {!isDebug && (
-                        <span>{expanded ? "▼" : "▶"}</span>
-                      )}
+
+                      {!isDebug && <span>{expanded ? '▼' : '▶'}</span>}
                     </div>
                     {expanded && (
                       <div className="mt-2">
@@ -178,19 +166,14 @@ const HistoryAndNotifications = ({
                             </div>
                           ))
                         ) : method == 'note' ? (
-                          <div className="bg-background p-2 rounded mb-2">
-                            {payload}
-                          </div>
+                          <div className="bg-background p-2 rounded mb-2">{payload}</div>
                         ) : (
-                          <JsonView
-                            data={payload}
-                            className="bg-background"
-                          />
+                          <JsonView data={payload} className="bg-background" />
                         )}
                       </div>
                     )}
                   </li>
-                )
+                );
               })}
           </ul>
         )}

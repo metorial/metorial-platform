@@ -2,7 +2,7 @@ import { delay } from '@metorial/delay';
 import { McpManagerClient, createManagerClient } from '@metorial/mcp-engine-generated';
 import { env } from '../../env';
 
-interface Manager {
+export interface Manager {
   id?: string;
   address: string;
   client: McpManagerClient;
@@ -36,10 +36,7 @@ let checkManagers = async () => {
 
       for (let existingManagers of managers.values()) {
         if (!addresses.includes(existingManagers.address)) {
-          console.warn(
-            `Manager ${existingManagers.address} is no longer known by ${manager.address}`
-          );
-          managers.delete(existingManagers.address);
+          existingManagers.enabled = false;
         }
       }
 
@@ -58,6 +55,8 @@ let checkManagers = async () => {
           existingManager.enabled = true;
         }
       }
+
+      manager.enabled = true;
     } catch (error) {
       console.error(`Error checking manager ${manager.address}:`, error);
       manager.enabled = false;

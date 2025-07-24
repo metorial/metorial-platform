@@ -88,7 +88,8 @@ export class BrokerBus {
           await Fabric.fire('session.session_message.created:before', {
             organization: this.instance.organization,
             instance: this.instance,
-            session: this.session
+            session: this.session,
+            participant: this.participant
           });
 
           let createdMessages = await db.sessionMessage.createManyAndReturn({

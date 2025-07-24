@@ -21,13 +21,14 @@ export let serverRunErrorGroupGroup = instanceGroup.use(async ctx => {
 export let serverRunErrorGroupController = Controller.create(
   {
     name: 'Server Run Error Group',
-    description: 'Read and write server run error group information'
+    description: 'Read and write server run error group information',
+    hideInDocs: true
   },
   {
     list: instanceGroup
       .get(instancePath('server-run-error-groups', 'serverRunErrorGroups.list'), {
-        name: 'List server deployments',
-        description: 'List all server deployments'
+        name: 'List server run error groups',
+        description: 'List all server run error groups'
       })
       .use(checkAccess({ possibleScopes: ['instance.server.server_error:read'] }))
       .outputList(serverRunErrorGroupPresenter)

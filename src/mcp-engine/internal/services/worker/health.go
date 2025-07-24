@@ -2,6 +2,7 @@ package worker
 
 import (
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -62,6 +63,11 @@ func (m *WorkerHealthManager) GetHealth() WorkerHealth {
 }
 
 func (m *WorkerHealthManager) routine() {
+	if os.Getenv("ENABLE_RESOURCE_CHECK") == "false" {
+		log.Println("Resource checks are disabled, skipping health checks.")
+		return
+	}
+
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
