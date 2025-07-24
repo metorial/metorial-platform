@@ -90,9 +90,9 @@ let createEndpoint = (i: {
   let pythonPath = pathParts.map(p => (p.startsWith(':') ? p.slice(1) : `'${p}'`)).join(', ');
 
   // body and query code
-  let bodyCode = bodyType ? `body=${bodyType.mapperName}.transform_to(body),` : '';
+  let bodyCode = bodyType ? `body=${bodyType.mapperName}.to_dict(body),` : '';
   let queryCode = queryType
-    ? `query=${queryType.mapperName}.transform_to(query) if query is not None else None,`
+    ? `query=${queryType.mapperName}.to_dict(query) if query is not None else None,`
     : '';
 
   let docstring = dedent`
@@ -118,7 +118,7 @@ let createEndpoint = (i: {
         request = MetorialRequest(
             ${requestArgsJoined}
         )
-        return self._${i.endpoint.method.toLowerCase()}(request).transform(${outputType.mapperName})
+        return self._${i.endpoint.method.toLowerCase()}(request).transform(${outputType.mapperName}.from_dict)
   `;
 
   return {

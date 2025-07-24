@@ -124,7 +124,7 @@ let generateClass = (name: string, type: IntrospectedType): string => {
 
   let className = toPyClassName(name);
 
-  return `\nfrom dataclasses import dataclass\nfrom typing import Any, Dict, List, Optional, Union\nfrom datetime import datetime\n\n@dataclass\nclass ${className}:\n${body}\n`;
+  return `from dataclasses import dataclass\nfrom typing import Any, Dict, List, Optional, Union\nfrom datetime import datetime\n\n@dataclass\nclass ${className}:\n${body}\n`;
 };
 
 let generateAlias = (name: string, type: IntrospectedType): string => {

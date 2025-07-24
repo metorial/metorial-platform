@@ -6,16 +6,28 @@ export let generateMapper = async (
   typename: string,
   type: IntrospectedType
 ): Promise<string> => {
-  let funcName = `map${typename}`;
-  let code = `
-from typing import Any, Dict
+  const className = name; // e.g. mapDashboardInstanceSessionsCreateOutput
+  return (
+    `
+from typing import Any, Dict, Optional, Union
 from datetime import datetime
+import dataclasses
 
-def ${funcName}(data: Dict[str, Any]) -> ${typename}:
-${_generateMapper(type, typename, 'data', 1)}
-`;
+class ${className}:
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> ${typename}:
+${_generateMapper(type, typename, 'data', 2)}
 
-  return code + '\n';
+    @staticmethod
+    def to_dict(value: Union[${typename}, Dict[str, Any], None]) -> Optional[Dict[str, Any]]:
+        if value is None:
+            return None
+        if isinstance(value, dict):
+            return value
+        # assume dataclass for generated models
+        return dataclasses.asdict(value)
+` + '\n'
+  );
 };
 
 let pythonKeywords = new Set([
@@ -85,8 +97,14 @@ let _generateMapper = (
           key === 'createdAt' ? 'created_at' : key === 'updatedAt' ? 'updated_at' : key;
 
         if (value.type === 'object') {
-          return `${indent}"${pyName}": ${_generateMapper(value, undefined, `${source}.get('${jsonKey}', {})`, indentLevel + 1)}`;
+          return `${indent}"${pyName}": ${source}.get('${jsonKey}') and ${_generateMapper(
+            value,
+            undefined,
+            `${source}.get('${jsonKey}', {})`,
+            indentLevel + 1
+          )}`;
         }
+
         if (value.type === 'array') {
           return `${indent}"${pyName}": [${_generateMapper(value.items![0], undefined, 'item', indentLevel + 2)} for item in ${source}.get('${jsonKey}', [])]`;
         }
@@ -104,7 +122,13 @@ let _generateMapper = (
           let jsonKey =
             key === 'createdAt' ? 'created_at' : key === 'updatedAt' ? 'updated_at' : key;
           if (value.type === 'object') {
-            return `${indent}${pyName}=${_generateMapper(value, undefined, `${source}.get('${jsonKey}', {})`, indentLevel + 1)}`;
+            // guard dataclass field too
+            return `${indent}${pyName}=${source}.get('${jsonKey}') and ${_generateMapper(
+              value,
+              undefined,
+              `${source}.get('${jsonKey}', {})`,
+              indentLevel + 1
+            )}`;
           }
           if (value.type === 'array') {
             return `${indent}${pyName}=[${_generateMapper(value.items![0], undefined, 'item', indentLevel + 2)} for item in ${source}.get('${jsonKey}', [])]`;

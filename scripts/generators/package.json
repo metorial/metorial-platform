@@ -7,8 +7,8 @@
   "scripts": {
     "start": "bun ./src/index.ts",
     "generate:client": "bun run generate:client:typescript && bun run generate:client:python",
-    "generate:client:typescript": "bun start http://localhost:4310 ../../clients/metorial-js/sdk/gen typescript && cd ../../clients/metorial-js/sdk/gen && bun run build",
-    "generate:client:python": "bun start http://localhost:4310 ../../clients/metorial-py/sdk/gen python"
+    "generate:client:typescript": "bun start http://localhost:4310 ../../clients/metorial-node/sdk/gen typescript && cd ../../clients/metorial-node/sdk/gen && bun run build",
+    "generate:client:python": "bun start http://localhost:4310 ../../clients/metorial-python/sdk/gen python"
   },
   "devDependencies": {
     "@types/bun": "latest"
