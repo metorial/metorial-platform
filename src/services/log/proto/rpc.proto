@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package rpc.rpc;
+
+option go_package = "github.com/metorial/metorial/services/rpc/gen/rpc;rpc";
+
+service LogService {
+  rpc IngestLog(IngestLogRequest) returns (IngestLogResponse);
+  rpc ListLogs(ListLogsRequest) returns (ListLogsResponse);
+  rpc GetLog(GetLogRequest) returns (GetLogResponse);
+}
+
+enum ListPaginationOrder {
+  list_cursor_order_asc = 0;
+  list_cursor_order_desc = 1;
+}
+
+message ListPagination {
+  string after_id = 1;
+  string before_id = 2;
+  int32 limit = 3;
+  ListPaginationOrder order = 4;
+}
+
+message LogEntry {
+  string entity_id = 1;
+  string entity_type = 2;
+  string instance_id = 3;
+  string payload = 5;
+  uint64 timestamp = 6;
+}
+
+message IngestLogRequest {
+  string entity_id = 1;
+  string entity_type = 2;
+  string instance_id = 3;
+  string payload = 4;
+  uint64 timestamp = 5;
+}
+
+message IngestLogResponse {}
+
+message ListLogsRequest {
+  string entity_type = 2;
+  repeated string entity_ids = 1;
+  repeated string instance_ids = 3;
+}
+
+message ListLogsResponse {
+  repeated LogEntry logs = 1;
+  ListPagination pagination = 2;
+}
+
+message GetLogRequest {
+  string entity_id = 1;
+  string entity_type = 2;
+  optional string instance_id = 3;
+}
+
+message GetLogResponse {
+  LogEntry log = 1;
+}
