@@ -1,34 +1,17 @@
-import {
-  db,
-  ServerDeployment,
-  ServerImplementation,
-  ServerRun,
-  ServerVariant,
-  ServerVersion
-} from '@metorial/db';
+import { db, ServerRun } from '@metorial/db';
 import { debug } from '@metorial/debug';
 import { internalServerError, ServiceError } from '@metorial/error';
-import { Fabric } from '@metorial/fabric';
-import { generatePlainId } from '@metorial/id';
 import { createLock } from '@metorial/lock';
 import {
-  CreateSessionResponse,
-  EngineSession,
   EngineSessionRun,
   McpError,
-  McpManagerClient,
   McpOutput,
-  McpParticipant_ParticipantType,
   SessionEvent
 } from '@metorial/mcp-engine-generated';
-import { secretService } from '@metorial/module-secret';
 import { getSentry } from '@metorial/sentry';
 import { getUnifiedIdIfNeeded, UnifiedID } from '@metorial/unified-id';
-import { JSONRPCMessage } from '@modelcontextprotocol/sdk/types';
-import { addServerDeploymentDiscovery } from '../../queues/discoverServer';
+import { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sdk/types';
 import { addRunSync } from '../../queues/syncRuns';
-import { getClientByHash, mustGetClient } from '../client';
-import { getSessionConfig } from '../config';
 import { createEngineRun } from '../data/engineRun';
 import { createSessionMessage } from '../data/message';
 import {
@@ -39,11 +22,10 @@ import {
 } from '../mcp/message';
 import { MCPMessageType, messageTypeToPb } from '../mcp/types';
 import { forceSync } from '../sync/force';
-import { getFullServerSession } from '../utils';
 import { EngineSessionConnectionBase } from './base';
+import { EngineSessionManager } from './engineSession';
 import { EngineSessionProxy } from './proxy';
-import { EngineRunConfig, McpClient } from './types';
-import { getEngineSessionType } from './util';
+import { EngineRunConfig } from './types';
 
 const INACTIVITY_TIMEOUT = 1000 * 60;
 
@@ -62,20 +44,20 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
   #abort: AbortController = new AbortController();
   #proxies: Set<EngineSessionProxy> = new Set();
 
-  constructor(
-    private readonly config: EngineRunConfig,
-    private readonly engineSessionInfo: CreateSessionResponse,
-    private readonly client: McpManagerClient,
-    private readonly version: ServerVersion,
-    private readonly variant: ServerVariant,
-    private readonly deployment: ServerDeployment,
-    private readonly implementation: ServerImplementation
-  ) {
+  constructor(private readonly engineSessionManager: EngineSessionManager) {
     super();
 
     this.#unifiedId = new UnifiedID(this.config.serverSession.id);
 
-    activeSessions.set(config.serverSession.id, this);
+    activeSessions.set(this.config.serverSession.id, this);
+  }
+
+  get config() {
+    return this.engineSessionManager.config;
+  }
+
+  get engineSessionInfo() {
+    return this.engineSessionManager.engineSession;
   }
 
   static canClose(session: EngineSessionConnectionInternal) {
@@ -92,122 +74,10 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
       return existing;
     }
 
-    let srvSes = await getFullServerSession(config.serverSession);
-    if (!srvSes) return null;
+    let manager = await EngineSessionManager.create(config);
+    if (!manager) return null;
 
-    // if (!srvSes.mcpVersion || !srvSes.clientCapabilities || !srvSes.clientInfo) {
-    //   throw new Error(
-    //     'WTF - Engine Session instance created before client sent MCP initialization'
-    //   );
-    // }
-
-    let deployment = srvSes.serverDeployment;
-    let implementation = deployment.serverImplementation;
-    let variant = deployment.serverVariant;
-
-    let version = variant.currentVersion;
-    if (!version) return null;
-
-    await Fabric.fire('server.engine_session.created:before', {
-      organization: config.instance.organization,
-      instance: config.instance,
-      serverSession: srvSes
-    });
-
-    let client = await mustGetClient(() => getClientByHash(variant.identifier));
-    if (!client) {
-      throw new ServiceError(
-        internalServerError({
-          message: 'Metorial is unable to run this MCP server. Please contact support.',
-          reason: 'mtengine/no_manager'
-        })
-      );
-    }
-
-    let active = await client.checkActiveSession({
-      sessionId: srvSes.id
-    });
-
-    if (!active.isActive) {
-      let engineSessionTracer = generatePlainId(15);
-
-      let { secret, data: DANGEROUSLY_UNENCRYPTED_CONFIG } =
-        await secretService.DANGEROUSLY_readSecretValue({
-          secretId: deployment.config.configSecretOid,
-          instance: config.instance,
-          type: 'server_deployment_config',
-          metadata: { serverSessionId: srvSes.id, engineSessionTracer }
-        });
-
-      let engineSession = await client.createSession({
-        metadata: {
-          serverSessionId: srvSes.id,
-          instanceId: config.instance.id,
-          engineSessionTracer
-        },
-        mcpClient: srvSes.clientCapabilities
-          ? {
-              type: McpParticipant_ParticipantType.client,
-              participantJson: JSON.stringify({
-                protocolVersion: srvSes.mcpVersion!,
-                capabilities: srvSes.clientCapabilities!,
-                clientInfo: srvSes.clientInfo!
-              } satisfies McpClient)
-            }
-          : undefined,
-        config: await getSessionConfig(
-          srvSes.serverDeployment,
-          DANGEROUSLY_UNENCRYPTED_CONFIG
-        ),
-        sessionId: srvSes.id
-      });
-
-      let ses = await db.engineSession.upsert({
-        where: { id: engineSession.session!.id },
-        update: {},
-        create: {
-          id: engineSession.session!.id,
-          serverSessionOid: srvSes.oid,
-          type: getEngineSessionType(engineSession.session!),
-          lastSyncAt: new Date(0),
-          createdAt: new Date(engineSession.session!.createdAt.toNumber())
-        }
-      });
-
-      await Fabric.fire('server.engine_session.created:after', {
-        organization: config.instance.organization,
-        instance: config.instance,
-        serverSession: srvSes,
-        engineSession: ses
-      });
-
-      if (!srvSes.serverDeployment.serverVariant.lastDiscoveredAt) {
-        await addServerDeploymentDiscovery({
-          serverDeploymentId: srvSes.serverDeployment.id,
-          delay: 1000 * 5 // 5 seconds
-        });
-      }
-
-      return new EngineSessionConnectionInternal(
-        config,
-        engineSession,
-        client,
-        version,
-        variant,
-        deployment,
-        implementation
-      );
-    }
-
-    return new EngineSessionConnectionInternal(
-      config,
-      active,
-      client,
-      version,
-      variant,
-      deployment,
-      implementation
-    );
+    return new EngineSessionConnectionInternal(manager);
   }
 
   registerProxy(proxy: EngineSessionProxy) {
@@ -237,63 +107,77 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
   }) {
     this.touch();
 
-    let stream = this.client.streamMcpMessages(
-      {
-        sessionId: this.engineSessionInfo.sessionId,
-
-        replayAfterUuid: i.replayAfterUuid,
-        onlyIds: i.onlyIds ?? [],
-        onlyMessageTypes: (i.onlyMessageTypes ?? []).map(t => messageTypeToPb(t))
-      },
-      {
-        signal: AbortSignal.any([this.#abort.signal, i.signal])
-      }
-    );
-
-    let currentRun: EngineSessionRun | undefined;
+    let self = this;
 
     let touchIv = setInterval(() => {
-      this.touch();
+      self.touch();
     }, 1000 * 15);
 
     try {
-      for await (let message of stream) {
-        if (message.mcpMessage) {
-          let msg = engineMcpMessageFromPb(
-            message.mcpMessage,
-            {
-              type: 'server',
-              id: currentRun?.id ?? this.config.serverSession.id
-            },
-            this.#unifiedId
-          );
+      yield* this.engineSessionManager.withClientGenerator(
+        async function* (client, engineSession) {
+          try {
+            let stream = client.streamMcpMessages(
+              {
+                sessionId: engineSession.externalId,
 
-          yield {
-            ...msg,
-            message: {
-              ...msg.message,
-              id: getUnifiedIdIfNeeded('client', msg)!
+                replayAfterUuid: i.replayAfterUuid,
+                onlyIds: i.onlyIds ?? [],
+                onlyMessageTypes: (i.onlyMessageTypes ?? []).map(t => messageTypeToPb(t))
+              },
+              {
+                signal: AbortSignal.any([self.#abort.signal, i.signal])
+              }
+            );
+
+            let runId: string | null = null;
+
+            for await (let message of stream) {
+              if (message.mcpMessage) {
+                let msg = engineMcpMessageFromPb(
+                  message.mcpMessage,
+                  {
+                    type: 'server',
+                    id: runId ?? self.config.serverSession.id
+                  },
+                  self.#unifiedId
+                );
+
+                yield {
+                  ...msg,
+                  message: {
+                    ...msg.message,
+                    id: getUnifiedIdIfNeeded('client', msg)!
+                  }
+                };
+
+                self
+                  .upsertMessageFromEngineMessage(msg)
+                  .catch(err => Sentry.captureException(err));
+              }
+
+              if (message.sessionEvent) {
+                runId = self.getRunIdFromSessionEvent(message.sessionEvent);
+                await self.handleSessionEvent(message.sessionEvent);
+              }
+
+              if (message.mcpError) {
+                self
+                  .handleMcpError(message.mcpError)
+                  .catch(err => Sentry.captureException(err));
+              }
+
+              if (message.mcpOutput) {
+                self
+                  .handleMcpOutput(message.mcpOutput)
+                  .catch(err => Sentry.captureException(err));
+              }
             }
-          };
-
-          this.upsertMessageFromEngineMessage(msg).catch(err => Sentry.captureException(err));
+          } catch (err: any) {
+            await self.handleGrpcError(err);
+          }
         }
-
-        if (message.sessionEvent) {
-          let { currentRun: run } = await this.handleSessionEvent(message.sessionEvent);
-          if (run) currentRun = run;
-        }
-
-        if (message.mcpError) {
-          this.handleMcpError(message.mcpError).catch(err => Sentry.captureException(err));
-        }
-
-        if (message.mcpOutput) {
-          this.handleMcpOutput(message.mcpOutput).catch(err => Sentry.captureException(err));
-        }
-      }
-    } catch (err: any) {
-      await this.handleGrpcError(err);
+      );
     } finally {
       clearInterval(touchIv);
     }
@@ -313,76 +197,96 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
       this.touch();
     }, 1000 * 15);
 
+    let self = this;
+
     try {
-      let messages = raw.map(msg =>
-        fromJSONRPCMessage(
-          msg,
-          {
-            type: 'client',
-            id: `mccl_${this.config.serverSession.oid.toString(36)}`
-          },
-          this.#unifiedId
-        )
-      );
+      yield* this.engineSessionManager.withClientGenerator(
+        async function* (client, engineSession) {
+          try {
+            let runId: string | null = null;
 
-      for (let msg of messages) {
-        this.upsertMessageFromEngineMessage(msg).catch(err => Sentry.captureException(err));
-      }
+            let messages = raw.map(msg =>
+              fromJSONRPCMessage(
+                msg,
+                {
+                  type: 'client',
+                  id: `mccl_${self.config.serverSession.oid.toString(36)}`
+                },
+                self.#unifiedId
+              )
+            );
 
-      let stream = this.client.sendMcpMessage(
-        {
-          sessionId: this.engineSessionInfo.sessionId,
-          mcpMessages: messages.map(m =>
-            engineMcpMessageToPbRaw({
-              ...m,
-              message: {
-                ...m.message,
-                id: getUnifiedIdIfNeeded('server', m)!
+            for (let msg of messages) {
+              self
+                .upsertMessageFromEngineMessage(msg)
+                .catch(err => Sentry.captureException(err));
+
+              if (msg.type == 'request' && msg.method == 'initialize') {
+                let protocolVersion = (msg.message as any as InitializeRequest).params
+                  .protocolVersion;
+                await self.setProtocolVersion(protocolVersion);
               }
-            })
-          ),
-          includeResponses: !!opts.includeResponses
-        },
-        {
-          signal: AbortSignal.any([this.#abort.signal, opts.signal])
+            }
+
+            let stream = client.sendMcpMessage(
+              {
+                sessionId: engineSession.externalId,
+                mcpMessages: messages.map(m =>
+                  engineMcpMessageToPbRaw({
+                    ...m,
+                    message: {
+                      ...m.message,
+                      id: getUnifiedIdIfNeeded('server', m)!
+                    }
+                  })
+                ),
+                includeResponses: !!opts.includeResponses
+              },
+              {
+                signal: AbortSignal.any([self.#abort.signal, opts.signal])
+              }
+            );
+
+            for await (let message of stream) {
+              if (message.mcpMessage) {
+                let msg = engineMcpMessageFromPb(
+                  message.mcpMessage,
+                  {
+                    type: 'server',
+                    id: runId ?? self.config.serverSession.id
+                  },
+                  self.#unifiedId
+                );
+
+                yield {
+                  ...msg,
+                  message: {
+                    ...msg.message,
+                    id: getUnifiedIdIfNeeded('client', msg)!
+                  }
+                };
+
+                self
+                  .upsertMessageFromEngineMessage(msg)
+                  .catch(err => Sentry.captureException(err));
+              }
+
+              if (message.sessionEvent) {
+                runId = self.getRunIdFromSessionEvent(message.sessionEvent);
+                await self.handleSessionEvent(message.sessionEvent);
+              }
+
+              if (message.mcpError) {
+                self
+                  .handleMcpError(message.mcpError)
+                  .catch(err => Sentry.captureException(err));
+              }
+            }
+          } catch (err: any) {
+            await self.handleGrpcError(err);
+          }
         }
       );
-
-      let invocationId =
-        this.config.serverSession.id.slice(-10) + Date.now().toString(36) + generatePlainId(5);
-
-      for await (let message of stream) {
-        if (message.mcpMessage) {
-          let msg = engineMcpMessageFromPb(
-            message.mcpMessage,
-            {
-              type: 'server',
-              id: invocationId
-            },
-            this.#unifiedId
-          );
-
-          yield {
-            ...msg,
-            message: {
-              ...msg.message,
-              id: getUnifiedIdIfNeeded('client', msg)!
-            }
-          };
-
-          this.upsertMessageFromEngineMessage(msg).catch(err => Sentry.captureException(err));
-        }
-
-        if (message.sessionEvent) {
-          await this.handleSessionEvent(message.sessionEvent);
-        }
-
-        if (message.mcpError) {
-          this.handleMcpError(message.mcpError).catch(err => Sentry.captureException(err));
-        }
-      }
-    } catch (err: any) {
-      await this.handleGrpcError(err);
     } finally {
       clearInterval(touchIv);
     }
@@ -403,6 +307,20 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
     this.#proxies.clear();
     this.#abort.abort();
     activeSessions.delete(this.config.serverSession.id);
+  }
+
+  private async setProtocolVersion(version: string) {
+    if (!version) return;
+
+    db.serverSession
+      .update({
+        where: { oid: this.config.serverSession.oid },
+        data: {
+          mcpVersion: version,
+          mcpInitialized: true
+        }
+      })
+      .catch(e => Sentry.captureException(e));
   }
 
   #lastStoredAt = 0;
@@ -430,9 +348,11 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
       serverSessionId: this.config.serverSession.id
     });
 
-    await forceSync({ engineSessionId: this.engineSessionInfo.session!.id });
+    let engineSession = await this.engineSessionInfo;
 
-    let details = err?.details ?? err?.extra ?? err;
+    await forceSync({ engineSessionId: engineSession.id });
+
+    let details = err?.details ?? err?.extra ?? err.message ?? err;
 
     Sentry.captureException(err, {
       extra: {
@@ -440,7 +360,7 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
 
         serverSessionId: this.config.serverSession.id,
         instanceId: this.config.instance.id,
-        engineSessionId: this.engineSessionInfo.session?.id
+        engineSessionId: engineSession.id
       }
     });
 
@@ -462,13 +382,21 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
           })
         );
       }
+
+      if (details.includes('timeout')) {
+        throw new ServiceError(
+          internalServerError({
+            reason: 'mtengine/timeout',
+            description: `Metorial Engine timed out while waiting for a response from the server.`
+          })
+        );
+      }
     }
 
-    throw new ServiceError(
-      internalServerError({
-        reason: 'mtengine/session_error'
-      })
-    );
+    // Need to throw the raw error to ensure
+    // that other errors can be handled by the
+    // engine session manager
+    throw err;
   }
 
   private async handleMcpError(err: McpError) {
@@ -479,30 +407,36 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
     // Noop for now. The output/event will be picked up the the sync job in the background
   }
 
+  private getRunIdFromSessionEvent(evt: SessionEvent) {
+    if (evt.infoRun?.run) return evt.infoRun.run.id;
+    if (evt.startRun?.run) return evt.startRun.run.id;
+    if (evt.stopRun?.run) return evt.stopRun.run.id;
+
+    return null;
+  }
+
   private async handleSessionEvent(evt: SessionEvent) {
-    let currentRun: EngineSessionRun | undefined;
+    (async () => {
+      if (evt.infoRun?.run) {
+        let currentRun = evt.infoRun.run;
+        await this.upsertEngineRun(currentRun);
+      }
 
-    if (evt.infoRun?.run) {
-      currentRun = evt.infoRun.run!;
-      await this.upsertEngineRun(currentRun);
-    }
+      if (evt.startRun?.run) {
+        let currentRun = evt.startRun.run;
+        await this.upsertEngineRun(currentRun);
+      }
 
-    if (evt.startRun?.run) {
-      currentRun = evt.startRun.run!;
-      await this.upsertEngineRun(currentRun);
-    }
+      if (evt.stopRun?.run) {
+        let currentRun = evt.stopRun.run;
+        await this.upsertEngineRun(currentRun);
+        await addRunSync({ engineRunId: currentRun.id });
+      }
 
-    if (evt.stopRun?.run) {
-      currentRun = evt.stopRun.run!;
-      await this.upsertEngineRun(currentRun);
-      await addRunSync({ engineRunId: currentRun.id });
-    }
-
-    if (evt.infoSession?.session) {
-      await this.updateEngineSession(evt.infoSession.session!);
-    }
-
-    return { currentRun };
+      if (evt.infoSession?.session) {
+        await this.engineSessionManager.updateEngineSession(evt.infoSession.session);
+      }
+    })().catch(e => Sentry.captureException(e));
   }
 
   private async upsertMessageFromEngineMessage(msg: EngineMcpMessage) {
@@ -515,17 +449,6 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
     } catch (err: any) {
       if (err.code != 'P2002') throw err;
     }
-  }
-
-  private async updateEngineSession(ses: EngineSession) {
-    await db.engineSession.update({
-      where: { id: ses.id },
-      data: {
-        serverSessionOid: this.config.serverSession.oid,
-        type: getEngineSessionType(ses),
-        createdAt: new Date(ses.createdAt.toNumber())
-      }
-    });
   }
 
   #lastSeenRunId: string | null = null;
@@ -548,7 +471,7 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
         let { serverRun } = await createEngineRun({
           run,
           serverSession: this.config.serverSession,
-          version: this.version,
+          version: this.engineSessionManager.serverVersion,
           instance: this.config.instance
         });
 

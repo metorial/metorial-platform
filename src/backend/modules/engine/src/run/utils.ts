@@ -16,3 +16,5 @@ export let getFullServerSession = async (serverSession: ServerSession) => {
     }
   });
 };
+
+export type FullServerSession = Awaited<ReturnType<typeof getFullServerSession>>;

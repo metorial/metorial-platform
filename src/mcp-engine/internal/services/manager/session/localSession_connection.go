@@ -10,11 +10,14 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	mterror "github.com/metorial/metorial/mcp-engine/pkg/mtError"
+	"github.com/metorial/metorial/modules/util"
 )
 
 func (s *LocalSession) ensureConnection() (workers.WorkerConnection, *db.SessionRun, *mterror.MTError) {
-	// Wait until the MCP client is initialized
-	s.mcpClientInitWg.Wait()
+	waitOk := util.WaitTimeout(s.mcpClientInitWg, time.Second*20)
+	if !waitOk {
+		return nil, nil, mterror.New(mterror.InternalErrorKind, "timeout waiting for MCP client initialization")
+	}
 
 	s.mutex.RLock()
 

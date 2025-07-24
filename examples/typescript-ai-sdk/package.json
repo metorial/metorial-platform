@@ -7,9 +7,9 @@
     "start": "bun ./src/index.ts"
   },
   "dependencies": {
-    "@metorial/ai-sdk": "^1.0.0",
+    "@metorial/ai-sdk": "latest",
     "ai": "^4.3.16",
-    "metorial": "^1.0.0"
+    "metorial": "latest"
   },
   "devDependencies": {
     "@types/bun": "latest"

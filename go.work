@@ -10,7 +10,10 @@ use (
 	./src/modules/lock
 	./src/modules/pubsub
 	./src/modules/sentry-util
-	./src/modules/util
 	./src/modules/ssrf-protection
 	./src/modules/queue
+	./src/modules/util
+	./src/services/code-bucket
+	./src/services/usage
+	./src/services/listener
 )

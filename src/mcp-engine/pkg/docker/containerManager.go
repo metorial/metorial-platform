@@ -64,7 +64,8 @@ func (m *ContainerManager) close() error {
 }
 
 func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*ContainerHandle, error) {
-	if err := m.imageManager.ensureImage(opts.ImageRef); err != nil {
+	image, err := m.imageManager.ensureImageByFullName(opts.ImageRef)
+	if err != nil {
 		return nil, fmt.Errorf("failed to update image usage: %w", err)
 	}
 
@@ -87,13 +88,16 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 		dockerArgs = append(dockerArgs, "--tmpfs", "/run:rw,noexec,nosuid,nodev")
 		dockerArgs = append(dockerArgs, "--privileged=false")
 		dockerArgs = append(dockerArgs, "--user", "1001:1001") // Use a non-root user for enhanced security
-		// dockerArgs = append(dockerArgs, "--network", "mt-untrusted-net")
 		dockerArgs = append(dockerArgs, "--pids-limit", "64")
 		dockerArgs = append(dockerArgs, "--memory-swap", "512m")
 	}
 
 	if os.Getenv("CONTAINER_RUNTIME") != "" {
 		dockerArgs = append(dockerArgs, "--runtime", os.Getenv("CONTAINER_RUNTIME"))
+	}
+
+	if os.Getenv("CONTAINER_NETWORK") != "" {
+		dockerArgs = append(dockerArgs, "--network", os.Getenv("CONTAINER_NETWORK"))
 	}
 
 	for key, value := range opts.Env {
@@ -157,8 +161,11 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 	}
 
 	container := &ContainerHandle{
-		ID:       containerID,
-		ImageRef: opts.ImageRef,
+		ID: containerID,
+
+		ImageRepository: image.Repository,
+		ImageTag:        image.Tag,
+
 		Running:  true,
 		ExitCode: -1,
 
@@ -174,8 +181,6 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 	m.mutex.Lock()
 	m.containers[containerID] = container
 	m.mutex.Unlock()
-
-	m.imageManager.reportImageUse(opts.ImageRef, containerID)
 
 	go container.monitor()
 

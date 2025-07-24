@@ -46,6 +46,11 @@ syncQueue
   .catch(e => console.error('Error adding to full sync queue', e));
 
 export let syncProcessor = syncQueue.process(async () => {
+  if (process.env.DISABLE_CATALOG_SYNC == 'true') {
+    console.log('Catalog sync is disabled, skipping...');
+    return;
+  }
+
   await IndexDB.createAndUse(async index => {
     for (let vendor of index.vendors.iterate()) {
       await ensureImportedServerVendor(() => ({

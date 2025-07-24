@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package rpc.rpc;
+
+option go_package = "github.com/metorial/metorial/services/rpc/gen/rpc;rpc";
+
+service UsageService {
+  rpc IngestUsageRecord(IngestUsageRecordRequest) returns (IngestUsageRecordResponse);
+  rpc GetUsageTimeline(GetUsageTimelineRequest) returns (GetUsageTimelineResponse);
+}
+
+message Owner {
+  string id = 1;
+  OwnerType type = 2;
+}
+
+enum OwnerType {
+  owner_type_unspecified = 0;
+  owner_type_instance = 1;
+  owner_type_organization = 2;
+}
+
+message Entity {
+  string id = 1;
+  string type = 2;
+}
+
+message Interval {
+  IntervalUnit unit = 1;
+  int32 count = 2;
+}
+
+enum IntervalUnit {
+  interval_unit_unspecified = 0;
+  interval_unit_minute = 1;
+  interval_unit_hour = 2;
+  interval_unit_day = 3;
+}
+
+message IngestUsageRecord {
+  Owner owner = 1;
+  Entity entity = 2;
+  string event_type = 3;
+  int64 count = 4;
+}
+
+message IngestUsageRecordRequest {
+  repeated IngestUsageRecord records = 1;
+  int64 ts = 2;
+}
+
+message IngestUsageRecordResponse {}
+
+message GetUsageTimelineRequest {
+  repeated Owner owners = 1;
+  repeated string entity_ids = 2;
+  repeated string entity_types = 3;
+  repeated string event_types = 7;
+  int64 from = 4;
+  int64 to = 5;
+  Interval interval = 6;
+}
+
+message TimelineEntry {
+  int64 ts = 1;
+  int64 count = 2;
+}
+
+message TimelineSeries {
+  string entity_id = 1;
+  string entity_type = 2;
+  string owner_id = 3;
+  repeated TimelineEntry entries = 4;
+}
+
+message TimelineEvent {
+  string event_type = 1;
+  repeated TimelineSeries series = 2;
+}
+
+message GetUsageTimelineResponse {
+  repeated TimelineEvent events = 1;
+}
