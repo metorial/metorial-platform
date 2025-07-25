@@ -20,11 +20,11 @@ func main() {
 	sentryUtil.InitSentryIfNeeded()
 	defer sentryUtil.ShutdownSentry()
 
-	rpcAddress := getEnvOrDefault("RPC_ADDRESS", ":4061")
-	httpAddress := getEnvOrDefault("HTTP_ADDRESS", ":4060")
+	rpcAddress := getEnvOrDefault("LISTENER_RPC_ADDRESS", ":4061")
+	httpAddress := getEnvOrDefault("LISTENER_HTTP_ADDRESS", ":4060")
 
-	redisUri := mustGetEnv("REDIS_URI")
-	jwtSecret := mustGetEnv("JWT_SECRET")
+	redisUri := mustGetEnv("LISTENER_REDIS_URI")
+	jwtSecret := mustGetEnv("LISTENER_JWT_SECRET")
 
 	service := service.NewService(
 		service.WithRedisURL(redisUri),
