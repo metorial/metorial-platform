@@ -12,7 +12,7 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func (s *ScalableListenerConnectorService) validateJWT(tokenString string) (*Claims, error) {
+func (s *ListenerConnectorService) validateJWT(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -31,7 +31,7 @@ func (s *ScalableListenerConnectorService) validateJWT(tokenString string) (*Cla
 	return nil, fmt.Errorf("invalid token")
 }
 
-func (s *ScalableListenerConnectorService) createJWT(listenerID string, expiresIn time.Duration) (string, error) {
+func (s *ListenerConnectorService) createJWT(listenerID string, expiresIn time.Duration) (string, error) {
 	claims := &Claims{
 		ListenerID: listenerID,
 		RegisteredClaims: jwt.RegisteredClaims{

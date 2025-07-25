@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *ScalableListenerConnectorService) SendToListeners(ctx context.Context, req *rpc.SendToListenersRequest) (*rpc.SendToListenersResponse, error) {
+func (s *ListenerConnectorService) SendToListeners(ctx context.Context, req *rpc.SendToListenersRequest) (*rpc.SendToListenersResponse, error) {
 	messageID := req.Id
 	if messageID == "" {
 		messageID = uuid.New().String()
@@ -104,7 +104,7 @@ func (s *ScalableListenerConnectorService) SendToListeners(ctx context.Context, 
 	}
 }
 
-func (rs *ScalableListenerConnectorService) GetListenerToken(ctx context.Context, req *rpc.GetListenerTokenRequest) (*rpc.GetListenerTokenResponse, error) {
+func (rs *ListenerConnectorService) GetListenerToken(ctx context.Context, req *rpc.GetListenerTokenRequest) (*rpc.GetListenerTokenResponse, error) {
 	if req.ListenerIdentifier == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "listener identifier is required")
 	}

@@ -26,7 +26,7 @@ type InternalResponse struct {
 	Error            string `json:"error,omitempty"`
 }
 
-func (s *ScalableListenerConnectorService) setupRedisSubscriptions() {
+func (s *ListenerConnectorService) setupRedisSubscriptions() {
 	s.pubsub = s.redisClient.Subscribe(context.Background(),
 		"listener_messages",  // Messages to be sent to listeners
 		"listener_responses", // Responses from listeners
@@ -36,7 +36,7 @@ func (s *ScalableListenerConnectorService) setupRedisSubscriptions() {
 	go s.handleRedisMessages()
 }
 
-func (s *ScalableListenerConnectorService) handleRedisMessages() {
+func (s *ListenerConnectorService) handleRedisMessages() {
 	ctx := context.Background()
 	ch := s.pubsub.Channel()
 
@@ -52,7 +52,7 @@ func (s *ScalableListenerConnectorService) handleRedisMessages() {
 	}
 }
 
-func (s *ScalableListenerConnectorService) handleInternalMessage(ctx context.Context, payload string) {
+func (s *ListenerConnectorService) handleInternalMessage(ctx context.Context, payload string) {
 	var internalMsg InternalMessage
 	if err := json.Unmarshal([]byte(payload), &internalMsg); err != nil {
 		log.Printf("Failed to unmarshal internal message: %v", err)
@@ -94,7 +94,7 @@ func (s *ScalableListenerConnectorService) handleInternalMessage(ctx context.Con
 	}
 }
 
-func (s *ScalableListenerConnectorService) handleListenerRegistryEvent(ctx context.Context, payload string) {
+func (s *ListenerConnectorService) handleListenerRegistryEvent(ctx context.Context, payload string) {
 	var event map[string]interface{}
 	if err := json.Unmarshal([]byte(payload), &event); err != nil {
 		log.Printf("Failed to unmarshal registry event: %v", err)
@@ -104,7 +104,7 @@ func (s *ScalableListenerConnectorService) handleListenerRegistryEvent(ctx conte
 	// Unused for now
 }
 
-func (s *ScalableListenerConnectorService) handleListenerMessages(listenerID string, conn *websocket.Conn) {
+func (s *ListenerConnectorService) handleListenerMessages(listenerID string, conn *websocket.Conn) {
 	defer s.removeListener(listenerID)
 
 	for {
@@ -154,7 +154,7 @@ func (s *ScalableListenerConnectorService) handleListenerMessages(listenerID str
 }
 
 // findListenerInstance finds which instance has the specified listener
-func (s *ScalableListenerConnectorService) findListenerInstance(ctx context.Context, listenerID string) (string, error) {
+func (s *ListenerConnectorService) findListenerInstance(ctx context.Context, listenerID string) (string, error) {
 	listenerKey := fmt.Sprintf("listeners:%s", listenerID)
 	instanceID, err := s.redisClient.Get(ctx, listenerKey).Result()
 	if err != nil || instanceID == "" {
@@ -169,7 +169,7 @@ func (s *ScalableListenerConnectorService) findListenerInstance(ctx context.Cont
 	return instanceID, nil
 }
 
-func (s *ScalableListenerConnectorService) registerListener(listenerID string) {
+func (s *ListenerConnectorService) registerListener(listenerID string) {
 	ctx := context.Background()
 	listenerKey := fmt.Sprintf("listeners:%s", listenerID)
 
@@ -187,7 +187,7 @@ func (s *ScalableListenerConnectorService) registerListener(listenerID string) {
 	s.redisClient.Publish(ctx, "listener_registry", eventBytes)
 }
 
-func (s *ScalableListenerConnectorService) unregisterListener(listenerID string) {
+func (s *ListenerConnectorService) unregisterListener(listenerID string) {
 	ctx := context.Background()
 	listenerKey := fmt.Sprintf("listeners:%s", listenerID)
 	s.redisClient.Del(ctx, listenerKey)
@@ -203,7 +203,7 @@ func (s *ScalableListenerConnectorService) unregisterListener(listenerID string)
 	s.redisClient.Publish(ctx, "listener_registry", eventBytes)
 }
 
-func (s *ScalableListenerConnectorService) registerInstance() {
+func (s *ListenerConnectorService) registerInstance() {
 	ctx := context.Background()
 	instanceKey := fmt.Sprintf("instances:%s", s.config.InstanceID)
 
@@ -212,7 +212,7 @@ func (s *ScalableListenerConnectorService) registerInstance() {
 	go s.heartbeat()
 }
 
-func (s *ScalableListenerConnectorService) heartbeat() {
+func (s *ListenerConnectorService) heartbeat() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
