@@ -61,11 +61,15 @@ func NewLogStore(entryType entries.EntryType, storageBackend StorageBackend, db 
 
 	collection.Indexes().CreateMany(ctx, indexes)
 
-	return &LogStore{
+	res := &LogStore{
 		collection:     collection,
 		entryType:      entryType,
 		storageBackend: storageBackend,
 
 		queue: memoryQueue.NewJobQueue(50),
 	}
+
+	res.startCleanupRoutine()
+
+	return res
 }
