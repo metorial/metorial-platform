@@ -98,5 +98,4 @@ func (q *JobQueue) Wait() {
 
 func (q *JobQueue) Stop() {
 	q.cancel()
-	q.Wait()
 }
