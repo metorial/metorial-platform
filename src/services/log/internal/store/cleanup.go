@@ -11,11 +11,15 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-const CUTOFF_DAYS = 30
-
 func (s *LogStore) cleanup() error {
 	now := time.Now()
-	cutoff := now.AddDate(0, 0, -CUTOFF_DAYS)
+	duration := s.entryType.GetCleanupDuration()
+	if duration <= 0 {
+		log.Printf("No cleanup duration set for entry type %s, skipping cleanup", s.entryType.GetTypeName())
+		return nil
+	}
+
+	cutoff := now.Add(-duration)
 
 	filter := bson.M{
 		"timestamp": bson.M{
