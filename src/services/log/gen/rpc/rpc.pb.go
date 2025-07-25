@@ -140,7 +140,8 @@ type LogEntry struct {
 	EntityId      string                 `protobuf:"bytes,1,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
 	EntityType    string                 `protobuf:"bytes,2,opt,name=entity_type,json=entityType,proto3" json:"entity_type,omitempty"`
 	InstanceId    string                 `protobuf:"bytes,3,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
-	Payload       string                 `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
+	PayloadJson   string                 `protobuf:"bytes,5,opt,name=payload_json,json=payloadJson,proto3" json:"payload_json,omitempty"`
+	FieldsJson    string                 `protobuf:"bytes,7,opt,name=fields_json,json=fieldsJson,proto3" json:"fields_json,omitempty"`
 	Timestamp     uint64                 `protobuf:"varint,6,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -197,9 +198,16 @@ func (x *LogEntry) GetInstanceId() string {
 	return ""
 }
 
-func (x *LogEntry) GetPayload() string {
+func (x *LogEntry) GetPayloadJson() string {
 	if x != nil {
-		return x.Payload
+		return x.PayloadJson
+	}
+	return ""
+}
+
+func (x *LogEntry) GetFieldsJson() string {
+	if x != nil {
+		return x.FieldsJson
 	}
 	return ""
 }
@@ -211,12 +219,88 @@ func (x *LogEntry) GetTimestamp() uint64 {
 	return 0
 }
 
+type LogEntryLight struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EntityId      string                 `protobuf:"bytes,1,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
+	EntityType    string                 `protobuf:"bytes,2,opt,name=entity_type,json=entityType,proto3" json:"entity_type,omitempty"`
+	InstanceId    string                 `protobuf:"bytes,3,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	FieldsJson    string                 `protobuf:"bytes,4,opt,name=fields_json,json=fieldsJson,proto3" json:"fields_json,omitempty"`
+	Timestamp     uint64                 `protobuf:"varint,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogEntryLight) Reset() {
+	*x = LogEntryLight{}
+	mi := &file_rpc_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogEntryLight) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogEntryLight) ProtoMessage() {}
+
+func (x *LogEntryLight) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogEntryLight.ProtoReflect.Descriptor instead.
+func (*LogEntryLight) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *LogEntryLight) GetEntityId() string {
+	if x != nil {
+		return x.EntityId
+	}
+	return ""
+}
+
+func (x *LogEntryLight) GetEntityType() string {
+	if x != nil {
+		return x.EntityType
+	}
+	return ""
+}
+
+func (x *LogEntryLight) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *LogEntryLight) GetFieldsJson() string {
+	if x != nil {
+		return x.FieldsJson
+	}
+	return ""
+}
+
+func (x *LogEntryLight) GetTimestamp() uint64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
 type IngestLogRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EntityId      string                 `protobuf:"bytes,1,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
 	EntityType    string                 `protobuf:"bytes,2,opt,name=entity_type,json=entityType,proto3" json:"entity_type,omitempty"`
 	InstanceId    string                 `protobuf:"bytes,3,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
-	Payload       string                 `protobuf:"bytes,4,opt,name=payload,proto3" json:"payload,omitempty"`
+	PayloadJson   string                 `protobuf:"bytes,4,opt,name=payload_json,json=payloadJson,proto3" json:"payload_json,omitempty"`
 	Timestamp     uint64                 `protobuf:"varint,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -224,7 +308,7 @@ type IngestLogRequest struct {
 
 func (x *IngestLogRequest) Reset() {
 	*x = IngestLogRequest{}
-	mi := &file_rpc_proto_msgTypes[2]
+	mi := &file_rpc_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -236,7 +320,7 @@ func (x *IngestLogRequest) String() string {
 func (*IngestLogRequest) ProtoMessage() {}
 
 func (x *IngestLogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[2]
+	mi := &file_rpc_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -249,7 +333,7 @@ func (x *IngestLogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IngestLogRequest.ProtoReflect.Descriptor instead.
 func (*IngestLogRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{2}
+	return file_rpc_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *IngestLogRequest) GetEntityId() string {
@@ -273,9 +357,9 @@ func (x *IngestLogRequest) GetInstanceId() string {
 	return ""
 }
 
-func (x *IngestLogRequest) GetPayload() string {
+func (x *IngestLogRequest) GetPayloadJson() string {
 	if x != nil {
-		return x.Payload
+		return x.PayloadJson
 	}
 	return ""
 }
@@ -295,7 +379,7 @@ type IngestLogResponse struct {
 
 func (x *IngestLogResponse) Reset() {
 	*x = IngestLogResponse{}
-	mi := &file_rpc_proto_msgTypes[3]
+	mi := &file_rpc_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -307,7 +391,7 @@ func (x *IngestLogResponse) String() string {
 func (*IngestLogResponse) ProtoMessage() {}
 
 func (x *IngestLogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[3]
+	mi := &file_rpc_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -320,7 +404,7 @@ func (x *IngestLogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IngestLogResponse.ProtoReflect.Descriptor instead.
 func (*IngestLogResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{3}
+	return file_rpc_proto_rawDescGZIP(), []int{4}
 }
 
 type ListLogsRequest struct {
@@ -328,13 +412,17 @@ type ListLogsRequest struct {
 	EntityType    string                 `protobuf:"bytes,2,opt,name=entity_type,json=entityType,proto3" json:"entity_type,omitempty"`
 	EntityIds     []string               `protobuf:"bytes,1,rep,name=entity_ids,json=entityIds,proto3" json:"entity_ids,omitempty"`
 	InstanceIds   []string               `protobuf:"bytes,3,rep,name=instance_ids,json=instanceIds,proto3" json:"instance_ids,omitempty"`
+	Pagination    *ListPagination        `protobuf:"bytes,4,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	FilterJson    *string                `protobuf:"bytes,5,opt,name=filter_json,json=filterJson,proto3,oneof" json:"filter_json,omitempty"`
+	MinTimestamp  *uint64                `protobuf:"varint,6,opt,name=min_timestamp,json=minTimestamp,proto3,oneof" json:"min_timestamp,omitempty"`
+	MaxTimestamp  *uint64                `protobuf:"varint,7,opt,name=max_timestamp,json=maxTimestamp,proto3,oneof" json:"max_timestamp,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListLogsRequest) Reset() {
 	*x = ListLogsRequest{}
-	mi := &file_rpc_proto_msgTypes[4]
+	mi := &file_rpc_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -346,7 +434,7 @@ func (x *ListLogsRequest) String() string {
 func (*ListLogsRequest) ProtoMessage() {}
 
 func (x *ListLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[4]
+	mi := &file_rpc_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -359,7 +447,7 @@ func (x *ListLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLogsRequest.ProtoReflect.Descriptor instead.
 func (*ListLogsRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{4}
+	return file_rpc_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ListLogsRequest) GetEntityType() string {
@@ -383,17 +471,44 @@ func (x *ListLogsRequest) GetInstanceIds() []string {
 	return nil
 }
 
+func (x *ListLogsRequest) GetPagination() *ListPagination {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
+func (x *ListLogsRequest) GetFilterJson() string {
+	if x != nil && x.FilterJson != nil {
+		return *x.FilterJson
+	}
+	return ""
+}
+
+func (x *ListLogsRequest) GetMinTimestamp() uint64 {
+	if x != nil && x.MinTimestamp != nil {
+		return *x.MinTimestamp
+	}
+	return 0
+}
+
+func (x *ListLogsRequest) GetMaxTimestamp() uint64 {
+	if x != nil && x.MaxTimestamp != nil {
+		return *x.MaxTimestamp
+	}
+	return 0
+}
+
 type ListLogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Logs          []*LogEntry            `protobuf:"bytes,1,rep,name=logs,proto3" json:"logs,omitempty"`
-	Pagination    *ListPagination        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	Logs          []*LogEntryLight       `protobuf:"bytes,1,rep,name=logs,proto3" json:"logs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListLogsResponse) Reset() {
 	*x = ListLogsResponse{}
-	mi := &file_rpc_proto_msgTypes[5]
+	mi := &file_rpc_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -405,7 +520,7 @@ func (x *ListLogsResponse) String() string {
 func (*ListLogsResponse) ProtoMessage() {}
 
 func (x *ListLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[5]
+	mi := &file_rpc_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -418,19 +533,12 @@ func (x *ListLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLogsResponse.ProtoReflect.Descriptor instead.
 func (*ListLogsResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{5}
+	return file_rpc_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *ListLogsResponse) GetLogs() []*LogEntry {
+func (x *ListLogsResponse) GetLogs() []*LogEntryLight {
 	if x != nil {
 		return x.Logs
-	}
-	return nil
-}
-
-func (x *ListLogsResponse) GetPagination() *ListPagination {
-	if x != nil {
-		return x.Pagination
 	}
 	return nil
 }
@@ -446,7 +554,7 @@ type GetLogRequest struct {
 
 func (x *GetLogRequest) Reset() {
 	*x = GetLogRequest{}
-	mi := &file_rpc_proto_msgTypes[6]
+	mi := &file_rpc_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -458,7 +566,7 @@ func (x *GetLogRequest) String() string {
 func (*GetLogRequest) ProtoMessage() {}
 
 func (x *GetLogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[6]
+	mi := &file_rpc_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -471,7 +579,7 @@ func (x *GetLogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLogRequest.ProtoReflect.Descriptor instead.
 func (*GetLogRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{6}
+	return file_rpc_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetLogRequest) GetEntityId() string {
@@ -504,7 +612,7 @@ type GetLogResponse struct {
 
 func (x *GetLogResponse) Reset() {
 	*x = GetLogResponse{}
-	mi := &file_rpc_proto_msgTypes[7]
+	mi := &file_rpc_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -516,7 +624,7 @@ func (x *GetLogResponse) String() string {
 func (*GetLogResponse) ProtoMessage() {}
 
 func (x *GetLogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[7]
+	mi := &file_rpc_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -529,7 +637,7 @@ func (x *GetLogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLogResponse.ProtoReflect.Descriptor instead.
 func (*GetLogResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{7}
+	return file_rpc_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetLogResponse) GetLog() *LogEntry {
@@ -548,35 +656,53 @@ const file_rpc_proto_rawDesc = "" +
 	"\bafter_id\x18\x01 \x01(\tR\aafterId\x12\x1b\n" +
 	"\tbefore_id\x18\x02 \x01(\tR\bbeforeId\x12\x14\n" +
 	"\x05limit\x18\x03 \x01(\x05R\x05limit\x122\n" +
-	"\x05order\x18\x04 \x01(\x0e2\x1c.rpc.rpc.ListPaginationOrderR\x05order\"\xa1\x01\n" +
+	"\x05order\x18\x04 \x01(\x0e2\x1c.rpc.rpc.ListPaginationOrderR\x05order\"\xcb\x01\n" +
 	"\bLogEntry\x12\x1b\n" +
 	"\tentity_id\x18\x01 \x01(\tR\bentityId\x12\x1f\n" +
 	"\ventity_type\x18\x02 \x01(\tR\n" +
 	"entityType\x12\x1f\n" +
 	"\vinstance_id\x18\x03 \x01(\tR\n" +
-	"instanceId\x12\x18\n" +
-	"\apayload\x18\x05 \x01(\tR\apayload\x12\x1c\n" +
-	"\ttimestamp\x18\x06 \x01(\x04R\ttimestamp\"\xa9\x01\n" +
+	"instanceId\x12!\n" +
+	"\fpayload_json\x18\x05 \x01(\tR\vpayloadJson\x12\x1f\n" +
+	"\vfields_json\x18\a \x01(\tR\n" +
+	"fieldsJson\x12\x1c\n" +
+	"\ttimestamp\x18\x06 \x01(\x04R\ttimestamp\"\xad\x01\n" +
+	"\rLogEntryLight\x12\x1b\n" +
+	"\tentity_id\x18\x01 \x01(\tR\bentityId\x12\x1f\n" +
+	"\ventity_type\x18\x02 \x01(\tR\n" +
+	"entityType\x12\x1f\n" +
+	"\vinstance_id\x18\x03 \x01(\tR\n" +
+	"instanceId\x12\x1f\n" +
+	"\vfields_json\x18\x04 \x01(\tR\n" +
+	"fieldsJson\x12\x1c\n" +
+	"\ttimestamp\x18\x05 \x01(\x04R\ttimestamp\"\xb2\x01\n" +
 	"\x10IngestLogRequest\x12\x1b\n" +
 	"\tentity_id\x18\x01 \x01(\tR\bentityId\x12\x1f\n" +
 	"\ventity_type\x18\x02 \x01(\tR\n" +
 	"entityType\x12\x1f\n" +
 	"\vinstance_id\x18\x03 \x01(\tR\n" +
-	"instanceId\x12\x18\n" +
-	"\apayload\x18\x04 \x01(\tR\apayload\x12\x1c\n" +
+	"instanceId\x12!\n" +
+	"\fpayload_json\x18\x04 \x01(\tR\vpayloadJson\x12\x1c\n" +
 	"\ttimestamp\x18\x05 \x01(\x04R\ttimestamp\"\x13\n" +
-	"\x11IngestLogResponse\"t\n" +
+	"\x11IngestLogResponse\"\xdb\x02\n" +
 	"\x0fListLogsRequest\x12\x1f\n" +
 	"\ventity_type\x18\x02 \x01(\tR\n" +
 	"entityType\x12\x1d\n" +
 	"\n" +
 	"entity_ids\x18\x01 \x03(\tR\tentityIds\x12!\n" +
-	"\finstance_ids\x18\x03 \x03(\tR\vinstanceIds\"r\n" +
-	"\x10ListLogsResponse\x12%\n" +
-	"\x04logs\x18\x01 \x03(\v2\x11.rpc.rpc.LogEntryR\x04logs\x127\n" +
+	"\finstance_ids\x18\x03 \x03(\tR\vinstanceIds\x127\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\x17.rpc.rpc.ListPaginationR\n" +
-	"pagination\"\x83\x01\n" +
+	"pagination\x18\x04 \x01(\v2\x17.rpc.rpc.ListPaginationR\n" +
+	"pagination\x12$\n" +
+	"\vfilter_json\x18\x05 \x01(\tH\x00R\n" +
+	"filterJson\x88\x01\x01\x12(\n" +
+	"\rmin_timestamp\x18\x06 \x01(\x04H\x01R\fminTimestamp\x88\x01\x01\x12(\n" +
+	"\rmax_timestamp\x18\a \x01(\x04H\x02R\fmaxTimestamp\x88\x01\x01B\x0e\n" +
+	"\f_filter_jsonB\x10\n" +
+	"\x0e_min_timestampB\x10\n" +
+	"\x0e_max_timestamp\">\n" +
+	"\x10ListLogsResponse\x12*\n" +
+	"\x04logs\x18\x01 \x03(\v2\x16.rpc.rpc.LogEntryLightR\x04logs\"\x83\x01\n" +
 	"\rGetLogRequest\x12\x1b\n" +
 	"\tentity_id\x18\x01 \x01(\tR\bentityId\x12\x1f\n" +
 	"\ventity_type\x18\x02 \x01(\tR\n" +
@@ -608,29 +734,30 @@ func file_rpc_proto_rawDescGZIP() []byte {
 }
 
 var file_rpc_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_rpc_proto_goTypes = []any{
 	(ListPaginationOrder)(0),  // 0: rpc.rpc.ListPaginationOrder
 	(*ListPagination)(nil),    // 1: rpc.rpc.ListPagination
 	(*LogEntry)(nil),          // 2: rpc.rpc.LogEntry
-	(*IngestLogRequest)(nil),  // 3: rpc.rpc.IngestLogRequest
-	(*IngestLogResponse)(nil), // 4: rpc.rpc.IngestLogResponse
-	(*ListLogsRequest)(nil),   // 5: rpc.rpc.ListLogsRequest
-	(*ListLogsResponse)(nil),  // 6: rpc.rpc.ListLogsResponse
-	(*GetLogRequest)(nil),     // 7: rpc.rpc.GetLogRequest
-	(*GetLogResponse)(nil),    // 8: rpc.rpc.GetLogResponse
+	(*LogEntryLight)(nil),     // 3: rpc.rpc.LogEntryLight
+	(*IngestLogRequest)(nil),  // 4: rpc.rpc.IngestLogRequest
+	(*IngestLogResponse)(nil), // 5: rpc.rpc.IngestLogResponse
+	(*ListLogsRequest)(nil),   // 6: rpc.rpc.ListLogsRequest
+	(*ListLogsResponse)(nil),  // 7: rpc.rpc.ListLogsResponse
+	(*GetLogRequest)(nil),     // 8: rpc.rpc.GetLogRequest
+	(*GetLogResponse)(nil),    // 9: rpc.rpc.GetLogResponse
 }
 var file_rpc_proto_depIdxs = []int32{
 	0, // 0: rpc.rpc.ListPagination.order:type_name -> rpc.rpc.ListPaginationOrder
-	2, // 1: rpc.rpc.ListLogsResponse.logs:type_name -> rpc.rpc.LogEntry
-	1, // 2: rpc.rpc.ListLogsResponse.pagination:type_name -> rpc.rpc.ListPagination
+	1, // 1: rpc.rpc.ListLogsRequest.pagination:type_name -> rpc.rpc.ListPagination
+	3, // 2: rpc.rpc.ListLogsResponse.logs:type_name -> rpc.rpc.LogEntryLight
 	2, // 3: rpc.rpc.GetLogResponse.log:type_name -> rpc.rpc.LogEntry
-	3, // 4: rpc.rpc.LogService.IngestLog:input_type -> rpc.rpc.IngestLogRequest
-	5, // 5: rpc.rpc.LogService.ListLogs:input_type -> rpc.rpc.ListLogsRequest
-	7, // 6: rpc.rpc.LogService.GetLog:input_type -> rpc.rpc.GetLogRequest
-	4, // 7: rpc.rpc.LogService.IngestLog:output_type -> rpc.rpc.IngestLogResponse
-	6, // 8: rpc.rpc.LogService.ListLogs:output_type -> rpc.rpc.ListLogsResponse
-	8, // 9: rpc.rpc.LogService.GetLog:output_type -> rpc.rpc.GetLogResponse
+	4, // 4: rpc.rpc.LogService.IngestLog:input_type -> rpc.rpc.IngestLogRequest
+	6, // 5: rpc.rpc.LogService.ListLogs:input_type -> rpc.rpc.ListLogsRequest
+	8, // 6: rpc.rpc.LogService.GetLog:input_type -> rpc.rpc.GetLogRequest
+	5, // 7: rpc.rpc.LogService.IngestLog:output_type -> rpc.rpc.IngestLogResponse
+	7, // 8: rpc.rpc.LogService.ListLogs:output_type -> rpc.rpc.ListLogsResponse
+	9, // 9: rpc.rpc.LogService.GetLog:output_type -> rpc.rpc.GetLogResponse
 	7, // [7:10] is the sub-list for method output_type
 	4, // [4:7] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name
@@ -643,14 +770,15 @@ func file_rpc_proto_init() {
 	if File_rpc_proto != nil {
 		return
 	}
-	file_rpc_proto_msgTypes[6].OneofWrappers = []any{}
+	file_rpc_proto_msgTypes[5].OneofWrappers = []any{}
+	file_rpc_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rpc_proto_rawDesc), len(file_rpc_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -26,15 +26,24 @@ message LogEntry {
   string entity_id = 1;
   string entity_type = 2;
   string instance_id = 3;
-  string payload = 5;
+  string payload_json = 5;
+  string fields_json = 7;
   uint64 timestamp = 6;
+}
+
+message LogEntryLight {
+  string entity_id = 1;
+  string entity_type = 2;
+  string instance_id = 3;
+  string fields_json = 4;
+  uint64 timestamp = 5;
 }
 
 message IngestLogRequest {
   string entity_id = 1;
   string entity_type = 2;
   string instance_id = 3;
-  string payload = 4;
+  string payload_json = 4;
   uint64 timestamp = 5;
 }
 
@@ -44,11 +53,14 @@ message ListLogsRequest {
   string entity_type = 2;
   repeated string entity_ids = 1;
   repeated string instance_ids = 3;
+  ListPagination pagination = 4;
+  optional string filter_json = 5;
+  optional uint64 min_timestamp = 6;
+  optional uint64 max_timestamp = 7;
 }
 
 message ListLogsResponse {
-  repeated LogEntry logs = 1;
-  ListPagination pagination = 2;
+  repeated LogEntryLight logs = 1;
 }
 
 message GetLogRequest {

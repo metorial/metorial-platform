@@ -66,7 +66,16 @@ export interface LogEntry {
   entityId: string;
   entityType: string;
   instanceId: string;
-  payload: string;
+  payloadJson: string;
+  fieldsJson: string;
+  timestamp: Long;
+}
+
+export interface LogEntryLight {
+  entityId: string;
+  entityType: string;
+  instanceId: string;
+  fieldsJson: string;
   timestamp: Long;
 }
 
@@ -74,7 +83,7 @@ export interface IngestLogRequest {
   entityId: string;
   entityType: string;
   instanceId: string;
-  payload: string;
+  payloadJson: string;
   timestamp: Long;
 }
 
@@ -85,11 +94,14 @@ export interface ListLogsRequest {
   entityType: string;
   entityIds: string[];
   instanceIds: string[];
+  pagination: ListPagination | undefined;
+  filterJson?: string | undefined;
+  minTimestamp?: Long | undefined;
+  maxTimestamp?: Long | undefined;
 }
 
 export interface ListLogsResponse {
-  logs: LogEntry[];
-  pagination: ListPagination | undefined;
+  logs: LogEntryLight[];
 }
 
 export interface GetLogRequest {
@@ -211,7 +223,7 @@ export const ListPagination: MessageFns<ListPagination> = {
 };
 
 function createBaseLogEntry(): LogEntry {
-  return { entityId: "", entityType: "", instanceId: "", payload: "", timestamp: Long.UZERO };
+  return { entityId: "", entityType: "", instanceId: "", payloadJson: "", fieldsJson: "", timestamp: Long.UZERO };
 }
 
 export const LogEntry: MessageFns<LogEntry> = {
@@ -225,8 +237,11 @@ export const LogEntry: MessageFns<LogEntry> = {
     if (message.instanceId !== "") {
       writer.uint32(26).string(message.instanceId);
     }
-    if (message.payload !== "") {
-      writer.uint32(42).string(message.payload);
+    if (message.payloadJson !== "") {
+      writer.uint32(42).string(message.payloadJson);
+    }
+    if (message.fieldsJson !== "") {
+      writer.uint32(58).string(message.fieldsJson);
     }
     if (!message.timestamp.equals(Long.UZERO)) {
       writer.uint32(48).uint64(message.timestamp.toString());
@@ -270,7 +285,15 @@ export const LogEntry: MessageFns<LogEntry> = {
             break;
           }
 
-          message.payload = reader.string();
+          message.payloadJson = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.fieldsJson = reader.string();
           continue;
         }
         case 6: {
@@ -295,7 +318,8 @@ export const LogEntry: MessageFns<LogEntry> = {
       entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : "",
       entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : "",
       instanceId: isSet(object.instanceId) ? globalThis.String(object.instanceId) : "",
-      payload: isSet(object.payload) ? globalThis.String(object.payload) : "",
+      payloadJson: isSet(object.payloadJson) ? globalThis.String(object.payloadJson) : "",
+      fieldsJson: isSet(object.fieldsJson) ? globalThis.String(object.fieldsJson) : "",
       timestamp: isSet(object.timestamp) ? Long.fromValue(object.timestamp) : Long.UZERO,
     };
   },
@@ -311,8 +335,11 @@ export const LogEntry: MessageFns<LogEntry> = {
     if (message.instanceId !== "") {
       obj.instanceId = message.instanceId;
     }
-    if (message.payload !== "") {
-      obj.payload = message.payload;
+    if (message.payloadJson !== "") {
+      obj.payloadJson = message.payloadJson;
+    }
+    if (message.fieldsJson !== "") {
+      obj.fieldsJson = message.fieldsJson;
     }
     if (!message.timestamp.equals(Long.UZERO)) {
       obj.timestamp = (message.timestamp || Long.UZERO).toString();
@@ -328,7 +355,134 @@ export const LogEntry: MessageFns<LogEntry> = {
     message.entityId = object.entityId ?? "";
     message.entityType = object.entityType ?? "";
     message.instanceId = object.instanceId ?? "";
-    message.payload = object.payload ?? "";
+    message.payloadJson = object.payloadJson ?? "";
+    message.fieldsJson = object.fieldsJson ?? "";
+    message.timestamp = (object.timestamp !== undefined && object.timestamp !== null)
+      ? Long.fromValue(object.timestamp)
+      : Long.UZERO;
+    return message;
+  },
+};
+
+function createBaseLogEntryLight(): LogEntryLight {
+  return { entityId: "", entityType: "", instanceId: "", fieldsJson: "", timestamp: Long.UZERO };
+}
+
+export const LogEntryLight: MessageFns<LogEntryLight> = {
+  encode(message: LogEntryLight, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.entityId !== "") {
+      writer.uint32(10).string(message.entityId);
+    }
+    if (message.entityType !== "") {
+      writer.uint32(18).string(message.entityType);
+    }
+    if (message.instanceId !== "") {
+      writer.uint32(26).string(message.instanceId);
+    }
+    if (message.fieldsJson !== "") {
+      writer.uint32(34).string(message.fieldsJson);
+    }
+    if (!message.timestamp.equals(Long.UZERO)) {
+      writer.uint32(40).uint64(message.timestamp.toString());
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): LogEntryLight {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseLogEntryLight();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.entityId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.entityType = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.instanceId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.fieldsJson = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.timestamp = Long.fromString(reader.uint64().toString(), true);
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): LogEntryLight {
+    return {
+      entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : "",
+      entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : "",
+      instanceId: isSet(object.instanceId) ? globalThis.String(object.instanceId) : "",
+      fieldsJson: isSet(object.fieldsJson) ? globalThis.String(object.fieldsJson) : "",
+      timestamp: isSet(object.timestamp) ? Long.fromValue(object.timestamp) : Long.UZERO,
+    };
+  },
+
+  toJSON(message: LogEntryLight): unknown {
+    const obj: any = {};
+    if (message.entityId !== "") {
+      obj.entityId = message.entityId;
+    }
+    if (message.entityType !== "") {
+      obj.entityType = message.entityType;
+    }
+    if (message.instanceId !== "") {
+      obj.instanceId = message.instanceId;
+    }
+    if (message.fieldsJson !== "") {
+      obj.fieldsJson = message.fieldsJson;
+    }
+    if (!message.timestamp.equals(Long.UZERO)) {
+      obj.timestamp = (message.timestamp || Long.UZERO).toString();
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<LogEntryLight>): LogEntryLight {
+    return LogEntryLight.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<LogEntryLight>): LogEntryLight {
+    const message = createBaseLogEntryLight();
+    message.entityId = object.entityId ?? "";
+    message.entityType = object.entityType ?? "";
+    message.instanceId = object.instanceId ?? "";
+    message.fieldsJson = object.fieldsJson ?? "";
     message.timestamp = (object.timestamp !== undefined && object.timestamp !== null)
       ? Long.fromValue(object.timestamp)
       : Long.UZERO;
@@ -337,7 +491,7 @@ export const LogEntry: MessageFns<LogEntry> = {
 };
 
 function createBaseIngestLogRequest(): IngestLogRequest {
-  return { entityId: "", entityType: "", instanceId: "", payload: "", timestamp: Long.UZERO };
+  return { entityId: "", entityType: "", instanceId: "", payloadJson: "", timestamp: Long.UZERO };
 }
 
 export const IngestLogRequest: MessageFns<IngestLogRequest> = {
@@ -351,8 +505,8 @@ export const IngestLogRequest: MessageFns<IngestLogRequest> = {
     if (message.instanceId !== "") {
       writer.uint32(26).string(message.instanceId);
     }
-    if (message.payload !== "") {
-      writer.uint32(34).string(message.payload);
+    if (message.payloadJson !== "") {
+      writer.uint32(34).string(message.payloadJson);
     }
     if (!message.timestamp.equals(Long.UZERO)) {
       writer.uint32(40).uint64(message.timestamp.toString());
@@ -396,7 +550,7 @@ export const IngestLogRequest: MessageFns<IngestLogRequest> = {
             break;
           }
 
-          message.payload = reader.string();
+          message.payloadJson = reader.string();
           continue;
         }
         case 5: {
@@ -421,7 +575,7 @@ export const IngestLogRequest: MessageFns<IngestLogRequest> = {
       entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : "",
       entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : "",
       instanceId: isSet(object.instanceId) ? globalThis.String(object.instanceId) : "",
-      payload: isSet(object.payload) ? globalThis.String(object.payload) : "",
+      payloadJson: isSet(object.payloadJson) ? globalThis.String(object.payloadJson) : "",
       timestamp: isSet(object.timestamp) ? Long.fromValue(object.timestamp) : Long.UZERO,
     };
   },
@@ -437,8 +591,8 @@ export const IngestLogRequest: MessageFns<IngestLogRequest> = {
     if (message.instanceId !== "") {
       obj.instanceId = message.instanceId;
     }
-    if (message.payload !== "") {
-      obj.payload = message.payload;
+    if (message.payloadJson !== "") {
+      obj.payloadJson = message.payloadJson;
     }
     if (!message.timestamp.equals(Long.UZERO)) {
       obj.timestamp = (message.timestamp || Long.UZERO).toString();
@@ -454,7 +608,7 @@ export const IngestLogRequest: MessageFns<IngestLogRequest> = {
     message.entityId = object.entityId ?? "";
     message.entityType = object.entityType ?? "";
     message.instanceId = object.instanceId ?? "";
-    message.payload = object.payload ?? "";
+    message.payloadJson = object.payloadJson ?? "";
     message.timestamp = (object.timestamp !== undefined && object.timestamp !== null)
       ? Long.fromValue(object.timestamp)
       : Long.UZERO;
@@ -506,7 +660,15 @@ export const IngestLogResponse: MessageFns<IngestLogResponse> = {
 };
 
 function createBaseListLogsRequest(): ListLogsRequest {
-  return { entityType: "", entityIds: [], instanceIds: [] };
+  return {
+    entityType: "",
+    entityIds: [],
+    instanceIds: [],
+    pagination: undefined,
+    filterJson: undefined,
+    minTimestamp: undefined,
+    maxTimestamp: undefined,
+  };
 }
 
 export const ListLogsRequest: MessageFns<ListLogsRequest> = {
@@ -519,6 +681,18 @@ export const ListLogsRequest: MessageFns<ListLogsRequest> = {
     }
     for (const v of message.instanceIds) {
       writer.uint32(26).string(v!);
+    }
+    if (message.pagination !== undefined) {
+      ListPagination.encode(message.pagination, writer.uint32(34).fork()).join();
+    }
+    if (message.filterJson !== undefined) {
+      writer.uint32(42).string(message.filterJson);
+    }
+    if (message.minTimestamp !== undefined) {
+      writer.uint32(48).uint64(message.minTimestamp.toString());
+    }
+    if (message.maxTimestamp !== undefined) {
+      writer.uint32(56).uint64(message.maxTimestamp.toString());
     }
     return writer;
   },
@@ -554,6 +728,38 @@ export const ListLogsRequest: MessageFns<ListLogsRequest> = {
           message.instanceIds.push(reader.string());
           continue;
         }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.pagination = ListPagination.decode(reader, reader.uint32());
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.filterJson = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.minTimestamp = Long.fromString(reader.uint64().toString(), true);
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.maxTimestamp = Long.fromString(reader.uint64().toString(), true);
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -572,6 +778,10 @@ export const ListLogsRequest: MessageFns<ListLogsRequest> = {
       instanceIds: globalThis.Array.isArray(object?.instanceIds)
         ? object.instanceIds.map((e: any) => globalThis.String(e))
         : [],
+      pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
+      filterJson: isSet(object.filterJson) ? globalThis.String(object.filterJson) : undefined,
+      minTimestamp: isSet(object.minTimestamp) ? Long.fromValue(object.minTimestamp) : undefined,
+      maxTimestamp: isSet(object.maxTimestamp) ? Long.fromValue(object.maxTimestamp) : undefined,
     };
   },
 
@@ -586,6 +796,18 @@ export const ListLogsRequest: MessageFns<ListLogsRequest> = {
     if (message.instanceIds?.length) {
       obj.instanceIds = message.instanceIds;
     }
+    if (message.pagination !== undefined) {
+      obj.pagination = ListPagination.toJSON(message.pagination);
+    }
+    if (message.filterJson !== undefined) {
+      obj.filterJson = message.filterJson;
+    }
+    if (message.minTimestamp !== undefined) {
+      obj.minTimestamp = (message.minTimestamp || Long.UZERO).toString();
+    }
+    if (message.maxTimestamp !== undefined) {
+      obj.maxTimestamp = (message.maxTimestamp || Long.UZERO).toString();
+    }
     return obj;
   },
 
@@ -597,21 +819,28 @@ export const ListLogsRequest: MessageFns<ListLogsRequest> = {
     message.entityType = object.entityType ?? "";
     message.entityIds = object.entityIds?.map((e) => e) || [];
     message.instanceIds = object.instanceIds?.map((e) => e) || [];
+    message.pagination = (object.pagination !== undefined && object.pagination !== null)
+      ? ListPagination.fromPartial(object.pagination)
+      : undefined;
+    message.filterJson = object.filterJson ?? undefined;
+    message.minTimestamp = (object.minTimestamp !== undefined && object.minTimestamp !== null)
+      ? Long.fromValue(object.minTimestamp)
+      : undefined;
+    message.maxTimestamp = (object.maxTimestamp !== undefined && object.maxTimestamp !== null)
+      ? Long.fromValue(object.maxTimestamp)
+      : undefined;
     return message;
   },
 };
 
 function createBaseListLogsResponse(): ListLogsResponse {
-  return { logs: [], pagination: undefined };
+  return { logs: [] };
 }
 
 export const ListLogsResponse: MessageFns<ListLogsResponse> = {
   encode(message: ListLogsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.logs) {
-      LogEntry.encode(v!, writer.uint32(10).fork()).join();
-    }
-    if (message.pagination !== undefined) {
-      ListPagination.encode(message.pagination, writer.uint32(18).fork()).join();
+      LogEntryLight.encode(v!, writer.uint32(10).fork()).join();
     }
     return writer;
   },
@@ -628,15 +857,7 @@ export const ListLogsResponse: MessageFns<ListLogsResponse> = {
             break;
           }
 
-          message.logs.push(LogEntry.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.pagination = ListPagination.decode(reader, reader.uint32());
+          message.logs.push(LogEntryLight.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -650,18 +871,14 @@ export const ListLogsResponse: MessageFns<ListLogsResponse> = {
 
   fromJSON(object: any): ListLogsResponse {
     return {
-      logs: globalThis.Array.isArray(object?.logs) ? object.logs.map((e: any) => LogEntry.fromJSON(e)) : [],
-      pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
+      logs: globalThis.Array.isArray(object?.logs) ? object.logs.map((e: any) => LogEntryLight.fromJSON(e)) : [],
     };
   },
 
   toJSON(message: ListLogsResponse): unknown {
     const obj: any = {};
     if (message.logs?.length) {
-      obj.logs = message.logs.map((e) => LogEntry.toJSON(e));
-    }
-    if (message.pagination !== undefined) {
-      obj.pagination = ListPagination.toJSON(message.pagination);
+      obj.logs = message.logs.map((e) => LogEntryLight.toJSON(e));
     }
     return obj;
   },
@@ -671,10 +888,7 @@ export const ListLogsResponse: MessageFns<ListLogsResponse> = {
   },
   fromPartial(object: DeepPartial<ListLogsResponse>): ListLogsResponse {
     const message = createBaseListLogsResponse();
-    message.logs = object.logs?.map((e) => LogEntry.fromPartial(e)) || [];
-    message.pagination = (object.pagination !== undefined && object.pagination !== null)
-      ? ListPagination.fromPartial(object.pagination)
-      : undefined;
+    message.logs = object.logs?.map((e) => LogEntryLight.fromPartial(e)) || [];
     return message;
   },
 };
