@@ -53,7 +53,7 @@ func (s *LogStore) IngestLog(
 	}
 
 	s.queue.Add(func() error {
-		payloadKey := fmt.Sprintf("%s/%s/%s", s.entryType.GetTypeName(), instanceId, entryId)
+		payloadKey := fmt.Sprintf("%s/%s", s.entryType.GetTypeName(), entryId)
 
 		if err := s.storageBackend.Store(payloadKey, []byte(payloadJson)); err != nil {
 			return err

@@ -3,6 +3,7 @@ package entries
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 type apiRequestEntryType struct {
@@ -51,6 +52,10 @@ type HTTPResponse struct {
 
 func (h *apiRequestEntryType) GetTypeName() string {
 	return "api_request"
+}
+
+func (h *apiRequestEntryType) GetCleanupDuration() time.Duration {
+	return time.Hour * 24 * 14 // 14 days
 }
 
 func (h *apiRequestEntryType) ParsePayload(payloadJSON string) (EntryTypeInstance, error) {

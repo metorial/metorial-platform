@@ -72,3 +72,15 @@ func (s *S3StorageBackend) Retrieve(key string) ([]byte, error) {
 
 	return io.ReadAll(result.Body)
 }
+
+func (s *S3StorageBackend) Delete(key string) error {
+	fullKey := s.prefix + key
+	_, err := s.client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(fullKey),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete object %s from bucket %s: %w", fullKey, s.bucket, err)
+	}
+	return nil
+}
