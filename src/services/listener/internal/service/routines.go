@@ -2,7 +2,7 @@ package service
 
 import "time"
 
-func (s *ScalableListenerConnectorService) cleanupExpiredMessages() {
+func (s *ListenerConnectorService) cleanupExpiredMessages() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 

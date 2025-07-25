@@ -41,7 +41,7 @@ type PendingMessage struct {
 	RequestTime time.Time
 }
 
-type ScalableListenerConnectorService struct {
+type ListenerConnectorService struct {
 	rpc.UnimplementedListenerConnectorServer
 
 	config      *Config
@@ -53,7 +53,7 @@ type ScalableListenerConnectorService struct {
 	pubsub      *redis.PubSub
 }
 
-func (s *ScalableListenerConnectorService) handleInternalResponse(ctx context.Context, payload string) {
+func (s *ListenerConnectorService) handleInternalResponse(ctx context.Context, payload string) {
 	var response InternalResponse
 	if err := json.Unmarshal([]byte(payload), &response); err != nil {
 		log.Printf("Failed to unmarshal internal response: %v", err)
@@ -73,7 +73,7 @@ func (s *ScalableListenerConnectorService) handleInternalResponse(ctx context.Co
 	}
 }
 
-func (s *ScalableListenerConnectorService) sendToLocalListener(ctx context.Context, listener *Listener, req *SendToListenersRequest, messageID string) (*SendToListenersResponse, error) {
+func (s *ListenerConnectorService) sendToLocalListener(ctx context.Context, listener *Listener, req *SendToListenersRequest, messageID string) (*SendToListenersResponse, error) {
 	wsMsg := WebSocketMessage{
 		ID:      messageID,
 		Payload: req.Payload,
@@ -108,7 +108,7 @@ func (s *ScalableListenerConnectorService) sendToLocalListener(ctx context.Conte
 	}
 }
 
-func (s *ScalableListenerConnectorService) sendErrorResponse(messageID, errorMsg string) {
+func (s *ListenerConnectorService) sendErrorResponse(messageID, errorMsg string) {
 	response := InternalResponse{
 		MessageID:        messageID,
 		Success:          false,
@@ -126,7 +126,7 @@ func (s *ScalableListenerConnectorService) sendErrorResponse(messageID, errorMsg
 	s.redisClient.Publish(ctx, "listener_responses", responseBytes)
 }
 
-func (s *ScalableListenerConnectorService) addListener(id string, conn *websocket.Conn) {
+func (s *ListenerConnectorService) addListener(id string, conn *websocket.Conn) {
 	s.listenersMu.Lock()
 	defer s.listenersMu.Unlock()
 
@@ -146,7 +146,7 @@ func (s *ScalableListenerConnectorService) addListener(id string, conn *websocke
 	log.Printf("Listener %s connected to instance %s", id, s.config.InstanceID)
 }
 
-func (s *ScalableListenerConnectorService) removeListener(id string) {
+func (s *ListenerConnectorService) removeListener(id string) {
 	s.listenersMu.Lock()
 	defer s.listenersMu.Unlock()
 

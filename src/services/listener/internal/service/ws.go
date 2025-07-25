@@ -18,7 +18,7 @@ type WebSocketResponse struct {
 	Response string `json:"response"`
 }
 
-func (s *ScalableListenerConnectorService) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+func (s *ListenerConnectorService) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
