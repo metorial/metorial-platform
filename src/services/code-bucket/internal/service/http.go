@@ -33,17 +33,29 @@ func newHttpServiceRouter(service *Service) *mux.Router {
 	httpRouter.HandleFunc("/files/{path:.*}", hs.handleGetFile).Methods("GET")
 	httpRouter.HandleFunc("/files/{path:.*}", hs.handlePutFile).Methods("PUT")
 	httpRouter.HandleFunc("/files/{path:.*}", hs.handleDeleteFile).Methods("DELETE")
+	httpRouter.HandleFunc("/files/{path:.*}", hs.handleOptions).Methods("OPTIONS")
 
 	return httpRouter
 }
 
 func (hs *HttpService) authenticateRequest(r *http.Request) (string, error) {
 	authHeader := r.Header.Get("Authorization")
-	if !strings.HasPrefix(authHeader, "Bearer ") {
-		return "", fmt.Errorf("missing or invalid authorization header")
+	authQuery := r.URL.Query().Get("metorial-code-bucket-token")
+
+	tokenString := authQuery
+
+	if authHeader != "" {
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			return "", fmt.Errorf("missing or invalid authorization header")
+		}
+
+		tokenString = strings.TrimPrefix(authHeader, "Bearer ")
 	}
 
-	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	if tokenString == "" {
+		return "", fmt.Errorf("missing authorization token")
+	}
+
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -62,7 +74,15 @@ func (hs *HttpService) authenticateRequest(r *http.Request) (string, error) {
 	return "", fmt.Errorf("invalid token")
 }
 
+func (hs *HttpService) setCorsHeaders(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+}
+
 func (hs *HttpService) handleGetFiles(w http.ResponseWriter, r *http.Request) {
+	hs.setCorsHeaders(w)
+
 	// Authenticate
 	authBucketID, err := hs.authenticateRequest(r)
 	if err != nil {
@@ -81,6 +101,8 @@ func (hs *HttpService) handleGetFiles(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HttpService) handleGetFile(w http.ResponseWriter, r *http.Request) {
+	hs.setCorsHeaders(w)
+
 	vars := mux.Vars(r)
 	filePath := vars["path"]
 
@@ -106,6 +128,8 @@ func (hs *HttpService) handleGetFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HttpService) handlePutFile(w http.ResponseWriter, r *http.Request) {
+	hs.setCorsHeaders(w)
+
 	vars := mux.Vars(r)
 	filePath := vars["path"]
 
@@ -137,6 +161,8 @@ func (hs *HttpService) handlePutFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HttpService) handleDeleteFile(w http.ResponseWriter, r *http.Request) {
+	hs.setCorsHeaders(w)
+
 	vars := mux.Vars(r)
 	filePath := vars["path"]
 
@@ -158,4 +184,9 @@ func (hs *HttpService) handleDeleteFile(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (hs *HttpService) handleOptions(w http.ResponseWriter, r *http.Request) {
+	hs.setCorsHeaders(w)
+	w.WriteHeader(http.StatusOK)
 }
