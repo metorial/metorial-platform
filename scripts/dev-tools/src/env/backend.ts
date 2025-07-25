@@ -58,6 +58,40 @@ export let backendEnv: Env = [
 
   { key: 'ENCRYPTION_SECRET', defaultValue: `encryption-secret` },
 
+  { key: 'LOG_RPC_ADDRESS', defaultValue: ':4071' },
+  {
+    key: 'LOG_MONGO_URI',
+    defaultValue: 'mongodb://mongo:mongo@vulcan:32707/?authSource=admin'
+  },
+
+  { key: 'CODE_BUCKET_HTTP_ADDRESS', defaultValue: ':4040' },
+  { key: 'CODE_BUCKET_RPC_ADDRESS', defaultValue: ':4041' },
+  { key: 'CODE_BUCKET_JWT_SECRET', defaultValue: 'test' },
+  { key: 'CODE_BUCKET_REDIS_URL', defaultValue: 'redis://localhost:36379/0' },
+
+  { key: 'LISTENER_RPC_ADDRESS', defaultValue: ':4061' },
+  { key: 'LISTENER_HTTP_ADDRESS', defaultValue: ':4060' },
+  { key: 'LISTENER_REDIS_URI', defaultValue: 'redis://localhost:36379/0' },
+  { key: 'LISTENER_JWT_SECRET', defaultValue: 'test' },
+
+  { key: 'USAGE_RPC_ADDRESS', defaultValue: ':4051' },
+  {
+    key: 'USAGE_MONGO_URI',
+    defaultValue: 'mongodb://mongo:mongo@vulcan:32707/?authSource=admin'
+  },
+
+  { key: 'LOG_AWS_S3_BUCKET' },
+  { key: 'LOG_AWS_REGION' },
+  { key: 'LOG_AWS_ACCESS_KEY' },
+  { key: 'LOG_AWS_SECRET_KEY' },
+  { key: 'LOG_AWS_ENDPOINT' },
+
+  { key: 'CODE_BUCKET_AWS_S3_BUCKET' },
+  { key: 'CODE_BUCKET_AWS_REGION' },
+  { key: 'CODE_BUCKET_AWS_ACCESS_KEY' },
+  { key: 'CODE_BUCKET_AWS_SECRET_KEY' },
+  { key: 'CODE_BUCKET_AWS_ENDPOINT' },
+
   { key: 'API_URL', defaultValue: `http://${HOSTNAME}:4310` },
   { key: 'APP_URL', defaultValue: `http://${HOSTNAME}:4300` },
   { key: 'ID_API_HOST', defaultValue: `http://${HOSTNAME}:4321`, isEnterprise: true },

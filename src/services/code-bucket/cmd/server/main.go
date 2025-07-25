@@ -21,26 +21,16 @@ func main() {
 	sentryUtil.InitSentryIfNeeded()
 	defer sentryUtil.ShutdownSentry()
 
-	httpAddress := "localhost:4040"
-	rpcAddress := "localhost:5050"
+	httpAddress := getEnvOrDefault("CODE_BUCKET_HTTP_ADDRESS", ":4040")
+	rpcAddress := getEnvOrDefault("CODE_BUCKET_RPC_ADDRESS", ":5050")
 
-	httpAddressEnv := os.Getenv("HTTP_ADDRESS")
-	if httpAddressEnv != "" {
-		httpAddress = httpAddressEnv
-	}
-
-	rpcAddressEnv := os.Getenv("RPC_ADDRESS")
-	if rpcAddressEnv != "" {
-		rpcAddress = rpcAddressEnv
-	}
-
-	jwtSecret := mustGetEnv("JWT_SECRET")
-	awsBucket := mustGetEnv("AWS_S3_BUCKET")
-	awsRegion := mustGetEnv("AWS_REGION")
-	awsAccessKey := mustGetEnv("AWS_ACCESS_KEY")
-	awsSecretKey := mustGetEnv("AWS_SECRET_KEY")
-	awsEndpoint := os.Getenv("AWS_ENDPOINT")
-	redisURL := os.Getenv("REDIS_URL")
+	jwtSecret := mustGetEnv("CODE_BUCKET_JWT_SECRET")
+	awsBucket := mustGetEnv("CODE_BUCKET_AWS_S3_BUCKET")
+	awsRegion := mustGetEnv("CODE_BUCKET_AWS_REGION")
+	awsAccessKey := mustGetEnv("CODE_BUCKET_AWS_ACCESS_KEY")
+	awsSecretKey := mustGetEnv("CODE_BUCKET_AWS_SECRET_KEY")
+	awsEndpoint := os.Getenv("CODE_BUCKET_AWS_ENDPOINT")
+	redisURL := os.Getenv("CODE_BUCKET_REDIS_URL")
 
 	service := service.NewService(jwtSecret,
 		fs.WithAwsAccessKey(awsAccessKey),
@@ -69,6 +59,14 @@ func mustGetEnv(key string) string {
 	value := os.Getenv(key)
 	if value == "" {
 		log.Fatalf("Environment variable %s is required but not set", key)
+	}
+	return value
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
 	}
 	return value
 }

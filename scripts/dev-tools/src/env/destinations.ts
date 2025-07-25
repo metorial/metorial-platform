@@ -15,6 +15,12 @@ export let destinations: Destination[] = [
     path: 'src/mcp-engine'
   },
 
+  ...['code-bucket', 'listener', 'log', 'usage'].map(v => ({
+    type: 'oss' as const,
+    env: backendEnv,
+    path: `src/services/${v}`
+  })),
+
   {
     type: 'enterprise',
     env: backendEnv,
