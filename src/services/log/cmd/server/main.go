@@ -9,14 +9,11 @@ import (
 
 	"github.com/joho/godotenv"
 	sentryUtil "github.com/metorial/metorial/modules/sentry-util"
-	mongoStore "github.com/metorial/metorial/services/usage/internal/mongo-store"
-	"github.com/metorial/metorial/services/usage/internal/repository"
-	"github.com/metorial/metorial/services/usage/internal/service"
+	"github.com/metorial/metorial/services/log/internal/entries"
+	"github.com/metorial/metorial/services/log/internal/service"
 )
 
 func main() {
-	os.Setenv("TZ", "UTC") // Ensure UTC timezone for consistent timestamps
-
 	err := godotenv.Load()
 	if err != nil {
 		// ignore error if .env file is not found
@@ -25,27 +22,33 @@ func main() {
 	sentryUtil.InitSentryIfNeeded()
 	defer sentryUtil.ShutdownSentry()
 
-	rpcAddress := "localhost:5050"
+	rpcAddress := getEnvOrDefault("LOG_RPC_ADDRESS", ":4071")
 
-	rpcAddressEnv := os.Getenv("RPC_ADDRESS")
-	if rpcAddressEnv != "" {
-		rpcAddress = rpcAddressEnv
-	}
+	mongoURI := mustGetEnv("LOG_MONGO_URI")
+	mongoDb := getEnvOrDefault("LOG_MONGO_DB", "log")
 
-	mongoURI := mustGetEnv("MONGO_URI")
-	mongoDb := getEnvOrDefault("MONGO_DB", "usage")
-	mongoCollection := getEnvOrDefault("MONGO_COLLECTION", "usage_records")
+	awsAccessKey := mustGetEnv("LOG_AWS_ACCESS_KEY")
+	awsSecretKey := mustGetEnv("LOG_AWS_SECRET_KEY")
+	awsRegion := mustGetEnv("LOG_AWS_REGION")
+	awsBucket := mustGetEnv("LOG_AWS_S3_BUCKET")
+	awsEndpoint := os.Getenv("LOG_AWS_ENDPOINT")
 
-	store, err := mongoStore.NewMongoStore(context.Background(), mongoURI, mongoDb, mongoCollection)
-	if err != nil {
-		log.Fatalf("Failed to create MongoDB store: %v", err)
-	}
+	service := service.NewService(
+		context.Background(),
+		entries.DefaultEntryTypeRegistry,
 
-	repo := repository.NewRepository(store)
+		service.WithMongoURI(mongoURI),
+		service.WithMongoDatabase(mongoDb),
+		service.WithGRPCAddress(rpcAddress),
 
-	service := service.NewService(repo)
+		service.WithAwsAccessKey(awsAccessKey),
+		service.WithAwsSecretKey(awsSecretKey),
+		service.WithAwsRegion(awsRegion),
+		service.WithS3Bucket(awsBucket),
+		service.WithAwsEndpoint(awsEndpoint),
+	)
 
-	service.Start(rpcAddress)
+	service.Start()
 
 	// Wait for interrupt signal
 	sigChan := make(chan os.Signal, 1)
@@ -54,13 +57,7 @@ func main() {
 	<-sigChan
 
 	log.Println("Received interrupt signal, shutting down...")
-	if err := service.Stop(); err != nil {
-		log.Printf("Error during shutdown: %v", err)
-	}
-
-	if err := store.Close(context.Background()); err != nil {
-		log.Printf("Error during shutdown: %v", err)
-	}
+	service.Stop()
 }
 
 func mustGetEnv(key string) string {
