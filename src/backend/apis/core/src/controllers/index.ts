@@ -1,12 +1,18 @@
 import { Controller } from '@metorial/rest';
 import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
+import { dashboardOauthConnectionTemplateController } from './dashboard/oauthConnectionTemplate';
+import { dashboardOauthDiscoveryController } from './dashboard/oauthDiscovery';
 import { dashboardOrganizationController } from './dashboard/organization';
 import { dashboardOrganizationInviteController } from './dashboard/organizationInvite';
 import { dashboardUsageController } from './dashboard/usage';
 import { fileController } from './instance/file';
 import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
+import { providerOauthConnectionController } from './instance/providerOauthConnection';
+import { providerOauthConnectionAuthenticationController } from './instance/providerOauthConnectionAuthentication';
+import { providerOauthConnectionEventController } from './instance/providerOauthConnectionEvent';
+import { providerOauthConnectionProfileController } from './instance/providerOauthConnectionProfile';
 import { secretController } from './instance/secret';
 import { serverController } from './instance/server';
 import { serverCapabilitiesController } from './instance/serverCapabilities';
@@ -60,7 +66,11 @@ export let pulsarController = Controller.create<any>(
 
     sessionConnectionController,
 
-    serverCapabilitiesController
+    serverCapabilitiesController,
+
+    providerOauthConnectionController,
+    providerOauthConnectionAuthenticationController,
+    providerOauthConnectionProfileController
   }
 );
 
@@ -109,6 +119,14 @@ export let dashboardController = Controller.create<any>(
     serverSessionController,
     sessionConnectionController,
 
-    serverCapabilitiesController
+    serverCapabilitiesController,
+
+    providerOauthConnectionController,
+    providerOauthConnectionAuthenticationController,
+    providerOauthConnectionEventController,
+    providerOauthConnectionProfileController,
+
+    dashboardOauthConnectionTemplateController,
+    dashboardOauthDiscoveryController
   }
 );

@@ -40,7 +40,14 @@ let scopeRaw = [
   'instance.session:write' as const,
 
   'instance.server.server_run:read' as const,
-  'instance.server.server_error:read' as const
+  'instance.server.server_error:read' as const,
+
+  'instance.provider_oauth.connection:read' as const,
+  'instance.provider_oauth.connection:write' as const,
+
+  'instance.provider_oauth.connection.authentication:read' as const,
+  'instance.provider_oauth.connection.event:read' as const,
+  'instance.provider_oauth.connection.profile:read' as const
 
   // 'organization.machine_access.api_key.organization:read' as const,
   // 'organization.machine_access.api_key.organization:write' as const,
@@ -61,6 +68,7 @@ export let scopes: Scope[] = [...scopeRaw];
 let allScopesExcept = (except: Scope[]) => scopes.filter(s => !except.includes(s));
 
 export let orgManagementTokenScopes: Scope[] = allScopesExcept(['user:read', 'user:write']);
+
 export let instanceSecretTokenScopes: Scope[] = [
   'instance.file:read' as const,
   'instance.file:write' as const,
@@ -85,7 +93,14 @@ export let instanceSecretTokenScopes: Scope[] = [
   'instance.session:write' as const,
 
   'instance.server.server_run:read' as const,
-  'instance.server.server_error:read' as const
+  'instance.server.server_error:read' as const,
+
+  'instance.provider_oauth.connection:read' as const,
+  'instance.provider_oauth.connection:write' as const,
+
+  'instance.provider_oauth.connection.authentication:read' as const,
+  'instance.provider_oauth.connection.event:read' as const,
+  'instance.provider_oauth.connection.profile:read' as const
 ];
 
 export let instancePublishableTokenScopes: Scope[] = ['instance.server_listing:read' as const];

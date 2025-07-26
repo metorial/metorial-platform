@@ -226,5 +226,18 @@ declare global {
     type SessionServerCapabilities = ServerCapabilities;
 
     type SessionMessageMcpPayload = JSONRPCMessage;
+
+    type ProviderOAuthConfigTemplateVariables = {
+      type: 'string';
+      label: string;
+      key: string;
+      description?: string;
+    }[];
+    type ProviderOAuthConfigTemplateScopes = {
+      identifier: string;
+      description: string;
+    }[];
+
+    type ProviderOAuthConfig = any;
   }
 }
