@@ -24,8 +24,6 @@
   },
   "packageManager": "bun@1.2.15",
   "workspaces": [
-    "clients/metorial-node/ai-sdk/*",
-    "clients/metorial-node/openai/*",
     "examples/*",
     "scripts/*",
     "src/*",
