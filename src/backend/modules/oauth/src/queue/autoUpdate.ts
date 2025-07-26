@@ -46,7 +46,7 @@ let autoDiscoverQueueProcessor = autoDiscoverQueue.process(async () => {
 
 let autoDiscoverSingleQueue = createQueue<{ discoveryDocumentId: string }>({
   name: 'oat/a-disc-single',
-  workerOpts: { concurrency: 10, limiter: { max: 25, duration: 1000 } }
+  workerOpts: { concurrency: 10, limiter: { max: 15, duration: 5000 } }
 });
 
 let autoDiscoverSingleQueueProcessor = autoDiscoverSingleQueue.process(async data => {

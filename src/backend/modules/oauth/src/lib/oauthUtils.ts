@@ -102,6 +102,7 @@ export class OAuthUtils {
           Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
           Accept: 'application/json'
         },
+        maxRedirects: 5,
         ...getAxiosSsrfFilter(tokenEndpoint)
       });
 
@@ -149,6 +150,7 @@ export class OAuthUtils {
           Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
           Accept: 'application/json'
         },
+        maxRedirects: 5,
         ...getAxiosSsrfFilter(tokenEndpoint)
       });
       return {
@@ -183,7 +185,9 @@ export class OAuthUtils {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           Accept: 'application/json'
-        }
+        },
+        maxRedirects: 5,
+        ...getAxiosSsrfFilter(userInfoEndpoint)
       });
 
       let data = response.data;

@@ -70,7 +70,6 @@ export let pulsarController = Controller.create<any>(
 
     providerOauthConnectionController,
     providerOauthConnectionAuthenticationController,
-    providerOauthConnectionEventController,
     providerOauthConnectionProfileController
   }
 );

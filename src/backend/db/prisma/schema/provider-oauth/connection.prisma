@@ -1,0 +1,41 @@
+enum ProviderOAuthConnectionStatus {
+  active
+  archived
+}
+
+model ProviderOAuthConnection {
+  oid    BigInt                        @id @default(autoincrement())
+  id     String                        @unique
+  status ProviderOAuthConnectionStatus @default(active)
+
+  metorialClientId String @unique
+
+  name         String
+  providerName String
+  providerUrl  String
+
+  discoveryUrl String?
+
+  /// [ProviderOAuthConfig]
+  config     Json
+  configHash String
+
+  scopes String[]
+
+  clientId     String
+  clientSecret String
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  templateOid BigInt?
+  template    ProviderOAuthConnectionTemplate? @relation(fields: [templateOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  profiles ProviderOAuthConnectionProfile[]
+  tokens   ProviderOAuthConnectionAuthToken[]
+  attempts ProviderOAuthConnectionAuthAttempt[]
+  events   ProviderOAuthConnectionEvent[]
+}

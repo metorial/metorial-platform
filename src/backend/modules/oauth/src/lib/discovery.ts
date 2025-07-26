@@ -52,6 +52,7 @@ export class OAuthDiscovery {
           'User-Agent': 'OAuth-Service/1.0'
         },
         validateStatus: status => status >= 200 && status < 500, // allow 4xx to fall through
+        maxRedirects: 5,
         ...getAxiosSsrfFilter(url)
       });
 
@@ -85,6 +86,7 @@ export class OAuthDiscovery {
         },
         signal: controller.signal,
         validateStatus: () => true, // handle manually
+        maxRedirects: 5,
         ...getAxiosSsrfFilter(baseUrl)
       });
 

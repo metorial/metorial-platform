@@ -1,0 +1,17 @@
+model ProviderOAuthDiscoveryDocument {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  providerName String
+  providerUrl  String
+  discoveryUrl String @unique
+
+  /// [ProviderOAuthConfig]
+  config     Json
+  configHash String
+
+  version Int
+
+  createdAt   DateTime @default(now())
+  refreshedAt DateTime @default(now()) @updatedAt
+}
