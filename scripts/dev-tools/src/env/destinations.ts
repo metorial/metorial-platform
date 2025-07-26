@@ -11,9 +11,21 @@ export let destinations: Destination[] = [
 
   {
     type: 'oss',
+    env: frontendEnv,
+    path: 'src/frontend/apps/code-workspace'
+  },
+
+  {
+    type: 'oss',
     env: backendEnv,
     path: 'src/mcp-engine'
   },
+
+  ...['code-bucket', 'listener', 'log', 'usage'].map(v => ({
+    type: 'oss' as const,
+    env: backendEnv,
+    path: `src/services/${v}`
+  })),
 
   {
     type: 'enterprise',

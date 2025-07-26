@@ -25,16 +25,11 @@ func main() {
 	sentryUtil.InitSentryIfNeeded()
 	defer sentryUtil.ShutdownSentry()
 
-	rpcAddress := "localhost:5050"
+	rpcAddress := getEnvOrDefault("USAGE_RPC_ADDRESS", "localhost:5050")
 
-	rpcAddressEnv := os.Getenv("RPC_ADDRESS")
-	if rpcAddressEnv != "" {
-		rpcAddress = rpcAddressEnv
-	}
-
-	mongoURI := mustGetEnv("MONGO_URI")
-	mongoDb := getEnvOrDefault("MONGO_DB", "usage")
-	mongoCollection := getEnvOrDefault("MONGO_COLLECTION", "usage_records")
+	mongoURI := mustGetEnv("USAGE_MONGO_URI")
+	mongoDb := getEnvOrDefault("USAGE_MONGO_DB", "usage")
+	mongoCollection := getEnvOrDefault("USAGE_MONGO_COLLECTION", "usage_records")
 
 	store, err := mongoStore.NewMongoStore(context.Background(), mongoURI, mongoDb, mongoCollection)
 	if err != nil {

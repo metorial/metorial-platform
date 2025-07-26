@@ -25,6 +25,11 @@ export let frontendEnv: Env = [
   },
 
   {
+    key: 'VITE_CODE_BUCKET_API_URL',
+    defaultValue: `http://${HOSTNAME}:4040`
+  },
+
+  {
     key: 'SHOW_EARLY_ACCESS_BAR',
     defaultValue: 'true',
     isEnterprise: true

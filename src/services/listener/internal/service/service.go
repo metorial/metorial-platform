@@ -12,12 +12,12 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-func NewService(opts ...ConfigOptions) *ScalableListenerConnectorService {
+func NewService(opts ...ConfigOptions) *ListenerConnectorService {
 	config := applyConfigOptions(opts...)
 
 	rdb := redis.NewClient(util.Must(redis.ParseURL(config.RedisURL)))
 
-	service := &ScalableListenerConnectorService{
+	service := &ListenerConnectorService{
 		config:      config,
 		listeners:   make(map[string]*Listener),
 		pending:     make(map[string]*PendingMessage),
@@ -33,7 +33,7 @@ func NewService(opts ...ConfigOptions) *ScalableListenerConnectorService {
 	return service
 }
 
-func (s *ScalableListenerConnectorService) Start() {
+func (s *ListenerConnectorService) Start() {
 	config := s.config
 
 	http.HandleFunc("/ws", s.handleWebSocket)
