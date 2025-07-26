@@ -1,5 +1,6 @@
 import { Cases } from '../../case';
 import type { IntrospectedType } from '../../fetch';
+import { safePyName, toPyIdentifier, toPyClassName } from './utils';
 
 export let generateTypeFromIntrospectedType = async (name: string, type: IntrospectedType) => {
   let code = type.type === 'object' ? generateClass(name, type) : generateAlias(name, type);
@@ -45,65 +46,6 @@ let processType = (type: IntrospectedType): string => {
   }
 };
 
-// add safePyName for reserved keyword handling
-let reserved = new Set([
-  'from',
-  'class',
-  'def',
-  'return',
-  'pass',
-  'global',
-  'lambda',
-  'with',
-  'as',
-  'if',
-  'else',
-  'elif',
-  'try',
-  'except',
-  'raise',
-  'for',
-  'while',
-  'break',
-  'continue',
-  'import',
-  'in',
-  'is',
-  'not',
-  'or',
-  'and',
-  'assert',
-  'del',
-  'yield',
-  'finally',
-  'nonlocal',
-  'True',
-  'False',
-  'None',
-  'async',
-  'await',
-  'print',
-  'exec',
-  'self'
-]);
-
-let safePyName = (name: string): string => {
-  return reserved.has(name) ? `${name}_` : name;
-};
-
-// add toPyIdentifier for dash-to-underscore and lowercase conversion
-let toPyIdentifier = (name: string): string => {
-  return name.replace(/-/g, '_').toLowerCase();
-};
-
-// add toPyClassName for proper class name capitalization
-let toPyClassName = (name: string): string => {
-  // convert snake_case or kebab-case to PascalCase
-  return name
-    .replace(/[-_]+/g, ' ')
-    .replace(/(?:^|\s)(\w)/g, (_, c) => c.toUpperCase())
-    .replace(/\s+/g, '');
-};
 
 let generateClass = (name: string, type: IntrospectedType): string => {
   // ensure required fields come before optional fields

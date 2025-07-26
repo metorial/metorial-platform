@@ -4,15 +4,6 @@ import path from 'path';
 import { Cases } from './case';
 import { getEndpoints, getEndpointVersions, type IntrospectedType } from './fetch';
 
-let toPyIdentifier = (name: string): string => {
-  return name.replace(/-/g, '_').toLowerCase();
-};
-
-// replace dashes with underscores for Python module/folder names
-let toPyFolderName = (name: string): string => {
-  return name.replace(/-/g, '_');
-};
-
 let args = process.argv.slice(2);
 let url = args[0];
 let rootOutputFolder = args[1];
@@ -36,6 +27,16 @@ if (language === 'typescript') {
 }
 
 rootOutputFolder = path.join(process.cwd(), rootOutputFolder);
+
+// Import Python utilities when needed
+let toPyIdentifier: (name: string) => string;
+let toPyFolderName: (name: string) => string;
+
+if (language === 'python') {
+  const pythonUtils = await import('./languages/python/utils');
+  toPyIdentifier = pythonUtils.toPyIdentifier;
+  toPyFolderName = pythonUtils.toPyFolderName;
+}
 
 let mapperModule = await import(`./languages/${language}/mapper`);
 let typeModule = await import(`./languages/${language}/type`);

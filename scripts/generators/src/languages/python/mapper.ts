@@ -1,5 +1,6 @@
 import { Cases } from '../../case';
 import type { IntrospectedType } from '../../fetch';
+import { safePyName, toPyIdentifier } from './utils';
 
 export let generateMapper = async (
   name: string,
@@ -30,56 +31,6 @@ ${_generateMapper(type, typename, 'data', 2)}
   );
 };
 
-let pythonKeywords = new Set([
-  'False',
-  'None',
-  'True',
-  'and',
-  'as',
-  'assert',
-  'async',
-  'await',
-  'break',
-  'class',
-  'continue',
-  'def',
-  'del',
-  'elif',
-  'else',
-  'except',
-  'finally',
-  'for',
-  'from',
-  'global',
-  'if',
-  'import',
-  'in',
-  'is',
-  'lambda',
-  'nonlocal',
-  'not',
-  'or',
-  'pass',
-  'raise',
-  'return',
-  'try',
-  'while',
-  'with',
-  'yield'
-]);
-
-/**
- * Converts a string to a valid Python identifier/module name:
- * - replaces dashes with underscores
- * - lowercases
- */
-let toPyIdentifier = (name: string) => {
-  return name.replace(/-/g, '_').toLowerCase();
-};
-
-let safePyName = (name: string) => {
-  return pythonKeywords.has(name) ? `${name}_` : name;
-};
 
 let _generateMapper = (
   type: IntrospectedType,
