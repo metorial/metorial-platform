@@ -1,0 +1,141 @@
+<!-- Copyright (C) Microsoft Corporation. All rights reserved. -->
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+
+  <title>Metorial Code Workspace</title>
+
+  <!-- Mobile tweaks -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Code">
+
+  <!-- Disable pinch zooming -->
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+
+  <!-- Workbench Icon/Manifest/CSS -->
+  <link data-name="vs/workbench/workbench.web.main" rel="stylesheet"
+    href="vscode/out/vs/workbench/workbench.web.main.css">
+</head>
+
+<body aria-label="">
+</body>
+
+<div class="loader">
+  <div class="img_wrapper">
+    <img src="https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg" alt="Metorial Logo" />
+  </div>
+
+  <p>Loading Metorial Code Workspace</p>
+</div>
+
+<div class="remote-indicator">
+  <svg width="68" height="86" viewBox="0 0 68 86" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M34.1854 0L68 67.94L58.7273 86L34.1854 32.25L9.08726 86L0 67.94L34.1854 0Z" fill="white" />
+  </svg>
+</div>
+
+<style>
+  /* Remove Source Control */
+  [aria-label*="Source Control"] {
+    display: none !important;
+  }
+
+  /* Remove Run and Debug */
+  [aria-label*="Run and Debug"] {
+    display: none !important;
+  }
+
+  /* Remove Accounts */
+  [aria-label*="Accounts"] {
+    display: none !important;
+  }
+
+  .loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f8f8f8;
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  .loader img {
+    filter: grayscale(100%);
+    height: 130px;
+    animation: scale 2s ease-in-out infinite;
+  }
+
+  .loader p {
+    font-size: 14px;
+    color: #777;
+    margin: 0;
+    text-align: center;
+    max-width: 300px;
+    font-weight: 500;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    animation: fadeInUpScale 1s ease-out;
+  }
+
+  @keyframes scale {
+    0% {
+      transform: scale(0.8);
+    }
+
+    50% {
+      transform: scale(1);
+    }
+
+    100% {
+      transform: scale(0.8);
+    }
+  }
+
+  @keyframes fadeInUpScale {
+    0% {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+
+    40% {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .remote-indicator {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 35px;
+    height: 22px;
+    background: black;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .remote-indicator svg {
+    height: 14px;
+  }
+</style>
+
+<script type="module" src="/src/index.ts"></script>
+
+</html>
