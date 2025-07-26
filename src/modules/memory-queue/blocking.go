@@ -2,6 +2,7 @@ package memoryQueue
 
 import (
 	"context"
+	"log"
 	"sync"
 )
 
@@ -11,6 +12,7 @@ type BlockingJobQueue struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	concurrent int
+	err        error
 }
 
 func NewBlockingJobQueue(concurrency int) *BlockingJobQueue {
@@ -38,7 +40,11 @@ func (q *BlockingJobQueue) worker() {
 			if !ok {
 				return
 			}
-			job()
+			err := runJobWithRecovery(job)
+			if err != nil {
+				q.err = err
+				log.Printf("Job failed: %v\n", err)
+			}
 			q.wg.Done()
 		}
 	}
@@ -49,8 +55,9 @@ func (q *BlockingJobQueue) AddAndBlockIfFull(job func() error) {
 	q.jobs <- job
 }
 
-func (q *BlockingJobQueue) Wait() {
+func (q *BlockingJobQueue) Wait() error {
 	q.wg.Wait()
+	return q.err
 }
 
 func (q *BlockingJobQueue) Stop() {
