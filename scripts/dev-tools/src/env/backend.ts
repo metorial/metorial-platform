@@ -63,11 +63,21 @@ export let backendEnv: Env = [
     key: 'LOG_MONGO_URI',
     defaultValue: 'mongodb://mongo:mongo@vulcan:32707/?authSource=admin'
   },
+  { key: 'LOG_AWS_S3_BUCKET', defaultValue: 'metorial-logs-dev' },
+  { key: 'LOG_AWS_REGION', defaultValue: 'us-east-1' },
+  { key: 'LOG_AWS_ACCESS_KEY', defaultValue: 'minio' },
+  { key: 'LOG_AWS_SECRET_KEY', defaultValue: 'minio123' },
+  { key: 'LOG_AWS_ENDPOINT', defaultValue: 'http://localhost:9000' },
 
   { key: 'CODE_BUCKET_HTTP_ADDRESS', defaultValue: ':4040' },
   { key: 'CODE_BUCKET_RPC_ADDRESS', defaultValue: ':4041' },
   { key: 'CODE_BUCKET_JWT_SECRET', defaultValue: 'test' },
   { key: 'CODE_BUCKET_REDIS_URL', defaultValue: 'redis://localhost:36379/0' },
+  { key: 'CODE_BUCKET_AWS_S3_BUCKET', defaultValue: 'metorial-code-bucket-dev' },
+  { key: 'CODE_BUCKET_AWS_REGION', defaultValue: 'us-east-1' },
+  { key: 'CODE_BUCKET_AWS_ACCESS_KEY', defaultValue: 'minio' },
+  { key: 'CODE_BUCKET_AWS_SECRET_KEY', defaultValue: 'minio123' },
+  { key: 'CODE_BUCKET_AWS_ENDPOINT', defaultValue: 'http://localhost:9000' },
 
   { key: 'LISTENER_RPC_ADDRESS', defaultValue: ':4061' },
   { key: 'LISTENER_HTTP_ADDRESS', defaultValue: ':4060' },
@@ -79,18 +89,6 @@ export let backendEnv: Env = [
     key: 'USAGE_MONGO_URI',
     defaultValue: 'mongodb://mongo:mongo@vulcan:32707/?authSource=admin'
   },
-
-  { key: 'LOG_AWS_S3_BUCKET' },
-  { key: 'LOG_AWS_REGION' },
-  { key: 'LOG_AWS_ACCESS_KEY' },
-  { key: 'LOG_AWS_SECRET_KEY' },
-  { key: 'LOG_AWS_ENDPOINT' },
-
-  { key: 'CODE_BUCKET_AWS_S3_BUCKET' },
-  { key: 'CODE_BUCKET_AWS_REGION' },
-  { key: 'CODE_BUCKET_AWS_ACCESS_KEY' },
-  { key: 'CODE_BUCKET_AWS_SECRET_KEY' },
-  { key: 'CODE_BUCKET_AWS_ENDPOINT' },
 
   { key: 'API_URL', defaultValue: `http://${HOSTNAME}:4310` },
   { key: 'APP_URL', defaultValue: `http://${HOSTNAME}:4300` },

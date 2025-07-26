@@ -47,3 +47,17 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
     restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"  
+      - "9001:9001"  # MinIO Console
+    volumes:
+      - ./_volumes/minio:/data
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    command: server --console-address ":9001" /data
+    restart: unless-stopped

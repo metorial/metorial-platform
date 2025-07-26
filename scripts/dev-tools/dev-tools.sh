@@ -10,6 +10,7 @@ cd ..
 
 if [ "$1" = "start" ]; then
   bun ./src/cli.ts set-env
+  bun ./src/cli.ts init-minio
 
   cd ./scripts
 
