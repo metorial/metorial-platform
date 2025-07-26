@@ -101,7 +101,6 @@ model ProviderOAuthConnectionAuthToken {
   connectionOid BigInt
   connection    ProviderOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
 
-  /// [ProviderOAuthConnectionAuthTokenErrors]
   firstErrorAt    DateTime?
   lastErrorAt     DateTime?
   errorDisabledAt DateTime?
