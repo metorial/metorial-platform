@@ -1,0 +1,17 @@
+model RemoteServerInstance {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name        String
+  description String?
+
+  remoteUrl String
+
+  connectionOid BigInt?
+  connection    ProviderOAuthConnection? @relation(fields: [connectionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  customServerVersions CustomServerVersion[]
+}

@@ -29,16 +29,18 @@ model Organization {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
 
-  invites         OrganizationInvite[]
-  members         OrganizationMember[]
-  actors          OrganizationActor[]
-  instances       Instance[]
-  userConfigs     OrganizationUserConfig[]
-  projects        Project[]
-  machineAccesses MachineAccess[]
-  files           File[]
-  secrets         Secret[]
-  profile         Profile?
-  servers         Server[]
-  uploads         Upload[]
+  invites                  OrganizationInvite[]
+  members                  OrganizationMember[]
+  actors                   OrganizationActor[]
+  instances                Instance[]
+  userConfigs              OrganizationUserConfig[]
+  projects                 Project[]
+  machineAccesses          MachineAccess[]
+  files                    File[]
+  secrets                  Secret[]
+  profile                  Profile?
+  servers                  Server[]
+  uploads                  Upload[]
+  customServers            CustomServer[]
+  customServerEnvironments CustomServerEnvironment[]
 }

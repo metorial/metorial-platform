@@ -75,5 +75,11 @@ export let ID = createIdGenerator({
   oauthConnectionAuthAttempt_ClientSecret: idType.unsorted('poca_sec'),
   oauthConnectionAuthToken: idType.sorted('potk'),
   oauthDiscoveryDocument: idType.sorted('pod'),
-  oauthConnectionEvent: idType.sorted('poce')
+  oauthConnectionEvent: idType.sorted('poce'),
+
+  customServer: idType.sorted('cse'),
+  customServerEnvironment: idType.sorted('cseenv'),
+  customServerVersion: idType.sorted('csev'),
+
+  remoteServerInstance: idType.sorted('rsi')
 });

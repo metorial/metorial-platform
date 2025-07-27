@@ -4,10 +4,19 @@ enum ServerVariantSourceType {
 }
 
 model ServerVariant {
-  oid BigInt @id @default(autoincrement())
-  id  String @unique
+  oid    BigInt       @id @default(autoincrement())
+  id     String       @unique
+  status ServerStatus @default(active)
 
   identifier String @unique
+
+  isDefault Boolean @default(true) // Not unique
+
+  defaultForInstanceOid BigInt?
+  defaultForInstance    Instance? @relation(fields: [defaultForInstanceOid], references: [oid], name: "ServerVariantDefaultForInstance")
+
+  onlyForInstanceOid BigInt?
+  onlyForInstance    Instance? @relation(fields: [onlyForInstanceOid], references: [oid], name: "ServerVariantOnlyForInstance")
 
   providerOid BigInt
   provider    ServerVariantProvider @relation(fields: [providerOid], references: [oid])
@@ -46,7 +55,10 @@ model ServerVariant {
   serverImplementations   ServerImplementation[]
   serverDeployments       ServerDeployment[]
   serverAutoDiscoveryJobs ServerAutoDiscoveryJob[]
+  customServerEnvironment CustomServerEnvironment?
 
   createdAt        DateTime  @default(now())
   lastDiscoveredAt DateTime?
+  Instance         Instance? @relation(fields: [instanceOid], references: [oid])
+  instanceOid      BigInt?
 }
