@@ -148,7 +148,7 @@ export class EngineSessionManager {
     let deployment = srvSes.serverDeployment;
     let variant = deployment.serverVariant;
     let version = variant.currentVersion;
-    if (!version) return null;
+    if (!version || variant.status == 'active') return null;
 
     await Fabric.fire('server.engine_session.created:before', {
       organization: config.instance.organization,

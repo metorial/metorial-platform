@@ -29,7 +29,10 @@ export let serverController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.server:read'] }))
       .output(serverPresenter)
       .do(async ctx => {
-        return serverPresenter.present({ server: ctx.server });
+        return serverPresenter.present({
+          server: ctx.server,
+          currentOrganization: ctx.organization
+        });
       })
   }
 );

@@ -4,11 +4,21 @@ import { serverType } from '../types';
 import { v1ServerVariantPresenter } from './serverVariant';
 
 export let v1ServerPresenter = Presenter.create(serverType)
-  .presenter(async ({ server }, opts) => ({
+  .presenter(async ({ server, currentOrganization }, opts) => ({
     object: 'server',
 
     id: server.id,
-    type: { imported: 'public' as const }[server.type],
+    type: {
+      imported: 'public' as const,
+      custom:
+        server.isPublic &&
+        currentOrganization.oid != server.ownerOrganizationOid &&
+        opts.accessType != 'user_auth_token'
+          ? ('public' as const)
+          : ('custom' as const)
+    }[server.type],
+
+    status: server.status,
 
     name: server.importedServer?.name ?? server.name ?? 'Unknown',
     description: server.importedServer?.description ?? server.description,
@@ -43,9 +53,14 @@ export let v1ServerPresenter = Presenter.create(serverType)
         description: 'The unique identifier for the server'
       }),
 
-      type: v.enumOf(['public'], {
+      type: v.enumOf(['public', 'custom'], {
         name: 'type',
         description: 'The visibility type of the server; currently only "public" is supported'
+      }),
+
+      status: v.enumOf(['active', 'inactive'], {
+        name: 'status',
+        description: 'The current status of the server'
       }),
 
       name: v.string({

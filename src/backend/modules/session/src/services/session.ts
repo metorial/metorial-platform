@@ -6,12 +6,14 @@ import {
   Instance,
   Organization,
   OrganizationActor,
+  Server,
   ServerDeployment,
   Session,
   SessionConnectionType,
   SessionStatus
 } from '@metorial/db';
 import {
+  badRequestError,
   forbiddenError,
   notFoundError,
   ServiceError,
@@ -59,9 +61,31 @@ class SessionImpl {
     performedBy: OrganizationActor;
     input: {
       connectionType: SessionConnectionType;
-      serverDeployments: ServerDeployment[];
+      serverDeployments: (ServerDeployment & { server: Server })[];
     };
+    ephemeralPermittedDeployments: Set<string>;
   }) {
+    for (let serverDeployment of d.input.serverDeployments) {
+      if (
+        serverDeployment.status != 'active' &&
+        !d.ephemeralPermittedDeployments.has(serverDeployment.id)
+      ) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot create session for inactive server deployment'
+          })
+        );
+      }
+
+      if (serverDeployment.server.status !== 'active') {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot create session for inactive server'
+          })
+        );
+      }
+    }
+
     await Fabric.fire('session.created:before', {
       instance: d.instance,
       organization: d.organization,
@@ -168,8 +192,30 @@ class SessionImpl {
     performedBy: OrganizationActor;
     organization: Organization;
     instance: Instance;
-    serverDeployments: ServerDeployment[];
+    serverDeployments: (ServerDeployment & { server: Server })[];
+    ephemeralPermittedDeployments: Set<string>;
   }) {
+    for (let serverDeployment of d.serverDeployments) {
+      if (
+        serverDeployment.status != 'active' &&
+        !d.ephemeralPermittedDeployments.has(serverDeployment.id)
+      ) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot add inactive server deployment to session'
+          })
+        );
+      }
+
+      if (serverDeployment.server.status !== 'active') {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot add server deployment for inactive server'
+          })
+        );
+      }
+    }
+
     await this.ensureSessionActive(d.session);
 
     let session = await db.session.update({

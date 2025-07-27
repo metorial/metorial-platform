@@ -10,7 +10,7 @@ import {
   ServerVariant,
   withTransaction
 } from '@metorial/db';
-import { forbiddenError, notFoundError, ServiceError } from '@metorial/error';
+import { badRequestError, forbiddenError, notFoundError, ServiceError } from '@metorial/error';
 import { Fabric } from '@metorial/fabric';
 import { ingestEventService } from '@metorial/module-event';
 import { Paginator } from '@metorial/pagination';
@@ -65,6 +65,14 @@ class ServerImplementationServiceImpl {
     };
     type: 'ephemeral' | 'persistent';
   }) {
+    if (d.serverVariant.status !== 'active' || d.serverVariant.server.status !== 'active') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot create server implementation for inactive server'
+        })
+      );
+    }
+
     await Fabric.fire('server.server_implementation.created:before', {
       organization: d.organization,
       performedBy: d.performedBy,
@@ -135,6 +143,14 @@ class ServerImplementationServiceImpl {
         include
       });
       if (defaultImplementation) return defaultImplementation;
+
+      if (d.serverVariant.status !== 'active' || d.serverVariant.server.status !== 'active') {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot create server implementation for inactive server'
+          })
+        );
+      }
 
       await Fabric.fire('server.server_implementation.created:before', {
         organization: d.organization,
@@ -281,6 +297,11 @@ class ServerImplementationServiceImpl {
         performedBy: d.performedBy,
         instance: d.instance,
         implementation: serverImplementation
+      });
+
+      await db.serverDeployment.updateMany({
+        where: { serverImplementationOid: serverImplementation.oid },
+        data: { status: 'deleted', deletedAt: new Date() }
       });
 
       return serverImplementation;
