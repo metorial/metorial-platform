@@ -10,6 +10,9 @@ vi.mock('@metorial/db', () => ({
       findUnique: vi.fn(),
       update: vi.fn(),
       findMany: vi.fn()
+    },
+    user: {
+      findFirst: vi.fn().mockResolvedValue({ oid: 'user_1' })
     }
   },
   ID: {
