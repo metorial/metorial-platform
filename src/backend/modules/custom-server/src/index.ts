@@ -1,12 +1,6 @@
 import { combineQueueProcessors } from '@metorial/queue';
-import { oauthCleanupCron } from './cron/cleanup';
-import { autoUpdateQueueProcessor } from './queue/autoUpdate';
+import { customServerCleanupCron } from './cron/cleanup';
 
 export * from './services';
 
-export let oauthQueueProcessor = combineQueueProcessors([
-  oauthCleanupCron,
-  autoUpdateQueueProcessor
-]);
-
-import './templates';
+export let customServerQueueProcessor = combineQueueProcessors([customServerCleanupCron]);
