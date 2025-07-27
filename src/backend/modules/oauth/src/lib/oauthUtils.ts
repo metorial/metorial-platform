@@ -2,10 +2,10 @@ import { canonicalize } from '@metorial/canonicalize';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { Hash } from '@metorial/hash';
 import { getSentry } from '@metorial/sentry';
+import { getAxiosSsrfFilter } from '@metorial/ssrf';
 import axios from 'axios';
 import { customAlphabet } from 'nanoid';
 import { OAuthConfiguration, TokenResponse, UserProfile } from '../types';
-import { getAxiosSsrfFilter } from './ssrfProtection';
 
 let id = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 21);
 

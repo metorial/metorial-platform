@@ -1,4 +1,4 @@
-import { oauthDiscoveryService } from '@metorial/module-oauth';
+import { oauthDiscoveryService } from '@metorial/module-provider-oauth';
 import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { apiGroup } from '../../middleware/apiGroup';

@@ -1,12 +1,14 @@
+import { getConfig } from '@metorial/config';
 import { createHono } from '@metorial/hono';
+import {
+  oauthAuthorizationService,
+  oauthConnectionService
+} from '@metorial/module-provider-oauth';
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
+import { wrapHtmlError } from '../lib/htmlError';
 import { useValidation } from '../lib/validator';
 import { redirectHtml } from '../templates/redirect';
-import { wrapHtmlError } from '../lib/htmlError';
-import { ServiceError, badRequestError } from '@metorial/error';
-import { oauthConnectionService, oauthAuthorizationService } from '@metorial/module-oauth';
-import { getConfig } from '@metorial/config';
-import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 
 let STATE_COOKIE_NAME = 'oauth_state';
 

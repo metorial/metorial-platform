@@ -1,4 +1,4 @@
-import { oauthTemplateService } from '@metorial/module-oauth';
+import { oauthTemplateService } from '@metorial/module-provider-oauth';
 import { Paginator } from '@metorial/pagination';
 import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';

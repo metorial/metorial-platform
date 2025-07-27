@@ -1,4 +1,7 @@
-import { oauthConnectionService, oauthTemplateService } from '@metorial/module-oauth';
+import {
+  providerOauthConnectionService,
+  providerOauthTemplateService
+} from '@metorial/module-provider-oauth';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -9,7 +12,7 @@ import { providerOauthConnectionPresenter } from '../../presenters';
 export let connectionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.connectionId) throw new Error('connectionId is required');
 
-  let connection = await oauthConnectionService.getConnectionById({
+  let connection = await providerOauthConnectionService.getConnectionById({
     connectionId: ctx.params.connectionId,
     instance: ctx.instance
   });
@@ -32,7 +35,7 @@ export let providerOauthConnectionController = Controller.create(
       .outputList(providerOauthConnectionPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
-        let paginator = await oauthConnectionService.listConnections({
+        let paginator = await providerOauthConnectionService.listConnections({
           instance: ctx.instance
         });
 
@@ -76,12 +79,12 @@ export let providerOauthConnectionController = Controller.create(
       .output(providerOauthConnectionPresenter)
       .do(async ctx => {
         let template = ctx.body.template_id
-          ? await oauthTemplateService.getTemplateById({
+          ? await providerOauthTemplateService.getTemplateById({
               templateId: ctx.body.template_id
             })
           : undefined;
 
-        let providerOauthConnection = await oauthConnectionService.createConnection({
+        let providerOauthConnection = await providerOauthConnectionService.createConnection({
           organization: ctx.organization,
           performedBy: ctx.actor,
           instance: ctx.instance,
@@ -142,7 +145,7 @@ export let providerOauthConnectionController = Controller.create(
       )
       .output(providerOauthConnectionPresenter)
       .do(async ctx => {
-        let providerOauthConnection = await oauthConnectionService.updateConnection({
+        let providerOauthConnection = await providerOauthConnectionService.updateConnection({
           organization: ctx.organization,
           performedBy: ctx.actor,
           instance: ctx.instance,
@@ -173,7 +176,7 @@ export let providerOauthConnectionController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.connection:write'] }))
       .output(providerOauthConnectionPresenter)
       .do(async ctx => {
-        let providerOauthConnection = await oauthConnectionService.archiveConnection({
+        let providerOauthConnection = await providerOauthConnectionService.archiveConnection({
           organization: ctx.organization,
           performedBy: ctx.actor,
           instance: ctx.instance,

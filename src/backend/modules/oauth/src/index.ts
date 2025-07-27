@@ -4,7 +4,7 @@ import { autoUpdateQueueProcessor } from './queue/autoUpdate';
 
 export * from './services';
 
-export let oauthQueueProcessor = combineQueueProcessors([
+export let providerOauthQueueProcessor = combineQueueProcessors([
   oauthCleanupCron,
   autoUpdateQueueProcessor
 ]);
