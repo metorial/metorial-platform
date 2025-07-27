@@ -1,4 +1,4 @@
-import { db, File, ID, Instance, Organization, User } from '@metorial/db';
+import { db, File, ID, Instance, Organization } from '@metorial/db';
 import { badRequestError, forbiddenError, notFoundError, ServiceError } from '@metorial/error';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -7,7 +7,7 @@ import { purposes } from '../definitions';
 export type FileOwner =
   | {
       type: 'user';
-      user: User;
+      user: { id: string };
     }
   | {
       type: 'organization';
@@ -28,6 +28,14 @@ class FileServiceImpl {
         })
       );
     }
+  }
+
+  private async getUserOid(userId: string) {
+    let user = await db.user.findFirst({
+      where: { id: userId }
+    });
+    if (!user) throw new Error('WTF - user not found');
+    return user.oid;
   }
 
   async createFile(d: {
@@ -65,7 +73,7 @@ class FileServiceImpl {
         storeId: d.storeId,
         purposeOid: purpose.oid,
         organizationOid: d.owner.type === 'organization' ? d.owner.organization.oid : null,
-        userOid: d.owner.type === 'user' ? d.owner.user.oid : null,
+        userOid: d.owner.type === 'user' ? await this.getUserOid(d.owner.user.id) : null,
 
         fileName: d.input.name,
         fileSize: d.input.size,
@@ -80,6 +88,8 @@ class FileServiceImpl {
   }
 
   async getFileById(d: { fileId: string; owner: FileOwner }) {
+    let userOid = d.owner.type === 'user' ? await this.getUserOid(d.owner.user.id) : null;
+
     let file = await db.file.findUnique({
       where: {
         id: d.fileId,
@@ -93,12 +103,14 @@ class FileServiceImpl {
             }
           : {
               OR: [
-                { userOid: d.owner.user.oid },
+                {
+                  userOid: userOid!
+                },
                 {
                   organization: {
                     members: {
                       some: {
-                        userOid: d.owner.user.oid
+                        userOid: userOid!
                       }
                     }
                   }
@@ -180,7 +192,7 @@ class FileServiceImpl {
             where: {
               organizationOid:
                 d.owner.type === 'organization' ? d.owner.organization.oid : null,
-              userOid: d.owner.type === 'user' ? d.owner.user.oid : null,
+              userOid: d.owner.type === 'user' ? await this.getUserOid(d.owner.user.id) : null,
               status: 'active',
 
               purposeOid: purpose?.oid
