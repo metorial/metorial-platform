@@ -10,7 +10,7 @@ export let v1FileLinkPresenter = Presenter.create(fileLinkType)
     id: fileLink.id,
     file_id: fileLink.file.id,
 
-    url: `${getConfig().urls.apiUrl}/files/view/${fileLink.id}/${fileLink.key}`,
+    url: `${getConfig().urls.filesUrl}/files/retrieve/${fileLink.id}/${fileLink.key}`,
 
     created_at: fileLink.createdAt,
     expires_at: fileLink.expiresAt
@@ -27,7 +27,7 @@ export let v1FileLinkPresenter = Presenter.create(fileLinkType)
       url: v.string({
         name: 'url',
         description: `The file's public URL`,
-        examples: ['https://api.metorial.com/files/view/1234567890/abcdefg']
+        examples: ['https://files.metorial.com/files/retrieve/1234567890/abcdefg']
       }),
       created_at: v.date({ name: 'created_at', description: `The links's creation date` }),
       expires_at: v.nullable(

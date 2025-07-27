@@ -133,6 +133,8 @@ export let serverType = PresentableType.create<{
       currentVersion: (ServerVersion & { schema: ServerConfigSchema }) | null;
     })[];
   };
+
+  currentOrganization: Organization;
 }>()('server');
 
 export let serverListingCategoryType = PresentableType.create<{
