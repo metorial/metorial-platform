@@ -7,6 +7,7 @@ WORKDIR /app
 
 COPY ./src/mcp-engine /app/src/mcp-engine
 COPY ./src/modules /app/src/modules
+COPY ./src/services /app/src/services
 COPY ./go.work /app/go.work
 COPY ./go.work.sum /app/go.work.sum
 
