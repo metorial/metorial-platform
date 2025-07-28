@@ -2,7 +2,7 @@ model RemoteServerInstance {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  name        String
+  name        String?
   description String?
 
   remoteUrl String
@@ -10,8 +10,31 @@ model RemoteServerInstance {
   connectionOid BigInt?
   connection    ProviderOAuthConnection? @relation(fields: [connectionOid], references: [oid])
 
+  instanceOid BigInt
+  instance    Organization @relation(fields: [instanceOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   customServerVersions CustomServerVersion[]
+  notifications        RemoteServerInstanceNotification[]
+}
+
+enum RemoteServerInstanceNotificationType {
+  connection_issue
+}
+
+model RemoteServerInstanceNotification {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  remoteServerInstanceOid BigInt
+  remoteServerInstance    RemoteServerInstance @relation(fields: [remoteServerInstanceOid], references: [oid])
+
+  type    RemoteServerInstanceNotificationType
+  message String
+
+  payload Json
+
+  createdAt DateTime @default(now())
 }

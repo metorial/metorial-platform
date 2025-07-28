@@ -81,5 +81,6 @@ export let ID = createIdGenerator({
   customServerEnvironment: idType.sorted('cseenv'),
   customServerVersion: idType.sorted('csev'),
 
-  remoteServerInstance: idType.sorted('rsi')
+  remoteServerInstance: idType.sorted('rsi'),
+  remoteServerInstanceNotification: idType.sorted('rsin')
 });
