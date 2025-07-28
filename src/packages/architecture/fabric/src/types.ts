@@ -148,6 +148,7 @@ export interface FabricEvents {
 
   'session.session_message.created:before': { organization: Organization, instance: Instance, session: ServerSession, participant: {type: 'client' | 'server'} };
   'session.session_message.created.many:after': { organization: Organization, instance: Instance, session: ServerSession, sessionMessages: SessionMessage[] };
+  'session.session_message.client_message_received': { organization: Organization, instance: Instance, session: ServerSession };
 
   'server.engine_session.created:before': { organization: Organization, instance: Instance, serverSession: ServerSession };
   'server.engine_session.created:after': { organization: Organization, instance: Instance, serverSession: ServerSession, engineSession: EngineSession };
