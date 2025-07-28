@@ -47,7 +47,10 @@ let scopeRaw = [
 
   'instance.provider_oauth.connection.authentication:read' as const,
   'instance.provider_oauth.connection.event:read' as const,
-  'instance.provider_oauth.connection.profile:read' as const
+  'instance.provider_oauth.connection.profile:read' as const,
+
+  'instance.custom_server:read' as const,
+  'instance.custom_server:write' as const
 
   // 'organization.machine_access.api_key.organization:read' as const,
   // 'organization.machine_access.api_key.organization:write' as const,

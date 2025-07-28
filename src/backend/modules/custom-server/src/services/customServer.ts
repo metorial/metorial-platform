@@ -5,6 +5,7 @@ import {
   Instance,
   Organization,
   RemoteServerInstance,
+  Server,
   withTransaction
 } from '@metorial/db';
 import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
@@ -14,10 +15,17 @@ import { customServerVersionService } from './customServerVersion';
 
 let include = {
   server: true,
-  organization: true
+  organization: true,
+  environments: {
+    include: {
+      instance: true,
+      customServer: true,
+      serverVariant: true
+    }
+  }
 };
 
-class customServerRemoteServiceImpl {
+class customServerServiceImpl {
   async createCustomServer(d: {
     instance: Instance;
     organization: Organization;
@@ -28,7 +36,7 @@ class customServerRemoteServiceImpl {
       metadata?: Record<string, any>;
     };
 
-    implementation: {
+    serverInstance: {
       type: 'remote';
       implementation: RemoteServerInstance;
 
@@ -56,26 +64,30 @@ class customServerRemoteServiceImpl {
       let customServer = await db.customServer.create({
         data: {
           id: await ID.generateId('customServer'),
-          type: d.implementation.type,
+          type: d.serverInstance.type,
           status: d.isEphemeral ? 'archived' : 'active',
           isEphemeral: d.isEphemeral,
           serverOid: server.oid,
           organizationOid: d.organization.oid,
           name: d.input.name,
           description: d.input.description
-        },
-        include
+        }
       });
 
       await customServerVersionService.createVersion({
         server: customServer,
         instance: d.instance,
         organization: d.organization,
-        implementation: d.implementation,
+        serverInstance: d.serverInstance,
 
         // Permits us to update the server, even though it is not active.
         isEphemeralUpdate: d.isEphemeral
       });
+
+      return (await db.customServer.findFirst({
+        where: { id: customServer.id },
+        include
+      }))!;
     });
   }
 
@@ -118,11 +130,19 @@ class customServerRemoteServiceImpl {
     });
   }
 
-  async deleteCustomServer(d: { server: CustomServer }) {
+  async deleteCustomServer(d: { server: CustomServer & { server: Server } }) {
     if (d.server.status != 'active') {
       throw new ServiceError(
         badRequestError({
           message: 'Cannot update inactive server version'
+        })
+      );
+    }
+
+    if (d.server.server.isPublic) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot delete public server'
         })
       );
     }
@@ -181,7 +201,7 @@ class customServerRemoteServiceImpl {
   }
 }
 
-export let customServerRemoteService = Service.create(
-  'customServerRemote',
-  () => new customServerRemoteServiceImpl()
+export let customServerService = Service.create(
+  'customServer',
+  () => new customServerServiceImpl()
 ).build();

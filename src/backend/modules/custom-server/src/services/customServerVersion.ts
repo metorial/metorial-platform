@@ -25,9 +25,14 @@ let include = {
   customServer: {
     include: { server: true }
   },
-  environment: {
-    include: { instance: true }
-  }
+  environment: true,
+  instance: true,
+  remoteServerInstance: {
+    include: {
+      connection: true
+    }
+  },
+  currentVersionForServer: true
 };
 
 let getVersionIdentifier = createShortIdGenerator(
@@ -63,7 +68,7 @@ class CustomServerVersionServiceImpl {
     instance: Instance;
     organization: Organization;
 
-    implementation: {
+    serverInstance: {
       type: 'remote';
       implementation: RemoteServerInstance;
 
@@ -75,8 +80,8 @@ class CustomServerVersionServiceImpl {
 
     isEphemeralUpdate?: boolean;
   }) {
-    if (d.implementation.config?.schema) {
-      await validateJsonSchema(d.implementation.config.schema);
+    if (d.serverInstance.config?.schema) {
+      await validateJsonSchema(d.serverInstance.config.schema);
     }
 
     if (d.server.status != 'active' && !d.isEphemeralUpdate) {
@@ -87,8 +92,17 @@ class CustomServerVersionServiceImpl {
       );
     }
 
-    if (d.server.type != d.implementation.type) {
-      throw new Error('WTF - Server type does not match implementation type');
+    if (d.server.type != d.serverInstance.type) {
+      throw new ServiceError(
+        badRequestError({
+          reason: 'server_type_mismatch',
+          message: `Server type mismatch: expected ${d.server.type}, got ${d.serverInstance.type}`
+        })
+      );
+    }
+
+    if (d.serverInstance.implementation.instanceOid != d.instance.oid) {
+      throw new Error('WTF - Remote server instance does not match instance');
     }
 
     return await lock.usingLock(
@@ -105,12 +119,22 @@ class CustomServerVersionServiceImpl {
           let configSchema: any;
           let serverVersionParams: Partial<ServerVersion> = {};
 
-          if (d.implementation.type == 'remote') {
-            getLaunchParams = d.implementation.config?.getLaunchParams ?? defaultLaunchParams;
-            configSchema = d.implementation.config?.schema ?? defaultRemoteConfigSchema;
+          if (d.serverInstance.type == 'remote') {
+            getLaunchParams = d.serverInstance.config?.getLaunchParams ?? defaultLaunchParams;
+            configSchema = d.serverInstance.config?.schema ?? defaultRemoteConfigSchema;
             serverVersionParams = {
-              remoteUrl: d.implementation.implementation.remoteUrl
+              remoteUrl: d.serverInstance.implementation.remoteUrl
             };
+
+            if (!d.serverInstance.implementation.name) {
+              await db.remoteServerInstance.update({
+                where: { oid: d.serverInstance.implementation.oid },
+                data: {
+                  name: d.server.name,
+                  description: d.server.description
+                }
+              });
+            }
           } else {
             throw new Error('WTF - Unsupported implementation type');
           }
@@ -157,7 +181,7 @@ class CustomServerVersionServiceImpl {
               instanceOid: d.instance.oid,
 
               remoteServerInstanceOid:
-                d.implementation.type == 'remote' ? d.implementation.implementation.oid : null
+                d.serverInstance.type == 'remote' ? d.serverInstance.implementation.oid : null
             },
             include
           });
@@ -177,85 +201,85 @@ class CustomServerVersionServiceImpl {
     );
   }
 
-  async importVersionFromOtherInstance(d: {
-    server: CustomServer;
-    organization: Organization;
+  // async importVersionFromOtherInstance(d: {
+  //   server: CustomServer;
+  //   organization: Organization;
 
-    toInstance: Instance;
-    fromInstance: Instance;
+  //   toInstance: Instance;
+  //   fromInstance: Instance;
 
-    specificVersionId?: string;
-  }) {
-    if (d.server.status != 'active') {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Cannot update inactive server version'
-        })
-      );
-    }
+  //   specificVersionId?: string;
+  // }) {
+  //   if (d.server.status != 'active') {
+  //     throw new ServiceError(
+  //       badRequestError({
+  //         message: 'Cannot update inactive server version'
+  //       })
+  //     );
+  //   }
 
-    return withTransaction(async db => {
-      let otherEnvironment = await customServerEnvironmentService.ensureEnvironment({
-        server: d.server,
-        instance: d.fromInstance,
-        organization: d.organization
-      });
-      if (!otherEnvironment.currentVersionOid && !d.specificVersionId) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Cannot import version from instance without a current version'
-          })
-        );
-      }
+  //   return withTransaction(async db => {
+  //     let otherEnvironment = await customServerEnvironmentService.ensureEnvironment({
+  //       server: d.server,
+  //       instance: d.fromInstance,
+  //       organization: d.organization
+  //     });
+  //     if (!otherEnvironment.currentVersionOid && !d.specificVersionId) {
+  //       throw new ServiceError(
+  //         badRequestError({
+  //           message: 'Cannot import version from instance without a current version'
+  //         })
+  //       );
+  //     }
 
-      let versionToImport = await db.customServerVersion.findFirst({
-        where: {
-          customServerOid: d.server.oid,
-          environmentOid: otherEnvironment.oid,
+  //     let versionToImport = await db.customServerVersion.findFirst({
+  //       where: {
+  //         customServerOid: d.server.oid,
+  //         environmentOid: otherEnvironment.oid,
 
-          id: d.specificVersionId,
-          oid: !d.specificVersionId ? otherEnvironment.currentVersionOid! : undefined
-        },
-        include: {
-          remoteServerInstance: true,
-          serverVersion: {
-            include: {
-              schema: true
-            }
-          }
-        }
-      });
-      if (!versionToImport) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Invalid version to import'
-          })
-        );
-      }
+  //         id: d.specificVersionId,
+  //         oid: !d.specificVersionId ? otherEnvironment.currentVersionOid! : undefined
+  //       },
+  //       include: {
+  //         remoteServerInstance: true,
+  //         serverVersion: {
+  //           include: {
+  //             schema: true
+  //           }
+  //         }
+  //       }
+  //     });
+  //     if (!versionToImport) {
+  //       throw new ServiceError(
+  //         badRequestError({
+  //           message: 'Invalid version to import'
+  //         })
+  //       );
+  //     }
 
-      if (d.server.type == 'remote') {
-        if (!versionToImport.remoteServerInstance) {
-          throw new Error('WTF - Remote server instance not found for import');
-        }
+  //     if (d.server.type == 'remote') {
+  //       if (!versionToImport.remoteServerInstance) {
+  //         throw new Error('WTF - Remote server instance not found for import');
+  //       }
 
-        return await this.createVersion({
-          server: d.server,
-          instance: d.toInstance,
-          organization: d.organization,
-          implementation: {
-            type: 'remote',
-            implementation: versionToImport.remoteServerInstance!,
-            config: {
-              schema: versionToImport.serverVersion.schema,
-              getLaunchParams: versionToImport.serverVersion.getLaunchParams
-            }
-          }
-        });
-      } else {
-        throw new Error('WTF - Unsupported server type for import');
-      }
-    });
-  }
+  //       return await this.createVersion({
+  //         server: d.server,
+  //         instance: d.toInstance,
+  //         organization: d.organization,
+  //         serverInstance: {
+  //           type: 'remote',
+  //           implementation: versionToImport.remoteServerInstance!,
+  //           config: {
+  //             schema: versionToImport.serverVersion.schema,
+  //             getLaunchParams: versionToImport.serverVersion.getLaunchParams
+  //           }
+  //         }
+  //       });
+  //     } else {
+  //       throw new Error('WTF - Unsupported server type for import');
+  //     }
+  //   });
+  // }
 
   private async setCurrentVersionWithoutLock(d: {
     server: CustomServer;
