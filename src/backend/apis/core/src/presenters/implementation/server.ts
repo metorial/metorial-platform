@@ -4,18 +4,13 @@ import { serverType } from '../types';
 import { v1ServerVariantPresenter } from './serverVariant';
 
 export let v1ServerPresenter = Presenter.create(serverType)
-  .presenter(async ({ server, currentOrganization }, opts) => ({
+  .presenter(async ({ server }, opts) => ({
     object: 'server',
 
     id: server.id,
     type: {
       imported: 'public' as const,
-      custom:
-        server.isPublic &&
-        currentOrganization.oid != server.ownerOrganizationOid &&
-        opts.accessType != 'user_auth_token'
-          ? ('public' as const)
-          : ('custom' as const)
+      custom: server.isPublic ? ('public' as const) : ('custom' as const)
     }[server.type],
 
     status: server.status,

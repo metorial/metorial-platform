@@ -15,12 +15,12 @@ import { customServerVersionService } from './customServerVersion';
 
 let include = {
   server: true,
-  organization: true,
   environments: {
     include: {
       instance: true,
       customServer: true,
-      serverVariant: true
+      serverVariant: true,
+      currentVersion: true
     }
   }
 };

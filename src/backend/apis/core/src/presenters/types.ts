@@ -138,8 +138,6 @@ export let serverType = PresentableType.create<{
       currentVersion: (ServerVersion & { schema: ServerConfigSchema }) | null;
     })[];
   };
-
-  currentOrganization: Organization;
 }>()('server');
 
 export let serverListingCategoryType = PresentableType.create<{
@@ -382,6 +380,7 @@ export let customServerType = PresentableType.create<{
       customServer: CustomServer;
       instance: Instance;
       serverVariant: ServerVariant;
+      currentVersion: CustomServerVersion | null;
     })[];
   };
 }>()('custom_server');
@@ -391,7 +390,9 @@ export let customServerEnvironmentType = PresentableType.create<{
     customServer: CustomServer;
     instance: Instance;
     serverVariant: ServerVariant;
+    currentVersion: CustomServerVersion | null;
   };
+  server: Server;
 }>()('custom_server.environment');
 
 export let customServerVersionType = PresentableType.create<{
@@ -399,7 +400,9 @@ export let customServerVersionType = PresentableType.create<{
     customServer: CustomServer & {
       server: Server;
     };
-    environment: CustomServerEnvironment;
+    environment: CustomServerEnvironment & {
+      serverVariant: ServerVariant;
+    };
     instance: Instance;
     serverVersion: ServerVersion;
     currentVersionForServer: CustomServerEnvironment | null;
@@ -409,4 +412,4 @@ export let customServerVersionType = PresentableType.create<{
         })
       | null;
   };
-}>()('custom_server.environment');
+}>()('custom_server.version');

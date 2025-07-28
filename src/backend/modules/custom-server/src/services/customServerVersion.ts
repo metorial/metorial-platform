@@ -21,12 +21,14 @@ import { validateJsonSchema } from '../lib/jsonSchema';
 import { customServerEnvironmentService } from './customServerEnvironment';
 
 let include = {
-  serverVersion: true,
   customServer: {
     include: { server: true }
   },
-  environment: true,
+  environment: {
+    include: { serverVariant: true }
+  },
   instance: true,
+  serverVersion: true,
   remoteServerInstance: {
     include: {
       connection: true
@@ -171,6 +173,8 @@ class CustomServerVersionServiceImpl {
           let customServerVersion = await db.customServerVersion.create({
             data: {
               id: await ID.generateId('customServerVersion'),
+
+              status: 'available',
 
               versionHash,
               versionIndex: maxVersionIndex,
