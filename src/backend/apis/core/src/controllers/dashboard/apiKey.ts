@@ -12,9 +12,6 @@ export let getApiKeyFilter = async (
   auth: AuthInfo,
   body:
     | {
-        type: 'user_auth_token';
-      }
-    | {
         type: 'instance_access_token';
         instance_id?: string;
       }
@@ -26,11 +23,6 @@ export let getApiKeyFilter = async (
   let filter: ListApiKeysFilter | undefined = undefined;
 
   if (auth.type == 'user') {
-    filter = {
-      type: 'user_auth_token',
-      user: auth.user
-    };
-
     if (body.type == 'instance_access_token') {
       if (!body.instance_id) {
         throw new ServiceError(
@@ -70,14 +62,6 @@ export let getApiKeyFilter = async (
       };
     }
   } else if (auth.restrictions.type == 'organization') {
-    if (body.type == 'user_auth_token') {
-      throw new ServiceError(
-        forbiddenError({
-          message: 'You are not permitted to list user auth tokens'
-        })
-      );
-    }
-
     filter = {
       type: 'organization_management_token',
       organization: auth.restrictions.organization
@@ -133,9 +117,6 @@ export let dashboardApiKeyController = Controller.create(
               organization_id: v.string()
             }),
             v.object({
-              type: v.literal('user_auth_token')
-            }),
-            v.object({
               type: v.literal('instance_access_token'),
               instance_id: v.string()
             })
@@ -181,9 +162,6 @@ export let dashboardApiKeyController = Controller.create(
               organization_id: v.string()
             }),
             v.object({
-              type: v.literal('user_auth_token')
-            }),
-            v.object({
               type: v.enumOf([
                 'instance_access_token_secret',
                 'instance_access_token_publishable'
@@ -216,27 +194,6 @@ export let dashboardApiKeyController = Controller.create(
             type: 'organization_management_token',
             organization: organization.organization,
             performedBy: organization.member.actor
-          });
-
-          return apiKeyPresenter.present({ apiKey, secret });
-        } else if (ctx.body.type == 'user_auth_token') {
-          if (ctx.auth.machineAccess) {
-            throw new ServiceError(
-              badRequestError({
-                message: 'Cannot create user auth token using API'
-              })
-            );
-          }
-
-          let { apiKey, secret } = await apiKeyService.createApiKey({
-            input: {
-              name: ctx.body.name,
-              description: ctx.body.description,
-              expiresAt: ctx.body.expires_at
-            },
-            context: ctx.context,
-            type: 'user_auth_token',
-            user: ctx.user
           });
 
           return apiKeyPresenter.present({ apiKey, secret });
@@ -290,6 +247,14 @@ export let dashboardApiKeyController = Controller.create(
             })
           : undefined;
 
+        if (!org) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not permitted to update this API key'
+            })
+          );
+        }
+
         apiKey = await apiKeyService.updateApiKey({
           apiKey,
           input: {
@@ -322,6 +287,14 @@ export let dashboardApiKeyController = Controller.create(
               user: ctx.user
             })
           : undefined;
+
+        if (!org) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not permitted to revoke this API key'
+            })
+          );
+        }
 
         apiKey = await apiKeyService.revokeApiKey({
           apiKey,
@@ -357,6 +330,14 @@ export let dashboardApiKeyController = Controller.create(
             })
           : undefined;
 
+        if (!org) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not permitted to rotate this API key'
+            })
+          );
+        }
+
         let res = await apiKeyService.rotateApiKey({
           apiKey,
           context: ctx.context,
@@ -387,6 +368,14 @@ export let dashboardApiKeyController = Controller.create(
               user: ctx.user
             })
           : undefined;
+
+        if (!org) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not permitted to reveal this API key'
+            })
+          );
+        }
 
         let secret = await apiKeyService.revealApiKey({
           apiKey,

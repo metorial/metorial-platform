@@ -1,5 +1,4 @@
 enum MachineAccessType {
-  user_auth_token
   organization_management
   instance_secret
   instance_publishable

@@ -61,11 +61,10 @@ export let ApiKeysScene = ({
           expiresAt: undefined,
           type: {
             organization_management_token: 'organization_management_token' as const,
-            user_auth_token: 'user_auth_token' as const,
+            user_auth_token: 'organization_management_token' as const, // user_auth_token don't exist anymore
             instance_access_token: 'instance_access_token_secret' as const
           }[filter.type] as
             | 'organization_management_token'
-            | 'user_auth_token'
             | 'instance_access_token_secret'
             | 'instance_access_token_publishable'
         },
@@ -125,7 +124,6 @@ export let ApiKeysScene = ({
               .string()
               .oneOf([
                 'organization_management_token',
-                'user_auth_token',
                 'instance_access_token_secret',
                 'instance_access_token_publishable'
               ])

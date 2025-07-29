@@ -5,7 +5,6 @@ import {
   MachineAccess,
   Organization,
   OrganizationActor,
-  User,
   withTransaction
 } from '@metorial/db';
 import { forbiddenError, ServiceError } from '@metorial/error';
@@ -32,10 +31,6 @@ class MachineAccessService {
       context: Context;
     } & (
       | {
-          type: 'user_auth_token';
-          user: User;
-        }
-      | {
           type: 'organization_management';
           organization: Organization;
           performedBy: OrganizationActor;
@@ -51,19 +46,16 @@ class MachineAccessService {
     return withTransaction(async db => {
       await Fabric.fire('machine_access.created:before', d);
 
-      let actor =
-        d.type != 'user_auth_token'
-          ? await organizationActorService.createOrganizationActor({
-              input: {
-                type: 'machine_access',
-                name: d.input.name,
-                image: { type: 'default' }
-              },
-              organization: d.organization,
-              context: d.context,
-              performedBy: { type: 'actor', actor: d.performedBy }
-            })
-          : null;
+      let actor = await organizationActorService.createOrganizationActor({
+        input: {
+          type: 'machine_access',
+          name: d.input.name,
+          image: { type: 'default' }
+        },
+        organization: d.organization,
+        context: d.context,
+        performedBy: { type: 'actor', actor: d.performedBy }
+      });
 
       let machineAccess = await db.machineAccess.create({
         data: {
@@ -71,12 +63,11 @@ class MachineAccessService {
           status: 'active',
           type: d.type,
           name: d.input.name,
-          organizationOid: d.type === 'user_auth_token' ? null : d.organization.oid,
+          organizationOid: d.organization.oid,
           instanceOid:
             d.type === 'instance_secret' || d.type === 'instance_publishable'
               ? d.instance.oid
               : null,
-          userOid: d.type === 'user_auth_token' ? d.user.oid : null,
           actorOid: actor?.oid
         }
       });
@@ -95,13 +86,9 @@ class MachineAccessService {
     input: {
       name?: string;
     };
-    performedBy?: OrganizationActor;
+    performedBy: OrganizationActor;
     context: Context;
   }) {
-    if (d.machineAccess.type != 'user_auth_token' && !d.performedBy) {
-      throw new Error('WTF - performedBy is required');
-    }
-
     await this.ensureMachineAccessActive(d.machineAccess);
 
     return withTransaction(async db => {
@@ -125,13 +112,9 @@ class MachineAccessService {
 
   async deleteMachineAccess(d: {
     machineAccess: MachineAccess;
-    performedBy?: OrganizationActor;
+    performedBy: OrganizationActor;
     context: Context;
   }) {
-    if (d.machineAccess.type != 'user_auth_token' && !d.performedBy) {
-      throw new Error('WTF - performedBy is required');
-    }
-
     await this.ensureMachineAccessActive(d.machineAccess);
 
     return withTransaction(async db => {

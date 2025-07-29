@@ -26,10 +26,6 @@ export type ListApiKeysFilter =
       organization: Organization;
     }
   | {
-      type: 'user_auth_token';
-      user: User;
-    }
-  | {
       type: 'instance_access_token';
       instance: Instance;
       organization: Organization;
@@ -56,10 +52,6 @@ class ApiKeyService {
       context: Context;
     } & (
       | {
-          type: 'user_auth_token';
-          user: User;
-        }
-      | {
           type: 'organization_management_token';
           organization: Organization;
           performedBy: OrganizationActor;
@@ -74,38 +66,29 @@ class ApiKeyService {
   ) {
     return withTransaction(async db => {
       let machineAccess = await machineAccessService.createMachineAccess(
-        d.type == 'user_auth_token'
+        d.type == 'organization_management_token'
           ? {
-              type: 'user_auth_token' as const,
-              user: d.user,
+              type: 'organization_management' as const,
+              organization: d.organization,
+              performedBy: d.performedBy,
               context: d.context,
               input: {
-                name: `USER TOKEN ${d.input.name}`
+                name: `ORG TOKEN ${d.input.name}`
               }
             }
-          : d.type == 'organization_management_token'
-            ? {
-                type: 'organization_management' as const,
-                organization: d.organization,
-                performedBy: d.performedBy,
-                context: d.context,
-                input: {
-                  name: `ORG TOKEN ${d.input.name}`
-                }
+          : {
+              type:
+                d.type == 'instance_access_token_secret'
+                  ? 'instance_secret'
+                  : 'instance_publishable',
+              organization: d.organization,
+              performedBy: d.performedBy,
+              context: d.context,
+              instance: d.instance,
+              input: {
+                name: `INSTANCE TOKEN ${d.input.name}`
               }
-            : {
-                type:
-                  d.type == 'instance_access_token_secret'
-                    ? 'instance_secret'
-                    : 'instance_publishable',
-                organization: d.organization,
-                performedBy: d.performedBy,
-                context: d.context,
-                instance: d.instance,
-                input: {
-                  name: `INSTANCE TOKEN ${d.input.name}`
-                }
-              }
+            }
       );
 
       await Fabric.fire('machine_access.api_key.created:before', {
@@ -120,7 +103,6 @@ class ApiKeyService {
 
       let limitReveal =
         d.type == 'organization_management_token' ||
-        d.type == 'user_auth_token' ||
         (d.type == 'instance_access_token_secret' && d.instance.type == 'production');
 
       let apiKey = await db.apiKey.create({
@@ -181,12 +163,8 @@ class ApiKeyService {
       expiresAt?: Date;
     };
     context: Context;
-    performedBy?: OrganizationActor;
+    performedBy: OrganizationActor;
   }) {
-    if (d.apiKey.type != 'user_auth_token' && !d.performedBy) {
-      throw new Error('WTF - performedBy is required');
-    }
-
     await this.ensureApiKeyActive(d.apiKey);
 
     return withTransaction(async db => {
@@ -220,8 +198,7 @@ class ApiKeyService {
           name: {
             instance_access_token_publishable: `INSTANCE TOKEN ${d.input.name}`,
             instance_access_token_secret: `INSTANCE TOKEN ${d.input.name}`,
-            organization_management_token: `ORG TOKEN ${d.input.name}`,
-            user_auth_token: `USER TOKEN ${d.input.name}`
+            organization_management_token: `ORG TOKEN ${d.input.name}`
           }[d.apiKey.type]
         },
         performedBy: d.performedBy,
@@ -240,13 +217,9 @@ class ApiKeyService {
 
   async revokeApiKey(d: {
     apiKey: ApiKey & { machineAccess: MachineAccess };
-    performedBy?: OrganizationActor;
+    performedBy: OrganizationActor;
     context: Context;
   }) {
-    if (d.apiKey.type != 'user_auth_token' && !d.performedBy) {
-      throw new Error('WTF - performedBy is required');
-    }
-
     await this.ensureApiKeyActive(d.apiKey);
 
     return withTransaction(async db => {
@@ -291,14 +264,10 @@ class ApiKeyService {
 
   async rotateApiKey(d: {
     apiKey: ApiKey & { machineAccess: MachineAccess };
-    performedBy?: OrganizationActor;
+    performedBy: OrganizationActor;
     context: Context;
     input: { currentExpiresAt?: Date };
   }) {
-    if (d.apiKey.type != 'user_auth_token' && !d.performedBy) {
-      throw new Error('WTF - performedBy is required');
-    }
-
     await this.ensureApiKeyActive(d.apiKey);
 
     return withTransaction(async db => {
@@ -378,13 +347,9 @@ class ApiKeyService {
 
   async revealApiKey(d: {
     apiKey: ApiKey & { machineAccess: MachineAccess };
-    performedBy?: OrganizationActor;
+    performedBy: OrganizationActor;
     context: Context;
   }) {
-    if (d.apiKey.type != 'user_auth_token' && !d.performedBy) {
-      throw new Error('WTF - performedBy is required');
-    }
-
     await this.ensureApiKeyActive(d.apiKey);
 
     if (d.apiKey.canRevealUntil && d.apiKey.canRevealUntil < new Date()) {
@@ -507,13 +472,6 @@ class ApiKeyService {
                 ? {
                     type: 'organization_management_token',
                     machineAccess: { organizationOid: d.filter.organization.oid }
-                  }
-                : {}),
-
-              ...(d.filter.type == 'user_auth_token'
-                ? {
-                    type: 'user_auth_token',
-                    machineAccess: { userOid: d.filter.user.oid }
                   }
                 : {}),
 

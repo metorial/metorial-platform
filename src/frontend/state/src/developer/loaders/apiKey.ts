@@ -3,7 +3,7 @@ import {
   ApiKeysCreateBody,
   ApiKeysListQuery,
   ApiKeysUpdateBody
-} from '@metorial/generated/src/mt_2025_01_01_dashboard';
+} from '@metorial/generated/dist/mt_2025_01_01_dashboard';
 import { useEffect, useState } from 'react';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { withAuth } from '../../user';
@@ -31,9 +31,6 @@ export type ApiKeysFilter =
   | {
       type: 'organization_management_token';
       organizationId: string;
-    }
-  | {
-      type: 'user_auth_token';
     }
   | {
       type: 'instance_access_token';
@@ -108,7 +105,7 @@ export let useRevealableApiKey = ({ apiKeyId }: { apiKeyId?: string }) => {
       .mutate({
         apiKeyId
       })
-      .then(async ([res]) => {
+      .then(async ([res]: any) => {
         if (!res) return;
         revealedApiKey[apiKeyId] = {
           secret: res.secret!,
