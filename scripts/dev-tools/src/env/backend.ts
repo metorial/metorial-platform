@@ -129,10 +129,10 @@ export let backendEnv: Env = [
 
   {
     key: 'ISLANDS_METORIAL_HOSTED_FED_DEFAULT_ADDRESS',
-    defaultValue: 'localhost:4201',
+    defaultValue: 'http://localhost:4201/',
     isEnterprise: true
   },
-  { key: 'FEDERATION_ADDRESS', defaultValue: 'localhost:4200', isEnterprise: true },
+  { key: 'FEDERATION_ADDRESS', defaultValue: 'http://localhost:4200/', isEnterprise: true },
   {
     key: 'ISLAND_IDENTIFIER',
     defaultValue: 'metorial_hosted_fed_default',
