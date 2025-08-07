@@ -35,7 +35,7 @@ import { v1ServerRunErrorGroupPresenter } from './implementation/serverRunErrorG
 import { v1ServerSessionPresenter } from './implementation/serverSession';
 import { v1ServerVariantPresenter } from './implementation/serverVariant';
 import { v1ServerVersionPresenter } from './implementation/serverVersion';
-import { v1SessionPresenter } from './implementation/session';
+import { v1DashboardSessionPresenter, v1SessionPresenter } from './implementation/session';
 import { v1SessionConnectionPresenter } from './implementation/sessionConnection';
 import { v1SessionEventPresenter } from './implementation/sessionEvent';
 import {
@@ -203,7 +203,7 @@ export let usagePresenter = declarePresenter(usageType, {
 
 export let sessionPresenter = declarePresenter(sessionType, {
   mt_2025_01_01_pulsar: v1SessionPresenter,
-  mt_2025_01_01_dashboard: v1SessionPresenter
+  mt_2025_01_01_dashboard: v1DashboardSessionPresenter
 });
 
 export let serverRunPresenter = declarePresenter(serverRunType, {

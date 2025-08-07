@@ -3,7 +3,7 @@ import { Paths } from '@metorial/frontend-config';
 import { SessionsGetOutput } from '@metorial/generated';
 import { SessionsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useSessions } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
+import { Badge, RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
 export let SessionConnectionStatusBadge = ({ session }: { session: SessionsGetOutput }) => {
@@ -41,6 +41,11 @@ export let SessionsTable = (filter: SessionsListQuery) => {
             <Text size="2" weight="strong">
               {session.serverDeployments.map(s => s.name ?? s.server.id).join(', ') ||
                 'No deployments'}
+            </Text>,
+            <Text size="2">
+              {session.client?.info?.name ?? (
+                <span style={{ color: theme.colors.gray600 }}>Unknown Client</span>
+              )}
             </Text>,
             <RenderDate date={session.createdAt} />
           ],

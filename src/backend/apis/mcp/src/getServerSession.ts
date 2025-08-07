@@ -1,4 +1,5 @@
 import { Context } from '@metorial/context';
+import { SessionMcpConnectionType } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { serverDeploymentService } from '@metorial/module-server-deployment';
 import { serverSessionService, sessionService } from '@metorial/module-session';
@@ -8,7 +9,8 @@ export let getServerSession = async (
   d: SessionInfo,
   context: Context,
   deploymentId: string | null,
-  serverSessionId: string | null
+  serverSessionId: string | null,
+  connectionType: SessionMcpConnectionType
 ) => {
   if (serverSessionId) {
     let serverSession = await serverSessionService.getServerSessionById({
@@ -27,7 +29,8 @@ export let getServerSession = async (
   let serverSession = await serverSessionService.createServerSession({
     session: d.session,
     serverDeployment,
-    context
+    context,
+    connectionType
   });
 
   return {

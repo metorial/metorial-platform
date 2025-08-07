@@ -883,7 +883,7 @@
       "name": "@metorial/state",
       "version": "1.0.0",
       "dependencies": {
-        "@metorial/dashboard-sdk": "latest",
+        "@metorial/dashboard-sdk": "1.0.0-rc.2",
         "@metorial/data-hooks": "^1.0.0",
         "@metorial/error": "^1.0.0",
         "@metorial/frontend-config": "^1.0.0",
@@ -2379,7 +2379,7 @@
 
     "@metorial/cron": ["@metorial/cron@workspace:src/packages/backend/cron"],
 
-    "@metorial/dashboard-sdk": ["@metorial/dashboard-sdk@1.0.0-rc.1", "", { "dependencies": { "@metorial/fetch": "^1.0.0-rc.1", "@metorial/generated": "^1.0.0-rc.1", "@metorial/util-endpoint": "^1.0.0-rc.1" } }, "sha512-65LCnmWNcxXkkDRrMbs5UI3xAfFcl3uXMdBpoQEemCXyUgvzzdtXeCo+qU45NWJGIdgdwhDHgU4F9RlbmOyV3Q=="],
+    "@metorial/dashboard-sdk": ["@metorial/dashboard-sdk@1.0.0-rc.2", "", { "dependencies": { "@metorial/fetch": "^1.0.0-rc.2", "@metorial/generated": "^1.0.0-rc.2", "@metorial/util-endpoint": "^1.0.0-rc.2" } }, "sha512-LGspyG9nOF7NcnCvFKgxPx7EgnUP8pd7VguFgCAGjT3Q/zYL8wvt1L4uZypPyzfViSqwhKFg3dRyBz57qT0ZjA=="],
 
     "@metorial/data-hooks": ["@metorial/data-hooks@workspace:src/packages/frontend/data-hooks"],
 
@@ -2405,7 +2405,7 @@
 
     "@metorial/fabric": ["@metorial/fabric@workspace:src/packages/architecture/fabric"],
 
-    "@metorial/fetch": ["@metorial/fetch@1.0.0-rc.1", "", { "dependencies": { "cross-fetch": "^4.1.0" } }, "sha512-tG4bGw37h7EJL4wash2QJpg19hR905r+FfZ0D8pe957IOul6hSyLMMGa1ECcslcDlwPyY6L+9kxVIG+z5AjVLg=="],
+    "@metorial/fetch": ["@metorial/fetch@1.0.0-rc.2", "", { "dependencies": { "cross-fetch": "^4.1.0" } }, "sha512-iyfz9DrJ+pFGN5lV0+BuV99iRVfDg5tV2aREKJUf9sUNfs3GhL0xvCHbQWwk4QTUSo4Y0nicotJhyXvY1fxQPA=="],
 
     "@metorial/flatten": ["@metorial/flatten@workspace:src/packages/shared/flatten"],
 
@@ -2413,7 +2413,7 @@
 
     "@metorial/frontend-config": ["@metorial/frontend-config@workspace:src/frontend/config"],
 
-    "@metorial/generated": ["@metorial/generated@1.0.0-rc.1", "", { "dependencies": { "@metorial/util-endpoint": "^1.0.0-rc.1", "@metorial/util-resource-mapper": "^1.0.0-rc.1", "jose": "^5.9.6" } }, "sha512-+BJoKGR9Nz7leTLGNqCMB8swmKmplR9+hf+c8ujRGhnXdvkPcEx1KnmPv7xYAP0PbbkAiKIgVj564yY+xD0U3w=="],
+    "@metorial/generated": ["@metorial/generated@1.0.0-rc.2", "", { "dependencies": { "@metorial/util-endpoint": "^1.0.0-rc.2", "@metorial/util-resource-mapper": "^1.0.0-rc.2", "jose": "^5.9.6" } }, "sha512-6JPLGwihgLELXIkiiKB7QGKqU5SUh5/Am2FW0HilIo3AisF1VFeClr79lZ0v5yCLzQxnpmDWl9GujZX1WKDxkw=="],
 
     "@metorial/hash": ["@metorial/hash@workspace:src/packages/shared/hash"],
 
@@ -2563,11 +2563,11 @@
 
     "@metorial/usage-service-generated": ["@metorial/usage-service-generated@workspace:src/services/usage"],
 
-    "@metorial/util-async-iterator": ["@metorial/util-async-iterator@1.0.0-rc.1", "", {}, "sha512-t2ejoeOj9jCjHisogC4XW9Ujf5a4kRH/t74f8Wp3R+TvD6RjaXpxy5jyQvzHFkyJKP+TJIUuh6J3KErOSAF3Zg=="],
+    "@metorial/util-async-iterator": ["@metorial/util-async-iterator@1.0.0-rc.2", "", {}, "sha512-ecXgMdjgSRHqoG367xgO8B7tM1PGSNdJADEJk6IYuTbWkaplOyTv8IVMEDW5M4TPFa8bg3jtcZrvk8FtqANbJw=="],
 
-    "@metorial/util-endpoint": ["@metorial/util-endpoint@1.0.0-rc.1", "", { "dependencies": { "@metorial/util-async-iterator": "^1.0.0-rc.1", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-k4BikCg+tuShkrMKJNHB3PUi1kPdbTFdd7BoQl05oyyy8lF5ihrfHOl2gpakbYuzxmgsEkc5qZNTtEof7dm3oQ=="],
+    "@metorial/util-endpoint": ["@metorial/util-endpoint@1.0.0-rc.2", "", { "dependencies": { "@metorial/util-async-iterator": "^1.0.0-rc.2", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-lZ1CzWmd0+k2AEaZBQuBc5lEGA8LaX+m618VNRo0OHktMCFMzsCcndTCdhH1W+hn2P/0+cU3ZaBAlDBSFritIA=="],
 
-    "@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@1.0.0-rc.1", "", {}, "sha512-N6UarClDb2+vfP12qXqYWHyOKa/x2WYNqj87otCF/XVaasvr+yzW5uEWhy6aRoSzCafl0MgiIC/UFlApRtL9HQ=="],
+    "@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@1.0.0-rc.2", "", {}, "sha512-W0OWz/+DYi9se3KjJ45KVPY/s4HS7ReLoj315a+3ZS6DzeKBZSTOYWeEEVe0C6X+aP+I8FUvMqOIVtce5SV2tw=="],
 
     "@metorial/validation": ["@metorial/validation@workspace:src/packages/shared/validation"],
 
@@ -4543,6 +4543,10 @@
 
     "@metorial/config/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
 
+    "@metorial/core/@metorial/generated": ["@metorial/generated@1.0.0-rc.1", "", { "dependencies": { "@metorial/util-endpoint": "^1.0.0-rc.1", "@metorial/util-resource-mapper": "^1.0.0-rc.1", "jose": "^5.9.6" } }, "sha512-+BJoKGR9Nz7leTLGNqCMB8swmKmplR9+hf+c8ujRGhnXdvkPcEx1KnmPv7xYAP0PbbkAiKIgVj564yY+xD0U3w=="],
+
+    "@metorial/core/@metorial/util-endpoint": ["@metorial/util-endpoint@1.0.0-rc.1", "", { "dependencies": { "@metorial/util-async-iterator": "^1.0.0-rc.1", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-k4BikCg+tuShkrMKJNHB3PUi1kPdbTFdd7BoQl05oyyy8lF5ihrfHOl2gpakbYuzxmgsEkc5qZNTtEof7dm3oQ=="],
+
     "@metorial/debug/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
 
     "@metorial/delay/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
@@ -4574,6 +4578,8 @@
     "@metorial/marketplace/react-markdown": ["react-markdown@10.1.0", "", { "dependencies": { "@types/hast": "^3.0.0", "@types/mdast": "^4.0.0", "devlop": "^1.0.0", "hast-util-to-jsx-runtime": "^2.0.0", "html-url-attributes": "^3.0.0", "mdast-util-to-hast": "^13.0.0", "remark-parse": "^11.0.0", "remark-rehype": "^11.0.0", "unified": "^11.0.0", "unist-util-visit": "^5.0.0", "vfile": "^6.0.0" }, "peerDependencies": { "@types/react": ">=18", "react": ">=18" } }, "sha512-qKxVopLT/TyA6BX3Ue5NwabOsAzm0Q7kAPwq6L+wWDwisYs7R8vZ0nRXqq6rkueboxpkjvLGU9fWifiX/ZZFxQ=="],
 
     "@metorial/marketplace/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
+
+    "@metorial/mcp-session/@metorial/util-endpoint": ["@metorial/util-endpoint@1.0.0-rc.1", "", { "dependencies": { "@metorial/util-async-iterator": "^1.0.0-rc.1", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-k4BikCg+tuShkrMKJNHB3PUi1kPdbTFdd7BoQl05oyyy8lF5ihrfHOl2gpakbYuzxmgsEkc5qZNTtEof7dm3oQ=="],
 
     "@metorial/memo/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
 
@@ -4608,6 +4614,8 @@
     "@metorial/req/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
 
     "@metorial/runner/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
+
+    "@metorial/sdk/@metorial/util-endpoint": ["@metorial/util-endpoint@1.0.0-rc.1", "", { "dependencies": { "@metorial/util-async-iterator": "^1.0.0-rc.1", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-k4BikCg+tuShkrMKJNHB3PUi1kPdbTFdd7BoQl05oyyy8lF5ihrfHOl2gpakbYuzxmgsEkc5qZNTtEof7dm3oQ=="],
 
     "@metorial/sentry/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
 
@@ -4817,11 +4825,19 @@
 
     "@metorial/code-workspace/vite/esbuild": ["esbuild@0.25.8", "", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.25.8", "@esbuild/android-arm": "0.25.8", "@esbuild/android-arm64": "0.25.8", "@esbuild/android-x64": "0.25.8", "@esbuild/darwin-arm64": "0.25.8", "@esbuild/darwin-x64": "0.25.8", "@esbuild/freebsd-arm64": "0.25.8", "@esbuild/freebsd-x64": "0.25.8", "@esbuild/linux-arm": "0.25.8", "@esbuild/linux-arm64": "0.25.8", "@esbuild/linux-ia32": "0.25.8", "@esbuild/linux-loong64": "0.25.8", "@esbuild/linux-mips64el": "0.25.8", "@esbuild/linux-ppc64": "0.25.8", "@esbuild/linux-riscv64": "0.25.8", "@esbuild/linux-s390x": "0.25.8", "@esbuild/linux-x64": "0.25.8", "@esbuild/netbsd-arm64": "0.25.8", "@esbuild/netbsd-x64": "0.25.8", "@esbuild/openbsd-arm64": "0.25.8", "@esbuild/openbsd-x64": "0.25.8", "@esbuild/openharmony-arm64": "0.25.8", "@esbuild/sunos-x64": "0.25.8", "@esbuild/win32-arm64": "0.25.8", "@esbuild/win32-ia32": "0.25.8", "@esbuild/win32-x64": "0.25.8" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-vVC0USHGtMi8+R4Kz8rt6JhEWLxsv9Rnu/lGYbPR8u47B+DCBksq9JarW0zOO7bs37hyOK1l2/oqtbciutL5+Q=="],
 
+    "@metorial/core/@metorial/generated/@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@1.0.0-rc.1", "", {}, "sha512-N6UarClDb2+vfP12qXqYWHyOKa/x2WYNqj87otCF/XVaasvr+yzW5uEWhy6aRoSzCafl0MgiIC/UFlApRtL9HQ=="],
+
+    "@metorial/core/@metorial/util-endpoint/@metorial/util-async-iterator": ["@metorial/util-async-iterator@1.0.0-rc.1", "", {}, "sha512-t2ejoeOj9jCjHisogC4XW9Ujf5a4kRH/t74f8Wp3R+TvD6RjaXpxy5jyQvzHFkyJKP+TJIUuh6J3KErOSAF3Zg=="],
+
     "@metorial/layout/framer-motion/motion-dom": ["motion-dom@12.23.9", "", { "dependencies": { "motion-utils": "^12.23.6" } }, "sha512-6Sv++iWS8XMFCgU1qwKj9l4xuC47Hp4+2jvPfyTXkqDg2tTzSgX6nWKD4kNFXk0k7llO59LZTPuJigza4A2K1A=="],
 
     "@metorial/layout/framer-motion/motion-utils": ["motion-utils@12.23.6", "", {}, "sha512-eAWoPgr4eFEOFfg2WjIsMoqJTW6Z8MTUCgn/GZ3VRpClWBdnbjryiA3ZSNLyxCTmCQx4RmYX6jX1iWHbenUPNQ=="],
 
     "@metorial/marketplace/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
+
+    "@metorial/mcp-session/@metorial/util-endpoint/@metorial/util-async-iterator": ["@metorial/util-async-iterator@1.0.0-rc.1", "", {}, "sha512-t2ejoeOj9jCjHisogC4XW9Ujf5a4kRH/t74f8Wp3R+TvD6RjaXpxy5jyQvzHFkyJKP+TJIUuh6J3KErOSAF3Zg=="],
+
+    "@metorial/sdk/@metorial/util-endpoint/@metorial/util-async-iterator": ["@metorial/util-async-iterator@1.0.0-rc.1", "", {}, "sha512-t2ejoeOj9jCjHisogC4XW9Ujf5a4kRH/t74f8Wp3R+TvD6RjaXpxy5jyQvzHFkyJKP+TJIUuh6J3KErOSAF3Zg=="],
 
     "@metorial/tsconfig/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
