@@ -226,6 +226,8 @@ export let sessionType = PresentableType.create<{
     serverDeployments: (ServerDeployment & {
       server: Server;
     })[];
+
+    serverSessions: ServerSession[];
   };
 }>()('session');
 

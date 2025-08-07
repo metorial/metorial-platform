@@ -375,7 +375,7 @@ func (m *localImageManager) cleanupDuplicateImages() {
 
 func (m *localImageManager) cleanupUnused() {
 	usage, err := GetSystemStorageUsage()
-	log.Printf("Current system storage usage: %d bytes\n", usage)
+	log.Printf("Current system storage usage: %d percent\n", usage)
 
 	if err != nil {
 		log.Printf("Error getting system storage usage: %v\n", err)
@@ -400,24 +400,24 @@ func (m *localImageManager) cleanupUnused() {
 		return imagesSortedByLastUsed[i].LastUsedAt.Before(imagesSortedByLastUsed[j].LastUsedAt)
 	})
 
-	for _, img := range imagesSortedByLastUsed {
-		go func() {
+	go func() {
+		for _, img := range imagesSortedByLastUsed {
 			err := m.removeImage(img.ID)
 			if err != nil {
 				log.Printf("Error removing unused image %s: %v\n", img.ID, err)
 			}
-		}()
 
-		// Check if we are below the threshold after each removal
-		currentUsage, err := GetSystemStorageUsage()
-		if err != nil {
-			log.Printf("Error getting system storage usage during cleanup: %v\n", err)
-			break
-		}
+			// Check if we are below the threshold after each removal
+			currentUsage, err := GetSystemStorageUsage()
+			if err != nil {
+				log.Printf("Error getting system storage usage during cleanup: %v\n", err)
+				break
+			}
 
-		if currentUsage < IMAGE_USAGE_THRESHOLD {
-			log.Println("Cleanup complete, system storage usage is below threshold")
-			break
+			if currentUsage < IMAGE_USAGE_THRESHOLD {
+				log.Println("Cleanup complete, system storage usage is below threshold")
+				break
+			}
 		}
-	}
+	}()
 }

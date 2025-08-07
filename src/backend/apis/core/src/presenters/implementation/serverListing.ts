@@ -73,7 +73,10 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
             license_url: repository.licenseUrl,
             license_spdx_id: repository.licenseSpdxId,
 
-            topics: repository.topics,
+            topics:
+              typeof repository.topics == 'string'
+                ? JSON.parse(repository.topics)
+                : repository.topics,
 
             language: repository.language,
             description: repository.description,

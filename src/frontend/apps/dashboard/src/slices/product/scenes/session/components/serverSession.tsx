@@ -122,7 +122,7 @@ export let ServerSession = ({
                     <Entry
                       title={`Server ${serverRun.serverDeployment.name ?? serverRun.server.name} stopped`}
                       icon={<RiServerLine />}
-                      time={serverRun.startedAt ?? serverRun.createdAt}
+                      time={serverRun.stoppedAt}
                     />
                   ),
                   time: serverRun.stoppedAt
