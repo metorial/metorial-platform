@@ -9,7 +9,14 @@ import { v1OrganizationPresenter } from './implementation/organization';
 import { v1OrganizationActorPresenter } from './implementation/organizationActor';
 import { v1OrganizationInvitePresenter } from './implementation/organizationInvite';
 import { v1OrganizationMemberPresenter } from './implementation/organizationMember';
+import { v1ProfilePresenter } from './implementation/profile';
 import { v1ProjectPresenter } from './implementation/project';
+import { v1ProviderOauthConnectionPresenter } from './implementation/providerOauthConnection';
+import { v1ProviderOauthConnectionAuthenticationPresenter } from './implementation/providerOauthConnectionAuthentication';
+import { v1ProviderOauthConnectionEventPresenter } from './implementation/providerOauthConnectionEvent';
+import { v1ProviderOauthConnectionProfilePresenter } from './implementation/providerOauthConnectionProfile';
+import { v1ProviderOauthConnectionTemplatePresenter } from './implementation/providerOauthConnectionTemplate';
+import { v1ProviderOauthDiscoveryPresenter } from './implementation/providerOauthDiscovery';
 import { v1SecretPresenter } from './implementation/secret';
 import { v1ServerPresenter } from './implementation/server';
 import { v1ServerCapabilitiesPresenter } from './implementation/serverCapabilities';
@@ -28,7 +35,7 @@ import { v1ServerRunErrorGroupPresenter } from './implementation/serverRunErrorG
 import { v1ServerSessionPresenter } from './implementation/serverSession';
 import { v1ServerVariantPresenter } from './implementation/serverVariant';
 import { v1ServerVersionPresenter } from './implementation/serverVersion';
-import { v1SessionPresenter } from './implementation/session';
+import { v1DashboardSessionPresenter, v1SessionPresenter } from './implementation/session';
 import { v1SessionConnectionPresenter } from './implementation/sessionConnection';
 import { v1SessionEventPresenter } from './implementation/sessionEvent';
 import {
@@ -48,7 +55,14 @@ import {
   organizationInviteType,
   organizationMemberType,
   organizationType,
+  profileType,
   projectType,
+  providerOauthConnectionAuthenticationType,
+  providerOauthConnectionDiscoveryType,
+  providerOauthConnectionEventType,
+  providerOauthConnectionProfileType,
+  providerOauthConnectionTemplateType,
+  providerOauthConnectionType,
   secretType,
   serverCapabilitiesType,
   serverDeploymentConfigType,
@@ -189,7 +203,7 @@ export let usagePresenter = declarePresenter(usageType, {
 
 export let sessionPresenter = declarePresenter(sessionType, {
   mt_2025_01_01_pulsar: v1SessionPresenter,
-  mt_2025_01_01_dashboard: v1SessionPresenter
+  mt_2025_01_01_dashboard: v1DashboardSessionPresenter
 });
 
 export let serverRunPresenter = declarePresenter(serverRunType, {
@@ -231,3 +245,53 @@ export let serverCapabilitiesPresenter = declarePresenter(serverCapabilitiesType
   mt_2025_01_01_pulsar: v1ServerCapabilitiesPresenter,
   mt_2025_01_01_dashboard: v1ServerCapabilitiesPresenter
 });
+
+export let profilePresenter = declarePresenter(profileType, {
+  mt_2025_01_01_pulsar: v1ProfilePresenter,
+  mt_2025_01_01_dashboard: v1ProfilePresenter
+});
+
+export let providerOauthConnectionPresenter = declarePresenter(providerOauthConnectionType, {
+  mt_2025_01_01_pulsar: v1ProviderOauthConnectionPresenter,
+  mt_2025_01_01_dashboard: v1ProviderOauthConnectionPresenter
+});
+
+export let providerOauthConnectionAuthenticationPresenter = declarePresenter(
+  providerOauthConnectionAuthenticationType,
+  {
+    mt_2025_01_01_pulsar: v1ProviderOauthConnectionAuthenticationPresenter,
+    mt_2025_01_01_dashboard: v1ProviderOauthConnectionAuthenticationPresenter
+  }
+);
+
+export let providerOauthConnectionEventPresenter = declarePresenter(
+  providerOauthConnectionEventType,
+  {
+    mt_2025_01_01_pulsar: v1ProviderOauthConnectionEventPresenter,
+    mt_2025_01_01_dashboard: v1ProviderOauthConnectionEventPresenter
+  }
+);
+
+export let providerOauthConnectionProfilePresenter = declarePresenter(
+  providerOauthConnectionProfileType,
+  {
+    mt_2025_01_01_pulsar: v1ProviderOauthConnectionProfilePresenter,
+    mt_2025_01_01_dashboard: v1ProviderOauthConnectionProfilePresenter
+  }
+);
+
+export let providerOauthConnectionTemplatePresenter = declarePresenter(
+  providerOauthConnectionTemplateType,
+  {
+    mt_2025_01_01_pulsar: v1ProviderOauthConnectionTemplatePresenter,
+    mt_2025_01_01_dashboard: v1ProviderOauthConnectionTemplatePresenter
+  }
+);
+
+export let providerOauthDiscoveryPresenter = declarePresenter(
+  providerOauthConnectionDiscoveryType,
+  {
+    mt_2025_01_01_pulsar: v1ProviderOauthDiscoveryPresenter,
+    mt_2025_01_01_dashboard: v1ProviderOauthDiscoveryPresenter
+  }
+);

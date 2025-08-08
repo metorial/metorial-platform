@@ -1,5 +1,5 @@
 import { Context } from '@metorial/context';
-import { db, ID, ServerDeployment, Session } from '@metorial/db';
+import { db, ID, ServerDeployment, Session, SessionMcpConnectionType } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
 import { createLock } from '@metorial/lock';
 import { ingestEventService } from '@metorial/module-event';
@@ -26,6 +26,7 @@ class ServerSessionImpl {
     session: Session;
     serverDeployment: ServerDeployment;
     context: Context;
+    connectionType: SessionMcpConnectionType;
   }) {
     return sessionLock.usingLock(d.session.id, async () => {
       let serverSession = await db.serverSession.findFirst({
@@ -46,6 +47,7 @@ class ServerSessionImpl {
     session: Session;
     serverDeployment: ServerDeployment;
     context: Context;
+    connectionType: SessionMcpConnectionType;
   }) {
     let session = await db.serverSession.create({
       data: {
@@ -53,7 +55,8 @@ class ServerSessionImpl {
         serverDeploymentOid: d.serverDeployment.oid,
         instanceOid: d.session.instanceOid,
         sessionOid: d.session.oid,
-        status: 'pending'
+        status: 'pending',
+        mcpConnectionType: d.connectionType
       },
       include: {
         ...include,

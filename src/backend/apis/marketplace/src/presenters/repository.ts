@@ -23,7 +23,8 @@ export let repositoryPresenter = async (repository: ImportedRepository) => ({
   licenseUrl: repository.licenseUrl,
   licenseSpdxId: repository.licenseSpdxId,
 
-  topics: repository.topics,
+  topics:
+    typeof repository.topics == 'string' ? JSON.parse(repository.topics) : repository.topics,
 
   language: repository.language,
   description: repository.description,

@@ -65,5 +65,15 @@ export let ID = createIdGenerator({
 
   profile: idType.sorted('prf'),
 
-  clientSecret: idType.sorted('cse')
+  clientSecret: idType.sorted('cse'),
+
+  oauthConnectionTemplate: idType.sorted('poct'),
+  oauthConnection: idType.sorted('poc'),
+  oauthConnectionProfile: idType.sorted('pocp'),
+  oauthConnectionAuthAttempt: idType.sorted('poca'),
+  oauthConnectionAuthAttempt_State: idType.unsorted('poca_state'),
+  oauthConnectionAuthAttempt_ClientSecret: idType.unsorted('poca_sec'),
+  oauthConnectionAuthToken: idType.sorted('potk'),
+  oauthDiscoveryDocument: idType.sorted('pod'),
+  oauthConnectionEvent: idType.sorted('poce')
 });

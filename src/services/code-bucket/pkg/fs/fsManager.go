@@ -16,7 +16,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/go-redis/redis/v8"
+	memoryQueue "github.com/metorial/metorial/modules/memory-queue"
 	"github.com/metorial/metorial/modules/util"
+	zipImporter "github.com/metorial/metorial/services/code-bucket/pkg/zip-importer"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -337,6 +339,50 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 	expiresAt := time.Now().Add(s3ZipExpiration)
 
 	return &url, &expiresAt, nil
+}
+
+func (fsm *FileSystemManager) Clone(ctx context.Context, sourceBucketId, newBucketId string) error {
+	files, err := fsm.GetBucketFiles(ctx, sourceBucketId, "")
+	if err != nil {
+		return status.Errorf(codes.NotFound, "source bucket not found: %v", err)
+	}
+
+	queue := memoryQueue.NewBlockingJobQueue(15)
+
+	// Copy all files to new bucket
+	for _, file := range files {
+		queue.AddAndBlockIfFull(func() error {
+			info, content, err := fsm.GetBucketFile(ctx, sourceBucketId, file.Path)
+			if err != nil && !strings.Contains(err.Error(), "not found") {
+				return err
+			}
+
+			fsm.PutBucketFile(ctx, newBucketId, file.Path, content.Content, info.ContentType)
+
+			return nil
+		})
+	}
+
+	return queue.Wait()
+}
+
+func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string, iterator *zipImporter.ZipFileIterator) error {
+	queue := memoryQueue.NewBlockingJobQueue(15)
+
+	for {
+		file, ok := iterator.Next()
+		if !ok {
+			break
+		}
+
+		queue.AddAndBlockIfFull(func() error {
+			fsm.PutBucketFile(ctx, newBucketId, file.Path, file.Content, "application/octet-stream")
+
+			return nil
+		})
+	}
+
+	return queue.Wait()
 }
 
 func (fsm *FileSystemManager) Close() {

@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package rpc.rpc;
+
+option go_package = "github.com/metorial/metorial/services/rpc/gen/rpc;rpc";
+
+service ListenerConnector {
+  rpc SendToListeners(SendToListenersRequest) returns (SendToListenersResponse);
+  rpc GetListenerToken(GetListenerTokenRequest) returns (GetListenerTokenResponse);
+}
+
+message SendToListenersRequest {
+  string payload = 1;
+  string id = 2;
+  string listener_identifier = 3;
+}
+
+message SendToListenersResponse {
+  bool success = 1;
+  string response = 2;
+  int64 timestamp = 3;
+  string error = 4;
+}
+
+message GetListenerTokenRequest {
+  string listener_identifier = 1;
+  int64 expires_in_seconds = 2;
+}
+
+message GetListenerTokenResponse {
+  string token = 1;
+}

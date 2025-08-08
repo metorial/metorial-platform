@@ -5,7 +5,7 @@
     "build": "turbo run --ui=stream build",
     "generate:client": "turbo run generate:client && turbo run build",
     "client:generate": "bun run generate:client",
-    "dev": "turbo run --ui=stream dev",
+    "dev": "turbo run --concurrency 99 --ui=stream dev",
     "test": "turbo run --concurrency=1 --ui=stream test",
     "prisma:generate": "turbo run --ui=stream prisma:generate",
     "prisma:push": "turbo run --ui=stream --concurrency=1 prisma:push --",

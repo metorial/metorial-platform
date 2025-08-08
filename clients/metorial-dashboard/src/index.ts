@@ -9,4 +9,4 @@ export type {
   ManagementUserGetOutput as MetorialUser
 } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 
-export * from './sdk';
+export * from './sdk.js';

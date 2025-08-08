@@ -8,6 +8,8 @@ import { createServerError } from '../data/error';
 import { createSessionMessage } from '../data/message';
 import { engineMcpMessageFromPb } from '../mcp/message';
 
+let minTime = new Date(2025, 0, 1);
+
 export let syncEngineRun = async (d: { engineRunId: string }) => {
   let engineRun = await db.engineRun.findUnique({
     where: { id: d.engineRunId },
@@ -44,6 +46,11 @@ export let syncEngineRun = async (d: { engineRunId: string }) => {
   });
 
   if (run?.endedAt && serverRun) {
+    let endedAt = run?.endedAt ? new Date(run.endedAt.toNumber()) : new Date()
+    if (endedAt.getTime() < minTime.getTime()) {
+      endedAt = new Date();
+    }
+
     await db.serverRun.updateMany({
       where: {
         oid: serverRun.oid,
@@ -52,7 +59,7 @@ export let syncEngineRun = async (d: { engineRunId: string }) => {
       data: {
         status: run.status == EngineRunStatus.run_status_error ? 'failed' : 'completed',
         lastPingAt: start,
-        stoppedAt: run?.endedAt ? new Date(run.endedAt.toNumber()) : new Date()
+        stoppedAt: endedAt
       }
     });
   }

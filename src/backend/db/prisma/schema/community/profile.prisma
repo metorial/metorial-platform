@@ -1,0 +1,36 @@
+enum ProfileType {
+  system
+  user
+  organization
+  external
+}
+
+model Profile {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ProfileType
+
+  name        String
+  description String?
+  slug        String  @unique
+
+  /// [EntityImage]
+  image Json
+
+  /// [ProfileAttributes]
+  attributes Json
+
+  organizationOid BigInt?       @unique
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  userOid BigInt? @unique
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  vendors                ImportedServerVendor[]
+  serverListings         ServerListing[]
+  providerOAuthTemplates ProviderOAuthConnectionTemplate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

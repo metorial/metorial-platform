@@ -29,8 +29,8 @@ func GetDockerSizes() (*Sizes, error) {
 
 	entries := make([]DockerSizeEntry, 0)
 
-	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(strings.TrimSpace(string(output)), "\n")
+	for line := range lines {
 		var entry DockerSizeEntry
 		if err := json.Unmarshal([]byte(line), &entry); err != nil {
 			return nil, fmt.Errorf("failed to parse Docker size entry: %w", err)

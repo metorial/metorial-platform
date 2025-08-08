@@ -36,11 +36,31 @@ export interface FileContent {
 
 export interface CloneBucketRequest {
   sourceBucketId: string;
-  name: string;
   newBucketId: string;
 }
 
-export interface CloneBucketResponse {
+export interface CreateBucketFromZipRequest {
+  newBucketId: string;
+  zipUrl: string;
+  path: string;
+  headers: { [key: string]: string };
+}
+
+export interface CreateBucketFromZipRequest_HeadersEntry {
+  key: string;
+  value: string;
+}
+
+export interface CreateBucketFromGithubRequest {
+  newBucketId: string;
+  owner: string;
+  repo: string;
+  path: string;
+  ref: string;
+  token: string;
+}
+
+export interface CreateBucketResponse {
 }
 
 export interface GetBucketTokenRequest {
@@ -275,7 +295,7 @@ export const FileContent: MessageFns<FileContent> = {
 };
 
 function createBaseCloneBucketRequest(): CloneBucketRequest {
-  return { sourceBucketId: "", name: "", newBucketId: "" };
+  return { sourceBucketId: "", newBucketId: "" };
 }
 
 export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
@@ -283,11 +303,8 @@ export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
     if (message.sourceBucketId !== "") {
       writer.uint32(10).string(message.sourceBucketId);
     }
-    if (message.name !== "") {
-      writer.uint32(18).string(message.name);
-    }
     if (message.newBucketId !== "") {
-      writer.uint32(26).string(message.newBucketId);
+      writer.uint32(18).string(message.newBucketId);
     }
     return writer;
   },
@@ -312,14 +329,6 @@ export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
             break;
           }
 
-          message.name = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
           message.newBucketId = reader.string();
           continue;
         }
@@ -335,7 +344,6 @@ export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
   fromJSON(object: any): CloneBucketRequest {
     return {
       sourceBucketId: isSet(object.sourceBucketId) ? globalThis.String(object.sourceBucketId) : "",
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
       newBucketId: isSet(object.newBucketId) ? globalThis.String(object.newBucketId) : "",
     };
   },
@@ -344,9 +352,6 @@ export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
     const obj: any = {};
     if (message.sourceBucketId !== "") {
       obj.sourceBucketId = message.sourceBucketId;
-    }
-    if (message.name !== "") {
-      obj.name = message.name;
     }
     if (message.newBucketId !== "") {
       obj.newBucketId = message.newBucketId;
@@ -360,25 +365,367 @@ export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
   fromPartial(object: DeepPartial<CloneBucketRequest>): CloneBucketRequest {
     const message = createBaseCloneBucketRequest();
     message.sourceBucketId = object.sourceBucketId ?? "";
-    message.name = object.name ?? "";
     message.newBucketId = object.newBucketId ?? "";
     return message;
   },
 };
 
-function createBaseCloneBucketResponse(): CloneBucketResponse {
-  return {};
+function createBaseCreateBucketFromZipRequest(): CreateBucketFromZipRequest {
+  return { newBucketId: "", zipUrl: "", path: "", headers: {} };
 }
 
-export const CloneBucketResponse: MessageFns<CloneBucketResponse> = {
-  encode(_: CloneBucketResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const CreateBucketFromZipRequest: MessageFns<CreateBucketFromZipRequest> = {
+  encode(message: CreateBucketFromZipRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.newBucketId !== "") {
+      writer.uint32(10).string(message.newBucketId);
+    }
+    if (message.zipUrl !== "") {
+      writer.uint32(18).string(message.zipUrl);
+    }
+    if (message.path !== "") {
+      writer.uint32(26).string(message.path);
+    }
+    Object.entries(message.headers).forEach(([key, value]) => {
+      CreateBucketFromZipRequest_HeadersEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).join();
+    });
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CloneBucketResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateBucketFromZipRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCloneBucketResponse();
+    const message = createBaseCreateBucketFromZipRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.newBucketId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.zipUrl = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.path = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          const entry4 = CreateBucketFromZipRequest_HeadersEntry.decode(reader, reader.uint32());
+          if (entry4.value !== undefined) {
+            message.headers[entry4.key] = entry4.value;
+          }
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateBucketFromZipRequest {
+    return {
+      newBucketId: isSet(object.newBucketId) ? globalThis.String(object.newBucketId) : "",
+      zipUrl: isSet(object.zipUrl) ? globalThis.String(object.zipUrl) : "",
+      path: isSet(object.path) ? globalThis.String(object.path) : "",
+      headers: isObject(object.headers)
+        ? Object.entries(object.headers).reduce<{ [key: string]: string }>((acc, [key, value]) => {
+          acc[key] = String(value);
+          return acc;
+        }, {})
+        : {},
+    };
+  },
+
+  toJSON(message: CreateBucketFromZipRequest): unknown {
+    const obj: any = {};
+    if (message.newBucketId !== "") {
+      obj.newBucketId = message.newBucketId;
+    }
+    if (message.zipUrl !== "") {
+      obj.zipUrl = message.zipUrl;
+    }
+    if (message.path !== "") {
+      obj.path = message.path;
+    }
+    if (message.headers) {
+      const entries = Object.entries(message.headers);
+      if (entries.length > 0) {
+        obj.headers = {};
+        entries.forEach(([k, v]) => {
+          obj.headers[k] = v;
+        });
+      }
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<CreateBucketFromZipRequest>): CreateBucketFromZipRequest {
+    return CreateBucketFromZipRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CreateBucketFromZipRequest>): CreateBucketFromZipRequest {
+    const message = createBaseCreateBucketFromZipRequest();
+    message.newBucketId = object.newBucketId ?? "";
+    message.zipUrl = object.zipUrl ?? "";
+    message.path = object.path ?? "";
+    message.headers = Object.entries(object.headers ?? {}).reduce<{ [key: string]: string }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = globalThis.String(value);
+      }
+      return acc;
+    }, {});
+    return message;
+  },
+};
+
+function createBaseCreateBucketFromZipRequest_HeadersEntry(): CreateBucketFromZipRequest_HeadersEntry {
+  return { key: "", value: "" };
+}
+
+export const CreateBucketFromZipRequest_HeadersEntry: MessageFns<CreateBucketFromZipRequest_HeadersEntry> = {
+  encode(message: CreateBucketFromZipRequest_HeadersEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== "") {
+      writer.uint32(18).string(message.value);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateBucketFromZipRequest_HeadersEntry {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateBucketFromZipRequest_HeadersEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.key = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.value = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateBucketFromZipRequest_HeadersEntry {
+    return {
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      value: isSet(object.value) ? globalThis.String(object.value) : "",
+    };
+  },
+
+  toJSON(message: CreateBucketFromZipRequest_HeadersEntry): unknown {
+    const obj: any = {};
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== "") {
+      obj.value = message.value;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<CreateBucketFromZipRequest_HeadersEntry>): CreateBucketFromZipRequest_HeadersEntry {
+    return CreateBucketFromZipRequest_HeadersEntry.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CreateBucketFromZipRequest_HeadersEntry>): CreateBucketFromZipRequest_HeadersEntry {
+    const message = createBaseCreateBucketFromZipRequest_HeadersEntry();
+    message.key = object.key ?? "";
+    message.value = object.value ?? "";
+    return message;
+  },
+};
+
+function createBaseCreateBucketFromGithubRequest(): CreateBucketFromGithubRequest {
+  return { newBucketId: "", owner: "", repo: "", path: "", ref: "", token: "" };
+}
+
+export const CreateBucketFromGithubRequest: MessageFns<CreateBucketFromGithubRequest> = {
+  encode(message: CreateBucketFromGithubRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.newBucketId !== "") {
+      writer.uint32(10).string(message.newBucketId);
+    }
+    if (message.owner !== "") {
+      writer.uint32(18).string(message.owner);
+    }
+    if (message.repo !== "") {
+      writer.uint32(26).string(message.repo);
+    }
+    if (message.path !== "") {
+      writer.uint32(34).string(message.path);
+    }
+    if (message.ref !== "") {
+      writer.uint32(42).string(message.ref);
+    }
+    if (message.token !== "") {
+      writer.uint32(50).string(message.token);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateBucketFromGithubRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateBucketFromGithubRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.newBucketId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.owner = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.repo = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.path = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.ref = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.token = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateBucketFromGithubRequest {
+    return {
+      newBucketId: isSet(object.newBucketId) ? globalThis.String(object.newBucketId) : "",
+      owner: isSet(object.owner) ? globalThis.String(object.owner) : "",
+      repo: isSet(object.repo) ? globalThis.String(object.repo) : "",
+      path: isSet(object.path) ? globalThis.String(object.path) : "",
+      ref: isSet(object.ref) ? globalThis.String(object.ref) : "",
+      token: isSet(object.token) ? globalThis.String(object.token) : "",
+    };
+  },
+
+  toJSON(message: CreateBucketFromGithubRequest): unknown {
+    const obj: any = {};
+    if (message.newBucketId !== "") {
+      obj.newBucketId = message.newBucketId;
+    }
+    if (message.owner !== "") {
+      obj.owner = message.owner;
+    }
+    if (message.repo !== "") {
+      obj.repo = message.repo;
+    }
+    if (message.path !== "") {
+      obj.path = message.path;
+    }
+    if (message.ref !== "") {
+      obj.ref = message.ref;
+    }
+    if (message.token !== "") {
+      obj.token = message.token;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<CreateBucketFromGithubRequest>): CreateBucketFromGithubRequest {
+    return CreateBucketFromGithubRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CreateBucketFromGithubRequest>): CreateBucketFromGithubRequest {
+    const message = createBaseCreateBucketFromGithubRequest();
+    message.newBucketId = object.newBucketId ?? "";
+    message.owner = object.owner ?? "";
+    message.repo = object.repo ?? "";
+    message.path = object.path ?? "";
+    message.ref = object.ref ?? "";
+    message.token = object.token ?? "";
+    return message;
+  },
+};
+
+function createBaseCreateBucketResponse(): CreateBucketResponse {
+  return {};
+}
+
+export const CreateBucketResponse: MessageFns<CreateBucketResponse> = {
+  encode(_: CreateBucketResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateBucketResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateBucketResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -391,20 +738,20 @@ export const CloneBucketResponse: MessageFns<CloneBucketResponse> = {
     return message;
   },
 
-  fromJSON(_: any): CloneBucketResponse {
+  fromJSON(_: any): CreateBucketResponse {
     return {};
   },
 
-  toJSON(_: CloneBucketResponse): unknown {
+  toJSON(_: CreateBucketResponse): unknown {
     const obj: any = {};
     return obj;
   },
 
-  create(base?: DeepPartial<CloneBucketResponse>): CloneBucketResponse {
-    return CloneBucketResponse.fromPartial(base ?? {});
+  create(base?: DeepPartial<CreateBucketResponse>): CreateBucketResponse {
+    return CreateBucketResponse.fromPartial(base ?? {});
   },
-  fromPartial(_: DeepPartial<CloneBucketResponse>): CloneBucketResponse {
-    const message = createBaseCloneBucketResponse();
+  fromPartial(_: DeepPartial<CreateBucketResponse>): CreateBucketResponse {
+    const message = createBaseCreateBucketResponse();
     return message;
   },
 };
@@ -1037,8 +1384,31 @@ export const CodeBucketService = {
     responseStream: false,
     requestSerialize: (value: CloneBucketRequest): Buffer => Buffer.from(CloneBucketRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): CloneBucketRequest => CloneBucketRequest.decode(value),
-    responseSerialize: (value: CloneBucketResponse): Buffer => Buffer.from(CloneBucketResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CloneBucketResponse => CloneBucketResponse.decode(value),
+    responseSerialize: (value: CreateBucketResponse): Buffer =>
+      Buffer.from(CreateBucketResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreateBucketResponse => CreateBucketResponse.decode(value),
+  },
+  createBucketFromZip: {
+    path: "/rpc.rpc.CodeBucket/CreateBucketFromZip",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: CreateBucketFromZipRequest): Buffer =>
+      Buffer.from(CreateBucketFromZipRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreateBucketFromZipRequest => CreateBucketFromZipRequest.decode(value),
+    responseSerialize: (value: CreateBucketResponse): Buffer =>
+      Buffer.from(CreateBucketResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreateBucketResponse => CreateBucketResponse.decode(value),
+  },
+  createBucketFromGithub: {
+    path: "/rpc.rpc.CodeBucket/CreateBucketFromGithub",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: CreateBucketFromGithubRequest): Buffer =>
+      Buffer.from(CreateBucketFromGithubRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreateBucketFromGithubRequest => CreateBucketFromGithubRequest.decode(value),
+    responseSerialize: (value: CreateBucketResponse): Buffer =>
+      Buffer.from(CreateBucketResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreateBucketResponse => CreateBucketResponse.decode(value),
   },
   getBucketToken: {
     path: "/rpc.rpc.CodeBucket/GetBucketToken",
@@ -1098,7 +1468,9 @@ export const CodeBucketService = {
 } as const;
 
 export interface CodeBucketServer extends UntypedServiceImplementation {
-  cloneBucket: handleUnaryCall<CloneBucketRequest, CloneBucketResponse>;
+  cloneBucket: handleUnaryCall<CloneBucketRequest, CreateBucketResponse>;
+  createBucketFromZip: handleUnaryCall<CreateBucketFromZipRequest, CreateBucketResponse>;
+  createBucketFromGithub: handleUnaryCall<CreateBucketFromGithubRequest, CreateBucketResponse>;
   getBucketToken: handleUnaryCall<GetBucketTokenRequest, GetBucketTokenResponse>;
   getBucketFile: handleUnaryCall<GetBucketFileRequest, GetBucketFileResponse>;
   getBucketFiles: handleUnaryCall<GetBucketFilesRequest, GetBucketFilesResponse>;
@@ -1109,18 +1481,48 @@ export interface CodeBucketServer extends UntypedServiceImplementation {
 export interface CodeBucketClient extends Client {
   cloneBucket(
     request: CloneBucketRequest,
-    callback: (error: ServiceError | null, response: CloneBucketResponse) => void,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
   ): ClientUnaryCall;
   cloneBucket(
     request: CloneBucketRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CloneBucketResponse) => void,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
   ): ClientUnaryCall;
   cloneBucket(
     request: CloneBucketRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CloneBucketResponse) => void,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+  ): ClientUnaryCall;
+  createBucketFromZip(
+    request: CreateBucketFromZipRequest,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+  ): ClientUnaryCall;
+  createBucketFromZip(
+    request: CreateBucketFromZipRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+  ): ClientUnaryCall;
+  createBucketFromZip(
+    request: CreateBucketFromZipRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+  ): ClientUnaryCall;
+  createBucketFromGithub(
+    request: CreateBucketFromGithubRequest,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+  ): ClientUnaryCall;
+  createBucketFromGithub(
+    request: CreateBucketFromGithubRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+  ): ClientUnaryCall;
+  createBucketFromGithub(
+    request: CreateBucketFromGithubRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
   ): ClientUnaryCall;
   getBucketToken(
     request: GetBucketTokenRequest,
@@ -1237,6 +1639,10 @@ export type DeepPartial<T> = T extends Builtin ? T
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
+
+function isObject(value: any): boolean {
+  return typeof value === "object" && value !== null;
+}
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;

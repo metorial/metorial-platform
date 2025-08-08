@@ -11,15 +11,19 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/metorial/metorial/services/usage/internal/db"
+	"github.com/metorial/metorial/services/usage/internal/repository"
 )
 
 type UsageService struct {
 	rpc.UnimplementedUsageServiceServer
+
+	repository *repository.Repository
 }
 
-func newUsageService() *UsageService {
-	return &UsageService{}
+func newUsageService(repo *repository.Repository) *UsageService {
+	return &UsageService{
+		repository: repo,
+	}
 }
 
 func (s *UsageService) IngestUsageRecord(ctx context.Context, req *rpc.IngestUsageRecordRequest) (*rpc.IngestUsageRecordResponse, error) {
@@ -27,20 +31,22 @@ func (s *UsageService) IngestUsageRecord(ctx context.Context, req *rpc.IngestUsa
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	record := db.UsageRecord{
-		OwnerID:    req.Owner.Id,
-		EntityID:   req.Entity.Id,
-		EntityType: req.Entity.Type,
-		Type:       req.Type,
-		Count:      req.Count,
-	}
+	for _, record := range req.Records {
+		record := repository.UsageRecord{
+			OwnerID:    record.Owner.Id,
+			EntityID:   record.Entity.Id,
+			EntityType: record.Entity.Type,
+			EventType:  record.EventType,
+			Count:      record.Count,
+		}
 
-	// Default count to 1 if not specified
-	if record.Count <= 0 {
-		record.Count = 1
-	}
+		// Default count to 1 if not specified
+		if record.Count <= 0 {
+			record.Count = 1
+		}
 
-	db.IngestUsage(record)
+		s.repository.IngestUsage(record)
+	}
 
 	return &rpc.IngestUsageRecordResponse{}, nil
 }
@@ -50,47 +56,60 @@ func (s *UsageService) GetUsageTimeline(ctx context.Context, req *rpc.GetUsageTi
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	opts := db.TimelineOptions{
-		EntityIDs:   req.EntityIds,
-		EntityTypes: req.EntityTypes,
-		From:        time.Unix(req.From, 0),
-		To:          time.Unix(req.To, 0),
-		Interval: db.IntervalConfig{
-			Unit:  convertIntervalUnit(req.Interval.Unit),
-			Count: req.Interval.Count,
-		},
-	}
+	events := make([]*rpc.TimelineEvent, 0, len(req.EventTypes))
 
-	for _, owner := range req.Owners {
-		opts.OwnerIDs = append(opts.OwnerIDs, owner.Id)
-	}
+	for _, eventType := range req.EventTypes {
 
-	timeline, err := db.GetUsageTimeline(ctx, opts)
-	if err != nil {
-		log.Printf("Failed to get usage timeline: %v", err)
-		return nil, status.Error(codes.Internal, "failed to retrieve usage timeline")
+		opts := repository.TimelineOptions{
+			EventType:   eventType,
+			EntityIDs:   req.EntityIds,
+			EntityTypes: req.EntityTypes,
+			From:        time.Unix(req.From, 0),
+			To:          time.Unix(req.To, 0),
+			Interval: repository.IntervalConfig{
+				Unit:  convertIntervalUnit(req.Interval.Unit),
+				Count: req.Interval.Count,
+			},
+		}
+
+		for _, owner := range req.Owners {
+			opts.OwnerIDs = append(opts.OwnerIDs, owner.Id)
+		}
+
+		timeline, err := s.repository.GetUsageTimeline(ctx, opts)
+		if err != nil {
+			log.Printf("Failed to get usage timeline: %v", err)
+			return nil, status.Error(codes.Internal, "failed to retrieve usage timeline")
+		}
+
+		event := rpc.TimelineEvent{
+			EventType: eventType,
+			Series:    make([]*rpc.TimelineSeries, len(timeline)),
+		}
+
+		for i, series := range timeline {
+			grpcSeries := &rpc.TimelineSeries{
+				EntityId:   series.EntityID,
+				EntityType: series.EntityType,
+				OwnerId:    series.OwnerID,
+				Entries:    make([]*rpc.TimelineEntry, len(series.Entries)),
+			}
+
+			for j, entry := range series.Entries {
+				grpcSeries.Entries[j] = &rpc.TimelineEntry{
+					Ts:    entry.Timestamp.Unix(),
+					Count: entry.Count,
+				}
+			}
+
+			event.Series[i] = grpcSeries
+		}
+
+		events = append(events, &event)
 	}
 
 	response := &rpc.GetUsageTimelineResponse{
-		Series: make([]*rpc.TimelineSeries, len(timeline)),
-	}
-
-	for i, series := range timeline {
-		grpcSeries := &rpc.TimelineSeries{
-			EntityId:   series.EntityID,
-			EntityType: series.EntityType,
-			OwnerId:    series.OwnerID,
-			Entries:    make([]*rpc.TimelineEntry, len(series.Entries)),
-		}
-
-		for j, entry := range series.Entries {
-			grpcSeries.Entries[j] = &rpc.TimelineEntry{
-				Ts:    entry.Timestamp.Unix(),
-				Count: entry.Count,
-			}
-		}
-
-		response.Series[i] = grpcSeries
+		Events: events,
 	}
 
 	return response, nil
@@ -101,32 +120,34 @@ func RegisterServer(server *grpc.Server, service *UsageService) {
 }
 
 func validateIngestRequest(req *rpc.IngestUsageRecordRequest) error {
-	if req.Owner == nil {
-		return fmt.Errorf("owner is required")
-	}
-	if req.Owner.Id == "" {
-		return fmt.Errorf("owner ID is required")
-	}
-	if req.Owner.Type == rpc.OwnerType_owner_type_unspecified {
-		return fmt.Errorf("owner type must be specified")
-	}
+	for _, record := range req.Records {
+		if record.Owner == nil {
+			return fmt.Errorf("owner is required")
+		}
+		if record.Owner.Id == "" {
+			return fmt.Errorf("owner ID is required")
+		}
+		if record.Owner.Type == rpc.OwnerType_owner_type_unspecified {
+			return fmt.Errorf("owner type must be specified")
+		}
 
-	if req.Entity == nil {
-		return fmt.Errorf("entity is required")
-	}
-	if req.Entity.Id == "" {
-		return fmt.Errorf("entity ID is required")
-	}
-	if req.Entity.Type == "" {
-		return fmt.Errorf("entity type is required")
-	}
+		if record.Entity == nil {
+			return fmt.Errorf("entity is required")
+		}
+		if record.Entity.Id == "" {
+			return fmt.Errorf("entity ID is required")
+		}
+		if record.Entity.Type == "" {
+			return fmt.Errorf("entity type is required")
+		}
 
-	if req.Type == "" {
-		return fmt.Errorf("usage type is required")
-	}
+		if record.EventType == "" {
+			return fmt.Errorf("usage type is required")
+		}
 
-	if req.Count < 0 {
-		return fmt.Errorf("count cannot be negative")
+		if record.Count < 0 {
+			return fmt.Errorf("count cannot be negative")
+		}
 	}
 
 	return nil
@@ -156,15 +177,15 @@ func validateTimelineRequest(req *rpc.GetUsageTimelineRequest) error {
 	return nil
 }
 
-func convertIntervalUnit(unit rpc.IntervalUnit) db.IntervalConfigUnit {
+func convertIntervalUnit(unit rpc.IntervalUnit) repository.IntervalConfigUnit {
 	switch unit {
 	case rpc.IntervalUnit_interval_unit_hour:
-		return db.IntervalUnitHour
+		return repository.IntervalUnitHour
 	case rpc.IntervalUnit_interval_unit_minute:
-		return db.IntervalUnitMinute
+		return repository.IntervalUnitMinute
 	case rpc.IntervalUnit_interval_unit_day:
-		return db.IntervalUnitDay
+		return repository.IntervalUnitDay
 	default:
-		return db.IntervalUnitHour // Default to hour if unspecified
+		return repository.IntervalUnitHour // Default to hour if unspecified
 	}
 }

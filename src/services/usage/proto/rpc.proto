@@ -37,11 +37,16 @@ enum IntervalUnit {
   interval_unit_day = 3;
 }
 
-message IngestUsageRecordRequest {
+message IngestUsageRecord {
   Owner owner = 1;
   Entity entity = 2;
-  string type = 3;
+  string event_type = 3;
   int64 count = 4;
+}
+
+message IngestUsageRecordRequest {
+  repeated IngestUsageRecord records = 1;
+  int64 ts = 2;
 }
 
 message IngestUsageRecordResponse {}
@@ -50,6 +55,7 @@ message GetUsageTimelineRequest {
   repeated Owner owners = 1;
   repeated string entity_ids = 2;
   repeated string entity_types = 3;
+  repeated string event_types = 7;
   int64 from = 4;
   int64 to = 5;
   Interval interval = 6;
@@ -67,6 +73,11 @@ message TimelineSeries {
   repeated TimelineEntry entries = 4;
 }
 
+message TimelineEvent {
+  string event_type = 1;
+  repeated TimelineSeries series = 2;
+}
+
 message GetUsageTimelineResponse {
-  repeated TimelineSeries series = 1;
+  repeated TimelineEvent events = 1;
 }

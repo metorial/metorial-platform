@@ -1,0 +1,34 @@
+enum ProviderOAuthConnectionTemplateStatus {
+  active
+  archived
+}
+
+model ProviderOAuthConnectionTemplate {
+  oid    BigInt                                @id @default(autoincrement())
+  id     String                                @unique
+  status ProviderOAuthConnectionTemplateStatus @default(active)
+
+  slug String @unique
+
+  name         String
+  providerName String
+  providerUrl  String
+
+  discoveryUrl String?
+
+  configJsonata String
+
+  /// [ProviderOAuthConfigTemplateVariables]
+  variables Json
+
+  /// [ProviderOAuthConfigTemplateScopes]
+  scopes Json
+
+  profileOid BigInt
+  profile    Profile @relation(fields: [profileOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  connections ProviderOAuthConnection[]
+}

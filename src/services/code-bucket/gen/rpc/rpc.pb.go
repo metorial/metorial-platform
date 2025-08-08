@@ -144,8 +144,7 @@ func (x *FileContent) GetFileInfo() *FileInfo {
 type CloneBucketRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	SourceBucketId string                 `protobuf:"bytes,1,opt,name=source_bucket_id,json=sourceBucketId,proto3" json:"source_bucket_id,omitempty"`
-	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	NewBucketId    string                 `protobuf:"bytes,3,opt,name=new_bucket_id,json=newBucketId,proto3" json:"new_bucket_id,omitempty"`
+	NewBucketId    string                 `protobuf:"bytes,2,opt,name=new_bucket_id,json=newBucketId,proto3" json:"new_bucket_id,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -187,13 +186,6 @@ func (x *CloneBucketRequest) GetSourceBucketId() string {
 	return ""
 }
 
-func (x *CloneBucketRequest) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
 func (x *CloneBucketRequest) GetNewBucketId() string {
 	if x != nil {
 		return x.NewBucketId
@@ -201,26 +193,30 @@ func (x *CloneBucketRequest) GetNewBucketId() string {
 	return ""
 }
 
-type CloneBucketResponse struct {
+type CreateBucketFromZipRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	NewBucketId   string                 `protobuf:"bytes,1,opt,name=new_bucket_id,json=newBucketId,proto3" json:"new_bucket_id,omitempty"`
+	ZipUrl        string                 `protobuf:"bytes,2,opt,name=zip_url,json=zipUrl,proto3" json:"zip_url,omitempty"`
+	Path          string                 `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	Headers       map[string]string      `protobuf:"bytes,4,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CloneBucketResponse) Reset() {
-	*x = CloneBucketResponse{}
+func (x *CreateBucketFromZipRequest) Reset() {
+	*x = CreateBucketFromZipRequest{}
 	mi := &file_rpc_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CloneBucketResponse) String() string {
+func (x *CreateBucketFromZipRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CloneBucketResponse) ProtoMessage() {}
+func (*CreateBucketFromZipRequest) ProtoMessage() {}
 
-func (x *CloneBucketResponse) ProtoReflect() protoreflect.Message {
+func (x *CreateBucketFromZipRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_rpc_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -232,9 +228,157 @@ func (x *CloneBucketResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CloneBucketResponse.ProtoReflect.Descriptor instead.
-func (*CloneBucketResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateBucketFromZipRequest.ProtoReflect.Descriptor instead.
+func (*CreateBucketFromZipRequest) Descriptor() ([]byte, []int) {
 	return file_rpc_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CreateBucketFromZipRequest) GetNewBucketId() string {
+	if x != nil {
+		return x.NewBucketId
+	}
+	return ""
+}
+
+func (x *CreateBucketFromZipRequest) GetZipUrl() string {
+	if x != nil {
+		return x.ZipUrl
+	}
+	return ""
+}
+
+func (x *CreateBucketFromZipRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *CreateBucketFromZipRequest) GetHeaders() map[string]string {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
+type CreateBucketFromGithubRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NewBucketId   string                 `protobuf:"bytes,1,opt,name=new_bucket_id,json=newBucketId,proto3" json:"new_bucket_id,omitempty"`
+	Owner         string                 `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	Repo          string                 `protobuf:"bytes,3,opt,name=repo,proto3" json:"repo,omitempty"`
+	Path          string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
+	Ref           string                 `protobuf:"bytes,5,opt,name=ref,proto3" json:"ref,omitempty"`
+	Token         string                 `protobuf:"bytes,6,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateBucketFromGithubRequest) Reset() {
+	*x = CreateBucketFromGithubRequest{}
+	mi := &file_rpc_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateBucketFromGithubRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateBucketFromGithubRequest) ProtoMessage() {}
+
+func (x *CreateBucketFromGithubRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateBucketFromGithubRequest.ProtoReflect.Descriptor instead.
+func (*CreateBucketFromGithubRequest) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CreateBucketFromGithubRequest) GetNewBucketId() string {
+	if x != nil {
+		return x.NewBucketId
+	}
+	return ""
+}
+
+func (x *CreateBucketFromGithubRequest) GetOwner() string {
+	if x != nil {
+		return x.Owner
+	}
+	return ""
+}
+
+func (x *CreateBucketFromGithubRequest) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *CreateBucketFromGithubRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *CreateBucketFromGithubRequest) GetRef() string {
+	if x != nil {
+		return x.Ref
+	}
+	return ""
+}
+
+func (x *CreateBucketFromGithubRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+type CreateBucketResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateBucketResponse) Reset() {
+	*x = CreateBucketResponse{}
+	mi := &file_rpc_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateBucketResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateBucketResponse) ProtoMessage() {}
+
+func (x *CreateBucketResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateBucketResponse.ProtoReflect.Descriptor instead.
+func (*CreateBucketResponse) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{5}
 }
 
 type GetBucketTokenRequest struct {
@@ -247,7 +391,7 @@ type GetBucketTokenRequest struct {
 
 func (x *GetBucketTokenRequest) Reset() {
 	*x = GetBucketTokenRequest{}
-	mi := &file_rpc_proto_msgTypes[4]
+	mi := &file_rpc_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -259,7 +403,7 @@ func (x *GetBucketTokenRequest) String() string {
 func (*GetBucketTokenRequest) ProtoMessage() {}
 
 func (x *GetBucketTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[4]
+	mi := &file_rpc_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -272,7 +416,7 @@ func (x *GetBucketTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBucketTokenRequest.ProtoReflect.Descriptor instead.
 func (*GetBucketTokenRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{4}
+	return file_rpc_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetBucketTokenRequest) GetBucketId() string {
@@ -298,7 +442,7 @@ type GetBucketTokenResponse struct {
 
 func (x *GetBucketTokenResponse) Reset() {
 	*x = GetBucketTokenResponse{}
-	mi := &file_rpc_proto_msgTypes[5]
+	mi := &file_rpc_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -310,7 +454,7 @@ func (x *GetBucketTokenResponse) String() string {
 func (*GetBucketTokenResponse) ProtoMessage() {}
 
 func (x *GetBucketTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[5]
+	mi := &file_rpc_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -323,7 +467,7 @@ func (x *GetBucketTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBucketTokenResponse.ProtoReflect.Descriptor instead.
 func (*GetBucketTokenResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{5}
+	return file_rpc_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetBucketTokenResponse) GetToken() string {
@@ -343,7 +487,7 @@ type GetBucketFileRequest struct {
 
 func (x *GetBucketFileRequest) Reset() {
 	*x = GetBucketFileRequest{}
-	mi := &file_rpc_proto_msgTypes[6]
+	mi := &file_rpc_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -355,7 +499,7 @@ func (x *GetBucketFileRequest) String() string {
 func (*GetBucketFileRequest) ProtoMessage() {}
 
 func (x *GetBucketFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[6]
+	mi := &file_rpc_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -368,7 +512,7 @@ func (x *GetBucketFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBucketFileRequest.ProtoReflect.Descriptor instead.
 func (*GetBucketFileRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{6}
+	return file_rpc_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetBucketFileRequest) GetBucketId() string {
@@ -394,7 +538,7 @@ type GetBucketFileResponse struct {
 
 func (x *GetBucketFileResponse) Reset() {
 	*x = GetBucketFileResponse{}
-	mi := &file_rpc_proto_msgTypes[7]
+	mi := &file_rpc_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -406,7 +550,7 @@ func (x *GetBucketFileResponse) String() string {
 func (*GetBucketFileResponse) ProtoMessage() {}
 
 func (x *GetBucketFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[7]
+	mi := &file_rpc_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -419,7 +563,7 @@ func (x *GetBucketFileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBucketFileResponse.ProtoReflect.Descriptor instead.
 func (*GetBucketFileResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{7}
+	return file_rpc_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetBucketFileResponse) GetContent() *FileContent {
@@ -439,7 +583,7 @@ type GetBucketFilesRequest struct {
 
 func (x *GetBucketFilesRequest) Reset() {
 	*x = GetBucketFilesRequest{}
-	mi := &file_rpc_proto_msgTypes[8]
+	mi := &file_rpc_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -451,7 +595,7 @@ func (x *GetBucketFilesRequest) String() string {
 func (*GetBucketFilesRequest) ProtoMessage() {}
 
 func (x *GetBucketFilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[8]
+	mi := &file_rpc_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -464,7 +608,7 @@ func (x *GetBucketFilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBucketFilesRequest.ProtoReflect.Descriptor instead.
 func (*GetBucketFilesRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{8}
+	return file_rpc_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetBucketFilesRequest) GetBucketId() string {
@@ -490,7 +634,7 @@ type GetBucketFilesResponse struct {
 
 func (x *GetBucketFilesResponse) Reset() {
 	*x = GetBucketFilesResponse{}
-	mi := &file_rpc_proto_msgTypes[9]
+	mi := &file_rpc_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -502,7 +646,7 @@ func (x *GetBucketFilesResponse) String() string {
 func (*GetBucketFilesResponse) ProtoMessage() {}
 
 func (x *GetBucketFilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[9]
+	mi := &file_rpc_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -515,7 +659,7 @@ func (x *GetBucketFilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBucketFilesResponse.ProtoReflect.Descriptor instead.
 func (*GetBucketFilesResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{9}
+	return file_rpc_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetBucketFilesResponse) GetFiles() []*FileInfo {
@@ -534,7 +678,7 @@ type GetBucketFilesWithContentResponse struct {
 
 func (x *GetBucketFilesWithContentResponse) Reset() {
 	*x = GetBucketFilesWithContentResponse{}
-	mi := &file_rpc_proto_msgTypes[10]
+	mi := &file_rpc_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -546,7 +690,7 @@ func (x *GetBucketFilesWithContentResponse) String() string {
 func (*GetBucketFilesWithContentResponse) ProtoMessage() {}
 
 func (x *GetBucketFilesWithContentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[10]
+	mi := &file_rpc_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -559,7 +703,7 @@ func (x *GetBucketFilesWithContentResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use GetBucketFilesWithContentResponse.ProtoReflect.Descriptor instead.
 func (*GetBucketFilesWithContentResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{10}
+	return file_rpc_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetBucketFilesWithContentResponse) GetFiles() []*FileContent {
@@ -579,7 +723,7 @@ type GetBucketFilesAsZipRequest struct {
 
 func (x *GetBucketFilesAsZipRequest) Reset() {
 	*x = GetBucketFilesAsZipRequest{}
-	mi := &file_rpc_proto_msgTypes[11]
+	mi := &file_rpc_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -591,7 +735,7 @@ func (x *GetBucketFilesAsZipRequest) String() string {
 func (*GetBucketFilesAsZipRequest) ProtoMessage() {}
 
 func (x *GetBucketFilesAsZipRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[11]
+	mi := &file_rpc_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -604,7 +748,7 @@ func (x *GetBucketFilesAsZipRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBucketFilesAsZipRequest.ProtoReflect.Descriptor instead.
 func (*GetBucketFilesAsZipRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{11}
+	return file_rpc_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetBucketFilesAsZipRequest) GetBucketId() string {
@@ -631,7 +775,7 @@ type GetBucketFilesAsZipResponse struct {
 
 func (x *GetBucketFilesAsZipResponse) Reset() {
 	*x = GetBucketFilesAsZipResponse{}
-	mi := &file_rpc_proto_msgTypes[12]
+	mi := &file_rpc_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -643,7 +787,7 @@ func (x *GetBucketFilesAsZipResponse) String() string {
 func (*GetBucketFilesAsZipResponse) ProtoMessage() {}
 
 func (x *GetBucketFilesAsZipResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[12]
+	mi := &file_rpc_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -656,7 +800,7 @@ func (x *GetBucketFilesAsZipResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBucketFilesAsZipResponse.ProtoReflect.Descriptor instead.
 func (*GetBucketFilesAsZipResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_proto_rawDescGZIP(), []int{12}
+	return file_rpc_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetBucketFilesAsZipResponse) GetDownloadUrl() string {
@@ -686,12 +830,26 @@ const file_rpc_proto_rawDesc = "" +
 	"modifiedAt\"W\n" +
 	"\vFileContent\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\fR\acontent\x12.\n" +
-	"\tfile_info\x18\x02 \x01(\v2\x11.rpc.rpc.FileInfoR\bfileInfo\"v\n" +
+	"\tfile_info\x18\x02 \x01(\v2\x11.rpc.rpc.FileInfoR\bfileInfo\"b\n" +
 	"\x12CloneBucketRequest\x12(\n" +
-	"\x10source_bucket_id\x18\x01 \x01(\tR\x0esourceBucketId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\"\n" +
-	"\rnew_bucket_id\x18\x03 \x01(\tR\vnewBucketId\"\x15\n" +
-	"\x13CloneBucketResponse\"b\n" +
+	"\x10source_bucket_id\x18\x01 \x01(\tR\x0esourceBucketId\x12\"\n" +
+	"\rnew_bucket_id\x18\x02 \x01(\tR\vnewBucketId\"\xf5\x01\n" +
+	"\x1aCreateBucketFromZipRequest\x12\"\n" +
+	"\rnew_bucket_id\x18\x01 \x01(\tR\vnewBucketId\x12\x17\n" +
+	"\azip_url\x18\x02 \x01(\tR\x06zipUrl\x12\x12\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\x12J\n" +
+	"\aheaders\x18\x04 \x03(\v20.rpc.rpc.CreateBucketFromZipRequest.HeadersEntryR\aheaders\x1a:\n" +
+	"\fHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa9\x01\n" +
+	"\x1dCreateBucketFromGithubRequest\x12\"\n" +
+	"\rnew_bucket_id\x18\x01 \x01(\tR\vnewBucketId\x12\x14\n" +
+	"\x05owner\x18\x02 \x01(\tR\x05owner\x12\x12\n" +
+	"\x04repo\x18\x03 \x01(\tR\x04repo\x12\x12\n" +
+	"\x04path\x18\x04 \x01(\tR\x04path\x12\x10\n" +
+	"\x03ref\x18\x05 \x01(\tR\x03ref\x12\x14\n" +
+	"\x05token\x18\x06 \x01(\tR\x05token\"\x16\n" +
+	"\x14CreateBucketResponse\"b\n" +
 	"\x15GetBucketTokenRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12,\n" +
 	"\x12expires_in_seconds\x18\x02 \x01(\x03R\x10expiresInSeconds\".\n" +
@@ -715,10 +873,12 @@ const file_rpc_proto_rawDesc = "" +
 	"\x1bGetBucketFilesAsZipResponse\x12!\n" +
 	"\fdownload_url\x18\x01 \x01(\tR\vdownloadUrl\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x02 \x01(\x03R\texpiresAt2\x97\x04\n" +
+	"expires_at\x18\x02 \x01(\x03R\texpiresAt2\xd4\x05\n" +
 	"\n" +
-	"CodeBucket\x12H\n" +
-	"\vCloneBucket\x12\x1b.rpc.rpc.CloneBucketRequest\x1a\x1c.rpc.rpc.CloneBucketResponse\x12Q\n" +
+	"CodeBucket\x12I\n" +
+	"\vCloneBucket\x12\x1b.rpc.rpc.CloneBucketRequest\x1a\x1d.rpc.rpc.CreateBucketResponse\x12Y\n" +
+	"\x13CreateBucketFromZip\x12#.rpc.rpc.CreateBucketFromZipRequest\x1a\x1d.rpc.rpc.CreateBucketResponse\x12_\n" +
+	"\x16CreateBucketFromGithub\x12&.rpc.rpc.CreateBucketFromGithubRequest\x1a\x1d.rpc.rpc.CreateBucketResponse\x12Q\n" +
 	"\x0eGetBucketToken\x12\x1e.rpc.rpc.GetBucketTokenRequest\x1a\x1f.rpc.rpc.GetBucketTokenResponse\x12N\n" +
 	"\rGetBucketFile\x12\x1d.rpc.rpc.GetBucketFileRequest\x1a\x1e.rpc.rpc.GetBucketFileResponse\x12Q\n" +
 	"\x0eGetBucketFiles\x12\x1e.rpc.rpc.GetBucketFilesRequest\x1a\x1f.rpc.rpc.GetBucketFilesResponse\x12g\n" +
@@ -737,44 +897,52 @@ func file_rpc_proto_rawDescGZIP() []byte {
 	return file_rpc_proto_rawDescData
 }
 
-var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_rpc_proto_goTypes = []any{
 	(*FileInfo)(nil),                          // 0: rpc.rpc.FileInfo
 	(*FileContent)(nil),                       // 1: rpc.rpc.FileContent
 	(*CloneBucketRequest)(nil),                // 2: rpc.rpc.CloneBucketRequest
-	(*CloneBucketResponse)(nil),               // 3: rpc.rpc.CloneBucketResponse
-	(*GetBucketTokenRequest)(nil),             // 4: rpc.rpc.GetBucketTokenRequest
-	(*GetBucketTokenResponse)(nil),            // 5: rpc.rpc.GetBucketTokenResponse
-	(*GetBucketFileRequest)(nil),              // 6: rpc.rpc.GetBucketFileRequest
-	(*GetBucketFileResponse)(nil),             // 7: rpc.rpc.GetBucketFileResponse
-	(*GetBucketFilesRequest)(nil),             // 8: rpc.rpc.GetBucketFilesRequest
-	(*GetBucketFilesResponse)(nil),            // 9: rpc.rpc.GetBucketFilesResponse
-	(*GetBucketFilesWithContentResponse)(nil), // 10: rpc.rpc.GetBucketFilesWithContentResponse
-	(*GetBucketFilesAsZipRequest)(nil),        // 11: rpc.rpc.GetBucketFilesAsZipRequest
-	(*GetBucketFilesAsZipResponse)(nil),       // 12: rpc.rpc.GetBucketFilesAsZipResponse
+	(*CreateBucketFromZipRequest)(nil),        // 3: rpc.rpc.CreateBucketFromZipRequest
+	(*CreateBucketFromGithubRequest)(nil),     // 4: rpc.rpc.CreateBucketFromGithubRequest
+	(*CreateBucketResponse)(nil),              // 5: rpc.rpc.CreateBucketResponse
+	(*GetBucketTokenRequest)(nil),             // 6: rpc.rpc.GetBucketTokenRequest
+	(*GetBucketTokenResponse)(nil),            // 7: rpc.rpc.GetBucketTokenResponse
+	(*GetBucketFileRequest)(nil),              // 8: rpc.rpc.GetBucketFileRequest
+	(*GetBucketFileResponse)(nil),             // 9: rpc.rpc.GetBucketFileResponse
+	(*GetBucketFilesRequest)(nil),             // 10: rpc.rpc.GetBucketFilesRequest
+	(*GetBucketFilesResponse)(nil),            // 11: rpc.rpc.GetBucketFilesResponse
+	(*GetBucketFilesWithContentResponse)(nil), // 12: rpc.rpc.GetBucketFilesWithContentResponse
+	(*GetBucketFilesAsZipRequest)(nil),        // 13: rpc.rpc.GetBucketFilesAsZipRequest
+	(*GetBucketFilesAsZipResponse)(nil),       // 14: rpc.rpc.GetBucketFilesAsZipResponse
+	nil,                                       // 15: rpc.rpc.CreateBucketFromZipRequest.HeadersEntry
 }
 var file_rpc_proto_depIdxs = []int32{
 	0,  // 0: rpc.rpc.FileContent.file_info:type_name -> rpc.rpc.FileInfo
-	1,  // 1: rpc.rpc.GetBucketFileResponse.content:type_name -> rpc.rpc.FileContent
-	0,  // 2: rpc.rpc.GetBucketFilesResponse.files:type_name -> rpc.rpc.FileInfo
-	1,  // 3: rpc.rpc.GetBucketFilesWithContentResponse.files:type_name -> rpc.rpc.FileContent
-	2,  // 4: rpc.rpc.CodeBucket.CloneBucket:input_type -> rpc.rpc.CloneBucketRequest
-	4,  // 5: rpc.rpc.CodeBucket.GetBucketToken:input_type -> rpc.rpc.GetBucketTokenRequest
-	6,  // 6: rpc.rpc.CodeBucket.GetBucketFile:input_type -> rpc.rpc.GetBucketFileRequest
-	8,  // 7: rpc.rpc.CodeBucket.GetBucketFiles:input_type -> rpc.rpc.GetBucketFilesRequest
-	8,  // 8: rpc.rpc.CodeBucket.GetBucketFilesWithContent:input_type -> rpc.rpc.GetBucketFilesRequest
-	11, // 9: rpc.rpc.CodeBucket.GetBucketFilesAsZip:input_type -> rpc.rpc.GetBucketFilesAsZipRequest
-	3,  // 10: rpc.rpc.CodeBucket.CloneBucket:output_type -> rpc.rpc.CloneBucketResponse
-	5,  // 11: rpc.rpc.CodeBucket.GetBucketToken:output_type -> rpc.rpc.GetBucketTokenResponse
-	7,  // 12: rpc.rpc.CodeBucket.GetBucketFile:output_type -> rpc.rpc.GetBucketFileResponse
-	9,  // 13: rpc.rpc.CodeBucket.GetBucketFiles:output_type -> rpc.rpc.GetBucketFilesResponse
-	10, // 14: rpc.rpc.CodeBucket.GetBucketFilesWithContent:output_type -> rpc.rpc.GetBucketFilesWithContentResponse
-	12, // 15: rpc.rpc.CodeBucket.GetBucketFilesAsZip:output_type -> rpc.rpc.GetBucketFilesAsZipResponse
-	10, // [10:16] is the sub-list for method output_type
-	4,  // [4:10] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	15, // 1: rpc.rpc.CreateBucketFromZipRequest.headers:type_name -> rpc.rpc.CreateBucketFromZipRequest.HeadersEntry
+	1,  // 2: rpc.rpc.GetBucketFileResponse.content:type_name -> rpc.rpc.FileContent
+	0,  // 3: rpc.rpc.GetBucketFilesResponse.files:type_name -> rpc.rpc.FileInfo
+	1,  // 4: rpc.rpc.GetBucketFilesWithContentResponse.files:type_name -> rpc.rpc.FileContent
+	2,  // 5: rpc.rpc.CodeBucket.CloneBucket:input_type -> rpc.rpc.CloneBucketRequest
+	3,  // 6: rpc.rpc.CodeBucket.CreateBucketFromZip:input_type -> rpc.rpc.CreateBucketFromZipRequest
+	4,  // 7: rpc.rpc.CodeBucket.CreateBucketFromGithub:input_type -> rpc.rpc.CreateBucketFromGithubRequest
+	6,  // 8: rpc.rpc.CodeBucket.GetBucketToken:input_type -> rpc.rpc.GetBucketTokenRequest
+	8,  // 9: rpc.rpc.CodeBucket.GetBucketFile:input_type -> rpc.rpc.GetBucketFileRequest
+	10, // 10: rpc.rpc.CodeBucket.GetBucketFiles:input_type -> rpc.rpc.GetBucketFilesRequest
+	10, // 11: rpc.rpc.CodeBucket.GetBucketFilesWithContent:input_type -> rpc.rpc.GetBucketFilesRequest
+	13, // 12: rpc.rpc.CodeBucket.GetBucketFilesAsZip:input_type -> rpc.rpc.GetBucketFilesAsZipRequest
+	5,  // 13: rpc.rpc.CodeBucket.CloneBucket:output_type -> rpc.rpc.CreateBucketResponse
+	5,  // 14: rpc.rpc.CodeBucket.CreateBucketFromZip:output_type -> rpc.rpc.CreateBucketResponse
+	5,  // 15: rpc.rpc.CodeBucket.CreateBucketFromGithub:output_type -> rpc.rpc.CreateBucketResponse
+	7,  // 16: rpc.rpc.CodeBucket.GetBucketToken:output_type -> rpc.rpc.GetBucketTokenResponse
+	9,  // 17: rpc.rpc.CodeBucket.GetBucketFile:output_type -> rpc.rpc.GetBucketFileResponse
+	11, // 18: rpc.rpc.CodeBucket.GetBucketFiles:output_type -> rpc.rpc.GetBucketFilesResponse
+	12, // 19: rpc.rpc.CodeBucket.GetBucketFilesWithContent:output_type -> rpc.rpc.GetBucketFilesWithContentResponse
+	14, // 20: rpc.rpc.CodeBucket.GetBucketFilesAsZip:output_type -> rpc.rpc.GetBucketFilesAsZipResponse
+	13, // [13:21] is the sub-list for method output_type
+	5,  // [5:13] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_rpc_proto_init() }
@@ -788,7 +956,7 @@ func file_rpc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rpc_proto_rawDesc), len(file_rpc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

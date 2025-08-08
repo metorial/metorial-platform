@@ -7,6 +7,8 @@ import (
 
 	"github.com/metorial/metorial/services/code-bucket/gen/rpc"
 	"github.com/metorial/metorial/services/code-bucket/pkg/fs"
+	"github.com/metorial/metorial/services/code-bucket/pkg/github"
+	zipImporter "github.com/metorial/metorial/services/code-bucket/pkg/zip-importer"
 
 	"github.com/golang-jwt/jwt/v5"
 	"google.golang.org/grpc/codes"
@@ -28,23 +30,38 @@ func newRcpService(service *Service) *RcpService {
 	return rs
 }
 
-func (rs *RcpService) CloneBucket(ctx context.Context, req *rpc.CloneBucketRequest) (*rpc.CloneBucketResponse, error) {
-	files, err := rs.fsm.GetBucketFiles(ctx, req.SourceBucketId, "")
+func (rs *RcpService) CloneBucket(ctx context.Context, req *rpc.CloneBucketRequest) (*rpc.CreateBucketResponse, error) {
+	if err := rs.fsm.Clone(ctx, req.SourceBucketId, req.NewBucketId); err != nil {
+		return nil, err
+	}
+
+	return &rpc.CreateBucketResponse{}, nil
+}
+
+func (rs *RcpService) CreateBucketFromGithub(ctx context.Context, req *rpc.CreateBucketFromGithubRequest) (*rpc.CreateBucketResponse, error) {
+	iter, err := github.DownloadRepo(req.Owner, req.Repo, req.Path, req.Ref, req.Token)
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "source bucket not found: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to download GitHub repository: %v", err)
 	}
 
-	// Copy all files to new bucket
-	for _, file := range files {
-		info, content, err := rs.fsm.GetBucketFile(ctx, req.SourceBucketId, file.Path)
-		if err != nil {
-			continue
-		}
-
-		rs.fsm.PutBucketFile(ctx, req.NewBucketId, file.Path, content.Content, info.ContentType)
+	if err := rs.fsm.ImportZip(ctx, req.NewBucketId, iter); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to import zip: %v", err)
 	}
 
-	return &rpc.CloneBucketResponse{}, nil
+	return &rpc.CreateBucketResponse{}, nil
+}
+
+func (rs *RcpService) CreateBucketFromZip(ctx context.Context, req *rpc.CreateBucketFromZipRequest) (*rpc.CreateBucketResponse, error) {
+	iter, err := zipImporter.DownloadZip(req.ZipUrl, req.Path, req.Headers)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to download zip: %v", err)
+	}
+
+	if err := rs.fsm.ImportZip(ctx, req.NewBucketId, iter); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to import zip: %v", err)
+	}
+
+	return &rpc.CreateBucketResponse{}, nil
 }
 
 func (rs *RcpService) GetBucketToken(ctx context.Context, req *rpc.GetBucketTokenRequest) (*rpc.GetBucketTokenResponse, error) {

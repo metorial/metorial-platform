@@ -16,19 +16,43 @@ export let SessionEvents = ({ session }: { session: SessionsGetOutput }) => {
     order: 'asc'
   });
 
-  let client = useMemo(
-    () => (serverSessions.data?.items ?? []).map(s => s.mcp.client).find(Boolean) ?? undefined,
+  let mcp = useMemo(
+    () => (serverSessions.data?.items ?? []).map(s => s.mcp).find(Boolean) ?? undefined,
     [serverSessions.data?.items]
   );
 
   return renderWithLoader({ serverSessions })(({ serverSessions }) => (
     <>
-      {client && (
-        <Entity.Wrapper>
-          <Entity.Content>
-            <Entity.Field title={client.name} />
-          </Entity.Content>
-        </Entity.Wrapper>
+      {mcp && (
+        <>
+          <Entity.Wrapper>
+            <Entity.Content>
+              <Entity.Field
+                title="Client"
+                value={[mcp.client?.name, mcp.client?.version].filter(Boolean).join('@')}
+              />
+              <Entity.Field
+                title="Server"
+                value={[mcp.server?.name, mcp.server?.version].filter(Boolean).join('@')}
+              />
+
+              {mcp.connectionType && (
+                <Entity.Field
+                  title="Connected Via"
+                  value={
+                    {
+                      websocket: 'WebSocket',
+                      streamable_http: 'Streamable HTTP',
+                      sse: 'Server-Sent Events'
+                    }[mcp.connectionType] ?? mcp.connectionType
+                  }
+                />
+              )}
+            </Entity.Content>
+          </Entity.Wrapper>
+
+          <Spacer height={20} />
+        </>
       )}
 
       <ItemList

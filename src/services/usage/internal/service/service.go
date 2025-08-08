@@ -7,18 +7,22 @@ import (
 
 	grpcUtil "github.com/metorial/metorial/mcp-engine/pkg/grpcUtil"
 	"github.com/metorial/metorial/services/usage/gen/rpc"
+	"github.com/metorial/metorial/services/usage/internal/repository"
 	"google.golang.org/grpc/reflection"
 )
 
 type Service struct {
+	repository *repository.Repository
 }
 
-func NewService() *Service {
-	return &Service{}
+func NewService(repo *repository.Repository) *Service {
+	return &Service{
+		repository: repo,
+	}
 }
 
 func (s *Service) Start(rpcAddress string) error {
-	rpcService := newUsageService()
+	rpcService := newUsageService(s.repository)
 
 	// gRPC Server
 	grpcServer := grpcUtil.NewGrpcServer("usage")
