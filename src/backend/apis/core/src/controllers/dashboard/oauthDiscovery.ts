@@ -11,10 +11,16 @@ export let dashboardOauthDiscoveryController = Controller.create(
   },
   {
     get: apiGroup
-      .post(Path('provider-oauth-discovery', 'provider_oauth.discover'), {
-        name: 'Discover OAuth Configuration',
-        description: 'Discover OAuth configuration from a discovery URL'
-      })
+      .post(
+        Path(
+          '/dashboard/organizations/:organizationId/provider-oauth-discovery',
+          'provider_oauth.discover'
+        ),
+        {
+          name: 'Discover OAuth Configuration',
+          description: 'Discover OAuth configuration from a discovery URL'
+        }
+      )
       .body(
         'default',
         v.object({

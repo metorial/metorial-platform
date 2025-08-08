@@ -6,7 +6,7 @@ import { send } from '../lib/send';
 let Sentry = getSentry();
 
 export let sendEmailSingleQueue = createQueue<{ destinationId: bigint }>({
-  name: 'email/send_email_single',
+  name: 'email/send_single2',
   jobOpts: {
     attempts: 10,
     backoff: {
@@ -23,6 +23,8 @@ export let sendEmailSingleQueue = createQueue<{ destinationId: bigint }>({
 });
 
 export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async data => {
+  console.log('Processing email send single queue', data);
+
   let destination = await db.outgoingEmailDestination.findFirst({
     where: {
       id: data.destinationId,

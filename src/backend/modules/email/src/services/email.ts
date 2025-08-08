@@ -14,8 +14,8 @@ class EmailService {
       text: string;
     };
   }) {
-    return withTransaction(async db => {
-      let emails = await db.outgoingEmail.create({
+    let email = await withTransaction(async db => {
+      let email = await db.outgoingEmail.create({
         data: {
           id: ID.generateIdSync('email'),
 
@@ -35,7 +35,7 @@ class EmailService {
           subject: d.content.subject,
           html: d.content.html,
           text: d.content.text,
-          emailId: emails.oid
+          emailId: email.oid
         }
       });
 
@@ -43,14 +43,18 @@ class EmailService {
         data: d.to.map(t => ({
           status: 'pending',
           destination: t,
-          emailId: emails.oid
+          emailId: email.oid
         }))
       });
 
-      await sendEmailQueue.add({ emailId: emails.id });
-
-      return emails;
+      return email;
     });
+
+    setTimeout(async () => {
+      await sendEmailQueue.add({ emailId: email.id });
+    }, 1000);
+
+    return email;
   }
 }
 

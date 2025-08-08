@@ -18,7 +18,7 @@ import { sendOrgInviteEmail } from '../email/invite';
 
 class OrganizationInviteService {
   private async ensureOrganizationInviteActive(organizationInvite: OrganizationInvite) {
-    if (organizationInvite.status != 'deleted') {
+    if (organizationInvite.status == 'deleted') {
       throw new ServiceError(
         forbiddenError({
           message: 'Cannot perform this action on a deleted organization invite'

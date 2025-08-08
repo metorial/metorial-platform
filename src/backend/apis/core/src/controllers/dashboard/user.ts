@@ -6,7 +6,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { userGroup } from '../../middleware/userGroup';
 import { userPresenter } from '../../presenters';
 
-export let userManagementController = Controller.create(
+export let dashboardUserController = Controller.create(
   {
     name: 'User',
     description: 'Read and write user information'

@@ -24,7 +24,10 @@ export let dashboardOauthConnectionTemplateController = Controller.create(
   {
     list: apiGroup
       .get(
-        Path('provider-oauth-connection-template', 'provider_oauth.connection_template.list'),
+        Path(
+          '/dashboard/organizations/:organizationId/provider-oauth-connection-template',
+          'provider_oauth.connection_template.list'
+        ),
         {
           name: 'List oauth connection templates',
           description: 'List all oauth connection templates'
@@ -54,7 +57,7 @@ export let dashboardOauthConnectionTemplateController = Controller.create(
     get: oauthTemplateGroup
       .get(
         Path(
-          'provider-oauth-connection-template/:oauthTemplateId',
+          '/dashboard/organizations/:organizationId/provider-oauth-connection-template/:oauthTemplateId',
           'provider_oauth.connection_template.get'
         ),
         {
