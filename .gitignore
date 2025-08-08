@@ -169,8 +169,8 @@ generated/
 
 # Virtual Environment
 venv/
-env/
-ENV/
+.env/
+/ENV/
 
 # IDE
 .idea/
