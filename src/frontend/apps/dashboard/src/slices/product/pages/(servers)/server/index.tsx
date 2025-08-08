@@ -97,6 +97,65 @@ export let ServerOverviewPage = () => {
     }
   ];
 
+  let getPythonStartInstructions = (d?: {
+    additionalPackages?: string[];
+  }): InstructionItem[] => [
+    {
+      title: 'Install the Metorial SDK',
+      description: 'Get started by installing the Metorial SDK in your project.',
+
+      variants: [
+        {
+          label: 'pip',
+          item: {
+            type: 'code' as const,
+            code: `pip install ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
+          }
+        },
+        {
+          label: 'pipx',
+          item: {
+            type: 'code' as const,
+            code: `pipx install ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
+          }
+        },
+        {
+          label: 'conda',
+          item: {
+            type: 'code' as const,
+            code: `conda install -c conda-forge ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
+          }
+        },
+        {
+          label: 'uv',
+          item: {
+            type: 'code' as const,
+            code: `uv add ${['metorial', ...(d?.additionalPackages ?? [])].join(' ')}`
+          }
+        }
+      ]
+    },
+
+    {
+      title: 'Instantiate the Metorial SDK',
+      description: 'Set up the Metorial SDK with your API key.',
+      type: 'code' as const,
+      code: dedent`
+                   from metorial import Metorial
+  
+                   metorial = new Metorial({
+                     api_key='${key.value ?? '__REPLACE_ME_WITH_API_KEY__'}',
+                   })
+                  `,
+      lineNumbers: true,
+      replacements: {
+        __REPLACE_ME_WITH_API_KEY__: () => (
+          <KeySelector name={`Server ${server.data?.name} API Key`} />
+        )
+      }
+    }
+  ];
+
   return renderWithLoader({ server, listing })(({ server, listing }) => (
     <>
       {!!server.data?.variants.length && (
@@ -174,7 +233,7 @@ export let ServerOverviewPage = () => {
                 alt="OpenAI Logo"
               />
             ),
-            instructions: []
+            instructions: [...getPythonStartInstructions()]
           }
         ]}
       />

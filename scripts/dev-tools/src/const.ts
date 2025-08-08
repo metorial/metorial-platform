@@ -3,8 +3,8 @@ import { join } from 'path';
 
 export let IS_ENTERPRISE = process.env.IS_ENTERPRISE === 'true';
 export let METORIAL_SOURCE = process.env.METORIAL_SOURCE || 'oss';
-export let OSS_DIR = process.env.OSS_DIR || join(__dirname, '../../../..');
-export let ROOT_DIR = process.env.ROOT_DIR || OSS_DIR;
+export let OSS_DIR = process.env.OSS_DIR || join(__dirname, '../../..');
+export let ROOT_DIR = process.env.ROOT_DIR || join(OSS_DIR, '..');
 
 let config: { hostname?: string } = {};
 
