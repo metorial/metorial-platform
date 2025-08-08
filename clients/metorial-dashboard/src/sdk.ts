@@ -30,9 +30,9 @@ import {
   MetorialServersListingsCategoriesEndpoint,
   MetorialServersListingsCollectionsEndpoint,
   MetorialServersListingsEndpoint
-} from '@metorial/generated/src/mt_2025_01_01_dashboard';
-import { MetorialAuthEndpoint } from './auth.js';
-import { MetorialKeyPrefix, sdkBuilder } from './builder.js';
+} from './gen/src/mt_2025_01_01_dashboard';
+import { MetorialAuthEndpoint } from './auth';
+import { MetorialKeyPrefix, sdkBuilder } from './builder';
 
 let fetchWithRetry = createFetchWithRetry();
 

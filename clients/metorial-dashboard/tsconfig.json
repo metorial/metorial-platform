@@ -11,7 +11,7 @@
     "forceConsistentCasingInFileNames": true,
     "inlineSources": false,
     "isolatedModules": true,
-    "moduleResolution": "node16",
+    "moduleResolution": "node",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "noUnusedLocals": false,
     "noUnusedParameters": false,
@@ -20,7 +20,6 @@
     "strict": true,
     "downlevelIteration": true,
     "outDir": "dist",
-    "target": "ES2019",
-    "module": "node16"
+    "target": "ES2019"
   }
 }

@@ -35,7 +35,7 @@ export let backendEnv: Env = [
   },
   {
     key: 'USAGE_MONGO_URL',
-    defaultValue: `mongodb://mongo:mongo@vulcan:32707/metorial-usage?authSource=admin`,
+    defaultValue: `mongodb://mongo:mongo@localhost:32707/metorial-usage?authSource=admin`,
     isEnterprise: true
   },
   { key: 'ETCD_ENDPOINTS', defaultValue: `http://localhost:32379` },
@@ -61,7 +61,7 @@ export let backendEnv: Env = [
   { key: 'LOG_RPC_ADDRESS', defaultValue: ':4071' },
   {
     key: 'LOG_MONGO_URI',
-    defaultValue: 'mongodb://mongo:mongo@vulcan:32707/?authSource=admin'
+    defaultValue: 'mongodb://mongo:mongo@localhost:32707/?authSource=admin'
   },
   { key: 'LOG_AWS_S3_BUCKET', defaultValue: 'metorial-logs-dev' },
   { key: 'LOG_AWS_REGION', defaultValue: 'us-east-1' },
@@ -87,7 +87,7 @@ export let backendEnv: Env = [
   { key: 'USAGE_RPC_ADDRESS', defaultValue: ':4051' },
   {
     key: 'USAGE_MONGO_URI',
-    defaultValue: 'mongodb://mongo:mongo@vulcan:32707/?authSource=admin'
+    defaultValue: 'mongodb://mongo:mongo@localhost:32707/?authSource=admin'
   },
 
   { key: 'API_URL', defaultValue: `http://${HOSTNAME}:4310` },
