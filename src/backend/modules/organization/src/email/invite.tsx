@@ -23,7 +23,7 @@ export let sendOrgInviteEmail = notificationClient.createTemplate(
         content: (
           <Layout
             title={`Join ${organization.name} on Metorial`}
-            description={`${actor.name} has invited you to join ${organization.name} on Metorial. Metorial is a platform for building cutting-edge AI applications using only drag and drop (or a really nice API if you're a developer). Join the ${organization.name} workspace to get started.`}
+            description={`${actor.name} has invited you to join ${organization.name} on Metorial. Click the button below to accept the invitation and get started.`}
           >
             <Button href={url.toString()}>Join {organization.name}</Button>
 
