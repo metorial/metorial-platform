@@ -33,7 +33,7 @@ export type DashboardOrganizationsInvitesListOutput = {
       updatedAt: Date;
     };
     inviteLink: {
-      Typename: 'organization.invite.link';
+      object: 'organization.invite.link';
       id: string;
       key: string | null;
       keyRedacted: string;
@@ -99,13 +99,13 @@ export let mapDashboardOrganizationsInvitesListOutput =
             })
           ),
           inviteLink: mtMap.objectField(
-            'inviteLink',
+            'invite_link',
             mtMap.object({
-              Typename: mtMap.objectField('__typename', mtMap.passthrough()),
+              object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
               key: mtMap.objectField('key', mtMap.passthrough()),
               keyRedacted: mtMap.objectField(
-                'keyRedacted',
+                'key_redacted',
                 mtMap.passthrough()
               ),
               url: mtMap.objectField('url', mtMap.passthrough()),
@@ -114,10 +114,10 @@ export let mapDashboardOrganizationsInvitesListOutput =
           ),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          deletedAt: mtMap.objectField('deletedAt', mtMap.date()),
-          expiresAt: mtMap.objectField('expiresAt', mtMap.date()),
-          acceptedAt: mtMap.objectField('acceptedAt', mtMap.date()),
-          rejectedAt: mtMap.objectField('rejectedAt', mtMap.date())
+          deletedAt: mtMap.objectField('deleted_at', mtMap.date()),
+          expiresAt: mtMap.objectField('expires_at', mtMap.date()),
+          acceptedAt: mtMap.objectField('accepted_at', mtMap.date()),
+          rejectedAt: mtMap.objectField('rejected_at', mtMap.date())
         })
       )
     ),

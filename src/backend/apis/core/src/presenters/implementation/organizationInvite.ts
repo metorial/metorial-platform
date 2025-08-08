@@ -35,7 +35,7 @@ export let v1OrganizationInvitePresenter = Presenter.create(organizationInviteTy
       .run(),
 
     invite_link: {
-      __typename: 'organization.invite.link',
+      object: 'organization.invite.link',
       id: `oinl_${organizationInvite.key.slice(-12).split('').reverse().join('')}`,
       key: organizationInvite.type == 'link' ? organizationInvite.key : null,
       key_redacted: `...${organizationInvite.key.slice(-10)}`,
@@ -80,10 +80,7 @@ export let v1OrganizationInvitePresenter = Presenter.create(organizationInviteTy
       organization: v1OrganizationPresenter.schema,
       invited_by: v1OrganizationActorPresenter.schema,
       invite_link: v.object({
-        __typename: v.literal('organization.invite.link', {
-          name: '__typename',
-          description: `The invite link's type`
-        }),
+        object: v.literal('organization.invite.link'),
         id: v.string({
           name: 'id',
           description: `The invite link's unique identifier`
