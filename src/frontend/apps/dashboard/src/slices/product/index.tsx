@@ -30,7 +30,6 @@ import { ServerImplementationErrorsPage } from './pages/(servers)/server-impleme
 import { ServerImplementationOverviewPage } from './pages/(servers)/server-implementation/overview';
 import { ServerImplementationRunsPage } from './pages/(servers)/server-implementation/runs';
 import { ServerLayout } from './pages/(servers)/server/_layout';
-import { ServerLayoutSide } from './pages/(servers)/server/_sideLayout';
 import { ServerServerDeploymentsPage } from './pages/(servers)/server/deployments';
 import { ServerServerImplementationsPage } from './pages/(servers)/server/implementations';
 import { ServerReadmePage } from './pages/(servers)/server/readme';
@@ -117,14 +116,19 @@ export let productInnerSlice = createSlice([
             element: <ServerLayout />,
 
             children: [
+              // {
+              //   element: <ServerLayoutSide />,
+              //   children: [
+              //     {
+              //       path: '',
+              //       element: <ServerOverviewPage />
+              //     }
+              //   ]
+              // },
+
               {
-                element: <ServerLayoutSide />,
-                children: [
-                  {
-                    path: '',
-                    element: <ServerOverviewPage />
-                  }
-                ]
+                path: '',
+                element: <ServerOverviewPage />
               },
 
               {
