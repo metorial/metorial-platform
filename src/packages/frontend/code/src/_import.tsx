@@ -1,11 +1,9 @@
 import { theme } from '@metorial/ui';
-import { Highlight, Prism } from 'prism-react-renderer';
-import React, { useMemo, useRef } from 'react';
+// import { Highlight, Prism } from 'prism-react-renderer';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useScroll } from 'react-use';
 import { styled } from 'styled-components';
 import prismTheme from './theme';
-
-(typeof global != 'undefined' ? global : window).Prism = Prism;
 
 let Wrapper = styled('div')`
   border-radius: 10px;
@@ -62,6 +60,27 @@ let LineNumber = styled('span')`
 
 let LineContent = styled('span')``;
 
+let PrismPromise = import('prism-react-renderer');
+let CachedPrism: Awaited<typeof PrismPromise> | null = null;
+
+let useHighlight = () => {
+  let [Highlight, setHighlight] = useState<Awaited<typeof PrismPromise> | null>(
+    () => CachedPrism
+  );
+
+  useLayoutEffect(() => {
+    PrismPromise.then(Prism => {
+      setHighlight(Prism);
+      CachedPrism = Prism;
+
+      // @ts-ignore
+      (typeof global != 'undefined' ? global : window).Prism = Prism.Prism;
+    });
+  }, []);
+
+  return Highlight?.Highlight;
+};
+
 export let CodeBlock = ({
   lineNumbers = true,
   code,
@@ -85,6 +104,8 @@ export let CodeBlock = ({
 
   let replacementKeys = Object.keys(replacementsRef.current);
 
+  let Highlight = useHighlight();
+
   let inner = useMemo(
     () => (
       <Wrapper
@@ -103,52 +124,82 @@ export let CodeBlock = ({
           <LeftShadow style={{ opacity: scrolledLeft ? 1 : 0 }} />
 
           <Overflow ref={overflowRef}>
-            <Highlight theme={prismTheme} code={code} language={language ?? 'typescript'}>
-              {({ className, style, tokens: lines, getLineProps, getTokenProps }) => (
-                <Pre style={style} className={className}>
-                  {lines.map((lineTokens, i) => (
-                    <Line key={i} {...getLineProps({ line: lineTokens })}>
-                      {lineNumbers && <LineNumber>{i + 1}</LineNumber>}
+            {Highlight && (
+              <Highlight theme={prismTheme} code={code} language={language ?? 'typescript'}>
+                {({ className, style, tokens: lines, getLineProps, getTokenProps }) => (
+                  <Pre style={style} className={className}>
+                    {lines.map((lineTokens, i) => (
+                      <Line key={i} {...getLineProps({ line: lineTokens })}>
+                        {lineNumbers && <LineNumber>{i + 1}</LineNumber>}
 
-                      <LineContent>
-                        {lineTokens.map((token, key) => {
-                          let tokenProps = getTokenProps({ token });
+                        <LineContent>
+                          {lineTokens.map((token, key) => {
+                            let tokenProps = getTokenProps({ token });
 
-                          let children: React.ReactNode = tokenProps.children;
+                            let children: React.ReactNode = tokenProps.children;
 
-                          let replacementKey = replacementKeys.find(key =>
-                            token.content.includes(key)
-                          );
-                          if (replacementKey) {
-                            let [before, after] = token.content.split(replacementKey);
-                            children = (
-                              <>
-                                {before}
-                                {replacementsRef.current[replacementKey]()}
-                                {after}
-                              </>
+                            let replacementKey = replacementKeys.find(key =>
+                              token.content.includes(key)
                             );
-                          }
+                            if (replacementKey) {
+                              let [before, after] = token.content.split(replacementKey);
+                              children = (
+                                <>
+                                  {before}
+                                  {replacementsRef.current[replacementKey]()}
+                                  {after}
+                                </>
+                              );
+                            }
 
-                          return (
-                            <span key={key} {...tokenProps}>
-                              {children}
-                            </span>
-                          );
-                        })}
-                      </LineContent>
-                    </Line>
-                  ))}
-                </Pre>
-              )}
-            </Highlight>
+                            return (
+                              <span key={key} {...tokenProps}>
+                                {children}
+                              </span>
+                            );
+                          })}
+                        </LineContent>
+                      </Line>
+                    ))}
+                  </Pre>
+                )}
+              </Highlight>
+            )}
+
+            <Pre
+              className="language-typescript"
+              style={{
+                transition: 'all 0.3s ease',
+
+                ...(Highlight
+                  ? {
+                      opacity: 0,
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      width: '100%',
+                      height: '100%',
+                      pointerEvents: 'none',
+                      zIndex: 1
+                    }
+                  : {})
+              }}
+            >
+              {code.split('\n').map((line, i) => (
+                <Line key={i}>
+                  {lineNumbers && <LineNumber>{i + 1}</LineNumber>}
+
+                  <LineContent>{line}</LineContent>
+                </Line>
+              ))}
+            </Pre>
 
             <RightShadow />
           </Overflow>
         </Main>
       </Wrapper>
     ),
-    [scrolledLeft, code, language, lineNumbers, variant]
+    [scrolledLeft, code, language, lineNumbers, variant, Highlight]
   );
 
   return inner;
