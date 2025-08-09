@@ -14,6 +14,12 @@ let Wrapper = styled.div`
   box-shadow: 0 0 10px ${theme.colors.gray300};
 `;
 
+let Inner = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
 let FieldWrapper = styled.div`
   display: flex;
   flex-direction: column;
@@ -23,12 +29,14 @@ export let JsonSchemaEditor = ({
   schema,
   value: initialValue,
   onChange,
-  label
+  label,
+  variant
 }: {
   schema: JSONSchema7;
   value: any;
   onChange: (value: any) => any;
   label?: string;
+  variant?: 'input' | 'raw';
 }) => {
   if (schema.type != 'object') return null;
 
@@ -48,28 +56,34 @@ export let JsonSchemaEditor = ({
     });
   };
 
+  let inner = (
+    <Inner>
+      {Object.entries(properties).map(([key, property], i) => {
+        if (typeof property != 'object') return null;
+
+        let isRequired = required.includes(key);
+
+        return (
+          <RenderField
+            key={i}
+            fieldKey={key}
+            property={property}
+            isRequired={isRequired}
+            value={value}
+            updateField={updateField}
+          />
+        );
+      })}
+    </Inner>
+  );
+
+  if (variant == 'raw') return inner;
+
   return (
     <>
       {label && <InputLabel>{label}</InputLabel>}
 
-      <Wrapper>
-        {Object.entries(properties).map(([key, property], i) => {
-          if (typeof property != 'object') return null;
-
-          let isRequired = required.includes(key);
-
-          return (
-            <RenderField
-              key={i}
-              fieldKey={key}
-              property={property}
-              isRequired={isRequired}
-              value={value}
-              updateField={updateField}
-            />
-          );
-        })}
-      </Wrapper>
+      <Wrapper>{inner}</Wrapper>
     </>
   );
 };
@@ -158,6 +172,7 @@ let RenderField = ({
         description={property.description}
         type={property.type == 'string' ? 'text' : 'number'}
         value={value[key] ?? ''}
+        autoFocus
         onChange={e => {
           let value: any = String(e.target.value);
 
