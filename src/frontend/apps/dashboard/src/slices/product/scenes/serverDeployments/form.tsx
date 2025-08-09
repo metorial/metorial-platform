@@ -1,8 +1,10 @@
 import { canonicalize } from '@metorial/canonicalize';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ServersDeploymentsGetOutput } from '@metorial/generated';
-import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
+import {
+  ServersDeploymentsGetOutput,
+  ServersListingsGetOutput
+} from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import {
   useCreateDeployment,
   useCurrentInstance,
@@ -280,7 +282,15 @@ export let ServerDeploymentForm = (
           )}
 
           {currentStep == 1 ? (
-            <Button type="button" size="2" onClick={() => setCurrentStep(2)}>
+            <Button
+              type="button"
+              size="2"
+              onClick={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                setCurrentStep(2);
+              }}
+            >
               Continue
             </Button>
           ) : (
