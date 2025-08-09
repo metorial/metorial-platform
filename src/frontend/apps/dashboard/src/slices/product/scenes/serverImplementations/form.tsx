@@ -12,7 +12,8 @@ import { Button, Input, Spacer } from '@metorial/ui';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { ServerSearchField } from '../servers/search';
+import { ServerSearch } from '../servers/search';
+import { Stepper } from '../stepper';
 
 let Form = styled.form`
   display: flex;
@@ -41,6 +42,8 @@ export let ServerImplementationForm = (
   let update = implementation?.useUpdateMutator();
   let create = useCreateImplementation();
 
+  let [currentStep, setCurrentStep] = useState(0);
+
   let navigate = useNavigate();
 
   let [searchServer, setSearchServer] = useState<ServersListingsGetOutput | undefined>(
@@ -57,6 +60,8 @@ export let ServerImplementationForm = (
   let variant = (p as any).for?.serverVariantId
     ? variants.data?.items.find(v => v.id == (p as any).for?.serverVariantId)
     : variants.data?.items[0];
+
+  if (currentStep == 0 && variant) currentStep = 1;
 
   let form = useForm({
     initialValues: {
@@ -114,15 +119,8 @@ export let ServerImplementationForm = (
     }
   }, [variant]);
 
-  return (
-    <Form onSubmit={form.handleSubmit}>
-      {p.type == 'create' && !p.for && (
-        <>
-          <ServerSearchField value={searchServer} onChange={setSearchServer} label="Server" />
-          <Spacer size={15} />
-        </>
-      )}
-
+  let edit = (
+    <>
       <Input label="Name" {...form.getFieldProps('name')} />
       <form.RenderError field="name" />
 
@@ -154,6 +152,7 @@ export let ServerImplementationForm = (
       >
         {p.close && (
           <Button
+            size="2"
             type="button"
             variant="outline"
             onClick={p.close}
@@ -164,6 +163,7 @@ export let ServerImplementationForm = (
         )}
 
         <Button
+          size="2"
           loading={update?.isLoading || create.isLoading}
           success={update?.isSuccess || create.isSuccess}
           type="submit"
@@ -171,6 +171,47 @@ export let ServerImplementationForm = (
           {p.type == 'update' ? 'Save' : 'Create'}
         </Button>
       </div>
+    </>
+  );
+
+  if (p.type == 'update' || (p.type == 'create' && p.for)) {
+    return (
+      <Form onSubmit={form.handleSubmit}>
+        {edit}
+
+        {update && <update.RenderError />}
+        <create.RenderError />
+      </Form>
+    );
+  }
+
+  return (
+    <Form onSubmit={form.handleSubmit}>
+      <Stepper
+        currentStep={currentStep}
+        setCurrentStep={setCurrentStep}
+        steps={[
+          {
+            title: 'Server',
+            subtitle: 'Choose a server',
+            render: () => {
+              return (
+                <ServerSearch
+                  onSelect={server => {
+                    setSearchServer(server);
+                  }}
+                />
+              );
+            }
+          },
+
+          {
+            title: 'Configuration',
+            subtitle: 'Set up the implementation',
+            render: () => edit
+          }
+        ]}
+      />
 
       {update && <update.RenderError />}
       <create.RenderError />
