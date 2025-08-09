@@ -123,12 +123,13 @@ export let productInnerSlice = createSlice([
                   {
                     path: '',
                     element: <ServerOverviewPage />
-                  },
-                  {
-                    path: 'readme',
-                    element: <ServerReadmePage />
                   }
                 ]
+              },
+
+              {
+                path: 'readme',
+                element: <ServerReadmePage />
               },
 
               {

@@ -34,7 +34,7 @@ export let SessionsTable = (filter: SessionsListQuery) => {
   return renderWithPagination(sessions)(sessions => (
     <>
       <Table
-        headers={['Status', 'Deployments', 'Created']}
+        headers={['Status', 'Deployments', 'MCP Client', 'Created']}
         data={sessions.data.items.map(session => ({
           data: [
             <SessionConnectionStatusBadge session={session} />,

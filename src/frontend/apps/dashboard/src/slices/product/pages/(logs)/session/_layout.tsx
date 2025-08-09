@@ -66,6 +66,7 @@ export let SessionLayout = () => {
 
       {renderWithLoader({ session })(({ session }) => (
         <AttributesLayout
+          variant="large"
           items={[
             {
               label: 'Status',

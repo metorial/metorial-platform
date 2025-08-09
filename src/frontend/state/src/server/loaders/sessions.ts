@@ -1,9 +1,9 @@
-import { createLoader, useMutation } from '@metorial/data-hooks';
-import { DashboardInstanceSessionsGetOutput } from '@metorial/generated';
 import {
   DashboardInstanceSessionsCreateBody,
+  DashboardInstanceSessionsGetOutput,
   DashboardInstanceSessionsListQuery
-} from '@metorial/generated/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { createLoader, useMutation } from '@metorial/data-hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -20,8 +20,9 @@ export let useSessions = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceSessionsListQuery
 ) => {
-  let data = usePaginator(pagination =>
-    sessionsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
+  let data = usePaginator(
+    pagination =>
+      sessionsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null) as any
   );
 
   return data;

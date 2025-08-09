@@ -198,9 +198,10 @@ export let ServerOverviewPage = () => {
               ...getJSStartInstructions({ additionalPackages: ['@metorial/ai-sdk'] })
             ],
             codeViewer: {
-              repo: 'mcp-containers',
               owner: 'metorial',
-              path: 'scripts/add-server'
+              repo: 'metorial-node',
+              path: 'examples/typescript-ai-sdk',
+              initialFile: 'index.ts'
             }
           },
           {
@@ -213,7 +214,13 @@ export let ServerOverviewPage = () => {
             ),
             instructions: [
               ...getJSStartInstructions({ additionalPackages: ['@metorial/openai'] })
-            ]
+            ],
+            codeViewer: {
+              owner: 'metorial',
+              repo: 'metorial-node',
+              path: 'examples/typescript-openai',
+              initialFile: 'index.ts'
+            }
           },
           {
             title: 'Node.js',
@@ -223,7 +230,13 @@ export let ServerOverviewPage = () => {
                 alt="OpenAI Logo"
               />
             ),
-            instructions: [...getJSStartInstructions()]
+            instructions: [...getJSStartInstructions()],
+            codeViewer: {
+              owner: 'metorial',
+              repo: 'metorial-node',
+              path: 'examples/typescript-openai',
+              initialFile: 'index.ts'
+            }
           },
           {
             title: 'Python',
@@ -233,7 +246,13 @@ export let ServerOverviewPage = () => {
                 alt="OpenAI Logo"
               />
             ),
-            instructions: [...getPythonStartInstructions()]
+            instructions: [...getPythonStartInstructions()],
+            codeViewer: {
+              owner: 'metorial',
+              repo: 'metorial-python',
+              path: 'examples',
+              initialFile: 'python-openai.py'
+            }
           }
         ]}
       />

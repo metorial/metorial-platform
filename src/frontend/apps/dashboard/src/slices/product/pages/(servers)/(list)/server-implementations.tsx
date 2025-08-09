@@ -8,9 +8,10 @@ export let ServersImplementationsPage = () => {
 
   return renderWithLoader({ instance })(({ instance }) => (
     <>
-      <Callout color="blue">
+      <Callout color="gray">
         Server implementations allow you to customize and extend the functionality of existing
-        MCP servers in the Metorial registry.
+        MCP servers in the Metorial registry. By default, they are created automatically for
+        you by Metorial.
       </Callout>
 
       <Spacer size={25} />

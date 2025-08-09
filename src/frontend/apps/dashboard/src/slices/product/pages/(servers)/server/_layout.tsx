@@ -74,7 +74,7 @@ export let ServerLayout = () => {
                 });
               }}
             >
-              Create Deployment
+              Deploy Server
             </Button>
           </>
         }
