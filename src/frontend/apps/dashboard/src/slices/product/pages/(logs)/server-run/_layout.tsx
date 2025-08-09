@@ -58,6 +58,7 @@ export let ServerRunLayout = () => {
 
       {renderWithLoader({ run })(({ run }) => (
         <AttributesLayout
+          variant="large"
           items={[
             { label: 'Status', value: <ServerRunStatusBadge run={run.data} /> },
             { label: 'Run Group ID', value: <ID id={run.data.id} /> },
@@ -87,8 +88,8 @@ export let ServerRunLayout = () => {
               value: <ID id={run.data.server.id} />
             },
             {
-              label: 'Server Session ID',
-              value: <ID id={run.data.serverSession.id} />
+              label: 'Session ID',
+              value: <ID id={run.data.serverSession.sessionId} />
             }
           ]}
         >

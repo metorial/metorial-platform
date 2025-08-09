@@ -13,6 +13,7 @@ export let ServerLayoutSide = () => {
 
   return renderWithLoader({ server, listing })(({ server, listing }) => (
     <AttributesLayout
+      variant="large"
       items={[
         { label: 'Server ID', value: listing.data.slug },
         { label: 'Server Name', value: server.data.name },

@@ -15,10 +15,15 @@ export let ServerDeploymentOverviewPage = () => {
   return renderWithLoader({ deployment })(({ deployment }) => (
     <>
       <Attributes
+        itemWidth="250px"
         attributes={[
           {
             label: 'Name',
             content: deployment.data.name ?? deployment.data.server.name
+          },
+          {
+            label: 'Server',
+            content: deployment.data.server.name
           },
           {
             label: 'ID',
