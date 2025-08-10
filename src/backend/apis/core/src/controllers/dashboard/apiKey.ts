@@ -155,7 +155,7 @@ export let dashboardApiKeyController = Controller.create(
       }),
 
     create: organizationGroup
-      .post(Path('api-keys', 'apiKeys.create'), {
+      .post(Path('/dashboard/organizations/:organizationId/api-keys', 'apiKeys.create'), {
         name: 'Create API key',
         description: 'Create a new API key'
       })

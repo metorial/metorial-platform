@@ -43,7 +43,7 @@ class MachineAccessService {
         }
     )
   ) {
-    return withTransaction(async db => {
+    let res = await withTransaction(async db => {
       await Fabric.fire('machine_access.created:before', d);
 
       let actor = await organizationActorService.createOrganizationActor({
@@ -72,13 +72,15 @@ class MachineAccessService {
         }
       });
 
-      await Fabric.fire('machine_access.created:after', {
-        ...d,
-        machineAccess
-      });
-
       return machineAccess;
     });
+
+    await Fabric.fire('machine_access.created:after', {
+      ...d,
+      machineAccess: res
+    });
+
+    return res;
   }
 
   async updateMachineAccess(d: {
@@ -91,7 +93,7 @@ class MachineAccessService {
   }) {
     await this.ensureMachineAccessActive(d.machineAccess);
 
-    return withTransaction(async db => {
+    let res = await withTransaction(async db => {
       await Fabric.fire('machine_access.updated:before', d);
 
       let machineAccess = await db.machineAccess.update({
@@ -101,13 +103,15 @@ class MachineAccessService {
         }
       });
 
-      await Fabric.fire('machine_access.updated:after', {
-        ...d,
-        machineAccess
-      });
-
       return machineAccess;
     });
+
+    await Fabric.fire('machine_access.updated:after', {
+      ...d,
+      machineAccess: res
+    });
+
+    return res;
   }
 
   async deleteMachineAccess(d: {
@@ -117,7 +121,7 @@ class MachineAccessService {
   }) {
     await this.ensureMachineAccessActive(d.machineAccess);
 
-    return withTransaction(async db => {
+    let res = await withTransaction(async db => {
       await Fabric.fire('machine_access.deleted:before', d);
 
       let machineAccess = await db.machineAccess.update({
@@ -128,13 +132,15 @@ class MachineAccessService {
         }
       });
 
-      await Fabric.fire('machine_access.deleted:after', {
-        ...d,
-        machineAccess
-      });
-
       return machineAccess;
     });
+
+    await Fabric.fire('machine_access.deleted:after', {
+      ...d,
+      machineAccess: res
+    });
+
+    return res;
   }
 }
 

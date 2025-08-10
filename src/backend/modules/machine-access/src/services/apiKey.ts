@@ -64,7 +64,7 @@ class ApiKeyService {
         }
     )
   ) {
-    return withTransaction(async db => {
+    let res = await withTransaction(async db => {
       let machineAccess = await machineAccessService.createMachineAccess(
         d.type == 'organization_management_token'
           ? {
@@ -142,17 +142,19 @@ class ApiKeyService {
         }
       });
 
-      await Fabric.fire('machine_access.api_key.created:after', {
-        ...d,
-        apiKey,
-        machineAccess
-      });
-
       return {
         apiKey,
         secret
       };
     });
+
+    await Fabric.fire('machine_access.api_key.created:after', {
+      ...d,
+      apiKey: res.apiKey,
+      machineAccess: res.apiKey.machineAccess
+    });
+
+    return res;
   }
 
   async updateApiKey(d: {
@@ -167,7 +169,7 @@ class ApiKeyService {
   }) {
     await this.ensureApiKeyActive(d.apiKey);
 
-    return withTransaction(async db => {
+    let res = await withTransaction(async db => {
       await Fabric.fire('machine_access.api_key.updated:before', {
         ...d,
         machineAccess: d.apiKey.machineAccess
@@ -205,14 +207,16 @@ class ApiKeyService {
         context: d.context
       });
 
-      await Fabric.fire('machine_access.api_key.updated:after', {
-        ...d,
-        apiKey,
-        machineAccess: d.apiKey.machineAccess
-      });
-
       return apiKey;
     });
+
+    await Fabric.fire('machine_access.api_key.updated:after', {
+      ...d,
+      apiKey: res,
+      machineAccess: d.apiKey.machineAccess
+    });
+
+    return res;
   }
 
   async revokeApiKey(d: {
@@ -222,7 +226,7 @@ class ApiKeyService {
   }) {
     await this.ensureApiKeyActive(d.apiKey);
 
-    return withTransaction(async db => {
+    let res = await withTransaction(async db => {
       await Fabric.fire('machine_access.api_key.revoked:before', {
         ...d,
         machineAccess: d.apiKey.machineAccess
@@ -252,14 +256,16 @@ class ApiKeyService {
         context: d.context
       });
 
-      await Fabric.fire('machine_access.api_key.revoked:after', {
-        ...d,
-        apiKey,
-        machineAccess: d.apiKey.machineAccess
-      });
-
       return apiKey;
     });
+
+    await Fabric.fire('machine_access.api_key.revoked:after', {
+      ...d,
+      apiKey: res,
+      machineAccess: d.apiKey.machineAccess
+    });
+
+    return res;
   }
 
   async rotateApiKey(d: {
@@ -270,7 +276,7 @@ class ApiKeyService {
   }) {
     await this.ensureApiKeyActive(d.apiKey);
 
-    return withTransaction(async db => {
+    let res = await withTransaction(async db => {
       await Fabric.fire('machine_access.api_key.rotated:before', {
         ...d,
         machineAccess: d.apiKey.machineAccess
@@ -332,17 +338,19 @@ class ApiKeyService {
         }
       });
 
-      await Fabric.fire('machine_access.api_key.rotated:after', {
-        ...d,
-        apiKey,
-        machineAccess: d.apiKey.machineAccess
-      });
-
       return {
         apiKey,
         secret
       };
     });
+
+    await Fabric.fire('machine_access.api_key.rotated:after', {
+      ...d,
+      apiKey: res.apiKey,
+      machineAccess: d.apiKey.machineAccess
+    });
+
+    return res;
   }
 
   async revealApiKey(d: {

@@ -41,6 +41,7 @@ export class MetorialProviderOauthEndpoint {
    * @name Discover OAuth Configuration
    * @description Discover OAuth configuration from a discovery URL
    *
+   * @param `organizationId` - string
    * @param `body` - ProviderOauthDiscoverBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns ProviderOauthDiscoverOutput
@@ -48,10 +49,11 @@ export class MetorialProviderOauthEndpoint {
    * @see https://metorial.com/docs
    */
   discover(
+    organizationId: string,
     body: ProviderOauthDiscoverBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<ProviderOauthDiscoverOutput> {
-    let path = 'provider-oauth-discovery';
+    let path = `dashboard/organizations/${organizationId}/provider-oauth-discovery`;
 
     let request = {
       path,

@@ -76,10 +76,13 @@ export let setExecutionContextSync = (ctx: ExecutionContext) => {
   });
 };
 
-export let updateExecutionContext = (ctx: Partial<ExecutionContext>) =>
-  withExecutionContext(async currentCtx => {
-    Object.assign(currentCtx, ctx);
-  });
+export let updateExecutionContext = (ctx: Partial<ExecutionContext>) => {
+  let currentCtx = getExecutionContext();
+
+  Object.assign(currentCtx, ctx);
+
+  return currentCtx;
+};
 
 export let getExecutionContext = () => {
   let ctx = ctxStorage.getStore();

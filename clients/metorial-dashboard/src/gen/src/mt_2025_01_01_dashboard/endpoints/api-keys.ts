@@ -59,6 +59,7 @@ export class MetorialApiKeysEndpoint {
    * @name Get user
    * @description Get the current user information
    *
+   * @param `organizationId` - string
    * @param `query` - ApiKeysListQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns ApiKeysListOutput
@@ -66,10 +67,11 @@ export class MetorialApiKeysEndpoint {
    * @see https://metorial.com/docs
    */
   list(
+    organizationId: string,
     query?: ApiKeysListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<ApiKeysListOutput> {
-    let path = 'api-keys';
+    let path = `dashboard/organizations/${organizationId}/api-keys`;
 
     let request = {
       path,
@@ -85,6 +87,7 @@ export class MetorialApiKeysEndpoint {
    * @name Get API key
    * @description Get the information of a specific API key
    *
+   * @param `organizationId` - string
    * @param `apiKeyId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns ApiKeysGetOutput
@@ -92,10 +95,11 @@ export class MetorialApiKeysEndpoint {
    * @see https://metorial.com/docs
    */
   get(
+    organizationId: string,
     apiKeyId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ApiKeysGetOutput> {
-    let path = `api-keys/${apiKeyId}`;
+    let path = `dashboard/organizations/${organizationId}/api-keys/${apiKeyId}`;
 
     let request = {
       path,
@@ -110,6 +114,7 @@ export class MetorialApiKeysEndpoint {
    * @name Create API key
    * @description Create a new API key
    *
+   * @param `organizationId` - string
    * @param `body` - ApiKeysCreateBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns ApiKeysCreateOutput
@@ -117,10 +122,11 @@ export class MetorialApiKeysEndpoint {
    * @see https://metorial.com/docs
    */
   create(
+    organizationId: string,
     body: ApiKeysCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<ApiKeysCreateOutput> {
-    let path = 'api-keys';
+    let path = `dashboard/organizations/${organizationId}/api-keys`;
 
     let request = {
       path,
@@ -136,6 +142,7 @@ export class MetorialApiKeysEndpoint {
    * @name Update API key
    * @description Update the information of a specific API key
    *
+   * @param `organizationId` - string
    * @param `apiKeyId` - string
    * @param `body` - ApiKeysUpdateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -144,11 +151,12 @@ export class MetorialApiKeysEndpoint {
    * @see https://metorial.com/docs
    */
   update(
+    organizationId: string,
     apiKeyId: string,
     body: ApiKeysUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<ApiKeysUpdateOutput> {
-    let path = `api-keys/${apiKeyId}`;
+    let path = `dashboard/organizations/${organizationId}/api-keys/${apiKeyId}`;
 
     let request = {
       path,
@@ -164,6 +172,7 @@ export class MetorialApiKeysEndpoint {
    * @name Revoke API key
    * @description Revoke a specific API key
    *
+   * @param `organizationId` - string
    * @param `apiKeyId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns ApiKeysRevokeOutput
@@ -171,10 +180,11 @@ export class MetorialApiKeysEndpoint {
    * @see https://metorial.com/docs
    */
   revoke(
+    organizationId: string,
     apiKeyId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ApiKeysRevokeOutput> {
-    let path = `api-keys/${apiKeyId}`;
+    let path = `dashboard/organizations/${organizationId}/api-keys/${apiKeyId}`;
 
     let request = {
       path,
@@ -189,6 +199,7 @@ export class MetorialApiKeysEndpoint {
    * @name Rotate API key
    * @description Rotate a specific API key
    *
+   * @param `organizationId` - string
    * @param `apiKeyId` - string
    * @param `body` - ApiKeysRotateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -197,11 +208,12 @@ export class MetorialApiKeysEndpoint {
    * @see https://metorial.com/docs
    */
   rotate(
+    organizationId: string,
     apiKeyId: string,
     body: ApiKeysRotateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<ApiKeysRotateOutput> {
-    let path = `api-keys/${apiKeyId}/rotate`;
+    let path = `dashboard/organizations/${organizationId}/api-keys/${apiKeyId}/rotate`;
 
     let request = {
       path,
@@ -217,6 +229,7 @@ export class MetorialApiKeysEndpoint {
    * @name Reveal API key
    * @description Reveal a specific API key
    *
+   * @param `organizationId` - string
    * @param `apiKeyId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns ApiKeysRevealOutput
@@ -224,10 +237,11 @@ export class MetorialApiKeysEndpoint {
    * @see https://metorial.com/docs
    */
   reveal(
+    organizationId: string,
     apiKeyId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ApiKeysRevealOutput> {
-    let path = `api-keys/${apiKeyId}/reveal`;
+    let path = `dashboard/organizations/${organizationId}/api-keys/${apiKeyId}/reveal`;
 
     let request = {
       path,
