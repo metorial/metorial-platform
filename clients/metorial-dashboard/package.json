@@ -25,9 +25,9 @@
     "dist"
   ],
   "dependencies": {
-    "@metorial/fetch": "^1.0.0-rc.4",
-    "@metorial/generated": "^1.0.0-rc.4",
-    "@metorial/util-endpoint": "^1.0.0-rc.4"
+    "@metorial/fetch": "^1.0.0-rc.5",
+    "@metorial/generated": "^1.0.0-rc.5",
+    "@metorial/util-endpoint": "^1.0.0-rc.5"
   },
   "devDependencies": {
     "@types/isomorphic-fetch": "^0.0.39",

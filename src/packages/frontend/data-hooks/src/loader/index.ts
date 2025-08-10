@@ -1,7 +1,13 @@
 import { canonicalize } from '@metorial/canonicalize';
-import { ServiceError, internalServerError, isServiceError } from '@metorial/error';
+import {
+  createError,
+  internalServerError,
+  isServiceError,
+  ServiceError
+} from '@metorial/error';
 import { memo } from '@metorial/memo';
 import { getSentry } from '@metorial/sentry';
+import { isMetorialSDKError } from '@metorial/util-endpoint';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { onFocus } from '../lib/onFocus';
 import { useMutation } from '../useMutation';
@@ -118,6 +124,14 @@ export let createLoader = <
             } catch (error) {
               if (isServiceError(error)) {
                 throw error;
+              } else if (isMetorialSDKError(error)) {
+                throw new ServiceError(
+                  createError({
+                    ...error.response,
+                    status: error.response.status,
+                    code: error.code
+                  })
+                );
               } else {
                 Sentry.captureException(error);
 
@@ -161,14 +175,24 @@ export let createLoader = <
       } catch (error) {
         console.error(`[${opts.name}] Fetch error`, error);
 
-        if (isServiceError(error)) {
+        if (isServiceError(error) || isMetorialSDKError(error)) {
+          let serviceError = isServiceError(error)
+            ? error
+            : new ServiceError(
+                createError({
+                  ...error.response,
+                  status: error.response.status,
+                  code: error.code
+                })
+              );
+
           current.state.next({
             input,
             output: current.state.value?.output ?? null,
-            error: error as ServiceError<any>
+            error: serviceError
           });
 
-          opts.onError?.(error as ServiceError<any>);
+          opts.onError?.(serviceError);
         } else {
           Sentry.captureException(error);
 

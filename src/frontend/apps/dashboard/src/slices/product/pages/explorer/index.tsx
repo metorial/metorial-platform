@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useServerDeployments, useServerListing } from '@metorial/state';
-import { Button, Spacer, Tabs, Text, theme } from '@metorial/ui';
+import { Button, Flex, Spacer, Tabs, Text, theme } from '@metorial/ui';
 import { RiArrowLeftLine, RiArrowRightLine, RiCloseLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
@@ -151,23 +151,24 @@ export let ExplorerPage = () => {
 
             {open && (
               <Servers>
-                {serverDeploymentId && (
-                  <>
-                    <Button
-                      iconLeft={<RiCloseLine />}
-                      onClick={() => setOpen(!open)}
-                      size="1"
-                      variant="outline"
-                      type="button"
-                    >
-                      Close
-                    </Button>
-                    <Spacer height={10} />
-                  </>
-                )}
-
                 {!selectedServer && !serverIdParam && (
                   <>
+                    {serverDeploymentId && (
+                      <>
+                        <Button
+                          iconLeft={<RiCloseLine />}
+                          onClick={() => setOpen(!open)}
+                          size="1"
+                          variant="outline"
+                          type="button"
+                        >
+                          Close
+                        </Button>
+
+                        <Spacer height={10} />
+                      </>
+                    )}
+
                     <Text as="p" size="3" weight="strong" color="gray900">
                       Select a server
                     </Text>
@@ -189,19 +190,31 @@ export let ExplorerPage = () => {
                 {selectedServer &&
                   renderWithLoader({ deployments })(() => (
                     <>
-                      <Button
-                        iconLeft={<RiArrowLeftLine />}
-                        onClick={() => {
-                          _setSelectedServer(null);
-                          setSearch(v => new URLSearchParams());
-                          setOpen(true);
-                        }}
-                        size="1"
-                        variant="outline"
-                        type="button"
-                      >
-                        Back
-                      </Button>
+                      <Flex justify="space-between" align="center">
+                        <Button
+                          iconLeft={<RiArrowLeftLine />}
+                          onClick={() => {
+                            _setSelectedServer(null);
+                            setSearch(v => new URLSearchParams());
+                            setOpen(true);
+                          }}
+                          size="1"
+                          variant="outline"
+                          type="button"
+                        >
+                          Back
+                        </Button>
+
+                        <Button
+                          iconLeft={<RiCloseLine />}
+                          onClick={() => setOpen(!open)}
+                          size="1"
+                          variant="outline"
+                          type="button"
+                        >
+                          Close
+                        </Button>
+                      </Flex>
 
                       <Spacer height={10} />
 
@@ -261,6 +274,7 @@ export let ExplorerPage = () => {
                         <ServerDeploymentsList
                           {...serverDeploymentsFilter}
                           onDeploymentClick={deployment => {
+                            setOpen(false);
                             setServerDeploymentId(deployment.id);
                           }}
                         />

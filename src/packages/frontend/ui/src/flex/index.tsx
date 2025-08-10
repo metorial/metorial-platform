@@ -11,8 +11,8 @@ export let Flex = ({
 }: {
   children: React.ReactNode;
   direction?: 'row' | 'column';
-  align?: 'start' | 'center' | 'end';
-  justify?: 'start' | 'center' | 'end';
+  align?: 'start' | 'center' | 'end' | 'stretch';
+  justify?: 'start' | 'center' | 'end' | 'space-between' | 'space-around';
   wrap?: 'nowrap' | 'wrap';
   gap?: number | string;
 } & React.HTMLAttributes<HTMLDivElement>) => {

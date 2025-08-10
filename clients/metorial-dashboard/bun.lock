@@ -4,9 +4,9 @@
     "": {
       "name": "@metorial/dashboard-sdk",
       "dependencies": {
-        "@metorial/fetch": "^1.0.0-rc.4",
-        "@metorial/generated": "^1.0.0-rc.4",
-        "@metorial/util-endpoint": "^1.0.0-rc.4",
+        "@metorial/fetch": "^1.0.0-rc.5",
+        "@metorial/generated": "^1.0.0-rc.5",
+        "@metorial/util-endpoint": "^1.0.0-rc.5",
       },
       "devDependencies": {
         "@types/isomorphic-fetch": "^0.0.39",
@@ -76,15 +76,15 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.29", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-uw6guiW/gcAGPDhLmd77/6lW8QLeiV5RUTsAX46Db6oLhGaVj4lhnPwb184s1bkc8kdVg/+h988dro8GRDpmYQ=="],
 
-    "@metorial/fetch": ["@metorial/fetch@1.0.0-rc.4", "", { "dependencies": { "cross-fetch": "^4.1.0" } }, "sha512-AER+1SMOCymDM43s/lSadC6pY2wDuHpOx7As7H/4tcHrOJi9h6uYZ2QAC9Zv5TJvY3HbpYLYPjKrnTUSqS90LA=="],
+    "@metorial/fetch": ["@metorial/fetch@1.0.0-rc.5", "", { "dependencies": { "cross-fetch": "^4.1.0" } }, "sha512-AER+1SMOCymDM43s/lSadC6pY2wDuHpOx7As7H/4tcHrOJi9h6uYZ2QAC9Zv5TJvY3HbpYLYPjKrnTUSqS90LA=="],
 
-    "@metorial/generated": ["@metorial/generated@1.0.0-rc.4", "", { "dependencies": { "@metorial/util-endpoint": "^1.0.0-rc.4", "@metorial/util-resource-mapper": "^1.0.0-rc.4", "jose": "^5.9.6" } }, "sha512-dcwPMG4pvrrfDfDoM3vxrWHxA+Dqv5pIhPP6fthbcIvPVKe8v045WvGMHncQQwmfEdu276pB2I0sPcEi9qKItw=="],
+    "@metorial/generated": ["@metorial/generated@1.0.0-rc.5", "", { "dependencies": { "@metorial/util-endpoint": "^1.0.0-rc.5", "@metorial/util-resource-mapper": "^1.0.0-rc.5", "jose": "^5.9.6" } }, "sha512-dcwPMG4pvrrfDfDoM3vxrWHxA+Dqv5pIhPP6fthbcIvPVKe8v045WvGMHncQQwmfEdu276pB2I0sPcEi9qKItw=="],
 
-    "@metorial/util-async-iterator": ["@metorial/util-async-iterator@1.0.0-rc.4", "", {}, "sha512-KZXEz4Psk1tWSjr5O4AyIFk3mb8wGBKuRJ06BwH7cRUGKND4jyWM/F2ahQZyOlQa/tsFmLun2Q2bJKBT8WBywA=="],
+    "@metorial/util-async-iterator": ["@metorial/util-async-iterator@1.0.0-rc.5", "", {}, "sha512-KZXEz4Psk1tWSjr5O4AyIFk3mb8wGBKuRJ06BwH7cRUGKND4jyWM/F2ahQZyOlQa/tsFmLun2Q2bJKBT8WBywA=="],
 
-    "@metorial/util-endpoint": ["@metorial/util-endpoint@1.0.0-rc.4", "", { "dependencies": { "@metorial/util-async-iterator": "^1.0.0-rc.4", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-gOsnB3gHyF2wLgo8RKS6zVat+SuP3EEmRj9+XidpbTkfTPJ5FUN9TDm7An1JwXfo1YNOpZ6OAKfDLeYhH7E/1A=="],
+    "@metorial/util-endpoint": ["@metorial/util-endpoint@1.0.0-rc.5", "", { "dependencies": { "@metorial/util-async-iterator": "^1.0.0-rc.5", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-gOsnB3gHyF2wLgo8RKS6zVat+SuP3EEmRj9+XidpbTkfTPJ5FUN9TDm7An1JwXfo1YNOpZ6OAKfDLeYhH7E/1A=="],
 
-    "@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@1.0.0-rc.4", "", {}, "sha512-PLvQ0DDi3ocwWsq2o6Eon5kD70UAvze/1kLLRLL07E2E1OMfxdu26ORH/32OdP741zDNAl57kD2PJxDaESzR1w=="],
+    "@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@1.0.0-rc.5", "", {}, "sha512-PLvQ0DDi3ocwWsq2o6Eon5kD70UAvze/1kLLRLL07E2E1OMfxdu26ORH/32OdP741zDNAl57kD2PJxDaESzR1w=="],
 
     "@nodelib/fs.scandir": ["@nodelib/fs.scandir@2.1.5", "", { "dependencies": { "@nodelib/fs.stat": "2.0.5", "run-parallel": "^1.1.9" } }, "sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="],
 
