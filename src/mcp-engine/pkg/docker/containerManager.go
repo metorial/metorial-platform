@@ -112,7 +112,7 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 		dockerArgs = append(dockerArgs, "--cpus", opts.MaxCPU)
 	}
 
-	dockerArgs = append(dockerArgs, opts.ImageRef)
+	dockerArgs = append(dockerArgs, image.FullName())
 
 	if opts.Command != "" {
 		// dockerArgs = append(dockerArgs, opts.Command)
@@ -127,7 +127,7 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 
 	cmd := exec.CommandContext(ctx, "docker", dockerArgs...)
 
-	log.Printf("Starting container for image %s with ID %s", opts.ImageRef, containerID)
+	log.Printf("Starting container for image %s with ID %s", image.FullName(), containerID)
 
 	// Get stdin, stdout, stderr pipes
 	stdin, err := cmd.StdinPipe()

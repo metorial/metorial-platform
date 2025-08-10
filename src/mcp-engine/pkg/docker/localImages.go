@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/metorial/metorial/modules/datastructures"
+	"github.com/metorial/metorial/modules/util"
 )
 
 const IMAGE_USAGE_THRESHOLD = 75 // Percentage
@@ -193,7 +194,9 @@ func (m *localImageManager) getImageOrFallback(repository, tag string) (*localIm
 	}
 
 	if repoExists && len(repositoryImages) > 0 {
-		currentImage := repositoryImages[0]
+		currentImage, _ := util.FindMax(repositoryImages, func(a *localImage) int64 {
+			return int64(a.CreatedAt.Time.Unix())
+		})
 
 		for _, img := range repositoryImages {
 			if img.CreatedAt.After(currentImage.CreatedAt.Time) {
