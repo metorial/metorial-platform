@@ -19,9 +19,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialServersVersionsEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialServersVersionsEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -30,24 +45,30 @@ export class MetorialServersVersionsEndpoint extends BaseMetorialEndpoint<any> {
    *
    * @param `serverId` - string
    * @param `query` - DashboardInstanceServersVersionsListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceServersVersionsListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
     serverId: string,
-    query?: DashboardInstanceServersVersionsListQuery
+    query?: DashboardInstanceServersVersionsListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceServersVersionsListOutput> {
     let path = `servers/${serverId}/versions`;
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardInstanceServersVersionsListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardInstanceServersVersionsListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceServersVersionsListOutput
+    );
   }
 
   /**
@@ -56,19 +77,26 @@ export class MetorialServersVersionsEndpoint extends BaseMetorialEndpoint<any> {
    *
    * @param `serverId` - string
    * @param `serverVersionId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceServersVersionsGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
     serverId: string,
-    serverVersionId: string
+    serverVersionId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceServersVersionsGetOutput> {
     let path = `servers/${serverId}/versions/${serverVersionId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceServersVersionsGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceServersVersionsGetOutput
+    );
   }
 }

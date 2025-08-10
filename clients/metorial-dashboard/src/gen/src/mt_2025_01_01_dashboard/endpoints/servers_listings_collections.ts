@@ -19,9 +19,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialServersListingsCollectionsEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialServersListingsCollectionsEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -29,23 +44,29 @@ export class MetorialServersListingsCollectionsEndpoint extends BaseMetorialEndp
    * @description List all server listing collections
    *
    * @param `query` - ServersListingsCollectionsListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ServersListingsCollectionsListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
-    query?: ServersListingsCollectionsListQuery
+    query?: ServersListingsCollectionsListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<ServersListingsCollectionsListOutput> {
     let path = 'server-listing-collections';
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapServersListingsCollectionsListQuery.transformTo(query)
-        : undefined
-    }).transform(mapServersListingsCollectionsListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapServersListingsCollectionsListOutput
+    );
   }
 
   /**
@@ -53,18 +74,23 @@ export class MetorialServersListingsCollectionsEndpoint extends BaseMetorialEndp
    * @description Get the information of a specific server listing collection
    *
    * @param `serverListingCollectionId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ServersListingsCollectionsGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
-    serverListingCollectionId: string
+    serverListingCollectionId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<ServersListingsCollectionsGetOutput> {
     let path = `server-listing-collections/${serverListingCollectionId}`;
-    return this._get({
-      path
-    }).transform(mapServersListingsCollectionsGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapServersListingsCollectionsGetOutput);
   }
 }

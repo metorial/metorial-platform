@@ -17,9 +17,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialDashboardInstanceServersCapabilitiesEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialDashboardInstanceServersCapabilitiesEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -28,23 +43,29 @@ export class MetorialDashboardInstanceServersCapabilitiesEndpoint extends BaseMe
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceServersCapabilitiesListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceServersCapabilitiesListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
     instanceId: string,
-    query?: DashboardInstanceServersCapabilitiesListQuery
+    query?: DashboardInstanceServersCapabilitiesListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceServersCapabilitiesListOutput> {
     let path = `dashboard/instances/${instanceId}/server-capabilities`;
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardInstanceServersCapabilitiesListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardInstanceServersCapabilitiesListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceServersCapabilitiesListOutput
+    );
   }
 }

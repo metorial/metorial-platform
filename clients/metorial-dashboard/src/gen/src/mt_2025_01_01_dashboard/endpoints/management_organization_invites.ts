@@ -31,9 +31,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialManagementOrganizationInvitesEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialManagementOrganizationInvitesEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -41,23 +56,29 @@ export class MetorialManagementOrganizationInvitesEndpoint extends BaseMetorialE
    * @description List all organization invites
    *
    * @param `query` - DashboardOrganizationsInvitesListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsInvitesListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
-    query?: DashboardOrganizationsInvitesListQuery
+    query?: DashboardOrganizationsInvitesListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsInvitesListOutput> {
     let path = 'organization/invites';
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardOrganizationsInvitesListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardOrganizationsInvitesListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardOrganizationsInvitesListOutput
+    );
   }
 
   /**
@@ -65,17 +86,26 @@ export class MetorialManagementOrganizationInvitesEndpoint extends BaseMetorialE
    * @description Get the information of a specific organization invite
    *
    * @param `inviteId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsInvitesGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(inviteId: string): Promise<DashboardOrganizationsInvitesGetOutput> {
+  get(
+    inviteId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardOrganizationsInvitesGetOutput> {
     let path = `organization/invites/${inviteId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardOrganizationsInvitesGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardOrganizationsInvitesGetOutput
+    );
   }
 
   /**
@@ -83,38 +113,52 @@ export class MetorialManagementOrganizationInvitesEndpoint extends BaseMetorialE
    * @description Create a new organization invite
    *
    * @param `body` - DashboardOrganizationsInvitesCreateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsInvitesCreateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   create(
-    body: DashboardOrganizationsInvitesCreateBody
+    body: DashboardOrganizationsInvitesCreateBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsInvitesCreateOutput> {
     let path = 'organization/invites';
-    return this._post({
+
+    let request = {
       path,
-      body: mapDashboardOrganizationsInvitesCreateBody.transformTo(body)
-    }).transform(mapDashboardOrganizationsInvitesCreateOutput);
+      body: mapDashboardOrganizationsInvitesCreateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardOrganizationsInvitesCreateOutput
+    );
   }
 
   /**
    * @name Ensure organization invite link
    * @description Ensure the invite link for the organization
    *
-   * @param
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsInvitesEnsureLinkOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  ensureLink(): Promise<DashboardOrganizationsInvitesEnsureLinkOutput> {
+  ensureLink(opts?: {
+    headers?: Record<string, string>;
+  }): Promise<DashboardOrganizationsInvitesEnsureLinkOutput> {
     let path = 'organization/invites/ensure';
-    return this._post({
-      path
-    }).transform(mapDashboardOrganizationsInvitesEnsureLinkOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardOrganizationsInvitesEnsureLinkOutput
+    );
   }
 
   /**
@@ -122,17 +166,26 @@ export class MetorialManagementOrganizationInvitesEndpoint extends BaseMetorialE
    * @description Remove an organization invite
    *
    * @param `inviteId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsInvitesDeleteOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  delete(inviteId: string): Promise<DashboardOrganizationsInvitesDeleteOutput> {
+  delete(
+    inviteId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardOrganizationsInvitesDeleteOutput> {
     let path = `organization/invites/${inviteId}`;
-    return this._delete({
-      path
-    }).transform(mapDashboardOrganizationsInvitesDeleteOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardOrganizationsInvitesDeleteOutput
+    );
   }
 
   /**
@@ -141,20 +194,27 @@ export class MetorialManagementOrganizationInvitesEndpoint extends BaseMetorialE
    *
    * @param `inviteId` - string
    * @param `body` - DashboardOrganizationsInvitesUpdateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsInvitesUpdateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   update(
     inviteId: string,
-    body: DashboardOrganizationsInvitesUpdateBody
+    body: DashboardOrganizationsInvitesUpdateBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsInvitesUpdateOutput> {
     let path = `organization/invites/${inviteId}`;
-    return this._post({
+
+    let request = {
       path,
-      body: mapDashboardOrganizationsInvitesUpdateBody.transformTo(body)
-    }).transform(mapDashboardOrganizationsInvitesUpdateOutput);
+      body: mapDashboardOrganizationsInvitesUpdateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardOrganizationsInvitesUpdateOutput
+    );
   }
 }

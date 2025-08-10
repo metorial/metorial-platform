@@ -25,9 +25,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialSessionsEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialSessionsEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -35,23 +50,27 @@ export class MetorialSessionsEndpoint extends BaseMetorialEndpoint<any> {
    * @description List all sessions
    *
    * @param `query` - DashboardInstanceSessionsListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
-    query?: DashboardInstanceSessionsListQuery
+    query?: DashboardInstanceSessionsListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsListOutput> {
     let path = 'sessions';
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardInstanceSessionsListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardInstanceSessionsListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapDashboardInstanceSessionsListOutput);
   }
 
   /**
@@ -59,17 +78,24 @@ export class MetorialSessionsEndpoint extends BaseMetorialEndpoint<any> {
    * @description Get the information of a specific session
    *
    * @param `sessionId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(sessionId: string): Promise<DashboardInstanceSessionsGetOutput> {
+  get(
+    sessionId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSessionsGetOutput> {
     let path = `sessions/${sessionId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceSessionsGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapDashboardInstanceSessionsGetOutput);
   }
 
   /**
@@ -77,20 +103,27 @@ export class MetorialSessionsEndpoint extends BaseMetorialEndpoint<any> {
    * @description Create a new session
    *
    * @param `body` - DashboardInstanceSessionsCreateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsCreateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   create(
-    body: DashboardInstanceSessionsCreateBody
+    body: DashboardInstanceSessionsCreateBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsCreateOutput> {
     let path = 'sessions';
-    return this._post({
+
+    let request = {
       path,
-      body: mapDashboardInstanceSessionsCreateBody.transformTo(body)
-    }).transform(mapDashboardInstanceSessionsCreateOutput);
+      body: mapDashboardInstanceSessionsCreateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceSessionsCreateOutput
+    );
   }
 
   /**
@@ -98,16 +131,25 @@ export class MetorialSessionsEndpoint extends BaseMetorialEndpoint<any> {
    * @description Delete a session
    *
    * @param `sessionId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsDeleteOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  delete(sessionId: string): Promise<DashboardInstanceSessionsDeleteOutput> {
+  delete(
+    sessionId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSessionsDeleteOutput> {
     let path = `sessions/${sessionId}`;
-    return this._delete({
-      path
-    }).transform(mapDashboardInstanceSessionsDeleteOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardInstanceSessionsDeleteOutput
+    );
   }
 }

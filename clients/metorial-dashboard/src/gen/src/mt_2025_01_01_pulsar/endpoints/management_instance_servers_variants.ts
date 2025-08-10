@@ -19,9 +19,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialManagementInstanceServersVariantsEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialManagementInstanceServersVariantsEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -31,25 +46,31 @@ export class MetorialManagementInstanceServersVariantsEndpoint extends BaseMetor
    * @param `instanceId` - string
    * @param `serverId` - string
    * @param `query` - DashboardInstanceServersVariantsListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceServersVariantsListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
     instanceId: string,
     serverId: string,
-    query?: DashboardInstanceServersVariantsListQuery
+    query?: DashboardInstanceServersVariantsListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceServersVariantsListOutput> {
     let path = `instances/${instanceId}/servers/${serverId}/variants`;
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardInstanceServersVariantsListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardInstanceServersVariantsListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceServersVariantsListOutput
+    );
   }
 
   /**
@@ -59,20 +80,27 @@ export class MetorialManagementInstanceServersVariantsEndpoint extends BaseMetor
    * @param `instanceId` - string
    * @param `serverId` - string
    * @param `serverVariantId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceServersVariantsGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
     instanceId: string,
     serverId: string,
-    serverVariantId: string
+    serverVariantId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceServersVariantsGetOutput> {
     let path = `instances/${instanceId}/servers/${serverId}/variants/${serverVariantId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceServersVariantsGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceServersVariantsGetOutput
+    );
   }
 }

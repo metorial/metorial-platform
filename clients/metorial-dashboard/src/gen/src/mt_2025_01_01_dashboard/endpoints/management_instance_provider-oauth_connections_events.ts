@@ -19,9 +19,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialManagementInstanceProviderOauthConnectionsEventsEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialManagementInstanceProviderOauthConnectionsEventsEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -31,27 +46,33 @@ export class MetorialManagementInstanceProviderOauthConnectionsEventsEndpoint ex
    * @param `instanceId` - string
    * @param `connectionId` - string
    * @param `query` - DashboardInstanceProviderOauthConnectionsEventsListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderOauthConnectionsEventsListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
     instanceId: string,
     connectionId: string,
-    query?: DashboardInstanceProviderOauthConnectionsEventsListQuery
+    query?: DashboardInstanceProviderOauthConnectionsEventsListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderOauthConnectionsEventsListOutput> {
     let path = `instances/${instanceId}/provider-oauth/connections/${connectionId}/events`;
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardInstanceProviderOauthConnectionsEventsListQuery.transformTo(
             query
           )
-        : undefined
-    }).transform(mapDashboardInstanceProviderOauthConnectionsEventsListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceProviderOauthConnectionsEventsListOutput
+    );
   }
 
   /**
@@ -61,20 +82,27 @@ export class MetorialManagementInstanceProviderOauthConnectionsEventsEndpoint ex
    * @param `instanceId` - string
    * @param `connectionId` - string
    * @param `eventId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderOauthConnectionsEventsGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
     instanceId: string,
     connectionId: string,
-    eventId: string
+    eventId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderOauthConnectionsEventsGetOutput> {
     let path = `instances/${instanceId}/provider-oauth/connections/${connectionId}/events/${eventId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceProviderOauthConnectionsEventsGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceProviderOauthConnectionsEventsGetOutput
+    );
   }
 }

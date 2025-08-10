@@ -25,9 +25,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialDashboardOrganizationsJoinEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialDashboardOrganizationsJoinEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -35,23 +50,27 @@ export class MetorialDashboardOrganizationsJoinEndpoint extends BaseMetorialEndp
    * @description Join an organization
    *
    * @param `query` - DashboardOrganizationsJoinGetQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsJoinGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
-    query?: DashboardOrganizationsJoinGetQuery
+    query?: DashboardOrganizationsJoinGetQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsJoinGetOutput> {
     let path = 'dashboard/organization-join/find';
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardOrganizationsJoinGetQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardOrganizationsJoinGetOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapDashboardOrganizationsJoinGetOutput);
   }
 
   /**
@@ -59,20 +78,27 @@ export class MetorialDashboardOrganizationsJoinEndpoint extends BaseMetorialEndp
    * @description Join an organization
    *
    * @param `body` - DashboardOrganizationsJoinAcceptBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsJoinAcceptOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   accept(
-    body: DashboardOrganizationsJoinAcceptBody
+    body: DashboardOrganizationsJoinAcceptBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsJoinAcceptOutput> {
     let path = 'dashboard/organization-join/accept';
-    return this._post({
+
+    let request = {
       path,
-      body: mapDashboardOrganizationsJoinAcceptBody.transformTo(body)
-    }).transform(mapDashboardOrganizationsJoinAcceptOutput);
+      body: mapDashboardOrganizationsJoinAcceptBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardOrganizationsJoinAcceptOutput
+    );
   }
 
   /**
@@ -80,19 +106,26 @@ export class MetorialDashboardOrganizationsJoinEndpoint extends BaseMetorialEndp
    * @description Reject an organization invite
    *
    * @param `body` - DashboardOrganizationsJoinRejectBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsJoinRejectOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   reject(
-    body: DashboardOrganizationsJoinRejectBody
+    body: DashboardOrganizationsJoinRejectBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsJoinRejectOutput> {
     let path = 'dashboard/organization-join/reject';
-    return this._post({
+
+    let request = {
       path,
-      body: mapDashboardOrganizationsJoinRejectBody.transformTo(body)
-    }).transform(mapDashboardOrganizationsJoinRejectOutput);
+      body: mapDashboardOrganizationsJoinRejectBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardOrganizationsJoinRejectOutput
+    );
   }
 }

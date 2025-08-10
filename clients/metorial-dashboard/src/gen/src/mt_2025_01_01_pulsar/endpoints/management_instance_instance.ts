@@ -15,9 +15,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialManagementInstanceInstanceEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialManagementInstanceInstanceEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -25,16 +40,23 @@ export class MetorialManagementInstanceInstanceEndpoint extends BaseMetorialEndp
    * @description Retrieves metadata and configuration details for a specific instance.
    *
    * @param `instanceId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceInstanceGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(instanceId: string): Promise<DashboardInstanceInstanceGetOutput> {
+  get(
+    instanceId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceInstanceGetOutput> {
     let path = `instances/${instanceId}/instance`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceInstanceGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapDashboardInstanceInstanceGetOutput);
   }
 }

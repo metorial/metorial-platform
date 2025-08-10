@@ -27,9 +27,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialDashboardInstanceLinksEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialDashboardInstanceLinksEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -38,20 +53,25 @@ export class MetorialDashboardInstanceLinksEndpoint extends BaseMetorialEndpoint
    *
    * @param `instanceId` - string
    * @param `fileId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceLinksListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
     instanceId: string,
-    fileId: string
+    fileId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceLinksListOutput> {
     let path = `dashboard/instances/${instanceId}/files/${fileId}/links`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceLinksListOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapDashboardInstanceLinksListOutput);
   }
 
   /**
@@ -61,21 +81,26 @@ export class MetorialDashboardInstanceLinksEndpoint extends BaseMetorialEndpoint
    * @param `instanceId` - string
    * @param `fileId` - string
    * @param `linkId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceLinksGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
     instanceId: string,
     fileId: string,
-    linkId: string
+    linkId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceLinksGetOutput> {
     let path = `dashboard/instances/${instanceId}/files/${fileId}/links/${linkId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceLinksGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapDashboardInstanceLinksGetOutput);
   }
 
   /**
@@ -85,22 +110,27 @@ export class MetorialDashboardInstanceLinksEndpoint extends BaseMetorialEndpoint
    * @param `instanceId` - string
    * @param `fileId` - string
    * @param `body` - DashboardInstanceLinksCreateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceLinksCreateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   create(
     instanceId: string,
     fileId: string,
-    body: DashboardInstanceLinksCreateBody
+    body: DashboardInstanceLinksCreateBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceLinksCreateOutput> {
     let path = `dashboard/instances/${instanceId}/files/${fileId}/links`;
-    return this._post({
+
+    let request = {
       path,
-      body: mapDashboardInstanceLinksCreateBody.transformTo(body)
-    }).transform(mapDashboardInstanceLinksCreateOutput);
+      body: mapDashboardInstanceLinksCreateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(mapDashboardInstanceLinksCreateOutput);
   }
 
   /**
@@ -111,9 +141,8 @@ export class MetorialDashboardInstanceLinksEndpoint extends BaseMetorialEndpoint
    * @param `fileId` - string
    * @param `linkId` - string
    * @param `body` - DashboardInstanceLinksUpdateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceLinksUpdateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
@@ -121,13 +150,21 @@ export class MetorialDashboardInstanceLinksEndpoint extends BaseMetorialEndpoint
     instanceId: string,
     fileId: string,
     linkId: string,
-    body: DashboardInstanceLinksUpdateBody
+    body: DashboardInstanceLinksUpdateBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceLinksUpdateOutput> {
     let path = `dashboard/instances/${instanceId}/files/${fileId}/links/${linkId}`;
-    return this._patch({
+
+    let request = {
       path,
-      body: mapDashboardInstanceLinksUpdateBody.transformTo(body)
-    }).transform(mapDashboardInstanceLinksUpdateOutput);
+      body: mapDashboardInstanceLinksUpdateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._patch(request).transform(
+      mapDashboardInstanceLinksUpdateOutput
+    );
   }
 
   /**
@@ -137,20 +174,27 @@ export class MetorialDashboardInstanceLinksEndpoint extends BaseMetorialEndpoint
    * @param `instanceId` - string
    * @param `fileId` - string
    * @param `linkId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceLinksDeleteOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   delete(
     instanceId: string,
     fileId: string,
-    linkId: string
+    linkId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceLinksDeleteOutput> {
     let path = `dashboard/instances/${instanceId}/files/${fileId}/links/${linkId}`;
-    return this._delete({
-      path
-    }).transform(mapDashboardInstanceLinksDeleteOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardInstanceLinksDeleteOutput
+    );
   }
 }

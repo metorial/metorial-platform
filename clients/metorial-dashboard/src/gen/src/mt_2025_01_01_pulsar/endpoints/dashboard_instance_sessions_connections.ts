@@ -19,9 +19,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialDashboardInstanceSessionsConnectionsEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialDashboardInstanceSessionsConnectionsEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -31,25 +46,31 @@ export class MetorialDashboardInstanceSessionsConnectionsEndpoint extends BaseMe
    * @param `instanceId` - string
    * @param `sessionId` - string
    * @param `query` - DashboardInstanceSessionsConnectionsListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsConnectionsListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
     instanceId: string,
     sessionId: string,
-    query?: DashboardInstanceSessionsConnectionsListQuery
+    query?: DashboardInstanceSessionsConnectionsListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsConnectionsListOutput> {
     let path = `dashboard/instances/${instanceId}/sessions/${sessionId}/connections`;
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardInstanceSessionsConnectionsListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardInstanceSessionsConnectionsListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceSessionsConnectionsListOutput
+    );
   }
 
   /**
@@ -59,20 +80,27 @@ export class MetorialDashboardInstanceSessionsConnectionsEndpoint extends BaseMe
    * @param `instanceId` - string
    * @param `sessionId` - string
    * @param `sessionConnectionId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsConnectionsGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
     instanceId: string,
     sessionId: string,
-    sessionConnectionId: string
+    sessionConnectionId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsConnectionsGetOutput> {
     let path = `dashboard/instances/${instanceId}/sessions/${sessionId}/connections/${sessionConnectionId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceSessionsConnectionsGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceSessionsConnectionsGetOutput
+    );
   }
 }

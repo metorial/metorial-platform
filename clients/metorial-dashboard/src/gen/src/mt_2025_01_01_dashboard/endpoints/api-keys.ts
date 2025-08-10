@@ -35,9 +35,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialApiKeysEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialApiKeysEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -45,19 +60,25 @@ export class MetorialApiKeysEndpoint extends BaseMetorialEndpoint<any> {
    * @description Get the current user information
    *
    * @param `query` - ApiKeysListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ApiKeysListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  list(query?: ApiKeysListQuery): Promise<ApiKeysListOutput> {
+  list(
+    query?: ApiKeysListQuery,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<ApiKeysListOutput> {
     let path = 'api-keys';
-    return this._get({
+
+    let request = {
       path,
 
-      query: query ? mapApiKeysListQuery.transformTo(query) : undefined
-    }).transform(mapApiKeysListOutput);
+      query: query ? mapApiKeysListQuery.transformTo(query) : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapApiKeysListOutput);
   }
 
   /**
@@ -65,17 +86,24 @@ export class MetorialApiKeysEndpoint extends BaseMetorialEndpoint<any> {
    * @description Get the information of a specific API key
    *
    * @param `apiKeyId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ApiKeysGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(apiKeyId: string): Promise<ApiKeysGetOutput> {
+  get(
+    apiKeyId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<ApiKeysGetOutput> {
     let path = `api-keys/${apiKeyId}`;
-    return this._get({
-      path
-    }).transform(mapApiKeysGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapApiKeysGetOutput);
   }
 
   /**
@@ -83,18 +111,25 @@ export class MetorialApiKeysEndpoint extends BaseMetorialEndpoint<any> {
    * @description Create a new API key
    *
    * @param `body` - ApiKeysCreateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ApiKeysCreateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  create(body: ApiKeysCreateBody): Promise<ApiKeysCreateOutput> {
+  create(
+    body: ApiKeysCreateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<ApiKeysCreateOutput> {
     let path = 'api-keys';
-    return this._post({
+
+    let request = {
       path,
-      body: mapApiKeysCreateBody.transformTo(body)
-    }).transform(mapApiKeysCreateOutput);
+      body: mapApiKeysCreateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(mapApiKeysCreateOutput);
   }
 
   /**
@@ -103,21 +138,26 @@ export class MetorialApiKeysEndpoint extends BaseMetorialEndpoint<any> {
    *
    * @param `apiKeyId` - string
    * @param `body` - ApiKeysUpdateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ApiKeysUpdateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   update(
     apiKeyId: string,
-    body: ApiKeysUpdateBody
+    body: ApiKeysUpdateBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<ApiKeysUpdateOutput> {
     let path = `api-keys/${apiKeyId}`;
-    return this._post({
+
+    let request = {
       path,
-      body: mapApiKeysUpdateBody.transformTo(body)
-    }).transform(mapApiKeysUpdateOutput);
+      body: mapApiKeysUpdateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(mapApiKeysUpdateOutput);
   }
 
   /**
@@ -125,17 +165,24 @@ export class MetorialApiKeysEndpoint extends BaseMetorialEndpoint<any> {
    * @description Revoke a specific API key
    *
    * @param `apiKeyId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ApiKeysRevokeOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  revoke(apiKeyId: string): Promise<ApiKeysRevokeOutput> {
+  revoke(
+    apiKeyId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<ApiKeysRevokeOutput> {
     let path = `api-keys/${apiKeyId}`;
-    return this._delete({
-      path
-    }).transform(mapApiKeysRevokeOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(mapApiKeysRevokeOutput);
   }
 
   /**
@@ -144,21 +191,26 @@ export class MetorialApiKeysEndpoint extends BaseMetorialEndpoint<any> {
    *
    * @param `apiKeyId` - string
    * @param `body` - ApiKeysRotateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ApiKeysRotateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   rotate(
     apiKeyId: string,
-    body: ApiKeysRotateBody
+    body: ApiKeysRotateBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<ApiKeysRotateOutput> {
     let path = `api-keys/${apiKeyId}/rotate`;
-    return this._post({
+
+    let request = {
       path,
-      body: mapApiKeysRotateBody.transformTo(body)
-    }).transform(mapApiKeysRotateOutput);
+      body: mapApiKeysRotateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(mapApiKeysRotateOutput);
   }
 
   /**
@@ -166,16 +218,23 @@ export class MetorialApiKeysEndpoint extends BaseMetorialEndpoint<any> {
    * @description Reveal a specific API key
    *
    * @param `apiKeyId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ApiKeysRevealOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  reveal(apiKeyId: string): Promise<ApiKeysRevealOutput> {
+  reveal(
+    apiKeyId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<ApiKeysRevealOutput> {
     let path = `api-keys/${apiKeyId}/reveal`;
-    return this._post({
-      path
-    }).transform(mapApiKeysRevealOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(mapApiKeysRevealOutput);
   }
 }
