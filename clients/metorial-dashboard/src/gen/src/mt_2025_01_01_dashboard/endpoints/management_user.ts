@@ -23,27 +23,47 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialManagementUserEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialManagementUserEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
    * @name Get user
    * @description Get the current user information
    *
-   * @param
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ManagementUserGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(): Promise<ManagementUserGetOutput> {
+  get(opts?: {
+    headers?: Record<string, string>;
+  }): Promise<ManagementUserGetOutput> {
     let path = 'user';
-    return this._get({
-      path
-    }).transform(mapManagementUserGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapManagementUserGetOutput);
   }
 
   /**
@@ -51,18 +71,25 @@ export class MetorialManagementUserEndpoint extends BaseMetorialEndpoint<any> {
    * @description Update the current user information
    *
    * @param `body` - ManagementUserUpdateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ManagementUserUpdateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  update(body: ManagementUserUpdateBody): Promise<ManagementUserUpdateOutput> {
+  update(
+    body: ManagementUserUpdateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<ManagementUserUpdateOutput> {
     let path = 'user';
-    return this._post({
+
+    let request = {
       path,
-      body: mapManagementUserUpdateBody.transformTo(body)
-    }).transform(mapManagementUserUpdateOutput);
+      body: mapManagementUserUpdateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(mapManagementUserUpdateOutput);
   }
 
   /**
@@ -70,17 +97,24 @@ export class MetorialManagementUserEndpoint extends BaseMetorialEndpoint<any> {
    * @description Update the current user information
    *
    * @param `body` - ManagementUserDeleteBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ManagementUserDeleteOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  delete(body: ManagementUserDeleteBody): Promise<ManagementUserDeleteOutput> {
+  delete(
+    body: ManagementUserDeleteBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<ManagementUserDeleteOutput> {
     let path = 'user';
-    return this._post({
+
+    let request = {
       path,
-      body: mapManagementUserDeleteBody.transformTo(body)
-    }).transform(mapManagementUserDeleteOutput);
+      body: mapManagementUserDeleteBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(mapManagementUserDeleteOutput);
   }
 }

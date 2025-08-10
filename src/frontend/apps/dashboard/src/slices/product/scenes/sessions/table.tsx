@@ -1,7 +1,7 @@
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { SessionsGetOutput } from '@metorial/generated';
-import { SessionsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
+import { SessionsGetOutput, SessionsListQuery } from '@metorial/dashboard-sdk';
+
 import { useCurrentInstance, useSessions } from '@metorial/state';
 import { Badge, RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';

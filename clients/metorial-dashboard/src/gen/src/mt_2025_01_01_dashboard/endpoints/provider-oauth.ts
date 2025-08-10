@@ -17,9 +17,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialProviderOauthEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialProviderOauthEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -27,19 +42,24 @@ export class MetorialProviderOauthEndpoint extends BaseMetorialEndpoint<any> {
    * @description Discover OAuth configuration from a discovery URL
    *
    * @param `body` - ProviderOauthDiscoverBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ProviderOauthDiscoverOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   discover(
-    body: ProviderOauthDiscoverBody
+    body: ProviderOauthDiscoverBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<ProviderOauthDiscoverOutput> {
     let path = 'provider-oauth-discovery';
-    return this._post({
+
+    let request = {
       path,
-      body: mapProviderOauthDiscoverBody.transformTo(body)
-    }).transform(mapProviderOauthDiscoverOutput);
+      body: mapProviderOauthDiscoverBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(mapProviderOauthDiscoverOutput);
   }
 }

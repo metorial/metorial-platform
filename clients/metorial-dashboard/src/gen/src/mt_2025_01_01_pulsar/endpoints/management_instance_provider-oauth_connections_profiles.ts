@@ -19,9 +19,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialManagementInstanceProviderOauthConnectionsProfilesEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialManagementInstanceProviderOauthConnectionsProfilesEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -31,27 +46,31 @@ export class MetorialManagementInstanceProviderOauthConnectionsProfilesEndpoint 
    * @param `instanceId` - string
    * @param `connectionId` - string
    * @param `query` - DashboardInstanceProviderOauthConnectionsProfilesListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderOauthConnectionsProfilesListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
     instanceId: string,
     connectionId: string,
-    query?: DashboardInstanceProviderOauthConnectionsProfilesListQuery
+    query?: DashboardInstanceProviderOauthConnectionsProfilesListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderOauthConnectionsProfilesListOutput> {
     let path = `instances/${instanceId}/provider-oauth/connections/${connectionId}/profiles`;
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardInstanceProviderOauthConnectionsProfilesListQuery.transformTo(
             query
           )
-        : undefined
-    }).transform(
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
       mapDashboardInstanceProviderOauthConnectionsProfilesListOutput
     );
   }
@@ -63,20 +82,27 @@ export class MetorialManagementInstanceProviderOauthConnectionsProfilesEndpoint 
    * @param `instanceId` - string
    * @param `connectionId` - string
    * @param `profileId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderOauthConnectionsProfilesGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
     instanceId: string,
     connectionId: string,
-    profileId: string
+    profileId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderOauthConnectionsProfilesGetOutput> {
     let path = `instances/${instanceId}/provider-oauth/connections/${connectionId}/profiles/${profileId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceProviderOauthConnectionsProfilesGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceProviderOauthConnectionsProfilesGetOutput
+    );
   }
 }

@@ -19,9 +19,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialSessionsMessagesEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialSessionsMessagesEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -30,24 +45,30 @@ export class MetorialSessionsMessagesEndpoint extends BaseMetorialEndpoint<any> 
    *
    * @param `sessionId` - string
    * @param `query` - DashboardInstanceSessionsMessagesListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsMessagesListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
     sessionId: string,
-    query?: DashboardInstanceSessionsMessagesListQuery
+    query?: DashboardInstanceSessionsMessagesListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsMessagesListOutput> {
     let path = `sessions/${sessionId}/messages`;
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardInstanceSessionsMessagesListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardInstanceSessionsMessagesListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceSessionsMessagesListOutput
+    );
   }
 
   /**
@@ -56,19 +77,26 @@ export class MetorialSessionsMessagesEndpoint extends BaseMetorialEndpoint<any> 
    *
    * @param `sessionId` - string
    * @param `sessionMessageId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSessionsMessagesGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
     sessionId: string,
-    sessionMessageId: string
+    sessionMessageId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsMessagesGetOutput> {
     let path = `sessions/${sessionId}/messages/${sessionMessageId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceSessionsMessagesGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceSessionsMessagesGetOutput
+    );
   }
 }

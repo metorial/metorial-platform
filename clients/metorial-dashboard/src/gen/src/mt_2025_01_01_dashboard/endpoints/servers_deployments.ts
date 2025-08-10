@@ -29,9 +29,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialServersDeploymentsEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialServersDeploymentsEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -39,23 +54,29 @@ export class MetorialServersDeploymentsEndpoint extends BaseMetorialEndpoint<any
    * @description Retrieve a list of server deployments within the instance. Supports filtering by status, server, variant, and session.
    *
    * @param `query` - DashboardInstanceServersDeploymentsListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceServersDeploymentsListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
-    query?: DashboardInstanceServersDeploymentsListQuery
+    query?: DashboardInstanceServersDeploymentsListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceServersDeploymentsListOutput> {
     let path = 'server-deployments';
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardInstanceServersDeploymentsListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardInstanceServersDeploymentsListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceServersDeploymentsListOutput
+    );
   }
 
   /**
@@ -63,19 +84,26 @@ export class MetorialServersDeploymentsEndpoint extends BaseMetorialEndpoint<any
    * @description Fetch detailed information about a specific server deployment.
    *
    * @param `serverDeploymentId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceServersDeploymentsGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
-    serverDeploymentId: string
+    serverDeploymentId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceServersDeploymentsGetOutput> {
     let path = `server-deployments/${serverDeploymentId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceServersDeploymentsGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceServersDeploymentsGetOutput
+    );
   }
 
   /**
@@ -83,20 +111,27 @@ export class MetorialServersDeploymentsEndpoint extends BaseMetorialEndpoint<any
    * @description Create a new server deployment using an existing or newly defined server implementation.
    *
    * @param `body` - DashboardInstanceServersDeploymentsCreateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceServersDeploymentsCreateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   create(
-    body: DashboardInstanceServersDeploymentsCreateBody
+    body: DashboardInstanceServersDeploymentsCreateBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceServersDeploymentsCreateOutput> {
     let path = 'server-deployments';
-    return this._post({
+
+    let request = {
       path,
-      body: mapDashboardInstanceServersDeploymentsCreateBody.transformTo(body)
-    }).transform(mapDashboardInstanceServersDeploymentsCreateOutput);
+      body: mapDashboardInstanceServersDeploymentsCreateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceServersDeploymentsCreateOutput
+    );
   }
 
   /**
@@ -105,21 +140,28 @@ export class MetorialServersDeploymentsEndpoint extends BaseMetorialEndpoint<any
    *
    * @param `serverDeploymentId` - string
    * @param `body` - DashboardInstanceServersDeploymentsUpdateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceServersDeploymentsUpdateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   update(
     serverDeploymentId: string,
-    body: DashboardInstanceServersDeploymentsUpdateBody
+    body: DashboardInstanceServersDeploymentsUpdateBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceServersDeploymentsUpdateOutput> {
     let path = `server-deployments/${serverDeploymentId}`;
-    return this._patch({
+
+    let request = {
       path,
-      body: mapDashboardInstanceServersDeploymentsUpdateBody.transformTo(body)
-    }).transform(mapDashboardInstanceServersDeploymentsUpdateOutput);
+      body: mapDashboardInstanceServersDeploymentsUpdateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._patch(request).transform(
+      mapDashboardInstanceServersDeploymentsUpdateOutput
+    );
   }
 
   /**
@@ -127,18 +169,25 @@ export class MetorialServersDeploymentsEndpoint extends BaseMetorialEndpoint<any
    * @description Delete a server deployment from the instance.
    *
    * @param `serverDeploymentId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceServersDeploymentsDeleteOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   delete(
-    serverDeploymentId: string
+    serverDeploymentId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceServersDeploymentsDeleteOutput> {
     let path = `server-deployments/${serverDeploymentId}`;
-    return this._delete({
-      path
-    }).transform(mapDashboardInstanceServersDeploymentsDeleteOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardInstanceServersDeploymentsDeleteOutput
+    );
   }
 }

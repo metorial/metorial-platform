@@ -19,9 +19,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialServerRunErrorsEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialServerRunErrorsEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -29,23 +44,29 @@ export class MetorialServerRunErrorsEndpoint extends BaseMetorialEndpoint<any> {
    * @description List all server run errors
    *
    * @param `query` - DashboardInstanceServerRunErrorsListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceServerRunErrorsListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
-    query?: DashboardInstanceServerRunErrorsListQuery
+    query?: DashboardInstanceServerRunErrorsListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceServerRunErrorsListOutput> {
     let path = 'server-run-errors';
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardInstanceServerRunErrorsListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardInstanceServerRunErrorsListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceServerRunErrorsListOutput
+    );
   }
 
   /**
@@ -53,18 +74,25 @@ export class MetorialServerRunErrorsEndpoint extends BaseMetorialEndpoint<any> {
    * @description Get the information of a specific server run error
    *
    * @param `serverRunErrorId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceServerRunErrorsGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
-    serverRunErrorId: string
+    serverRunErrorId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceServerRunErrorsGetOutput> {
     let path = `server-run-errors/${serverRunErrorId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceServerRunErrorsGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceServerRunErrorsGetOutput
+    );
   }
 }

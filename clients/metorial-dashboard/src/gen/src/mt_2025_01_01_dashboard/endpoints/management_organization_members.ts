@@ -25,9 +25,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialManagementOrganizationMembersEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialManagementOrganizationMembersEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -35,23 +50,29 @@ export class MetorialManagementOrganizationMembersEndpoint extends BaseMetorialE
    * @description List all organization members
    *
    * @param `query` - DashboardOrganizationsMembersListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsMembersListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
-    query?: DashboardOrganizationsMembersListQuery
+    query?: DashboardOrganizationsMembersListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsMembersListOutput> {
     let path = 'organization/members';
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardOrganizationsMembersListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardOrganizationsMembersListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardOrganizationsMembersListOutput
+    );
   }
 
   /**
@@ -59,17 +80,26 @@ export class MetorialManagementOrganizationMembersEndpoint extends BaseMetorialE
    * @description Get the information of a specific organization member
    *
    * @param `memberId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsMembersGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(memberId: string): Promise<DashboardOrganizationsMembersGetOutput> {
+  get(
+    memberId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardOrganizationsMembersGetOutput> {
     let path = `organization/members/${memberId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardOrganizationsMembersGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardOrganizationsMembersGetOutput
+    );
   }
 
   /**
@@ -77,17 +107,26 @@ export class MetorialManagementOrganizationMembersEndpoint extends BaseMetorialE
    * @description Remove an organization member
    *
    * @param `memberId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsMembersDeleteOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  delete(memberId: string): Promise<DashboardOrganizationsMembersDeleteOutput> {
+  delete(
+    memberId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardOrganizationsMembersDeleteOutput> {
     let path = `organization/members/${memberId}`;
-    return this._delete({
-      path
-    }).transform(mapDashboardOrganizationsMembersDeleteOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardOrganizationsMembersDeleteOutput
+    );
   }
 
   /**
@@ -96,20 +135,27 @@ export class MetorialManagementOrganizationMembersEndpoint extends BaseMetorialE
    *
    * @param `memberId` - string
    * @param `body` - DashboardOrganizationsMembersUpdateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsMembersUpdateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   update(
     memberId: string,
-    body: DashboardOrganizationsMembersUpdateBody
+    body: DashboardOrganizationsMembersUpdateBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsMembersUpdateOutput> {
     let path = `organization/members/${memberId}`;
-    return this._post({
+
+    let request = {
       path,
-      body: mapDashboardOrganizationsMembersUpdateBody.transformTo(body)
-    }).transform(mapDashboardOrganizationsMembersUpdateOutput);
+      body: mapDashboardOrganizationsMembersUpdateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardOrganizationsMembersUpdateOutput
+    );
   }
 }

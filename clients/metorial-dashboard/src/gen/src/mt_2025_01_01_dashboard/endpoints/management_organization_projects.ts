@@ -29,9 +29,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialManagementOrganizationProjectsEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialManagementOrganizationProjectsEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -39,23 +54,29 @@ export class MetorialManagementOrganizationProjectsEndpoint extends BaseMetorial
    * @description List all organization projects
    *
    * @param `query` - DashboardOrganizationsProjectsListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsProjectsListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
-    query?: DashboardOrganizationsProjectsListQuery
+    query?: DashboardOrganizationsProjectsListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsProjectsListOutput> {
     let path = 'organization/projects';
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardOrganizationsProjectsListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardOrganizationsProjectsListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardOrganizationsProjectsListOutput
+    );
   }
 
   /**
@@ -63,17 +84,26 @@ export class MetorialManagementOrganizationProjectsEndpoint extends BaseMetorial
    * @description Get the information of a specific organization project
    *
    * @param `projectId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsProjectsGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(projectId: string): Promise<DashboardOrganizationsProjectsGetOutput> {
+  get(
+    projectId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardOrganizationsProjectsGetOutput> {
     let path = `organization/projects/${projectId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardOrganizationsProjectsGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardOrganizationsProjectsGetOutput
+    );
   }
 
   /**
@@ -81,20 +111,27 @@ export class MetorialManagementOrganizationProjectsEndpoint extends BaseMetorial
    * @description Create a new organization project
    *
    * @param `body` - DashboardOrganizationsProjectsCreateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsProjectsCreateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   create(
-    body: DashboardOrganizationsProjectsCreateBody
+    body: DashboardOrganizationsProjectsCreateBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsProjectsCreateOutput> {
     let path = 'organization/projects';
-    return this._post({
+
+    let request = {
       path,
-      body: mapDashboardOrganizationsProjectsCreateBody.transformTo(body)
-    }).transform(mapDashboardOrganizationsProjectsCreateOutput);
+      body: mapDashboardOrganizationsProjectsCreateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardOrganizationsProjectsCreateOutput
+    );
   }
 
   /**
@@ -102,19 +139,26 @@ export class MetorialManagementOrganizationProjectsEndpoint extends BaseMetorial
    * @description Remove an organization project
    *
    * @param `projectId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsProjectsDeleteOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   delete(
-    projectId: string
+    projectId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsProjectsDeleteOutput> {
     let path = `organization/projects/${projectId}`;
-    return this._delete({
-      path
-    }).transform(mapDashboardOrganizationsProjectsDeleteOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardOrganizationsProjectsDeleteOutput
+    );
   }
 
   /**
@@ -123,20 +167,27 @@ export class MetorialManagementOrganizationProjectsEndpoint extends BaseMetorial
    *
    * @param `projectId` - string
    * @param `body` - DashboardOrganizationsProjectsUpdateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardOrganizationsProjectsUpdateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   update(
     projectId: string,
-    body: DashboardOrganizationsProjectsUpdateBody
+    body: DashboardOrganizationsProjectsUpdateBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsProjectsUpdateOutput> {
     let path = `organization/projects/${projectId}`;
-    return this._post({
+
+    let request = {
       path,
-      body: mapDashboardOrganizationsProjectsUpdateBody.transformTo(body)
-    }).transform(mapDashboardOrganizationsProjectsUpdateOutput);
+      body: mapDashboardOrganizationsProjectsUpdateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardOrganizationsProjectsUpdateOutput
+    );
   }
 }

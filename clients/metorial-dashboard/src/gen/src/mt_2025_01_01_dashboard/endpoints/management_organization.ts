@@ -19,27 +19,47 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialManagementOrganizationEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialManagementOrganizationEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
    * @name Get organization
    * @description Get the current organization information
    *
-   * @param
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ManagementOrganizationGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(): Promise<ManagementOrganizationGetOutput> {
+  get(opts?: {
+    headers?: Record<string, string>;
+  }): Promise<ManagementOrganizationGetOutput> {
     let path = 'organization';
-    return this._get({
-      path
-    }).transform(mapManagementOrganizationGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapManagementOrganizationGetOutput);
   }
 
   /**
@@ -47,19 +67,26 @@ export class MetorialManagementOrganizationEndpoint extends BaseMetorialEndpoint
    * @description Update the current organization information
    *
    * @param `body` - ManagementOrganizationUpdateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ManagementOrganizationUpdateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   update(
-    body: ManagementOrganizationUpdateBody
+    body: ManagementOrganizationUpdateBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<ManagementOrganizationUpdateOutput> {
     let path = 'organization';
-    return this._patch({
+
+    let request = {
       path,
-      body: mapManagementOrganizationUpdateBody.transformTo(body)
-    }).transform(mapManagementOrganizationUpdateOutput);
+      body: mapManagementOrganizationUpdateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._patch(request).transform(
+      mapManagementOrganizationUpdateOutput
+    );
   }
 }

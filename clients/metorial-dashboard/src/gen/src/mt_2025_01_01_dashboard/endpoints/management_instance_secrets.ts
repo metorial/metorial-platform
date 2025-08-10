@@ -19,9 +19,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialManagementInstanceSecretsEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialManagementInstanceSecretsEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -30,24 +45,28 @@ export class MetorialManagementInstanceSecretsEndpoint extends BaseMetorialEndpo
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceSecretsListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSecretsListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
     instanceId: string,
-    query?: DashboardInstanceSecretsListQuery
+    query?: DashboardInstanceSecretsListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSecretsListOutput> {
     let path = `instances/${instanceId}/secrets`;
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardInstanceSecretsListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardInstanceSecretsListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapDashboardInstanceSecretsListOutput);
   }
 
   /**
@@ -56,19 +75,24 @@ export class MetorialManagementInstanceSecretsEndpoint extends BaseMetorialEndpo
    *
    * @param `instanceId` - string
    * @param `secretId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceSecretsGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
     instanceId: string,
-    secretId: string
+    secretId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSecretsGetOutput> {
     let path = `instances/${instanceId}/secrets/${secretId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceSecretsGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapDashboardInstanceSecretsGetOutput);
   }
 }

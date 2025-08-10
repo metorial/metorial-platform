@@ -19,9 +19,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialManagementInstanceServerRunsEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialManagementInstanceServerRunsEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -30,24 +45,30 @@ export class MetorialManagementInstanceServerRunsEndpoint extends BaseMetorialEn
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceServerRunsListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceServerRunsListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
     instanceId: string,
-    query?: DashboardInstanceServerRunsListQuery
+    query?: DashboardInstanceServerRunsListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceServerRunsListOutput> {
     let path = `instances/${instanceId}/server-runs`;
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardInstanceServerRunsListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardInstanceServerRunsListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceServerRunsListOutput
+    );
   }
 
   /**
@@ -56,19 +77,26 @@ export class MetorialManagementInstanceServerRunsEndpoint extends BaseMetorialEn
    *
    * @param `instanceId` - string
    * @param `serverRunId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceServerRunsGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
     instanceId: string,
-    serverRunId: string
+    serverRunId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceServerRunsGetOutput> {
     let path = `instances/${instanceId}/server-runs/${serverRunId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceServerRunsGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceServerRunsGetOutput
+    );
   }
 }

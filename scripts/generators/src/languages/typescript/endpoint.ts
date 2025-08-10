@@ -4,15 +4,12 @@ import type { Controller, Endpoint } from '../../fetch';
 import { format } from '../../format';
 
 export let createController = (i: {
-  endpoints: (Endpoint & {
-    path: { path: string; sdkPath: string };
-  })[];
+  endpoints: (Endpoint & { path: { path: string; sdkPath: string } })[];
   controller: Controller;
   path: string[];
   typeIdToName: Map<string, { typeName: string; mapperName: string }>;
 }) => {
   let endpoints = i.endpoints.map(e => createEndpoint({ ...i, endpoint: e }));
-
   let endpointCode = endpoints.map(e => e.source).join('\n\n');
 
   let source = dedent`
@@ -24,7 +21,6 @@ export let createController = (i: {
         .filter(i => {
           let parts = i.split(' ');
           let lastPart = parts[parts.length - 1];
-
           return endpointCode.includes(lastPart);
         })
         .sort()
@@ -34,14 +30,19 @@ export let createController = (i: {
     /**
      * @name ${i.controller.name} controller
      * @description ${i.controller.description}
-     * 
+     *
      * @see https://metorial.com/api
      * @see https://metorial.com/docs
      */
-    export class Metorial${Cases.toPascalCase(i.path.join('_'))}Endpoint extends BaseMetorialEndpoint<any> {
-      constructor(config: MetorialEndpointManager<any>) {
-        super(config);
-      }
+    export class Metorial${Cases.toPascalCase(i.path.join('_'))}Endpoint {
+      constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+      // thin proxies so method bodies stay unchanged
+      private _get(request: any)    { return this._manager._get(request); }
+      private _post(request: any)   { return this._manager._post(request); }
+      private _put(request: any)    { return this._manager._put(request); }
+      private _patch(request: any)  { return this._manager._patch(request); }
+      private _delete(request: any) { return this._manager._delete(request); }
 
       ${endpointCode}
     }
@@ -67,30 +68,20 @@ let createEndpoint = (i: {
   let pathParams = pathParts.filter(p => p.startsWith(':')).map(p => p.slice(1));
 
   for (let param of pathParams) {
-    inputs.push({
-      type: 'string',
-      name: param
-    });
+    inputs.push({ type: 'string', name: param });
   }
 
   let bodyType = i.endpoint.bodyId ? i.typeIdToName.get(i.endpoint.bodyId)! : undefined;
   let queryType = i.endpoint.queryId ? i.typeIdToName.get(i.endpoint.queryId)! : undefined;
   let outputType = i.typeIdToName.get(i.endpoint.outputId)!;
 
-  if (bodyType) {
-    inputs.push({
-      type: bodyType.typeName,
-      name: 'body'
-    });
-  }
+  if (bodyType) inputs.push({ type: bodyType.typeName, name: 'body' });
+  if (queryType) inputs.push({ type: queryType.typeName, name: 'query', optional: true });
 
-  if (queryType) {
-    inputs.push({
-      type: queryType.typeName,
-      name: 'query',
-      optional: true
-    });
-  }
+  let allInputs = [
+    ...inputs,
+    { type: '{ headers?: Record<string, string> }', name: 'opts', optional: true }
+  ];
 
   return {
     imports: types.flatMap(t => [
@@ -101,25 +92,30 @@ let createEndpoint = (i: {
       /** 
        * @name ${i.endpoint.name}
        * @description ${i.endpoint.description}
-       * 
-       * @param ${inputs.map(i => `\`${i.name}\` - ${i.type}`).join('\n* @param ')}  
-       * 
+       *
+       * @param ${allInputs.map(p => `\`${p.name}\` - ${p.type}`).join('\n* @param ')}
        * @returns ${outputType.typeName}
-       * 
        * @see https://metorial.com/api
        * @see https://metorial.com/docs
        */    
       ${Cases.toCamelCase(methodName)}(
-        ${inputs.map(i => `${i.name}${i.optional ? '?' : ''}: ${i.type}`).join(', ')}
+        ${allInputs.map(p => `${p.name}${p.optional ? '?' : ''}: ${p.type}`).join(', ')}
       ): Promise<${outputType.typeName}> {
-        ${pathParams.length > 0 ? `let path = \`${pathParts.map(p => p.startsWith(':') ? `\${${p.slice(1)}}` : p).join('/')}\`;` : `let path = '${pathParts.join('/')}';`}
-        return this._${i.endpoint.method.toLowerCase()}({
+        ${
+          pathParams.length > 0
+            ? `let path = \`${pathParts.map(p => (p.startsWith(':') ? `\${${p.slice(1)}}` : p)).join('/')}\`;`
+            : `let path = '${pathParts.join('/')}';`
+        }
+
+        let request = {
           path,
           ${bodyType ? `body: ${bodyType.mapperName}.transformTo(body),` : ''}
           ${queryType ? `query: query ? ${queryType.mapperName}.transformTo(query) : undefined,` : ''}
-        }).transform(${outputType.mapperName});  
-      }
+          ...(opts?.headers ? { headers: opts.headers } : {})
+        } as any;
 
-      `
+        return this._${i.endpoint.method.toLowerCase()}(request).transform(${outputType.mapperName});  
+      }
+    `
   };
 };

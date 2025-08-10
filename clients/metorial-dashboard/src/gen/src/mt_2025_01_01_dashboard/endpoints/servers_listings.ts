@@ -19,9 +19,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialServersListingsEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialServersListingsEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -29,19 +44,25 @@ export class MetorialServersListingsEndpoint extends BaseMetorialEndpoint<any> {
    * @description Returns a paginated list of server listings, filterable by collection, category, profile, or instance.
    *
    * @param `query` - ServersListingsListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ServersListingsListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  list(query?: ServersListingsListQuery): Promise<ServersListingsListOutput> {
+  list(
+    query?: ServersListingsListQuery,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<ServersListingsListOutput> {
     let path = 'server-listings';
-    return this._get({
+
+    let request = {
       path,
 
-      query: query ? mapServersListingsListQuery.transformTo(query) : undefined
-    }).transform(mapServersListingsListOutput);
+      query: query ? mapServersListingsListQuery.transformTo(query) : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapServersListingsListOutput);
   }
 
   /**
@@ -49,16 +70,23 @@ export class MetorialServersListingsEndpoint extends BaseMetorialEndpoint<any> {
    * @description Returns metadata and readme content for a specific server listing.
    *
    * @param `serverListingId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns ServersListingsGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(serverListingId: string): Promise<ServersListingsGetOutput> {
+  get(
+    serverListingId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<ServersListingsGetOutput> {
     let path = `server-listings/${serverListingId}`;
-    return this._get({
-      path
-    }).transform(mapServersListingsGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapServersListingsGetOutput);
   }
 }

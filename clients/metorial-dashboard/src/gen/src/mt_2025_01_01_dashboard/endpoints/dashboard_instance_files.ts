@@ -25,9 +25,24 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialDashboardInstanceFilesEndpoint extends BaseMetorialEndpoint<any> {
-  constructor(config: MetorialEndpointManager<any>) {
-    super(config);
+export class MetorialDashboardInstanceFilesEndpoint {
+  constructor(private readonly _manager: MetorialEndpointManager<any>) {}
+
+  // thin proxies so method bodies stay unchanged
+  private _get(request: any) {
+    return this._manager._get(request);
+  }
+  private _post(request: any) {
+    return this._manager._post(request);
+  }
+  private _put(request: any) {
+    return this._manager._put(request);
+  }
+  private _patch(request: any) {
+    return this._manager._patch(request);
+  }
+  private _delete(request: any) {
+    return this._manager._delete(request);
   }
 
   /**
@@ -36,24 +51,28 @@ export class MetorialDashboardInstanceFilesEndpoint extends BaseMetorialEndpoint
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceFilesListQuery
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceFilesListOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
     instanceId: string,
-    query?: DashboardInstanceFilesListQuery
+    query?: DashboardInstanceFilesListQuery,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFilesListOutput> {
     let path = `dashboard/instances/${instanceId}/files`;
-    return this._get({
+
+    let request = {
       path,
 
       query: query
         ? mapDashboardInstanceFilesListQuery.transformTo(query)
-        : undefined
-    }).transform(mapDashboardInstanceFilesListOutput);
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapDashboardInstanceFilesListOutput);
   }
 
   /**
@@ -62,20 +81,25 @@ export class MetorialDashboardInstanceFilesEndpoint extends BaseMetorialEndpoint
    *
    * @param `instanceId` - string
    * @param `fileId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceFilesGetOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
     instanceId: string,
-    fileId: string
+    fileId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFilesGetOutput> {
     let path = `dashboard/instances/${instanceId}/files/${fileId}`;
-    return this._get({
-      path
-    }).transform(mapDashboardInstanceFilesGetOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapDashboardInstanceFilesGetOutput);
   }
 
   /**
@@ -85,22 +109,29 @@ export class MetorialDashboardInstanceFilesEndpoint extends BaseMetorialEndpoint
    * @param `instanceId` - string
    * @param `fileId` - string
    * @param `body` - DashboardInstanceFilesUpdateBody
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceFilesUpdateOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   update(
     instanceId: string,
     fileId: string,
-    body: DashboardInstanceFilesUpdateBody
+    body: DashboardInstanceFilesUpdateBody,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFilesUpdateOutput> {
     let path = `dashboard/instances/${instanceId}/files/${fileId}`;
-    return this._patch({
+
+    let request = {
       path,
-      body: mapDashboardInstanceFilesUpdateBody.transformTo(body)
-    }).transform(mapDashboardInstanceFilesUpdateOutput);
+      body: mapDashboardInstanceFilesUpdateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._patch(request).transform(
+      mapDashboardInstanceFilesUpdateOutput
+    );
   }
 
   /**
@@ -109,19 +140,26 @@ export class MetorialDashboardInstanceFilesEndpoint extends BaseMetorialEndpoint
    *
    * @param `instanceId` - string
    * @param `fileId` - string
-   *
+   * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceFilesDeleteOutput
-   *
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   delete(
     instanceId: string,
-    fileId: string
+    fileId: string,
+    opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFilesDeleteOutput> {
     let path = `dashboard/instances/${instanceId}/files/${fileId}`;
-    return this._delete({
-      path
-    }).transform(mapDashboardInstanceFilesDeleteOutput);
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardInstanceFilesDeleteOutput
+    );
   }
 }
