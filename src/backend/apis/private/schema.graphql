@@ -1,6 +1,6 @@
 type Query {
   getFlags: DFlags!
-  me: DUser!
+  getUser: DUser!
 }
 
 type DFlags {

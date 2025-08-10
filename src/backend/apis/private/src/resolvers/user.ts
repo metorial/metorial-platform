@@ -7,7 +7,7 @@ import { ErrorInterceptor } from '../utils/error';
 export class UserResolver {
   @Query(() => DUser)
   @UseMiddleware(ErrorInterceptor)
-  async me(@Ctx() ctx: DContext): Promise<DUser | undefined> {
+  async getUser(@Ctx() ctx: DContext): Promise<DUser | undefined> {
     return DUser.fromUser(ctx.auth.user);
   }
 }

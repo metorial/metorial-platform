@@ -1,5 +1,6 @@
 import { badRequestError, ServiceError, unauthorizedError } from '@metorial/error';
 import { accessService } from '@metorial/module-access';
+import { flagService } from '@metorial/module-flags';
 import { Path } from '@metorial/rest';
 import { managementGroup } from './managementGroup';
 
@@ -17,7 +18,11 @@ export let organizationGroup = managementGroup.use(async ctx => {
       type: 'actor' as const,
       organization: ctx.auth.restrictions.organization,
       actor: ctx.auth.restrictions.actor,
-      member: undefined
+      member: undefined,
+      flags: await flagService.getFlags({
+        organization: ctx.auth.restrictions.organization,
+        machineAccess: ctx.auth.machineAccess
+      })
     };
   }
 
@@ -30,10 +35,19 @@ export let organizationGroup = managementGroup.use(async ctx => {
     );
   }
 
-  return await accessService.accessOrganization({
+  let res = await accessService.accessOrganization({
     authInfo: ctx.auth,
     organizationId
   });
+
+  return {
+    ...res,
+    flags: await flagService.getFlags({
+      organization: res.organization,
+      user: ctx.auth.user,
+      machineAccess: ctx.auth.machineAccess
+    })
+  };
 });
 
 export let organizationManagementPath = (path: string, sdkPath: string) => [

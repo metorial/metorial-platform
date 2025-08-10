@@ -1,4 +1,5 @@
 import { createLoader } from '@metorial/data-hooks';
+import type { Flags } from '@metorial/module-flags';
 import { useCurrentOrganization } from '../../organization';
 import { withAuthPrivate } from '../../user/auth/withAuth';
 
@@ -15,7 +16,12 @@ export let flagsLoader = createLoader({
             organization: { __scalar: true }
           }
         })
-        .then(r => r.getFlags)
+        .then(r => ({
+          ...r.getFlags,
+          flags: Object.fromEntries(
+            r.getFlags.flags.map(f => [f.slug, f.value])
+          ) as any as Flags
+        }))
     ),
   mutators: {}
 });
