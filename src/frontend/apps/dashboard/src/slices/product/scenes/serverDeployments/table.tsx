@@ -109,10 +109,10 @@ export let ServerDeploymentsListItems = ({
                 }
                 description={
                   deployment.description && (
-                    <Text size="2" color="gray600">
+                    <>
                       {deployment.description.slice(0, 60)}
                       {deployment.description.length > 60 ? '...' : ''}
-                    </Text>
+                    </>
                   )
                 }
               />
@@ -136,7 +136,8 @@ export let ServerDeploymentsListItems = ({
                 padding: 0,
                 border: 'none',
                 background: 'none',
-                width: '100%'
+                width: '100%',
+                textAlign: 'left'
               }}
             >
               {inner}

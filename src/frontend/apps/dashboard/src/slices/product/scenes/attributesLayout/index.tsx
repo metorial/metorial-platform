@@ -19,20 +19,22 @@ let Aside = styled.aside``;
 
 export let AttributesLayout = ({
   children,
-  items
+  items,
+  variant
 }: {
   children: React.ReactNode;
   items: {
     label: React.ReactNode;
     value: React.ReactNode;
   }[];
+  variant?: 'default' | 'large';
 }) => {
   return (
     <Grid>
       <Main>{children}</Main>
 
       <Aside>
-        <Datalist items={items} />
+        <Datalist items={items} variant={variant} />
       </Aside>
     </Grid>
   );

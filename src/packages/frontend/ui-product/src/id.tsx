@@ -2,12 +2,13 @@ import { InlineCopy } from '@metorial/ui';
 import React from 'react';
 
 export let ID = ({ id }: { id: string | undefined }) => (
-  <p
+  <span
     style={{
       position: 'relative',
       width: 'fit-content',
       paddingRight: 30,
-      fontFamily: 'jetbrains mono, monospace'
+      fontFamily: 'jetbrains mono, monospace',
+      display: 'inline-flex'
     }}
   >
     <span
@@ -28,5 +29,5 @@ export let ID = ({ id }: { id: string | undefined }) => (
     >
       <InlineCopy value={id} />
     </span>
-  </p>
+  </span>
 );

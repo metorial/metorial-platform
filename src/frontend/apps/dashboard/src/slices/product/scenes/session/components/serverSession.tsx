@@ -1,9 +1,14 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { DashboardInstanceSessionsServerSessionsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useServerRuns } from '@metorial/state';
-import { theme } from '@metorial/ui';
+import { Button, theme } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
-import { RiRadarLine, RiSendPlane2Line, RiServerLine } from '@remixicon/react';
+import {
+  RiArrowDownLine,
+  RiRadarLine,
+  RiSendPlane2Line,
+  RiServerLine
+} from '@remixicon/react';
 import { useInView } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
@@ -18,6 +23,44 @@ let Wrapper = styled.div`
   overflow: hidden;
   margin-left: -20px;
   margin-right: -20px;
+
+  &[data-collapsed='true'] {
+    height: 900px !important;
+    overflow: hidden;
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 300px;
+      z-index: 1;
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 1) 90%
+      );
+    }
+
+    .expand {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 2;
+
+      svg {
+        color: ${theme.colors.gray400};
+      }
+    }
+  }
 `;
 
 let Header = styled.header`
@@ -48,6 +91,7 @@ export let ServerSession = ({
   let inView = useInView(ref, {});
 
   let [canFetch, setCanFetch] = useState(false);
+  let [isCollapsed, setIsCollapsed] = useState(true);
 
   useEffect(() => {
     if (inView) setCanFetch(true);
@@ -64,76 +108,88 @@ export let ServerSession = ({
     limit: 100
   });
 
-  if (serverRuns.data?.items.length === 0) return null;
-
   return (
-    <Wrapper ref={ref} style={{ height: canFetch ? 'auto' : 500 }}>
-      <Header>
-        <span>{serverSession.serverDeployment.name ?? serverSession.server.name}</span>
-        <span>
-          <ID id={serverSession.connection?.id ?? serverSession.id} />
-        </span>
-      </Header>
+    <div ref={ref}>
+      {renderWithLoader({ serverRuns, eventItems })(() => (
+        <Wrapper data-collapsed={isCollapsed}>
+          {isCollapsed && (
+            <div className="expand">
+              <RiArrowDownLine />
 
-      <Main>
-        {renderWithLoader({ serverRuns })(({ serverRuns }) => (
-          <ItemList
-            items={[
-              {
-                component: (
-                  <Entry
-                    icon={<RiRadarLine />}
-                    title={`Client connected`}
-                    time={serverSession.createdAt}
-                  />
-                ),
-                time: serverSession.createdAt
-              },
+              <Button size="2" onClick={() => setIsCollapsed(false)}>
+                Expand Session Connection
+              </Button>
+            </div>
+          )}
 
-              ...(serverSession.connection
-                ? [
+          <Header>
+            <span>{serverSession.serverDeployment.name ?? serverSession.server.name}</span>
+            <span>
+              <ID id={serverSession.connection?.id ?? serverSession.id} />
+            </span>
+          </Header>
+
+          <Main>
+            {renderWithLoader({ serverRuns })(({ serverRuns }) => (
+              <ItemList
+                items={[
+                  {
+                    component: (
+                      <Entry
+                        icon={<RiRadarLine />}
+                        title={`Client connected`}
+                        time={serverSession.createdAt}
+                      />
+                    ),
+                    time: serverSession.createdAt
+                  },
+
+                  ...(serverSession.connection
+                    ? [
+                        {
+                          component: (
+                            <Entry
+                              icon={<RiSendPlane2Line />}
+                              title={`Session connection created`}
+                              time={serverSession.createdAt}
+                            />
+                          ),
+                          time: serverSession.createdAt
+                        }
+                      ]
+                    : []),
+
+                  ...serverRuns.data.items.flatMap(serverRun => [
                     {
                       component: (
                         <Entry
-                          icon={<RiSendPlane2Line />}
-                          title={`Session connection created`}
-                          time={serverSession.createdAt}
+                          title={`Server ${serverRun.serverDeployment.name ?? serverRun.server.name} started`}
+                          icon={<RiServerLine />}
+                          time={serverRun.startedAt ?? serverRun.createdAt}
                         />
                       ),
-                      time: serverSession.createdAt
+                      time: serverRun.startedAt ?? serverRun.createdAt
+                    },
+
+                    serverRun.stoppedAt && {
+                      component: (
+                        <Entry
+                          title={`Server ${serverRun.serverDeployment.name ?? serverRun.server.name} stopped`}
+                          icon={<RiServerLine />}
+                          time={serverRun.stoppedAt}
+                        />
+                      ),
+                      time: serverRun.stoppedAt
                     }
-                  ]
-                : []),
+                  ]),
 
-              ...serverRuns.data.items.flatMap(serverRun => [
-                {
-                  component: (
-                    <Entry
-                      title={`Server ${serverRun.serverDeployment.name ?? serverRun.server.name} started`}
-                      icon={<RiServerLine />}
-                      time={serverRun.startedAt ?? serverRun.createdAt}
-                    />
-                  ),
-                  time: serverRun.startedAt ?? serverRun.createdAt
-                },
-
-                serverRun.stoppedAt && {
-                  component: (
-                    <Entry
-                      title={`Server ${serverRun.serverDeployment.name ?? serverRun.server.name} stopped`}
-                      icon={<RiServerLine />}
-                      time={serverRun.startedAt ?? serverRun.createdAt}
-                    />
-                  ),
-                  time: serverRun.stoppedAt
-                }
-              ]),
-
-              ...eventItems
-            ]}
-          />
-        ))}
-      </Main>
-    </Wrapper>
+                  ...eventItems.data
+                ]}
+              />
+            ))}
+          </Main>
+        </Wrapper>
+      ))}
+    </div>
   );
 };

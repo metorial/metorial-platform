@@ -1,0 +1,45 @@
+type Query {
+  getFlags: DFlags!
+  me: DUser!
+}
+
+type DFlags {
+  flags: [DFlag!]!
+  target: String!
+  organization: DOrganization!
+}
+
+type DFlag {
+  id: ID!
+  slug: String!
+  value: Boolean!
+}
+
+type DOrganization {
+  id: ID!
+  status: String!
+  type: String!
+  name: String!
+  slug: String!
+  imageUrl: String!
+  createdAt: DateTimeISO!
+  updatedAt: DateTimeISO!
+}
+
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.This scalar is serialized to a string in ISO 8601 format and parsed from a string in ISO 8601 format.
+"""
+scalar DateTimeISO
+
+type DUser {
+  id: ID!
+  status: String!
+  type: String!
+  email: String!
+  name: String!
+  firstName: String
+  lastName: String
+  imageUrl: String!
+  createdAt: DateTimeISO!
+  updatedAt: DateTimeISO!
+}

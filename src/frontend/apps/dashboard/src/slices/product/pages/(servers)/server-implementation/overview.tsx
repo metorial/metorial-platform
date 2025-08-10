@@ -15,10 +15,15 @@ export let ServerImplementationOverviewPage = () => {
   return renderWithLoader({ implementation })(({ implementation }) => (
     <>
       <Attributes
+        itemWidth="250px"
         attributes={[
           {
             label: 'Name',
             content: implementation.data.name ?? implementation.data.server.name
+          },
+          {
+            label: 'Server',
+            content: implementation.data.server.name
           },
           {
             label: 'ID',

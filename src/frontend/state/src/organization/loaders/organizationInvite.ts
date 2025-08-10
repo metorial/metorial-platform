@@ -56,6 +56,7 @@ export let useOrganizationInviteLink = (organizationId: string | null) => {
 
     (async () => {
       let res = await withAuth(sdk => sdk.organizations.invites.ensureLink(organizationId));
+      console.log('Organization invite link:', res);
 
       setUrl(res.inviteLink.url);
     })().catch(console.error);

@@ -1,5 +1,5 @@
 import { HOSTNAME } from '../const';
-import type { Env } from './types';
+import type { Env } from './type';
 
 export let frontendEnv: Env = [
   {
@@ -22,6 +22,10 @@ export let frontendEnv: Env = [
   {
     key: 'VITE_CORE_API_URL',
     defaultValue: `http://${HOSTNAME}:4310`
+  },
+  {
+    key: 'VITE_PRIVATE_API_URL',
+    defaultValue: `http://${HOSTNAME}:4314`
   },
 
   {

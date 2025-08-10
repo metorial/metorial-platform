@@ -61,6 +61,7 @@ export let ServerErrorLayout = () => {
 
       {renderWithLoader({ error })(({ error }) => (
         <AttributesLayout
+          variant="large"
           items={[
             { label: 'Error Group ID', value: <ID id={error.data.id} /> },
             { label: 'First Seen', value: <RenderDate date={error.data.createdAt} /> },

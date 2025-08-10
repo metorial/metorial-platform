@@ -87,4 +87,4 @@ export let getExecutionContext = () => {
     throw new Error('No execution context found');
   }
   return ctx.context;
-}
+};

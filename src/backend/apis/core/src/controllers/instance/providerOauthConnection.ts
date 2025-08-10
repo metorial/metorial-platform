@@ -19,8 +19,9 @@ export let connectionGroup = instanceGroup.use(async ctx => {
 
 export let providerOauthConnectionController = Controller.create(
   {
-    name: 'Provider OAuth Connection',
-    description: 'Manage provider OAuth connection information'
+    name: 'OAuth Connection',
+    description: 'Manage provider OAuth connection information',
+    hideInDocs: true
   },
   {
     list: instanceGroup

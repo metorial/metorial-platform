@@ -56,4 +56,17 @@ if [ "$1" = "build" ]; then
   exit 0
 fi
 
+if [ "$1" = "generate" ]; then
+  cd ./scripts
+  
+  if [ "$2" = "client" ]; then
+    ./generateClient.sh
+  else
+    echo "Unknown generate target: $2. Supported target is 'client'."
+    exit 1
+  fi
+
+  exit 0
+fi
+
 bun ./src/cli.ts "$@"

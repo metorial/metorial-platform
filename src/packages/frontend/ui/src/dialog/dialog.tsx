@@ -12,7 +12,7 @@ let Wrapper = styled(Content)`
   width: 90vw;
   max-height: 90vh;
   overflow: auto;
-  background: ${theme.colors.gray200};
+  background: ${theme.colors.background};
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   padding: 0px;
   border-radius: 15px;
