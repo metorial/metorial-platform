@@ -9,7 +9,7 @@ export let useRequestContext = (c: Context) => {
         c.req.header('cf-connecting-ip') ??
         c.req.header('x-forwarded-for') ??
         c.req.header('x-real-ip')
-    ) ?? '127.0.0.1';
+    ) ?? '0.0.0.0';
 
   return { ua, ip };
 };

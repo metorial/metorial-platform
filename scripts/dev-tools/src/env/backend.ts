@@ -1,5 +1,5 @@
 import { HOSTNAME, METORIAL_SOURCE } from '../const';
-import type { Env } from './types';
+import type { Env } from './type';
 
 let DB_PREFIX = `metorial-${METORIAL_SOURCE}`;
 

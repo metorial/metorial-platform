@@ -76,7 +76,13 @@ export let setExecutionContextSync = (ctx: ExecutionContext) => {
   });
 };
 
-export let updateExecutionContext = (ctx: Partial<ExecutionContext>) =>
-  withExecutionContext(async currentCtx => {
-    Object.assign(currentCtx, ctx);
-  });
+export let updateExecutionContext = (ctx: Partial<ExecutionContext>) => {
+  let store = ctxStorage.getStore();
+  if (!store) {
+    throw new Error('No execution context found');
+  }
+
+  Object.assign(store.context, ctx);
+
+  return store.context;
+};

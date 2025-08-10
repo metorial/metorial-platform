@@ -1,6 +1,6 @@
 import { backendEnv } from './backend';
 import { frontendEnv } from './frontend';
-import type { Destination } from './types';
+import type { Destination } from './type';
 
 export let destinations: Destination[] = [
   {
