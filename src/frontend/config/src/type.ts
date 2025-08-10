@@ -1,5 +1,7 @@
 export interface FrontendConfig {
   apiUrl: string;
+  privateApiUrl: string;
+
   environment: 'production' | 'staging' | 'development';
 
   auth: {

@@ -1,9 +1,10 @@
+import { PrivateClient } from '@metorial/api-private/client';
 import { MetorialDashboardSDK, MetorialUser } from '@metorial/dashboard-sdk';
 import { isServiceError } from '@metorial/error';
 import { ProgrammablePromise } from '@metorial/programmable-promise';
 import { getSentry } from '@metorial/sentry';
 import { isMetorialSDKError } from '@metorial/util-endpoint';
-import { withDashboardSDK } from '../../sdk';
+import { withDashboardSDK, withPrivateClient } from '../../sdk';
 import { redirectToAuth } from './redirect';
 
 let Sentry = getSentry();
@@ -79,6 +80,21 @@ export let withAuth = async <O>(fn: (sdk: MetorialDashboardSDK) => Promise<O>) =
   } catch (err) {}
 
   return redirectToAuthIfNotAuthenticated(() => withDashboardSDK(fn));
+};
+
+export let withAuthPrivate = async <O>(
+  opts: {
+    organizationId: string;
+  },
+  fn: (sdk: PrivateClient) => Promise<O>
+) => {
+  if (typeof window === 'undefined') return new Promise(() => {}) as Promise<O>;
+
+  try {
+    await firstUserPromise.promise;
+  } catch (err) {}
+
+  return redirectToAuthIfNotAuthenticated(() => withPrivateClient(opts, fn));
 };
 
 export let wrapWithAuth =
