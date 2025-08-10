@@ -16,7 +16,8 @@
     "@metorial/error": "1.0.0",
     "@metorial/execution-context": "1.0.0",
     "@metorial/forwarded-for": "1.0.0",
-    "@metorial/module-access": "1.0.0"
+    "@metorial/module-access": "1.0.0",
+    "@metorial/module-flags": "1.0.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

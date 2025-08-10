@@ -40,7 +40,7 @@ export class DFlags {
 
     res.flags =
       d.flags?.map(flag => ({
-        id: flag.id ?? shadowId('oflag', [d.organization.id, d.user.id], [flag.slug]),
+        id: flag.id ?? shadowId('oflag_', [d.organization.id, d.user.id], [flag.slug]),
         slug: flag.slug,
         value: flag.value
       })) || [];

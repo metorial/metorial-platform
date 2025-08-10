@@ -22,6 +22,7 @@
     "@metorial/module-file": "^1.0.0",
     "@metorial/module-machine-access": "^1.0.0",
     "@metorial/module-oauth": "^1.0.0",
+    "@metorial/module-flags": "^1.0.0",
     "@metorial/module-organization": "^1.0.0",
     "@metorial/module-secret": "^1.0.0",
     "@metorial/module-server-deployment": "^1.0.0",
