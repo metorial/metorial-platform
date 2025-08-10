@@ -1,4 +1,6 @@
 import { createFetchWithRetry } from '@metorial/fetch';
+import { MetorialAuthEndpoint } from './auth';
+import { MetorialKeyPrefix, sdkBuilder } from './builder';
 import {
   MetorialApiKeysEndpoint,
   MetorialDashboardEndpoint,
@@ -31,8 +33,6 @@ import {
   MetorialServersListingsCollectionsEndpoint,
   MetorialServersListingsEndpoint
 } from './gen/src/mt_2025_01_01_dashboard';
-import { MetorialAuthEndpoint } from './auth';
-import { MetorialKeyPrefix, sdkBuilder } from './builder';
 
 let fetchWithRetry = createFetchWithRetry();
 
@@ -68,7 +68,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }) => ({
     ...soft,
     apiVersion: '2025-01-01-dashboard',
-    fetch: fetchWithRetryAndLogging
+    fetch: fetchWithRetryAndLogging,
+    enableDebugLogging: true
   })
 )(manager => ({
   organizations: Object.assign(new MetorialDashboardOrganizationsEndpoint(manager), {
