@@ -1,56 +1,50 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type SessionsDeleteOutput =
-  | {
-      object: 'session';
+export type SessionsDeleteOutput = {
+  object: 'session';
+  id: string;
+  status: 'active' | 'deleted';
+  connectionStatus: 'connected' | 'disconnected';
+  clientSecret: {
+    object: 'client_secret';
+    type: 'session';
+    id: string;
+    secret: string;
+    expiresAt: Date;
+  };
+  serverDeployments: {
+    object: 'session.server_deployment#preview';
+    id: string;
+    name: string | null;
+    description: string | null;
+    metadata: Record<string, any>;
+    createdAt: Date;
+    updatedAt: Date;
+    server: {
+      object: 'server#preview';
       id: string;
-      status: 'active' | 'deleted';
-      connectionStatus: 'connected' | 'disconnected';
-      clientSecret: {
-        object: 'client_secret';
-        type: 'session';
-        id: string;
-        secret: string;
-        expiresAt: Date;
-      };
-      serverDeployments: {
-        object: 'session.server_deployment#preview';
-        id: string;
-        name: string | null;
-        description: string | null;
-        metadata: Record<string, any>;
-        createdAt: Date;
-        updatedAt: Date;
-        server: {
-          object: 'server#preview';
-          id: string;
-          name: string;
-          description: string | null;
-          type: 'public';
-          createdAt: Date;
-          updatedAt: Date;
-        };
-        connectionUrls: {
-          sse: string;
-          streamableHttp: string;
-          websocket: string;
-        };
-      }[];
-      usage: {
-        totalProductiveMessageCount: number;
-        totalProductiveClientMessageCount: number;
-        totalProductiveServerMessageCount: number;
-      };
-      metadata: Record<string, any>;
+      name: string;
+      description: string | null;
+      type: 'public';
       createdAt: Date;
       updatedAt: Date;
-    }
-  | {
-      client: {
-        object: 'session.client#preview';
-        info: { name: string; version: string };
-      } | null;
     };
+    connectionUrls: { sse: string; streamableHttp: string; websocket: string };
+  }[];
+  usage: {
+    totalProductiveMessageCount: number;
+    totalProductiveClientMessageCount: number;
+    totalProductiveServerMessageCount: number;
+  };
+  metadata: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+} & {
+  client: {
+    object: 'session.client#preview';
+    info: { name: string; version: string };
+  } | null;
+};
 
 export let mapSessionsDeleteOutput = mtMap.union([
   mtMap.unionOption(

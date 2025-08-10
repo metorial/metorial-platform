@@ -86,11 +86,43 @@ let objectType = (type: IntrospectedType): string => {
 
   return `{ ${properties.join(', ')} }`;
 };
-let unionType = (type: IntrospectedType): string => {
-  let processedTypes = type.items!.map(t => processType(t));
 
-  return processedTypes.join(' | ');
+let canMergeAsIntersection = (items: IntrospectedType[]) => {
+  // Only consider binary unions
+  if (items.length !== 2) return false;
+
+  // Both sides must be objects with props
+  if (!items.every(i => i.type === 'object' && i.properties)) return false;
+
+  let [a, b] = items;
+  let keysA = Object.keys(a.properties!);
+  let keysB = Object.keys(b.properties!);
+
+  // Must be disjoint key sets
+  if (keysA.some(k => keysB.includes(k))) return false;
+
+  // “Augmentation” = all props are optional OR nullable
+  let isAugment = (o: IntrospectedType) =>
+    Object.values(o.properties!).every(p => p.optional || p.nullable);
+
+  // Guard: unions that look like “ID selector alternatives” should never merge
+  let looksLikeIdSelector = (o: IntrospectedType) =>
+    Object.keys(o.properties!).every(k => /(^|_)(id|ids)$/i.test(k));
+
+  if (looksLikeIdSelector(a) || looksLikeIdSelector(b)) return false;
+
+  // Merge only when exactly one side is an augmentation object
+  return isAugment(a) || isAugment(b);
 };
+
+let unionType = (type: IntrospectedType): string => {
+  let items = type.items ?? [];
+  if (canMergeAsIntersection(items)) {
+    return items.map(t => processType(t)).join(' & ');
+  }
+  return items.map(t => processType(t)).join(' | ');
+};
+
 let intersectionType = (type: IntrospectedType): string => {
   let processedTypes = type.items!.map(t => processType(t));
   return processedTypes.join(' & ');
