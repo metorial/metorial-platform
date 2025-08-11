@@ -12,8 +12,8 @@ import { startRunnerGateway } from '@metorial/api-runner-gateway';
 import { authenticate } from '@metorial/auth';
 import { createHono } from '@metorial/hono';
 import { initLogger } from '@metorial/logging';
-import { providerOauthApp } from '@metorial/api-oauth'
-import {startPrivateApiServer} from '@metorial/api-private'
+import { providerOauthApp } from '@metorial/api-oauth';
+import { startPrivateApiServer } from '@metorial/api-private';
 
 let apiPort = parseInt(process.env.API_PORT || '3310');
 let mcpPort = parseInt(process.env.MCP_PORT || '3311');
@@ -53,7 +53,7 @@ Bun.serve({
 
 Bun.serve({
   port: oauthPort,
-  fetch: providerOauthApp
+  fetch: providerOauthApp.fetch
 });
 
 console.log(`Listening on port ${apiPort}`);

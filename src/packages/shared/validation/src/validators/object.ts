@@ -22,10 +22,17 @@ export let object = <Validator extends { [key: string]: ValidationType<any> }>(
   properties: shape,
   examples: [
     Object.fromEntries(
-      Object.entries(shape).map(([key, validator]) => [
-        key,
-        validator.examples?.[0] ?? undefined
-      ])
+      Object.entries(shape)
+        .map(([key, validator]) => {
+          let example = validator.examples?.[0];
+          // For nullable fields, if there's no example, don't include it
+          // This prevents undefined from becoming {} in Object.fromEntries
+          if (example === undefined && validator.nullable) {
+            return null; // Will be filtered out
+          }
+          return [key, example];
+        })
+        .filter((entry): entry is [string, any] => entry !== null)
     )
   ] as any,
   validate: value => {
