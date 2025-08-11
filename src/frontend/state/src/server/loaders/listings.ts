@@ -1,6 +1,5 @@
 import { createLoader } from '@metorial/data-hooks';
 import { ServersListingsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
-// import { ServersListingsListQuery } from '../../../../../../clients/metorial-dashboard/src/gen/src/mt_2025_01_01_dashboard';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
