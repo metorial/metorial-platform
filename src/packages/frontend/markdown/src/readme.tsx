@@ -57,3 +57,9 @@ export let Readme = ({ readme, imageRoot }: { readme: string; imageRoot?: string
     </Wrapper>
   );
 };
+
+export let ReadmeHtml = ({ readmeHtml }: { readmeHtml: string }) => {
+  return (
+    <Wrapper className="markdown-body" dangerouslySetInnerHTML={{ __html: readmeHtml }} />
+  );
+};
