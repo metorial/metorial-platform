@@ -23,12 +23,12 @@ export type FlagProviderParams = {
   user?: User;
   machineAccess?: MachineAccess;
 };
-let flagProviderRef = { current: (params: FlagProviderParams) => defaultFlags };
+let flagProviderRef = { current: async (params: FlagProviderParams) => defaultFlags };
 
-export let setFlagProvider = (provider: (params: FlagProviderParams) => Flags) => {
+export let setFlagProvider = (provider: (params: FlagProviderParams) => Promise<Flags>) => {
   flagProviderRef.current = provider;
 };
 
-export let getFlags = (params: FlagProviderParams): Flags => {
+export let getFlags = (params: FlagProviderParams): Promise<Flags> => {
   return flagProviderRef.current(params);
 };

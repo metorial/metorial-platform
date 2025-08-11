@@ -1,4 +1,7 @@
+import { renderWithLoader } from '@metorial/data-hooks';
 import { createSlice } from '@metorial/microfrontend';
+import { NotFound } from '@metorial/pages';
+import { useDashboardFlags } from '@metorial/state';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
 import {
@@ -53,6 +56,14 @@ import { ExplorerPage } from './pages/explorer';
 import { ProjectSettingsPage } from './pages/settings';
 import { ProjectSettingsPageLayout } from './pages/settings/_layout';
 
+let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
+  let flags = useDashboardFlags();
+
+  return renderWithLoader({ flags })(({ flags }) =>
+    (flags.data.flags as any)[flag] ? children : <NotFound />
+  );
+};
+
 export let productInnerSlice = createSlice([
   {
     path: ':organizationId/:projectId/:instanceId',
@@ -103,7 +114,11 @@ export let productInnerSlice = createSlice([
         children: [
           {
             path: '',
-            element: <ManagedServersListLayout />,
+            element: (
+              <FlaggedPage flag="metorial-gateway-enabled">
+                <ManagedServersListLayout />
+              </FlaggedPage>
+            ),
 
             children: [
               {
@@ -115,7 +130,11 @@ export let productInnerSlice = createSlice([
 
           {
             path: '',
-            element: <ExternalServersListLayout />,
+            element: (
+              <FlaggedPage flag="metorial-gateway-enabled">
+                <ExternalServersListLayout />
+              </FlaggedPage>
+            ),
 
             children: [
               {
