@@ -33,9 +33,12 @@ export let isRelativeUrl = (url: string) =>
 
 export let joinPath = (baseUrl: string, path: string) => {
   let url = new URL(baseUrl);
+
+  // @ts-ignore
   let basePathSegments = url.pathname.split('/').filter(segment => segment.length > 0);
   let finalPathSegments = basePathSegments;
 
+  // @ts-ignore
   let newPathSegments = path.split('/').filter(segment => segment.length > 0);
 
   for (let segment of newPathSegments) {
