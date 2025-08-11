@@ -2,10 +2,20 @@ import { MachineAccess, Organization, User } from '@metorial/db';
 
 export type Flags = {
   'test-flag': boolean;
+
+  // Metorial Gateway
+  'metorial-gateway-enabled': boolean;
+  'custom-servers-remote-enabled': boolean;
+  'provider-oauth-enabled': boolean;
 };
 
 export let defaultFlags: Flags = {
-  'test-flag': false
+  'test-flag': false,
+
+  // Metorial Gateway
+  'metorial-gateway-enabled': true,
+  'custom-servers-remote-enabled': true,
+  'provider-oauth-enabled': true
 };
 
 export type FlagProviderParams = {
