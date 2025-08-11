@@ -41,6 +41,12 @@ if [ "$1" = "migrate" ]; then
   exit 0
 fi
 
+if [ "$1" = "cleanup" ]; then
+  cd ./scripts
+  ./cleanup.sh "$2"
+  exit 0
+fi
+
 if [ "$1" = "build" ]; then
   cd ./scripts
   
