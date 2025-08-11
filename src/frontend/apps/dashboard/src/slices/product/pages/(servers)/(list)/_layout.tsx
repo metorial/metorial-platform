@@ -21,7 +21,26 @@ export let ServersListLayout = () => {
     <ContentLayout>
       <PageHeader
         title="Servers"
-        description="Manage your servers and deployments."
+        description="Explore Metorial's server catalog and deploy your own servers."
+      />
+
+      <Outlet />
+    </ContentLayout>
+  );
+};
+
+export let ServerDeploymentsListLayout = () => {
+  let instance = useCurrentInstance();
+  let project = useCurrentProject();
+  let organization = useCurrentOrganization();
+
+  let pathname = useLocation().pathname;
+
+  return (
+    <ContentLayout>
+      <PageHeader
+        title="Servers"
+        description="Manage your server deployments and customize your server implementations."
         actions={
           <>
             {pathname.endsWith('server-deployments') && (
@@ -56,10 +75,6 @@ export let ServersListLayout = () => {
       <LinkTabs
         current={pathname}
         links={[
-          {
-            label: 'Servers',
-            to: Paths.instance.servers(organization.data, project.data, instance.data)
-          },
           {
             label: 'Server Deployments',
             to: Paths.instance.serverDeployments(

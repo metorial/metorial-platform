@@ -1,6 +1,16 @@
+import { renderWithLoader } from '@metorial/data-hooks';
 import { createSlice } from '@metorial/microfrontend';
+import { NotFound } from '@metorial/pages';
+import { useDashboardFlags } from '@metorial/state';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
+import {
+  ExternalServersListLayout,
+  ManagedServersListLayout
+} from './pages/(custom-servers)/(list)/_layout';
+import { ExternalServersPage } from './pages/(custom-servers)/(list)/external-servers';
+import { ManagedServersPage } from './pages/(custom-servers)/(list)/managed-servers';
+import { ProviderConnectionsPage } from './pages/(custom-servers)/(list)/provider-connections';
 import { LogsListLayout } from './pages/(logs)/(list)/_layout';
 import { ServerErrorsPage } from './pages/(logs)/(list)/server-errors';
 import { ServerRunsPage } from './pages/(logs)/(list)/server-runs';
@@ -13,7 +23,10 @@ import { SessionPage } from './pages/(logs)/session';
 import { SessionLayout } from './pages/(logs)/session/_layout';
 import { SessionDeploymentsPage } from './pages/(logs)/session/deployments';
 import { SessionServerRunsPage } from './pages/(logs)/session/serverRuns';
-import { ServersListLayout } from './pages/(servers)/(list)/_layout';
+import {
+  ServerDeploymentsListLayout,
+  ServersListLayout
+} from './pages/(servers)/(list)/_layout';
 import { ServersDeploymentsPage } from './pages/(servers)/(list)/server-deployments';
 import { ServersImplementationsPage } from './pages/(servers)/(list)/server-implementations';
 import { ServersPage } from './pages/(servers)/(list)/servers';
@@ -42,6 +55,14 @@ import { ProjectDeveloperEnvironmentsPage } from './pages/developer/environments
 import { ExplorerPage } from './pages/explorer';
 import { ProjectSettingsPage } from './pages/settings';
 import { ProjectSettingsPageLayout } from './pages/settings/_layout';
+
+let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
+  let flags = useDashboardFlags();
+
+  return renderWithLoader({ flags })(({ flags }) =>
+    (flags.data.flags as any)[flag] ? children : <NotFound />
+  );
+};
 
 export let productInnerSlice = createSlice([
   {
@@ -93,13 +114,57 @@ export let productInnerSlice = createSlice([
         children: [
           {
             path: '',
+            element: (
+              <FlaggedPage flag="metorial-gateway-enabled">
+                <ManagedServersListLayout />
+              </FlaggedPage>
+            ),
+
+            children: [
+              {
+                path: 'managed-servers',
+                element: <ManagedServersPage />
+              }
+            ]
+          },
+
+          {
+            path: '',
+            element: (
+              <FlaggedPage flag="metorial-gateway-enabled">
+                <ExternalServersListLayout />
+              </FlaggedPage>
+            ),
+
+            children: [
+              {
+                path: 'external-servers',
+                element: <ExternalServersPage />
+              },
+              {
+                path: 'provider-connections',
+                element: <ProviderConnectionsPage />
+              }
+            ]
+          },
+
+          {
+            path: '',
             element: <ServersListLayout />,
 
             children: [
               {
                 path: 'servers',
                 element: <ServersPage />
-              },
+              }
+            ]
+          },
+
+          {
+            path: '',
+            element: <ServerDeploymentsListLayout />,
+
+            children: [
               {
                 path: 'server-deployments',
                 element: <ServersDeploymentsPage />
