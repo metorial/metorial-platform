@@ -48,7 +48,8 @@ export let paginatedProviderPrisma =
       cursorType = 'after';
     } else if (before) {
       opts.cursor = { id: before };
-      opts.take = -(opts.take - 1)!;
+      opts.take = -opts.take!;
+      opts.skip = 0;
       cursorType = 'before';
     }
 
@@ -73,6 +74,10 @@ export let paginatedProviderPrisma =
         : orderedItems;
 
     let selectedItems = orderedItemsWithoutCursor?.slice(0, limit);
+
+    if (cursorType == 'before' && orderedItemsWithoutCursor.length > limit) {
+      selectedItems = orderedItemsWithoutCursor?.slice(1, limit + 1);
+    }
 
     let hasItemsBefore = false;
     let hasItemsAfter = false;
