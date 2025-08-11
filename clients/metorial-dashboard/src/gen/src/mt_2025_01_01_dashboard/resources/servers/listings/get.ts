@@ -67,6 +67,7 @@ export type ServersListingsGetOutput = {
   installation: { id: string; instanceId: string; createdAt: Date } | null;
   createdAt: Date;
   updatedAt: Date;
+  readmeHtml: string | null;
 };
 
 export let mapServersListingsGetOutput = mtMap.object<ServersListingsGetOutput>(
@@ -166,7 +167,8 @@ export let mapServersListingsGetOutput = mtMap.object<ServersListingsGetOutput>(
       })
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
+    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+    readmeHtml: mtMap.objectField('readme_html', mtMap.passthrough())
   }
 );
 

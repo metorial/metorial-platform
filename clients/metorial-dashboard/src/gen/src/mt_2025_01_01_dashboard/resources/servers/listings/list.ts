@@ -68,6 +68,7 @@ export type ServersListingsListOutput = {
     installation: { id: string; instanceId: string; createdAt: Date } | null;
     createdAt: Date;
     updatedAt: Date;
+    readmeHtml: string | null;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -200,7 +201,8 @@ export let mapServersListingsListOutput =
             })
           ),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+          readmeHtml: mtMap.objectField('readme_html', mtMap.passthrough())
         })
       )
     ),

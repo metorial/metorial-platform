@@ -1,0 +1,42 @@
+{
+  "name": "@metorial/module-markdown",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "AGPL",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@metorial/cron": "^1.0.0",
+    "@metorial/db": "^1.0.0",
+    "@metorial/delay": "^1.0.0",
+    "@metorial/env": "^1.0.0",
+    "@metorial/error": "^1.0.0",
+    "@metorial/fabric": "^1.0.0",
+    "@metorial/id": "^1.0.0",
+    "@metorial/queue": "^1.0.0",
+    "@metorial/sentry": "^1.0.0",
+    "@metorial/service": "^1.0.0",
+    "@metorial/validation": "^1.0.0",
+    "date-fns": "^4.1.0",
+    "mongoose": "^8.14.2",
+    "rehype-parse": "^9.0.1",
+    "rehype-raw": "^7.0.0",
+    "rehype-remark": "^10.0.1",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "remark-stringify": "^11.0.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}
