@@ -5,7 +5,7 @@ import { theme } from '../theme';
 
 let Wrapper = styled('div')`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--width), 1fr));
   gap: 1px;
 
   background: ${theme.colors.gray300};
@@ -29,22 +29,30 @@ let Inner = styled('div')`
 `;
 
 export let Attributes = ({
-  attributes
+  attributes,
+  itemWidth = '300px'
 }: {
   attributes: {
     label: React.ReactNode;
     content: React.ReactNode;
   }[];
+  itemWidth?: string;
 }) => {
   return (
-    <Wrapper>
+    <Wrapper
+      style={
+        {
+          '--width': itemWidth
+        } as any
+      }
+    >
       {attributes.map((attr, i) => (
         <Attribute key={i}>
           <Inner>
             <Text weight="bold" size="1">
               {attr.label}
             </Text>
-            <Text size="2" weight="medium" color="gray700">
+            <Text size="2" weight="medium" color="gray700" as="div">
               {attr.content}
             </Text>
           </Inner>

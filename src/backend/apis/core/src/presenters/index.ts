@@ -30,14 +30,17 @@ import {
   dashboardServerImplementationPresenter,
   v1ServerImplementationPresenter
 } from './implementation/serverImplementation';
-import { v1ServerListingPresenter } from './implementation/serverListing';
+import {
+  dashboardServerListingPresenter,
+  v1ServerListingPresenter
+} from './implementation/serverListing';
 import { v1ServerRunPresenter } from './implementation/serverRun';
 import { v1ServerRunErrorPresenter } from './implementation/serverRunError';
 import { v1ServerRunErrorGroupPresenter } from './implementation/serverRunErrorGroup';
 import { v1ServerSessionPresenter } from './implementation/serverSession';
 import { v1ServerVariantPresenter } from './implementation/serverVariant';
 import { v1ServerVersionPresenter } from './implementation/serverVersion';
-import { v1SessionPresenter } from './implementation/session';
+import { v1DashboardSessionPresenter, v1SessionPresenter } from './implementation/session';
 import { v1SessionConnectionPresenter } from './implementation/sessionConnection';
 import { v1SessionEventPresenter } from './implementation/sessionEvent';
 import {
@@ -175,7 +178,7 @@ export let serverVersionPresenter = declarePresenter(serverVersionType, {
 
 export let serverListingPresenter = declarePresenter(serverListingType, {
   mt_2025_01_01_pulsar: v1ServerListingPresenter,
-  mt_2025_01_01_dashboard: v1ServerListingPresenter
+  mt_2025_01_01_dashboard: dashboardServerListingPresenter
 });
 
 export let serverListingCategoryPresenter = declarePresenter(serverListingCategoryType, {
@@ -210,7 +213,7 @@ export let usagePresenter = declarePresenter(usageType, {
 
 export let sessionPresenter = declarePresenter(sessionType, {
   mt_2025_01_01_pulsar: v1SessionPresenter,
-  mt_2025_01_01_dashboard: v1SessionPresenter
+  mt_2025_01_01_dashboard: v1DashboardSessionPresenter
 });
 
 export let serverRunPresenter = declarePresenter(serverRunType, {

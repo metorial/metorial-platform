@@ -1,20 +1,23 @@
 import { canonicalize } from '@metorial/canonicalize';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ServersDeploymentsGetOutput } from '@metorial/generated';
-import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
+import {
+  ServersDeploymentsGetOutput,
+  ServersListingsGetOutput
+} from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import {
   useCreateDeployment,
   useCurrentInstance,
   useServerDeployment,
   useServerVariants
 } from '@metorial/state';
-import { Button, Callout, Input, Spacer } from '@metorial/ui';
+import { Button, Callout, CenteredSpinner, Input, Spacer } from '@metorial/ui';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { JsonSchemaEditor } from '../jsonSchemaEditor/jsonSchemaEditor';
-import { ServerSearchField } from '../servers/search';
+import { ServerSearch } from '../servers/search';
+import { Stepper } from '../stepper';
 
 let Form = styled.form`
   display: flex;
@@ -39,11 +42,15 @@ export let ServerDeploymentForm = (
   }
 ) => {
   let instance = useCurrentInstance();
-  let deployment =
-    p.type == 'update' ? useServerDeployment(instance.data?.id, p.serverDeploymentId) : null;
+  let deployment = useServerDeployment(
+    instance.data?.id,
+    p.type == 'update' ? p.serverDeploymentId : undefined
+  );
 
   let update = deployment?.useUpdateMutator();
   let create = useCreateDeployment();
+
+  let [currentStep, setCurrentStep] = useState(0);
 
   let navigate = useNavigate();
 
@@ -56,11 +63,22 @@ export let ServerDeploymentForm = (
       ? (p.for?.serverId ?? searchServer?.server.id)
       : deployment?.data?.server.id;
 
+  if (serverId && currentStep == 0) currentStep = 1;
+
   let variants = useServerVariants(instance.data?.id, serverId);
 
   let variant = (p as any).for?.serverVariantId
     ? variants.data?.items.find(v => v.id == (p as any).for?.serverVariantId)
     : variants.data?.items[0];
+
+  let serverNeedsConfig =
+    variant?.currentVersion?.schema.schema &&
+    Object.entries(variant?.currentVersion?.schema.schema?.properties ?? {}).length > 0;
+
+  if (!serverNeedsConfig && currentStep == 1) currentStep = 2;
+
+  let loading =
+    (p.type == 'update' && deployment.isLoading) || (serverId && variants.isLoading);
 
   let form = useForm({
     initialValues: {
@@ -77,7 +95,7 @@ export let ServerDeploymentForm = (
         config: yup.object()
       }),
     onSubmit: async values => {
-      if (update) {
+      if (p.type == 'update') {
         let configChanged =
           canonicalize(values.config) !== canonicalize(deployment?.data?.config);
 
@@ -121,70 +139,173 @@ export let ServerDeploymentForm = (
     return <Callout color="orange">This server cannot yet be deployed on Metorial.</Callout>;
   }
 
+  if (loading) return <CenteredSpinner />;
+
+  if (p.type == 'update') {
+    return (
+      <Form onSubmit={form.handleSubmit}>
+        <Input label="Name" {...form.getFieldProps('name')} />
+        <form.RenderError field="name" />
+
+        <Spacer size={15} />
+
+        <Input label="Description" {...form.getFieldProps('description')} />
+        <form.RenderError field="description" />
+
+        <Spacer size={15} />
+
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            justifyContent: 'flex-end'
+          }}
+        >
+          {p.extraActions}
+
+          {p.close && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={p.close}
+              disabled={update?.isLoading || create.isLoading}
+            >
+              Close
+            </Button>
+          )}
+
+          <Button
+            loading={update?.isLoading || create.isLoading}
+            success={update?.isSuccess || create.isSuccess}
+            type="submit"
+          >
+            Save
+          </Button>
+        </div>
+
+        {update && <update.RenderError />}
+      </Form>
+    );
+  }
+
   return (
-    <Form onSubmit={form.handleSubmit}>
-      {p.type == 'create' && !p.for && (
-        <>
-          <ServerSearchField value={searchServer} onChange={setSearchServer} label="Server" />
-          <Spacer size={15} />
-        </>
+    <Form
+      onSubmit={e => {
+        if (currentStep < 2) {
+          e.preventDefault();
+          e.stopPropagation();
+          setCurrentStep(currentStep + 1);
+          return;
+        }
+
+        return form.handleSubmit(e);
+      }}
+    >
+      <Stepper
+        currentStep={currentStep}
+        setCurrentStep={setCurrentStep}
+        steps={[
+          {
+            title: 'Server',
+            subtitle: 'Choose a server',
+            render: () => {
+              return (
+                <ServerSearch
+                  onSelect={server => {
+                    setSearchServer(server);
+                  }}
+                />
+              );
+            }
+          },
+
+          {
+            title: 'Configuration',
+            subtitle: 'Set up the server',
+            render: () => {
+              if (!serverNeedsConfig)
+                return <p>This server does not require any configuration.</p>;
+
+              return (
+                <JsonSchemaEditor
+                  label="Config"
+                  schema={variant?.currentVersion?.schema.schema ?? {}}
+                  value={form.values.config}
+                  onChange={v => form.setFieldValue('config', v)}
+                  variant="raw"
+                />
+              );
+            }
+          },
+
+          {
+            title: 'Finish',
+            subtitle: 'Review and deploy',
+            render: () => {
+              return (
+                <>
+                  <Input label="Name" {...form.getFieldProps('name')} autoFocus />
+                  <form.RenderError field="name" />
+
+                  <Spacer size={15} />
+
+                  <Input label="Description" {...form.getFieldProps('description')} />
+                  <form.RenderError field="description" />
+                </>
+              );
+            }
+          }
+        ]}
+      />
+
+      {currentStep > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            justifyContent: 'flex-end',
+            marginTop: 10
+          }}
+        >
+          {p.extraActions}
+
+          {p.close && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={p.close}
+              disabled={update?.isLoading || create.isLoading}
+              size="2"
+            >
+              Close
+            </Button>
+          )}
+
+          {currentStep == 1 ? (
+            <Button
+              type="button"
+              size="2"
+              onClick={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                setCurrentStep(2);
+              }}
+            >
+              Continue
+            </Button>
+          ) : (
+            <Button
+              loading={update?.isLoading || create.isLoading}
+              success={update?.isSuccess || create.isSuccess}
+              type="submit"
+              size="2"
+            >
+              Create
+            </Button>
+          )}
+        </div>
       )}
 
-      <Input label="Name" {...form.getFieldProps('name')} />
-      <form.RenderError field="name" />
-
-      <Spacer size={15} />
-
-      <Input label="Description" {...form.getFieldProps('description')} />
-      <form.RenderError field="description" />
-
-      {variant?.currentVersion?.schema.schema &&
-        Object.entries(variant?.currentVersion?.schema.schema?.properties ?? {}).length > 0 &&
-        p.type == 'create' && (
-          <>
-            <Spacer size={15} />
-
-            <JsonSchemaEditor
-              label="Config"
-              schema={variant?.currentVersion?.schema.schema ?? {}}
-              value={form.values.config}
-              onChange={v => form.setFieldValue('config', v)}
-            />
-          </>
-        )}
-
-      <Spacer size={15} />
-
-      <div
-        style={{
-          display: 'flex',
-          gap: 10,
-          justifyContent: 'flex-end'
-        }}
-      >
-        {p.extraActions}
-
-        {p.close && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={p.close}
-            disabled={update?.isLoading || create.isLoading}
-          >
-            Close
-          </Button>
-        )}
-
-        <Button
-          loading={update?.isLoading || create.isLoading}
-          success={update?.isSuccess || create.isSuccess}
-          type="submit"
-        >
-          {p.type == 'update' ? 'Save' : 'Create'}
-        </Button>
-      </div>
-
-      {update && <update.RenderError />}
       <create.RenderError />
     </Form>
   );

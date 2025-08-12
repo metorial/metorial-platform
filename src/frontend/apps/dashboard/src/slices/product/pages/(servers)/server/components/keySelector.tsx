@@ -1,7 +1,7 @@
 import { useApiKeys, useCurrentInstance } from '@metorial/state';
 import { theme, toast } from '@metorial/ui';
 import copy from 'copy-to-clipboard';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
 let Button = styled.button`
@@ -15,7 +15,13 @@ let Button = styled.button`
   background: ${theme.colors.gray400};
 `;
 
-export let KeySelector = ({ name }: { name: string }) => {
+export let KeySelector = ({
+  name,
+  onApiKey
+}: {
+  name: string;
+  onApiKey?: (key: string) => void;
+}) => {
   let instance = useCurrentInstance();
   let [apiKey, setApiKey] = useState<string>();
 
@@ -29,6 +35,12 @@ export let KeySelector = ({ name }: { name: string }) => {
   );
 
   let create = apiKeys.createMutator();
+
+  useEffect(() => {
+    if (apiKey) onApiKey?.(apiKey);
+  }, [apiKey, onApiKey]);
+
+  console.log('apiKeys', apiKey);
 
   if (apiKey) return <span>{apiKey}</span>;
 

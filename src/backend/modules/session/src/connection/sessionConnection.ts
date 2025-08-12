@@ -24,10 +24,10 @@ import { SessionControlMessageBackend } from './sessionControlMessageBackend';
 
 let Sentry = getSentry();
 
-let PING_INTERVAL = process.env.NODE_ENV == 'development' ? 1000 * 5 : 1000 * 30;
-let PING_TIMEOUT = process.env.NODE_ENV == 'development' ? 1000 * 10 : 1000 * 65;
+let PING_INTERVAL = process.env.NODE_ENV == 'development' ? 1000 * 5 : 1000 * 45;
+let PING_TIMEOUT = process.env.NODE_ENV == 'development' ? 1000 * 10 : 1000 * 75;
 
-let connections = new Map<string, SessionConnection>();
+let connections = new Set<SessionConnection>();
 
 export class SessionConnection {
   #controlMessageBackend: SessionControlMessageBackend;
@@ -97,13 +97,15 @@ export class SessionConnection {
       }, 30 * 1000);
     }
 
-    connections.set(session.id, this);
+    connections.add(this);
   }
 
   #closing = false;
   async close() {
     if (this.#closing) return;
     this.#closing = true;
+
+    connections.delete(this);
 
     debug.log('Closing session connection', this.session.id);
 
@@ -113,8 +115,6 @@ export class SessionConnection {
 
     await this.#controlMessageBackend.close();
     await this.manager.close();
-
-    connections.delete(this.session.id);
   }
 
   get mode() {
@@ -203,6 +203,7 @@ export class SessionConnection {
   }
 
   sendPing() {
+    if (this.opts.mode == 'send-only') return;
     this.#controlMessageBackend.sendMessage(jsonRpcPingRequest(this.session.id));
   }
 }

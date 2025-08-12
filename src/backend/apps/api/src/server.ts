@@ -12,12 +12,14 @@ import { startRunnerGateway } from '@metorial/api-runner-gateway';
 import { authenticate } from '@metorial/auth';
 import { createHono } from '@metorial/hono';
 import { initLogger } from '@metorial/logging';
-import { providerOauthApp } from '@metorial/api-oauth'
+import { providerOauthApp } from '@metorial/api-oauth';
+import { startPrivateApiServer } from '@metorial/api-private';
 
-let apiPort = parseInt(process.env.PORT || '3310');
-let mcpPort = parseInt(process.env.PORT || '3311');
-let oauthPort = parseInt(process.env.PORT || '3312');
-let runnerPort = parseInt(process.env.PORT || '3399');
+let apiPort = parseInt(process.env.API_PORT || '3310');
+let mcpPort = parseInt(process.env.MCP_PORT || '3311');
+let oauthPort = parseInt(process.env.OAUTH_PORT || '3312');
+let runnerPort = parseInt(process.env.RUNNER_PORT || '3399');
+let privateApiPort = parseInt(process.env.PRIVATE_API_PORT || '3313');
 
 let server = apiMux(
   [
@@ -51,7 +53,7 @@ Bun.serve({
 
 Bun.serve({
   port: oauthPort,
-  fetch: providerOauthApp
+  fetch: providerOauthApp.fetch
 });
 
 console.log(`Listening on port ${apiPort}`);
@@ -71,3 +73,4 @@ if (process.env.NODE_ENV == 'production') {
 
 startRunnerGateway({ port: runnerPort });
 startMcpServer({ port: mcpPort, authenticate });
+startPrivateApiServer({ port: privateApiPort });

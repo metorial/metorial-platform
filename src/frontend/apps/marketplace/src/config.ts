@@ -13,6 +13,8 @@ if (!metorialEnvironment) throw new Error('METORIAL_ENV is not defined');
 
 setConfig({
   apiUrl: coreApiUrl,
+  privateApiUrl: coreApiUrl,
+
   environment: metorialEnvironment as any,
 
   enterprise: {

@@ -20,8 +20,9 @@ export let connectionEventGroup = connectionGroup.use(async ctx => {
 
 export let providerOauthConnectionEventController = Controller.create(
   {
-    name: 'Provider OAuth Connection Event',
-    description: 'Manage provider OAuth connection event information'
+    name: 'OAuth Event',
+    description: 'Manage provider OAuth connection event information',
+    hideInDocs: true
   },
   {
     list: connectionGroup

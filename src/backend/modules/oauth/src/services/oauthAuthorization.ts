@@ -79,6 +79,7 @@ class OauthAuthorizationServiceImpl {
 
   async completeAuthorization(d: {
     context: Context;
+    connection: ProviderOAuthConnection;
 
     response: {
       code?: string;
@@ -90,10 +91,11 @@ class OauthAuthorizationServiceImpl {
   }) {
     if (d.response.error) {
       if (d.response.state) {
-        await db.providerOAuthConnectionAuthAttempt.updateMany({
+        let res = await db.providerOAuthConnectionAuthAttempt.updateMany({
           where: {
             stateIdentifier: d.response.state!,
-            status: 'pending'
+            status: 'pending',
+            connectionOid: d.connection.oid
           },
           data: {
             status: 'failed',
@@ -107,6 +109,15 @@ class OauthAuthorizationServiceImpl {
               d.response.error
           }
         });
+
+        if (res.count === 0) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Invalid authorization attempt',
+              description: 'The provided state identifier does not match any pending attempts.'
+            })
+          );
+        }
       }
 
       throw new ServiceError(

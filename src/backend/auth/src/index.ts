@@ -6,11 +6,17 @@ import { updateExecutionContext } from '@metorial/execution-context';
 import { parseForwardedFor } from '@metorial/forwarded-for';
 import { authenticationService } from '@metorial/module-access';
 import * as Cookies from 'cookie';
+import http from 'node:http';
 
 let SESSION_COOKIE_NAME = 'metorial_oss_session_secret';
 
 export let getDashboardAuthCookie = (req: Request) => {
   let cookies = Cookies.parse(req.headers.get('Cookie') ?? '');
+  return cookies[SESSION_COOKIE_NAME] ?? null;
+};
+
+export let getDashboardAuthCookieFromNodeReq = (req: http.IncomingMessage) => {
+  let cookies = Cookies.parse(req.headers.cookie ?? '');
   return cookies[SESSION_COOKIE_NAME] ?? null;
 };
 
@@ -30,7 +36,7 @@ export let authenticate = async (req: Request, url: URL) => {
         req.headers.get('cf-connecting-ip') ??
         req.headers.get('x-forwarded-for') ??
         req.headers.get('x-real-ip')
-    ) ?? '127.0.0.1';
+    ) ?? '0.0.0.0';
   let ua = req.headers.get('user-agent') ?? undefined;
 
   let context: Context = { ip, ua };

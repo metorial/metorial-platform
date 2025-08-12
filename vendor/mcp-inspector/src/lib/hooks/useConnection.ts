@@ -28,7 +28,6 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { useState } from 'react';
 import { z } from 'zod';
-import packageJson from '../../../package.json';
 import { InspectorOAuthClientProvider } from '../auth';
 import { InspectorConfig } from '../configurationTypes';
 import { ConnectionStatus } from '../constants';
@@ -248,8 +247,8 @@ export function useConnection({
   const connect = async (_e?: unknown, retryCount: number = 0) => {
     const client = new Client<Request, Notification, Result>(
       {
-        name: 'mcp-inspector',
-        version: packageJson.version
+        name: 'Metorial Explorer',
+        version: undefined!
       },
       {
         capabilities: {

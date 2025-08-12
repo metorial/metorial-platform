@@ -7,9 +7,9 @@ import {
   Session
 } from '@metorial/db';
 import { debug } from '@metorial/debug';
+import { Fabric } from '@metorial/fabric';
 import { JSONRPCMessageSchema, McpError } from '@metorial/mcp-utils';
-import { SessionConnection } from '@metorial/module-session';
-import { ConnectionMessage } from '@metorial/module-session/src/connection/handler/base';
+import { ConnectionMessage, SessionConnection } from '@metorial/module-session';
 
 export class McpServerConnection {
   #sendAndReceiveConnection: SessionConnection | null = null;
@@ -70,6 +70,12 @@ export class McpServerConnection {
         throw new McpError('parse_error');
       }
     }
+
+    await Fabric.fire('session.session_message.client_message_received', {
+      organization: this.instance.organization,
+      instance: this.instance,
+      session: this.serverSession
+    });
 
     let res = tryParseMessages(data);
     for (let item of res) {

@@ -6,6 +6,7 @@ import {
   Instance,
   Organization,
   OrganizationActor,
+  Prisma,
   Server,
   ServerDeployment,
   Session,
@@ -31,7 +32,14 @@ let include = {
       serverVariant: true
     },
     orderBy: { id: 'asc' as const }
+  },
+  serverSessions: {
+    take: 1,
+    where: {
+      AND: [{ clientInfo: { not: Prisma.DbNull } }, { clientInfo: { not: Prisma.JsonNull } }]
+    }
   }
+
   // serverSessions: {
   //   include: {
   //     serverDeployment: {

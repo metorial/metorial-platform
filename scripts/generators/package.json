@@ -1,0 +1,27 @@
+{
+  "name": "generator",
+  "module": "index.ts",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "bun ./src/index.ts",
+    "generate:client": "bun run generate:client:typescript && bun run generate:client:python && bun run generate:client:dashboard",
+    "generate:client:typescript": "bun start http://localhost:4310 ../../clients/metorial-node/sdk/gen typescript && cd ../../clients/metorial-node/sdk/gen && bun run build",
+    "generate:client:dashboard": "bun start http://localhost:4310 ../../clients/metorial-dashboard/src/gen typescript && cd ../../clients/metorial-dashboard && bun run build",
+    "generate:client:python": "bun start http://localhost:4310 ../../clients/metorial-python/sdk/gen python"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.4.0",
+    "@types/fs-extra": "^11.0.4",
+    "dedent": "^1.5.3",
+    "fs-extra": "^11.3.0",
+    "prettier": "^3.5.3"
+  }
+}

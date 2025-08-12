@@ -28,14 +28,14 @@ let Text = styled('p')`
   text-transform: uppercase;
 `;
 
-export let Or = memo(() => {
+export let Or = memo(({ text }: { text?: string }) => {
   return (
     <Wrapper>
       <LineWrapper>
         <Line />
       </LineWrapper>
 
-      <Text>or</Text>
+      <Text>{text ?? 'or'}</Text>
 
       <LineWrapper>
         <Line />

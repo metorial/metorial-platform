@@ -1,0 +1,48 @@
+{
+  "name": "@metorial/api-private",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "AGPL",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "bunx -y @genql/cli@latest --schema ./schema.graphql --output ./generated",
+    "dev": "bun --watch ./src/server.ts"
+  },
+  "dependencies": {
+    "@apollo/server": "^5.0.0",
+    "@as-integrations/express5": "^1.1.2",
+    "@genql/cli": "^6.3.3",
+    "@metorial/auth": "^1.0.0",
+    "@metorial/config": "^1.0.0",
+    "@metorial/db": "^1.0.0",
+    "@metorial/env": "^1.0.0",
+    "@metorial/error": "^1.0.0",
+    "@metorial/module-access": "^1.0.0",
+    "@metorial/module-catalog": "^1.0.0",
+    "@metorial/module-file": "^1.0.0",
+    "@metorial/module-machine-access": "^1.0.0",
+    "@metorial/module-oauth": "^1.0.0",
+    "@metorial/module-flags": "^1.0.0",
+    "@metorial/module-organization": "^1.0.0",
+    "@metorial/module-secret": "^1.0.0",
+    "@metorial/module-server-deployment": "^1.0.0",
+    "@metorial/module-session": "^1.0.0",
+    "@metorial/module-usage": "^1.0.0",
+    "@metorial/module-user": "^1.0.0",
+    "@metorial/pagination": "^1.0.0",
+    "@metorial/presenter": "^1.0.0",
+    "@metorial/rest": "^1.0.0",
+    "@metorial/validation": "^1.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "reflect-metadata": "^0.2.2",
+    "type-graphql": "^2.0.0-rc.2"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

@@ -34,26 +34,26 @@ export let v1OrganizationInvitePresenter = Presenter.create(organizationInviteTy
       )
       .run(),
 
-    inviteLink: {
-      __typename: 'organization.invite.link',
+    invite_link: {
+      object: 'organization.invite.link',
       id: `oinl_${organizationInvite.key.slice(-12).split('').reverse().join('')}`,
       key: organizationInvite.type == 'link' ? organizationInvite.key : null,
-      keyRedacted: `...${organizationInvite.key.slice(-10)}`,
+      key_redacted: `...${organizationInvite.key.slice(-10)}`,
       url:
         organizationInvite.type == 'link'
           ? getConfig().urls.getInviteUrl(organizationInvite)
           : null,
-      createdAt: organizationInvite.createdAt
+      created_at: organizationInvite.createdAt
     },
 
     email: organizationInvite.email,
 
-    createdAt: organizationInvite.createdAt,
-    updatedAt: organizationInvite.createdAt,
-    deletedAt: organizationInvite.deletedAt,
-    expiresAt: organizationInvite.expiresAt,
-    acceptedAt: organizationInvite.acceptedAt,
-    rejectedAt: organizationInvite.rejectedAt
+    created_at: organizationInvite.createdAt,
+    updated_at: organizationInvite.createdAt,
+    deleted_at: organizationInvite.deletedAt,
+    expires_at: organizationInvite.expiresAt,
+    accepted_at: organizationInvite.acceptedAt,
+    rejected_at: organizationInvite.rejectedAt
   }))
   .schema(
     v.object({
@@ -79,11 +79,8 @@ export let v1OrganizationInvitePresenter = Presenter.create(organizationInviteTy
       }),
       organization: v1OrganizationPresenter.schema,
       invited_by: v1OrganizationActorPresenter.schema,
-      inviteLink: v.object({
-        __typename: v.literal('organization.invite.link', {
-          name: '__typename',
-          description: `The invite link's type`
-        }),
+      invite_link: v.object({
+        object: v.literal('organization.invite.link'),
         id: v.string({
           name: 'id',
           description: `The invite link's unique identifier`
@@ -95,7 +92,7 @@ export let v1OrganizationInvitePresenter = Presenter.create(organizationInviteTy
             examples: ['oinl_6YuLEErWCdFSdVGnqZLp']
           })
         ),
-        keyRedacted: v.string({
+        key_redacted: v.string({
           name: 'keyRedacted',
           description: `The invite link's key redacted`,
           examples: ['...6YuLEErWCdFSdVGnqZLp']
@@ -107,32 +104,32 @@ export let v1OrganizationInvitePresenter = Presenter.create(organizationInviteTy
             examples: ['https://app.metorial.com/join?invite_key=6YuLEErWCdFSdVGnqZLp']
           })
         ),
-        createdAt: v.date({
+        created_at: v.date({
           name: 'createdAt',
           description: `The invite link's creation date`
         })
       }),
-      createdAt: v.date({
+      created_at: v.date({
         name: 'createdAt',
         description: `The organization invite's creation date`
       }),
-      updatedAt: v.date({
+      updated_at: v.date({
         name: 'updatedAt',
         description: `The organization invite's last update date`
       }),
-      deletedAt: v.date({
+      deleted_at: v.date({
         name: 'deletedAt',
         description: `The organization invite's deletion date`
       }),
-      expiresAt: v.date({
+      expires_at: v.date({
         name: 'expiresAt',
         description: `The organization invite's expiration date`
       }),
-      acceptedAt: v.date({
+      accepted_at: v.date({
         name: 'acceptedAt',
         description: `The organization invite's acceptance date`
       }),
-      rejectedAt: v.date({
+      rejected_at: v.date({
         name: 'rejectedAt',
         description: `The organization invite's rejection date`
       })

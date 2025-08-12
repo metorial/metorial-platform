@@ -1,5 +1,9 @@
+import { dynamicPage } from '@metorial/dynamic-component/src/dynamicComponent';
 import { createSlice } from '@metorial/microfrontend';
-import { OrganizationInvitePage } from './pages/orgInvite';
+
+let OrganizationInvitePage = dynamicPage(() =>
+  import('./pages/orgInvite').then(c => c.OrganizationInvitePage)
+);
 
 export let joinSlice = createSlice([
   {

@@ -13,6 +13,7 @@ export type InstructionItemOption =
       replacements?: Record<string, () => React.ReactNode>;
     }
   | {
+      type?: 'component';
       component: React.ReactNode;
     };
 
@@ -165,6 +166,7 @@ export let Instructions = ({
       path: string;
       title?: string;
       initialFile?: string;
+      replacements?: Record<string, string | undefined>;
     };
   }[];
 }) => {

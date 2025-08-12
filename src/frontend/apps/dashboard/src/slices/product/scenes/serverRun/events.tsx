@@ -54,7 +54,7 @@ export let ServerRunEvents = ({ serverRun }: { serverRun: ServerRunsGetOutput })
             time: serverRun.stoppedAt
           },
 
-          ...eventItems
+          ...eventItems.data
         ]}
       />
     </>

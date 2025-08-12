@@ -208,3 +208,41 @@ export let v1SessionPresenter = Presenter.create(sessionType)
     })
   )
   .build();
+
+export let v1DashboardSessionPresenter = Presenter.create(sessionType)
+  .presenter(async ({ session }, opts) => {
+    let inner = await v1SessionPresenter.present({ session }, opts).run({});
+
+    return {
+      ...inner,
+      client: session.serverSessions[0]
+        ? {
+            object: 'session.client#preview',
+            info: session.serverSessions[0].clientInfo
+          }
+        : null
+    };
+  })
+  .schema(
+    v.union([
+      v1SessionPresenter.schema,
+      v.object({
+        client: v.nullable(
+          v.object({
+            object: v.literal('session.client#preview'),
+            info: v.object({
+              name: v.string({
+                name: 'name',
+                description: 'Name of the client'
+              }),
+              version: v.string({
+                name: 'version',
+                description: 'Version of the client'
+              })
+            })
+          })
+        )
+      })
+    ]) as any
+  )
+  .build();

@@ -1,48 +1,174 @@
+import { renderWithLoader } from '@metorial/data-hooks';
+import { dynamicPage } from '@metorial/dynamic-component';
 import { createSlice } from '@metorial/microfrontend';
+import { NotFound } from '@metorial/pages';
+import { useDashboardFlags } from '@metorial/state';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
-import { LogsListLayout } from './pages/(logs)/(list)/_layout';
-import { ServerErrorsPage } from './pages/(logs)/(list)/server-errors';
-import { ServerRunsPage } from './pages/(logs)/(list)/server-runs';
-import { SessionsPage } from './pages/(logs)/(list)/sessions';
-import { ServerErrorPage } from './pages/(logs)/server-error';
-import { ServerErrorLayout } from './pages/(logs)/server-error/_layout';
-import { ServerRunPage } from './pages/(logs)/server-run';
-import { ServerRunLayout } from './pages/(logs)/server-run/_layout';
-import { SessionPage } from './pages/(logs)/session';
-import { SessionLayout } from './pages/(logs)/session/_layout';
-import { SessionDeploymentsPage } from './pages/(logs)/session/deployments';
-import { SessionServerRunsPage } from './pages/(logs)/session/serverRuns';
-import { ServersListLayout } from './pages/(servers)/(list)/_layout';
-import { ServersDeploymentsPage } from './pages/(servers)/(list)/server-deployments';
-import { ServersImplementationsPage } from './pages/(servers)/(list)/server-implementations';
-import { ServersPage } from './pages/(servers)/(list)/servers';
-import { ServerOverviewPage } from './pages/(servers)/server';
-import { ServerDeploymentLayout } from './pages/(servers)/server-deployment/_layout';
-import { ServerDeploymentConfigPage } from './pages/(servers)/server-deployment/config';
-import { ServerDeploymentErrorsPage } from './pages/(servers)/server-deployment/errors';
-import { ServerDeploymentOverviewPage } from './pages/(servers)/server-deployment/overview';
-import { ServerDeploymentRunsPage } from './pages/(servers)/server-deployment/runs';
-import { ServerImplementationLayout } from './pages/(servers)/server-implementation/_layout';
-import { ServerImplementationConfigPage } from './pages/(servers)/server-implementation/config';
-import { ServerImplementationDeploymentsPage } from './pages/(servers)/server-implementation/deployments';
-import { ServerImplementationErrorsPage } from './pages/(servers)/server-implementation/errors';
-import { ServerImplementationOverviewPage } from './pages/(servers)/server-implementation/overview';
-import { ServerImplementationRunsPage } from './pages/(servers)/server-implementation/runs';
-import { ServerLayout } from './pages/(servers)/server/_layout';
-import { ServerLayoutSide } from './pages/(servers)/server/_sideLayout';
-import { ServerServerDeploymentsPage } from './pages/(servers)/server/deployments';
-import { ServerServerImplementationsPage } from './pages/(servers)/server/implementations';
-import { ServerReadmePage } from './pages/(servers)/server/readme';
-import { ProjectPageLayout } from './pages/_layout';
-import { DeployPage } from './pages/deploy';
-import { ProjectDeveloperPage } from './pages/developer';
-import { ProjectDeveloperPageLayout } from './pages/developer/_layout';
-import { ProjectDeveloperAPIPage } from './pages/developer/api';
-import { ProjectDeveloperEnvironmentsPage } from './pages/developer/environments';
-import { ExplorerPage } from './pages/explorer';
-import { ProjectSettingsPage } from './pages/settings';
-import { ProjectSettingsPageLayout } from './pages/settings/_layout';
+
+let ExternalServersListLayout = dynamicPage(() =>
+  import('./pages/(custom-servers)/(list)/_layout').then(c => c.ExternalServersListLayout)
+);
+let ManagedServersListLayout = dynamicPage(() =>
+  import('./pages/(custom-servers)/(list)/_layout').then(c => c.ManagedServersListLayout)
+);
+let ServersListLayout = dynamicPage(() =>
+  import('./pages/(servers)/(list)/_layout').then(c => c.ServersListLayout)
+);
+let ServerDeploymentsListLayout = dynamicPage(() =>
+  import('./pages/(servers)/(list)/_layout').then(c => c.ServerDeploymentsListLayout)
+);
+let ExternalServersPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/(list)/external-servers').then(c => c.ExternalServersPage)
+);
+let ManagedServersPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/(list)/managed-servers').then(c => c.ManagedServersPage)
+);
+let ProviderConnectionsPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/(list)/provider-connections').then(
+    c => c.ProviderConnectionsPage
+  )
+);
+let LogsListLayout = dynamicPage(() =>
+  import('./pages/(logs)/(list)/_layout').then(c => c.LogsListLayout)
+);
+let ServerErrorsPage = dynamicPage(() =>
+  import('./pages/(logs)/(list)/server-errors').then(c => c.ServerErrorsPage)
+);
+let ServerRunsPage = dynamicPage(() =>
+  import('./pages/(logs)/(list)/server-runs').then(c => c.ServerRunsPage)
+);
+let SessionsPage = dynamicPage(() =>
+  import('./pages/(logs)/(list)/sessions').then(c => c.SessionsPage)
+);
+let ServerErrorPage = dynamicPage(() =>
+  import('./pages/(logs)/server-error').then(c => c.ServerErrorPage)
+);
+let ServerErrorLayout = dynamicPage(() =>
+  import('./pages/(logs)/server-error/_layout').then(c => c.ServerErrorLayout)
+);
+let ServerRunPage = dynamicPage(() =>
+  import('./pages/(logs)/server-run').then(c => c.ServerRunPage)
+);
+let ServerRunLayout = dynamicPage(() =>
+  import('./pages/(logs)/server-run/_layout').then(c => c.ServerRunLayout)
+);
+let SessionPage = dynamicPage(() => import('./pages/(logs)/session').then(c => c.SessionPage));
+let SessionLayout = dynamicPage(() =>
+  import('./pages/(logs)/session/_layout').then(c => c.SessionLayout)
+);
+let SessionDeploymentsPage = dynamicPage(() =>
+  import('./pages/(logs)/session/deployments').then(c => c.SessionDeploymentsPage)
+);
+let SessionServerRunsPage = dynamicPage(() =>
+  import('./pages/(logs)/session/serverRuns').then(c => c.SessionServerRunsPage)
+);
+let ServersDeploymentsPage = dynamicPage(() =>
+  import('./pages/(servers)/(list)/server-deployments').then(c => c.ServersDeploymentsPage)
+);
+let ServersImplementationsPage = dynamicPage(() =>
+  import('./pages/(servers)/(list)/server-implementations').then(
+    c => c.ServersImplementationsPage
+  )
+);
+let ServersPage = dynamicPage(() =>
+  import('./pages/(servers)/(list)/servers').then(c => c.ServersPage)
+);
+let ServerOverviewPage = dynamicPage(() =>
+  import('./pages/(servers)/server').then(c => c.ServerOverviewPage)
+);
+let ServerDeploymentLayout = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/_layout').then(c => c.ServerDeploymentLayout)
+);
+let ServerDeploymentConfigPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/config').then(c => c.ServerDeploymentConfigPage)
+);
+let ServerDeploymentErrorsPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/errors').then(c => c.ServerDeploymentErrorsPage)
+);
+let ServerDeploymentOverviewPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/overview').then(
+    c => c.ServerDeploymentOverviewPage
+  )
+);
+let ServerDeploymentRunsPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/runs').then(c => c.ServerDeploymentRunsPage)
+);
+let ServerImplementationLayout = dynamicPage(() =>
+  import('./pages/(servers)/server-implementation/_layout').then(
+    c => c.ServerImplementationLayout
+  )
+);
+let ServerImplementationConfigPage = dynamicPage(() =>
+  import('./pages/(servers)/server-implementation/config').then(
+    c => c.ServerImplementationConfigPage
+  )
+);
+let ServerImplementationDeploymentsPage = dynamicPage(() =>
+  import('./pages/(servers)/server-implementation/deployments').then(
+    c => c.ServerImplementationDeploymentsPage
+  )
+);
+let ServerImplementationErrorsPage = dynamicPage(() =>
+  import('./pages/(servers)/server-implementation/errors').then(
+    c => c.ServerImplementationErrorsPage
+  )
+);
+let ServerImplementationOverviewPage = dynamicPage(() =>
+  import('./pages/(servers)/server-implementation/overview').then(
+    c => c.ServerImplementationOverviewPage
+  )
+);
+let ServerImplementationRunsPage = dynamicPage(() =>
+  import('./pages/(servers)/server-implementation/runs').then(
+    c => c.ServerImplementationRunsPage
+  )
+);
+let ServerLayout = dynamicPage(() =>
+  import('./pages/(servers)/server/_layout').then(c => c.ServerLayout)
+);
+let ServerServerDeploymentsPage = dynamicPage(() =>
+  import('./pages/(servers)/server/deployments').then(c => c.ServerServerDeploymentsPage)
+);
+let ServerServerImplementationsPage = dynamicPage(() =>
+  import('./pages/(servers)/server/implementations').then(
+    c => c.ServerServerImplementationsPage
+  )
+);
+let ServerReadmePage = dynamicPage(() =>
+  import('./pages/(servers)/server/readme').then(c => c.ServerReadmePage)
+);
+let ProjectPageLayout = dynamicPage(() =>
+  import('./pages/_layout').then(c => c.ProjectPageLayout)
+);
+let DeployPage = dynamicPage(() => import('./pages/deploy').then(c => c.DeployPage));
+let ProjectDeveloperPage = dynamicPage(() =>
+  import('./pages/developer').then(c => c.ProjectDeveloperPage)
+);
+let ProjectDeveloperPageLayout = dynamicPage(() =>
+  import('./pages/developer/_layout').then(c => c.ProjectDeveloperPageLayout)
+);
+let ProjectDeveloperAPIPage = dynamicPage(() =>
+  import('./pages/developer/api').then(c => c.ProjectDeveloperAPIPage)
+);
+let ProjectDeveloperEnvironmentsPage = dynamicPage(() =>
+  import('./pages/developer/environments').then(c => c.ProjectDeveloperEnvironmentsPage)
+);
+let ExplorerPage = dynamicPage(() => import('./pages/explorer').then(c => c.ExplorerPage));
+let ProjectSettingsPage = dynamicPage(() =>
+  import('./pages/settings').then(c => c.ProjectSettingsPage)
+);
+let ProjectSettingsPageLayout = dynamicPage(() =>
+  import('./pages/settings/_layout').then(c => c.ProjectSettingsPageLayout)
+);
+
+let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
+  let flags = useDashboardFlags();
+
+  return renderWithLoader({ flags })(({ flags }) =>
+    (flags.data.flags as any)[flag] ? children : <NotFound />
+  );
+};
 
 export let productInnerSlice = createSlice([
   {
@@ -94,13 +220,57 @@ export let productInnerSlice = createSlice([
         children: [
           {
             path: '',
+            element: (
+              <FlaggedPage flag="metorial-gateway-enabled">
+                <ManagedServersListLayout />
+              </FlaggedPage>
+            ),
+
+            children: [
+              {
+                path: 'managed-servers',
+                element: <ManagedServersPage />
+              }
+            ]
+          },
+
+          {
+            path: '',
+            element: (
+              <FlaggedPage flag="metorial-gateway-enabled">
+                <ExternalServersListLayout />
+              </FlaggedPage>
+            ),
+
+            children: [
+              {
+                path: 'external-servers',
+                element: <ExternalServersPage />
+              },
+              {
+                path: 'provider-connections',
+                element: <ProviderConnectionsPage />
+              }
+            ]
+          },
+
+          {
+            path: '',
             element: <ServersListLayout />,
 
             children: [
               {
                 path: 'servers',
                 element: <ServersPage />
-              },
+              }
+            ]
+          },
+
+          {
+            path: '',
+            element: <ServerDeploymentsListLayout />,
+
+            children: [
               {
                 path: 'server-deployments',
                 element: <ServersDeploymentsPage />
@@ -117,18 +287,24 @@ export let productInnerSlice = createSlice([
             element: <ServerLayout />,
 
             children: [
+              // {
+              //   element: <ServerLayoutSide />,
+              //   children: [
+              //     {
+              //       path: '',
+              //       element: <ServerOverviewPage />
+              //     }
+              //   ]
+              // },
+
               {
-                element: <ServerLayoutSide />,
-                children: [
-                  {
-                    path: '',
-                    element: <ServerOverviewPage />
-                  },
-                  {
-                    path: 'readme',
-                    element: <ServerReadmePage />
-                  }
-                ]
+                path: '',
+                element: <ServerOverviewPage />
+              },
+
+              {
+                path: 'readme',
+                element: <ServerReadmePage />
               },
 
               {

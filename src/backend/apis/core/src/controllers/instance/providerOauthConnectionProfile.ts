@@ -20,8 +20,9 @@ export let connectionProfileGroup = connectionGroup.use(async ctx => {
 
 export let providerOauthConnectionProfileController = Controller.create(
   {
-    name: 'Provider OAuth Connection Profile',
-    description: 'Manage provider OAuth connection profile information'
+    name: 'OAuth Profile',
+    description: 'Manage provider OAuth connection profile information',
+    hideInDocs: true
   },
   {
     list: connectionGroup

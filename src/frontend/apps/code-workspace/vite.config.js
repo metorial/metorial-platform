@@ -2,6 +2,6 @@
 export default {
   server: {
     host: true,
-    allowedHosts: ['vulcan']
+    allowedHosts: ['vulcan', 'localhost']
   }
 };

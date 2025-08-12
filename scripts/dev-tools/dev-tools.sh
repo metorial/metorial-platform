@@ -41,6 +41,12 @@ if [ "$1" = "migrate" ]; then
   exit 0
 fi
 
+if [ "$1" = "cleanup" ]; then
+  cd ./scripts
+  ./cleanup.sh "$2"
+  exit 0
+fi
+
 if [ "$1" = "build" ]; then
   cd ./scripts
   
@@ -50,6 +56,19 @@ if [ "$1" = "build" ]; then
     ./buildEngine.sh
   else
     echo "Unknown build target: $2. Supported targets are 'server' and 'engine'."
+    exit 1
+  fi
+
+  exit 0
+fi
+
+if [ "$1" = "generate" ]; then
+  cd ./scripts
+  
+  if [ "$2" = "client" ]; then
+    ./generateClient.sh
+  else
+    echo "Unknown generate target: $2. Supported target is 'client'."
     exit 1
   fi
 

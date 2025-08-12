@@ -24,3 +24,9 @@ export let ALL_CONNECTION_TYPES = new Set([
   ...Object.values(CONNECTION_TYPE_ALIASES).flatMap(v => v),
   ...CONNECTION_TYPES
 ]);
+
+export let toConnectionType = (input: string): (typeof CONNECTION_TYPES)[number] | null => {
+  let type = ALIAS_TO_CONNECTION_TYPE.get(input.toLowerCase());
+  if (!type) return null;
+  return type;
+};

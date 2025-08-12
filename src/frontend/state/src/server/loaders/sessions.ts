@@ -1,9 +1,10 @@
-import { createLoader, useMutation } from '@metorial/data-hooks';
-import { DashboardInstanceSessionsGetOutput } from '@metorial/generated';
 import {
   DashboardInstanceSessionsCreateBody,
-  DashboardInstanceSessionsListQuery
-} from '@metorial/generated/src/mt_2025_01_01_dashboard';
+  DashboardInstanceSessionsGetOutput,
+  DashboardInstanceSessionsListQuery,
+  DashboardInstanceSessionsListOutput
+} from '@metorial/dashboard-sdk';
+import { createLoader, useMutation } from '@metorial/data-hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -20,7 +21,9 @@ export let useSessions = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceSessionsListQuery
 ) => {
-  let data = usePaginator(pagination =>
+  type SessionItem = DashboardInstanceSessionsListOutput['items'][number];
+
+  const data = usePaginator<ReturnType<typeof sessionsLoader.use>, SessionItem>(pagination =>
     sessionsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
   );
 
@@ -62,6 +65,7 @@ export let useSessionForDeployment = (
   let [session, setSession] = useState<DashboardInstanceSessionsGetOutput | null>(null);
 
   let creatingSessionRef = useRef<string | undefined>(undefined);
+
   useEffect(() => {
     if (!instanceId || !deploymentId || creatingSessionRef.current === deploymentId) return;
     creatingSessionRef.current = deploymentId;

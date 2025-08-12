@@ -1,5 +1,5 @@
 import { getConfig } from '@metorial/config';
-import { createHono } from '@metorial/hono';
+import { createHono, useRequestContext } from '@metorial/hono';
 import {
   oauthAuthorizationService,
   oauthConnectionService
@@ -25,12 +25,14 @@ export let providerOauthController = createHono()
     async c =>
       wrapHtmlError(c)(async () => {
         let query = c.req.query();
+        let context = useRequestContext(c);
 
         let connection = await oauthConnectionService.getConnectionByClientId({
           clientId: query.client_id
         });
 
         let { redirectUrl, authAttempt } = await oauthAuthorizationService.startAuthorization({
+          context,
           connection,
           redirectUri: query.redirect_uri,
           getCallbackUrl: connection =>
@@ -62,6 +64,7 @@ export let providerOauthController = createHono()
     async c =>
       wrapHtmlError(c)(async () => {
         let query = c.req.query();
+        let context = useRequestContext(c);
 
         let connection = await oauthConnectionService.getConnectionByClientId({
           clientId: query.client_id
@@ -75,11 +78,13 @@ export let providerOauthController = createHono()
         }
 
         let { redirectUrl } = await oauthAuthorizationService.completeAuthorization({
+          context,
+          connection,
           response: {
             code: query.code,
             state: query.state,
             error: query.error,
-            error_description: query.error_description
+            errorDescription: query.error_description
           },
           getCallbackUrl: connection =>
             `${getConfig().urls.providerOauthUrl}/provider-oauth/callback`

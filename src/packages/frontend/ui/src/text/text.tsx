@@ -32,7 +32,9 @@ export let Text = (
       as: props.as ?? 'p'
     },
     props.balance ? (
-      <Balancer style={{ textAlign: props.align }}>{props.children}</Balancer>
+      <Balancer as="span" style={{ textAlign: props.align }}>
+        {props.children}
+      </Balancer>
     ) : (
       props.children
     )

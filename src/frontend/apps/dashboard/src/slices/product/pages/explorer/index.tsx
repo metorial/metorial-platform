@@ -1,9 +1,10 @@
+import { renderWithLoader } from '@metorial/data-hooks';
 import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
-import { useServerListing } from '@metorial/state';
-import { Button, Spacer, Tabs, Text, theme } from '@metorial/ui';
-import { RiArrowRightLine, RiCloseLine } from '@remixicon/react';
+import { useCurrentInstance, useServerDeployments, useServerListing } from '@metorial/state';
+import { Button, Flex, Spacer, Tabs, Text, theme } from '@metorial/ui';
+import { RiArrowLeftLine, RiArrowRightLine, RiCloseLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { ServerDeploymentForm } from '../../scenes/serverDeployments/form';
@@ -81,6 +82,8 @@ export let ExplorerPage = () => {
 
   let [serverDeploymentId, setServerDeploymentId] = useState<string | null>(null);
 
+  let instance = useCurrentInstance();
+
   let [search, setSearch] = useSearchParams();
   let serverIdParam = search.get('server_id');
   let serverDeploymentIdParam = search.get('server_deployment_id');
@@ -105,6 +108,26 @@ export let ExplorerPage = () => {
     }
   }, [serverDeploymentId]);
 
+  let serverDeploymentsFilter = useMemo(
+    () => ({
+      serverId: selectedServer ? [selectedServer.server.id] : undefined,
+      serverImplementationId: serverImplementationIdParam
+        ? [serverImplementationIdParam]
+        : undefined
+    }),
+    [selectedServer, serverImplementationIdParam]
+  );
+
+  let deployments = useServerDeployments(instance.data?.id, serverDeploymentsFilter);
+
+  useEffect(() => {
+    let deploymentsForCurrentServer = deployments.data?.items.filter(
+      d => d.server.id == (selectedServer?.server.id ?? serverIdParam)
+    );
+
+    if (!deployments.isLoading && deploymentsForCurrentServer?.length) setServerTab('list');
+  }, [deployments.data, deployments.isLoading]);
+
   return (
     <Wrapper>
       <Aside
@@ -128,22 +151,24 @@ export let ExplorerPage = () => {
 
             {open && (
               <Servers>
-                {serverDeploymentId && (
-                  <>
-                    <Button
-                      iconLeft={<RiCloseLine />}
-                      onClick={() => setOpen(!open)}
-                      size="1"
-                      variant="outline"
-                    >
-                      Close
-                    </Button>
-                    <Spacer height={10} />
-                  </>
-                )}
-
                 {!selectedServer && !serverIdParam && (
                   <>
+                    {serverDeploymentId && (
+                      <>
+                        <Button
+                          iconLeft={<RiCloseLine />}
+                          onClick={() => setOpen(!open)}
+                          size="1"
+                          variant="outline"
+                          type="button"
+                        >
+                          Close
+                        </Button>
+
+                        <Spacer height={10} />
+                      </>
+                    )}
+
                     <Text as="p" size="3" weight="strong" color="gray900">
                       Select a server
                     </Text>
@@ -162,71 +187,100 @@ export let ExplorerPage = () => {
                   </>
                 )}
 
-                {selectedServer && (
-                  <>
-                    <Text as="p" size="3" weight="strong" color="gray900">
-                      {serverTab == 'create' ? (
-                        <>Set up {selectedServer.name}</>
-                      ) : (
-                        <>Choose a deployment</>
+                {selectedServer &&
+                  renderWithLoader({ deployments })(() => (
+                    <>
+                      <Flex justify="space-between" align="center">
+                        <Button
+                          iconLeft={<RiArrowLeftLine />}
+                          onClick={() => {
+                            _setSelectedServer(null);
+                            setSearch(v => new URLSearchParams());
+                            setOpen(true);
+                          }}
+                          size="1"
+                          variant="outline"
+                          type="button"
+                        >
+                          Back
+                        </Button>
+
+                        <Button
+                          iconLeft={<RiCloseLine />}
+                          onClick={() => setOpen(!open)}
+                          size="1"
+                          variant="outline"
+                          type="button"
+                        >
+                          Close
+                        </Button>
+                      </Flex>
+
+                      <Spacer height={10} />
+
+                      <Text as="p" size="3" weight="strong" color="gray900">
+                        {serverTab == 'create' ? (
+                          <>Set up {selectedServer.name}</>
+                        ) : (
+                          <>Choose a deployment</>
+                        )}
+                      </Text>
+
+                      <Spacer height={5} />
+
+                      <Tabs
+                        tabs={[
+                          { id: 'create', label: 'Create' },
+                          { id: 'list', label: 'Your Deployments' }
+                        ]}
+                        action={v => setServerTab(v as 'create' | 'list')}
+                        current={serverTab}
+                      />
+
+                      {serverTab == 'create' && (
+                        <ServerDeploymentForm
+                          type="create"
+                          for={
+                            serverImplementationIdParam
+                              ? {
+                                  serverId: selectedServer.server.id,
+                                  serverImplementationId: serverImplementationIdParam
+                                }
+                              : {
+                                  serverId: selectedServer.server.id
+                                }
+                          }
+                          extraActions={
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="2"
+                              onClick={() => {
+                                _setSelectedServer(null);
+                                setSearch(v => new URLSearchParams());
+                                setOpen(true);
+                              }}
+                            >
+                              Back
+                            </Button>
+                          }
+                          onCreate={deployment => {
+                            setServerDeploymentId(deployment.id);
+                          }}
+                        />
                       )}
-                    </Text>
 
-                    <Spacer height={5} />
-
-                    <Tabs
-                      tabs={[
-                        { id: 'create', label: 'Create' },
-                        { id: 'list', label: 'Your Deployments' }
-                      ]}
-                      action={v => setServerTab(v as 'create' | 'list')}
-                      current={serverTab}
-                    />
-
-                    {serverTab == 'create' && (
-                      <ServerDeploymentForm
-                        type="create"
-                        for={
-                          serverImplementationIdParam
-                            ? {
-                                serverId: selectedServer.server.id,
-                                serverImplementationId: serverImplementationIdParam
-                              }
-                            : {
-                                serverId: selectedServer.server.id
-                              }
-                        }
-                        extraActions={
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                              _setSelectedServer(null);
-                              setSearch(v => new URLSearchParams());
-                              setOpen(true);
-                            }}
-                          >
-                            Back
-                          </Button>
-                        }
-                      />
-                    )}
-
-                    {serverTab == 'list' && (
-                      <ServerDeploymentsList
-                        serverId={[selectedServer.server.id]}
-                        serverImplementationId={
-                          serverImplementationIdParam
-                            ? [serverImplementationIdParam]
-                            : undefined
-                        }
-                        onDeploymentClick={deployment => {
-                          setServerDeploymentId(deployment.id);
-                        }}
-                      />
-                    )}
-                  </>
-                )}
+                      {serverTab == 'list' && (
+                        <ServerDeploymentsList
+                          {...serverDeploymentsFilter}
+                          onDeploymentClick={deployment => {
+                            setOpen(false);
+                            setServerDeploymentId(deployment.id);
+                          }}
+                        />
+                      )}
+                    </>
+                  ))}
               </Servers>
             )}
           </AsideInner>
