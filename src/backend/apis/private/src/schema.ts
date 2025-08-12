@@ -1,4 +1,7 @@
-#graphql
+import fs from 'fs/promises';
+import path from 'path';
+
+export let typeDefs = `#graphql
 type Query {
   getFlags: DFlags!
   getUser: DUser!
@@ -42,3 +45,10 @@ type DUser {
 }
 
 scalar DateTimeISO
+`;
+
+(async () => {
+  if (process.env.NODE_ENV === 'development') {
+    await fs.writeFile(path.join(__dirname, '../schema.graphql'), typeDefs);
+  }
+})().catch(console.error);
