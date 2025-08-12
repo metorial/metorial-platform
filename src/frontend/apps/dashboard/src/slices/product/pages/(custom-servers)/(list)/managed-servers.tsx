@@ -14,7 +14,7 @@ let moveDots = keyframes`
 let Wrapper = styled.div`
   position: relative;
   background: #000;
-  background-image: radial-gradient(#222 1px, transparent 0);
+  background-image: radial-gradient(#444 1px, transparent 0);
   background-size: 18px 18px;
   background-position: -10px -10px;
   animation: ${moveDots} 2s linear infinite;
@@ -45,7 +45,7 @@ let Wrapper = styled.div`
   h1 {
     color: #fff;
     font-size: 32px;
-    font-weight: 600;
+    font-weight: 700;
     margin-bottom: 30px;
     margin-top: 20px;
     z-index: 2;
@@ -64,7 +64,7 @@ let Wrapper = styled.div`
   span {
     height: 26px;
     padding: 0 8px;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     border: 1px solid #ccc;
@@ -74,6 +74,7 @@ let Wrapper = styled.div`
     border-radius: 40px;
     z-index: 2;
     position: relative;
+    background: linear-gradient(90deg, rgba(50, 50, 50, 0.7), rgba(100, 100, 100, 0.7));
   }
 `;
 

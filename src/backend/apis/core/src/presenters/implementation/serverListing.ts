@@ -385,14 +385,16 @@ export let dashboardServerListingPresenter = Presenter.create(serverListingType)
     };
   })
   .schema(
-    v.object({
-      ...v1ServerListingPresenter.schema.properties,
-      readme_html: v.nullable(
-        v.string({
-          name: 'readme_html',
-          description: 'HTML-rendered version of the server listing README'
-        })
-      )
-    }) as any
+    v.union([
+      v1ServerListingPresenter.schema,
+      v.object({
+        readme_html: v.nullable(
+          v.string({
+            name: 'readme_html',
+            description: 'HTML-rendered version of the server listing README'
+          })
+        )
+      })
+    ]) as any
   )
   .build();
