@@ -1,10 +1,7 @@
 // import { createMetorialDashboardSDK, MetorialDashboardSDK } from '@metorial/dashboard-sdk';
 import { createPrivateClient, PrivateClient } from '@metorial/api-private/client';
+import { createMetorialDashboardSDK, MetorialDashboardSDK } from '@metorial/dashboard-sdk';
 import { awaitConfig } from '@metorial/frontend-config';
-import {
-  createMetorialDashboardSDK,
-  MetorialDashboardSDK
-} from '../../../../clients/metorial-dashboard/dist/index';
 
 let sdk: MetorialDashboardSDK | null = null;
 
