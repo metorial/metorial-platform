@@ -340,6 +340,14 @@ export let providerOauthConnectionTemplateType = PresentableType.create<{
   };
 }>()('provider_oauth.connection_template');
 
+export let providerOauthConnectionTemplateEvaluationType = PresentableType.create<{
+  providerOauthConnectionTemplate: ProviderOAuthConnectionTemplate & {
+    profile: Profile;
+  };
+  input: Record<string, any>;
+  output: Record<string, any>;
+}>()('provider_oauth.connection_template.evaluation');
+
 export let providerOauthConnectionEventType = PresentableType.create<{
   providerOauthConnectionEvent: ProviderOAuthConnectionEvent & {
     connection: ProviderOAuthConnection;

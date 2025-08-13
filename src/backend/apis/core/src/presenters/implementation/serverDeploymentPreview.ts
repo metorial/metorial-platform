@@ -10,7 +10,7 @@ export let v1ServerDeploymentPreview = Object.assign(
     name: deployment.name,
     description: deployment.description,
 
-    metadata: server.metadata,
+    metadata: server.metadata ?? {},
 
     server: v1ServerPreview(server),
 

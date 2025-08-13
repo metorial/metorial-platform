@@ -15,7 +15,7 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
     name: serverDeployment.name,
     description: serverDeployment.description,
 
-    metadata: serverDeployment.metadata,
+    metadata: serverDeployment.metadata ?? {},
 
     server: v1ServerPreview(serverDeployment.server),
 

@@ -1,3 +1,4 @@
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { shadowId } from '@metorial/shadow-id';
 import { v } from '@metorial/validation';
@@ -11,6 +12,9 @@ export let v1ProviderOauthConnectionPresenter = Presenter.create(providerOauthCo
     status: providerOauthConnection.status,
 
     name: providerOauthConnection.name,
+    description: providerOauthConnection.description,
+    metadata: providerOauthConnection.metadata ?? {},
+
     provider: {
       id: shadowId(
         'pop_',
@@ -19,7 +23,14 @@ export let v1ProviderOauthConnectionPresenter = Presenter.create(providerOauthCo
       ),
 
       name: providerOauthConnection.providerName,
-      url: providerOauthConnection.providerUrl
+      url: providerOauthConnection.providerUrl,
+      image_url: await getImageUrl({
+        ...providerOauthConnection,
+        image: {
+          type: 'url',
+          url: `https://logos.metorial.com/?url=${encodeURIComponent(providerOauthConnection.providerUrl)}`
+        }
+      })
     },
 
     config: providerOauthConnection.config,
@@ -53,6 +64,16 @@ export let v1ProviderOauthConnectionPresenter = Presenter.create(providerOauthCo
         name: 'name',
         description: 'A human-readable name for the connection'
       }),
+      description: v.nullable(
+        v.string({
+          name: 'description',
+          description: 'An optional description for the connection'
+        })
+      ),
+      metadata: v.record(v.any(), {
+        name: 'metadata',
+        description: 'A key-value map of additional metadata for the connection'
+      }),
 
       provider: v.object({
         id: v.string({
@@ -68,6 +89,11 @@ export let v1ProviderOauthConnectionPresenter = Presenter.create(providerOauthCo
           name: 'url',
           description: 'The base URL or homepage of the OAuth provider',
           examples: ['https://github.com', 'https://accounts.google.com']
+        }),
+        image_url: v.string({
+          name: 'image_url',
+          description: 'A URL to an image representing the OAuth provider',
+          examples: ['https://camo.metorial.com/igu4hi54high']
         })
       }),
 

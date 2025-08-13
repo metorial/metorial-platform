@@ -6,7 +6,9 @@ export type ProviderOauthConnectionsListOutput = {
     id: string;
     status: 'active' | 'archived';
     name: string;
-    provider: { id: string; name: string; url: string };
+    description: string | null;
+    metadata: Record<string, any>;
+    provider: { id: string; name: string; url: string; imageUrl: string };
     config: Record<string, any>;
     scopes: string[];
     clientId: string;
@@ -28,12 +30,15 @@ export let mapProviderOauthConnectionsListOutput =
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
           provider: mtMap.objectField(
             'provider',
             mtMap.object({
               id: mtMap.objectField('id', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              url: mtMap.objectField('url', mtMap.passthrough())
+              url: mtMap.objectField('url', mtMap.passthrough()),
+              imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
             })
           ),
           config: mtMap.objectField('config', mtMap.passthrough()),

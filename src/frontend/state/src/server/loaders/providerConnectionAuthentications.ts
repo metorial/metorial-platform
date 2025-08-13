@@ -13,7 +13,7 @@ export let providerConnectionAuthenticationsLoader = createLoader({
     } & DashboardInstanceProviderOauthConnectionsAuthenticationsListQuery
   ) =>
     withAuth(sdk =>
-      sdk.providerOauthConnections.authentications.list(
+      sdk.providerOauth.connections.authentications.list(
         i.instanceId,
         i.providerConnectionId,
         i
@@ -47,7 +47,7 @@ export let providerConnectionAuthenticationLoader = createLoader({
     providerConnectionAuthenticationId: string;
   }) =>
     withAuth(sdk =>
-      sdk.providerOauthConnections.authentications.get(
+      sdk.providerOauth.connections.authentications.get(
         i.instanceId,
         i.providerConnectionId,
         i.providerConnectionAuthenticationId

@@ -4,9 +4,13 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
+  mapProviderOauthConnectionTemplateEvaluateBody,
+  mapProviderOauthConnectionTemplateEvaluateOutput,
   mapProviderOauthConnectionTemplateGetOutput,
   mapProviderOauthConnectionTemplateListOutput,
   mapProviderOauthConnectionTemplateListQuery,
+  type ProviderOauthConnectionTemplateEvaluateBody,
+  type ProviderOauthConnectionTemplateEvaluateOutput,
   type ProviderOauthConnectionTemplateGetOutput,
   type ProviderOauthConnectionTemplateListOutput,
   type ProviderOauthConnectionTemplateListQuery
@@ -93,6 +97,36 @@ export class MetorialProviderOauthConnectionTemplateEndpoint {
 
     return this._get(request).transform(
       mapProviderOauthConnectionTemplateGetOutput
+    );
+  }
+
+  /**
+   * @name Evaluate oauth connection template
+   * @description Evaluate the configuration of an oauth connection template
+   *
+   * @param `oauthTemplateId` - string
+   * @param `body` - ProviderOauthConnectionTemplateEvaluateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns ProviderOauthConnectionTemplateEvaluateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  evaluate(
+    oauthTemplateId: string,
+    body: ProviderOauthConnectionTemplateEvaluateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<ProviderOauthConnectionTemplateEvaluateOutput> {
+    let path = `provider-oauth-connection-template/${oauthTemplateId}/evaluate`;
+
+    let request = {
+      path,
+      body: mapProviderOauthConnectionTemplateEvaluateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapProviderOauthConnectionTemplateEvaluateOutput
     );
   }
 }

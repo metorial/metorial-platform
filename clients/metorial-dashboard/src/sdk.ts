@@ -37,6 +37,8 @@ import {
   MetorialDashboardOrganizationsProjectsEndpoint,
   MetorialDashboardUsageEndpoint,
   MetorialManagementUserEndpoint,
+  MetorialProviderOauthConnectionTemplateEndpoint,
+  MetorialProviderOauthEndpoint,
   MetorialServersListingsCategoriesEndpoint,
   MetorialServersListingsCollectionsEndpoint,
   MetorialServersListingsEndpoint
@@ -123,15 +125,23 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     capabilities: new MetorialDashboardInstanceServersCapabilitiesEndpoint(manager)
   }),
 
-  providerOauthConnections: Object.assign(
-    new MetorialDashboardInstanceProviderOauthConnectionsEndpoint(manager),
-    {
-      profiles: new MetorialDashboardInstanceProviderOauthConnectionsProfilesEndpoint(manager),
-      authentications:
-        new MetorialDashboardInstanceProviderOauthConnectionsAuthenticationsEndpoint(manager),
-      events: new MetorialDashboardInstanceProviderOauthConnectionsEventsEndpoint(manager)
-    }
-  ),
+  providerOauth: Object.assign(new MetorialProviderOauthEndpoint(manager), {
+    connections: Object.assign(
+      new MetorialDashboardInstanceProviderOauthConnectionsEndpoint(manager),
+      {
+        profiles: new MetorialDashboardInstanceProviderOauthConnectionsProfilesEndpoint(
+          manager
+        ),
+        authentications:
+          new MetorialDashboardInstanceProviderOauthConnectionsAuthenticationsEndpoint(
+            manager
+          ),
+        events: new MetorialDashboardInstanceProviderOauthConnectionsEventsEndpoint(manager),
+
+        templates: new MetorialProviderOauthConnectionTemplateEndpoint(manager)
+      }
+    )
+  }),
 
   customServers: Object.assign(new MetorialDashboardInstanceCustomServersEndpoint(manager), {
     versions: new MetorialDashboardInstanceCustomServersVersionsEndpoint(manager),

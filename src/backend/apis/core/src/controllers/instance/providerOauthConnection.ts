@@ -57,23 +57,27 @@ export let providerOauthConnectionController = Controller.create(
         'default',
         v.object({
           template_id: v.optional(v.string()),
-          name: v.string(),
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
           discovery_url: v.optional(v.string()),
           config: v.record(v.any()),
           client_id: v.string(),
           client_secret: v.string(),
-          scopes: v.array(v.string())
+          scopes: v.array(v.string()),
+          metadata: v.optional(v.record(v.any()))
         })
       )
       .body(
         'mt_2025_01_01_pulsar',
         v.object({
-          name: v.string(),
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
           discovery_url: v.optional(v.string()),
           config: v.record(v.any()),
           client_id: v.string(),
           client_secret: v.string(),
-          scopes: v.array(v.string())
+          scopes: v.array(v.string()),
+          metadata: v.optional(v.record(v.any()))
         }),
         i => i
       )
@@ -92,11 +96,13 @@ export let providerOauthConnectionController = Controller.create(
           template,
           input: {
             name: ctx.body.name,
+            description: ctx.body.description,
             discoveryUrl: ctx.body.discovery_url,
             config: ctx.body.config as any,
             clientId: ctx.body.client_id,
             clientSecret: ctx.body.client_secret,
-            scopes: ctx.body.scopes
+            scopes: ctx.body.scopes,
+            metadata: ctx.body.metadata
           }
         });
 
@@ -138,10 +144,12 @@ export let providerOauthConnectionController = Controller.create(
         'default',
         v.object({
           name: v.optional(v.string()),
+          description: v.optional(v.string()),
           config: v.optional(v.record(v.any())),
           client_id: v.optional(v.string()),
           client_secret: v.optional(v.string()),
-          scopes: v.optional(v.array(v.string()))
+          scopes: v.optional(v.array(v.string())),
+          metadata: v.optional(v.record(v.any()))
         })
       )
       .output(providerOauthConnectionPresenter)
@@ -153,10 +161,12 @@ export let providerOauthConnectionController = Controller.create(
           connection: ctx.connection,
           input: {
             name: ctx.body.name,
+            description: ctx.body.description,
             config: ctx.body.config as any,
             clientId: ctx.body.client_id,
             clientSecret: ctx.body.client_secret,
-            scopes: ctx.body.scopes
+            scopes: ctx.body.scopes,
+            metadata: ctx.body.metadata
           }
         });
 

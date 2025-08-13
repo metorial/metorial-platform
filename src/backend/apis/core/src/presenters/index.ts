@@ -19,6 +19,7 @@ import { v1ProviderOauthConnectionAuthenticationPresenter } from './implementati
 import { v1ProviderOauthConnectionEventPresenter } from './implementation/providerOauthConnectionEvent';
 import { v1ProviderOauthConnectionProfilePresenter } from './implementation/providerOauthConnectionProfile';
 import { v1ProviderOauthConnectionTemplatePresenter } from './implementation/providerOauthConnectionTemplate';
+import { v1ProviderOauthConnectionTemplateEvaluationPresenter } from './implementation/providerOauthConnectionTemplateEvaluation';
 import { v1ProviderOauthDiscoveryPresenter } from './implementation/providerOauthDiscovery';
 import { v1RemoteServerPresenter } from './implementation/remoteServer';
 import { v1RemoteServerNotificationPresenter } from './implementation/remoteServerNotification';
@@ -72,6 +73,7 @@ import {
   providerOauthConnectionDiscoveryType,
   providerOauthConnectionEventType,
   providerOauthConnectionProfileType,
+  providerOauthConnectionTemplateEvaluationType,
   providerOauthConnectionTemplateType,
   providerOauthConnectionType,
   remoteServerNotificationType,
@@ -298,6 +300,14 @@ export let providerOauthConnectionTemplatePresenter = declarePresenter(
   {
     mt_2025_01_01_pulsar: v1ProviderOauthConnectionTemplatePresenter,
     mt_2025_01_01_dashboard: v1ProviderOauthConnectionTemplatePresenter
+  }
+);
+
+export let providerOauthConnectionTemplateEvaluationPresenter = declarePresenter(
+  providerOauthConnectionTemplateEvaluationType,
+  {
+    mt_2025_01_01_pulsar: v1ProviderOauthConnectionTemplateEvaluationPresenter,
+    mt_2025_01_01_dashboard: v1ProviderOauthConnectionTemplateEvaluationPresenter
   }
 );
 

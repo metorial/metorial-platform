@@ -17,7 +17,7 @@ export let v1SessionPreview = Object.assign(
       total_productive_server_message_count: session.totalProductiveServerMessageCount
     },
 
-    metadata: session.metadata,
+    metadata: session.metadata ?? {},
 
     created_at: session.createdAt,
     updated_at: session.updatedAt

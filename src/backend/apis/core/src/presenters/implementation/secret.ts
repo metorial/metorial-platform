@@ -14,7 +14,7 @@ export let v1SecretPresenter = Presenter.create(secretType)
     },
 
     description: secret.description,
-    metadata: secret.metadata,
+    metadata: secret.metadata ?? {},
 
     organization_id: secret.organization.id,
     instance_id: secret.instance.id,

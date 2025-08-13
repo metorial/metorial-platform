@@ -6,7 +6,7 @@ export type ProviderOauthConnectionTemplateGetOutput = {
   status: 'active' | 'archived';
   slug: string;
   name: string;
-  provider: { name: string; url: string };
+  provider: { name: string; url: string; imageUrl: string };
   scopes: { id: string; identifier: string; description: string }[];
   variables: {
     id: string;
@@ -44,7 +44,8 @@ export let mapProviderOauthConnectionTemplateGetOutput =
       'provider',
       mtMap.object({
         name: mtMap.objectField('name', mtMap.passthrough()),
-        url: mtMap.objectField('url', mtMap.passthrough())
+        url: mtMap.objectField('url', mtMap.passthrough()),
+        imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
       })
     ),
     scopes: mtMap.objectField(

@@ -30,7 +30,7 @@ export let v1SessionPresenter = Presenter.create(sessionType)
         name: deployment.name,
         description: deployment.description,
 
-        metadata: deployment.server.metadata,
+        metadata: deployment.server.metadata ?? {},
 
         server: v1ServerPreview(deployment.server),
 
@@ -52,7 +52,7 @@ export let v1SessionPresenter = Presenter.create(sessionType)
         total_productive_server_message_count: session.totalProductiveServerMessageCount
       },
 
-      metadata: session.metadata,
+      metadata: session.metadata ?? {},
 
       created_at: session.createdAt,
       updated_at: session.updatedAt

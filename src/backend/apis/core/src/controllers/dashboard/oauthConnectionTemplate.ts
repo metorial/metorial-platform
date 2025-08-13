@@ -4,7 +4,10 @@ import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { apiGroup } from '../../middleware/apiGroup';
-import { providerOauthConnectionTemplatePresenter } from '../../presenters';
+import {
+  providerOauthConnectionTemplateEvaluationPresenter,
+  providerOauthConnectionTemplatePresenter
+} from '../../presenters';
 
 export let oauthTemplateGroup = apiGroup.use(async ctx => {
   if (!ctx.params.oauthTemplateId) throw new Error('oauthTemplateId is required');
@@ -66,6 +69,37 @@ export let dashboardOauthConnectionTemplateController = Controller.create(
       .do(async ctx => {
         return providerOauthConnectionTemplatePresenter.present({
           providerOauthConnectionTemplate: ctx.oauthTemplate
+        });
+      }),
+
+    evaluate: oauthTemplateGroup
+      .post(
+        Path(
+          'provider-oauth-connection-template/:oauthTemplateId/evaluate',
+          'provider_oauth.connection_template.evaluate'
+        ),
+        {
+          name: 'Evaluate oauth connection template',
+          description: 'Evaluate the configuration of an oauth connection template'
+        }
+      )
+      .body(
+        'default',
+        v.object({
+          data: v.record(v.any())
+        })
+      )
+      .output(providerOauthConnectionTemplateEvaluationPresenter)
+      .do(async ctx => {
+        let output = await providerOauthTemplateService.evaluateTemplateConfig({
+          template: ctx.oauthTemplate,
+          data: ctx.body.data
+        });
+
+        return providerOauthConnectionTemplateEvaluationPresenter.present({
+          providerOauthConnectionTemplate: ctx.oauthTemplate,
+          input: ctx.body.data,
+          output
         });
       })
   }

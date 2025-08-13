@@ -11,13 +11,13 @@ export let providerConnectionsLoader = createLoader({
   name: 'providerConnections',
   parents: [],
   fetch: (i: { instanceId: string } & DashboardInstanceProviderOauthConnectionsListQuery) =>
-    withAuth(sdk => sdk.providerOauthConnections.list(i.instanceId, i)),
+    withAuth(sdk => sdk.providerOauth.connections.list(i.instanceId, i)),
   mutators: {}
 });
 
 export let useCreateProviderConnection = providerConnectionsLoader.createExternalMutator(
   (i: DashboardInstanceProviderOauthConnectionsCreateBody & { instanceId: string }) =>
-    withAuth(sdk => sdk.providerOauthConnections.create(i.instanceId, i))
+    withAuth(sdk => sdk.providerOauth.connections.create(i.instanceId, i))
 );
 
 export let useProviderConnections = (
@@ -35,18 +35,18 @@ export let providerConnectionLoader = createLoader({
   name: 'providerConnection',
   parents: [providerConnectionsLoader],
   fetch: (i: { instanceId: string; providerConnectionId: string }) =>
-    withAuth(sdk => sdk.providerOauthConnections.get(i.instanceId, i.providerConnectionId)),
+    withAuth(sdk => sdk.providerOauth.connections.get(i.instanceId, i.providerConnectionId)),
   mutators: {
     update: (
       i: DashboardInstanceProviderOauthConnectionsUpdateBody,
       { input: { instanceId, providerConnectionId } }
     ) =>
       withAuth(sdk =>
-        sdk.providerOauthConnections.update(instanceId, providerConnectionId, i)
+        sdk.providerOauth.connections.update(instanceId, providerConnectionId, i)
       ),
 
     delete: ({ input: { instanceId, providerConnectionId } }) =>
-      withAuth(sdk => sdk.providerOauthConnections.delete(instanceId, providerConnectionId))
+      withAuth(sdk => sdk.providerOauth.connections.delete(instanceId, providerConnectionId))
   }
 });
 

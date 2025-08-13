@@ -13,7 +13,7 @@ export let providerConnectionProfilesLoader = createLoader({
     } & DashboardInstanceProviderOauthConnectionsProfilesListQuery
   ) =>
     withAuth(sdk =>
-      sdk.providerOauthConnections.profiles.list(i.instanceId, i.providerConnectionId, i)
+      sdk.providerOauth.connections.profiles.list(i.instanceId, i.providerConnectionId, i)
     ),
   mutators: {}
 });
@@ -43,7 +43,7 @@ export let providerConnectionProfileLoader = createLoader({
     providerConnectionProfileId: string;
   }) =>
     withAuth(sdk =>
-      sdk.providerOauthConnections.profiles.get(
+      sdk.providerOauth.connections.profiles.get(
         i.instanceId,
         i.providerConnectionId,
         i.providerConnectionProfileId

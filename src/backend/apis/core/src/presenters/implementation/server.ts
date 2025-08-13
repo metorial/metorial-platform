@@ -34,7 +34,7 @@ export let v1ServerPresenter = Presenter.create(serverType)
       )
     ),
 
-    metadata: server.metadata,
+    metadata: server.metadata ?? {},
 
     created_at: server.createdAt,
     updated_at: server.updatedAt

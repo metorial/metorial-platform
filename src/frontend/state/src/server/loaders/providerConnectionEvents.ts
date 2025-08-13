@@ -13,7 +13,7 @@ export let providerConnectionEventsLoader = createLoader({
     } & DashboardInstanceProviderOauthConnectionsEventsListQuery
   ) =>
     withAuth(sdk =>
-      sdk.providerOauthConnections.events.list(i.instanceId, i.providerConnectionId, i)
+      sdk.providerOauth.connections.events.list(i.instanceId, i.providerConnectionId, i)
     ),
   mutators: {}
 });
@@ -43,7 +43,7 @@ export let providerConnectionEventLoader = createLoader({
     providerConnectionEventId: string;
   }) =>
     withAuth(sdk =>
-      sdk.providerOauthConnections.events.get(
+      sdk.providerOauth.connections.events.get(
         i.instanceId,
         i.providerConnectionId,
         i.providerConnectionEventId

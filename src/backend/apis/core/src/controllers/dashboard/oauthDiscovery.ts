@@ -10,7 +10,7 @@ export let dashboardOauthDiscoveryController = Controller.create(
     description: 'Get OAuth connection template information'
   },
   {
-    get: apiGroup
+    discover: apiGroup
       .post(Path('provider-oauth-discovery', 'provider_oauth.discover'), {
         name: 'Discover OAuth Configuration',
         description: 'Discover OAuth configuration from a discovery URL'

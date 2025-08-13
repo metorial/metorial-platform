@@ -14,7 +14,7 @@ export let v1ServerImplementationPresenter = Presenter.create(serverImplementati
     name: serverImplementation.name,
     description: serverImplementation.description,
 
-    metadata: serverImplementation.metadata,
+    metadata: serverImplementation.metadata ?? {},
     get_launch_params: serverImplementation.getLaunchParams,
 
     server_variant: v1ServerVariantPreview(
