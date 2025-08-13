@@ -6,6 +6,8 @@ cd $OSS_DIR
 
 echo "Running client build..."
 
-bun client:generate
-
-echo "Building client packages..."
+if [ "$1" = "dashboard" ]; then
+  bun run client:generate:dashboard
+else
+  bun run client:generate
+fi
