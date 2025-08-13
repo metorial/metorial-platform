@@ -10,15 +10,17 @@ model ProviderOAuthConnection {
 
   metorialClientId String @unique
 
-  name         String
+  name        String?
+  description String?
+  metadata    Json
+
   providerName String
   providerUrl  String
 
   discoveryUrl String?
 
   /// [ProviderOAuthConfig]
-  config Json
-
+  config     Json
   configHash String
 
   scopes String[]

@@ -220,7 +220,7 @@ export class OAuthUtils {
         let url = new URL(config.issuer);
         return url.hostname.split('.').slice(-2).join('.');
       } catch (e) {
-        return config.issuer;
+        return config.issuer.replace(/https?:\/\//, '').replace(/\/$/, '');
       }
     }
 

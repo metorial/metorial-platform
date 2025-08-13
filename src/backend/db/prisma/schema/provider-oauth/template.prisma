@@ -14,6 +14,9 @@ model ProviderOAuthConnectionTemplate {
   providerName String
   providerUrl  String
 
+  /// [EntityImage]
+  image Json @default("{ \"type\": \"default\" }")
+
   discoveryUrl String?
 
   configJsonata String

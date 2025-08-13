@@ -21,7 +21,8 @@
     "@metorial/service": "^1.0.0",
     "axios": "^1.10.0",
     "date-fns": "^4.1.0",
-    "ipaddr.js": "^2.2.0"
+    "ipaddr.js": "^2.2.0",
+    "jsonata": "^2.1.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

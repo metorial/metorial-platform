@@ -1,10 +1,12 @@
-import { oauthTemplateService } from '../services';
+import { providerOauthTemplateService } from '../services';
 
-oauthTemplateService.ensureTemplate({
+providerOauthTemplateService.ensureTemplate({
   slug: 'google',
   name: 'Google',
   providerName: 'Google',
   providerUrl: 'https://www.google.com',
+
+  imageUrl: 'https://cdn.metorial.com/2025-06-13--14-59-55/logos/providers/google.svg',
 
   variables: [],
 

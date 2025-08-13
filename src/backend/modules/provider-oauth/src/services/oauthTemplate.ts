@@ -1,7 +1,8 @@
 import { db, ID, ProviderOAuthConnectionTemplate, systemProfile } from '@metorial/db';
-import { notFoundError, ServiceError } from '@metorial/error';
+import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
+import jsonata from 'jsonata';
 
 let include = {
   profile: true
@@ -14,6 +15,8 @@ class OauthTemplateServiceImpl {
     providerName: string;
     providerUrl: string;
 
+    imageUrl: string;
+
     discoveryUrl?: string;
 
     configJsonata: string;
@@ -24,6 +27,8 @@ class OauthTemplateServiceImpl {
       name: d.name,
       providerName: d.providerName,
       providerUrl: d.providerUrl,
+
+      image: { type: 'url', url: d.imageUrl },
 
       discoveryUrl: d.discoveryUrl,
 
@@ -77,6 +82,39 @@ class OauthTemplateServiceImpl {
           })
       )
     );
+  }
+
+  async evaluateTemplateConfig(d: {
+    template: ProviderOAuthConnectionTemplate;
+    data: Record<string, any>;
+  }) {
+    let inputs: Record<string, any> = {};
+
+    for (let variable of d.template.variables) {
+      if (variable.type == 'string') {
+        inputs[variable.key] = d.data[variable.key];
+      }
+
+      if (!d.data[variable.key] && variable.isRequired) {
+        throw new ServiceError(
+          badRequestError({
+            message: `Missing required variable: ${variable.key}`
+          })
+        );
+      }
+    }
+
+    let config = jsonata(d.template.configJsonata).evaluate(inputs);
+
+    if (typeof config !== 'object') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Invalid config returned from template evaluation'
+        })
+      );
+    }
+
+    return config;
   }
 }
 

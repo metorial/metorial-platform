@@ -13,6 +13,10 @@ export class OAuthDiscovery {
 
   static async discover(providerUrl: string): Promise<OAuthConfiguration | null> {
     let url = new URL(providerUrl);
+    if (url.protocol !== 'https:') {
+      return null; // Only support HTTPS for security reasons
+    }
+
     let baseUrl = `${url.protocol}//${url.host}`;
 
     try {

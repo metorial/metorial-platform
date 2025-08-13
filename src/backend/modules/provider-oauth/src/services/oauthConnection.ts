@@ -31,13 +31,17 @@ class OauthConnectionServiceImpl {
     context?: Context;
 
     input: {
-      name: string;
+      name?: string;
+      description?: string;
+
       discoveryUrl?: string;
       config: OAuthConfiguration;
 
       clientId: string;
       clientSecret: string;
       scopes: string[];
+
+      metadata?: Record<string, any>;
     };
     template?: ProviderOAuthConnectionTemplate;
   }) {
@@ -55,6 +59,8 @@ class OauthConnectionServiceImpl {
           metorialClientId: generateCustomId('metorial_oauthcon_', 35),
 
           name: d.input.name,
+          description: d.input.description,
+
           providerName: OAuthUtils.getProviderName(d.input.config),
           providerUrl: OAuthUtils.getProviderUrl(d.input.config),
           discoveryUrl: d.input.discoveryUrl,
@@ -68,7 +74,9 @@ class OauthConnectionServiceImpl {
           clientSecret: d.input.clientSecret,
 
           instanceOid: d.instance.oid,
-          templateOid: d.template?.oid
+          templateOid: d.template?.oid,
+
+          metadata: d.input.metadata ?? {}
         },
         include
       });
@@ -94,11 +102,15 @@ class OauthConnectionServiceImpl {
     connection: ProviderOAuthConnection;
     input: {
       name?: string;
+      description?: string;
+
       config?: OAuthConfiguration;
 
       clientId?: string;
       clientSecret?: string;
       scopes?: string[];
+
+      metadata?: Record<string, any>;
     };
   }) {
     if (d.connection.status === 'archived') {
@@ -117,29 +129,20 @@ class OauthConnectionServiceImpl {
       providerOauthConnection: d.connection
     });
 
-    let updateData: Partial<ProviderOAuthConnection> = {};
-
-    if (d.input.name) {
-      updateData.name = d.input.name;
-    }
+    let updateData: Partial<ProviderOAuthConnection> = {
+      name: d.connection.name,
+      description: d.connection.description,
+      clientId: d.connection.clientId,
+      clientSecret: d.connection.clientSecret,
+      scopes: d.connection.scopes,
+      metadata: d.connection.metadata
+    };
 
     if (d.input.config) {
       updateData.config = d.input.config;
       updateData.configHash = await OAuthUtils.getConfigHash(d.input.config);
       updateData.providerName = OAuthUtils.getProviderName(d.input.config);
       updateData.providerUrl = OAuthUtils.getProviderUrl(d.input.config);
-    }
-
-    if (d.input.clientId) {
-      updateData.clientId = d.input.clientId;
-    }
-
-    if (d.input.clientSecret) {
-      updateData.clientSecret = d.input.clientSecret;
-    }
-
-    if (d.input.scopes) {
-      updateData.scopes = d.input.scopes;
     }
 
     return await withTransaction(async db => {

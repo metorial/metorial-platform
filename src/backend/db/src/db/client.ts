@@ -232,6 +232,7 @@ declare global {
       label: string;
       key: string;
       description?: string;
+      isRequired?: boolean;
     }[];
     type ProviderOAuthConfigTemplateScopes = {
       identifier: string;
