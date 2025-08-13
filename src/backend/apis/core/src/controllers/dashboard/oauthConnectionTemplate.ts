@@ -1,4 +1,4 @@
-import { oauthTemplateService } from '@metorial/module-provider-oauth';
+import { providerOauthTemplateService } from '@metorial/module-provider-oauth';
 import { Paginator } from '@metorial/pagination';
 import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -9,7 +9,7 @@ import { providerOauthConnectionTemplatePresenter } from '../../presenters';
 export let oauthTemplateGroup = apiGroup.use(async ctx => {
   if (!ctx.params.oauthTemplateId) throw new Error('oauthTemplateId is required');
 
-  let oauthTemplate = await oauthTemplateService.getTemplateById({
+  let oauthTemplate = await providerOauthTemplateService.getTemplateById({
     templateId: ctx.params.oauthTemplateId
   });
 
@@ -40,7 +40,7 @@ export let dashboardOauthConnectionTemplateController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await oauthTemplateService.listTemplates({
+        let paginator = await providerOauthTemplateService.listTemplates({
           profileIds: normalizeArrayParam(ctx.query.profile_id)
         });
 

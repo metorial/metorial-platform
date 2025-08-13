@@ -77,9 +77,9 @@ export let ID = createIdGenerator({
   oauthDiscoveryDocument: idType.sorted('pod'),
   oauthConnectionEvent: idType.sorted('poce'),
 
-  customServer: idType.sorted('cse'),
-  customServerEnvironment: idType.sorted('cseenv'),
-  customServerVersion: idType.sorted('csev'),
+  customServer: idType.sorted('csv'),
+  customServerEnvironment: idType.sorted('csvenv'),
+  customServerVersion: idType.sorted('csvv'),
 
   remoteServerInstance: idType.sorted('rsi'),
   remoteServerInstanceNotification: idType.sorted('rsin')

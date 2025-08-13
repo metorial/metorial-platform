@@ -1,4 +1,5 @@
 import { customServerService } from '@metorial/module-custom-server';
+import { providerOauthConnectionService } from '@metorial/module-provider-oauth';
 import { remoteServerService } from '@metorial/module-remote-server';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -59,7 +60,13 @@ export let customServerController = Controller.create(
           metadata: v.optional(v.record(v.any())),
           implementation: v.object({
             type: v.literal('remote_server'),
-            remote_server_id: v.string(),
+
+            remote_server: v.object({
+              name: v.optional(v.string()),
+              description: v.optional(v.string()),
+              connection_id: v.optional(v.string()),
+              remote_url: v.string()
+            }),
 
             config: v.optional(
               v.object({
@@ -72,9 +79,22 @@ export let customServerController = Controller.create(
       )
       .output(customServerPresenter)
       .do(async ctx => {
-        let remoteServer = await remoteServerService.getRemoteServerById({
-          serverId: ctx.body.implementation.remote_server_id,
-          instance: ctx.instance
+        let connection = ctx.body.implementation.remote_server.connection_id
+          ? await providerOauthConnectionService.getConnectionById({
+              connectionId: ctx.body.implementation.remote_server.connection_id,
+              instance: ctx.instance
+            })
+          : undefined;
+
+        let remoteServer = await remoteServerService.createRemoteServer({
+          organization: ctx.organization,
+          instance: ctx.instance,
+          input: {
+            name: ctx.body.implementation.remote_server.name,
+            description: ctx.body.implementation.remote_server.description,
+            remoteUrl: ctx.body.implementation.remote_server.remote_url,
+            connection
+          }
         });
 
         let customServer = await customServerService.createCustomServer({

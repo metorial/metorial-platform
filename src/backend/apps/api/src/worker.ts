@@ -9,7 +9,7 @@ import { eventQueueProcessor } from '@metorial/module-event';
 import { fileQueueProcessor } from '@metorial/module-file';
 import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
 import { organizationQueueProcessor } from '@metorial/module-organization';
-import { oauthQueueProcessor } from '@metorial/module-provider-oauth';
+import { providerOauthQueueProcessor } from '@metorial/module-provider-oauth';
 import { remoteServerQueueProcessor } from '@metorial/module-remote-server';
 import { searchQueueProcessor } from '@metorial/module-search';
 import { secretQueueProcessor } from '@metorial/module-secret';
@@ -34,7 +34,7 @@ export let worker = runQueueProcessors([
   usageQueueProcessor,
   serverRunnerQueueProcessor,
   sessionQueueProcessor,
-  oauthQueueProcessor,
+  providerOauthQueueProcessor,
   engineQueueProcessor,
   customServerQueueProcessor,
   remoteServerQueueProcessor

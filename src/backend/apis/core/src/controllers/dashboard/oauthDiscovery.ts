@@ -1,4 +1,4 @@
-import { oauthDiscoveryService } from '@metorial/module-provider-oauth';
+import { providerOauthDiscoveryService } from '@metorial/module-provider-oauth';
 import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { apiGroup } from '../../middleware/apiGroup';
@@ -23,7 +23,7 @@ export let dashboardOauthDiscoveryController = Controller.create(
       )
       .output(providerOauthDiscoveryPresenter)
       .do(async ctx => {
-        let discovery = await oauthDiscoveryService.discoverOauthConfig({
+        let discovery = await providerOauthDiscoveryService.discoverOauthConfig({
           discoveryUrl: ctx.body.discovery_url
         });
 

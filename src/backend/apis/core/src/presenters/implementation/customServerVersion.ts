@@ -30,14 +30,9 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
 
     server_instance: {
       type: customServerVersion.customServer.type,
-      remote_server_instance: customServerVersion.remoteServerInstance
+      remote_server: customServerVersion.remoteServerInstance
         ? await v1RemoteServerPresenter
-            .present(
-              {
-                remoteServerInstance: customServerVersion.remoteServerInstance
-              },
-              opts
-            )
+            .present({ remoteServerInstance: customServerVersion.remoteServerInstance }, opts)
             .run()
         : null
     },
@@ -84,7 +79,7 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
           name: 'type',
           description: `The type of the server instance`
         }),
-        remote_server_instance: v.nullable(v1RemoteServerPresenter.schema)
+        remote_server: v.nullable(v1RemoteServerPresenter.schema)
       }),
 
       environment_id: v.string({

@@ -30,8 +30,7 @@ export let serverController = Controller.create(
       .output(serverPresenter)
       .do(async ctx => {
         return serverPresenter.present({
-          server: ctx.server,
-          currentOrganization: ctx.organization
+          server: ctx.server
         });
       })
   }
