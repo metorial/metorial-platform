@@ -16,4 +16,5 @@ model ServerVariantProvider {
   updatedAt DateTime @default(now()) @updatedAt
 
   variants ServerVariant[]
+  profiles Profile?
 }

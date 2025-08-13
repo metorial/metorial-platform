@@ -1,6 +1,7 @@
 import {
   Instance,
   Organization,
+  Server,
   ServerDeployment,
   ServerSession,
   ServerVariant,
@@ -20,6 +21,7 @@ export class McpServerConnection {
     private serverSession: ServerSession & {
       serverDeployment: ServerDeployment & {
         serverVariant: ServerVariant;
+        server: Server;
       };
     },
     private instance: Instance & { organization: Organization }

@@ -20,7 +20,7 @@
     "lru-cache": "^11.1.0",
     "p-queue": "^8.1.0",
     "prisma": "^6.11.1",
-    "prisma-json-types-generator": "^3.2.2",
+    "prisma-json-types-generator": "^3.5.1",
     "snowflake-uuid": "^1.0.0"
   },
   "devDependencies": {

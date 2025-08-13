@@ -137,7 +137,8 @@ export let syncProcessor = syncQueue.process(async () => {
             data: {
               id: await ID.generateId('server'),
               type: 'imported',
-              name: server.name
+              name: server.name,
+              isPublic: true
             }
           }));
 

@@ -165,7 +165,8 @@ export let sessionController = Controller.create(
           input: {
             connectionType: 'unified',
             serverDeployments
-          }
+          },
+          ephemeralPermittedDeployments: new Set(newServerDeployments.map(d => d.id))
         });
 
         return sessionPresenter.present({ session });

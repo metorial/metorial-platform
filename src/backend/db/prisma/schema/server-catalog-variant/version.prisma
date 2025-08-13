@@ -26,6 +26,8 @@ model ServerVersion {
 
   remoteUrl String?
 
+  customServerVersion CustomServerVersion?
+
   mcpVersion   String       @default("2024-11-05")
   mcpTransport McpTransport @default(sse) // For remote servers
 

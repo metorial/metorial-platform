@@ -1,6 +1,9 @@
 import {
   ApiKey,
   ApiKeySecret,
+  CustomServer,
+  CustomServerEnvironment,
+  CustomServerVersion,
   File,
   FileLink,
   FilePurpose,
@@ -22,6 +25,8 @@ import {
   ProviderOAuthConnectionProfile,
   ProviderOAuthConnectionTemplate,
   ProviderOAuthDiscoveryDocument,
+  RemoteServerInstance,
+  RemoteServerInstanceNotification,
   Secret,
   SecretType,
   Server,
@@ -133,8 +138,6 @@ export let serverType = PresentableType.create<{
       currentVersion: (ServerVersion & { schema: ServerConfigSchema }) | null;
     })[];
   };
-
-  currentOrganization: Organization;
 }>()('server');
 
 export let serverListingCategoryType = PresentableType.create<{
@@ -359,3 +362,56 @@ export let providerOauthConnectionAuthenticationType = PresentableType.create<{
 export let providerOauthConnectionDiscoveryType = PresentableType.create<{
   providerOauthDiscoveryDocument: ProviderOAuthDiscoveryDocument;
 }>()('provider_oauth.discovery');
+
+export let remoteServerType = PresentableType.create<{
+  remoteServerInstance: RemoteServerInstance & {
+    connection: ProviderOAuthConnection | null;
+  };
+}>()('custom_server.remote_server');
+
+export let remoteServerNotificationType = PresentableType.create<{
+  remoteServerInstanceNotification: RemoteServerInstanceNotification & {
+    remoteServerInstance: RemoteServerInstance;
+  };
+}>()('custom_server.remote_server.notification');
+
+export let customServerType = PresentableType.create<{
+  customServer: CustomServer & {
+    server: Server;
+    environments: (CustomServerEnvironment & {
+      customServer: CustomServer;
+      instance: Instance;
+      serverVariant: ServerVariant;
+      currentVersion: CustomServerVersion | null;
+    })[];
+  };
+}>()('custom_server');
+
+export let customServerEnvironmentType = PresentableType.create<{
+  customServerEnvironment: CustomServerEnvironment & {
+    customServer: CustomServer;
+    instance: Instance;
+    serverVariant: ServerVariant;
+    currentVersion: CustomServerVersion | null;
+  };
+  server: Server;
+}>()('custom_server.environment');
+
+export let customServerVersionType = PresentableType.create<{
+  customServerVersion: CustomServerVersion & {
+    customServer: CustomServer & {
+      server: Server;
+    };
+    environment: CustomServerEnvironment & {
+      serverVariant: ServerVariant;
+    };
+    instance: Instance;
+    serverVersion: ServerVersion;
+    currentVersionForServer: CustomServerEnvironment | null;
+    remoteServerInstance:
+      | (RemoteServerInstance & {
+          connection: ProviderOAuthConnection | null;
+        })
+      | null;
+  };
+}>()('custom_server.version');

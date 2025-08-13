@@ -12,6 +12,8 @@ export let v1ServerVariantPresenter = Presenter.create(serverVariantType)
     id: serverVariant.id,
     identifier: serverVariant.identifier,
 
+    status: serverVariant.status,
+
     server: v1ServerPreview(serverVariant.server),
 
     source: {
@@ -52,6 +54,11 @@ export let v1ServerVariantPresenter = Presenter.create(serverVariantType)
       id: v.string({
         name: 'id',
         description: 'The unique identifier for this server variant'
+      }),
+
+      status: v.enumOf(['active', 'inactive'], {
+        name: 'status',
+        description: 'The current status of the server variant'
       }),
 
       identifier: v.string({

@@ -483,7 +483,7 @@ class OauthAuthorizationServiceImpl {
   }
 }
 
-export let oauthAuthorizationService = Service.create(
-  'oauthAuthorization',
+export let providerOauthAuthorizationService = Service.create(
+  'providerOauthAuthorization',
   () => new OauthAuthorizationServiceImpl()
 ).build();

@@ -1,6 +1,9 @@
 import { getConfig } from '@metorial/config';
 import { createHono, useRequestContext } from '@metorial/hono';
-import { oauthAuthorizationService, oauthConnectionService } from '@metorial/module-oauth';
+import {
+  providerOauthAuthorizationService,
+  providerOauthConnectionService
+} from '@metorial/module-provider-oauth';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
 import { wrapHtmlError } from '../lib/htmlError';
@@ -24,11 +27,11 @@ export let providerOauthController = createHono()
         let query = c.req.query();
         let context = useRequestContext(c);
 
-        let connection = await oauthConnectionService.getConnectionByClientId({
+        let connection = await providerOauthConnectionService.getConnectionByClientId({
           clientId: query.client_id
         });
 
-        let { redirectUrl, authAttempt } = await oauthAuthorizationService.startAuthorization({
+        let { redirectUrl, authAttempt } = await providerOauthAuthorizationService.startAuthorization({
           context,
           connection,
           redirectUri: query.redirect_uri,
@@ -63,7 +66,7 @@ export let providerOauthController = createHono()
         let query = c.req.query();
         let context = useRequestContext(c);
 
-        let connection = await oauthConnectionService.getConnectionByClientId({
+        let connection = await providerOauthConnectionService.getConnectionByClientId({
           clientId: query.client_id
         });
 
@@ -74,7 +77,7 @@ export let providerOauthController = createHono()
           }
         }
 
-        let { redirectUrl } = await oauthAuthorizationService.completeAuthorization({
+        let { redirectUrl } = await providerOauthAuthorizationService.completeAuthorization({
           context,
           connection,
           response: {

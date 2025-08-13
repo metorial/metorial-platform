@@ -11,6 +11,7 @@ import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { createSlugGenerator } from '@metorial/slugify';
 import { differenceInMinutes } from 'date-fns';
+import { syncProfileQueue } from '../queues/syncProfile';
 import { organizationActorService } from './organizationActor';
 import { organizationMemberService } from './organizationMember';
 
@@ -79,6 +80,8 @@ class OrganizationService {
         performedBy: { type: 'actor', actor: systemActor }
       });
 
+      await syncProfileQueue.add({ organizationId: organization.id }, { delay: 5000 });
+
       return {
         organization,
         member,
@@ -114,6 +117,8 @@ class OrganizationService {
         organization,
         performedBy: d.performedBy
       });
+
+      await syncProfileQueue.add({ organizationId: organization.id }, { delay: 5000 });
 
       return organization;
     });

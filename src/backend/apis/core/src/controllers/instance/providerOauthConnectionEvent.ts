@@ -1,4 +1,4 @@
-import { oauthConnectionService } from '@metorial/module-oauth';
+import { providerOauthConnectionService } from '@metorial/module-provider-oauth';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -10,7 +10,7 @@ import { connectionGroup } from './providerOauthConnection';
 export let connectionEventGroup = connectionGroup.use(async ctx => {
   if (!ctx.params.eventId) throw new Error('eventId is required');
 
-  let event = await oauthConnectionService.getConnectionEventById({
+  let event = await providerOauthConnectionService.getConnectionEventById({
     eventId: ctx.params.eventId,
     connection: ctx.connection
   });
@@ -40,7 +40,7 @@ export let providerOauthConnectionEventController = Controller.create(
       .outputList(providerOauthConnectionEventPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
-        let paginator = await oauthConnectionService.listConnectionEvents({
+        let paginator = await providerOauthConnectionService.listConnectionEvents({
           connection: ctx.connection
         });
 

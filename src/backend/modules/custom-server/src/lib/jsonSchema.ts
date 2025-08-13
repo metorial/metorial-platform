@@ -1,0 +1,26 @@
+import { ServiceError, validationError } from '@metorial/error';
+import Ajv from 'ajv';
+import metaSchema from 'ajv/dist/refs/json-schema-draft-07.json'; // or 'draft-2020-12'
+
+let ajv = new Ajv();
+ajv.addMetaSchema(metaSchema);
+
+export let validateJsonSchema = (schema: object) => {
+  let validate = ajv.compile(metaSchema);
+  let valid = validate(schema);
+
+  if (!valid) {
+    throw new ServiceError(
+      validationError({
+        message: 'Invalid JSON Schema',
+        entity: 'jsonSchema',
+        errors:
+          validate.errors?.map(err => ({
+            code: 'invalid_json_schema',
+            message: err.message ?? 'Invalid JSON Schema',
+            path: err.instancePath.split('/').filter(Boolean)
+          })) ?? []
+      })
+    );
+  }
+};

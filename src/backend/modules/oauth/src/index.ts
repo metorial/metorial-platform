@@ -5,7 +5,7 @@ import { errorCheckQueueProcessor } from './queue/errorCheck';
 
 export * from './services';
 
-export let oauthQueueProcessor = combineQueueProcessors([
+export let providerOauthQueueProcessor = combineQueueProcessors([
   oauthCleanupCron,
   autoUpdateQueueProcessor,
   errorCheckQueueProcessor

@@ -119,7 +119,8 @@ class ServerDeploymentServiceImpl {
       where: {
         id: uniqueIds ? { in: uniqueIds } : undefined,
         instanceOid: d.instance.oid
-      }
+      },
+      include: { server: true }
     });
 
     if (uniqueIds && uniqueIds.length != deployments.length) {
@@ -149,6 +150,25 @@ class ServerDeploymentServiceImpl {
     };
     type: 'ephemeral' | 'persistent';
   }) {
+    if (
+      d.serverImplementation.instance.status != 'active' &&
+      !d.serverImplementation.isNewEphemeral
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot create a server deployment for a deleted server implementation'
+        })
+      );
+    }
+
+    if (d.serverImplementation.instance.server.status != 'active') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot create a server deployment for a deleted server'
+        })
+      );
+    }
+
     await Fabric.fire('server.server_deployment.created:before', {
       organization: d.organization,
       performedBy: d.performedBy,
