@@ -6,6 +6,8 @@ import { dashboardOauthDiscoveryController } from './dashboard/oauthDiscovery';
 import { dashboardOrganizationController } from './dashboard/organization';
 import { dashboardOrganizationInviteController } from './dashboard/organizationInvite';
 import { dashboardUsageController } from './dashboard/usage';
+import { customServerController } from './instance/customServer';
+import { customServerVersionController } from './instance/customServerVersion';
 import { fileController } from './instance/file';
 import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
@@ -13,6 +15,8 @@ import { providerOauthConnectionController } from './instance/providerOauthConne
 import { providerOauthConnectionAuthenticationController } from './instance/providerOauthConnectionAuthentication';
 import { providerOauthConnectionEventController } from './instance/providerOauthConnectionEvent';
 import { providerOauthConnectionProfileController } from './instance/providerOauthConnectionProfile';
+import { remoteServerController } from './instance/remoteServer';
+import { remoteServerNotificationController } from './instance/remoteServerNotifications';
 import { secretController } from './instance/secret';
 import { serverController } from './instance/server';
 import { serverCapabilitiesController } from './instance/serverCapabilities';
@@ -127,6 +131,11 @@ export let dashboardController = Controller.create<any>(
     providerOauthConnectionProfileController,
 
     dashboardOauthConnectionTemplateController,
-    dashboardOauthDiscoveryController
+    dashboardOauthDiscoveryController,
+
+    customServerController,
+    customServerVersionController,
+    remoteServerController,
+    remoteServerNotificationController
   }
 );

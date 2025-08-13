@@ -3,7 +3,12 @@ import Ajv from 'ajv';
 import metaSchema from 'ajv/dist/refs/json-schema-draft-07.json'; // or 'draft-2020-12'
 
 let ajv = new Ajv();
-ajv.addMetaSchema(metaSchema);
+
+try {
+  ajv.addMetaSchema(metaSchema);
+} catch (e: any) {
+  if (!e.message.includes('already exists')) throw e;
+}
 
 export let validateJsonSchema = (schema: object) => {
   let validate = ajv.compile(metaSchema);

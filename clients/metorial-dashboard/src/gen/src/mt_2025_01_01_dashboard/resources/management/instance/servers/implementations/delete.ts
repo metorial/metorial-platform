@@ -25,7 +25,7 @@ export type ManagementInstanceServersImplementationsDeleteOutput = {
     id: string;
     name: string;
     description: string | null;
-    type: 'public';
+    type: 'public' | 'custom';
     createdAt: Date;
     updatedAt: Date;
   };

@@ -26,7 +26,7 @@ export let remoteServerController = Controller.create(
   {
     list: instanceGroup
       .get(
-        instancePath('custom-servers/remote-server', 'custom_servers.remote_servers.list'),
+        instancePath('custom-servers/remote-servers', 'custom_servers.remote_servers.list'),
         {
           name: 'List remote servers',
           description: 'List all remote servers'
@@ -50,7 +50,7 @@ export let remoteServerController = Controller.create(
     get: remoteServerGroup
       .get(
         instancePath(
-          'custom-servers/remote-server/:remoteServerId',
+          'custom-servers/remote-servers/:remoteServerId',
           'custom_servers.remote_servers.get'
         ),
         {

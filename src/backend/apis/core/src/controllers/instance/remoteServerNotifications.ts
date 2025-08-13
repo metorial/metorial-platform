@@ -17,7 +17,7 @@ export let remoteServerNotificationController = Controller.create(
     list: remoteServerGroup
       .get(
         instancePath(
-          'custom-servers/remote-server/:remoteServerId/notifications',
+          'custom-servers/remote-servers/:remoteServerId/notifications',
           'custom_servers.remote_servers.notifications.list'
         ),
         {
@@ -43,7 +43,7 @@ export let remoteServerNotificationController = Controller.create(
     get: remoteServerGroup
       .get(
         instancePath(
-          'custom-servers/remote-server/:remoteServerId/notifications/:remoteServerNotificationId',
+          'custom-servers/remote-servers/:remoteServerId/notifications/:remoteServerNotificationId',
           'custom_servers.remote_servers.notifications.get'
         ),
         {

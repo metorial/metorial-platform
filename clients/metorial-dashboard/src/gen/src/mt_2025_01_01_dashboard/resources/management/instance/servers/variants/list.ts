@@ -4,13 +4,14 @@ export type ManagementInstanceServersVariantsListOutput = {
   items: {
     object: 'server.server_variant';
     id: string;
+    status: 'active' | 'inactive';
     identifier: string;
     server: {
       object: 'server#preview';
       id: string;
       name: string;
       description: string | null;
-      type: 'public';
+      type: 'public' | 'custom';
       createdAt: Date;
       updatedAt: Date;
     };
@@ -38,7 +39,7 @@ export type ManagementInstanceServersVariantsListOutput = {
         id: string;
         name: string;
         description: string | null;
-        type: 'public';
+        type: 'public' | 'custom';
         createdAt: Date;
         updatedAt: Date;
       };
@@ -60,6 +61,7 @@ export let mapManagementInstanceServersVariantsListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
           identifier: mtMap.objectField('identifier', mtMap.passthrough()),
           server: mtMap.objectField(
             'server',

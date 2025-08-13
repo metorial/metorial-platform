@@ -17,10 +17,16 @@ export let customServerVersionController = Controller.create(
   },
   {
     list: customServerGroup
-      .get(instancePath('custom-servers/custom-server', 'custom_servers.versions.list'), {
-        name: 'List custom servers',
-        description: 'List all custom servers'
-      })
+      .get(
+        instancePath(
+          'custom-servers/:customServerId/versions',
+          'custom_servers.versions.list'
+        ),
+        {
+          name: 'List custom servers',
+          description: 'List all custom servers'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .outputList(customServerVersionPresenter)
       .query('default', Paginator.validate(v.object({})))
@@ -38,10 +44,16 @@ export let customServerVersionController = Controller.create(
       }),
 
     create: customServerGroup
-      .post(instancePath('custom-servers/custom-server', 'custom_servers.versions.create'), {
-        name: 'Create custom server',
-        description: 'Create a new custom server'
-      })
+      .post(
+        instancePath(
+          'custom-servers/:customServerId/versions',
+          'custom_servers.versions.create'
+        ),
+        {
+          name: 'Create custom server',
+          description: 'Create a new custom server'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:write'] }))
       .body(
         'default',
@@ -108,7 +120,7 @@ export let customServerVersionController = Controller.create(
     get: customServerGroup
       .get(
         instancePath(
-          'custom-servers/custom-server/:customServerVersionId',
+          'custom-servers/:customServerId/versions/:customServerVersionId',
           'custom_servers.versions.get'
         ),
         {

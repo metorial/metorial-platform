@@ -1,0 +1,144 @@
+import { mtMap } from '@metorial/util-resource-mapper';
+
+export type DashboardInstanceCustomServersUpdateOutput = {
+  object: 'custom_server';
+  id: string;
+  status: 'active' | 'archived' | 'deleted';
+  type: 'remote';
+  name: string;
+  description: string | null;
+  metadata: Record<string, any>;
+  server: {
+    object: 'server#preview';
+    id: string;
+    name: string;
+    description: string | null;
+    type: 'public' | 'custom';
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  environments: {
+    object: 'custom_server.environment';
+    id: string;
+    status: 'active' | 'archived' | 'deleted';
+    type: 'remote';
+    name: string;
+    instanceId: string;
+    customServerId: string;
+    serverVariant: {
+      object: 'server.server_variant#preview';
+      id: string;
+      identifier: string;
+      serverId: string;
+      source:
+        | { type: 'docker'; docker: { image: string } }
+        | { type: 'remote'; remote: { domain: string } };
+      createdAt: Date;
+    };
+    currentServerVersionId: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+};
+
+export let mapDashboardInstanceCustomServersUpdateOutput =
+  mtMap.object<DashboardInstanceCustomServersUpdateOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
+    id: mtMap.objectField('id', mtMap.passthrough()),
+    status: mtMap.objectField('status', mtMap.passthrough()),
+    type: mtMap.objectField('type', mtMap.passthrough()),
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    server: mtMap.objectField(
+      'server',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        type: mtMap.objectField('type', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+      })
+    ),
+    environments: mtMap.objectField(
+      'environments',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
+          type: mtMap.objectField('type', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
+          customServerId: mtMap.objectField(
+            'custom_server_id',
+            mtMap.passthrough()
+          ),
+          serverVariant: mtMap.objectField(
+            'server_variant',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              identifier: mtMap.objectField('identifier', mtMap.passthrough()),
+              serverId: mtMap.objectField('server_id', mtMap.passthrough()),
+              source: mtMap.objectField(
+                'source',
+                mtMap.union([
+                  mtMap.unionOption(
+                    'object',
+                    mtMap.object({
+                      type: mtMap.objectField('type', mtMap.passthrough()),
+                      docker: mtMap.objectField(
+                        'docker',
+                        mtMap.object({
+                          image: mtMap.objectField('image', mtMap.passthrough())
+                        })
+                      ),
+                      remote: mtMap.objectField(
+                        'remote',
+                        mtMap.object({
+                          domain: mtMap.objectField(
+                            'domain',
+                            mtMap.passthrough()
+                          )
+                        })
+                      )
+                    })
+                  )
+                ])
+              ),
+              createdAt: mtMap.objectField('created_at', mtMap.date())
+            })
+          ),
+          currentServerVersionId: mtMap.objectField(
+            'current_server_version_id',
+            mtMap.passthrough()
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      )
+    ),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
+    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+    deletedAt: mtMap.objectField('deleted_at', mtMap.date())
+  });
+
+export type DashboardInstanceCustomServersUpdateBody = {
+  name?: string | undefined;
+  description?: string | undefined;
+  metadata?: Record<string, any> | undefined;
+};
+
+export let mapDashboardInstanceCustomServersUpdateBody =
+  mtMap.object<DashboardInstanceCustomServersUpdateBody>({
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    metadata: mtMap.objectField('metadata', mtMap.passthrough())
+  });
+

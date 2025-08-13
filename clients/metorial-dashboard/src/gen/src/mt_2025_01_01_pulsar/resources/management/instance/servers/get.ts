@@ -3,20 +3,22 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type ManagementInstanceServersGetOutput = {
   object: 'server';
   id: string;
-  type: 'public';
+  type: 'public' | 'custom';
+  status: 'active' | 'inactive';
   name: string;
   description: string | null;
   importedServerId: string | null;
   variants: {
     object: 'server.server_variant';
     id: string;
+    status: 'active' | 'inactive';
     identifier: string;
     server: {
       object: 'server#preview';
       id: string;
       name: string;
       description: string | null;
-      type: 'public';
+      type: 'public' | 'custom';
       createdAt: Date;
       updatedAt: Date;
     };
@@ -44,7 +46,7 @@ export type ManagementInstanceServersGetOutput = {
         id: string;
         name: string;
         description: string | null;
-        type: 'public';
+        type: 'public' | 'custom';
         createdAt: Date;
         updatedAt: Date;
       };
@@ -65,6 +67,7 @@ export let mapManagementInstanceServersGetOutput =
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     type: mtMap.objectField('type', mtMap.passthrough()),
+    status: mtMap.objectField('status', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     importedServerId: mtMap.objectField(
@@ -77,6 +80,7 @@ export let mapManagementInstanceServersGetOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
           identifier: mtMap.objectField('identifier', mtMap.passthrough()),
           server: mtMap.objectField(
             'server',
