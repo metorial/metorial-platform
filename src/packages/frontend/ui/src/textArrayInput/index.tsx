@@ -1,5 +1,5 @@
 import { RiDeleteBin4Line } from '@remixicon/react';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { styled } from 'styled-components';
 import { Button } from '../button';
 import { Error } from '../error';
@@ -43,6 +43,8 @@ export let TextArrayInput = ({
     if (value.length === 0) onChange(['']);
   }, [value]);
 
+  let [enterPressed, setEnterPressed] = useState(false);
+
   return (
     <>
       {label && <InputLabel>{label}</InputLabel>}
@@ -65,10 +67,18 @@ export let TextArrayInput = ({
                   newValue[i] = e.target.value;
                   onChange(newValue);
                 }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    setEnterPressed(true);
+                    onChange([...value, '']);
+                  }
+                }}
                 label={label}
                 style={{ flexGrow: 1 }}
                 size="2"
                 hideLabel
+                autoFocus={i == value.length - 1 && enterPressed}
               />
 
               <Button
@@ -78,6 +88,7 @@ export let TextArrayInput = ({
                 size="2"
                 variant="soft"
                 disabled={value.length === 1}
+                type="button"
               />
             </ItemInner>
 
@@ -91,7 +102,7 @@ export let TextArrayInput = ({
             gap: 10
           }}
         >
-          <Button size="2" onClick={() => onChange([...value, ''])}>
+          <Button size="2" onClick={() => onChange([...value, ''])} type="button">
             Add
           </Button>
         </div>

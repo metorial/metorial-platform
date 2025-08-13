@@ -6,8 +6,8 @@ import { useDashboardFlags } from '@metorial/state';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
 
-let ExternalServersListLayout = dynamicPage(() =>
-  import('./pages/(custom-servers)/(list)/_layout').then(c => c.ExternalServersListLayout)
+let ProviderConnectionsListLayout = dynamicPage(() =>
+  import('./pages/(custom-servers)/(list)/_layout').then(c => c.ProviderConnectionsListLayout)
 );
 let ManagedServersListLayout = dynamicPage(() =>
   import('./pages/(custom-servers)/(list)/_layout').then(c => c.ManagedServersListLayout)
@@ -238,15 +238,11 @@ export let productInnerSlice = createSlice([
             path: '',
             element: (
               <FlaggedPage flag="metorial-gateway-enabled">
-                <ExternalServersListLayout />
+                <ProviderConnectionsListLayout />
               </FlaggedPage>
             ),
 
             children: [
-              {
-                path: 'external-servers',
-                element: <ExternalServersPage />
-              },
               {
                 path: 'provider-connections',
                 element: <ProviderConnectionsPage />

@@ -1,15 +1,14 @@
-import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject
 } from '@metorial/state';
-import { Button, LinkTabs } from '@metorial/ui';
+import { Button } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
-import { showServerDeploymentFormModal } from '../../../scenes/serverDeployments/modal';
+import { showProviderConnectionFormModal } from '../../../scenes/providerConnection/modal';
 
-export let ExternalServersListLayout = () => {
+export let ProviderConnectionsListLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
@@ -19,38 +18,13 @@ export let ExternalServersListLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="External Servers"
-        description="Metorial can connect to external MCP servers, giving you the features you know and love from Metorial, but with external infrastructure."
+        title="OAuth Connections"
+        description="Use OAuth to quickly authenticate with external providers, like Google or GitHub."
         actions={
-          <Button
-            onClick={() =>
-              showServerDeploymentFormModal({
-                type: 'create'
-              })
-            }
-            size="2"
-          >
-            Connect External Server
+          <Button onClick={() => showProviderConnectionFormModal({})} size="2">
+            Create OAuth Connection
           </Button>
         }
-      />
-
-      <LinkTabs
-        current={pathname}
-        links={[
-          {
-            label: 'External Servers',
-            to: Paths.instance.externalServers(organization.data, project.data, instance.data)
-          },
-          {
-            label: 'OAuth Connections',
-            to: Paths.instance.providerConnections(
-              organization.data,
-              project.data,
-              instance.data
-            )
-          }
-        ]}
       />
 
       <Outlet />

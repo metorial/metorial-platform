@@ -108,7 +108,11 @@ export let ServerSearch = ({
               .filter(server => server.isOfficial)
               .slice(0, 12)
               .map(server => (
-                <PopularItem key={server.id} onClick={() => onSelect?.(server)} type="button">
+                <PopularItem
+                  key={server.id}
+                  onClick={() => onSelect?.(server as any)}
+                  type="button"
+                >
                   <Avatar entity={server.vendor} size={24} />
 
                   <span>{server.name}</span>
@@ -128,7 +132,11 @@ export let ServerSearch = ({
 
           <Items>
             {server.data?.items.map(server => (
-              <ItemButton key={server.id} onClick={() => onSelect?.(server)} type="button">
+              <ItemButton
+                key={server.id}
+                onClick={() => onSelect?.(server as any)}
+                type="button"
+              >
                 <Entity.Wrapper>
                   <Entity.Content>
                     <Entity.Field
