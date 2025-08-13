@@ -1121,30 +1121,6 @@
         "vitest": "^3.1.2",
       },
     },
-    "src/backend/modules/oauth": {
-      "name": "@metorial/module-provider-oauth",
-      "version": "1.0.0",
-      "dependencies": {
-        "@metorial/base62": "^1.0.0",
-        "@metorial/config": "^1.0.0",
-        "@metorial/cron": "^1.0.0",
-        "@metorial/db": "^1.0.0",
-        "@metorial/error": "^1.0.0",
-        "@metorial/fabric": "^1.0.0",
-        "@metorial/id": "^1.0.0",
-        "@metorial/pagination": "^1.0.0",
-        "@metorial/queue": "^1.0.0",
-        "@metorial/service": "^1.0.0",
-        "axios": "^1.10.0",
-        "date-fns": "^4.1.0",
-        "ipaddr.js": "^2.2.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.8.2",
-        "vitest": "^3.1.2",
-      },
-    },
     "src/backend/modules/organization": {
       "name": "@metorial/module-organization",
       "version": "1.0.0",
@@ -1162,6 +1138,31 @@
         "@metorial/slugify": "^1.0.0",
         "date-fns": "^4.1.0",
         "react": "^19.1.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/backend/modules/provider-oauth": {
+      "name": "@metorial/module-provider-oauth",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/base62": "^1.0.0",
+        "@metorial/config": "^1.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/error": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/id": "^1.0.0",
+        "@metorial/pagination": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/service": "^1.0.0",
+        "axios": "^1.10.0",
+        "date-fns": "^4.1.0",
+        "ipaddr.js": "^2.2.0",
+        "jsonata": "^2.1.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -3280,7 +3281,7 @@
 
     "@metorial/module-organization": ["@metorial/module-organization@workspace:src/backend/modules/organization"],
 
-    "@metorial/module-provider-oauth": ["@metorial/module-provider-oauth@workspace:src/backend/modules/oauth"],
+    "@metorial/module-provider-oauth": ["@metorial/module-provider-oauth@workspace:src/backend/modules/provider-oauth"],
 
     "@metorial/module-remote-server": ["@metorial/module-remote-server@workspace:src/backend/modules/remote-server"],
 
@@ -4655,6 +4656,8 @@
     "json-schema-traverse": ["json-schema-traverse@1.0.0", "", {}, "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="],
 
     "json5": ["json5@2.2.3", "", { "bin": { "json5": "lib/cli.js" } }, "sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg=="],
+
+    "jsonata": ["jsonata@2.1.0", "", {}, "sha512-OCzaRMK8HobtX8fp37uIVmL8CY1IGc/a6gLsDqz3quExFR09/U78HUzWYr7T31UEB6+Eu0/8dkVD5fFDOl9a8w=="],
 
     "jsondiffpatch": ["jsondiffpatch@0.6.0", "", { "dependencies": { "@types/diff-match-patch": "^1.0.36", "chalk": "^5.3.0", "diff-match-patch": "^1.0.5" }, "bin": { "jsondiffpatch": "bin/jsondiffpatch.js" } }, "sha512-3QItJOXp2AP1uv7waBkao5nCvhEv+QmJAd38Ybq7wNI74Q+BBmnLn4EDKz6yI9xGAIQoUF87qHt+kc1IVxB4zQ=="],
 

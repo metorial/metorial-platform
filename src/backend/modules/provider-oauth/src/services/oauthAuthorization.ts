@@ -2,12 +2,14 @@ import { Context } from '@metorial/context';
 import {
   db,
   ID,
+  Instance,
   ProviderOAuthConnection,
   ProviderOAuthConnectionAuthToken
 } from '@metorial/db';
 import { ServiceError } from '@metorial/error';
 import { badRequestError } from '@metorial/error/src/defaultErrors';
 import { Fabric } from '@metorial/fabric';
+import { usageService } from '@metorial/module-usage';
 import { getSentry } from '@metorial/sentry';
 import { Service } from '@metorial/service';
 import { differenceInDays, differenceInMinutes, subMinutes } from 'date-fns';
@@ -317,7 +319,7 @@ class OauthAuthorizationServiceImpl {
     });
   }
 
-  async useAuthToken(d: { referenceOid: bigint }) {
+  async useAuthToken(d: { referenceOid: bigint; instance: Instance }) {
     let ref = await db.providerOAuthConnectionAuthTokenReference.findUnique({
       where: { oid: d.referenceOid },
       include: { authToken: { include: { connection: true } } }
@@ -470,6 +472,19 @@ class OauthAuthorizationServiceImpl {
         });
       })().catch(e => Sentry.captureException(e));
     }
+
+    (async () =>
+      usageService.ingestUsageRecord({
+        owner: {
+          id: d.instance.id,
+          type: 'instance'
+        },
+        entity: {
+          id: connection.id,
+          type: 'provider_oauth_connection'
+        },
+        type: 'provider_oauth_connection.created'
+      }))().catch(e => Sentry.captureException(e));
 
     return {
       id: token.id,

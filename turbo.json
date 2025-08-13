@@ -33,6 +33,12 @@
       ],
       "cache": false
     },
+    "generate:client:dashboard": {
+      "dependsOn": [
+        "^generate:client:dashboard"
+      ],
+      "cache": false
+    },
     "frontend:build": {
       "dependsOn": [
         "^frontend:build"

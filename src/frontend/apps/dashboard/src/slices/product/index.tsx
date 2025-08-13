@@ -5,6 +5,8 @@ import { NotFound } from '@metorial/pages';
 import { useDashboardFlags } from '@metorial/state';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
+import { ProviderConnectionPage } from './pages/(custom-servers)/provider-connection';
+import { ProviderConnectionLayout } from './pages/(custom-servers)/provider-connection/_layout';
 
 let ProviderConnectionsListLayout = dynamicPage(() =>
   import('./pages/(custom-servers)/(list)/_layout').then(c => c.ProviderConnectionsListLayout)
@@ -246,6 +248,22 @@ export let productInnerSlice = createSlice([
               {
                 path: 'provider-connections',
                 element: <ProviderConnectionsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'provider-connection/:providerConnectionId',
+            element: (
+              <FlaggedPage flag="metorial-gateway-enabled">
+                <ProviderConnectionLayout />
+              </FlaggedPage>
+            ),
+
+            children: [
+              {
+                path: '',
+                element: <ProviderConnectionPage />
               }
             ]
           },
