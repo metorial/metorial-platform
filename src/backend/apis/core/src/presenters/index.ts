@@ -1,6 +1,9 @@
 import { declarePresenter } from '@metorial/presenter';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
+import { v1CustomServerPresenter } from './implementation/customServer';
+import { v1CustomServerEnvironmentPresenter } from './implementation/customServerEnvironment';
+import { v1CustomServerVersionPresenter } from './implementation/customServerVersion';
 import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
 import { v1InstancePresenter } from './implementation/instance';
@@ -17,6 +20,8 @@ import { v1ProviderOauthConnectionEventPresenter } from './implementation/provid
 import { v1ProviderOauthConnectionProfilePresenter } from './implementation/providerOauthConnectionProfile';
 import { v1ProviderOauthConnectionTemplatePresenter } from './implementation/providerOauthConnectionTemplate';
 import { v1ProviderOauthDiscoveryPresenter } from './implementation/providerOauthDiscovery';
+import { v1RemoteServerPresenter } from './implementation/remoteServer';
+import { v1RemoteServerNotificationPresenter } from './implementation/remoteServerNotification';
 import { v1SecretPresenter } from './implementation/secret';
 import { v1ServerPresenter } from './implementation/server';
 import { v1ServerCapabilitiesPresenter } from './implementation/serverCapabilities';
@@ -50,6 +55,9 @@ import { v1UserPresenter } from './implementation/user';
 import {
   apiKeyType,
   bootType,
+  customServerEnvironmentType,
+  customServerType,
+  customServerVersionType,
   fileLinkType,
   fileType,
   instanceType,
@@ -66,6 +74,8 @@ import {
   providerOauthConnectionProfileType,
   providerOauthConnectionTemplateType,
   providerOauthConnectionType,
+  remoteServerNotificationType,
+  remoteServerType,
   secretType,
   serverCapabilitiesType,
   serverDeploymentConfigType,
@@ -298,3 +308,28 @@ export let providerOauthDiscoveryPresenter = declarePresenter(
     mt_2025_01_01_dashboard: v1ProviderOauthDiscoveryPresenter
   }
 );
+
+export let remoteServerPresenter = declarePresenter(remoteServerType, {
+  mt_2025_01_01_dashboard: v1RemoteServerPresenter,
+  mt_2025_01_01_pulsar: v1RemoteServerPresenter
+});
+
+export let remoteServerNotificationPresenter = declarePresenter(remoteServerNotificationType, {
+  mt_2025_01_01_pulsar: v1RemoteServerNotificationPresenter,
+  mt_2025_01_01_dashboard: v1RemoteServerNotificationPresenter
+});
+
+export let customServerPresenter = declarePresenter(customServerType, {
+  mt_2025_01_01_pulsar: v1CustomServerPresenter,
+  mt_2025_01_01_dashboard: v1CustomServerPresenter
+});
+
+export let customServerEnvironmentPresenter = declarePresenter(customServerEnvironmentType, {
+  mt_2025_01_01_pulsar: v1CustomServerEnvironmentPresenter,
+  mt_2025_01_01_dashboard: v1CustomServerEnvironmentPresenter
+});
+
+export let customServerVersionPresenter = declarePresenter(customServerVersionType, {
+  mt_2025_01_01_pulsar: v1CustomServerVersionPresenter,
+  mt_2025_01_01_dashboard: v1CustomServerVersionPresenter
+});

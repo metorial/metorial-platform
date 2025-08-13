@@ -33,9 +33,11 @@ export let createSlugGenerator =
   };
 
 export let createShortIdGenerator =
-  <Opts = void>(cb: (id: string, opts: Opts) => Promise<boolean>) =>
+  <Opts = void>(cb: (id: string, opts: Opts) => Promise<boolean>, d?: { length?: number }) =>
   async (opts: Opts) => {
-    let id = generatePlainId(6).toLowerCase();
+    let length = d?.length ?? 6;
+
+    let id = generatePlainId(length).toLowerCase();
 
     for (let i = 0; i < 10; i++) {
       let ok = false;
@@ -46,7 +48,7 @@ export let createShortIdGenerator =
 
       if (ok) return id;
 
-      id = generatePlainId(6).toLowerCase();
+      id = generatePlainId(length).toLowerCase();
     }
 
     id = generatePlainId(20).toLowerCase();

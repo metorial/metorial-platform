@@ -1,5 +1,5 @@
 {
-  "name": "@metorial/module-oauth",
+  "name": "@metorial/module-provider-oauth",
   "version": "1.0.0",
   "author": "Tobias Herber",
   "license": "AGPL",

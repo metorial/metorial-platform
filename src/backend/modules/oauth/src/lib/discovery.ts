@@ -1,6 +1,6 @@
+import { getAxiosSsrfFilter } from '@metorial/ssrf';
 import axios from 'axios';
 import { OAuthConfiguration } from '../types';
-import { getAxiosSsrfFilter } from './ssrfProtection';
 
 export class OAuthDiscovery {
   private static readonly WELL_KNOWN_PATHS = [

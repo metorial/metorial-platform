@@ -17,7 +17,8 @@ model ProviderOAuthConnection {
   discoveryUrl String?
 
   /// [ProviderOAuthConfig]
-  config     Json
+  config Json
+
   configHash String
 
   scopes String[]
@@ -34,8 +35,9 @@ model ProviderOAuthConnection {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  profiles ProviderOAuthConnectionProfile[]
-  tokens   ProviderOAuthConnectionAuthToken[]
-  attempts ProviderOAuthConnectionAuthAttempt[]
-  events   ProviderOAuthConnectionEvent[]
+  profiles              ProviderOAuthConnectionProfile[]
+  tokens                ProviderOAuthConnectionAuthToken[]
+  attempts              ProviderOAuthConnectionAuthAttempt[]
+  events                ProviderOAuthConnectionEvent[]
+  remoteServerInstances RemoteServerInstance[]
 }

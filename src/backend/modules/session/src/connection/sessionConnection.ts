@@ -2,12 +2,14 @@ import {
   db,
   Instance,
   Organization,
+  Server,
   ServerDeployment,
   ServerSession,
   ServerVariant,
   type SessionMessageType
 } from '@metorial/db';
 import { debug } from '@metorial/debug';
+import { badRequestError, ServiceError } from '@metorial/error';
 import {
   jsonRpcPingRequest,
   jsonRpcPingResponse,
@@ -37,11 +39,23 @@ export class SessionConnection {
     session: ServerSession & {
       serverDeployment: ServerDeployment & {
         serverVariant: ServerVariant;
+        server: Server;
       };
     },
     instance: Instance & { organization: Organization },
     opts: { mode: 'send-only' | 'send-and-receive'; receiveControlMessages: boolean }
   ): Promise<SessionConnection> {
+    if (
+      session.serverDeployment.serverVariant.status !== 'active' ||
+      session.serverDeployment.server.status !== 'active'
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot create session for inactive server'
+        })
+      );
+    }
+
     let manager = await ConnectionHandler.create(session, instance, opts);
     return new SessionConnection(session, instance, opts, manager);
   }

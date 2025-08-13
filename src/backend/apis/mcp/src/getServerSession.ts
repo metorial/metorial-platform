@@ -89,7 +89,9 @@ let getServerSessionDeployment = async (
 
       performedBy: d.actor,
       instance: d.instance,
-      organization: d.organization
+      organization: d.organization,
+
+      ephemeralPermittedDeployments: new Set([])
     })
   );
 

@@ -53,7 +53,7 @@ class OauthDiscoveryServiceImpl {
   }
 }
 
-export let oauthDiscoveryService = Service.create(
-  'oauthDiscovery',
+export let providerOauthDiscoveryService = Service.create(
+  'providerOauthDiscovery',
   () => new OauthDiscoveryServiceImpl()
 ).build();

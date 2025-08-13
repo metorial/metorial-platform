@@ -80,7 +80,7 @@ class OauthTemplateServiceImpl {
   }
 }
 
-export let oauthTemplateService = Service.create(
-  'oauthTemplate',
+export let providerOauthTemplateService = Service.create(
+  'providerOauthTemplate',
   () => new OauthTemplateServiceImpl()
 ).build();

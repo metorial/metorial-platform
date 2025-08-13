@@ -4,6 +4,7 @@ import { Service } from '@metorial/service';
 
 let include = {
   importedServer: true,
+  customServer: true,
 
   variants: {
     include: {
@@ -31,7 +32,10 @@ class ServerService {
 
           {
             OR: [
-              { type: 'imported' } // Public servers
+              { type: 'imported' },
+
+              { isPublic: true },
+              { ownerOrganizationOid: d.organization?.oid }
             ]
           }
         ]
@@ -40,6 +44,10 @@ class ServerService {
     });
     if (!server) {
       throw new ServiceError(notFoundError('server_listing', d.serverId));
+    }
+
+    if (server.customServer && server.customServer.organizationOid != d.organization?.oid) {
+      server.customServer = null;
     }
 
     return server;

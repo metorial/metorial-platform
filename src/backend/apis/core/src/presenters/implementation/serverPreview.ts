@@ -9,7 +9,10 @@ export let v1ServerPreview = Object.assign(
     name: server.name,
     description: server.description,
 
-    type: { imported: 'public' as const }[server.type],
+    type: {
+      imported: 'public' as const,
+      custom: server.isPublic ? ('public' as const) : ('custom' as const)
+    }[server.type],
 
     created_at: server.createdAt,
     updated_at: server.updatedAt
@@ -35,7 +38,7 @@ export let v1ServerPreview = Object.assign(
         })
       ),
 
-      type: v.enumOf(['public'], {
+      type: v.enumOf(['public', 'custom'], {
         name: 'type',
         description: 'The type of the server'
       }),

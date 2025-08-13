@@ -1,5 +1,5 @@
 import { getConfig } from '@metorial/config';
-import { ServerDeployment, ServerSession, ServerVariant } from '@metorial/db';
+import { Server, ServerDeployment, ServerSession, ServerVariant } from '@metorial/db';
 import { delay } from '@metorial/delay';
 import {
   badRequestError,
@@ -23,6 +23,7 @@ export let mcpConnectionHandler = async (
   serverSession: ServerSession & {
     serverDeployment: ServerDeployment & {
       serverVariant: ServerVariant;
+      server: Server;
     };
   },
   opts: {

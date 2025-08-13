@@ -331,7 +331,7 @@ class OauthConnectionServiceImpl {
   }
 }
 
-export let oauthConnectionService = Service.create(
-  'oauthConnection',
+export let providerOauthConnectionService = Service.create(
+  'providerOauthConnection',
   () => new OauthConnectionServiceImpl()
 ).build();
