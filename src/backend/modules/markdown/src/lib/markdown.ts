@@ -108,7 +108,6 @@ let rehypePrefixRelativeUrls = (opts: MarkdownOptions) => {
 
             if (u.hostname != 'metorial.com' && !u.hostname.endsWith('.metorial.com')) {
               q.add(async () => {
-                console.log('Fetching image URL for', u.toString());
                 node.properties.src = await getImageUrl({
                   id: opts.id,
                   image: {

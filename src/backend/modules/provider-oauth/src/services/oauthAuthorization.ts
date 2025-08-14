@@ -81,7 +81,6 @@ class OauthAuthorizationServiceImpl {
 
   async completeAuthorization(d: {
     context: Context;
-    connection: ProviderOAuthConnection;
 
     response: {
       code?: string;
@@ -96,8 +95,7 @@ class OauthAuthorizationServiceImpl {
         let res = await db.providerOAuthConnectionAuthAttempt.updateMany({
           where: {
             stateIdentifier: d.response.state!,
-            status: 'pending',
-            connectionOid: d.connection.oid
+            status: 'pending'
           },
           data: {
             status: 'failed',
@@ -222,7 +220,7 @@ class OauthAuthorizationServiceImpl {
           update: {
             name: providerProfile.name,
             email: providerProfile.email,
-            rawProfile: providerProfile.raw,
+            rawProfile: {}, // providerProfile.raw,
             lastUsedAt: new Date()
           },
           create: {
@@ -233,7 +231,7 @@ class OauthAuthorizationServiceImpl {
             sub: providerProfile.sub,
             name: providerProfile.name,
             email: providerProfile.email,
-            rawProfile: providerProfile.raw
+            rawProfile: {} // providerProfile.raw
           }
         })
       : null;
@@ -268,7 +266,8 @@ class OauthAuthorizationServiceImpl {
         status: 'completed',
         clientSecret: await ID.generateId('oauthConnectionAuthAttempt_ClientSecret'),
         stateIdentifier: null,
-        authTokenOid: token.oid
+        authTokenOid: token.oid,
+        profileOid: profile?.oid
       }
     });
 

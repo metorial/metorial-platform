@@ -12,7 +12,7 @@ model ProviderOAuthConnection {
 
   name        String?
   description String?
-  metadata    Json
+  metadata    Json?
 
   providerName String
   providerUrl  String

@@ -56,7 +56,7 @@ class OauthConnectionServiceImpl {
       let con = await db.providerOAuthConnection.create({
         data: {
           id: await ID.generateId('oauthConnection'),
-          metorialClientId: generateCustomId('metorial_oauthcon_', 35),
+          metorialClientId: generateCustomId('mt_poatcon_', 35),
 
           name: d.input.name,
           description: d.input.description,
@@ -130,12 +130,12 @@ class OauthConnectionServiceImpl {
     });
 
     let updateData: Partial<ProviderOAuthConnection> = {
-      name: d.connection.name,
-      description: d.connection.description,
-      clientId: d.connection.clientId,
-      clientSecret: d.connection.clientSecret,
-      scopes: d.connection.scopes,
-      metadata: d.connection.metadata
+      name: d.input.name,
+      description: d.input.description,
+      clientId: d.input.clientId,
+      clientSecret: d.input.clientSecret,
+      scopes: d.input.scopes,
+      metadata: d.input.metadata
     };
 
     if (d.input.config) {

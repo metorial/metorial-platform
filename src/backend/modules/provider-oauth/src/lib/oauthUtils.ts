@@ -191,12 +191,13 @@ export class OAuthUtils {
       });
 
       let data = response.data;
+      data.sub = data.sub ?? data.id ?? data.user_id;
 
       if (!data.sub) return null;
 
       return {
         raw: data,
-        sub: data.sub,
+        sub: String(data.sub),
         name: typeof data.name === 'string' ? data.name : undefined,
         email: typeof data.email === 'string' ? data.email : undefined
       };

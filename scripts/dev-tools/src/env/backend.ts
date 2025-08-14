@@ -49,6 +49,8 @@ export let backendEnv: Env = [
     defaultValue: `localhost:50050`
   },
 
+  { key: 'PROVIDER_OAUTH_TICKET_SECRET', defaultValue: `provider-oauth-ticket-secret` },
+
   { key: 'AUTH_TICKET_SECRET', defaultValue: `auth-ticket-secret` },
   {
     key: 'AUTH_INVISIBLE_TURNSTILE_SECRET_KEY',
@@ -95,7 +97,7 @@ export let backendEnv: Env = [
   { key: 'ID_API_HOST', defaultValue: `http://${HOSTNAME}:4321`, isEnterprise: true },
   { key: 'BILLING_API_URL', defaultValue: `http://${HOSTNAME}:4320`, isEnterprise: true },
   { key: 'MCP_URL', defaultValue: `http://${HOSTNAME}:4311` },
-  { key: 'PROVIDER_OAUTH_URL', defaultValue: `http://${HOSTNAME}:4313`, isEnterprise: true },
+  { key: 'PROVIDER_OAUTH_URL', defaultValue: `http://${HOSTNAME}:4313` },
   { key: 'AUTH_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4301`, isEnterprise: true },
   { key: 'DASHBOARD_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300` },
   { key: 'COOKIE_DOMAIN', defaultValue: `${HOSTNAME}`, isEnterprise: true },

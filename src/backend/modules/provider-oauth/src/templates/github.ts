@@ -15,6 +15,7 @@ providerOauthTemplateService.ensureTemplate({
       issuer: 'https://github.com',
       authorization_endpoint: 'https://github.com/login/oauth/authorize',
       token_endpoint: 'https://github.com/login/oauth/access_token',
+      userinfo_endpoint: 'https://api.github.com/user',
       scopes_supported: [
         'repo',
         'read:org',
