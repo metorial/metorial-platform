@@ -1,6 +1,12 @@
 import { flagService } from '@metorial/module-flags';
+import { instanceService } from '@metorial/module-organization';
+import {
+  providerOauthConnectionService,
+  providerOauthTicketService
+} from '@metorial/module-provider-oauth';
 import { DFlags } from '../objects/flags';
 import { DOrganization } from '../objects/organization';
+import { DProviderOauthConnection } from '../objects/providerOauthConnection';
 import { DUser } from '../objects/user';
 import { DContext } from '../utils/context';
 import { wrapPrivateError } from '../utils/error';
@@ -32,6 +38,38 @@ export let resolvers = {
     getUser: (_1: any, _2: {}, ctx: DContext) =>
       wrapPrivateError(async () => {
         return DUser.fromUser(ctx.auth.user);
+      }),
+
+    getProviderOauthConnectionTestSession: async (
+      _1: any,
+      {
+        connectionId,
+        instanceId,
+        redirectUri
+      }: { connectionId: string; instanceId: string; redirectUri: string },
+      ctx: DContext
+    ) =>
+      wrapPrivateError(async () => {
+        let instance = await instanceService.getInstanceById({
+          organization: ctx.organization,
+          instanceId
+        });
+
+        let connection = await providerOauthConnectionService.getConnectionById({
+          connectionId,
+          instance
+        });
+
+        let testUrl = await providerOauthTicketService.getAuthenticationUrl({
+          instance,
+          connection,
+          redirectUri
+        });
+
+        return {
+          connection: await DProviderOauthConnection.fromConnection(connection),
+          testUrl
+        };
       })
   }
 };
