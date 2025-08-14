@@ -104,15 +104,18 @@ export let Content = styled(RadixDialogDialog.Content)`
 
 export let ContentSide = styled(RadixDialogDialog.Content)`
   position: fixed;
-  top: 0px;
-  right: 0px;
-  bottom: 0px;
+  top: 10px;
+  right: 10px;
+  bottom: 10px;
   background: ${theme.colors.background};
   box-shadow: ${theme.shadows.large};
-  border-right: solid 1px ${theme.colors.gray500};
-  height: 100vh;
+  height: calc(100% - 20px);
   width: min(600px, 90vw);
+  border-radius: 10px;
+  overflow: auto;
   /* max-width: 90vw; */
+
+  --dialog-radius: 10px;
 
   &[data-state='open'] {
     animation: ${fadeInRight} 200ms ease-out;

@@ -20,6 +20,8 @@ let Header = styled('header')`
   align-items: center;
   position: sticky;
   top: 0;
+  border-top-right-radius: var(--dialog-radius);
+  border-top-left-radius: var(--dialog-radius);
 `;
 
 let Content = styled('main')`
