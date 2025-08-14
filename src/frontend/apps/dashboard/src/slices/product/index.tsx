@@ -5,9 +5,37 @@ import { NotFound } from '@metorial/pages';
 import { useDashboardFlags } from '@metorial/state';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
-import { ProviderConnectionPage } from './pages/(custom-servers)/provider-connection';
-import { ProviderConnectionLayout } from './pages/(custom-servers)/provider-connection/_layout';
 
+let ProviderConnectionOverviewPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/provider-connection').then(
+    c => c.ProviderConnectionOverviewPage
+  )
+);
+let ProviderConnectionLogsPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/provider-connection/logs').then(
+    c => c.ProviderConnectionLogsPage
+  )
+);
+let ProviderConnectionProfilesPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/provider-connection/profiles').then(
+    c => c.ProviderConnectionProfilesPage
+  )
+);
+let ProviderConnectionSettingsPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/provider-connection/settings').then(
+    c => c.ProviderConnectionSettingsPage
+  )
+);
+let ProviderConnectionLayout = dynamicPage(() =>
+  import('./pages/(custom-servers)/provider-connection/_layout').then(
+    c => c.ProviderConnectionLayout
+  )
+);
+let ProviderConnectionTestResponsePage = dynamicPage(() =>
+  import('./pages/(custom-servers)/provider-connection/testResponse').then(
+    c => c.ProviderConnectionTestResponsePage
+  )
+);
 let ProviderConnectionsListLayout = dynamicPage(() =>
   import('./pages/(custom-servers)/(list)/_layout').then(c => c.ProviderConnectionsListLayout)
 );
@@ -263,7 +291,23 @@ export let productInnerSlice = createSlice([
             children: [
               {
                 path: '',
-                element: <ProviderConnectionPage />
+                element: <ProviderConnectionOverviewPage />
+              },
+              {
+                path: 'logs',
+                element: <ProviderConnectionLogsPage />
+              },
+              {
+                path: 'profiles',
+                element: <ProviderConnectionProfilesPage />
+              },
+              {
+                path: 'settings',
+                element: <ProviderConnectionSettingsPage />
+              },
+              {
+                path: 'test-response',
+                element: <ProviderConnectionTestResponsePage />
               }
             ]
           },
