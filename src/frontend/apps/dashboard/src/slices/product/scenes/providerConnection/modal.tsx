@@ -1,7 +1,7 @@
 import { ProviderOauthConnectionsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { Dialog, showModal } from '@metorial/ui';
 import { useState } from 'react';
-import { ProviderConnectionCreateForm } from './form';
+import { ProviderConnectionCreateForm } from './createForm';
 
 export let showProviderConnectionFormModal = (p: {
   onCreate?: (deal: ProviderOauthConnectionsGetOutput) => any;

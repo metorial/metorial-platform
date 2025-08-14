@@ -5,12 +5,12 @@ import {
   useProviderConnection,
   useProviderConnectionEvents
 } from '@metorial/state';
-import { Attributes, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Box, ID, Table } from '@metorial/ui-product';
+import { Attributes, Button, RenderDate, Spacer, Text } from '@metorial/ui';
+import { Box, ID, SideBox, Table } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 import { UsageScene } from '../../../scenes/usage/usage';
 
-export let ProviderConnectionPage = () => {
+export let ProviderConnectionOverviewPage = () => {
   let instance = useCurrentInstance();
 
   let { providerConnectionId } = useParams();
@@ -20,6 +20,8 @@ export let ProviderConnectionPage = () => {
     instance.data?.id,
     providerConnection.data?.id ?? providerConnectionId
   );
+
+  let test = providerConnection.useTestMutator();
 
   return renderWithLoader({ providerConnection, events })(({ providerConnection, events }) => (
     <>
@@ -44,6 +46,38 @@ export let ProviderConnectionPage = () => {
           }
         ]}
       />
+
+      <Spacer height={15} />
+
+      <SideBox
+        title="Test Connection"
+        description="Test your connection to ensure it is working as expected."
+      >
+        <Button
+          as="span"
+          size="2"
+          onClick={async () => {
+            let redirectUri = new URL(window.location.href);
+            redirectUri.pathname = Paths.instance.providerConnection(
+              instance.data?.organization,
+              instance.data?.project,
+              instance.data,
+              providerConnection.data.id,
+              'test-response'
+            );
+
+            let [res] = await test.mutate({
+              redirectUri: redirectUri.toString()
+            });
+            if (res) {
+              window.location.href = res.testUrl;
+            }
+          }}
+          loading={test.isLoading || test.isSuccessPermanent}
+        >
+          Test Connection
+        </Button>
+      </SideBox>
 
       <Spacer height={15} />
 

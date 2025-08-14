@@ -13,7 +13,10 @@ export let ProviderConnectionsTable = (
   filter: DashboardInstanceProviderOauthConnectionsListQuery
 ) => {
   let instance = useCurrentInstance();
-  let providerConnections = useProviderConnections(instance.data?.id, filter);
+  let providerConnections = useProviderConnections(instance.data?.id, {
+    ...filter,
+    order: 'desc'
+  });
 
   return renderWithPagination(providerConnections)(providerConnections => (
     <>

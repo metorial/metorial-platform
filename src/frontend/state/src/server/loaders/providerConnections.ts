@@ -6,6 +6,7 @@ import {
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
+import { withAuthPrivate } from '../../user/auth/withAuth';
 
 export let providerConnectionsLoader = createLoader({
   name: 'providerConnections',
@@ -45,8 +46,27 @@ export let providerConnectionLoader = createLoader({
         sdk.providerOauth.connections.update(instanceId, providerConnectionId, i)
       ),
 
-    delete: ({ input: { instanceId, providerConnectionId } }) =>
-      withAuth(sdk => sdk.providerOauth.connections.delete(instanceId, providerConnectionId))
+    delete: (_, { input: { instanceId, providerConnectionId } }) =>
+      withAuth(sdk => sdk.providerOauth.connections.delete(instanceId, providerConnectionId)),
+
+    test: (i: { redirectUri: string }, { input: { instanceId, providerConnectionId } }) =>
+      withAuthPrivate({ instanceId }, sdk =>
+        sdk
+          .query({
+            getProviderOauthConnectionTestSession: {
+              __args: {
+                instanceId,
+                connectionId: providerConnectionId,
+                redirectUri: i.redirectUri
+              },
+              __scalar: true,
+              connection: {
+                __scalar: true
+              }
+            }
+          })
+          .then(c => c.getProviderOauthConnectionTestSession)
+      )
   }
 });
 
@@ -61,6 +81,7 @@ export let useProviderConnection = (
   return {
     ...data,
     useUpdateMutator: data.useMutator('update'),
-    useDeleteMutator: data.useMutator('delete')
+    useDeleteMutator: data.useMutator('delete'),
+    useTestMutator: data.useMutator('test')
   };
 };
