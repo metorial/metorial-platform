@@ -2,7 +2,8 @@ import { getConfig } from '@metorial/config';
 import { createHono, useRequestContext } from '@metorial/hono';
 import {
   providerOauthAuthorizationService,
-  providerOauthConnectionService
+  providerOauthConnectionService,
+  providerOauthTicketService
 } from '@metorial/module-provider-oauth';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
@@ -19,7 +20,7 @@ export let providerOauthController = createHono()
       'query',
       z.object({
         client_id: z.string(),
-        redirect_uri: z.string().url()
+        ticket: z.string()
       })
     ),
     async c =>
@@ -27,17 +28,24 @@ export let providerOauthController = createHono()
         let query = c.req.query();
         let context = useRequestContext(c);
 
-        let connection = await providerOauthConnectionService.getConnectionByClientId({
-          clientId: query.client_id
+        let ticketRes = await providerOauthTicketService.verifyTicket({
+          ticket: query.ticket,
+          clientId: query.client_id,
+          type: 'oauth.authenticate'
         });
 
-        let { redirectUrl, authAttempt } = await providerOauthAuthorizationService.startAuthorization({
-          context,
-          connection,
-          redirectUri: query.redirect_uri,
-          getCallbackUrl: connection =>
-            `${getConfig().urls.providerOauthUrl}/provider-oauth/callback`
+        let connection = await providerOauthConnectionService.getConnectionByClientId({
+          clientId: ticketRes.clientId
         });
+
+        let { redirectUrl, authAttempt } =
+          await providerOauthAuthorizationService.startAuthorization({
+            context,
+            connection,
+            redirectUri: ticketRes.redirectUri,
+            getCallbackUrl: connection =>
+              `${getConfig().urls.providerOauthUrl}/provider-oauth/callback`
+          });
 
         if (authAttempt.stateIdentifier) {
           setCookie(c, STATE_COOKIE_NAME, authAttempt.stateIdentifier, {
@@ -66,10 +74,6 @@ export let providerOauthController = createHono()
         let query = c.req.query();
         let context = useRequestContext(c);
 
-        let connection = await providerOauthConnectionService.getConnectionByClientId({
-          clientId: query.client_id
-        });
-
         if (!query.state) {
           let stateCookie = getCookie(c, STATE_COOKIE_NAME);
           if (stateCookie) {
@@ -79,7 +83,6 @@ export let providerOauthController = createHono()
 
         let { redirectUrl } = await providerOauthAuthorizationService.completeAuthorization({
           context,
-          connection,
           response: {
             code: query.code,
             state: query.state,

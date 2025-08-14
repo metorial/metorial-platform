@@ -8,7 +8,7 @@ export let v1ProviderOauthConnectionAuthenticationPresenter = Presenter.create(
   providerOauthConnectionAuthenticationType
 )
   .presenter(async ({ providerOauthConnectionAuthAttempt }, opts) => ({
-    object: 'provider_oauth.connection.profile',
+    object: 'provider_oauth.connection.authentication',
 
     id: providerOauthConnectionAuthAttempt.id,
     status: providerOauthConnectionAuthAttempt.associatedTokenErrorDisabledAt
@@ -87,7 +87,7 @@ export let v1ProviderOauthConnectionAuthenticationPresenter = Presenter.create(
   }))
   .schema(
     v.object({
-      object: v.literal('provider_oauth.connection.profile'),
+      object: v.literal('provider_oauth.connection.authentication'),
 
       id: v.string({
         name: 'id',
@@ -163,7 +163,7 @@ export let v1ProviderOauthConnectionAuthenticationPresenter = Presenter.create(
         description: 'The ID of the related OAuth connection'
       }),
 
-      profile: v1ProviderOauthConnectionProfilePresenter.schema,
+      profile: v.nullable(v1ProviderOauthConnectionProfilePresenter.schema),
 
       created_at: v.date({
         name: 'created_at',
