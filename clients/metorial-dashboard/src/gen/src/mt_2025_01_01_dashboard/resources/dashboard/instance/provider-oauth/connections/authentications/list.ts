@@ -3,7 +3,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type DashboardInstanceProviderOauthConnectionsAuthenticationsListOutput =
   {
     items: {
-      object: 'provider_oauth.connection.profile';
+      object: 'provider_oauth.connection.authentication';
       id: string;
       status: 'completed' | 'failed' | 'provider_disabled';
       error: { code: string; message: string | null } | null;
@@ -28,7 +28,7 @@ export type DashboardInstanceProviderOauthConnectionsAuthenticationsListOutput =
         createdAt: Date;
         lastUsedAt: Date;
         updatedAt: Date;
-      };
+      } | null;
       createdAt: Date;
     }[];
     pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
