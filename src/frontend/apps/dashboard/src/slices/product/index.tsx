@@ -42,6 +42,9 @@ let ProviderConnectionsListLayout = dynamicPage(() =>
 let ManagedServersListLayout = dynamicPage(() =>
   import('./pages/(custom-servers)/(list)/_layout').then(c => c.ManagedServersListLayout)
 );
+let ExternalServersListLayout = dynamicPage(() =>
+  import('./pages/(custom-servers)/(list)/_layout').then(c => c.ExternalServersListLayout)
+);
 let ServersListLayout = dynamicPage(() =>
   import('./pages/(servers)/(list)/_layout').then(c => c.ServersListLayout)
 );
@@ -260,6 +263,22 @@ export let productInnerSlice = createSlice([
               {
                 path: 'managed-servers',
                 element: <ManagedServersPage />
+              }
+            ]
+          },
+
+          {
+            path: '',
+            element: (
+              <FlaggedPage flag="metorial-gateway-enabled">
+                <ExternalServersListLayout />
+              </FlaggedPage>
+            ),
+
+            children: [
+              {
+                path: 'external-servers',
+                element: <ExternalServersPage />
               }
             ]
           },

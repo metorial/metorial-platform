@@ -50,3 +50,22 @@ export let ManagedServersListLayout = () => {
     </ContentLayout>
   );
 };
+
+export let ExternalServersListLayout = () => {
+  let instance = useCurrentInstance();
+  let project = useCurrentProject();
+  let organization = useCurrentOrganization();
+
+  let pathname = useLocation().pathname;
+
+  return (
+    <ContentLayout>
+      <PageHeader
+        title="External Servers"
+        description="Connect to external MCP servers using the Metorial platform."
+      />
+
+      <Outlet />
+    </ContentLayout>
+  );
+};

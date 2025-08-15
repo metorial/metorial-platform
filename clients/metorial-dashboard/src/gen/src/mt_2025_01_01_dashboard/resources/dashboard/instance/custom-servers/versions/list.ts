@@ -6,6 +6,7 @@ export type DashboardInstanceCustomServersVersionsListOutput = {
     id: string;
     status: 'upcoming' | 'available' | 'current';
     type: 'remote';
+    isCurrent: boolean;
     versionIndex: number;
     versionHash: string;
     serverVersion: {
@@ -32,8 +33,6 @@ export type DashboardInstanceCustomServersVersionsListOutput = {
         updatedAt: Date;
       } | null;
     };
-    environmentId: string;
-    instanceId: string;
     customServerId: string;
     createdAt: Date;
     updatedAt: Date;
@@ -51,6 +50,7 @@ export let mapDashboardInstanceCustomServersVersionsListOutput =
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
+          isCurrent: mtMap.objectField('is_current', mtMap.passthrough()),
           versionIndex: mtMap.objectField('version_index', mtMap.passthrough()),
           versionHash: mtMap.objectField('version_hash', mtMap.passthrough()),
           serverVersion: mtMap.objectField(
@@ -125,11 +125,6 @@ export let mapDashboardInstanceCustomServersVersionsListOutput =
               )
             })
           ),
-          environmentId: mtMap.objectField(
-            'environment_id',
-            mtMap.passthrough()
-          ),
-          instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
           customServerId: mtMap.objectField(
             'custom_server_id',
             mtMap.passthrough()

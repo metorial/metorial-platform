@@ -1,5 +1,6 @@
 import {
   CustomServer,
+  CustomServerType,
   db,
   ID,
   Instance,
@@ -9,21 +10,23 @@ import {
   withTransaction
 } from '@metorial/db';
 import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
+import { profileService } from '@metorial/module-community';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
+import { createShortIdGenerator } from '@metorial/slugify';
 import { customServerVersionService } from './customServerVersion';
 
 let include = {
   server: true,
-  environments: {
-    include: {
-      instance: true,
-      customServer: true,
-      serverVariant: true,
-      currentVersion: true
-    }
-  }
+  instance: true,
+  serverVariant: true,
+  currentVersion: true
 };
+
+let getVariantIdentifier = createShortIdGenerator(
+  async id => !(await db.serverVariant.findFirst({ where: { identifier: id } })),
+  { length: 8 }
+);
 
 class customServerServiceImpl {
   async createCustomServer(d: {
@@ -61,6 +64,41 @@ class customServerServiceImpl {
         }
       });
 
+      let profile = await profileService.ensureProfile({
+        for: {
+          type: 'organization',
+          organization: d.organization
+        }
+      });
+      let provider = await profileService.ensureProfileVariantProvider({
+        profile
+      });
+
+      let variant = await db.serverVariant.create({
+        data: {
+          id: await ID.generateId('serverVariant'),
+          identifier: await getVariantIdentifier(),
+
+          // There can be multiple production instances,
+          // and hence also multiple default variants.
+          // This is not unique.
+          isDefault: d.instance.type == 'production',
+
+          defaultForInstanceOid: d.instance.oid,
+
+          providerOid: provider.oid,
+          serverOid: server.oid,
+
+          // TODO: Add other service types as needed
+          sourceType:
+            d.serverInstance.type == 'remote'
+              ? 'remote'
+              : (() => {
+                  throw new Error('Unsupported server type');
+                })()
+        }
+      });
+
       let customServer = await db.customServer.create({
         data: {
           id: await ID.generateId('customServer'),
@@ -69,6 +107,8 @@ class customServerServiceImpl {
           isEphemeral: d.isEphemeral,
           serverOid: server.oid,
           organizationOid: d.organization.oid,
+          serverVariantOid: variant.oid,
+          instanceOid: d.instance.oid,
           name: d.input.name,
           description: d.input.description
         }
@@ -170,14 +210,16 @@ class customServerServiceImpl {
     });
   }
 
-  async listCustomServers(d: { organization: Organization }) {
+  async listCustomServers(d: { organization: Organization; types?: CustomServerType[] }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.customServer.findMany({
             ...opts,
             where: {
-              organizationOid: d.organization.oid
+              organizationOid: d.organization.oid,
+
+              type: d.types ? { in: d.types } : undefined
             },
             include
           })

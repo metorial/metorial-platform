@@ -19,12 +19,14 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
       remote: 'remote'
     }[customServerVersion.customServer.type],
 
+    is_current: customServerVersion.currentVersionForServer ? true : false,
+
     version_index: customServerVersion.versionIndex,
     version_hash: customServerVersion.versionHash,
 
     server_version: v1ServerVersionPreview(
       customServerVersion.serverVersion,
-      customServerVersion.environment.serverVariant,
+      customServerVersion.customServer.serverVariant,
       customServerVersion.customServer.server
     ),
 
@@ -37,8 +39,6 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
         : null
     },
 
-    environment_id: customServerVersion.environment.id,
-    instance_id: customServerVersion.instance.id,
     custom_server_id: customServerVersion.customServer.id,
 
     created_at: customServerVersion.createdAt,
@@ -63,6 +63,11 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
         description: `The type of the custom server version`
       }),
 
+      is_current: v.boolean({
+        name: 'is_current',
+        description: `Indicates if this version is the current version for the server`
+      }),
+
       version_index: v.number({
         name: 'version_index',
         description: `The index of the custom server version`
@@ -82,14 +87,6 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
         remote_server: v.nullable(v1RemoteServerPresenter.schema)
       }),
 
-      environment_id: v.string({
-        name: 'environment_id',
-        description: `The ID of the custom server environment this version belongs to`
-      }),
-      instance_id: v.string({
-        name: 'instance_id',
-        description: `The ID of the instance associated with this custom server version`
-      }),
       custom_server_id: v.string({
         name: 'custom_server_id',
         description: `The ID of the custom server this version belongs to`

@@ -1,8 +1,8 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { customServerType } from '../types';
-import { v1CustomServerEnvironmentPresenter } from './customServerEnvironment';
 import { v1ServerPreview } from './serverPreview';
+import { v1ServerVariantPreview } from './serverVariantPreview';
 
 export let v1CustomServerPresenter = Presenter.create(customServerType)
   .presenter(async ({ customServer }, opts) => ({
@@ -26,19 +26,9 @@ export let v1CustomServerPresenter = Presenter.create(customServerType)
 
     server: v1ServerPreview(customServer.server),
 
-    environments: await Promise.all(
-      customServer.environments.map(async environment =>
-        v1CustomServerEnvironmentPresenter
-          .present(
-            {
-              customServerEnvironment: environment,
-              server: customServer.server
-            },
-            opts
-          )
-          .run()
-      )
-    ),
+    server_variant: v1ServerVariantPreview(customServer.serverVariant, customServer.server),
+
+    current_server_version_id: customServer.currentVersion?.id ?? null,
 
     created_at: customServer.createdAt,
     updated_at: customServer.updatedAt,
@@ -73,10 +63,14 @@ export let v1CustomServerPresenter = Presenter.create(customServerType)
 
       server: v1ServerPreview.schema,
 
-      environments: v.array(v1CustomServerEnvironmentPresenter.schema, {
-        name: 'environments',
-        description: 'List of environments associated with the custom server'
-      }),
+      server_variant: v1ServerVariantPreview.schema,
+
+      current_server_version_id: v.nullable(
+        v.string({
+          name: 'current_server_version_id',
+          description: `The ID of the current server version, if available`
+        })
+      ),
 
       created_at: v.date({
         name: 'created_at',

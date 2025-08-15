@@ -4,6 +4,7 @@ import { remoteServerService } from '@metorial/module-remote-server';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { customServerPresenter } from '../../presenters';
@@ -19,6 +20,8 @@ export let customServerGroup = instanceGroup.use(async ctx => {
   return { customServer };
 });
 
+let customServerTypeEnum = v.enumOf(['remote']);
+
 export let customServerController = Controller.create(
   {
     name: 'Custom Server',
@@ -33,10 +36,18 @@ export let customServerController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .outputList(customServerPresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            type: v.optional(v.union([v.array(customServerTypeEnum), customServerTypeEnum]))
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await customServerService.listCustomServers({
-          organization: ctx.organization
+          organization: ctx.organization,
+          types: normalizeArrayParam(ctx.query.type)
         });
 
         let list = await paginator.run(ctx.query);

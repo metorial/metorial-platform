@@ -18,28 +18,17 @@ export type CustomServersListOutput = {
       createdAt: Date;
       updatedAt: Date;
     };
-    environments: {
-      object: 'custom_server.environment';
+    serverVariant: {
+      object: 'server.server_variant#preview';
       id: string;
-      status: 'active' | 'archived' | 'deleted';
-      type: 'remote';
-      name: string;
-      instanceId: string;
-      customServerId: string;
-      serverVariant: {
-        object: 'server.server_variant#preview';
-        id: string;
-        identifier: string;
-        serverId: string;
-        source:
-          | { type: 'docker'; docker: { image: string } }
-          | { type: 'remote'; remote: { domain: string } };
-        createdAt: Date;
-      };
-      currentServerVersionId: string | null;
+      identifier: string;
+      serverId: string;
+      source:
+        | { type: 'docker'; docker: { image: string } }
+        | { type: 'remote'; remote: { domain: string } };
       createdAt: Date;
-      updatedAt: Date;
-    }[];
+    };
+    currentServerVersionId: string | null;
     createdAt: Date;
     updatedAt: Date;
     deletedAt: Date | null;
@@ -71,70 +60,42 @@ export let mapCustomServersListOutput = mtMap.object<CustomServersListOutput>({
             updatedAt: mtMap.objectField('updated_at', mtMap.date())
           })
         ),
-        environments: mtMap.objectField(
-          'environments',
-          mtMap.array(
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-              customServerId: mtMap.objectField(
-                'custom_server_id',
-                mtMap.passthrough()
-              ),
-              serverVariant: mtMap.objectField(
-                'server_variant',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  identifier: mtMap.objectField(
-                    'identifier',
-                    mtMap.passthrough()
-                  ),
-                  serverId: mtMap.objectField('server_id', mtMap.passthrough()),
-                  source: mtMap.objectField(
-                    'source',
-                    mtMap.union([
-                      mtMap.unionOption(
-                        'object',
-                        mtMap.object({
-                          type: mtMap.objectField('type', mtMap.passthrough()),
-                          docker: mtMap.objectField(
-                            'docker',
-                            mtMap.object({
-                              image: mtMap.objectField(
-                                'image',
-                                mtMap.passthrough()
-                              )
-                            })
-                          ),
-                          remote: mtMap.objectField(
-                            'remote',
-                            mtMap.object({
-                              domain: mtMap.objectField(
-                                'domain',
-                                mtMap.passthrough()
-                              )
-                            })
-                          )
-                        })
-                      )
-                    ])
-                  ),
-                  createdAt: mtMap.objectField('created_at', mtMap.date())
-                })
-              ),
-              currentServerVersionId: mtMap.objectField(
-                'current_server_version_id',
-                mtMap.passthrough()
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          )
+        serverVariant: mtMap.objectField(
+          'server_variant',
+          mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            identifier: mtMap.objectField('identifier', mtMap.passthrough()),
+            serverId: mtMap.objectField('server_id', mtMap.passthrough()),
+            source: mtMap.objectField(
+              'source',
+              mtMap.union([
+                mtMap.unionOption(
+                  'object',
+                  mtMap.object({
+                    type: mtMap.objectField('type', mtMap.passthrough()),
+                    docker: mtMap.objectField(
+                      'docker',
+                      mtMap.object({
+                        image: mtMap.objectField('image', mtMap.passthrough())
+                      })
+                    ),
+                    remote: mtMap.objectField(
+                      'remote',
+                      mtMap.object({
+                        domain: mtMap.objectField('domain', mtMap.passthrough())
+                      })
+                    )
+                  })
+                )
+              ])
+            ),
+            createdAt: mtMap.objectField('created_at', mtMap.date())
+          })
+        ),
+        currentServerVersionId: mtMap.objectField(
+          'current_server_version_id',
+          mtMap.passthrough()
         ),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date()),
@@ -157,7 +118,7 @@ export type CustomServersListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & { type?: 'remote'[] | 'remote' | undefined };
 
 export let mapCustomServersListQuery = mtMap.union([
   mtMap.unionOption(
@@ -167,7 +128,11 @@ export let mapCustomServersListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      type: mtMap.objectField(
+        'type',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      )
     })
   )
 ]);

@@ -55,10 +55,9 @@ model ServerVariant {
   serverImplementations   ServerImplementation[]
   serverDeployments       ServerDeployment[]
   serverAutoDiscoveryJobs ServerAutoDiscoveryJob[]
-  customServerEnvironment CustomServerEnvironment?
 
   createdAt        DateTime  @default(now())
   lastDiscoveredAt DateTime?
-  Instance         Instance? @relation(fields: [instanceOid], references: [oid])
-  instanceOid      BigInt?
+
+  customServer CustomServer?
 }

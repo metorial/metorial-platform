@@ -43,9 +43,8 @@ model Instance {
   serverRunErrors          ServerRunError[]
   providerOAuthConnections ProviderOAuthConnection[]
   sessionConnections       SessionConnection[]
-  serverEnvironments       CustomServerEnvironment[]
   customServerVersions     CustomServerVersion[]
   defaultServerVariants    ServerVariant[]           @relation("ServerVariantDefaultForInstance")
   onlyServerVariants       ServerVariant[]           @relation("ServerVariantOnlyForInstance")
-  ServerVariant            ServerVariant[]
+  customServers            CustomServer[]
 }

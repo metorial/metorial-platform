@@ -2,7 +2,6 @@ import {
   ApiKey,
   ApiKeySecret,
   CustomServer,
-  CustomServerEnvironment,
   CustomServerVersion,
   File,
   FileLink,
@@ -388,36 +387,21 @@ export let remoteServerNotificationType = PresentableType.create<{
 export let customServerType = PresentableType.create<{
   customServer: CustomServer & {
     server: Server;
-    environments: (CustomServerEnvironment & {
-      customServer: CustomServer;
-      instance: Instance;
-      serverVariant: ServerVariant;
-      currentVersion: CustomServerVersion | null;
-    })[];
-  };
-}>()('custom_server');
-
-export let customServerEnvironmentType = PresentableType.create<{
-  customServerEnvironment: CustomServerEnvironment & {
-    customServer: CustomServer;
     instance: Instance;
     serverVariant: ServerVariant;
     currentVersion: CustomServerVersion | null;
   };
-  server: Server;
-}>()('custom_server.environment');
+}>()('custom_server');
 
 export let customServerVersionType = PresentableType.create<{
   customServerVersion: CustomServerVersion & {
     customServer: CustomServer & {
       server: Server;
-    };
-    environment: CustomServerEnvironment & {
       serverVariant: ServerVariant;
     };
     instance: Instance;
     serverVersion: ServerVersion;
-    currentVersionForServer: CustomServerEnvironment | null;
+    currentVersionForServer: CustomServer | null;
     remoteServerInstance:
       | (RemoteServerInstance & {
           connection: ProviderOAuthConnection | null;

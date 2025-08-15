@@ -18,11 +18,13 @@ import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { createShortIdGenerator } from '@metorial/slugify';
 import { validateJsonSchema } from '../lib/jsonSchema';
-import { customServerEnvironmentService } from './customServerEnvironment';
 
 let include = {
   customServer: {
-    include: { server: true }
+    include: {
+      server: true,
+      serverVariant: true
+    }
   },
   environment: {
     include: { serverVariant: true }
@@ -30,9 +32,7 @@ let include = {
   instance: true,
   serverVersion: true,
   remoteServerInstance: {
-    include: {
-      connection: true
-    }
+    include: { connection: true }
   },
   currentVersionForServer: true
 };
@@ -111,10 +111,8 @@ class CustomServerVersionServiceImpl {
       d.server.id,
       async () =>
         await withTransaction(async db => {
-          let environment = await customServerEnvironmentService.ensureEnvironment({
-            server: d.server,
-            instance: d.instance,
-            organization: d.organization
+          let server = await db.customServer.findFirstOrThrow({
+            where: { oid: d.server.oid }
           });
 
           let getLaunchParams: string;
@@ -132,8 +130,8 @@ class CustomServerVersionServiceImpl {
               await db.remoteServerInstance.update({
                 where: { oid: d.serverInstance.implementation.oid },
                 data: {
-                  name: d.server.name,
-                  description: d.server.description
+                  name: server.name,
+                  description: server.description
                 }
               });
             }
@@ -141,8 +139,8 @@ class CustomServerVersionServiceImpl {
             throw new Error('WTF - Unsupported implementation type');
           }
 
-          let { maxVersionIndex } = await db.customServerEnvironment.update({
-            where: { oid: environment.oid },
+          let { maxVersionIndex } = await db.customServer.update({
+            where: { oid: server.oid },
             data: { maxVersionIndex: { increment: 1 } },
             select: { maxVersionIndex: true }
           });
@@ -152,16 +150,16 @@ class CustomServerVersionServiceImpl {
           let schema = await ensureServerConfig(async () => ({
             fingerprint: await Hash.sha256(canonicalize(configSchema)),
             schema: configSchema,
-            serverOid: d.server.serverOid,
-            serverVariantOid: environment.serverVariantOid
+            serverOid: server.serverOid,
+            serverVariantOid: server.serverVariantOid
           }));
 
           let serverVersion = await db.serverVersion.create({
             data: {
               id: await ID.generateId('serverVersion'),
               identifier: versionHash,
-              serverVariantOid: environment.serverVariantOid,
-              serverOid: d.server.serverOid,
+              serverVariantOid: server.serverVariantOid,
+              serverOid: server.serverOid,
               sourceType: 'remote',
               schemaOid: schema.oid,
               getLaunchParams,
@@ -179,8 +177,7 @@ class CustomServerVersionServiceImpl {
               versionHash,
               versionIndex: maxVersionIndex,
 
-              customServerOid: d.server.oid,
-              environmentOid: environment.oid,
+              customServerOid: server.oid,
               serverVersionOid: serverVersion.oid,
               instanceOid: d.instance.oid,
 
@@ -190,7 +187,7 @@ class CustomServerVersionServiceImpl {
             include
           });
 
-          if (!environment.currentVersionOid) {
+          if (!server.currentVersionOid) {
             await this.setCurrentVersionWithoutLock({
               server: d.server,
               instance: d.instance,
@@ -301,21 +298,15 @@ class CustomServerVersionServiceImpl {
     }
 
     return await withTransaction(async db => {
-      let environment = await customServerEnvironmentService.ensureEnvironment({
-        server: d.server,
-        instance: d.instance,
-        organization: d.organization
-      });
-
-      await db.customServerEnvironment.updateMany({
-        where: { oid: environment.oid },
+      await db.customServer.updateMany({
+        where: { oid: d.server.oid },
         data: {
           currentVersionOid: d.version.oid
         }
       });
 
       await db.serverVariant.updateMany({
-        where: { oid: environment.serverVariantOid },
+        where: { oid: d.server.serverVariantOid },
         data: {
           currentVersionOid: d.version.serverVersionOid,
           remoteUrl: d.version.serverVersion.remoteUrl,
@@ -359,14 +350,6 @@ class CustomServerVersionServiceImpl {
     server: CustomServer;
     instance?: Instance & { organization: Organization };
   }) {
-    let environment = d.instance
-      ? await customServerEnvironmentService.ensureEnvironment({
-          server: d.server,
-          instance: d.instance,
-          organization: d.instance.organization
-        })
-      : undefined;
-
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -374,7 +357,7 @@ class CustomServerVersionServiceImpl {
             ...opts,
             where: {
               customServerOid: d.server.oid,
-              environmentOid: environment?.oid
+              instanceOid: d.instance?.oid
             },
             include
           })
@@ -387,20 +370,12 @@ class CustomServerVersionServiceImpl {
     instance?: Instance & { organization: Organization };
     versionId: string;
   }) {
-    let environment = d.instance
-      ? await customServerEnvironmentService.ensureEnvironment({
-          server: d.server,
-          instance: d.instance,
-          organization: d.instance.organization
-        })
-      : undefined;
-
     let version = await db.customServerVersion.findFirst({
       where: {
         OR: [{ id: d.versionId }, { versionHash: d.versionId }],
 
         customServerOid: d.server.oid,
-        environmentOid: environment?.oid
+        instanceOid: d.instance?.oid
       },
       include
     });
