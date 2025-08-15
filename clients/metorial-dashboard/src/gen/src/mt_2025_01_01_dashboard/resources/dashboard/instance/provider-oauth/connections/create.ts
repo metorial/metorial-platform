@@ -49,22 +49,33 @@ export type DashboardInstanceProviderOauthConnectionsCreateBody = {
   description?: string | undefined;
   discoveryUrl?: string | undefined;
   config: Record<string, any>;
-  clientId: string;
-  clientSecret: string;
   scopes: string[];
   metadata?: Record<string, any> | undefined;
-};
+} & (
+  | { clientId: string; clientSecret: string }
+  | { autoRegistrationId: string }
+);
 
-export let mapDashboardInstanceProviderOauthConnectionsCreateBody =
-  mtMap.object<DashboardInstanceProviderOauthConnectionsCreateBody>({
-    templateId: mtMap.objectField('template_id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    discoveryUrl: mtMap.objectField('discovery_url', mtMap.passthrough()),
-    config: mtMap.objectField('config', mtMap.passthrough()),
-    clientId: mtMap.objectField('client_id', mtMap.passthrough()),
-    clientSecret: mtMap.objectField('client_secret', mtMap.passthrough()),
-    scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough())),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough())
-  });
+export let mapDashboardInstanceProviderOauthConnectionsCreateBody = mtMap.union(
+  [
+    mtMap.unionOption(
+      'object',
+      mtMap.object({
+        templateId: mtMap.objectField('template_id', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        discoveryUrl: mtMap.objectField('discovery_url', mtMap.passthrough()),
+        config: mtMap.objectField('config', mtMap.passthrough()),
+        scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough())),
+        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+        clientId: mtMap.objectField('client_id', mtMap.passthrough()),
+        clientSecret: mtMap.objectField('client_secret', mtMap.passthrough()),
+        autoRegistrationId: mtMap.objectField(
+          'auto_registration_id',
+          mtMap.passthrough()
+        )
+      })
+    )
+  ]
+);
 

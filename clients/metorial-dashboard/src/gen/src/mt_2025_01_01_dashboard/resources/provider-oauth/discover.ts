@@ -8,6 +8,7 @@ export type ProviderOauthDiscoverOutput = {
   config: Record<string, any>;
   createdAt: Date;
   refreshedAt: Date;
+  autoRegistrationId: string | null;
 };
 
 export let mapProviderOauthDiscoverOutput =
@@ -18,7 +19,11 @@ export let mapProviderOauthDiscoverOutput =
     providerUrl: mtMap.objectField('provider_url', mtMap.passthrough()),
     config: mtMap.objectField('config', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
-    refreshedAt: mtMap.objectField('refreshed_at', mtMap.date())
+    refreshedAt: mtMap.objectField('refreshed_at', mtMap.date()),
+    autoRegistrationId: mtMap.objectField(
+      'auto_registration_id',
+      mtMap.passthrough()
+    )
   });
 
 export type ProviderOauthDiscoverBody = { discoveryUrl: string };
