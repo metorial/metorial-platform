@@ -1,4 +1,4 @@
-export let redirectHtml = (d: { url: string }) => `<!DOCTYPE html>
+export let redirectHtml = (d: { url: string; delay?: number }) => `<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -61,7 +61,7 @@ export let redirectHtml = (d: { url: string }) => `<!DOCTYPE html>
   <script>
     setTimeout(() => {
       window.location.href = '${d.url}';
-    }, 1000);
+    }, ${d.delay ?? 1000});
   </script>
     
 </body>

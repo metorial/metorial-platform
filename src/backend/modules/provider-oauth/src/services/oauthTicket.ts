@@ -17,6 +17,7 @@ export type OAuthTicket = {
   type: 'oauth.authenticate';
   clientId: string;
   redirectUri: string;
+  immediate?: boolean;
 };
 
 let type = 'poauth_ticket';

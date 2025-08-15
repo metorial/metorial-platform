@@ -52,7 +52,11 @@ export let providerOauthController = createHono()
           });
         }
 
-        return c.html(redirectHtml({ url: redirectUrl }));
+        if (ticketRes.immediate) {
+          return c.redirect(redirectUrl, 302);
+        }
+
+        return c.html(redirectHtml({ url: redirectUrl, delay: 1000 }));
       })
   )
   .get(
