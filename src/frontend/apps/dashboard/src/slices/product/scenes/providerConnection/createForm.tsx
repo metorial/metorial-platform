@@ -97,6 +97,7 @@ export let ProviderConnectionCreateForm = (p: {
   }, [currentStep, providerUrl]);
 
   let autoDiscovery = useAutoDiscoverProviderConnection();
+  let [autoRegistrationId, setAutoRegistrationId] = useState<string | undefined>(undefined);
 
   let selectedTemplate = templates.data?.items.find(
     template => template.id === selectedTemplateId
@@ -151,12 +152,20 @@ export let ProviderConnectionCreateForm = (p: {
         description: values.description || undefined,
         discoveryUrl: values.discoveryUrl || undefined,
         templateId: selectedTemplateId || undefined,
-        clientId: values.clientId,
-        clientSecret: values.clientSecret,
+
         scopes: values.scopes.filter(s => s && s.trim()) as string[],
         config,
         metadata: values.metadata || {},
-        instanceId: instance.data.id
+        instanceId: instance.data.id,
+
+        ...(autoRegistrationId
+          ? {
+              autoRegistrationId: autoRegistrationId
+            }
+          : {
+              clientId: values.clientId,
+              clientSecret: values.clientSecret
+            })
       });
 
       if (res) {
@@ -209,6 +218,15 @@ export let ProviderConnectionCreateForm = (p: {
     form.resetForm();
 
     if (res) {
+      if (res.autoRegistrationId) {
+        setAutoRegistrationId(res.autoRegistrationId);
+        form.setFieldValue('clientId', 'empty');
+        form.setFieldValue('clientSecret', 'empty');
+      } else if (res.config.client_id && res.config.client_secret) {
+        form.setFieldValue('clientId', res.config.client_id);
+        form.setFieldValue('clientSecret', res.config.client_secret);
+      }
+
       form.setFieldValue('discoveryUrl', providerUrl);
       form.setFieldValue('config', JSON.stringify(res.config, null, 2));
       form.setFieldValue('name', res.providerName);
@@ -413,24 +431,28 @@ export let ProviderConnectionCreateForm = (p: {
               if (providerUrl) {
                 return (
                   <>
-                    <Input
-                      label="Client ID"
-                      description="Create a new OAuth application for the provider to get your Client ID and Client Secret."
-                      {...form.getFieldProps('clientId')}
-                      autoFocus
-                    />
-                    <form.RenderError field="clientId" />
+                    {!autoRegistrationId && (
+                      <>
+                        <Input
+                          label="Client ID"
+                          description="Create a new OAuth application for the provider to get your Client ID and Client Secret."
+                          {...form.getFieldProps('clientId')}
+                          autoFocus
+                        />
+                        <form.RenderError field="clientId" />
 
-                    <Spacer size={15} />
+                        <Spacer size={15} />
 
-                    <Input
-                      label="Client Secret"
-                      type="password"
-                      {...form.getFieldProps('clientSecret')}
-                    />
-                    <form.RenderError field="clientSecret" />
+                        <Input
+                          label="Client Secret"
+                          type="password"
+                          {...form.getFieldProps('clientSecret')}
+                        />
+                        <form.RenderError field="clientSecret" />
 
-                    <Spacer size={15} />
+                        <Spacer size={15} />
+                      </>
+                    )}
 
                     <TextArrayInput
                       label="Scopes"

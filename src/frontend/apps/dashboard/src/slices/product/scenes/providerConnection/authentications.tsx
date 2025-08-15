@@ -5,7 +5,7 @@ import {
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderConnectionAuthentications } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
+import { Badge, RenderDate, Text, theme } from '@metorial/ui';
 import { ID, Table } from '@metorial/ui-product';
 import { switcher } from '../../../../lib/switcher';
 
@@ -38,10 +38,12 @@ export let ProviderConnectionAuthenticationsTable = (
             <Text size="2" weight="strong">
               {switcher({
                 completed: () =>
-                  authentication.profile
-                    ? (authentication.profile.email ??
-                      authentication.profile.name ?? <ID id={authentication.profile.sub} />)
-                    : 'No profile linked',
+                  authentication.profile ? (
+                    (authentication.profile.email ??
+                    authentication.profile.name ?? <ID id={authentication.profile.sub} />)
+                  ) : (
+                    <span style={{ color: theme.colors.gray600 }}>No profile</span>
+                  ),
                 failed: () => authentication.error?.message ?? 'Unknown Error',
                 provider_disabled: () => 'The provider connection has been disabled'
               })(authentication.status)}
