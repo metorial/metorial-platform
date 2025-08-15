@@ -224,7 +224,7 @@ export let v1DashboardSessionPresenter = Presenter.create(sessionType)
     };
   })
   .schema(
-    v.union([
+    v.intersection([
       v1SessionPresenter.schema,
       v.object({
         client: v.nullable(

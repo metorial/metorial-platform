@@ -23,12 +23,14 @@ export let dashboardOauthDiscoveryController = Controller.create(
       )
       .output(providerOauthDiscoveryPresenter)
       .do(async ctx => {
-        let discovery = await providerOauthDiscoveryService.discoverOauthConfig({
-          discoveryUrl: ctx.body.discovery_url
-        });
+        let { discovery, autoRegistration } =
+          await providerOauthDiscoveryService.discoverOauthConfig({
+            discoveryUrl: ctx.body.discovery_url
+          });
 
         return providerOauthDiscoveryPresenter.present({
-          providerOauthDiscoveryDocument: discovery
+          providerOauthDiscoveryDocument: discovery,
+          providerOauthAutoRegistration: autoRegistration
         });
       })
   }

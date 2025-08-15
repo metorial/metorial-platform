@@ -55,17 +55,26 @@ export let providerOauthConnectionController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.connection:write'] }))
       .body(
         'default',
-        v.object({
-          template_id: v.optional(v.string()),
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          discovery_url: v.optional(v.string()),
-          config: v.record(v.any()),
-          client_id: v.string(),
-          client_secret: v.string(),
-          scopes: v.array(v.string()),
-          metadata: v.optional(v.record(v.any()))
-        })
+        v.intersection([
+          v.object({
+            template_id: v.optional(v.string()),
+            name: v.optional(v.string()),
+            description: v.optional(v.string()),
+            discovery_url: v.optional(v.string()),
+            config: v.record(v.any()),
+            scopes: v.array(v.string()),
+            metadata: v.optional(v.record(v.any()))
+          }),
+          v.union([
+            v.object({
+              client_id: v.string(),
+              client_secret: v.string()
+            }),
+            v.object({
+              auto_registration_id: v.string()
+            })
+          ])
+        ])
       )
       .body(
         'mt_2025_01_01_pulsar',
@@ -99,8 +108,10 @@ export let providerOauthConnectionController = Controller.create(
             description: ctx.body.description,
             discoveryUrl: ctx.body.discovery_url,
             config: ctx.body.config as any,
-            clientId: ctx.body.client_id,
-            clientSecret: ctx.body.client_secret,
+            clientId: 'client_id' in ctx.body ? ctx.body.client_id : undefined,
+            clientSecret: 'client_secret' in ctx.body ? ctx.body.client_secret : undefined,
+            autoRegistrationId:
+              'auto_registration_id' in ctx.body ? ctx.body.auto_registration_id : undefined,
             scopes: ctx.body.scopes,
             metadata: ctx.body.metadata
           }

@@ -19,6 +19,7 @@ import {
   OrganizationMember,
   Profile,
   Project,
+  ProviderOAuthAutoRegistration,
   ProviderOAuthConnection,
   ProviderOAuthConnectionAuthAttempt,
   ProviderOAuthConnectionEvent,
@@ -369,6 +370,7 @@ export let providerOauthConnectionAuthenticationType = PresentableType.create<{
 
 export let providerOauthConnectionDiscoveryType = PresentableType.create<{
   providerOauthDiscoveryDocument: ProviderOAuthDiscoveryDocument;
+  providerOauthAutoRegistration: ProviderOAuthAutoRegistration | null;
 }>()('provider_oauth.discovery');
 
 export let remoteServerType = PresentableType.create<{
