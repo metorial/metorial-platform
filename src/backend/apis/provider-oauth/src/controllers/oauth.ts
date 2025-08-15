@@ -1,4 +1,3 @@
-import { getConfig } from '@metorial/config';
 import { createHono, useRequestContext } from '@metorial/hono';
 import {
   providerOauthAuthorizationService,
@@ -42,9 +41,7 @@ export let providerOauthController = createHono()
           await providerOauthAuthorizationService.startAuthorization({
             context,
             connection,
-            redirectUri: ticketRes.redirectUri,
-            getCallbackUrl: connection =>
-              `${getConfig().urls.providerOauthUrl}/provider-oauth/callback`
+            redirectUri: ticketRes.redirectUri
           });
 
         if (authAttempt.stateIdentifier) {
@@ -88,9 +85,7 @@ export let providerOauthController = createHono()
             state: query.state,
             error: query.error,
             errorDescription: query.error_description
-          },
-          getCallbackUrl: connection =>
-            `${getConfig().urls.providerOauthUrl}/provider-oauth/callback`
+          }
         });
 
         deleteCookie(c, STATE_COOKIE_NAME, { path: '/' });

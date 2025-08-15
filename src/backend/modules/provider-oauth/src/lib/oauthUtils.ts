@@ -5,7 +5,14 @@ import { getSentry } from '@metorial/sentry';
 import { getAxiosSsrfFilter } from '@metorial/ssrf';
 import axios from 'axios';
 import { customAlphabet } from 'nanoid';
-import { OAuthConfiguration, TokenResponse, UserProfile } from '../types';
+import { callbackUrl } from '../const';
+import {
+  OAuthConfiguration,
+  RegistrationResponse,
+  registrationResponseValidator,
+  TokenResponse,
+  UserProfile
+} from '../types';
 
 let id = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 21);
 
@@ -75,33 +82,49 @@ export class OAuthUtils {
     clientSecret,
     code,
     redirectUri,
-    codeVerifier
+    codeVerifier,
+    config
   }: {
     tokenEndpoint: string;
     clientId: string;
-    clientSecret: string;
+    clientSecret?: string;
     code: string;
     redirectUri: string;
     codeVerifier?: string;
+    config: OAuthConfiguration;
   }): Promise<TokenResponse> {
     let body = new URLSearchParams({
       grant_type: 'authorization_code',
       code,
-      redirect_uri: redirectUri,
-      client_id: clientId
+      redirect_uri: redirectUri
     });
+
+    // Always include client_id if public client
+    if (!clientSecret) {
+      body.set('client_id', clientId);
+    }
 
     if (codeVerifier) {
       body.set('code_verifier', codeVerifier);
     }
 
+    let headers: Record<string, string> = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Accept: 'application/json'
+    };
+
+    if (clientSecret) {
+      if (config.token_endpoint_auth_methods_supported?.includes('client_secret_basic')) {
+        headers.Authorization = `Basic ${btoa(`${clientId}:${clientSecret}`)}`;
+      } else {
+        body.set('client_id', clientId);
+        body.set('client_secret', clientSecret);
+      }
+    }
+
     try {
       let response = await axios.post<TokenResponse>(tokenEndpoint, body.toString(), {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
-          Accept: 'application/json'
-        },
+        headers,
         maxRedirects: 5,
         ...getAxiosSsrfFilter(tokenEndpoint)
       });
@@ -130,26 +153,42 @@ export class OAuthUtils {
     tokenEndpoint,
     clientId,
     clientSecret,
-    refreshToken
+    refreshToken,
+    config
   }: {
     tokenEndpoint: string;
     clientId: string;
-    clientSecret: string;
+    clientSecret?: string; // now optional
     refreshToken: string;
+    config: OAuthConfiguration;
   }): Promise<{ ok: true; response: TokenResponse } | { ok: false; message: string }> {
     let body = new URLSearchParams({
       grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-      client_id: clientId
+      refresh_token: refreshToken
     });
+
+    // Always include client_id if no client_secret (public client)
+    if (!clientSecret) {
+      body.set('client_id', clientId);
+    }
+
+    let headers: Record<string, string> = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Accept: 'application/json'
+    };
+
+    if (clientSecret) {
+      if (config.token_endpoint_auth_methods_supported?.includes('client_secret_basic')) {
+        headers.Authorization = `Basic ${btoa(`${clientId}:${clientSecret}`)}`;
+      } else {
+        body.set('client_id', clientId);
+        body.set('client_secret', clientSecret);
+      }
+    }
 
     try {
       let response = await axios.post<TokenResponse>(tokenEndpoint, body.toString(), {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
-          Accept: 'application/json'
-        },
+        headers,
         maxRedirects: 5,
         ...getAxiosSsrfFilter(tokenEndpoint)
       });
@@ -159,10 +198,7 @@ export class OAuthUtils {
       };
     } catch (error: any) {
       Sentry.captureException(error, {
-        extra: {
-          tokenEndpoint,
-          clientId
-        }
+        extra: { tokenEndpoint, clientId }
       });
       return {
         ok: false,
@@ -263,5 +299,67 @@ export class OAuthUtils {
 
   static async getConfigHash(config: OAuthConfiguration) {
     return await Hash.sha256(canonicalize(config));
+  }
+
+  static async registerClient(opts: { clientName: string }, config: OAuthConfiguration) {
+    if (!config.registration_endpoint) return null;
+
+    try {
+      let response = await axios.post<RegistrationResponse>(
+        config.registration_endpoint,
+        {
+          client_name: opts.clientName,
+          redirect_uris: [callbackUrl],
+          grant_types: config.grant_types_supported,
+          response_types: config.response_types_supported,
+          token_endpoint_auth_method: 'client_secret_basic'
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          maxRedirects: 5,
+          ...getAxiosSsrfFilter(config.registration_endpoint)
+        }
+      );
+
+      let data = response.data;
+
+      let val = registrationResponseValidator.validate(data);
+      if (!val.success) {
+        throw new ServiceError(
+          badRequestError({
+            message: `Invalid registration response from ${config.registration_endpoint}`,
+            details: val.errors
+          })
+        );
+      }
+
+      return {
+        ...data,
+        client_id: data.client_id,
+        client_secret: data.client_secret || undefined,
+        client_id_issued_at: data.client_id_issued_at
+          ? new Date(data.client_id_issued_at * 1000)
+          : undefined,
+        client_secret_expires_at: data.client_secret_expires_at
+          ? new Date(data.client_secret_expires_at * 1000)
+          : undefined,
+        registration_access_token: data.registration_access_token || undefined,
+        registration_client_uri: data.registration_client_uri
+          ? new URL(data.registration_client_uri, config.registration_endpoint).toString()
+          : undefined
+      };
+    } catch (error: any) {
+      Sentry.captureException(error, {
+        extra: {
+          registrationEndpoint: config.registration_endpoint,
+          clientName: opts.clientName
+        }
+      });
+
+      return null;
+    }
   }
 }

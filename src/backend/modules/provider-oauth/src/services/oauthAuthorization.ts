@@ -13,6 +13,7 @@ import { usageService } from '@metorial/module-usage';
 import { getSentry } from '@metorial/sentry';
 import { Service } from '@metorial/service';
 import { differenceInDays, differenceInMinutes, subMinutes } from 'date-fns';
+import { callbackUrl } from '../const';
 import { oauthErrorDescriptions } from '../lib/oauthErrors';
 import { OAuthUtils } from '../lib/oauthUtils';
 import { addErrorCheck } from '../queue/errorCheck';
@@ -25,7 +26,6 @@ class OauthAuthorizationServiceImpl {
     context: Context;
     connection: ProviderOAuthConnection;
     redirectUri: string;
-    getCallbackUrl: (d: { connection: ProviderOAuthConnection }) => string;
   }) {
     if (d.connection.status != 'active') {
       throw new ServiceError(badRequestError({ message: 'Connection has been deactivated' }));
@@ -33,8 +33,6 @@ class OauthAuthorizationServiceImpl {
 
     let config = d.connection.config as OAuthConfiguration;
     let supportsPKCE = !!config.code_challenge_methods_supported?.includes('S256');
-
-    let callbackUrl = d.getCallbackUrl({ connection: d.connection });
 
     await Fabric.fire('provider_oauth.connection.authentication.started:before', {
       context: d.context,
@@ -88,7 +86,6 @@ class OauthAuthorizationServiceImpl {
       error?: string;
       errorDescription?: string;
     };
-    getCallbackUrl: (d: { connection: ProviderOAuthConnection }) => string;
   }) {
     if (d.response.error) {
       if (d.response.state) {
@@ -164,18 +161,17 @@ class OauthAuthorizationServiceImpl {
       authAttempt: attempt
     });
 
-    let callbackUrl = d.getCallbackUrl({ connection });
-
     let tokenResponse: TokenResponse;
 
     try {
       tokenResponse = await OAuthUtils.exchangeCodeForTokens({
         tokenEndpoint: connection.config.token_endpoint,
         clientId: connection.clientId,
-        clientSecret: connection.clientSecret,
+        clientSecret: connection.clientSecret ?? undefined,
         code: d.response.code!,
         redirectUri: callbackUrl,
-        codeVerifier: attempt.codeVerifier ?? undefined
+        codeVerifier: attempt.codeVerifier ?? undefined,
+        config: connection.config
       });
     } catch (error) {
       await db.providerOAuthConnectionAuthAttempt.update({
@@ -395,8 +391,9 @@ class OauthAuthorizationServiceImpl {
         let res = await OAuthUtils.refreshAccessToken({
           tokenEndpoint: connection.config.token_endpoint,
           clientId: connection.clientId,
-          clientSecret: connection.clientSecret,
-          refreshToken: token.refreshToken
+          clientSecret: connection.clientSecret ?? undefined,
+          refreshToken: token.refreshToken,
+          config: connection.config
         });
 
         if (!res.ok) {

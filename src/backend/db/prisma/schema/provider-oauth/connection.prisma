@@ -26,7 +26,10 @@ model ProviderOAuthConnection {
   scopes String[]
 
   clientId     String
-  clientSecret String
+  clientSecret String?
+
+  registrationOid BigInt?
+  registration    ProviderOAuthAutoRegistration? @relation(fields: [registrationOid], references: [oid])
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])

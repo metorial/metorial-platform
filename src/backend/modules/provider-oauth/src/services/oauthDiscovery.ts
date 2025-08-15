@@ -1,12 +1,13 @@
 import { db, ID } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
+import { generatePlainId } from '@metorial/id';
 import { Service } from '@metorial/service';
 import { OAuthDiscovery } from '../lib/discovery';
 import { OAuthUtils } from '../lib/oauthUtils';
-import { oauthConfigValidator } from '../types';
+import { OAuthConfiguration, oauthConfigValidator } from '../types';
 
 class OauthDiscoveryServiceImpl {
-  async discoverOauthConfig(d: { discoveryUrl: string }) {
+  private async discoverOauthConfigInternal(d: { discoveryUrl: string }) {
     let existingDoc = await db.providerOAuthDiscoveryDocument.findUnique({
       where: { discoveryUrl: d.discoveryUrl }
     });
@@ -50,6 +51,46 @@ class OauthDiscoveryServiceImpl {
         discoveryUrl: d.discoveryUrl
       }
     });
+  }
+
+  async discoverOauthConfig(d: { discoveryUrl: string }) {
+    let discovery = await this.discoverOauthConfigInternal(d);
+
+    let config = discovery.config as OAuthConfiguration;
+    if (!config.registration_endpoint) {
+      return {
+        discovery,
+        autoRegistration: null
+      };
+    }
+
+    let clientName = `metorial.com - ${generatePlainId(12)}`;
+
+    let registration = await OAuthUtils.registerClient({ clientName }, config);
+    if (!registration) {
+      return {
+        discovery,
+        autoRegistration: null
+      };
+    }
+
+    let autoRegistration = await db.providerOAuthAutoRegistration.create({
+      data: {
+        id: await ID.generateId('oauthAutoRegistration'),
+        generatedClientName: clientName,
+        clientId: registration.client_id,
+        clientSecret: registration.client_secret,
+        clientSecretExpiresAt: registration.client_secret_expires_at,
+        registrationAccessToken: registration.registration_access_token,
+        registrationClientUri: registration.registration_client_uri,
+        discoveryDocumentOid: discovery.oid
+      }
+    });
+
+    return {
+      discovery,
+      autoRegistration
+    };
   }
 }
 

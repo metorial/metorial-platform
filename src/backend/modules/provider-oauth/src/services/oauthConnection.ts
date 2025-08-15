@@ -37,12 +37,15 @@ class OauthConnectionServiceImpl {
       discoveryUrl?: string;
       config: OAuthConfiguration;
 
-      clientId: string;
-      clientSecret: string;
+      clientId?: string;
+      clientSecret?: string;
+      autoRegistrationId?: string;
+
       scopes: string[];
 
       metadata?: Record<string, any>;
     };
+
     template?: ProviderOAuthConnectionTemplate;
   }) {
     await Fabric.fire('provider_oauth.connection.created:before', {
@@ -51,6 +54,29 @@ class OauthConnectionServiceImpl {
       performedBy: d.performedBy,
       context: d.context
     });
+
+    let clientId = d.input.clientId;
+    let clientSecret = d.input.clientSecret;
+    let registrationOid: bigint | null = null;
+
+    if (!clientId && d.input.autoRegistrationId) {
+      let autoReg = await db.providerOAuthAutoRegistration.findUnique({
+        where: { id: d.input.autoRegistrationId }
+      });
+      if (!autoReg) {
+        throw new ServiceError(
+          notFoundError('oauth_auto_registration', d.input.autoRegistrationId)
+        );
+      }
+
+      clientId = autoReg.clientId;
+      clientSecret = autoReg.clientSecret ?? undefined;
+      registrationOid = autoReg.oid;
+    }
+
+    if (!clientId) {
+      throw new ServiceError(badRequestError({ message: 'Client ID is required' }));
+    }
 
     return await withTransaction(async db => {
       let con = await db.providerOAuthConnection.create({
@@ -70,8 +96,10 @@ class OauthConnectionServiceImpl {
 
           scopes: d.input.scopes,
 
-          clientId: d.input.clientId,
-          clientSecret: d.input.clientSecret,
+          clientId,
+          clientSecret,
+
+          registrationOid,
 
           instanceOid: d.instance.oid,
           templateOid: d.template?.oid,
