@@ -1,6 +1,6 @@
 import { getAxiosSsrfFilter } from '@metorial/ssrf';
-import axios from 'axios';
 import { OAuthConfiguration } from '../types';
+import { axiosWithoutSse } from './axiosWithoutSse';
 
 export class OAuthDiscovery {
   private static readonly WELL_KNOWN_PATHS = [
@@ -19,6 +19,8 @@ export class OAuthDiscovery {
 
     let baseUrl = `${url.protocol}//${url.host}`;
 
+    console.log(1);
+
     try {
       let config = await this.fetchDiscoveryDocument(providerUrl);
       if (config) return config;
@@ -27,6 +29,20 @@ export class OAuthDiscovery {
     }
 
     for (let path of this.WELL_KNOWN_PATHS) {
+      console.log(0, path);
+
+      try {
+        let discoveryUrl = `${baseUrl}${url.pathname}${path}`;
+        let config = await this.fetchDiscoveryDocument(discoveryUrl);
+        if (config) return config;
+      } catch (error) {
+        console.debug(`Failed to fetch from ${path}:`, error);
+      }
+    }
+
+    for (let path of this.WELL_KNOWN_PATHS) {
+      console.log(2, path);
+
       try {
         let discoveryUrl = `${baseUrl}${path}`;
         let config = await this.fetchDiscoveryDocument(discoveryUrl);
@@ -35,6 +51,8 @@ export class OAuthDiscovery {
         console.debug(`Failed to fetch from ${path}:`, error);
       }
     }
+
+    console.log(3);
 
     try {
       let config = await this.wwwAuthenticateDiscovery(baseUrl);
@@ -50,13 +68,15 @@ export class OAuthDiscovery {
     url: string
   ): Promise<OAuthConfiguration | null> {
     try {
-      let response = await axios.get(url, {
+      let response = await axiosWithoutSse(url, {
+        method: 'GET',
         headers: {
           Accept: 'application/json',
-          'User-Agent': 'OAuth-Service/1.0'
+          'User-Agent': 'Metorial (https://metorial.com)'
         },
         validateStatus: status => status >= 200 && status < 500, // allow 4xx to fall through
         maxRedirects: 5,
+        timeout: 2000,
         ...getAxiosSsrfFilter(url)
       });
 
@@ -83,14 +103,16 @@ export class OAuthDiscovery {
     let timeoutId = setTimeout(() => controller.abort(), this.WWW_AUTHENTICATE_TIMEOUT);
 
     try {
-      let response = await axios.get(baseUrl, {
+      let response = await axiosWithoutSse(baseUrl, {
+        method: 'GET',
         headers: {
           Accept: 'application/json,text/event-stream',
-          'User-Agent': 'OAuth-Service/1.0'
+          'User-Agent': 'Metorial (https://metorial.com)'
         },
         signal: controller.signal,
-        validateStatus: () => true, // handle manually
+        validateStatus: () => true, // allow all statuses to be processed
         maxRedirects: 5,
+        timeout: 2000,
         ...getAxiosSsrfFilter(baseUrl)
       });
 

@@ -110,7 +110,8 @@ export class OAuthUtils {
 
     let headers: Record<string, string> = {
       'Content-Type': 'application/x-www-form-urlencoded',
-      Accept: 'application/json'
+      Accept: 'application/json',
+      'User-Agent': 'Metorial (https://metorial.com)'
     };
 
     if (clientSecret) {
@@ -174,7 +175,8 @@ export class OAuthUtils {
 
     let headers: Record<string, string> = {
       'Content-Type': 'application/x-www-form-urlencoded',
-      Accept: 'application/json'
+      Accept: 'application/json',
+      'User-Agent': 'Metorial (https://metorial.com)'
     };
 
     if (clientSecret) {
@@ -220,7 +222,8 @@ export class OAuthUtils {
       let response = await axios.get(userInfoEndpoint, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/json'
+          Accept: 'application/json',
+          'User-Agent': 'Metorial (https://metorial.com)'
         },
         maxRedirects: 5,
         ...getAxiosSsrfFilter(userInfoEndpoint)
@@ -317,7 +320,8 @@ export class OAuthUtils {
         {
           headers: {
             'Content-Type': 'application/json',
-            Accept: 'application/json'
+            Accept: 'application/json',
+            'User-Agent': 'Metorial (https://metorial.com)'
           },
           maxRedirects: 5,
           ...getAxiosSsrfFilter(config.registration_endpoint)

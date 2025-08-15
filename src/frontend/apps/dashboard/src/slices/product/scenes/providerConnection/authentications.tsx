@@ -27,7 +27,7 @@ export let ProviderConnectionAuthenticationsTable = (
   return renderWithPagination(authentications)(authentications => (
     <>
       <Table
-        headers={['Status', 'Info', 'Created']}
+        headers={['Status', 'Type', 'Info', 'Created']}
         data={authentications.data.items.map(authentication => ({
           data: [
             {
@@ -36,6 +36,9 @@ export let ProviderConnectionAuthenticationsTable = (
               provider_disabled: <Badge color="gray">Provider Disabled</Badge>
             }[authentication.status] ?? authentication.status,
             <Text size="2" weight="strong">
+              Authentication
+            </Text>,
+            <Text size="2">
               {switcher({
                 completed: () =>
                   authentication.profile ? (
