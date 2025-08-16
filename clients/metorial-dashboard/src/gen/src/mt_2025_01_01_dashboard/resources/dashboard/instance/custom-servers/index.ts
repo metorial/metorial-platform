@@ -1,5 +1,7 @@
 export * from './create';
 export * from './delete';
+export * from './deployments';
+export * from './events';
 export * from './get';
 export * from './list';
 export * from './remote-servers';

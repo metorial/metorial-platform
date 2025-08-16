@@ -18,7 +18,7 @@ import {
 
 /**
  * @name Custom Server controller
- * @description Manager custom servers
+ * @description Manager custom server versions
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -44,8 +44,8 @@ export class MetorialDashboardInstanceCustomServersVersionsEndpoint {
   }
 
   /**
-   * @name List custom servers
-   * @description List all custom servers
+   * @name List custom server versions
+   * @description List all custom server versions
    *
    * @param `instanceId` - string
    * @param `customServerId` - string
@@ -78,8 +78,8 @@ export class MetorialDashboardInstanceCustomServersVersionsEndpoint {
   }
 
   /**
-   * @name Create custom server
-   * @description Create a new custom server
+   * @name Create custom server version
+   * @description Create a new custom server version
    *
    * @param `instanceId` - string
    * @param `customServerId` - string
@@ -112,8 +112,8 @@ export class MetorialDashboardInstanceCustomServersVersionsEndpoint {
   }
 
   /**
-   * @name Get custom server
-   * @description Get information for a specific custom server
+   * @name Get custom server version
+   * @description Get information for a specific custom server version
    *
    * @param `instanceId` - string
    * @param `customServerId` - string

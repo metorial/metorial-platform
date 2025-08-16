@@ -1,20 +1,21 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type CustomServersRemoteServersNotificationsListOutput = {
+export type DashboardInstanceCustomServersEventsListOutput = {
   items: {
-    object: 'custom_server.remote_server.notification';
+    object: 'custom_server.event';
     id: string;
-    type: 'connection_issue';
+    type: 'remote_connection_issue';
     message: string;
-    payload: Record<string, any> | null;
-    remoteServerId: string;
+    payload: Record<string, any>;
+    customServerId: string;
+    customServerVersionId: string | null;
     createdAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapCustomServersRemoteServersNotificationsListOutput =
-  mtMap.object<CustomServersRemoteServersNotificationsListOutput>({
+export let mapDashboardInstanceCustomServersEventsListOutput =
+  mtMap.object<DashboardInstanceCustomServersEventsListOutput>({
     items: mtMap.objectField(
       'items',
       mtMap.array(
@@ -24,8 +25,12 @@ export let mapCustomServersRemoteServersNotificationsListOutput =
           type: mtMap.objectField('type', mtMap.passthrough()),
           message: mtMap.objectField('message', mtMap.passthrough()),
           payload: mtMap.objectField('payload', mtMap.passthrough()),
-          remoteServerId: mtMap.objectField(
-            'remote_server_id',
+          customServerId: mtMap.objectField(
+            'custom_server_id',
+            mtMap.passthrough()
+          ),
+          customServerVersionId: mtMap.objectField(
+            'custom_server_version_id',
             mtMap.passthrough()
           ),
           createdAt: mtMap.objectField('created_at', mtMap.date())
@@ -44,15 +49,15 @@ export let mapCustomServersRemoteServersNotificationsListOutput =
     )
   });
 
-export type CustomServersRemoteServersNotificationsListQuery = {
+export type DashboardInstanceCustomServersEventsListQuery = {
   limit?: number | undefined;
   after?: string | undefined;
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & { versionId?: string | string[] | undefined };
 
-export let mapCustomServersRemoteServersNotificationsListQuery = mtMap.union([
+export let mapDashboardInstanceCustomServersEventsListQuery = mtMap.union([
   mtMap.unionOption(
     'object',
     mtMap.object({
@@ -60,7 +65,17 @@ export let mapCustomServersRemoteServersNotificationsListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      versionId: mtMap.objectField(
+        'version_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
     })
   )
 ]);

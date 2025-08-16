@@ -102,12 +102,7 @@ export type ManagementInstanceCustomServersCreateBody = {
   metadata?: Record<string, any> | undefined;
   implementation: {
     type: 'remote_server';
-    remoteServer: {
-      name?: string | undefined;
-      description?: string | undefined;
-      connectionId?: string | undefined;
-      remoteUrl: string;
-    };
+    remoteServer: { remoteUrl: string };
     config?:
       | { schema?: any | undefined; getLaunchParams?: string | undefined }
       | undefined;
@@ -126,12 +121,6 @@ export let mapManagementInstanceCustomServersCreateBody =
         remoteServer: mtMap.objectField(
           'remote_server',
           mtMap.object({
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            connectionId: mtMap.objectField(
-              'connection_id',
-              mtMap.passthrough()
-            ),
             remoteUrl: mtMap.objectField('remote_url', mtMap.passthrough())
           })
         ),

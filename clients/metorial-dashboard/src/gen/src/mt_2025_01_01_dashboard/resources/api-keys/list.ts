@@ -30,7 +30,6 @@ export type ApiKeysListOutput = {
         id: string;
         type: 'member' | 'machine_access';
         organizationId: string;
-        actorId: string;
         name: string;
         email: string | null;
         imageUrl: string;
@@ -136,7 +135,6 @@ export let mapApiKeysListOutput = mtMap.object<ApiKeysListOutput>({
                   'organization_id',
                   mtMap.passthrough()
                 ),
-                actorId: mtMap.objectField('actor_id', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
                 email: mtMap.objectField('email', mtMap.passthrough()),
                 imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
