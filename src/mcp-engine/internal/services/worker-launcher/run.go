@@ -57,7 +57,24 @@ let launcherContext = (config) => ({
 
       return args.flatMap(arg => arg);
     }
-  }
+  },
+
+	getHeadersWithAuthorization: (otherHeaders) => {
+		let newHeaders = {};	
+		if (typeof otherHeaders == 'object' && otherHeaders !== null) {
+			newHeaders = { ...otherHeaders };
+		}
+
+		if (config.token) {
+			newHeaders['Authorization'] = 'Bearer ' + config.token;
+		}
+
+		if (config.oauth && config.oauth.accessToken) {
+			newHeaders['Authorization'] = 'Bearer ' + config.oauth.accessToken;
+		}
+
+		return newHeaders;
+	}
 })
 
 let config = %s;
