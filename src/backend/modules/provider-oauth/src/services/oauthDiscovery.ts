@@ -6,7 +6,7 @@ import { OAuthUtils } from '../lib/oauthUtils';
 import { OAuthConfiguration, oauthConfigValidator } from '../types';
 
 class OauthDiscoveryServiceImpl {
-  private async discoverOauthConfigInternal(d: { discoveryUrl: string }) {
+  async discoverOauthConfigWithoutRegistration(d: { discoveryUrl: string }) {
     let existingDoc = await db.providerOAuthDiscoveryDocument.findUnique({
       where: { discoveryUrl: d.discoveryUrl }
     });
@@ -58,7 +58,7 @@ class OauthDiscoveryServiceImpl {
       clientName: string;
     };
   }) {
-    let discovery = await this.discoverOauthConfigInternal(d);
+    let discovery = await this.discoverOauthConfigWithoutRegistration(d);
 
     let config = discovery.config as OAuthConfiguration;
     if (!config.registration_endpoint) {

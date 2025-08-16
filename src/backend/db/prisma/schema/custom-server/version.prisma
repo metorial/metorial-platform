@@ -1,11 +1,14 @@
 enum CustomServerVersionStatus {
   available
-  upcoming
+
+  deploying
+  deployment_failed
 }
 
 model CustomServerVersion {
-  oid    BigInt                    @id @default(autoincrement())
-  id     String                    @unique
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
   status CustomServerVersionStatus
 
   versionIndex Int
@@ -17,8 +20,11 @@ model CustomServerVersion {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])
 
-  serverVersionOid BigInt        @unique
-  serverVersion    ServerVersion @relation(fields: [serverVersionOid], references: [oid])
+  serverVersionOid BigInt?        @unique
+  serverVersion    ServerVersion? @relation(fields: [serverVersionOid], references: [oid])
+
+  deploymentOid BigInt?                 @unique
+  deployment    CustomServerDeployment? @relation(fields: [deploymentOid], references: [oid])
 
   currentVersionForServer CustomServer? @relation(name: "CurrentCustomServerVersion")
 

@@ -1,6 +1,5 @@
 enum CustomServerEventType {
   remote_connection_issue
-  remote_provider_oauth_auto_discovery
 }
 
 model CustomServerEvent {

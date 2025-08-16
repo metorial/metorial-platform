@@ -5,7 +5,7 @@ import {
   ID,
   Instance,
   Organization,
-  RemoteServerInstance,
+  OrganizationActor,
   Server,
   withTransaction
 } from '@metorial/db';
@@ -32,6 +32,7 @@ class customServerServiceImpl {
   async createCustomServer(d: {
     instance: Instance;
     organization: Organization;
+    performedBy: OrganizationActor;
 
     input: {
       name: string;
@@ -41,7 +42,9 @@ class customServerServiceImpl {
 
     serverInstance: {
       type: 'remote';
-      implementation: RemoteServerInstance;
+      implementation: {
+        remoteUrl: string;
+      };
 
       config?: {
         schema?: any;
@@ -119,6 +122,7 @@ class customServerServiceImpl {
         instance: d.instance,
         organization: d.organization,
         serverInstance: d.serverInstance,
+        performedBy: d.performedBy,
 
         // Permits us to update the server, even though it is not active.
         isEphemeralUpdate: d.isEphemeral

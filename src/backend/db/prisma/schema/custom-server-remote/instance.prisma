@@ -20,18 +20,17 @@ model RemoteServerInstance {
 
   remoteUrl String
 
-  connectionOid BigInt?
-  connection    ProviderOAuthConnection? @relation(fields: [connectionOid], references: [oid])
-
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
+  /// [ProviderOAuthConfig]
+  providerOAuthConfig               Json? // Use auto discovery if null
   providerOAuthDiscoveryStatus      RemoteServerInstanceProviderOAuthDiscoveryStatus @default(pending)
   providerOAuthDiscoveryDocumentOid BigInt?
   providerOAuthDiscoveryDocument    ProviderOAuthDiscoveryDocument?                  @relation(fields: [providerOAuthDiscoveryDocumentOid], references: [oid])
 
-  customServerVersions CustomServerVersion?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  customServerVersion CustomServerVersion?
 }

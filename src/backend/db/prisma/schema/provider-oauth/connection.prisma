@@ -40,9 +40,8 @@ model ProviderOAuthConnection {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  profiles              ProviderOAuthConnectionProfile[]
-  tokens                ProviderOAuthConnectionAuthToken[]
-  attempts              ProviderOAuthConnectionAuthAttempt[]
-  events                ProviderOAuthConnectionEvent[]
-  remoteServerInstances RemoteServerInstance[]
+  profiles ProviderOAuthConnectionProfile[]
+  tokens   ProviderOAuthConnectionAuthToken[]
+  attempts ProviderOAuthConnectionAuthAttempt[]
+  events   ProviderOAuthConnectionEvent[]
 }
