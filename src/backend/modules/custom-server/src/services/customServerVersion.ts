@@ -228,21 +228,21 @@ class CustomServerVersionServiceImpl {
     let serverVersion = d.version.serverVersion;
     if (!serverVersion) throw new Error('WTF - Server version not found');
 
-    let version = await db.customServerVersion.findFirstOrThrow({
-      where: {
-        oid: d.version.oid
-      }
-    });
-    if (version.status != 'available') {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Cannot set current version that is not available',
-          hint: 'Please wait for the version to become available before setting it as current.'
-        })
-      );
-    }
-
     return await withTransaction(async db => {
+      let version = await db.customServerVersion.findFirstOrThrow({
+        where: {
+          oid: d.version.oid
+        }
+      });
+      if (version.status != 'available') {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot set current version that is not available',
+            hint: 'Please wait for the version to become available before setting it as current.'
+          })
+        );
+      }
+
       await db.customServer.updateMany({
         where: { oid: d.server.oid },
         data: {

@@ -1,5 +1,6 @@
 import {
   CustomServerDeployment,
+  CustomServerDeploymentStep,
   CustomServerDeploymentStepStatus,
   CustomServerDeploymentStepType,
   db,
@@ -39,6 +40,22 @@ let createDeploymentStepManager = (opts: { deployment: CustomServerDeployment })
       status?: CustomServerDeploymentStepStatus;
       log?: Logs;
     }) => {
+      let upsertLogs = (current: CustomServerDeploymentStep | undefined, logs: Logs) => {
+        let currentLogs = current?.logs || [];
+
+        for (let log of logs) {
+          currentLogs.push([
+            Date.now(),
+            log.lines,
+            ...(log.type == 'error' ? [1] : [])
+          ] as any);
+        }
+
+        if (current) current.logs = currentLogs;
+
+        return currentLogs;
+      };
+
       let step = await db.customServerDeploymentStep.create({
         data: {
           id: await ID.generateId('customServerDeploymentStep'),
@@ -48,7 +65,7 @@ let createDeploymentStepManager = (opts: { deployment: CustomServerDeployment })
           deploymentOid: opts.deployment.oid,
           startedAt: new Date(),
           endedAt: d.status == 'completed' ? new Date() : null,
-          logs: d.log?.map(l => [Date.now(), l.lines, l.type == 'error' ? 1 : undefined])
+          logs: upsertLogs(undefined, d.log || [])
         }
       });
 
@@ -57,13 +74,7 @@ let createDeploymentStepManager = (opts: { deployment: CustomServerDeployment })
 
         step.status = status;
         step.endedAt = new Date();
-
-        if (logs) {
-          step.logs = step.logs || [];
-          for (let log of logs) {
-            step.logs.push([Date.now(), log.lines, log.type == 'error' ? 1 : undefined]);
-          }
-        }
+        if (logs) step.logs = upsertLogs(step, logs);
 
         await db.customServerDeploymentStep.updateMany({
           where: { id: step.id },
@@ -80,12 +91,11 @@ let createDeploymentStepManager = (opts: { deployment: CustomServerDeployment })
         complete: (logs?: Logs) => setStatus('completed', logs),
         fail: (logs?: Logs) => setStatus('failed', logs),
         addLog: async (log: string[], type?: 'info' | 'error') => {
-          step.logs = step.logs || [];
-          step.logs.push([Date.now(), log, type == 'error' ? 1 : undefined]);
+          let updatedLogs = upsertLogs(step, [{ type, lines: log }]);
 
           await db.customServerDeploymentStep.updateMany({
             where: { id: step.id },
-            data: { logs: step.logs }
+            data: { logs: updatedLogs }
           });
         }
       };
@@ -127,13 +137,25 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
       where: { id: customServerVersion.id },
       data: { status: 'deployment_failed' }
     });
+
+    await db.customServerDeploymentStep.updateMany({
+      where: { deploymentOid: deployment.oid, status: 'running' },
+      data: { status: 'failed', endedAt: new Date() }
+    });
   };
 
   let stepManager = createDeploymentStepManager({ deployment });
 
-  (await stepManager.createDeploymentStep({ type: 'started' })).addLog([
-    `Starting deployment for remote server ${remote.remoteUrl}`
-  ]);
+  await stepManager.createDeploymentStep({
+    type: 'started',
+    status: 'completed',
+    log: [
+      {
+        type: 'info',
+        lines: [`Starting deployment for remote server ${remote.remoteUrl}.`]
+      }
+    ]
+  });
 
   let checkStep = await stepManager.createDeploymentStep({
     type: 'remote_server_connection_test',
@@ -141,7 +163,7 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
     log: [
       {
         type: 'info',
-        lines: [`Running connection test for remote server ...`]
+        lines: [`Running connection test for remote server...`]
       }
     ]
   });
@@ -184,7 +206,7 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
     log: [
       {
         type: 'info',
-        lines: [`Attempting to discover OAuth configuration from remote server ...`]
+        lines: [`Attempting to discover OAuth configuration from remote server...`]
       }
     ]
   });
@@ -208,9 +230,10 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
         {
           type: 'info',
           lines: [
-            `OAuth configuration discovered successfully.`,
-            `Provider Name: ${autoDiscoveryRes.providerName}`,
-            `Provider URL: ${autoDiscoveryRes.providerUrl}`
+            `OAuth configuration:`,
+            ` * Provider Name: ${autoDiscoveryRes.providerName}`,
+            ` * Provider URL: ${autoDiscoveryRes.providerUrl}`,
+            'Metorial has successfully discovered the OAuth configuration from the remote server.'
           ]
         }
       ]);
@@ -236,11 +259,19 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
 
   let deploymentStep = await stepManager.createDeploymentStep({
     type: 'deploying',
-    status: 'running'
+    status: 'running',
+    log: [
+      {
+        type: 'info',
+        lines: ['Deploying custom server to Metorial...']
+      }
+    ]
   });
 
   try {
     await withTransaction(async db => {
+      await deploymentStep.addLog(['Creating server version...']);
+
       let serverVersion = await db.serverVersion.create({
         data: data.serverVersionData
       });
@@ -256,6 +287,14 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
         }
       });
 
+      await deploymentStep.addLog(['Updating current version...']);
+
+      await customServerVersionService.setCurrentVersion({
+        server: customServerVersion.customServer,
+        isEphemeralUpdate: true,
+        version
+      });
+
       await db.customServerDeployment.updateMany({
         where: { id: deployment.id },
         data: {
@@ -264,10 +303,9 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
         }
       });
 
-      await customServerVersionService.setCurrentVersion({
-        server: customServerVersion.customServer,
-        isEphemeralUpdate: true,
-        version
+      await db.customServerDeploymentStep.updateMany({
+        where: { deploymentOid: deployment.oid, status: 'running' },
+        data: { status: 'completed', endedAt: new Date() }
       });
     });
 
@@ -279,13 +317,19 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
       log: [
         {
           type: 'info',
-          lines: [`Remote server deployment completed successfully.`]
+          lines: [`Remote server deployed to Metorial successfully.`]
         }
       ]
     });
   } catch (error: any) {
+    console.error('Error during remote server deployment:', error);
     Sentry.captureException(error);
-    await discoveryStep.fail();
+    await discoveryStep.fail([
+      {
+        type: 'error',
+        lines: [`Remote server deployment failed.`]
+      }
+    ]);
     await failDeployment();
     return;
   }

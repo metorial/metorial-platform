@@ -19,47 +19,31 @@ export class OAuthDiscovery {
 
     let baseUrl = `${url.protocol}//${url.host}`;
 
-    console.log(1);
-
     try {
       let config = await this.fetchDiscoveryDocument(providerUrl);
       if (config) return config;
-    } catch (error) {
-      console.debug(`Failed to fetch from ${providerUrl}:`, error);
-    }
+    } catch (error) {}
 
     for (let path of this.WELL_KNOWN_PATHS) {
-      console.log(0, path);
-
       try {
         let discoveryUrl = `${baseUrl}${url.pathname}${path}`;
         let config = await this.fetchDiscoveryDocument(discoveryUrl);
         if (config) return config;
-      } catch (error) {
-        console.debug(`Failed to fetch from ${path}:`, error);
-      }
+      } catch (error) {}
     }
 
     for (let path of this.WELL_KNOWN_PATHS) {
-      console.log(2, path);
-
       try {
         let discoveryUrl = `${baseUrl}${path}`;
         let config = await this.fetchDiscoveryDocument(discoveryUrl);
         if (config) return config;
-      } catch (error) {
-        console.debug(`Failed to fetch from ${path}:`, error);
-      }
+      } catch (error) {}
     }
-
-    console.log(3);
 
     try {
       let config = await this.wwwAuthenticateDiscovery(baseUrl);
       if (config) return config;
-    } catch (error) {
-      console.debug('WWW-Authenticate discovery failed:', error);
-    }
+    } catch (error) {}
 
     return null;
   }

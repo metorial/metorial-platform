@@ -1,5 +1,6 @@
 import { CustomServerVersion, db, ID, RemoteServerInstance } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
+import { getAxiosSsrfFilter } from '@metorial/ssrf';
 import axios from 'axios';
 
 export let checkRemoteQueue = createQueue<{ remoteId: string }>({
@@ -37,10 +38,10 @@ export let checkRemote = async (
       validateStatus: status => status < 500,
       headers: {
         'User-Agent': 'Metorial (https://metorial.com)'
-      }
+      },
+      ...getAxiosSsrfFilter(remote.remoteUrl),
+      maxRedirects: 5
     });
-
-    // All good
 
     return { ok: true };
   } catch (error: any) {

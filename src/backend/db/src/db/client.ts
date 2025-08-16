@@ -241,6 +241,9 @@ declare global {
 
     type ProviderOAuthConfig = any;
 
-    type CustomServerDeploymentStepLogs = [number, string[], 0 | 1 | undefined][]; // ts, lines, 1=error
+    type CustomServerDeploymentStepLogs = (
+      | [number, string[], 0 | 1 | undefined]
+      | [number, string[], 0 | 1]
+    )[]; // ts, lines, 1=error
   }
 }
