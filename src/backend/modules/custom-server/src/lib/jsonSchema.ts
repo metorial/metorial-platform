@@ -11,20 +11,34 @@ try {
 }
 
 export let validateJsonSchema = (schema: object) => {
-  let validate = ajv.compile(metaSchema);
-  let valid = validate(schema);
+  try {
+    let valid = ajv.validateSchema(schema);
 
-  if (!valid) {
+    if (!valid) {
+      throw new ServiceError(
+        validationError({
+          message: 'Invalid JSON Schema',
+          entity: 'jsonSchema',
+          errors:
+            ajv.errors?.map(err => ({
+              code: 'invalid_json_schema',
+              message: err.message ?? 'Invalid JSON Schema',
+              path: err.instancePath.split('/').filter(Boolean)
+            })) ?? []
+        })
+      );
+    }
+  } catch (e: any) {
     throw new ServiceError(
       validationError({
         message: 'Invalid JSON Schema',
         entity: 'jsonSchema',
-        errors:
-          validate.errors?.map(err => ({
+        errors: [
+          {
             code: 'invalid_json_schema',
-            message: err.message ?? 'Invalid JSON Schema',
-            path: err.instancePath.split('/').filter(Boolean)
-          })) ?? []
+            message: 'Invalid JSON Schema'
+          }
+        ]
       })
     );
   }

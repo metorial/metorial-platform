@@ -3,7 +3,6 @@ import {
   CustomServer,
   CustomServerVersion,
   db,
-  ensureServerConfig,
   ID,
   Instance,
   Organization,
@@ -26,9 +25,6 @@ let include = {
       serverVariant: true
     }
   },
-  environment: {
-    include: { serverVariant: true }
-  },
   instance: true,
   serverVersion: true,
   remoteServerInstance: {
@@ -49,20 +45,13 @@ let defaultRemoteConfigSchema = {
   $id: 'https://schema.metorial.com/remote-server-config.json',
   title: 'Remote Server Config',
   type: 'object',
-  properties: {
-    accessToken: {
-      type: 'string',
-      description: 'The access token to authenticate with the remote server.'
-    }
-  }
+  properties: {}
 };
 
-let defaultLaunchParams = `(config) => ({
-  headers: {
-    Authorization: \`Bearer \${config.accessToken}\`
-  }, 
-  query: {}
-})`;
+let defaultLaunchParams = `(config, ctx) => ({
+  query: {},
+  headers: ctx.getHeadersWithAuthorization({})
+});`;
 
 class CustomServerVersionServiceImpl {
   async createVersion(d: {
@@ -147,12 +136,24 @@ class CustomServerVersionServiceImpl {
 
           let versionHash = await getVersionIdentifier();
 
-          let schema = await ensureServerConfig(async () => ({
+          let schemaData = {
+            id: await ID.generateId('serverConfigSchema'),
             fingerprint: await Hash.sha256(canonicalize(configSchema)),
             schema: configSchema,
             serverOid: server.serverOid,
             serverVariantOid: server.serverVariantOid
-          }));
+          };
+
+          let schema = await db.serverConfigSchema.upsert({
+            where: {
+              fingerprint_serverOid: {
+                fingerprint: schemaData.fingerprint,
+                serverOid: server.serverOid
+              }
+            },
+            create: schemaData,
+            update: {}
+          });
 
           let serverVersion = await db.serverVersion.create({
             data: {

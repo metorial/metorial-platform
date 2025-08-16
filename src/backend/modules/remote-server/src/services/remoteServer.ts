@@ -21,7 +21,7 @@ class RemoteServerServiceImpl {
       connection?: ProviderOAuthConnection;
     };
   }) {
-    let instance = await db.remoteServerInstance.create({
+    let remoteServer = await db.remoteServerInstance.create({
       data: {
         id: await ID.generateId('remoteServerInstance'),
         name: d.input.name,
@@ -33,9 +33,9 @@ class RemoteServerServiceImpl {
       include
     });
 
-    await checkRemoteQueue.add({ remoteId: instance.id }, { delay: 50 });
+    await checkRemoteQueue.add({ remoteId: remoteServer.id }, { delay: 50 });
 
-    return instance;
+    return remoteServer;
   }
 
   async listRemoteServers(d: { instance: Instance }) {

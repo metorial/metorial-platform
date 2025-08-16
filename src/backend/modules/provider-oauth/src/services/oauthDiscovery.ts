@@ -1,6 +1,5 @@
 import { db, ID } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { generatePlainId } from '@metorial/id';
 import { Service } from '@metorial/service';
 import { OAuthDiscovery } from '../lib/discovery';
 import { OAuthUtils } from '../lib/oauthUtils';
@@ -53,7 +52,12 @@ class OauthDiscoveryServiceImpl {
     });
   }
 
-  async discoverOauthConfig(d: { discoveryUrl: string }) {
+  async discoverOauthConfig(d: {
+    discoveryUrl: string;
+    input: {
+      clientName: string;
+    };
+  }) {
     let discovery = await this.discoverOauthConfigInternal(d);
 
     let config = discovery.config as OAuthConfiguration;
@@ -64,7 +68,7 @@ class OauthDiscoveryServiceImpl {
       };
     }
 
-    let clientName = `metorial.com - ${generatePlainId(12)}`;
+    let clientName = `${d.input.clientName} (via Metorial)`;
 
     let registration = await OAuthUtils.registerClient({ clientName }, config);
     if (!registration) {
