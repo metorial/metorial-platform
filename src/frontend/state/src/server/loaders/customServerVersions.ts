@@ -2,7 +2,7 @@ import {
   DashboardInstanceCustomServersVersionsCreateBody,
   DashboardInstanceCustomServersVersionsListQuery
 } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
-import { createLoader } from '@metorial/data-hooks';
+import { createLoader, useMutation } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -26,6 +26,16 @@ export let useCreateCustomServersVersion = customServerVersionsLoader.createExte
     }
   ) => withAuth(sdk => sdk.customServers.versions.create(i.instanceId, i.customServerId, i))
 );
+
+export let useListServerVersions = () =>
+  useMutation(
+    (
+      i: DashboardInstanceCustomServersVersionsListQuery & {
+        instanceId: string;
+        customServerId: string;
+      }
+    ) => withAuth(sdk => sdk.customServers.versions.list(i.instanceId, i.customServerId, i))
+  );
 
 export let useCustomServersVersions = (
   instanceId: string | null | undefined,

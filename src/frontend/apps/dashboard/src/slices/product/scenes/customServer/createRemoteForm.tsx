@@ -2,10 +2,9 @@ import { CustomServersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
-  useAutoDiscoverProviderConnection,
   useCreateCustomServer,
-  useCreateProviderConnection,
-  useCurrentInstance
+  useCurrentInstance,
+  useListServerVersions
 } from '@metorial/state';
 import { Avatar, Button, Input, Or, Spacer, theme, toast } from '@metorial/ui';
 import { useState } from 'react';
@@ -60,9 +59,8 @@ export let CustomServerRemoteCreateForm = (p: {
   onCreate?: (out: CustomServersGetOutput) => any;
 }) => {
   let instance = useCurrentInstance();
-  let autoDiscovery = useAutoDiscoverProviderConnection();
-  let createProviderConnection = useCreateProviderConnection();
   let createCustomServer = useCreateCustomServer();
+  let listServerVersions = useListServerVersions();
 
   let [currentStep, setCurrentStep] = useState(0);
 
@@ -85,39 +83,6 @@ export let CustomServerRemoteCreateForm = (p: {
     onSubmit: async values => {
       if (!instance.data) return;
 
-      let [discoverRes] = await autoDiscovery.mutate({
-        discoveryUrl: values.remoteUrl,
-        clientName: instance.data.organization.name
-      });
-
-      let providerConnectionId: string | undefined = undefined;
-
-      if (discoverRes) {
-        let [providerConnectionRes] = await createProviderConnection.mutate({
-          name: values.name || undefined,
-          description: values.description || undefined,
-          discoveryUrl: values.remoteUrl || undefined,
-
-          scopes: [],
-          config: discoverRes.config,
-          metadata: {},
-          instanceId: instance.data.id,
-
-          ...(discoverRes.autoRegistrationId
-            ? {
-                autoRegistrationId: discoverRes.autoRegistrationId
-              }
-            : {
-                clientId: discoverRes.config.client_id,
-                clientSecret: discoverRes.config.client_secret
-              })
-        });
-
-        if (providerConnectionRes) {
-          providerConnectionId = providerConnectionRes.id;
-        }
-      }
-
       let [customServerRes] = await createCustomServer.mutate({
         instanceId: instance.data.id,
         name: values.name,
@@ -125,8 +90,7 @@ export let CustomServerRemoteCreateForm = (p: {
         implementation: {
           type: 'remote_server',
           remoteServer: {
-            remoteUrl: values.remoteUrl,
-            connectionId: providerConnectionId
+            remoteUrl: values.remoteUrl
           },
           config: {
             schema: {
@@ -142,6 +106,20 @@ export let CustomServerRemoteCreateForm = (p: {
       });
 
       if (customServerRes) {
+        let firstVersionId: string | undefined = undefined;
+
+        for (let i = 0; i < 5; i++) {
+          let [versionsRes] = await listServerVersions.mutate({
+            limit: 1,
+            instanceId: instance.data.id,
+            customServerId: customServerRes.id
+          });
+          if (versionsRes && versionsRes.items.length > 0) {
+            firstVersionId = versionsRes?.items[0]?.id;
+            break;
+          }
+        }
+
         toast.success('Server linked successfully');
 
         if (p.onCreate) {
@@ -152,7 +130,8 @@ export let CustomServerRemoteCreateForm = (p: {
               instance.data.organization,
               instance.data.project,
               instance.data,
-              customServerRes.id
+              customServerRes.id,
+              ...(firstVersionId ? ['versions', { version_id: firstVersionId }] : [])
             )
           );
         }
@@ -165,11 +144,7 @@ export let CustomServerRemoteCreateForm = (p: {
       type="button"
       variant="outline"
       onClick={p.close}
-      disabled={
-        createCustomServer.isLoading ||
-        createProviderConnection.isLoading ||
-        autoDiscovery.isLoading
-      }
+      disabled={createCustomServer.isLoading}
       size="2"
     >
       Close
@@ -264,16 +239,8 @@ export let CustomServerRemoteCreateForm = (p: {
                     {close}
 
                     <Button
-                      loading={
-                        createCustomServer.isLoading ||
-                        createProviderConnection.isLoading ||
-                        autoDiscovery.isLoading
-                      }
-                      success={
-                        createCustomServer.isSuccess &&
-                        createProviderConnection.isSuccess &&
-                        autoDiscovery.isSuccess
-                      }
+                      loading={createCustomServer.isLoading}
+                      success={createCustomServer.isSuccess}
                       type="submit"
                       size="2"
                     >
@@ -287,9 +254,7 @@ export let CustomServerRemoteCreateForm = (p: {
         ]}
       />
 
-      {createProviderConnection.error && <createProviderConnection.RenderError />}
       {createCustomServer.error && <createCustomServer.RenderError />}
-      {autoDiscovery.error && <autoDiscovery.RenderError />}
     </Form>
   );
 };

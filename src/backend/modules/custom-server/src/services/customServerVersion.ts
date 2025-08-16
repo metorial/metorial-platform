@@ -185,7 +185,7 @@ class CustomServerVersionServiceImpl {
               }
             });
 
-            await db.customServerDeployment.createMany({
+            let deployment = await db.customServerDeployment.create({
               data: {
                 id: await ID.generateId('customServerDeployment'),
 
@@ -199,7 +199,10 @@ class CustomServerVersionServiceImpl {
 
             await db.customServerVersion.updateMany({
               where: { id: customServerVersion.id },
-              data: { remoteServerInstanceOid: remoteServer.oid }
+              data: {
+                remoteServerInstanceOid: remoteServer.oid,
+                deploymentOid: deployment.oid
+              }
             });
 
             await initializeRemoteQueue.add(

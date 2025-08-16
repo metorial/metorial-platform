@@ -92,6 +92,8 @@ class customServerServiceImpl {
           providerOid: provider.oid,
           serverOid: server.oid,
 
+          remoteUrl: d.serverInstance.implementation.remoteUrl,
+
           // TODO: Add other service types as needed
           sourceType:
             d.serverInstance.type == 'remote'

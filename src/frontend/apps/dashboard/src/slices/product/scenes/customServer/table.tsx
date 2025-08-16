@@ -41,7 +41,7 @@ export let CustomServersTable = (filter: DashboardInstanceCustomServersListQuery
             ...(filter.type == 'remote'
               ? [
                   <Text size="2" color="gray800">
-                    {(customServer.serverVariant.source as any).remote.domain}
+                    {(customServer.serverVariant?.source as any)?.remote?.domain}
                   </Text>
                 ]
               : []),
