@@ -41,7 +41,7 @@ export let Group = {
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: 4
+            gap: 2
           }}
         >
           <Title as="h2" size="3" weight="strong">
@@ -68,7 +68,7 @@ export let Group = {
     </Group.HeaderRow>
   ),
   HeaderRow: styled('header')`
-    padding: 10px 15px;
+    padding: 15px 20px;
     display: flex;
     flex-direction: column;
 

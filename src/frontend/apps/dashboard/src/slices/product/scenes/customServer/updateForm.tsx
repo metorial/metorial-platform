@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { FormBox } from '../form/box';
 import { Field } from '../form/field';
 import { FormPage } from '../form/page';
+import { SchemaEditor } from '../jsonSchemaEditor';
 import { parseConfig } from '../providerConnection/config';
 
 let emptyClientSecret = '••••••••••••••••••••••••••••••';
@@ -79,13 +80,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
           // });
         }}
       >
-        <Field field="name">
-          {({ getFieldProps }) => <Input {...getFieldProps()} label="Name" />}
-        </Field>
-
-        <Field field="description">
-          {({ getFieldProps }) => <Input {...getFieldProps()} label="Description" />}
-        </Field>
+        <SchemaEditor title={customServer.data?.name || 'Custom Server Schema'} />
       </FormBox>
 
       <FormBox

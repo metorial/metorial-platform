@@ -179,7 +179,6 @@ export let CustomServerRemoteCreateForm = (p: {
                     description="Enter the MCP server URL you want to connect to."
                     placeholder="https://mcp.monday.com/sse"
                     {...form.getFieldProps('remoteUrl')}
-                    autoFocus
                   />
                   <form.RenderError field="remoteUrl" />
 

@@ -5,10 +5,12 @@ import { useSearchParam } from 'react-use';
 
 export let RouterPanel = ({
   children,
-  param
+  param,
+  width
 }: {
   children: (param: string) => React.ReactNode;
   param: string;
+  width?: number;
 }) => {
   let [isOpen, setIsOpen] = useState(false);
 
@@ -27,6 +29,7 @@ export let RouterPanel = ({
   return (
     <Panel.Wrapper
       isOpen={isOpen}
+      width={width}
       onOpenChange={v => {
         setIsOpen(v);
 

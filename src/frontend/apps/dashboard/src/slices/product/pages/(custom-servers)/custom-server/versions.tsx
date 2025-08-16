@@ -2,6 +2,7 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useCustomServer } from '@metorial/state';
 import { Panel } from '@metorial/ui';
 import { useParams } from 'react-router-dom';
+import { CustomServerVersion } from '../../../scenes/customServer/version';
 import { CustomServerVersionsTable } from '../../../scenes/customServer/versions';
 import { RouterPanel } from '../../../scenes/routerPanel';
 
@@ -15,7 +16,7 @@ export let CustomServerVersionsPage = () => {
     <>
       <CustomServerVersionsTable customServer={customServer.data} />
 
-      <RouterPanel param="version_id">
+      <RouterPanel param="version_id" width={1000}>
         {versionId => (
           <>
             <Panel.Header>
@@ -23,11 +24,7 @@ export let CustomServerVersionsPage = () => {
             </Panel.Header>
 
             <Panel.Content>
-              {/* <CustomServerAuthentication
-                customServer={customServer.data}
-                versionId={versionId}
-              /> */}
-              Test
+              <CustomServerVersion versionId={versionId} customServer={customServer.data} />
             </Panel.Content>
           </>
         )}

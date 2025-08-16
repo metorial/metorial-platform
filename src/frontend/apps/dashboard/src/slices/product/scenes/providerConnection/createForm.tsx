@@ -284,7 +284,6 @@ export let ProviderConnectionCreateForm = (p: {
                         performAutoDiscovery();
                       }
                     }}
-                    autoFocus
                   />
                   <form.RenderError field="discoveryUrl" />
 

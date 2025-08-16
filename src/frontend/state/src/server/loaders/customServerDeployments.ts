@@ -1,5 +1,6 @@
 import { DashboardInstanceCustomServersDeploymentsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
+import useInterval from 'use-interval';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -27,6 +28,15 @@ export let useCustomServerDeployments = (
         : null
     )
   );
+
+  useInterval(() => {
+    let hasDeploying = data.data?.items.some(
+      i => i.status == 'deploying' || i.status == 'queued'
+    );
+    if (!hasDeploying) return;
+
+    data.refetch();
+  }, 1000 * 10);
 
   return data;
 };
@@ -59,6 +69,13 @@ export let useCustomServerDeployment = (
       ? { instanceId, customServerId, customServerDeploymentId }
       : null
   );
+
+  useInterval(() => {
+    let hasDeploying = data.data?.status == 'deploying' || data.data?.status == 'queued';
+    if (!hasDeploying) return;
+
+    data.refetch();
+  }, 1000);
 
   return {
     ...data

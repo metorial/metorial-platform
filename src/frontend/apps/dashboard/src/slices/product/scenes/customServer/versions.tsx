@@ -5,8 +5,9 @@ import {
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCustomServerVersions } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
+import { RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
+import { CustomServerVersionStatus } from './version';
 
 export let CustomServerVersionsTable = (
   filter: DashboardInstanceCustomServersVersionsListQuery & {
@@ -28,12 +29,7 @@ export let CustomServerVersionsTable = (
             <Text size="2" weight="strong">
               v{version.versionIndex}
             </Text>,
-            {
-              current: <Badge color="blue">Current</Badge>,
-              available: <Badge color="gray">Available</Badge>,
-              deploying: <Badge color="orange">Deploying</Badge>,
-              deployment_failed: <Badge color="red">Deployment Failed</Badge>
-            }[version.status] ?? version.status,
+            <CustomServerVersionStatus version={version} />,
             <RenderDate date={version.createdAt} />
           ],
           href: Paths.instance.customServer(

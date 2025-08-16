@@ -110,13 +110,7 @@ export let ProviderConnectionOverviewPage = () => {
                   `This connection has encountered a high number of errors recently.`}
               </Text>,
               <RenderDate date={events.createdAt} />
-            ],
-            href: Paths.instance.providerConnection(
-              instance.data?.organization,
-              instance.data?.project,
-              instance.data,
-              events.id
-            )
+            ]
           }))}
         />
 

@@ -3,6 +3,7 @@ import {
   DashboardInstanceCustomServersVersionsListQuery
 } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader, useMutation } from '@metorial/data-hooks';
+import useInterval from 'use-interval';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -50,6 +51,13 @@ export let useCustomServerVersions = (
     )
   );
 
+  useInterval(() => {
+    let hasDeploying = data.data?.items.some(i => i.status == 'deploying');
+    if (!hasDeploying) return;
+
+    data.refetch();
+  }, 1000 * 5);
+
   return data;
 };
 
@@ -73,6 +81,13 @@ export let useCustomServerVersion = (
       ? { instanceId, customServerId, customServerVersionId }
       : null
   );
+
+  useInterval(() => {
+    let hasDeploying = data.data?.status == 'deploying';
+    if (!hasDeploying) return;
+
+    data.refetch();
+  }, 1000);
 
   return {
     ...data
