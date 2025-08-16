@@ -23,7 +23,6 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
     is_current: customServerVersion.currentVersionForServer ? true : false,
 
     version_index: customServerVersion.versionIndex,
-    version_hash: customServerVersion.versionHash,
 
     server_version: customServerVersion.serverVersion
       ? v1ServerVersionPreview(
@@ -75,10 +74,6 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
         name: 'version_index',
         description: `The index of the custom server version`
       }),
-      version_hash: v.string({
-        name: 'version_hash',
-        description: `The hash of the custom server version`
-      }),
 
       server_version: v.nullable(v1ServerVersionPreview.schema),
 
@@ -113,6 +108,7 @@ export let dashboardCustomServerVersionPresenter = Presenter.create(customServer
 
     return {
       ...v1,
+      version_hash: customServerVersion.versionHash,
       deployment_id: customServerVersion.deployment?.id ?? null
     };
   })
@@ -120,6 +116,11 @@ export let dashboardCustomServerVersionPresenter = Presenter.create(customServer
     v.intersection([
       v1CustomServerVersionPresenter.schema,
       v.object({
+        version_hash: v.string({
+          name: 'version_hash',
+          description: `The hash of the custom server version`
+        }),
+
         deployment_id: v.nullable(
           v.string({
             name: 'deployment_id',

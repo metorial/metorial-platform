@@ -1,3 +1,5 @@
+export * from './loaders/customServerDeployments';
+export * from './loaders/customServerEvents';
 export * from './loaders/customServers';
 export * from './loaders/customServerVersions';
 export * from './loaders/listings';
@@ -7,7 +9,6 @@ export * from './loaders/providerConnectionEvents';
 export * from './loaders/providerConnectionProfiles';
 export * from './loaders/providerConnections';
 export * from './loaders/providerConnectionTemplates';
-export * from './loaders/remoteServerNotifications';
 export * from './loaders/remoteServers';
 export * from './loaders/serverDeployments';
 export * from './loaders/serverImplementations';

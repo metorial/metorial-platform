@@ -62,7 +62,7 @@ export let ProviderConnectionsTable = (
 
       {providerConnections.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No oauth connections found
+          No oauth connections found.
         </Text>
       )}
     </>
@@ -166,7 +166,7 @@ export let ProviderConnectionsListItems = ({
 
       {providerConnections.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No oauth connections found
+          No oauth connections found.
         </Text>
       )}
     </>

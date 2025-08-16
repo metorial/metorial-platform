@@ -36,6 +36,22 @@ let ProviderConnectionTestResponsePage = dynamicPage(() =>
     c => c.ProviderConnectionTestResponsePage
   )
 );
+let CustomServerOverviewPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server').then(c => c.CustomServerOverviewPage)
+);
+let CustomServerVersionsPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/versions').then(
+    c => c.CustomServerVersionsPage
+  )
+);
+let CustomServerSettingsPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/settings').then(
+    c => c.CustomServerSettingsPage
+  )
+);
+let CustomServerLayout = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/_layout').then(c => c.CustomServerLayout)
+);
 let ProviderConnectionsListLayout = dynamicPage(() =>
   import('./pages/(custom-servers)/(list)/_layout').then(c => c.ProviderConnectionsListLayout)
 );
@@ -295,6 +311,30 @@ export let productInnerSlice = createSlice([
               {
                 path: 'provider-connections',
                 element: <ProviderConnectionsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'custom-server/:customServerId',
+            element: (
+              <FlaggedPage flag="metorial-gateway-enabled">
+                <CustomServerLayout />
+              </FlaggedPage>
+            ),
+
+            children: [
+              {
+                path: '',
+                element: <CustomServerOverviewPage />
+              },
+              {
+                path: 'versions',
+                element: <CustomServerVersionsPage />
+              },
+              {
+                path: 'settings',
+                element: <CustomServerSettingsPage />
               }
             ]
           },

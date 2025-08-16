@@ -58,7 +58,7 @@ export let CustomServersTable = (filter: DashboardInstanceCustomServersListQuery
 
       {customServers.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No custom servers found
+          No custom servers found.
         </Text>
       )}
     </>

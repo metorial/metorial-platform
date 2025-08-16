@@ -43,7 +43,7 @@ export let ServerImplementationsTable = (filter: ServersImplementationsListQuery
 
       {implementations.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No implementations found
+          No implementations found.
         </Text>
       )}
     </>

@@ -54,7 +54,7 @@ export let ProviderConnectionProfilesTable = (
 
       {profiles.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No oauth profiles found for this connection
+          No oauth profiles found for this connection.
         </Text>
       )}
     </>

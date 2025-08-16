@@ -18,7 +18,7 @@ export let customServerVersionsLoader = createLoader({
   mutators: {}
 });
 
-export let useCreateCustomServersVersion = customServerVersionsLoader.createExternalMutator(
+export let useCreateCustomServerVersion = customServerVersionsLoader.createExternalMutator(
   (
     i: DashboardInstanceCustomServersVersionsCreateBody & {
       instanceId: string;
@@ -37,7 +37,7 @@ export let useListServerVersions = () =>
     ) => withAuth(sdk => sdk.customServers.versions.list(i.instanceId, i.customServerId, i))
   );
 
-export let useCustomServersVersions = (
+export let useCustomServerVersions = (
   instanceId: string | null | undefined,
   customServerId: string | null | undefined,
   query?: DashboardInstanceCustomServersVersionsListQuery
@@ -63,7 +63,7 @@ export let customServerVersionLoader = createLoader({
   mutators: {}
 });
 
-export let useCustomServersVersion = (
+export let useCustomServerVersion = (
   instanceId: string | null | undefined,
   customServerId: string | null | undefined,
   customServerVersionId: string | null | undefined

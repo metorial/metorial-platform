@@ -37,7 +37,7 @@ export let ServerErrorsTable = (filter: DashboardInstanceServerRunErrorsListQuer
 
       {errors.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No server errors found
+          No server errors found.
         </Text>
       )}
     </>

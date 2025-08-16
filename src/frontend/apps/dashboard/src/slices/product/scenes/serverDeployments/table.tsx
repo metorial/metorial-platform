@@ -45,7 +45,7 @@ export let ServerDeploymentsTable = (filter: ServersDeploymentsListQuery) => {
 
       {deployments.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No deployments found
+          No deployments found.
         </Text>
       )}
     </>
@@ -80,7 +80,7 @@ export interface ServerDeployment {
     id: string;
     name: string;
     description: string | null;
-    type: 'public';
+    type: 'public' | 'custom';
     createdAt: Date;
     updatedAt: Date;
   };

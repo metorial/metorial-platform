@@ -38,7 +38,7 @@ export let ServersTable = (filter: ServersListingsListQuery) => {
 
       {servers.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No servers found
+          No servers found.
         </Text>
       )}
     </>
