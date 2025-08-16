@@ -6,6 +6,7 @@ import {
 } from '@metorial/state';
 import { Button } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
+import { showCustomServerRemoteFormModal } from '../../../scenes/customServer/modal';
 import { showProviderConnectionFormModal } from '../../../scenes/providerConnection/modal';
 
 export let ProviderConnectionsListLayout = () => {
@@ -63,6 +64,11 @@ export let ExternalServersListLayout = () => {
       <PageHeader
         title="External Servers"
         description="Connect to external MCP servers using the Metorial platform."
+        actions={
+          <Button onClick={() => showCustomServerRemoteFormModal({})} size="2">
+            Link Remote Server
+          </Button>
+        }
       />
 
       <Outlet />

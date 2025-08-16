@@ -202,7 +202,7 @@ export let ProviderConnectionCreateForm = (p: {
   );
 
   let performAutoDiscovery = async () => {
-    if (!providerUrl) return;
+    if (!providerUrl || !instance.data) return;
 
     try {
       new URL(providerUrl);
@@ -212,12 +212,18 @@ export let ProviderConnectionCreateForm = (p: {
     }
 
     let [res] = await autoDiscovery.mutate({
-      discoveryUrl: providerUrl
+      discoveryUrl: providerUrl,
+      clientName: instance.data.organization.name
     });
 
     form.resetForm();
 
     if (res) {
+      setAutoRegistrationId(undefined);
+      form.setFieldValue('discoveryUrl', providerUrl);
+      form.setFieldValue('config', JSON.stringify(res.config, null, 2));
+      form.setFieldValue('name', res.providerName);
+
       if (res.autoRegistrationId) {
         setAutoRegistrationId(res.autoRegistrationId);
         form.setFieldValue('clientId', 'empty');
@@ -226,10 +232,6 @@ export let ProviderConnectionCreateForm = (p: {
         form.setFieldValue('clientId', res.config.client_id);
         form.setFieldValue('clientSecret', res.config.client_secret);
       }
-
-      form.setFieldValue('discoveryUrl', providerUrl);
-      form.setFieldValue('config', JSON.stringify(res.config, null, 2));
-      form.setFieldValue('name', res.providerName);
     } else {
       form.setFieldValue('config', getDefaultOAuthConfig({ providerUrl }));
 
@@ -304,6 +306,7 @@ export let ProviderConnectionCreateForm = (p: {
 
                           form.resetForm();
                         }}
+                        disabled={autoDiscovery.isLoading}
                       >
                         <Avatar entity={template.provider} size={24} />
                         <span>{template.name}</span>

@@ -15,7 +15,12 @@ export let CustomServersTable = (filter: DashboardInstanceCustomServersListQuery
   return renderWithPagination(customServers)(customServers => (
     <>
       <Table
-        headers={['Info', 'Type', 'Created']}
+        headers={[
+          'Info',
+          'Type',
+          ...(filter.type == 'remote' ? ['Remote URL'] : []),
+          'Created'
+        ]}
         data={customServers.data.items.map(customServer => ({
           data: [
             <Text size="2" weight="strong">
@@ -31,8 +36,15 @@ export let CustomServersTable = (filter: DashboardInstanceCustomServersListQuery
               )}
             </Text>,
             {
-              remote: <Badge color="blue">Remote</Badge>
+              remote: <Badge color="purple">Remote</Badge>
             }[customServer.type] ?? customServer.type,
+            ...(filter.type == 'remote'
+              ? [
+                  <Text size="2" color="gray800">
+                    {(customServer.serverVariant.source as any).remote.domain}
+                  </Text>
+                ]
+              : []),
             <RenderDate date={customServer.createdAt} />
           ],
           href: Paths.instance.customServer(
