@@ -1,6 +1,4 @@
 import { customServerVersionService } from '@metorial/module-custom-server';
-import { providerOauthConnectionService } from '@metorial/module-provider-oauth';
-import { remoteServerService } from '@metorial/module-remote-server';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -12,7 +10,7 @@ import { customServerGroup } from './customServer';
 export let customServerVersionController = Controller.create(
   {
     name: 'Custom Server',
-    description: 'Manager custom servers',
+    description: 'Manager custom server versions',
     hideInDocs: true
   },
   {
@@ -23,8 +21,8 @@ export let customServerVersionController = Controller.create(
           'custom_servers.versions.list'
         ),
         {
-          name: 'List custom servers',
-          description: 'List all custom servers'
+          name: 'List custom server versions',
+          description: 'List all custom server versions'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
@@ -50,8 +48,8 @@ export let customServerVersionController = Controller.create(
           'custom_servers.versions.create'
         ),
         {
-          name: 'Create custom server',
-          description: 'Create a new custom server'
+          name: 'Create custom server version',
+          description: 'Create a new custom server version'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:write'] }))
@@ -65,9 +63,6 @@ export let customServerVersionController = Controller.create(
             type: v.literal('remote_server'),
 
             remote_server: v.object({
-              name: v.optional(v.string()),
-              description: v.optional(v.string()),
-              connection_id: v.optional(v.string()),
               remote_url: v.string()
             }),
 
@@ -82,31 +77,16 @@ export let customServerVersionController = Controller.create(
       )
       .output(customServerVersionPresenter)
       .do(async ctx => {
-        let connection = ctx.body.implementation.remote_server.connection_id
-          ? await providerOauthConnectionService.getConnectionById({
-              connectionId: ctx.body.implementation.remote_server.connection_id,
-              instance: ctx.instance
-            })
-          : undefined;
-
-        let remoteServer = await remoteServerService.createRemoteServer({
-          organization: ctx.organization,
-          instance: ctx.instance,
-          input: {
-            name: ctx.body.implementation.remote_server.name,
-            description: ctx.body.implementation.remote_server.description,
-            remoteUrl: ctx.body.implementation.remote_server.remote_url,
-            connection
-          }
-        });
-
         let customServerVersion = await customServerVersionService.createVersion({
           organization: ctx.organization,
           instance: ctx.instance,
           server: ctx.customServer,
+          performedBy: ctx.actor,
           serverInstance: {
             type: 'remote',
-            implementation: remoteServer,
+            implementation: {
+              remoteUrl: ctx.body.implementation.remote_server.remote_url
+            },
             config: {
               schema: ctx.body.implementation.config?.schema,
               getLaunchParams: ctx.body.implementation.config?.getLaunchParams
@@ -124,8 +104,8 @@ export let customServerVersionController = Controller.create(
           'custom_servers.versions.get'
         ),
         {
-          name: 'Get custom server',
-          description: 'Get information for a specific custom server'
+          name: 'Get custom server version',
+          description: 'Get information for a specific custom server version'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))

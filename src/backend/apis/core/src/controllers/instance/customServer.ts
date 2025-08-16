@@ -1,6 +1,4 @@
 import { customServerService } from '@metorial/module-custom-server';
-import { providerOauthConnectionService } from '@metorial/module-provider-oauth';
-import { remoteServerService } from '@metorial/module-remote-server';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -73,7 +71,6 @@ export let customServerController = Controller.create(
             type: v.literal('remote_server'),
 
             remote_server: v.object({
-              connection_id: v.optional(v.string()),
               remote_url: v.string()
             }),
 
@@ -88,22 +85,6 @@ export let customServerController = Controller.create(
       )
       .output(customServerPresenter)
       .do(async ctx => {
-        let connection = ctx.body.implementation.remote_server.connection_id
-          ? await providerOauthConnectionService.getConnectionById({
-              connectionId: ctx.body.implementation.remote_server.connection_id,
-              instance: ctx.instance
-            })
-          : undefined;
-
-        let remoteServer = await remoteServerService.createRemoteServer({
-          organization: ctx.organization,
-          instance: ctx.instance,
-          input: {
-            remoteUrl: ctx.body.implementation.remote_server.remote_url,
-            connection
-          }
-        });
-
         let customServer = await customServerService.createCustomServer({
           organization: ctx.organization,
           instance: ctx.instance,
@@ -113,9 +94,12 @@ export let customServerController = Controller.create(
             metadata: ctx.body.metadata
           },
           isEphemeral: false,
+          performedBy: ctx.actor,
           serverInstance: {
             type: 'remote',
-            implementation: remoteServer,
+            implementation: {
+              remoteUrl: ctx.body.implementation.remote_server.remote_url
+            },
             config: {
               schema: ctx.body.implementation.config?.schema,
               getLaunchParams: ctx.body.implementation.config?.getLaunchParams

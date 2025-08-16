@@ -2,7 +2,12 @@ import { declarePresenter } from '@metorial/presenter';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
 import { v1CustomServerPresenter } from './implementation/customServer';
-import { v1CustomServerVersionPresenter } from './implementation/customServerVersion';
+import { v1CustomServerDeploymentPresenter } from './implementation/customServerDeployment';
+import { v1CustomServerEventPresenter } from './implementation/customServerEvent';
+import {
+  dashboardCustomServerVersionPresenter,
+  v1CustomServerVersionPresenter
+} from './implementation/customServerVersion';
 import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
 import { v1InstancePresenter } from './implementation/instance';
@@ -21,7 +26,6 @@ import { v1ProviderOauthConnectionTemplatePresenter } from './implementation/pro
 import { v1ProviderOauthConnectionTemplateEvaluationPresenter } from './implementation/providerOauthConnectionTemplateEvaluation';
 import { v1ProviderOauthDiscoveryPresenter } from './implementation/providerOauthDiscovery';
 import { v1RemoteServerPresenter } from './implementation/remoteServer';
-import { v1RemoteServerNotificationPresenter } from './implementation/remoteServerNotification';
 import { v1SecretPresenter } from './implementation/secret';
 import { v1ServerPresenter } from './implementation/server';
 import { v1ServerCapabilitiesPresenter } from './implementation/serverCapabilities';
@@ -55,6 +59,8 @@ import { v1UserPresenter } from './implementation/user';
 import {
   apiKeyType,
   bootType,
+  customServerDeploymentType,
+  customServerEventType,
   customServerType,
   customServerVersionType,
   fileLinkType,
@@ -74,7 +80,6 @@ import {
   providerOauthConnectionTemplateEvaluationType,
   providerOauthConnectionTemplateType,
   providerOauthConnectionType,
-  remoteServerNotificationType,
   remoteServerType,
   secretType,
   serverCapabilitiesType,
@@ -322,11 +327,6 @@ export let remoteServerPresenter = declarePresenter(remoteServerType, {
   mt_2025_01_01_pulsar: v1RemoteServerPresenter
 });
 
-export let remoteServerNotificationPresenter = declarePresenter(remoteServerNotificationType, {
-  mt_2025_01_01_pulsar: v1RemoteServerNotificationPresenter,
-  mt_2025_01_01_dashboard: v1RemoteServerNotificationPresenter
-});
-
 export let customServerPresenter = declarePresenter(customServerType, {
   mt_2025_01_01_pulsar: v1CustomServerPresenter,
   mt_2025_01_01_dashboard: v1CustomServerPresenter
@@ -334,5 +334,15 @@ export let customServerPresenter = declarePresenter(customServerType, {
 
 export let customServerVersionPresenter = declarePresenter(customServerVersionType, {
   mt_2025_01_01_pulsar: v1CustomServerVersionPresenter,
-  mt_2025_01_01_dashboard: v1CustomServerVersionPresenter
+  mt_2025_01_01_dashboard: dashboardCustomServerVersionPresenter
+});
+
+export let customServerEventPresenter = declarePresenter(customServerEventType, {
+  mt_2025_01_01_pulsar: v1CustomServerEventPresenter,
+  mt_2025_01_01_dashboard: v1CustomServerEventPresenter
+});
+
+export let customServerDeploymentPresenter = declarePresenter(customServerDeploymentType, {
+  mt_2025_01_01_pulsar: v1CustomServerDeploymentPresenter,
+  mt_2025_01_01_dashboard: v1CustomServerDeploymentPresenter
 });

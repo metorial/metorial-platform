@@ -7,6 +7,8 @@ import { dashboardOrganizationController } from './dashboard/organization';
 import { dashboardOrganizationInviteController } from './dashboard/organizationInvite';
 import { dashboardUsageController } from './dashboard/usage';
 import { customServerController } from './instance/customServer';
+import { customServerDeploymentController } from './instance/customServerDeployment';
+import { customServerEventController } from './instance/customServerEvent';
 import { customServerVersionController } from './instance/customServerVersion';
 import { fileController } from './instance/file';
 import { fileLinkController } from './instance/fileLink';
@@ -16,7 +18,6 @@ import { providerOauthConnectionAuthenticationController } from './instance/prov
 import { providerOauthConnectionEventController } from './instance/providerOauthConnectionEvent';
 import { providerOauthConnectionProfileController } from './instance/providerOauthConnectionProfile';
 import { remoteServerController } from './instance/remoteServer';
-import { remoteServerNotificationController } from './instance/remoteServerNotifications';
 import { secretController } from './instance/secret';
 import { serverController } from './instance/server';
 import { serverCapabilitiesController } from './instance/serverCapabilities';
@@ -135,7 +136,8 @@ export let dashboardController = Controller.create<any>(
 
     customServerController,
     customServerVersionController,
-    remoteServerController,
-    remoteServerNotificationController
+    customServerEventController,
+    customServerDeploymentController,
+    remoteServerController
   }
 );

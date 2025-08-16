@@ -11,8 +11,9 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
     id: customServerVersion.id,
 
     status: {
-      upcoming: 'upcoming',
-      available: customServerVersion.currentVersionForServer ? 'current' : 'available'
+      available: customServerVersion.currentVersionForServer ? 'current' : 'available',
+      deployment_failed: 'deployment_failed',
+      deploying: 'deploying'
     }[customServerVersion.status],
 
     type: {
@@ -24,11 +25,13 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
     version_index: customServerVersion.versionIndex,
     version_hash: customServerVersion.versionHash,
 
-    server_version: v1ServerVersionPreview(
-      customServerVersion.serverVersion,
-      customServerVersion.customServer.serverVariant,
-      customServerVersion.customServer.server
-    ),
+    server_version: customServerVersion.serverVersion
+      ? v1ServerVersionPreview(
+          customServerVersion.serverVersion,
+          customServerVersion.customServer.serverVariant,
+          customServerVersion.customServer.server
+        )
+      : null,
 
     server_instance: {
       type: customServerVersion.customServer.type,
@@ -53,7 +56,7 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
         description: `The custom server version's unique identifier`
       }),
 
-      status: v.enumOf(['upcoming', 'available', 'current'], {
+      status: v.enumOf(['available', 'current', 'deploying', 'deployment_failed'], {
         name: 'status',
         description: `The current status of the custom server version`
       }),
@@ -77,7 +80,7 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
         description: `The hash of the custom server version`
       }),
 
-      server_version: v1ServerVersionPreview.schema,
+      server_version: v.nullable(v1ServerVersionPreview.schema),
 
       server_instance: v.object({
         type: v.enumOf(['remote'], {
@@ -101,5 +104,29 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
         description: `The timestamp when the custom server version was last updated`
       })
     })
+  )
+  .build();
+
+export let dashboardCustomServerVersionPresenter = Presenter.create(customServerVersionType)
+  .presenter(async ({ customServerVersion }, opts) => {
+    let v1 = await v1CustomServerVersionPresenter.present({ customServerVersion }, opts).run();
+
+    return {
+      ...v1,
+      deployment_id: customServerVersion.deployment?.id ?? null
+    };
+  })
+  .schema(
+    v.intersection([
+      v1CustomServerVersionPresenter.schema,
+      v.object({
+        deployment_id: v.nullable(
+          v.string({
+            name: 'deployment_id',
+            description: `The ID of the deployment associated with this custom server version`
+          })
+        )
+      })
+    ])
   )
   .build();

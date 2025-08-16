@@ -1,4 +1,4 @@
-import { remoteServerService } from '@metorial/module-remote-server';
+import { remoteServerService } from '@metorial/module-custom-server';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';

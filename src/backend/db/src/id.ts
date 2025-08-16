@@ -79,9 +79,10 @@ export let ID = createIdGenerator({
   oauthAutoRegistration: idType.sorted('poar'),
 
   customServer: idType.sorted('csv'),
-  customServerEnvironment: idType.sorted('csvenv'),
   customServerVersion: idType.sorted('csvv'),
+  customServerEvent: idType.sorted('csvev'),
+  customServerDeployment: idType.sorted('csd'),
+  customServerDeploymentStep: idType.sorted('csds'),
 
-  remoteServerInstance: idType.sorted('rsi'),
-  remoteServerInstanceNotification: idType.sorted('rsin')
+  remoteServerInstance: idType.sorted('rsi')
 });

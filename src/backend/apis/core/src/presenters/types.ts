@@ -2,6 +2,9 @@ import {
   ApiKey,
   ApiKeySecret,
   CustomServer,
+  CustomServerDeployment,
+  CustomServerDeploymentStep,
+  CustomServerEvent,
   CustomServerVersion,
   File,
   FileLink,
@@ -26,7 +29,6 @@ import {
   ProviderOAuthConnectionTemplate,
   ProviderOAuthDiscoveryDocument,
   RemoteServerInstance,
-  RemoteServerInstanceNotification,
   Secret,
   SecretType,
   Server,
@@ -374,15 +376,9 @@ export let providerOauthConnectionDiscoveryType = PresentableType.create<{
 
 export let remoteServerType = PresentableType.create<{
   remoteServerInstance: RemoteServerInstance & {
-    connection: ProviderOAuthConnection | null;
+    providerOAuthDiscoveryDocument: ProviderOAuthDiscoveryDocument | null;
   };
 }>()('custom_server.remote_server');
-
-export let remoteServerNotificationType = PresentableType.create<{
-  remoteServerInstanceNotification: RemoteServerInstanceNotification & {
-    remoteServerInstance: RemoteServerInstance;
-  };
-}>()('custom_server.remote_server.notification');
 
 export let customServerType = PresentableType.create<{
   customServer: CustomServer & {
@@ -399,13 +395,31 @@ export let customServerVersionType = PresentableType.create<{
       server: Server;
       serverVariant: ServerVariant;
     };
-    instance: Instance;
-    serverVersion: ServerVersion;
+    serverVersion: ServerVersion | null;
     currentVersionForServer: CustomServer | null;
+    deployment: CustomServerDeployment | null;
     remoteServerInstance:
       | (RemoteServerInstance & {
-          connection: ProviderOAuthConnection | null;
+          providerOAuthDiscoveryDocument: ProviderOAuthDiscoveryDocument | null;
         })
       | null;
   };
 }>()('custom_server.version');
+
+export let customServerEventType = PresentableType.create<{
+  customServerEvent: CustomServerEvent & {
+    customServer: CustomServer;
+    customServerVersion: CustomServerVersion | null;
+  };
+}>()('custom_server.event');
+
+export let customServerDeploymentType = PresentableType.create<{
+  customServerDeployment: CustomServerDeployment & {
+    customServer: CustomServer;
+    customServerVersion: CustomServerVersion | null;
+    steps: CustomServerDeploymentStep[];
+    creatorActor: OrganizationActor & {
+      organization: Organization;
+    };
+  };
+}>()('custom_server.event');
