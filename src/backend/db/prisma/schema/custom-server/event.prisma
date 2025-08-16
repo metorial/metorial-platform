@@ -1,0 +1,25 @@
+enum CustomServerEventType {
+  remote_connection_issue
+  remote_provider_oauth_auto_discovery
+}
+
+model CustomServerEvent {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  sourceInstanceOid BigInt
+  sourceInstance    Instance @relation(fields: [sourceInstanceOid], references: [oid])
+
+  customServerOid BigInt
+  customServer    CustomServer @relation(fields: [customServerOid], references: [oid])
+
+  customServerVersionOid BigInt?
+  customServerVersion    CustomServerVersion? @relation(fields: [customServerVersionOid], references: [oid])
+
+  type    CustomServerEventType
+  message String
+
+  payload Json
+
+  createdAt DateTime @default(now())
+}

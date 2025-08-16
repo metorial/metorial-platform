@@ -73,8 +73,6 @@ export let customServerController = Controller.create(
             type: v.literal('remote_server'),
 
             remote_server: v.object({
-              name: v.optional(v.string()),
-              description: v.optional(v.string()),
               connection_id: v.optional(v.string()),
               remote_url: v.string()
             }),
@@ -101,8 +99,6 @@ export let customServerController = Controller.create(
           organization: ctx.organization,
           instance: ctx.instance,
           input: {
-            name: ctx.body.implementation.remote_server.name,
-            description: ctx.body.implementation.remote_server.description,
             remoteUrl: ctx.body.implementation.remote_server.remote_url,
             connection
           }

@@ -1,6 +1,19 @@
+enum RemoteServerInstanceProviderOAuthDiscoveryStatus {
+  pending
+  completed_config_found
+  completed_no_config_found
+}
+
+enum RemoteServerStatus {
+  pending
+  active
+}
+
 model RemoteServerInstance {
   oid BigInt @id @default(autoincrement())
   id  String @unique
+
+  status RemoteServerStatus @default(pending)
 
   name        String?
   description String?
@@ -11,30 +24,14 @@ model RemoteServerInstance {
   connection    ProviderOAuthConnection? @relation(fields: [connectionOid], references: [oid])
 
   instanceOid BigInt
-  instance    Organization @relation(fields: [instanceOid], references: [oid])
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  customServerVersions CustomServerVersion[]
-  notifications        RemoteServerInstanceNotification[]
-}
+  providerOAuthDiscoveryStatus      RemoteServerInstanceProviderOAuthDiscoveryStatus @default(pending)
+  providerOAuthDiscoveryDocumentOid BigInt?
+  providerOAuthDiscoveryDocument    ProviderOAuthDiscoveryDocument?                  @relation(fields: [providerOAuthDiscoveryDocumentOid], references: [oid])
 
-enum RemoteServerInstanceNotificationType {
-  connection_issue
-}
-
-model RemoteServerInstanceNotification {
-  oid BigInt @id @default(autoincrement())
-  id  String @unique
-
-  remoteServerInstanceOid BigInt
-  remoteServerInstance    RemoteServerInstance @relation(fields: [remoteServerInstanceOid], references: [oid])
-
-  type    RemoteServerInstanceNotificationType
-  message String
-
-  payload Json
-
-  createdAt DateTime @default(now())
+  customServerVersions CustomServerVersion?
 }

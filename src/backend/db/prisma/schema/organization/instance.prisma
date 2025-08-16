@@ -47,4 +47,6 @@ model Instance {
   defaultServerVariants    ServerVariant[]           @relation("ServerVariantDefaultForInstance")
   onlyServerVariants       ServerVariant[]           @relation("ServerVariantOnlyForInstance")
   customServers            CustomServer[]
+  remoteServerInstances    RemoteServerInstance[]
+  customServerEvents       CustomServerEvent[]
 }

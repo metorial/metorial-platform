@@ -26,10 +26,14 @@ export let mapProviderOauthDiscoverOutput =
     )
   });
 
-export type ProviderOauthDiscoverBody = { discoveryUrl: string };
+export type ProviderOauthDiscoverBody = {
+  discoveryUrl: string;
+  clientName: string;
+};
 
 export let mapProviderOauthDiscoverBody =
   mtMap.object<ProviderOauthDiscoverBody>({
-    discoveryUrl: mtMap.objectField('discovery_url', mtMap.passthrough())
+    discoveryUrl: mtMap.objectField('discovery_url', mtMap.passthrough()),
+    clientName: mtMap.objectField('client_name', mtMap.passthrough())
   });
 

@@ -18,14 +18,18 @@ export let dashboardOauthDiscoveryController = Controller.create(
       .body(
         'default',
         v.object({
-          discovery_url: v.string({ modifiers: [v.url()] })
+          discovery_url: v.string({ modifiers: [v.url()] }),
+          client_name: v.string()
         })
       )
       .output(providerOauthDiscoveryPresenter)
       .do(async ctx => {
         let { discovery, autoRegistration } =
           await providerOauthDiscoveryService.discoverOauthConfig({
-            discoveryUrl: ctx.body.discovery_url
+            discoveryUrl: ctx.body.discovery_url,
+            input: {
+              clientName: ctx.body.client_name
+            }
           });
 
         return providerOauthDiscoveryPresenter.present({

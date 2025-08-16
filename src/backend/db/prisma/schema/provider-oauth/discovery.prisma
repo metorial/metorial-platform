@@ -13,9 +13,11 @@ model ProviderOAuthDiscoveryDocument {
 
   version Int
 
-  createdAt                     DateTime                        @default(now())
-  refreshedAt                   DateTime                        @default(now()) @updatedAt
-  ProviderOAuthAutoRegistration ProviderOAuthAutoRegistration[]
+  createdAt   DateTime @default(now())
+  refreshedAt DateTime @default(now()) @updatedAt
+
+  providerOAuthAutoRegistrations ProviderOAuthAutoRegistration[]
+  remoteServerInstances          RemoteServerInstance[]
 }
 
 model ProviderOAuthAutoRegistration {

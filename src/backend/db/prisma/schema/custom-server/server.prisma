@@ -41,4 +41,5 @@ model CustomServer {
   deletedAt DateTime?
 
   versions CustomServerVersion[]
+  events   CustomServerEvent[]
 }

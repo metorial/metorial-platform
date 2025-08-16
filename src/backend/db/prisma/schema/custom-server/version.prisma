@@ -22,9 +22,11 @@ model CustomServerVersion {
 
   currentVersionForServer CustomServer? @relation(name: "CurrentCustomServerVersion")
 
-  remoteServerInstanceOid BigInt?
+  remoteServerInstanceOid BigInt?               @unique
   remoteServerInstance    RemoteServerInstance? @relation(fields: [remoteServerInstanceOid], references: [oid])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  events CustomServerEvent[]
 }
