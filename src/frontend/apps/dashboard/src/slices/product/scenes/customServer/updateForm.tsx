@@ -20,8 +20,6 @@ import { FormPage } from '../form/page';
 import { SchemaEditor } from '../jsonSchemaEditor';
 import { parseConfig } from '../providerConnection/config';
 
-let emptyClientSecret = '••••••••••••••••••••••••••••••';
-
 export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput }) => {
   let instance = useCurrentInstance();
   let customServer = useCustomServer(instance.data?.id, p.customServer?.id);

@@ -92,14 +92,18 @@ export let CustomServerVersion = ({
           ))}
       </Group.Wrapper>
 
-      <Spacer height={15} />
+      {(version.data.status == 'current' || version.data.status == 'available') && (
+        <>
+          <Spacer height={15} />
 
-      <Box title="Events" description="Events related to this version">
-        <CustomServerEventsTable
-          customServer={customServer}
-          filters={{ versionId, limit: 15, order: 'desc' }}
-        />
-      </Box>
+          <Box title="Events" description="Important events related to this server version.">
+            <CustomServerEventsTable
+              customServer={customServer}
+              filters={{ versionId, limit: 15, order: 'desc' }}
+            />
+          </Box>
+        </>
+      )}
 
       <link rel="stylesheet" href="https://fonts.metorial.com/jetbrains-mono.css" />
     </>
@@ -118,7 +122,7 @@ let StepHeader = styled.header`
   display: flex;
   align-items: center;
   gap: 15px;
-  cursor: pointer;
+  cursor: default;
 `;
 
 let StepHeaderMain = styled.div`
@@ -170,10 +174,11 @@ let StepLogLine = styled.div`
   display: grid;
   grid-template-columns: 100px auto;
   padding: 7px 15px;
-  transition: background 0.15s;
+  transition: background 0.2s;
+  cursor: default;
 
   &:hover {
-    background: ${theme.colors.gray200};
+    background: ${theme.colors.gray300};
   }
 `;
 
