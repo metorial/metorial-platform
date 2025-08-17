@@ -25,7 +25,7 @@ let FieldWrapper = styled.div`
   flex-direction: column;
 `;
 
-export let JsonSchemaEditor = ({
+export let JsonSchemaInput = ({
   schema,
   value: initialValue,
   onChange,
