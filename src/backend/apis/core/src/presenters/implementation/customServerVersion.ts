@@ -2,7 +2,7 @@ import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { customServerVersionType } from '../types';
 import { v1RemoteServerPresenter } from './remoteServer';
-import { v1ServerVersionPreview } from './serverVersionPreview';
+import { v1ServerVersionPresenter } from './serverVersion';
 
 export let v1CustomServerVersionPresenter = Presenter.create(customServerVersionType)
   .presenter(async ({ customServerVersion }, opts) => ({
@@ -25,11 +25,18 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
     version_index: customServerVersion.versionIndex,
 
     server_version: customServerVersion.serverVersion
-      ? v1ServerVersionPreview(
-          customServerVersion.serverVersion,
-          customServerVersion.customServer.serverVariant,
-          customServerVersion.customServer.server
-        )
+      ? await v1ServerVersionPresenter
+          .present(
+            {
+              serverVersion: {
+                ...customServerVersion.serverVersion,
+                serverVariant: customServerVersion.customServer.serverVariant,
+                server: customServerVersion.customServer.server
+              }
+            },
+            opts
+          )
+          .run()
       : null,
 
     server_instance: {
@@ -75,7 +82,7 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
         description: `The index of the custom server version`
       }),
 
-      server_version: v.nullable(v1ServerVersionPreview.schema),
+      server_version: v.nullable(v1ServerVersionPresenter.schema),
 
       server_instance: v.object({
         type: v.enumOf(['remote'], {

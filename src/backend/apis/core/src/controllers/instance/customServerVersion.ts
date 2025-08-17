@@ -56,14 +56,11 @@ export let customServerVersionController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
           implementation: v.object({
-            type: v.literal('remote_server'),
+            type: v.literal('remote'),
 
             remote_server: v.object({
-              remote_url: v.string(),
+              remote_url: v.string({ modifiers: [v.url()] }),
 
               oauth_config: v.optional(
                 v.object({

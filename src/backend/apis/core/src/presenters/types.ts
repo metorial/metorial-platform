@@ -397,7 +397,7 @@ export let customServerVersionType = PresentableType.create<{
       server: Server;
       serverVariant: ServerVariant;
     };
-    serverVersion: ServerVersion | null;
+    serverVersion: (ServerVersion & { schema: ServerConfigSchema }) | null;
     currentVersionForServer: CustomServer | null;
     deployment: CustomServerDeployment | null;
     remoteServerInstance:

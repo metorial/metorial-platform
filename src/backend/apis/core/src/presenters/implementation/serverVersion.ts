@@ -32,15 +32,10 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
 
     schema: {
       id: serverVersion.schema.id,
-      fingerprint: serverVersion.schema.fingerprint,
       schema:
         typeof serverVersion.schema.schema == 'string'
           ? JSON.parse(serverVersion.schema.schema)
           : serverVersion.schema.schema,
-
-      server_id: serverVersion.server.id,
-      server_variant_id: serverVersion.serverVariant.id,
-      server_version_id: serverVersion.id,
 
       created_at: serverVersion.schema.createdAt
     },
@@ -114,10 +109,6 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
           id: v.string({
             name: 'id',
             description: 'Unique identifier of the schema'
-          }),
-          fingerprint: v.string({
-            name: 'fingerprint',
-            description: 'Fingerprint hash for schema versioning'
           }),
           schema: v.record(v.any(), {
             name: 'schema',

@@ -31,10 +31,11 @@ export let v1RemoteServerPresenter = Presenter.create(remoteServerType)
             manual_config: 'manual'
           }[remoteServerInstance.providerOAuthDiscoveryStatus],
 
-      config: remoteServerInstance.providerOAuthConfig?.config(
-        null as Record<string, any> | null
-      ),
-      scopes: remoteServerInstance.providerOAuthConfig?.scopes ?? [],
+      config: (remoteServerInstance.providerOAuthConfig?.config ?? null) as Record<
+        string,
+        any
+      > | null,
+      scopes: remoteServerInstance.providerOAuthConfig?.scopes ?? null,
 
       created_at: remoteServerInstance.createdAt,
       updated_at: remoteServerInstance.updatedAt
@@ -73,10 +74,12 @@ export let v1RemoteServerPresenter = Presenter.create(remoteServerType)
             description: `The provider OAuth configuration, if available`
           })
         ),
-        scopes: v.array(v.string(), {
-          name: 'scopes',
-          description: `The scopes associated with the provider OAuth configuration`
-        }),
+        scopes: v.nullable(
+          v.array(v.string(), {
+            name: 'scopes',
+            description: `The scopes associated with the provider OAuth configuration`
+          })
+        ),
         created_at: v.date({
           name: 'created_at',
           description: `The provider OAuth configuration's creation date`

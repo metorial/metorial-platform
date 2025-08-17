@@ -1,4 +1,4 @@
-import { Instance, ProviderOAuthConnection } from '@metorial/db';
+import { Instance, ProviderOAuthConfig, ProviderOAuthConnection } from '@metorial/db';
 
 export class DProviderOauthConnection {
   id: string;
@@ -13,20 +13,20 @@ export class DProviderOauthConnection {
   metadata: Record<string, any> | null;
 
   static async fromConnection(
-    user: ProviderOAuthConnection & { instance: Instance }
+    con: ProviderOAuthConnection & { instance: Instance; config: ProviderOAuthConfig }
   ): Promise<DProviderOauthConnection> {
     let res = new DProviderOauthConnection();
 
-    res.id = user.id;
-    res.name = user.name;
-    res.description = user.description;
-    res.clientId = user.clientId;
-    res.scopes = user.scopes;
-    res.config = user.config;
-    res.createdAt = user.createdAt;
-    res.updatedAt = user.updatedAt;
-    res.instanceId = user.instance.id;
-    res.metadata = user.metadata ?? {};
+    res.id = con.id;
+    res.name = con.name;
+    res.description = con.description;
+    res.clientId = con.clientId;
+    res.scopes = con.config.scopes;
+    res.config = con.config.config;
+    res.createdAt = con.createdAt;
+    res.updatedAt = con.updatedAt;
+    res.instanceId = con.instance.id;
+    res.metadata = con.metadata ?? {};
 
     return res;
   }
