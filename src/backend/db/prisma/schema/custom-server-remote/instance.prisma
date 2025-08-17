@@ -1,5 +1,6 @@
 enum RemoteServerInstanceProviderOAuthDiscoveryStatus {
   pending
+  manual_config
   completed_config_found
   completed_no_config_found
 }
@@ -23,11 +24,9 @@ model RemoteServerInstance {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])
 
-  /// [ProviderOAuthConfig]
-  providerOAuthConfig               Json? // Use auto discovery if null
-  providerOAuthDiscoveryStatus      RemoteServerInstanceProviderOAuthDiscoveryStatus @default(pending)
-  providerOAuthDiscoveryDocumentOid BigInt?
-  providerOAuthDiscoveryDocument    ProviderOAuthDiscoveryDocument?                  @relation(fields: [providerOAuthDiscoveryDocumentOid], references: [oid])
+  providerOAuthDiscoveryStatus RemoteServerInstanceProviderOAuthDiscoveryStatus @default(pending)
+  providerOAuthConfigOid       BigInt?
+  providerOAuthConfig          ProviderOAuthConfig?                             @relation(fields: [providerOAuthConfigOid], references: [oid])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt

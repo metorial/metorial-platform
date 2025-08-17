@@ -1,13 +1,10 @@
 import { Instance, ProviderOAuthConnection } from '@metorial/db';
 import { ServiceError } from '@metorial/error';
 import { badRequestError } from '@metorial/error/src/defaultErrors';
-import { getSentry } from '@metorial/sentry';
 import { Service } from '@metorial/service';
 import { Tokens } from '@metorial/tokens';
 import { addMinutes } from 'date-fns';
 import { env } from '../env';
-
-let Sentry = getSentry();
 
 let token = new Tokens({
   secret: env.ticket.PROVIDER_OAUTH_TICKET_SECRET

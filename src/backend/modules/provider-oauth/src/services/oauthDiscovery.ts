@@ -31,7 +31,7 @@ class OauthDiscoveryServiceImpl {
       );
     }
 
-    let configHash = await OAuthUtils.getConfigHash(doc);
+    let configHash = await OAuthUtils.getConfigHash(doc, []);
 
     return await db.providerOAuthDiscoveryDocument.upsert({
       where: { discoveryUrl: d.discoveryUrl },
@@ -50,6 +50,14 @@ class OauthDiscoveryServiceImpl {
         discoveryUrl: d.discoveryUrl
       }
     });
+  }
+
+  async discoverOauthConfigWithoutRegistrationSafe(d: { discoveryUrl: string }) {
+    try {
+      return await this.discoverOauthConfigWithoutRegistration(d);
+    } catch (e) {
+      return null;
+    }
   }
 
   async discoverOauthConfig(d: {

@@ -19,26 +19,25 @@ export let v1RemoteServerPresenter = Presenter.create(remoteServerType)
         : {
             pending: 'pending',
             completed_config_found: 'active',
-            completed_no_config_found: 'inactive'
+            completed_no_config_found: 'inactive',
+            manual_config: 'active'
           }[remoteServerInstance.providerOAuthDiscoveryStatus],
       type: remoteServerInstance.providerOAuthConfig
         ? 'manual'
         : {
             pending: 'none',
             completed_config_found: 'auto_discovery',
-            completed_no_config_found: 'none'
+            completed_no_config_found: 'none',
+            manual_config: 'manual'
           }[remoteServerInstance.providerOAuthDiscoveryStatus],
 
-      config:
-        remoteServerInstance.providerOAuthConfig ??
-        remoteServerInstance.providerOAuthDiscoveryDocument?.config ??
-        (null as Record<string, any> | null),
+      config: remoteServerInstance.providerOAuthConfig?.config(
+        null as Record<string, any> | null
+      ),
+      scopes: remoteServerInstance.providerOAuthConfig?.scopes ?? [],
 
       created_at: remoteServerInstance.createdAt,
-      updated_at: remoteServerInstance.providerOAuthConfig
-        ? remoteServerInstance.updatedAt
-        : (remoteServerInstance.providerOAuthDiscoveryDocument?.refreshedAt ??
-          remoteServerInstance.updatedAt)
+      updated_at: remoteServerInstance.updatedAt
     },
 
     created_at: remoteServerInstance.createdAt,
@@ -74,6 +73,10 @@ export let v1RemoteServerPresenter = Presenter.create(remoteServerType)
             description: `The provider OAuth configuration, if available`
           })
         ),
+        scopes: v.array(v.string(), {
+          name: 'scopes',
+          description: `The scopes associated with the provider OAuth configuration`
+        }),
         created_at: v.date({
           name: 'created_at',
           description: `The provider OAuth configuration's creation date`

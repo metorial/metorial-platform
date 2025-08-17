@@ -33,8 +33,8 @@ export let v1ProviderOauthConnectionPresenter = Presenter.create(providerOauthCo
       })
     },
 
-    config: providerOauthConnection.config,
-    scopes: providerOauthConnection.scopes,
+    config: providerOauthConnection.config.config,
+    scopes: providerOauthConnection.config.scopes,
     client_id: providerOauthConnection.clientId,
 
     instance_id: providerOauthConnection.instance.id,

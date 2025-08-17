@@ -49,4 +49,5 @@ model Instance {
   customServers            CustomServer[]
   remoteServerInstances    RemoteServerInstance[]
   customServerEvents       CustomServerEvent[]
+  providerOAuthConfigs     ProviderOAuthConfig[]
 }

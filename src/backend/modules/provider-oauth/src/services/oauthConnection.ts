@@ -5,6 +5,7 @@ import {
   Instance,
   Organization,
   OrganizationActor,
+  ProviderOAuthConfig,
   ProviderOAuthConnection,
   ProviderOAuthConnectionTemplate,
   withTransaction
@@ -17,10 +18,12 @@ import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { OAuthUtils } from '../lib/oauthUtils';
 import { OAuthConfiguration } from '../types';
+import { providerOauthConfigService } from './oauthConfig';
 
 let include = {
   template: true,
-  instance: true
+  instance: true,
+  config: true
 };
 
 class OauthConnectionServiceImpl {
@@ -78,6 +81,12 @@ class OauthConnectionServiceImpl {
       throw new ServiceError(badRequestError({ message: 'Client ID is required' }));
     }
 
+    let config = await providerOauthConfigService.createConfig({
+      instance: d.instance,
+      config: d.input.config,
+      scopes: d.input.scopes
+    });
+
     return await withTransaction(async db => {
       let con = await db.providerOAuthConnection.create({
         data: {
@@ -91,10 +100,7 @@ class OauthConnectionServiceImpl {
           providerUrl: OAuthUtils.getProviderUrl(d.input.config),
           discoveryUrl: d.input.discoveryUrl,
 
-          config: d.input.config as any,
-          configHash: await OAuthUtils.getConfigHash(d.input.config),
-
-          scopes: d.input.scopes,
+          configOid: config.oid,
 
           clientId,
           clientSecret,
@@ -127,7 +133,7 @@ class OauthConnectionServiceImpl {
     instance: Instance;
     context?: Context;
 
-    connection: ProviderOAuthConnection;
+    connection: ProviderOAuthConnection & { config: ProviderOAuthConfig };
     input: {
       name?: string;
       description?: string;
@@ -162,21 +168,23 @@ class OauthConnectionServiceImpl {
       description: d.input.description,
       clientId: d.input.clientId,
       clientSecret: d.input.clientSecret,
-      scopes: d.input.scopes,
       metadata: d.input.metadata
     };
 
-    if (d.input.config) {
-      updateData.config = d.input.config;
-      updateData.configHash = await OAuthUtils.getConfigHash(d.input.config);
-      updateData.providerName = OAuthUtils.getProviderName(d.input.config);
-      updateData.providerUrl = OAuthUtils.getProviderUrl(d.input.config);
+    if (d.input.config || d.input.scopes) {
+      let config = await providerOauthConfigService.createConfig({
+        instance: d.instance,
+        config: d.input.config ?? d.connection.config.config,
+        scopes: d.input.scopes ?? d.connection.config.scopes
+      });
+
+      updateData.configOid = config.oid;
     }
 
     return await withTransaction(async db => {
       let con = await db.providerOAuthConnection.update({
         where: { oid: d.connection.oid },
-        data: updateData,
+        data: updateData as any,
         include
       });
 

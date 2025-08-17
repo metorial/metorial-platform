@@ -22,6 +22,7 @@ import {
   Profile,
   Project,
   ProviderOAuthAutoRegistration,
+  ProviderOAuthConfig,
   ProviderOAuthConnection,
   ProviderOAuthConnectionAuthAttempt,
   ProviderOAuthConnectionEvent,
@@ -333,6 +334,7 @@ export let providerOauthConnectionType = PresentableType.create<{
   providerOauthConnection: ProviderOAuthConnection & {
     instance: Instance;
     template: ProviderOAuthConnectionTemplate | null;
+    config: ProviderOAuthConfig;
   };
 }>()('provider_oauth.connection');
 
@@ -376,7 +378,7 @@ export let providerOauthConnectionDiscoveryType = PresentableType.create<{
 
 export let remoteServerType = PresentableType.create<{
   remoteServerInstance: RemoteServerInstance & {
-    providerOAuthDiscoveryDocument: ProviderOAuthDiscoveryDocument | null;
+    providerOAuthConfig: ProviderOAuthConfig | null;
   };
 }>()('custom_server.remote_server');
 
@@ -400,7 +402,7 @@ export let customServerVersionType = PresentableType.create<{
     deployment: CustomServerDeployment | null;
     remoteServerInstance:
       | (RemoteServerInstance & {
-          providerOAuthDiscoveryDocument: ProviderOAuthDiscoveryDocument | null;
+          providerOAuthConfig: ProviderOAuthConfig | null;
         })
       | null;
   };

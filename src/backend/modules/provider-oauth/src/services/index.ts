@@ -1,4 +1,5 @@
 export * from './oauthAuthorization';
+export * from './oauthConfig';
 export * from './oauthConnection';
 export * from './oauthDiscovery';
 export * from './oauthTemplate';

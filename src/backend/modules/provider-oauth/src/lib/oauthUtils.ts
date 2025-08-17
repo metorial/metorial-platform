@@ -303,8 +303,8 @@ export class OAuthUtils {
     return 'https://unknown-provider.metorial.com';
   }
 
-  static async getConfigHash(config: OAuthConfiguration) {
-    return await Hash.sha256(canonicalize(config));
+  static async getConfigHash(config: OAuthConfiguration, scopes: string[]) {
+    return await Hash.sha256(canonicalize(config) + canonicalize(scopes.sort()));
   }
 
   static async registerClient(opts: { clientName: string }, config: OAuthConfiguration) {

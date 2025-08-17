@@ -19,11 +19,8 @@ model ProviderOAuthConnection {
 
   discoveryUrl String?
 
-  /// [ProviderOAuthConfig]
-  config     Json
-  configHash String
-
-  scopes String[]
+  configOid BigInt
+  config    ProviderOAuthConfig @relation(fields: [configOid], references: [oid])
 
   clientId     String
   clientSecret String?

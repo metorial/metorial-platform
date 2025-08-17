@@ -17,7 +17,6 @@ model ProviderOAuthDiscoveryDocument {
   refreshedAt DateTime @default(now()) @updatedAt
 
   providerOAuthAutoRegistrations ProviderOAuthAutoRegistration[]
-  remoteServerInstances          RemoteServerInstance[]
 }
 
 model ProviderOAuthAutoRegistration {

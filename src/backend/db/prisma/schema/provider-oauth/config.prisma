@@ -1,0 +1,21 @@
+model ProviderOAuthConfig {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  /// [ProviderOAuthConfig]
+  config Json
+
+  configHash String
+
+  scopes String[]
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  connections           ProviderOAuthConnection[]
+  remoteServerInstances RemoteServerInstance[]
+
+  @@unique([instanceOid, configHash])
+}

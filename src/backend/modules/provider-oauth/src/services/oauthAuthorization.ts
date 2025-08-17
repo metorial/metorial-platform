@@ -3,6 +3,7 @@ import {
   db,
   ID,
   Instance,
+  ProviderOAuthConfig,
   ProviderOAuthConnection,
   ProviderOAuthConnectionAuthToken
 } from '@metorial/db';
@@ -24,14 +25,16 @@ let Sentry = getSentry();
 class OauthAuthorizationServiceImpl {
   async startAuthorization(d: {
     context: Context;
-    connection: ProviderOAuthConnection;
+    connection: ProviderOAuthConnection & {
+      config: ProviderOAuthConfig;
+    };
     redirectUri: string;
   }) {
     if (d.connection.status != 'active') {
       throw new ServiceError(badRequestError({ message: 'Connection has been deactivated' }));
     }
 
-    let config = d.connection.config as OAuthConfiguration;
+    let config = d.connection.config.config as OAuthConfiguration;
     let supportsPKCE = !!config.code_challenge_methods_supported?.includes('S256');
 
     await Fabric.fire('provider_oauth.connection.authentication.started:before', {
@@ -70,7 +73,7 @@ class OauthAuthorizationServiceImpl {
         authEndpoint: config.authorization_endpoint,
         clientId: d.connection.clientId,
         redirectUri: callbackUrl,
-        scopes: d.connection.scopes,
+        scopes: d.connection.config.scopes,
         state: authAttempt.stateIdentifier!,
         codeChallenge
       })
@@ -142,7 +145,11 @@ class OauthAuthorizationServiceImpl {
           gte: subMinutes(new Date(), 60 * 2)
         }
       },
-      include: { connection: true }
+      include: {
+        connection: {
+          include: { config: true }
+        }
+      }
     });
     if (!attempt) {
       throw new ServiceError(
@@ -165,13 +172,13 @@ class OauthAuthorizationServiceImpl {
 
     try {
       tokenResponse = await OAuthUtils.exchangeCodeForTokens({
-        tokenEndpoint: connection.config.token_endpoint,
+        tokenEndpoint: connection.config.config.token_endpoint,
         clientId: connection.clientId,
         clientSecret: connection.clientSecret ?? undefined,
         code: d.response.code!,
         redirectUri: callbackUrl,
         codeVerifier: attempt.codeVerifier ?? undefined,
-        config: connection.config
+        config: connection.config.config
       });
     } catch (error) {
       await db.providerOAuthConnectionAuthAttempt.update({
@@ -194,10 +201,10 @@ class OauthAuthorizationServiceImpl {
     }
 
     let providerProfile: UserProfile | null = null;
-    if (connection.config.userinfo_endpoint) {
+    if (connection.config.config.userinfo_endpoint) {
       try {
         providerProfile = await OAuthUtils.getUserProfile({
-          userInfoEndpoint: connection.config.userinfo_endpoint,
+          userInfoEndpoint: connection.config.config.userinfo_endpoint,
           accessToken: tokenResponse.access_token
         });
       } catch (error) {
@@ -317,7 +324,17 @@ class OauthAuthorizationServiceImpl {
   async useAuthToken(d: { referenceOid: bigint; instance: Instance }) {
     let ref = await db.providerOAuthConnectionAuthTokenReference.findUnique({
       where: { oid: d.referenceOid },
-      include: { authToken: { include: { connection: true } } }
+      include: {
+        authToken: {
+          include: {
+            connection: {
+              include: {
+                config: true
+              }
+            }
+          }
+        }
+      }
     });
     if (!ref || !ref.authToken) {
       throw new ServiceError(
@@ -389,11 +406,11 @@ class OauthAuthorizationServiceImpl {
         }
 
         let res = await OAuthUtils.refreshAccessToken({
-          tokenEndpoint: connection.config.token_endpoint,
+          tokenEndpoint: connection.config.config.token_endpoint,
           clientId: connection.clientId,
           clientSecret: connection.clientSecret ?? undefined,
           refreshToken: token.refreshToken,
-          config: connection.config
+          config: connection.config.config
         });
 
         if (!res.ok) {
