@@ -51,7 +51,6 @@ model ServerVariant {
   serverCapabilities Json @default("null")
 
   versions                ServerVersion[]
-  schemas                 ServerConfigSchema[]
   serverImplementations   ServerImplementation[]
   serverDeployments       ServerDeployment[]
   serverAutoDiscoveryJobs ServerAutoDiscoveryJob[]

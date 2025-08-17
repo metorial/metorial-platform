@@ -212,8 +212,7 @@ export let syncProcessor = syncQueue.process(async () => {
               let schema = await ensureServerConfig(async () => ({
                 fingerprint: await Hash.sha256(canonicalize(version.config)),
                 schema: version.config,
-                serverOid: baseServer.oid,
-                serverVariantOid: ourVariant.oid
+                serverOid: baseServer.oid
               }));
 
               let ourVersion = await ensureServerVersion(

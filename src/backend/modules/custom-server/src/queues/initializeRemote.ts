@@ -231,7 +231,7 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
         let config = await providerOauthConfigService.createConfig({
           instance,
           config: autoDiscoveryRes.config,
-          scopes: autoDiscoveryRes.config.scopes
+          scopes: []
         });
 
         await db.remoteServerInstance.updateMany({
@@ -267,6 +267,7 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
         ]);
       }
     } catch (error: any) {
+      console.error('Error during OAuth discovery:', error);
       Sentry.captureException(error);
       await discoveryStep.fail();
       await failDeployment();

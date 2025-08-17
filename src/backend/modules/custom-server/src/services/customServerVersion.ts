@@ -27,7 +27,11 @@ let include = {
       serverVariant: true
     }
   },
-  serverVersion: true,
+  serverVersion: {
+    include: {
+      schema: true
+    }
+  },
   remoteServerInstance: {
     include: {
       providerOAuthConfig: true
@@ -136,15 +140,13 @@ class CustomServerVersionServiceImpl {
             id: await ID.generateId('serverConfigSchema'),
             fingerprint: await Hash.sha256(canonicalize(configSchema)),
             schema: configSchema,
-            serverOid: server.serverOid,
-            serverVariantOid: server.serverVariantOid
+            serverOid: server.serverOid
           };
-
           let schema = await db.serverConfigSchema.upsert({
             where: {
               fingerprint_serverOid: {
                 fingerprint: schemaData.fingerprint,
-                serverOid: server.serverOid
+                serverOid: schemaData.serverOid
               }
             },
             create: schemaData,
