@@ -1,63 +1,78 @@
 export let remoteServerTemplates = [
   {
     name: 'Linear',
-    remoteUrl: 'https://mcp.linear.app/sse'
+    remoteUrl: 'https://mcp.linear.app/sse',
+    type: 'oauth' as const
   },
   {
     name: 'Neon',
-    remoteUrl: 'https://mcp.neon.tech/sse'
+    remoteUrl: 'https://mcp.neon.tech/sse',
+    type: 'oauth' as const
   },
   {
     name: 'Zapier',
-    remoteUrl: 'https://mcp.zapier.com/api/mcp/mcp'
+    remoteUrl: 'https://mcp.zapier.com/api/mcp/mcp',
+    type: 'oauth' as const
   },
   {
     name: 'Apify',
-    remoteUrl: 'https://mcp.apify.com'
+    remoteUrl: 'https://mcp.apify.com',
+    type: 'oauth' as const
   },
   {
     name: 'monday.com',
-    remoteUrl: 'https://mcp.monday.com/sse'
+    remoteUrl: 'https://mcp.monday.com/sse',
+    type: 'oauth' as const
   },
   {
     name: 'Notion',
-    remoteUrl: 'https://mcp.notion.com/sse'
+    remoteUrl: 'https://mcp.notion.com/sse',
+    type: 'oauth' as const
   },
   {
     name: 'Prisma',
-    remoteUrl: 'https://mcp.prisma.io/mcp'
+    remoteUrl: 'https://mcp.prisma.io/mcp',
+    type: 'oauth' as const
   },
   {
     name: 'Sentry',
-    remoteUrl: 'https://mcp.sentry.dev/sse'
+    remoteUrl: 'https://mcp.sentry.dev/sse',
+    type: 'oauth' as const
   },
   {
     name: 'Cloudflare Workers',
-    remoteUrl: 'https://bindings.mcp.cloudflare.com/sse'
+    remoteUrl: 'https://bindings.mcp.cloudflare.com/sse',
+    type: 'oauth' as const
   },
   {
     name: 'Square',
-    remoteUrl: 'https://mcp.squareup.com/sse'
+    remoteUrl: 'https://mcp.squareup.com/sse',
+    type: 'oauth' as const
   },
   {
     name: 'Webflow',
-    remoteUrl: 'https://mcp.webflow.com/sse'
+    remoteUrl: 'https://mcp.webflow.com/sse',
+    type: 'oauth' as const
   },
   {
     name: 'Wix',
-    remoteUrl: 'https://mcp.wix.com/sse'
+    remoteUrl: 'https://mcp.wix.com/sse',
+    type: 'oauth' as const
   },
   {
     name: 'Hugging Face',
-    remoteUrl: 'https://hf.co/mcp'
+    remoteUrl: 'https://hf.co/mcp',
+    type: 'other' as const // Both oauth and unauthenticated access
   },
   {
     name: 'PayPal',
-    remoteUrl: 'https://mcp.paypal.com/sse'
+    remoteUrl: 'https://mcp.paypal.com/sse',
+    type: 'oauth' as const
   },
   {
     name: 'Jam',
-    remoteUrl: 'https://mcp.jam.dev/mcp'
+    remoteUrl: 'https://mcp.jam.dev/mcp',
+    type: 'oauth' as const
   }
 ].map(t => {
   let url = new URL(t.remoteUrl);
@@ -69,3 +84,14 @@ export let remoteServerTemplates = [
     imageUrl: `https://camo-cdn.metorial.com/pub?url=${encodeURIComponent(`https://logos.metorial.com/?url=${encodeURIComponent(rootOrigin)}`)}`
   };
 });
+
+export let defaultServerConfig = {
+  schema: {
+    type: 'object',
+    properties: {}
+  },
+  getLaunchParams: `(config, ctx) => ({
+  query: {},
+  headers: ctx.getHeadersWithAuthorization({})
+});`
+};

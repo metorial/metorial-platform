@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Stepper } from '../stepper';
-import { remoteServerTemplates } from './config';
+import { defaultServerConfig, remoteServerTemplates } from './config';
 
 let TemplateWrapper = styled.div`
   display: flex;
@@ -88,20 +88,11 @@ export let CustomServerRemoteCreateForm = (p: {
         name: values.name,
         description: values.description,
         implementation: {
-          type: 'remote_server',
+          type: 'remote',
           remoteServer: {
             remoteUrl: values.remoteUrl
           },
-          config: {
-            schema: {
-              type: 'object',
-              properties: {}
-            },
-            getLaunchParams: `(config, ctx) => ({
-  query: {},
-  headers: ctx.getHeadersWithAuthorization({})
-});`
-          }
+          config: defaultServerConfig
         }
       });
 

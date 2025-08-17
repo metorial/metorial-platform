@@ -6,7 +6,6 @@ import { useFormContext } from './context';
 let Wrapper = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 10px;
   width: 100%;
   max-width: 100%;
 `;
@@ -34,7 +33,14 @@ let Actions = styled.div`
 
 let Errors = styled.div``;
 
-export let FormWrapper = ({ children, ...props }: React.HTMLAttributes<HTMLFormElement>) => {
+export let FormWrapper = ({
+  children,
+  actionsWrapper,
+  ...props
+}: React.HTMLAttributes<HTMLFormElement> & {
+  actionsWrapper?: ({ children }: { children: React.ReactNode }) => React.ReactNode;
+  gap?: number;
+}) => {
   let { form, mutators, submitName } = useFormContext();
 
   let errorMutator = mutators.find(m => m.error);
@@ -47,6 +53,35 @@ export let FormWrapper = ({ children, ...props }: React.HTMLAttributes<HTMLFormE
     if (!isSuccess) setSubmittedRecently(false);
   }, [isSuccess]);
 
+  let footer = (
+    <Footer>
+      <div>
+        {errorMutator && (
+          <Errors>
+            <errorMutator.RenderError />
+          </Errors>
+        )}
+      </div>
+
+      <Actions>
+        <Button
+          type="submit"
+          size="2"
+          disabled={isLoading && !submittedRecently}
+          loading={isLoading && !submittedRecently}
+          success={isSuccess && submittedRecently}
+        >
+          {submitName ?? 'Save'}
+        </Button>
+      </Actions>
+    </Footer>
+  );
+
+  if (actionsWrapper) {
+    let W = actionsWrapper;
+    footer = <W>{footer}</W>;
+  }
+
   return (
     <Wrapper
       {...props}
@@ -55,30 +90,11 @@ export let FormWrapper = ({ children, ...props }: React.HTMLAttributes<HTMLFormE
         setTimeout(() => setSubmittedRecently(false), 5000);
         return form.handleSubmit(e);
       }}
+      style={{ gap: props.gap ?? 10 }}
     >
       <Inner>{children}</Inner>
 
-      <Footer>
-        <div>
-          {errorMutator && (
-            <Errors>
-              <errorMutator.RenderError />
-            </Errors>
-          )}
-        </div>
-
-        <Actions>
-          <Button
-            type="submit"
-            size="2"
-            disabled={isLoading && !submittedRecently}
-            loading={isLoading && !submittedRecently}
-            success={isSuccess && submittedRecently}
-          >
-            {submitName ?? 'Save'}
-          </Button>
-        </Actions>
-      </Footer>
+      {footer}
     </Wrapper>
   );
 };

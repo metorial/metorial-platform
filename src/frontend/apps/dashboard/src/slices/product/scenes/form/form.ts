@@ -11,11 +11,15 @@ export type FormProps<Values extends {}> = Omit<FormikConfig<Values>, 'validatio
   typeDependencies?: any[];
   updateInitialValues?: boolean;
   autoSubmit?: { delay?: number };
+  actionsWrapper?: ({ children }: { children: React.ReactNode }) => React.ReactNode;
+  gap?: number;
 } & (
     | { schema: (yup: typeof Yup) => Yup.ObjectSchema<Values> }
     | { type: ValidationType<Values> }
   ) & {
-    children: React.ReactNode;
+    children:
+      | React.ReactNode
+      | ((form: ReturnType<typeof useForm<Values>>) => React.ReactNode);
     submitName?: string | null;
     mutators: {
       RenderError: () => React.ReactNode;
@@ -28,6 +32,8 @@ export type FormProps<Values extends {}> = Omit<FormikConfig<Values>, 'validatio
 export let Form = <Values extends {}>(p: FormProps<Values>) => {
   let form = useForm(p);
 
+  let children = typeof p.children === 'function' ? p.children(form) : p.children;
+
   return React.createElement(
     FormProvider,
     {
@@ -37,6 +43,13 @@ export let Form = <Values extends {}>(p: FormProps<Values>) => {
         mutators: (p.mutators ?? []) as any
       }
     },
-    React.createElement(FormWrapper, {}, p.children)
+    React.createElement(
+      FormWrapper,
+      {
+        actionsWrapper: p.actionsWrapper,
+        gap: p.gap
+      },
+      children
+    )
   );
 };

@@ -9,16 +9,6 @@ export let FormBox = <Values extends {}>(
     rightActions?: React.ReactNode;
   }
 ) => {
-  // return React.createElement(
-  //   Box,
-  //   {
-  //     title: p.title,
-  //     description: p.description,
-  //     rightActions: p.rightActions
-  //   } as any,
-  //   React.createElement(Form, p as any, p.children)
-  // );
-
   return React.createElement(Group.Wrapper, {
     children: [
       React.createElement(Group.Header, {
@@ -28,7 +18,7 @@ export let FormBox = <Values extends {}>(
         key: 1
       }),
       React.createElement(Group.Content, {
-        children: React.createElement(Form, p as any, p.children),
+        children: React.createElement(Form, p as any),
         key: 2
       })
     ]

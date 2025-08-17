@@ -25,6 +25,7 @@ import {
 import { Fragment, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { remoteServerTemplates } from '../customServer/config';
 import { Stepper } from '../stepper';
 import { getDefaultOAuthConfig, parseConfig } from './config';
 
@@ -43,7 +44,7 @@ let Actions = styled.div`
 
 let Templates = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 10px;
 `;
 
@@ -201,7 +202,9 @@ export let ProviderConnectionCreateForm = (p: {
     </Button>
   );
 
-  let performAutoDiscovery = async () => {
+  let performAutoDiscovery = async (providerInput?: string) => {
+    if (providerInput) providerUrl = providerInput;
+
     if (!providerUrl || !instance.data) return;
 
     try {
@@ -276,6 +279,7 @@ export let ProviderConnectionCreateForm = (p: {
                     onChange={e => {
                       setProviderUrl(e.target.value);
                       setSelectedTemplateId(undefined);
+                      setAutoRegistrationId(undefined);
                     }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') {
@@ -302,6 +306,7 @@ export let ProviderConnectionCreateForm = (p: {
                           setSelectedTemplateId(template.id);
                           setProviderUrl(undefined);
                           setCurrentStep(1);
+                          setAutoRegistrationId(undefined);
 
                           form.resetForm();
                         }}
@@ -311,6 +316,27 @@ export let ProviderConnectionCreateForm = (p: {
                         <span>{template.name}</span>
                       </TemplatesItem>
                     ))}
+
+                    {remoteServerTemplates
+                      .filter(t => t.type == 'oauth')
+                      .slice(0, 13)
+                      .map(template => (
+                        <TemplatesItem
+                          key={template.remoteUrl}
+                          type="button"
+                          onClick={() => {
+                            setSelectedTemplateId(undefined);
+                            setProviderUrl(template.remoteUrl);
+                            setAutoRegistrationId(undefined);
+                            performAutoDiscovery(template.remoteUrl);
+                            form.setFieldValue('name', template.name);
+                          }}
+                          disabled={autoDiscovery.isLoading}
+                        >
+                          <Avatar entity={template} size={24} />
+                          <span>{template.name}</span>
+                        </TemplatesItem>
+                      ))}
                   </Templates>
 
                   <Actions>
@@ -321,7 +347,7 @@ export let ProviderConnectionCreateForm = (p: {
                       size="2"
                       loading={autoDiscovery.isLoading}
                       disabled={!providerUrl}
-                      onClick={performAutoDiscovery}
+                      onClick={() => performAutoDiscovery()}
                     >
                       Continue
                     </Button>
