@@ -27,7 +27,7 @@ export type ManagementInstanceCustomServersCreateOutput = {
       | { type: 'remote'; remote: { domain: string } };
     createdAt: Date;
   };
-  currentServerVersionId: string | null;
+  currentVersionId: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -87,8 +87,8 @@ export let mapManagementInstanceCustomServersCreateOutput =
         createdAt: mtMap.objectField('created_at', mtMap.date())
       })
     ),
-    currentServerVersionId: mtMap.objectField(
-      'current_server_version_id',
+    currentVersionId: mtMap.objectField(
+      'current_version_id',
       mtMap.passthrough()
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -101,7 +101,7 @@ export type ManagementInstanceCustomServersCreateBody = {
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   implementation: {
-    type: 'remote_server';
+    type: 'remote';
     remoteServer: { remoteUrl: string };
     config?:
       | { schema?: any | undefined; getLaunchParams?: string | undefined }

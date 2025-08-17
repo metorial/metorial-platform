@@ -13,7 +13,6 @@ export type ServersVersionsListOutput = {
       | { type: 'remote'; remote: { domain: string } };
     schema: {
       id: string;
-      fingerprint: string;
       schema: Record<string, any>;
       serverId: string;
       serverVariantId: string;
@@ -80,10 +79,6 @@ export let mapServersVersionsListOutput =
             'schema',
             mtMap.object({
               id: mtMap.objectField('id', mtMap.passthrough()),
-              fingerprint: mtMap.objectField(
-                'fingerprint',
-                mtMap.passthrough()
-              ),
               schema: mtMap.objectField('schema', mtMap.passthrough()),
               serverId: mtMap.objectField('server_id', mtMap.passthrough()),
               serverVariantId: mtMap.objectField(

@@ -27,7 +27,7 @@ export type CustomServersGetOutput = {
       | { type: 'remote'; remote: { domain: string } };
     createdAt: Date;
   };
-  currentServerVersionId: string | null;
+  currentVersionId: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -86,8 +86,8 @@ export let mapCustomServersGetOutput = mtMap.object<CustomServersGetOutput>({
       createdAt: mtMap.objectField('created_at', mtMap.date())
     })
   ),
-  currentServerVersionId: mtMap.objectField(
-    'current_server_version_id',
+  currentVersionId: mtMap.objectField(
+    'current_version_id',
     mtMap.passthrough()
   ),
   createdAt: mtMap.objectField('created_at', mtMap.date()),

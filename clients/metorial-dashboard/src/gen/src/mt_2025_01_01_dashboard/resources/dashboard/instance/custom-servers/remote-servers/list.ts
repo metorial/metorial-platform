@@ -11,6 +11,7 @@ export type DashboardInstanceCustomServersRemoteServersListOutput = {
       status: 'pending' | 'active' | 'inactive';
       type: 'none' | 'manual' | 'auto_discovery';
       config: Record<string, any> | null;
+      scopes: string[] | null;
       createdAt: Date;
       updatedAt: Date;
     };
@@ -37,6 +38,10 @@ export let mapDashboardInstanceCustomServersRemoteServersListOutput =
               status: mtMap.objectField('status', mtMap.passthrough()),
               type: mtMap.objectField('type', mtMap.passthrough()),
               config: mtMap.objectField('config', mtMap.passthrough()),
+              scopes: mtMap.objectField(
+                'scopes',
+                mtMap.array(mtMap.passthrough())
+              ),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })

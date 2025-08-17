@@ -7,16 +7,33 @@ export type DashboardInstanceCustomServersVersionsGetOutput = {
   type: 'remote';
   isCurrent: boolean;
   versionIndex: number;
-  versionHash: string;
   serverVersion: {
-    object: 'server.server_version#preview';
+    object: 'server.server_version';
     id: string;
     identifier: string;
     serverId: string;
     serverVariantId: string;
+    getLaunchParams: string;
     source:
       | { type: 'docker'; docker: { image: string; tag: string } }
       | { type: 'remote'; remote: { domain: string } };
+    schema: {
+      id: string;
+      schema: Record<string, any>;
+      serverId: string;
+      serverVariantId: string;
+      serverVersionId: string;
+      createdAt: Date;
+    };
+    server: {
+      object: 'server#preview';
+      id: string;
+      name: string;
+      description: string | null;
+      type: 'public' | 'custom';
+      createdAt: Date;
+      updatedAt: Date;
+    };
     createdAt: Date;
   } | null;
   serverInstance: {
@@ -31,6 +48,7 @@ export type DashboardInstanceCustomServersVersionsGetOutput = {
         status: 'pending' | 'active' | 'inactive';
         type: 'none' | 'manual' | 'auto_discovery';
         config: Record<string, any> | null;
+        scopes: string[] | null;
         createdAt: Date;
         updatedAt: Date;
       };
@@ -41,7 +59,7 @@ export type DashboardInstanceCustomServersVersionsGetOutput = {
   customServerId: string;
   createdAt: Date;
   updatedAt: Date;
-} & { deploymentId: string | null };
+} & { versionHash: string; deploymentId: string | null };
 
 export let mapDashboardInstanceCustomServersVersionsGetOutput = mtMap.union([
   mtMap.unionOption(
@@ -53,7 +71,6 @@ export let mapDashboardInstanceCustomServersVersionsGetOutput = mtMap.union([
       type: mtMap.objectField('type', mtMap.passthrough()),
       isCurrent: mtMap.objectField('is_current', mtMap.passthrough()),
       versionIndex: mtMap.objectField('version_index', mtMap.passthrough()),
-      versionHash: mtMap.objectField('version_hash', mtMap.passthrough()),
       serverVersion: mtMap.objectField(
         'server_version',
         mtMap.object({
@@ -63,6 +80,10 @@ export let mapDashboardInstanceCustomServersVersionsGetOutput = mtMap.union([
           serverId: mtMap.objectField('server_id', mtMap.passthrough()),
           serverVariantId: mtMap.objectField(
             'server_variant_id',
+            mtMap.passthrough()
+          ),
+          getLaunchParams: mtMap.objectField(
+            'get_launch_params',
             mtMap.passthrough()
           ),
           source: mtMap.objectField(
@@ -89,6 +110,38 @@ export let mapDashboardInstanceCustomServersVersionsGetOutput = mtMap.union([
               )
             ])
           ),
+          schema: mtMap.objectField(
+            'schema',
+            mtMap.object({
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              schema: mtMap.objectField('schema', mtMap.passthrough()),
+              serverId: mtMap.objectField('server_id', mtMap.passthrough()),
+              serverVariantId: mtMap.objectField(
+                'server_variant_id',
+                mtMap.passthrough()
+              ),
+              serverVersionId: mtMap.objectField(
+                'server_version_id',
+                mtMap.passthrough()
+              ),
+              createdAt: mtMap.objectField('created_at', mtMap.date())
+            })
+          ),
+          server: mtMap.objectField(
+            'server',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
+              type: mtMap.objectField('type', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+            })
+          ),
           createdAt: mtMap.objectField('created_at', mtMap.date())
         })
       ),
@@ -113,6 +166,10 @@ export let mapDashboardInstanceCustomServersVersionsGetOutput = mtMap.union([
                   status: mtMap.objectField('status', mtMap.passthrough()),
                   type: mtMap.objectField('type', mtMap.passthrough()),
                   config: mtMap.objectField('config', mtMap.passthrough()),
+                  scopes: mtMap.objectField(
+                    'scopes',
+                    mtMap.array(mtMap.passthrough())
+                  ),
                   createdAt: mtMap.objectField('created_at', mtMap.date()),
                   updatedAt: mtMap.objectField('updated_at', mtMap.date())
                 })
@@ -129,6 +186,7 @@ export let mapDashboardInstanceCustomServersVersionsGetOutput = mtMap.union([
       ),
       createdAt: mtMap.objectField('created_at', mtMap.date()),
       updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+      versionHash: mtMap.objectField('version_hash', mtMap.passthrough()),
       deploymentId: mtMap.objectField('deployment_id', mtMap.passthrough())
     })
   )
