@@ -4,7 +4,7 @@ import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 
 let include = {
-  providerOAuthDiscoveryDocument: true
+  providerOAuthConfig: true
 };
 
 class RemoteServerServiceImpl {

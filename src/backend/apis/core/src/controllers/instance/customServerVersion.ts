@@ -63,7 +63,14 @@ export let customServerVersionController = Controller.create(
             type: v.literal('remote_server'),
 
             remote_server: v.object({
-              remote_url: v.string()
+              remote_url: v.string(),
+
+              oauth_config: v.optional(
+                v.object({
+                  config: v.record(v.any()),
+                  scopes: v.array(v.string())
+                })
+              )
             }),
 
             config: v.optional(
@@ -85,7 +92,13 @@ export let customServerVersionController = Controller.create(
           serverInstance: {
             type: 'remote',
             implementation: {
-              remoteUrl: ctx.body.implementation.remote_server.remote_url
+              remoteUrl: ctx.body.implementation.remote_server.remote_url,
+              oAuthConfig: ctx.body.implementation.remote_server.oauth_config
+                ? {
+                    config: ctx.body.implementation.remote_server.oauth_config.config,
+                    scopes: ctx.body.implementation.remote_server.oauth_config.scopes
+                  }
+                : undefined
             },
             config: {
               schema: ctx.body.implementation.config?.schema,

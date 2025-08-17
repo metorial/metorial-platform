@@ -13,6 +13,7 @@ import {
 import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
 import { Hash } from '@metorial/hash';
 import { createLock } from '@metorial/lock';
+import { providerOauthConfigService } from '@metorial/module-provider-oauth';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { createShortIdGenerator } from '@metorial/slugify';
@@ -29,7 +30,7 @@ let include = {
   serverVersion: true,
   remoteServerInstance: {
     include: {
-      providerOAuthDiscoveryDocument: true
+      providerOAuthConfig: true
     }
   },
   deployment: true,
@@ -67,6 +68,10 @@ class CustomServerVersionServiceImpl {
       type: 'remote';
       implementation: {
         remoteUrl: string;
+        oAuthConfig?: {
+          config: any;
+          scopes: string[];
+        };
       };
       config?: {
         schema?: any;
@@ -176,12 +181,23 @@ class CustomServerVersionServiceImpl {
             let url = new URL(d.serverInstance.implementation.remoteUrl);
             let name = url.hostname.replace(/^www\./, '').replace(/^mcp\./, '');
 
+            let config = d.serverInstance.implementation.oAuthConfig
+              ? await providerOauthConfigService.createConfig({
+                  instance: d.instance,
+                  config: d.serverInstance.implementation.oAuthConfig.config,
+                  scopes: d.serverInstance.implementation.oAuthConfig.scopes
+                })
+              : undefined;
+
             let remoteServer = await db.remoteServerInstance.create({
               data: {
                 id: await ID.generateId('remoteServerInstance'),
                 remoteUrl: d.serverInstance.implementation.remoteUrl,
                 instanceOid: d.instance.oid,
-                name
+                name,
+
+                providerOAuthConfigOid: config?.oid,
+                providerOAuthDiscoveryStatus: config ? 'manual_config' : 'pending'
               }
             });
 
@@ -311,10 +327,14 @@ class CustomServerVersionServiceImpl {
   }
 
   async getVersionById(d: {
-    server: CustomServer;
+    server: CustomServer & { currentVersion: CustomServerVersion | null };
     instance?: Instance & { organization: Organization };
     versionId: string;
   }) {
+    if (d.versionId == 'current' && d.server.currentVersion) {
+      d.versionId = d.server.currentVersion.id;
+    }
+
     let version = await db.customServerVersion.findFirst({
       where: {
         OR: [{ id: d.versionId }, { versionHash: d.versionId }],

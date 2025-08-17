@@ -8,7 +8,10 @@ import {
   ServerVersion,
   withTransaction
 } from '@metorial/db';
-import { providerOauthDiscoveryService } from '@metorial/module-provider-oauth';
+import {
+  providerOauthConfigService,
+  providerOauthDiscoveryService
+} from '@metorial/module-provider-oauth';
 import { createQueue } from '@metorial/queue';
 import { getSentry } from '@metorial/sentry';
 import { customServerVersionService } from '../services';
@@ -110,6 +113,7 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
   let remote = await db.remoteServerInstance.findFirst({
     where: { id: data.remoteId },
     include: {
+      instance: true,
       customServerVersion: {
         include: {
           deployment: true,
@@ -119,6 +123,8 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
     }
   });
   if (!remote) return;
+
+  let instance = remote.instance;
 
   let customServerVersion = remote.customServerVersion;
   let deployment = customServerVersion?.deployment;
@@ -203,61 +209,69 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
     return;
   }
 
-  let discoveryStep = await stepManager.createDeploymentStep({
-    type: 'remote_oauth_auto_discovery',
-    status: 'running',
-    log: [
-      {
-        type: 'info',
-        lines: [`Attempting to discover OAuth configuration from remote server...`]
+  if (!remote.providerOAuthConfigOid) {
+    let discoveryStep = await stepManager.createDeploymentStep({
+      type: 'remote_oauth_auto_discovery',
+      status: 'running',
+      log: [
+        {
+          type: 'info',
+          lines: [`Attempting to discover OAuth configuration from remote server...`]
+        }
+      ]
+    });
+
+    try {
+      let autoDiscoveryRes =
+        await providerOauthDiscoveryService.discoverOauthConfigWithoutRegistrationSafe({
+          discoveryUrl: remote.remoteUrl
+        });
+
+      if (autoDiscoveryRes) {
+        let config = await providerOauthConfigService.createConfig({
+          instance,
+          config: autoDiscoveryRes.config,
+          scopes: autoDiscoveryRes.config.scopes
+        });
+
+        await db.remoteServerInstance.updateMany({
+          where: { id: remote.id },
+          data: {
+            providerOAuthDiscoveryStatus: 'completed_config_found',
+            providerOAuthConfigOid: config.oid
+          }
+        });
+
+        await discoveryStep.complete([
+          {
+            type: 'info',
+            lines: [
+              `OAuth configuration:`,
+              ` - Provider Name: ${autoDiscoveryRes.providerName}`,
+              ` - Provider URL: ${autoDiscoveryRes.providerUrl}`,
+              'Metorial has successfully discovered the OAuth configuration from the remote server.'
+            ]
+          }
+        ]);
+      } else {
+        await db.remoteServerInstance.updateMany({
+          where: { id: remote.id },
+          data: { providerOAuthDiscoveryStatus: 'completed_no_config_found' }
+        });
+
+        await discoveryStep.complete([
+          {
+            type: 'info',
+            lines: [`No OAuth configuration found for remote server at ${remote.remoteUrl}.`]
+          }
+        ]);
       }
-    ]
-  });
-
-  try {
-    let autoDiscoveryRes =
-      await providerOauthDiscoveryService.discoverOauthConfigWithoutRegistration({
-        discoveryUrl: remote.remoteUrl
-      });
-
-    if (autoDiscoveryRes) {
-      await db.remoteServerInstance.updateMany({
-        where: { id: remote.id },
-        data: {
-          providerOAuthDiscoveryStatus: 'completed_config_found',
-          providerOAuthDiscoveryDocumentOid: autoDiscoveryRes.oid
-        }
-      });
-
-      await discoveryStep.complete([
-        {
-          type: 'info',
-          lines: [
-            `OAuth configuration:`,
-            ` * Provider Name: ${autoDiscoveryRes.providerName}`,
-            ` * Provider URL: ${autoDiscoveryRes.providerUrl}`,
-            'Metorial has successfully discovered the OAuth configuration from the remote server.'
-          ]
-        }
-      ]);
-    } else {
-      await db.remoteServerInstance.updateMany({
-        where: { id: remote.id },
-        data: { providerOAuthDiscoveryStatus: 'completed_no_config_found' }
-      });
-
-      await discoveryStep.complete([
-        {
-          type: 'info',
-          lines: [`No OAuth configuration found for remote server at ${remote.remoteUrl}.`]
-        }
-      ]);
+    } catch (error: any) {
+      Sentry.captureException(error);
+      await discoveryStep.fail();
+      await failDeployment();
+      return;
     }
-  } catch (error: any) {
-    Sentry.captureException(error);
-    await discoveryStep.fail();
-    await failDeployment();
-    return;
   }
 
   let deploymentStep = await stepManager.createDeploymentStep({
@@ -327,7 +341,7 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
   } catch (error: any) {
     console.error('Error during remote server deployment:', error);
     Sentry.captureException(error);
-    await discoveryStep.fail([
+    await deploymentStep.fail([
       {
         type: 'error',
         lines: [`Remote server deployment failed.`]
