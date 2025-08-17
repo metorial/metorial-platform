@@ -42,7 +42,7 @@ export let customServerLoader = createLoader({
       { input: { instanceId, customServerId } }
     ) => withAuth(sdk => sdk.customServers.update(instanceId, customServerId, i)),
 
-    delete: ({ input: { instanceId, customServerId } }) =>
+    delete: (_, { input: { instanceId, customServerId } }) =>
       withAuth(sdk => sdk.customServers.delete(instanceId, customServerId))
   }
 });

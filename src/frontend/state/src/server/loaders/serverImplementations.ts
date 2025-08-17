@@ -47,7 +47,7 @@ export let serverImplementationLoader = createLoader({
         sdk.servers.implementations.update(instanceId, serverImplementationId, i)
       ),
 
-    delete: ({ input: { instanceId, serverImplementationId } }) =>
+    delete: (_, { input: { instanceId, serverImplementationId } }) =>
       withAuth(sdk => sdk.servers.implementations.delete(instanceId, serverImplementationId))
   }
 });

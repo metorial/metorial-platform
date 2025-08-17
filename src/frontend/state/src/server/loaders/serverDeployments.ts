@@ -42,7 +42,7 @@ export let serverDeploymentLoader = createLoader({
       { input: { instanceId, serverDeploymentId } }
     ) => withAuth(sdk => sdk.servers.deployments.update(instanceId, serverDeploymentId, i)),
 
-    delete: ({ input: { instanceId, serverDeploymentId } }) =>
+    delete: (_, { input: { instanceId, serverDeploymentId } }) =>
       withAuth(sdk => sdk.servers.deployments.delete(instanceId, serverDeploymentId))
   }
 });
