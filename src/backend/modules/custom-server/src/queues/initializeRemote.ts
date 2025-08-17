@@ -23,6 +23,9 @@ export let initializeRemoteQueue = createQueue<{
   name: 'csrv/initRem',
   jobOpts: {
     attempts: 10
+  },
+  workerOpts: {
+    concurrency: 100
   }
 });
 
@@ -77,7 +80,7 @@ let createDeploymentStepManager = (opts: { deployment: CustomServerDeployment })
         if (logs) step.logs = upsertLogs(step, logs);
 
         await db.customServerDeploymentStep.updateMany({
-          where: { id: step.id },
+          where: { oid: step.oid },
           data: {
             status: step.status,
             endedAt: step.endedAt,

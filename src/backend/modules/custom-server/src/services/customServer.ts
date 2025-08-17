@@ -224,7 +224,7 @@ class customServerServiceImpl {
             ...opts,
             where: {
               organizationOid: d.organization.oid,
-
+              status: 'active',
               type: d.types ? { in: d.types } : undefined
             },
             include

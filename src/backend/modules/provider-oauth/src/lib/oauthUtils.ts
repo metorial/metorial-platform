@@ -127,6 +127,7 @@ export class OAuthUtils {
       let response = await axios.post<TokenResponse>(tokenEndpoint, body.toString(), {
         headers,
         maxRedirects: 5,
+        timeout: 5000,
         ...getAxiosSsrfFilter(tokenEndpoint)
       });
 
@@ -192,6 +193,7 @@ export class OAuthUtils {
       let response = await axios.post<TokenResponse>(tokenEndpoint, body.toString(), {
         headers,
         maxRedirects: 5,
+        timeout: 5000,
         ...getAxiosSsrfFilter(tokenEndpoint)
       });
       return {
@@ -226,6 +228,7 @@ export class OAuthUtils {
           'User-Agent': 'Metorial (https://metorial.com)'
         },
         maxRedirects: 5,
+        timeout: 5000,
         ...getAxiosSsrfFilter(userInfoEndpoint)
       });
 
@@ -324,6 +327,7 @@ export class OAuthUtils {
             'User-Agent': 'Metorial (https://metorial.com)'
           },
           maxRedirects: 5,
+          timeout: 5000,
           ...getAxiosSsrfFilter(config.registration_endpoint)
         }
       );

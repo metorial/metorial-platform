@@ -3,7 +3,9 @@ import { Readable } from 'stream';
 
 export async function axiosWithoutSse<T = any>(
   url: string,
-  config: AxiosRequestConfig = {}
+  config: AxiosRequestConfig & {
+    ignoreSse?: boolean;
+  } = {}
 ): Promise<AxiosResponse<T>> {
   let source = axios.CancelToken.source();
 
@@ -11,7 +13,8 @@ export async function axiosWithoutSse<T = any>(
     ...config,
     url,
     cancelToken: source.token,
-    responseType: 'stream'
+    responseType: 'stream',
+    timeout: 5000
   };
 
   let response = await axios.request<Readable>(requestConfig);
@@ -20,6 +23,14 @@ export async function axiosWithoutSse<T = any>(
   if (contentType.includes('text/event-stream')) {
     source.cancel(`Aborted: SSE stream detected from ${url}`);
     response.data.destroy();
+
+    if (config.ignoreSse) {
+      return {
+        ...response,
+        data: null as any
+      };
+    }
+
     throw new Error(`SSE stream detected from ${url}`);
   }
 
