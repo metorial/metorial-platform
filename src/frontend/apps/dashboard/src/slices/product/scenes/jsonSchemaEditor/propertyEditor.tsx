@@ -12,8 +12,7 @@ import { RiAddLine, RiArrowDownSLine, RiDeleteBin4Line } from '@remixicon/react'
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import styled from 'styled-components';
-import { JsonSchemaProperty } from './types';
-import { generateUniqueId } from './utils';
+import { createEmptyProperty, JsonPropertyStored, JsonSchemaProperty } from './types';
 
 let Container = styled.div`
   border: 1px solid ${theme.colors.gray300};
@@ -113,9 +112,9 @@ let getTypeColor = (type: string) => {
 };
 
 interface Props {
-  property: JsonSchemaProperty;
-  onUpdate: (oldName: string, property: JsonSchemaProperty) => void;
-  onDelete: (name: string) => void;
+  property: JsonPropertyStored;
+  onUpdate: (property: JsonPropertyStored) => void;
+  onDelete: (property: JsonPropertyStored) => void;
   level?: number;
 }
 
@@ -123,62 +122,65 @@ export let PropertyEditor = ({ property, onUpdate, onDelete, level = 0 }: Props)
   let [isExpanded, setIsExpanded] = useState(true);
   let [localProperty, setLocalProperty] = useState(property);
 
-  let updateLocal = (updates: Partial<JsonSchemaProperty>) => {
-    let updated = { ...localProperty, ...updates };
+  let updateLocal = (
+    updates:
+      | Partial<JsonPropertyStored>
+      | ((current: JsonPropertyStored) => Partial<JsonPropertyStored>)
+  ) => {
+    let updateRes = typeof updates === 'function' ? updates(localProperty) : updates;
+    let updated = { ...localProperty, ...updateRes };
     setLocalProperty(updated);
-    onUpdate(property.name, updated);
+    onUpdate(updated);
   };
 
   let addNestedProperty = () => {
-    let id = generateUniqueId();
-    let name = `property_${Object.keys(localProperty.properties || {}).length + 1}`;
-
-    let newNestedProp: JsonSchemaProperty = {
-      id,
-      name,
-      type: 'string',
-      required: false
-    };
-
     updateLocal({
-      properties: {
-        ...localProperty.properties,
-        [name]: newNestedProp
+      children: {
+        properties: [
+          ...(localProperty.children?.properties || []),
+          createEmptyProperty('', 'string')
+        ]
       }
     });
   };
 
-  let updateNestedProperty = (oldName: string, updatedProp: JsonSchemaProperty) => {
-    let newProperties = { ...localProperty.properties };
+  let updateNestedProperty = (updatedProp: JsonPropertyStored) => {
+    let newProperties = { ...localProperty };
 
-    if (oldName !== updatedProp.name) {
-      delete newProperties[oldName];
-    }
+    newProperties.children = {
+      ...newProperties.children,
+      properties: (newProperties.children?.properties ?? []).map(prop =>
+        prop.id === updatedProp.id ? updatedProp : prop
+      )
+    };
 
-    newProperties[updatedProp.name] = updatedProp;
-
-    updateLocal({ properties: newProperties });
+    updateLocal(newProperties);
   };
 
-  let deleteNestedProperty = (name: string) => {
-    let newProperties = { ...localProperty.properties };
-    delete newProperties[name];
-    updateLocal({ properties: newProperties });
+  let deleteNestedProperty = (prop: JsonPropertyStored) => {
+    updateLocal({
+      children: {
+        properties: (localProperty.children?.properties ?? []).filter(p => p.id !== prop.id)
+      }
+    });
+
+    onDelete(prop);
   };
 
   let addArrayItem = () => {
     updateLocal({
-      items: {
-        id: generateUniqueId(),
-        name: 'item',
-        type: 'string',
-        required: false
+      children: {
+        properties: [createEmptyProperty('item', 'string')]
       }
     });
   };
 
-  let updateArrayItem = (updatedProp: JsonSchemaProperty) => {
-    updateLocal({ items: updatedProp });
+  let updateArrayItem = (updatedProp: JsonPropertyStored) => {
+    updateLocal({
+      children: {
+        properties: [updatedProp]
+      }
+    });
   };
 
   return (
@@ -191,22 +193,23 @@ export let PropertyEditor = ({ property, onUpdate, onDelete, level = 0 }: Props)
             transition: 'transform 0.2s'
           }}
         />
-        <Badge size="1" color={getTypeColor(localProperty.type)}>
-          {localProperty.type}
+        <Badge size="1" color={getTypeColor(localProperty.property.type)}>
+          {localProperty.property.type}
         </Badge>
-        <PropertyName>{localProperty.name}</PropertyName>
+        <PropertyName>{localProperty.property.name}</PropertyName>
 
-        {localProperty.required && <RequiredBadge>Required</RequiredBadge>}
+        {localProperty.property.required && <RequiredBadge>Required</RequiredBadge>}
 
         <Actions onClick={e => e.stopPropagation()}>
           <Tooltip content="Delete Property">
             <Button
               className="delete"
-              onClick={() => onDelete(localProperty.name)}
+              onClick={() => onDelete(localProperty)}
               title="Delete Property"
               iconRight={<RiDeleteBin4Line size={14} />}
               variant="outline"
               size="2"
+              type="button"
             />
           </Tooltip>
         </Actions>
@@ -220,20 +223,24 @@ export let PropertyEditor = ({ property, onUpdate, onDelete, level = 0 }: Props)
                 <FormGroup>
                   <Input
                     label="Property Name"
-                    value={localProperty.name}
-                    onChange={e => updateLocal({ name: e.target.value })}
+                    value={localProperty.property.name}
+                    onChange={e =>
+                      updateLocal(p => ({
+                        property: { ...p.property, name: e.target.value }
+                      }))
+                    }
                   />
                 </FormGroup>
                 <FormGroup>
                   <Select
                     label="Type"
-                    value={localProperty.type}
+                    value={localProperty.property.type}
                     onChange={v =>
-                      updateLocal({
-                        type: v as JsonSchemaProperty['type'],
-                        properties: v === 'object' ? {} : undefined,
-                        items: v === 'array' ? undefined : undefined
-                      })
+                      updateLocal(p => ({
+                        property: { ...p.property, type: v as JsonSchemaProperty['type'] },
+                        children:
+                          v === 'object' || v === 'array' ? { properties: [] } : undefined
+                      }))
                     }
                     items={[
                       { id: 'string', label: 'String' },
@@ -252,8 +259,12 @@ export let PropertyEditor = ({ property, onUpdate, onDelete, level = 0 }: Props)
                 <FormGroup>
                   <Input
                     label="Description"
-                    value={localProperty.description || ''}
-                    onChange={e => updateLocal({ description: e.target.value })}
+                    value={localProperty.property.description || ''}
+                    onChange={e =>
+                      updateLocal(p => ({
+                        property: { ...p.property, description: e.target.value }
+                      }))
+                    }
                     as="textarea"
                     minRows={3}
                   />
@@ -263,26 +274,33 @@ export let PropertyEditor = ({ property, onUpdate, onDelete, level = 0 }: Props)
               <FormRow>
                 <FormGroup>
                   <Checkbox
-                    checked={localProperty.required}
-                    onCheckedChange={checked => updateLocal({ required: checked })}
+                    checked={localProperty.property.required}
+                    onCheckedChange={checked =>
+                      updateLocal(p => ({
+                        property: { ...p.property, required: checked }
+                      }))
+                    }
                     label="Required"
                   />
                 </FormGroup>
               </FormRow>
 
               {/* String-specific validations */}
-              {localProperty.type === 'string' && (
+              {localProperty.property.type === 'string' && (
                 <>
                   <FormRow>
                     <FormGroup>
                       <Input
                         label="Min Length"
                         type="number"
-                        value={localProperty.minLength || ''}
+                        value={localProperty.property.minLength || ''}
                         onChange={e =>
-                          updateLocal({
-                            minLength: e.target.value ? parseInt(e.target.value) : undefined
-                          })
+                          updateLocal(p => ({
+                            property: {
+                              ...p.property,
+                              minLength: e.target.value ? parseInt(e.target.value) : undefined
+                            }
+                          }))
                         }
                       />
                     </FormGroup>
@@ -290,11 +308,14 @@ export let PropertyEditor = ({ property, onUpdate, onDelete, level = 0 }: Props)
                       <Input
                         label="Max Length"
                         type="number"
-                        value={localProperty.maxLength || ''}
+                        value={localProperty.property.maxLength || ''}
                         onChange={e =>
-                          updateLocal({
-                            maxLength: e.target.value ? parseInt(e.target.value) : undefined
-                          })
+                          updateLocal(p => ({
+                            property: {
+                              ...p.property,
+                              maxLength: e.target.value ? parseInt(e.target.value) : undefined
+                            }
+                          }))
                         }
                       />
                     </FormGroup>
@@ -303,17 +324,21 @@ export let PropertyEditor = ({ property, onUpdate, onDelete, level = 0 }: Props)
               )}
 
               {/* Number-specific validations */}
-              {(localProperty.type === 'number' || localProperty.type === 'integer') && (
+              {(localProperty.property.type === 'number' ||
+                localProperty.property.type === 'integer') && (
                 <FormRow>
                   <FormGroup>
                     <Input
                       label="Minimum"
                       type="number"
-                      value={localProperty.minimum || ''}
+                      value={localProperty.property.minimum || ''}
                       onChange={e =>
-                        updateLocal({
-                          minimum: e.target.value ? parseFloat(e.target.value) : undefined
-                        })
+                        updateLocal(p => ({
+                          property: {
+                            ...p.property,
+                            minimum: e.target.value ? parseFloat(e.target.value) : undefined
+                          }
+                        }))
                       }
                     />
                   </FormGroup>
@@ -321,11 +346,14 @@ export let PropertyEditor = ({ property, onUpdate, onDelete, level = 0 }: Props)
                     <Input
                       label="Maximum"
                       type="number"
-                      value={localProperty.maximum || ''}
+                      value={localProperty.property.maximum || ''}
                       onChange={e =>
-                        updateLocal({
-                          maximum: e.target.value ? parseFloat(e.target.value) : undefined
-                        })
+                        updateLocal(p => ({
+                          property: {
+                            ...p.property,
+                            maximum: e.target.value ? parseFloat(e.target.value) : undefined
+                          }
+                        }))
                       }
                     />
                   </FormGroup>
@@ -333,13 +361,13 @@ export let PropertyEditor = ({ property, onUpdate, onDelete, level = 0 }: Props)
               )}
 
               {/* Object nested properties */}
-              {localProperty.type === 'object' && (
+              {localProperty.property.type === 'object' && (
                 <NestedProperties>
-                  {localProperty.properties &&
-                    Object.entries(localProperty.properties).map(([name, nestedProp]) => (
+                  {localProperty.children?.properties &&
+                    localProperty.children.properties.map(nestedProp => (
                       <PropertyEditor
                         key={nestedProp.id}
-                        property={{ ...nestedProp, name }}
+                        property={nestedProp}
                         onUpdate={updateNestedProperty}
                         onDelete={deleteNestedProperty}
                         level={level + 1}
@@ -352,6 +380,7 @@ export let PropertyEditor = ({ property, onUpdate, onDelete, level = 0 }: Props)
                       iconLeft={<RiAddLine size={12} />}
                       variant="outline"
                       size="2"
+                      type="button"
                     >
                       Add Property
                     </Button>
@@ -360,10 +389,16 @@ export let PropertyEditor = ({ property, onUpdate, onDelete, level = 0 }: Props)
               )}
 
               {/* Array item schema */}
-              {localProperty.type === 'array' && (
+              {localProperty.property.type === 'array' && (
                 <NestedProperties>
-                  {!localProperty.items ? (
-                    <Button onClick={addArrayItem} iconLeft={<RiAddLine size={12} />}>
+                  {!localProperty.children?.properties.length ? (
+                    <Button
+                      onClick={addArrayItem}
+                      iconLeft={<RiAddLine size={12} />}
+                      type="button"
+                      variant="outline"
+                      size="2"
+                    >
                       Add Array Item Schema
                     </Button>
                   ) : (
@@ -372,9 +407,9 @@ export let PropertyEditor = ({ property, onUpdate, onDelete, level = 0 }: Props)
                         Array Item Schema
                       </InputLabel>
                       <PropertyEditor
-                        property={localProperty.items}
-                        onUpdate={(_, updated) => updateArrayItem(updated)}
-                        onDelete={() => updateLocal({ items: undefined })}
+                        property={localProperty.children.properties[0]}
+                        onUpdate={updated => updateArrayItem(updated)}
+                        onDelete={() => updateLocal({ children: { properties: [] } })}
                         level={level + 1}
                       />
                     </>

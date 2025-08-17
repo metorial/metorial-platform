@@ -1,11 +1,17 @@
 import { CodeBlock } from '@metorial/code';
 import { Button, Input, theme } from '@metorial/ui';
 import { RiAddLine, RiFullscreenExitLine } from '@remixicon/react';
+import { throttle } from 'lodash';
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { PropertyEditor } from './propertyEditor';
-import { JsonSchema, JsonSchemaProperty } from './types';
-import { generateUniqueId } from './utils';
+import {
+  createEmptyProperty,
+  fromJsonSchema,
+  JsonPropertyStored,
+  JsonSchema,
+  toJsonSchema
+} from './types';
 
 let Container = styled.div`
   background-color: ${theme.colors.gray200};
@@ -32,14 +38,7 @@ let Container = styled.div`
 let Wrapper = styled.div`
   display: flex;
   flex-grow: 1;
-
-  &[data-view='full'] {
-    height: calc(100% - 60px);
-  }
-
-  &[data-view='embedded'] {
-    height: 100%;
-  }
+  height: calc(100% - 60px);
 `;
 
 let Main = styled.main`
@@ -97,6 +96,12 @@ let EmptyState = styled.div`
 
 let Preview = styled.aside`
   flex-grow: 1;
+  height: 100%;
+
+  & > div {
+    height: 100%;
+    overflow-y: auto;
+  }
 `;
 
 let Header = styled.header`
@@ -105,7 +110,8 @@ let Header = styled.header`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 60px;
+  min-height: 60px;
+  background: white;
 
   h1 {
     font-size: 18px;
@@ -113,184 +119,105 @@ let Header = styled.header`
   }
 `;
 
+let getSchema = (title: string, input: any) =>
+  fromJsonSchema(
+    input
+      ? {
+          type: 'object',
+          title: input.title || 'Imported Schema',
+          description: input.description || '',
+          properties: input.properties || {},
+          required: input.required || []
+        }
+      : {
+          type: 'object',
+          title: title,
+          description: '',
+          properties: {},
+          required: []
+        }
+  );
+
 export let SchemaEditor = (p: {
   title: string;
-  view?: 'embedded' | 'full';
-  setView?: (view: 'embedded' | 'full') => void;
 
-  onChange?: (schema: JsonSchema) => void;
-  value?: JsonSchema;
+  onChange?: (schema: any) => void;
+  value?: any;
 }) => {
-  let [schema, setSchema] = useState<JsonSchema>({
-    type: 'object',
-    title: p.title,
-    description: '',
-    properties: {},
-    required: []
-  });
+  let [schema, setSchema] = useState<JsonSchema>(() => getSchema(p.title, p.value));
+  useEffect(() => setSchema(getSchema(p.title, p.value)), [p.value]);
 
-  useEffect(() => {
-    if (p.value) {
-      let jsonSchema = p.value;
-      setSchema({
-        type: 'object',
-        title: jsonSchema.title || 'Imported Schema',
-        description: jsonSchema.description || '',
-        properties: jsonSchema.properties || {},
-        required: jsonSchema.required || []
-      });
-    }
-  }, [p.value]);
-
-  let properties = Object.entries(schema.properties).map(([name, prop]) => ({
-    ...prop,
-    name
-  }));
+  let [view, setView] = useState<'embedded' | 'full'>('embedded');
 
   let addProperty = () => {
-    let id = generateUniqueId();
-    let name = `property_${Object.keys(schema.properties).length + 1}`;
-
     setSchema(prev => ({
       ...prev,
-      properties: {
-        ...prev.properties,
-        [name]: {
-          id,
-          name,
-          type: 'string',
-          required: false
-        }
+      children: {
+        properties: [...(prev.children?.properties || []), createEmptyProperty('', 'string')]
       }
     }));
   };
 
-  let updateProperty = (oldName: string, updatedProperty: JsonSchemaProperty) => {
+  let updateProperty = (updatedProperty: JsonPropertyStored) => {
     setSchema(prev => {
-      let newProperties = { ...prev.properties };
+      let newProperties = { ...prev };
 
-      // Remove old property if name changed
-      if (oldName !== updatedProperty.name) {
-        delete newProperties[oldName];
-      }
-
-      // Add updated property
-      newProperties[updatedProperty.name] = updatedProperty;
-
-      // Update required array
-      let newRequired = prev.required.filter(req => req !== oldName);
-      if (updatedProperty.required) {
-        newRequired.push(updatedProperty.name);
-      }
-
-      return {
-        ...prev,
-        properties: newProperties,
-        required: newRequired
+      newProperties.children = {
+        ...newProperties.children,
+        properties: newProperties.children.properties.map(prop =>
+          prop.id == updatedProperty.id ? updatedProperty : prop
+        )
       };
+
+      return newProperties;
     });
   };
 
-  let deleteProperty = (name: string) => {
+  let deleteProperty = (property: JsonPropertyStored) => {
     setSchema(prev => {
-      let newProperties = { ...prev.properties };
-      delete newProperties[name];
+      let newProperties = { ...prev };
 
-      return {
-        ...prev,
-        properties: newProperties,
-        required: prev.required.filter(req => req !== name)
+      newProperties.children = {
+        ...newProperties.children,
+        properties: newProperties.children.properties.filter(prop => prop.id !== property.id)
       };
+
+      return newProperties;
     });
   };
 
-  let generateJsonSchema = (schema: JsonSchema) => {
-    let convertProperty = (prop: JsonSchemaProperty): any => {
-      let result: any = {
-        type: prop.type
-      };
-
-      if (prop.description) result.description = prop.description;
-      if (prop.default !== undefined) result.default = prop.default;
-      if (prop.enum) result.enum = prop.enum;
-
-      // String validations
-      if (prop.minLength !== undefined) result.minLength = prop.minLength;
-      if (prop.maxLength !== undefined) result.maxLength = prop.maxLength;
-      if (prop.pattern) result.pattern = prop.pattern;
-      if (prop.format) result.format = prop.format;
-
-      // Number validations
-      if (prop.minimum !== undefined) result.minimum = prop.minimum;
-      if (prop.maximum !== undefined) result.maximum = prop.maximum;
-      if (prop.multipleOf !== undefined) result.multipleOf = prop.multipleOf;
-
-      // Object properties
-      if (prop.type === 'object' && prop.properties) {
-        result.properties = {};
-        Object.entries(prop.properties).forEach(([name, nestedProp]) => {
-          result.properties[name] = convertProperty(nestedProp);
-        });
-        let requiredProps = Object.values(prop.properties)
-          .filter(p => p.required)
-          .map(p => p.name);
-        if (requiredProps.length > 0) {
-          result.required = requiredProps;
-        }
-      }
-
-      // Array properties
-      if (prop.type === 'array') {
-        if (prop.items) result.items = convertProperty(prop.items);
-        if (prop.minItems !== undefined) result.minItems = prop.minItems;
-        if (prop.maxItems !== undefined) result.maxItems = prop.maxItems;
-        if (prop.uniqueItems) result.uniqueItems = prop.uniqueItems;
-      }
-
-      return result;
-    };
-
-    let result = {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      title: schema.title,
-      description: schema.description,
-      properties: {} as any,
-      required: schema.required
-    };
-
-    Object.entries(schema.properties).forEach(([name, prop]) => {
-      result.properties[name] = convertProperty(prop);
-    });
-
-    return result;
-  };
-
-  let currentSchema = useMemo(() => generateJsonSchema(schema), [schema]);
-
-  useEffect(() => {
-    p.onChange?.(currentSchema as any);
-  }, [currentSchema, p.onChange]);
+  let currentSchema = useMemo(() => toJsonSchema(schema), [schema]);
+  let onChangeThrottled = useMemo(
+    () =>
+      throttle(
+        (newSchema: JsonSchema) => {
+          p.onChange?.(newSchema);
+        },
+        500,
+        { leading: false, trailing: true }
+      ),
+    [p.onChange]
+  );
+  useEffect(() => onChangeThrottled(currentSchema as any), [currentSchema]);
 
   return (
-    <Container data-view={p.view}>
-      {p.view === 'full' && (
-        <Header>
-          <h1>{p.title}</h1>
+    <Container data-view={view}>
+      <Header>
+        <h1>{p.title}</h1>
 
-          <Button
-            iconLeft={<RiFullscreenExitLine />}
-            variant="outline"
-            size="2"
-            onClick={() => p.setView?.('embedded')}
-          >
-            Collapse
-          </Button>
-        </Header>
-      )}
+        <Button
+          iconLeft={<RiFullscreenExitLine />}
+          variant="outline"
+          size="2"
+          onClick={() => setView(v => (v === 'embedded' ? 'full' : 'embedded'))}
+          type="button"
+        >
+          Collapse
+        </Button>
+      </Header>
 
-      <Wrapper data-view={p.view}>
-        <Main style={{ width: p.view === 'full' ? '45vw' : '450px' }}>
+      <Wrapper data-view={view}>
+        <Main style={{ width: view === 'full' ? '45vw' : '450px' }}>
           <SchemaInfo>
             <InfoField>
               <Input
@@ -318,17 +245,18 @@ export let SchemaEditor = (p: {
                 iconLeft={<RiAddLine />}
                 size="2"
                 variant="outline"
+                type="button"
               >
                 Add Property
               </Button>
             </SectionHeader>
 
-            {properties.length === 0 ? (
+            {schema.children.properties.length === 0 ? (
               <EmptyState>
                 <p>No properties defined yet</p>
               </EmptyState>
             ) : (
-              properties.map(property => (
+              schema.children.properties.map(property => (
                 <PropertyEditor
                   key={property.id}
                   property={property}
