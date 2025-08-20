@@ -117,8 +117,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
             updateInitialValues
             initialValues={{
               schema:
-                editingVersion.current?.serverVersion?.schema.schema ??
-                defaultServerConfig.schema,
+                editingVersion.current?.serverVersion?.schema ?? defaultServerConfig.schema,
               getLaunchParams:
                 editingVersion.current?.serverVersion?.getLaunchParams ||
                 defaultServerConfig.getLaunchParams
@@ -177,7 +176,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
                   <SchemaEditor
                     title={customServer.data?.name || 'Custom Server Schema'}
                     value={
-                      (editingVersion.current?.serverVersion?.schema.schema ??
+                      (editingVersion.current?.serverVersion?.schema ??
                         defaultServerConfig.schema) as any
                     }
                     onChange={v => setValue(v)}
@@ -267,8 +266,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
               type: 'remote',
               config: {
                 schema:
-                  editingVersion.current?.serverVersion?.schema.schema ??
-                  defaultServerConfig.schema,
+                  editingVersion.current?.serverVersion?.schema ?? defaultServerConfig.schema,
                 getLaunchParams:
                   editingVersion.current?.serverVersion?.getLaunchParams ??
                   defaultServerConfig.getLaunchParams

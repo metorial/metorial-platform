@@ -11,14 +11,7 @@ export type ServersVersionsListOutput = {
     source:
       | { type: 'docker'; docker: { image: string; tag: string } }
       | { type: 'remote'; remote: { domain: string } };
-    schema: {
-      id: string;
-      schema: Record<string, any>;
-      serverId: string;
-      serverVariantId: string;
-      serverVersionId: string;
-      createdAt: Date;
-    };
+    schema: Record<string, any>;
     server: {
       object: 'server#preview';
       id: string;
@@ -75,23 +68,7 @@ export let mapServersVersionsListOutput =
               )
             ])
           ),
-          schema: mtMap.objectField(
-            'schema',
-            mtMap.object({
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              schema: mtMap.objectField('schema', mtMap.passthrough()),
-              serverId: mtMap.objectField('server_id', mtMap.passthrough()),
-              serverVariantId: mtMap.objectField(
-                'server_variant_id',
-                mtMap.passthrough()
-              ),
-              serverVersionId: mtMap.objectField(
-                'server_version_id',
-                mtMap.passthrough()
-              ),
-              createdAt: mtMap.objectField('created_at', mtMap.date())
-            })
-          ),
+          schema: mtMap.objectField('schema', mtMap.passthrough()),
           server: mtMap.objectField(
             'server',
             mtMap.object({

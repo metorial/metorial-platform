@@ -72,8 +72,8 @@ export let ServerDeploymentForm = (
     : variants.data?.items[0];
 
   let serverNeedsConfig =
-    variant?.currentVersion?.schema.schema &&
-    Object.entries(variant?.currentVersion?.schema.schema?.properties ?? {}).length > 0;
+    variant?.currentVersion?.schema &&
+    Object.entries(variant?.currentVersion?.schema?.properties ?? {}).length > 0;
 
   if (!serverNeedsConfig && currentStep == 1) currentStep = 2;
 
@@ -229,7 +229,7 @@ export let ServerDeploymentForm = (
               return (
                 <JsonSchemaInput
                   label="Config"
-                  schema={variant?.currentVersion?.schema.schema ?? {}}
+                  schema={variant?.currentVersion?.schema ?? {}}
                   value={form.values.config}
                   onChange={v => form.setFieldValue('config', v)}
                   variant="raw"

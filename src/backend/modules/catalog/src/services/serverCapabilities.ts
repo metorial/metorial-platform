@@ -114,6 +114,18 @@ class ServerCapabilitiesService {
         let variant = 'serverVariant' in v ? v.serverVariant : v;
         let version = 'serverVariant' in v ? v : undefined;
 
+        let prompts = version?.prompts ?? variant.prompts;
+        let tools = version?.tools ?? variant.tools;
+        let resourceTemplates = version?.resourceTemplates ?? variant.resourceTemplates;
+
+        // @ts-ignore
+        if (!Array.isArray(prompts)) prompts = prompts?.prompts ?? [];
+        // @ts-ignore
+        if (!Array.isArray(tools)) tools = tools?.tools ?? [];
+        if (!Array.isArray(resourceTemplates))
+          // @ts-ignore
+          resourceTemplates = resourceTemplates?.resourceTemplates ?? [];
+
         return {
           id: `mcap_${await Hash.sha256(String(variant.id + (version?.oid ?? variant.currentVersionOid)))}`,
 
@@ -125,9 +137,10 @@ class ServerCapabilitiesService {
               ? ((v.serverDeployments as ServerDeployment[]) || undefined)?.[0]
               : undefined,
 
-          prompts: version?.prompts ?? variant.prompts,
-          tools: version?.tools ?? variant.tools,
-          resourceTemplates: version?.resourceTemplates ?? variant.resourceTemplates,
+          tools,
+          prompts,
+          resourceTemplates,
+
           capabilities: version?.serverCapabilities ?? variant.serverCapabilities,
           info: version?.serverInfo ?? variant.serverInfo
         } satisfies ServerCapabilities;

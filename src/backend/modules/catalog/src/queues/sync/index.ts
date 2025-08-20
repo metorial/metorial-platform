@@ -20,16 +20,6 @@ import { startRankQueue } from '../rank';
 import { indexServerListingQueue } from '../search';
 import { IndexDB } from './indexDb';
 
-let syncCron = createCron(
-  {
-    name: 'cat/sync/cron',
-    cron: '0 * * * *'
-  },
-  async () => {
-    await syncQueue.add({}, { id: 'init' });
-  }
-);
-
 let syncQueue = createQueue({
   name: 'cat/sync',
   workerOpts: {
@@ -41,9 +31,19 @@ let syncQueue = createQueue({
   }
 });
 
-syncQueue
-  .add({}, { id: 'init' })
-  .catch(e => console.error('Error adding to full sync queue', e));
+let syncCron = createCron(
+  {
+    name: 'cat/sync/cron',
+    cron: '0 * * * *'
+  },
+  async () => {
+    // await syncQueue.add({}, { id: 'init' });
+  }
+);
+
+// syncQueue
+//   .add({}, { id: 'init' })
+//   .catch(e => console.error('Error adding to full sync queue', e));
 
 export let syncProcessor = syncQueue.process(async () => {
   if (process.env.DISABLE_CATALOG_SYNC == 'true') {

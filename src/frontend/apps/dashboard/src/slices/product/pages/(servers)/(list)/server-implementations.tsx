@@ -16,7 +16,7 @@ export let ServersImplementationsPage = () => {
 
       <Spacer size={25} />
 
-      <ServerImplementationsTable />
+      <ServerImplementationsTable order="desc" />
     </>
   ));
 };

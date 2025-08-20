@@ -202,7 +202,12 @@ export let CustomServerRemoteCreateForm = (p: {
                   <Actions>
                     {close}
 
-                    <Button type="button" size="2" disabled={!form.values.remoteUrl}>
+                    <Button
+                      type="button"
+                      size="2"
+                      disabled={!form.values.remoteUrl}
+                      onClick={() => setCurrentStep(1)}
+                    >
                       Continue
                     </Button>
                   </Actions>
