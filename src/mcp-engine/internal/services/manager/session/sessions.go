@@ -420,7 +420,14 @@ func (s *Sessions) pingRoutine() {
 	defer ticker.Stop()
 
 	for range ticker.C {
+		currentSessions := make([]Session, 0)
+		s.mutex.RLock()
 		for _, session := range s.sessions {
+			currentSessions = append(currentSessions, session)
+		}
+		s.mutex.RUnlock()
+
+		for _, session := range currentSessions {
 			storedSession := session.StoredSession()
 			if storedSession == nil {
 				continue

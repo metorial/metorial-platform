@@ -250,6 +250,94 @@ func (*RegisterWorkerResponse) Descriptor() ([]byte, []int) {
 	return file_workerBroker_proto_rawDescGZIP(), []int{4}
 }
 
+type GetManagerInfoRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetManagerInfoRequest) Reset() {
+	*x = GetManagerInfoRequest{}
+	mi := &file_workerBroker_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetManagerInfoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetManagerInfoRequest) ProtoMessage() {}
+
+func (x *GetManagerInfoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_workerBroker_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetManagerInfoRequest.ProtoReflect.Descriptor instead.
+func (*GetManagerInfoRequest) Descriptor() ([]byte, []int) {
+	return file_workerBroker_proto_rawDescGZIP(), []int{5}
+}
+
+type GetManagerInfoResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetManagerInfoResponse) Reset() {
+	*x = GetManagerInfoResponse{}
+	mi := &file_workerBroker_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetManagerInfoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetManagerInfoResponse) ProtoMessage() {}
+
+func (x *GetManagerInfoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_workerBroker_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetManagerInfoResponse.ProtoReflect.Descriptor instead.
+func (*GetManagerInfoResponse) Descriptor() ([]byte, []int) {
+	return file_workerBroker_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetManagerInfoResponse) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *GetManagerInfoResponse) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
 var File_workerBroker_proto protoreflect.FileDescriptor
 
 const file_workerBroker_proto_rawDesc = "" +
@@ -266,10 +354,15 @@ const file_workerBroker_proto_rawDesc = "" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12:\n" +
 	"\vworker_type\x18\x03 \x01(\x0e2\x19.broker.worker.WorkerTypeR\n" +
 	"workerType\"\x18\n" +
-	"\x16RegisterWorkerResponse2\xe1\x01\n" +
+	"\x16RegisterWorkerResponse\"\x17\n" +
+	"\x15GetManagerInfoRequest\"B\n" +
+	"\x16GetManagerInfoResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress2\xcc\x02\n" +
 	"\x0fMcpWorkerBroker\x12c\n" +
 	"\fListManagers\x12(.broker.workerBroker.ListManagersRequest\x1a).broker.workerBroker.ListManagersResponse\x12i\n" +
-	"\x0eRegisterWorker\x12*.broker.workerBroker.RegisterWorkerRequest\x1a+.broker.workerBroker.RegisterWorkerResponseBRZPgithub.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker;workerBrokerb\x06proto3"
+	"\x0eRegisterWorker\x12*.broker.workerBroker.RegisterWorkerRequest\x1a+.broker.workerBroker.RegisterWorkerResponse\x12i\n" +
+	"\x0eGetManagerInfo\x12*.broker.workerBroker.GetManagerInfoRequest\x1a+.broker.workerBroker.GetManagerInfoResponseBRZPgithub.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker;workerBrokerb\x06proto3"
 
 var (
 	file_workerBroker_proto_rawDescOnce sync.Once
@@ -283,24 +376,28 @@ func file_workerBroker_proto_rawDescGZIP() []byte {
 	return file_workerBroker_proto_rawDescData
 }
 
-var file_workerBroker_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_workerBroker_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_workerBroker_proto_goTypes = []any{
 	(*ListManagersRequest)(nil),    // 0: broker.workerBroker.ListManagersRequest
 	(*ListManagersResponse)(nil),   // 1: broker.workerBroker.ListManagersResponse
 	(*Manager)(nil),                // 2: broker.workerBroker.Manager
 	(*RegisterWorkerRequest)(nil),  // 3: broker.workerBroker.RegisterWorkerRequest
 	(*RegisterWorkerResponse)(nil), // 4: broker.workerBroker.RegisterWorkerResponse
-	(worker.WorkerType)(0),         // 5: broker.worker.WorkerType
+	(*GetManagerInfoRequest)(nil),  // 5: broker.workerBroker.GetManagerInfoRequest
+	(*GetManagerInfoResponse)(nil), // 6: broker.workerBroker.GetManagerInfoResponse
+	(worker.WorkerType)(0),         // 7: broker.worker.WorkerType
 }
 var file_workerBroker_proto_depIdxs = []int32{
 	2, // 0: broker.workerBroker.ListManagersResponse.managers:type_name -> broker.workerBroker.Manager
-	5, // 1: broker.workerBroker.RegisterWorkerRequest.worker_type:type_name -> broker.worker.WorkerType
+	7, // 1: broker.workerBroker.RegisterWorkerRequest.worker_type:type_name -> broker.worker.WorkerType
 	0, // 2: broker.workerBroker.McpWorkerBroker.ListManagers:input_type -> broker.workerBroker.ListManagersRequest
 	3, // 3: broker.workerBroker.McpWorkerBroker.RegisterWorker:input_type -> broker.workerBroker.RegisterWorkerRequest
-	1, // 4: broker.workerBroker.McpWorkerBroker.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
-	4, // 5: broker.workerBroker.McpWorkerBroker.RegisterWorker:output_type -> broker.workerBroker.RegisterWorkerResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
+	5, // 4: broker.workerBroker.McpWorkerBroker.GetManagerInfo:input_type -> broker.workerBroker.GetManagerInfoRequest
+	1, // 5: broker.workerBroker.McpWorkerBroker.ListManagers:output_type -> broker.workerBroker.ListManagersResponse
+	4, // 6: broker.workerBroker.McpWorkerBroker.RegisterWorker:output_type -> broker.workerBroker.RegisterWorkerResponse
+	6, // 7: broker.workerBroker.McpWorkerBroker.GetManagerInfo:output_type -> broker.workerBroker.GetManagerInfoResponse
+	5, // [5:8] is the sub-list for method output_type
+	2, // [2:5] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
@@ -317,7 +414,7 @@ func file_workerBroker_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_workerBroker_proto_rawDesc), len(file_workerBroker_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
