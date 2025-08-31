@@ -16,8 +16,8 @@ echo "Setting up VS Code workspace..."
 mkdir -p ./public/extensions/memfs
 mkdir -p ./public/vscode
 
-OSS_NODE_MODULES_PATH=$(realpath ../../../../node_modules)
-ENTERPRISE_NODE_MODULES_PATH=$(realpath ../../../../../node_modules)
+OSS_NODE_MODULES_PATH=$(realpath ../../../../node_modules || echo "")
+ENTERPRISE_NODE_MODULES_PATH=$(realpath ../../../../../node_modules || echo "")
 
 NODE_MODULES_PATH=$OSS_NODE_MODULES_PATH
 
