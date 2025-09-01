@@ -2,6 +2,8 @@
 
 set -e
 
+ROOT_DIR=$(pwd)
+
 FORCE_SETUP=${FORCE_SETUP:-false}
 
 IS_SETUP=$(find ./public/vscode -maxdepth 0 -type d | wc -l)
@@ -53,3 +55,4 @@ cp -r extensions/memfs/dist/** ./public/extensions/memfs
 cp extensions/memfs/package.json ./public/extensions/memfs/package.json
 cp extensions/memfs/package.nls.json ./public/extensions/memfs/package.nls.json
 
+cd $ROOT_DIR

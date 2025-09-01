@@ -109,6 +109,10 @@ export let backendEnv: Env = [
   { key: 'LEMON_SQUEEZY_DEV_API_KEY', isEnterprise: true },
   { key: 'LEMON_SQUEEZY_DEV_WEBHOOK_SECRET', isEnterprise: true },
 
+  { key: 'STRIPE_DEV_SECRET_API_KEY', isEnterprise: true },
+  { key: 'STRIPE_DEV_PUBLISHABLE_API_KEY', isEnterprise: true },
+  { key: 'STRIPE_DEV_WEBHOOK_SECRET', isEnterprise: true },
+
   { key: 'SUPPORT_CRISP_WEBSITE_ID', isEnterprise: true },
   { key: 'SUPPORT_CRISP_TOKEN_ID', isEnterprise: true },
   { key: 'SUPPORT_CRISP_TOKEN_KEY', isEnterprise: true },
