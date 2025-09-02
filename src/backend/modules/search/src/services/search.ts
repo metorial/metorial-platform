@@ -47,11 +47,6 @@ class SearchService {
 
     return {
       addDocuments: async (docs: any[], options: { primaryKey: string }) => {
-        console.log('Adding documents to index', index, docs.length, {
-          meiliSearch: !!meiliSearch,
-          openSearch: !!openSearch
-        });
-
         if (meiliSearch) {
           let meiliIndex = meilisearchIndices.get(index)!;
           await meiliIndex.addDocuments(docs, options);
