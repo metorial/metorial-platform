@@ -30,20 +30,34 @@ export let backendEnv: Env = [
     defaultValue: `redis://localhost:36379/0`
   },
   {
-    key: 'MEILISEARCH_HOST',
-    defaultValue: `http://localhost:37700`
-  },
-  {
     key: 'USAGE_MONGO_URL',
     defaultValue: `mongodb://mongo:mongo@localhost:32707/metorial-usage?authSource=admin`,
     isEnterprise: true
   },
+
+  // {
+  //   key: 'MEILISEARCH_HOST',
+  //   defaultValue: `http://localhost:37700`
+  // },
+
+  {
+    key: 'OPENSEARCH_HOST',
+    defaultValue: `http://localhost:9200`
+  },
+  {
+    key: 'OPENSEARCH_USERNAME',
+    defaultValue: `admin`
+  },
+  {
+    key: 'OPENSEARCH_PASSWORD',
+    defaultValue: `admin`
+  },
+
   { key: 'ETCD_ENDPOINTS', defaultValue: `http://localhost:32379` },
   {
     key: 'ENGINE_DATABASE_DSN',
     defaultValue: `host=localhost user=postgres password=postgres dbname=${DB_PREFIX}-engine port=35432 sslmode=disable`
   },
-
   {
     key: 'ENGINE_MANAGER_ADDRESSES',
     defaultValue: `localhost:50050`
