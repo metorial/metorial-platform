@@ -51,12 +51,12 @@ export interface FabricEvents {
   'user.session.deleted:before': { user: User, session: UserSession, performedBy: User; context?: Context };
   'user.session.deleted:after': { user: User, session: UserSession, performedBy: User; context?: Context };
 
-  'organization.created:before': { performedBy: User; context?: Context };
-  'organization.created:after': { organization: Organization, performedBy: User; context?: Context };
-  'organization.updated:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
-  'organization.updated:after': { organization: Organization, performedBy: OrganizationActor; context?: Context };
-  'organization.deleted:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
-  'organization.deleted:after': { organization: Organization, performedBy: OrganizationActor; context?: Context };
+  'organization.created:before': { performedBy: User; context: Context };
+  'organization.created:after': { organization: Organization, performedBy: User; context: Context };
+  'organization.updated:before': { organization: Organization, performedBy: OrganizationActor; context: Context };
+  'organization.updated:after': { organization: Organization, performedBy: OrganizationActor; context: Context };
+  'organization.deleted:before': { organization: Organization, performedBy: OrganizationActor; context: Context };
+  'organization.deleted:after': { organization: Organization, performedBy: OrganizationActor; context: Context };
 
   'organization.actor.created:before': { organization: Organization, performedBy: {type: 'user', user: User} | {type: 'actor', actor: OrganizationActor}; context?: Context };
   'organization.actor.created:after': { organization: Organization, actor: OrganizationActor; performedBy: OrganizationActor; context?: Context };
