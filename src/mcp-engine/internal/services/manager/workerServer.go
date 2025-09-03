@@ -72,3 +72,10 @@ func (s *workerBrokerServer) RegisterWorker(ctx context.Context, req *workerBrok
 	return &workerBrokerPb.RegisterWorkerResponse{}, nil
 
 }
+
+func (s *workerBrokerServer) GetManagerInfo(ctx context.Context, req *workerBrokerPb.GetManagerInfoRequest) (*workerBrokerPb.GetManagerInfoResponse, error) {
+	return &workerBrokerPb.GetManagerInfoResponse{
+		Id:      s.state.ManagerID,
+		Address: s.state.Address,
+	}, nil
+}

@@ -8,12 +8,12 @@ import {
   OrganizationMemberRole,
   withTransaction
 } from '@metorial/db';
-import { forbiddenError, notFoundError, ServiceError } from '@metorial/error';
+import { conflictError, forbiddenError, notFoundError, ServiceError } from '@metorial/error';
 import { Fabric } from '@metorial/fabric';
 import { generateCustomId } from '@metorial/id';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
-import { addDays } from 'date-fns';
+import { addDays, differenceInDays } from 'date-fns';
 import { sendOrgInviteEmail } from '../email/invite';
 
 class OrganizationInviteService {
@@ -46,6 +46,49 @@ class OrganizationInviteService {
   }) {
     return withTransaction(async db => {
       await Fabric.fire('organization.invitation.created:before', d);
+
+      if (d.input.type === 'email' && !d.input.email) {
+        let existingMember = await db.organizationMember.findFirst({
+          where: {
+            organizationOid: d.organization.oid,
+            user: { email: d.input.email }
+          }
+        });
+        if (existingMember) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'User is already a member of this organization'
+            })
+          );
+        }
+
+        let existingInvite = await db.organizationInvite.findFirst({
+          where: {
+            organizationOid: d.organization.oid,
+            type: 'email',
+            status: { in: ['pending', 'rejected'] },
+            email: d.input.email,
+            expiresAt: {
+              gte: addDays(new Date(), 7)
+            }
+          }
+        });
+
+        if (existingInvite) {
+          if (Math.abs(differenceInDays(existingInvite.expiresAt, new Date())) < 7) {
+            throw new ServiceError(
+              conflictError({
+                message: 'An invite with this email already exists'
+              })
+            );
+          } else {
+            await db.organizationInvite.update({
+              where: { oid: existingInvite.oid },
+              data: { status: 'deleted', deletedAt: new Date() }
+            });
+          }
+        }
+      }
 
       let invite = await db.organizationInvite.create({
         data: {

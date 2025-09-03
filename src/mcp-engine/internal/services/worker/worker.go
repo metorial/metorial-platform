@@ -181,18 +181,26 @@ func (w *Worker) registerWithManager(address string) error {
 	w.managerMutex.Lock()
 	defer w.managerMutex.Unlock()
 
-	if currentWorkerId, exists := w.managerAddressToId[address]; exists {
-		if currentWorkerId == w.WorkerID {
-			// Already registered with this manager
+	managerInfo, err := client.GetManagerInfo(context.Background(), &workerBrokerPb.GetManagerInfoRequest{})
+	if err != nil {
+		sentry.CaptureException(err)
+		log.Printf("Failed to get manager info from %s: %v", address, err)
+		return fmt.Errorf("failed to get manager info from %s: %w", address, err)
+	}
+
+	if lastStoredManagerId, exists := w.managerAddressToId[address]; exists {
+		// Already registered with this manager
+		if lastStoredManagerId == managerInfo.Id {
+			log.Printf("Worker %s already registered with manager %s at %s", w.WorkerID, lastStoredManagerId, address)
 			return nil
 		}
 	}
 
-	log.Printf("Registering worker %s with manager at %s", w.WorkerID, address)
+	log.Printf("Registering worker %s with manager %s at %s", w.WorkerID, managerInfo.Id, address)
 
 	w.managerConns[address] = conn
 	w.managerClients[address] = client
-	w.managerAddressToId[address] = w.WorkerID
+	w.managerAddressToId[address] = managerInfo.Id
 
 	_, err = client.RegisterWorker(context.Background(), &workerBrokerPb.RegisterWorkerRequest{
 		WorkerId:   w.WorkerID,

@@ -13,6 +13,7 @@ export interface ISidebarItem {
   to?: string;
   onClick?: () => void;
   getProps?: (props: { pathname: string; to: string }) => { isActive: boolean };
+  enabled?: boolean;
   children?: {
     label: string;
     to: string;
@@ -23,6 +24,7 @@ export interface ISidebarItem {
 export interface ISidebarGroup {
   label?: string;
   collapsible?: boolean;
+  enabled?: boolean;
   onCreate?: () => void;
   items: ISidebarItem[];
 }
@@ -150,18 +152,7 @@ let SidebarGroup = ({
   label?: string;
   collapsible?: boolean;
   onCreate?: () => void;
-  items: {
-    icon: React.ReactNode;
-    label: string;
-    to?: string;
-    onClick?: () => void;
-    getProps?: (props: { pathname: string; to: string }) => { isActive: boolean };
-    children?: {
-      label: string;
-      to: string;
-      getProps?: (props: { pathname: string; to: string }) => { isActive: boolean };
-    }[];
-  }[];
+  items: ISidebarItem[];
 
   isCollapsed?: boolean;
   setCollapse?: (value: boolean) => void;
@@ -174,24 +165,26 @@ let SidebarGroup = ({
 
   useLocation(); // Force re-render on location change
 
-  let items = _items.map(({ getProps, ...item }) => {
-    let children =
-      item.children?.map(child => {
-        let isActive = child.getProps?.({
-          pathname: window.location.pathname,
-          to: child.to
-        }).isActive;
-        return { ...child, isActive };
-      }) ?? [];
+  let items = _items
+    .filter(i => i.enabled !== false)
+    .map(({ getProps, ...item }) => {
+      let children =
+        item.children?.map(child => {
+          let isActive = child.getProps?.({
+            pathname: window.location.pathname,
+            to: child.to
+          }).isActive;
+          return { ...child, isActive };
+        }) ?? [];
 
-    let childrenActive = children?.some(child => child.isActive);
+      let childrenActive = children?.some(child => child.isActive);
 
-    let isActive =
-      getProps?.({ pathname: window.location.pathname, to: item.to ?? '' }).isActive ||
-      childrenActive;
+      let isActive =
+        getProps?.({ pathname: window.location.pathname, to: item.to ?? '' }).isActive ||
+        childrenActive;
 
-    return { ...item, isActive, children, childrenActive };
-  });
+      return { ...item, isActive, children, childrenActive };
+    });
 
   return (
     <Wrapper>
@@ -320,20 +313,22 @@ export let SidebarItems = ({ groups, id }: { groups: ISidebarGroup[]; id: string
 
   return (
     <div>
-      {groups.map((group, index) => (
-        <SidebarGroup
-          key={index}
-          {...group}
-          isCollapsed={collapsibleState.includes(index.toString())}
-          setCollapse={value => {
-            collapsedAtom.set(
-              value
-                ? [...collapsibleState, index.toString()]
-                : collapsibleState.filter(i => i != index.toString())
-            );
-          }}
-        />
-      ))}
+      {groups
+        .filter(g => g.enabled !== false)
+        .map((group, index) => (
+          <SidebarGroup
+            key={index}
+            {...group}
+            isCollapsed={collapsibleState.includes(index.toString())}
+            setCollapse={value => {
+              collapsedAtom.set(
+                value
+                  ? [...collapsibleState, index.toString()]
+                  : collapsibleState.filter(i => i != index.toString())
+              );
+            }}
+          />
+        ))}
     </div>
   );
 };

@@ -1,12 +1,11 @@
-import { createHono } from '@metorial/hono';
+import { getConfig } from '@metorial/config';
+import { createHono, useRequestContext } from '@metorial/hono';
+import { oauthAuthorizationService, oauthConnectionService } from '@metorial/module-oauth';
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
+import { wrapHtmlError } from '../lib/htmlError';
 import { useValidation } from '../lib/validator';
 import { redirectHtml } from '../templates/redirect';
-import { wrapHtmlError } from '../lib/htmlError';
-import { ServiceError, badRequestError } from '@metorial/error';
-import { oauthConnectionService, oauthAuthorizationService } from '@metorial/module-oauth';
-import { getConfig } from '@metorial/config';
-import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 
 let STATE_COOKIE_NAME = 'oauth_state';
 
@@ -23,12 +22,14 @@ export let providerOauthController = createHono()
     async c =>
       wrapHtmlError(c)(async () => {
         let query = c.req.query();
+        let context = useRequestContext(c);
 
         let connection = await oauthConnectionService.getConnectionByClientId({
           clientId: query.client_id
         });
 
         let { redirectUrl, authAttempt } = await oauthAuthorizationService.startAuthorization({
+          context,
           connection,
           redirectUri: query.redirect_uri,
           getCallbackUrl: connection =>
@@ -60,6 +61,7 @@ export let providerOauthController = createHono()
     async c =>
       wrapHtmlError(c)(async () => {
         let query = c.req.query();
+        let context = useRequestContext(c);
 
         let connection = await oauthConnectionService.getConnectionByClientId({
           clientId: query.client_id
@@ -73,11 +75,13 @@ export let providerOauthController = createHono()
         }
 
         let { redirectUrl } = await oauthAuthorizationService.completeAuthorization({
+          context,
+          connection,
           response: {
             code: query.code,
             state: query.state,
             error: query.error,
-            error_description: query.error_description
+            errorDescription: query.error_description
           },
           getCallbackUrl: connection =>
             `${getConfig().urls.providerOauthUrl}/provider-oauth/callback`

@@ -1,11 +1,10 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { Readme } from '@metorial/markdown';
+import { ReadmeHtml } from '@metorial/markdown';
 import { useCurrentInstance, useServer, useServerListing } from '@metorial/state';
-import { Button, Callout, LinkButton, Spacer } from '@metorial/ui';
-import { SideBox } from '@metorial/ui-product';
+import { Attributes, Button, Callout, LinkButton, Spacer } from '@metorial/ui';
+import { ID, SideBox } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
-import { Skills } from './components/skills';
 
 export let ServerReadmePage = () => {
   let instance = useCurrentInstance();
@@ -58,18 +57,43 @@ I would like to request support for the ${server.data.name} server (ID: ${server
 
       <Spacer height={15} />
 
-      <Skills skills={listing.data.skills} />
+      <Attributes
+        attributes={[
+          ...(listing.data.repository
+            ? [
+                {
+                  label: 'Repository',
+                  content: (
+                    <a
+                      target="_blank"
+                      rel="noreferrer"
+                      href={listing.data.repository.providerUrl}
+                    >
+                      {listing.data.repository.identifier.replace('github.com/', '')}
+                    </a>
+                  )
+                }
+              ]
+            : [
+                {
+                  label: 'Type',
+                  content: 'Closed Source'
+                }
+              ]),
+          {
+            label: 'Vendor',
+            content: listing.data.vendor?.name
+          },
+          {
+            label: 'Server ID',
+            content: <ID id={server.data?.id} />
+          }
+        ]}
+      />
 
       <Spacer height={15} />
 
-      <Readme
-        readme={listing.data.readme}
-        imageRoot={
-          listing.data.repository
-            ? `https://raw.githubusercontent.com/${listing.data.repository.identifier.replace('github.com/', '')}/${listing.data.repository.defaultBranch ?? 'main'}/`
-            : undefined
-        }
-      />
+      {listing.data.readmeHtml && <ReadmeHtml readmeHtml={listing.data.readmeHtml} />}
     </>
   ));
 };

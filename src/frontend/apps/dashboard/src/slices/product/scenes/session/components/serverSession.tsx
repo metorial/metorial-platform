@@ -110,86 +110,88 @@ export let ServerSession = ({
 
   return (
     <div ref={ref}>
-      {renderWithLoader({ serverRuns, eventItems })(() => (
-        <Wrapper data-collapsed={isCollapsed}>
-          {isCollapsed && (
-            <div className="expand">
-              <RiArrowDownLine />
+      <Wrapper data-collapsed={isCollapsed}>
+        {isCollapsed && (
+          <div className="expand">
+            <RiArrowDownLine />
 
-              <Button size="2" onClick={() => setIsCollapsed(false)}>
-                Expand Session Connection
-              </Button>
-            </div>
-          )}
+            <Button size="2" onClick={() => setIsCollapsed(false)}>
+              Expand Session Connection
+            </Button>
+          </div>
+        )}
 
-          <Header>
-            <span>{serverSession.serverDeployment.name ?? serverSession.server.name}</span>
-            <span>
-              <ID id={serverSession.connection?.id ?? serverSession.id} />
-            </span>
-          </Header>
+        <Header>
+          <span>{serverSession.serverDeployment.name ?? serverSession.server.name}</span>
+          <span>
+            <ID id={serverSession.connection?.id ?? serverSession.id} />
+          </span>
+        </Header>
 
-          <Main>
-            {renderWithLoader({ serverRuns })(({ serverRuns }) => (
-              <ItemList
-                items={[
-                  {
-                    component: (
-                      <Entry
-                        icon={<RiRadarLine />}
-                        title={`Client connected`}
-                        time={serverSession.createdAt}
-                      />
-                    ),
-                    time: serverSession.createdAt
-                  },
+        <Main>
+          {renderWithLoader({ serverRuns, eventItems })(({ serverRuns, eventItems }) => {
+            let items = [
+              {
+                component: (
+                  <Entry
+                    icon={<RiRadarLine />}
+                    title={`Client connected`}
+                    time={serverSession.createdAt}
+                  />
+                ),
+                time: serverSession.createdAt
+              },
 
-                  ...(serverSession.connection
-                    ? [
-                        {
-                          component: (
-                            <Entry
-                              icon={<RiSendPlane2Line />}
-                              title={`Session connection created`}
-                              time={serverSession.createdAt}
-                            />
-                          ),
-                          time: serverSession.createdAt
-                        }
-                      ]
-                    : []),
-
-                  ...serverRuns.data.items.flatMap(serverRun => [
+              ...(serverSession.connection
+                ? [
                     {
                       component: (
                         <Entry
-                          title={`Server ${serverRun.serverDeployment.name ?? serverRun.server.name} started`}
-                          icon={<RiServerLine />}
-                          time={serverRun.startedAt ?? serverRun.createdAt}
+                          icon={<RiSendPlane2Line />}
+                          title={`Session connection created`}
+                          time={serverSession.createdAt}
                         />
                       ),
-                      time: serverRun.startedAt ?? serverRun.createdAt
-                    },
-
-                    serverRun.stoppedAt && {
-                      component: (
-                        <Entry
-                          title={`Server ${serverRun.serverDeployment.name ?? serverRun.server.name} stopped`}
-                          icon={<RiServerLine />}
-                          time={serverRun.stoppedAt}
-                        />
-                      ),
-                      time: serverRun.stoppedAt
+                      time: serverSession.createdAt
                     }
-                  ]),
+                  ]
+                : []),
 
-                  ...eventItems.data
-                ]}
-              />
-            ))}
-          </Main>
-        </Wrapper>
-      ))}
+              ...serverRuns.data.items.flatMap(serverRun => [
+                {
+                  component: (
+                    <Entry
+                      title={`Server ${serverRun.serverDeployment.name ?? serverRun.server.name} started`}
+                      icon={<RiServerLine />}
+                      time={serverRun.startedAt ?? serverRun.createdAt}
+                    />
+                  ),
+                  time: serverRun.startedAt ?? serverRun.createdAt
+                },
+
+                serverRun.stoppedAt && {
+                  component: (
+                    <Entry
+                      title={`Server ${serverRun.serverDeployment.name ?? serverRun.server.name} stopped`}
+                      icon={<RiServerLine />}
+                      time={serverRun.stoppedAt}
+                    />
+                  ),
+                  time: serverRun.stoppedAt
+                }
+              ]),
+
+              ...eventItems.data
+            ];
+
+            if (isCollapsed) {
+              items = items.slice(0, 10);
+            }
+
+            return <ItemList items={items} />;
+          })}
+        </Main>
+      </Wrapper>
     </div>
   );
 };

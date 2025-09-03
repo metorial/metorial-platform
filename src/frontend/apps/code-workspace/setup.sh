@@ -2,6 +2,8 @@
 
 set -e
 
+ROOT_DIR=$(pwd)
+
 FORCE_SETUP=${FORCE_SETUP:-false}
 
 IS_SETUP=$(find ./public/vscode -maxdepth 0 -type d | wc -l)
@@ -16,8 +18,8 @@ echo "Setting up VS Code workspace..."
 mkdir -p ./public/extensions/memfs
 mkdir -p ./public/vscode
 
-OSS_NODE_MODULES_PATH=$(realpath ../../../../node_modules)
-ENTERPRISE_NODE_MODULES_PATH=$(realpath ../../../../../node_modules)
+OSS_NODE_MODULES_PATH=$(realpath ../../../../node_modules || echo "")
+ENTERPRISE_NODE_MODULES_PATH=$(realpath ../../../../../node_modules || echo "")
 
 NODE_MODULES_PATH=$OSS_NODE_MODULES_PATH
 
@@ -53,3 +55,4 @@ cp -r extensions/memfs/dist/** ./public/extensions/memfs
 cp extensions/memfs/package.json ./public/extensions/memfs/package.json
 cp extensions/memfs/package.nls.json ./public/extensions/memfs/package.nls.json
 
+cd $ROOT_DIR

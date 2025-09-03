@@ -2,7 +2,6 @@ import { ApolloServerErrorCode } from '@apollo/server/errors';
 import { internalServerError, isServiceError, ServiceError } from '@metorial/error';
 import { getSentry } from '@metorial/sentry';
 import { GraphQLError } from 'graphql';
-import { MiddlewareFn } from 'type-graphql';
 
 let Sentry = getSentry();
 
@@ -48,20 +47,6 @@ export class PrivateError extends GraphQLError {
     );
   }
 }
-
-export let ErrorInterceptor: MiddlewareFn<any> = async ({ context, info }, next) => {
-  try {
-    return await next();
-  } catch (err) {
-    Sentry.captureException(err);
-
-    if (isServiceError(err)) {
-      throw PrivateError.fromServiceError(err);
-    }
-
-    throw PrivateError.fromServiceError(new ServiceError(internalServerError({})));
-  }
-};
 
 export let wrapPrivateError = async <T>(cb: () => Promise<T>): Promise<T> => {
   try {

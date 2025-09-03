@@ -28,7 +28,10 @@ import {
   dashboardServerImplementationPresenter,
   v1ServerImplementationPresenter
 } from './implementation/serverImplementation';
-import { v1ServerListingPresenter } from './implementation/serverListing';
+import {
+  dashboardServerListingPresenter,
+  v1ServerListingPresenter
+} from './implementation/serverListing';
 import { v1ServerRunPresenter } from './implementation/serverRun';
 import { v1ServerRunErrorPresenter } from './implementation/serverRunError';
 import { v1ServerRunErrorGroupPresenter } from './implementation/serverRunErrorGroup';
@@ -168,7 +171,7 @@ export let serverVersionPresenter = declarePresenter(serverVersionType, {
 
 export let serverListingPresenter = declarePresenter(serverListingType, {
   mt_2025_01_01_pulsar: v1ServerListingPresenter,
-  mt_2025_01_01_dashboard: v1ServerListingPresenter
+  mt_2025_01_01_dashboard: dashboardServerListingPresenter
 });
 
 export let serverListingCategoryPresenter = declarePresenter(serverListingCategoryType, {

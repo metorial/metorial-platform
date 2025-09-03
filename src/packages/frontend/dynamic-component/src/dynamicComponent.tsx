@@ -1,4 +1,4 @@
-import { CenteredSpinner, Error } from '@metorial/ui';
+import { Error } from '@metorial/ui';
 import PQueue from 'p-queue';
 import React, { ReactNode, useEffect, useRef, useState } from 'react';
 
@@ -21,7 +21,7 @@ export let dynamicPage = <Params extends any[]>(
               await loadPromise;
             } catch (e) {}
           }),
-        { timeout: 10_000 }
+        { timeout: 120_000 }
       );
     }, 5000);
   }
@@ -42,7 +42,10 @@ export let dynamicPage = <Params extends any[]>(
           setComponent(() => c);
           completedRef.current = true;
         })
-        .catch(() => setError(true));
+        .catch(() => {
+          // setError(true);
+          location.reload();
+        });
 
       setTimeout(() => {
         if (!completedRef.current) setSpinner(true);
@@ -52,17 +55,17 @@ export let dynamicPage = <Params extends any[]>(
     // if (!Component && error) return <Error>Unable to load page</Error>;
     if (!Component && error) return React.createElement(Error, null, 'Unable to load page');
 
-    if (!Component && spinner) {
-      return React.createElement(
-        'div',
-        {
-          style: {
-            marginTop: 20
-          }
-        },
-        React.createElement(CenteredSpinner, null)
-      );
-    }
+    // if (!Component && spinner) {
+    //   return React.createElement(
+    //     'div',
+    //     {
+    //       style: {
+    //         marginTop: 20
+    //       }
+    //     },
+    //     React.createElement(CenteredSpinner, null)
+    //   );
+    // }
 
     if (Component) return React.createElement(Component as any, props as any);
 

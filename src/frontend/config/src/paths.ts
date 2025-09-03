@@ -147,6 +147,53 @@ let InstancePaths = Object.assign(
       return InstancePaths(organization, project, instance, 'server-run', id, ...subPages);
     },
 
+    externalServers: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'external-servers', ...subPages),
+    managedServers: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'managed-servers', ...subPages),
+    customServer: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'custom-server', id, ...subPages);
+    },
+
+    providerConnections: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'provider-connections', ...subPages),
+    providerConnection: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'provider-connection',
+        id,
+        ...subPages
+      );
+    },
+
     explorer: (
       organization: EntityParam,
       project: EntityParam,
