@@ -62,7 +62,6 @@ export let v1ApiKeyPresenter = Presenter.create(apiKeyType)
       ),
       type: v.enumOf(
         [
-          'user_auth_token',
           'organization_management_token',
           'instance_access_token_secret',
           'instance_access_token_publishable'
@@ -172,7 +171,6 @@ export let dashboardApiKeyPresenter = Presenter.create(apiKeyType)
       ),
       type: v.enumOf(
         [
-          'user_auth_token',
           'organization_management_token',
           'instance_access_token_secret',
           'instance_access_token_publishable'

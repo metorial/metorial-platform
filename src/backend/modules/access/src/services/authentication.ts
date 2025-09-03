@@ -114,14 +114,6 @@ class AuthenticationService {
     });
     let machineAccess = res.apiKey.machineAccess;
 
-    if (machineAccess.user && machineAccess.type == 'user_auth_token') {
-      return {
-        type: 'user',
-        user: machineAccess.user,
-        orgScopes: scopes
-      };
-    }
-
     if (
       machineAccess.instance &&
       machineAccess.organization &&

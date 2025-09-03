@@ -15,5 +15,3 @@ export let env = createValidatedEnv({
     OPENSEARCH_INDEX_PREFIX: v.optional(v.string())
   }
 });
-
-console.log(env);

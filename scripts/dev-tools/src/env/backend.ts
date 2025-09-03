@@ -143,5 +143,19 @@ export let backendEnv: Env = [
   { key: 'ENTERPRISE_FILES_HOST', isEnterprise: true },
 
   { key: 'STATSIG_API_KEY', isEnterprise: true },
-  { key: 'STATSIG_ENVIRONMENT', isEnterprise: true }
+  { key: 'STATSIG_ENVIRONMENT', isEnterprise: true },
+
+  {
+    key: 'ISLANDS_METORIAL_HOSTED_FED_DEFAULT_ADDRESS',
+    defaultValue: 'http://localhost:4201/',
+    isEnterprise: true
+  },
+  { key: 'FEDERATION_ADDRESS', defaultValue: 'http://localhost:4200/', isEnterprise: true },
+  {
+    key: 'ISLAND_IDENTIFIER',
+    defaultValue: 'metorial_hosted_fed_default',
+    isEnterprise: true
+  },
+  { key: 'ISLAND_PORT', defaultValue: '4201', isEnterprise: true },
+  { key: 'FEDERATION_PORT', defaultValue: '4200', isEnterprise: true }
 ];

@@ -9,7 +9,14 @@ export let organizationsLoader = createLoader({
   fetch: () =>
     withAuth(sdk => autoPaginate(cursor => sdk.organizations.list({ limit: 100, ...cursor }))),
   mutators: {
-    create: (i: { name: string }) => withAuth(sdk => sdk.organizations.create(i))
+    create: (i: { name: string }) =>
+      withAuth(async sdk => {
+        let newOrg =
+          (await (window as any)?.metorial_enterprise?.createOrganization?.(i)) ??
+          (await sdk.organizations.create(i));
+
+        return sdk.organizations.get(newOrg.id);
+      })
   }
 });
 

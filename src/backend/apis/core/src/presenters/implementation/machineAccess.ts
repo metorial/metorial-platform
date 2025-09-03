@@ -78,18 +78,10 @@ export let v1MachineAccessPresenter = Presenter.create(machineAccessType)
         name: 'status',
         description: `The machineAccess's status`
       }),
-      type: v.enumOf(
-        [
-          'user_auth_token',
-          'organization_management',
-          'instance_secret',
-          'instance_publishable'
-        ],
-        {
-          name: 'type',
-          description: `The machineAccess's type`
-        }
-      ),
+      type: v.enumOf(['organization_management', 'instance_secret', 'instance_publishable'], {
+        name: 'type',
+        description: `The machineAccess's type`
+      }),
       name: v.string({ name: 'name', description: `The machineAccess's name` }),
       actor: v.nullable(v1OrganizationActorPresenter.schema),
       instance: v.nullable(v1InstancePresenter.schema),

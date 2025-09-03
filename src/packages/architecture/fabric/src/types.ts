@@ -24,10 +24,6 @@ import {
 
 export type MachineAccessInput =
   | {
-      type: 'user_auth_token';
-      user: User;
-    }
-  | {
       type: 'organization_management';
       organization: Organization;
       performedBy: OrganizationActor;
