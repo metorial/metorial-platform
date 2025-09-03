@@ -1,16 +1,16 @@
 import { getImageUrl, User } from '@metorial/db';
 
 export class DUser {
-  id: string;
-  status: string;
-  type: string;
-  email: string;
-  name: string;
+  id!: string;
+  status!: string;
+  type!: string;
+  email!: string;
+  name!: string;
   firstName?: string | null;
   lastName?: string | null;
-  imageUrl: string;
-  createdAt: Date;
-  updatedAt: Date;
+  imageUrl!: string;
+  createdAt!: Date;
+  updatedAt!: Date;
 
   static async fromUser(user: User): Promise<DUser> {
     let dUser = new DUser();

@@ -3,15 +3,15 @@ import { shadowId } from '@metorial/shadow-id';
 import { DOrganization } from './organization';
 
 export class DFlag {
-  id: string;
-  slug: string;
-  value: boolean;
+  id!: string;
+  slug!: string;
+  value!: boolean;
 }
 
 export class DFlags {
-  flags: DFlag[];
-  target: string;
-  organization: DOrganization;
+  flags!: DFlag[];
+  target!: string;
+  organization!: DOrganization;
 
   static async of(d: {
     flags: {

@@ -1,14 +1,14 @@
 import { getImageUrl, Organization } from '@metorial/db';
 
 export class DOrganization {
-  id: string;
-  status: string;
-  type: string;
-  name: string;
-  slug: string;
-  imageUrl: string;
-  createdAt: Date;
-  updatedAt: Date;
+  id!: string;
+  status!: string;
+  type!: string;
+  name!: string;
+  slug!: string;
+  imageUrl!: string;
+  createdAt!: Date;
+  updatedAt!: Date;
 
   static async fromOrg(org: Organization): Promise<DOrganization> {
     let res = new DOrganization();
