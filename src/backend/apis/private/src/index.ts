@@ -46,65 +46,65 @@ export let startPrivateApiServer = async ({ port }: { port: number }) => {
           ip: extractIp(req.headers as any) ?? '0.0.0.0'
         };
 
-        return provideExecutionContext(
-          createExecutionContext({
-            type: 'request',
-            contextId: generateCustomId('req_'),
-            ip: context.ip,
-            userAgent: context.ua!
-          }),
-          () =>
-            wrapPrivateError(async () => {
-              let sessionClientSecret = getDashboardAuthCookieFromNodeReq(req);
+        let executionContext = createExecutionContext({
+          type: 'request',
+          contextId: generateCustomId('req_'),
+          ip: context.ip,
+          userAgent: context.ua!
+        });
 
-              if (!sessionClientSecret) {
-                throw new ServiceError(
-                  unauthorizedError({
-                    message: 'Missing Authorization header',
-                    description: `Expected the authentication header to be "Bearer <token>".`,
-                    hint: 'Copy your API key from the Metorial dashboard and use it in the "Authorization" header in the format "Bearer your_token_from_the_dashboard"'
-                  })
-                );
-              }
+        return provideExecutionContext(executionContext, () =>
+          wrapPrivateError(async () => {
+            let sessionClientSecret = getDashboardAuthCookieFromNodeReq(req);
 
-              let auth = await authenticationService.authenticate({
-                type: 'user_session',
-                sessionClientSecret: sessionClientSecret!,
-                context
+            if (!sessionClientSecret) {
+              throw new ServiceError(
+                unauthorizedError({
+                  message: 'Missing Authorization header',
+                  description: `Expected the authentication header to be "Bearer <token>".`,
+                  hint: 'Copy your API key from the Metorial dashboard and use it in the "Authorization" header in the format "Bearer your_token_from_the_dashboard"'
+                })
+              );
+            }
+
+            let auth = await authenticationService.authenticate({
+              type: 'user_session',
+              sessionClientSecret: sessionClientSecret!,
+              context
+            });
+
+            if (auth.type !== 'user') {
+              throw new ServiceError(
+                unauthorizedError({
+                  message: 'Invalid session',
+                  description: 'The provided session is not valid for user authentication.'
+                })
+              );
+            }
+
+            let executionContext = updateExecutionContext({
+              userId: auth.user.id,
+              machineAccessId: auth.machineAccess?.id,
+              ip: context.ip,
+              userAgent: context.ua ?? 'unknown'
+            });
+
+            let { organization, member, actor } =
+              await organizationService.getOrganizationByIdForUser({
+                organizationId: req.params.organizationId,
+                user: auth.user
               });
 
-              if (auth.type !== 'user') {
-                throw new ServiceError(
-                  unauthorizedError({
-                    message: 'Invalid session',
-                    description: 'The provided session is not valid for user authentication.'
-                  })
-                );
-              }
+            return {
+              auth,
+              context,
+              executionContext,
 
-              let executionContext = updateExecutionContext({
-                userId: auth.user.id,
-                machineAccessId: auth.machineAccess?.id,
-                ip: context.ip,
-                userAgent: context.ua ?? 'unknown'
-              });
-
-              let { organization, member, actor } =
-                await organizationService.getOrganizationByIdForUser({
-                  organizationId: req.params.organizationId,
-                  user: auth.user
-                });
-
-              return {
-                auth,
-                context,
-                executionContext,
-
-                organization,
-                member,
-                actor
-              };
-            })
+              organization,
+              member,
+              actor
+            };
+          })
         );
       }
     })
