@@ -36,17 +36,36 @@ class OrganizationMemberService {
     performedBy: { type: 'user'; user: User } | { type: 'actor'; actor: OrganizationActor };
   }) {
     return withTransaction(async db => {
-      let actor = await organizationActorService.createOrganizationActor({
-        input: {
-          type: 'member',
-          name: d.user.name,
-          email: d.user.email,
-          image: d.user.image
+      let existingMember = await db.organizationMember.findFirst({
+        where: {
+          organizationOid: d.organization.oid,
+          userOid: d.user.oid
         },
-        performedBy: { type: 'user', user: d.user },
-        organization: d.organization,
-        context: d.context
+        include: {
+          actor: true
+        }
       });
+      if (existingMember && existingMember.status == 'active') {
+        throw new ServiceError(
+          conflictError({
+            message: 'User is already a member of the organization'
+          })
+        );
+      }
+
+      let actor =
+        existingMember?.actor ??
+        (await organizationActorService.createOrganizationActor({
+          input: {
+            type: 'member',
+            name: d.user.name,
+            email: d.user.email,
+            image: d.user.image
+          },
+          performedBy: { type: 'user', user: d.user },
+          organization: d.organization,
+          context: d.context
+        }));
 
       await Fabric.fire('organization.member.created:before', {
         actor,
@@ -54,22 +73,6 @@ class OrganizationMemberService {
         organization: d.organization,
         performedBy: d.performedBy.type == 'user' ? actor : d.performedBy.actor
       });
-
-      let existingMember = await db.organizationMember.findFirst({
-        where: {
-          organizationOid: d.organization.oid,
-          userOid: d.user.oid
-        }
-      });
-      if (existingMember) {
-        if (existingMember.status == 'active') {
-          throw new ServiceError(
-            conflictError({
-              message: 'User is already a member of the organization'
-            })
-          );
-        }
-      }
 
       let member = existingMember
         ? await db.organizationMember.update({

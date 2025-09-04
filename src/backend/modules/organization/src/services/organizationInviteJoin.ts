@@ -47,7 +47,7 @@ class OrganizationInviteJoinService {
           organization: true
         }
       });
-      if (existingMember) {
+      if (existingMember && existingMember.status == 'active') {
         return {
           invite,
           organization: invite.organization,
