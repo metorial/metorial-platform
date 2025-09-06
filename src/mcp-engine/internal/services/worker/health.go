@@ -36,9 +36,8 @@ func (m *WorkerHealthManager) SetHealth(healthy, acceptingJobs bool) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if m.Health.Healthy == healthy && m.Health.AcceptingJobs == acceptingJobs {
+	if m.Health.Healthy != healthy || m.Health.AcceptingJobs != acceptingJobs {
 		log.Println("\n== Worker Health UPDATE ==")
-
 		log.Println("Healthy:", healthy)
 		log.Println("Accepting Jobs:", acceptingJobs)
 	}
