@@ -29,7 +29,7 @@ func (r *workerServer) StreamWorkerHealth(req *workerPb.WorkerHealthRequest, str
 
 	for {
 		select {
-		case <-r.worker.health.HealthChan:
+		case <-r.worker.health.HealthBroadcast.Subscribe():
 			if err := stream.Send(r.getWorkerInfo()); err != nil {
 				return err
 			}

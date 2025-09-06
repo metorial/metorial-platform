@@ -13,6 +13,7 @@ import (
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	workerLauncher "github.com/metorial/metorial/mcp-engine/internal/services/worker-launcher"
 	workerMcpRemote "github.com/metorial/metorial/mcp-engine/internal/services/worker-mcp-remote"
@@ -39,9 +40,10 @@ func main() {
 	timer := time.NewTimer(1 * time.Second)
 	<-timer.C
 
-	go runLauncher(managerAddress)
-	go runRemote(managerAddress)
 	go runRunner(managerAddress)
+
+	go runLauncher()
+	go runRemote()
 
 	log.Println("Unified MCP Engine is running...")
 
@@ -57,12 +59,21 @@ func runManager(address string, etcdEndpoints []string, dsn string) {
 		log.Fatalf("Failed to connect to database: %v", error)
 	}
 
-	manager, err := manager.NewManager(db, etcdEndpoints, address)
+	standaloneWorkers := []manager.StandaloneWorker{
+		{Type: workers.WorkerTypeLauncher, Address: "localhost:50052"},
+		{Type: workers.WorkerTypeRemote, Address: "localhost:50053"},
+	}
+
+	manager, err := manager.NewManager(db, etcdEndpoints, address, address, standaloneWorkers)
 	if err != nil {
 		log.Fatalf("Failed to create manager: %v", err)
 	}
 
-	go manager.Start()
+	go func() {
+		if err := manager.Start(); err != nil {
+			log.Panicf("Manager exited with error: %v", err)
+		}
+	}()
 
 	log.Printf("MCP Manager is running at %s", address)
 
@@ -78,10 +89,10 @@ func runManager(address string, etcdEndpoints []string, dsn string) {
 	}
 }
 
-func runLauncher(managerAddress string) {
+func runLauncher() {
 	runner := workerLauncher.NewLauncher()
 
-	worker, err := worker.NewWorker(context.Background(), workerPb.WorkerType_launcher, "localhost:50052", managerAddress, runner)
+	worker, err := worker.NewWorker(context.Background(), workerPb.WorkerType_launcher, "localhost:50052", "", runner)
 	if err != nil {
 		log.Fatalf("Failed to create worker: %v", err)
 	}
@@ -99,10 +110,10 @@ func runLauncher(managerAddress string) {
 	}
 }
 
-func runRemote(managerAddress string) {
+func runRemote() {
 	remote := workerMcpRemote.NewRemote()
 
-	worker, err := worker.NewWorker(context.Background(), workerPb.WorkerType_mcp_remote, "localhost:50053", managerAddress, remote)
+	worker, err := worker.NewWorker(context.Background(), workerPb.WorkerType_mcp_remote, "localhost:50053", "", remote)
 	if err != nil {
 		log.Fatalf("Failed to create worker: %v", err)
 	}

@@ -6,11 +6,13 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	workerMcpRunner "github.com/metorial/metorial/mcp-engine/internal/services/worker-mcp-runner"
+	"github.com/metorial/metorial/mcp-engine/pkg/aws"
 	"github.com/metorial/metorial/mcp-engine/pkg/docker"
 	"github.com/metorial/metorial/modules/addr"
 	sentryUtil "github.com/metorial/metorial/modules/sentry-util"
@@ -58,6 +60,26 @@ func getConfig() (string, int, string) {
 	managerAddressEnv := os.Getenv("MANAGER_ADDRESS")
 	if managerAddressEnv != "" {
 		managerAddress = managerAddressEnv
+	}
+
+	if os.Getenv("STANDALONE_MODE") == "true" {
+		managerAddress = ""
+	}
+
+	if os.Getenv("AWS_MODE") == "true" {
+		log.Printf("Running in AWS mode, fetching private IP and random port")
+
+		port, err := addr.GetRandomPort()
+		if err != nil {
+			log.Fatalf("Failed to get random port: %v", err)
+		}
+
+		privateIP, err := aws.GetPrivateIP()
+		if err != nil {
+			log.Fatalf("Failed to get private IP: %v", err)
+		}
+
+		address = privateIP + ":" + strconv.Itoa(port)
 	}
 
 	port, err := addr.ExtractPort(address)
