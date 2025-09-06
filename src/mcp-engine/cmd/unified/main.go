@@ -57,7 +57,7 @@ func runManager(address string, etcdEndpoints []string, dsn string) {
 		log.Fatalf("Failed to connect to database: %v", error)
 	}
 
-	manager, err := manager.NewManager(db, etcdEndpoints, address)
+	manager, err := manager.NewManager(db, etcdEndpoints, address, address)
 	if err != nil {
 		log.Fatalf("Failed to create manager: %v", err)
 	}

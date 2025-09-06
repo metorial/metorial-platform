@@ -5,11 +5,14 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager"
+	"github.com/metorial/metorial/mcp-engine/pkg/aws"
+	"github.com/metorial/metorial/modules/addr"
 	sentryUtil "github.com/metorial/metorial/modules/sentry-util"
 )
 
@@ -17,21 +20,21 @@ func main() {
 	sentryUtil.InitSentryIfNeeded()
 	defer sentryUtil.ShutdownSentry()
 
-	address, etcdEndpoints, dsn := getConfig()
+	managerAddress, workerBrokerAddress, etcdEndpoints, dsn := getConfig()
 
 	db, error := db.NewDB(dsn)
 	if error != nil {
 		log.Fatalf("Failed to connect to database: %v", error)
 	}
 
-	manager, err := manager.NewManager(db, etcdEndpoints, address)
+	manager, err := manager.NewManager(db, etcdEndpoints, managerAddress, workerBrokerAddress)
 	if err != nil {
 		log.Fatalf("Failed to create manager: %v", err)
 	}
 
 	go manager.Start()
 
-	log.Printf("MCP Manager is running at %s", address)
+	log.Printf("MCP Manager is running at %s and Worker Broker at %s\n", managerAddress, workerBrokerAddress)
 
 	// Wait for interrupt signal
 	sigChan := make(chan os.Signal, 1)
@@ -45,15 +48,41 @@ func main() {
 	}
 }
 
-func getConfig() (string, []string, string) {
+func getConfig() (string, string, []string, string) {
 	addressArg := flag.String("address", "localhost:50050", "Address for the MCP Managers to listen on")
 	flag.Parse()
 
-	address := *addressArg
+	managerAddress := *addressArg
 
 	managerAddressEnv := os.Getenv("MANAGER_ADDRESS")
 	if managerAddressEnv != "" {
-		address = managerAddressEnv
+		managerAddress = managerAddressEnv
+	}
+
+	workerBrokerAddress := os.Getenv("WORKER_BROKER_ADDRESS")
+	if workerBrokerAddress == "" {
+		workerBrokerAddress = managerAddress
+	}
+
+	if os.Getenv("AWS_MODE") == "true" {
+		log.Printf("Running in AWS mode, fetching private IP and random port")
+
+		managerPort, err := addr.GetRandomPort()
+		if err != nil {
+			log.Fatalf("Failed to get random port: %v", err)
+		}
+		workerBrokerPort, err := addr.GetRandomPort()
+		if err != nil {
+			log.Fatalf("Failed to get random port: %v", err)
+		}
+
+		privateIP, err := aws.GetPrivateIP()
+		if err != nil {
+			log.Fatalf("Failed to get private IP: %v", err)
+		}
+
+		managerAddress = privateIP + ":" + strconv.Itoa(managerPort)
+		workerBrokerAddress = privateIP + ":" + strconv.Itoa(workerBrokerPort)
 	}
 
 	etcdEndpoints := []string{"http://localhost:2379"}
@@ -67,5 +96,5 @@ func getConfig() (string, []string, string) {
 		log.Fatal("ENGINE_DATABASE_DSN environment variable is not set")
 	}
 
-	return address, etcdEndpoints, dsn
+	return managerAddress, workerBrokerAddress, etcdEndpoints, dsn
 }
