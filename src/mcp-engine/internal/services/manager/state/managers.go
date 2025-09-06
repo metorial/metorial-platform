@@ -14,16 +14,20 @@ type Manager struct {
 	ID         string `json:"id"`
 	LastPingAt int64  `json:"lastPingAt"`
 	JoinedAt   int64  `json:"joinedAt"`
-	Address    string `json:"address"`
+
+	ManagerAddress      string `json:"managerAddress"`
+	WorkerBrokerAddress string `json:"workerBrokerAddress"`
 }
 
-func (sm *StateManager) CreateManager(id, address string) error {
+func (sm *StateManager) CreateManager(id, managerAddress, workerBrokerAddress string) error {
 	now := time.Now().UnixMilli()
 	manager := Manager{
 		ID:         id,
 		LastPingAt: now,
 		JoinedAt:   now,
-		Address:    address,
+
+		ManagerAddress:      managerAddress,
+		WorkerBrokerAddress: workerBrokerAddress,
 	}
 
 	data, err := json.Marshal(manager)
@@ -37,7 +41,11 @@ func (sm *StateManager) CreateManager(id, address string) error {
 		return fmt.Errorf("failed to create manager: %v", err)
 	}
 
-	log.Printf("Created manager %s at %s", id, address)
+	log.Printf("Created manager %s at %s", id, managerAddress)
+	if workerBrokerAddress != managerAddress {
+		log.Printf("Worker broker address: %s", workerBrokerAddress)
+	}
+
 	return nil
 }
 

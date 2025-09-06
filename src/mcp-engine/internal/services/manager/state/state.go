@@ -13,7 +13,9 @@ import (
 
 type StateManager struct {
 	ManagerID string
-	Address   string
+
+	MangerAddress       string
+	WorkerBrokerAddress string
 
 	client *clientv3.Client
 
@@ -21,7 +23,7 @@ type StateManager struct {
 	cancel context.CancelFunc
 }
 
-func NewStateManager(etcdEndpoints []string, address string) (*StateManager, error) {
+func NewStateManager(etcdEndpoints []string, managerAddress, workerBrokerAddress string) (*StateManager, error) {
 	client, err := clientv3.New(clientv3.Config{
 		Endpoints:   etcdEndpoints,
 		DialTimeout: 5 * time.Second,
@@ -33,18 +35,19 @@ func NewStateManager(etcdEndpoints []string, address string) (*StateManager, err
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &StateManager{
-		client:    client,
-		ManagerID: util.Must(uuid.NewV7()).String(),
-		Address:   address,
-		ctx:       ctx,
-		cancel:    cancel,
+		client:              client,
+		ManagerID:           util.Must(uuid.NewV7()).String(),
+		MangerAddress:       managerAddress,
+		WorkerBrokerAddress: workerBrokerAddress,
+		ctx:                 ctx,
+		cancel:              cancel,
 	}, nil
 }
 
 func (sm *StateManager) Start() error {
 	log.Printf("Starting state manager with ID: %s", sm.ManagerID)
 
-	if err := sm.CreateManager(sm.ManagerID, sm.Address); err != nil {
+	if err := sm.CreateManager(sm.ManagerID, sm.MangerAddress, sm.WorkerBrokerAddress); err != nil {
 		return fmt.Errorf("failed to register manager: %v", err)
 	}
 

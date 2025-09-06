@@ -31,7 +31,7 @@ func PrintStatus(sm *StateManager) {
 			isSelf = " (self)"
 		}
 		log.Printf("  %s%s - %s, Joined: %s, Last Ping: %s",
-			manager.ID[:8], isSelf, manager.Address,
+			manager.ID[:8], isSelf, manager.ManagerAddress,
 			joined.Format("15:04:05"), lastPing.Format("15:04:05"))
 	}
 

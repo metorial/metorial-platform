@@ -30,8 +30,9 @@ func (s *workerBrokerServer) ListManagers(ctx context.Context, req *workerBroker
 	resManagers := make([]*workerBrokerPb.Manager, 0, len(managers))
 	for _, manager := range managers {
 		resManagers = append(resManagers, &workerBrokerPb.Manager{
-			Id:      manager.ID,
-			Address: manager.Address,
+			Id:                  manager.ID,
+			ManagerAddress:      manager.ManagerAddress,
+			WorkerBrokerAddress: manager.WorkerBrokerAddress,
 		})
 	}
 
@@ -75,7 +76,8 @@ func (s *workerBrokerServer) RegisterWorker(ctx context.Context, req *workerBrok
 
 func (s *workerBrokerServer) GetManagerInfo(ctx context.Context, req *workerBrokerPb.GetManagerInfoRequest) (*workerBrokerPb.GetManagerInfoResponse, error) {
 	return &workerBrokerPb.GetManagerInfoResponse{
-		Id:      s.state.ManagerID,
-		Address: s.state.Address,
+		Id:                  s.state.ManagerID,
+		ManagerAddress:      s.state.MangerAddress,
+		WorkerBrokerAddress: s.state.WorkerBrokerAddress,
 	}, nil
 }

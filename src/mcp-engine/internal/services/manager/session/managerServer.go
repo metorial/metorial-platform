@@ -129,8 +129,9 @@ func (s *SessionServer) ListManagers(context.Context, *workerBrokerPb.ListManage
 	resManagers := make([]*workerBrokerPb.Manager, 0, len(managers))
 	for _, manager := range managers {
 		resManagers = append(resManagers, &workerBrokerPb.Manager{
-			Id:      manager.ID,
-			Address: manager.Address,
+			Id:                  manager.ID,
+			ManagerAddress:      manager.ManagerAddress,
+			WorkerBrokerAddress: manager.WorkerBrokerAddress,
 		})
 	}
 

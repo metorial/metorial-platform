@@ -13,27 +13,36 @@ import (
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	grpc_util "github.com/metorial/metorial/mcp-engine/pkg/grpcUtil"
 	"github.com/metorial/metorial/modules/addr"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 type Manager struct {
-	Address       string
-	Port          int
+	ManagerAddress      string
+	WorkerBrokerAddress string
+	ManagerPort         int
+	WorkerBrokerPort    int
+
 	state         *state.StateManager
-	grpcServer    *grpc.Server
 	workerServer  *workerBrokerServer
 	workers       *workers.WorkerManager
 	sessionServer *session.SessionServer
 }
 
-func NewManager(db *db.DB, etcdEndpoints []string, address string) (*Manager, error) {
-	port, err := addr.ExtractPort(address)
+func NewManager(db *db.DB, etcdEndpoints []string, mangerAddress, workerBrokerAddress string) (*Manager, error) {
+	if workerBrokerAddress == "" {
+		workerBrokerAddress = mangerAddress
+	}
+
+	managerPort, err := addr.ExtractPort(mangerAddress)
+	if err != nil {
+		return nil, err
+	}
+	workerBrokerPort, err := addr.ExtractPort(workerBrokerAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	sm, err := state.NewStateManager(etcdEndpoints, address)
+	sm, err := state.NewStateManager(etcdEndpoints, mangerAddress, workerBrokerAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -41,9 +50,13 @@ func NewManager(db *db.DB, etcdEndpoints []string, address string) (*Manager, er
 	workers := workers.NewWorkerManager()
 
 	return &Manager{
-		state:         sm,
-		Port:          port,
-		Address:       address,
+		state: sm,
+
+		ManagerAddress:      mangerAddress,
+		WorkerBrokerAddress: workerBrokerAddress,
+		ManagerPort:         managerPort,
+		WorkerBrokerPort:    workerBrokerPort,
+
 		workers:       workers,
 		workerServer:  &workerBrokerServer{state: sm, workerManager: workers},
 		sessionServer: session.NewSessionServer(db, sm, workers),
@@ -51,28 +64,46 @@ func NewManager(db *db.DB, etcdEndpoints []string, address string) (*Manager, er
 }
 
 func (m *Manager) Start() error {
-	address := ":" + strconv.Itoa(m.Port)
+	managerAddress := ":" + strconv.Itoa(m.ManagerPort)
 
-	lis, err := net.Listen("tcp", address)
+	lis, err := net.Listen("tcp", managerAddress)
 	if err != nil {
 		return err
 	}
 
-	s := grpc_util.NewGrpcServer("manager")
-	m.grpcServer = s
+	managerServer := grpc_util.NewGrpcServer("manager")
+	managerPb.RegisterMcpManagerServer(managerServer, m.sessionServer)
+	if m.WorkerBrokerPort == m.ManagerPort {
+		workerBrokerPb.RegisterMcpWorkerBrokerServer(managerServer, m.workerServer)
+	}
+	reflection.Register(managerServer)
 
-	workerBrokerPb.RegisterMcpWorkerBrokerServer(s, m.workerServer)
-	managerPb.RegisterMcpManagerServer(s, m.sessionServer)
+	log.Printf("Starting manager server at %s", managerAddress)
 
-	reflection.Register(s)
-
-	log.Printf("Starting manager server at %s", address)
-
-	if err := m.state.Start(); err != nil {
+	if err := managerServer.Serve(lis); err != nil {
 		return err
 	}
 
-	if err := s.Serve(lis); err != nil {
+	if m.WorkerBrokerPort != m.ManagerPort {
+		workerBrokerAddress := ":" + strconv.Itoa(m.WorkerBrokerPort)
+
+		lis, err := net.Listen("tcp", workerBrokerAddress)
+		if err != nil {
+			return err
+		}
+
+		workerBrokerServer := grpc_util.NewGrpcServer("worker_broker")
+		workerBrokerPb.RegisterMcpWorkerBrokerServer(workerBrokerServer, m.workerServer)
+		reflection.Register(workerBrokerServer)
+
+		log.Printf("Starting worker broker server at %s", workerBrokerAddress)
+
+		if err := workerBrokerServer.Serve(lis); err != nil {
+			return err
+		}
+	}
+
+	if err := m.state.Start(); err != nil {
 		return err
 	}
 
