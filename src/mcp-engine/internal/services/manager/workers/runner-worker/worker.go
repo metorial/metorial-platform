@@ -20,9 +20,9 @@ type RunnerWorker struct {
 	mutex sync.Mutex
 }
 
-func NewRunnerWorker(ctx context.Context, manager *workers.WorkerManager, workerID string, address string) *RunnerWorker {
+func NewRunnerWorker(ctx context.Context, manager *workers.WorkerManager, workerID, address string, isStandalone bool) *RunnerWorker {
 	res := &RunnerWorker{
-		BaseWorkerConnection: base_worker.NewBaseWorkerConnection(ctx, workerID, address),
+		BaseWorkerConnection: base_worker.NewBaseWorkerConnection(ctx, workerID, address, isStandalone),
 
 		manager: manager,
 		client:  nil,

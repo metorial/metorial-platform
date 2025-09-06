@@ -11,6 +11,7 @@ import (
 
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/aws"
 	"github.com/metorial/metorial/modules/addr"
 	sentryUtil "github.com/metorial/metorial/modules/sentry-util"
@@ -20,14 +21,14 @@ func main() {
 	sentryUtil.InitSentryIfNeeded()
 	defer sentryUtil.ShutdownSentry()
 
-	managerAddress, workerBrokerAddress, etcdEndpoints, dsn := getConfig()
+	managerAddress, workerBrokerAddress, etcdEndpoints, dsn, standaloneWorkers := getConfig()
 
 	db, error := db.NewDB(dsn)
 	if error != nil {
 		log.Fatalf("Failed to connect to database: %v", error)
 	}
 
-	manager, err := manager.NewManager(db, etcdEndpoints, managerAddress, workerBrokerAddress)
+	manager, err := manager.NewManager(db, etcdEndpoints, managerAddress, workerBrokerAddress, standaloneWorkers)
 	if err != nil {
 		log.Fatalf("Failed to create manager: %v", err)
 	}
@@ -48,7 +49,7 @@ func main() {
 	}
 }
 
-func getConfig() (string, string, []string, string) {
+func getConfig() (string, string, []string, string, []manager.StandaloneWorker) {
 	addressArg := flag.String("address", "localhost:50050", "Address for the MCP Managers to listen on")
 	flag.Parse()
 
@@ -96,5 +97,31 @@ func getConfig() (string, string, []string, string) {
 		log.Fatal("ENGINE_DATABASE_DSN environment variable is not set")
 	}
 
-	return managerAddress, workerBrokerAddress, etcdEndpoints, dsn
+	standaloneWorkers := make([]manager.StandaloneWorker, 0)
+
+	standaloneRunnerEnv := os.Getenv("STANDALONE_RUNNER")
+	if standaloneRunnerEnv != "" {
+		standaloneWorkers = append(standaloneWorkers, manager.StandaloneWorker{
+			Type:    workers.WorkerTypeContainer,
+			Address: standaloneRunnerEnv,
+		})
+	}
+
+	standaloneLauncherEnv := os.Getenv("STANDALONE_LAUNCHER")
+	if standaloneLauncherEnv != "" {
+		standaloneWorkers = append(standaloneWorkers, manager.StandaloneWorker{
+			Type:    workers.WorkerTypeLauncher,
+			Address: standaloneLauncherEnv,
+		})
+	}
+
+	standaloneRemoteEnv := os.Getenv("STANDALONE_REMOTE")
+	if standaloneRemoteEnv != "" {
+		standaloneWorkers = append(standaloneWorkers, manager.StandaloneWorker{
+			Type:    workers.WorkerTypeRemote,
+			Address: standaloneRemoteEnv,
+		})
+	}
+
+	return managerAddress, workerBrokerAddress, etcdEndpoints, dsn, standaloneWorkers
 }

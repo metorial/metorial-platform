@@ -12,16 +12,12 @@ import {
   Client,
   type ClientDuplexStream,
   type ClientOptions,
-  type ClientUnaryCall,
   type handleBidiStreamingCall,
-  type handleUnaryCall,
   makeGenericClientConstructor,
   type Metadata,
-  type ServiceError,
   type UntypedServiceImplementation,
 } from "@grpc/grpc-js";
 import Long from "long";
-import { Empty } from "./common";
 import { McpError, McpMessageRaw, McpOutput } from "./mcp";
 import { WorkerInfoResponse } from "./worker";
 
@@ -1878,46 +1874,14 @@ export const RunResponseClose: MessageFns<RunResponseClose> = {
   },
 };
 
+/**
+ * rpc GetRunnerInfo(RunnerInfoRequest) returns (RunnerInfoResponse);
+ * rpc ListActiveRuns(broker.common.Empty) returns (ActiveRunsResponse);
+ * rpc ListDockerImages(broker.common.Empty) returns (DockerImagesResponse);
+ * rpc ListDockerContainers(broker.common.Empty) returns (DockerContainersResponse);
+ */
 export type McpRunnerService = typeof McpRunnerService;
 export const McpRunnerService = {
-  getRunnerInfo: {
-    path: "/broker.runner.McpRunner/GetRunnerInfo",
-    requestStream: false,
-    responseStream: false,
-    requestSerialize: (value: RunnerInfoRequest): Buffer => Buffer.from(RunnerInfoRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): RunnerInfoRequest => RunnerInfoRequest.decode(value),
-    responseSerialize: (value: RunnerInfoResponse): Buffer => Buffer.from(RunnerInfoResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): RunnerInfoResponse => RunnerInfoResponse.decode(value),
-  },
-  listActiveRuns: {
-    path: "/broker.runner.McpRunner/ListActiveRuns",
-    requestStream: false,
-    responseStream: false,
-    requestSerialize: (value: Empty): Buffer => Buffer.from(Empty.encode(value).finish()),
-    requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
-    responseSerialize: (value: ActiveRunsResponse): Buffer => Buffer.from(ActiveRunsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ActiveRunsResponse => ActiveRunsResponse.decode(value),
-  },
-  listDockerImages: {
-    path: "/broker.runner.McpRunner/ListDockerImages",
-    requestStream: false,
-    responseStream: false,
-    requestSerialize: (value: Empty): Buffer => Buffer.from(Empty.encode(value).finish()),
-    requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
-    responseSerialize: (value: DockerImagesResponse): Buffer =>
-      Buffer.from(DockerImagesResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): DockerImagesResponse => DockerImagesResponse.decode(value),
-  },
-  listDockerContainers: {
-    path: "/broker.runner.McpRunner/ListDockerContainers",
-    requestStream: false,
-    responseStream: false,
-    requestSerialize: (value: Empty): Buffer => Buffer.from(Empty.encode(value).finish()),
-    requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
-    responseSerialize: (value: DockerContainersResponse): Buffer =>
-      Buffer.from(DockerContainersResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): DockerContainersResponse => DockerContainersResponse.decode(value),
-  },
   streamMcpRun: {
     path: "/broker.runner.McpRunner/StreamMcpRun",
     requestStream: true,
@@ -1930,74 +1894,10 @@ export const McpRunnerService = {
 } as const;
 
 export interface McpRunnerServer extends UntypedServiceImplementation {
-  getRunnerInfo: handleUnaryCall<RunnerInfoRequest, RunnerInfoResponse>;
-  listActiveRuns: handleUnaryCall<Empty, ActiveRunsResponse>;
-  listDockerImages: handleUnaryCall<Empty, DockerImagesResponse>;
-  listDockerContainers: handleUnaryCall<Empty, DockerContainersResponse>;
   streamMcpRun: handleBidiStreamingCall<RunRequest, RunResponse>;
 }
 
 export interface McpRunnerClient extends Client {
-  getRunnerInfo(
-    request: RunnerInfoRequest,
-    callback: (error: ServiceError | null, response: RunnerInfoResponse) => void,
-  ): ClientUnaryCall;
-  getRunnerInfo(
-    request: RunnerInfoRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: RunnerInfoResponse) => void,
-  ): ClientUnaryCall;
-  getRunnerInfo(
-    request: RunnerInfoRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RunnerInfoResponse) => void,
-  ): ClientUnaryCall;
-  listActiveRuns(
-    request: Empty,
-    callback: (error: ServiceError | null, response: ActiveRunsResponse) => void,
-  ): ClientUnaryCall;
-  listActiveRuns(
-    request: Empty,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: ActiveRunsResponse) => void,
-  ): ClientUnaryCall;
-  listActiveRuns(
-    request: Empty,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ActiveRunsResponse) => void,
-  ): ClientUnaryCall;
-  listDockerImages(
-    request: Empty,
-    callback: (error: ServiceError | null, response: DockerImagesResponse) => void,
-  ): ClientUnaryCall;
-  listDockerImages(
-    request: Empty,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: DockerImagesResponse) => void,
-  ): ClientUnaryCall;
-  listDockerImages(
-    request: Empty,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DockerImagesResponse) => void,
-  ): ClientUnaryCall;
-  listDockerContainers(
-    request: Empty,
-    callback: (error: ServiceError | null, response: DockerContainersResponse) => void,
-  ): ClientUnaryCall;
-  listDockerContainers(
-    request: Empty,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: DockerContainersResponse) => void,
-  ): ClientUnaryCall;
-  listDockerContainers(
-    request: Empty,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DockerContainersResponse) => void,
-  ): ClientUnaryCall;
   streamMcpRun(): ClientDuplexStream<RunRequest, RunResponse>;
   streamMcpRun(options: Partial<CallOptions>): ClientDuplexStream<RunRequest, RunResponse>;
   streamMcpRun(metadata: Metadata, options?: Partial<CallOptions>): ClientDuplexStream<RunRequest, RunResponse>;

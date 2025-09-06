@@ -955,9 +955,8 @@ const file_remote_proto_rawDesc = "" +
 	"\x11RunResponseOutput\x124\n" +
 	"\n" +
 	"mcp_output\x18\x01 \x01(\v2\x15.broker.mcp.McpOutputR\tmcpOutput\"\x12\n" +
-	"\x10RunResponseClose2\xac\x01\n" +
-	"\tMcpRemote\x12T\n" +
-	"\rGetRemoteInfo\x12 .broker.remote.RemoteInfoRequest\x1a!.broker.remote.RemoteInfoResponse\x12I\n" +
+	"\x10RunResponseClose2V\n" +
+	"\tMcpRemote\x12I\n" +
 	"\fStreamMcpRun\x12\x19.broker.remote.RunRequest\x1a\x1a.broker.remote.RunResponse(\x010\x01BFZDgithub.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote;remoteb\x06proto3"
 
 var (
@@ -1019,12 +1018,10 @@ var file_remote_proto_depIdxs = []int32{
 	20, // 16: broker.remote.RunResponseMcpMessage.message:type_name -> broker.mcp.McpMessage
 	21, // 17: broker.remote.RunResponseError.mcp_error:type_name -> broker.mcp.McpError
 	22, // 18: broker.remote.RunResponseOutput.mcp_output:type_name -> broker.mcp.McpOutput
-	1,  // 19: broker.remote.McpRemote.GetRemoteInfo:input_type -> broker.remote.RemoteInfoRequest
-	6,  // 20: broker.remote.McpRemote.StreamMcpRun:input_type -> broker.remote.RunRequest
-	2,  // 21: broker.remote.McpRemote.GetRemoteInfo:output_type -> broker.remote.RemoteInfoResponse
-	10, // 22: broker.remote.McpRemote.StreamMcpRun:output_type -> broker.remote.RunResponse
-	21, // [21:23] is the sub-list for method output_type
-	19, // [19:21] is the sub-list for method input_type
+	6,  // 19: broker.remote.McpRemote.StreamMcpRun:input_type -> broker.remote.RunRequest
+	10, // 20: broker.remote.McpRemote.StreamMcpRun:output_type -> broker.remote.RunResponse
+	20, // [20:21] is the sub-list for method output_type
+	19, // [19:20] is the sub-list for method input_type
 	19, // [19:19] is the sub-list for extension type_name
 	19, // [19:19] is the sub-list for extension extendee
 	0,  // [0:19] is the sub-list for field type_name

@@ -52,16 +52,14 @@ func (s *workerBrokerServer) RegisterWorker(ctx context.Context, req *workerBrok
 	log.Printf("Registering worker %s of type %s at address %s", req.WorkerId, req.WorkerType, req.Address)
 
 	switch req.WorkerType {
-
 	case workerPb.WorkerType_mcp_runner:
-		worker = runnerWorker.NewRunnerWorker(context.Background(), s.workerManager, req.WorkerId, req.Address)
+		worker = runnerWorker.NewRunnerWorker(context.Background(), s.workerManager, req.WorkerId, req.Address, false)
 	case workerPb.WorkerType_launcher:
-		worker = launcherWorker.NewLauncherWorker(context.Background(), s.workerManager, req.WorkerId, req.Address)
+		worker = launcherWorker.NewLauncherWorker(context.Background(), s.workerManager, req.WorkerId, req.Address, false)
 	case workerPb.WorkerType_mcp_remote:
-		worker = remoteWorker.NewRemoteWorker(context.Background(), s.workerManager, req.WorkerId, req.Address)
+		worker = remoteWorker.NewRemoteWorker(context.Background(), s.workerManager, req.WorkerId, req.Address, false)
 	default:
 		return nil, fmt.Errorf("unsupported worker type: %v", req.WorkerType)
-
 	}
 
 	err := s.workerManager.RegisterWorker(worker)

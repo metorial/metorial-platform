@@ -1,16 +1,21 @@
 package manager
 
 import (
+	"context"
 	"log"
 	"net"
 	"strconv"
 
+	"github.com/google/uuid"
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/session"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
+	launcherWorker "github.com/metorial/metorial/mcp-engine/internal/services/manager/workers/launcher-worker"
+	remoteWorker "github.com/metorial/metorial/mcp-engine/internal/services/manager/workers/remote-worker"
+	runnerWorker "github.com/metorial/metorial/mcp-engine/internal/services/manager/workers/runner-worker"
 	grpc_util "github.com/metorial/metorial/mcp-engine/pkg/grpcUtil"
 	"github.com/metorial/metorial/modules/addr"
 	"google.golang.org/grpc/reflection"
@@ -28,7 +33,12 @@ type Manager struct {
 	sessionServer *session.SessionServer
 }
 
-func NewManager(db *db.DB, etcdEndpoints []string, mangerAddress, workerBrokerAddress string) (*Manager, error) {
+type StandaloneWorker struct {
+	Type    workers.WorkerType
+	Address string
+}
+
+func NewManager(db *db.DB, etcdEndpoints []string, mangerAddress, workerBrokerAddress string, standaloneWorkers []StandaloneWorker) (*Manager, error) {
 	if workerBrokerAddress == "" {
 		workerBrokerAddress = mangerAddress
 	}
@@ -47,7 +57,27 @@ func NewManager(db *db.DB, etcdEndpoints []string, mangerAddress, workerBrokerAd
 		return nil, err
 	}
 
-	workers := workers.NewWorkerManager()
+	workersManager := workers.NewWorkerManager()
+
+	for _, sw := range standaloneWorkers {
+		var workerInstance workers.Worker
+		id := uuid.NewString()
+
+		switch sw.Type {
+		case workers.WorkerTypeContainer:
+			workerInstance = runnerWorker.NewRunnerWorker(context.Background(), workersManager, id, sw.Address, true)
+		case workers.WorkerTypeLauncher:
+			workerInstance = launcherWorker.NewLauncherWorker(context.Background(), workersManager, id, sw.Address, true)
+		case workers.WorkerTypeRemote:
+			workerInstance = remoteWorker.NewRemoteWorker(context.Background(), workersManager, id, sw.Address, true)
+		}
+
+		log.Printf("Registering standalone worker %s of type %s at address %s", workerInstance.WorkerID(), sw.Type, sw.Address)
+
+		if err := workersManager.RegisterWorker(workerInstance); err != nil {
+			log.Panicf("failed to register standalone worker %s at %s: %v", workerInstance.WorkerID(), workerInstance.Address(), err)
+		}
+	}
 
 	return &Manager{
 		state: sm,
@@ -57,14 +87,15 @@ func NewManager(db *db.DB, etcdEndpoints []string, mangerAddress, workerBrokerAd
 		ManagerPort:         managerPort,
 		WorkerBrokerPort:    workerBrokerPort,
 
-		workers:       workers,
-		workerServer:  &workerBrokerServer{state: sm, workerManager: workers},
-		sessionServer: session.NewSessionServer(db, sm, workers),
+		workers:       workersManager,
+		workerServer:  &workerBrokerServer{state: sm, workerManager: workersManager},
+		sessionServer: session.NewSessionServer(db, sm, workersManager),
 	}, nil
 }
 
 func (m *Manager) Start() error {
 	managerAddress := ":" + strconv.Itoa(m.ManagerPort)
+	managerAndWorkerBrokerSamePort := m.WorkerBrokerPort == m.ManagerPort
 
 	lis, err := net.Listen("tcp", managerAddress)
 	if err != nil {
@@ -73,18 +104,20 @@ func (m *Manager) Start() error {
 
 	managerServer := grpc_util.NewGrpcServer("manager")
 	managerPb.RegisterMcpManagerServer(managerServer, m.sessionServer)
-	if m.WorkerBrokerPort == m.ManagerPort {
+	if managerAndWorkerBrokerSamePort {
 		workerBrokerPb.RegisterMcpWorkerBrokerServer(managerServer, m.workerServer)
 	}
 	reflection.Register(managerServer)
 
 	log.Printf("Starting manager server at %s", managerAddress)
 
-	if err := managerServer.Serve(lis); err != nil {
-		return err
-	}
+	go func() {
+		if err := managerServer.Serve(lis); err != nil {
+			log.Printf("Manager server at %s exited with error: %v", managerAddress, err)
+		}
+	}()
 
-	if m.WorkerBrokerPort != m.ManagerPort {
+	if !managerAndWorkerBrokerSamePort {
 		workerBrokerAddress := ":" + strconv.Itoa(m.WorkerBrokerPort)
 
 		lis, err := net.Listen("tcp", workerBrokerAddress)
@@ -98,9 +131,11 @@ func (m *Manager) Start() error {
 
 		log.Printf("Starting worker broker server at %s", workerBrokerAddress)
 
-		if err := workerBrokerServer.Serve(lis); err != nil {
-			return err
-		}
+		go func() {
+			if err := workerBrokerServer.Serve(lis); err != nil {
+				log.Printf("Worker broker server at %s exited with error: %v", workerBrokerAddress, err)
+			}
+		}()
 	}
 
 	if err := m.state.Start(); err != nil {
