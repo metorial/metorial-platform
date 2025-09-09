@@ -9,7 +9,6 @@ package manager
 import (
 	context "context"
 	mcp "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
-	workerBroker "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -61,7 +60,7 @@ type McpManagerClient interface {
 	SendMcpMessage(ctx context.Context, in *SendMcpMessageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[McpConnectionStreamResponse], error)
 	StreamMcpMessages(ctx context.Context, in *StreamMcpMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[McpConnectionStreamResponse], error)
 	GetServerInfo(ctx context.Context, in *GetServerInfoRequest, opts ...grpc.CallOption) (*mcp.McpParticipant, error)
-	ListManagers(ctx context.Context, in *workerBroker.ListManagersRequest, opts ...grpc.CallOption) (*workerBroker.ListManagersResponse, error)
+	ListManagers(ctx context.Context, in *ListManagersRequest, opts ...grpc.CallOption) (*ListManagersResponse, error)
 	ListWorkers(ctx context.Context, in *ListWorkersRequest, opts ...grpc.CallOption) (*ListWorkersResponse, error)
 	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
 	GetSession(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetSessionResponse, error)
@@ -179,9 +178,9 @@ func (c *mcpManagerClient) GetServerInfo(ctx context.Context, in *GetServerInfoR
 	return out, nil
 }
 
-func (c *mcpManagerClient) ListManagers(ctx context.Context, in *workerBroker.ListManagersRequest, opts ...grpc.CallOption) (*workerBroker.ListManagersResponse, error) {
+func (c *mcpManagerClient) ListManagers(ctx context.Context, in *ListManagersRequest, opts ...grpc.CallOption) (*ListManagersResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(workerBroker.ListManagersResponse)
+	out := new(ListManagersResponse)
 	err := c.cc.Invoke(ctx, McpManager_ListManagers_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -390,7 +389,7 @@ type McpManagerServer interface {
 	SendMcpMessage(*SendMcpMessageRequest, grpc.ServerStreamingServer[McpConnectionStreamResponse]) error
 	StreamMcpMessages(*StreamMcpMessagesRequest, grpc.ServerStreamingServer[McpConnectionStreamResponse]) error
 	GetServerInfo(context.Context, *GetServerInfoRequest) (*mcp.McpParticipant, error)
-	ListManagers(context.Context, *workerBroker.ListManagersRequest) (*workerBroker.ListManagersResponse, error)
+	ListManagers(context.Context, *ListManagersRequest) (*ListManagersResponse, error)
 	ListWorkers(context.Context, *ListWorkersRequest) (*ListWorkersResponse, error)
 	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
 	GetSession(context.Context, *GetSessionRequest) (*GetSessionResponse, error)
@@ -441,7 +440,7 @@ func (UnimplementedMcpManagerServer) StreamMcpMessages(*StreamMcpMessagesRequest
 func (UnimplementedMcpManagerServer) GetServerInfo(context.Context, *GetServerInfoRequest) (*mcp.McpParticipant, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetServerInfo not implemented")
 }
-func (UnimplementedMcpManagerServer) ListManagers(context.Context, *workerBroker.ListManagersRequest) (*workerBroker.ListManagersResponse, error) {
+func (UnimplementedMcpManagerServer) ListManagers(context.Context, *ListManagersRequest) (*ListManagersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListManagers not implemented")
 }
 func (UnimplementedMcpManagerServer) ListWorkers(context.Context, *ListWorkersRequest) (*ListWorkersResponse, error) {
@@ -635,7 +634,7 @@ func _McpManager_GetServerInfo_Handler(srv interface{}, ctx context.Context, dec
 }
 
 func _McpManager_ListManagers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(workerBroker.ListManagersRequest)
+	in := new(ListManagersRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -647,7 +646,7 @@ func _McpManager_ListManagers_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: McpManager_ListManagers_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(McpManagerServer).ListManagers(ctx, req.(*workerBroker.ListManagersRequest))
+		return srv.(McpManagerServer).ListManagers(ctx, req.(*ListManagersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

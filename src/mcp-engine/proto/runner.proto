@@ -5,7 +5,6 @@ package broker.runner;
 option go_package = "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner;runner";
 
 import "mcp.proto";
-import "common.proto";
 import "worker.proto";
 
 service McpRunner {

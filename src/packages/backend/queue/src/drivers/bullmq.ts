@@ -17,6 +17,8 @@ let Sentry = getSentry();
 
 let log = (...any: any[]) => console.log('[QUEUE MANAGER]:', ...any);
 
+let anyQueueStartedRef = { started: false };
+
 export let createBullMqQueue = <JobData>(opts: {
   name: string;
   jobOpts?: JobsOptions;
@@ -116,7 +118,7 @@ export let createBullMqQueue = <JobData>(opts: {
       let staredRef = { started: false };
 
       setTimeout(() => {
-        if (!staredRef.started) {
+        if (anyQueueStartedRef.started && !staredRef.started) {
           log(`Queue ${opts.name} was not started within 10 seconds, this is likely a bug`);
         }
       }, 10000);
@@ -125,6 +127,7 @@ export let createBullMqQueue = <JobData>(opts: {
         start: async () => {
           log(`Starting queue ${opts.name} using bullmq`);
           staredRef.started = true;
+          anyQueueStartedRef.started = true;
 
           let worker = new Worker<JobData>(
             opts.name,

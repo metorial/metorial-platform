@@ -6,7 +6,6 @@ import (
 
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	"github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
-	workerBrokerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/workerBroker"
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
@@ -120,22 +119,21 @@ func (s *SessionServer) DiscardSession(ctx context.Context, req *managerPb.Disca
 	return &managerPb.DiscardSessionResponse{}, nil
 }
 
-func (s *SessionServer) ListManagers(context.Context, *workerBrokerPb.ListManagersRequest) (*workerBrokerPb.ListManagersResponse, error) {
+func (s *SessionServer) ListManagers(context.Context, *managerPb.ListManagersRequest) (*managerPb.ListManagersResponse, error) {
 	managers, err := s.state.ListManagers()
 	if err != nil {
 		return nil, err
 	}
 
-	resManagers := make([]*workerBrokerPb.Manager, 0, len(managers))
+	resManagers := make([]*managerPb.Manager, 0, len(managers))
 	for _, manager := range managers {
-		resManagers = append(resManagers, &workerBrokerPb.Manager{
-			Id:                  manager.ID,
-			ManagerAddress:      manager.ManagerAddress,
-			WorkerBrokerAddress: manager.WorkerBrokerAddress,
+		resManagers = append(resManagers, &managerPb.Manager{
+			Id:      manager.ID,
+			Address: manager.ManagerAddress,
 		})
 	}
 
-	return &workerBrokerPb.ListManagersResponse{
+	return &managerPb.ListManagersResponse{
 		Managers: resManagers,
 	}, nil
 }

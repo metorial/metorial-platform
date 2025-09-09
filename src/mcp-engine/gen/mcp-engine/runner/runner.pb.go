@@ -7,7 +7,6 @@
 package runner
 
 import (
-	_ "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/common"
 	mcp "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	worker "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -1220,7 +1219,7 @@ var File_runner_proto protoreflect.FileDescriptor
 
 const file_runner_proto_rawDesc = "" +
 	"\n" +
-	"\frunner.proto\x12\rbroker.runner\x1a\tmcp.proto\x1a\fcommon.proto\x1a\fworker.proto\"\x13\n" +
+	"\frunner.proto\x12\rbroker.runner\x1a\tmcp.proto\x1a\fworker.proto\"\x13\n" +
 	"\x11RunnerInfoRequest\"\xb5\x01\n" +
 	"\x12RunnerInfoResponse\x12\x1b\n" +
 	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12\x1f\n" +
