@@ -9,7 +9,15 @@ import { generateSnowflakeId } from '@metorial/id';
 import { memo } from '@metorial/memo';
 import { parseRedisUrl } from '@metorial/redis';
 import { getSentry } from '@metorial/sentry';
-import { JobsOptions, Queue, QueueEvents, QueueOptions, Worker, WorkerOptions } from 'bullmq';
+import {
+  DeduplicationOptions,
+  JobsOptions,
+  Queue,
+  QueueEvents,
+  QueueOptions,
+  Worker,
+  WorkerOptions
+} from 'bullmq';
 import SuperJson from 'superjson';
 import { IQueue } from '../types';
 
@@ -19,12 +27,22 @@ let log = (...any: any[]) => console.log('[QUEUE MANAGER]:', ...any);
 
 let anyQueueStartedRef = { started: false };
 
-export let createBullMqQueue = <JobData>(opts: {
+export interface BullMqQueueOptions {
+  delay?: number;
+  id?: string;
+  deduplication?: DeduplicationOptions;
+}
+
+export interface BullMqCreateOptions {
   name: string;
   jobOpts?: JobsOptions;
   queueOpts?: Omit<QueueOptions, 'connection'>;
   workerOpts?: Omit<WorkerOptions, 'connection'>;
-}): IQueue<JobData> => {
+}
+
+export let createBullMqQueue = <JobData>(
+  opts: BullMqCreateOptions
+): IQueue<JobData, BullMqQueueOptions> => {
   let config = getConfig();
   let redisOpts = parseRedisUrl(config.redisUrl);
 
