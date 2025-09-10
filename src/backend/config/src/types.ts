@@ -1,12 +1,13 @@
 export interface MetorialConfig {
   redisUrl: string;
+  rabbitmqUrl: string;
 
   env: 'development' | 'production' | 'staging';
 
   email: (
     | {
         type: 'ses';
-        aws: {
+        aws?: {
           accessKeyId: string;
           secretAccessKey: string;
           region: string;

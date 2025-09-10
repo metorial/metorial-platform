@@ -21,11 +21,13 @@ export let defaultConfig: MetorialConfig = {
       }
     : {
         type: 'ses',
-        aws: {
-          accessKeyId: env.smtp.EMAIL_SES_ACCESS_KEY_ID!,
-          secretAccessKey: env.smtp.EMAIL_SES_SECRET_ACCESS_KEY!,
-          region: env.smtp.EMAIL_SES_REGION!
-        },
+        aws: env.smtp.EMAIL_SES_ACCESS_KEY_ID
+          ? {
+              accessKeyId: env.smtp.EMAIL_SES_ACCESS_KEY_ID!,
+              secretAccessKey: env.smtp.EMAIL_SES_SECRET_ACCESS_KEY!,
+              region: env.smtp.EMAIL_SES_REGION!
+            }
+          : undefined,
         fromEmail: env.smtp.EMAIL_FROM,
         fromName: env.smtp.EMAIL_FROM_NAME
       },
