@@ -1,6 +1,6 @@
 export interface MetorialConfig {
   redisUrl: string;
-  rabbitmqUrl: string;
+  rabbitmqUrl?: string;
 
   env: 'development' | 'production' | 'staging';
 

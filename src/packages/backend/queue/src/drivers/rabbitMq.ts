@@ -24,7 +24,9 @@ let getConnection = async () => {
   if (connectionPromise) return connectionPromise;
 
   connectionPromise = (async () => {
-    let connection = await amqp.connect(getConfig().rabbitmqUrl);
+    let url = getConfig().rabbitmqUrl;
+    if (!url) throw new Error('RABBITMQ_URL is not set in the environment');
+    let connection = await amqp.connect(url);
 
     connection.on('error', err => {
       log('RabbitMQ connection error:', err);
