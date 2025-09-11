@@ -12,6 +12,7 @@ export let env = createValidatedEnv({
     OPENSEARCH_HOST: v.optional(v.string()),
     OPENSEARCH_USERNAME: v.optional(v.string()),
     OPENSEARCH_PASSWORD: v.optional(v.string()),
-    OPENSEARCH_INDEX_PREFIX: v.optional(v.string())
+    OPENSEARCH_INDEX_PREFIX: v.optional(v.string()),
+    OPENSEARCH_PROTOCOL: v.optional(v.string())
   }
 });

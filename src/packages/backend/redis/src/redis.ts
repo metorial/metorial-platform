@@ -5,7 +5,7 @@ import { createClient, RedisClientOptions } from 'redis';
 
 let Sentry = getSentry();
 
-export let createRedisClient = (opts: RedisClientOptions & { url: string | undefined }) => {
+export let createRedisClient = (opts: RedisClientOptions & { url?: string | undefined }) => {
   let config = getConfig();
   let url = opts.url ?? config.redisUrl;
 
@@ -15,6 +15,7 @@ export let createRedisClient = (opts: RedisClientOptions & { url: string | undef
   let connect = async () => {
     let client = createClient({
       ...opts,
+
       pingInterval: 3000,
       socket: {
         reconnectStrategy: retries => {

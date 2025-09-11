@@ -21,6 +21,10 @@ export let meiliSearch = env.meiliSearch.MEILISEARCH_HOST
 export let openSearch = env.openSearch?.OPENSEARCH_HOST
   ? new OpenSearchClient({
       node: env.openSearch.OPENSEARCH_HOST,
+      ssl:
+        env.openSearch.OPENSEARCH_PROTOCOL === 'https'
+          ? { rejectUnauthorized: false }
+          : undefined,
       auth: {
         username: env.openSearch.OPENSEARCH_USERNAME!,
         password: env.openSearch.OPENSEARCH_PASSWORD!
