@@ -36,6 +36,18 @@ export let createRedisClient = (opts: RedisClientOptions & { url?: string | unde
         console.log(`Reconnecting to redis: ${sanitizedUrl}`);
       });
 
+    let origSendCommand = client.sendCommand;
+    client.sendCommand = function (cmd: any, ...args: any[]) {
+      console.log('Redis CMD:', cmd.name, cmd.args);
+      try {
+        throw new Error('trace');
+      } catch (e) {
+        console.log(e);
+      }
+      // @ts-ignore
+      return origSendCommand.call(this as any, cmd, ...args);
+    } as any;
+
     try {
       await client.connect();
     } catch (e) {
