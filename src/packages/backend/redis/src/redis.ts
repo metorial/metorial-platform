@@ -2,6 +2,7 @@ import { getConfig } from '@metorial/config';
 import { memo } from '@metorial/memo';
 import { getSentry } from '@metorial/sentry';
 import { createClient, RedisClientOptions } from 'redis';
+import { parseRedisUrl } from './utils/parseRedisUrl';
 
 let Sentry = getSentry();
 
@@ -12,12 +13,19 @@ export let createRedisClient = (opts: RedisClientOptions & { url?: string | unde
   let sanitizedUrl = new URL(url);
   sanitizedUrl.password = '***';
 
+  let parsedUrl = parseRedisUrl(url);
+
   let connect = async () => {
     let client = createClient({
-      ...opts,
+      database: parsedUrl.db,
+      password: parsedUrl.password,
 
       pingInterval: 3000,
       socket: {
+        host: parsedUrl.host,
+        port: parsedUrl.port,
+        tls: parsedUrl.tls ? true : undefined,
+
         reconnectStrategy: retries => {
           console.log(`Checking redis reconnection: ${sanitizedUrl}`);
 
