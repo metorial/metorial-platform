@@ -115,6 +115,14 @@ func getConfig() (string, string, state.Config, string, []manager.StandaloneWork
 			}
 			stateConfig.DB = redisDb
 		}
+
+		redisPortEnv := os.Getenv("REDIS_PORT")
+		if redisPortEnv != "" {
+			for i, endpoint := range stateConfig.Endpoints {
+				host := strings.Split(endpoint, ":")[0]
+				stateConfig.Endpoints[i] = fmt.Sprintf("%s:%s", host, redisPortEnv)
+			}
+		}
 	} else {
 		stateConfig.BackendType = state.BackendEtcd
 		stateConfig.Endpoints = []string{"http://localhost:2379"}
@@ -127,10 +135,6 @@ func getConfig() (string, string, state.Config, string, []manager.StandaloneWork
 	dbUsername := os.Getenv("ENGINE_DB_USERNAME")
 	dbPassword := os.Getenv("ENGINE_DB_PASSWORD")
 	dbTls := os.Getenv("ENGINE_DB_TLS")
-	if dsn == "" && dbHost == "" {
-		log.Fatal("ENGINE_DATABASE_DSN environment variable is not set")
-	}
-
 	if dbHost != "" && dbPort != "" && dbName != "" && dbUsername != "" && dbPassword != "" {
 		sslMode := "disable"
 		if dbTls == "true" {
@@ -139,6 +143,10 @@ func getConfig() (string, string, state.Config, string, []manager.StandaloneWork
 
 		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", dbHost, dbPort, dbUsername, dbPassword, dbName, sslMode)
 		log.Printf("Using database host %s and name %s", dbHost, dbName)
+	}
+
+	if dsn == "" {
+		log.Fatal("ENGINE_DATABASE_DSN environment variable is not set")
 	}
 
 	standaloneWorkers := make([]manager.StandaloneWorker, 0)
