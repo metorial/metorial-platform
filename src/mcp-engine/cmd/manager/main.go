@@ -121,16 +121,16 @@ func getConfig() (string, string, state.Config, string, []manager.StandaloneWork
 	}
 
 	dsn := os.Getenv("ENGINE_DATABASE_DSN")
-	if dsn == "" {
-		log.Fatal("ENGINE_DATABASE_DSN environment variable is not set")
-	}
-
 	dbHost := os.Getenv("ENGINE_DB_HOST")
 	dbPort := os.Getenv("ENGINE_DB_PORT")
 	dbName := os.Getenv("ENGINE_DB_NAME")
 	dbUsername := os.Getenv("ENGINE_DB_USERNAME")
 	dbPassword := os.Getenv("ENGINE_DB_PASSWORD")
 	dbTls := os.Getenv("ENGINE_DB_TLS")
+	if dsn == "" && dbHost == "" {
+		log.Fatal("ENGINE_DATABASE_DSN environment variable is not set")
+	}
+
 	if dbHost != "" && dbPort != "" && dbName != "" && dbUsername != "" && dbPassword != "" {
 		sslMode := "disable"
 		if dbTls == "true" {
