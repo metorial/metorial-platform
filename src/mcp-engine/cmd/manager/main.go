@@ -8,12 +8,13 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/aws"
-	"github.com/metorial/metorial/modules/addr"
 	sentryUtil "github.com/metorial/metorial/modules/sentry-util"
 )
 
@@ -21,14 +22,14 @@ func main() {
 	sentryUtil.InitSentryIfNeeded()
 	defer sentryUtil.ShutdownSentry()
 
-	managerAddress, workerBrokerAddress, etcdEndpoints, dsn, standaloneWorkers := getConfig()
+	managerAddress, workerBrokerAddress, stateConfig, dsn, standaloneWorkers := getConfig()
 
 	db, error := db.NewDB(dsn)
 	if error != nil {
 		log.Fatalf("Failed to connect to database: %v", error)
 	}
 
-	manager, err := manager.NewManager(db, etcdEndpoints, managerAddress, workerBrokerAddress, standaloneWorkers)
+	manager, err := manager.NewManager(db, stateConfig, managerAddress, workerBrokerAddress, standaloneWorkers)
 	if err != nil {
 		log.Fatalf("Failed to create manager: %v", err)
 	}
@@ -49,7 +50,7 @@ func main() {
 	}
 }
 
-func getConfig() (string, string, []string, string, []manager.StandaloneWorker) {
+func getConfig() (string, string, state.Config, string, []manager.StandaloneWorker) {
 	addressArg := flag.String("address", "localhost:50050", "Address for the MCP Managers to listen on")
 	flag.Parse()
 
@@ -68,13 +69,13 @@ func getConfig() (string, string, []string, string, []manager.StandaloneWorker) 
 	if os.Getenv("AWS_MODE") == "true" {
 		log.Printf("Running in AWS mode, fetching private IP and random port")
 
-		managerPort, err := addr.GetRandomPort()
-		if err != nil {
-			log.Fatalf("Failed to get random port: %v", err)
+		managerPort := os.Getenv("MANAGER_PORT")
+		if managerPort == "" {
+			log.Fatalf("MANAGER_PORT environment variable is required in AWS mode")
 		}
-		workerBrokerPort, err := addr.GetRandomPort()
-		if err != nil {
-			log.Fatalf("Failed to get random port: %v", err)
+		workerBrokerPort := os.Getenv("WORKER_BROKER_PORT")
+		if workerBrokerPort == "" {
+			log.Fatalf("WORKER_BROKER_PORT environment variable is required in AWS mode")
 		}
 
 		privateIP, err := aws.GetPrivateIP()
@@ -82,14 +83,40 @@ func getConfig() (string, string, []string, string, []manager.StandaloneWorker) 
 			log.Fatalf("Failed to get private IP: %v", err)
 		}
 
-		managerAddress = privateIP + ":" + strconv.Itoa(managerPort)
-		workerBrokerAddress = privateIP + ":" + strconv.Itoa(workerBrokerPort)
+		managerAddress = privateIP + ":" + managerPort
+		workerBrokerAddress = privateIP + ":" + workerBrokerPort
 	}
 
-	etcdEndpoints := []string{"http://localhost:2379"}
+	stateConfig := state.Config{
+		BackendType: state.BackendEtcd,
+		Timeout:     5 * time.Second,
+	}
+
 	etcdEndpointsEnv := os.Getenv("ETCD_ENDPOINTS")
+	redisEndpointsEnv := os.Getenv("REDIS_ENDPOINTS")
 	if etcdEndpointsEnv != "" {
-		etcdEndpoints = strings.Split(etcdEndpointsEnv, ",")
+		stateConfig.BackendType = state.BackendEtcd
+		stateConfig.Endpoints = strings.Split(etcdEndpointsEnv, ",")
+	} else if redisEndpointsEnv != "" {
+		stateConfig.BackendType = state.BackendRedis
+		stateConfig.Endpoints = strings.Split(redisEndpointsEnv, ",")
+
+		redisPassword := os.Getenv("REDIS_PASSWORD")
+		if redisPassword != "" {
+			stateConfig.Password = redisPassword
+		}
+
+		redisDbEnv := os.Getenv("REDIS_DB")
+		if redisDbEnv != "" {
+			redisDb, err := strconv.Atoi(redisDbEnv)
+			if err != nil {
+				log.Fatalf("Invalid REDIS_DB value: %v", err)
+			}
+			stateConfig.DB = redisDb
+		}
+	} else {
+		stateConfig.BackendType = state.BackendEtcd
+		stateConfig.Endpoints = []string{"http://localhost:2379"}
 	}
 
 	dsn := os.Getenv("ENGINE_DATABASE_DSN")
@@ -123,5 +150,5 @@ func getConfig() (string, string, []string, string, []manager.StandaloneWorker) 
 		})
 	}
 
-	return managerAddress, workerBrokerAddress, etcdEndpoints, dsn, standaloneWorkers
+	return managerAddress, workerBrokerAddress, stateConfig, dsn, standaloneWorkers
 }

@@ -75,7 +75,7 @@ func (s *workerBrokerServer) RegisterWorker(ctx context.Context, req *workerBrok
 func (s *workerBrokerServer) GetManagerInfo(ctx context.Context, req *workerBrokerPb.GetManagerInfoRequest) (*workerBrokerPb.GetManagerInfoResponse, error) {
 	return &workerBrokerPb.GetManagerInfoResponse{
 		Id:                  s.state.ManagerID,
-		ManagerAddress:      s.state.MangerAddress,
+		ManagerAddress:      s.state.ManagerAddress,
 		WorkerBrokerAddress: s.state.WorkerBrokerAddress,
 	}, nil
 }

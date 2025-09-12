@@ -38,7 +38,7 @@ type StandaloneWorker struct {
 	Address string
 }
 
-func NewManager(db *db.DB, etcdEndpoints []string, mangerAddress, workerBrokerAddress string, standaloneWorkers []StandaloneWorker) (*Manager, error) {
+func NewManager(db *db.DB, stateConfig state.Config, mangerAddress, workerBrokerAddress string, standaloneWorkers []StandaloneWorker) (*Manager, error) {
 	if workerBrokerAddress == "" {
 		workerBrokerAddress = mangerAddress
 	}
@@ -52,7 +52,7 @@ func NewManager(db *db.DB, etcdEndpoints []string, mangerAddress, workerBrokerAd
 		return nil, err
 	}
 
-	sm, err := state.NewStateManager(etcdEndpoints, mangerAddress, workerBrokerAddress)
+	sm, err := state.NewStateManager(stateConfig, mangerAddress, workerBrokerAddress)
 	if err != nil {
 		return nil, err
 	}

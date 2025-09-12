@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
@@ -69,9 +68,9 @@ func getConfig() (string, int, string) {
 	if os.Getenv("AWS_MODE") == "true" {
 		log.Printf("Running in AWS mode, fetching private IP and random port")
 
-		port, err := addr.GetRandomPort()
-		if err != nil {
-			log.Fatalf("Failed to get random port: %v", err)
+		port := os.Getenv("WORKER_PORT")
+		if port == "" {
+			log.Fatalf("WORKER_PORT environment variable is required in AWS mode")
 		}
 
 		privateIP, err := aws.GetPrivateIP()
@@ -79,7 +78,7 @@ func getConfig() (string, int, string) {
 			log.Fatalf("Failed to get private IP: %v", err)
 		}
 
-		address = privateIP + ":" + strconv.Itoa(port)
+		address = privateIP + ":" + port
 	}
 
 	port, err := addr.ExtractPort(address)

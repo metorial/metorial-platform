@@ -13,6 +13,7 @@ import (
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	workerLauncher "github.com/metorial/metorial/mcp-engine/internal/services/worker-launcher"
@@ -64,7 +65,12 @@ func runManager(address string, etcdEndpoints []string, dsn string) {
 		{Type: workers.WorkerTypeRemote, Address: "localhost:50053"},
 	}
 
-	manager, err := manager.NewManager(db, etcdEndpoints, address, address, standaloneWorkers)
+	manager, err := manager.NewManager(db, state.Config{
+		BackendType: state.BackendEtcd,
+		Endpoints:   etcdEndpoints,
+		Timeout:     5 * time.Second,
+		DialTimeout: 5 * time.Second,
+	}, address, address, standaloneWorkers)
 	if err != nil {
 		log.Fatalf("Failed to create manager: %v", err)
 	}
