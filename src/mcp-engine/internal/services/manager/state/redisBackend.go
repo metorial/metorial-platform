@@ -2,6 +2,7 @@ package state
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"time"
 
@@ -24,11 +25,19 @@ func NewRedisBackend(config Config) (*RedisBackend, error) {
 		return nil, fmt.Errorf("no redis endpoints provided")
 	}
 
-	client := redis.NewClient(&redis.Options{
+	redisConfig := &redis.Options{
 		Addr:     config.Endpoints[0],
 		Password: config.Password,
 		DB:       config.DB,
-	})
+	}
+
+	if config.Tls {
+		redisConfig.TLSConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+
+	client := redis.NewClient(redisConfig)
 
 	// Test connection
 	ctx, cancel := context.WithTimeout(context.Background(), config.Timeout)

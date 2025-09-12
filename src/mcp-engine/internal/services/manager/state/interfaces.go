@@ -37,6 +37,7 @@ type Config struct {
 	// Redis specific
 	Password string
 	DB       int
+	Tls      bool
 
 	// etcd specific
 	DialTimeout time.Duration

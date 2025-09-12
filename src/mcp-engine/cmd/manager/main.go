@@ -123,6 +123,11 @@ func getConfig() (string, string, state.Config, string, []manager.StandaloneWork
 				stateConfig.Endpoints[i] = fmt.Sprintf("%s:%s", host, redisPortEnv)
 			}
 		}
+
+		redisTlsEnv := os.Getenv("REDIS_TLS")
+		if redisTlsEnv == "true" {
+			stateConfig.Tls = true
+		}
 	} else {
 		stateConfig.BackendType = state.BackendEtcd
 		stateConfig.Endpoints = []string{"http://localhost:2379"}
