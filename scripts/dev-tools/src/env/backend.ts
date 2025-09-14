@@ -53,7 +53,8 @@ export let backendEnv: Env = [
     defaultValue: `admin`
   },
 
-  { key: 'ETCD_ENDPOINTS', defaultValue: `http://localhost:32379` },
+  // { key: 'ETCD_ENDPOINTS', defaultValue: `http://localhost:32379` },
+  { key: 'REDIS_ENDPOINTS', defaultValue: `localhost:36379` },
   {
     key: 'ENGINE_DATABASE_DSN',
     defaultValue: `host=localhost user=postgres password=postgres dbname=${DB_PREFIX}-engine port=35432 sslmode=disable`

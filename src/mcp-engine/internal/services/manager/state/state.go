@@ -122,6 +122,9 @@ func (sm *StateManager) GetManager(id string) (*Manager, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get manager: %v", err)
 	}
+	if value == "" {
+		return nil, fmt.Errorf("manager not found")
+	}
 
 	var manager Manager
 	if err := json.Unmarshal([]byte(value), &manager); err != nil {
@@ -185,7 +188,7 @@ func (sm *StateManager) UpsertSession(sessionID string, managerID string, sessio
 	return sm.withSessionLock(key, func() (*Session, error) {
 		// Check if session exists
 		value, err := sm.backend.Get(sm.ctx, key)
-		if err == nil {
+		if err == nil && value != "" {
 			var existing Session
 			if err := json.Unmarshal([]byte(value), &existing); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal existing session: %v", err)
@@ -222,6 +225,10 @@ func (sm *StateManager) GetSession(id string) (*Session, error) {
 	value, err := sm.backend.Get(sm.ctx, key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session: %v", err)
+	}
+
+	if value == "" {
+		return nil, fmt.Errorf("session not found")
 	}
 
 	var session Session

@@ -161,7 +161,8 @@ func (s *Sessions) UpsertSession(
 		prospectiveSessionUuid,
 	)
 	if err != nil {
-		// return nil, fmt.Errorf("failed to upsert session: %w", err)
+		sentry.CaptureException(err)
+		log.Printf("Failed to upsert session %s: %v\n", request.SessionId, err)
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to upsert session", err)
 	}
 

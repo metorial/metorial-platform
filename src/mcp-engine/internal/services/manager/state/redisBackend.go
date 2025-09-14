@@ -37,6 +37,8 @@ func NewRedisBackend(config Config) (*RedisBackend, error) {
 		}
 	}
 
+	fmt.Println("Connecting to Redis at", redisConfig.Addr)
+
 	client := redis.NewClient(redisConfig)
 
 	// Test connection
@@ -57,8 +59,9 @@ func (r *RedisBackend) Put(ctx context.Context, key, value string) error {
 func (r *RedisBackend) Get(ctx context.Context, key string) (string, error) {
 	result := r.client.Get(ctx, key)
 	if result.Err() == redis.Nil {
-		return "", fmt.Errorf("key not found")
+		return "", nil
 	}
+
 	return result.Result()
 }
 

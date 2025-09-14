@@ -47,7 +47,7 @@ func (e *EtcdBackend) Get(ctx context.Context, key string) (string, error) {
 	}
 
 	if len(resp.Kvs) == 0 {
-		return "", fmt.Errorf("key not found")
+		return "", nil
 	}
 
 	return string(resp.Kvs[0].Value), nil
