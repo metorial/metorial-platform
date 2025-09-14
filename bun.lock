@@ -618,6 +618,7 @@
         "@metorial/service": "^1.0.0",
         "@metorial/validation": "^1.0.0",
         "@opensearch-project/opensearch": "^3.5.1",
+        "aws-opensearch-connector": "^1.2.0",
         "meilisearch": "^0.50.0",
       },
       "devDependencies": {
@@ -3369,6 +3370,8 @@
     "asynckit": ["asynckit@0.4.0", "", {}, "sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q=="],
 
     "available-typed-arrays": ["available-typed-arrays@1.0.7", "", { "dependencies": { "possible-typed-array-names": "^1.0.0" } }, "sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ=="],
+
+    "aws-opensearch-connector": ["aws-opensearch-connector@1.2.0", "", { "dependencies": { "aws4": "^1.11.0" }, "peerDependencies": { "@opensearch-project/opensearch": ">=1.0.0" } }, "sha512-Jex72kdNtkpXdBFkA8n/VkWqI+S0AjqY6xGN8I8qA7W2CAjppBEh6PVRER1zLa/Q+/dqxou15uZ5Qz6NFfmqFQ=="],
 
     "aws4": ["aws4@1.13.2", "", {}, "sha512-lHe62zvbTB5eEABUVi/AwVh0ZKY9rMMDhmm+eeyuuUQbQ3+J+fONVQOZyj+DdrvD4BY33uYniyRJ4UJIaSKAfw=="],
 

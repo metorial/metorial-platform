@@ -1,5 +1,6 @@
 import { Service } from '@metorial/service';
 import { Client as OpenSearchClient } from '@opensearch-project/opensearch';
+import createAwsOpensearchConnector from 'aws-opensearch-connector';
 import { Index, MeiliSearch, MeiliSearchApiError } from 'meilisearch';
 import { env } from '../env';
 
@@ -19,17 +20,31 @@ export let meiliSearch = env.meiliSearch.MEILISEARCH_HOST
   : undefined;
 
 export let openSearch = env.openSearch?.OPENSEARCH_HOST
-  ? new OpenSearchClient({
-      node: env.openSearch.OPENSEARCH_HOST,
-      ssl:
-        env.openSearch.OPENSEARCH_PROTOCOL === 'https'
-          ? { rejectUnauthorized: false }
-          : undefined,
-      auth: {
-        username: env.openSearch.OPENSEARCH_USERNAME!,
-        password: env.openSearch.OPENSEARCH_PASSWORD!
-      }
-    })
+  ? new OpenSearchClient(
+      env.openSearch.OPENSEARCH_AWS_MODE == 'true'
+        ? {
+            ...createAwsOpensearchConnector({
+              region: process.env.AWS_REGION || 'us-east-1',
+              getCredentials: async () => ({
+                accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+                sessionToken: process.env.AWS_SESSION_TOKEN
+              })
+            }),
+            node: env.openSearch.OPENSEARCH_HOST
+          }
+        : {
+            node: env.openSearch.OPENSEARCH_HOST,
+            ssl:
+              env.openSearch.OPENSEARCH_PROTOCOL === 'https'
+                ? { rejectUnauthorized: false }
+                : undefined,
+            auth: {
+              username: env.openSearch.OPENSEARCH_USERNAME!,
+              password: env.openSearch.OPENSEARCH_PASSWORD!
+            }
+          }
+    )
   : undefined;
 
 class SearchService {

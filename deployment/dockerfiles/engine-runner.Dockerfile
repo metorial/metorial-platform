@@ -25,7 +25,8 @@ WORKDIR /app
 ADD https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/v0.4.15/grpc_health_probe-linux-amd64 /bin/grpc-health-probe
 RUN chmod +x /bin/grpc-health-probe
 
-RUN apk add --no-cache docker-cli
+# RUN apk add --no-cache docker-cli
+RUN apt update && apt install docker-ce-cli
 
 COPY --from=builder /app/src/mcp-engine/bin/worker-mcp-runner .
 
