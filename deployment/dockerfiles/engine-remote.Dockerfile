@@ -1,7 +1,9 @@
 # --------- Builder stage ---------
 FROM golang:1.24-bookworm AS builder
 
-RUN apk add --no-cache make git
+RUN apt update && apt install -y make git curl unzip wget
+RUN apt install -y ca-certificates curl
+RUN update-ca-certificates
 
 WORKDIR /app
 
