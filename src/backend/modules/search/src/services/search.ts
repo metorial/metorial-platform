@@ -114,12 +114,21 @@ class SearchService {
   }
 
   async indexDocument<T extends { id: string }>(d: { index: SearchIndex; document: T | T[] }) {
-    let index = await this.ensureIndex(d.index);
-    if (!index) return;
+    try {
+      let index = await this.ensureIndex(d.index);
+      if (!index) return;
 
-    await index.addDocuments(Array.isArray(d.document) ? d.document : [d.document], {
-      primaryKey: 'id'
-    });
+      await index.addDocuments(Array.isArray(d.document) ? d.document : [d.document], {
+        primaryKey: 'id'
+      });
+    } catch (error: any) {
+      try {
+        console.error('Error:', error);
+        console.error('Error status:', error.statusCode);
+        console.error('Error body:', error.body);
+        console.error('Error body:', JSON.stringify(error, null, 2));
+      } catch {}
+    }
   }
 
   async search<T>(d: {
