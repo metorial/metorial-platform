@@ -34,6 +34,11 @@ type ContainerStartOptions struct {
 	Command   string
 	MaxMemory string // Optional, e.g., "512m" or "1g"
 	MaxCPU    string // Optional, e.g., "1" or "2"
+
+	ExternalHostMetorialServiceName   string
+	ExternalHostMetorialServiceBroker string
+	ExternalHostMetorialListToken     string
+	ExternalHostPrivateKey            string
 }
 
 func newContainerManager(runtime Runtime, imageManager *ImageManager) *ContainerManager {
@@ -78,6 +83,25 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 		"--name", containerID,
 		"--env", fmt.Sprintf("METORIAL_CONTAINER_ID=%s", containerID),
 		"--env", "Metorial/Runner@2.0",
+	}
+
+	dockerCommandEnv := map[string]string{}
+
+	if opts.ExternalHostMetorialServiceName != "" && opts.ExternalHostMetorialServiceBroker != "" {
+		host := Broker.GetRemoteHost(
+			opts.ImageRef,
+			opts.ExternalHostMetorialServiceBroker,
+			opts.ExternalHostMetorialServiceName,
+			opts.ExternalHostMetorialListToken,
+		)
+		if host == "" {
+			cancel()
+			return nil, fmt.Errorf("no available hosts from broker")
+		}
+
+		initRemoteKey(host, opts.ExternalHostPrivateKey)
+
+		dockerCommandEnv["DOCKER_HOST"] = fmt.Sprintf("ssh://ec2-user@%s", host)
 	}
 
 	if os.Getenv("CONTAINER_ENHANCED_SECURITY") == "true" {
@@ -126,6 +150,9 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 	}
 
 	cmd := exec.CommandContext(ctx, "docker", dockerArgs...)
+	for key, value := range dockerCommandEnv {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
+	}
 
 	log.Printf("Starting container for image %s with ID %s", image.FullName(), containerID)
 
