@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"flag"
 	"log"
 	"os"
@@ -23,7 +24,29 @@ func main() {
 
 	ownAddress, port, managerAddress := getConfig()
 
-	dockerManager := docker.NewDockerManager(docker.RuntimeDocker)
+	config := docker.ImageManagerCreateOptions{}
+
+	externalHostMetorialServiceName := os.Getenv("EXTERNAL_HOST_METORIAL_SERVICE_NAME")
+	externalHostMetorialServiceBroker := os.Getenv("EXTERNAL_HOST_METORIAL_SERVICE_BROKER")
+	externalHostMetorialListToken := os.Getenv("EXTERNAL_HOST_METORIAL_LIST_TOKEN")
+	externalHostPrivateKey := os.Getenv("EXTERNAL_HOST_PRIVATE_KEY")
+
+	if os.Getenv("EXTERNAL_HOST_PRIVATE_KEY_BASE64") != "" {
+		decoded, err := base64.StdEncoding.DecodeString(os.Getenv("EXTERNAL_HOST_PRIVATE_KEY_BASE64"))
+		if err != nil {
+			log.Fatalf("Failed to decode EXTERNAL_HOST_PRIVATE_KEY_BASE64: %v", err)
+		}
+		externalHostPrivateKey = string(decoded)
+	}
+
+	if externalHostMetorialServiceName != "" && externalHostMetorialServiceBroker != "" && externalHostMetorialListToken != "" {
+		config.ExternalHostMetorialServiceName = externalHostMetorialServiceName
+		config.ExternalHostMetorialServiceBroker = externalHostMetorialServiceBroker
+		config.ExternalHostMetorialListToken = externalHostMetorialListToken
+		config.ExternalHostPrivateKey = externalHostPrivateKey
+	}
+
+	dockerManager := docker.NewDockerManager(docker.RuntimeDocker, config)
 	runner := workerMcpRunner.NewRunner(context.Background(), dockerManager)
 
 	worker, err := worker.NewWorker(context.Background(), workerPb.WorkerType_mcp_runner, ownAddress, managerAddress, runner)

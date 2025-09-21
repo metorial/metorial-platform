@@ -23,6 +23,11 @@ type ContainerManager struct {
 	mutex        sync.RWMutex
 	ctx          context.Context
 	cancel       context.CancelFunc
+
+	ExternalHostMetorialServiceName   string
+	ExternalHostMetorialServiceBroker string
+	ExternalHostMetorialListToken     string
+	ExternalHostPrivateKey            string
 }
 
 type ContainerStartOptions struct {
@@ -34,11 +39,6 @@ type ContainerStartOptions struct {
 	Command   string
 	MaxMemory string // Optional, e.g., "512m" or "1g"
 	MaxCPU    string // Optional, e.g., "1" or "2"
-
-	ExternalHostMetorialServiceName   string
-	ExternalHostMetorialServiceBroker string
-	ExternalHostMetorialListToken     string
-	ExternalHostPrivateKey            string
 }
 
 func newContainerManager(runtime Runtime, imageManager *ImageManager) *ContainerManager {
@@ -50,6 +50,11 @@ func newContainerManager(runtime Runtime, imageManager *ImageManager) *Container
 		containers:   make(map[string]*ContainerHandle),
 		ctx:          ctx,
 		cancel:       cancel,
+
+		ExternalHostMetorialServiceName:   imageManager.ExternalHostMetorialServiceName,
+		ExternalHostMetorialServiceBroker: imageManager.ExternalHostMetorialServiceBroker,
+		ExternalHostMetorialListToken:     imageManager.ExternalHostMetorialListToken,
+		ExternalHostPrivateKey:            imageManager.ExternalHostPrivateKey,
 	}
 
 	return m
@@ -69,12 +74,13 @@ func (m *ContainerManager) close() error {
 }
 
 func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*ContainerHandle, error) {
-	image, err := m.imageManager.ensureImageByFullName(opts.ImageRef)
+	ctx, cancel := context.WithCancel(m.ctx)
+
+	image, err := m.imageManager.ensureImageByFullName(ctx, opts.ImageRef)
 	if err != nil {
+		cancel()
 		return nil, fmt.Errorf("failed to update image usage: %w", err)
 	}
-
-	ctx, cancel := context.WithCancel(m.ctx)
 
 	containerID := fmt.Sprintf("mtrc-%s", opts.ID)
 
@@ -87,19 +93,19 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 
 	dockerCommandEnv := map[string]string{}
 
-	if opts.ExternalHostMetorialServiceName != "" && opts.ExternalHostMetorialServiceBroker != "" {
+	if m.ExternalHostMetorialServiceName != "" && m.ExternalHostMetorialServiceBroker != "" {
 		host := Broker.GetRemoteHost(
 			opts.ImageRef,
-			opts.ExternalHostMetorialServiceBroker,
-			opts.ExternalHostMetorialServiceName,
-			opts.ExternalHostMetorialListToken,
+			m.ExternalHostMetorialServiceBroker,
+			m.ExternalHostMetorialServiceName,
+			m.ExternalHostMetorialListToken,
 		)
 		if host == "" {
 			cancel()
 			return nil, fmt.Errorf("no available hosts from broker")
 		}
 
-		initRemoteKey(host, opts.ExternalHostPrivateKey)
+		initRemoteKey(host, m.ExternalHostPrivateKey)
 
 		dockerCommandEnv["DOCKER_HOST"] = fmt.Sprintf("ssh://ec2-user@%s", host)
 	}

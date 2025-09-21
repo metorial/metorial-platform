@@ -89,7 +89,7 @@ func (b *remoteBroker) FetchInstances() error {
 	return nil
 }
 
-func (b *remoteBroker) GetRemoteHost(key, address, serviceName, listToken string) string {
+func (b *remoteBroker) ListRemoteHosts(address, serviceName, listToken string) []string {
 	if b.brokerAddress == "" {
 		b.mutex.Lock()
 		defer b.mutex.Unlock()
@@ -111,7 +111,11 @@ func (b *remoteBroker) GetRemoteHost(key, address, serviceName, listToken string
 		}
 	}
 
-	return rendezvous.PickElementConsistently(key, b.instances)
+	return b.instances
+}
+
+func (b *remoteBroker) GetRemoteHost(key, address, serviceName, listToken string) string {
+	return rendezvous.PickElementConsistently(key, b.ListRemoteHosts(address, serviceName, listToken))
 }
 
 func (b *remoteBroker) updateRoutine() {

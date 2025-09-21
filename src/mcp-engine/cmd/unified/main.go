@@ -133,7 +133,7 @@ func runRemote() {
 }
 
 func runRunner(managerAddress string) {
-	dockerManager := docker.NewDockerManager(docker.RuntimeDocker)
+	dockerManager := docker.NewDockerManager(docker.RuntimeDocker, docker.ImageManagerCreateOptions{})
 	runner := workerMcpRunner.NewRunner(context.Background(), dockerManager)
 
 	worker, err := worker.NewWorker(context.Background(), workerPb.WorkerType_mcp_runner, "localhost:50051", managerAddress, runner)

@@ -1,11 +1,9 @@
 package worker_mcp_runner
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"time"
 
@@ -54,26 +52,6 @@ func newRun(state *RunnerState, init *RunInit) (*Run, error) {
 		Command:   init.ContainerCommand,
 		MaxMemory: init.ContainerMaxMemory,
 		MaxCPU:    init.ContainerMaxCPU,
-	}
-
-	externalHostMetorialServiceName := os.Getenv("EXTERNAL_HOST_METORIAL_SERVICE_NAME")
-	externalHostMetorialServiceBroker := os.Getenv("EXTERNAL_HOST_METORIAL_SERVICE_BROKER")
-	externalHostMetorialListToken := os.Getenv("EXTERNAL_HOST_METORIAL_LIST_TOKEN")
-	externalHostPrivateKey := os.Getenv("EXTERNAL_HOST_PRIVATE_KEY")
-
-	if os.Getenv("EXTERNAL_HOST_PRIVATE_KEY_BASE64") != "" {
-		decoded, err := base64.StdEncoding.DecodeString(os.Getenv("EXTERNAL_HOST_PRIVATE_KEY_BASE64"))
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode EXTERNAL_HOST_PRIVATE_KEY_BASE64: %w", err)
-		}
-		externalHostPrivateKey = string(decoded)
-	}
-
-	if externalHostMetorialServiceName != "" && externalHostMetorialServiceBroker != "" && externalHostMetorialListToken != "" {
-		config.ExternalHostMetorialServiceName = externalHostMetorialServiceName
-		config.ExternalHostMetorialServiceBroker = externalHostMetorialServiceBroker
-		config.ExternalHostMetorialListToken = externalHostMetorialListToken
-		config.ExternalHostPrivateKey = externalHostPrivateKey
 	}
 
 	container, err := state.dockerManager.StartContainer(config)

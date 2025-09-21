@@ -5,8 +5,8 @@ type DockerManager struct {
 	imageManager     *ImageManager
 }
 
-func NewDockerManager(runtime Runtime) *DockerManager {
-	imageManager := newImageManager()
+func NewDockerManager(runtime Runtime, opts ImageManagerCreateOptions) *DockerManager {
+	imageManager := newImageManager(opts)
 
 	return &DockerManager{
 		containerManager: newContainerManager(runtime, imageManager),
@@ -39,10 +39,10 @@ func (dm *DockerManager) GetContainer(containerID string) (*ContainerHandle, err
 	return dm.containerManager.getContainer(containerID)
 }
 
-func (dm *DockerManager) ListImages() []*localImage {
-	return dm.imageManager.listImages()
-}
+// func (dm *DockerManager) ListImages() []*localImage {
+// 	return dm.imageManager.listImages()
+// }
 
-func (dm *DockerManager) GetImage(imageName string) (*localImage, error) {
-	return dm.imageManager.getImage(imageName)
-}
+// func (dm *DockerManager) GetImage(imageName string) (*localImage, error) {
+// 	return dm.imageManager.getImage(imageName)
+// }

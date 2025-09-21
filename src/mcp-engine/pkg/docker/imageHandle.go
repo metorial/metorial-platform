@@ -16,12 +16,13 @@ type ImageUse struct {
 }
 
 type ImageHandle struct {
-	Repository string
-	Tag        string
-	ImageID    string
-	LastUsed   time.Time
-	RecentUses []ImageUse
-	mu         sync.RWMutex
+	Repository   string
+	Tag          string
+	ImageID      string
+	LastUsed     time.Time
+	RecentUses   []ImageUse
+	mu           sync.RWMutex
+	ExternalHost *string
 }
 
 func newDockerImage(repository, tag, imageID string) *ImageHandle {
