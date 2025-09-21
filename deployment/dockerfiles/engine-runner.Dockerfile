@@ -28,7 +28,7 @@ ADD https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/v0.4.1
 RUN chmod +x /bin/grpc-health-probe
 
 # RUN apk add --no-cache docker-cli
-RUN apt update && apt install -y docker.io
+RUN apt update && apt install -y docker.io openssh-client
 
 COPY --from=builder /app/src/mcp-engine/bin/worker-mcp-runner .
 
