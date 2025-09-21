@@ -81,7 +81,7 @@ func getLocalImages(ctx context.Context, opts localImageManagerHostOptions) ([]l
 
 	if opts.ExternalHost != "" && opts.ExternalHostPrivateKey != "" {
 		initRemoteKey(opts.ExternalHost, opts.ExternalHostPrivateKey)
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", opts.ExternalHost))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", fmt.Sprintf("ssh://ec2-user@%s", opts.ExternalHost)))
 	}
 
 	output, err := cmd.CombinedOutput()
@@ -175,7 +175,7 @@ func (m *localImageManager) pullImage(ctx context.Context, repository, tag strin
 	cmd := exec.CommandContext(ctx, "docker", "pull", fullName)
 	if m.ExternalHost != "" && m.ExternalHostPrivateKey != "" {
 		initRemoteKey(m.ExternalHost, m.ExternalHostPrivateKey)
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", m.ExternalHost))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", fmt.Sprintf("ssh://ec2-user@%s", m.ExternalHost)))
 	}
 
 	output, err := cmd.CombinedOutput()
@@ -187,7 +187,7 @@ func (m *localImageManager) pullImage(ctx context.Context, repository, tag strin
 	cmd = exec.CommandContext(ctx, "docker", "images", "--format", "{{json .}}", fullName)
 	if m.ExternalHost != "" && m.ExternalHostPrivateKey != "" {
 		initRemoteKey(m.ExternalHost, m.ExternalHostPrivateKey)
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", m.ExternalHost))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", fmt.Sprintf("ssh://ec2-user@%s", m.ExternalHost)))
 	}
 
 	output, err = cmd.CombinedOutput()
@@ -262,7 +262,7 @@ func (m *localImageManager) removeImage(ctx context.Context, imageId string) err
 		cmd := exec.CommandContext(ctx, "docker", "image", "rm", img.ID)
 		if m.ExternalHost != "" && m.ExternalHostPrivateKey != "" {
 			initRemoteKey(m.ExternalHost, m.ExternalHostPrivateKey)
-			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", m.ExternalHost))
+			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", fmt.Sprintf("ssh://ec2-user@%s", m.ExternalHost)))
 		}
 
 		output, err := cmd.CombinedOutput()
