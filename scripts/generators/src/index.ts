@@ -5,14 +5,17 @@ import { Cases } from './case';
 import { getEndpoints, getEndpointVersions, type IntrospectedType } from './fetch';
 
 // Generate type exports for Python packages
-let generateTypeExports = (typeIdToName: Map<string, { typeName: string; mapperName: string }>, version: string): string => {
+let generateTypeExports = (
+  typeIdToName: Map<string, { typeName: string; mapperName: string }>,
+  version: string
+): string => {
   let typeNames = Array.from(typeIdToName.values()).map(t => t.typeName);
   let mapperNames = Array.from(typeIdToName.values()).map(t => t.mapperName);
-  
+
   // Sort for consistent output
   typeNames.sort();
   mapperNames.sort();
-  
+
   let exports = [
     '# Generated type exports',
     '# These types are automatically exported for better IDE support',
@@ -20,7 +23,7 @@ let generateTypeExports = (typeIdToName: Map<string, { typeName: string; mapperN
     '# Type classes',
     ...typeNames.map(name => `# ${name}`),
     '',
-    '# Mapper classes', 
+    '# Mapper classes',
     ...mapperNames.map(name => `# ${name}`),
     '',
     '# All types and mappers are available via:',
@@ -28,32 +31,46 @@ let generateTypeExports = (typeIdToName: Map<string, { typeName: string; mapperN
     '# from .endpoints import *',
     ''
   ];
-  
+
   return exports.join('\n');
 };
 
 // Update the main public API to include generated types
-let updateMainPublicAPI = async (typeIdToName: Map<string, { typeName: string; mapperName: string }>, version: string, rootOutputFolder: string) => {
+let updateMainPublicAPI = async (
+  typeIdToName: Map<string, { typeName: string; mapperName: string }>,
+  version: string,
+  rootOutputFolder: string
+) => {
   // Find the main public API file
-  let mainApiPath = path.join(rootOutputFolder, '..', '..', '..', 'packages', 'metorial', 'src', 'metorial', '__init__.py');
-  
+  let mainApiPath = path.join(
+    rootOutputFolder,
+    '..',
+    '..',
+    '..',
+    'packages',
+    'metorial',
+    'src',
+    'metorial',
+    '__init__.py'
+  );
+
   try {
     if (await fs.pathExists(mainApiPath)) {
       let currentContent = await fs.readFile(mainApiPath, 'utf-8');
-      
+
       // Generate import statements for the generated types
       let typeNames = Array.from(typeIdToName.values()).map(t => t.typeName);
       let mapperNames = Array.from(typeIdToName.values()).map(t => t.mapperName);
-      
+
       // Create import statement for the generated package
       let generatedImport = `from metorial_generated.${version} import *`;
-      
+
       // Check if the import already exists
       if (!currentContent.includes(generatedImport)) {
         // Add the import after the existing imports
         let lines = currentContent.split('\n');
         let insertIndex = lines.findIndex(line => line.startsWith('__version__'));
-        
+
         if (insertIndex > 0) {
           lines.splice(insertIndex, 0, '', '    # Generated types from API', generatedImport);
           await fs.writeFile(mainApiPath, lines.join('\n'));
@@ -144,12 +161,15 @@ for (let version of versions.versions) {
   >();
 
   // Track types per file to consolidate imports
-  let fileTypes = new Map<string, Array<{
-    id: string;
-    typeName: string;
-    mapperName: string;
-    object: IntrospectedType;
-  }>>();
+  let fileTypes = new Map<
+    string,
+    Array<{
+      id: string;
+      typeName: string;
+      mapperName: string;
+      object: IntrospectedType;
+    }>
+  >();
 
   let collectTypes = async (i: {
     id: string;
@@ -175,28 +195,39 @@ for (let version of versions.versions) {
     typeIdToName.set(i.id, { typeName, mapperName });
   };
 
-  let generateFileTypes = async (file: string, types: Array<{
-    id: string;
-    typeName: string;
-    mapperName: string;
-    object: IntrospectedType;
-  }>) => {
+  let generateFileTypes = async (
+    file: string,
+    types: Array<{
+      id: string;
+      typeName: string;
+      mapperName: string;
+      object: IntrospectedType;
+    }>
+  ) => {
     if (types.length === 0) return;
 
     // Generate all types for this file
     let fileContent = '';
-    
+
     // Add imports only once at the top
     if (language === 'python') {
-      fileContent += 'from dataclasses import dataclass\nfrom typing import Any, Dict, List, Optional, Union\nfrom datetime import datetime\nimport dataclasses\n\n';
+      fileContent +=
+        'from dataclasses import dataclass\nfrom typing import Any, Dict, List, Optional, Union\nfrom datetime import datetime\nimport dataclasses\n\n';
     } else if (language === 'typescript') {
       fileContent += `import { mtMap } from '@metorial/util-resource-mapper';\n\n`;
     }
 
     // Generate all types and mappers
     for (let typeInfo of types) {
-      fileContent += await typeModule.generateTypeFromIntrospectedType(typeInfo.typeName, typeInfo.object);
-      fileContent += await mapperModule.generateMapper(typeInfo.mapperName, typeInfo.typeName, typeInfo.object);
+      fileContent += await typeModule.generateTypeFromIntrospectedType(
+        typeInfo.typeName,
+        typeInfo.object
+      );
+      fileContent += await mapperModule.generateMapper(
+        typeInfo.mapperName,
+        typeInfo.typeName,
+        typeInfo.object
+      );
     }
 
     await fs.writeFile(file, fileContent);
@@ -352,11 +383,20 @@ for (let version of versions.versions) {
     if (language === 'python') {
       controllerPath = controllerPath.map(toPyFolderName);
     }
+
+    let typeDefinitions = new Map<string, IntrospectedType>();
+    for (let fileTypeArray of fileTypes.values()) {
+      for (let typeInfo of fileTypeArray) {
+        typeDefinitions.set(typeInfo.id, typeInfo.object);
+      }
+    }
+
     let source = await endpointModule.createController({
       endpoints: resourceEndpoints,
       controller,
       path: controllerPath,
-      typeIdToName
+      typeIdToName,
+      typeDefinitions
     });
 
     let fileNameParts = resourceParts.map(Cases.toKebabCase);
@@ -395,12 +435,12 @@ for (let version of versions.versions) {
   if (language === 'python') {
     // Generate comprehensive type exports for the generated package
     let typeExports = generateTypeExports(typeIdToName, version.version);
-    
+
     await fs.writeFile(
       `${outputFolder}/__init__.py`,
       `from .resources import *\nfrom .endpoints import *\n\n# Type exports for better discoverability\n${typeExports}`
     );
-    
+
     // Also update the main public API to include generated types
     await updateMainPublicAPI(typeIdToName, version.version, rootOutputFolder);
   } else {
