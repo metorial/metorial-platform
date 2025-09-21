@@ -113,7 +113,7 @@ let createEndpoint = (i: {
   let requestArgsJoined = requestArgs.join(',\n            ');
 
   let source = dedent`
-    def ${Cases.toSnakeCase(methodName)}(${params}):
+    def ${Cases.toSnakeCase(methodName)}(${params}) -> ${outputType.typeName}:
         ${docstring}
         request = MetorialRequest(
             ${requestArgsJoined}
