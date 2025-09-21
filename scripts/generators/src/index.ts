@@ -4,6 +4,67 @@ import path from 'path';
 import { Cases } from './case';
 import { getEndpoints, getEndpointVersions, type IntrospectedType } from './fetch';
 
+// Generate type exports for Python packages
+let generateTypeExports = (typeIdToName: Map<string, { typeName: string; mapperName: string }>, version: string): string => {
+  let typeNames = Array.from(typeIdToName.values()).map(t => t.typeName);
+  let mapperNames = Array.from(typeIdToName.values()).map(t => t.mapperName);
+  
+  // Sort for consistent output
+  typeNames.sort();
+  mapperNames.sort();
+  
+  let exports = [
+    '# Generated type exports',
+    '# These types are automatically exported for better IDE support',
+    '',
+    '# Type classes',
+    ...typeNames.map(name => `# ${name}`),
+    '',
+    '# Mapper classes', 
+    ...mapperNames.map(name => `# ${name}`),
+    '',
+    '# All types and mappers are available via:',
+    '# from .resources import *',
+    '# from .endpoints import *',
+    ''
+  ];
+  
+  return exports.join('\n');
+};
+
+// Update the main public API to include generated types
+let updateMainPublicAPI = async (typeIdToName: Map<string, { typeName: string; mapperName: string }>, version: string, rootOutputFolder: string) => {
+  // Find the main public API file
+  let mainApiPath = path.join(rootOutputFolder, '..', '..', '..', 'packages', 'metorial', 'src', 'metorial', '__init__.py');
+  
+  try {
+    if (await fs.pathExists(mainApiPath)) {
+      let currentContent = await fs.readFile(mainApiPath, 'utf-8');
+      
+      // Generate import statements for the generated types
+      let typeNames = Array.from(typeIdToName.values()).map(t => t.typeName);
+      let mapperNames = Array.from(typeIdToName.values()).map(t => t.mapperName);
+      
+      // Create import statement for the generated package
+      let generatedImport = `from metorial_generated.${version} import *`;
+      
+      // Check if the import already exists
+      if (!currentContent.includes(generatedImport)) {
+        // Add the import after the existing imports
+        let lines = currentContent.split('\n');
+        let insertIndex = lines.findIndex(line => line.startsWith('__version__'));
+        
+        if (insertIndex > 0) {
+          lines.splice(insertIndex, 0, '', '    # Generated types from API', generatedImport);
+          await fs.writeFile(mainApiPath, lines.join('\n'));
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Could not update main public API:', error);
+  }
+};
+
 let args = process.argv.slice(2);
 let url = args[0];
 let rootOutputFolder = args[1];
@@ -29,8 +90,8 @@ if (language === 'typescript') {
 rootOutputFolder = path.join(process.cwd(), rootOutputFolder);
 
 // Import Python utilities when needed
-let toPyIdentifier: (name: string) => string;
-let toPyFolderName: (name: string) => string;
+let toPyIdentifier: (name: string) => string = (name: string) => name;
+let toPyFolderName: (name: string) => string = (name: string) => name;
 
 if (language === 'python') {
   const pythonUtils = await import('./languages/python/utils');
@@ -82,7 +143,15 @@ for (let version of versions.versions) {
     }
   >();
 
-  let appendTypes = async (i: {
+  // Track types per file to consolidate imports
+  let fileTypes = new Map<string, Array<{
+    id: string;
+    typeName: string;
+    mapperName: string;
+    object: IntrospectedType;
+  }>>();
+
+  let collectTypes = async (i: {
     id: string;
     file: string;
     type: string;
@@ -93,17 +162,44 @@ for (let version of versions.versions) {
     let typeName = Cases.toPascalCase([...i.parts, i.methodName, i.type].join('_'));
     let mapperName = Cases.toCamelCase(['map', ...i.parts, i.methodName, i.type].join('_'));
 
-    await fs.appendFile(
-      i.file,
-      await typeModule.generateTypeFromIntrospectedType(typeName, i.object)
-    );
-
-    await fs.appendFile(
-      i.file,
-      await mapperModule.generateMapper(mapperName, typeName, i.object)
-    );
+    if (!fileTypes.has(i.file)) {
+      fileTypes.set(i.file, []);
+    }
+    fileTypes.get(i.file)!.push({
+      id: i.id,
+      typeName,
+      mapperName,
+      object: i.object
+    });
 
     typeIdToName.set(i.id, { typeName, mapperName });
+  };
+
+  let generateFileTypes = async (file: string, types: Array<{
+    id: string;
+    typeName: string;
+    mapperName: string;
+    object: IntrospectedType;
+  }>) => {
+    if (types.length === 0) return;
+
+    // Generate all types for this file
+    let fileContent = '';
+    
+    // Add imports only once at the top
+    if (language === 'python') {
+      fileContent += 'from dataclasses import dataclass\nfrom typing import Any, Dict, List, Optional, Union\nfrom datetime import datetime\nimport dataclasses\n\n';
+    } else if (language === 'typescript') {
+      fileContent += `import { mtMap } from '@metorial/util-resource-mapper';\n\n`;
+    }
+
+    // Generate all types and mappers
+    for (let typeInfo of types) {
+      fileContent += await typeModule.generateTypeFromIntrospectedType(typeInfo.typeName, typeInfo.object);
+      fileContent += await mapperModule.generateMapper(typeInfo.mapperName, typeInfo.typeName, typeInfo.object);
+    }
+
+    await fs.writeFile(file, fileContent);
   };
 
   let seenFiles = new Set<string>();
@@ -120,24 +216,21 @@ for (let version of versions.versions) {
 
       await fs.ensureDir(folder);
 
-      let file = `${folder}/${Cases.toKebabCase(methodName)}${fileExtension}`;
+      let fileName = Cases.toKebabCase(methodName);
+      if (language === 'python') {
+        fileName = toPyFolderName(fileName);
+      }
+      let file = `${folder}/${fileName}${fileExtension}`;
 
       await fs.ensureFile(file);
 
       if (!seenFiles.has(file)) {
-        if (language === 'typescript') {
-          await fs.appendFile(
-            file,
-            `import { mtMap } from '@metorial/util-resource-mapper';\n\n`
-          );
-        } else if (language === 'python') {
-          // await fs.appendFile(file, `from metorial_util_resource_mapper import mtMap\n\n`);
-        }
+        // File will be generated later with consolidated imports
       }
 
       seenFiles.add(file);
 
-      await appendTypes({
+      await collectTypes({
         file,
         parts,
         methodName,
@@ -147,7 +240,7 @@ for (let version of versions.versions) {
       });
 
       if (endpoint.bodyId) {
-        await appendTypes({
+        await collectTypes({
           file,
           parts,
           methodName,
@@ -158,7 +251,7 @@ for (let version of versions.versions) {
       }
 
       if (endpoint.queryId) {
-        await appendTypes({
+        await collectTypes({
           file,
           parts,
           methodName,
@@ -175,6 +268,11 @@ for (let version of versions.versions) {
 
       resourceFolders.add(folder);
     }
+  }
+
+  // Generate all files with consolidated imports
+  for (let [file, types] of fileTypes) {
+    await generateFileTypes(file, types);
   }
 
   for (let folder of [...resourceFolders, resourcesFolder]) {
@@ -295,10 +393,16 @@ for (let version of versions.versions) {
   }
 
   if (language === 'python') {
+    // Generate comprehensive type exports for the generated package
+    let typeExports = generateTypeExports(typeIdToName, version.version);
+    
     await fs.writeFile(
       `${outputFolder}/__init__.py`,
-      'from .resources import *\nfrom .endpoints import *\n'
+      `from .resources import *\nfrom .endpoints import *\n\n# Type exports for better discoverability\n${typeExports}`
     );
+    
+    // Also update the main public API to include generated types
+    await updateMainPublicAPI(typeIdToName, version.version, rootOutputFolder);
   } else {
     await fs.writeFile(
       `${outputFolder}/index.ts`,
