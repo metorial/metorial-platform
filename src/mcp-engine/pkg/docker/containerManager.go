@@ -159,6 +159,7 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 	for key, value := range dockerCommandEnv {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
 	}
+	cmd.Dir = "/tmp"
 
 	log.Printf("Starting container for image %s with ID %s", image.FullName(), containerID)
 
