@@ -1,16 +1,18 @@
 import { Service } from '@metorial/service';
 import { Client as OpenSearchClient } from '@opensearch-project/opensearch';
+import { algoliasearch, SearchClient } from 'algoliasearch';
 import createAwsOpensearchConnector from 'aws-opensearch-connector';
-import { Index, MeiliSearch, MeiliSearchApiError } from 'meilisearch';
+import { MeiliSearch, MeiliSearchApiError, Index as MeiliSearchIndex } from 'meilisearch';
 import { env } from '../env';
 
 export type SearchIndex = 'server_listing';
 
-let meilisearchIndices = new Map<string, Index>();
+let meilisearchIndices = new Map<string, MeiliSearchIndex>();
 let openSearchIndices = new Set<string>();
 
 let meilisearchPrefix = env.meiliSearch.MEILISEARCH_INDEX_PREFIX;
 let openSearchPrefix = env.openSearch.OPENSEARCH_INDEX_PREFIX;
+let algoliaPrefix = env.algolia.ALGOLIA_INDEX_PREFIX;
 
 export let meiliSearch = env.meiliSearch.MEILISEARCH_HOST
   ? new MeiliSearch({
@@ -47,6 +49,11 @@ export let openSearch = env.openSearch?.OPENSEARCH_HOST
     )
   : undefined;
 
+export let algoliaSearch: SearchClient | undefined =
+  env.algolia.ALGOLIA_APP_ID && env.algolia.ALGOLIA_ADMIN_KEY
+    ? algoliasearch(env.algolia.ALGOLIA_APP_ID, env.algolia.ALGOLIA_ADMIN_KEY)
+    : undefined;
+
 class SearchService {
   private async ensureIndex(index: SearchIndex) {
     if (meiliSearch && !meilisearchIndices.has(index)) {
@@ -73,11 +80,23 @@ class SearchService {
 
         if (openSearch) {
           let indexName = openSearchPrefix ? `${openSearchPrefix}_${index}` : index;
-          let body = docs.flatMap(doc => [
-            { index: { _index: indexName, _id: doc[options.primaryKey] } },
-            doc
-          ]);
-          await openSearch.bulk({ refresh: true, body });
+          await openSearch.bulk({
+            refresh: true,
+            body: docs.flatMap(doc => [
+              { index: { _index: indexName, _id: doc[options.primaryKey] } },
+              doc
+            ])
+          });
+        }
+
+        if (algoliaSearch) {
+          await algoliaSearch.saveObjects({
+            indexName: algoliaPrefix ? `${algoliaPrefix}_${index}` : index,
+            objects: docs.map(doc => ({
+              ...doc,
+              objectID: doc[options.primaryKey]
+            }))
+          });
         }
       },
 
@@ -89,10 +108,11 @@ class SearchService {
           let meiliIndex = meilisearchIndices.get(index)!;
           let result = await meiliIndex.search(query, {
             limit: options?.limit,
-            filters: options?.filters
-              ? Object.entries(options.filters).map(
-                  ([key, value]) => `(${key} = "${value.$eq}")`
-                )
+            // Translate filters to MeiliSearch's SQL-like syntax
+            filter: options?.filters
+              ? Object.entries(options.filters)
+                  .map(([key, value]) => `${key} = "${value.$eq}"`)
+                  .join(' AND ')
               : undefined
           });
 
@@ -112,15 +132,36 @@ class SearchService {
 
           if (options?.filters) {
             body.query.bool.filter = Object.entries(options.filters).map(([key, value]) => ({
-              term: { [key]: value.$eq }
+              term: { [`${key}.keyword`]: value.$eq } // Use .keyword for exact matches on text fields
             }));
           }
 
           let result = await openSearch.search({ index: indexName, body });
-
           return {
-            hits: result.body.hits.hits.map(hit => hit._source)
+            hits: result.body.hits.hits.map((hit: any) => hit._source)
           };
+        }
+
+        if (algoliaSearch) {
+          let searchOptions: any = {
+            hitsPerPage: options?.limit
+          };
+
+          if (options?.filters) {
+            // Translate filters to Algolia's syntax (e.g., 'facet:value')
+            searchOptions.filters = Object.entries(options.filters)
+              .map(([key, value]) => `${key}:${value.$eq}`)
+              .join(' AND ');
+          }
+
+          let result = await algoliaSearch.searchSingleIndex({
+            indexName: algoliaPrefix ? `${algoliaPrefix}_${index}` : index,
+            searchParams: {
+              query,
+              ...searchOptions
+            }
+          });
+          return { hits: result.hits };
         }
 
         return { hits: [] };
@@ -137,12 +178,7 @@ class SearchService {
         primaryKey: 'id'
       });
     } catch (error: any) {
-      try {
-        console.error('Error:', error);
-        console.error('Error status:', error.statusCode);
-        console.error('Error body:', error.body);
-        console.error('Error body:', JSON.stringify(error, null, 2));
-      } catch {}
+      console.error('Error indexing document:', JSON.stringify(error, null, 2));
     }
   }
 
@@ -167,6 +203,7 @@ class SearchService {
         }
       }
 
+      // Add similar specific error handling for OpenSearch and Algolia if needed
       throw error;
     }
   }

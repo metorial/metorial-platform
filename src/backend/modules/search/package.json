@@ -17,6 +17,7 @@
     "@metorial/service": "^1.0.0",
     "@metorial/validation": "^1.0.0",
     "@opensearch-project/opensearch": "^3.5.1",
+    "algoliasearch": "^5.37.0",
     "aws-opensearch-connector": "^1.2.0",
     "meilisearch": "^0.50.0"
   },

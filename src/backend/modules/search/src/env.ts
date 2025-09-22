@@ -15,5 +15,11 @@ export let env = createValidatedEnv({
     OPENSEARCH_INDEX_PREFIX: v.optional(v.string()),
     OPENSEARCH_PROTOCOL: v.optional(v.string()),
     OPENSEARCH_AWS_MODE: v.optional(v.string())
+  },
+
+  algolia: {
+    ALGOLIA_APP_ID: v.optional(v.string()),
+    ALGOLIA_ADMIN_KEY: v.optional(v.string()),
+    ALGOLIA_INDEX_PREFIX: v.optional(v.string())
   }
 });
