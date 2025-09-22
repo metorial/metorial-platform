@@ -156,6 +156,7 @@ func (m *ContainerManager) startContainer(opts *ContainerStartOptions) (*Contain
 	}
 
 	cmd := exec.CommandContext(ctx, "docker", dockerArgs...)
+	cmd.Env = os.Environ()
 	for key, value := range dockerCommandEnv {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
 	}

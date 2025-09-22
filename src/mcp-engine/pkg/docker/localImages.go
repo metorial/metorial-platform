@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -78,8 +79,7 @@ func newLocalImageManager(opts localImageManagerCreateOptions, ctx context.Conte
 
 func getLocalImages(ctx context.Context, opts localImageManagerHostOptions) ([]localImage, error) {
 	cmd := exec.CommandContext(ctx, "docker", "images", "--format", "{{json .}}")
-	cmd.Dir = "/tmp"
-
+	cmd.Env = os.Environ()
 	if opts.ExternalHost != "" && opts.ExternalHostPrivateKey != "" {
 		initRemoteKey(opts.ExternalHost, opts.ExternalHostPrivateKey)
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", fmt.Sprintf("ssh://ec2-user@%s", opts.ExternalHost)))
@@ -174,7 +174,7 @@ func (m *localImageManager) pullImage(ctx context.Context, repository, tag strin
 
 	// Pull the image using Docker CLI
 	cmd := exec.CommandContext(ctx, "docker", "pull", fullName)
-	cmd.Dir = "/tmp"
+	cmd.Env = os.Environ()
 	if m.ExternalHost != "" && m.ExternalHostPrivateKey != "" {
 		initRemoteKey(m.ExternalHost, m.ExternalHostPrivateKey)
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", fmt.Sprintf("ssh://ec2-user@%s", m.ExternalHost)))
@@ -187,7 +187,7 @@ func (m *localImageManager) pullImage(ctx context.Context, repository, tag strin
 
 	// After pulling, we need to update the local image index
 	cmd = exec.CommandContext(ctx, "docker", "images", "--format", "{{json .}}", fullName)
-	cmd.Dir = "/tmp"
+	cmd.Env = os.Environ()
 	if m.ExternalHost != "" && m.ExternalHostPrivateKey != "" {
 		initRemoteKey(m.ExternalHost, m.ExternalHostPrivateKey)
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", fmt.Sprintf("ssh://ec2-user@%s", m.ExternalHost)))
@@ -263,7 +263,7 @@ func (m *localImageManager) removeImage(ctx context.Context, imageId string) err
 
 	go func() {
 		cmd := exec.CommandContext(ctx, "docker", "image", "rm", img.ID)
-		cmd.Dir = "/tmp"
+		cmd.Env = os.Environ()
 		if m.ExternalHost != "" && m.ExternalHostPrivateKey != "" {
 			initRemoteKey(m.ExternalHost, m.ExternalHostPrivateKey)
 			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", fmt.Sprintf("ssh://ec2-user@%s", m.ExternalHost)))
