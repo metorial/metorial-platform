@@ -158,5 +158,8 @@ export let backendEnv: Env = [
     isEnterprise: true
   },
   { key: 'ISLAND_PORT', defaultValue: '4201', isEnterprise: true },
-  { key: 'FEDERATION_PORT', defaultValue: '4200', isEnterprise: true }
+  { key: 'FEDERATION_PORT', defaultValue: '4200', isEnterprise: true },
+
+  { key: 'ALGOLIA_APP_ID', isEnterprise: false, isRequired: false },
+  { key: 'ALGOLIA_ADMIN_KEY', isEnterprise: false, isRequired: false }
 ];

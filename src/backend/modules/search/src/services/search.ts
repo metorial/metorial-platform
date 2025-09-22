@@ -9,6 +9,7 @@ export type SearchIndex = 'server_listing';
 
 let meilisearchIndices = new Map<string, MeiliSearchIndex>();
 let openSearchIndices = new Set<string>();
+let algoliaIndices = new Set<string>();
 
 let meilisearchPrefix = env.meiliSearch.MEILISEARCH_INDEX_PREFIX;
 let openSearchPrefix = env.openSearch.OPENSEARCH_INDEX_PREFIX;
@@ -69,6 +70,11 @@ class SearchService {
         await openSearch.indices.create({ index: indexName });
       }
       openSearchIndices.add(index);
+    }
+
+    if (algoliaSearch && !algoliaIndices.has(index)) {
+      let indexName = algoliaPrefix ? `${algoliaPrefix}_${index}` : index;
+      algoliaIndices.add(index);
     }
 
     return {
