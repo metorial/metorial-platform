@@ -37,7 +37,7 @@ export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: str
   let url = useMemo(() => {
     if (!session.data) return undefined;
 
-    let url = new URL(import.meta.env.VITE_EXPLORER_URL); // https://inspector.mcp.metorial.com
+    let url = new URL(import.meta.env.VITE_EXPLORER_URL!); // https://inspector.mcp.metorial.com
     url.searchParams.set(
       'sse_url',
       new URL(

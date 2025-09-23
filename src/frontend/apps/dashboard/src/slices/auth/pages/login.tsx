@@ -3,7 +3,6 @@ import { SetupLayout } from '@metorial/layout';
 import { Button, Input, Spacer, Text } from '@metorial/ui';
 import { Link, useSearchParams } from 'react-router-dom';
 import bg from '../../../assets/bg.webp';
-import bubbles from '../../../assets/bubbles.svg';
 import { useLogin } from '../state';
 
 export let AuthLoginPage = () => {
@@ -34,7 +33,6 @@ export let AuthLoginPage = () => {
         description: `Welcome back to Metorial!`
       }}
       backgroundUrl={bg}
-      bubblesUrl={bubbles}
     >
       <form onSubmit={form.handleSubmit}>
         <Input label="Email" {...form.getFieldProps('email')} />

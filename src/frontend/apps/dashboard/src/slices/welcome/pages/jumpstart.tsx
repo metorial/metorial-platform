@@ -4,7 +4,6 @@ import { CenteredSpinner } from '@metorial/ui';
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import bg from '../../../assets/bg.webp';
-import bubbles from '../../../assets/bubbles.svg';
 
 export let JumpstartPage = () => {
   let user = useUser();
@@ -49,7 +48,6 @@ export let JumpstartPage = () => {
         title: 'Setting up Metorial',
         description: ''
       }}
-      bubblesUrl={bubbles}
       backgroundUrl={bg}
     >
       <CenteredSpinner />
