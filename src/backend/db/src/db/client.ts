@@ -37,7 +37,13 @@ let getSecureRandomInt = (max: number) => {
 
 let createClient = () => {
   let adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-  let baseClient = new PrismaClient({ adapter });
+  let baseClient = new PrismaClient({
+    adapter,
+    transactionOptions: {
+      maxWait: 10000,
+      timeout: 12000
+    }
+  });
 
   return baseClient.$extends({
     query: {
