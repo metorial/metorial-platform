@@ -5,6 +5,8 @@ export let parseRedisUrl = (url: string) => {
     host: u.hostname,
     port: parseInt(u.port),
     password: u.password,
-    db: parseInt(u.pathname.slice(1))
+    db: parseInt(u.pathname.slice(1)),
+
+    tls: u.protocol === 'rediss:' ? { rejectUnauthorized: false } : undefined
   };
 };

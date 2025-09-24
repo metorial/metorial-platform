@@ -1,36 +1,29 @@
+import { Organization } from '@metorial/db';
 import { badRequestError, forbiddenError, notFoundError, ServiceError } from '@metorial/error';
 import { AuthInfo } from '@metorial/module-access';
 import { apiKeyService, ListApiKeysFilter } from '@metorial/module-machine-access';
-import { instanceService, organizationService } from '@metorial/module-organization';
+import { instanceService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
-import { userGroup } from '../../middleware/userGroup';
+import { organizationGroup } from '../../middleware/organizationGroup';
 import { apiKeyPresenter } from '../../presenters';
 
 export let getApiKeyFilter = async (
   auth: AuthInfo,
+  organization: Organization,
   body:
-    | {
-        type: 'user_auth_token';
-      }
     | {
         type: 'instance_access_token';
         instance_id?: string;
       }
     | {
         type: 'organization_management_token';
-        organization_id?: string;
       }
 ) => {
   let filter: ListApiKeysFilter | undefined = undefined;
 
   if (auth.type == 'user') {
-    filter = {
-      type: 'user_auth_token',
-      user: auth.user
-    };
-
     if (body.type == 'instance_access_token') {
       if (!body.instance_id) {
         throw new ServiceError(
@@ -45,35 +38,30 @@ export let getApiKeyFilter = async (
         user: auth.user
       });
 
+      if (res.instance.organizationOid != organization.oid) {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'You are not permitted to access this instance'
+          })
+        );
+      }
+
       filter = {
         type: 'instance_access_token',
         instance: res.instance,
         organization: res.organization
       };
     } else if (body.type == 'organization_management_token') {
-      if (!body.organization_id) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Organization ID is required for organization management token'
-          })
-        );
-      }
-
-      let res = await organizationService.getOrganizationByIdForUser({
-        organizationId: body.organization_id,
-        user: auth.user
-      });
-
       filter = {
         type: 'organization_management_token',
-        organization: res.organization
+        organization
       };
     }
   } else if (auth.restrictions.type == 'organization') {
-    if (body.type == 'user_auth_token') {
+    if (auth.restrictions.organization.oid != organization.oid) {
       throw new ServiceError(
         forbiddenError({
-          message: 'You are not permitted to list user auth tokens'
+          message: 'You are not permitted to access this organization'
         })
       );
     }
@@ -118,8 +106,8 @@ export let dashboardApiKeyController = Controller.create(
     description: 'Read and write API key information'
   },
   {
-    list: userGroup
-      .get(Path('api-keys', 'apiKeys.list'), {
+    list: organizationGroup
+      .get(Path('/dashboard/organizations/:organizationId/api-keys', 'apiKeys.list'), {
         name: 'Get user',
         description: 'Get the current user information'
       })
@@ -129,11 +117,7 @@ export let dashboardApiKeyController = Controller.create(
         Paginator.validate(
           v.union([
             v.object({
-              type: v.literal('organization_management_token'),
-              organization_id: v.string()
-            }),
-            v.object({
-              type: v.literal('user_auth_token')
+              type: v.literal('organization_management_token')
             }),
             v.object({
               type: v.literal('instance_access_token'),
@@ -144,7 +128,7 @@ export let dashboardApiKeyController = Controller.create(
       )
       .do(async ctx => {
         let paginator = await apiKeyService.listApiKeys({
-          filter: await getApiKeyFilter(ctx.auth, ctx.query as any)
+          filter: await getApiKeyFilter(ctx.auth, ctx.organization, ctx.query as any)
         });
 
         let list = await paginator.run(ctx.query);
@@ -152,23 +136,26 @@ export let dashboardApiKeyController = Controller.create(
         return Paginator.present(list, apiKey => apiKeyPresenter.present({ apiKey }));
       }),
 
-    get: userGroup
-      .get(Path('api-keys/:apiKeyId', 'apiKeys.get'), {
-        name: 'Get API key',
-        description: 'Get the information of a specific API key'
-      })
+    get: organizationGroup
+      .get(
+        Path('/dashboard/organizations/:organizationId/api-keys/:apiKeyId', 'apiKeys.get'),
+        {
+          name: 'Get API key',
+          description: 'Get the information of a specific API key'
+        }
+      )
       .output(apiKeyPresenter)
       .do(async ctx => {
-        let apiKey = await apiKeyService.getApiKeyByIdForUser({
+        let apiKey = await apiKeyService.getApiKeyById({
           apiKeyId: ctx.params.apiKeyId,
-          user: ctx.user
+          organization: ctx.organization
         });
 
         return apiKeyPresenter.present({ apiKey });
       }),
 
-    create: userGroup
-      .post(Path('api-keys', 'apiKeys.create'), {
+    create: organizationGroup
+      .post(Path('/dashboard/organizations/:organizationId/api-keys', 'apiKeys.create'), {
         name: 'Create API key',
         description: 'Create a new API key'
       })
@@ -177,11 +164,7 @@ export let dashboardApiKeyController = Controller.create(
         v.intersection([
           v.union([
             v.object({
-              type: v.literal('organization_management_token'),
-              organization_id: v.string()
-            }),
-            v.object({
-              type: v.literal('user_auth_token')
+              type: v.literal('organization_management_token')
             }),
             v.object({
               type: v.enumOf([
@@ -201,11 +184,6 @@ export let dashboardApiKeyController = Controller.create(
       .output(apiKeyPresenter)
       .do(async ctx => {
         if (ctx.body.type == 'organization_management_token') {
-          let organization = await organizationService.getOrganizationByIdForUser({
-            organizationId: ctx.body.organization_id,
-            user: ctx.user
-          });
-
           let { apiKey, secret } = await apiKeyService.createApiKey({
             input: {
               name: ctx.body.name,
@@ -214,36 +192,15 @@ export let dashboardApiKeyController = Controller.create(
             },
             context: ctx.context,
             type: 'organization_management_token',
-            organization: organization.organization,
-            performedBy: organization.member.actor
-          });
-
-          return apiKeyPresenter.present({ apiKey, secret });
-        } else if (ctx.body.type == 'user_auth_token') {
-          if (ctx.auth.machineAccess) {
-            throw new ServiceError(
-              badRequestError({
-                message: 'Cannot create user auth token using API'
-              })
-            );
-          }
-
-          let { apiKey, secret } = await apiKeyService.createApiKey({
-            input: {
-              name: ctx.body.name,
-              description: ctx.body.description,
-              expiresAt: ctx.body.expires_at
-            },
-            context: ctx.context,
-            type: 'user_auth_token',
-            user: ctx.user
+            organization: ctx.organization,
+            performedBy: ctx.actor
           });
 
           return apiKeyPresenter.present({ apiKey, secret });
         } else {
-          let res = await instanceService.getInstanceByIdForUser({
+          let instance = await instanceService.getInstanceById({
             instanceId: ctx.body.instance_id,
-            user: ctx.user
+            organization: ctx.organization
           });
 
           let { apiKey, secret } = await apiKeyService.createApiKey({
@@ -254,20 +211,24 @@ export let dashboardApiKeyController = Controller.create(
             },
             context: ctx.context,
             type: ctx.body.type,
-            organization: res.organization,
-            instance: res.instance,
-            performedBy: res.member.actor
+
+            instance,
+            organization: ctx.organization,
+            performedBy: ctx.actor
           });
 
           return apiKeyPresenter.present({ apiKey, secret });
         }
       }),
 
-    update: userGroup
-      .post(Path('api-keys/:apiKeyId', 'apiKeys.update'), {
-        name: 'Update API key',
-        description: 'Update the information of a specific API key'
-      })
+    update: organizationGroup
+      .post(
+        Path('/dashboard/organizations/:organizationId/api-keys/:apiKeyId', 'apiKeys.update'),
+        {
+          name: 'Update API key',
+          description: 'Update the information of a specific API key'
+        }
+      )
       .body(
         'default',
         v.object({
@@ -278,17 +239,10 @@ export let dashboardApiKeyController = Controller.create(
       )
       .output(apiKeyPresenter)
       .do(async ctx => {
-        let apiKey = await apiKeyService.getApiKeyByIdForUser({
+        let apiKey = await apiKeyService.getApiKeyById({
           apiKeyId: ctx.params.apiKeyId,
-          user: ctx.user
+          organization: ctx.organization
         });
-
-        let org = apiKey.machineAccess.organization
-          ? await organizationService.getOrganizationByIdForUser({
-              organizationId: apiKey.machineAccess.organization.id,
-              user: ctx.user
-            })
-          : undefined;
 
         apiKey = await apiKeyService.updateApiKey({
           apiKey,
@@ -298,45 +252,47 @@ export let dashboardApiKeyController = Controller.create(
             expiresAt: ctx.body.expires_at
           },
           context: ctx.context,
-          performedBy: org?.member.actor
+          performedBy: ctx.actor
         });
 
         return apiKeyPresenter.present({ apiKey });
       }),
 
-    revoke: userGroup
-      .delete(Path('api-keys/:apiKeyId', 'apiKeys.revoke'), {
-        name: 'Revoke API key',
-        description: 'Revoke a specific API key'
-      })
+    revoke: organizationGroup
+      .delete(
+        Path('/dashboard/organizations/:organizationId/api-keys/:apiKeyId', 'apiKeys.revoke'),
+        {
+          name: 'Revoke API key',
+          description: 'Revoke a specific API key'
+        }
+      )
       .output(apiKeyPresenter)
       .do(async ctx => {
-        let apiKey = await apiKeyService.getApiKeyByIdForUser({
+        let apiKey = await apiKeyService.getApiKeyById({
           apiKeyId: ctx.params.apiKeyId,
-          user: ctx.user
+          organization: ctx.organization
         });
-
-        let org = apiKey.machineAccess.organization
-          ? await organizationService.getOrganizationByIdForUser({
-              organizationId: apiKey.machineAccess.organization.id,
-              user: ctx.user
-            })
-          : undefined;
 
         apiKey = await apiKeyService.revokeApiKey({
           apiKey,
           context: ctx.context,
-          performedBy: org?.member.actor
+          performedBy: ctx.actor
         });
 
         return apiKeyPresenter.present({ apiKey });
       }),
 
-    rotate: userGroup
-      .post(Path('api-keys/:apiKeyId/rotate', 'apiKeys.rotate'), {
-        name: 'Rotate API key',
-        description: 'Rotate a specific API key'
-      })
+    rotate: organizationGroup
+      .post(
+        Path(
+          '/dashboard/organizations/:organizationId/api-keys/:apiKeyId/rotate',
+          'apiKeys.rotate'
+        ),
+        {
+          name: 'Rotate API key',
+          description: 'Rotate a specific API key'
+        }
+      )
       .body(
         'default',
         v.object({
@@ -345,22 +301,15 @@ export let dashboardApiKeyController = Controller.create(
       )
       .output(apiKeyPresenter)
       .do(async ctx => {
-        let apiKey = await apiKeyService.getApiKeyByIdForUser({
+        let apiKey = await apiKeyService.getApiKeyById({
           apiKeyId: ctx.params.apiKeyId,
-          user: ctx.user
+          organization: ctx.organization
         });
-
-        let org = apiKey.machineAccess.organization
-          ? await organizationService.getOrganizationByIdForUser({
-              organizationId: apiKey.machineAccess.organization.id,
-              user: ctx.user
-            })
-          : undefined;
 
         let res = await apiKeyService.rotateApiKey({
           apiKey,
           context: ctx.context,
-          performedBy: org?.member.actor,
+          performedBy: ctx.actor,
           input: {
             currentExpiresAt: ctx.body.current_expires_at
           }
@@ -369,29 +318,28 @@ export let dashboardApiKeyController = Controller.create(
         return apiKeyPresenter.present({ apiKey: res.apiKey, secret: res.secret });
       }),
 
-    reveal: userGroup
-      .post(Path('api-keys/:apiKeyId/reveal', 'apiKeys.reveal'), {
-        name: 'Reveal API key',
-        description: 'Reveal a specific API key'
-      })
+    reveal: organizationGroup
+      .post(
+        Path(
+          '/dashboard/organizations/:organizationId/api-keys/:apiKeyId/reveal',
+          'apiKeys.reveal'
+        ),
+        {
+          name: 'Reveal API key',
+          description: 'Reveal a specific API key'
+        }
+      )
       .output(apiKeyPresenter)
       .do(async ctx => {
-        let apiKey = await apiKeyService.getApiKeyByIdForUser({
+        let apiKey = await apiKeyService.getApiKeyById({
           apiKeyId: ctx.params.apiKeyId,
-          user: ctx.user
+          organization: ctx.organization
         });
-
-        let org = apiKey.machineAccess.organization
-          ? await organizationService.getOrganizationByIdForUser({
-              organizationId: apiKey.machineAccess.organization.id,
-              user: ctx.user
-            })
-          : undefined;
 
         let secret = await apiKeyService.revealApiKey({
           apiKey,
           context: ctx.context,
-          performedBy: org?.member.actor
+          performedBy: ctx.actor
         });
 
         return apiKeyPresenter.present({ apiKey, secret });

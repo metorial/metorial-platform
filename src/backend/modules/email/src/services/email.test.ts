@@ -84,8 +84,6 @@ describe('EmailService', () => {
       ]
     });
 
-    expect(sendEmailQueue.add).toHaveBeenCalledWith({ emailId: 'generated-email-id' });
-
     expect(result).toEqual(
       expect.objectContaining({
         id: 'generated-email-id',

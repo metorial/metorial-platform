@@ -1,4 +1,4 @@
-package runner_worker
+package launcher_worker
 
 import (
 	"context"
@@ -20,9 +20,9 @@ type LauncherWorker struct {
 	mutex sync.Mutex
 }
 
-func NewLauncherWorker(ctx context.Context, manager *workers.WorkerManager, workerID string, address string) *LauncherWorker {
+func NewLauncherWorker(ctx context.Context, manager *workers.WorkerManager, workerID, address string, isStandalone bool) *LauncherWorker {
 	res := &LauncherWorker{
-		BaseWorkerConnection: base_worker.NewBaseWorkerConnection(ctx, workerID, address),
+		BaseWorkerConnection: base_worker.NewBaseWorkerConnection(ctx, workerID, address, isStandalone),
 
 		manager: manager,
 		client:  nil,

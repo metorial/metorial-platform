@@ -253,9 +253,16 @@ class OauthConnectionServiceImpl {
     return connection;
   }
 
-  async getConnectionByClientId(d: { clientId: string }) {
+  async getConnectionByClientId(d: { clientId: string; organizationId: string }) {
     let connection = await db.providerOAuthConnection.findUnique({
-      where: { metorialClientId: d.clientId },
+      where: {
+        metorialClientId: d.clientId,
+        instance: {
+          organization: {
+            id: d.organizationId
+          }
+        }
+      },
       include
     });
     if (!connection) throw new ServiceError(notFoundError('connection'));

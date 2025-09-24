@@ -29,13 +29,16 @@ type BaseWorkerConnection struct {
 
 	healthBroadcast *pubsub.Broadcaster[*workerPB.WorkerInfoResponse]
 
+	isStandalone bool
+
 	acceptingJobs workerPB.WorkerAcceptingJobs
 	status        workerPB.WorkerStatus
+	lastUpdate    time.Time
 
 	mutex sync.Mutex
 }
 
-func NewBaseWorkerConnection(ctx context.Context, workerID string, address string) *BaseWorkerConnection {
+func NewBaseWorkerConnection(ctx context.Context, workerID, address string, isStandalone bool) *BaseWorkerConnection {
 	ctx, cancel := context.WithCancel(ctx)
 
 	res := &BaseWorkerConnection{
@@ -45,13 +48,21 @@ func NewBaseWorkerConnection(ctx context.Context, workerID string, address strin
 		context: ctx,
 		cancel:  cancel,
 
+		isStandalone: isStandalone,
+
 		healthBroadcast: pubsub.NewBroadcaster[*workerPB.WorkerInfoResponse](),
 
 		acceptingJobs: workerPB.WorkerAcceptingJobs_not_accepting,
 		status:        workerPB.WorkerStatus_unhealthy,
+
+		lastUpdate: time.Now(),
 	}
 
 	return res
+}
+
+func (bw *BaseWorkerConnection) IsStandalone() bool {
+	return bw.isStandalone
 }
 
 func (bw *BaseWorkerConnection) Start() error {
@@ -75,31 +86,28 @@ func (bw *BaseWorkerConnection) Start() error {
 			},
 			MinConnectTimeout: 5 * time.Second,
 		}),
-		// grpc.WithKeepaliveParams(keepalive.ClientParameters{
-		// 	Time:                60 * time.Second, // safer: 60s or more
-		// 	Timeout:             20 * time.Second,
-		// 	PermitWithoutStream: false, // only send pings when RPCs are active
-		// }),
 	)
 	if err != nil {
 		return err
 	}
 	bw.conn = conn
 
-	bw.client = workerPB.NewWorkerClient(conn)
+	if !bw.isStandalone {
+		bw.client = workerPB.NewWorkerClient(conn)
 
-	info, err := bw.client.GetWorkerInfo(bw.context, &workerPB.WorkerInfoRequest{})
-	if err != nil {
-		return err
+		info, err := bw.client.GetWorkerInfo(bw.context, &workerPB.WorkerInfoRequest{})
+		if err != nil {
+			return err
+		}
+
+		bw.workerID = info.WorkerId
+		bw.acceptingJobs = info.AcceptingJobs
+		bw.status = info.Status
+
+		bw.healthBroadcast.Publish(info)
+
+		go bw.healthRoutine()
 	}
-
-	bw.workerID = info.WorkerId
-	bw.acceptingJobs = info.AcceptingJobs
-	bw.status = info.Status
-
-	bw.healthBroadcast.Publish(info)
-
-	go bw.healthRoutine()
 
 	return nil
 }
@@ -153,12 +161,24 @@ func (bw *BaseWorkerConnection) Done() <-chan struct{} {
 	return bw.context.Done()
 }
 
+func (bw *BaseWorkerConnection) isUp() bool {
+	return bw.isStandalone || bw.lastUpdate.Add(15*time.Second).After(time.Now())
+}
+
 func (bw *BaseWorkerConnection) IsAcceptingJobs() bool {
-	return bw.acceptingJobs == workerPB.WorkerAcceptingJobs_accepting
+	if bw.isStandalone {
+		return true
+	}
+
+	return bw.isUp() && bw.acceptingJobs == workerPB.WorkerAcceptingJobs_accepting
 }
 
 func (bw *BaseWorkerConnection) IsHealthy() bool {
-	return bw.status == workerPB.WorkerStatus_healthy
+	if bw.isStandalone {
+		return true
+	}
+
+	return bw.isUp() && bw.status == workerPB.WorkerStatus_healthy
 }
 
 func (bw *BaseWorkerConnection) GetWorkerInfo() (*workerPB.WorkerInfoResponse, error) {
@@ -196,14 +216,11 @@ func (bw *BaseWorkerConnection) healthRoutine() error {
 		bw.mutex.Lock()
 		bw.acceptingJobs = resp.AcceptingJobs
 		bw.status = resp.Status
+		bw.lastUpdate = time.Now()
 		bw.mutex.Unlock()
 
 		bw.healthBroadcast.Publish(resp)
 	}
-}
-
-func (bw *BaseWorkerConnection) HealthBroadcast() *pubsub.Broadcaster[*workerPB.WorkerInfoResponse] {
-	return bw.healthBroadcast
 }
 
 func (bw *BaseWorkerConnection) Conn() *grpc.ClientConn {

@@ -14,7 +14,7 @@ let STATE_COOKIE_NAME = 'oauth_state';
 
 export let providerOauthController = createHono()
   .get(
-    '/start',
+    '/:organizationId/start',
     useValidation(
       'query',
       z.object({
@@ -25,6 +25,7 @@ export let providerOauthController = createHono()
     async c =>
       wrapHtmlError(c)(async () => {
         let query = c.req.query();
+        let organizationId = c.req.param('organizationId');
         let context = useRequestContext(c);
 
         let ticketRes = await providerOauthTicketService.verifyTicket({
@@ -60,7 +61,7 @@ export let providerOauthController = createHono()
       })
   )
   .get(
-    '/callback',
+    '/:organizationId/callback',
     useValidation(
       'query',
       z.object({
@@ -73,6 +74,7 @@ export let providerOauthController = createHono()
     async c =>
       wrapHtmlError(c)(async () => {
         let query = c.req.query();
+        let organizationId = c.req.param('organizationId');
         let context = useRequestContext(c);
 
         if (!query.state) {

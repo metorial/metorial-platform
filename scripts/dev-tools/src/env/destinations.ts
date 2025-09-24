@@ -30,7 +30,37 @@ export let destinations: Destination[] = [
   {
     type: 'enterprise',
     env: backendEnv,
-    path: 'federation/backend/apps/api'
+    path: 'federation/backend/apps/federation-core-api'
+  },
+  {
+    type: 'enterprise',
+    env: backendEnv,
+    path: 'federation/backend/apps/federation-core-worker'
+  },
+  {
+    type: 'enterprise',
+    env: backendEnv,
+    path: 'federation/backend/apps/federation-core-broker'
+  },
+  {
+    type: 'enterprise',
+    env: backendEnv,
+    path: 'federation/island/apps/island-core-api'
+  },
+  {
+    type: 'enterprise',
+    env: backendEnv,
+    path: 'federation/island/apps/island-core-worker'
+  },
+  {
+    type: 'enterprise',
+    env: backendEnv,
+    path: 'federation/island/apps/island-core-broker'
+  },
+  {
+    type: 'enterprise',
+    env: backendEnv,
+    path: 'federation/island/apps/island-core-mcp'
   },
 
   ...['account', 'admin', 'auth', 'dashboard', 'team'].map(v => ({

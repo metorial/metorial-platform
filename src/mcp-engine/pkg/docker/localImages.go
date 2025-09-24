@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -42,9 +43,19 @@ type localImageManager struct {
 
 	context context.Context
 	mu      sync.RWMutex
+
+	ExternalHost           string
+	ExternalHostPrivateKey string
 }
 
-func newLocalImageManager(ctx context.Context) *localImageManager {
+type localImageManagerHostOptions struct {
+	ExternalHost           string
+	ExternalHostPrivateKey string
+}
+
+type localImageManagerCreateOptions localImageManagerHostOptions
+
+func newLocalImageManager(opts localImageManagerCreateOptions, ctx context.Context) *localImageManager {
 	res := &localImageManager{
 		imagesByRepository: make(map[string][]*localImage),
 		imagesByID:         make(map[string]*localImage),
@@ -56,6 +67,9 @@ func newLocalImageManager(ctx context.Context) *localImageManager {
 
 		imagePullLocks:   make(map[string]*sync.Mutex),
 		imageRemoveLocks: make(map[string]*sync.Mutex),
+
+		ExternalHost:           opts.ExternalHost,
+		ExternalHostPrivateKey: opts.ExternalHostPrivateKey,
 	}
 
 	go res.monitor()
@@ -63,8 +77,14 @@ func newLocalImageManager(ctx context.Context) *localImageManager {
 	return res
 }
 
-func getLocalImages() ([]localImage, error) {
-	cmd := exec.Command("docker", "images", "--format", "{{json .}}")
+func getLocalImages(ctx context.Context, opts localImageManagerHostOptions) ([]localImage, error) {
+	cmd := exec.CommandContext(ctx, "docker", "images", "--format", "{{json .}}")
+	cmd.Env = os.Environ()
+	if opts.ExternalHost != "" && opts.ExternalHostPrivateKey != "" {
+		initRemoteKey(opts.ExternalHost, opts.ExternalHostPrivateKey)
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", fmt.Sprintf("ssh://ec2-user@%s", opts.ExternalHost)))
+	}
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list local images: %w\nOutput: %s", err, string(output))
@@ -95,7 +115,10 @@ func (m *localImageManager) updateImages() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	images, err := getLocalImages()
+	images, err := getLocalImages(m.context, localImageManagerHostOptions{
+		ExternalHost:           m.ExternalHost,
+		ExternalHostPrivateKey: m.ExternalHostPrivateKey,
+	})
 	if err != nil {
 		return fmt.Errorf("error fetching local images: %w", err)
 	}
@@ -130,7 +153,7 @@ func (m *localImageManager) monitor() {
 	}
 }
 
-func (m *localImageManager) pullImage(repository, tag string) (*localImage, error) {
+func (m *localImageManager) pullImage(ctx context.Context, repository, tag string) (*localImage, error) {
 	fullName, err := getImageFullName(repository, tag)
 	if err != nil {
 		return nil, fmt.Errorf("error getting full image name: %w", err)
@@ -149,14 +172,27 @@ func (m *localImageManager) pullImage(repository, tag string) (*localImage, erro
 
 	log.Printf("Pulling image %s", fullName)
 
-	cmd := exec.Command("docker", "pull", fullName)
+	// Pull the image using Docker CLI
+	cmd := exec.CommandContext(ctx, "docker", "pull", fullName)
+	cmd.Env = os.Environ()
+	if m.ExternalHost != "" && m.ExternalHostPrivateKey != "" {
+		initRemoteKey(m.ExternalHost, m.ExternalHostPrivateKey)
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", fmt.Sprintf("ssh://ec2-user@%s", m.ExternalHost)))
+	}
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to pull image %s: %w\nOutput: %s", fullName, err, string(output))
 	}
 
 	// After pulling, we need to update the local image index
-	cmd = exec.Command("docker", "images", "--format", "{{json .}}", fullName)
+	cmd = exec.CommandContext(ctx, "docker", "images", "--format", "{{json .}}", fullName)
+	cmd.Env = os.Environ()
+	if m.ExternalHost != "" && m.ExternalHostPrivateKey != "" {
+		initRemoteKey(m.ExternalHost, m.ExternalHostPrivateKey)
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", fmt.Sprintf("ssh://ec2-user@%s", m.ExternalHost)))
+	}
+
 	output, err = cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pulled image %s: %w\nOutput: %s", fullName, err, string(output))
@@ -177,7 +213,7 @@ func (m *localImageManager) pullImage(repository, tag string) (*localImage, erro
 	return &img, nil
 }
 
-func (m *localImageManager) getImageOrFallback(repository, tag string) (*localImage, error) {
+func (m *localImageManager) getImageOrFallback(ctx context.Context, repository, tag string) (*localImage, error) {
 	fullName, err := getImageFullName(repository, tag)
 	if err != nil {
 		return nil, fmt.Errorf("error getting full image name: %w", err)
@@ -206,7 +242,7 @@ func (m *localImageManager) getImageOrFallback(repository, tag string) (*localIm
 
 		// Even if we have a fallback image, we still want to pull the latest one
 		go func() {
-			_, err := m.pullImage(repository, tag)
+			_, err := m.pullImage(ctx, repository, tag)
 			if err != nil {
 				log.Printf("Error pulling latest image for %s:%s: %v\n", repository, tag, err)
 			}
@@ -216,17 +252,23 @@ func (m *localImageManager) getImageOrFallback(repository, tag string) (*localIm
 		return currentImage, nil
 	}
 
-	return m.pullImage(repository, tag)
+	return m.pullImage(ctx, repository, tag)
 }
 
-func (m *localImageManager) removeImage(imageId string) error {
+func (m *localImageManager) removeImage(ctx context.Context, imageId string) error {
 	img, err := m.removeImageFromIndex(imageId)
 	if err != nil {
 		return fmt.Errorf("error removing image from index: %w", err)
 	}
 
 	go func() {
-		cmd := exec.Command("docker", "image", "rm", img.ID)
+		cmd := exec.CommandContext(ctx, "docker", "image", "rm", img.ID)
+		cmd.Env = os.Environ()
+		if m.ExternalHost != "" && m.ExternalHostPrivateKey != "" {
+			initRemoteKey(m.ExternalHost, m.ExternalHostPrivateKey)
+			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", "DOCKER_HOST", fmt.Sprintf("ssh://ec2-user@%s", m.ExternalHost)))
+		}
+
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			if strings.Contains(string(output), "No such image") ||
@@ -306,30 +348,6 @@ func (m *localImageManager) setImageWithoutMutex(img *localImage, isAutoDiscover
 	m.imagesByRepository[img.Repository] = append(m.imagesByRepository[img.Repository], img)
 }
 
-func (m *localImageManager) listImages() []*localImage {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	images := make([]*localImage, 0, len(m.imagesByFullName))
-	for _, img := range m.imagesByFullName {
-		images = append(images, img)
-	}
-
-	return images
-}
-
-func (m *localImageManager) getImage(imageId string) (*localImage, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	image, exists := m.imagesByID[imageId]
-	if !exists {
-		return nil, fmt.Errorf("image with ID %s not found", imageId)
-	}
-
-	return image, nil
-}
-
 func (m *localImageManager) isOwnedImage(repository string) bool {
 	if strings.HasPrefix(repository, "ghcr.io/metorial/mcp-container--") {
 		return true // We always own MCP container images
@@ -359,7 +377,7 @@ func (m *localImageManager) cleanupDuplicateImages() {
 				keptImages = append(keptImages, img)
 			} else {
 				go func() {
-					err := m.removeImage(img.ID)
+					err := m.removeImage(context.Background(), img.ID)
 					if err != nil {
 						log.Printf("Error removing duplicate image %s: %v\n", img.ID, err)
 					}
@@ -377,6 +395,10 @@ func (m *localImageManager) cleanupDuplicateImages() {
 }
 
 func (m *localImageManager) cleanupUnused() {
+	if m.ExternalHost != "" {
+		return
+	}
+
 	usage, err := GetSystemStorageUsage()
 	log.Printf("Current system storage usage: %d percent\n", usage)
 
@@ -405,7 +427,7 @@ func (m *localImageManager) cleanupUnused() {
 
 	go func() {
 		for _, img := range imagesSortedByLastUsed {
-			err := m.removeImage(img.ID)
+			err := m.removeImage(context.Background(), img.ID)
 			if err != nil {
 				log.Printf("Error removing unused image %s: %v\n", img.ID, err)
 			}

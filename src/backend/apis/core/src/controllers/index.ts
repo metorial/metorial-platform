@@ -6,6 +6,7 @@ import { dashboardOauthDiscoveryController } from './dashboard/oauthDiscovery';
 import { dashboardOrganizationController } from './dashboard/organization';
 import { dashboardOrganizationInviteController } from './dashboard/organizationInvite';
 import { dashboardUsageController } from './dashboard/usage';
+import { dashboardUserController } from './dashboard/user';
 import { customServerController } from './instance/customServer';
 import { customServerDeploymentController } from './instance/customServerDeployment';
 import { customServerEventController } from './instance/customServerEvent';
@@ -41,7 +42,6 @@ import { organizationManagementController } from './management/organization';
 import { organizationInviteManagementController } from './management/organizationInvite';
 import { organizationMemberManagementController } from './management/organizationMember';
 import { projectManagementController } from './management/project';
-import { userManagementController } from './management/user';
 
 export let pulsarController = Controller.create<any>(
   {
@@ -96,7 +96,7 @@ export let dashboardController = Controller.create<any>(
     organizationInviteManagementController,
     organizationMemberManagementController,
     projectManagementController,
-    userManagementController,
+    dashboardUserController,
 
     fileController,
     fileLinkController,

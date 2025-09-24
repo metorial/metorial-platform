@@ -1,26 +1,31 @@
-import { createLoader } from '@metorial/data-hooks';
 import {
   ApiKeysCreateBody,
   ApiKeysListQuery,
   ApiKeysUpdateBody
-} from '@metorial/generated/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { createLoader } from '@metorial/data-hooks';
 import { useEffect, useState } from 'react';
 import { autoPaginate } from '../../lib/autoPaginate';
+import { useCurrentOrganization } from '../../organization';
 import { withAuth } from '../../user';
 
 export let apiKeysLoader = createLoader({
   name: 'apiKeys',
   parents: [],
-  fetch: (i: ApiKeysListQuery) =>
-    withAuth(sdk => autoPaginate(cursor => sdk.apiKeys.list({ ...i, ...cursor }))),
+  fetch: (i: ApiKeysListQuery & { organizationId: string }) =>
+    withAuth(sdk =>
+      autoPaginate(cursor => sdk.apiKeys.list(i.organizationId, { ...i, ...cursor }))
+    ),
   mutators: {
-    create: (i: ApiKeysCreateBody) => withAuth(sdk => sdk.apiKeys.create(i)),
-    update: (i: ApiKeysUpdateBody & { apiKeyId: string }) =>
-      withAuth(sdk => sdk.apiKeys.update(i.apiKeyId, i)),
-    revoke: (i: { apiKeyId: string }) => withAuth(sdk => sdk.apiKeys.revoke(i.apiKeyId)),
-    rotate: (i: { apiKeyId: string; currentExpiresAt?: Date }) =>
+    create: (i: ApiKeysCreateBody, { input }) =>
+      withAuth(sdk => sdk.apiKeys.create(input.organizationId, i)),
+    update: (i: ApiKeysUpdateBody & { apiKeyId: string }, { input }) =>
+      withAuth(sdk => sdk.apiKeys.update(input.organizationId, i.apiKeyId, i)),
+    revoke: (i: { apiKeyId: string }, { input }) =>
+      withAuth(sdk => sdk.apiKeys.revoke(input.organizationId, i.apiKeyId)),
+    rotate: (i: { apiKeyId: string; currentExpiresAt?: Date }, { input }) =>
       withAuth(sdk =>
-        sdk.apiKeys.rotate(i.apiKeyId, {
+        sdk.apiKeys.rotate(input.organizationId, i.apiKeyId, {
           currentExpiresAt: i.currentExpiresAt
         })
       )
@@ -33,15 +38,20 @@ export type ApiKeysFilter =
       organizationId: string;
     }
   | {
-      type: 'user_auth_token';
-    }
-  | {
       type: 'instance_access_token';
       instanceId: string;
     };
 
 export let useApiKeys = (input: ApiKeysFilter | null | undefined) => {
-  let apiKeys = apiKeysLoader.use(input ?? null);
+  let organization = useCurrentOrganization();
+  let apiKeys = apiKeysLoader.use(
+    input && organization.data
+      ? {
+          ...input,
+          organizationId: organization.data.id
+        }
+      : null
+  );
 
   return {
     ...apiKeys,
@@ -54,12 +64,21 @@ export let useApiKeys = (input: ApiKeysFilter | null | undefined) => {
 
 export let apiKeyLoader = createLoader({
   name: 'apiKey',
-  fetch: (i: { apiKeyId: string }) => withAuth(sdk => sdk.apiKeys.get(i.apiKeyId)),
+  fetch: (i: { apiKeyId: string; organizationId: string }) =>
+    withAuth(sdk => sdk.apiKeys.get(i.organizationId, i.apiKeyId)),
   mutators: {}
 });
 
 export let useApiKey = (apiKeyId: string | null | undefined) => {
-  let apiKey = apiKeyLoader.use(apiKeyId ? { apiKeyId } : null);
+  let organization = useCurrentOrganization();
+  let apiKey = apiKeyLoader.use(
+    apiKeyId && organization.data
+      ? {
+          apiKeyId,
+          organizationId: organization.data.id
+        }
+      : null
+  );
 
   return {
     ...apiKey
@@ -82,18 +101,21 @@ let getCachedRevealedApiKey = (apiKeyId: string) => {
   }
   return cached;
 };
-let useApiReveal = apiKeyLoader.createExternalMutator(({ apiKeyId }: { apiKeyId: string }) =>
-  withAuth(sdk => sdk.apiKeys.reveal(apiKeyId))
+let useApiReveal = apiKeyLoader.createExternalMutator(
+  ({ apiKeyId, organizationId }: { apiKeyId: string; organizationId: string }) =>
+    withAuth(sdk => sdk.apiKeys.reveal(organizationId, apiKeyId))
 );
 
 export let useRevealableApiKey = ({ apiKeyId }: { apiKeyId?: string }) => {
+  let organization = useCurrentOrganization();
+
   let [value, setValue] = useState<string | undefined>(() =>
     apiKeyId ? getCachedRevealedApiKey(apiKeyId)?.secret : undefined
   );
   let revealMutator = useApiReveal();
 
   let reveal = () => {
-    if (!apiKeyId) {
+    if (!apiKeyId || !organization.data) {
       setValue(undefined);
       return;
     }
@@ -106,9 +128,10 @@ export let useRevealableApiKey = ({ apiKeyId }: { apiKeyId?: string }) => {
 
     revealMutator
       .mutate({
-        apiKeyId
+        apiKeyId,
+        organizationId: organization.data.id
       })
-      .then(async ([res]) => {
+      .then(async ([res]: any) => {
         if (!res) return;
         revealedApiKey[apiKeyId] = {
           secret: res.secret!,

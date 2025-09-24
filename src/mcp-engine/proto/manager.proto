@@ -22,7 +22,7 @@ service McpManager {
 
   rpc GetServerInfo(GetServerInfoRequest) returns (broker.mcp.McpParticipant);
 
-  rpc ListManagers(broker.workerBroker.ListManagersRequest) returns (broker.workerBroker.ListManagersResponse);
+  rpc ListManagers(ListManagersRequest) returns (ListManagersResponse);
   rpc ListWorkers(ListWorkersRequest) returns (ListWorkersResponse);
 
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
@@ -49,6 +49,17 @@ service McpManager {
 
   rpc GetServer(GetServerRequest) returns (GetServerResponse);
   rpc ListServers(ListServersRequest) returns (ListServersResponse);
+}
+
+message ListManagersRequest {}
+
+message ListManagersResponse {
+  repeated Manager managers = 1;
+}
+
+message Manager {
+  string id = 1;
+  string address = 2;
 }
 
 message CheckActiveSessionRequest {

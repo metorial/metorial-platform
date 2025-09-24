@@ -47,7 +47,7 @@ class OrganizationInviteJoinService {
           organization: true
         }
       });
-      if (existingMember) {
+      if (existingMember && existingMember.status == 'active') {
         return {
           invite,
           organization: invite.organization,
@@ -104,9 +104,13 @@ class OrganizationInviteJoinService {
         });
       }
 
-      await db.organizationInvite.update({
+      invite = await db.organizationInvite.update({
         where: { oid: invite.oid },
-        data: { useCount: { increment: 1 } }
+        data: { useCount: { increment: 1 } },
+        include: {
+          organization: true,
+          invitedBy: true
+        }
       });
 
       await Fabric.fire('organization.invitation.accepted:after', {
@@ -146,11 +150,15 @@ class OrganizationInviteJoinService {
       });
 
       if (invite.type === 'email' && invite.email) {
-        await db.organizationInvite.update({
+        invite = await db.organizationInvite.update({
           where: { oid: invite.oid },
           data: {
             status: 'rejected',
             rejectedAt: new Date()
+          },
+          include: {
+            organization: true,
+            invitedBy: true
           }
         });
       }

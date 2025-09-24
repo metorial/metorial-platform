@@ -1,5 +1,4 @@
 enum ApiKeyType {
-  user_auth_token
   organization_management_token
   instance_access_token_secret
   instance_access_token_publishable

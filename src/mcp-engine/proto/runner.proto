@@ -5,15 +5,13 @@ package broker.runner;
 option go_package = "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner;runner";
 
 import "mcp.proto";
-import "common.proto";
 import "worker.proto";
 
 service McpRunner {
-  rpc GetRunnerInfo(RunnerInfoRequest) returns (RunnerInfoResponse);
-
-  rpc ListActiveRuns(broker.common.Empty) returns (ActiveRunsResponse);
-  rpc ListDockerImages(broker.common.Empty) returns (DockerImagesResponse);
-  rpc ListDockerContainers(broker.common.Empty) returns (DockerContainersResponse);
+  // rpc GetRunnerInfo(RunnerInfoRequest) returns (RunnerInfoResponse);
+  // rpc ListActiveRuns(broker.common.Empty) returns (ActiveRunsResponse);
+  // rpc ListDockerImages(broker.common.Empty) returns (DockerImagesResponse);
+  // rpc ListDockerContainers(broker.common.Empty) returns (DockerContainersResponse);
 
   rpc StreamMcpRun(stream RunRequest) returns (stream RunResponse);
 }

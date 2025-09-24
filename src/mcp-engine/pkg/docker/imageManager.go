@@ -4,11 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"slices"
 	"sync"
 	"time"
+
+	"github.com/metorial/metorial/mcp-engine/pkg/rendezvous"
 )
 
 const CLEANUP_INTERVAL = time.Minute * 5
+const IMAGE_MANAGER_LOCAL_KEY = "<local>"
 
 type ImageManager struct {
 	images map[string]*ImageHandle
@@ -17,10 +21,23 @@ type ImageManager struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
-	localImageManager *localImageManager
+	localImageManager map[string]*localImageManager
+	imageToHost       map[string]*string
+
+	ExternalHostMetorialServiceName   string
+	ExternalHostMetorialServiceBroker string
+	ExternalHostMetorialListToken     string
+	ExternalHostPrivateKey            string
 }
 
-func newImageManager() *ImageManager {
+type ImageManagerCreateOptions struct {
+	ExternalHostMetorialServiceName   string
+	ExternalHostMetorialServiceBroker string
+	ExternalHostMetorialListToken     string
+	ExternalHostPrivateKey            string
+}
+
+func newImageManager(opts ImageManagerCreateOptions) *ImageManager {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	manager := &ImageManager{
@@ -28,7 +45,12 @@ func newImageManager() *ImageManager {
 		ctx:    ctx,
 		cancel: cancel,
 
-		localImageManager: newLocalImageManager(ctx),
+		localImageManager: make(map[string]*localImageManager),
+
+		ExternalHostMetorialServiceName:   opts.ExternalHostMetorialServiceName,
+		ExternalHostMetorialServiceBroker: opts.ExternalHostMetorialServiceBroker,
+		ExternalHostMetorialListToken:     opts.ExternalHostMetorialListToken,
+		ExternalHostPrivateKey:            opts.ExternalHostPrivateKey,
 	}
 
 	manager.startCleanupTask()
@@ -40,16 +62,56 @@ func (im *ImageManager) close() {
 	im.wg.Wait()
 }
 
-func (im *ImageManager) ensureImage(repository, tag string) (*ImageHandle, error) {
-	localImage, err := im.localImageManager.getImageOrFallback(repository, tag)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get local image: %w", err)
-	}
+func (im *ImageManager) ensureImage(ctx context.Context, repository, tag string) (*ImageHandle, error) {
+	imageName := fmt.Sprintf("%s:%s", repository, tag)
 
-	imageName := localImage.FullName()
+	selectedHost := im.imageToHost[imageName]
+
+	if im.ExternalHostMetorialServiceName != "" &&
+		im.ExternalHostMetorialServiceBroker != "" &&
+		im.ExternalHostMetorialListToken != "" &&
+		im.ExternalHostPrivateKey != "" {
+		hosts := Broker.ListRemoteHosts(
+			im.ExternalHostMetorialServiceBroker,
+			im.ExternalHostMetorialServiceName,
+			im.ExternalHostMetorialListToken,
+		)
+
+		if len(hosts) < 1 {
+			log.Printf("No remote hosts available from broker %s for service %s", im.ExternalHostMetorialServiceBroker, im.ExternalHostMetorialServiceName)
+			return nil, fmt.Errorf("no remote hosts available from broker %s for service %s", im.ExternalHostMetorialServiceBroker, im.ExternalHostMetorialServiceName)
+		}
+
+		if selectedHost == nil || !slices.Contains(hosts, *selectedHost) {
+			selectedHostLocal := rendezvous.PickElementConsistently(imageName, hosts)
+			selectedHost = &selectedHostLocal
+		}
+	}
 
 	im.mu.Lock()
 	defer im.mu.Unlock()
+
+	imageManagerKey := IMAGE_MANAGER_LOCAL_KEY
+	if selectedHost != nil {
+		imageManagerKey = *selectedHost
+	}
+
+	imageManager, exists := im.localImageManager[imageManagerKey]
+	if !exists {
+		opts := localImageManagerCreateOptions{}
+		if selectedHost != nil {
+			opts.ExternalHost = *selectedHost
+			opts.ExternalHostPrivateKey = im.ExternalHostPrivateKey
+		}
+
+		imageManager = newLocalImageManager(opts, im.ctx)
+		im.localImageManager[imageManagerKey] = imageManager
+	}
+
+	localImage, err := imageManager.getImageOrFallback(ctx, repository, tag)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get local image: %w", err)
+	}
 
 	handle, exists := im.images[imageName]
 	if !exists {
@@ -58,29 +120,30 @@ func (im *ImageManager) ensureImage(repository, tag string) (*ImageHandle, error
 	}
 
 	handle.ImageID = localImage.ID
+	handle.ExternalHost = selectedHost
 	handle.markUsed()
 
 	localImage.LastUsedAt = time.Now()
 
-	return im.images[imageName], nil
+	return handle, nil
 }
 
-func (im *ImageManager) ensureImageByFullName(fullName string) (*ImageHandle, error) {
+func (im *ImageManager) ensureImageByFullName(ctx context.Context, fullName string) (*ImageHandle, error) {
 	repository, tag, err := parseImageFullName(fullName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse image full name: %w", err)
 	}
 
-	return im.ensureImage(repository, tag)
+	return im.ensureImage(ctx, repository, tag)
 }
 
-func (im *ImageManager) listImages() []*localImage {
-	return im.localImageManager.listImages()
-}
+// func (im *ImageManager) listImages() []*localImage {
+// 	return im.localImageManager.listImages()
+// }
 
-func (im *ImageManager) getImage(imageId string) (*localImage, error) {
-	return im.localImageManager.getImage(imageId)
-}
+// func (im *ImageManager) getImage(imageId string) (*localImage, error) {
+// 	return im.localImageManager.getImage(imageId)
+// }
 
 func (im *ImageManager) removeOldImageUses() {
 	im.mu.RLock()
@@ -113,8 +176,11 @@ func (im *ImageManager) startCleanupTask() {
 
 func (im *ImageManager) performCleanup() {
 	im.removeOldImageUses()
-	im.localImageManager.cleanupUnused()
-	im.localImageManager.cleanupDuplicateImages()
+
+	for _, im := range im.localImageManager {
+		im.cleanupUnused()
+		im.cleanupDuplicateImages()
+	}
 
 	log.Println("Image cleanup completed")
 }

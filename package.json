@@ -25,7 +25,7 @@
   },
   "packageManager": "bun@1.2.15",
   "workspaces": [
-    "clients/metorial-node/*/*",
+    "_clients/metorial-node/*/*",
     "clients/metorial-dashboard",
     "scripts/*",
     "src/*",

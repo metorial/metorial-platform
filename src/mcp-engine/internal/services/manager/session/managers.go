@@ -80,7 +80,7 @@ func (om *OtherManagers) GetManagerConnection(managerID string) (managerPb.McpMa
 		return connection, nil
 	}
 
-	conn, err := grpc.NewClient(managerUtils.GetManagerAddress(manager.Address), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(managerUtils.GetManagerAddress(manager.ManagerAddress), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		sentry.CaptureException(err)
 		return nil, err

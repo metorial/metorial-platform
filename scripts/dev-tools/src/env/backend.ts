@@ -30,20 +30,35 @@ export let backendEnv: Env = [
     defaultValue: `redis://localhost:36379/0`
   },
   {
-    key: 'MEILISEARCH_HOST',
-    defaultValue: `http://localhost:37700`
-  },
-  {
     key: 'USAGE_MONGO_URL',
     defaultValue: `mongodb://mongo:mongo@localhost:32707/metorial-usage?authSource=admin`,
     isEnterprise: true
   },
-  { key: 'ETCD_ENDPOINTS', defaultValue: `http://localhost:32379` },
+
+  // {
+  //   key: 'MEILISEARCH_HOST',
+  //   defaultValue: `http://localhost:37700`
+  // },
+
+  {
+    key: 'OPENSEARCH_HOST',
+    defaultValue: `http://localhost:9200`
+  },
+  {
+    key: 'OPENSEARCH_USERNAME',
+    defaultValue: `admin`
+  },
+  {
+    key: 'OPENSEARCH_PASSWORD',
+    defaultValue: `admin`
+  },
+
+  // { key: 'ETCD_ENDPOINTS', defaultValue: `http://localhost:32379` },
+  { key: 'REDIS_ENDPOINTS', defaultValue: `localhost:36379` },
   {
     key: 'ENGINE_DATABASE_DSN',
     defaultValue: `host=localhost user=postgres password=postgres dbname=${DB_PREFIX}-engine port=35432 sslmode=disable`
   },
-
   {
     key: 'ENGINE_MANAGER_ADDRESSES',
     defaultValue: `localhost:50050`
@@ -99,6 +114,7 @@ export let backendEnv: Env = [
   { key: 'MCP_URL', defaultValue: `http://${HOSTNAME}:4311` },
   { key: 'PROVIDER_OAUTH_URL', defaultValue: `http://${HOSTNAME}:4313` },
   { key: 'AUTH_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4301`, isEnterprise: true },
+  { key: 'TEAM_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4303`, isEnterprise: true },
   { key: 'DASHBOARD_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300` },
   { key: 'COOKIE_DOMAIN', defaultValue: `${HOSTNAME}`, isEnterprise: true },
 
@@ -110,6 +126,10 @@ export let backendEnv: Env = [
   { key: 'LEMON_SQUEEZY_DEV_STORE_ID', isEnterprise: true },
   { key: 'LEMON_SQUEEZY_DEV_API_KEY', isEnterprise: true },
   { key: 'LEMON_SQUEEZY_DEV_WEBHOOK_SECRET', isEnterprise: true },
+
+  { key: 'STRIPE_DEV_SECRET_API_KEY', isEnterprise: true },
+  { key: 'STRIPE_DEV_PUBLISHABLE_API_KEY', isEnterprise: true },
+  { key: 'STRIPE_DEV_WEBHOOK_SECRET', isEnterprise: true },
 
   { key: 'SUPPORT_CRISP_WEBSITE_ID', isEnterprise: true },
   { key: 'SUPPORT_CRISP_TOKEN_ID', isEnterprise: true },
@@ -127,5 +147,24 @@ export let backendEnv: Env = [
   { key: 'ENTERPRISE_FILES_HOST', isEnterprise: true },
 
   { key: 'STATSIG_API_KEY', isEnterprise: true },
-  { key: 'STATSIG_ENVIRONMENT', isEnterprise: true }
+  { key: 'STATSIG_ENVIRONMENT', isEnterprise: true },
+
+  {
+    key: 'ISLANDS_METORIAL_HOSTED_FED_DEFAULT_ADDRESS',
+    defaultValue: 'http://localhost:4201/',
+    isEnterprise: true
+  },
+  { key: 'FEDERATION_ADDRESS', defaultValue: 'http://localhost:4200/', isEnterprise: true },
+  {
+    key: 'ISLAND_IDENTIFIER',
+    defaultValue: 'metorial_hosted_fed_default',
+    isEnterprise: true
+  },
+  { key: 'ISLAND_PORT', defaultValue: '4201', isEnterprise: true },
+  { key: 'FEDERATION_PORT', defaultValue: '4200', isEnterprise: true },
+
+  { key: 'ALGOLIA_APP_ID', isEnterprise: false, isRequired: false },
+  { key: 'ALGOLIA_ADMIN_KEY', isEnterprise: false, isRequired: false },
+
+  { key: 'SLACK_INVITE_BOT_TOKEN', isEnterprise: true, isRequired: false }
 ];

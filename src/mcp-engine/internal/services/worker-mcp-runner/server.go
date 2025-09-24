@@ -59,20 +59,20 @@ func (s *runnerServer) ListActiveRuns(ctx context.Context, req *commonPb.Empty) 
 	return &runnerPb.ActiveRunsResponse{Runs: activeRuns}, nil
 }
 
-func (s *runnerServer) ListDockerImages(ctx context.Context, req *commonPb.Empty) (*runnerPb.DockerImagesResponse, error) {
-	images := s.state.dockerManager.ListImages()
+// func (s *runnerServer) ListDockerImages(ctx context.Context, req *commonPb.Empty) (*runnerPb.DockerImagesResponse, error) {
+// 	images := s.state.dockerManager.ListImages()
 
-	imageInfos := make([]*runnerPb.DockerImageInfo, len(images))
-	for i, image := range images {
-		imageInfos[i] = &runnerPb.DockerImageInfo{
-			Repository: image.Repository,
-			Tag:        image.Tag,
-			ImageId:    image.ID,
-		}
-	}
+// 	imageInfos := make([]*runnerPb.DockerImageInfo, len(images))
+// 	for i, image := range images {
+// 		imageInfos[i] = &runnerPb.DockerImageInfo{
+// 			Repository: image.Repository,
+// 			Tag:        image.Tag,
+// 			ImageId:    image.ID,
+// 		}
+// 	}
 
-	return &runnerPb.DockerImagesResponse{Images: imageInfos}, nil
-}
+// 	return &runnerPb.DockerImagesResponse{Images: imageInfos}, nil
+// }
 
 func (s *runnerServer) ListDockerContainers(ctx context.Context, req *commonPb.Empty) (*runnerPb.DockerContainersResponse, error) {
 	containers := s.state.dockerManager.ListContainers()

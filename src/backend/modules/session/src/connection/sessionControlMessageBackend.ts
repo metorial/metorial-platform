@@ -5,9 +5,7 @@ import mitt from 'mitt';
 import Redis from 'redis';
 import { ConnectionMessage } from './handler/base';
 
-let redisPromise = createRedisClient({
-  url: process.env.REDIS_URL
-}).eager();
+let redisPromise = createRedisClient({}).eager();
 
 export type SessionControlMessageBackendEvents = {
   message: ConnectionMessage;

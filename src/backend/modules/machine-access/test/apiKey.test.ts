@@ -66,29 +66,6 @@ describe('apiKeyService', () => {
     vi.clearAllMocks();
   });
 
-  it('should create a user auth token api key', async () => {
-    // @ts-ignore
-    db.apiKey.create.mockResolvedValue({
-      oid: 'api-key-oid',
-      type: 'user_auth_token',
-      machineAccess: {}
-    });
-    // @ts-ignore
-    db.apiKeySecret.create.mockResolvedValue({ secret: 'secret-key' });
-
-    const result = await apiKeyService.createApiKey({
-      type: 'user_auth_token',
-      user: baseUser,
-      input: { name: 'test', description: 'desc' },
-      context: baseContext
-    });
-
-    expect(result.apiKey).toBeDefined();
-    expect(result.secret.secret).toBe('secret-key');
-    expect(db.apiKey.create).toHaveBeenCalled();
-    expect(db.apiKeySecret.create).toHaveBeenCalled();
-  });
-
   it('should create an organization management token api key', async () => {
     // @ts-ignore
     db.apiKey.create.mockResolvedValue({
@@ -281,18 +258,6 @@ describe('apiKeyService', () => {
 
     const paginator = await apiKeyService.listApiKeys({
       filter: { type: 'organization_management_token', organization: baseOrg }
-    });
-
-    expect(Array.isArray(paginator)).toBe(true);
-    expect(db.apiKey.findMany).toHaveBeenCalled();
-  });
-
-  it('should list api keys for user', async () => {
-    // @ts-ignore
-    db.apiKey.findMany.mockResolvedValue([{ id: 'api-key-id', machineAccess: {} }]);
-
-    const paginator = await apiKeyService.listApiKeys({
-      filter: { type: 'user_auth_token', user: baseUser }
     });
 
     expect(Array.isArray(paginator)).toBe(true);

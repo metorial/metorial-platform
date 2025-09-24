@@ -9,6 +9,7 @@ import "worker.proto";
 service McpWorkerBroker {
   rpc ListManagers(broker.workerBroker.ListManagersRequest) returns (broker.workerBroker.ListManagersResponse);
   rpc RegisterWorker(broker.workerBroker.RegisterWorkerRequest) returns (broker.workerBroker.RegisterWorkerResponse);
+  rpc GetManagerInfo(broker.workerBroker.GetManagerInfoRequest) returns (broker.workerBroker.GetManagerInfoResponse);
 }
 
 message ListManagersRequest {}
@@ -19,7 +20,8 @@ message ListManagersResponse {
 
 message Manager {
   string id = 1;
-  string address = 2;
+  string managerAddress = 2;
+  string workerBrokerAddress = 3;
 }
 
 message RegisterWorkerRequest {
@@ -29,3 +31,11 @@ message RegisterWorkerRequest {
 }
 
 message RegisterWorkerResponse {}
+
+message GetManagerInfoRequest {}
+
+message GetManagerInfoResponse {
+  string id = 1;
+  string managerAddress = 2;
+  string workerBrokerAddress = 3;
+}

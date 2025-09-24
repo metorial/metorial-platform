@@ -1,5 +1,6 @@
 export interface FrontendConfig {
   apiUrl: string;
+  publicApiUrl: string;
   privateApiUrl: string;
 
   environment: 'production' | 'staging' | 'development';

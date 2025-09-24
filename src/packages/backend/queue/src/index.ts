@@ -1,19 +1,11 @@
-import { JobsOptions, QueueOptions, WorkerOptions } from 'bullmq';
-import { createBullMqQueue } from './drivers/bullmq';
+import { BullMqCreateOptions, createBullMqQueue } from './drivers/bullmq';
 import { IQueueProcessor } from './types';
 
 export * from './types';
 
 let seenNames = new Set<string>();
 
-export let createQueue = <JobData>(
-  opts: { name: string } & {
-    driver?: 'bullmq';
-    jobOpts?: JobsOptions;
-    queueOpts?: Omit<QueueOptions, 'connection'>;
-    workerOpts?: Omit<WorkerOptions, 'connection'>;
-  }
-) => {
+export let createQueue = <JobData>(opts: { driver?: 'bullmq' } & BullMqCreateOptions) => {
   if (!opts.driver) opts.driver = 'bullmq';
 
   if (seenNames.has(opts.name)) {

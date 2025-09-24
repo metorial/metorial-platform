@@ -111,6 +111,7 @@ func (s *Sessions) GetSessionSafe(sessionId string) (Session, *mterror.MTError) 
 			return nil, nil
 		}
 
+		sentry.CaptureException(err)
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to get session from state", err)
 	}
 
@@ -160,7 +161,8 @@ func (s *Sessions) UpsertSession(
 		prospectiveSessionUuid,
 	)
 	if err != nil {
-		// return nil, fmt.Errorf("failed to upsert session: %w", err)
+		sentry.CaptureException(err)
+		log.Printf("Failed to upsert session %s: %v\n", request.SessionId, err)
 		return nil, mterror.NewWithInnerError(mterror.InternalErrorKind, "failed to upsert session", err)
 	}
 
@@ -205,6 +207,7 @@ func (s *Sessions) tryToGetManagerForRemoteSession(storedSession *state.Session)
 func (s *Sessions) EnsureRemoteSession(storedSession *state.Session) (*RemoteSession, *mterror.MTError) {
 	connection, err := s.tryToGetManagerForRemoteSession(storedSession)
 	if err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
