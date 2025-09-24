@@ -112,6 +112,7 @@ export let backendEnv: Env = [
   { key: 'MCP_URL', defaultValue: `http://${HOSTNAME}:4311` },
   { key: 'PROVIDER_OAUTH_URL', defaultValue: `http://${HOSTNAME}:4313`, isEnterprise: true },
   { key: 'AUTH_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4301`, isEnterprise: true },
+  { key: 'TEAM_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4303`, isEnterprise: true },
   { key: 'DASHBOARD_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300` },
   { key: 'COOKIE_DOMAIN', defaultValue: `${HOSTNAME}`, isEnterprise: true },
 
@@ -161,5 +162,7 @@ export let backendEnv: Env = [
   { key: 'FEDERATION_PORT', defaultValue: '4200', isEnterprise: true },
 
   { key: 'ALGOLIA_APP_ID', isEnterprise: false, isRequired: false },
-  { key: 'ALGOLIA_ADMIN_KEY', isEnterprise: false, isRequired: false }
+  { key: 'ALGOLIA_ADMIN_KEY', isEnterprise: false, isRequired: false },
+
+  { key: 'SLACK_INVITE_BOT_TOKEN', isEnterprise: true, isRequired: false }
 ];
