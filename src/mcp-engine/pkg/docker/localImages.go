@@ -348,30 +348,6 @@ func (m *localImageManager) setImageWithoutMutex(img *localImage, isAutoDiscover
 	m.imagesByRepository[img.Repository] = append(m.imagesByRepository[img.Repository], img)
 }
 
-func (m *localImageManager) listImages() []*localImage {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	images := make([]*localImage, 0, len(m.imagesByFullName))
-	for _, img := range m.imagesByFullName {
-		images = append(images, img)
-	}
-
-	return images
-}
-
-func (m *localImageManager) getImage(imageId string) (*localImage, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	image, exists := m.imagesByID[imageId]
-	if !exists {
-		return nil, fmt.Errorf("image with ID %s not found", imageId)
-	}
-
-	return image, nil
-}
-
 func (m *localImageManager) isOwnedImage(repository string) bool {
 	if strings.HasPrefix(repository, "ghcr.io/metorial/mcp-container--") {
 		return true // We always own MCP container images
