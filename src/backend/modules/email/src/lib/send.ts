@@ -9,13 +9,17 @@ let transport =
   email.type == 'ses'
     ? {
         type: 'ses' as const,
-        client: new SESClient({
-          region: email.aws.region,
-          credentials: {
-            accessKeyId: email.aws.accessKeyId,
-            secretAccessKey: email.aws.secretAccessKey
-          }
-        })
+        client: new SESClient(
+          email.aws
+            ? {
+                region: email.aws.region,
+                credentials: {
+                  accessKeyId: email.aws.accessKeyId,
+                  secretAccessKey: email.aws.secretAccessKey
+                }
+              }
+            : {}
+        )
       }
     : {
         type: 'smtp' as const,

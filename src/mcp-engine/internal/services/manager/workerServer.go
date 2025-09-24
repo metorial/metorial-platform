@@ -30,8 +30,9 @@ func (s *workerBrokerServer) ListManagers(ctx context.Context, req *workerBroker
 	resManagers := make([]*workerBrokerPb.Manager, 0, len(managers))
 	for _, manager := range managers {
 		resManagers = append(resManagers, &workerBrokerPb.Manager{
-			Id:      manager.ID,
-			Address: manager.Address,
+			Id:                  manager.ID,
+			ManagerAddress:      manager.ManagerAddress,
+			WorkerBrokerAddress: manager.WorkerBrokerAddress,
 		})
 	}
 
@@ -51,16 +52,14 @@ func (s *workerBrokerServer) RegisterWorker(ctx context.Context, req *workerBrok
 	log.Printf("Registering worker %s of type %s at address %s", req.WorkerId, req.WorkerType, req.Address)
 
 	switch req.WorkerType {
-
 	case workerPb.WorkerType_mcp_runner:
-		worker = runnerWorker.NewRunnerWorker(context.Background(), s.workerManager, req.WorkerId, req.Address)
+		worker = runnerWorker.NewRunnerWorker(context.Background(), s.workerManager, req.WorkerId, req.Address, false)
 	case workerPb.WorkerType_launcher:
-		worker = launcherWorker.NewLauncherWorker(context.Background(), s.workerManager, req.WorkerId, req.Address)
+		worker = launcherWorker.NewLauncherWorker(context.Background(), s.workerManager, req.WorkerId, req.Address, false)
 	case workerPb.WorkerType_mcp_remote:
-		worker = remoteWorker.NewRemoteWorker(context.Background(), s.workerManager, req.WorkerId, req.Address)
+		worker = remoteWorker.NewRemoteWorker(context.Background(), s.workerManager, req.WorkerId, req.Address, false)
 	default:
 		return nil, fmt.Errorf("unsupported worker type: %v", req.WorkerType)
-
 	}
 
 	err := s.workerManager.RegisterWorker(worker)
@@ -75,7 +74,8 @@ func (s *workerBrokerServer) RegisterWorker(ctx context.Context, req *workerBrok
 
 func (s *workerBrokerServer) GetManagerInfo(ctx context.Context, req *workerBrokerPb.GetManagerInfoRequest) (*workerBrokerPb.GetManagerInfoResponse, error) {
 	return &workerBrokerPb.GetManagerInfoResponse{
-		Id:      s.state.ManagerID,
-		Address: s.state.Address,
+		Id:                  s.state.ManagerID,
+		ManagerAddress:      s.state.ManagerAddress,
+		WorkerBrokerAddress: s.state.WorkerBrokerAddress,
 	}, nil
 }

@@ -3,9 +3,7 @@ import { createRedisClient } from '@metorial/redis';
 import mitt from 'mitt';
 import type Redis from 'redis';
 
-let redisPromise = createRedisClient({
-  url: process.env.REDIS_URL
-}).eager();
+let redisPromise = createRedisClient({}).eager();
 
 export type BrokerBusBackendEvents = {
   client_close: void;

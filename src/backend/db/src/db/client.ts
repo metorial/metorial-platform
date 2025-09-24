@@ -6,6 +6,7 @@ import type {
   ServerCapabilities,
   Tool
 } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaPg } from '@prisma/adapter-pg';
 import type { JSONSchema4, JSONSchema6, JSONSchema7 } from 'json-schema';
 import { Worker as SnowflakeId } from 'snowflake-uuid';
 import { PrismaClient } from '../../prisma/generated';
@@ -35,7 +36,14 @@ let getSecureRandomInt = (max: number) => {
 };
 
 let createClient = () => {
-  let baseClient = new PrismaClient({});
+  let adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+  let baseClient = new PrismaClient({
+    adapter,
+    transactionOptions: {
+      maxWait: 10000,
+      timeout: 12000
+    }
+  });
 
   return baseClient.$extends({
     query: {

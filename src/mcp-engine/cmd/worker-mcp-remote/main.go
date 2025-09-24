@@ -11,6 +11,7 @@ import (
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	workerMcpRemote "github.com/metorial/metorial/mcp-engine/internal/services/worker-mcp-remote"
+	"github.com/metorial/metorial/mcp-engine/pkg/aws"
 	"github.com/metorial/metorial/modules/addr"
 	sentryUtil "github.com/metorial/metorial/modules/sentry-util"
 )
@@ -56,6 +57,26 @@ func getConfig() (string, int, string) {
 	managerAddressEnv := os.Getenv("MANAGER_ADDRESS")
 	if managerAddressEnv != "" {
 		managerAddress = managerAddressEnv
+	}
+
+	if os.Getenv("STANDALONE_MODE") == "true" {
+		managerAddress = ""
+	}
+
+	if os.Getenv("AWS_MODE") == "true" {
+		log.Printf("Running in AWS mode, fetching private IP and random port")
+
+		port := os.Getenv("WORKER_PORT")
+		if port == "" {
+			log.Fatalf("WORKER_PORT environment variable is required in AWS mode")
+		}
+
+		privateIP, err := aws.GetPrivateIP()
+		if err != nil {
+			log.Fatalf("Failed to get private IP: %v", err)
+		}
+
+		address = privateIP + ":" + port
 	}
 
 	port, err := addr.ExtractPort(address)

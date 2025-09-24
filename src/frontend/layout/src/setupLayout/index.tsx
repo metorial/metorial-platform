@@ -6,60 +6,19 @@ import { TextSparkle } from './textSparkle';
 import { useDelayNavigation } from './useDelayNavigation';
 
 let Wrapper = styled.div`
-  /* background-color: hsla(321, 100%, 98%, 1);
-  background-image:
-    radial-gradient(at 37% 72%, hsla(26, 60%, 66%, 1) 0px, transparent 50%),
-    radial-gradient(at 82% 63%, hsla(193, 100%, 83%, 1) 0px, transparent 50%),
-    radial-gradient(at 9% 14%, hsla(304, 38%, 68%, 1) 0px, transparent 50%);
-  background-size: cover;
-  background-position: center; */
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
   height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-`;
-
-let Box = styled.div`
-  max-width: 70dvw;
-  max-height: 70dvh;
-  width: 10000px;
-  height: 700px;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(15px);
-  overflow-y: auto;
-  overflow-x: hidden;
-  /* padding: 50px; */
-  display: flex;
-  flex-direction: column;
-
-  @media (max-width: 800px) {
-    width: 90%;
-    height: 90%;
-    max-width: unset;
-    max-height: unset;
-    padding: 20px;
-  }
-
-  @media (max-width: 1000px) {
-    background: white;
-
-    .aside,
-    hr {
-      display: none;
-    }
-  }
+  background: white;
 `;
 
 let Inner = styled(motion.div)`
   display: flex;
   min-height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, rgba(240, 240, 240, 1) 0%, rgba(255, 255, 255, 1) 100%);
 `;
 
 let Grid = styled.div`
@@ -77,85 +36,112 @@ let Side = styled(motion.section)`
   display: flex;
   flex-direction: column;
   justify-content: center;
+  margin: 25px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.15) 4px 4px 10px;
+
+  &:not(:last-of-type) {
+    margin-right: 0px;
+  }
+
+  &.desktop {
+    @media (max-width: 1000px) {
+      display: none;
+    }
+  }
+`;
+
+let ImageHighlight = styled.img`
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+`;
+
+let AnimatedInner = styled(motion.div)`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 let isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 export let SetupLayout = ({
   children,
-  bubblesUrl,
   backgroundUrl,
-  main
+  main,
+  animation = 'scale',
+  duration = 0.4
 }: {
   children: React.ReactNode;
 
-  bubblesUrl: string;
   backgroundUrl: string;
 
   main?: {
     title: string;
-    description: string;
+    description?: string;
   };
+
+  animation?: 'scale' | 'fade';
+  duration?: number;
 }) => {
   let hidden = useDelayNavigation(400);
 
   return (
-    <Wrapper
-      style={{
-        backgroundImage: `url(${backgroundUrl})`
-      }}
-    >
-      <Box
-        style={{
-          overflow: hidden ? 'hidden' : undefined
-        }}
-      >
-        <Inner>
-          <Grid>
-            <Side className="aside padded" style={{ alignItems: 'center', padding: '50px' }}>
-              <img src={bubblesUrl} style={{ width: '100%', maxWidth: 350 }} />
-            </Side>
+    <Wrapper>
+      <Inner>
+        <Grid>
+          <Side className="aside padded desktop" style={{ alignItems: 'center' }}>
+            <ImageHighlight src={backgroundUrl} />
+          </Side>
 
-            <Side style={{ padding: '50px', background: 'rgba(255, 255, 255, 0.9)' }}>
-              <AnimatePresence>
-                {!hidden && main && (
-                  <Side
-                    initial={{
-                      opacity: 0,
-                      scale: 0.9,
-                      filter: isSafari ? undefined : 'blur(5px)'
-                    }}
-                    animate={{
-                      opacity: 1,
-                      scale: 1,
-                      filter: isSafari ? undefined : 'blur(0px)'
-                    }}
-                    exit={{
-                      opacity: 0,
-                      scale: 1.2,
-                      filter: isSafari ? undefined : 'blur(5px)'
-                    }}
-                    transition={{ duration: 0.4, ease: 'anticipate' }}
-                  >
-                    <TextSparkle>
-                      <Title as="h1" size="5" weight="bold">
-                        {main.title}
-                      </Title>
-                    </TextSparkle>
-                    <Spacer size={5} />
-                    <Text size="3" color="gray700" weight="medium">
-                      {main.description}
-                    </Text>
-                    <Spacer size={25} />
+          <Side style={{ padding: '50px' }}>
+            <AnimatePresence>
+              {!hidden && main && (
+                <AnimatedInner
+                  initial={{
+                    opacity: 0,
+                    scale: animation == 'scale' ? 0.9 : 1,
+                    y: animation == 'scale' ? 0 : 20,
+                    filter: isSafari ? undefined : 'blur(5px)'
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: animation == 'scale' ? 1 : 1,
+                    y: animation == 'scale' ? 0 : 0,
+                    filter: isSafari ? undefined : 'blur(0px)'
+                  }}
+                  exit={{
+                    opacity: 0,
+                    scale: animation == 'scale' ? 1.2 : 1,
+                    y: animation == 'scale' ? 0 : -20,
+                    filter: isSafari ? undefined : 'blur(5px)'
+                  }}
+                  transition={{ duration, ease: 'anticipate' }}
+                >
+                  <TextSparkle>
+                    <Title as="h1" size="5" weight="bold">
+                      {main.title}
+                    </Title>
+                  </TextSparkle>
+                  {main.description && (
+                    <>
+                      <Spacer size={5} />
+                      <Text size="3" color="gray700" weight="medium">
+                        {main.description}
+                      </Text>
+                    </>
+                  )}
+                  <Spacer size={25} />
 
-                    {children}
-                  </Side>
-                )}
-              </AnimatePresence>
-            </Side>
-          </Grid>
-        </Inner>
-      </Box>
+                  {children}
+                </AnimatedInner>
+              )}
+            </AnimatePresence>
+          </Side>
+        </Grid>
+      </Inner>
     </Wrapper>
   );
 };

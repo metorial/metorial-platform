@@ -44,7 +44,7 @@ type OutputHandler func(outputType OutputType, line string)
 type MultiOutputHandler func(outputType OutputType, line []string)
 
 func newRun(state *RunnerState, init *RunInit) (*Run, error) {
-	container, err := state.dockerManager.StartContainer(&docker.ContainerStartOptions{
+	config := &docker.ContainerStartOptions{
 		ID:        init.ID,
 		ImageRef:  init.DockerImage,
 		Env:       init.ContainerEnv,
@@ -52,7 +52,9 @@ func newRun(state *RunnerState, init *RunInit) (*Run, error) {
 		Command:   init.ContainerCommand,
 		MaxMemory: init.ContainerMaxMemory,
 		MaxCPU:    init.ContainerMaxCPU,
-	})
+	}
+
+	container, err := state.dockerManager.StartContainer(config)
 	if err != nil {
 		return nil, err
 	}

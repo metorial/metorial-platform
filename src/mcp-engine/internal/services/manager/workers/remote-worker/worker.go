@@ -20,9 +20,9 @@ type RemoteWorker struct {
 	mutex sync.Mutex
 }
 
-func NewRemoteWorker(ctx context.Context, manager *workers.WorkerManager, workerID string, address string) *RemoteWorker {
+func NewRemoteWorker(ctx context.Context, manager *workers.WorkerManager, workerID, address string, isStandalone bool) *RemoteWorker {
 	res := &RemoteWorker{
-		BaseWorkerConnection: base_worker.NewBaseWorkerConnection(ctx, workerID, address),
+		BaseWorkerConnection: base_worker.NewBaseWorkerConnection(ctx, workerID, address, isStandalone),
 
 		manager: manager,
 		client:  nil,

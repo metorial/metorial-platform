@@ -8,8 +8,7 @@ import "mcp.proto";
 import "worker.proto";
 
 service McpRemote {
-  rpc GetRemoteInfo(RemoteInfoRequest) returns (RemoteInfoResponse);
-
+  // rpc GetRemoteInfo(RemoteInfoRequest) returns (RemoteInfoResponse);
   rpc StreamMcpRun(stream RunRequest) returns (stream RunResponse);
 }
 

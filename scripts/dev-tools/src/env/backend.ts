@@ -53,7 +53,8 @@ export let backendEnv: Env = [
     defaultValue: `admin`
   },
 
-  { key: 'ETCD_ENDPOINTS', defaultValue: `http://localhost:32379` },
+  // { key: 'ETCD_ENDPOINTS', defaultValue: `http://localhost:32379` },
+  { key: 'REDIS_ENDPOINTS', defaultValue: `localhost:36379` },
   {
     key: 'ENGINE_DATABASE_DSN',
     defaultValue: `host=localhost user=postgres password=postgres dbname=${DB_PREFIX}-engine port=35432 sslmode=disable`
@@ -111,6 +112,7 @@ export let backendEnv: Env = [
   { key: 'MCP_URL', defaultValue: `http://${HOSTNAME}:4311` },
   { key: 'PROVIDER_OAUTH_URL', defaultValue: `http://${HOSTNAME}:4313`, isEnterprise: true },
   { key: 'AUTH_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4301`, isEnterprise: true },
+  { key: 'TEAM_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4303`, isEnterprise: true },
   { key: 'DASHBOARD_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300` },
   { key: 'COOKIE_DOMAIN', defaultValue: `${HOSTNAME}`, isEnterprise: true },
 
@@ -157,5 +159,10 @@ export let backendEnv: Env = [
     isEnterprise: true
   },
   { key: 'ISLAND_PORT', defaultValue: '4201', isEnterprise: true },
-  { key: 'FEDERATION_PORT', defaultValue: '4200', isEnterprise: true }
+  { key: 'FEDERATION_PORT', defaultValue: '4200', isEnterprise: true },
+
+  { key: 'ALGOLIA_APP_ID', isEnterprise: false, isRequired: false },
+  { key: 'ALGOLIA_ADMIN_KEY', isEnterprise: false, isRequired: false },
+
+  { key: 'SLACK_INVITE_BOT_TOKEN', isEnterprise: true, isRequired: false }
 ];

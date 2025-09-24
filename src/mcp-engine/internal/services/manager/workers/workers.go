@@ -27,6 +27,7 @@ type Worker interface {
 	Stop() error
 	IsAcceptingJobs() bool
 	IsHealthy() bool
+	IsStandalone() bool
 
 	CreateConnection(input *WorkerConnectionInput) (WorkerConnection, error)
 	RunLauncher(input *launcherPb.LauncherConfig) (*launcherPb.RunLauncherResponse, error)
@@ -196,6 +197,16 @@ func (wm *WorkerManager) SelfUnregisterWorker(workerID string) {
 	wm.mutex.Lock()
 	defer wm.mutex.Unlock()
 
+	worker, exists := wm.workers[workerID]
+	if !exists {
+		return
+	}
+
+	if worker.IsStandalone() {
+		// Standalone workers should not be unregistered.
+		return
+	}
+
 	delete(wm.workers, workerID)
 
 	for workerType, workerIDs := range wm.workersByType {
@@ -210,4 +221,6 @@ func (wm *WorkerManager) SelfUnregisterWorker(workerID string) {
 			delete(wm.workersByType, workerType)
 		}
 	}
+
+	go worker.Stop()
 }
