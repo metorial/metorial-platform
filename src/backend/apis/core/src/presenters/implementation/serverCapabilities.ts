@@ -120,17 +120,17 @@ export let v1ServerCapabilitiesPresenter = Presenter.create(serverCapabilitiesTy
               })
             ),
 
-            inputSchema: v.optional(
+            input_schema: v.optional(
               v.any({
-                name: 'inputSchema',
-                description: 'Optional JSON schema for the tool’s input'
+                name: 'input_schema',
+                description: 'Optional JSON schema for the tool\'s input'
               })
             ),
 
-            outputSchema: v.optional(
+            output_schema: v.optional(
               v.any({
-                name: 'outputSchema',
-                description: 'Optional JSON schema for the tool’s output'
+                name: 'output_schema',
+                description: 'Optional JSON schema for the tool\'s output'
               })
             ),
 
@@ -198,8 +198,8 @@ export let v1ServerCapabilitiesPresenter = Presenter.create(serverCapabilitiesTy
               description: 'Identifier linking this resource template to a specific MCP server'
             }),
 
-            uriTemplate: v.string({
-              name: 'uriTemplate',
+            uri_template: v.string({
+              name: 'uri_template',
               description: 'URI template used to access this resource'
             }),
 
@@ -215,20 +215,20 @@ export let v1ServerCapabilitiesPresenter = Presenter.create(serverCapabilitiesTy
               })
             ),
 
-            mimeType: v.optional(
+            mime_type: v.optional(
               v.string({
-                name: 'mimeType',
+                name: 'mime_type',
                 description: 'Optional MIME type for the resource template output'
               })
             )
           },
           {
-            name: 'resourceTemplate',
+            name: 'resource_template',
             description: 'A resource template provided by an MCP server'
           }
         ),
         {
-          name: 'resourceTemplates',
+          name: 'resource_templates',
           description: 'List of resource templates available on MCP servers'
         }
       )

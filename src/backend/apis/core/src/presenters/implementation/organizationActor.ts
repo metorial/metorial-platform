@@ -47,7 +47,7 @@ export let v1OrganizationActorPresenter = Presenter.create(organizationActorType
         })
       ),
       image_url: v.string({
-        name: 'imageUrl',
+        name: 'image_url',
         description: `The organization member's image URL`,
         examples: ['https://avatar-cdn.metorial.com/aimg_1234567890']
       }),
