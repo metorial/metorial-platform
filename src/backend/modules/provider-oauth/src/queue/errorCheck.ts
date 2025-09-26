@@ -11,7 +11,7 @@ export let errorCheckQueueProcessor = errorCheckQueue.process(async data => {
   let connection = await db.providerOAuthConnection.findUnique({
     where: { id: data.connectionId }
   });
-  if (!connection) return;
+  if (!connection) throw new Error('retry ... not found');
 
   let timeframe = subDays(new Date(), 4);
 

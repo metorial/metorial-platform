@@ -1,4 +1,4 @@
-import { db, ID } from '@metorial/db';
+import { db, ID, ProviderOAuthDiscoveryDocument } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { Service } from '@metorial/service';
 import { OAuthDiscovery } from '../lib/discovery';
@@ -60,6 +60,36 @@ class OauthDiscoveryServiceImpl {
     }
   }
 
+  async autoRegisterForOauthConfig(d: {
+    config: OAuthConfiguration;
+    clientName: string;
+    discovery?: ProviderOAuthDiscoveryDocument;
+  }) {
+    if (!this.supportsAutoRegistration({ config: d.config })) return null;
+
+    let clientName = `${d.clientName} (via Metorial)`;
+
+    let registration = await OAuthUtils.registerClient({ clientName }, d.config);
+    if (!registration) return null;
+
+    return await db.providerOAuthAutoRegistration.create({
+      data: {
+        id: await ID.generateId('oauthAutoRegistration'),
+        generatedClientName: clientName,
+        clientId: registration.client_id,
+        clientSecret: registration.client_secret,
+        clientSecretExpiresAt: registration.client_secret_expires_at,
+        registrationAccessToken: registration.registration_access_token,
+        registrationClientUri: registration.registration_client_uri,
+        discoveryDocumentOid: d.discovery?.oid
+      }
+    });
+  }
+
+  async supportsAutoRegistration(d: { config: OAuthConfiguration }) {
+    return !!d.config.registration_endpoint;
+  }
+
   async discoverOauthConfig(d: {
     discoveryUrl: string;
     input: {
@@ -76,27 +106,10 @@ class OauthDiscoveryServiceImpl {
       };
     }
 
-    let clientName = `${d.input.clientName} (via Metorial)`;
-
-    let registration = await OAuthUtils.registerClient({ clientName }, config);
-    if (!registration) {
-      return {
-        discovery,
-        autoRegistration: null
-      };
-    }
-
-    let autoRegistration = await db.providerOAuthAutoRegistration.create({
-      data: {
-        id: await ID.generateId('oauthAutoRegistration'),
-        generatedClientName: clientName,
-        clientId: registration.client_id,
-        clientSecret: registration.client_secret,
-        clientSecretExpiresAt: registration.client_secret_expires_at,
-        registrationAccessToken: registration.registration_access_token,
-        registrationClientUri: registration.registration_client_uri,
-        discoveryDocumentOid: discovery.oid
-      }
+    let autoRegistration = await this.autoRegisterForOauthConfig({
+      clientName: d.input.clientName,
+      discovery,
+      config
     });
 
     return {

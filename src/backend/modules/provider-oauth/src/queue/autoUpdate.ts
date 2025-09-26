@@ -1,5 +1,5 @@
 import { createCron } from '@metorial/cron';
-import { db, ID } from '@metorial/db';
+import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { OAuthDiscovery } from '../lib/discovery';
 import { OAuthUtils } from '../lib/oauthUtils';
@@ -53,14 +53,14 @@ let autoDiscoverSingleQueueProcessor = autoDiscoverSingleQueue.process(async dat
   let discoveryDocument = await db.providerOAuthDiscoveryDocument.findUnique({
     where: { id: data.discoveryDocumentId }
   });
-  if (!discoveryDocument) return;
+  if (!discoveryDocument) throw new Error('retry ... not found');
 
   let oldConfigHash = discoveryDocument.configHash;
 
   let doc = await OAuthDiscovery.discover(discoveryDocument.discoveryUrl);
-  if (!doc) return;
+  if (!doc) throw new Error('retry ... not found');
 
-  let configHash = await OAuthUtils.getConfigHash(doc);
+  let configHash = await OAuthUtils.getConfigHash(doc, []);
   if (configHash === discoveryDocument.configHash) return;
 
   let valRes = oauthConfigValidator.validate(doc);
@@ -105,7 +105,6 @@ let autoDiscoverPropagateQueueProcessor = autoDiscoverPropagateQueue.process(asy
   while (true) {
     let chunk = (await db.providerOAuthConnection.findMany({
       where: {
-        configHash: data.oldConfigHash,
         discoveryUrl: data.discoveryUrl,
         id: cursor ? { gt: cursor } : undefined
       },
@@ -143,26 +142,25 @@ let autoDiscoverPropagateApplyQueueProcessor = autoDiscoverPropagateApplyQueue.p
     });
     if (!discoveryDocument) return;
 
-    let connection = await db.providerOAuthConnection.update({
-      where: { id: data.connectionId },
-      data: {
-        config: discoveryDocument.config as any,
-        configHash: discoveryDocument.configHash,
-        providerName: discoveryDocument.providerName,
-        providerUrl: discoveryDocument.providerUrl
-      }
-    });
+    // let connection = await db.providerOAuthConnection.update({
+    //   where: { id: data.connectionId },
+    //   data: {
+    //     config: discoveryDocument.config as any,
+    //     providerName: discoveryDocument.providerName,
+    //     providerUrl: discoveryDocument.providerUrl
+    //   }
+    // });
 
-    await db.providerOAuthConnectionEvent.create({
-      data: {
-        id: await ID.generateId('oauthConnectionEvent'),
-        event: 'config_auto_updated',
-        connectionOid: connection.oid,
-        metadata: {
-          discoveryDocumentId: discoveryDocument.id
-        }
-      }
-    });
+    // await db.providerOAuthConnectionEvent.create({
+    //   data: {
+    //     id: await ID.generateId('oauthConnectionEvent'),
+    //     event: 'config_auto_updated',
+    //     connectionOid: connection.oid,
+    //     metadata: {
+    //       discoveryDocumentId: discoveryDocument.id
+    //     }
+    //   }
+    // });
   }
 );
 

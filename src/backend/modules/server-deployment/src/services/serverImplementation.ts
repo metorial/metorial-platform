@@ -19,7 +19,8 @@ import { serverImplementationCreatedQueue } from '../queues/serverImplementation
 
 let include = {
   server: true,
-  serverVariant: true
+  serverVariant: true,
+  providerOAuthConfig: true
 };
 
 class ServerImplementationServiceImpl {

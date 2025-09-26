@@ -1,4 +1,4 @@
-import { Instance, ProviderOAuthConnection } from '@metorial/db';
+import { Instance, Organization, ProviderOAuthConnection } from '@metorial/db';
 import { ServiceError } from '@metorial/error';
 import { badRequestError } from '@metorial/error/src/defaultErrors';
 import { Service } from '@metorial/service';
@@ -24,6 +24,7 @@ class OauthTicketServiceImpl {
     instance: Instance;
     connection: ProviderOAuthConnection;
     redirectUri: string;
+    immediate?: boolean;
   }) {
     return token.sign({
       type,
@@ -31,7 +32,8 @@ class OauthTicketServiceImpl {
       data: {
         type: 'oauth.authenticate',
         clientId: d.connection.metorialClientId,
-        redirectUri: d.redirectUri
+        redirectUri: d.redirectUri,
+        immediate: d.immediate
       } satisfies OAuthTicket
     });
   }
@@ -61,14 +63,17 @@ class OauthTicketServiceImpl {
     connection: ProviderOAuthConnection;
     redirectUri: string;
     instance: Instance;
+    organization: Organization;
+    immediate?: boolean;
   }) {
     let ticket = await this.createTicket({
       instance: d.instance,
       connection: d.connection,
-      redirectUri: d.redirectUri
+      redirectUri: d.redirectUri,
+      immediate: d.immediate
     });
 
-    return `${env.ticket.PROVIDER_OAUTH_URL}/provider-oauth/start?ticket=${ticket}&client_id=${d.connection.metorialClientId}`;
+    return `${env.ticket.PROVIDER_OAUTH_URL}/provider-oauth/${d.organization.id}/start?ticket=${ticket}&client_id=${d.connection.metorialClientId}`;
   }
 }
 

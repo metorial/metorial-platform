@@ -10,7 +10,17 @@ export let serverImplementationCreatedQueueProcessor =
     let implementation = await db.serverImplementation.findUnique({
       where: { id: data.serverImplementationId }
     });
-    if (!implementation) return;
+    if (!implementation) throw new Error('retry ... not found');
+
+    let instanceServers = await db.instanceServer.findUnique({
+      where: {
+        serverOid_instanceOid: {
+          serverOid: implementation.serverOid,
+          instanceOid: implementation.instanceOid
+        }
+      }
+    });
+    if (instanceServers) throw new Error('retry ... not found');
 
     try {
       await db.instanceServer.createMany({

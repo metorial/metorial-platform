@@ -5,10 +5,12 @@ import { errorCheckQueueProcessor } from './queue/errorCheck';
 
 export * from './services';
 
+import { asyncAutoDiscoveryQueueProcessor } from './queue/asyncAutoDiscovery';
 import './templates';
 
 export let providerOauthQueueProcessor = combineQueueProcessors([
   oauthCleanupCron,
   autoUpdateQueueProcessor,
-  errorCheckQueueProcessor
+  errorCheckQueueProcessor,
+  asyncAutoDiscoveryQueueProcessor
 ]);

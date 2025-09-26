@@ -31,7 +31,19 @@ class OauthAuthorizationServiceImpl {
     redirectUri: string;
   }) {
     if (d.connection.status != 'active') {
-      throw new ServiceError(badRequestError({ message: 'Connection has been deactivated' }));
+      throw new ServiceError(
+        badRequestError({
+          message: 'Connection is not active and cannot be used for authentication'
+        })
+      );
+    }
+
+    if (!d.connection.clientId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Connection is not fully set up yet and cannot be used for authentication'
+        })
+      );
     }
 
     let config = d.connection.config.config as OAuthConfiguration;
@@ -173,7 +185,7 @@ class OauthAuthorizationServiceImpl {
     try {
       tokenResponse = await OAuthUtils.exchangeCodeForTokens({
         tokenEndpoint: connection.config.config.token_endpoint,
-        clientId: connection.clientId,
+        clientId: connection.clientId!,
         clientSecret: connection.clientSecret ?? undefined,
         code: d.response.code!,
         redirectUri: callbackUrl,
@@ -291,7 +303,7 @@ class OauthAuthorizationServiceImpl {
     };
   }
 
-  async exchangeAuthAttempt(d: { clientSecret: string }) {
+  async exchangeAuthAttempt(d: { authAttemptId: string; clientSecret: string }) {
     let authAttempt = await db.providerOAuthConnectionAuthAttempt.findFirst({
       where: {
         clientSecret: d.clientSecret,
@@ -322,6 +334,8 @@ class OauthAuthorizationServiceImpl {
   }
 
   async useAuthToken(d: { referenceOid: bigint; instance: Instance }) {
+    if (!d.referenceOid) throw new Error('WTF - Invalid reference OID');
+
     let ref = await db.providerOAuthConnectionAuthTokenReference.findUnique({
       where: { oid: d.referenceOid },
       include: {
@@ -407,7 +421,7 @@ class OauthAuthorizationServiceImpl {
 
         let res = await OAuthUtils.refreshAccessToken({
           tokenEndpoint: connection.config.config.token_endpoint,
-          clientId: connection.clientId,
+          clientId: connection.clientId!,
           clientSecret: connection.clientSecret ?? undefined,
           refreshToken: token.refreshToken,
           config: connection.config.config

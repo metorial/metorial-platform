@@ -17,8 +17,10 @@ import { generateCustomId } from '@metorial/id';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { OAuthUtils } from '../lib/oauthUtils';
+import { asyncAutoDiscoveryQueue } from '../queue/asyncAutoDiscovery';
 import { OAuthConfiguration } from '../types';
 import { providerOauthConfigService } from './oauthConfig';
+import { providerOauthDiscoveryService } from './oauthDiscovery';
 
 let include = {
   template: true,
@@ -38,13 +40,25 @@ class OauthConnectionServiceImpl {
       description?: string;
 
       discoveryUrl?: string;
-      config: OAuthConfiguration;
 
-      clientId?: string;
-      clientSecret?: string;
-      autoRegistrationId?: string;
-
-      scopes: string[];
+      setup:
+        | {
+            mode: 'manual';
+            clientId: string;
+            clientSecret: string;
+            config: OAuthConfiguration;
+            scopes: string[];
+          }
+        | {
+            mode: 'existing_auto_registration';
+            autoRegistrationId: string;
+            config: OAuthConfiguration;
+            scopes: string[];
+          }
+        | {
+            mode: 'async_auto_registration';
+            oauthConfigId: string;
+          };
 
       metadata?: Record<string, any>;
     };
@@ -58,36 +72,65 @@ class OauthConnectionServiceImpl {
       context: d.context
     });
 
-    let clientId = d.input.clientId;
-    let clientSecret = d.input.clientSecret;
+    let clientId: string | undefined = undefined;
+    let clientSecret: string | undefined = undefined;
     let registrationOid: bigint | null = null;
 
-    if (!clientId && d.input.autoRegistrationId) {
+    let config: ProviderOAuthConfig;
+
+    let asyncAutoDiscovery = false;
+
+    if (d.input.setup.mode === 'manual') {
+      clientId = d.input.setup.clientId;
+      clientSecret = d.input.setup.clientSecret;
+
+      config = await providerOauthConfigService.createConfig({
+        instance: d.instance,
+        config: d.input.setup.config,
+        scopes: d.input.setup.scopes
+      });
+    } else if (d.input.setup.mode === 'existing_auto_registration') {
       let autoReg = await db.providerOAuthAutoRegistration.findUnique({
-        where: { id: d.input.autoRegistrationId }
+        where: { id: d.input.setup.autoRegistrationId }
       });
       if (!autoReg) {
         throw new ServiceError(
-          notFoundError('oauth_auto_registration', d.input.autoRegistrationId)
+          notFoundError('oauth_auto_registration', d.input.setup.autoRegistrationId)
         );
       }
 
       clientId = autoReg.clientId;
       clientSecret = autoReg.clientSecret ?? undefined;
       registrationOid = autoReg.oid;
+
+      config = await providerOauthConfigService.createConfig({
+        instance: d.instance,
+        config: d.input.setup.config,
+        scopes: d.input.setup.scopes
+      });
+    } else if (d.input.setup.mode === 'async_auto_registration') {
+      config = await db.providerOAuthConfig.findUniqueOrThrow({
+        where: { id: d.input.setup.oauthConfigId, instanceOid: d.instance.oid }
+      });
+
+      if (!providerOauthDiscoveryService.supportsAutoRegistration({ config: config.config })) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'The provided OAuth configuration does not support auto registration'
+          })
+        );
+      }
+
+      asyncAutoDiscovery = true;
+    } else {
+      throw new Error('WTF - invalid setup mode');
     }
 
-    if (!clientId) {
+    if (!clientId && !asyncAutoDiscovery) {
       throw new ServiceError(badRequestError({ message: 'Client ID is required' }));
     }
 
-    let config = await providerOauthConfigService.createConfig({
-      instance: d.instance,
-      config: d.input.config,
-      scopes: d.input.scopes
-    });
-
-    return await withTransaction(async db => {
+    let providerConnection = await withTransaction(async db => {
       let con = await db.providerOAuthConnection.create({
         data: {
           id: await ID.generateId('oauthConnection'),
@@ -96,8 +139,10 @@ class OauthConnectionServiceImpl {
           name: d.input.name,
           description: d.input.description,
 
-          providerName: OAuthUtils.getProviderName(d.input.config),
-          providerUrl: OAuthUtils.getProviderUrl(d.input.config),
+          isAutoDiscoveryActive: asyncAutoDiscovery,
+
+          providerName: OAuthUtils.getProviderName(config.config),
+          providerUrl: OAuthUtils.getProviderUrl(config.config),
           discoveryUrl: d.input.discoveryUrl,
 
           configOid: config.oid,
@@ -125,6 +170,14 @@ class OauthConnectionServiceImpl {
 
       return con;
     });
+
+    if (asyncAutoDiscovery) {
+      await asyncAutoDiscoveryQueue.add({
+        connectionId: providerConnection.id
+      });
+    }
+
+    return providerConnection;
   }
 
   async updateConnection(d: {
