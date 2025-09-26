@@ -20,7 +20,7 @@ export let ProviderConnectionsListLayout = () => {
     <ContentLayout>
       <PageHeader
         title="OAuth Connections"
-        description="Use OAuth to quickly authenticate with external providers, like Google or GitHub."
+        description="Use OAuth to seamlessly authenticate with external providers, like Google or GitHub."
         actions={
           <Button onClick={() => showProviderConnectionFormModal({})} size="2">
             Create OAuth Connection

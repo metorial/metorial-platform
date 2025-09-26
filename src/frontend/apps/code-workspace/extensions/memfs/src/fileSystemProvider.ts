@@ -438,6 +438,7 @@ export class MemFS implements vscode.FileSystemProvider {
 
       const response = await this.makeRequest('GET', `/files`);
 
+      // @ts-ignore
       const files: FileInfo[] = await response.json();
 
       // Clear existing entries (except the root structure)

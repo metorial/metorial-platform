@@ -1,13 +1,16 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCustomServer } from '@metorial/state';
-import { Attributes, RenderDate, Spacer } from '@metorial/ui';
-import { Box, ID } from '@metorial/ui-product';
-import { useParams } from 'react-router-dom';
+import { Attributes, Button, RenderDate, Spacer } from '@metorial/ui';
+import { Box, ID, SideBox } from '@metorial/ui-product';
+import { useNavigate, useParams } from 'react-router-dom';
 import { CustomServerEventsTable } from '../../../scenes/customServer/events';
 import { UsageScene } from '../../../scenes/usage/usage';
 
 export let CustomServerOverviewPage = () => {
   let instance = useCurrentInstance();
+
+  let navigate = useNavigate();
 
   let { customServerId } = useParams();
   let customServer = useCustomServer(instance.data?.id, customServerId);
@@ -28,8 +31,8 @@ export let CustomServerOverviewPage = () => {
             }[customServer.data.type]
           },
           {
-            label: 'ID',
-            content: <ID id={customServer.data.id} />
+            label: 'Server ID',
+            content: <ID id={customServer.data.server.id} />
           },
           {
             label: 'Created At',
@@ -37,6 +40,30 @@ export let CustomServerOverviewPage = () => {
           }
         ]}
       />
+
+      <Spacer height={15} />
+
+      <SideBox
+        title="Test Server"
+        description="Test your server to ensure it is working as expected."
+      >
+        <Button
+          as="span"
+          size="2"
+          onClick={async () => {
+            navigate(
+              Paths.instance.explorer(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                { server_id: customServer.data.server.id }
+              )
+            );
+          }}
+        >
+          Test Server
+        </Button>
+      </SideBox>
 
       <Spacer height={15} />
 

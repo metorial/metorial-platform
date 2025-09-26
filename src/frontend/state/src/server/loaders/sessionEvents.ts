@@ -1,5 +1,5 @@
+import { DashboardInstanceSessionsEventsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
-import { DashboardInstanceSessionsEventsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
