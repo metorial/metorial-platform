@@ -20,7 +20,7 @@ export let indexServerListingQueueProcessor = indexServerListingQueue.process(as
       collections: true
     }
   });
-  if (!server) return;
+  if (!server) throw new Error('retry ... not found');
 
   await searchService.indexDocument({
     index: 'server_listing',

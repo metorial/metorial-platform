@@ -49,7 +49,7 @@ export let resolvers = {
       }: { connectionId: string; instanceId: string; redirectUri: string },
       ctx: DContext
     ) =>
-      wrapPrivateError(async () => {
+      wrapGQL(ctx, async () => {
         let instance = await instanceService.getInstanceById({
           organization: ctx.organization,
           instanceId
@@ -61,6 +61,7 @@ export let resolvers = {
         });
 
         let testUrl = await providerOauthTicketService.getAuthenticationUrl({
+          organization: ctx.organization,
           instance,
           connection,
           redirectUri

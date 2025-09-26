@@ -10,7 +10,7 @@ export let syncProfileQueueProcessor = syncProfileQueue.process(async data => {
   let org = await db.organization.findUnique({
     where: { id: data.organizationId }
   });
-  if (!org) return;
+  if (!org) throw new Error('retry ... not found');
 
   await profileService.syncProfile({
     for: {

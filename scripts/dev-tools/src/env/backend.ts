@@ -116,6 +116,7 @@ export let backendEnv: Env = [
   { key: 'AUTH_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4301`, isEnterprise: true },
   { key: 'TEAM_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4303`, isEnterprise: true },
   { key: 'DASHBOARD_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300` },
+  { key: 'PORTALS_URL', defaultValue: `http://${HOSTNAME}:4315` },
   { key: 'COOKIE_DOMAIN', defaultValue: `${HOSTNAME}`, isEnterprise: true },
 
   { key: 'EARLY_ACCESS_XATA_API_KEY', isEnterprise: true },

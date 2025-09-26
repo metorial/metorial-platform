@@ -1,3 +1,5 @@
+import { delay } from '@metorial/delay';
+import { badRequestError, ServiceError } from '@metorial/error';
 import { createHono, useRequestContext } from '@metorial/hono';
 import {
   providerOauthAuthorizationService,
@@ -35,8 +37,26 @@ export let providerOauthController = createHono()
         });
 
         let connection = await providerOauthConnectionService.getConnectionByClientId({
-          clientId: ticketRes.clientId
+          clientId: ticketRes.clientId,
+          organizationId
         });
+
+        let tries = 0;
+        while (connection.isAutoDiscoveryActive) {
+          await delay(2000);
+          connection = await providerOauthConnectionService.getConnectionByClientId({
+            clientId: ticketRes.clientId,
+            organizationId
+          });
+
+          if (++tries >= 15) {
+            throw new ServiceError(
+              badRequestError({
+                message: 'Connection is still being set up, please try again later'
+              })
+            );
+          }
+        }
 
         let { redirectUrl, authAttempt } =
           await providerOauthAuthorizationService.startAuthorization({
@@ -61,7 +81,7 @@ export let providerOauthController = createHono()
       })
   )
   .get(
-    '/:organizationId/callback',
+    '/callback',
     useValidation(
       'query',
       z.object({
@@ -74,7 +94,6 @@ export let providerOauthController = createHono()
     async c =>
       wrapHtmlError(c)(async () => {
         let query = c.req.query();
-        let organizationId = c.req.param('organizationId');
         let context = useRequestContext(c);
 
         if (!query.state) {
