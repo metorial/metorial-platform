@@ -210,7 +210,12 @@ let ProjectSettingsPage = dynamicPage(() =>
 let ProjectSettingsPageLayout = dynamicPage(() =>
   import('./pages/settings/_layout').then(c => c.ProjectSettingsPageLayout)
 );
-
+let CustomServerDeploymentsPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/deployments').then(
+    c => c.CustomServerDeploymentsPage
+  )
+);
+let NotFoundPage = dynamicPage(() => import('@metorial/pages').then(c => c.NotFound));
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
 
@@ -335,6 +340,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'settings',
                 element: <CustomServerSettingsPage />
+              },
+              {
+                path: 'deployments',
+                element: <CustomServerDeploymentsPage />
               }
             ]
           },
