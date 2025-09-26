@@ -17,7 +17,7 @@ export let checkRemoteQueueProcessor = checkRemoteQueue.process(async data => {
       customServerVersion: true
     }
   });
-  if (!remote) return;
+  if (!remote) throw new Error('retry ... not found');
 
   await checkRemote(remote, {
     createEvent: true

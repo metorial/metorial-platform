@@ -122,7 +122,7 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
       }
     }
   });
-  if (!remote) return;
+  if (!remote) throw new Error('retry ... not found');
 
   let instance = remote.instance;
 

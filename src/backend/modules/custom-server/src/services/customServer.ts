@@ -10,6 +10,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
+import { serverListingService } from '@metorial/module-catalog';
 import { profileService } from '@metorial/module-community';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -66,6 +67,14 @@ class customServerServiceImpl {
           isPublic: false
         }
       });
+
+      setTimeout(async () => {
+        await serverListingService.setServerListing({
+          server,
+          instance: d.instance,
+          organization: d.organization
+        });
+      }, 5000);
 
       let profile = await profileService.ensureProfile({
         for: {
@@ -139,6 +148,8 @@ class customServerServiceImpl {
 
   async updateCustomServer(d: {
     server: CustomServer;
+    instance: Instance;
+    organization: Organization;
     input: {
       name?: string;
       description?: string;
@@ -154,7 +165,7 @@ class customServerServiceImpl {
     }
 
     return withTransaction(async db => {
-      await db.server.updateMany({
+      let server = await db.server.update({
         where: { oid: d.server.serverOid },
         data: {
           name: d.input.name,
@@ -163,7 +174,15 @@ class customServerServiceImpl {
         }
       });
 
-      let server = await db.customServer.update({
+      setTimeout(async () => {
+        await serverListingService.setServerListing({
+          server,
+          instance: d.instance,
+          organization: d.organization
+        });
+      }, 2000);
+
+      let customServer = await db.customServer.update({
         where: { id: d.server.id },
         data: {
           name: d.input.name,
@@ -172,7 +191,7 @@ class customServerServiceImpl {
         include
       });
 
-      return server;
+      return customServer;
     });
   }
 

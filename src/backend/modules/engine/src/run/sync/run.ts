@@ -18,7 +18,8 @@ export let syncEngineRun = async (d: { engineRunId: string }) => {
       serverRuns: true
     }
   });
-  if (!engineRun || engineRun.isFinalized) return;
+  if (!engineRun) throw new Error('retry ... not found');
+  if (engineRun.isFinalized) return;
 
   let serverRun = engineRun.serverRuns[0] as ServerRun | undefined;
   let serverSession = engineRun.serverSession;
@@ -46,7 +47,7 @@ export let syncEngineRun = async (d: { engineRunId: string }) => {
   });
 
   if (run?.endedAt && serverRun) {
-    let endedAt = run?.endedAt ? new Date(run.endedAt.toNumber()) : new Date()
+    let endedAt = run?.endedAt ? new Date(run.endedAt.toNumber()) : new Date();
     if (endedAt.getTime() < minTime.getTime()) {
       endedAt = new Date();
     }

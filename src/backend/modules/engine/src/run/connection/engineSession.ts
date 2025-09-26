@@ -65,7 +65,12 @@ let createEngineSession = async (
               )
             }
           : undefined,
-      config: await getSessionConfig(srvSes.serverDeployment, DANGEROUSLY_UNENCRYPTED_CONFIG),
+      config: await getSessionConfig(
+        srvSes.serverDeployment,
+        config.instance,
+        srvSes,
+        DANGEROUSLY_UNENCRYPTED_CONFIG
+      ),
       sessionId: srvSes.id
     });
 
@@ -91,6 +96,7 @@ let createEngineSession = async (
     if (!srvSes.serverDeployment.serverVariant.lastDiscoveredAt) {
       await addServerDeploymentDiscovery({
         serverDeploymentId: srvSes.serverDeployment.id,
+        serverSessionId: srvSes.id,
         delay: 1000 * 5 // 5 seconds
       });
     }
