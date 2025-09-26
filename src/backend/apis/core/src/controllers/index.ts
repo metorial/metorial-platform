@@ -27,6 +27,7 @@ import { serverImplementationController } from './instance/serverImplementation'
 import { serverListingController } from './instance/serverListing';
 import { serverListingCategoryController } from './instance/serverListingCategory';
 import { serverListingCollectionController } from './instance/serverListingCollection';
+import { serverOauthSessionController } from './instance/serverOAuthSession';
 import { serverRunController } from './instance/serverRun';
 import { serverRunErrorController } from './instance/serverRunError';
 import { serverRunErrorGroupController } from './instance/serverRunErrorGroup';
@@ -75,7 +76,9 @@ export let pulsarController = Controller.create<any>(
 
     providerOauthConnectionController,
     providerOauthConnectionAuthenticationController,
-    providerOauthConnectionProfileController
+    providerOauthConnectionProfileController,
+
+    serverOauthSessionController
   }
 );
 
@@ -130,6 +133,8 @@ export let dashboardController = Controller.create<any>(
     providerOauthConnectionAuthenticationController,
     providerOauthConnectionEventController,
     providerOauthConnectionProfileController,
+
+    serverOauthSessionController,
 
     dashboardOauthConnectionTemplateController,
     dashboardOauthDiscoveryController,

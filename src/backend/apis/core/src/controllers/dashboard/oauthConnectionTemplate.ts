@@ -4,6 +4,7 @@ import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { apiGroup } from '../../middleware/apiGroup';
+import { isDashboardGroup } from '../../middleware/isDashboard';
 import {
   providerOauthConnectionTemplateEvaluationPresenter,
   providerOauthConnectionTemplatePresenter
@@ -26,6 +27,7 @@ export let dashboardOauthConnectionTemplateController = Controller.create(
   },
   {
     list: apiGroup
+
       .get(
         Path(
           '/dashboard/organizations/:organizationId/provider-oauth-connection-template',
@@ -36,6 +38,7 @@ export let dashboardOauthConnectionTemplateController = Controller.create(
           description: 'List all oauth connection templates'
         }
       )
+      .use(isDashboardGroup())
       .outputList(providerOauthConnectionTemplatePresenter)
       .query(
         'default',
@@ -68,6 +71,7 @@ export let dashboardOauthConnectionTemplateController = Controller.create(
           description: 'Get the information of a specific oauth connection template'
         }
       )
+      .use(isDashboardGroup())
       .output(providerOauthConnectionTemplatePresenter)
       .do(async ctx => {
         return providerOauthConnectionTemplatePresenter.present({
@@ -92,6 +96,7 @@ export let dashboardOauthConnectionTemplateController = Controller.create(
           data: v.record(v.any())
         })
       )
+      .use(isDashboardGroup())
       .output(providerOauthConnectionTemplateEvaluationPresenter)
       .do(async ctx => {
         let output = await providerOauthTemplateService.evaluateTemplateConfig({

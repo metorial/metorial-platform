@@ -2,6 +2,7 @@ import { providerOauthDiscoveryService } from '@metorial/module-provider-oauth';
 import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { apiGroup } from '../../middleware/apiGroup';
+import { isDashboardGroup } from '../../middleware/isDashboard';
 import { providerOauthDiscoveryPresenter } from '../../presenters';
 
 export let dashboardOauthDiscoveryController = Controller.create(
@@ -11,6 +12,7 @@ export let dashboardOauthDiscoveryController = Controller.create(
   },
   {
     discover: apiGroup
+      .use(isDashboardGroup())
       .post(Path('provider-oauth-discovery', 'provider_oauth.discover'), {
         name: 'Discover OAuth Configuration',
         description: 'Discover OAuth configuration from a discovery URL'

@@ -128,6 +128,8 @@ export let customServerController = Controller.create(
       .do(async ctx => {
         let customServer = await customServerService.updateCustomServer({
           server: ctx.customServer,
+          instance: ctx.instance,
+          organization: ctx.organization,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,

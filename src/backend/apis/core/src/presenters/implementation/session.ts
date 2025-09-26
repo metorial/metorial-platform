@@ -23,26 +23,30 @@ export let v1SessionPresenter = Presenter.create(sessionType)
         expires_at: session.clientSecretExpiresAt
       },
 
-      server_deployments: session.serverDeployments.map(deployment => ({
-        object: 'session.server_deployment#preview',
+      server_deployments: session.serverDeployments.map(
+        ({ serverDeployment: deployment, oauthSession }) => ({
+          object: 'session.server_deployment#preview',
 
-        id: deployment.id,
-        name: deployment.name,
-        description: deployment.description,
+          id: deployment.id,
+          name: deployment.name,
+          description: deployment.description,
 
-        metadata: deployment.server.metadata ?? {},
+          metadata: deployment.server.metadata ?? {},
 
-        server: v1ServerPreview(deployment.server),
+          server: v1ServerPreview(deployment.server),
 
-        connection_urls: {
-          sse: `${getConfig().urls.mcpUrl}/mcp/${session.id}/${deployment.id}/sse`,
-          streamable_http: `${getConfig().urls.mcpUrl}/mcp/${session.id}/${deployment.id}/streamable_http`,
-          websocket: `${getConfig().urls.mcpUrl}/mcp/${session.id}/${deployment.id}/websocket`
-        },
+          oauth_session_id: oauthSession?.id ?? null,
 
-        created_at: deployment.createdAt,
-        updated_at: deployment.updatedAt
-      })),
+          connection_urls: {
+            sse: `${getConfig().urls.mcpUrl}/mcp/${session.id}/${deployment.id}/sse`,
+            streamable_http: `${getConfig().urls.mcpUrl}/mcp/${session.id}/${deployment.id}/streamable_http`,
+            websocket: `${getConfig().urls.mcpUrl}/mcp/${session.id}/${deployment.id}/websocket`
+          },
+
+          created_at: deployment.createdAt,
+          updated_at: deployment.updatedAt
+        })
+      ),
 
       usage: {
         total_productive_message_count:
@@ -117,6 +121,13 @@ export let v1SessionPresenter = Presenter.create(sessionType)
             v.string({
               name: 'name',
               description: 'The name of the server deployment preview, if available'
+            })
+          ),
+
+          oauth_session_id: v.nullable(
+            v.string({
+              name: 'oauth_session_id',
+              description: 'The associated OAuth session ID, if available'
             })
           ),
 

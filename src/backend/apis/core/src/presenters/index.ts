@@ -41,6 +41,7 @@ import {
   dashboardServerListingPresenter,
   v1ServerListingPresenter
 } from './implementation/serverListing';
+import { v1ServerOauthSessionPresenter } from './implementation/serverOauthSession';
 import { v1ServerRunPresenter } from './implementation/serverRun';
 import { v1ServerRunErrorPresenter } from './implementation/serverRunError';
 import { v1ServerRunErrorGroupPresenter } from './implementation/serverRunErrorGroup';
@@ -89,6 +90,7 @@ import {
   serverListingCategoryType,
   serverListingCollectionType,
   serverListingType,
+  serverOauthSessionType,
   serverRunErrorGroupType,
   serverRunErrorType,
   serverRunType,
@@ -267,6 +269,11 @@ export let serverCapabilitiesPresenter = declarePresenter(serverCapabilitiesType
 export let profilePresenter = declarePresenter(profileType, {
   mt_2025_01_01_pulsar: v1ProfilePresenter,
   mt_2025_01_01_dashboard: v1ProfilePresenter
+});
+
+export let serverOAuthSessionPresenter = declarePresenter(serverOauthSessionType, {
+  mt_2025_01_01_pulsar: v1ServerOauthSessionPresenter,
+  mt_2025_01_01_dashboard: v1ServerOauthSessionPresenter
 });
 
 export let providerOauthConnectionPresenter = declarePresenter(providerOauthConnectionType, {

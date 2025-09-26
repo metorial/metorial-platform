@@ -40,6 +40,7 @@ import {
   ServerListing,
   ServerListingCategory,
   ServerListingCollection,
+  ServerOAuthSession,
   ServerRun,
   ServerRunError,
   ServerRunErrorGroup,
@@ -200,6 +201,13 @@ export let serverDeploymentType = PresentableType.create<{
     config: ServerDeploymentConfig & {
       configSecret: Secret;
     };
+    oauthConnection:
+      | (ProviderOAuthConnection & {
+          instance: Instance;
+          template: ProviderOAuthConnectionTemplate | null;
+          config: ProviderOAuthConfig;
+        })
+      | null;
   };
 }>()('server.server_deployment');
 
@@ -229,9 +237,12 @@ export let usageType = PresentableType.create<{
 
 export let sessionType = PresentableType.create<{
   session: Session & {
-    serverDeployments: (ServerDeployment & {
-      server: Server;
-    })[];
+    serverDeployments: {
+      serverDeployment: ServerDeployment & {
+        server: Server;
+      };
+      oauthSession: ServerOAuthSession | null;
+    }[];
 
     serverSessions: ServerSession[];
   };
@@ -329,6 +340,16 @@ export let serverCapabilitiesType = PresentableType.create<{
 export let profileType = PresentableType.create<{
   profile: Profile;
 }>()('profile');
+
+export let serverOauthSessionType = PresentableType.create<{
+  serverOauthSession: ServerOAuthSession & {
+    connection: ProviderOAuthConnection & {
+      instance: Instance;
+      template: ProviderOAuthConnectionTemplate | null;
+      config: ProviderOAuthConfig;
+    };
+  };
+}>()('provider_oauth.session');
 
 export let providerOauthConnectionType = PresentableType.create<{
   providerOauthConnection: ProviderOAuthConnection & {

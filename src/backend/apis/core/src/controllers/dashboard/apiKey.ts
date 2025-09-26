@@ -6,6 +6,7 @@ import { instanceService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
 import { apiKeyPresenter } from '../../presenters';
 
@@ -111,6 +112,7 @@ export let dashboardApiKeyController = Controller.create(
         name: 'Get user',
         description: 'Get the current user information'
       })
+      .use(isDashboardGroup())
       .outputList(apiKeyPresenter)
       .query(
         'default',
@@ -144,6 +146,7 @@ export let dashboardApiKeyController = Controller.create(
           description: 'Get the information of a specific API key'
         }
       )
+      .use(isDashboardGroup())
       .output(apiKeyPresenter)
       .do(async ctx => {
         let apiKey = await apiKeyService.getApiKeyById({
@@ -181,6 +184,7 @@ export let dashboardApiKeyController = Controller.create(
           })
         ])
       )
+      .use(isDashboardGroup())
       .output(apiKeyPresenter)
       .do(async ctx => {
         if (ctx.body.type == 'organization_management_token') {
@@ -237,6 +241,7 @@ export let dashboardApiKeyController = Controller.create(
           expires_at: v.optional(v.date())
         })
       )
+      .use(isDashboardGroup())
       .output(apiKeyPresenter)
       .do(async ctx => {
         let apiKey = await apiKeyService.getApiKeyById({
@@ -266,6 +271,7 @@ export let dashboardApiKeyController = Controller.create(
           description: 'Revoke a specific API key'
         }
       )
+      .use(isDashboardGroup())
       .output(apiKeyPresenter)
       .do(async ctx => {
         let apiKey = await apiKeyService.getApiKeyById({
@@ -299,6 +305,7 @@ export let dashboardApiKeyController = Controller.create(
           current_expires_at: v.optional(v.date())
         })
       )
+      .use(isDashboardGroup())
       .output(apiKeyPresenter)
       .do(async ctx => {
         let apiKey = await apiKeyService.getApiKeyById({
@@ -329,6 +336,7 @@ export let dashboardApiKeyController = Controller.create(
           description: 'Reveal a specific API key'
         }
       )
+      .use(isDashboardGroup())
       .output(apiKeyPresenter)
       .do(async ctx => {
         let apiKey = await apiKeyService.getApiKeyById({

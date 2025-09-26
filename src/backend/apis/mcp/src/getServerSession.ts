@@ -1,8 +1,7 @@
 import { Context } from '@metorial/context';
 import { SessionMcpConnectionType } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { serverDeploymentService } from '@metorial/module-server-deployment';
-import { serverSessionService, sessionService } from '@metorial/module-session';
+import { serverSessionService } from '@metorial/module-session';
 import { SessionInfo } from './getSession';
 
 export let getServerSession = async (
@@ -24,7 +23,7 @@ export let getServerSession = async (
     };
   }
 
-  let serverDeployment = await getServerSessionDeployment(d, deploymentId);
+  let { serverDeployment } = await getServerSessionDeployment(d, deploymentId);
 
   let serverSession = await serverSessionService.createServerSession({
     session: d.session,
@@ -58,10 +57,10 @@ let getServerSessionDeployment = async (
 
   let deployment = d.session.serverDeployments.find(
     d =>
-      d.id == serverSessionOrDeploymentId ||
-      d.server.id == serverSessionOrDeploymentId ||
-      d.serverVariant.id == serverSessionOrDeploymentId ||
-      d.serverVariant.identifier == serverSessionOrDeploymentId
+      d.serverDeployment.id == serverSessionOrDeploymentId ||
+      d.serverDeployment.server.id == serverSessionOrDeploymentId ||
+      d.serverDeployment.serverVariant.id == serverSessionOrDeploymentId ||
+      d.serverDeployment.serverVariant.identifier == serverSessionOrDeploymentId
   );
   if (deployment) return deployment;
 
@@ -74,26 +73,33 @@ let getServerSessionDeployment = async (
     );
   }
 
-  // Add new deployment to session
-  let newDeployment = await serverDeploymentService.getServerDeploymentById({
-    instance: d.instance,
-    serverDeploymentId: serverSessionOrDeploymentId
-  });
-
-  // Update session with new deployment
-  Object.assign(
-    d.session,
-    await sessionService.addServerDeployments({
-      session: d.session,
-      serverDeployments: [newDeployment],
-
-      performedBy: d.actor,
-      instance: d.instance,
-      organization: d.organization,
-
-      ephemeralPermittedDeployments: new Set([])
+  throw new ServiceError(
+    badRequestError({
+      message: 'Invalid server deployment ID',
+      description: `The server deployment ID "${serverSessionOrDeploymentId}" is not associated with this session. If you want to add a new deployment to the session, please use the session update API.`
     })
   );
 
-  return d.session.serverDeployments.find(d => d.oid == newDeployment.oid)!;
+  // // Add new deployment to session
+  // let newDeployment = await serverDeploymentService.getServerDeploymentById({
+  //   instance: d.instance,
+  //   serverDeploymentId: serverSessionOrDeploymentId
+  // });
+
+  // // Update session with new deployment
+  // Object.assign(
+  //   d.session,
+  //   await sessionService.addServerDeployments({
+  //     session: d.session,
+  //     serverDeployments: [newDeployment],
+
+  //     performedBy: d.actor,
+  //     instance: d.instance,
+  //     organization: d.organization,
+
+  //     ephemeralPermittedDeployments: new Set([])
+  //   })
+  // );
+
+  // return d.session.serverDeployments.find(d => d.oid == newDeployment.oid)!;
 };

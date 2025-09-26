@@ -1,3 +1,4 @@
+import { Context } from '@metorial/context';
 import {
   Instance,
   Organization,
@@ -61,6 +62,7 @@ export let createServerDeployment = async (
     instance: Instance;
     organization: Organization;
     actor: OrganizationActor;
+    context: Context;
   },
   opts?: {
     type: 'persistent' | 'ephemeral';
@@ -91,6 +93,7 @@ export let createServerDeployment = async (
     instance: ctx.instance,
     serverImplementation,
     type: opts?.type ?? 'persistent',
+    context: ctx.context,
     input: {
       name: data.name?.trim() || undefined,
       description: data.description?.trim() || undefined,
@@ -177,7 +180,8 @@ export let serverDeploymentController = Controller.create(
           {
             instance: ctx.instance,
             organization: ctx.organization,
-            actor: ctx.actor
+            actor: ctx.actor,
+            context: ctx.context
           },
           { type: 'persistent' }
         );
