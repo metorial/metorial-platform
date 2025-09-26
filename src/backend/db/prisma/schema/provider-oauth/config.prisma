@@ -16,6 +16,9 @@ model ProviderOAuthConfig {
 
   connections           ProviderOAuthConnection[]
   remoteServerInstances RemoteServerInstance[]
+  lambdaServerInstances LambdaServerInstance[]
+  serverImplementations ServerImplementation[]
+  serverDeployments     ServerDeployment[]
 
   @@unique([instanceOid, configHash])
 }

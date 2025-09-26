@@ -119,4 +119,6 @@ model ProviderOAuthConnectionAuthTokenReference {
 
   authTokenOid BigInt?
   authToken    ProviderOAuthConnectionAuthToken? @relation(fields: [authTokenOid], references: [oid], onDelete: SetNull)
+
+  sessions ServerOAuthSession[]
 }

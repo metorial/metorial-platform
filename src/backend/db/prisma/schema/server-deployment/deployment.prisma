@@ -2,6 +2,7 @@ enum ServerDeploymentStatus {
   active
   archived
   deleted
+  failed
 }
 
 model ServerDeployment {
@@ -30,13 +31,24 @@ model ServerDeployment {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])
 
+  oauthConnectionOid BigInt?
+  oauthConnection    ProviderOAuthConnection? @relation(fields: [oauthConnectionOid], references: [oid], name: "ProviderOAuthConnectionServerDeployments")
+
+  oauthConfigOid BigInt?
+  oauthConfig    ProviderOAuthConfig? @relation(fields: [oauthConfigOid], references: [oid])
+
+  failureCode    String?
+  failureMessage String?
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  serverRunErrors         ServerRunError[]
-  serverSessions          ServerSession[]
-  serverRuns              ServerRun[]
-  sessions                Session[]
-  serverAutoDiscoveryJobs ServerAutoDiscoveryJob[]
+  serverRunErrors                     ServerRunError[]
+  serverSessions                      ServerSession[]
+  serverRuns                          ServerRun[]
+  sessionsOldDontUse                  Session[]
+  serverAutoDiscoveryJobs             ServerAutoDiscoveryJob[]
+  sessionServerDeployments            SessionServerDeployment[]
+  providerOAuthConnectionsAutoCreated ProviderOAuthConnection[] @relation("ProviderOAuthConnectionServerDeploymentsAutoCreated")
 }

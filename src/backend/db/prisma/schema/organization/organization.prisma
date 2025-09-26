@@ -42,4 +42,5 @@ model Organization {
   servers         Server[]
   uploads         Upload[]
   customServers   CustomServer[]
+  serverListings  ServerListing[]
 }

@@ -50,4 +50,6 @@ model Instance {
   remoteServerInstances    RemoteServerInstance[]
   customServerEvents       CustomServerEvent[]
   providerOAuthConfigs     ProviderOAuthConfig[]
+  serverOAuthSessions      ServerOAuthSession[]
+  lambdaServerInstances    LambdaServerInstance[]
 }

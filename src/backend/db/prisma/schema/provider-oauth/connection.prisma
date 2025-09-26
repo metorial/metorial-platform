@@ -1,5 +1,6 @@
 enum ProviderOAuthConnectionStatus {
   active
+  failed
   archived
 }
 
@@ -7,6 +8,8 @@ model ProviderOAuthConnection {
   oid    BigInt                        @id @default(autoincrement())
   id     String                        @unique
   status ProviderOAuthConnectionStatus @default(active)
+
+  isAutoDiscoveryActive Boolean @default(false)
 
   metorialClientId String @unique
 
@@ -22,7 +25,7 @@ model ProviderOAuthConnection {
   configOid BigInt
   config    ProviderOAuthConfig @relation(fields: [configOid], references: [oid])
 
-  clientId     String
+  clientId     String?
   clientSecret String?
 
   registrationOid BigInt?
@@ -34,11 +37,19 @@ model ProviderOAuthConnection {
   templateOid BigInt?
   template    ProviderOAuthConnectionTemplate? @relation(fields: [templateOid], references: [oid])
 
+  failureCode    String?
+  failureMessage String?
+
+  autoCreatedForServerDeploymentOid BigInt?
+  autoCreatedForServerDeployment    ServerDeployment? @relation(fields: [autoCreatedForServerDeploymentOid], references: [oid], name: "ProviderOAuthConnectionServerDeploymentsAutoCreated")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  profiles ProviderOAuthConnectionProfile[]
-  tokens   ProviderOAuthConnectionAuthToken[]
-  attempts ProviderOAuthConnectionAuthAttempt[]
-  events   ProviderOAuthConnectionEvent[]
+  profiles          ProviderOAuthConnectionProfile[]
+  tokens            ProviderOAuthConnectionAuthToken[]
+  attempts          ProviderOAuthConnectionAuthAttempt[]
+  events            ProviderOAuthConnectionEvent[]
+  sessions          ServerOAuthSession[]
+  serverDeployments ServerDeployment[]                   @relation("ProviderOAuthConnectionServerDeployments")
 }

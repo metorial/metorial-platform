@@ -9,4 +9,6 @@ model InstanceServer {
   instance    Instance @relation(fields: [instanceOid], references: [oid])
 
   createdAt DateTime @default(now())
+
+  @@unique([serverOid, instanceOid])
 }

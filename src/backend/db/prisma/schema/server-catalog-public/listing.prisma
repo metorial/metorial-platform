@@ -9,6 +9,11 @@ model ServerListing {
   id     String              @unique
   status ServerListingStatus
 
+  isPublic Boolean @default(false)
+
+  ownerOrganizationOid BigInt?
+  ownerOrganization    Organization? @relation(fields: [ownerOrganizationOid], references: [oid])
+
   name String
   slug String @unique
 

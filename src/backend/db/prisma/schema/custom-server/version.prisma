@@ -31,6 +31,9 @@ model CustomServerVersion {
   remoteServerInstanceOid BigInt?               @unique
   remoteServerInstance    RemoteServerInstance? @relation(fields: [remoteServerInstanceOid], references: [oid])
 
+  lambdaServerInstanceOid BigInt?               @unique
+  lambdaServerInstance    LambdaServerInstance? @relation(fields: [lambdaServerInstanceOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 

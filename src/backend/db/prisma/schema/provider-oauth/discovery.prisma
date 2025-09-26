@@ -32,8 +32,8 @@ model ProviderOAuthAutoRegistration {
   registrationAccessToken String?
   clientSecretExpiresAt   DateTime?
 
-  discoveryDocumentOid BigInt
-  discoveryDocument    ProviderOAuthDiscoveryDocument @relation(fields: [discoveryDocumentOid], references: [oid])
+  discoveryDocumentOid BigInt?
+  discoveryDocument    ProviderOAuthDiscoveryDocument? @relation(fields: [discoveryDocumentOid], references: [oid])
 
   createdAt DateTime @default(now())
 

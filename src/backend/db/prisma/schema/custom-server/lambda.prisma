@@ -1,0 +1,25 @@
+enum LambdaServerStatus {
+  pending
+  active
+}
+
+model LambdaServerInstance {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status LambdaServerStatus @default(pending)
+
+  name        String?
+  description String?
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  providerOAuthConfigOid BigInt?
+  providerOAuthConfig    ProviderOAuthConfig? @relation(fields: [providerOAuthConfigOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  customServerVersion CustomServerVersion?
+}
