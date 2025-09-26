@@ -69,8 +69,8 @@ let launcherContext = (config) => ({
 			newHeaders['Authorization'] = 'Bearer ' + config.token;
 		}
 
-		if (config.oauth && config.oauth.accessToken) {
-			newHeaders['Authorization'] = 'Bearer ' + config.oauth.accessToken;
+		if (config.__metorial_oauth__ && config.__metorial_oauth__.accessToken) {
+			newHeaders['Authorization'] = 'Bearer ' + config.__metorial_oauth__.accessToken;
 		}
 
 		return newHeaders;
@@ -81,8 +81,11 @@ let config = %s;
 
 let launcher = eval(%s);
 
+let sanitizedConfig = { ...config };
+delete sanitizedConfig.__metorial_oauth__;
+
 let output = typeof launcher == 'function' ? 
-  launcher(config, launcherContext(config)) : 
+  launcher(sanitizedConfig, launcherContext(config)) : 
   launcher;
 
 console.log(JSON.stringify({ type: 'success', data: output }));

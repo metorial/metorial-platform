@@ -3,6 +3,7 @@ package session
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
@@ -12,6 +13,7 @@ import (
 )
 
 func sendStreamResponse(
+	sendMu *sync.Mutex,
 	stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse],
 	response *managerPb.McpConnectionStreamResponse,
 ) error {
@@ -24,6 +26,7 @@ func sendStreamResponse(
 }
 
 func sendStreamResponseSessionEvent(
+	sendMu *sync.Mutex,
 	stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse],
 	event *managerPb.SessionEvent,
 ) error {
@@ -33,10 +36,11 @@ func sendStreamResponseSessionEvent(
 		},
 	}
 
-	return sendStreamResponse(stream, response)
+	return sendStreamResponse(sendMu, stream, response)
 }
 
 func sendStreamResponseSessionEventInfoSession(
+	sendMu *sync.Mutex,
 	stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse],
 	session *db.Session,
 ) error {
@@ -53,10 +57,11 @@ func sendStreamResponseSessionEventInfoSession(
 		},
 	}
 
-	return sendStreamResponseSessionEvent(stream, event)
+	return sendStreamResponseSessionEvent(sendMu, stream, event)
 }
 
 func sendStreamResponseSessionEventInfoRun(
+	sendMu *sync.Mutex,
 	stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse],
 	run *db.SessionRun,
 ) error {
@@ -73,10 +78,11 @@ func sendStreamResponseSessionEventInfoRun(
 		},
 	}
 
-	return sendStreamResponseSessionEvent(stream, event)
+	return sendStreamResponseSessionEvent(sendMu, stream, event)
 }
 
 func sendStreamResponseMcpMessage(
+	sendMu *sync.Mutex,
 	stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse],
 	message *mcp.MCPMessage,
 ) error {
@@ -86,10 +92,11 @@ func sendStreamResponseMcpMessage(
 		},
 	}
 
-	return sendStreamResponse(stream, response)
+	return sendStreamResponse(sendMu, stream, response)
 }
 
 func sendStreamResponseMcpMessageReplay(
+	sendMu *sync.Mutex,
 	stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse],
 	message *mcp.MCPMessage,
 ) error {
@@ -100,10 +107,11 @@ func sendStreamResponseMcpMessageReplay(
 		IsReplay: true,
 	}
 
-	return sendStreamResponse(stream, response)
+	return sendStreamResponse(sendMu, stream, response)
 }
 
 func sendStreamResponseMcpError(
+	sendMu *sync.Mutex,
 	stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse],
 	mcpError *mcpPb.McpError,
 ) error {
@@ -113,10 +121,11 @@ func sendStreamResponseMcpError(
 		},
 	}
 
-	return sendStreamResponse(stream, response)
+	return sendStreamResponse(sendMu, stream, response)
 }
 
 func sendStreamResponseMcpOutput(
+	sendMu *sync.Mutex,
 	stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse],
 	output *mcpPb.McpOutput,
 ) error {
@@ -126,5 +135,5 @@ func sendStreamResponseMcpOutput(
 		},
 	}
 
-	return sendStreamResponse(stream, response)
+	return sendStreamResponse(sendMu, stream, response)
 }

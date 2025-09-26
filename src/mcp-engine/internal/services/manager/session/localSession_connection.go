@@ -92,6 +92,8 @@ func (s *LocalSession) ensureConnection() (workers.WorkerConnection, *db.Session
 			},
 		)
 
+		log.Printf("Failed to start connection %s for session %s: %v", connection.ConnectionID(), s.storedSession.ID, err)
+
 		return nil, nil, mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to start server", err)
 	}
 

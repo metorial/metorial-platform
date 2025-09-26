@@ -45,7 +45,6 @@ func (rw *RemoteWorker) CreateConnection(input *workers.WorkerConnectionInput) (
 }
 
 func (rwc *RemoteWorkerConnection) Start(shouldAutoInit bool) error {
-
 	if shouldAutoInit && rwc.mcpClient == nil {
 		return fmt.Errorf("MCP client is not initialized, cannot auto-initialize")
 	}

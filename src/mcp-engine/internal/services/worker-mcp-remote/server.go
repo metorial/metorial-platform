@@ -216,6 +216,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 	select {
 	case err := <-errChan:
 		if err != nil {
+			log.Printf("Remote server error: %v", err)
 			conn.Close()
 			break
 		}
