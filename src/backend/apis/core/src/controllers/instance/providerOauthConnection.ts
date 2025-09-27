@@ -107,13 +107,29 @@ export let providerOauthConnectionController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             discoveryUrl: ctx.body.discovery_url,
-            config: ctx.body.config as any,
-            clientId: 'client_id' in ctx.body ? ctx.body.client_id : undefined,
-            clientSecret: 'client_secret' in ctx.body ? ctx.body.client_secret : undefined,
-            autoRegistrationId:
-              'auto_registration_id' in ctx.body ? ctx.body.auto_registration_id : undefined,
-            scopes: ctx.body.scopes,
-            metadata: ctx.body.metadata
+
+            metadata: ctx.body.metadata,
+
+            setup:
+              'client_id' in ctx.body
+                ? {
+                    mode: 'manual',
+                    config: ctx.body.config as any,
+                    clientId: ctx.body.client_id,
+                    clientSecret:
+                      'client_secret' in ctx.body
+                        ? ctx.body.client_secret!
+                        : (() => {
+                            throw new Error('Unreachable');
+                          })(),
+                    scopes: ctx.body.scopes
+                  }
+                : {
+                    mode: 'existing_auto_registration',
+                    config: ctx.body.config as any,
+                    autoRegistrationId: ctx.body.auto_registration_id,
+                    scopes: ctx.body.scopes
+                  }
           }
         });
 

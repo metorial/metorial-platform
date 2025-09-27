@@ -118,21 +118,27 @@ export let serverOauthSessionController = Controller.create(
       }),
 
     get: oauthSessionGroup
-      .get(instancePath('provider-oauth/sessions/:sessionId', 'provider_oauth.sessions.get'), {
-        name: 'Get provider OAuth session',
-        description: 'Get information for a specific provider OAuth session'
-      })
+      .get(
+        instancePath('provider-oauth/sessions/:oauthSessionId', 'provider_oauth.sessions.get'),
+        {
+          name: 'Get provider OAuth session',
+          description: 'Get information for a specific provider OAuth session'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.session:read'] }))
       .output(serverOAuthSessionPresenter)
       .do(async ctx => {
         return serverOAuthSessionPresenter.present({
-          serverOauthSession: ctx.session
+          serverOauthSession: ctx.oauthSession
         });
       }),
 
     delete: oauthSessionGroup
       .delete(
-        instancePath('provider-oauth/sessions/:sessionId', 'provider_oauth.sessions.delete'),
+        instancePath(
+          'provider-oauth/sessions/:oauthSessionId',
+          'provider_oauth.sessions.delete'
+        ),
         {
           name: 'Delete provider OAuth session',
           description: 'Delete a provider OAuth session'

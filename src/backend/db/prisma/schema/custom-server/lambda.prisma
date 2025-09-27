@@ -1,5 +1,22 @@
+enum LambdaServerInstanceRuntime {
+  deno_deploy_v1
+}
+
+enum LambdaServerInstanceProvider {
+  deno_deploy
+}
+
+enum LambdaServerInstancePlatform {
+  metorial_stellar_v1
+}
+
+enum LambdaServerInstanceProtocol {
+  metorial_stellar_over_websocket_v1
+}
+
 enum LambdaServerStatus {
   pending
+  deploying
   active
 }
 
@@ -7,10 +24,18 @@ model LambdaServerInstance {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status LambdaServerStatus @default(pending)
+  status LambdaServerStatus
 
-  name        String?
-  description String?
+  runtime  LambdaServerInstanceRuntime?
+  provider LambdaServerInstanceProvider?
+  platform LambdaServerInstancePlatform?
+  protocol LambdaServerInstanceProtocol?
+
+  securityToken String
+
+  providerResourceId               String?
+  providerResourceAccessIdentifier String?
+  providerInfo                     Json?
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])
@@ -18,8 +43,21 @@ model LambdaServerInstance {
   providerOAuthConfigOid BigInt?
   providerOAuthConfig    ProviderOAuthConfig? @relation(fields: [providerOAuthConfigOid], references: [oid])
 
+  immutableCodeBucketOid BigInt
+  immutableCodeBucket    CodeBucket @relation(fields: [immutableCodeBucketOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   customServerVersion CustomServerVersion?
+  serverVersions      ServerVersion[]
+}
+
+model LambdaServerDenoDeployProject {
+  oid BigInt @id @default(autoincrement())
+
+  customServerOid BigInt       @unique
+  customServer    CustomServer @relation(fields: [customServerOid], references: [oid])
+
+  denoDeployProjectId String @unique
 }

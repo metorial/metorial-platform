@@ -1,6 +1,7 @@
 enum ServerVariantSourceType {
   docker
   remote
+  managed
 }
 
 model ServerVariant {
@@ -49,6 +50,9 @@ model ServerVariant {
 
   /// [ServerVersionServerCapabilities]
   serverCapabilities Json @default("null")
+
+  /// [ServerVersionServerInstructions]
+  serverInstructions Json @default("null")
 
   versions                ServerVersion[]
   serverImplementations   ServerImplementation[]

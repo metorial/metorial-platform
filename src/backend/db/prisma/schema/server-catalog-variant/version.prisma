@@ -26,6 +26,9 @@ model ServerVersion {
 
   remoteUrl String?
 
+  lambdaOid BigInt?
+  lambda    LambdaServerInstance? @relation(fields: [lambdaOid], references: [oid])
+
   customServerVersion CustomServerVersion?
 
   mcpVersion   String       @default("2024-11-05")
@@ -45,6 +48,9 @@ model ServerVersion {
 
   /// [ServerVersionServerCapabilities]
   serverCapabilities Json @default("null")
+
+  /// [ServerVersionServerInstructions]
+  serverInstructions Json @default("null")
 
   currentConfigFor ServerVariant[] @relation("ServerVariantCurrentServerConfig")
   serverRuns       ServerRun[]

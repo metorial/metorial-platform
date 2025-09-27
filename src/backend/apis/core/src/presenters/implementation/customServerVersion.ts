@@ -1,6 +1,7 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { customServerVersionType } from '../types';
+import { v1ManagedServerPresenter } from './managedServer';
 import { v1RemoteServerPresenter } from './remoteServer';
 import { v1ServerVersionPresenter } from './serverVersion';
 
@@ -17,7 +18,8 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
     }[customServerVersion.status],
 
     type: {
-      remote: 'remote'
+      remote: 'remote',
+      managed: 'managed'
     }[customServerVersion.customServer.type],
 
     is_current: customServerVersion.currentVersionForServer ? true : false,
@@ -44,6 +46,11 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
       remote_server: customServerVersion.remoteServerInstance
         ? await v1RemoteServerPresenter
             .present({ remoteServerInstance: customServerVersion.remoteServerInstance }, opts)
+            .run()
+        : null,
+      managed_server: customServerVersion.lambdaServerInstance
+        ? await v1ManagedServerPresenter
+            .present({ managedServerInstance: customServerVersion.lambdaServerInstance }, opts)
             .run()
         : null
     },
@@ -89,7 +96,8 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
           name: 'type',
           description: `The type of the server instance`
         }),
-        remote_server: v.nullable(v1RemoteServerPresenter.schema)
+        remote_server: v.nullable(v1RemoteServerPresenter.schema),
+        managed_server: v.nullable(v1ManagedServerPresenter.schema)
       }),
 
       custom_server_id: v.string({

@@ -87,6 +87,10 @@ export let ID = createIdGenerator({
   customServerEvent: idType.sorted('csvev'),
   customServerDeployment: idType.sorted('csd'),
   customServerDeploymentStep: idType.sorted('csds'),
+  lambdaServerInstance: idType.sorted('lsi'),
+  managedServerTemplate: idType.sorted('mst'),
+  remoteServerInstance: idType.sorted('rsi'),
 
-  remoteServerInstance: idType.sorted('rsi')
+  codeBucket: idType.sorted('cbu'),
+  codeBucketTemplate: idType.sorted('cbt')
 });

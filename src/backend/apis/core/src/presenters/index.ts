@@ -2,6 +2,7 @@ import { declarePresenter } from '@metorial/presenter';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
 import { v1CustomServerPresenter } from './implementation/customServer';
+import { v1CustomServerCodeEditorTokenPresenter } from './implementation/customServerCodeEditorToken';
 import { v1CustomServerDeploymentPresenter } from './implementation/customServerDeployment';
 import { v1CustomServerEventPresenter } from './implementation/customServerEvent';
 import {
@@ -12,6 +13,7 @@ import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
 import { v1InstancePresenter } from './implementation/instance';
 import { v1MachineAccessPresenter } from './implementation/machineAccess';
+import { v1ManagedServerTemplatePresenter } from './implementation/managedServerTemplate';
 import { v1OrganizationPresenter } from './implementation/organization';
 import { v1OrganizationActorPresenter } from './implementation/organizationActor';
 import { v1OrganizationInvitePresenter } from './implementation/organizationInvite';
@@ -60,6 +62,7 @@ import { v1UserPresenter } from './implementation/user';
 import {
   apiKeyType,
   bootType,
+  customServerCodeEditorTokenType,
   customServerDeploymentType,
   customServerEventType,
   customServerType,
@@ -68,6 +71,7 @@ import {
   fileType,
   instanceType,
   machineAccessType,
+  managedServerTemplateType,
   organizationActorType,
   organizationInviteType,
   organizationMemberType,
@@ -352,4 +356,17 @@ export let customServerEventPresenter = declarePresenter(customServerEventType, 
 export let customServerDeploymentPresenter = declarePresenter(customServerDeploymentType, {
   mt_2025_01_01_pulsar: v1CustomServerDeploymentPresenter,
   mt_2025_01_01_dashboard: v1CustomServerDeploymentPresenter
+});
+
+export let customServerCodeEditorTokenTypePresenter = declarePresenter(
+  customServerCodeEditorTokenType,
+  {
+    mt_2025_01_01_pulsar: v1CustomServerCodeEditorTokenPresenter,
+    mt_2025_01_01_dashboard: v1CustomServerCodeEditorTokenPresenter
+  }
+);
+
+export let managedServerTemplateTypePresenter = declarePresenter(managedServerTemplateType, {
+  mt_2025_01_01_pulsar: v1ManagedServerTemplatePresenter,
+  mt_2025_01_01_dashboard: v1ManagedServerTemplatePresenter
 });

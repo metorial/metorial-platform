@@ -1,5 +1,6 @@
 enum CustomServerType {
   remote
+  managed
 }
 
 enum CustomServerStatus {
@@ -36,11 +37,15 @@ model CustomServer {
   currentVersionOid BigInt?              @unique
   currentVersion    CustomServerVersion? @relation(fields: [currentVersionOid], references: [oid], name: "CurrentCustomServerVersion")
 
+  draftCodeBucketOid BigInt?
+  draftCodeBucket    CodeBucket? @relation(fields: [draftCodeBucketOid], references: [oid])
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
 
-  versions    CustomServerVersion[]
-  events      CustomServerEvent[]
-  deployments CustomServerDeployment[]
+  versions                       CustomServerVersion[]
+  events                         CustomServerEvent[]
+  deployments                    CustomServerDeployment[]
+  lambdaServerDenoDeployProjects LambdaServerDenoDeployProject?
 }

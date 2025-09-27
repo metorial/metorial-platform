@@ -1,0 +1,12 @@
+model ManagedServerTemplate {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+  slug String @unique
+
+  createdAt DateTime @default(now())
+
+  bucketTemplateOid BigInt
+  bucketTemplate    CodeBucketTemplate @relation(fields: [bucketTemplateOid], references: [oid])
+}

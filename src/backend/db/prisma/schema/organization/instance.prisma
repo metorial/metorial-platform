@@ -52,4 +52,5 @@ model Instance {
   providerOAuthConfigs     ProviderOAuthConfig[]
   serverOAuthSessions      ServerOAuthSession[]
   lambdaServerInstances    LambdaServerInstance[]
+  codeBuckets              CodeBucket[]
 }

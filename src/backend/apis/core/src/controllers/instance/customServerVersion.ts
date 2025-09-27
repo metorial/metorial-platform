@@ -56,27 +56,50 @@ export let customServerVersionController = Controller.create(
       .body(
         'default',
         v.object({
-          implementation: v.object({
-            type: v.literal('remote'),
+          implementation: v.union([
+            v.object({
+              type: v.literal('remote'),
 
-            remote_server: v.object({
-              remote_url: v.string({ modifiers: [v.url()] }),
+              remote_server: v.object({
+                remote_url: v.string({ modifiers: [v.url()] }),
 
-              oauth_config: v.optional(
+                oauth_config: v.optional(
+                  v.object({
+                    config: v.record(v.any()),
+                    scopes: v.array(v.string())
+                  })
+                )
+              }),
+
+              config: v.optional(
                 v.object({
-                  config: v.record(v.any()),
-                  scopes: v.array(v.string())
+                  schema: v.optional(v.any()),
+                  getLaunchParams: v.optional(v.string())
                 })
               )
             }),
+            v.object({
+              type: v.literal('managed'),
 
-            config: v.optional(
-              v.object({
-                schema: v.optional(v.any()),
-                getLaunchParams: v.optional(v.string())
-              })
-            )
-          })
+              managed_server: v.optional(
+                v.object({
+                  oauth_config: v.optional(
+                    v.object({
+                      config: v.record(v.any()),
+                      scopes: v.array(v.string())
+                    })
+                  )
+                })
+              ),
+
+              config: v.optional(
+                v.object({
+                  schema: v.optional(v.any()),
+                  getLaunchParams: v.optional(v.string())
+                })
+              )
+            })
+          ])
         })
       )
       .output(customServerVersionPresenter)
@@ -86,22 +109,34 @@ export let customServerVersionController = Controller.create(
           instance: ctx.instance,
           server: ctx.customServer,
           performedBy: ctx.actor,
-          serverInstance: {
-            type: 'remote',
-            implementation: {
-              remoteUrl: ctx.body.implementation.remote_server.remote_url,
-              oAuthConfig: ctx.body.implementation.remote_server.oauth_config
-                ? {
-                    config: ctx.body.implementation.remote_server.oauth_config.config,
-                    scopes: ctx.body.implementation.remote_server.oauth_config.scopes
+          serverInstance:
+            ctx.body.implementation.type === 'managed'
+              ? {
+                  type: 'managed',
+                  implementation: {
+                    oAuthConfig: ctx.body.implementation.managed_server?.oauth_config
+                  },
+                  config: {
+                    schema: ctx.body.implementation.config?.schema,
+                    getLaunchParams: ctx.body.implementation.config?.getLaunchParams
                   }
-                : undefined
-            },
-            config: {
-              schema: ctx.body.implementation.config?.schema,
-              getLaunchParams: ctx.body.implementation.config?.getLaunchParams
-            }
-          }
+                }
+              : {
+                  type: 'remote',
+                  implementation: {
+                    remoteUrl: ctx.body.implementation.remote_server.remote_url,
+                    oAuthConfig: ctx.body.implementation.remote_server.oauth_config
+                      ? {
+                          config: ctx.body.implementation.remote_server.oauth_config.config,
+                          scopes: ctx.body.implementation.remote_server.oauth_config.scopes
+                        }
+                      : undefined
+                  },
+                  config: {
+                    schema: ctx.body.implementation.config?.schema,
+                    getLaunchParams: ctx.body.implementation.config?.getLaunchParams
+                  }
+                }
         });
 
         return customServerVersionPresenter.present({ customServerVersion });

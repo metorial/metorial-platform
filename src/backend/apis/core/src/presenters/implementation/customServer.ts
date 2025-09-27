@@ -17,7 +17,8 @@ export let v1CustomServerPresenter = Presenter.create(customServerType)
     }[customServer.status],
 
     type: {
-      remote: 'remote'
+      remote: 'remote',
+      managed: 'managed'
     }[customServer.type],
 
     name: customServer.name ?? customServer.server.name,
@@ -44,7 +45,7 @@ export let v1CustomServerPresenter = Presenter.create(customServerType)
         description: 'The current status of the custom server'
       }),
 
-      type: v.enumOf(['remote'], {
+      type: v.enumOf(['remote', 'managed'], {
         name: 'type',
         description: 'The type of the custom server'
       }),

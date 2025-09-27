@@ -48,7 +48,10 @@ export let v1CustomServerDeploymentPresenter = Presenter.create(customServerDepl
         remote_server_connection_test: 'remote_server_connection_test',
         remote_oauth_auto_discovery: 'remote_oauth_auto_discovery',
         deploying: 'deploying',
-        deployed: 'deployed'
+        deployed: 'deployed',
+        lambda_deploy_build: 'lambda_deploy_build',
+        lambda_deploy_create: 'lambda_deploy_create',
+        discovering: 'discovering'
       }[step.type],
 
       logs: (step.logs ?? []).flatMap(([ts, lines, type]) =>
@@ -146,7 +149,10 @@ export let v1CustomServerDeploymentPresenter = Presenter.create(customServerDepl
               'remote_server_connection_test',
               'remote_oauth_auto_discovery',
               'deploying',
-              'deployed'
+              'deployed',
+              'lambda_deploy_build',
+              'lambda_deploy_create',
+              'discovering'
             ],
             {
               name: 'type',

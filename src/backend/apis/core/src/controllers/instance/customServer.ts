@@ -1,4 +1,7 @@
-import { customServerService } from '@metorial/module-custom-server';
+import {
+  customServerService,
+  managedServerTemplateService
+} from '@metorial/module-custom-server';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -18,7 +21,7 @@ export let customServerGroup = instanceGroup.use(async ctx => {
   return { customServer };
 });
 
-let customServerTypeEnum = v.enumOf(['remote']);
+let customServerTypeEnum = v.enumOf(['remote', 'managed']);
 
 export let customServerController = Controller.create(
   {
@@ -67,24 +70,50 @@ export let customServerController = Controller.create(
           name: v.string(),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          implementation: v.object({
-            type: v.literal('remote'),
+          implementation: v.union([
+            v.object({
+              type: v.literal('remote'),
 
-            remote_server: v.object({
-              remote_url: v.string({ modifiers: [v.url()] })
+              remote_server: v.object({
+                remote_url: v.string({ modifiers: [v.url()] })
+              }),
+
+              config: v.optional(
+                v.object({
+                  schema: v.optional(v.any()),
+                  getLaunchParams: v.optional(v.string())
+                })
+              )
             }),
+            v.object({
+              type: v.literal('managed'),
 
-            config: v.optional(
-              v.object({
-                schema: v.optional(v.any()),
-                getLaunchParams: v.optional(v.string())
-              })
-            )
-          })
+              managed_server: v.optional(
+                v.object({
+                  template_id: v.optional(v.string())
+                })
+              ),
+
+              config: v.optional(
+                v.object({
+                  schema: v.optional(v.any()),
+                  getLaunchParams: v.optional(v.string())
+                })
+              )
+            })
+          ])
         })
       )
       .output(customServerPresenter)
       .do(async ctx => {
+        let template =
+          ctx.body.implementation.type === 'managed' &&
+          ctx.body.implementation.managed_server?.template_id
+            ? await managedServerTemplateService.getManagedServerTemplateById({
+                templateId: ctx.body.implementation.managed_server.template_id
+              })
+            : undefined;
+
         let customServer = await customServerService.createCustomServer({
           organization: ctx.organization,
           instance: ctx.instance,
@@ -95,16 +124,28 @@ export let customServerController = Controller.create(
           },
           isEphemeral: false,
           performedBy: ctx.actor,
-          serverInstance: {
-            type: 'remote',
-            implementation: {
-              remoteUrl: ctx.body.implementation.remote_server.remote_url
-            },
-            config: {
-              schema: ctx.body.implementation.config?.schema,
-              getLaunchParams: ctx.body.implementation.config?.getLaunchParams
-            }
-          }
+          serverInstance:
+            ctx.body.implementation.type === 'managed'
+              ? {
+                  type: 'managed',
+                  implementation: {
+                    template
+                  },
+                  config: {
+                    schema: ctx.body.implementation.config?.schema,
+                    getLaunchParams: ctx.body.implementation.config?.getLaunchParams
+                  }
+                }
+              : {
+                  type: 'remote',
+                  implementation: {
+                    remoteUrl: ctx.body.implementation.remote_server.remote_url
+                  },
+                  config: {
+                    schema: ctx.body.implementation.config?.schema,
+                    getLaunchParams: ctx.body.implementation.config?.getLaunchParams
+                  }
+                }
         });
 
         return customServerPresenter.present({ customServer });

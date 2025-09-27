@@ -1,6 +1,7 @@
 import { Controller } from '@metorial/rest';
 import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
+import { dashboardManagedServerTemplateController } from './dashboard/managedServerTemplate';
 import { dashboardOauthConnectionTemplateController } from './dashboard/oauthConnectionTemplate';
 import { dashboardOauthDiscoveryController } from './dashboard/oauthDiscovery';
 import { dashboardOrganizationController } from './dashboard/organization';
@@ -8,6 +9,7 @@ import { dashboardOrganizationInviteController } from './dashboard/organizationI
 import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
 import { customServerController } from './instance/customServer';
+import { customServerCodeController } from './instance/customServerCode';
 import { customServerDeploymentController } from './instance/customServerDeployment';
 import { customServerEventController } from './instance/customServerEvent';
 import { customServerVersionController } from './instance/customServerVersion';
@@ -143,6 +145,8 @@ export let dashboardController = Controller.create<any>(
     customServerVersionController,
     customServerEventController,
     customServerDeploymentController,
-    remoteServerController
+    remoteServerController,
+    customServerCodeController,
+    dashboardManagedServerTemplateController
   }
 );

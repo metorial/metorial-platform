@@ -227,6 +227,7 @@ declare global {
     type ServerVersionResourceTemplates = ResourceTemplate[] | null;
     type ServerVersionServerInfo = { name: string; version: string } | null;
     type ServerVersionServerCapabilities = ServerCapabilities | null;
+    type ServerVersionServerInstructions = string | null;
 
     type SessionClientInfo = { name: string; version: string };
     type SessionClientCapabilities = ClientCapabilities;
@@ -253,5 +254,10 @@ declare global {
       | [number, string[], 0 | 1 | undefined]
       | [number, string[], 0 | 1]
     )[]; // ts, lines, 1=error
+
+    type CodeBucketTemplateContents = {
+      path: string;
+      content: string;
+    }[];
   }
 }

@@ -5,9 +5,10 @@ enum ProviderOAuthConnectionStatus {
 }
 
 model ProviderOAuthConnection {
-  oid    BigInt                        @id @default(autoincrement())
-  id     String                        @unique
-  status ProviderOAuthConnectionStatus @default(active)
+  oid         BigInt                        @id @default(autoincrement())
+  id          String                        @unique
+  status      ProviderOAuthConnectionStatus @default(active)
+  isEphemeral Boolean                       @default(false)
 
   isAutoDiscoveryActive Boolean @default(false)
 

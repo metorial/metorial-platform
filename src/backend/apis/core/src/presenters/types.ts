@@ -1,6 +1,7 @@
 import {
   ApiKey,
   ApiKeySecret,
+  CodeBucketTemplate,
   CustomServer,
   CustomServerDeployment,
   CustomServerDeploymentStep,
@@ -14,7 +15,9 @@ import {
   ImportedServerVendor,
   Instance,
   InstanceServer,
+  LambdaServerInstance,
   MachineAccess,
+  ManagedServerTemplate,
   Organization,
   OrganizationActor,
   OrganizationInvite,
@@ -403,6 +406,12 @@ export let remoteServerType = PresentableType.create<{
   };
 }>()('custom_server.remote_server');
 
+export let managedServerType = PresentableType.create<{
+  managedServerInstance: LambdaServerInstance & {
+    providerOAuthConfig: ProviderOAuthConfig | null;
+  };
+}>()('custom_server.managed_server');
+
 export let customServerType = PresentableType.create<{
   customServer: CustomServer & {
     server: Server;
@@ -426,6 +435,11 @@ export let customServerVersionType = PresentableType.create<{
           providerOAuthConfig: ProviderOAuthConfig | null;
         })
       | null;
+    lambdaServerInstance:
+      | (LambdaServerInstance & {
+          providerOAuthConfig: ProviderOAuthConfig | null;
+        })
+      | null;
   };
 }>()('custom_server.version');
 
@@ -446,3 +460,13 @@ export let customServerDeploymentType = PresentableType.create<{
     };
   };
 }>()('custom_server.event');
+
+export let customServerCodeEditorTokenType = PresentableType.create<{
+  token: string;
+  expiresAt: Date;
+  id: string;
+}>()('custom_server.code_editor_token');
+
+export let managedServerTemplateType = PresentableType.create<{
+  managedServerTemplate: ManagedServerTemplate & { bucketTemplate: CodeBucketTemplate };
+}>()('managed_server.template');
