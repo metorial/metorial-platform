@@ -124,7 +124,7 @@ func (s *LocalSession) handleInitMessage(
 	// the message listener only starts when the connection is established.
 	// And the connection is established after the init message is sent.
 	if includeResponses {
-		err = sendStreamResponseMcpMessage(stream, message)
+		err = sendStreamResponseMcpMessage(s.sendMu, stream, message)
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,11 @@
-import { getConfig } from '@metorial/config';
+import { delay } from '@metorial/delay';
+import { badRequestError, ServiceError } from '@metorial/error';
 import { createHono, useRequestContext } from '@metorial/hono';
-import { oauthAuthorizationService, oauthConnectionService } from '@metorial/module-oauth';
+import {
+  providerOauthAuthorizationService,
+  providerOauthConnectionService,
+  providerOauthTicketService
+} from '@metorial/module-provider-oauth';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
 import { wrapHtmlError } from '../lib/htmlError';
@@ -16,7 +21,7 @@ export let providerOauthController = createHono()
       'query',
       z.object({
         client_id: z.string(),
-        redirect_uri: z.string().url()
+        ticket: z.string()
       })
     ),
     async c =>
@@ -25,18 +30,40 @@ export let providerOauthController = createHono()
         let organizationId = c.req.param('organizationId');
         let context = useRequestContext(c);
 
-        let connection = await oauthConnectionService.getConnectionByClientId({
+        let ticketRes = await providerOauthTicketService.verifyTicket({
+          ticket: query.ticket,
           clientId: query.client_id,
+          type: 'oauth.authenticate'
+        });
+
+        let connection = await providerOauthConnectionService.getConnectionByClientId({
+          clientId: ticketRes.clientId,
           organizationId
         });
 
-        let { redirectUrl, authAttempt } = await oauthAuthorizationService.startAuthorization({
-          context,
-          connection,
-          redirectUri: query.redirect_uri,
-          getCallbackUrl: connection =>
-            `${getConfig().urls.providerOauthUrl}/provider-oauth/callback`
-        });
+        let tries = 0;
+        while (connection.isAutoDiscoveryActive) {
+          await delay(2000);
+          connection = await providerOauthConnectionService.getConnectionByClientId({
+            clientId: ticketRes.clientId,
+            organizationId
+          });
+
+          if (++tries >= 15) {
+            throw new ServiceError(
+              badRequestError({
+                message: 'Connection is still being set up, please try again later'
+              })
+            );
+          }
+        }
+
+        let { redirectUrl, authAttempt } =
+          await providerOauthAuthorizationService.startAuthorization({
+            context,
+            connection,
+            redirectUri: ticketRes.redirectUri
+          });
 
         if (authAttempt.stateIdentifier) {
           setCookie(c, STATE_COOKIE_NAME, authAttempt.stateIdentifier, {
@@ -46,11 +73,15 @@ export let providerOauthController = createHono()
           });
         }
 
-        return c.html(redirectHtml({ url: redirectUrl }));
+        if (ticketRes.immediate) {
+          return c.redirect(redirectUrl, 302);
+        }
+
+        return c.html(redirectHtml({ url: redirectUrl, delay: 1000 }));
       })
   )
   .get(
-    '/:organizationId/callback',
+    '/callback',
     useValidation(
       'query',
       z.object({
@@ -63,13 +94,7 @@ export let providerOauthController = createHono()
     async c =>
       wrapHtmlError(c)(async () => {
         let query = c.req.query();
-        let organizationId = c.req.param('organizationId');
         let context = useRequestContext(c);
-
-        let connection = await oauthConnectionService.getConnectionByClientId({
-          clientId: query.client_id,
-          organizationId
-        });
 
         if (!query.state) {
           let stateCookie = getCookie(c, STATE_COOKIE_NAME);
@@ -78,17 +103,14 @@ export let providerOauthController = createHono()
           }
         }
 
-        let { redirectUrl } = await oauthAuthorizationService.completeAuthorization({
+        let { redirectUrl } = await providerOauthAuthorizationService.completeAuthorization({
           context,
-          connection,
           response: {
             code: query.code,
             state: query.state,
             error: query.error,
             errorDescription: query.error_description
-          },
-          getCallbackUrl: connection =>
-            `${getConfig().urls.providerOauthUrl}/provider-oauth/callback`
+          }
         });
 
         deleteCookie(c, STATE_COOKIE_NAME, { path: '/' });

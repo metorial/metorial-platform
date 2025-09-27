@@ -60,6 +60,9 @@ export let ID = createIdGenerator({
   serverRunErrorGroup: idType.sorted('sreg'),
   serverRunError: idType.sorted('sre'),
   serverAutoDiscoveryJob: idType.sorted('sadj'),
+  serverOAuthSession: idType.sorted('soas'),
+  serverOAuthSession_ClientSecret: idType.unsorted('soas_sec', 50),
+  sessionServerDeployment: idType.sorted('ssd'),
 
   instanceServer: idType.sorted('isv'),
 
@@ -72,8 +75,22 @@ export let ID = createIdGenerator({
   oauthConnectionProfile: idType.sorted('pocp'),
   oauthConnectionAuthAttempt: idType.sorted('poca'),
   oauthConnectionAuthAttempt_State: idType.unsorted('poca_state'),
-  oauthConnectionAuthAttempt_ClientSecret: idType.unsorted('poca_sec'),
+  oauthConnectionAuthAttempt_ClientSecret: idType.unsorted('poca_sec', 50),
   oauthConnectionAuthToken: idType.sorted('potk'),
   oauthDiscoveryDocument: idType.sorted('pod'),
-  oauthConnectionEvent: idType.sorted('poce')
+  oauthConnectionEvent: idType.sorted('poce'),
+  oauthAutoRegistration: idType.sorted('poar'),
+  oauthConfig: idType.sorted('pocf'),
+
+  customServer: idType.sorted('csv'),
+  customServerVersion: idType.sorted('csvv'),
+  customServerEvent: idType.sorted('csvev'),
+  customServerDeployment: idType.sorted('csd'),
+  customServerDeploymentStep: idType.sorted('csds'),
+  lambdaServerInstance: idType.sorted('lsi'),
+  managedServerTemplate: idType.sorted('mst'),
+  remoteServerInstance: idType.sorted('rsi'),
+
+  codeBucket: idType.sorted('cbu'),
+  codeBucketTemplate: idType.sorted('cbt')
 });

@@ -40,6 +40,7 @@ const (
 	SessionTypeUnknown   SessionType = 0
 	SessionTypeContainer SessionType = 1
 	SessionTypeRemote    SessionType = 2
+	SessionTypeLambda    SessionType = 3
 )
 
 func (s SessionType) ToPb() managerPb.EngineSessionType {
@@ -48,6 +49,8 @@ func (s SessionType) ToPb() managerPb.EngineSessionType {
 		return managerPb.EngineSessionType_session_type_container
 	case SessionTypeRemote:
 		return managerPb.EngineSessionType_session_type_remote
+	case SessionTypeLambda:
+		return managerPb.EngineSessionType_session_type_lambda
 	default:
 		return managerPb.EngineSessionType_session_type_unknown
 	}

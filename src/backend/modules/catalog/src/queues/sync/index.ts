@@ -20,16 +20,6 @@ import { startRankQueue } from '../rank';
 import { indexServerListingQueue } from '../search';
 import { IndexDB } from './indexDb';
 
-let syncCron = createCron(
-  {
-    name: 'cat/sync/cron',
-    cron: '0 * * * *'
-  },
-  async () => {
-    await syncQueue.add({}, { id: 'init' });
-  }
-);
-
 let syncQueue = createQueue({
   name: 'cat/sync',
   workerOpts: {
@@ -41,9 +31,19 @@ let syncQueue = createQueue({
   }
 });
 
-syncQueue
-  .add({}, { id: 'init' })
-  .catch(e => console.error('Error adding to full sync queue', e));
+let syncCron = createCron(
+  {
+    name: 'cat/sync/cron',
+    cron: '0 * * * *'
+  },
+  async () => {
+    // await syncQueue.add({}, { id: 'init' });
+  }
+);
+
+// syncQueue
+//   .add({}, { id: 'init' })
+//   .catch(e => console.error('Error adding to full sync queue', e));
 
 export let syncProcessor = syncQueue.process(async () => {
   if (process.env.DISABLE_CATALOG_SYNC == 'true') {
@@ -137,7 +137,8 @@ export let syncProcessor = syncQueue.process(async () => {
             data: {
               id: await ID.generateId('server'),
               type: 'imported',
-              name: server.name
+              name: server.name,
+              isPublic: true
             }
           }));
 
@@ -211,8 +212,7 @@ export let syncProcessor = syncQueue.process(async () => {
               let schema = await ensureServerConfig(async () => ({
                 fingerprint: await Hash.sha256(canonicalize(version.config)),
                 schema: version.config,
-                serverOid: baseServer.oid,
-                serverVariantOid: ourVariant.oid
+                serverOid: baseServer.oid
               }));
 
               let ourVersion = await ensureServerVersion(

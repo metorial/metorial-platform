@@ -30,20 +30,10 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
         : null
     } as any,
 
-    schema: {
-      id: serverVersion.schema.id,
-      fingerprint: serverVersion.schema.fingerprint,
-      schema:
-        typeof serverVersion.schema.schema == 'string'
-          ? JSON.parse(serverVersion.schema.schema)
-          : serverVersion.schema.schema,
-
-      server_id: serverVersion.server.id,
-      server_variant_id: serverVersion.serverVariant.id,
-      server_version_id: serverVersion.id,
-
-      created_at: serverVersion.schema.createdAt
-    },
+    schema:
+      typeof serverVersion.schema.schema == 'string'
+        ? JSON.parse(serverVersion.schema.schema)
+        : serverVersion.schema.schema,
 
     server: v1ServerPreview(serverVersion.server),
 
@@ -109,44 +99,10 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
         }
       ),
 
-      schema: v.object(
-        {
-          id: v.string({
-            name: 'id',
-            description: 'Unique identifier of the schema'
-          }),
-          fingerprint: v.string({
-            name: 'fingerprint',
-            description: 'Fingerprint hash for schema versioning'
-          }),
-          schema: v.record(v.any(), {
-            name: 'schema',
-            description: 'The actual schema definition'
-          }),
-
-          server_id: v.string({
-            name: 'server_id',
-            description: 'The ID of the server this schema belongs to'
-          }),
-          server_variant_id: v.string({
-            name: 'server_variant_id',
-            description: 'The ID of the server variant this schema belongs to'
-          }),
-          server_version_id: v.string({
-            name: 'server_version_id',
-            description: 'The ID of the server version this schema belongs to'
-          }),
-
-          created_at: v.date({
-            name: 'created_at',
-            description: 'Timestamp when the schema was created'
-          })
-        },
-        {
-          name: 'schema',
-          description: 'Schema details associated with the server version'
-        }
-      ),
+      schema: v.record(v.any(), {
+        name: 'schema',
+        description: 'The actual schema definition'
+      }),
 
       server: v1ServerPreview.schema,
 

@@ -2,13 +2,15 @@ import { runQueueProcessors } from '@metorial/queue';
 
 import { accessQueueProcessor } from '@metorial/module-access';
 import { catalogQueueProcessor } from '@metorial/module-catalog';
+import { codeBucketQueueProcessor } from '@metorial/module-code-bucket';
+import { customServerQueueProcessor } from '@metorial/module-custom-server';
 import { emailQueueProcessor } from '@metorial/module-email';
 import { engineQueueProcessor } from '@metorial/module-engine';
 import { eventQueueProcessor } from '@metorial/module-event';
 import { fileQueueProcessor } from '@metorial/module-file';
 import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
-import { oauthQueueProcessor } from '@metorial/module-oauth';
 import { organizationQueueProcessor } from '@metorial/module-organization';
+import { providerOauthQueueProcessor } from '@metorial/module-provider-oauth';
 import { searchQueueProcessor } from '@metorial/module-search';
 import { secretQueueProcessor } from '@metorial/module-secret';
 import { serverDeploymentQueueProcessor } from '@metorial/module-server-deployment';
@@ -32,6 +34,8 @@ export let worker = runQueueProcessors([
   usageQueueProcessor,
   serverRunnerQueueProcessor,
   sessionQueueProcessor,
-  oauthQueueProcessor,
-  engineQueueProcessor
+  providerOauthQueueProcessor,
+  engineQueueProcessor,
+  customServerQueueProcessor,
+  codeBucketQueueProcessor
 ]);

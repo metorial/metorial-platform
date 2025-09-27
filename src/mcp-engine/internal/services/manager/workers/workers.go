@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	launcherPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/launcher"
+	"github.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote"
 	"github.com/metorial/metorial/mcp-engine/pkg/murmur3"
 )
 
@@ -186,8 +187,23 @@ func (wm *WorkerManager) GetConnectionHashForWorkerType(workerType WorkerType, i
 			return nil, fmt.Errorf("RemoteRunConfig is required to create a connection hash")
 		}
 
-		return []byte(input.RemoteRunConfig.Server.ServerUri), nil
-
+		switch config := input.RemoteRunConfig.Config.(type) {
+		case *remote.RunConfig_RemoteRunConfig:
+			if config.RemoteRunConfig == nil || config.RemoteRunConfig.Server == nil {
+				return nil, fmt.Errorf("RemoteRunConfig.Server is required to create a connection hash")
+			}
+			return []byte(config.RemoteRunConfig.Server.ServerUri), nil
+		case *remote.RunConfig_LambdaRunConfig:
+			if config.LambdaRunConfig == nil || config.LambdaRunConfig.Server == nil {
+				return nil, fmt.Errorf("LambdaRunConfig.Server is required to create a connection hash")
+			}
+			if config.LambdaRunConfig.Server.ProviderResourceAccessIdentifier == nil {
+				return nil, fmt.Errorf("LambdaRunConfig.Server.ProviderResourceAccessIdentifier is required to create a connection hash")
+			}
+			return []byte(*config.LambdaRunConfig.Server.ProviderResourceAccessIdentifier), nil
+		default:
+			return nil, fmt.Errorf("unsupported RemoteRunConfig type: %T", config)
+		}
 	}
 
 	return nil, fmt.Errorf("unsupported worker type: %v", workerType)

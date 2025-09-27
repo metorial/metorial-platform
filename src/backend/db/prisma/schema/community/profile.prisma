@@ -27,6 +27,9 @@ model Profile {
   userOid BigInt? @unique
   user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
 
+  providerOid BigInt?                @unique
+  provider    ServerVariantProvider? @relation(fields: [providerOid], references: [oid], onDelete: SetNull)
+
   vendors                ImportedServerVendor[]
   serverListings         ServerListing[]
   providerOAuthTemplates ProviderOAuthConnectionTemplate[]

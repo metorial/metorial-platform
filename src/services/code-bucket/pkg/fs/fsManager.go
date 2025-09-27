@@ -49,6 +49,11 @@ type FileSystemManager struct {
 	flushTicker *time.Ticker
 }
 
+type FileContentsBase struct {
+	Path    string `json:"path"`
+	Content []byte `json:"content"`
+}
+
 func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 	options := &FileSystemManagerOptions{}
 	for _, opt := range opts {
@@ -377,6 +382,21 @@ func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string,
 
 		queue.AddAndBlockIfFull(func() error {
 			fsm.PutBucketFile(ctx, newBucketId, file.Path, file.Content, "application/octet-stream")
+
+			return nil
+		})
+	}
+
+	return queue.Wait()
+}
+
+func (fsm *FileSystemManager) ImportContents(ctx context.Context, newBucketId string, contents []*FileContentsBase) error {
+	queue := memoryQueue.NewBlockingJobQueue(15)
+
+	for _, file := range contents {
+		f := file
+		queue.AddAndBlockIfFull(func() error {
+			fsm.PutBucketFile(ctx, newBucketId, f.Path, f.Content, "application/octet-stream")
 
 			return nil
 		})

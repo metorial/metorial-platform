@@ -35,6 +35,7 @@ export interface MetorialConfig {
     mcpUrl: string;
     filesUrl: string;
     providerOauthUrl: string;
+    portalsUrl: string;
   };
 
   s3?: {

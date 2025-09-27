@@ -1,0 +1,79 @@
+enum CustomServerDeploymentStatus {
+  queued
+  deploying
+  completed
+  failed
+}
+
+enum CustomServerDeploymentTrigger {
+  manual
+  // git
+}
+
+model CustomServerDeployment {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status  CustomServerDeploymentStatus
+  trigger CustomServerDeploymentTrigger
+
+  customServerOid BigInt
+  customServer    CustomServer @relation(fields: [customServerOid], references: [oid])
+
+  creatorActorOid BigInt
+  creatorActor    OrganizationActor @relation(fields: [creatorActorOid], references: [oid])
+
+  // gitConnectionOid BigInt?
+  // gitActorName String?
+  // gitActorEmail String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  customServerVersion CustomServerVersion?
+  steps               CustomServerDeploymentStep[]
+}
+
+enum CustomServerDeploymentStepType {
+  started
+
+  remote_server_connection_test
+  remote_oauth_auto_discovery
+
+  lambda_deploy_create
+  lambda_deploy_build
+
+  discovering
+  deploying
+  deployed
+}
+
+enum CustomServerDeploymentStepStatus {
+  running
+  completed
+  failed
+}
+
+model CustomServerDeploymentStep {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  index Int
+
+  status CustomServerDeploymentStepStatus
+  type   CustomServerDeploymentStepType
+
+  deploymentOid BigInt
+  deployment    CustomServerDeployment @relation(fields: [deploymentOid], references: [oid])
+
+  s3LogsKey String?
+
+  /// [CustomServerDeploymentStepLogs]
+  logs Json?
+
+  createdAt DateTime  @default(now())
+  startedAt DateTime?
+  endedAt   DateTime?
+}

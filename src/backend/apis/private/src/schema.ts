@@ -6,6 +6,12 @@ type Query {
   getFlags: DFlags!
   getUser: DUser!
   getOrganization: DOrganization!
+
+  getProviderOauthConnectionTestSession(
+    connectionId: String!,
+    instanceId: String!,
+    redirectUri: String!
+  ): DProviderOauthConnectionTestSession!
 }
 
 type DFlags {
@@ -44,7 +50,27 @@ type DUser {
   updatedAt: DateTimeISO!
 }
 
+type DProviderOauthConnectionTestSession {
+  connection: DProviderOauthConnection!
+  testUrl: String!
+}
+
+type DProviderOauthConnection {
+  id: ID!
+  name: String
+  description: String
+  clientId: String
+  scopes: [String!]!  
+  config: JSON!
+  createdAt: DateTimeISO!
+  updatedAt: DateTimeISO!
+  instanceId: String!
+  metadata: JSON
+}
+
 scalar DateTimeISO
+
+scalar JSON
 `;
 
 (async () => {

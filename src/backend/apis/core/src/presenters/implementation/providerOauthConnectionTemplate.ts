@@ -1,3 +1,4 @@
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { shadowId } from '@metorial/shadow-id';
 import { v } from '@metorial/validation';
@@ -18,7 +19,8 @@ export let v1ProviderOauthConnectionTemplatePresenter = Presenter.create(
     name: providerOauthConnectionTemplate.name,
     provider: {
       name: providerOauthConnectionTemplate.providerName,
-      url: providerOauthConnectionTemplate.providerUrl
+      url: providerOauthConnectionTemplate.providerUrl,
+      image_url: await getImageUrl(providerOauthConnectionTemplate)
     },
 
     variables: providerOauthConnectionTemplate.variables.map(variable => ({
@@ -81,6 +83,10 @@ export let v1ProviderOauthConnectionTemplatePresenter = Presenter.create(
           url: v.string({
             name: 'url',
             description: 'The base URL of the provider’s OAuth API'
+          }),
+          image_url: v.string({
+            name: 'image_url',
+            description: 'URL to the provider’s logo or icon image'
           })
         },
         {

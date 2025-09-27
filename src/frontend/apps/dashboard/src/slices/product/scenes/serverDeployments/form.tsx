@@ -1,10 +1,10 @@
 import { canonicalize } from '@metorial/canonicalize';
-import { useForm } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import {
   ServersDeploymentsGetOutput,
   ServersListingsGetOutput
-} from '@metorial/generated/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { useForm } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import {
   useCreateDeployment,
   useCurrentInstance,
@@ -15,7 +15,7 @@ import { Button, Callout, CenteredSpinner, Input, Spacer } from '@metorial/ui';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { JsonSchemaEditor } from '../jsonSchemaEditor/jsonSchemaEditor';
+import { JsonSchemaInput } from '../jsonSchemaInput';
 import { ServerSearch } from '../servers/search';
 import { Stepper } from '../stepper';
 
@@ -72,8 +72,8 @@ export let ServerDeploymentForm = (
     : variants.data?.items[0];
 
   let serverNeedsConfig =
-    variant?.currentVersion?.schema.schema &&
-    Object.entries(variant?.currentVersion?.schema.schema?.properties ?? {}).length > 0;
+    variant?.currentVersion?.schema &&
+    Object.entries(variant?.currentVersion?.schema?.properties ?? {}).length > 0;
 
   if (!serverNeedsConfig && currentStep == 1) currentStep = 2;
 
@@ -227,9 +227,9 @@ export let ServerDeploymentForm = (
                 return <p>This server does not require any configuration.</p>;
 
               return (
-                <JsonSchemaEditor
+                <JsonSchemaInput
                   label="Config"
-                  schema={variant?.currentVersion?.schema.schema ?? {}}
+                  schema={variant?.currentVersion?.schema ?? {}}
                   value={form.values.config}
                   onChange={v => form.setFieldValue('config', v)}
                   variant="raw"

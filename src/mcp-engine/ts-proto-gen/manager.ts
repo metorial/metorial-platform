@@ -37,7 +37,7 @@ import {
   McpResourceTemplate,
   McpTool,
 } from "./mcp";
-import { RunConfig as RunConfig1, RunConfigRemoteServer } from "./remote";
+import { RunConfigLambda, RunConfigLambdaServer, RunConfigRemote, RunConfigRemoteServer } from "./remote";
 import { RunConfig, RunConfigContainer } from "./runner";
 
 export const protobufPackage = "broker.manager";
@@ -97,6 +97,7 @@ export enum EngineSessionType {
   session_type_unknown = 0,
   session_type_container = 1,
   session_type_remote = 2,
+  session_type_lambda = 3,
   UNRECOGNIZED = -1,
 }
 
@@ -111,6 +112,9 @@ export function engineSessionTypeFromJSON(object: any): EngineSessionType {
     case 2:
     case "session_type_remote":
       return EngineSessionType.session_type_remote;
+    case 3:
+    case "session_type_lambda":
+      return EngineSessionType.session_type_lambda;
     case -1:
     case "UNRECOGNIZED":
     default:
@@ -126,6 +130,8 @@ export function engineSessionTypeToJSON(object: EngineSessionType): string {
       return "session_type_container";
     case EngineSessionType.session_type_remote:
       return "session_type_remote";
+    case EngineSessionType.session_type_lambda:
+      return "session_type_lambda";
     case EngineSessionType.UNRECOGNIZED:
     default:
       return "UNRECOGNIZED";
@@ -187,6 +193,7 @@ export enum EngineRunType {
   run_type_unknown = 0,
   run_type_container = 1,
   run_type_remote = 2,
+  run_type_lambda = 3,
   UNRECOGNIZED = -1,
 }
 
@@ -201,6 +208,9 @@ export function engineRunTypeFromJSON(object: any): EngineRunType {
     case 2:
     case "run_type_remote":
       return EngineRunType.run_type_remote;
+    case 3:
+    case "run_type_lambda":
+      return EngineRunType.run_type_lambda;
     case -1:
     case "UNRECOGNIZED":
     default:
@@ -216,6 +226,8 @@ export function engineRunTypeToJSON(object: EngineRunType): string {
       return "run_type_container";
     case EngineRunType.run_type_remote:
       return "run_type_remote";
+    case EngineRunType.run_type_lambda:
+      return "run_type_lambda";
     case EngineRunType.UNRECOGNIZED:
     default:
       return "UNRECOGNIZED";
@@ -406,6 +418,15 @@ export interface CheckActiveSessionResponse {
   session: EngineSession | undefined;
 }
 
+export interface StatefulServerInfo {
+  capabilitiesJson: string;
+  serverInfoJson: string;
+  instructionsJson: string;
+  toolsJson: string;
+  promptsJson: string;
+  resourceTemplatesJson: string;
+}
+
 export interface CreateSessionRequest {
   sessionId: string;
   config: SessionConfig | undefined;
@@ -431,11 +452,18 @@ export interface RemoteRunConfigWithLauncher {
   launcher: LauncherConfig | undefined;
 }
 
+export interface LambdaRunConfigWithLauncher {
+  server: RunConfigLambdaServer | undefined;
+  launcher: LauncherConfig | undefined;
+}
+
 export interface ServerConfig {
   containerRunConfigWithLauncher?: ContainerRunConfigWithLauncher | undefined;
   containerRunConfigWithContainerArguments?: RunConfig | undefined;
   remoteRunConfigWithLauncher?: RemoteRunConfigWithLauncher | undefined;
-  remoteRunConfigWithServer?: RunConfig1 | undefined;
+  remoteRunConfigWithServer?: RunConfigRemote | undefined;
+  lambdaRunConfigWithLauncher?: LambdaRunConfigWithLauncher | undefined;
+  lambdaRunConfigWithServer?: RunConfigLambda | undefined;
 }
 
 export interface SessionConfig {
@@ -444,6 +472,7 @@ export interface SessionConfig {
     | undefined;
   /** Optional, MCP specific configuration */
   mcpConfig: McpConfig | undefined;
+  statefulServerInfo?: StatefulServerInfo | undefined;
 }
 
 export interface CreateSessionResponse {
@@ -1132,6 +1161,153 @@ export const CheckActiveSessionResponse: MessageFns<CheckActiveSessionResponse> 
   },
 };
 
+function createBaseStatefulServerInfo(): StatefulServerInfo {
+  return {
+    capabilitiesJson: "",
+    serverInfoJson: "",
+    instructionsJson: "",
+    toolsJson: "",
+    promptsJson: "",
+    resourceTemplatesJson: "",
+  };
+}
+
+export const StatefulServerInfo: MessageFns<StatefulServerInfo> = {
+  encode(message: StatefulServerInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.capabilitiesJson !== "") {
+      writer.uint32(10).string(message.capabilitiesJson);
+    }
+    if (message.serverInfoJson !== "") {
+      writer.uint32(18).string(message.serverInfoJson);
+    }
+    if (message.instructionsJson !== "") {
+      writer.uint32(26).string(message.instructionsJson);
+    }
+    if (message.toolsJson !== "") {
+      writer.uint32(34).string(message.toolsJson);
+    }
+    if (message.promptsJson !== "") {
+      writer.uint32(42).string(message.promptsJson);
+    }
+    if (message.resourceTemplatesJson !== "") {
+      writer.uint32(50).string(message.resourceTemplatesJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): StatefulServerInfo {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseStatefulServerInfo();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.capabilitiesJson = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.serverInfoJson = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.instructionsJson = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.toolsJson = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.promptsJson = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.resourceTemplatesJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): StatefulServerInfo {
+    return {
+      capabilitiesJson: isSet(object.capabilitiesJson) ? globalThis.String(object.capabilitiesJson) : "",
+      serverInfoJson: isSet(object.serverInfoJson) ? globalThis.String(object.serverInfoJson) : "",
+      instructionsJson: isSet(object.instructionsJson) ? globalThis.String(object.instructionsJson) : "",
+      toolsJson: isSet(object.toolsJson) ? globalThis.String(object.toolsJson) : "",
+      promptsJson: isSet(object.promptsJson) ? globalThis.String(object.promptsJson) : "",
+      resourceTemplatesJson: isSet(object.resourceTemplatesJson) ? globalThis.String(object.resourceTemplatesJson) : "",
+    };
+  },
+
+  toJSON(message: StatefulServerInfo): unknown {
+    const obj: any = {};
+    if (message.capabilitiesJson !== "") {
+      obj.capabilitiesJson = message.capabilitiesJson;
+    }
+    if (message.serverInfoJson !== "") {
+      obj.serverInfoJson = message.serverInfoJson;
+    }
+    if (message.instructionsJson !== "") {
+      obj.instructionsJson = message.instructionsJson;
+    }
+    if (message.toolsJson !== "") {
+      obj.toolsJson = message.toolsJson;
+    }
+    if (message.promptsJson !== "") {
+      obj.promptsJson = message.promptsJson;
+    }
+    if (message.resourceTemplatesJson !== "") {
+      obj.resourceTemplatesJson = message.resourceTemplatesJson;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<StatefulServerInfo>): StatefulServerInfo {
+    return StatefulServerInfo.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<StatefulServerInfo>): StatefulServerInfo {
+    const message = createBaseStatefulServerInfo();
+    message.capabilitiesJson = object.capabilitiesJson ?? "";
+    message.serverInfoJson = object.serverInfoJson ?? "";
+    message.instructionsJson = object.instructionsJson ?? "";
+    message.toolsJson = object.toolsJson ?? "";
+    message.promptsJson = object.promptsJson ?? "";
+    message.resourceTemplatesJson = object.resourceTemplatesJson ?? "";
+    return message;
+  },
+};
+
 function createBaseCreateSessionRequest(): CreateSessionRequest {
   return { sessionId: "", config: undefined, mcpClient: undefined, metadata: {} };
 }
@@ -1499,12 +1675,94 @@ export const RemoteRunConfigWithLauncher: MessageFns<RemoteRunConfigWithLauncher
   },
 };
 
+function createBaseLambdaRunConfigWithLauncher(): LambdaRunConfigWithLauncher {
+  return { server: undefined, launcher: undefined };
+}
+
+export const LambdaRunConfigWithLauncher: MessageFns<LambdaRunConfigWithLauncher> = {
+  encode(message: LambdaRunConfigWithLauncher, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.server !== undefined) {
+      RunConfigLambdaServer.encode(message.server, writer.uint32(10).fork()).join();
+    }
+    if (message.launcher !== undefined) {
+      LauncherConfig.encode(message.launcher, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): LambdaRunConfigWithLauncher {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseLambdaRunConfigWithLauncher();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.server = RunConfigLambdaServer.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.launcher = LauncherConfig.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): LambdaRunConfigWithLauncher {
+    return {
+      server: isSet(object.server) ? RunConfigLambdaServer.fromJSON(object.server) : undefined,
+      launcher: isSet(object.launcher) ? LauncherConfig.fromJSON(object.launcher) : undefined,
+    };
+  },
+
+  toJSON(message: LambdaRunConfigWithLauncher): unknown {
+    const obj: any = {};
+    if (message.server !== undefined) {
+      obj.server = RunConfigLambdaServer.toJSON(message.server);
+    }
+    if (message.launcher !== undefined) {
+      obj.launcher = LauncherConfig.toJSON(message.launcher);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<LambdaRunConfigWithLauncher>): LambdaRunConfigWithLauncher {
+    return LambdaRunConfigWithLauncher.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<LambdaRunConfigWithLauncher>): LambdaRunConfigWithLauncher {
+    const message = createBaseLambdaRunConfigWithLauncher();
+    message.server = (object.server !== undefined && object.server !== null)
+      ? RunConfigLambdaServer.fromPartial(object.server)
+      : undefined;
+    message.launcher = (object.launcher !== undefined && object.launcher !== null)
+      ? LauncherConfig.fromPartial(object.launcher)
+      : undefined;
+    return message;
+  },
+};
+
 function createBaseServerConfig(): ServerConfig {
   return {
     containerRunConfigWithLauncher: undefined,
     containerRunConfigWithContainerArguments: undefined,
     remoteRunConfigWithLauncher: undefined,
     remoteRunConfigWithServer: undefined,
+    lambdaRunConfigWithLauncher: undefined,
+    lambdaRunConfigWithServer: undefined,
   };
 }
 
@@ -1520,7 +1778,13 @@ export const ServerConfig: MessageFns<ServerConfig> = {
       RemoteRunConfigWithLauncher.encode(message.remoteRunConfigWithLauncher, writer.uint32(26).fork()).join();
     }
     if (message.remoteRunConfigWithServer !== undefined) {
-      RunConfig1.encode(message.remoteRunConfigWithServer, writer.uint32(34).fork()).join();
+      RunConfigRemote.encode(message.remoteRunConfigWithServer, writer.uint32(34).fork()).join();
+    }
+    if (message.lambdaRunConfigWithLauncher !== undefined) {
+      LambdaRunConfigWithLauncher.encode(message.lambdaRunConfigWithLauncher, writer.uint32(42).fork()).join();
+    }
+    if (message.lambdaRunConfigWithServer !== undefined) {
+      RunConfigLambda.encode(message.lambdaRunConfigWithServer, writer.uint32(50).fork()).join();
     }
     return writer;
   },
@@ -1561,7 +1825,23 @@ export const ServerConfig: MessageFns<ServerConfig> = {
             break;
           }
 
-          message.remoteRunConfigWithServer = RunConfig1.decode(reader, reader.uint32());
+          message.remoteRunConfigWithServer = RunConfigRemote.decode(reader, reader.uint32());
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.lambdaRunConfigWithLauncher = LambdaRunConfigWithLauncher.decode(reader, reader.uint32());
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.lambdaRunConfigWithServer = RunConfigLambda.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -1585,7 +1865,13 @@ export const ServerConfig: MessageFns<ServerConfig> = {
         ? RemoteRunConfigWithLauncher.fromJSON(object.remoteRunConfigWithLauncher)
         : undefined,
       remoteRunConfigWithServer: isSet(object.remoteRunConfigWithServer)
-        ? RunConfig1.fromJSON(object.remoteRunConfigWithServer)
+        ? RunConfigRemote.fromJSON(object.remoteRunConfigWithServer)
+        : undefined,
+      lambdaRunConfigWithLauncher: isSet(object.lambdaRunConfigWithLauncher)
+        ? LambdaRunConfigWithLauncher.fromJSON(object.lambdaRunConfigWithLauncher)
+        : undefined,
+      lambdaRunConfigWithServer: isSet(object.lambdaRunConfigWithServer)
+        ? RunConfigLambda.fromJSON(object.lambdaRunConfigWithServer)
         : undefined,
     };
   },
@@ -1604,7 +1890,13 @@ export const ServerConfig: MessageFns<ServerConfig> = {
       obj.remoteRunConfigWithLauncher = RemoteRunConfigWithLauncher.toJSON(message.remoteRunConfigWithLauncher);
     }
     if (message.remoteRunConfigWithServer !== undefined) {
-      obj.remoteRunConfigWithServer = RunConfig1.toJSON(message.remoteRunConfigWithServer);
+      obj.remoteRunConfigWithServer = RunConfigRemote.toJSON(message.remoteRunConfigWithServer);
+    }
+    if (message.lambdaRunConfigWithLauncher !== undefined) {
+      obj.lambdaRunConfigWithLauncher = LambdaRunConfigWithLauncher.toJSON(message.lambdaRunConfigWithLauncher);
+    }
+    if (message.lambdaRunConfigWithServer !== undefined) {
+      obj.lambdaRunConfigWithServer = RunConfigLambda.toJSON(message.lambdaRunConfigWithServer);
     }
     return obj;
   },
@@ -1629,14 +1921,22 @@ export const ServerConfig: MessageFns<ServerConfig> = {
         : undefined;
     message.remoteRunConfigWithServer =
       (object.remoteRunConfigWithServer !== undefined && object.remoteRunConfigWithServer !== null)
-        ? RunConfig1.fromPartial(object.remoteRunConfigWithServer)
+        ? RunConfigRemote.fromPartial(object.remoteRunConfigWithServer)
+        : undefined;
+    message.lambdaRunConfigWithLauncher =
+      (object.lambdaRunConfigWithLauncher !== undefined && object.lambdaRunConfigWithLauncher !== null)
+        ? LambdaRunConfigWithLauncher.fromPartial(object.lambdaRunConfigWithLauncher)
+        : undefined;
+    message.lambdaRunConfigWithServer =
+      (object.lambdaRunConfigWithServer !== undefined && object.lambdaRunConfigWithServer !== null)
+        ? RunConfigLambda.fromPartial(object.lambdaRunConfigWithServer)
         : undefined;
     return message;
   },
 };
 
 function createBaseSessionConfig(): SessionConfig {
-  return { serverConfig: undefined, mcpConfig: undefined };
+  return { serverConfig: undefined, mcpConfig: undefined, statefulServerInfo: undefined };
 }
 
 export const SessionConfig: MessageFns<SessionConfig> = {
@@ -1646,6 +1946,9 @@ export const SessionConfig: MessageFns<SessionConfig> = {
     }
     if (message.mcpConfig !== undefined) {
       McpConfig.encode(message.mcpConfig, writer.uint32(82).fork()).join();
+    }
+    if (message.statefulServerInfo !== undefined) {
+      StatefulServerInfo.encode(message.statefulServerInfo, writer.uint32(50).fork()).join();
     }
     return writer;
   },
@@ -1673,6 +1976,14 @@ export const SessionConfig: MessageFns<SessionConfig> = {
           message.mcpConfig = McpConfig.decode(reader, reader.uint32());
           continue;
         }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.statefulServerInfo = StatefulServerInfo.decode(reader, reader.uint32());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1686,6 +1997,9 @@ export const SessionConfig: MessageFns<SessionConfig> = {
     return {
       serverConfig: isSet(object.serverConfig) ? ServerConfig.fromJSON(object.serverConfig) : undefined,
       mcpConfig: isSet(object.mcpConfig) ? McpConfig.fromJSON(object.mcpConfig) : undefined,
+      statefulServerInfo: isSet(object.statefulServerInfo)
+        ? StatefulServerInfo.fromJSON(object.statefulServerInfo)
+        : undefined,
     };
   },
 
@@ -1696,6 +2010,9 @@ export const SessionConfig: MessageFns<SessionConfig> = {
     }
     if (message.mcpConfig !== undefined) {
       obj.mcpConfig = McpConfig.toJSON(message.mcpConfig);
+    }
+    if (message.statefulServerInfo !== undefined) {
+      obj.statefulServerInfo = StatefulServerInfo.toJSON(message.statefulServerInfo);
     }
     return obj;
   },
@@ -1710,6 +2027,9 @@ export const SessionConfig: MessageFns<SessionConfig> = {
       : undefined;
     message.mcpConfig = (object.mcpConfig !== undefined && object.mcpConfig !== null)
       ? McpConfig.fromPartial(object.mcpConfig)
+      : undefined;
+    message.statefulServerInfo = (object.statefulServerInfo !== undefined && object.statefulServerInfo !== null)
+      ? StatefulServerInfo.fromPartial(object.statefulServerInfo)
       : undefined;
     return message;
   },

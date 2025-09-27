@@ -49,7 +49,11 @@ export let InlineCopy = (props: {
   return (
     <Tooltip content={props.tooltip ?? 'Copy'}>
       <Button
-        onClick={() => {
+        type="button"
+        onClick={e => {
+          e.stopPropagation();
+          e.preventDefault();
+
           copy(props.value!);
           toast.success('Copied to clipboard');
 

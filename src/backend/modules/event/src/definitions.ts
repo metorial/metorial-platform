@@ -8,7 +8,8 @@ import {
   ServerImplementation,
   ServerSession,
   ServerVariant,
-  Session
+  Session,
+  SessionServerDeployment
 } from '@metorial/db';
 
 export type EventTypesFilePayload = {
@@ -37,9 +38,11 @@ export type EventTypesServerDeploymentPayload = {
 
 export type EventTypesSessionPayload = {
   session: Session & {
-    serverDeployments: (ServerDeployment & {
-      server: Server;
-      serverVariant: ServerVariant;
+    serverDeployments: (SessionServerDeployment & {
+      serverDeployment: ServerDeployment & {
+        server: Server;
+        serverVariant: ServerVariant;
+      };
     })[];
     // serverSessions: (ServerSession & {
     //   serverDeployment: ServerDeployment & {

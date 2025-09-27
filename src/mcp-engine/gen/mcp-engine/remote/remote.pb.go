@@ -69,6 +69,49 @@ func (RunConfigRemoteServer_ServerProtocol) EnumDescriptor() ([]byte, []int) {
 	return file_remote_proto_rawDescGZIP(), []int{2, 0}
 }
 
+type RunConfigLambdaServer_Protocol int32
+
+const (
+	RunConfigLambdaServer_metorial_stellar_over_websocket_v1 RunConfigLambdaServer_Protocol = 0
+)
+
+// Enum value maps for RunConfigLambdaServer_Protocol.
+var (
+	RunConfigLambdaServer_Protocol_name = map[int32]string{
+		0: "metorial_stellar_over_websocket_v1",
+	}
+	RunConfigLambdaServer_Protocol_value = map[string]int32{
+		"metorial_stellar_over_websocket_v1": 0,
+	}
+)
+
+func (x RunConfigLambdaServer_Protocol) Enum() *RunConfigLambdaServer_Protocol {
+	p := new(RunConfigLambdaServer_Protocol)
+	*p = x
+	return p
+}
+
+func (x RunConfigLambdaServer_Protocol) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RunConfigLambdaServer_Protocol) Descriptor() protoreflect.EnumDescriptor {
+	return file_remote_proto_enumTypes[1].Descriptor()
+}
+
+func (RunConfigLambdaServer_Protocol) Type() protoreflect.EnumType {
+	return &file_remote_proto_enumTypes[1]
+}
+
+func (x RunConfigLambdaServer_Protocol) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RunConfigLambdaServer_Protocol.Descriptor instead.
+func (RunConfigLambdaServer_Protocol) EnumDescriptor() ([]byte, []int) {
+	return file_remote_proto_rawDescGZIP(), []int{5, 0}
+}
+
 type RemoteInfoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -277,7 +320,7 @@ func (x *RunConfigRemoteArguments) GetQuery() map[string]string {
 	return nil
 }
 
-type RunConfig struct {
+type RunConfigRemote struct {
 	state         protoimpl.MessageState    `protogen:"open.v1"`
 	Server        *RunConfigRemoteServer    `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
 	Arguments     *RunConfigRemoteArguments `protobuf:"bytes,2,opt,name=arguments,proto3" json:"arguments,omitempty"`
@@ -285,9 +328,220 @@ type RunConfig struct {
 	sizeCache     protoimpl.SizeCache
 }
 
+func (x *RunConfigRemote) Reset() {
+	*x = RunConfigRemote{}
+	mi := &file_remote_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunConfigRemote) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunConfigRemote) ProtoMessage() {}
+
+func (x *RunConfigRemote) ProtoReflect() protoreflect.Message {
+	mi := &file_remote_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunConfigRemote.ProtoReflect.Descriptor instead.
+func (*RunConfigRemote) Descriptor() ([]byte, []int) {
+	return file_remote_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RunConfigRemote) GetServer() *RunConfigRemoteServer {
+	if x != nil {
+		return x.Server
+	}
+	return nil
+}
+
+func (x *RunConfigRemote) GetArguments() *RunConfigRemoteArguments {
+	if x != nil {
+		return x.Arguments
+	}
+	return nil
+}
+
+type RunConfigLambdaServer struct {
+	state                            protoimpl.MessageState         `protogen:"open.v1"`
+	Protocol                         RunConfigLambdaServer_Protocol `protobuf:"varint,1,opt,name=protocol,proto3,enum=broker.remote.RunConfigLambdaServer_Protocol" json:"protocol,omitempty"`
+	ProviderResourceAccessIdentifier *string                        `protobuf:"bytes,2,opt,name=provider_resource_access_identifier,json=providerResourceAccessIdentifier,proto3,oneof" json:"provider_resource_access_identifier,omitempty"`
+	SecurityToken                    *string                        `protobuf:"bytes,3,opt,name=security_token,json=securityToken,proto3,oneof" json:"security_token,omitempty"`
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
+}
+
+func (x *RunConfigLambdaServer) Reset() {
+	*x = RunConfigLambdaServer{}
+	mi := &file_remote_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunConfigLambdaServer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunConfigLambdaServer) ProtoMessage() {}
+
+func (x *RunConfigLambdaServer) ProtoReflect() protoreflect.Message {
+	mi := &file_remote_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunConfigLambdaServer.ProtoReflect.Descriptor instead.
+func (*RunConfigLambdaServer) Descriptor() ([]byte, []int) {
+	return file_remote_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RunConfigLambdaServer) GetProtocol() RunConfigLambdaServer_Protocol {
+	if x != nil {
+		return x.Protocol
+	}
+	return RunConfigLambdaServer_metorial_stellar_over_websocket_v1
+}
+
+func (x *RunConfigLambdaServer) GetProviderResourceAccessIdentifier() string {
+	if x != nil && x.ProviderResourceAccessIdentifier != nil {
+		return *x.ProviderResourceAccessIdentifier
+	}
+	return ""
+}
+
+func (x *RunConfigLambdaServer) GetSecurityToken() string {
+	if x != nil && x.SecurityToken != nil {
+		return *x.SecurityToken
+	}
+	return ""
+}
+
+type RunConfigLambdaArguments struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JsonArguments string                 `protobuf:"bytes,1,opt,name=json_arguments,json=jsonArguments,proto3" json:"json_arguments,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunConfigLambdaArguments) Reset() {
+	*x = RunConfigLambdaArguments{}
+	mi := &file_remote_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunConfigLambdaArguments) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunConfigLambdaArguments) ProtoMessage() {}
+
+func (x *RunConfigLambdaArguments) ProtoReflect() protoreflect.Message {
+	mi := &file_remote_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunConfigLambdaArguments.ProtoReflect.Descriptor instead.
+func (*RunConfigLambdaArguments) Descriptor() ([]byte, []int) {
+	return file_remote_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *RunConfigLambdaArguments) GetJsonArguments() string {
+	if x != nil {
+		return x.JsonArguments
+	}
+	return ""
+}
+
+type RunConfigLambda struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Server        *RunConfigLambdaServer    `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
+	Arguments     *RunConfigLambdaArguments `protobuf:"bytes,2,opt,name=arguments,proto3" json:"arguments,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunConfigLambda) Reset() {
+	*x = RunConfigLambda{}
+	mi := &file_remote_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunConfigLambda) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunConfigLambda) ProtoMessage() {}
+
+func (x *RunConfigLambda) ProtoReflect() protoreflect.Message {
+	mi := &file_remote_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunConfigLambda.ProtoReflect.Descriptor instead.
+func (*RunConfigLambda) Descriptor() ([]byte, []int) {
+	return file_remote_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RunConfigLambda) GetServer() *RunConfigLambdaServer {
+	if x != nil {
+		return x.Server
+	}
+	return nil
+}
+
+func (x *RunConfigLambda) GetArguments() *RunConfigLambdaArguments {
+	if x != nil {
+		return x.Arguments
+	}
+	return nil
+}
+
+type RunConfig struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Config:
+	//
+	//	*RunConfig_RemoteRunConfig
+	//	*RunConfig_LambdaRunConfig
+	Config        isRunConfig_Config `protobuf_oneof:"config"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
 func (x *RunConfig) Reset() {
 	*x = RunConfig{}
-	mi := &file_remote_proto_msgTypes[4]
+	mi := &file_remote_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -299,7 +553,7 @@ func (x *RunConfig) String() string {
 func (*RunConfig) ProtoMessage() {}
 
 func (x *RunConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_remote_proto_msgTypes[4]
+	mi := &file_remote_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -312,22 +566,49 @@ func (x *RunConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunConfig.ProtoReflect.Descriptor instead.
 func (*RunConfig) Descriptor() ([]byte, []int) {
-	return file_remote_proto_rawDescGZIP(), []int{4}
+	return file_remote_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *RunConfig) GetServer() *RunConfigRemoteServer {
+func (x *RunConfig) GetConfig() isRunConfig_Config {
 	if x != nil {
-		return x.Server
+		return x.Config
 	}
 	return nil
 }
 
-func (x *RunConfig) GetArguments() *RunConfigRemoteArguments {
+func (x *RunConfig) GetRemoteRunConfig() *RunConfigRemote {
 	if x != nil {
-		return x.Arguments
+		if x, ok := x.Config.(*RunConfig_RemoteRunConfig); ok {
+			return x.RemoteRunConfig
+		}
 	}
 	return nil
 }
+
+func (x *RunConfig) GetLambdaRunConfig() *RunConfigLambda {
+	if x != nil {
+		if x, ok := x.Config.(*RunConfig_LambdaRunConfig); ok {
+			return x.LambdaRunConfig
+		}
+	}
+	return nil
+}
+
+type isRunConfig_Config interface {
+	isRunConfig_Config()
+}
+
+type RunConfig_RemoteRunConfig struct {
+	RemoteRunConfig *RunConfigRemote `protobuf:"bytes,1,opt,name=remote_run_config,json=remoteRunConfig,proto3,oneof"`
+}
+
+type RunConfig_LambdaRunConfig struct {
+	LambdaRunConfig *RunConfigLambda `protobuf:"bytes,2,opt,name=lambda_run_config,json=lambdaRunConfig,proto3,oneof"`
+}
+
+func (*RunConfig_RemoteRunConfig) isRunConfig_Config() {}
+
+func (*RunConfig_LambdaRunConfig) isRunConfig_Config() {}
 
 type RunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -343,7 +624,7 @@ type RunRequest struct {
 
 func (x *RunRequest) Reset() {
 	*x = RunRequest{}
-	mi := &file_remote_proto_msgTypes[5]
+	mi := &file_remote_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -355,7 +636,7 @@ func (x *RunRequest) String() string {
 func (*RunRequest) ProtoMessage() {}
 
 func (x *RunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_remote_proto_msgTypes[5]
+	mi := &file_remote_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -368,7 +649,7 @@ func (x *RunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunRequest.ProtoReflect.Descriptor instead.
 func (*RunRequest) Descriptor() ([]byte, []int) {
-	return file_remote_proto_rawDescGZIP(), []int{5}
+	return file_remote_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RunRequest) GetType() isRunRequest_Type {
@@ -437,7 +718,7 @@ type RunRequestInit struct {
 
 func (x *RunRequestInit) Reset() {
 	*x = RunRequestInit{}
-	mi := &file_remote_proto_msgTypes[6]
+	mi := &file_remote_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -449,7 +730,7 @@ func (x *RunRequestInit) String() string {
 func (*RunRequestInit) ProtoMessage() {}
 
 func (x *RunRequestInit) ProtoReflect() protoreflect.Message {
-	mi := &file_remote_proto_msgTypes[6]
+	mi := &file_remote_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -462,7 +743,7 @@ func (x *RunRequestInit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunRequestInit.ProtoReflect.Descriptor instead.
 func (*RunRequestInit) Descriptor() ([]byte, []int) {
-	return file_remote_proto_rawDescGZIP(), []int{6}
+	return file_remote_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RunRequestInit) GetConnectionId() string {
@@ -488,7 +769,7 @@ type RunRequestMcpMessage struct {
 
 func (x *RunRequestMcpMessage) Reset() {
 	*x = RunRequestMcpMessage{}
-	mi := &file_remote_proto_msgTypes[7]
+	mi := &file_remote_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -500,7 +781,7 @@ func (x *RunRequestMcpMessage) String() string {
 func (*RunRequestMcpMessage) ProtoMessage() {}
 
 func (x *RunRequestMcpMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_remote_proto_msgTypes[7]
+	mi := &file_remote_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -513,7 +794,7 @@ func (x *RunRequestMcpMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunRequestMcpMessage.ProtoReflect.Descriptor instead.
 func (*RunRequestMcpMessage) Descriptor() ([]byte, []int) {
-	return file_remote_proto_rawDescGZIP(), []int{7}
+	return file_remote_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RunRequestMcpMessage) GetMessage() *mcp.McpMessageRaw {
@@ -531,7 +812,7 @@ type RunRequestClose struct {
 
 func (x *RunRequestClose) Reset() {
 	*x = RunRequestClose{}
-	mi := &file_remote_proto_msgTypes[8]
+	mi := &file_remote_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -543,7 +824,7 @@ func (x *RunRequestClose) String() string {
 func (*RunRequestClose) ProtoMessage() {}
 
 func (x *RunRequestClose) ProtoReflect() protoreflect.Message {
-	mi := &file_remote_proto_msgTypes[8]
+	mi := &file_remote_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -556,7 +837,7 @@ func (x *RunRequestClose) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunRequestClose.ProtoReflect.Descriptor instead.
 func (*RunRequestClose) Descriptor() ([]byte, []int) {
-	return file_remote_proto_rawDescGZIP(), []int{8}
+	return file_remote_proto_rawDescGZIP(), []int{12}
 }
 
 type RunResponse struct {
@@ -575,7 +856,7 @@ type RunResponse struct {
 
 func (x *RunResponse) Reset() {
 	*x = RunResponse{}
-	mi := &file_remote_proto_msgTypes[9]
+	mi := &file_remote_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -587,7 +868,7 @@ func (x *RunResponse) String() string {
 func (*RunResponse) ProtoMessage() {}
 
 func (x *RunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_remote_proto_msgTypes[9]
+	mi := &file_remote_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -600,7 +881,7 @@ func (x *RunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponse.ProtoReflect.Descriptor instead.
 func (*RunResponse) Descriptor() ([]byte, []int) {
-	return file_remote_proto_rawDescGZIP(), []int{9}
+	return file_remote_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RunResponse) GetType() isRunResponse_Type {
@@ -697,7 +978,7 @@ type RunResponseInit struct {
 
 func (x *RunResponseInit) Reset() {
 	*x = RunResponseInit{}
-	mi := &file_remote_proto_msgTypes[10]
+	mi := &file_remote_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -709,7 +990,7 @@ func (x *RunResponseInit) String() string {
 func (*RunResponseInit) ProtoMessage() {}
 
 func (x *RunResponseInit) ProtoReflect() protoreflect.Message {
-	mi := &file_remote_proto_msgTypes[10]
+	mi := &file_remote_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -722,7 +1003,7 @@ func (x *RunResponseInit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseInit.ProtoReflect.Descriptor instead.
 func (*RunResponseInit) Descriptor() ([]byte, []int) {
-	return file_remote_proto_rawDescGZIP(), []int{10}
+	return file_remote_proto_rawDescGZIP(), []int{14}
 }
 
 type RunResponseMcpMessage struct {
@@ -734,7 +1015,7 @@ type RunResponseMcpMessage struct {
 
 func (x *RunResponseMcpMessage) Reset() {
 	*x = RunResponseMcpMessage{}
-	mi := &file_remote_proto_msgTypes[11]
+	mi := &file_remote_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -746,7 +1027,7 @@ func (x *RunResponseMcpMessage) String() string {
 func (*RunResponseMcpMessage) ProtoMessage() {}
 
 func (x *RunResponseMcpMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_remote_proto_msgTypes[11]
+	mi := &file_remote_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -759,7 +1040,7 @@ func (x *RunResponseMcpMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseMcpMessage.ProtoReflect.Descriptor instead.
 func (*RunResponseMcpMessage) Descriptor() ([]byte, []int) {
-	return file_remote_proto_rawDescGZIP(), []int{11}
+	return file_remote_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *RunResponseMcpMessage) GetMessage() *mcp.McpMessage {
@@ -778,7 +1059,7 @@ type RunResponseError struct {
 
 func (x *RunResponseError) Reset() {
 	*x = RunResponseError{}
-	mi := &file_remote_proto_msgTypes[12]
+	mi := &file_remote_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -790,7 +1071,7 @@ func (x *RunResponseError) String() string {
 func (*RunResponseError) ProtoMessage() {}
 
 func (x *RunResponseError) ProtoReflect() protoreflect.Message {
-	mi := &file_remote_proto_msgTypes[12]
+	mi := &file_remote_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -803,7 +1084,7 @@ func (x *RunResponseError) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseError.ProtoReflect.Descriptor instead.
 func (*RunResponseError) Descriptor() ([]byte, []int) {
-	return file_remote_proto_rawDescGZIP(), []int{12}
+	return file_remote_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *RunResponseError) GetMcpError() *mcp.McpError {
@@ -822,7 +1103,7 @@ type RunResponseOutput struct {
 
 func (x *RunResponseOutput) Reset() {
 	*x = RunResponseOutput{}
-	mi := &file_remote_proto_msgTypes[13]
+	mi := &file_remote_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -834,7 +1115,7 @@ func (x *RunResponseOutput) String() string {
 func (*RunResponseOutput) ProtoMessage() {}
 
 func (x *RunResponseOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_remote_proto_msgTypes[13]
+	mi := &file_remote_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -847,7 +1128,7 @@ func (x *RunResponseOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseOutput.ProtoReflect.Descriptor instead.
 func (*RunResponseOutput) Descriptor() ([]byte, []int) {
-	return file_remote_proto_rawDescGZIP(), []int{13}
+	return file_remote_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *RunResponseOutput) GetMcpOutput() *mcp.McpOutput {
@@ -865,7 +1146,7 @@ type RunResponseClose struct {
 
 func (x *RunResponseClose) Reset() {
 	*x = RunResponseClose{}
-	mi := &file_remote_proto_msgTypes[14]
+	mi := &file_remote_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -877,7 +1158,7 @@ func (x *RunResponseClose) String() string {
 func (*RunResponseClose) ProtoMessage() {}
 
 func (x *RunResponseClose) ProtoReflect() protoreflect.Message {
-	mi := &file_remote_proto_msgTypes[14]
+	mi := &file_remote_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -890,7 +1171,7 @@ func (x *RunResponseClose) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResponseClose.ProtoReflect.Descriptor instead.
 func (*RunResponseClose) Descriptor() ([]byte, []int) {
-	return file_remote_proto_rawDescGZIP(), []int{14}
+	return file_remote_proto_rawDescGZIP(), []int{18}
 }
 
 var File_remote_proto protoreflect.FileDescriptor
@@ -921,10 +1202,27 @@ const file_remote_proto_rawDesc = "" +
 	"\n" +
 	"QueryEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x90\x01\n" +
-	"\tRunConfig\x12<\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x96\x01\n" +
+	"\x0fRunConfigRemote\x12<\n" +
 	"\x06server\x18\x01 \x01(\v2$.broker.remote.RunConfigRemoteServerR\x06server\x12E\n" +
-	"\targuments\x18\x02 \x01(\v2'.broker.remote.RunConfigRemoteArgumentsR\targuments\"\xc9\x01\n" +
+	"\targuments\x18\x02 \x01(\v2'.broker.remote.RunConfigRemoteArgumentsR\targuments\"\xd1\x02\n" +
+	"\x15RunConfigLambdaServer\x12I\n" +
+	"\bprotocol\x18\x01 \x01(\x0e2-.broker.remote.RunConfigLambdaServer.ProtocolR\bprotocol\x12R\n" +
+	"#provider_resource_access_identifier\x18\x02 \x01(\tH\x00R providerResourceAccessIdentifier\x88\x01\x01\x12*\n" +
+	"\x0esecurity_token\x18\x03 \x01(\tH\x01R\rsecurityToken\x88\x01\x01\"2\n" +
+	"\bProtocol\x12&\n" +
+	"\"metorial_stellar_over_websocket_v1\x10\x00B&\n" +
+	"$_provider_resource_access_identifierB\x11\n" +
+	"\x0f_security_token\"A\n" +
+	"\x18RunConfigLambdaArguments\x12%\n" +
+	"\x0ejson_arguments\x18\x01 \x01(\tR\rjsonArguments\"\x96\x01\n" +
+	"\x0fRunConfigLambda\x12<\n" +
+	"\x06server\x18\x01 \x01(\v2$.broker.remote.RunConfigLambdaServerR\x06server\x12E\n" +
+	"\targuments\x18\x02 \x01(\v2'.broker.remote.RunConfigLambdaArgumentsR\targuments\"\xb1\x01\n" +
+	"\tRunConfig\x12L\n" +
+	"\x11remote_run_config\x18\x01 \x01(\v2\x1e.broker.remote.RunConfigRemoteH\x00R\x0fremoteRunConfig\x12L\n" +
+	"\x11lambda_run_config\x18\x02 \x01(\v2\x1e.broker.remote.RunConfigLambdaH\x00R\x0flambdaRunConfigB\b\n" +
+	"\x06config\"\xc9\x01\n" +
 	"\n" +
 	"RunRequest\x123\n" +
 	"\x04init\x18\x01 \x01(\v2\x1d.broker.remote.RunRequestInitH\x00R\x04init\x12F\n" +
@@ -971,60 +1269,70 @@ func file_remote_proto_rawDescGZIP() []byte {
 	return file_remote_proto_rawDescData
 }
 
-var file_remote_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_remote_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_remote_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_remote_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_remote_proto_goTypes = []any{
 	(RunConfigRemoteServer_ServerProtocol)(0), // 0: broker.remote.RunConfigRemoteServer.ServerProtocol
-	(*RemoteInfoRequest)(nil),                 // 1: broker.remote.RemoteInfoRequest
-	(*RemoteInfoResponse)(nil),                // 2: broker.remote.RemoteInfoResponse
-	(*RunConfigRemoteServer)(nil),             // 3: broker.remote.RunConfigRemoteServer
-	(*RunConfigRemoteArguments)(nil),          // 4: broker.remote.RunConfigRemoteArguments
-	(*RunConfig)(nil),                         // 5: broker.remote.RunConfig
-	(*RunRequest)(nil),                        // 6: broker.remote.RunRequest
-	(*RunRequestInit)(nil),                    // 7: broker.remote.RunRequestInit
-	(*RunRequestMcpMessage)(nil),              // 8: broker.remote.RunRequestMcpMessage
-	(*RunRequestClose)(nil),                   // 9: broker.remote.RunRequestClose
-	(*RunResponse)(nil),                       // 10: broker.remote.RunResponse
-	(*RunResponseInit)(nil),                   // 11: broker.remote.RunResponseInit
-	(*RunResponseMcpMessage)(nil),             // 12: broker.remote.RunResponseMcpMessage
-	(*RunResponseError)(nil),                  // 13: broker.remote.RunResponseError
-	(*RunResponseOutput)(nil),                 // 14: broker.remote.RunResponseOutput
-	(*RunResponseClose)(nil),                  // 15: broker.remote.RunResponseClose
-	nil,                                       // 16: broker.remote.RunConfigRemoteArguments.HeadersEntry
-	nil,                                       // 17: broker.remote.RunConfigRemoteArguments.QueryEntry
-	(*worker.WorkerInfoResponse)(nil),         // 18: broker.worker.WorkerInfoResponse
-	(*mcp.McpMessageRaw)(nil),                 // 19: broker.mcp.McpMessageRaw
-	(*mcp.McpMessage)(nil),                    // 20: broker.mcp.McpMessage
-	(*mcp.McpError)(nil),                      // 21: broker.mcp.McpError
-	(*mcp.McpOutput)(nil),                     // 22: broker.mcp.McpOutput
+	(RunConfigLambdaServer_Protocol)(0),       // 1: broker.remote.RunConfigLambdaServer.Protocol
+	(*RemoteInfoRequest)(nil),                 // 2: broker.remote.RemoteInfoRequest
+	(*RemoteInfoResponse)(nil),                // 3: broker.remote.RemoteInfoResponse
+	(*RunConfigRemoteServer)(nil),             // 4: broker.remote.RunConfigRemoteServer
+	(*RunConfigRemoteArguments)(nil),          // 5: broker.remote.RunConfigRemoteArguments
+	(*RunConfigRemote)(nil),                   // 6: broker.remote.RunConfigRemote
+	(*RunConfigLambdaServer)(nil),             // 7: broker.remote.RunConfigLambdaServer
+	(*RunConfigLambdaArguments)(nil),          // 8: broker.remote.RunConfigLambdaArguments
+	(*RunConfigLambda)(nil),                   // 9: broker.remote.RunConfigLambda
+	(*RunConfig)(nil),                         // 10: broker.remote.RunConfig
+	(*RunRequest)(nil),                        // 11: broker.remote.RunRequest
+	(*RunRequestInit)(nil),                    // 12: broker.remote.RunRequestInit
+	(*RunRequestMcpMessage)(nil),              // 13: broker.remote.RunRequestMcpMessage
+	(*RunRequestClose)(nil),                   // 14: broker.remote.RunRequestClose
+	(*RunResponse)(nil),                       // 15: broker.remote.RunResponse
+	(*RunResponseInit)(nil),                   // 16: broker.remote.RunResponseInit
+	(*RunResponseMcpMessage)(nil),             // 17: broker.remote.RunResponseMcpMessage
+	(*RunResponseError)(nil),                  // 18: broker.remote.RunResponseError
+	(*RunResponseOutput)(nil),                 // 19: broker.remote.RunResponseOutput
+	(*RunResponseClose)(nil),                  // 20: broker.remote.RunResponseClose
+	nil,                                       // 21: broker.remote.RunConfigRemoteArguments.HeadersEntry
+	nil,                                       // 22: broker.remote.RunConfigRemoteArguments.QueryEntry
+	(*worker.WorkerInfoResponse)(nil),         // 23: broker.worker.WorkerInfoResponse
+	(*mcp.McpMessageRaw)(nil),                 // 24: broker.mcp.McpMessageRaw
+	(*mcp.McpMessage)(nil),                    // 25: broker.mcp.McpMessage
+	(*mcp.McpError)(nil),                      // 26: broker.mcp.McpError
+	(*mcp.McpOutput)(nil),                     // 27: broker.mcp.McpOutput
 }
 var file_remote_proto_depIdxs = []int32{
-	18, // 0: broker.remote.RemoteInfoResponse.worker_info:type_name -> broker.worker.WorkerInfoResponse
+	23, // 0: broker.remote.RemoteInfoResponse.worker_info:type_name -> broker.worker.WorkerInfoResponse
 	0,  // 1: broker.remote.RunConfigRemoteServer.protocol:type_name -> broker.remote.RunConfigRemoteServer.ServerProtocol
-	16, // 2: broker.remote.RunConfigRemoteArguments.headers:type_name -> broker.remote.RunConfigRemoteArguments.HeadersEntry
-	17, // 3: broker.remote.RunConfigRemoteArguments.query:type_name -> broker.remote.RunConfigRemoteArguments.QueryEntry
-	3,  // 4: broker.remote.RunConfig.server:type_name -> broker.remote.RunConfigRemoteServer
-	4,  // 5: broker.remote.RunConfig.arguments:type_name -> broker.remote.RunConfigRemoteArguments
-	7,  // 6: broker.remote.RunRequest.init:type_name -> broker.remote.RunRequestInit
-	8,  // 7: broker.remote.RunRequest.mcp_message:type_name -> broker.remote.RunRequestMcpMessage
-	9,  // 8: broker.remote.RunRequest.close:type_name -> broker.remote.RunRequestClose
-	5,  // 9: broker.remote.RunRequestInit.run_config:type_name -> broker.remote.RunConfig
-	19, // 10: broker.remote.RunRequestMcpMessage.message:type_name -> broker.mcp.McpMessageRaw
-	12, // 11: broker.remote.RunResponse.mcp_message:type_name -> broker.remote.RunResponseMcpMessage
-	11, // 12: broker.remote.RunResponse.init:type_name -> broker.remote.RunResponseInit
-	14, // 13: broker.remote.RunResponse.output:type_name -> broker.remote.RunResponseOutput
-	13, // 14: broker.remote.RunResponse.error:type_name -> broker.remote.RunResponseError
-	15, // 15: broker.remote.RunResponse.close:type_name -> broker.remote.RunResponseClose
-	20, // 16: broker.remote.RunResponseMcpMessage.message:type_name -> broker.mcp.McpMessage
-	21, // 17: broker.remote.RunResponseError.mcp_error:type_name -> broker.mcp.McpError
-	22, // 18: broker.remote.RunResponseOutput.mcp_output:type_name -> broker.mcp.McpOutput
-	6,  // 19: broker.remote.McpRemote.StreamMcpRun:input_type -> broker.remote.RunRequest
-	10, // 20: broker.remote.McpRemote.StreamMcpRun:output_type -> broker.remote.RunResponse
-	20, // [20:21] is the sub-list for method output_type
-	19, // [19:20] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	21, // 2: broker.remote.RunConfigRemoteArguments.headers:type_name -> broker.remote.RunConfigRemoteArguments.HeadersEntry
+	22, // 3: broker.remote.RunConfigRemoteArguments.query:type_name -> broker.remote.RunConfigRemoteArguments.QueryEntry
+	4,  // 4: broker.remote.RunConfigRemote.server:type_name -> broker.remote.RunConfigRemoteServer
+	5,  // 5: broker.remote.RunConfigRemote.arguments:type_name -> broker.remote.RunConfigRemoteArguments
+	1,  // 6: broker.remote.RunConfigLambdaServer.protocol:type_name -> broker.remote.RunConfigLambdaServer.Protocol
+	7,  // 7: broker.remote.RunConfigLambda.server:type_name -> broker.remote.RunConfigLambdaServer
+	8,  // 8: broker.remote.RunConfigLambda.arguments:type_name -> broker.remote.RunConfigLambdaArguments
+	6,  // 9: broker.remote.RunConfig.remote_run_config:type_name -> broker.remote.RunConfigRemote
+	9,  // 10: broker.remote.RunConfig.lambda_run_config:type_name -> broker.remote.RunConfigLambda
+	12, // 11: broker.remote.RunRequest.init:type_name -> broker.remote.RunRequestInit
+	13, // 12: broker.remote.RunRequest.mcp_message:type_name -> broker.remote.RunRequestMcpMessage
+	14, // 13: broker.remote.RunRequest.close:type_name -> broker.remote.RunRequestClose
+	10, // 14: broker.remote.RunRequestInit.run_config:type_name -> broker.remote.RunConfig
+	24, // 15: broker.remote.RunRequestMcpMessage.message:type_name -> broker.mcp.McpMessageRaw
+	17, // 16: broker.remote.RunResponse.mcp_message:type_name -> broker.remote.RunResponseMcpMessage
+	16, // 17: broker.remote.RunResponse.init:type_name -> broker.remote.RunResponseInit
+	19, // 18: broker.remote.RunResponse.output:type_name -> broker.remote.RunResponseOutput
+	18, // 19: broker.remote.RunResponse.error:type_name -> broker.remote.RunResponseError
+	20, // 20: broker.remote.RunResponse.close:type_name -> broker.remote.RunResponseClose
+	25, // 21: broker.remote.RunResponseMcpMessage.message:type_name -> broker.mcp.McpMessage
+	26, // 22: broker.remote.RunResponseError.mcp_error:type_name -> broker.mcp.McpError
+	27, // 23: broker.remote.RunResponseOutput.mcp_output:type_name -> broker.mcp.McpOutput
+	11, // 24: broker.remote.McpRemote.StreamMcpRun:input_type -> broker.remote.RunRequest
+	15, // 25: broker.remote.McpRemote.StreamMcpRun:output_type -> broker.remote.RunResponse
+	25, // [25:26] is the sub-list for method output_type
+	24, // [24:25] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_remote_proto_init() }
@@ -1032,12 +1340,17 @@ func file_remote_proto_init() {
 	if File_remote_proto != nil {
 		return
 	}
-	file_remote_proto_msgTypes[5].OneofWrappers = []any{
+	file_remote_proto_msgTypes[5].OneofWrappers = []any{}
+	file_remote_proto_msgTypes[8].OneofWrappers = []any{
+		(*RunConfig_RemoteRunConfig)(nil),
+		(*RunConfig_LambdaRunConfig)(nil),
+	}
+	file_remote_proto_msgTypes[9].OneofWrappers = []any{
 		(*RunRequest_Init)(nil),
 		(*RunRequest_McpMessage)(nil),
 		(*RunRequest_Close)(nil),
 	}
-	file_remote_proto_msgTypes[9].OneofWrappers = []any{
+	file_remote_proto_msgTypes[13].OneofWrappers = []any{
 		(*RunResponse_McpMessage)(nil),
 		(*RunResponse_Init)(nil),
 		(*RunResponse_Output)(nil),
@@ -1049,8 +1362,8 @@ func file_remote_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_remote_proto_rawDesc), len(file_remote_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   17,
+			NumEnums:      2,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

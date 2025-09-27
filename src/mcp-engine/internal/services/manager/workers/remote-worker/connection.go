@@ -45,7 +45,6 @@ func (rw *RemoteWorker) CreateConnection(input *workers.WorkerConnectionInput) (
 }
 
 func (rwc *RemoteWorkerConnection) Start(shouldAutoInit bool) error {
-
 	if shouldAutoInit && rwc.mcpClient == nil {
 		return fmt.Errorf("MCP client is not initialized, cannot auto-initialize")
 	}
@@ -54,7 +53,7 @@ func (rwc *RemoteWorkerConnection) Start(shouldAutoInit bool) error {
 		return fmt.Errorf("failed to start MCP run: %w", err)
 	}
 
-	if shouldAutoInit {
+	if rwc.run.Config.GetLambdaRunConfig() == nil && shouldAutoInit {
 		init, err := rwc.mcpClient.ToInitMessage(rwc.mcpConfig.McpVersion)
 		if err != nil {
 			return fmt.Errorf("failed to create MCP init message: %w", err)

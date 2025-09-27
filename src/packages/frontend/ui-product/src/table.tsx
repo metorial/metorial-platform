@@ -91,7 +91,7 @@ export let Table = ({
               let isLast = i === headers.length - 1;
 
               return (
-                <TableHeader key={i}>
+                <TableHeader key={`header-${i}`}>
                   <CellInner
                     style={{
                       paddingLeft: isFirst ? padding?.sides : 10,
@@ -107,7 +107,7 @@ export let Table = ({
         </TableHead>
         <TableBody>
           {normalizedData.map((row, i) => (
-            <TableRow key={i}>
+            <TableRow key={`row-${i}`}>
               {row.data.map((cell, j) => {
                 let isFirst = j === 0;
                 let isLast = j === row.data.length - 1;
@@ -131,7 +131,7 @@ export let Table = ({
                   inner = <button onClick={row.onClick}>{inner}</button>;
                 }
 
-                return <TableCell key={j}>{inner}</TableCell>;
+                return <TableCell key={`cell-${i}-${j}`}>{inner}</TableCell>;
               })}
             </TableRow>
           ))}

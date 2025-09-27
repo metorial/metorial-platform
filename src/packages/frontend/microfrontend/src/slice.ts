@@ -1,7 +1,7 @@
 import { joinPaths } from '@metorial/join-paths';
 import { ErrorPage, NotFound } from '@metorial/pages';
 import { ModalRoot, Toaster } from '@metorial/ui';
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 import {
   createBrowserRouter,
   NonIndexRouteObject,
@@ -53,10 +53,19 @@ export let createSlice = <T extends NonIndexRouteObject[]>(
 
 export type Slice = ReturnType<ReturnType<typeof createSlice>>;
 
+let NotFoundWithBoot = () => {
+  useEffect(() => {
+    // @ts-ignore
+    window.metorial_enterprise_booted?.();
+  }, []);
+
+  return React.createElement(NotFound);
+};
+
 export let RouterErrorPage = () => {
   let error = useRouteError();
 
-  if ((error as any)?.status === 404) return React.createElement(NotFound, { error });
+  if ((error as any)?.status === 404) return React.createElement(NotFoundWithBoot);
 
   return React.createElement(ErrorPage, {
     title: 'An error occurred',

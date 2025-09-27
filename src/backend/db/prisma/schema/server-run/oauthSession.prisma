@@ -1,0 +1,34 @@
+enum ServerOAuthSessionStatus {
+  pending
+  opened
+  completed
+  failed
+  archived
+}
+
+model ServerOAuthSession {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  clientSecret String
+
+  status ServerOAuthSessionStatus
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  tokenReferenceOid BigInt?
+  tokenReference    ProviderOAuthConnectionAuthTokenReference? @relation(fields: [tokenReferenceOid], references: [oid])
+
+  connectionOid BigInt
+  connection    ProviderOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  redirectUri String?
+  metadata    Json?
+
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  sessionServerDeployments SessionServerDeployment[]
+}

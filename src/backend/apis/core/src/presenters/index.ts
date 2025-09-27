@@ -1,10 +1,19 @@
 import { declarePresenter } from '@metorial/presenter';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
+import { v1CustomServerPresenter } from './implementation/customServer';
+import { v1CustomServerCodeEditorTokenPresenter } from './implementation/customServerCodeEditorToken';
+import { v1CustomServerDeploymentPresenter } from './implementation/customServerDeployment';
+import { v1CustomServerEventPresenter } from './implementation/customServerEvent';
+import {
+  dashboardCustomServerVersionPresenter,
+  v1CustomServerVersionPresenter
+} from './implementation/customServerVersion';
 import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
 import { v1InstancePresenter } from './implementation/instance';
 import { v1MachineAccessPresenter } from './implementation/machineAccess';
+import { v1ManagedServerTemplatePresenter } from './implementation/managedServerTemplate';
 import { v1OrganizationPresenter } from './implementation/organization';
 import { v1OrganizationActorPresenter } from './implementation/organizationActor';
 import { v1OrganizationInvitePresenter } from './implementation/organizationInvite';
@@ -16,7 +25,9 @@ import { v1ProviderOauthConnectionAuthenticationPresenter } from './implementati
 import { v1ProviderOauthConnectionEventPresenter } from './implementation/providerOauthConnectionEvent';
 import { v1ProviderOauthConnectionProfilePresenter } from './implementation/providerOauthConnectionProfile';
 import { v1ProviderOauthConnectionTemplatePresenter } from './implementation/providerOauthConnectionTemplate';
+import { v1ProviderOauthConnectionTemplateEvaluationPresenter } from './implementation/providerOauthConnectionTemplateEvaluation';
 import { v1ProviderOauthDiscoveryPresenter } from './implementation/providerOauthDiscovery';
+import { v1RemoteServerPresenter } from './implementation/remoteServer';
 import { v1SecretPresenter } from './implementation/secret';
 import { v1ServerPresenter } from './implementation/server';
 import { v1ServerCapabilitiesPresenter } from './implementation/serverCapabilities';
@@ -32,6 +43,7 @@ import {
   dashboardServerListingPresenter,
   v1ServerListingPresenter
 } from './implementation/serverListing';
+import { v1ServerOauthSessionPresenter } from './implementation/serverOauthSession';
 import { v1ServerRunPresenter } from './implementation/serverRun';
 import { v1ServerRunErrorPresenter } from './implementation/serverRunError';
 import { v1ServerRunErrorGroupPresenter } from './implementation/serverRunErrorGroup';
@@ -50,10 +62,16 @@ import { v1UserPresenter } from './implementation/user';
 import {
   apiKeyType,
   bootType,
+  customServerCodeEditorTokenType,
+  customServerDeploymentType,
+  customServerEventType,
+  customServerType,
+  customServerVersionType,
   fileLinkType,
   fileType,
   instanceType,
   machineAccessType,
+  managedServerTemplateType,
   organizationActorType,
   organizationInviteType,
   organizationMemberType,
@@ -64,8 +82,10 @@ import {
   providerOauthConnectionDiscoveryType,
   providerOauthConnectionEventType,
   providerOauthConnectionProfileType,
+  providerOauthConnectionTemplateEvaluationType,
   providerOauthConnectionTemplateType,
   providerOauthConnectionType,
+  remoteServerType,
   secretType,
   serverCapabilitiesType,
   serverDeploymentConfigType,
@@ -74,6 +94,7 @@ import {
   serverListingCategoryType,
   serverListingCollectionType,
   serverListingType,
+  serverOauthSessionType,
   serverRunErrorGroupType,
   serverRunErrorType,
   serverRunType,
@@ -254,6 +275,11 @@ export let profilePresenter = declarePresenter(profileType, {
   mt_2025_01_01_dashboard: v1ProfilePresenter
 });
 
+export let serverOAuthSessionPresenter = declarePresenter(serverOauthSessionType, {
+  mt_2025_01_01_pulsar: v1ServerOauthSessionPresenter,
+  mt_2025_01_01_dashboard: v1ServerOauthSessionPresenter
+});
+
 export let providerOauthConnectionPresenter = declarePresenter(providerOauthConnectionType, {
   mt_2025_01_01_pulsar: v1ProviderOauthConnectionPresenter,
   mt_2025_01_01_dashboard: v1ProviderOauthConnectionPresenter
@@ -291,6 +317,14 @@ export let providerOauthConnectionTemplatePresenter = declarePresenter(
   }
 );
 
+export let providerOauthConnectionTemplateEvaluationPresenter = declarePresenter(
+  providerOauthConnectionTemplateEvaluationType,
+  {
+    mt_2025_01_01_pulsar: v1ProviderOauthConnectionTemplateEvaluationPresenter,
+    mt_2025_01_01_dashboard: v1ProviderOauthConnectionTemplateEvaluationPresenter
+  }
+);
+
 export let providerOauthDiscoveryPresenter = declarePresenter(
   providerOauthConnectionDiscoveryType,
   {
@@ -298,3 +332,41 @@ export let providerOauthDiscoveryPresenter = declarePresenter(
     mt_2025_01_01_dashboard: v1ProviderOauthDiscoveryPresenter
   }
 );
+
+export let remoteServerPresenter = declarePresenter(remoteServerType, {
+  mt_2025_01_01_dashboard: v1RemoteServerPresenter,
+  mt_2025_01_01_pulsar: v1RemoteServerPresenter
+});
+
+export let customServerPresenter = declarePresenter(customServerType, {
+  mt_2025_01_01_pulsar: v1CustomServerPresenter,
+  mt_2025_01_01_dashboard: v1CustomServerPresenter
+});
+
+export let customServerVersionPresenter = declarePresenter(customServerVersionType, {
+  mt_2025_01_01_pulsar: v1CustomServerVersionPresenter,
+  mt_2025_01_01_dashboard: dashboardCustomServerVersionPresenter
+});
+
+export let customServerEventPresenter = declarePresenter(customServerEventType, {
+  mt_2025_01_01_pulsar: v1CustomServerEventPresenter,
+  mt_2025_01_01_dashboard: v1CustomServerEventPresenter
+});
+
+export let customServerDeploymentPresenter = declarePresenter(customServerDeploymentType, {
+  mt_2025_01_01_pulsar: v1CustomServerDeploymentPresenter,
+  mt_2025_01_01_dashboard: v1CustomServerDeploymentPresenter
+});
+
+export let customServerCodeEditorTokenTypePresenter = declarePresenter(
+  customServerCodeEditorTokenType,
+  {
+    mt_2025_01_01_pulsar: v1CustomServerCodeEditorTokenPresenter,
+    mt_2025_01_01_dashboard: v1CustomServerCodeEditorTokenPresenter
+  }
+);
+
+export let managedServerTemplateTypePresenter = declarePresenter(managedServerTemplateType, {
+  mt_2025_01_01_pulsar: v1ManagedServerTemplatePresenter,
+  mt_2025_01_01_dashboard: v1ManagedServerTemplatePresenter
+});

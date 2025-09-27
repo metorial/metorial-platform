@@ -288,6 +288,7 @@ func (s *Sessions) EnsureLocalSession(
 		request.Config.ServerConfig,
 		request.Config.McpConfig,
 		s.db,
+		request.Config.StatefulServerInfo,
 	)
 	if err2 != nil {
 		return nil, err2
@@ -340,6 +341,7 @@ func (s *Sessions) EnsureLocalSession(
 		dbSession,
 		connectionInput.WorkerType,
 		client,
+		request.Config.StatefulServerInfo,
 	)
 
 	s.mutex.Lock()

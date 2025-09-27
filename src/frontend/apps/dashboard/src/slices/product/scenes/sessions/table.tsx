@@ -1,6 +1,6 @@
+import { SessionsGetOutput, SessionsListQuery } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { SessionsGetOutput, SessionsListQuery } from '@metorial/dashboard-sdk';
 
 import { useCurrentInstance, useSessions } from '@metorial/state';
 import { Badge, RenderDate, Text, theme } from '@metorial/ui';
@@ -60,7 +60,7 @@ export let SessionsTable = (filter: SessionsListQuery) => {
 
       {sessions.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No sessions found
+          No sessions found.
         </Text>
       )}
     </>

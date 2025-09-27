@@ -364,6 +364,10 @@ export class EngineSessionConnectionInternal extends EngineSessionConnectionBase
       }
     });
 
+    console.error('Engine Session Connection Error', err, {
+      details
+    });
+
     if (typeof details == 'string') {
       if (details.includes('failed to start server')) {
         throw new ServiceError(

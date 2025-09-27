@@ -1,6 +1,12 @@
 import {
   ApiKey,
   ApiKeySecret,
+  CodeBucketTemplate,
+  CustomServer,
+  CustomServerDeployment,
+  CustomServerDeploymentStep,
+  CustomServerEvent,
+  CustomServerVersion,
   File,
   FileLink,
   FilePurpose,
@@ -9,19 +15,24 @@ import {
   ImportedServerVendor,
   Instance,
   InstanceServer,
+  LambdaServerInstance,
   MachineAccess,
+  ManagedServerTemplate,
   Organization,
   OrganizationActor,
   OrganizationInvite,
   OrganizationMember,
   Profile,
   Project,
+  ProviderOAuthAutoRegistration,
+  ProviderOAuthConfig,
   ProviderOAuthConnection,
   ProviderOAuthConnectionAuthAttempt,
   ProviderOAuthConnectionEvent,
   ProviderOAuthConnectionProfile,
   ProviderOAuthConnectionTemplate,
   ProviderOAuthDiscoveryDocument,
+  RemoteServerInstance,
   Secret,
   SecretType,
   Server,
@@ -32,6 +43,7 @@ import {
   ServerListing,
   ServerListingCategory,
   ServerListingCollection,
+  ServerOAuthSession,
   ServerRun,
   ServerRunError,
   ServerRunErrorGroup,
@@ -133,8 +145,6 @@ export let serverType = PresentableType.create<{
       currentVersion: (ServerVersion & { schema: ServerConfigSchema }) | null;
     })[];
   };
-
-  currentOrganization: Organization;
 }>()('server');
 
 export let serverListingCategoryType = PresentableType.create<{
@@ -194,6 +204,13 @@ export let serverDeploymentType = PresentableType.create<{
     config: ServerDeploymentConfig & {
       configSecret: Secret;
     };
+    oauthConnection:
+      | (ProviderOAuthConnection & {
+          instance: Instance;
+          template: ProviderOAuthConnectionTemplate | null;
+          config: ProviderOAuthConfig;
+        })
+      | null;
   };
 }>()('server.server_deployment');
 
@@ -223,9 +240,12 @@ export let usageType = PresentableType.create<{
 
 export let sessionType = PresentableType.create<{
   session: Session & {
-    serverDeployments: (ServerDeployment & {
-      server: Server;
-    })[];
+    serverDeployments: {
+      serverDeployment: ServerDeployment & {
+        server: Server;
+      };
+      oauthSession: ServerOAuthSession | null;
+    }[];
 
     serverSessions: ServerSession[];
   };
@@ -324,10 +344,21 @@ export let profileType = PresentableType.create<{
   profile: Profile;
 }>()('profile');
 
+export let serverOauthSessionType = PresentableType.create<{
+  serverOauthSession: ServerOAuthSession & {
+    connection: ProviderOAuthConnection & {
+      instance: Instance;
+      template: ProviderOAuthConnectionTemplate | null;
+      config: ProviderOAuthConfig;
+    };
+  };
+}>()('provider_oauth.session');
+
 export let providerOauthConnectionType = PresentableType.create<{
   providerOauthConnection: ProviderOAuthConnection & {
     instance: Instance;
     template: ProviderOAuthConnectionTemplate | null;
+    config: ProviderOAuthConfig;
   };
 }>()('provider_oauth.connection');
 
@@ -336,6 +367,14 @@ export let providerOauthConnectionTemplateType = PresentableType.create<{
     profile: Profile;
   };
 }>()('provider_oauth.connection_template');
+
+export let providerOauthConnectionTemplateEvaluationType = PresentableType.create<{
+  providerOauthConnectionTemplate: ProviderOAuthConnectionTemplate & {
+    profile: Profile;
+  };
+  input: Record<string, any>;
+  output: Record<string, any>;
+}>()('provider_oauth.connection_template.evaluation');
 
 export let providerOauthConnectionEventType = PresentableType.create<{
   providerOauthConnectionEvent: ProviderOAuthConnectionEvent & {
@@ -358,4 +397,76 @@ export let providerOauthConnectionAuthenticationType = PresentableType.create<{
 
 export let providerOauthConnectionDiscoveryType = PresentableType.create<{
   providerOauthDiscoveryDocument: ProviderOAuthDiscoveryDocument;
+  providerOauthAutoRegistration: ProviderOAuthAutoRegistration | null;
 }>()('provider_oauth.discovery');
+
+export let remoteServerType = PresentableType.create<{
+  remoteServerInstance: RemoteServerInstance & {
+    providerOAuthConfig: ProviderOAuthConfig | null;
+  };
+}>()('custom_server.remote_server');
+
+export let managedServerType = PresentableType.create<{
+  managedServerInstance: LambdaServerInstance & {
+    providerOAuthConfig: ProviderOAuthConfig | null;
+  };
+}>()('custom_server.managed_server');
+
+export let customServerType = PresentableType.create<{
+  customServer: CustomServer & {
+    server: Server;
+    instance: Instance;
+    serverVariant: ServerVariant;
+    currentVersion: CustomServerVersion | null;
+  };
+}>()('custom_server');
+
+export let customServerVersionType = PresentableType.create<{
+  customServerVersion: CustomServerVersion & {
+    customServer: CustomServer & {
+      server: Server;
+      serverVariant: ServerVariant;
+    };
+    serverVersion: (ServerVersion & { schema: ServerConfigSchema }) | null;
+    currentVersionForServer: CustomServer | null;
+    deployment: CustomServerDeployment | null;
+    remoteServerInstance:
+      | (RemoteServerInstance & {
+          providerOAuthConfig: ProviderOAuthConfig | null;
+        })
+      | null;
+    lambdaServerInstance:
+      | (LambdaServerInstance & {
+          providerOAuthConfig: ProviderOAuthConfig | null;
+        })
+      | null;
+  };
+}>()('custom_server.version');
+
+export let customServerEventType = PresentableType.create<{
+  customServerEvent: CustomServerEvent & {
+    customServer: CustomServer;
+    customServerVersion: CustomServerVersion | null;
+  };
+}>()('custom_server.event');
+
+export let customServerDeploymentType = PresentableType.create<{
+  customServerDeployment: CustomServerDeployment & {
+    customServer: CustomServer;
+    customServerVersion: CustomServerVersion | null;
+    steps: CustomServerDeploymentStep[];
+    creatorActor: OrganizationActor & {
+      organization: Organization;
+    };
+  };
+}>()('custom_server.event');
+
+export let customServerCodeEditorTokenType = PresentableType.create<{
+  token: string;
+  expiresAt: Date;
+  id: string;
+}>()('custom_server.code_editor_token');
+
+export let managedServerTemplateType = PresentableType.create<{
+  managedServerTemplate: ManagedServerTemplate & { bucketTemplate: CodeBucketTemplate };
+}>()('managed_server.template');

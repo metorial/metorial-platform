@@ -12,7 +12,7 @@ export let v1ProviderOauthConnectionEventPresenter = Presenter.create(
     status: 'active',
 
     type: providerOauthConnectionEvent.event,
-    metadata: providerOauthConnectionEvent.metadata,
+    metadata: providerOauthConnectionEvent.metadata ?? {},
 
     connection_id: providerOauthConnectionEvent.connection.id,
 

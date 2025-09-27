@@ -187,6 +187,7 @@ export let createBullMqQueue = <JobData>(
               }
             },
             {
+              concurrency: 50,
               ...opts.workerOpts,
               connection: redisOpts
             }

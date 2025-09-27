@@ -5,7 +5,9 @@ export type DashboardInstanceProviderOauthConnectionsCreateOutput = {
   id: string;
   status: 'active' | 'archived';
   name: string;
-  provider: { id: string; name: string; url: string };
+  description: string | null;
+  metadata: Record<string, any>;
+  provider: { id: string; name: string; url: string; imageUrl: string };
   config: Record<string, any>;
   scopes: string[];
   clientId: string;
@@ -21,12 +23,15 @@ export let mapDashboardInstanceProviderOauthConnectionsCreateOutput =
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     provider: mtMap.objectField(
       'provider',
       mtMap.object({
         id: mtMap.objectField('id', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
-        url: mtMap.objectField('url', mtMap.passthrough())
+        url: mtMap.objectField('url', mtMap.passthrough()),
+        imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
       })
     ),
     config: mtMap.objectField('config', mtMap.passthrough()),
@@ -40,22 +45,37 @@ export let mapDashboardInstanceProviderOauthConnectionsCreateOutput =
 
 export type DashboardInstanceProviderOauthConnectionsCreateBody = {
   templateId?: string | undefined;
-  name: string;
+  name?: string | undefined;
+  description?: string | undefined;
   discoveryUrl?: string | undefined;
   config: Record<string, any>;
-  clientId: string;
-  clientSecret: string;
   scopes: string[];
-};
+  metadata?: Record<string, any> | undefined;
+} & (
+  | { clientId: string; clientSecret: string }
+  | { autoRegistrationId: string }
+);
 
-export let mapDashboardInstanceProviderOauthConnectionsCreateBody =
-  mtMap.object<DashboardInstanceProviderOauthConnectionsCreateBody>({
-    templateId: mtMap.objectField('template_id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    discoveryUrl: mtMap.objectField('discovery_url', mtMap.passthrough()),
-    config: mtMap.objectField('config', mtMap.passthrough()),
-    clientId: mtMap.objectField('client_id', mtMap.passthrough()),
-    clientSecret: mtMap.objectField('client_secret', mtMap.passthrough()),
-    scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough()))
-  });
+export let mapDashboardInstanceProviderOauthConnectionsCreateBody = mtMap.union(
+  [
+    mtMap.unionOption(
+      'object',
+      mtMap.object({
+        templateId: mtMap.objectField('template_id', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        discoveryUrl: mtMap.objectField('discovery_url', mtMap.passthrough()),
+        config: mtMap.objectField('config', mtMap.passthrough()),
+        scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough())),
+        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+        clientId: mtMap.objectField('client_id', mtMap.passthrough()),
+        clientSecret: mtMap.objectField('client_secret', mtMap.passthrough()),
+        autoRegistrationId: mtMap.objectField(
+          'auto_registration_id',
+          mtMap.passthrough()
+        )
+      })
+    )
+  ]
+);
 

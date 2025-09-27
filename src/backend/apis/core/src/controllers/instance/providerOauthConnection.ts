@@ -1,4 +1,7 @@
-import { oauthConnectionService, oauthTemplateService } from '@metorial/module-oauth';
+import {
+  providerOauthConnectionService,
+  providerOauthTemplateService
+} from '@metorial/module-provider-oauth';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -9,7 +12,7 @@ import { providerOauthConnectionPresenter } from '../../presenters';
 export let connectionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.connectionId) throw new Error('connectionId is required');
 
-  let connection = await oauthConnectionService.getConnectionById({
+  let connection = await providerOauthConnectionService.getConnectionById({
     connectionId: ctx.params.connectionId,
     instance: ctx.instance
   });
@@ -33,7 +36,7 @@ export let providerOauthConnectionController = Controller.create(
       .outputList(providerOauthConnectionPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
-        let paginator = await oauthConnectionService.listConnections({
+        let paginator = await providerOauthConnectionService.listConnections({
           instance: ctx.instance
         });
 
@@ -52,48 +55,81 @@ export let providerOauthConnectionController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.connection:write'] }))
       .body(
         'default',
-        v.object({
-          template_id: v.optional(v.string()),
-          name: v.string(),
-          discovery_url: v.optional(v.string()),
-          config: v.record(v.any()),
-          client_id: v.string(),
-          client_secret: v.string(),
-          scopes: v.array(v.string())
-        })
+        v.intersection([
+          v.object({
+            template_id: v.optional(v.string()),
+            name: v.optional(v.string()),
+            description: v.optional(v.string()),
+            discovery_url: v.optional(v.string()),
+            config: v.record(v.any()),
+            scopes: v.array(v.string()),
+            metadata: v.optional(v.record(v.any()))
+          }),
+          v.union([
+            v.object({
+              client_id: v.string(),
+              client_secret: v.string()
+            }),
+            v.object({
+              auto_registration_id: v.string()
+            })
+          ])
+        ])
       )
       .body(
         'mt_2025_01_01_pulsar',
         v.object({
-          name: v.string(),
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
           discovery_url: v.optional(v.string()),
           config: v.record(v.any()),
           client_id: v.string(),
           client_secret: v.string(),
-          scopes: v.array(v.string())
+          scopes: v.array(v.string()),
+          metadata: v.optional(v.record(v.any()))
         }),
         i => i
       )
       .output(providerOauthConnectionPresenter)
       .do(async ctx => {
         let template = ctx.body.template_id
-          ? await oauthTemplateService.getTemplateById({
+          ? await providerOauthTemplateService.getTemplateById({
               templateId: ctx.body.template_id
             })
           : undefined;
 
-        let providerOauthConnection = await oauthConnectionService.createConnection({
+        let providerOauthConnection = await providerOauthConnectionService.createConnection({
           organization: ctx.organization,
           performedBy: ctx.actor,
           instance: ctx.instance,
           template,
           input: {
             name: ctx.body.name,
+            description: ctx.body.description,
             discoveryUrl: ctx.body.discovery_url,
-            config: ctx.body.config as any,
-            clientId: ctx.body.client_id,
-            clientSecret: ctx.body.client_secret,
-            scopes: ctx.body.scopes
+
+            metadata: ctx.body.metadata,
+
+            setup:
+              'client_id' in ctx.body
+                ? {
+                    mode: 'manual',
+                    config: ctx.body.config as any,
+                    clientId: ctx.body.client_id,
+                    clientSecret:
+                      'client_secret' in ctx.body
+                        ? ctx.body.client_secret!
+                        : (() => {
+                            throw new Error('Unreachable');
+                          })(),
+                    scopes: ctx.body.scopes
+                  }
+                : {
+                    mode: 'existing_auto_registration',
+                    config: ctx.body.config as any,
+                    autoRegistrationId: ctx.body.auto_registration_id,
+                    scopes: ctx.body.scopes
+                  }
           }
         });
 
@@ -135,25 +171,29 @@ export let providerOauthConnectionController = Controller.create(
         'default',
         v.object({
           name: v.optional(v.string()),
+          description: v.optional(v.string()),
           config: v.optional(v.record(v.any())),
           client_id: v.optional(v.string()),
           client_secret: v.optional(v.string()),
-          scopes: v.optional(v.array(v.string()))
+          scopes: v.optional(v.array(v.string())),
+          metadata: v.optional(v.record(v.any()))
         })
       )
       .output(providerOauthConnectionPresenter)
       .do(async ctx => {
-        let providerOauthConnection = await oauthConnectionService.updateConnection({
+        let providerOauthConnection = await providerOauthConnectionService.updateConnection({
           organization: ctx.organization,
           performedBy: ctx.actor,
           instance: ctx.instance,
           connection: ctx.connection,
           input: {
             name: ctx.body.name,
+            description: ctx.body.description,
             config: ctx.body.config as any,
             clientId: ctx.body.client_id,
             clientSecret: ctx.body.client_secret,
-            scopes: ctx.body.scopes
+            scopes: ctx.body.scopes,
+            metadata: ctx.body.metadata
           }
         });
 
@@ -174,7 +214,7 @@ export let providerOauthConnectionController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.connection:write'] }))
       .output(providerOauthConnectionPresenter)
       .do(async ctx => {
-        let providerOauthConnection = await oauthConnectionService.archiveConnection({
+        let providerOauthConnection = await providerOauthConnectionService.archiveConnection({
           organization: ctx.organization,
           performedBy: ctx.actor,
           instance: ctx.instance,

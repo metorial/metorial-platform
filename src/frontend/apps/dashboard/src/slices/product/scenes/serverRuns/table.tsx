@@ -1,7 +1,9 @@
+import {
+  ServerRunsGetOutput,
+  ServerRunsListQuery
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ServerRunsGetOutput } from '@metorial/generated';
-import { ServerRunsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useServerRuns } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
@@ -66,7 +68,7 @@ export let ServerRunsTable = (filter: ServerRunsListQuery) => {
 
       {runs.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No server runs found
+          No server runs found.
         </Text>
       )}
     </>

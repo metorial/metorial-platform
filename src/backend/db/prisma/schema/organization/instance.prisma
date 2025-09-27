@@ -43,4 +43,14 @@ model Instance {
   serverRunErrors          ServerRunError[]
   providerOAuthConnections ProviderOAuthConnection[]
   sessionConnections       SessionConnection[]
+  customServerVersions     CustomServerVersion[]
+  defaultServerVariants    ServerVariant[]           @relation("ServerVariantDefaultForInstance")
+  onlyServerVariants       ServerVariant[]           @relation("ServerVariantOnlyForInstance")
+  customServers            CustomServer[]
+  remoteServerInstances    RemoteServerInstance[]
+  customServerEvents       CustomServerEvent[]
+  providerOAuthConfigs     ProviderOAuthConfig[]
+  serverOAuthSessions      ServerOAuthSession[]
+  lambdaServerInstances    LambdaServerInstance[]
+  codeBuckets              CodeBucket[]
 }

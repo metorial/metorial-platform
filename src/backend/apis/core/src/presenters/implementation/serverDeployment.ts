@@ -1,6 +1,7 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { serverDeploymentType } from '../types';
+import { v1ProviderOauthConnectionPresenter } from './providerOauthConnection';
 import { v1ServerDeploymentConfigPresenter } from './serverDeploymentConfig';
 import { v1ServerImplementationPresenter } from './serverImplementation';
 import { v1ServerPreview } from './serverPreview';
@@ -15,7 +16,23 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
     name: serverDeployment.name,
     description: serverDeployment.description,
 
-    metadata: serverDeployment.metadata,
+    result: serverDeployment.failureCode
+      ? {
+          status: 'failed',
+          code: serverDeployment.failureCode,
+          message: serverDeployment.failureMessage
+        }
+      : // : serverDeployment.isOauthConnectionPending
+        //   ? { status: 'pending', step: 'oauth_discovery' }
+        { status: 'active' },
+
+    metadata: serverDeployment.metadata ?? {},
+
+    oauth_connection: serverDeployment.oauthConnection
+      ? await v1ProviderOauthConnectionPresenter
+          .present({ providerOauthConnection: serverDeployment.oauthConnection }, opts)
+          .run()
+      : null,
 
     server: v1ServerPreview(serverDeployment.server),
 
@@ -54,6 +71,48 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
           name: 'description',
           description: 'An optional description of the server deployment'
         })
+      ),
+
+      oauth_connection: v.nullable(v1ProviderOauthConnectionPresenter.schema),
+
+      result: v.union(
+        [
+          v.object({
+            status: v.literal('active', {
+              name: 'status',
+              description: 'The server deployment is active and functioning correctly'
+            })
+          }),
+          v.object({
+            status: v.literal('pending', {
+              name: 'status',
+              description: 'The server deployment is being processed by Metorial'
+            }),
+            step: v.enumOf(['oauth_discovery'], {
+              name: 'step',
+              description: 'The current step required to complete the deployment setup'
+            })
+          }),
+          v.object({
+            status: v.literal('failed', {
+              name: 'status',
+              description: 'The server deployment has failed'
+            }),
+            code: v.string({
+              name: 'code',
+              description: 'A code representing the type of failure'
+            }),
+            message: v.string({
+              name: 'message',
+              description: 'A detailed message describing the failure'
+            })
+          })
+        ],
+        {
+          name: 'result',
+          description:
+            'The result status of the server deployment, indicating success, pending actions, or failure details'
+        }
       ),
 
       metadata: v.record(v.any(), {

@@ -7,7 +7,7 @@ export let ServersDeploymentsPage = () => {
 
   return renderWithLoader({ instance })(({ instance }) => (
     <>
-      <ServerDeploymentsTable />
+      <ServerDeploymentsTable order="desc" />
     </>
   ));
 };

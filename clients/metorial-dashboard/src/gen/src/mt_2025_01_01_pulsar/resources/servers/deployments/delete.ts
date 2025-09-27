@@ -6,6 +6,26 @@ export type ServersDeploymentsDeleteOutput = {
   status: 'active' | 'archived' | 'deleted';
   name: string;
   description: string | null;
+  oauthConnection: {
+    object: 'provider_oauth.connection';
+    id: string;
+    status: 'active' | 'archived';
+    name: string;
+    description: string | null;
+    metadata: Record<string, any>;
+    provider: { id: string; name: string; url: string; imageUrl: string };
+    config: Record<string, any>;
+    scopes: string[];
+    clientId: string;
+    instanceId: string;
+    templateId: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
+  result:
+    | { status: 'active' }
+    | { status: 'pending'; step: 'oauth_discovery' }
+    | { status: 'failed'; code: string; message: string };
   metadata: Record<string, any>;
   secretId: string;
   server: {
@@ -13,7 +33,7 @@ export type ServersDeploymentsDeleteOutput = {
     id: string;
     name: string;
     description: string | null;
-    type: 'public';
+    type: 'public' | 'custom';
     createdAt: Date;
     updatedAt: Date;
   };
@@ -47,7 +67,7 @@ export type ServersDeploymentsDeleteOutput = {
       id: string;
       name: string;
       description: string | null;
-      type: 'public';
+      type: 'public' | 'custom';
       createdAt: Date;
       updatedAt: Date;
     };
@@ -65,6 +85,47 @@ export let mapServersDeploymentsDeleteOutput =
     status: mtMap.objectField('status', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
+    oauthConnection: mtMap.objectField(
+      'oauth_connection',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        status: mtMap.objectField('status', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+        provider: mtMap.objectField(
+          'provider',
+          mtMap.object({
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            name: mtMap.objectField('name', mtMap.passthrough()),
+            url: mtMap.objectField('url', mtMap.passthrough()),
+            imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
+          })
+        ),
+        config: mtMap.objectField('config', mtMap.passthrough()),
+        scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough())),
+        clientId: mtMap.objectField('client_id', mtMap.passthrough()),
+        instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
+        templateId: mtMap.objectField('template_id', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+      })
+    ),
+    result: mtMap.objectField(
+      'result',
+      mtMap.union([
+        mtMap.unionOption(
+          'object',
+          mtMap.object({
+            status: mtMap.objectField('status', mtMap.passthrough()),
+            step: mtMap.objectField('step', mtMap.passthrough()),
+            code: mtMap.objectField('code', mtMap.passthrough()),
+            message: mtMap.objectField('message', mtMap.passthrough())
+          })
+        )
+      ])
+    ),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     secretId: mtMap.objectField('secret_id', mtMap.passthrough()),
     server: mtMap.objectField(

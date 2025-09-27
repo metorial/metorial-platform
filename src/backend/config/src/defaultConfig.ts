@@ -44,7 +44,8 @@ export let defaultConfig: MetorialConfig = {
     appUrl: env.urls.APP_URL,
     mcpUrl: env.urls.MCP_URL,
     filesUrl: env.urls.API_URL,
-    providerOauthUrl: env.urls.PROVIDER_OAUTH_URL
+    providerOauthUrl: env.urls.PROVIDER_OAUTH_URL,
+    portalsUrl: env.urls.PORTALS_URL
   },
 
   s3: env.s3.S3_ACCESS_KEY_ID

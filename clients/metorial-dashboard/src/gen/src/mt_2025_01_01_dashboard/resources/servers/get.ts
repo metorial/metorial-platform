@@ -3,20 +3,22 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type ServersGetOutput = {
   object: 'server';
   id: string;
-  type: 'public';
+  type: 'public' | 'custom';
+  status: 'active' | 'inactive';
   name: string;
   description: string | null;
   importedServerId: string | null;
   variants: {
     object: 'server.server_variant';
     id: string;
+    status: 'active' | 'inactive';
     identifier: string;
     server: {
       object: 'server#preview';
       id: string;
       name: string;
       description: string | null;
-      type: 'public';
+      type: 'public' | 'custom';
       createdAt: Date;
       updatedAt: Date;
     };
@@ -30,21 +32,13 @@ export type ServersGetOutput = {
       source:
         | { type: 'docker'; docker: { image: string; tag: string } }
         | { type: 'remote'; remote: { domain: string } };
-      schema: {
-        id: string;
-        fingerprint: string;
-        schema: Record<string, any>;
-        serverId: string;
-        serverVariantId: string;
-        serverVersionId: string;
-        createdAt: Date;
-      };
+      schema: Record<string, any>;
       server: {
         object: 'server#preview';
         id: string;
         name: string;
         description: string | null;
-        type: 'public';
+        type: 'public' | 'custom';
         createdAt: Date;
         updatedAt: Date;
       };
@@ -64,6 +58,7 @@ export let mapServersGetOutput = mtMap.object<ServersGetOutput>({
   object: mtMap.objectField('object', mtMap.passthrough()),
   id: mtMap.objectField('id', mtMap.passthrough()),
   type: mtMap.objectField('type', mtMap.passthrough()),
+  status: mtMap.objectField('status', mtMap.passthrough()),
   name: mtMap.objectField('name', mtMap.passthrough()),
   description: mtMap.objectField('description', mtMap.passthrough()),
   importedServerId: mtMap.objectField(
@@ -76,6 +71,7 @@ export let mapServersGetOutput = mtMap.object<ServersGetOutput>({
       mtMap.object({
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
+        status: mtMap.objectField('status', mtMap.passthrough()),
         identifier: mtMap.objectField('identifier', mtMap.passthrough()),
         server: mtMap.objectField(
           'server',
@@ -128,27 +124,7 @@ export let mapServersGetOutput = mtMap.object<ServersGetOutput>({
                 )
               ])
             ),
-            schema: mtMap.objectField(
-              'schema',
-              mtMap.object({
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                fingerprint: mtMap.objectField(
-                  'fingerprint',
-                  mtMap.passthrough()
-                ),
-                schema: mtMap.objectField('schema', mtMap.passthrough()),
-                serverId: mtMap.objectField('server_id', mtMap.passthrough()),
-                serverVariantId: mtMap.objectField(
-                  'server_variant_id',
-                  mtMap.passthrough()
-                ),
-                serverVersionId: mtMap.objectField(
-                  'server_version_id',
-                  mtMap.passthrough()
-                ),
-                createdAt: mtMap.objectField('created_at', mtMap.date())
-              })
-            ),
+            schema: mtMap.objectField('schema', mtMap.passthrough()),
             server: mtMap.objectField(
               'server',
               mtMap.object({

@@ -16,6 +16,7 @@ export type DashboardInstanceSessionsGetOutput = {
     object: 'session.server_deployment#preview';
     id: string;
     name: string | null;
+    oauthSessionId: string | null;
     description: string | null;
     metadata: Record<string, any>;
     createdAt: Date;
@@ -25,7 +26,7 @@ export type DashboardInstanceSessionsGetOutput = {
       id: string;
       name: string;
       description: string | null;
-      type: 'public';
+      type: 'public' | 'custom';
       createdAt: Date;
       updatedAt: Date;
     };
@@ -67,6 +68,10 @@ export let mapDashboardInstanceSessionsGetOutput =
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
+          oauthSessionId: mtMap.objectField(
+            'oauth_session_id',
+            mtMap.passthrough()
+          ),
           description: mtMap.objectField('description', mtMap.passthrough()),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),

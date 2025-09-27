@@ -1,5 +1,5 @@
+import { ServersListingsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useServerDeployments, useServerListing } from '@metorial/state';
 import { Button, Flex, Spacer, Tabs, Text, theme } from '@metorial/ui';
 import { RiArrowLeftLine, RiArrowRightLine, RiCloseLine } from '@remixicon/react';
@@ -273,6 +273,7 @@ export let ExplorerPage = () => {
                       {serverTab == 'list' && (
                         <ServerDeploymentsList
                           {...serverDeploymentsFilter}
+                          order="desc"
                           onDeploymentClick={deployment => {
                             setOpen(false);
                             setServerDeploymentId(deployment.id);

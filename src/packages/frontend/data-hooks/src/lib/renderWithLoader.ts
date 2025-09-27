@@ -55,7 +55,7 @@ export let renderWithLoader =
           opts.spaceBottom
             ? React.createElement('div', { style: { height: opts.spaceBottom } })
             : null
-        ].map((el, i) => React.createElement(Fragment, { key: i, children: el }))
+        ].map((el, i) => React.createElement(Fragment, { key: `l-${i}`, children: el }))
       });
     }
 
@@ -72,7 +72,7 @@ export let renderWithLoader =
 
     // return children(loaders as any);
 
-    return children(loaders as any);
+    return React.createElement(Fragment, { children: children(loaders as any) });
   };
 
 export let renderWithPagination =
@@ -134,7 +134,7 @@ export let renderWithPagination =
           opts.spaceBottom
             ? React.createElement('div', { style: { height: opts.spaceBottom } })
             : null
-        ]
+        ].map((el, i) => React.createElement(Fragment, { key: `l-${i}`, children: el }))
       });
     }
 
@@ -217,8 +217,8 @@ export let renderWithPagination =
               },
               'Next'
             )
-          ]
+          ].map((el, i) => React.createElement(Fragment, { key: `b-${i}`, children: el }))
         )
-      ]
+      ].map((el, i) => React.createElement(Fragment, { key: `p-${i}`, children: el }))
     );
   };

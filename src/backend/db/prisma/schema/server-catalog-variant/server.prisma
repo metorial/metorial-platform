@@ -1,11 +1,18 @@
 enum ServerType {
   imported
+  custom
+}
+
+enum ServerStatus {
+  active
+  inactive
 }
 
 model Server {
-  oid  BigInt     @id @default(autoincrement())
-  id   String     @unique
-  type ServerType
+  oid    BigInt       @id @default(autoincrement())
+  id     String       @unique
+  type   ServerType
+  status ServerStatus @default(active)
 
   name        String
   description String?
@@ -13,6 +20,9 @@ model Server {
   metadata Json?
 
   importedServer ImportedServer?
+  customServer   CustomServer?
+
+  isPublic Boolean @default(true)
 
   ownerOrganizationOid BigInt?
   ownerOrganization    Organization? @relation(fields: [ownerOrganizationOid], references: [oid])
@@ -28,4 +38,6 @@ model Server {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([type])
 }

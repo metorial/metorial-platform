@@ -31,6 +31,8 @@ type ConnectionSSE struct {
 
 	extraOutputChan chan *remotePb.RunResponse
 
+	config *remotePb.RunConfigRemote
+
 	wg    sync.WaitGroup
 	mutex sync.Mutex
 }
@@ -48,7 +50,7 @@ var ignoreHeaders = map[string]bool{
 	"Upgrade":       true,
 }
 
-func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*ConnectionSSE, error) {
+func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfigRemote) (*ConnectionSSE, error) {
 	err := ssrfProtection.ValidateURL(config.Server.ServerUri)
 	if err != nil {
 		return nil, fmt.Errorf("server URI validation failed: %w", err)
@@ -89,6 +91,9 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*Connect
 		}
 	}
 
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("User-Agent", "Metorial MCP Engine (https://metorial.com)")
+
 	secureClient := &sse.Client{
 		// Use our own HTTP client with SSRF protection
 		HTTPClient: ssrfProtection.CreateSecureHTTPClient(),
@@ -111,6 +116,8 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*Connect
 
 		context: ctx,
 		cancel:  cancel,
+
+		config: config,
 
 		extraOutputChan: make(chan *remotePb.RunResponse, 10),
 	}
@@ -202,6 +209,10 @@ func (c *ConnectionSSE) Send(msg *mcpPb.McpMessageRaw) error {
 	return c.SendString(msg.Message)
 }
 
+func (c *ConnectionSSE) SendControl(msg string) error {
+	return c.SendString(msg)
+}
+
 func (c *ConnectionSSE) SendString(msg string) error {
 	c.wg.Wait()
 
@@ -222,7 +233,20 @@ func (c *ConnectionSSE) SendString(msg string) error {
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("User-Agent", "Metorial MCP Engine (https://metorial.com)")
 
-	resp, err := http.DefaultClient.Do(req)
+	if c.config.Arguments.Headers != nil {
+		for k, v := range c.config.Arguments.Headers {
+			if ignoreHeaders[strings.ToLower(k)] {
+				continue
+			}
+			if strings.Contains(k, "Sec-WebSocket") {
+				continue // Ignore WebSocket headers
+			}
+
+			req.Header.Set(k, v)
+		}
+	}
+
+	resp, err := ssrfProtection.CreateSecureHTTPClient().Do(req)
 
 	if err != nil {
 		return fmt.Errorf("failed to send data: %w", err)

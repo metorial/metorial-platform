@@ -19,6 +19,9 @@ model ServerImplementation {
 
   getLaunchParams String?
 
+  providerOAuthConfigOid BigInt?
+  providerOAuthConfig    ProviderOAuthConfig? @relation(fields: [providerOAuthConfigOid], references: [oid])
+
   serverVariantOid BigInt
   serverVariant    ServerVariant @relation(fields: [serverVariantOid], references: [oid])
 

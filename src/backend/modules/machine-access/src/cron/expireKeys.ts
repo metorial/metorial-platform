@@ -17,7 +17,6 @@ let expireCron = createCron(
         status: 'active'
       }
     });
-
     if (keysToExpires.length === 0) return;
 
     await expireSingleQueue.addMany(
@@ -45,7 +44,7 @@ let expireSingleQueueProcessor = expireSingleQueue.process(async data => {
       machineAccess: true
     }
   });
-  if (!apiKey) return;
+  if (!apiKey) throw new Error('retry ... not found');
 
   await Fabric.fire('machine_access.api_key.expired:before', {
     apiKey,

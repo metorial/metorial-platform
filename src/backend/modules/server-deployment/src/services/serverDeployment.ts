@@ -1,9 +1,12 @@
+import { Context } from '@metorial/context';
 import {
   db,
   ID,
   Instance,
   Organization,
   OrganizationActor,
+  ProviderOAuthConfig,
+  ProviderOAuthConnection,
   Server,
   ServerDeployment,
   ServerDeploymentConfig,
@@ -17,15 +20,27 @@ import { Fabric } from '@metorial/fabric';
 import { serverVariantService } from '@metorial/module-catalog';
 import { engineServerDiscoveryService } from '@metorial/module-engine';
 import { ingestEventService } from '@metorial/module-event';
+import {
+  providerOauthConnectionService,
+  providerOauthDiscoveryService
+} from '@metorial/module-provider-oauth';
 import { secretService } from '@metorial/module-secret';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { Validator } from 'jsonschema';
 import { serverDeploymentDeletedQueue } from '../queues/serverDeploymentDeleted';
+import { serverDeploymentSetupQueue } from '../queues/serverDeploymentSetup';
 
 let validator = new Validator();
 
 let include = {
+  oauthConnection: {
+    include: {
+      instance: true,
+      template: true,
+      config: true
+    }
+  },
   serverImplementation: {
     include: {
       server: true,
@@ -56,11 +71,13 @@ class ServerDeploymentServiceImpl {
       serverVariant: ServerVariant;
       server: Server;
     };
+    instance: Instance;
     config: Record<string, any>;
   }) {
     let variant = await serverVariantService.getServerVariantById({
       serverVariantId: d.serverImplementation.serverVariant.id,
-      server: d.serverImplementation.server
+      server: d.serverImplementation.server,
+      instance: d.instance
     });
     if (!variant.currentVersion) {
       throw new ServiceError(
@@ -119,7 +136,8 @@ class ServerDeploymentServiceImpl {
       where: {
         id: uniqueIds ? { in: uniqueIds } : undefined,
         instanceOid: d.instance.oid
-      }
+      },
+      include: { server: true, serverImplementation: true }
     });
 
     if (uniqueIds && uniqueIds.length != deployments.length) {
@@ -135,6 +153,7 @@ class ServerDeploymentServiceImpl {
     organization: Organization;
     performedBy: OrganizationActor;
     instance: Instance;
+    context: Context;
 
     serverImplementation: {
       instance: ServerImplementation & { serverVariant: ServerVariant; server: Server };
@@ -146,31 +165,145 @@ class ServerDeploymentServiceImpl {
       description?: string;
       metadata?: Record<string, any>;
       config: Record<string, any>;
+      oauthConfig?: {
+        clientId: string;
+        clientSecret: string;
+      };
     };
     type: 'ephemeral' | 'persistent';
   }) {
+    if (
+      d.serverImplementation.instance.status != 'active' &&
+      !d.serverImplementation.isNewEphemeral
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot create a server deployment for a deleted server implementation'
+        })
+      );
+    }
+
+    if (d.serverImplementation.instance.server.status != 'active') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot create a server deployment for a deleted server'
+        })
+      );
+    }
+
+    if (
+      !d.serverImplementation.isNewEphemeral &&
+      d.serverImplementation.instance.status != 'active'
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot create a server deployment for a deleted server instance'
+        })
+      );
+    }
+
     await Fabric.fire('server.server_deployment.created:before', {
       organization: d.organization,
       performedBy: d.performedBy,
       instance: d.instance,
+      context: d.context,
       implementation: d.serverImplementation.instance
     });
 
+    let currentVersionOid = d.serverImplementation.instance.serverVariant.currentVersionOid;
+    let currentVersion = currentVersionOid
+      ? await db.serverVersion.findFirst({
+          where: { oid: currentVersionOid },
+          include: {
+            customServerVersion: {
+              include: {
+                remoteServerInstance: true,
+                lambdaServerInstance: true
+              }
+            }
+          }
+        })
+      : null;
+
+    let serverInstance =
+      currentVersion?.customServerVersion?.remoteServerInstance ??
+      currentVersion?.customServerVersion?.lambdaServerInstance;
+
+    if (d.serverImplementation.instance.server.type == 'custom' && !serverInstance) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot create a server deployment for a custom server that is not deployed'
+        })
+      );
+    }
+
     let serverDeployment = await withTransaction(async db => {
-      if (
-        !d.serverImplementation.isNewEphemeral &&
-        d.serverImplementation.instance.status != 'active'
-      ) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Cannot create a server deployment for a deleted server instance'
-          })
-        );
+      let connection: ProviderOAuthConnection | null = null;
+      let oauthConfig: ProviderOAuthConfig | null = null;
+
+      if (serverInstance?.providerOAuthConfigOid) {
+        oauthConfig = await db.providerOAuthConfig.findFirstOrThrow({
+          where: { oid: serverInstance.providerOAuthConfigOid }
+        });
+        if (
+          !providerOauthDiscoveryService.supportsAutoRegistration({
+            config: oauthConfig.config
+          }) ||
+          d.input.oauthConfig
+        ) {
+          if (!d.input.oauthConfig) {
+            throw new ServiceError(
+              badRequestError({
+                message: 'OAuth configuration is required for this server deployment'
+              })
+            );
+          }
+
+          connection = await providerOauthConnectionService.createConnection({
+            organization: d.organization,
+            instance: d.instance,
+            performedBy: d.performedBy,
+            context: d.context,
+
+            isEphemeral: true,
+
+            input: {
+              name: `OAuth Connection for ${d.input.name ?? d.serverImplementation.instance.name ?? d.serverImplementation.instance.server.name}`,
+              description: 'Auto-created by Metorial for server deployment',
+
+              setup: {
+                mode: 'manual',
+                config: oauthConfig.config,
+                scopes: oauthConfig.scopes,
+                clientId: d.input.oauthConfig.clientId,
+                clientSecret: d.input.oauthConfig.clientSecret
+              }
+            }
+          });
+        } else {
+          connection = await providerOauthConnectionService.createConnection({
+            organization: d.organization,
+            instance: d.instance,
+            performedBy: d.performedBy,
+            context: d.context,
+
+            input: {
+              name: `OAuth Connection for ${d.input.name ?? d.serverImplementation.instance.name ?? d.serverImplementation.instance.server.name}`,
+              description: 'Auto-created by Metorial for server deployment',
+
+              setup: {
+                mode: 'async_auto_registration',
+                oauthConfigId: oauthConfig.id
+              }
+            }
+          });
+        }
       }
 
       let { schema, data } = await this.checkServerDeploymentConfig({
         serverImplementation: d.serverImplementation.instance,
-        config: d.input.config
+        config: d.input.config,
+        instance: d.instance
       });
 
       let secret = await secretService.createSecret({
@@ -199,6 +332,9 @@ class ServerDeploymentServiceImpl {
           status: d.type === 'ephemeral' ? 'archived' : 'active',
           isEphemeral: d.type === 'ephemeral',
 
+          oauthConfigOid: oauthConfig?.oid,
+          oauthConnectionOid: connection?.oid,
+
           name: d.input.name,
           description: d.input.description,
           metadata: d.input.metadata,
@@ -223,11 +359,17 @@ class ServerDeploymentServiceImpl {
         organization: d.organization,
         performedBy: d.performedBy,
         instance: d.instance,
+        context: d.context,
         deployment: serverDeployment,
         implementation: d.serverImplementation.instance
       });
 
       return serverDeployment;
+    });
+
+    await serverDeploymentSetupQueue.add({
+      serverDeploymentId: serverDeployment.id,
+      tryNumber: 1
     });
 
     if (!serverDeployment.serverImplementation.serverVariant.lastDiscoveredAt) {
@@ -280,7 +422,8 @@ class ServerDeploymentServiceImpl {
 
         let { schema, data } = await this.checkServerDeploymentConfig({
           serverImplementation: d.serverDeployment.serverImplementation,
-          config: d.input.config
+          config: d.input.config,
+          instance: d.instance
         });
 
         let secret = await secretService.createSecret({
@@ -448,7 +591,8 @@ class ServerDeploymentServiceImpl {
               serverImplementation: serverVariants
                 ? { serverVariantOid: { in: serverVariants.map(s => s.oid) } }
                 : undefined,
-              sessions: sessions
+
+              sessionsOldDontUse: sessions
                 ? {
                     some: {
                       oid: { in: sessions.map(s => s.oid) }

@@ -22,10 +22,31 @@ class ServerVariantService {
       where: {
         serverOid: 'server' in d ? d.server.oid : undefined,
 
-        // TODO: when we add private servers, we need to check the instance here
-        // OR: [{server: {type: 'imported'}}, {server: {type: 'instance', instanceOid: d.instance.oid}}],
+        AND: [
+          {
+            OR: [{ id: d.serverVariantId }, { identifier: d.serverVariantId }]
+          },
 
-        OR: [{ id: d.serverVariantId }, { identifier: d.serverVariantId }]
+          {
+            OR: [
+              { server: { type: 'imported' } },
+
+              ...('instance' in d
+                ? [
+                    { server: { ownerOrganizationOid: d.instance?.organizationOid } },
+                    { server: { isPublic: true } }
+                  ]
+                : [])
+            ]
+          },
+
+          {
+            OR: [
+              { onlyForInstanceOid: null },
+              { onlyForInstanceOid: 'instance' in d ? d.instance.oid : null }
+            ]
+          }
+        ]
       },
       include
     });

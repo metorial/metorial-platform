@@ -385,7 +385,7 @@ export let dashboardServerListingPresenter = Presenter.create(serverListingType)
     };
   })
   .schema(
-    v.union([
+    v.intersection([
       v1ServerListingPresenter.schema,
       v.object({
         readme_html: v.nullable(

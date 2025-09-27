@@ -1,29 +1,36 @@
 enum ProviderOAuthConnectionStatus {
   active
+  failed
   archived
 }
 
 model ProviderOAuthConnection {
-  oid    BigInt                        @id @default(autoincrement())
-  id     String                        @unique
-  status ProviderOAuthConnectionStatus @default(active)
+  oid         BigInt                        @id @default(autoincrement())
+  id          String                        @unique
+  status      ProviderOAuthConnectionStatus @default(active)
+  isEphemeral Boolean                       @default(false)
+
+  isAutoDiscoveryActive Boolean @default(false)
 
   metorialClientId String @unique
 
-  name         String
+  name        String?
+  description String?
+  metadata    Json?
+
   providerName String
   providerUrl  String
 
   discoveryUrl String?
 
-  /// [ProviderOAuthConfig]
-  config     Json
-  configHash String
+  configOid BigInt
+  config    ProviderOAuthConfig @relation(fields: [configOid], references: [oid])
 
-  scopes String[]
+  clientId     String?
+  clientSecret String?
 
-  clientId     String
-  clientSecret String
+  registrationOid BigInt?
+  registration    ProviderOAuthAutoRegistration? @relation(fields: [registrationOid], references: [oid])
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])
@@ -31,11 +38,19 @@ model ProviderOAuthConnection {
   templateOid BigInt?
   template    ProviderOAuthConnectionTemplate? @relation(fields: [templateOid], references: [oid])
 
+  failureCode    String?
+  failureMessage String?
+
+  autoCreatedForServerDeploymentOid BigInt?
+  autoCreatedForServerDeployment    ServerDeployment? @relation(fields: [autoCreatedForServerDeploymentOid], references: [oid], name: "ProviderOAuthConnectionServerDeploymentsAutoCreated")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  profiles ProviderOAuthConnectionProfile[]
-  tokens   ProviderOAuthConnectionAuthToken[]
-  attempts ProviderOAuthConnectionAuthAttempt[]
-  events   ProviderOAuthConnectionEvent[]
+  profiles          ProviderOAuthConnectionProfile[]
+  tokens            ProviderOAuthConnectionAuthToken[]
+  attempts          ProviderOAuthConnectionAuthAttempt[]
+  events            ProviderOAuthConnectionEvent[]
+  sessions          ServerOAuthSession[]
+  serverDeployments ServerDeployment[]                   @relation("ProviderOAuthConnectionServerDeployments")
 }

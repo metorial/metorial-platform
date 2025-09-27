@@ -6,9 +6,20 @@ import { styled } from 'styled-components';
 import prismTheme from './theme';
 
 let Wrapper = styled('div')`
-  border-radius: 10px;
-  background: white;
   overflow: hidden;
+  background: white;
+
+  &[data-variant='bordered'] {
+    border: 1px solid ${theme.colors.gray300};
+    border-radius: 10px;
+    --padding: 15px;
+  }
+
+  &[data-variant='seamless'] {
+    --padding: 0px;
+    width: 100%;
+    height: 100%;
+  }
 `;
 
 let Main = styled('div')`
@@ -86,13 +97,15 @@ export let CodeBlock = ({
   code,
   language,
   variant = 'bordered',
-  replacements = {}
+  replacements = {},
+  padding
 }: {
   lineNumbers?: boolean;
   code: string;
   language?: string;
   variant?: 'bordered' | 'seamless';
   replacements?: Record<string, () => React.ReactNode>;
+  padding?: string;
 }) => {
   let overflowRef = useRef<HTMLDivElement>(null);
   let scroll = useScroll(overflowRef as any);
@@ -110,13 +123,11 @@ export let CodeBlock = ({
     () => (
       <Wrapper
         style={
-          variant == 'bordered'
-            ? ({
-                border: `1px solid ${theme.colors.gray300}`,
-                '--padding': '15px'
-              } as any)
-            : {}
+          {
+            '--padding': padding
+          } as any
         }
+        data-variant={variant}
       >
         <link rel="stylesheet" href="https://fonts.metorial.com/jetbrains-mono.css" />
 

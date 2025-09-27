@@ -66,7 +66,11 @@ if [ "$1" = "generate" ]; then
   cd ./scripts
   
   if [ "$2" = "client" ]; then
-    ./generateClient.sh
+    if [ "$3" = "dashboard" ]; then
+      ./generateClient.sh dashboard
+    else
+      ./generateClient.sh
+    fi
   else
     echo "Unknown generate target: $2. Supported target is 'client'."
     exit 1
