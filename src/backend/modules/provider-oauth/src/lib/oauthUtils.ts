@@ -14,6 +14,8 @@ import {
   UserProfile
 } from '../types';
 
+axios.defaults.headers.common['Accept-Encoding'] = 'gzip';
+
 let id = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 21);
 
 let Sentry = getSentry();

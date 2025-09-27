@@ -35,6 +35,8 @@ class OauthConnectionServiceImpl {
     instance: Instance;
     context?: Context;
 
+    isEphemeral?: boolean;
+
     input: {
       name?: string;
       description?: string;
@@ -136,6 +138,8 @@ class OauthConnectionServiceImpl {
           id: await ID.generateId('oauthConnection'),
           metorialClientId: generateCustomId('mt_poatcon_', 35),
 
+          isEphemeral: !!d.isEphemeral,
+
           name: d.input.name,
           description: d.input.description,
 
@@ -172,9 +176,10 @@ class OauthConnectionServiceImpl {
     });
 
     if (asyncAutoDiscovery) {
-      await asyncAutoDiscoveryQueue.add({
-        connectionId: providerConnection.id
-      });
+      await asyncAutoDiscoveryQueue.add(
+        { connectionId: providerConnection.id },
+        { delay: 1000 }
+      );
     }
 
     return providerConnection;
@@ -269,6 +274,14 @@ class OauthConnectionServiceImpl {
       );
     }
 
+    if (d.connection.autoCreatedForServerDeploymentOid) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot archive a connection that was auto created for a server deployment'
+        })
+      );
+    }
+
     await Fabric.fire('provider_oauth.connection.archived:before', {
       organization: d.organization,
       instance: d.instance,
@@ -331,7 +344,8 @@ class OauthConnectionServiceImpl {
             ...opts,
             where: {
               instanceOid: d.instance.oid,
-              status: 'active'
+              status: 'active',
+              isEphemeral: false
             },
             include
           })

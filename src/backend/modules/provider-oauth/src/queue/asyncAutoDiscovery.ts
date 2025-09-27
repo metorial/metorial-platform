@@ -5,7 +5,11 @@ import { OAuthConfiguration } from '../types';
 
 export let asyncAutoDiscoveryQueue = createQueue<{ connectionId: string }>({
   name: 'oat/asyncadic',
-  workerOpts: { concurrency: 10, limiter: { max: 25, duration: 1000 } }
+  workerOpts: { concurrency: 10, limiter: { max: 25, duration: 1000 } },
+  jobOpts: {
+    attempts: 25,
+    backoff: { type: 'exponential', delay: 1000 }
+  }
 });
 
 export let asyncAutoDiscoveryQueueProcessor = asyncAutoDiscoveryQueue.process(async data => {

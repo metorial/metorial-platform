@@ -67,6 +67,12 @@ export let completeDashboardHtml = () => `<!DOCTYPE html>
 
     setTimeout(() => {
       sendToOpener({ type: 'oauth_complete' });
+
+      setTimeout(() => {
+        try {
+          window.close();
+        } catch {}
+      }, 2000);
     }, 100);
   </script>
     

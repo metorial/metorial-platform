@@ -2,6 +2,7 @@ import { runQueueProcessors } from '@metorial/queue';
 
 import { accessQueueProcessor } from '@metorial/module-access';
 import { catalogQueueProcessor } from '@metorial/module-catalog';
+import { codeBucketQueueProcessor } from '@metorial/module-code-bucket';
 import { customServerQueueProcessor } from '@metorial/module-custom-server';
 import { emailQueueProcessor } from '@metorial/module-email';
 import { engineQueueProcessor } from '@metorial/module-engine';
@@ -35,5 +36,6 @@ export let worker = runQueueProcessors([
   sessionQueueProcessor,
   providerOauthQueueProcessor,
   engineQueueProcessor,
-  customServerQueueProcessor
+  customServerQueueProcessor,
+  codeBucketQueueProcessor
 ]);

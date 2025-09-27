@@ -265,6 +265,8 @@ class ServerDeploymentServiceImpl {
             performedBy: d.performedBy,
             context: d.context,
 
+            isEphemeral: true,
+
             input: {
               name: `OAuth Connection for ${d.input.name ?? d.serverImplementation.instance.name ?? d.serverImplementation.instance.server.name}`,
               description: 'Auto-created by Metorial for server deployment',
