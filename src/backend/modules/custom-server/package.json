@@ -19,7 +19,8 @@
     "@metorial/pagination": "^1.0.0",
     "@metorial/queue": "^1.0.0",
     "@metorial/service": "^1.0.0",
-    "axios": "^1.10.0",
+    "@modelcontextprotocol/sdk": "^1.18.2",
+    "axios": "^1.12.2",
     "date-fns": "^4.1.0"
   },
   "devDependencies": {

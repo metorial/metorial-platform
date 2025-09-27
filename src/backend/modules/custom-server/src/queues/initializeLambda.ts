@@ -1,21 +1,18 @@
 import { db, ServerVersion, withTransaction } from '@metorial/db';
-import {
-  providerOauthConfigService,
-  providerOauthDiscoveryService
-} from '@metorial/module-provider-oauth';
+import { delay } from '@metorial/delay';
 import { createQueue } from '@metorial/queue';
 import { getSentry } from '@metorial/sentry';
+import { createDenoLambdaDeployment, DenoDeployment } from '../deployment/deno/deployment';
 import { createDeploymentStepManager } from '../lib/stepManager';
 import { customServerVersionService } from '../services';
-import { checkRemote } from './checkRemote';
 
 let Sentry = getSentry();
 
-export let initializeRemoteQueue = createQueue<{
-  remoteId: string;
+export let initializeLambdaQueue = createQueue<{
+  lambdaId: string;
   serverVersionData: Omit<ServerVersion, 'oid' | 'createdAt' | 'updatedAt'>;
 }>({
-  name: 'csrv/initRem',
+  name: 'csrv/initLam',
   jobOpts: {
     attempts: 10
   },
@@ -24,10 +21,11 @@ export let initializeRemoteQueue = createQueue<{
   }
 });
 
-export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async data => {
-  let remote = await db.remoteServerInstance.findFirst({
-    where: { id: data.remoteId },
+export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async data => {
+  let lambda = await db.lambdaServerInstance.findFirst({
+    where: { id: data.lambdaId },
     include: {
+      immutableCodeBucket: true,
       instance: true,
       customServerVersion: {
         include: {
@@ -37,14 +35,12 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
       }
     }
   });
-  if (!remote) throw new Error('retry ... not found');
+  if (!lambda) throw new Error('retry ... not found');
 
-  let instance = remote.instance;
-
-  let customServerVersion = remote.customServerVersion;
+  let customServerVersion = lambda.customServerVersion;
   let deployment = customServerVersion?.deployment;
   if (!customServerVersion || !deployment)
-    throw new Error(`Remote server version not found for remote ID: ${data.remoteId}`);
+    throw new Error(`Remote server version not found for remote ID: ${data.lambdaId}`);
 
   await db.customServerDeployment.updateMany({
     where: { id: deployment.id },
@@ -76,118 +72,133 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
     log: [
       {
         type: 'info',
-        lines: [`Starting deployment for remote server ${remote.remoteUrl}.`]
+        lines: [
+          `Starting deployment for managed server ${customServerVersion.customServer.name}.`
+        ]
       }
     ]
   });
 
   let checkStep = await stepManager.createDeploymentStep({
-    type: 'remote_server_connection_test',
+    type: 'lambda_deploy_create',
     status: 'running',
     log: [
       {
         type: 'info',
-        lines: [`Running connection test for remote server...`]
+        lines: [`Preparing deployment for managed server...`]
       }
     ]
   });
 
+  let deno: DenoDeployment;
+
   try {
-    let checkRes = await checkRemote(remote, { createEvent: false });
-    if (checkRes.ok) {
-      await checkStep.complete([
-        {
-          type: 'info',
-          lines: [
-            `Remote server connection test successful.`,
-            `Metorial was able to connect to the remote server at ${remote.remoteUrl}.`
-          ]
-        }
-      ]);
-    } else {
+    deno = await createDenoLambdaDeployment({
+      lambdaServerInstance: lambda,
+      customServer: customServerVersion.customServer,
+      deployment
+    });
+
+    checkStep.complete([]);
+  } catch (error: any) {
+    console.error('Error during managed server deployment setup:', error);
+    if (error.response && error.response.data && error.response.data.message) {
       await checkStep.fail([
         {
           type: 'error',
-          lines: [
-            `Remote server connection test failed.`,
-            `Metorial was unable to connect to the remote server at ${remote.remoteUrl}.`
-          ]
+          lines: [error.response.data.message]
         }
       ]);
-      await failDeployment();
-      return;
     }
-  } catch (error: any) {
+
     Sentry.captureException(error);
     await checkStep.fail();
     await failDeployment();
     return;
   }
 
-  if (!remote.providerOAuthConfigOid) {
-    let discoveryStep = await stepManager.createDeploymentStep({
-      type: 'remote_oauth_auto_discovery',
-      status: 'running',
-      log: [
-        {
-          type: 'info',
-          lines: [`Attempting to discover OAuth configuration from remote server...`]
-        }
-      ]
-    });
-
-    try {
-      let autoDiscoveryRes =
-        await providerOauthDiscoveryService.discoverOauthConfigWithoutRegistrationSafe({
-          discoveryUrl: remote.remoteUrl
-        });
-
-      if (autoDiscoveryRes) {
-        let config = await providerOauthConfigService.createConfig({
-          instance,
-          config: autoDiscoveryRes.config,
-          scopes: []
-        });
-
-        await db.remoteServerInstance.updateMany({
-          where: { id: remote.id },
-          data: {
-            providerOAuthDiscoveryStatus: 'completed_config_found',
-            providerOAuthConfigOid: config.oid
-          }
-        });
-
-        await discoveryStep.complete([
-          {
-            type: 'info',
-            lines: [
-              `OAuth configuration:`,
-              ` - Provider Name: ${autoDiscoveryRes.providerName}`,
-              ` - Provider URL: ${autoDiscoveryRes.providerUrl}`,
-              'Metorial has successfully discovered the OAuth configuration from the remote server.'
-            ]
-          }
-        ]);
-      } else {
-        await db.remoteServerInstance.updateMany({
-          where: { id: remote.id },
-          data: { providerOAuthDiscoveryStatus: 'completed_no_config_found' }
-        });
-
-        await discoveryStep.complete([
-          {
-            type: 'info',
-            lines: [`No OAuth configuration found for remote server at ${remote.remoteUrl}.`]
-          }
-        ]);
+  let buildStep = await stepManager.createDeploymentStep({
+    type: 'lambda_deploy_build',
+    status: 'running',
+    log: [
+      {
+        type: 'info',
+        lines: [`Building and deploying managed server...`]
       }
-    } catch (error: any) {
-      console.error('Error during OAuth discovery:', error);
-      Sentry.captureException(error);
-      await discoveryStep.fail();
-      await failDeployment();
-      return;
+    ]
+  });
+
+  try {
+    while (true) {
+      await delay(2000);
+      let status = await deno.pollDeploymentStatus();
+
+      for (let log of status.logs) {
+        buildStep.addLog(log.lines, log.type);
+      }
+
+      if (status.status == 'success') {
+        buildStep.complete([
+          {
+            type: 'info',
+            lines: ['Managed server deployed successfully.']
+          }
+        ]);
+        break;
+      } else if (status.status == 'failed') {
+        buildStep.fail([
+          {
+            type: 'info',
+            lines: ['Deployment failed.']
+          }
+        ]);
+        await failDeployment();
+        return;
+      }
     }
+  } catch (error: any) {
+    Sentry.captureException(error);
+    await buildStep.fail();
+    await failDeployment();
+    return;
+  }
+
+  let discoverStep = await stepManager.createDeploymentStep({
+    type: 'discovering',
+    status: 'running',
+    log: [
+      {
+        type: 'info',
+        lines: [`Discovering server capabilities...`]
+      }
+    ]
+  });
+
+  try {
+    let discovery = await deno.discoverServer();
+    data.serverVersionData.tools = discovery.tools ?? [];
+    data.serverVersionData.resourceTemplates = discovery.resourceTemplates ?? [];
+    data.serverVersionData.prompts = discovery.prompts ?? [];
+    data.serverVersionData.serverCapabilities = discovery.capabilities ?? [];
+    data.serverVersionData.serverInfo = discovery.implementation ?? [];
+    data.serverVersionData.serverInstructions = discovery.instructions ?? null;
+    await discoverStep.complete([
+      {
+        type: 'info',
+        lines: [`Server capabilities discovered successfully.`]
+      }
+    ]);
+  } catch (error: any) {
+    console.error('Error during managed server discovery:', error);
+    Sentry.captureException(error);
+    await discoverStep.fail([
+      {
+        type: 'error',
+        lines: [`Managed server discovery failed.`]
+      }
+    ]);
+    await failDeployment();
+    return;
   }
 
   let deploymentStep = await stepManager.createDeploymentStep({
@@ -206,7 +217,10 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
       await deploymentStep.addLog(['Creating server version...']);
 
       let serverVersion = await db.serverVersion.create({
-        data: data.serverVersionData
+        data: {
+          ...data.serverVersionData,
+          lambdaOid: lambda.oid
+        }
       });
 
       let version = await db.customServerVersion.update({
@@ -250,17 +264,17 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
       log: [
         {
           type: 'info',
-          lines: [`Remote server deployed to Metorial successfully.`]
+          lines: [`Managed server deployed to Metorial successfully.`]
         }
       ]
     });
   } catch (error: any) {
-    console.error('Error during remote server deployment:', error);
+    console.error('Error during managed server deployment:', error);
     Sentry.captureException(error);
     await deploymentStep.fail([
       {
         type: 'error',
-        lines: [`Remote server deployment failed.`]
+        lines: [`Managed server deployment failed.`]
       }
     ]);
     await failDeployment();

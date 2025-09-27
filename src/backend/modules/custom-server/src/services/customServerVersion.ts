@@ -12,12 +12,15 @@ import {
 } from '@metorial/db';
 import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
 import { Hash } from '@metorial/hash';
+import { generatePlainId } from '@metorial/id';
 import { createLock } from '@metorial/lock';
+import { codeBucketService } from '@metorial/module-code-bucket';
 import { providerOauthConfigService } from '@metorial/module-provider-oauth';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { createShortIdGenerator } from '@metorial/slugify';
 import { validateJsonSchema } from '../lib/jsonSchema';
+import { initializeLambdaQueue } from '../queues/initializeLambda';
 import { initializeRemoteQueue } from '../queues/initializeRemote';
 
 let include = {
@@ -33,6 +36,11 @@ let include = {
     }
   },
   remoteServerInstance: {
+    include: {
+      providerOAuthConfig: true
+    }
+  },
+  lambdaServerInstance: {
     include: {
       providerOAuthConfig: true
     }
@@ -56,9 +64,21 @@ let defaultRemoteConfigSchema = {
   properties: {}
 };
 
-let defaultLaunchParams = `(config, ctx) => ({
+let defaultRemoteLaunchParams = `(config, ctx) => ({
   query: {},
   headers: ctx.getHeadersWithAuthorization({})
+});`;
+
+let defaultManagedConfigSchema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  $id: 'https://schema.metorial.com/managed-server-config.json',
+  title: 'Managed Server Config',
+  type: 'object',
+  properties: {}
+};
+
+let defaultManagedLaunchParams = `(config, ctx) => ({
+  ...config
 });`;
 
 class CustomServerVersionServiceImpl {
@@ -68,20 +88,34 @@ class CustomServerVersionServiceImpl {
     organization: Organization;
     performedBy: OrganizationActor;
 
-    serverInstance: {
-      type: 'remote';
-      implementation: {
-        remoteUrl: string;
-        oAuthConfig?: {
-          config: any;
-          scopes: string[];
+    serverInstance:
+      | {
+          type: 'remote';
+          implementation: {
+            remoteUrl: string;
+            oAuthConfig?: {
+              config: any;
+              scopes: string[];
+            };
+          };
+          config?: {
+            schema?: any;
+            getLaunchParams?: string;
+          };
+        }
+      | {
+          type: 'managed';
+          implementation: {
+            oAuthConfig?: {
+              config: any;
+              scopes: string[];
+            };
+          };
+          config?: {
+            schema?: any;
+            getLaunchParams?: string;
+          };
         };
-      };
-      config?: {
-        schema?: any;
-        getLaunchParams?: string;
-      };
-    };
 
     isEphemeralUpdate?: boolean;
   }) {
@@ -119,13 +153,16 @@ class CustomServerVersionServiceImpl {
           let serverVersionParams: Partial<ServerVersion> = {};
 
           if (d.serverInstance.type == 'remote') {
-            getLaunchParams = d.serverInstance.config?.getLaunchParams ?? defaultLaunchParams;
+            getLaunchParams =
+              d.serverInstance.config?.getLaunchParams ?? defaultRemoteLaunchParams;
             configSchema = d.serverInstance.config?.schema ?? defaultRemoteConfigSchema;
             serverVersionParams = {
               remoteUrl: d.serverInstance.implementation.remoteUrl
             };
           } else {
-            throw new Error('WTF - Unsupported implementation type');
+            getLaunchParams =
+              d.serverInstance.config?.getLaunchParams ?? defaultManagedLaunchParams;
+            configSchema = d.serverInstance.config?.schema ?? defaultManagedConfigSchema;
           }
 
           let { maxVersionIndex } = await db.customServer.update({
@@ -158,7 +195,7 @@ class CustomServerVersionServiceImpl {
             identifier: versionHash,
             serverVariantOid: server.serverVariantOid,
             serverOid: server.serverOid,
-            sourceType: 'remote',
+            sourceType: d.serverInstance.type == 'remote' ? 'remote' : 'managed',
             schemaOid: schema.oid,
             getLaunchParams,
             ...(serverVersionParams as any)
@@ -179,24 +216,20 @@ class CustomServerVersionServiceImpl {
             }
           });
 
+          let config = d.serverInstance.implementation.oAuthConfig
+            ? await providerOauthConfigService.createConfig({
+                instance: d.instance,
+                config: d.serverInstance.implementation.oAuthConfig.config,
+                scopes: d.serverInstance.implementation.oAuthConfig.scopes
+              })
+            : undefined;
+
           if (d.serverInstance.type == 'remote') {
-            let url = new URL(d.serverInstance.implementation.remoteUrl);
-            let name = url.hostname.replace(/^www\./, '').replace(/^mcp\./, '');
-
-            let config = d.serverInstance.implementation.oAuthConfig
-              ? await providerOauthConfigService.createConfig({
-                  instance: d.instance,
-                  config: d.serverInstance.implementation.oAuthConfig.config,
-                  scopes: d.serverInstance.implementation.oAuthConfig.scopes
-                })
-              : undefined;
-
             let remoteServer = await db.remoteServerInstance.create({
               data: {
                 id: await ID.generateId('remoteServerInstance'),
                 remoteUrl: d.serverInstance.implementation.remoteUrl,
                 instanceOid: d.instance.oid,
-                name,
 
                 providerOAuthConfigOid: config?.oid,
                 providerOAuthDiscoveryStatus: config ? 'manual_config' : 'pending'
@@ -225,6 +258,57 @@ class CustomServerVersionServiceImpl {
 
             await initializeRemoteQueue.add(
               { remoteId: remoteServer.id, serverVersionData },
+              { delay: 1000 }
+            );
+          } else if (d.serverInstance.type == 'managed') {
+            let draftCodeBucket = await db.codeBucket.findFirstOrThrow({
+              where: {
+                instanceOid: d.instance.oid,
+                oid: server.draftCodeBucketOid!
+              }
+            });
+
+            let immutableCodeBucket = await codeBucketService.cloneCodeBucket({
+              codeBucket: draftCodeBucket
+            });
+
+            let lambdaServerInstance = await db.lambdaServerInstance.create({
+              data: {
+                id: await ID.generateId('lambdaServerInstance'),
+                status: 'pending',
+                securityToken: generatePlainId(30),
+                instanceOid: d.instance.oid,
+                immutableCodeBucketOid: immutableCodeBucket.oid,
+                providerOAuthConfigOid: config?.oid
+              },
+              include: {
+                instance: true,
+                immutableCodeBucket: true
+              }
+            });
+
+            let deployment = await db.customServerDeployment.create({
+              data: {
+                id: await ID.generateId('customServerDeployment'),
+
+                status: 'queued',
+                trigger: 'manual',
+
+                customServerOid: server.oid,
+                creatorActorOid: d.performedBy.oid
+              }
+            });
+
+            await db.customServerVersion.updateMany({
+              where: { id: customServerVersion.id },
+              data: {
+                lambdaServerInstanceOid: lambdaServerInstance.oid,
+                deploymentOid: deployment.oid
+              }
+            });
+
+            await initializeLambdaQueue.add(
+              { lambdaId: lambdaServerInstance.id, serverVersionData },
               { delay: 1000 }
             );
           } else {
@@ -281,6 +365,7 @@ class CustomServerVersionServiceImpl {
 
           serverCapabilities: serverVersion.serverCapabilities as any,
           serverInfo: serverVersion.serverInfo as any,
+          serverInstructions: serverVersion.serverInstructions as any,
 
           lastDiscoveredAt: serverVersion.lastDiscoveredAt
         }

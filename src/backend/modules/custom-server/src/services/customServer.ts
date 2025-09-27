@@ -1,9 +1,11 @@
 import {
+  CodeBucketTemplate,
   CustomServer,
   CustomServerType,
   db,
   ID,
   Instance,
+  ManagedServerTemplate,
   Organization,
   OrganizationActor,
   Server,
@@ -11,6 +13,7 @@ import {
 } from '@metorial/db';
 import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
 import { serverListingService } from '@metorial/module-catalog';
+import { codeBucketService } from '@metorial/module-code-bucket';
 import { profileService } from '@metorial/module-community';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -21,7 +24,8 @@ let include = {
   server: true,
   instance: true,
   serverVariant: true,
-  currentVersion: true
+  currentVersion: true,
+  draftCodeBucket: true
 };
 
 let getVariantIdentifier = createShortIdGenerator(
@@ -41,21 +45,50 @@ class customServerServiceImpl {
       metadata?: Record<string, any>;
     };
 
-    serverInstance: {
-      type: 'remote';
-      implementation: {
-        remoteUrl: string;
-      };
-
-      config?: {
-        schema?: any;
-        getLaunchParams?: string;
-      };
-    };
+    serverInstance:
+      | {
+          type: 'remote';
+          implementation: {
+            remoteUrl: string;
+          };
+          config?: {
+            schema?: any;
+            getLaunchParams?: string;
+          };
+        }
+      | {
+          type: 'managed';
+          implementation: {
+            template?: ManagedServerTemplate & {
+              bucketTemplate: CodeBucketTemplate;
+            };
+          };
+          config?: {
+            schema?: any;
+            getLaunchParams?: string;
+          };
+        };
 
     isEphemeral: boolean;
   }) {
     return withTransaction(async db => {
+      let codeBucket = await (async () => {
+        if (d.serverInstance.type != 'managed') return;
+
+        if (!d.serverInstance.implementation.template) {
+          return await codeBucketService.createCodeBucket({
+            instance: d.instance,
+            purpose: 'custom_server'
+          });
+        }
+
+        return await codeBucketService.cloneCodeBucketTemplate({
+          instance: d.instance,
+          purpose: 'custom_server',
+          template: d.serverInstance.implementation.template.bucketTemplate
+        });
+      })();
+
       let server = await db.server.create({
         data: {
           id: await ID.generateId('server'),
@@ -101,15 +134,12 @@ class customServerServiceImpl {
           providerOid: provider.oid,
           serverOid: server.oid,
 
-          remoteUrl: d.serverInstance.implementation.remoteUrl,
-
-          // TODO: Add other service types as needed
-          sourceType:
+          remoteUrl:
             d.serverInstance.type == 'remote'
-              ? 'remote'
-              : (() => {
-                  throw new Error('Unsupported server type');
-                })()
+              ? d.serverInstance.implementation.remoteUrl
+              : null,
+
+          sourceType: d.serverInstance.type
         }
       });
 
@@ -124,7 +154,8 @@ class customServerServiceImpl {
           serverVariantOid: variant.oid,
           instanceOid: d.instance.oid,
           name: d.input.name,
-          description: d.input.description
+          description: d.input.description,
+          draftCodeBucketOid: codeBucket?.oid
         }
       });
 
@@ -132,7 +163,14 @@ class customServerServiceImpl {
         server: customServer,
         instance: d.instance,
         organization: d.organization,
-        serverInstance: d.serverInstance,
+        serverInstance:
+          d.serverInstance.type == 'managed'
+            ? {
+                type: 'managed',
+                implementation: {},
+                config: d.serverInstance.config
+              }
+            : d.serverInstance,
         performedBy: d.performedBy,
 
         // Permits us to update the server, even though it is not active.
