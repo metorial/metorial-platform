@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ProviderConnectionCreateForm } from './createForm';
 
 export let showProviderConnectionFormModal = (p: {
-  onCreate?: (deal: ProviderOauthConnectionsGetOutput) => any;
+  onCreate?: (con: ProviderOauthConnectionsGetOutput) => any;
 }) =>
   showModal(({ dialogProps, close }) => {
     let [modalSize, setModalSize] = useState<'default' | 'large'>('default');

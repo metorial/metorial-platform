@@ -5,6 +5,7 @@ import { NotFound } from '@metorial/pages';
 import { useDashboardFlags } from '@metorial/state';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
+import { CustomServerCodePage } from './pages/(custom-servers)/custom-server/code';
 
 let ProviderConnectionOverviewPage = dynamicPage(() =>
   import('./pages/(custom-servers)/provider-connection').then(
@@ -344,6 +345,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'deployments',
                 element: <CustomServerDeploymentsPage />
+              },
+              {
+                path: 'code',
+                element: <CustomServerCodePage />
               }
             ]
           },

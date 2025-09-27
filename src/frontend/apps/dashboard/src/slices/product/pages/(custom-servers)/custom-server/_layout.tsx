@@ -50,40 +50,52 @@ export let CustomServerLayout = () => {
         ]}
       />
 
-      <LinkTabs
-        current={pathname}
-        links={[
-          {
-            label: 'Overview',
-            to: Paths.instance.customServer(...pathParams)
-          },
-          {
-            label: 'Versions',
-            to: Paths.instance.customServer(...pathParams, 'versions')
-          },
-          {
-            label: 'Deployments',
-            to: Paths.instance.customServer(...pathParams, 'deployments')
-          },
-          {
-            label: 'Settings',
-            to: Paths.instance.customServer(...pathParams, 'settings')
-          }
-        ]}
-      />
-
-      {customServer.data?.status == 'archived' && (
-        <>
-          <Callout color="orange">
-            This custom server is archived. It cannot be used for new connections.
-          </Callout>
-
-          <Spacer height={15} />
-        </>
-      )}
-
       {renderWithLoader({ customServer })(({ customServer }) => (
-        <Outlet />
+        <>
+          <LinkTabs
+            current={pathname}
+            links={[
+              {
+                label: 'Overview',
+                to: Paths.instance.customServer(...pathParams)
+              },
+
+              ...(customServer.data?.type === 'managed'
+                ? [
+                    {
+                      label: 'Code',
+                      to: Paths.instance.customServer(...pathParams, 'code')
+                    }
+                  ]
+                : []),
+
+              {
+                label: 'Versions',
+                to: Paths.instance.customServer(...pathParams, 'versions')
+              },
+              {
+                label: 'Deployments',
+                to: Paths.instance.customServer(...pathParams, 'deployments')
+              },
+              {
+                label: 'Settings',
+                to: Paths.instance.customServer(...pathParams, 'settings')
+              }
+            ]}
+          />
+
+          {customServer.data?.status == 'archived' && (
+            <>
+              <Callout color="orange">
+                This custom server is archived. It cannot be used for new connections.
+              </Callout>
+
+              <Spacer height={15} />
+            </>
+          )}
+
+          <Outlet />
+        </>
       ))}
     </ContentLayout>
   );

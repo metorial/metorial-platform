@@ -2,8 +2,8 @@ import { Group } from '@metorial/ui';
 import React from 'react';
 import { Form, FormProps } from './form';
 
-export let FormBox = <Values extends {}>(
-  p: FormProps<Values> & {
+export let FormBox = (
+  p: FormProps<Record<string, any>> & {
     title: React.ReactNode;
     description?: React.ReactNode;
     rightActions?: React.ReactNode;

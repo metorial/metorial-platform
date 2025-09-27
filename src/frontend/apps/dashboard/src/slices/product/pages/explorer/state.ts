@@ -2,6 +2,7 @@ import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
 import {
   useCreateOAuthSession,
   useCreateSession,
+  useGetOAuthSession,
   useServerDeployment,
   useSession
 } from '@metorial/state';
@@ -14,6 +15,7 @@ export let useSessionForDeployment = (
 ) => {
   let createSession = useCreateSession(instanceId);
   let createOAuthSession = useCreateOAuthSession(instanceId);
+  let getAuthSession = useGetOAuthSession(instanceId);
 
   let deployment = useServerDeployment(instanceId, deploymentId);
   let [session, setSession] = useState<DashboardInstanceSessionsGetOutput | null>(null);
@@ -51,10 +53,29 @@ export let useSessionForDeployment = (
         await new Promise<void>((resolve, reject) => {
           let doneRef = { current: false };
 
+          setTimeout(() => {
+            let countRef = { current: 0 };
+
+            let task = async () => {
+              if (countRef.current++ > 60) return reject();
+
+              let [res] = await getAuthSession.mutate({ sessionId: oauthSession.id });
+              if (res?.status == 'completed') {
+                oauthSessionIdRef.current = oauthSession.id;
+                doneRef.current = true;
+                resolve();
+                win.close();
+                return;
+              }
+
+              setTimeout(task, Math.min(1000 * 2 ** countRef.current, 7000));
+            };
+
+            task();
+          }, 5000);
+
           win.onClose(() => {
             if (doneRef.current) return;
-            doneRef.current = true;
-            reject();
             setTimeout(() => setState('oauth_error'), 100);
           });
 

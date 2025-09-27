@@ -45,6 +45,18 @@ export let ManagedServersListLayout = () => {
       <PageHeader
         title="Managed Servers"
         description="Build custom MCP servers powered by Metorial. Deploy them on your own infrastructure or use our managed servers."
+        actions={
+          <Button
+            onClick={() =>
+              showCustomServerRemoteFormModal({
+                type: 'managed'
+              })
+            }
+            size="2"
+          >
+            Create Managed Server
+          </Button>
+        }
       />
 
       <Outlet />
@@ -65,7 +77,14 @@ export let ExternalServersListLayout = () => {
         title="External Servers"
         description="Connect to external MCP servers using the Metorial platform."
         actions={
-          <Button onClick={() => showCustomServerRemoteFormModal({})} size="2">
+          <Button
+            onClick={() =>
+              showCustomServerRemoteFormModal({
+                type: 'remote'
+              })
+            }
+            size="2"
+          >
             Link Remote Server
           </Button>
         }

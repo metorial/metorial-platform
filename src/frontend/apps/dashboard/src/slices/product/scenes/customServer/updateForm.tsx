@@ -31,16 +31,23 @@ import { Form } from '../form/form';
 import { FormPage } from '../form/page';
 import { SchemaEditor } from '../jsonSchemaEditor';
 import { parseConfig } from '../providerConnection/config';
-import { defaultServerConfig } from './config';
+import { showProviderConnectionFormModal } from '../providerConnection/modal';
+import { defaultServerConfigManaged, defaultServerConfigRemote } from './config';
 
 export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput }) => {
   let instance = useCurrentInstance();
   let customServer = useCustomServer(instance.data?.id, p.customServer?.id);
 
+  let defaultServerConfig =
+    (customServer.data ?? p.customServer)?.type === 'remote'
+      ? defaultServerConfigRemote
+      : defaultServerConfigManaged;
+
   let updateMutator = customServer.useUpdateMutator();
   let deleteMutator = customServer.useDeleteMutator();
 
-  let createVersionMutator = useCreateCustomServerVersion();
+  let createVersionMutatorSchema = useCreateCustomServerVersion();
+  let createVersionMutatorOauth = useCreateCustomServerVersion();
 
   let currentVersion = useCustomServerVersion(
     instance.data?.id,
@@ -59,6 +66,10 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
   if (!editingVersion.current) editingVersion.current = currentVersion.data;
 
   let navigate = useNavigate();
+
+  let providerOauth =
+    editingVersion.current?.serverInstance.remoteServer?.providerOauth ??
+    editingVersion.current?.serverInstance.managedServer?.providerOauth;
 
   return (
     <FormPage>
@@ -100,109 +111,124 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
         </Field>
       </FormBox>
 
-      <Group.Wrapper>
-        <Group.Header
-          title="Server Configuration Schema"
-          description="Customize the configuration schema for deploying this custom server."
-        />
+      {currentVersion.error?.data.status != 404 && (
+        <Group.Wrapper>
+          <Group.Header
+            title="Server Configuration Schema"
+            description="Customize the configuration schema for deploying this custom server."
+          />
 
-        {renderWithLoader({ currentVersion })(({ currentVersion }) => (
-          <Form
-            schema={yup =>
-              yup.object({
-                schema: yup.object(),
-                getLaunchParams: yup.string().required('Launch parameters are required')
-              })
-            }
-            updateInitialValues
-            initialValues={{
-              schema:
-                editingVersion.current?.serverVersion?.schema ?? defaultServerConfig.schema,
-              getLaunchParams:
-                editingVersion.current?.serverVersion?.getLaunchParams ||
-                defaultServerConfig.getLaunchParams
-            }}
-            mutators={[createVersionMutator]}
-            gap={0}
-            actionsWrapper={({ children }) => (
-              <Group.Content style={{ borderTop: `1px solid ${theme.colors.gray300}` }}>
-                {children}
-              </Group.Content>
-            )}
-            onSubmit={async values => {
-              if (!instance.data || !p.customServer) return;
-
-              let [res] = await createVersionMutator.mutate({
-                instanceId: instance.data.id,
-                customServerId: p.customServer.id,
-                implementation: {
-                  type: 'remote',
-                  config: {
-                    schema: values.schema,
-                    getLaunchParams: values.getLaunchParams
-                  },
-                  remoteServer: {
-                    remoteUrl:
-                      editingVersion.current?.serverInstance.remoteServer?.remoteUrl ?? '',
-                    oauthConfig: editingVersion.current?.serverInstance.remoteServer
-                      ?.providerOauth.config
-                      ? {
-                          scopes:
-                            editingVersion.current?.serverInstance.remoteServer?.providerOauth
-                              .scopes ?? [],
-                          config:
-                            editingVersion.current?.serverInstance.remoteServer?.providerOauth
-                              .config
-                        }
-                      : undefined
-                  }
+          {renderWithLoader({ currentVersion, customServer })(
+            ({ currentVersion, customServer }) => (
+              <Form
+                schema={yup =>
+                  yup.object({
+                    schema: yup.object(),
+                    getLaunchParams: yup.string().required('Launch parameters are required')
+                  })
                 }
-              });
-
-              if (res) {
-                editingVersion.current = {
-                  ...editingVersion.current,
-                  ...res,
-                  serverVersion: res.serverVersion ?? editingVersion.current?.serverVersion
-                } as any;
-
-                toast.success('An updated version is currently being deployed.');
-              }
-            }}
-          >
-            <Group.Row>
-              <Field field="schema">
-                {({ value, setValue }) => (
-                  <SchemaEditor
-                    title={customServer.data?.name || 'Custom Server Schema'}
-                    value={
-                      (editingVersion.current?.serverVersion?.schema ??
-                        defaultServerConfig.schema) as any
-                    }
-                    onChange={v => setValue(v)}
-                  />
+                updateInitialValues
+                initialValues={{
+                  schema:
+                    editingVersion.current?.serverVersion?.schema ??
+                    defaultServerConfig.schema,
+                  getLaunchParams:
+                    editingVersion.current?.serverVersion?.getLaunchParams ||
+                    defaultServerConfig.getLaunchParams
+                }}
+                mutators={[createVersionMutatorSchema]}
+                gap={0}
+                actionsWrapper={({ children }) => (
+                  <Group.Content style={{ borderTop: `1px solid ${theme.colors.gray300}` }}>
+                    {children}
+                  </Group.Content>
                 )}
-              </Field>
-            </Group.Row>
+                onSubmit={async values => {
+                  if (!instance.data || !p.customServer) return;
 
-            <Group.Content style={{ borderTop: `1px solid ${theme.colors.gray300}` }}>
-              <Field field="getLaunchParams">
-                {({ value, setValue }) => (
-                  <>
-                    <CodeEditor
-                      value={value}
-                      onChange={v => setValue(v)}
-                      label="Launch Parameters"
-                      lang="javascript"
-                      height="300px"
-                    />
-                  </>
-                )}
-              </Field>
-            </Group.Content>
-          </Form>
-        ))}
-      </Group.Wrapper>
+                  let oauthConfig = providerOauth
+                    ? {
+                        scopes: providerOauth.scopes ?? [],
+                        config: providerOauth.config
+                      }
+                    : undefined;
+
+                  let [res] = await createVersionMutatorSchema.mutate({
+                    instanceId: instance.data.id,
+                    customServerId: p.customServer.id,
+                    implementation:
+                      p.customServer.type == 'managed'
+                        ? {
+                            type: 'managed',
+                            config: {
+                              schema: values.schema,
+                              getLaunchParams: values.getLaunchParams
+                            },
+                            managedServer: {
+                              oauthConfig
+                            }
+                          }
+                        : {
+                            type: 'remote',
+                            config: {
+                              schema: values.schema,
+                              getLaunchParams: values.getLaunchParams
+                            },
+                            remoteServer: {
+                              remoteUrl:
+                                editingVersion.current?.serverInstance.remoteServer
+                                  ?.remoteUrl!,
+                              oauthConfig
+                            }
+                          }
+                  });
+
+                  if (res) {
+                    editingVersion.current = {
+                      ...editingVersion.current,
+                      ...res,
+                      serverVersion: res.serverVersion ?? editingVersion.current?.serverVersion
+                    } as any;
+
+                    toast.success('An updated version is currently being deployed.');
+                  }
+                }}
+              >
+                <Group.Row>
+                  <Field field="schema">
+                    {({ value, setValue }) => (
+                      <SchemaEditor
+                        title={customServer.data?.name || 'Custom Server Schema'}
+                        value={
+                          (editingVersion.current?.serverVersion?.schema ??
+                            defaultServerConfig.schema) as any
+                        }
+                        onChange={v => setValue(v)}
+                      />
+                    )}
+                  </Field>
+                </Group.Row>
+
+                <Group.Content style={{ borderTop: `1px solid ${theme.colors.gray300}` }}>
+                  <Field field="getLaunchParams">
+                    {({ value, setValue }) => (
+                      <>
+                        <CodeEditor
+                          value={value}
+                          onChange={v => setValue(v)}
+                          label="Launch Parameters"
+                          lang="javascript"
+                          height="300px"
+                        />
+                      </>
+                    )}
+                  </Field>
+                </Group.Content>
+              </Form>
+            )
+          )}
+        </Group.Wrapper>
+      )}
 
       <FormBox
         title="OAuth Configuration"
@@ -232,23 +258,17 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
           })
         }
         initialValues={{
-          enabled: !!editingVersion.current?.serverInstance.remoteServer?.providerOauth.config,
+          enabled: !!providerOauth?.config,
 
-          scopes:
-            editingVersion.current?.serverInstance.remoteServer?.providerOauth.scopes ?? [],
-          config: JSON.stringify(
-            editingVersion.current?.serverInstance.remoteServer?.providerOauth.config || {},
-            null,
-            2
-          )
+          scopes: providerOauth?.scopes ?? [],
+          config: JSON.stringify(providerOauth?.config || {}, null, 2)
         }}
         updateInitialValues
-        mutators={[createVersionMutator]}
+        mutators={[createVersionMutatorOauth]}
         onSubmit={async values => {
           if (!instance.data || !p.customServer) return;
 
-          let config: any =
-            editingVersion.current?.serverInstance.remoteServer?.providerOauth.config || {};
+          let config: any = providerOauth?.config || {};
           if (values.config) {
             try {
               config = parseConfig(values.config);
@@ -257,26 +277,44 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
             }
           }
 
-          let scopes = (values.scopes?.filter(s => s && s.trim()) ?? []) as string[];
+          let scopes = ((values.scopes as any[])?.filter(s => s && s.trim()) ??
+            []) as string[];
 
-          let [res] = await createVersionMutator.mutate({
+          let [res] = await createVersionMutatorOauth.mutate({
             instanceId: instance.data.id,
             customServerId: p.customServer.id,
-            implementation: {
-              type: 'remote',
-              config: {
-                schema:
-                  editingVersion.current?.serverVersion?.schema ?? defaultServerConfig.schema,
-                getLaunchParams:
-                  editingVersion.current?.serverVersion?.getLaunchParams ??
-                  defaultServerConfig.getLaunchParams
-              },
-              remoteServer: {
-                remoteUrl:
-                  editingVersion.current?.serverInstance.remoteServer?.remoteUrl ?? '',
-                oauthConfig: values.enabled ? { scopes, config } : undefined
-              }
-            }
+            implementation:
+              p.customServer.type == 'managed'
+                ? {
+                    type: 'managed',
+                    config: {
+                      schema:
+                        editingVersion.current?.serverVersion?.schema ??
+                        defaultServerConfig.schema,
+                      getLaunchParams:
+                        editingVersion.current?.serverVersion?.getLaunchParams ??
+                        defaultServerConfig.getLaunchParams
+                    },
+                    managedServer: {
+                      oauthConfig: values.enabled ? { scopes, config } : undefined
+                    }
+                  }
+                : {
+                    type: 'remote',
+                    config: {
+                      schema:
+                        editingVersion.current?.serverVersion?.schema ??
+                        defaultServerConfig.schema,
+                      getLaunchParams:
+                        editingVersion.current?.serverVersion?.getLaunchParams ??
+                        defaultServerConfig.getLaunchParams
+                    },
+                    remoteServer: {
+                      remoteUrl:
+                        editingVersion.current?.serverInstance.remoteServer?.remoteUrl ?? '',
+                      oauthConfig: values.enabled ? { scopes, config } : undefined
+                    }
+                  }
           });
 
           if (res) {
@@ -297,7 +335,19 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
                 <Switch
                   label="Use OAuth to connect to the MCP server."
                   checked={value}
-                  onCheckedChange={setValue}
+                  onCheckedChange={v => {
+                    if (v) {
+                      showProviderConnectionFormModal({
+                        onCreate: con => {
+                          form.setFieldValue('scopes', con.scopes);
+                          form.setFieldValue('config', JSON.stringify(con.config, null, 2));
+                          form.setFieldValue('enabled', true);
+                        }
+                      });
+                    } else {
+                      setValue(false);
+                    }
+                  }}
                 />
               )}
             </Field>

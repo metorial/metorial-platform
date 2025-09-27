@@ -27,7 +27,8 @@ export let CustomServerOverviewPage = () => {
           {
             label: 'Type',
             content: {
-              remote: 'Remote Server'
+              remote: 'Remote Server',
+              managed: 'Managed Server'
             }[customServer.data.type]
           },
           {

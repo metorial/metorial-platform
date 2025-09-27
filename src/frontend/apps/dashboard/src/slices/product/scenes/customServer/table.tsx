@@ -36,7 +36,8 @@ export let CustomServersTable = (filter: DashboardInstanceCustomServersListQuery
               )}
             </Text>,
             {
-              remote: <Badge color="purple">Remote</Badge>
+              remote: <Badge color="purple">Remote</Badge>,
+              managed: <Badge color="blue">Managed</Badge>
             }[customServer.type] ?? customServer.type,
             ...(filter.type == 'remote'
               ? [

@@ -12,6 +12,7 @@ import {
 import {
   Avatar,
   Button,
+  Callout,
   CenteredSpinner,
   Input,
   InputLabel,
@@ -173,6 +174,7 @@ export let ProviderConnectionCreateForm = (p: {
         toast.success('Provider connection created successfully.');
 
         if (p.onCreate) {
+          p.close?.();
           p.onCreate(res);
         } else {
           navigate(
@@ -459,7 +461,7 @@ export let ProviderConnectionCreateForm = (p: {
               if (providerUrl) {
                 return (
                   <>
-                    {!autoRegistrationId && (
+                    {!autoRegistrationId ? (
                       <>
                         <Input
                           label="Client ID"
@@ -479,6 +481,15 @@ export let ProviderConnectionCreateForm = (p: {
                         <form.RenderError field="clientSecret" />
 
                         <Spacer size={15} />
+                      </>
+                    ) : (
+                      <>
+                        <Callout color="blue">
+                          Metorial has auto-discovered the configuration for this provider. The
+                          OAuth application will be automatically registered when you create
+                          the connection.
+                        </Callout>
+                        <Spacer height={15} />
                       </>
                     )}
 

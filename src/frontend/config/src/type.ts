@@ -12,6 +12,10 @@ export interface FrontendConfig {
     logoutPath: string;
   };
 
+  microFrontends: {
+    codeEditorUrl?: string;
+  };
+
   enterprise?: {
     organizationFrontendUrl?: string;
     accountFrontendUrl?: string;

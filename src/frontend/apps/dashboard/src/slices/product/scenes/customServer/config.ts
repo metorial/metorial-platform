@@ -85,7 +85,7 @@ export let remoteServerTemplates = [
   };
 });
 
-export let defaultServerConfig = {
+export let defaultServerConfigRemote = {
   schema: {
     type: 'object',
     properties: {}
@@ -93,5 +93,15 @@ export let defaultServerConfig = {
   getLaunchParams: `(config, ctx) => ({
   query: {},
   headers: ctx.getHeadersWithAuthorization({})
+});`
+};
+
+export let defaultServerConfigManaged = {
+  schema: {
+    type: 'object',
+    properties: {}
+  },
+  getLaunchParams: `(config, ctx) => ({
+  ...config
 });`
 };

@@ -1,17 +1,18 @@
 import { CustomServersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
-import { useForm } from '@metorial/data-hooks';
+import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCreateCustomServer,
   useCurrentInstance,
-  useListServerVersions
+  useListServerVersions,
+  useManagedServerTemplates
 } from '@metorial/state';
-import { Avatar, Button, Input, Or, Spacer, theme, toast } from '@metorial/ui';
+import { Button, Input, Spacer, theme, toast } from '@metorial/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Stepper } from '../stepper';
-import { defaultServerConfigRemote, remoteServerTemplates } from './config';
+import { defaultServerConfigManaged } from './config';
 
 let TemplateWrapper = styled.div`
   display: flex;
@@ -28,7 +29,7 @@ let Actions = styled.div`
 
 let Templates = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 10px;
 `;
 
@@ -54,45 +55,51 @@ let Form = styled.form`
   flex-direction: column;
 `;
 
-export let CustomServerRemoteCreateForm = (p: {
+export let CustomServerManagedCreateForm = (p: {
   close?: () => any;
   onCreate?: (out: CustomServersGetOutput) => any;
 }) => {
   let instance = useCurrentInstance();
   let createCustomServer = useCreateCustomServer();
   let listServerVersions = useListServerVersions();
+  let managedServerTemplates = useManagedServerTemplates({
+    limit: 100
+  });
 
   let [currentStep, setCurrentStep] = useState(0);
 
   let navigate = useNavigate();
+  let [templateId, setTemplateId] = useState<string | undefined>(undefined);
 
   let form = useForm({
     initialValues: {
       name: '',
-      remoteUrl: '',
       description: '',
       metadata: {}
     },
     schema: yup =>
       yup.object({
         name: yup.string().required('Name is required'),
-        remoteUrl: yup.string().url().required('Remote URL is required'),
         description: yup.string().optional(),
         metadata: yup.object().optional()
       }),
     onSubmit: async values => {
       if (!instance.data) return;
 
+      let plainTemplate = managedServerTemplates.data?.items.find(
+        t => t.slug == 'plain-typescript'
+      );
+
       let [customServerRes] = await createCustomServer.mutate({
         instanceId: instance.data.id,
         name: values.name,
         description: values.description,
         implementation: {
-          type: 'remote',
-          remoteServer: {
-            remoteUrl: values.remoteUrl
+          type: 'managed',
+          managedServer: {
+            templateId: templateId ?? plainTemplate?.id
           },
-          config: defaultServerConfigRemote
+          config: defaultServerConfigManaged
         }
       });
 
@@ -111,7 +118,7 @@ export let CustomServerRemoteCreateForm = (p: {
           }
         }
 
-        toast.success('Server linked successfully');
+        toast.success('Server created successfully');
 
         if (p.onCreate) {
           p.onCreate(customServerRes);
@@ -160,58 +167,45 @@ export let CustomServerRemoteCreateForm = (p: {
         setCurrentStep={setCurrentStep}
         steps={[
           {
-            title: 'Remote URL',
-            subtitle: 'Enter the remote server URL',
+            title: 'Choose Template',
+            subtitle: 'Choose a template for your MCP server',
             render: () => {
-              return (
-                <TemplateWrapper>
-                  <Input
-                    label="Remote URL"
-                    description="Enter the MCP server URL you want to connect to."
-                    placeholder="https://mcp.monday.com/sse"
-                    {...form.getFieldProps('remoteUrl')}
-                  />
-                  <form.RenderError field="remoteUrl" />
+              return renderWithLoader({ managedServerTemplates })(
+                ({ managedServerTemplates }) => (
+                  <TemplateWrapper>
+                    <Templates>
+                      {managedServerTemplates.data.items.map(template => (
+                        <TemplatesItem
+                          key={template.id}
+                          type="button"
+                          onClick={() => {
+                            form.resetForm();
+                            form.setFieldValue('name', template.name);
+                            setTemplateId(template.id);
+                            setCurrentStep(1);
+                          }}
+                        >
+                          <span>{template.name}</span>
+                        </TemplatesItem>
+                      ))}
+                    </Templates>
 
-                  <Spacer size={10} />
+                    <Actions>
+                      {close}
 
-                  <Or text="Or" />
-
-                  <Spacer size={10} />
-
-                  <Templates>
-                    {remoteServerTemplates.map(template => (
-                      <TemplatesItem
-                        key={template.remoteUrl}
+                      <Button
                         type="button"
+                        size="2"
                         onClick={() => {
-                          form.resetForm();
-
-                          form.setFieldValue('remoteUrl', template.remoteUrl);
-                          form.setFieldValue('name', template.name);
-
+                          setTemplateId(undefined);
                           setCurrentStep(1);
                         }}
                       >
-                        <Avatar entity={template} size={24} />
-                        <span>{template.name}</span>
-                      </TemplatesItem>
-                    ))}
-                  </Templates>
-
-                  <Actions>
-                    {close}
-
-                    <Button
-                      type="button"
-                      size="2"
-                      disabled={!form.values.remoteUrl}
-                      onClick={() => setCurrentStep(1)}
-                    >
-                      Continue
-                    </Button>
-                  </Actions>
-                </TemplateWrapper>
+                        Continue without template
+                      </Button>
+                    </Actions>
+                  </TemplateWrapper>
+                )
               );
             }
           },

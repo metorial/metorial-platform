@@ -63,8 +63,6 @@ export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: str
     return url.toString();
   }, [session.data]);
 
-  console.log(session.data);
-
   return (
     <Wrapper>
       {session.error || session.state == 'error' ? (

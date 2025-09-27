@@ -1,6 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance } from '@metorial/state';
+import { useCurrentInstance, useDashboardFlags } from '@metorial/state';
 import styled, { keyframes } from 'styled-components';
+import { CustomServersTable } from '../../../scenes/customServer/table';
 
 let moveDots = keyframes`
   0% {
@@ -80,15 +81,22 @@ let Wrapper = styled.div`
 
 export let ManagedServersPage = () => {
   let instance = useCurrentInstance();
+  let flags = useDashboardFlags();
 
   return renderWithLoader({ instance })(({ instance }) => (
-    <Wrapper>
-      <span>Coming Soon</span>
-      <h1>Metorial Managed MCP Servers</h1>
-      <p>
-        Run custom MCP servers managed by Metorial, with all the features you love. Deploy them
-        on your own infrastructure or use our managed hosting.
-      </p>
-    </Wrapper>
+    <>
+      {flags.data?.flags['managed-servers-enabled'] ? (
+        <CustomServersTable type="managed" />
+      ) : (
+        <Wrapper>
+          <span>Coming Soon</span>
+          <h1>Metorial Managed MCP Servers</h1>
+          <p>
+            Run custom MCP servers managed by Metorial, with all the features you love. Deploy
+            them on your own infrastructure or use our managed hosting.
+          </p>
+        </Wrapper>
+      )}
+    </>
   ));
 };

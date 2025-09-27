@@ -52,3 +52,13 @@ export let useCreateOAuthSession = (instanceId: string | null | undefined) => {
     )
   );
 };
+
+export let useGetOAuthSession = (instanceId: string | null | undefined) => {
+  return useMutation(
+    useMemo(
+      () => (input: { sessionId: string }) =>
+        withAuth(sdk => sdk.providerOauth.sessions.get(instanceId!, input.sessionId)),
+      [instanceId]
+    )
+  );
+};
