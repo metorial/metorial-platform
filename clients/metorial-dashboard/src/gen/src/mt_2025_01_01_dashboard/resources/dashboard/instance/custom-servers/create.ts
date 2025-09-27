@@ -4,7 +4,7 @@ export type DashboardInstanceCustomServersCreateOutput = {
   object: 'custom_server';
   id: string;
   status: 'active' | 'archived' | 'deleted';
-  type: 'remote';
+  type: 'remote' | 'managed';
   name: string;
   description: string | null;
   metadata: Record<string, any>;
@@ -100,13 +100,21 @@ export type DashboardInstanceCustomServersCreateBody = {
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  implementation: {
-    type: 'remote';
-    remoteServer: { remoteUrl: string };
-    config?:
-      | { schema?: any | undefined; getLaunchParams?: string | undefined }
-      | undefined;
-  };
+  implementation:
+    | {
+        type: 'remote';
+        remoteServer: { remoteUrl: string };
+        config?:
+          | { schema?: any | undefined; getLaunchParams?: string | undefined }
+          | undefined;
+      }
+    | {
+        type: 'managed';
+        managedServer?: { templateId?: string | undefined } | undefined;
+        config?:
+          | { schema?: any | undefined; getLaunchParams?: string | undefined }
+          | undefined;
+      };
 };
 
 export let mapDashboardInstanceCustomServersCreateBody =
@@ -116,25 +124,39 @@ export let mapDashboardInstanceCustomServersCreateBody =
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     implementation: mtMap.objectField(
       'implementation',
-      mtMap.object({
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        remoteServer: mtMap.objectField(
-          'remote_server',
+      mtMap.union([
+        mtMap.unionOption(
+          'object',
           mtMap.object({
-            remoteUrl: mtMap.objectField('remote_url', mtMap.passthrough())
-          })
-        ),
-        config: mtMap.objectField(
-          'config',
-          mtMap.object({
-            schema: mtMap.objectField('schema', mtMap.passthrough()),
-            getLaunchParams: mtMap.objectField(
-              'getLaunchParams',
-              mtMap.passthrough()
+            type: mtMap.objectField('type', mtMap.passthrough()),
+            remoteServer: mtMap.objectField(
+              'remote_server',
+              mtMap.object({
+                remoteUrl: mtMap.objectField('remote_url', mtMap.passthrough())
+              })
+            ),
+            config: mtMap.objectField(
+              'config',
+              mtMap.object({
+                schema: mtMap.objectField('schema', mtMap.passthrough()),
+                getLaunchParams: mtMap.objectField(
+                  'getLaunchParams',
+                  mtMap.passthrough()
+                )
+              })
+            ),
+            managedServer: mtMap.objectField(
+              'managed_server',
+              mtMap.object({
+                templateId: mtMap.objectField(
+                  'template_id',
+                  mtMap.passthrough()
+                )
+              })
             )
           })
         )
-      })
+      ])
     )
   });
 

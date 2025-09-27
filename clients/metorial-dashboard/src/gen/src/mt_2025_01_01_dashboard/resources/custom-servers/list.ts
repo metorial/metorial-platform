@@ -5,7 +5,7 @@ export type CustomServersListOutput = {
     object: 'custom_server';
     id: string;
     status: 'active' | 'archived' | 'deleted';
-    type: 'remote';
+    type: 'remote' | 'managed';
     name: string;
     description: string | null;
     metadata: Record<string, any>;
@@ -118,7 +118,7 @@ export type CustomServersListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { type?: 'remote'[] | 'remote' | undefined };
+} & { type?: ('remote' | 'managed')[] | 'remote' | 'managed' | undefined };
 
 export let mapCustomServersListQuery = mtMap.union([
   mtMap.unionOption(

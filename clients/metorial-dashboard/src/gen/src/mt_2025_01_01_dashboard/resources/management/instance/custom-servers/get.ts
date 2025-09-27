@@ -4,7 +4,7 @@ export type ManagementInstanceCustomServersGetOutput = {
   object: 'custom_server';
   id: string;
   status: 'active' | 'archived' | 'deleted';
-  type: 'remote';
+  type: 'remote' | 'managed';
   name: string;
   description: string | null;
   metadata: Record<string, any>;

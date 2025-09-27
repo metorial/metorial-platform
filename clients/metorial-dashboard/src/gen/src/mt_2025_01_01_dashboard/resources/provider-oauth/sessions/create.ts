@@ -22,6 +22,7 @@ export type ProviderOauthSessionsCreateOutput = {
     updatedAt: Date;
   };
   metadata: Record<string, any>;
+  redirectUri: string | null;
   instanceId: string;
   completedAt: Date | null;
   createdAt: Date;
@@ -62,6 +63,7 @@ export let mapProviderOauthSessionsCreateOutput =
       })
     ),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    redirectUri: mtMap.objectField('redirect_uri', mtMap.passthrough()),
     instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
     completedAt: mtMap.objectField('completed_at', mtMap.date()),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -70,6 +72,7 @@ export let mapProviderOauthSessionsCreateOutput =
 
 export type ProviderOauthSessionsCreateBody = {
   metadata?: Record<string, any> | undefined;
+  redirectUri?: string | undefined;
 } & ({ serverDeploymentId: string } | { connectionId: string });
 
 export let mapProviderOauthSessionsCreateBody = mtMap.union([
@@ -77,6 +80,7 @@ export let mapProviderOauthSessionsCreateBody = mtMap.union([
     'object',
     mtMap.object({
       metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+      redirectUri: mtMap.objectField('redirect_uri', mtMap.passthrough()),
       serverDeploymentId: mtMap.objectField(
         'server_deployment_id',
         mtMap.passthrough()

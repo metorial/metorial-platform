@@ -3,7 +3,9 @@ import { MetorialAuthEndpoint } from './auth';
 import { MetorialKeyPrefix, sdkBuilder } from './builder';
 import {
   MetorialApiKeysEndpoint,
+  MetorialCustomServersManagedServerTemplatesEndpoint,
   MetorialDashboardEndpoint,
+  MetorialDashboardInstanceCustomServersCodeEndpoint,
   MetorialDashboardInstanceCustomServersDeploymentsEndpoint,
   MetorialDashboardInstanceCustomServersEndpoint,
   MetorialDashboardInstanceCustomServersEventsEndpoint,
@@ -151,7 +153,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     versions: new MetorialDashboardInstanceCustomServersVersionsEndpoint(manager),
     events: new MetorialDashboardInstanceCustomServersEventsEndpoint(manager),
     deployments: new MetorialDashboardInstanceCustomServersDeploymentsEndpoint(manager),
-    remoteServers: new MetorialDashboardInstanceCustomServersRemoteServersEndpoint(manager)
+    remoteServers: new MetorialDashboardInstanceCustomServersRemoteServersEndpoint(manager),
+    code: new MetorialDashboardInstanceCustomServersCodeEndpoint(manager),
+    managedServerTemplates: new MetorialCustomServersManagedServerTemplatesEndpoint(manager)
   }),
 
   sessions: Object.assign(new MetorialDashboardInstanceSessionsEndpoint(manager), {

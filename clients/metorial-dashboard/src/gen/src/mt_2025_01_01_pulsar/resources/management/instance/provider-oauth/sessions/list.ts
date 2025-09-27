@@ -23,6 +23,7 @@ export type ManagementInstanceProviderOauthSessionsListOutput = {
       updatedAt: Date;
     };
     metadata: Record<string, any>;
+    redirectUri: string | null;
     instanceId: string;
     completedAt: Date | null;
     createdAt: Date;
@@ -75,6 +76,7 @@ export let mapManagementInstanceProviderOauthSessionsListOutput =
             })
           ),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+          redirectUri: mtMap.objectField('redirect_uri', mtMap.passthrough()),
           instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
           completedAt: mtMap.objectField('completed_at', mtMap.date()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),

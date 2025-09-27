@@ -33,7 +33,10 @@ export type CustomServersDeploymentsListOutput = {
         | 'remote_server_connection_test'
         | 'remote_oauth_auto_discovery'
         | 'deploying'
-        | 'deployed';
+        | 'deployed'
+        | 'lambda_deploy_build'
+        | 'lambda_deploy_create'
+        | 'discovering';
       logs: { timestamp: Date; line: string; type: 'info' | 'error' }[];
       createdAt: Date;
       startedAt: Date | null;

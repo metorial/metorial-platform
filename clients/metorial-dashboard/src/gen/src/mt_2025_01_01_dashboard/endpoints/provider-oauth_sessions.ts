@@ -109,17 +109,17 @@ export class MetorialProviderOauthSessionsEndpoint {
    * @name Get provider OAuth session
    * @description Get information for a specific provider OAuth session
    *
-   * @param `sessionId` - string
+   * @param `oauthSessionId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderOauthSessionsGetOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   get(
-    sessionId: string,
+    oauthSessionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderOauthSessionsGetOutput> {
-    let path = `provider-oauth/sessions/${sessionId}`;
+    let path = `provider-oauth/sessions/${oauthSessionId}`;
 
     let request = {
       path,
@@ -136,17 +136,17 @@ export class MetorialProviderOauthSessionsEndpoint {
    * @name Delete provider OAuth session
    * @description Delete a provider OAuth session
    *
-   * @param `sessionId` - string
+   * @param `oauthSessionId` - string
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardInstanceProviderOauthSessionsDeleteOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   delete(
-    sessionId: string,
+    oauthSessionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderOauthSessionsDeleteOutput> {
-    let path = `provider-oauth/sessions/${sessionId}`;
+    let path = `provider-oauth/sessions/${oauthSessionId}`;
 
     let request = {
       path,
