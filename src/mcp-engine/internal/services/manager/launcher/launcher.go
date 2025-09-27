@@ -1,13 +1,17 @@
 package launcher
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+	"time"
 
 	launcherPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/launcher"
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
 	remotePb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote"
 	runnerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/runner"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
+	"github.com/metorial/metorial/modules/util"
 )
 
 type Launcher struct {
@@ -55,7 +59,7 @@ type RemoteLaunchParams struct {
 	Query   map[string]string `json:"query,omitempty"`
 }
 
-func (l *Launcher) GetRemoteLaunchParams(input *managerPb.RemoteRunConfigWithLauncher) (*remotePb.RunConfig, error) {
+func (l *Launcher) GetRemoteLaunchParams(input *managerPb.RemoteRunConfigWithLauncher) (*remotePb.RunConfigRemote, error) {
 	params, err := GetTypedLaunchParams[RemoteLaunchParams](l.workerManager, input.Launcher)
 	if err != nil {
 		return nil, err
@@ -69,7 +73,7 @@ func (l *Launcher) GetRemoteLaunchParams(input *managerPb.RemoteRunConfigWithLau
 		params.Query = make(map[string]string)
 	}
 
-	return &remotePb.RunConfig{
+	return &remotePb.RunConfigRemote{
 		Server: input.Server,
 		Arguments: &remotePb.RunConfigRemoteArguments{
 			Headers: params.Headers,
@@ -78,8 +82,28 @@ func (l *Launcher) GetRemoteLaunchParams(input *managerPb.RemoteRunConfigWithLau
 	}, nil
 }
 
+type LambdaLaunchParams struct {
+	Args map[string]any `json:"args,omitempty"`
+}
+
+func (l *Launcher) GetLambdaLaunchParams(input *managerPb.LambdaRunConfigWithLauncher) (*remotePb.RunConfigLambda, error) {
+	params, err := GetTypedLaunchParams[LambdaLaunchParams](l.workerManager, input.Launcher)
+	if err != nil {
+		return nil, err
+	}
+
+	return &remotePb.RunConfigLambda{
+		Server: input.Server,
+		Arguments: &remotePb.RunConfigLambdaArguments{
+			JsonArguments: string(util.Must(json.Marshal(params.Args))),
+		},
+	}, nil
+}
+
 func GetTypedLaunchParams[T any](workerManager *workers.WorkerManager, input *launcherPb.LauncherConfig) (T, error) {
 	var zero T
+
+	startTime := time.Now()
 
 	worker, exists := workerManager.PickWorkerRandomly(workers.WorkerTypeLauncher)
 	if !exists {
@@ -90,6 +114,9 @@ func GetTypedLaunchParams[T any](workerManager *workers.WorkerManager, input *la
 	if err != nil {
 		return zero, fmt.Errorf("failed to run launcher: %w", err)
 	}
+
+	duration := time.Since(startTime)
+	log.Printf("Launcher executed in %s", duration.String())
 
 	if result.Type != launcherPb.RunLauncherResponse_success {
 		return zero, fmt.Errorf("launch params execution failed: %s", result.ErrorMessage)

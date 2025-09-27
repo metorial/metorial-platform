@@ -17,7 +17,11 @@ export let discoverServer = async (
     include: {
       config: true,
       serverVariant: {
-        include: { currentVersion: true }
+        include: {
+          currentVersion: {
+            include: { lambda: true }
+          }
+        }
       },
       serverImplementation: true,
       instance: true
@@ -81,7 +85,8 @@ export let discoverServer = async (
 
     let updatedVersion = await db.serverVersion.update({
       where: { oid: serverDeployment.serverVariant.currentVersion!.oid },
-      data
+      data,
+      include: { lambda: true }
     });
 
     serverDeployment.serverVariant = {

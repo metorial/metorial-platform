@@ -49,6 +49,8 @@ type LocalSession struct {
 
 	hasError bool
 
+	statefulServerInfo *managerPb.StatefulServerInfo
+
 	activeConnection          workers.WorkerConnection
 	activeConnectionCreated   *pubsub.Broadcaster[any]
 	lastConnectionInteraction time.Time
@@ -72,6 +74,7 @@ func newLocalSession(
 	dbSession *db.Session,
 	workerType workers.WorkerType,
 	client *mcp.MCPClient,
+	statefulServerInfo *managerPb.StatefulServerInfo,
 ) *LocalSession {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -97,6 +100,8 @@ func newLocalSession(
 
 		storedSession:   storedSession,
 		connectionInput: connectionInput,
+
+		statefulServerInfo: statefulServerInfo,
 
 		activeConnection:          nil,
 		activeConnectionCreated:   pubsub.NewBroadcaster[any](),

@@ -33,6 +33,7 @@ type MCPServer struct {
 	Capabilities    Capabilities    `json:"capabilities"`
 	ProtocolVersion string          `json:"protocolVersion"`
 	Extra           map[string]any  `json:"-"`
+	Instructions    string          `json:"instructions,omitempty"`
 }
 
 func ParseMcpClient(data []byte) (*MCPClient, error) {

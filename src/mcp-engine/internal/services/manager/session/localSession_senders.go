@@ -17,6 +17,9 @@ func sendStreamResponse(
 	stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse],
 	response *managerPb.McpConnectionStreamResponse,
 ) error {
+	sendMu.Lock()
+	defer sendMu.Unlock()
+
 	err := stream.Send(response)
 	if err != nil {
 		log.Printf("Failed to send steam response message: %v", err)

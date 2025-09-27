@@ -6,6 +6,7 @@ option go_package = "github.com/metorial/metorial/services/rpc/gen/rpc;rpc";
 
 service CodeBucket {
   rpc CloneBucket(CloneBucketRequest) returns (CreateBucketResponse);
+  rpc CreateBucketFromContents(CreateBucketFromContentsRequest) returns (CreateBucketResponse);
   rpc CreateBucketFromZip(CreateBucketFromZipRequest) returns (CreateBucketResponse);
   rpc CreateBucketFromGithub(CreateBucketFromGithubRequest) returns (CreateBucketResponse);
 
@@ -38,6 +39,16 @@ message CreateBucketFromZipRequest {
   string zip_url = 2;
   string path = 3;
   map<string, string> headers = 4; 
+}
+
+message FileContentsBase {
+  string path = 1;
+  bytes content = 2;
+}
+
+message CreateBucketFromContentsRequest {
+  string new_bucket_id = 1;
+  repeated FileContentsBase contents = 2;
 }
 
 message CreateBucketFromGithubRequest {

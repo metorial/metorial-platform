@@ -88,9 +88,56 @@ export interface RunConfigRemoteArguments_QueryEntry {
   value: string;
 }
 
-export interface RunConfig {
+export interface RunConfigRemote {
   server: RunConfigRemoteServer | undefined;
   arguments: RunConfigRemoteArguments | undefined;
+}
+
+export interface RunConfigLambdaServer {
+  protocol: RunConfigLambdaServer_Protocol;
+  providerResourceAccessIdentifier?: string | undefined;
+  securityToken?: string | undefined;
+}
+
+export enum RunConfigLambdaServer_Protocol {
+  metorial_stellar_over_websocket_v1 = 0,
+  UNRECOGNIZED = -1,
+}
+
+export function runConfigLambdaServer_ProtocolFromJSON(object: any): RunConfigLambdaServer_Protocol {
+  switch (object) {
+    case 0:
+    case "metorial_stellar_over_websocket_v1":
+      return RunConfigLambdaServer_Protocol.metorial_stellar_over_websocket_v1;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return RunConfigLambdaServer_Protocol.UNRECOGNIZED;
+  }
+}
+
+export function runConfigLambdaServer_ProtocolToJSON(object: RunConfigLambdaServer_Protocol): string {
+  switch (object) {
+    case RunConfigLambdaServer_Protocol.metorial_stellar_over_websocket_v1:
+      return "metorial_stellar_over_websocket_v1";
+    case RunConfigLambdaServer_Protocol.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
+export interface RunConfigLambdaArguments {
+  jsonArguments: string;
+}
+
+export interface RunConfigLambda {
+  server: RunConfigLambdaServer | undefined;
+  arguments: RunConfigLambdaArguments | undefined;
+}
+
+export interface RunConfig {
+  remoteRunConfig?: RunConfigRemote | undefined;
+  lambdaRunConfig?: RunConfigLambda | undefined;
 }
 
 export interface RunRequest {
@@ -634,12 +681,12 @@ export const RunConfigRemoteArguments_QueryEntry: MessageFns<RunConfigRemoteArgu
   },
 };
 
-function createBaseRunConfig(): RunConfig {
+function createBaseRunConfigRemote(): RunConfigRemote {
   return { server: undefined, arguments: undefined };
 }
 
-export const RunConfig: MessageFns<RunConfig> = {
-  encode(message: RunConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const RunConfigRemote: MessageFns<RunConfigRemote> = {
+  encode(message: RunConfigRemote, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.server !== undefined) {
       RunConfigRemoteServer.encode(message.server, writer.uint32(10).fork()).join();
     }
@@ -649,10 +696,10 @@ export const RunConfig: MessageFns<RunConfig> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): RunConfig {
+  decode(input: BinaryReader | Uint8Array, length?: number): RunConfigRemote {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRunConfig();
+    const message = createBaseRunConfigRemote();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -681,14 +728,14 @@ export const RunConfig: MessageFns<RunConfig> = {
     return message;
   },
 
-  fromJSON(object: any): RunConfig {
+  fromJSON(object: any): RunConfigRemote {
     return {
       server: isSet(object.server) ? RunConfigRemoteServer.fromJSON(object.server) : undefined,
       arguments: isSet(object.arguments) ? RunConfigRemoteArguments.fromJSON(object.arguments) : undefined,
     };
   },
 
-  toJSON(message: RunConfig): unknown {
+  toJSON(message: RunConfigRemote): unknown {
     const obj: any = {};
     if (message.server !== undefined) {
       obj.server = RunConfigRemoteServer.toJSON(message.server);
@@ -699,16 +746,328 @@ export const RunConfig: MessageFns<RunConfig> = {
     return obj;
   },
 
-  create(base?: DeepPartial<RunConfig>): RunConfig {
-    return RunConfig.fromPartial(base ?? {});
+  create(base?: DeepPartial<RunConfigRemote>): RunConfigRemote {
+    return RunConfigRemote.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<RunConfig>): RunConfig {
-    const message = createBaseRunConfig();
+  fromPartial(object: DeepPartial<RunConfigRemote>): RunConfigRemote {
+    const message = createBaseRunConfigRemote();
     message.server = (object.server !== undefined && object.server !== null)
       ? RunConfigRemoteServer.fromPartial(object.server)
       : undefined;
     message.arguments = (object.arguments !== undefined && object.arguments !== null)
       ? RunConfigRemoteArguments.fromPartial(object.arguments)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseRunConfigLambdaServer(): RunConfigLambdaServer {
+  return { protocol: 0, providerResourceAccessIdentifier: undefined, securityToken: undefined };
+}
+
+export const RunConfigLambdaServer: MessageFns<RunConfigLambdaServer> = {
+  encode(message: RunConfigLambdaServer, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.protocol !== 0) {
+      writer.uint32(8).int32(message.protocol);
+    }
+    if (message.providerResourceAccessIdentifier !== undefined) {
+      writer.uint32(18).string(message.providerResourceAccessIdentifier);
+    }
+    if (message.securityToken !== undefined) {
+      writer.uint32(26).string(message.securityToken);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RunConfigLambdaServer {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRunConfigLambdaServer();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.protocol = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.providerResourceAccessIdentifier = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.securityToken = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RunConfigLambdaServer {
+    return {
+      protocol: isSet(object.protocol) ? runConfigLambdaServer_ProtocolFromJSON(object.protocol) : 0,
+      providerResourceAccessIdentifier: isSet(object.providerResourceAccessIdentifier)
+        ? globalThis.String(object.providerResourceAccessIdentifier)
+        : undefined,
+      securityToken: isSet(object.securityToken) ? globalThis.String(object.securityToken) : undefined,
+    };
+  },
+
+  toJSON(message: RunConfigLambdaServer): unknown {
+    const obj: any = {};
+    if (message.protocol !== 0) {
+      obj.protocol = runConfigLambdaServer_ProtocolToJSON(message.protocol);
+    }
+    if (message.providerResourceAccessIdentifier !== undefined) {
+      obj.providerResourceAccessIdentifier = message.providerResourceAccessIdentifier;
+    }
+    if (message.securityToken !== undefined) {
+      obj.securityToken = message.securityToken;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<RunConfigLambdaServer>): RunConfigLambdaServer {
+    return RunConfigLambdaServer.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<RunConfigLambdaServer>): RunConfigLambdaServer {
+    const message = createBaseRunConfigLambdaServer();
+    message.protocol = object.protocol ?? 0;
+    message.providerResourceAccessIdentifier = object.providerResourceAccessIdentifier ?? undefined;
+    message.securityToken = object.securityToken ?? undefined;
+    return message;
+  },
+};
+
+function createBaseRunConfigLambdaArguments(): RunConfigLambdaArguments {
+  return { jsonArguments: "" };
+}
+
+export const RunConfigLambdaArguments: MessageFns<RunConfigLambdaArguments> = {
+  encode(message: RunConfigLambdaArguments, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.jsonArguments !== "") {
+      writer.uint32(10).string(message.jsonArguments);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RunConfigLambdaArguments {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRunConfigLambdaArguments();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.jsonArguments = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RunConfigLambdaArguments {
+    return { jsonArguments: isSet(object.jsonArguments) ? globalThis.String(object.jsonArguments) : "" };
+  },
+
+  toJSON(message: RunConfigLambdaArguments): unknown {
+    const obj: any = {};
+    if (message.jsonArguments !== "") {
+      obj.jsonArguments = message.jsonArguments;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<RunConfigLambdaArguments>): RunConfigLambdaArguments {
+    return RunConfigLambdaArguments.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<RunConfigLambdaArguments>): RunConfigLambdaArguments {
+    const message = createBaseRunConfigLambdaArguments();
+    message.jsonArguments = object.jsonArguments ?? "";
+    return message;
+  },
+};
+
+function createBaseRunConfigLambda(): RunConfigLambda {
+  return { server: undefined, arguments: undefined };
+}
+
+export const RunConfigLambda: MessageFns<RunConfigLambda> = {
+  encode(message: RunConfigLambda, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.server !== undefined) {
+      RunConfigLambdaServer.encode(message.server, writer.uint32(10).fork()).join();
+    }
+    if (message.arguments !== undefined) {
+      RunConfigLambdaArguments.encode(message.arguments, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RunConfigLambda {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRunConfigLambda();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.server = RunConfigLambdaServer.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.arguments = RunConfigLambdaArguments.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RunConfigLambda {
+    return {
+      server: isSet(object.server) ? RunConfigLambdaServer.fromJSON(object.server) : undefined,
+      arguments: isSet(object.arguments) ? RunConfigLambdaArguments.fromJSON(object.arguments) : undefined,
+    };
+  },
+
+  toJSON(message: RunConfigLambda): unknown {
+    const obj: any = {};
+    if (message.server !== undefined) {
+      obj.server = RunConfigLambdaServer.toJSON(message.server);
+    }
+    if (message.arguments !== undefined) {
+      obj.arguments = RunConfigLambdaArguments.toJSON(message.arguments);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<RunConfigLambda>): RunConfigLambda {
+    return RunConfigLambda.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<RunConfigLambda>): RunConfigLambda {
+    const message = createBaseRunConfigLambda();
+    message.server = (object.server !== undefined && object.server !== null)
+      ? RunConfigLambdaServer.fromPartial(object.server)
+      : undefined;
+    message.arguments = (object.arguments !== undefined && object.arguments !== null)
+      ? RunConfigLambdaArguments.fromPartial(object.arguments)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseRunConfig(): RunConfig {
+  return { remoteRunConfig: undefined, lambdaRunConfig: undefined };
+}
+
+export const RunConfig: MessageFns<RunConfig> = {
+  encode(message: RunConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.remoteRunConfig !== undefined) {
+      RunConfigRemote.encode(message.remoteRunConfig, writer.uint32(10).fork()).join();
+    }
+    if (message.lambdaRunConfig !== undefined) {
+      RunConfigLambda.encode(message.lambdaRunConfig, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RunConfig {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRunConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.remoteRunConfig = RunConfigRemote.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.lambdaRunConfig = RunConfigLambda.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RunConfig {
+    return {
+      remoteRunConfig: isSet(object.remoteRunConfig) ? RunConfigRemote.fromJSON(object.remoteRunConfig) : undefined,
+      lambdaRunConfig: isSet(object.lambdaRunConfig) ? RunConfigLambda.fromJSON(object.lambdaRunConfig) : undefined,
+    };
+  },
+
+  toJSON(message: RunConfig): unknown {
+    const obj: any = {};
+    if (message.remoteRunConfig !== undefined) {
+      obj.remoteRunConfig = RunConfigRemote.toJSON(message.remoteRunConfig);
+    }
+    if (message.lambdaRunConfig !== undefined) {
+      obj.lambdaRunConfig = RunConfigLambda.toJSON(message.lambdaRunConfig);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<RunConfig>): RunConfig {
+    return RunConfig.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<RunConfig>): RunConfig {
+    const message = createBaseRunConfig();
+    message.remoteRunConfig = (object.remoteRunConfig !== undefined && object.remoteRunConfig !== null)
+      ? RunConfigRemote.fromPartial(object.remoteRunConfig)
+      : undefined;
+    message.lambdaRunConfig = (object.lambdaRunConfig !== undefined && object.lambdaRunConfig !== null)
+      ? RunConfigLambda.fromPartial(object.lambdaRunConfig)
       : undefined;
     return message;
   },

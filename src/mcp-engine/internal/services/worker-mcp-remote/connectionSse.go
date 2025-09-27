@@ -31,7 +31,7 @@ type ConnectionSSE struct {
 
 	extraOutputChan chan *remotePb.RunResponse
 
-	config *remotePb.RunConfig
+	config *remotePb.RunConfigRemote
 
 	wg    sync.WaitGroup
 	mutex sync.Mutex
@@ -50,7 +50,7 @@ var ignoreHeaders = map[string]bool{
 	"Upgrade":       true,
 }
 
-func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*ConnectionSSE, error) {
+func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfigRemote) (*ConnectionSSE, error) {
 	err := ssrfProtection.ValidateURL(config.Server.ServerUri)
 	if err != nil {
 		return nil, fmt.Errorf("server URI validation failed: %w", err)
@@ -207,6 +207,10 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*Connect
 
 func (c *ConnectionSSE) Send(msg *mcpPb.McpMessageRaw) error {
 	return c.SendString(msg.Message)
+}
+
+func (c *ConnectionSSE) SendControl(msg string) error {
+	return c.SendString(msg)
 }
 
 func (c *ConnectionSSE) SendString(msg string) error {

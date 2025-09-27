@@ -66,14 +66,19 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 	}
 
 	var conn Connection
-	if msg.Init.RunConfig.Server.Protocol == remotePb.RunConfigRemoteServer_sse {
-		conn, err = NewConnectionSSE(stream.Context(), msg.Init.RunConfig)
+	switch msg.Init.RunConfig.Config.(type) {
+	case *remotePb.RunConfig_RemoteRunConfig:
+		conn, err = NewConnectionSSE(stream.Context(), msg.Init.RunConfig.GetRemoteRunConfig())
 		if err != nil {
 			log.Printf("Failed to create SSE connection: %v", err)
 			return err
 		}
-	} else {
-		return fmt.Errorf("unsupported protocol: %s", msg.Init.RunConfig.Server.Protocol)
+	case *remotePb.RunConfig_LambdaRunConfig:
+		conn, err = NewConnectionLambdaWs(stream.Context(), msg.Init.RunConfig.GetLambdaRunConfig())
+		if err != nil {
+			log.Printf("Failed to create SSE connection: %v", err)
+			return err
+		}
 	}
 
 	lastPing := time.Now()
@@ -112,7 +117,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 					return
 				}
 
-				conn.SendString(
+				conn.SendControl(
 					fmt.Sprintf(`{"jsonrpc": "2.0", "id": "mtr/ping/%d", "method": "ping", "params": {}}`, time.Now().UnixMicro()),
 				)
 			}
@@ -131,7 +136,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 
 			if message.McpMessage.Message.MessageType == mcpPb.McpMessageType_request &&
 				message.McpMessage.Message.Method == "ping" {
-				conn.SendString(
+				conn.SendControl(
 					fmt.Sprintf(`{"jsonrpc": "2.0", "id": %s, "result": {}}`, message.McpMessage.Message.IdJson),
 				)
 

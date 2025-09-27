@@ -130,7 +130,9 @@ func (s *LocalSession) ensureConnection() (workers.WorkerConnection, *db.Session
 		}()
 	}
 
-	if !s.dbSession.Server.LastDiscoveryAt.Valid || time.Since(s.dbSession.Server.LastDiscoveryAt.Time) > time.Hour*24 {
+	if (!s.dbSession.Server.LastDiscoveryAt.Valid ||
+		time.Since(s.dbSession.Server.LastDiscoveryAt.Time) > time.Hour*24) &&
+		s.statefulServerInfo == nil {
 		go s.discoverServer(connection)
 	}
 

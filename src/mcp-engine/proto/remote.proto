@@ -38,9 +38,35 @@ message RunConfigRemoteArguments {
   map<string, string> query = 2;
 }
 
-message RunConfig {
+message RunConfigRemote {
   RunConfigRemoteServer server = 1;
   RunConfigRemoteArguments arguments = 2;
+}
+
+message RunConfigLambdaServer {
+  enum Protocol {
+    metorial_stellar_over_websocket_v1 = 0;
+  }
+
+  Protocol protocol = 1;
+  optional string provider_resource_access_identifier = 2;
+  optional string security_token = 3;
+}
+
+message RunConfigLambdaArguments {
+  string json_arguments = 1;
+}
+
+message RunConfigLambda {
+  RunConfigLambdaServer server = 1;
+  RunConfigLambdaArguments arguments = 2;
+}
+
+message RunConfig {
+  oneof config {
+    RunConfigRemote remote_run_config = 1;
+    RunConfigLambda lambda_run_config = 2;
+  }
 }
 
 message RunRequest {
