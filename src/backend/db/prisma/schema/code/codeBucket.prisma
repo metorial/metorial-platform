@@ -1,0 +1,40 @@
+enum CodeBucketPurpose {
+  custom_server
+}
+
+model CodeBucket {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  purpose CodeBucketPurpose
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  parentOid BigInt?
+  parent    CodeBucket?  @relation("CodeBucketParent", fields: [parentOid], references: [oid], onDelete: SetNull)
+  children  CodeBucket[] @relation("CodeBucketParent")
+
+  templateOid BigInt?
+  template    CodeBucketTemplate? @relation(fields: [templateOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  customServers         CustomServer[]
+  lambdaServerInstances LambdaServerInstance[]
+}
+
+model CodeBucketTemplate {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+
+  /// [CodeBucketTemplateContents]
+  contents Json
+
+  createdAt DateTime @default(now())
+
+  buckets                CodeBucket[]
+  managedServerTemplates ManagedServerTemplate[]
+}
