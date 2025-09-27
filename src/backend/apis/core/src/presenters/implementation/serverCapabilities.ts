@@ -190,7 +190,7 @@ export let v1ServerCapabilitiesPresenter = Presenter.create(serverCapabilitiesTy
         }
       ),
 
-      resourceTemplates: v.array(
+      resource_templates: v.array(
         v.object(
           {
             mcp_server_id: v.string({
