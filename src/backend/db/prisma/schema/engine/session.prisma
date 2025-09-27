@@ -1,6 +1,7 @@
 enum EngineSessionType {
   remote
   container
+  lambda
   unknown
 }
 

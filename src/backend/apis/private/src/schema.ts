@@ -59,7 +59,7 @@ type DProviderOauthConnection {
   id: ID!
   name: String
   description: String
-  clientId: String!
+  clientId: String
   scopes: [String!]!  
   config: JSON!
   createdAt: DateTimeISO!

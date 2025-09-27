@@ -22,9 +22,9 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
           code: serverDeployment.failureCode,
           message: serverDeployment.failureMessage
         }
-      : serverDeployment.isOauthConnectionPending
-        ? { status: 'pending', step: 'oauth_discovery' }
-        : { status: 'active' },
+      : // : serverDeployment.isOauthConnectionPending
+        //   ? { status: 'pending', step: 'oauth_discovery' }
+        { status: 'active' },
 
     metadata: serverDeployment.metadata ?? {},
 

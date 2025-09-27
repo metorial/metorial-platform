@@ -80,7 +80,7 @@ let createEngineSession = async (
       create: {
         id: engineSession.session!.id,
         serverSessionOid: srvSes.oid,
-        type: getEngineSessionType(engineSession.session!),
+        type: getEngineSessionType(engineSession.session!) as any,
         lastSyncAt: new Date(0),
         createdAt: new Date(engineSession.session!.createdAt.toNumber())
       }
@@ -202,7 +202,7 @@ export class EngineSessionManager {
       where: { id: engineSession.id },
       data: {
         serverSessionOid: this.config.serverSession.oid,
-        type: getEngineSessionType(engineSession),
+        type: getEngineSessionType(engineSession) as any,
         createdAt: new Date(engineSession.createdAt.toNumber())
       }
     });

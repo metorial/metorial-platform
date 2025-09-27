@@ -1,16 +1,16 @@
 import { Instance, ProviderOAuthConfig, ProviderOAuthConnection } from '@metorial/db';
 
 export class DProviderOauthConnection {
-  id: string;
-  name: string | null;
-  description: string | null;
-  clientId: string;
-  scopes: string[];
-  config: any;
-  createdAt: Date;
-  updatedAt: Date;
-  instanceId: string;
-  metadata: Record<string, any> | null;
+  id!: string;
+  name!: string | null;
+  description!: string | null;
+  clientId!: string | null;
+  scopes!: string[];
+  config!: any;
+  createdAt!: Date;
+  updatedAt!: Date;
+  instanceId!: string;
+  metadata!: Record<string, any> | null;
 
   static async fromConnection(
     con: ProviderOAuthConnection & { instance: Instance; config: ProviderOAuthConfig }

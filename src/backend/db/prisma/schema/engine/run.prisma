@@ -1,6 +1,7 @@
 enum EngineRunType {
   remote
   container
+  lambda
   unknown
 }
 

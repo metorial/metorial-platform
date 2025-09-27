@@ -8,6 +8,7 @@ export interface Manager {
   client: McpManagerClient;
 
   enabled: boolean;
+  disabledAt?: number;
 }
 
 let managers = new Map<string, Manager>();
@@ -37,6 +38,7 @@ let checkManagers = async () => {
       for (let existingManagers of managers.values()) {
         if (!addresses.includes(existingManagers.address)) {
           existingManagers.enabled = false;
+          existingManagers.disabledAt = existingManagers.disabledAt ?? Date.now();
         }
       }
 
@@ -53,6 +55,7 @@ let checkManagers = async () => {
           let existingManager = managers.get(manager.address)!;
           existingManager.id = manager.id;
           existingManager.enabled = true;
+          existingManager.disabledAt = undefined;
         }
       }
 
@@ -60,6 +63,7 @@ let checkManagers = async () => {
     } catch (error) {
       console.error(`Error checking manager ${manager.address}:`, error);
       manager.enabled = false;
+      manager.disabledAt = manager.disabledAt ?? Date.now();
     }
   }
 
@@ -71,3 +75,13 @@ checkManagers();
 export let getManagers = () => {
   return Array.from(managers.values()).filter(m => m.enabled);
 };
+
+setInterval(() => {
+  let now = Date.now();
+  for (let [address, manager] of managers) {
+    if (!manager.enabled && manager.disabledAt && now - manager.disabledAt > 15 * 60 * 1000) {
+      console.log(`Removing manager ${address} due to prolonged unavailability`);
+      managers.delete(address);
+    }
+  }
+}, 60 * 1000);
