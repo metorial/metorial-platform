@@ -41,6 +41,11 @@ export let backendEnv: Env = [
   // },
 
   {
+    key: 'CODE_WORKSPACE_SERVICE_ADDRESS',
+    defaultValue: `http://localhost:4041`
+  },
+
+  {
     key: 'OPENSEARCH_HOST',
     defaultValue: `http://localhost:9200`
   },
@@ -167,5 +172,8 @@ export let backendEnv: Env = [
   { key: 'ALGOLIA_APP_ID', isEnterprise: false, isRequired: false },
   { key: 'ALGOLIA_ADMIN_KEY', isEnterprise: false, isRequired: false },
 
-  { key: 'SLACK_INVITE_BOT_TOKEN', isEnterprise: true, isRequired: false }
+  { key: 'SLACK_INVITE_BOT_TOKEN', isEnterprise: true, isRequired: false },
+
+  { key: 'DENO_DEPLOY_TOKEN', isEnterprise: true },
+  { key: 'DENO_ORGANIZATION_ID', isEnterprise: true }
 ];
