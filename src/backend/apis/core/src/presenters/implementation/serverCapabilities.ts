@@ -45,7 +45,7 @@ export let v1ServerCapabilitiesPresenter = Presenter.create(serverCapabilitiesTy
       }))
     ) as any,
 
-    resourceTemplates: serverCapabilities.flatMap(s =>
+    resource_templates: serverCapabilities.flatMap(s =>
       (s.resourceTemplates ?? []).map(t => ({
         mcp_server_id: s.id,
         ...t
@@ -123,14 +123,14 @@ export let v1ServerCapabilitiesPresenter = Presenter.create(serverCapabilitiesTy
             input_schema: v.optional(
               v.any({
                 name: 'input_schema',
-                description: 'Optional JSON schema for the tool\'s input'
+                description: "Optional JSON schema for the tool's input"
               })
             ),
 
             output_schema: v.optional(
               v.any({
                 name: 'output_schema',
-                description: 'Optional JSON schema for the tool\'s output'
+                description: "Optional JSON schema for the tool's output"
               })
             ),
 
