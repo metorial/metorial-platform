@@ -6,6 +6,7 @@ export type CustomServersListOutput = {
     id: string;
     status: 'active' | 'archived' | 'deleted';
     type: 'remote' | 'managed';
+    publicationStatus: 'public' | 'private';
     name: string;
     description: string | null;
     metadata: Record<string, any>;
@@ -45,6 +46,10 @@ export let mapCustomServersListOutput = mtMap.object<CustomServersListOutput>({
         id: mtMap.objectField('id', mtMap.passthrough()),
         status: mtMap.objectField('status', mtMap.passthrough()),
         type: mtMap.objectField('type', mtMap.passthrough()),
+        publicationStatus: mtMap.objectField(
+          'publication_status',
+          mtMap.passthrough()
+        ),
         name: mtMap.objectField('name', mtMap.passthrough()),
         description: mtMap.objectField('description', mtMap.passthrough()),
         metadata: mtMap.objectField('metadata', mtMap.passthrough()),

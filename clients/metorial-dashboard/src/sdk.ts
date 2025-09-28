@@ -9,6 +9,7 @@ import {
   MetorialDashboardInstanceCustomServersDeploymentsEndpoint,
   MetorialDashboardInstanceCustomServersEndpoint,
   MetorialDashboardInstanceCustomServersEventsEndpoint,
+  MetorialDashboardInstanceCustomServersListingEndpoint,
   MetorialDashboardInstanceCustomServersRemoteServersEndpoint,
   MetorialDashboardInstanceCustomServersVersionsEndpoint,
   MetorialDashboardInstanceFilesEndpoint,
@@ -41,6 +42,7 @@ import {
   MetorialDashboardOrganizationsProjectsEndpoint,
   MetorialDashboardUsageEndpoint,
   MetorialManagementUserEndpoint,
+  MetorialOrganizationsProfileEndpoint,
   MetorialProviderOauthConnectionTemplateEndpoint,
   MetorialProviderOauthEndpoint,
   MetorialServersListingsCategoriesEndpoint,
@@ -91,6 +93,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     members: new MetorialDashboardOrganizationsMembersEndpoint(manager)
   }),
   organizationJoins: new MetorialDashboardOrganizationsJoinEndpoint(manager),
+
+  profile: new MetorialOrganizationsProfileEndpoint(manager),
 
   instances: new MetorialDashboardOrganizationsInstancesEndpoint(manager),
   projects: new MetorialDashboardOrganizationsProjectsEndpoint(manager),
@@ -155,7 +159,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     deployments: new MetorialDashboardInstanceCustomServersDeploymentsEndpoint(manager),
     remoteServers: new MetorialDashboardInstanceCustomServersRemoteServersEndpoint(manager),
     code: new MetorialDashboardInstanceCustomServersCodeEndpoint(manager),
-    managedServerTemplates: new MetorialCustomServersManagedServerTemplatesEndpoint(manager)
+    managedServerTemplates: new MetorialCustomServersManagedServerTemplatesEndpoint(manager),
+    listing: new MetorialDashboardInstanceCustomServersListingEndpoint(manager)
   }),
 
   sessions: Object.assign(new MetorialDashboardInstanceSessionsEndpoint(manager), {

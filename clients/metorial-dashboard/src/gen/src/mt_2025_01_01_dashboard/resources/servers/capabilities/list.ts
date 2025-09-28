@@ -231,8 +231,8 @@ export let mapServersCapabilitiesListOutput =
           mcpServerId: mtMap.objectField('mcp_server_id', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
-          inputSchema: mtMap.objectField('inputSchema', mtMap.passthrough()),
-          outputSchema: mtMap.objectField('outputSchema', mtMap.passthrough()),
+          inputSchema: mtMap.objectField('input_schema', mtMap.passthrough()),
+          outputSchema: mtMap.objectField('output_schema', mtMap.passthrough()),
           annotations: mtMap.objectField('annotations', mtMap.passthrough())
         })
       )
@@ -249,14 +249,14 @@ export let mapServersCapabilitiesListOutput =
       )
     ),
     resourceTemplates: mtMap.objectField(
-      'resourceTemplates',
+      'resource_templates',
       mtMap.array(
         mtMap.object({
           mcpServerId: mtMap.objectField('mcp_server_id', mtMap.passthrough()),
-          uriTemplate: mtMap.objectField('uriTemplate', mtMap.passthrough()),
+          uriTemplate: mtMap.objectField('uri_template', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
-          mimeType: mtMap.objectField('mimeType', mtMap.passthrough())
+          mimeType: mtMap.objectField('mime_type', mtMap.passthrough())
         })
       )
     )

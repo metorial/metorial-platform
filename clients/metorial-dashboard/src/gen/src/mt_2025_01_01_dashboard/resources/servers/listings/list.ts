@@ -268,6 +268,8 @@ export type ServersListingsListQuery = {
   profileId?: string[] | string | undefined;
   instanceId?: string | undefined;
   orderByRank?: boolean | undefined;
+  isPublic?: boolean | undefined;
+  onlyFromOrganization?: boolean | undefined;
 };
 
 export let mapServersListingsListQuery = mtMap.union([
@@ -311,7 +313,12 @@ export let mapServersListingsListQuery = mtMap.union([
         ])
       ),
       instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-      orderByRank: mtMap.objectField('order_by_rank', mtMap.passthrough())
+      orderByRank: mtMap.objectField('order_by_rank', mtMap.passthrough()),
+      isPublic: mtMap.objectField('is_public', mtMap.passthrough()),
+      onlyFromOrganization: mtMap.objectField(
+        'only_from_organization',
+        mtMap.passthrough()
+      )
     })
   )
 ]);

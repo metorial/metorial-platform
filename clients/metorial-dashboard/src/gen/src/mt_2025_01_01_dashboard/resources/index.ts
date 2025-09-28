@@ -4,6 +4,7 @@ export * from './dashboard';
 export * from './files';
 export * from './links';
 export * from './management';
+export * from './organizations';
 export * from './provider-oauth';
 export * from './secrets';
 export * from './server-run-error-groups';

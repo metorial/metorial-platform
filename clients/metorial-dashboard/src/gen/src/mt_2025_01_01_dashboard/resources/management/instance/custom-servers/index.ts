@@ -5,6 +5,7 @@ export * from './deployments';
 export * from './events';
 export * from './get';
 export * from './list';
+export * from './listing';
 export * from './remote-servers';
 export * from './update';
 export * from './versions';
