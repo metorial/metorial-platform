@@ -126,7 +126,7 @@ func (s *LocalSession) handleInitMessage(
 	if includeResponses {
 		err = sendStreamResponseMcpMessage(s.sendMu, stream, message)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to send init message to stream: %w", err)
 		}
 	}
 

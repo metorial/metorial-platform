@@ -74,7 +74,7 @@ let launcherContext = (config) => ({
 		}
 
 		return newHeaders;
-	}
+	},
 })
 
 let config = %s;

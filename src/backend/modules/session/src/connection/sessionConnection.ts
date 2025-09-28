@@ -17,6 +17,7 @@ import {
   type JSONRPCMessage
 } from '@metorial/mcp-utils';
 import { ProgrammablePromise } from '@metorial/programmable-promise';
+import { createRedisClient } from '@metorial/redis';
 import { getSentry } from '@metorial/sentry';
 import { ConnectionHandler } from './handler';
 import { BaseConnectionHandler, ConnectionMessage } from './handler/base';
@@ -29,11 +30,14 @@ let PING_TIMEOUT = process.env.NODE_ENV == 'development' ? 1000 * 10 : 1000 * 75
 
 let connections = new Set<SessionConnection>();
 
+let connectionRedis = createRedisClient({}).eager();
+let getSessionRedisKey = (sessionId: string) => `mtg/ose/s1:${sessionId}:png`;
+
 export class SessionConnection {
   #controlMessageBackend: SessionControlMessageBackend;
-  #lastMessageAt: number;
   #closePromise = new ProgrammablePromise<void>();
   #pingIv?: NodeJS.Timeout;
+  #startedAt = Date.now();
 
   static async create(
     session: ServerSession & {
@@ -70,8 +74,6 @@ export class SessionConnection {
     private opts: { mode: 'send-only' | 'send-and-receive'; receiveControlMessages: boolean },
     private readonly manager: BaseConnectionHandler
   ) {
-    this.#lastMessageAt = Date.now();
-
     this.#controlMessageBackend = new SessionControlMessageBackend(session, {
       mode: opts.mode
     });
@@ -102,10 +104,10 @@ export class SessionConnection {
 
   #closing = false;
   async close() {
+    connections.delete(this);
+
     if (this.#closing) return;
     this.#closing = true;
-
-    connections.delete(this);
 
     debug.log('Closing session connection', this.session.id);
 
@@ -129,7 +131,17 @@ export class SessionConnection {
   async sendMessage(message: JSONRPCMessage | JSONRPCMessage[]) {
     let messages = Array.isArray(message) ? message : [message];
 
-    this.#lastMessageAt = Date.now();
+    (await connectionRedis)
+      .set(getSessionRedisKey(this.session.id), String(Date.now()), {
+        expiration: {
+          type: 'EX',
+          value: Math.ceil((PING_TIMEOUT * 3) / 1000)
+        }
+      })
+      .catch(e => {
+        Sentry.captureException(e);
+        console.error('Error setting last message time', e);
+      });
 
     let messagesToSend: JSONRPCMessage[] = [];
 
@@ -192,12 +204,14 @@ export class SessionConnection {
     this.#controlMessageBackend.onClose(handler);
   }
 
-  checkPing() {
+  async checkPing() {
     let now = Date.now();
-    let pingDiff = now - this.#lastMessageAt;
+
+    let lastMessageAt = await (await connectionRedis).get(getSessionRedisKey(this.session.id));
+    let pingDiff = now - (Number(lastMessageAt) || this.#startedAt);
 
     if (pingDiff > PING_TIMEOUT) {
-      debug.warn(`Client ping timeout: ${pingDiff}ms`);
+      debug.warn(`Client ping timeout (connection): ${pingDiff}ms`);
       this.close();
     }
   }
@@ -208,9 +222,14 @@ export class SessionConnection {
   }
 }
 
-setInterval(() => {
-  for (let con of connections.values()) con.checkPing();
-}, 30 * 1000);
+// setInterval(() => {
+//   for (let con of connections.values()) {
+//     con.checkPing().catch(e => {
+//       Sentry.captureException(e);
+//       console.error('Error checking ping', e);
+//     });
+//   }
+// }, 30 * 1000);
 
 setInterval(() => {
   for (let con of connections.values()) con.sendPing();

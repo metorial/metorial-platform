@@ -203,6 +203,7 @@ loop:
 
 		case <-doneChan:
 			s.mutex.Lock()
+			defer s.mutex.Unlock()
 			if s.activeConnection != nil && s.activeConnection.ConnectionID() == connection.ConnectionID() {
 				s.activeConnection = nil
 
@@ -218,13 +219,11 @@ loop:
 					s.db.SaveRun(run)
 				}
 			}
-			s.mutex.Unlock()
 
 			break loop
 
 		case err := <-errChan:
 			s.hasError = true
-
 			s.CreateMcpError(run, err)
 
 		case message := <-msgChan:

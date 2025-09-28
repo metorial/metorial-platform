@@ -2,7 +2,6 @@ package session
 
 import (
 	"fmt"
-	"log"
 	"sync"
 
 	managerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/manager"
@@ -22,7 +21,7 @@ func sendStreamResponse(
 
 	err := stream.Send(response)
 	if err != nil {
-		log.Printf("Failed to send steam response message: %v", err)
+		// log.Printf("Failed to send steam response message: %v", err)
 		return err
 	}
 	return nil

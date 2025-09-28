@@ -253,7 +253,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 							ErrorMessage: fmt.Sprintf("timeout waiting for %d MCP responses", responsesToWaitFor),
 						})
 						if err != nil {
-							log.Printf("Failed to send response message: %v", err)
+							log.Printf("Failed to send direct response message: %v", err)
 							return
 						}
 					}
@@ -265,6 +265,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 						responsesToWaitFor--
 						err := sendStreamResponseMcpMessage(s.sendMu, stream, message)
 						if err != nil {
+							log.Printf("Failed to send direct response message: %v", err)
 							return
 						}
 					}
@@ -274,6 +275,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 						responsesToWaitFor--
 						err := sendStreamResponseMcpMessage(s.sendMu, stream, message)
 						if err != nil {
+							log.Printf("Failed to send direct response message (internal): %v", err)
 							return
 						}
 					}
@@ -281,7 +283,6 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 				case mcpErr := <-errChan:
 					sendStreamResponseMcpError(s.sendMu, stream, mcpErr)
 					return
-
 				}
 			}
 		}()
@@ -310,6 +311,8 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	s.lastConnectionInteraction = time.Now()
 
 	wg.Wait()
+
+	time.Sleep(time.Millisecond * 100)
 
 	return nil
 }
@@ -462,6 +465,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 				responsesToWaitFor--
 				err := sendStreamResponseMcpMessage(s.sendMu, stream, message)
 				if err != nil {
+					log.Printf("Failed to send response message: %v", err)
 					return nil
 				}
 			}
@@ -471,6 +475,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 				responsesToWaitFor--
 				err := sendStreamResponseMcpMessage(s.sendMu, stream, message)
 				if err != nil {
+					log.Printf("Failed to send response message (internal): %v", err)
 					return nil
 				}
 			}

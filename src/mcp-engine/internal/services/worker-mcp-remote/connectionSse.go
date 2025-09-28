@@ -22,6 +22,7 @@ import (
 
 type ConnectionSSE struct {
 	sendEndpoint string
+	baseEndpoint string
 
 	req  *http.Request
 	conn *sse.Connection
@@ -114,6 +115,8 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfigRemote) (*C
 		req:  req,
 		conn: conn,
 
+		baseEndpoint: finalUrl,
+
 		context: ctx,
 		cancel:  cancel,
 
@@ -178,16 +181,7 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfigRemote) (*C
 			return
 		}
 
-		uri := event.Data
-
-		if !strings.HasPrefix(uri, "http") {
-			newURI, err := addr.ReplaceURIPath(req.URL.String(), uri)
-			if err == nil {
-				uri = newURI
-			}
-		}
-
-		res.sendEndpoint = uri
+		res.sendEndpoint = res.getEndpointUrl(event.Data)
 	})
 
 	defer unsubscribe()
@@ -203,6 +197,19 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfigRemote) (*C
 	}
 
 	return res, nil
+}
+
+func (c *ConnectionSSE) getEndpointUrl(endpoint string) string {
+	uri := endpoint
+
+	if !strings.HasPrefix(uri, "http") {
+		newURI, err := addr.ReplaceURIPath(c.baseEndpoint, endpoint)
+		if err == nil {
+			uri = newURI
+		}
+	}
+
+	return uri
 }
 
 func (c *ConnectionSSE) Send(msg *mcpPb.McpMessageRaw) error {
@@ -280,6 +287,11 @@ func (c *ConnectionSSE) SendString(msg string) error {
 
 func (c *ConnectionSSE) Subscribe(cb MessageReceiver) {
 	c.conn.SubscribeToAll(func(e sse.Event) {
+		if e.Type == "endpoint" {
+			c.sendEndpoint = c.getEndpointUrl(e.Data)
+			return
+		}
+
 		msg, err := mcp.ParseMCPMessage(util.Must(uuid.NewV7()).String(), e.Data)
 		if err != nil {
 			cb(&remotePb.RunResponse{
@@ -324,6 +336,11 @@ func (c *ConnectionSSE) Close() error {
 	if c.cancel != nil {
 		c.cancel(nil)
 		c.cancel = nil
+	}
+
+	if c.extraOutputChan != nil {
+		close(c.extraOutputChan)
+		c.extraOutputChan = nil
 	}
 
 	c.req = nil

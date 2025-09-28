@@ -18,7 +18,7 @@ import {
   type UntypedServiceImplementation,
 } from "@grpc/grpc-js";
 import Long from "long";
-import { McpError, McpMessage, McpMessageRaw, McpOutput } from "./mcp";
+import { McpError, McpMessage, McpMessageRaw, McpOutput, McpParticipant } from "./mcp";
 import { WorkerInfoResponse } from "./worker";
 
 export const protobufPackage = "broker.remote";
@@ -130,6 +130,10 @@ export interface RunConfigLambdaArguments {
   jsonArguments: string;
 }
 
+export interface RunConfigLambdaClient {
+  participant: McpParticipant | undefined;
+}
+
 export interface RunConfigLambda {
   server: RunConfigLambdaServer | undefined;
   arguments: RunConfigLambdaArguments | undefined;
@@ -149,6 +153,7 @@ export interface RunRequest {
 export interface RunRequestInit {
   connectionId: string;
   runConfig: RunConfig | undefined;
+  client?: RunConfigLambdaClient | undefined;
 }
 
 export interface RunRequestMcpMessage {
@@ -913,6 +918,66 @@ export const RunConfigLambdaArguments: MessageFns<RunConfigLambdaArguments> = {
   },
 };
 
+function createBaseRunConfigLambdaClient(): RunConfigLambdaClient {
+  return { participant: undefined };
+}
+
+export const RunConfigLambdaClient: MessageFns<RunConfigLambdaClient> = {
+  encode(message: RunConfigLambdaClient, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.participant !== undefined) {
+      McpParticipant.encode(message.participant, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RunConfigLambdaClient {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRunConfigLambdaClient();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.participant = McpParticipant.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RunConfigLambdaClient {
+    return { participant: isSet(object.participant) ? McpParticipant.fromJSON(object.participant) : undefined };
+  },
+
+  toJSON(message: RunConfigLambdaClient): unknown {
+    const obj: any = {};
+    if (message.participant !== undefined) {
+      obj.participant = McpParticipant.toJSON(message.participant);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<RunConfigLambdaClient>): RunConfigLambdaClient {
+    return RunConfigLambdaClient.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<RunConfigLambdaClient>): RunConfigLambdaClient {
+    const message = createBaseRunConfigLambdaClient();
+    message.participant = (object.participant !== undefined && object.participant !== null)
+      ? McpParticipant.fromPartial(object.participant)
+      : undefined;
+    return message;
+  },
+};
+
 function createBaseRunConfigLambda(): RunConfigLambda {
   return { server: undefined, arguments: undefined };
 }
@@ -1172,7 +1237,7 @@ export const RunRequest: MessageFns<RunRequest> = {
 };
 
 function createBaseRunRequestInit(): RunRequestInit {
-  return { connectionId: "", runConfig: undefined };
+  return { connectionId: "", runConfig: undefined, client: undefined };
 }
 
 export const RunRequestInit: MessageFns<RunRequestInit> = {
@@ -1182,6 +1247,9 @@ export const RunRequestInit: MessageFns<RunRequestInit> = {
     }
     if (message.runConfig !== undefined) {
       RunConfig.encode(message.runConfig, writer.uint32(18).fork()).join();
+    }
+    if (message.client !== undefined) {
+      RunConfigLambdaClient.encode(message.client, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -1209,6 +1277,14 @@ export const RunRequestInit: MessageFns<RunRequestInit> = {
           message.runConfig = RunConfig.decode(reader, reader.uint32());
           continue;
         }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.client = RunConfigLambdaClient.decode(reader, reader.uint32());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1222,6 +1298,7 @@ export const RunRequestInit: MessageFns<RunRequestInit> = {
     return {
       connectionId: isSet(object.connectionId) ? globalThis.String(object.connectionId) : "",
       runConfig: isSet(object.runConfig) ? RunConfig.fromJSON(object.runConfig) : undefined,
+      client: isSet(object.client) ? RunConfigLambdaClient.fromJSON(object.client) : undefined,
     };
   },
 
@@ -1232,6 +1309,9 @@ export const RunRequestInit: MessageFns<RunRequestInit> = {
     }
     if (message.runConfig !== undefined) {
       obj.runConfig = RunConfig.toJSON(message.runConfig);
+    }
+    if (message.client !== undefined) {
+      obj.client = RunConfigLambdaClient.toJSON(message.client);
     }
     return obj;
   },
@@ -1244,6 +1324,9 @@ export const RunRequestInit: MessageFns<RunRequestInit> = {
     message.connectionId = object.connectionId ?? "";
     message.runConfig = (object.runConfig !== undefined && object.runConfig !== null)
       ? RunConfig.fromPartial(object.runConfig)
+      : undefined;
+    message.client = (object.client !== undefined && object.client !== null)
+      ? RunConfigLambdaClient.fromPartial(object.client)
       : undefined;
     return message;
   },

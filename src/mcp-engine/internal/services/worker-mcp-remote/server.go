@@ -74,7 +74,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 			return err
 		}
 	case *remotePb.RunConfig_LambdaRunConfig:
-		conn, err = NewConnectionLambdaWs(stream.Context(), msg.Init.RunConfig.GetLambdaRunConfig())
+		conn, err = NewConnectionLambdaWs(stream.Context(), msg.Init.Client, msg.Init.RunConfig.GetLambdaRunConfig())
 		if err != nil {
 			log.Printf("Failed to create SSE connection: %v", err)
 			return err
@@ -95,7 +95,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 				return
 
 			case <-ticker.C:
-				if time.Since(lastPing) > 25*time.Second {
+				if time.Since(lastPing) > 25*time.Second && msg.Init.RunConfig.GetLambdaRunConfig() == nil {
 					// Container has not responded in a while, consider it dead
 					conn.Close()
 					stream.Send(&remotePb.RunResponse{
@@ -125,7 +125,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 	}()
 
 	conn.Subscribe(func(response *remotePb.RunResponse) {
-		lastPing = time.Now()
+		// lastPing = time.Now()
 
 		message, ok := response.Type.(*remotePb.RunResponse_McpMessage)
 		if ok && message != nil {
@@ -194,6 +194,8 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 				}
 
 			case *remotePb.RunRequest_Close:
+				log.Printf("Manager requested to close the connection\n")
+
 				err := conn.Close()
 				if err != nil {
 					errChan <- fmt.Errorf("failed to close connection: %w", err)

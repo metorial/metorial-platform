@@ -78,6 +78,7 @@ export let getSessionConfig = async (
     jsonConfig: JSON.stringify({
       accessToken: oauthToken?.accessToken,
       oauthToken: oauthToken?.accessToken,
+      token: oauthToken?.accessToken,
       oauth: oauthToken
         ? {
             accessToken: oauthToken.accessToken,

@@ -30,7 +30,7 @@ func (rw *RemoteWorker) CreateConnection(input *workers.WorkerConnectionInput) (
 		return nil, fmt.Errorf("McpRemoteClient is not initialized for worker %s at %s", rw.WorkerID(), rw.Address())
 	}
 
-	run := NewRun(input.RemoteRunConfig, rw.client, input.ConnectionID)
+	run := NewRun(input, rw.client, input.ConnectionID)
 
 	res := &RemoteWorkerConnection{
 		run:       run,

@@ -211,7 +211,7 @@ export abstract class BrokerRunnerImplementation {
     let pingDiff = now - this.lastMessageAt;
 
     if (pingDiff > PING_TIMEOUT) {
-      debug.warn(`Client ping timeout: ${pingDiff}ms`);
+      debug.warn(`Client ping timeout (broker): ${pingDiff}ms`);
       this.close();
     }
   }
