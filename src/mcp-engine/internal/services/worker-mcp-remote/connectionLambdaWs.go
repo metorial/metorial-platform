@@ -3,13 +3,8 @@ package remote
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"net/http"
-	"net/url"
 	"sync"
-	"time"
 
-	"github.com/gorilla/websocket"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	remotePb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote"
 )
@@ -67,8 +62,8 @@ type ConnectionLambdaWs struct {
 
 	config *remotePb.RunConfigLambda
 
-	activeConnection *websocket.Conn
-	connectionMutex  sync.Mutex
+	// activeConnection *websocket.Conn
+	// connectionMutex  sync.Mutex
 
 	mutex sync.Mutex
 }
@@ -92,62 +87,62 @@ func NewConnectionLambdaWs(ctx context.Context, config *remotePb.RunConfigLambda
 	return res, nil
 }
 
-func (c *ConnectionLambdaWs) ensureConnection() (*websocket.Conn, error) {
-	c.connectionMutex.Lock()
-	defer c.connectionMutex.Unlock()
+// func (c *ConnectionLambdaWs) ensureConnection() (*websocket.Conn, error) {
+// 	c.connectionMutex.Lock()
+// 	defer c.connectionMutex.Unlock()
 
-	if c.activeConnection != nil {
-		return c.activeConnection, nil
-	}
+// 	if c.activeConnection != nil {
+// 		return c.activeConnection, nil
+// 	}
 
-	baseUrl, err := url.ParseRequestURI(*c.config.Server.ProviderResourceAccessIdentifier)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse WebSocket URL: %w", err)
-	}
+// 	baseUrl, err := url.ParseRequestURI(*c.config.Server.ProviderResourceAccessIdentifier)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to parse WebSocket URL: %w", err)
+// 	}
 
-	u := url.URL{Scheme: "wss", Host: baseUrl.Host, Path: baseUrl.Path, RawQuery: baseUrl.RawQuery}
-	headers := http.Header{}
-	headers.Set("User-Agent", "Metorial MCP Engine (https://metorial.com)")
-	headers.Set("X-Metorial-Stellar-Token", *c.config.Server.SecurityToken)
+// 	u := url.URL{Scheme: "wss", Host: baseUrl.Host, Path: baseUrl.Path, RawQuery: baseUrl.RawQuery}
+// 	headers := http.Header{}
+// 	headers.Set("User-Agent", "Metorial MCP Engine (https://metorial.com)")
+// 	headers.Set("X-Metorial-Stellar-Token", *c.config.Server.SecurityToken)
 
-	conn, _, err := websocket.DefaultDialer.Dial(u.String(), headers)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to WebSocket server: %w", err)
-	}
+// 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), headers)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to connect to WebSocket server: %w", err)
+// 	}
 
-	c.activeConnection = conn
+// 	c.activeConnection = conn
 
-	go func() {
-		timer1 := time.NewTimer(15 * time.Second)
-		defer timer1.Stop()
+// 	go func() {
+// 		timer1 := time.NewTimer(15 * time.Second)
+// 		defer timer1.Stop()
 
-		select {
-		case <-c.context.Done():
-			return
-		case <-timer1.C:
-		}
+// 		select {
+// 		case <-c.context.Done():
+// 			return
+// 		case <-timer1.C:
+// 		}
 
-		c.mutex.Lock()
-		connectionToClose := c.activeConnection
-		c.activeConnection = nil
-		c.mutex.Unlock()
+// 		c.mutex.Lock()
+// 		connectionToClose := c.activeConnection
+// 		c.activeConnection = nil
+// 		c.mutex.Unlock()
 
-		timer2 := time.NewTimer(5 * time.Second)
-		defer timer2.Stop()
+// 		timer2 := time.NewTimer(5 * time.Second)
+// 		defer timer2.Stop()
 
-		select {
-		case <-c.context.Done():
-			return
-		case <-timer2.C:
-		}
+// 		select {
+// 		case <-c.context.Done():
+// 			return
+// 		case <-timer2.C:
+// 		}
 
-		if connectionToClose != nil {
-			connectionToClose.Close()
-		}
-	}()
+// 		if connectionToClose != nil {
+// 			connectionToClose.Close()
+// 		}
+// 	}()
 
-	return conn, nil
-}
+// 	return conn, nil
+// }
 
 func (c *ConnectionLambdaWs) Send(msg *mcpPb.McpMessageRaw) error {
 	// conn, err := c.ensureConnection()

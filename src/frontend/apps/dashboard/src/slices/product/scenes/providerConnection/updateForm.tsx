@@ -109,7 +109,7 @@ export let ProviderConnectionUpdateForm = (p: {
               values.clientSecret == emptyClientSecret
                 ? undefined
                 : values.clientSecret || undefined,
-            scopes: values.scopes.filter(s => s && s.trim()) as string[],
+            scopes: (values.scopes as string[]).filter(s => s && s.trim()) as string[],
             config
           });
         }}
