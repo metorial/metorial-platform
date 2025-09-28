@@ -29,6 +29,8 @@ model OrganizationActor {
   machineAccess           MachineAccess?
   secretEvents            SecretEvent[]
   customServerDeployments CustomServerDeployment[]
+  profileUpdates          ProfileUpdate[]
+  serverListingUpdates    ServerListingUpdate[]
 
   @@unique([isSystem, organizationOid])
 }

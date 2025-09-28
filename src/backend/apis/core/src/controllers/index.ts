@@ -6,6 +6,7 @@ import { dashboardOauthConnectionTemplateController } from './dashboard/oauthCon
 import { dashboardOauthDiscoveryController } from './dashboard/oauthDiscovery';
 import { dashboardOrganizationController } from './dashboard/organization';
 import { dashboardOrganizationInviteController } from './dashboard/organizationInvite';
+import { profileController } from './dashboard/profile';
 import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
 import { customServerController } from './instance/customServer';
@@ -137,6 +138,8 @@ export let dashboardController = Controller.create<any>(
     providerOauthConnectionProfileController,
 
     serverOauthSessionController,
+
+    profileController,
 
     dashboardOauthConnectionTemplateController,
     dashboardOauthDiscoveryController,

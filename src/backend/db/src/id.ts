@@ -37,6 +37,7 @@ export let ID = createIdGenerator({
   serverListing: idType.sorted('sli'),
   serverListingCategory: idType.sorted('slca'),
   serverListingCollection: idType.sorted('slco'),
+  serverListingUpdate: idType.sorted('slup'),
 
   serverConfigSchema: idType.sorted('scs'),
   serverVariantProvider: idType.sorted('svp'),
@@ -67,6 +68,7 @@ export let ID = createIdGenerator({
   instanceServer: idType.sorted('isv'),
 
   profile: idType.sorted('prf'),
+  profileUpdate: idType.sorted('prfu'),
 
   clientSecret: idType.sorted('cse'),
 

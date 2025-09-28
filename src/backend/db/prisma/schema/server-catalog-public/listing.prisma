@@ -9,7 +9,8 @@ model ServerListing {
   id     String              @unique
   status ServerListingStatus
 
-  isPublic Boolean @default(false)
+  isPublic     Boolean @default(true)
+  isCustomized Boolean @default(false)
 
   ownerOrganizationOid BigInt?
   ownerOrganization    Organization? @relation(fields: [ownerOrganizationOid], references: [oid])
@@ -38,9 +39,26 @@ model ServerListing {
   categories  ServerListingCategory[]
   collections ServerListingCollection[]
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now()) @updatedAt
-  rankUpdatedAt DateTime? @updatedAt
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @default(now()) @updatedAt
+  rankUpdatedAt       DateTime?             @updatedAt
+  ServerListingUpdate ServerListingUpdate[]
 
   @@index([rank])
+}
+
+model ServerListingUpdate {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  before Json
+  after  Json
+
+  createdByOid BigInt
+  createdBy    OrganizationActor @relation(fields: [createdByOid], references: [oid], onDelete: Cascade)
+
+  serverListingOid BigInt
+  serverListing    ServerListing @relation(fields: [serverListingOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 }

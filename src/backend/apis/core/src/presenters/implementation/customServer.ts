@@ -21,6 +21,8 @@ export let v1CustomServerPresenter = Presenter.create(customServerType)
       managed: 'managed'
     }[customServer.type],
 
+    publication_status: customServer.isPublic ? 'public' : 'private',
+
     name: customServer.name ?? customServer.server.name,
     description: customServer.description ?? customServer.server.description,
     metadata: customServer.server.metadata ?? {},
@@ -48,6 +50,11 @@ export let v1CustomServerPresenter = Presenter.create(customServerType)
       type: v.enumOf(['remote', 'managed'], {
         name: 'type',
         description: 'The type of the custom server'
+      }),
+
+      publication_status: v.enumOf(['public', 'private'], {
+        name: 'publication_status',
+        description: 'The publication status of the custom server'
       }),
 
       name: v.string({ name: 'name', description: 'The name of the custom server' }),

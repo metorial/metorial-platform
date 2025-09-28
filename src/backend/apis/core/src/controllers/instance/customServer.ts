@@ -1,3 +1,4 @@
+import { serverListingService } from '@metorial/module-catalog';
 import {
   customServerService,
   managedServerTemplateService
@@ -8,7 +9,7 @@ import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
-import { customServerPresenter } from '../../presenters';
+import { customServerPresenter, serverListingPresenter } from '../../presenters';
 
 export let customServerGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customServerId) throw new Error('customServerId is required');
@@ -207,6 +208,74 @@ export let customServerController = Controller.create(
         return customServerPresenter.present({
           customServer: ctx.customServer
         });
+      }),
+
+    getListing: customServerGroup
+      .get(
+        instancePath('custom-servers/:customServerId/listing', 'custom_servers.listing.get'),
+        {
+          name: 'Get custom server listing',
+          description: 'Get a custom server listing'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
+      .output(serverListingPresenter)
+      .do(async ctx => {
+        let listing = await serverListingService.getServerListingById({
+          instance: ctx.instance,
+          serverListingId: ctx.customServer.server.id
+        });
+
+        return serverListingPresenter.present({ serverListing: listing });
+      }),
+
+    updateListing: customServerGroup
+      .patch(
+        instancePath(
+          'custom-servers/:customServerId/listing',
+          'custom_servers.listing.update'
+        ),
+        {
+          name: 'Update custom server listing',
+          description: 'Update a custom server listing'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.custom_server:write'] }))
+      .body(
+        'default',
+        v.union([
+          v.object({
+            status: v.literal('public'),
+            name: v.optional(v.string()),
+            description: v.optional(v.string()),
+            readme: v.optional(v.string())
+          }),
+          v.object({
+            status: v.literal('private')
+          })
+        ])
+      )
+      .output(serverListingPresenter)
+      .do(async ctx => {
+        let listing = await customServerService.setCustomServerListing({
+          server: ctx.customServer,
+          organization: ctx.organization,
+          performedBy: ctx.actor,
+          instance: ctx.instance,
+          input:
+            ctx.body.status == 'private'
+              ? {
+                  isPublic: false
+                }
+              : {
+                  isPublic: true,
+                  name: ctx.body.name,
+                  description: ctx.body.description,
+                  readme: ctx.body.readme
+                }
+        });
+
+        return serverListingPresenter.present({ serverListing: listing });
       })
   }
 );

@@ -1,4 +1,4 @@
-import { db, ID, Organization, Profile, User } from '@metorial/db';
+import { db, ID, Organization, OrganizationActor, Profile, User } from '@metorial/db';
 import { Service } from '@metorial/service';
 import { createSlugGenerator } from '@metorial/slugify';
 
@@ -55,6 +55,47 @@ class ProfileService {
     });
   }
 
+  async updateProfile(d: {
+    profile: Profile;
+    input: {
+      name?: string;
+      description?: string | null;
+    };
+    performedBy: OrganizationActor;
+  }) {
+    await db.profileUpdate.create({
+      data: {
+        id: await ID.generateId('profileUpdate'),
+        profileOid: d.profile.oid,
+        createdByOid: d.performedBy.oid,
+
+        before: {
+          name: d.profile.name,
+          description: d.profile.description,
+          image: d.profile.image,
+          slug: d.profile.slug
+        },
+
+        after: {
+          name: d.input.name ?? d.profile.name,
+          description: d.input.description ?? d.profile.description,
+          image: d.profile.image,
+          slug: d.profile.slug
+        }
+      }
+    });
+
+    return await db.profile.update({
+      where: { oid: d.profile.oid },
+      data: {
+        name: d.profile.name,
+        description: d.input.description,
+
+        isCustomized: true
+      }
+    });
+  }
+
   async syncProfile(d: {
     for:
       | {
@@ -73,7 +114,13 @@ class ProfileService {
     await db.profile.updateMany({
       where: { oid: profile.oid },
       data: {
-        name: entity.name,
+        ...(!profile.isCustomized
+          ? {
+              name: entity.name
+            }
+          : {}),
+
+        // TODO: add image updates
         image: entity.image as any
       }
     });

@@ -27,7 +27,6 @@ export let dashboardOauthConnectionTemplateController = Controller.create(
   },
   {
     list: apiGroup
-
       .get(
         Path(
           '/dashboard/organizations/:organizationId/provider-oauth-connection-template',

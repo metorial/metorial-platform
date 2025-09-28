@@ -304,6 +304,105 @@ class customServerServiceImpl {
 
     return server;
   }
+
+  async setCustomServerListing(d: {
+    server: CustomServer & { server: Server };
+    organization: Organization;
+    instance: Instance;
+    performedBy: OrganizationActor;
+    input:
+      | {
+          isPublic: true;
+          name?: string;
+          description?: string;
+          readme?: string;
+        }
+      | {
+          isPublic: false;
+        };
+  }) {
+    if (d.server.status != 'active') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot update inactive server version'
+        })
+      );
+    }
+
+    if (!d.input.isPublic) {
+      if (d.server.isPublic) {
+        await withTransaction(async db => {
+          await db.server.update({
+            where: { oid: d.server.serverOid },
+            data: { isPublic: false }
+          });
+
+          await db.customServer.update({
+            where: { oid: d.server.oid },
+            data: { isPublic: false }
+          });
+
+          await db.serverListing.update({
+            where: { serverOid: d.server.serverOid },
+            data: { isPublic: false, isCustomized: false, readme: null }
+          });
+        });
+
+        await serverListingService.setServerListing({
+          server: d.server.server,
+          instance: d.instance,
+          organization: d.organization
+        });
+      }
+    } else {
+      let input = d.input;
+
+      await withTransaction(async db => {
+        if (!d.server.isPublic) {
+          await db.server.update({
+            where: { oid: d.server.serverOid },
+            data: { isPublic: true }
+          });
+
+          await db.customServer.update({
+            where: { oid: d.server.oid },
+            data: { isPublic: true }
+          });
+
+          await db.serverListing.update({
+            where: { serverOid: d.server.serverOid },
+            data: { isPublic: true, isCustomized: true }
+          });
+        }
+
+        let listing = await db.serverListing.findFirstOrThrow({
+          where: { serverOid: d.server.serverOid }
+        });
+        if (listing.status != 'active') {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Cannot update listing that is not active'
+            })
+          );
+        }
+
+        await serverListingService.updateServerListing({
+          serverListing: listing,
+          performedBy: d.performedBy,
+          input: {
+            name: input.name,
+            description: input.description,
+            readme: input.readme
+          }
+        });
+      });
+    }
+
+    return await serverListingService.getServerListingById({
+      instance: d.instance,
+      serverListingId: d.server.server.id
+    });
+  }
 }
 
 export let customServerService = Service.create(

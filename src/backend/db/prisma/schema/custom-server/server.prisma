@@ -16,6 +16,7 @@ model CustomServer {
   status CustomServerStatus @default(active)
 
   isEphemeral Boolean
+  isPublic    Boolean @default(false)
 
   name        String
   description String?

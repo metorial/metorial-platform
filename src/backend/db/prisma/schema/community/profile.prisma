@@ -9,6 +9,9 @@ model Profile {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
+  updateAllowed Boolean @default(true)
+  isCustomized  Boolean @default(false)
+
   type ProfileType
 
   name        String
@@ -36,4 +39,22 @@ model Profile {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  profileUpdates ProfileUpdate[]
+}
+
+model ProfileUpdate {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  before Json
+  after  Json
+
+  createdByOid BigInt
+  createdBy    OrganizationActor @relation(fields: [createdByOid], references: [oid], onDelete: Cascade)
+
+  profileOid BigInt
+  profile    Profile @relation(fields: [profileOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 }
