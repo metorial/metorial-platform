@@ -78,6 +78,10 @@ export let CustomServerLayout = () => {
                 to: Paths.instance.customServer(...pathParams, 'deployments')
               },
               {
+                label: 'Listing',
+                to: Paths.instance.customServer(...pathParams, 'listing')
+              },
+              {
                 label: 'Settings',
                 to: Paths.instance.customServer(...pathParams, 'settings')
               }

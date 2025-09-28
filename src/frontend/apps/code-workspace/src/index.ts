@@ -41,7 +41,7 @@ window.product = {
   },
   additionalBuiltinExtensions: [
     {
-      scheme: 'http',
+      // scheme: 'http',
       path: '/extensions/memfs'
     }
   ]

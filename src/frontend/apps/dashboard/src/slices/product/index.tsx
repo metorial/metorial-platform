@@ -46,7 +46,7 @@ let CustomServerVersionsPage = dynamicPage(() =>
   )
 );
 let CustomServerSettingsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/custom-server/settings').then(
+  import('./pages/(custom-servers)/custom-server/settings/settings').then(
     c => c.CustomServerSettingsPage
   )
 );
@@ -216,6 +216,11 @@ let CustomServerDeploymentsPage = dynamicPage(() =>
     c => c.CustomServerDeploymentsPage
   )
 );
+let CustomServerListingPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/settings/listing').then(
+    c => c.CustomServerListingPage
+  )
+);
 let NotFoundPage = dynamicPage(() => import('@metorial/pages').then(c => c.NotFound));
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
@@ -339,16 +344,20 @@ export let productInnerSlice = createSlice([
                 element: <CustomServerVersionsPage />
               },
               {
-                path: 'settings',
-                element: <CustomServerSettingsPage />
+                path: 'code',
+                element: <CustomServerCodePage />
               },
               {
                 path: 'deployments',
                 element: <CustomServerDeploymentsPage />
               },
               {
-                path: 'code',
-                element: <CustomServerCodePage />
+                path: 'settings',
+                element: <CustomServerSettingsPage />
+              },
+              {
+                path: 'listing',
+                element: <CustomServerListingPage />
               }
             ]
           },
