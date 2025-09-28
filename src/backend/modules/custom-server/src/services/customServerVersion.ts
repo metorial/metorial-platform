@@ -78,7 +78,12 @@ let defaultManagedConfigSchema = {
 };
 
 let defaultManagedLaunchParams = `(config, ctx) => ({
-  ...config
+  args: {
+    ...config,
+
+    // Get access to oauth token (if oauth is configured)
+    token: config.oauthToken 
+  }
 });`;
 
 class CustomServerVersionServiceImpl {

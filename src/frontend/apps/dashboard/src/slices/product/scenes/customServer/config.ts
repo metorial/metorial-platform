@@ -87,8 +87,11 @@ export let remoteServerTemplates = [
 
 export let defaultServerConfigRemote = {
   schema: {
+    $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
-    properties: {}
+    description: '',
+    properties: {},
+    required: []
   },
   getLaunchParams: `(config, ctx) => ({
   query: {},
@@ -98,10 +101,18 @@ export let defaultServerConfigRemote = {
 
 export let defaultServerConfigManaged = {
   schema: {
+    $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
-    properties: {}
+    description: '',
+    properties: {},
+    required: []
   },
   getLaunchParams: `(config, ctx) => ({
-  ...config
+  args: {
+    ...config,
+
+    // Get access to oauth token (if oauth is configured)
+    token: config.oauthToken 
+  }
 });`
 };

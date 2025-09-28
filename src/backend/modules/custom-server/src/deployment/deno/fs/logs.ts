@@ -1,13 +1,18 @@
-export let logsTs = `export type CapturedLine = {
+export let logsTs = `export type CapturedLines = {
   type: "info" | "error";
-  line: string;
+  lines: string[];
 };
 
 export class OutputInstrumentation {
-  private onLineCaptured: (lines: CapturedLine[]) => void;
+  private onLineCaptured: (lines: CapturedLines[]) => void;
 
   private stdoutBuf = "";
   private stderrBuf = "";
+  
+  // Batching state
+  private batchedLines: CapturedLines[] = [];
+  private batchTimer: number | null = null;
+  private readonly batchDelayMs = 100;
 
   private orig = {
     log: console.log,
@@ -21,7 +26,7 @@ export class OutputInstrumentation {
     stderrWriteSync: Deno.stderr.writeSync?.bind(Deno.stderr),
   };
 
-  constructor(cb: (lines: CapturedLine[]) => void) {
+  constructor(cb: (lines: CapturedLines[]) => void) {
     this.onLineCaptured = cb;
     this.patchConsole();
     this.patchWriters();
@@ -108,9 +113,11 @@ export class OutputInstrumentation {
     // last element may be incomplete line
     let complete = lines.slice(0, -1);
     let rest = lines[lines.length - 1];
+    
     if (complete.length > 0) {
-      this.onLineCaptured(complete.map(line => ({ type, line })));
+      this.addToBatch({ type, lines: complete });
     }
+    
     if (type === "info") {
       this.stdoutBuf = rest;
     } else {
@@ -118,14 +125,55 @@ export class OutputInstrumentation {
     }
   }
 
+  private addToBatch(capturedLines: CapturedLines) {
+    // Find existing batch entry of same type to merge with
+    const existingIndex = this.batchedLines.findIndex(batch => batch.type === capturedLines.type);
+    
+    if (existingIndex !== -1) {
+      // Merge lines with existing batch of same type
+      this.batchedLines[existingIndex].lines.push(...capturedLines.lines);
+    } else {
+      // Add new batch entry
+      this.batchedLines.push(capturedLines);
+    }
+
+    // Start or restart the batch timer
+    if (this.batchTimer !== null) {
+      clearTimeout(this.batchTimer);
+    }
+    
+    this.batchTimer = setTimeout(() => {
+      this.flushBatch();
+    }, this.batchDelayMs);
+  }
+
+  private flushBatch() {
+    if (this.batchedLines.length > 0) {
+      const toFlush = [...this.batchedLines];
+      this.batchedLines = [];
+      this.batchTimer = null;
+      this.onLineCaptured(toFlush);
+    }
+  }
+
   drain() {
-    let drained: CapturedLine[] = [];
+    // Cancel any pending batch timer and flush immediately
+    if (this.batchTimer !== null) {
+      clearTimeout(this.batchTimer);
+      this.batchTimer = null;
+    }
+    
+    // Flush any batched lines first
+    this.flushBatch();
+    
+    // Then handle any remaining buffer content (original drain behavior)
+    let drained: CapturedLines[] = [];
     if (this.stdoutBuf) {
-      drained.push({ type: "info", line: this.stdoutBuf });
+      drained.push({ type: "info", lines: this.stdoutBuf.split(/\\r?\\n/) });
       this.stdoutBuf = "";
     }
     if (this.stderrBuf) {
-      drained.push({ type: "error", line: this.stderrBuf });
+      drained.push({ type: "error", lines: this.stderrBuf.split(/\\r?\\n/) });
       this.stderrBuf = "";
     }
     if (drained.length > 0) {
@@ -134,6 +182,13 @@ export class OutputInstrumentation {
   }
 
   restore() {
+    // Clean up batch timer
+    if (this.batchTimer !== null) {
+      clearTimeout(this.batchTimer);
+      this.batchTimer = null;
+    }
+    this.batchedLines = [];
+
     console.log = this.orig.log;
     console.info = this.orig.info;
     console.warn = this.orig.warn;

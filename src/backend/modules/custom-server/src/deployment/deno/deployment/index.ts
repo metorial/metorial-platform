@@ -168,7 +168,7 @@ export let createDenoLambdaDeployment = async (config: {
       let url = new URL('/discover', serverUrl.current).toString();
       let res = await axios.get<any>(url, {
         headers: {
-          'x-metorial-stellar-token': lambdaServerInstance.securityToken
+          'metorial-stellar-token': lambdaServerInstance.securityToken
         }
       });
 

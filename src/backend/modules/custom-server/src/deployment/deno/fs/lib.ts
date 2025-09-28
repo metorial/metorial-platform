@@ -1,4 +1,5 @@
 export let libTs = `import { currentServer } from "./server.ts";
+import { getArgs } from "./args.ts";
 
 export * from '@modelcontextprotocol/sdk/server/mcp.js';
 export * from '@modelcontextprotocol/sdk/server/index.js';
@@ -9,6 +10,14 @@ export let startMetorialServer = (server: McpServer) => {
 };
 
 export let metorial = {
-  startServer: startMetorialServer
+  startServer: startMetorialServer,
+  getArgs,
+
+  get arguments() {
+    return getArgs();
+  },
+  get args() {
+    return getArgs();
+  }
 }
 `;

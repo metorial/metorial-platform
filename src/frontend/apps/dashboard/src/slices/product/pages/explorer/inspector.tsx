@@ -85,7 +85,7 @@ export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: str
         </>
       ) : session.state == 'oauth_error' ? (
         <Center>
-          <Error>You must complete the OAuth flow to continue.</Error>
+          <Error>Please authenticate with the provider to continue.</Error>
 
           <Spacer size={16} />
 

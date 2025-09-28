@@ -342,6 +342,10 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
                           form.setFieldValue('scopes', con.scopes);
                           form.setFieldValue('config', JSON.stringify(con.config, null, 2));
                           form.setFieldValue('enabled', true);
+
+                          setTimeout(() => {
+                            form.submitForm();
+                          }, 100);
                         }
                       });
                     } else {

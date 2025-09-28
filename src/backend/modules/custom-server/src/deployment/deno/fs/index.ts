@@ -2,6 +2,7 @@ import { CodeBucket, Instance, LambdaServerInstance } from '@metorial/db';
 import { codeBucketService } from '@metorial/module-code-bucket';
 import { v } from '@metorial/validation';
 import { DeploymentError } from '../../base/error';
+import { argsTs } from './args';
 import { bootTs } from './boot';
 import { delayTs } from './delay';
 import { discoverTs } from './discover';
@@ -35,7 +36,8 @@ export let getDenoFs = async (
       'promise.ts': promiseTs,
       'server.ts': serverTs,
       'transport.ts': transportTs,
-      'lib.ts': libTs
+      'lib.ts': libTs,
+      'args.ts': argsTs
     })
   );
 
