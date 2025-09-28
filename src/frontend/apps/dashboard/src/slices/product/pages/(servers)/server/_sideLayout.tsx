@@ -19,7 +19,7 @@ export let ServerLayoutSide = () => {
         { label: 'Server Name', value: server.data.name },
         {
           label: 'Server Type',
-          value: { public: 'Public' }[server.data.type] ?? server.data.type
+          value: { public: 'Public', custom: 'Custom' }[server.data.type] ?? server.data.type
         },
         { label: 'Vendor', value: listing.data.vendor?.name },
         { label: 'Type', value: listing.data.isOfficial ? 'Official' : 'Community' },

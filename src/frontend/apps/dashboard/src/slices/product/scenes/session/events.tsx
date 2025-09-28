@@ -1,5 +1,5 @@
+import { SessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { SessionsGetOutput } from '@metorial/generated';
 import { useCurrentInstance, useSessionServerSessions } from '@metorial/state';
 import { Callout, Entity, Spacer } from '@metorial/ui';
 import { RiCornerUpRightDoubleLine } from '@remixicon/react';
