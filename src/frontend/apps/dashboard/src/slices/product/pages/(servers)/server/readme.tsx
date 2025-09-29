@@ -12,7 +12,7 @@ export let ServerReadmePage = () => {
   let { serverId } = useParams();
   let server = useServer(instance.data?.id, serverId);
 
-  let listing = useServerListing(serverId);
+  let listing = useServerListing(instance.data?.id, serverId);
 
   return renderWithLoader({ server, listing })(({ server, listing }) => (
     <>

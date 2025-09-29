@@ -46,7 +46,8 @@ export let CustomServerLayout = () => {
         title={customServer.data?.name ?? '...'}
         pagination={[
           {
-            label: customServer.data?.type == 'remote' ? 'External Servers' : 'Custom Servers',
+            label:
+              customServer.data?.type == 'remote' ? 'External Servers' : 'Managed Servers',
             href:
               customServer.data?.type == 'remote'
                 ? Paths.instance.externalServers(
@@ -54,7 +55,7 @@ export let CustomServerLayout = () => {
                     project.data,
                     instance.data
                   )
-                : '#'
+                : Paths.instance.managedServers(organization.data, project.data, instance.data)
           },
           {
             label: customServer.data?.name,

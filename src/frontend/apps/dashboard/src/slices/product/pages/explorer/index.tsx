@@ -89,7 +89,7 @@ export let ExplorerPage = () => {
   let serverDeploymentIdParam = search.get('server_deployment_id');
   let serverImplementationIdParam = search.get('server_implementation_id');
 
-  let server = useServerListing(serverIdParam);
+  let server = useServerListing(instance.data?.id, serverIdParam);
   let [selectedServer, _setSelectedServer] = useState<ServersListingsGetOutput | null>(null);
   useEffect(() => _setSelectedServer(server.data), [server.data]);
 

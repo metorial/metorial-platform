@@ -14,6 +14,7 @@ import {
   Button,
   Callout,
   CenteredSpinner,
+  Copy,
   Input,
   InputLabel,
   Or,
@@ -363,6 +364,16 @@ export let ProviderConnectionCreateForm = (p: {
             title: 'Configuration',
             subtitle: 'Configure the connection',
             render: () => {
+              let rootDomain = document.location.hostname.split('.').slice(-2).join('.');
+              let redirectUrl = (
+                <>
+                  <Copy
+                    label="Redirect URL"
+                    value={`https://provider-auth.${rootDomain}/provider-oauth/callback`}
+                  />
+                </>
+              );
+
               if (selectedTemplate) {
                 return (
                   <>

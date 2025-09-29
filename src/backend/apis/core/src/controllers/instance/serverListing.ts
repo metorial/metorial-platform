@@ -11,8 +11,18 @@ import { serverListingPresenter } from '../../presenters';
 export let serverListingGroup = apiGroup.use(async ctx => {
   if (!ctx.params.serverListingId) throw new Error('serverListingId is required');
 
+  let instance = ctx.query.instance_id
+    ? (
+        await accessService.accessInstance({
+          authInfo: ctx.auth,
+          instanceId: ctx.query.instance_id
+        })
+      )?.instance
+    : undefined;
+
   let serverListing = await serverListingService.getServerListingById({
-    serverListingId: ctx.params.serverListingId
+    serverListingId: ctx.params.serverListingId,
+    instance
   });
 
   return { serverListing };
@@ -101,6 +111,12 @@ export let serverListingController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
       .output(serverListingPresenter)
+      .query(
+        'default',
+        v.object({
+          instance_id: v.optional(v.string())
+        })
+      )
       .do(async ctx => {
         return serverListingPresenter.present({
           serverListing: ctx.serverListing,

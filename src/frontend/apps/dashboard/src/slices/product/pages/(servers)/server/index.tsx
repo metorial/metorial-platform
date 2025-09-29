@@ -25,7 +25,7 @@ export let ServerOverviewPage = () => {
   let { serverId } = useParams();
   let server = useServer(instance.data?.id, serverId);
 
-  let listing = useServerListing(serverId);
+  let listing = useServerListing(instance.data?.id, serverId);
 
   let apiKeys = useApiKeysWithAutoInit(
     instance.data

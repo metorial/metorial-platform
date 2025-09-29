@@ -177,3 +177,9 @@ export let mapServersListingsGetOutput = mtMap.union([
   )
 ]);
 
+export type ServersListingsGetQuery = { instanceId?: string | undefined };
+
+export let mapServersListingsGetQuery = mtMap.object<ServersListingsGetQuery>({
+  instanceId: mtMap.objectField('instance_id', mtMap.passthrough())
+});
+
