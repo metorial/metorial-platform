@@ -4,6 +4,7 @@ import { confirm, Input, Switch } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { TextEditor } from '../../../../components/editor';
 import { FormBox } from '../../../../scenes/form/box';
 import { Field } from '../../../../scenes/form/field';
 import { FormPage } from '../../../../scenes/form/page';
@@ -15,7 +16,9 @@ export let CustomServerListingPage = () => {
   let customServer = useCustomServer(instance.data?.id, customServerId);
 
   let listing = useCustomServerListing(instance.data?.id, customServer.data?.id);
-  let update = listing.useUpdateMutator();
+  let statusUpdate = listing.useUpdateMutator();
+  let generalUpdate = listing.useUpdateMutator();
+  let readmeUpdate = listing.useUpdateMutator();
 
   let [isPublic, setIsPublic] = useState(false);
   useEffect(
@@ -31,7 +34,9 @@ export let CustomServerListingPage = () => {
       >
         <Switch
           label="Publish custom server for all Metorial users to use."
-          disabled={update.isLoading}
+          disabled={
+            statusUpdate.isLoading || generalUpdate.isLoading || readmeUpdate.isLoading
+          }
           checked={isPublic}
           onCheckedChange={async checked => {
             if (checked) {
@@ -42,7 +47,7 @@ export let CustomServerListingPage = () => {
                 description:
                   'This will make the custom server available for all Metorial users to use. This might expose sensitive information, so make sure you understand the implications.',
                 onConfirm: () => {
-                  update.mutate({
+                  statusUpdate.mutate({
                     status: 'public'
                   });
                 },
@@ -51,7 +56,7 @@ export let CustomServerListingPage = () => {
                 }
               });
             } else {
-              update.mutate({
+              statusUpdate.mutate({
                 status: 'private'
               });
             }
@@ -67,23 +72,21 @@ export let CustomServerListingPage = () => {
             schema={yup =>
               yup.object({
                 name: yup.string().optional(),
-                description: yup.string().optional(),
-                readme: yup.string().optional()
+                description: yup.string().optional()
               })
             }
             initialValues={{
               name: listing.data?.name ?? customServer.data?.name ?? '',
               description: listing.data?.description ?? customServer.data?.description ?? ''
             }}
-            mutators={[update]}
+            mutators={[generalUpdate]}
             onSubmit={async values => {
               if (!instance.data) return;
 
-              await update.mutate({
+              await generalUpdate.mutate({
                 status: 'public',
                 name: values.name,
-                description: values.description,
-                readme: values.readme
+                description: values.description
               });
             }}
           >
@@ -93,6 +96,39 @@ export let CustomServerListingPage = () => {
 
             <Field field="description">
               {({ getFieldProps }) => <Input {...getFieldProps()} label="Description" />}
+            </Field>
+          </FormBox>
+
+          <FormBox
+            title="Readme"
+            description="Update the readme for this custom server listing."
+            schema={yup =>
+              yup.object({
+                readme: yup.string().optional()
+              })
+            }
+            initialValues={{
+              readme: listing.data?.readme ?? ''
+            }}
+            mutators={[readmeUpdate]}
+            onSubmit={async values => {
+              if (!instance.data) return;
+
+              await readmeUpdate.mutate({
+                status: 'public',
+                readme: values.readme
+              });
+            }}
+          >
+            <Field field="readme">
+              {({ value, setValue }) => (
+                <TextEditor
+                  content={value}
+                  onChange={content => {
+                    setValue(content);
+                  }}
+                />
+              )}
             </Field>
           </FormBox>
         </>

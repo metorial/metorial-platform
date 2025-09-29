@@ -3,6 +3,7 @@ import { generateCode } from '@metorial/id';
 import { profileService } from '@metorial/module-community';
 import { createQueue } from '@metorial/queue';
 import { createSlugGenerator } from '@metorial/slugify';
+import { indexServerListingQueue } from './search';
 
 let getListingSlug = createSlugGenerator(
   async slug => !(await db.serverListing.findFirst({ where: { slug } }))
@@ -56,7 +57,7 @@ export let setCustomServerListingQueueProcessor = setCustomServerListingQueue.pr
       profileOid: profile?.oid
     };
 
-    await db.serverListing.upsert({
+    let listing = await db.serverListing.upsert({
       where: {
         serverOid: server.oid
       },
@@ -71,6 +72,10 @@ export let setCustomServerListingQueueProcessor = setCustomServerListingQueue.pr
         ...listingData
       },
       update: listingData
+    });
+
+    await indexServerListingQueue.add({
+      serverListingId: listing.id
     });
   }
 );

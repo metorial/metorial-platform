@@ -13,6 +13,7 @@ import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { notFoundError, ServiceError } from '../../../../../packages/shared/error/src';
 import { setCustomServerListingQueue } from '../queues/customListing';
+import { indexServerListingQueue } from '../queues/search';
 
 let include = {
   categories: true,
@@ -107,7 +108,7 @@ class ServerListingService {
       readme: d.input.readme ?? d.serverListing.readme
     };
 
-    return withTransaction(async db => {
+    let serverListing = await withTransaction(async db => {
       await db.serverListingUpdate.create({
         data: {
           id: await ID.generateId('serverListingUpdate'),
@@ -143,6 +144,12 @@ class ServerListingService {
 
       return serverListing;
     });
+
+    await indexServerListingQueue.add({
+      serverListingId: serverListing.id
+    });
+
+    return serverListing;
   }
 
   async setServerListing(d: {

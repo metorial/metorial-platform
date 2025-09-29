@@ -226,7 +226,10 @@ export let customServerController = Controller.create(
           serverListingId: ctx.customServer.server.id
         });
 
-        return serverListingPresenter.present({ serverListing: listing });
+        return serverListingPresenter.present({
+          serverListing: listing,
+          readme: listing.readme
+        });
       }),
 
     updateListing: customServerGroup
@@ -275,7 +278,10 @@ export let customServerController = Controller.create(
                 }
         });
 
-        return serverListingPresenter.present({ serverListing: listing });
+        return serverListingPresenter.present({
+          serverListing: listing,
+          readme: listing.readme
+        });
       })
   }
 );
