@@ -1,13 +1,16 @@
+import { forbiddenError, ServiceError } from '@metorial/error';
 import { serverListingService } from '@metorial/module-catalog';
 import {
   customServerService,
   managedServerTemplateService
 } from '@metorial/module-custom-server';
+import { flagService } from '@metorial/module-flags';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { customServerPresenter, serverListingPresenter } from '../../presenters';
 
@@ -38,6 +41,7 @@ export let customServerController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .outputList(customServerPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .query(
         'default',
         Paginator.validate(
@@ -105,8 +109,21 @@ export let customServerController = Controller.create(
           ])
         })
       )
+      .use(hasFlags(['metorial-gateway-enabled']))
       .output(customServerPresenter)
       .do(async ctx => {
+        let flags = await flagService.getFlags({
+          organization: ctx.organization
+        });
+
+        if (ctx.body.implementation.type == 'managed' && !flags['managed-servers-enabled']) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not entitled to create managed servers'
+            })
+          );
+        }
+
         let template =
           ctx.body.implementation.type === 'managed' &&
           ctx.body.implementation.managed_server?.template_id
@@ -166,6 +183,7 @@ export let customServerController = Controller.create(
           metadata: v.optional(v.record(v.any()))
         })
       )
+      .use(hasFlags(['metorial-gateway-enabled']))
       .output(customServerPresenter)
       .do(async ctx => {
         let customServer = await customServerService.updateCustomServer({
@@ -189,6 +207,7 @@ export let customServerController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.custom_server:write'] }))
       .output(customServerPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let customServer = await customServerService.deleteCustomServer({
           server: ctx.customServer
@@ -204,6 +223,7 @@ export let customServerController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .output(customServerPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         return customServerPresenter.present({
           customServer: ctx.customServer
@@ -220,6 +240,7 @@ export let customServerController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .output(serverListingPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let listing = await serverListingService.getServerListingById({
           instance: ctx.instance,
@@ -259,6 +280,7 @@ export let customServerController = Controller.create(
         ])
       )
       .output(serverListingPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let listing = await customServerService.setCustomServerListing({
           server: ctx.customServer,

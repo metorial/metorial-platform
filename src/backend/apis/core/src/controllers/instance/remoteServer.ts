@@ -3,6 +3,7 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { remoteServerPresenter } from '../../presenters';
 
@@ -35,6 +36,7 @@ export let remoteServerController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .outputList(remoteServerPresenter)
       .query('default', Paginator.validate(v.object({})))
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let paginator = await remoteServerService.listRemoteServers({
           instance: ctx.instance
@@ -60,6 +62,7 @@ export let remoteServerController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .output(remoteServerPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         return remoteServerPresenter.present({
           remoteServerInstance: ctx.remoteServer

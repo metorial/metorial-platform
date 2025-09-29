@@ -3,6 +3,7 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { customServerVersionPresenter } from '../../presenters';
 import { customServerGroup } from './customServer';
@@ -28,6 +29,7 @@ export let customServerVersionController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .outputList(customServerVersionPresenter)
       .query('default', Paginator.validate(v.object({})))
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let paginator = await customServerVersionService.listVersions({
           server: ctx.customServer,
@@ -103,6 +105,7 @@ export let customServerVersionController = Controller.create(
         })
       )
       .output(customServerVersionPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let customServerVersion = await customServerVersionService.createVersion({
           organization: ctx.organization,
@@ -155,6 +158,7 @@ export let customServerVersionController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .output(customServerVersionPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let customServerVersion = await customServerVersionService.getVersionById({
           versionId: ctx.params.customServerVersionId,

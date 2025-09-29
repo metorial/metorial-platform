@@ -2,6 +2,7 @@ import { badRequestError, ServiceError } from '@metorial/error';
 import { codeBucketService } from '@metorial/module-code-bucket';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { customServerCodeEditorTokenTypePresenter } from '../../presenters';
 import { customServerGroup } from './customServer';
@@ -26,6 +27,7 @@ export let customServerCodeController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:write'] }))
       .output(customServerCodeEditorTokenTypePresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         if (!ctx.customServer.draftCodeBucket) {
           throw new ServiceError(

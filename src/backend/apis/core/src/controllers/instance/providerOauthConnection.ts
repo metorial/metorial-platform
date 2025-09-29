@@ -6,6 +6,7 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerOauthConnectionPresenter } from '../../presenters';
 
@@ -35,6 +36,7 @@ export let providerOauthConnectionController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.connection:read'] }))
       .outputList(providerOauthConnectionPresenter)
       .query('default', Paginator.validate(v.object({})))
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let paginator = await providerOauthConnectionService.listConnections({
           instance: ctx.instance
@@ -90,6 +92,7 @@ export let providerOauthConnectionController = Controller.create(
         }),
         i => i
       )
+      .use(hasFlags(['metorial-gateway-enabled']))
       .output(providerOauthConnectionPresenter)
       .do(async ctx => {
         let template = ctx.body.template_id
@@ -149,6 +152,7 @@ export let providerOauthConnectionController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.connection:read'] }))
       .output(providerOauthConnectionPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         return providerOauthConnectionPresenter.present({
           providerOauthConnection: ctx.connection
@@ -180,6 +184,7 @@ export let providerOauthConnectionController = Controller.create(
         })
       )
       .output(providerOauthConnectionPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let providerOauthConnection = await providerOauthConnectionService.updateConnection({
           organization: ctx.organization,
@@ -213,6 +218,7 @@ export let providerOauthConnectionController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.connection:write'] }))
       .output(providerOauthConnectionPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let providerOauthConnection = await providerOauthConnectionService.archiveConnection({
           organization: ctx.organization,

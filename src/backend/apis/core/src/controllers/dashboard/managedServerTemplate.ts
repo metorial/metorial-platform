@@ -23,7 +23,6 @@ export let dashboardManagedServerTemplateController = Controller.create(
   },
   {
     list: apiGroup
-
       .get(
         Path(
           '/dashboard/organizations/:organizationId/managed-server-templates',

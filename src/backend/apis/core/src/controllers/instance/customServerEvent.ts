@@ -4,6 +4,7 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { customServerEventPresenter } from '../../presenters';
 import { customServerGroup } from './customServer';
@@ -25,6 +26,7 @@ export let customServerEventController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .outputList(customServerEventPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .query(
         'default',
         Paginator.validate(
@@ -61,6 +63,7 @@ export let customServerEventController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .output(customServerEventPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let customServerEvent = await customServerEventService.getCustomServerEventById({
           eventId: ctx.params.customServerEventId,

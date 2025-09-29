@@ -6,6 +6,7 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { serverOAuthSessionPresenter } from '../../presenters';
 
@@ -35,6 +36,7 @@ export let serverOauthSessionController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.session:read'] }))
       .outputList(serverOAuthSessionPresenter)
       .query('default', Paginator.validate(v.object({})))
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let paginator = await serverOAuthSessionService.listServerOAuthSessions({
           instance: ctx.instance
@@ -75,6 +77,7 @@ export let serverOauthSessionController = Controller.create(
         ])
       )
       .output(serverOAuthSessionPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let connectionId: string;
 
@@ -127,6 +130,7 @@ export let serverOauthSessionController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.session:read'] }))
       .output(serverOAuthSessionPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         return serverOAuthSessionPresenter.present({
           serverOauthSession: ctx.oauthSession
@@ -146,6 +150,7 @@ export let serverOauthSessionController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.session:write'] }))
       .output(serverOAuthSessionPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let serverOauthSession = await serverOAuthSessionService.archiveServerOAuthSession({
           session: ctx.oauthSession

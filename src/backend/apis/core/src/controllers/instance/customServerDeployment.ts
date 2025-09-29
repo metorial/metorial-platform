@@ -4,6 +4,7 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { customServerDeploymentPresenter } from '../../presenters';
 import { customServerGroup } from './customServer';
@@ -28,6 +29,7 @@ export let customServerDeploymentController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .outputList(customServerDeploymentPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .query(
         'default',
         Paginator.validate(
@@ -63,6 +65,7 @@ export let customServerDeploymentController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .output(customServerDeploymentPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let customServerDeployment =
           await customServerDeploymentService.getCustomServerDeploymentById({
