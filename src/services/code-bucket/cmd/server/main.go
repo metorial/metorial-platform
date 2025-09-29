@@ -28,8 +28,8 @@ func main() {
 	jwtSecret := mustGetEnv("CODE_BUCKET_JWT_SECRET")
 	awsBucket := mustGetEnv("CODE_BUCKET_AWS_S3_BUCKET")
 	awsRegion := mustGetEnv("CODE_BUCKET_AWS_REGION")
-	awsAccessKey := mustGetEnv("CODE_BUCKET_AWS_ACCESS_KEY")
-	awsSecretKey := mustGetEnv("CODE_BUCKET_AWS_SECRET_KEY")
+	awsAccessKey := os.Getenv("CODE_BUCKET_AWS_ACCESS_KEY")
+	awsSecretKey := os.Getenv("CODE_BUCKET_AWS_SECRET_KEY")
 	awsEndpoint := os.Getenv("CODE_BUCKET_AWS_ENDPOINT")
 	redisURL := os.Getenv("CODE_BUCKET_REDIS_URL")
 
