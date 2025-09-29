@@ -8,6 +8,7 @@ export type Flags = {
   'custom-servers-remote-enabled': boolean;
   'provider-oauth-enabled': boolean;
   'managed-servers-enabled': boolean;
+  'community-profiles-enabled': boolean;
 };
 
 export let defaultFlags: Flags = {
@@ -17,7 +18,8 @@ export let defaultFlags: Flags = {
   'metorial-gateway-enabled': true,
   'custom-servers-remote-enabled': true,
   'provider-oauth-enabled': true,
-  'managed-servers-enabled': true
+  'managed-servers-enabled': true,
+  'community-profiles-enabled': true
 };
 
 export type FlagProviderParams = {

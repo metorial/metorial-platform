@@ -293,8 +293,8 @@ class customServerServiceImpl {
   async getCustomServerById(d: { organization: Organization; serverId: string }) {
     let server = await db.customServer.findFirst({
       where: {
-        id: d.serverId,
-        organizationOid: d.organization.oid
+        organizationOid: d.organization.oid,
+        OR: [{ id: d.serverId }, { server: { id: d.serverId } }]
       },
       include
     });

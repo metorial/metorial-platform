@@ -1,5 +1,10 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance, useCustomServer, useCustomServerListing } from '@metorial/state';
+import {
+  useCurrentInstance,
+  useCustomServer,
+  useCustomServerListing,
+  useDashboardFlags
+} from '@metorial/state';
 import { confirm, Input, Switch } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useEffect, useState } from 'react';
@@ -25,6 +30,9 @@ export let CustomServerListingPage = () => {
     () => setIsPublic(customServer.data?.publicationStatus == 'public'),
     [customServer.data?.publicationStatus]
   );
+
+  let flags = useDashboardFlags();
+  if (!flags.data?.flags['community-profiles-enabled']) return;
 
   return renderWithLoader({ customServer, listing })(({ customServer, listing }) => (
     <FormPage>

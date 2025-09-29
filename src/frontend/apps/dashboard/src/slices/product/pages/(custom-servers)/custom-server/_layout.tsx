@@ -5,10 +5,12 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useCustomServer
+  useCustomServer,
+  useDashboardFlags
 } from '@metorial/state';
 import { Callout, LinkTabs, Spacer } from '@metorial/ui';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 export let CustomServerLayout = () => {
   let instance = useCurrentInstance();
@@ -18,6 +20,15 @@ export let CustomServerLayout = () => {
   let { customServerId } = useParams();
   let customServer = useCustomServer(instance.data?.id, customServerId);
 
+  let navigate = useNavigate();
+  useEffect(() => {
+    if (customServer.data && customServer.data.id != customServerId) {
+      navigate(location.pathname.replace(customServerId!, customServer.data.id), {
+        replace: true
+      });
+    }
+  }, [customServer.data, customServerId]);
+
   let pathname = useLocation().pathname;
 
   let pathParams = [
@@ -26,6 +37,8 @@ export let CustomServerLayout = () => {
     instance.data,
     customServer.data?.id ?? customServerId
   ] as const;
+
+  let flags = useDashboardFlags();
 
   return (
     <ContentLayout>
@@ -77,10 +90,16 @@ export let CustomServerLayout = () => {
                 label: 'Deployments',
                 to: Paths.instance.customServer(...pathParams, 'deployments')
               },
-              {
-                label: 'Listing',
-                to: Paths.instance.customServer(...pathParams, 'listing')
-              },
+
+              ...(flags.data?.flags['community-profiles-enabled']
+                ? [
+                    {
+                      label: 'Listing',
+                      to: Paths.instance.customServer(...pathParams, 'listing')
+                    }
+                  ]
+                : []),
+
               {
                 label: 'Settings',
                 to: Paths.instance.customServer(...pathParams, 'settings')

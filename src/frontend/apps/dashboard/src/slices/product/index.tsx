@@ -221,6 +221,12 @@ let CustomServerListingPage = dynamicPage(() =>
     c => c.CustomServerListingPage
   )
 );
+let CommunityServersPage = dynamicPage(() =>
+  import('./pages/community/communityServers').then(c => c.CommunityServersPage)
+);
+let CommunityProfilePage = dynamicPage(() =>
+  import('./pages/community/profile').then(c => c.CommunityProfilePage)
+);
 let NotFoundPage = dynamicPage(() => import('@metorial/pages').then(c => c.NotFound));
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
@@ -589,6 +595,20 @@ export let productInnerSlice = createSlice([
       {
         path: 'explorer',
         element: <ExplorerPage />
+      },
+
+      {
+        path: 'community',
+        children: [
+          {
+            path: 'profile',
+            element: <CommunityProfilePage />
+          },
+          {
+            path: 'servers',
+            element: <CommunityServersPage />
+          }
+        ]
       }
     ]
   }
