@@ -178,6 +178,7 @@ export let syncProcessor = syncQueue.process(async () => {
           serverOid: baseServer.oid,
           skills: JSON.parse(server.skills),
           isPublic: true,
+          isOfficial: Boolean(server.isOfficial),
 
           categories: {
             connect: categoryIdentifiers.map(categoryIdentifier => ({

@@ -12,6 +12,10 @@ model ServerListing {
   isPublic     Boolean @default(true)
   isCustomized Boolean @default(false)
 
+  isMetorial Boolean @default(false)
+  isVerified Boolean @default(false)
+  isOfficial Boolean @default(false)
+
   ownerOrganizationOid BigInt?
   ownerOrganization    Organization? @relation(fields: [ownerOrganizationOid], references: [oid])
 

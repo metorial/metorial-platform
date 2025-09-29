@@ -41,15 +41,15 @@ func main() {
 		redisPassword := os.Getenv("REDIS_PASSWORD")
 
 		redisURL = "redis://"
+		if redisTLS == "true" {
+			redisURL = "rediss://"
+		}
 		if redisPassword != "" {
 			redisURL += fmt.Sprintf(":%s@", redisPassword)
 		}
 		redisURL += fmt.Sprintf("%s:%s", redisHost, redisPort)
 		if redisDB != "" {
 			redisURL += fmt.Sprintf("/%s", redisDB)
-		}
-		if redisTLS == "true" {
-			redisURL += "?tls=true"
 		}
 	}
 

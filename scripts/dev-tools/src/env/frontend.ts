@@ -128,5 +128,10 @@ export let frontendEnv: Env = [
     key: 'VITE_FEATURED_COLLECTION_SLUG',
     defaultValue: 'dashboard_collection',
     isEnterprise: true
+  },
+  {
+    key: 'VITE_PUBLIC_API_URL',
+    defaultValue: `http://${HOSTNAME}:4310`,
+    isEnterprise: true
   }
 ];

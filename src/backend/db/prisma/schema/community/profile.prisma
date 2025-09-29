@@ -18,6 +18,10 @@ model Profile {
   description String?
   slug        String  @unique
 
+  isMetorial Boolean @default(false)
+  isVerified Boolean @default(false)
+  isOfficial Boolean @default(false)
+
   /// [EntityImage]
   image Json
 

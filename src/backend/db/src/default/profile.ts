@@ -14,8 +14,11 @@ let ensureProfile = createEnsureRecord(
 
 export let systemProfile = ensureProfile(() => ({
   name: 'Metorial',
-  slug: 'metorial',
+  slug: 'system',
   type: 'system',
+  isMetorial: true,
+  isOfficial: true,
+  isVerified: true,
   image: {
     type: 'url',
     url: 'https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg'

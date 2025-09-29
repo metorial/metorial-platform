@@ -77,7 +77,7 @@ I would like to request support for the ${server.data.name} server (ID: ${server
             : [
                 {
                   label: 'Type',
-                  content: 'Closed Source'
+                  content: 'Custom Server'
                 }
               ]),
           {

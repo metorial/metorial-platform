@@ -270,9 +270,9 @@ class ServerListingService {
                   : [{ isPublic: true }]
               },
 
-              // d.onlyFromOrganization
-              //   ? { ownerOrganizationOid: d.instance?.organizationOid ?? -1 }
-              //   : {}
+              d.onlyFromOrganization
+                ? { ownerOrganizationOid: d.instance?.organizationOid ?? -1 }
+                : {},
 
               d.isPublic ? { isPublic: true } : {}
 

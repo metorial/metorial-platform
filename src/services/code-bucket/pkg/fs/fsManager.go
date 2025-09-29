@@ -60,7 +60,9 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 		opt(options)
 	}
 
-	rdb := redis.NewClient(util.Must(redis.ParseURL(options.RedisURL)))
+	rdb := redis.NewClient(
+		util.Must(redis.ParseURL(options.RedisURL)),
+	)
 
 	// Create AWS session using default credential chain
 	// This will automatically use IAM roles, environment variables, or AWS credentials file
