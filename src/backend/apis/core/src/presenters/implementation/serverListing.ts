@@ -3,6 +3,7 @@ import { markdownService } from '@metorial/module-markdown';
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { serverListingType } from '../types';
+import { v1ProfilePresenter } from './profile';
 import { v1ServerListingCategoryPresenter } from './serverCategory';
 import { v1ServerPreview } from './serverPreview';
 
@@ -24,6 +25,16 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
 
       skills: serverListing.skills,
 
+      image_url: await getImageUrl(
+        serverListing.image?.type == 'default'
+          ? (serverListing.profile ?? vendor ?? serverListing)
+          : serverListing
+      ),
+
+      profile: serverListing.profile
+        ? await v1ProfilePresenter.present({ profile: serverListing.profile }, opts).run()
+        : null,
+
       server: v1ServerPreview(serverListing.server),
 
       categories: await Promise.all(
@@ -32,9 +43,13 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
         )
       ),
 
-      is_official: !!serverListing.server.importedServer?.isOfficial,
+      is_official:
+        serverListing.isOfficial || !!serverListing.server.importedServer?.isOfficial,
       is_community: !!serverListing.server.importedServer?.isCommunity,
       is_hostable: !!serverListing.server.importedServer?.isHostable,
+
+      is_metorial: serverListing.isMetorial,
+      is_verified: serverListing.isVerified,
 
       vendor: vendor
         ? ({
@@ -119,6 +134,13 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
         description: 'A URL-friendly unique string identifier for the listing'
       }),
 
+      image_url: v.string({
+        name: 'image_url',
+        description: 'URL to the image representing the server listing'
+      }),
+
+      profile: v.nullable(v1ProfilePresenter.schema),
+
       name: v.string({
         name: 'name',
         description: 'The name of the server listing'
@@ -157,6 +179,16 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
       is_hostable: v.boolean({
         name: 'is_hostable',
         description: 'Indicates if the listing can be hosted'
+      }),
+
+      is_metorial: v.boolean({
+        name: 'is_metorial',
+        description: 'True if this listing is managed directly by Metorial'
+      }),
+
+      is_verified: v.boolean({
+        name: 'is_verified',
+        description: 'Indicates whether the listing has been verified for authenticity'
       }),
 
       server: v1ServerPreview.schema,

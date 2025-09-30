@@ -2,8 +2,9 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import type { ServersListingsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useServerListings } from '@metorial/state';
-import { Avatar, Text } from '@metorial/ui';
+import { Avatar, Badge, Text } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
+import { RiCheckLine } from '@remixicon/react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -44,14 +45,35 @@ export let ServersGrid = (filter: ServersListingsListQuery) => {
               }
               height={250}
               icon={
-                <Avatar
-                  entity={{
-                    name: server.vendor?.name ?? server.name,
-                    photoUrl:
-                      server.vendor?.imageUrl ?? `https://avatar-cdn.metorial.com/${server.id}`
-                  }}
-                  size={30}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Avatar
+                    entity={{
+                      name: server.profile?.name ?? server.vendor?.name ?? server.name,
+                      photoUrl: server.imageUrl
+                    }}
+                    size={30}
+                  />
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    {server.profile?.isMetorial || server.isMetorial ? (
+                      <Badge size="1" color="blue">
+                        From Metorial
+                      </Badge>
+                    ) : (
+                      (server.profile?.isOfficial || server.isOfficial) && (
+                        <Badge size="1" color="blue">
+                          Official
+                        </Badge>
+                      )
+                    )}
+
+                    {(server.profile?.isVerified || server.isVerified) && (
+                      <Badge size="1" color="blue">
+                        <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
+                      </Badge>
+                    )}
+                  </div>
+                </div>
               }
               onClick={() =>
                 navigate(

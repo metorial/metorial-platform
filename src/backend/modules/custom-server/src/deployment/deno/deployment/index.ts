@@ -172,8 +172,6 @@ export let createDenoLambdaDeployment = async (config: {
         }
       });
 
-      console.log('Discovered server:', res.data);
-
       return res.data;
     }
   };

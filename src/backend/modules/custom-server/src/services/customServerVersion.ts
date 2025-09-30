@@ -61,7 +61,8 @@ let defaultRemoteConfigSchema = {
   $id: 'https://schema.metorial.com/remote-server-config.json',
   title: 'Remote Server Config',
   type: 'object',
-  properties: {}
+  properties: {},
+  required: []
 };
 
 let defaultRemoteLaunchParams = `(config, ctx) => ({
@@ -74,7 +75,8 @@ let defaultManagedConfigSchema = {
   $id: 'https://schema.metorial.com/managed-server-config.json',
   title: 'Managed Server Config',
   type: 'object',
-  properties: {}
+  properties: {},
+  required: []
 };
 
 let defaultManagedLaunchParams = `(config, ctx) => ({
@@ -101,7 +103,7 @@ class CustomServerVersionServiceImpl {
             oAuthConfig?: {
               config: any;
               scopes: string[];
-            };
+            } | null;
           };
           config?: {
             schema?: any;
@@ -114,7 +116,7 @@ class CustomServerVersionServiceImpl {
             oAuthConfig?: {
               config: any;
               scopes: string[];
-            };
+            } | null;
           };
           config?: {
             schema?: any;
@@ -153,21 +155,50 @@ class CustomServerVersionServiceImpl {
             where: { oid: d.server.oid }
           });
 
+          let currentVersion = server.currentVersionOid
+            ? await db.customServerVersion.findFirst({
+                where: {
+                  oid: server.currentVersionOid
+                },
+                include: {
+                  remoteServerInstance: {
+                    include: { providerOAuthConfig: true }
+                  },
+                  lambdaServerInstance: {
+                    include: { providerOAuthConfig: true }
+                  },
+                  serverVersion: {
+                    include: { schema: true }
+                  }
+                }
+              })
+            : undefined;
+
           let getLaunchParams: string;
           let configSchema: any;
           let serverVersionParams: Partial<ServerVersion> = {};
 
           if (d.serverInstance.type == 'remote') {
             getLaunchParams =
-              d.serverInstance.config?.getLaunchParams ?? defaultRemoteLaunchParams;
-            configSchema = d.serverInstance.config?.schema ?? defaultRemoteConfigSchema;
+              d.serverInstance.config?.getLaunchParams ??
+              currentVersion?.serverVersion?.getLaunchParams ??
+              defaultRemoteLaunchParams;
+            configSchema =
+              d.serverInstance.config?.schema ??
+              currentVersion?.serverVersion?.schema.schema ??
+              defaultRemoteConfigSchema;
             serverVersionParams = {
               remoteUrl: d.serverInstance.implementation.remoteUrl
             };
           } else {
             getLaunchParams =
-              d.serverInstance.config?.getLaunchParams ?? defaultManagedLaunchParams;
-            configSchema = d.serverInstance.config?.schema ?? defaultManagedConfigSchema;
+              d.serverInstance.config?.getLaunchParams ??
+              currentVersion?.serverVersion?.getLaunchParams ??
+              defaultManagedLaunchParams;
+            configSchema =
+              d.serverInstance.config?.schema ??
+              currentVersion?.serverVersion?.schema.schema ??
+              defaultManagedConfigSchema;
           }
 
           let { maxVersionIndex } = await db.customServer.update({
@@ -221,13 +252,24 @@ class CustomServerVersionServiceImpl {
             }
           });
 
-          let config = d.serverInstance.implementation.oAuthConfig
+          let oauthConfig = d.serverInstance.implementation.oAuthConfig
             ? await providerOauthConfigService.createConfig({
                 instance: d.instance,
                 config: d.serverInstance.implementation.oAuthConfig.config,
                 scopes: d.serverInstance.implementation.oAuthConfig.scopes
               })
             : undefined;
+
+          if (
+            !oauthConfig &&
+            currentVersion &&
+            d.serverInstance.implementation.oAuthConfig !== null
+          ) {
+            oauthConfig =
+              currentVersion.lambdaServerInstance?.providerOAuthConfig ??
+              currentVersion.remoteServerInstance?.providerOAuthConfig ??
+              undefined;
+          }
 
           if (d.serverInstance.type == 'remote') {
             let remoteServer = await db.remoteServerInstance.create({
@@ -236,8 +278,8 @@ class CustomServerVersionServiceImpl {
                 remoteUrl: d.serverInstance.implementation.remoteUrl,
                 instanceOid: d.instance.oid,
 
-                providerOAuthConfigOid: config?.oid,
-                providerOAuthDiscoveryStatus: config ? 'manual_config' : 'pending'
+                providerOAuthConfigOid: oauthConfig?.oid,
+                providerOAuthDiscoveryStatus: oauthConfig ? 'manual_config' : 'pending'
               }
             });
 
@@ -284,7 +326,7 @@ class CustomServerVersionServiceImpl {
                 securityToken: generatePlainId(30),
                 instanceOid: d.instance.oid,
                 immutableCodeBucketOid: immutableCodeBucket.oid,
-                providerOAuthConfigOid: config?.oid
+                providerOAuthConfigOid: oauthConfig?.oid
               },
               include: {
                 instance: true,

@@ -68,6 +68,9 @@ export let setCustomServerListingQueueProcessor = setCustomServerListingQueue.pr
         status: 'active',
         isCustomized: false,
         isPublic: false,
+        isMetorial: false,
+        isVerified: false,
+        isOfficial: false,
         slug: await getListingSlug({ input: `${server.name}-${generateCode(5)}` }),
         ...listingData
       },

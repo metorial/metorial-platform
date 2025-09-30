@@ -177,7 +177,7 @@ export let ExplorerPage = () => {
 
                     <ServerSearch
                       onSelect={server => {
-                        _setSelectedServer(server);
+                        _setSelectedServer(server as any);
                         setSearch(v => {
                           v.set('server_id', server.id);
                           return v;

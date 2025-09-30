@@ -11,7 +11,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
-import { badRequestError } from '@metorial/error/src/defaultErrors';
+import { badRequestError, conflictError } from '@metorial/error/src/defaultErrors';
 import { Fabric } from '@metorial/fabric';
 import { generateCustomId } from '@metorial/id';
 import { Paginator } from '@metorial/pagination';
@@ -114,6 +114,28 @@ class OauthConnectionServiceImpl {
       config = await db.providerOAuthConfig.findUniqueOrThrow({
         where: { id: d.input.setup.oauthConfigId, instanceOid: d.instance.oid }
       });
+
+      let i = 0;
+      while (config.discoverStatus == 'discovering') {
+        await new Promise(res => setTimeout(res, 2000));
+        config = await db.providerOAuthConfig.findUniqueOrThrow({
+          where: { id: d.input.setup.oauthConfigId, instanceOid: d.instance.oid }
+        });
+
+        if (i >= 10) {
+          throw new ServiceError(
+            conflictError({ message: 'OAuth configuration is still being discovered' })
+          );
+        }
+      }
+
+      if (config.discoverStatus != 'supports_auto_registration') {
+        throw new ServiceError(
+          badRequestError({
+            message: 'The provided OAuth configuration does not support auto registration'
+          })
+        );
+      }
 
       if (!providerOauthDiscoveryService.supportsAutoRegistration({ config: config.config })) {
         throw new ServiceError(

@@ -172,6 +172,7 @@ export let serverVersionType = PresentableType.create<{
 
 export let serverListingType = PresentableType.create<{
   serverListing: Omit<ServerListing, 'readme'> & {
+    profile: Profile | null;
     categories: ServerListingCategory[];
     server: Server & {
       importedServer:

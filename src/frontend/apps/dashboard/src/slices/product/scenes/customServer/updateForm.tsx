@@ -146,13 +146,6 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
                 onSubmit={async values => {
                   if (!instance.data || !p.customServer) return;
 
-                  let oauthConfig = providerOauth
-                    ? {
-                        scopes: providerOauth.scopes ?? [],
-                        config: providerOauth.config
-                      }
-                    : undefined;
-
                   let [res] = await createVersionMutatorSchema.mutate({
                     instanceId: instance.data.id,
                     customServerId: p.customServer.id,
@@ -163,9 +156,6 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
                             config: {
                               schema: values.schema,
                               getLaunchParams: values.getLaunchParams
-                            },
-                            managedServer: {
-                              oauthConfig
                             }
                           }
                         : {
@@ -176,9 +166,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
                             },
                             remoteServer: {
                               remoteUrl:
-                                editingVersion.current?.serverInstance.remoteServer
-                                  ?.remoteUrl!,
-                              oauthConfig
+                                editingVersion.current?.serverInstance.remoteServer?.remoteUrl!
                             }
                           }
                   });
@@ -287,28 +275,12 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
               p.customServer.type == 'managed'
                 ? {
                     type: 'managed',
-                    config: {
-                      schema:
-                        editingVersion.current?.serverVersion?.schema ??
-                        defaultServerConfig.schema,
-                      getLaunchParams:
-                        editingVersion.current?.serverVersion?.getLaunchParams ??
-                        defaultServerConfig.getLaunchParams
-                    },
                     managedServer: {
                       oauthConfig: values.enabled ? { scopes, config } : undefined
                     }
                   }
                 : {
                     type: 'remote',
-                    config: {
-                      schema:
-                        editingVersion.current?.serverVersion?.schema ??
-                        defaultServerConfig.schema,
-                      getLaunchParams:
-                        editingVersion.current?.serverVersion?.getLaunchParams ??
-                        defaultServerConfig.getLaunchParams
-                    },
                     remoteServer: {
                       remoteUrl:
                         editingVersion.current?.serverInstance.remoteServer?.remoteUrl ?? '',
@@ -345,7 +317,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
 
                           setTimeout(() => {
                             form.submitForm();
-                          }, 100);
+                          }, 500);
                         }
                       });
                     } else {

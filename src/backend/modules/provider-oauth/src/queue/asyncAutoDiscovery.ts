@@ -24,7 +24,7 @@ export let asyncAutoDiscoveryQueueProcessor = asyncAutoDiscoveryQueue.process(as
     config: connection.config.config as OAuthConfiguration,
     clientName: connection.instance.organization.name
   });
-  if (!autoReg) {
+  if (!autoReg && !connection.clientId) {
     await db.providerOAuthConnection.update({
       where: { id: connection.id },
       data: {
@@ -53,13 +53,13 @@ export let asyncAutoDiscoveryQueueProcessor = asyncAutoDiscoveryQueue.process(as
   await db.providerOAuthConnection.update({
     where: { id: connection.id },
     data: {
-      registrationOid: autoReg.oid,
+      registrationOid: autoReg?.oid,
       isAutoDiscoveryActive: false,
       status: 'active',
       failureCode: null,
       failureMessage: null,
-      clientId: autoReg.clientId,
-      clientSecret: autoReg.clientSecret
+      clientId: autoReg?.clientId ?? undefined,
+      clientSecret: autoReg?.clientSecret ?? undefined
     }
   });
 });

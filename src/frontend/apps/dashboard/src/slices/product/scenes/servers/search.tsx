@@ -113,7 +113,7 @@ export let ServerSearch = ({
                   onClick={() => onSelect?.(server as any)}
                   type="button"
                 >
-                  <Avatar entity={server.vendor} size={24} />
+                  <Avatar entity={server} size={24} />
 
                   <span>{server.name}</span>
                 </PopularItem>
@@ -147,9 +147,15 @@ export let ServerSearch = ({
                         //   </Badge>
                         // ) : undefined
 
-                        <Avatar entity={server.vendor} />
+                        <Avatar entity={server} />
                       }
-                      title={[server.vendor?.name, server.name].filter(Boolean).join(' / ')}
+                      title={[
+                        server.vendor?.name,
+                        server.profile?.isMetorial ? undefined : server.profile?.name,
+                        server.name
+                      ]
+                        .filter(Boolean)
+                        .join(' / ')}
                       description={
                         server.description.substring(0, 100) +
                         (server.description.length > 100 ? '...' : '')

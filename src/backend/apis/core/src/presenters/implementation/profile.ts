@@ -14,9 +14,9 @@ export let v1ProfilePresenter = Presenter.create(profileType)
 
     image_url: await getImageUrl(profile),
 
-    is_official: profile.type == 'system',
-    is_metorial: profile.type == 'system',
-    is_verified: profile.type == 'system',
+    is_official: profile.isOfficial,
+    is_metorial: profile.isMetorial,
+    is_verified: profile.isVerified,
 
     badges:
       profile.type == 'system'

@@ -371,12 +371,15 @@ export let ProviderConnectionCreateForm = (p: {
                     label="Redirect URL"
                     value={`https://provider-auth.${rootDomain}/provider-oauth/callback`}
                   />
+                  <Spacer size={15} />
                 </>
               );
 
               if (selectedTemplate) {
                 return (
                   <>
+                    {redirectUrl}
+
                     <Input
                       label="Client ID"
                       description={`Create a new OAuth application for ${selectedTemplate.provider.name} to get your Client ID and Client Secret.`}
@@ -416,7 +419,7 @@ export let ProviderConnectionCreateForm = (p: {
                         onChange={items => {
                           form.setFieldValue(
                             'scopes',
-                            items.filter(item => item.isChecked).map(item => item.id)
+                            items.filter(item => item.isChecked).map(item => item.label)
                           );
                         }}
                       />
@@ -474,6 +477,8 @@ export let ProviderConnectionCreateForm = (p: {
                   <>
                     {!autoRegistrationId ? (
                       <>
+                        {redirectUrl}
+
                         <Input
                           label="Client ID"
                           description="Create a new OAuth application for the provider to get your Client ID and Client Secret."

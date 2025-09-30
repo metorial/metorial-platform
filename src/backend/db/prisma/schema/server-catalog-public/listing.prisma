@@ -22,6 +22,9 @@ model ServerListing {
   name String
   slug String @unique
 
+  /// [EntityImage]
+  image Json?
+
   description String?
   readme      String?
 

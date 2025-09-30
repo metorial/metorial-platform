@@ -2,6 +2,7 @@ import { ensureProviderOAuthConfig, Instance } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { Service } from '@metorial/service';
 import { OAuthUtils } from '../lib/oauthUtils';
+import { configAutoDiscoveryQueue } from '../queue/configAutoDiscovery';
 import { OAuthConfiguration, oauthConfigValidator } from '../types';
 
 class OauthConfigServiceImpl {
@@ -16,12 +17,26 @@ class OauthConfigServiceImpl {
       );
     }
 
-    return await ensureProviderOAuthConfig(async () => ({
-      scopes: d.scopes,
-      instanceOid: d.instance.oid,
-      config: d.config as any,
-      configHash: await OAuthUtils.getConfigHash(d.config, d.scopes)
-    }));
+    let config = await ensureProviderOAuthConfig(
+      async () => ({
+        scopes: d.scopes,
+        instanceOid: d.instance.oid,
+        config: d.config as any,
+        configHash: await OAuthUtils.getConfigHash(d.config, d.scopes),
+        discoverStatus: 'discovering'
+      }),
+      {
+        ignoreForUpdate: ['discoverStatus']
+      }
+    );
+
+    if (config.discoverStatus == 'discovering') {
+      await configAutoDiscoveryQueue.add({
+        configId: config.id
+      });
+    }
+
+    return config;
   }
 }
 

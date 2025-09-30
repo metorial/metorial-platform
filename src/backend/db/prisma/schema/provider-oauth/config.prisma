@@ -1,6 +1,14 @@
+enum ProviderOAuthConfigDiscoveryStatus {
+  discovering
+  manual
+  supports_auto_registration
+}
+
 model ProviderOAuthConfig {
   oid BigInt @id @default(autoincrement())
   id  String @unique
+
+  discoverStatus ProviderOAuthConfigDiscoveryStatus @default(manual)
 
   /// [ProviderOAuthConfig]
   config Json

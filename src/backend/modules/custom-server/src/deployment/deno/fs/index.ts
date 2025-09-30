@@ -124,8 +124,6 @@ export let getDenoFs = async (
     files.set(path, new TextDecoder().decode(file.content));
   }
 
-  console.log('Files for deployment:', Array.from(files.keys()));
-
   let entrypoint = packageJson.main;
   if (!entrypoint) {
     let found = commonEntryPoints.find(name => bucketFiles.some(f => f.path === name));

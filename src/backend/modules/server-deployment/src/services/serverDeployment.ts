@@ -15,7 +15,13 @@ import {
   ServerVariant,
   withTransaction
 } from '@metorial/db';
-import { badRequestError, forbiddenError, notFoundError, ServiceError } from '@metorial/error';
+import {
+  badRequestError,
+  conflictError,
+  forbiddenError,
+  notFoundError,
+  ServiceError
+} from '@metorial/error';
 import { Fabric } from '@metorial/fabric';
 import { serverVariantService } from '@metorial/module-catalog';
 import { engineServerDiscoveryService } from '@metorial/module-engine';
@@ -245,11 +251,27 @@ class ServerDeploymentServiceImpl {
         oauthConfig = await db.providerOAuthConfig.findFirstOrThrow({
           where: { oid: serverInstance.providerOAuthConfigOid }
         });
+
+        let i = 0;
+        while (oauthConfig.discoverStatus == 'discovering') {
+          await new Promise(res => setTimeout(res, 2000));
+          oauthConfig = await db.providerOAuthConfig.findUniqueOrThrow({
+            where: { id: oauthConfig!.id }
+          });
+
+          if (i >= 10) {
+            throw new ServiceError(
+              conflictError({ message: 'OAuth configuration is still being discovered' })
+            );
+          }
+        }
+
         if (
           !providerOauthDiscoveryService.supportsAutoRegistration({
             config: oauthConfig.config
           }) ||
-          d.input.oauthConfig
+          d.input.oauthConfig ||
+          oauthConfig.discoverStatus == 'manual'
         ) {
           if (!d.input.oauthConfig) {
             throw new ServiceError(

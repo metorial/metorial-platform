@@ -15,7 +15,6 @@ ensureTemplate({
             typescript: 'latest'
           },
           dependencies: {
-            '@modelcontextprotocol/sdk': 'latest',
             metorial: 'latest',
             '@metorial/mcp-server-sdk': 'latest'
           }
@@ -60,8 +59,7 @@ ensureTemplate({
     },
     {
       path: 'server.ts',
-      content: `import { z } from 'zod';
-import { metorial, McpServer, ResourceTemplate } from '@metorial/mcp-server-sdk';
+      content: `import { z, metorial, McpServer, ResourceTemplate } from '@metorial/mcp-server-sdk';
 
 let server = new McpServer({
   name: 'demo-server',

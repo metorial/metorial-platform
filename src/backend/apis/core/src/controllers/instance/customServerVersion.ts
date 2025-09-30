@@ -65,11 +65,13 @@ export let customServerVersionController = Controller.create(
               remote_server: v.object({
                 remote_url: v.string({ modifiers: [v.url()] }),
 
-                oauth_config: v.optional(
-                  v.object({
-                    config: v.record(v.any()),
-                    scopes: v.array(v.string())
-                  })
+                oauth_config: v.nullable(
+                  v.optional(
+                    v.object({
+                      config: v.record(v.any()),
+                      scopes: v.array(v.string())
+                    })
+                  )
                 )
               }),
 
@@ -85,11 +87,13 @@ export let customServerVersionController = Controller.create(
 
               managed_server: v.optional(
                 v.object({
-                  oauth_config: v.optional(
-                    v.object({
-                      config: v.record(v.any()),
-                      scopes: v.array(v.string())
-                    })
+                  oauth_config: v.nullable(
+                    v.optional(
+                      v.object({
+                        config: v.record(v.any()),
+                        scopes: v.array(v.string())
+                      })
+                    )
                   )
                 })
               ),
