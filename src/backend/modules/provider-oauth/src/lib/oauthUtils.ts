@@ -1,4 +1,5 @@
 import { canonicalize } from '@metorial/canonicalize';
+import { db, ID } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { Hash } from '@metorial/hash';
 import { getSentry } from '@metorial/sentry';
@@ -362,6 +363,19 @@ export class OAuthUtils {
           : undefined
       };
     } catch (error: any) {
+      console.log('Registration error', error?.response?.data || error.message);
+
+      await db.providerOAuthRegistrationError.create({
+        data: {
+          id: await ID.generateId('providerOAuthRegistrationError'),
+          endpoint: config.registration_endpoint,
+          payload: {
+            error: error?.response?.data || error.message,
+            clientName: opts.clientName
+          }
+        }
+      });
+
       Sentry.captureException(error, {
         extra: {
           registrationEndpoint: config.registration_endpoint,

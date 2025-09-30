@@ -22,11 +22,12 @@ model ProviderOAuthConfig {
 
   createdAt DateTime @default(now())
 
-  connections           ProviderOAuthConnection[]
-  remoteServerInstances RemoteServerInstance[]
-  lambdaServerInstances LambdaServerInstance[]
-  serverImplementations ServerImplementation[]
-  serverDeployments     ServerDeployment[]
+  connections                     ProviderOAuthConnection[]
+  remoteServerInstances           RemoteServerInstance[]
+  lambdaServerInstances           LambdaServerInstance[]
+  serverImplementations           ServerImplementation[]
+  serverDeployments               ServerDeployment[]
+  providerOAuthRegistrationErrors ProviderOAuthRegistrationError[]
 
   @@unique([instanceOid, configHash])
 }

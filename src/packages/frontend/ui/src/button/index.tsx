@@ -150,7 +150,7 @@ export let Button = React.forwardRef(
             padding: 0
           })
         }}
-        disabled={props.disabled}
+        disabled={props.disabled || loading}
         onClick={(e: any) => {
           if (loading || success) e.preventDefault();
           else props.onClick?.(e);
