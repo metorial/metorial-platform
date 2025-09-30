@@ -15,6 +15,7 @@ import {
   ServerVariant,
   withTransaction
 } from '@metorial/db';
+import { delay } from '@metorial/delay';
 import {
   badRequestError,
   conflictError,
@@ -252,14 +253,15 @@ class ServerDeploymentServiceImpl {
           where: { oid: serverInstance.providerOAuthConfigOid }
         });
 
-        let i = 0;
+        let tries = 0;
         while (oauthConfig.discoverStatus == 'discovering') {
-          await new Promise(res => setTimeout(res, 2000));
+          await delay(tries < 2 ? 100 : 1000);
+
           oauthConfig = await db.providerOAuthConfig.findUniqueOrThrow({
             where: { id: oauthConfig!.id }
           });
 
-          if (i >= 10) {
+          if (tries >= 10) {
             throw new ServiceError(
               conflictError({ message: 'OAuth configuration is still being discovered' })
             );

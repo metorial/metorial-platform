@@ -43,13 +43,14 @@ export let providerOauthController = createHono()
 
         let tries = 0;
         while (connection.isAutoDiscoveryActive) {
-          await delay(2000);
+          await delay(tries < 2 ? 100 : 1000);
+
           connection = await providerOauthConnectionService.getConnectionByClientId({
             clientId: ticketRes.clientId,
             organizationId
           });
 
-          if (++tries >= 15) {
+          if (++tries >= 20) {
             throw new ServiceError(
               badRequestError({
                 message: 'Connection is still being set up, please try again later'

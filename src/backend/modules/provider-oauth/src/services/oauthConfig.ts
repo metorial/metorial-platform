@@ -30,11 +30,9 @@ class OauthConfigServiceImpl {
       }
     );
 
-    if (config.discoverStatus == 'discovering') {
-      await configAutoDiscoveryQueue.add({
-        configId: config.id
-      });
-    }
+    await configAutoDiscoveryQueue.add({
+      configId: config.id
+    });
 
     return config;
   }

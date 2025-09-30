@@ -10,6 +10,7 @@ import {
   ProviderOAuthConnectionTemplate,
   withTransaction
 } from '@metorial/db';
+import { delay } from '@metorial/delay';
 import { notFoundError, ServiceError } from '@metorial/error';
 import { badRequestError, conflictError } from '@metorial/error/src/defaultErrors';
 import { Fabric } from '@metorial/fabric';
@@ -115,14 +116,15 @@ class OauthConnectionServiceImpl {
         where: { id: d.input.setup.oauthConfigId, instanceOid: d.instance.oid }
       });
 
-      let i = 0;
+      let tries = 0;
       while (config.discoverStatus == 'discovering') {
-        await new Promise(res => setTimeout(res, 2000));
+        await delay(tries < 2 ? 100 : 1000);
+
         config = await db.providerOAuthConfig.findUniqueOrThrow({
           where: { id: d.input.setup.oauthConfigId, instanceOid: d.instance.oid }
         });
 
-        if (i >= 10) {
+        if (tries >= 10) {
           throw new ServiceError(
             conflictError({ message: 'OAuth configuration is still being discovered' })
           );

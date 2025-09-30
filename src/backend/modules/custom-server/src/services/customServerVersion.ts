@@ -177,6 +177,7 @@ class CustomServerVersionServiceImpl {
           let getLaunchParams: string;
           let configSchema: any;
           let serverVersionParams: Partial<ServerVersion> = {};
+          let oauthConfigParams: any;
 
           if (d.serverInstance.type == 'remote') {
             getLaunchParams =

@@ -4,7 +4,7 @@ import { providerOauthDiscoveryService } from '../services';
 import { OAuthConfiguration } from '../types';
 
 export let configAutoDiscoveryQueue = createQueue<{ configId: string }>({
-  name: 'oat/asyncadic',
+  name: 'oat/confdiscau',
   workerOpts: { concurrency: 10, limiter: { max: 25, duration: 1000 } },
   jobOpts: {
     attempts: 25,
@@ -17,7 +17,6 @@ export let configAutoDiscoveryQueueProcessor = configAutoDiscoveryQueue.process(
     where: { id: data.configId }
   });
   if (!config) throw new Error('retry ... not found');
-  if (config.discoverStatus != 'discovering') return;
 
   let autoReg = await providerOauthDiscoveryService.autoRegisterForOauthConfig({
     config: config.config as OAuthConfiguration,
