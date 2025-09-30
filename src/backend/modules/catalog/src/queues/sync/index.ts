@@ -14,20 +14,25 @@ import {
   ID,
   ServerVersion
 } from '@metorial/db';
+import { delay } from '@metorial/delay';
+import { badRequestError, ServiceError } from '@metorial/error';
 import { Hash } from '@metorial/hash';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
+import { subMinutes } from 'date-fns';
 import { startRankQueue } from '../rank';
 import { indexServerListingQueue } from '../search';
 import { IndexDB } from './indexDb';
 
+let NAME = 'init4';
+
 let syncQueue = createQueue({
   name: 'cat/sync',
   workerOpts: {
-    concurrency: 1,
-    limiter: {
-      max: 1,
-      duration: process.env.METORIAL_ENV == 'development' ? 1000 * 60 * 60 : 1000 * 60 * 60 * 6
-    }
+    // concurrency: 1,
+    // limiter: {
+    //   max: 1,
+    //   duration: process.env.METORIAL_ENV == 'development' ? 1000 * 60 * 60 : 1000 * 60 * 60 * 6
+    // }
   }
 });
 
@@ -39,30 +44,47 @@ let syncCron = createCron(
   async () => {
     if (process.env.NODE_ENV == 'development') return;
 
-    await syncQueue.add({}, { id: 'init' });
+    // await syncQueue.add({}, { id: NAME });
   }
 );
 
 (async () => {
   let existingServer = await db.importedServer.findFirst();
   if (!existingServer) {
-    await syncQueue.add({}, { id: 'init' });
+    await syncQueue.add({}, { id: NAME });
   }
 })().catch(e => {});
 
 export let manuallyTriggerCatalogSync = async () => {
-  await syncQueue.add({}, { id: 'init' });
+  let recentSyncJob = await db.serverSyncJob.findFirst({
+    where: {
+      createdAt: { gte: subMinutes(new Date(), 10) }
+    }
+  });
+
+  if (recentSyncJob) {
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'A sync job has been started in the last 10 minutes, please wait before starting another.'
+      })
+    );
+  }
+
+  await syncQueue.add({}, { id: NAME });
 };
 
 export let syncProcessor = syncQueue.process(async () => {
-  if (process.env.DISABLE_CATALOG_SYNC == 'true') {
-    console.log('Catalog sync is disabled, skipping...');
-    return;
-  }
+  // if (process.env.DISABLE_CATALOG_SYNC == 'true') {
+  //   console.log('Catalog sync is disabled, skipping...');
+  //   return;
+  // }
 
   let syncJob = await db.serverSyncJob.create({
     data: {}
   });
+
+  console.log('Starting Catalog Sync');
 
   await IndexDB.createAndUse(async index => {
     let vendorCount = 0;
@@ -76,6 +98,12 @@ export let syncProcessor = syncQueue.process(async () => {
         attributes: { websiteUrl: vendor.websiteUrl }
       }));
     }
+    console.log(`Imported ${vendorCount} vendors`);
+
+    await db.serverSyncJob.updateMany({
+      where: { oid: syncJob.oid },
+      data: { importedVendorsCount: vendorCount }
+    });
 
     let categoryCount = 0;
     for (let category of index.categories.iterate()) {
@@ -86,6 +114,12 @@ export let syncProcessor = syncQueue.process(async () => {
         description: category.description
       }));
     }
+    console.log(`Imported ${categoryCount} categories`);
+
+    await db.serverSyncJob.updateMany({
+      where: { oid: syncJob.oid },
+      data: { importedCategoriesCount: categoryCount }
+    });
 
     let providerCount = 0;
     for (let provider of index.serverProviders.iterate()) {
@@ -98,6 +132,12 @@ export let syncProcessor = syncQueue.process(async () => {
         attributes: { websiteUrl: provider.websiteUrl }
       }));
     }
+    console.log(`Imported ${providerCount} providers`);
+
+    await db.serverSyncJob.updateMany({
+      where: { oid: syncJob.oid },
+      data: { importedProvidersCount: providerCount }
+    });
 
     let repositoryCount = 0;
     for (let repository of index.repositories.iterate()) {
@@ -133,10 +173,26 @@ export let syncProcessor = syncQueue.process(async () => {
         updatedAt: new Date(repository.updatedAt)
       }));
     }
+    console.log(`Imported ${repositoryCount} repositorys`);
+
+    await db.serverSyncJob.updateMany({
+      where: { oid: syncJob.oid },
+      data: { importedReposCount: repositoryCount }
+    });
 
     let serverCount = 0;
     for (let server of index.servers.iterate()) {
       serverCount++;
+      if (serverCount % 100 == 0) {
+        console.log(`Imported ${serverCount} repositories`);
+        console.log(`Waiting 2 sec before continuing import`);
+        await db.serverSyncJob.updateMany({
+          where: { oid: syncJob.oid },
+          data: { importedSeversCount: serverCount }
+        });
+        await delay(2000);
+      }
+
       try {
         let categoryIdentifiers = index.servers.categoryIdentifiers(server);
         let variants = index.servers.variants(server);
@@ -286,8 +342,6 @@ export let syncProcessor = syncQueue.process(async () => {
       }
     }
 
-    await startRankQueue.add({}, { id: 'rank' });
-
     await db.serverSyncJob.update({
       where: { oid: syncJob.oid },
       data: {
@@ -299,6 +353,8 @@ export let syncProcessor = syncQueue.process(async () => {
         finishedAt: new Date()
       }
     });
+
+    await startRankQueue.add({}, { id: 'rank' });
   });
 });
 
