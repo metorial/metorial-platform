@@ -7,12 +7,16 @@ import {
   Organization,
   OrganizationActor,
   Prisma,
+  Server,
   ServerDeployment,
+  ServerImplementation,
+  ServerOAuthSession,
   Session,
   SessionConnectionType,
   SessionStatus
 } from '@metorial/db';
 import {
+  badRequestError,
   forbiddenError,
   notFoundError,
   ServiceError,
@@ -26,9 +30,15 @@ import { Service } from '@metorial/service';
 let include = {
   serverDeployments: {
     include: {
-      server: true,
-      serverVariant: true
+      serverDeployment: {
+        include: {
+          server: true,
+          serverVariant: true
+        }
+      },
+      oauthSession: true
     },
+
     orderBy: { id: 'asc' as const }
   },
   serverSessions: {
@@ -61,15 +71,102 @@ class SessionImpl {
     }
   }
 
+  private async checkServerDeploymentsForSession(d: {
+    instance: Instance;
+    serverDeployments: {
+      deployment: ServerDeployment & {
+        server: Server;
+        serverImplementation: ServerImplementation;
+      };
+      oauthSession: ServerOAuthSession | undefined;
+    }[];
+    ephemeralPermittedDeployments: Set<string>;
+  }) {
+    for (let serverDeployment of d.serverDeployments) {
+      if (
+        serverDeployment.deployment.status != 'active' &&
+        !d.ephemeralPermittedDeployments.has(serverDeployment.deployment.id)
+      ) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot add inactive server deployment to session'
+          })
+        );
+      }
+
+      if (serverDeployment.deployment.oauthConnectionOid && !serverDeployment.oauthSession) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'OAuth session required for server deployments with OAuth connection',
+            hint: 'This server deployment requires an OAuth session to be associated with it. Please create an OAuth session first and provide it when creating the session.'
+          })
+        );
+      }
+
+      if (serverDeployment.oauthSession) {
+        if (
+          serverDeployment.deployment.oauthConnectionOid !=
+          serverDeployment.oauthSession.connectionOid
+        ) {
+          throw new ServiceError(
+            badRequestError({
+              message:
+                "OAuth session does not belong to the server deployment's OAuth connection",
+              hint: 'Make sure to create an OAuth session for the connection used by the server deployment'
+            })
+          );
+        }
+
+        if (serverDeployment.oauthSession.status == 'archived') {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Cannot use an archived/deleted OAuth session'
+            })
+          );
+        }
+
+        if (serverDeployment.oauthSession.status != 'completed') {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Cannot use an OAuth session that is not completed',
+              hint: 'Make sure the OAuth flow has been completed for the session, i.e., the user has opened the authorization URL and granted access'
+            })
+          );
+        }
+      }
+
+      if (serverDeployment.deployment.server.status !== 'active') {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot add server deployment for inactive server'
+          })
+        );
+      }
+    }
+  }
+
   async createSession(d: {
     instance: Instance;
     organization: Organization;
     performedBy: OrganizationActor;
     input: {
       connectionType: SessionConnectionType;
-      serverDeployments: ServerDeployment[];
+      serverDeployments: {
+        deployment: ServerDeployment & {
+          server: Server;
+          serverImplementation: ServerImplementation;
+        };
+        oauthSession: ServerOAuthSession | undefined;
+      }[];
     };
+    ephemeralPermittedDeployments: Set<string>;
   }) {
+    await this.checkServerDeploymentsForSession({
+      instance: d.instance,
+      serverDeployments: d.input.serverDeployments,
+      ephemeralPermittedDeployments: d.ephemeralPermittedDeployments
+    });
+
     await Fabric.fire('session.created:before', {
       instance: d.instance,
       organization: d.organization,
@@ -93,10 +190,20 @@ class SessionImpl {
 
         instanceOid: d.instance.oid,
 
-        serverDeployments: {
+        serverDeploymentsOldDontUse: {
           connect: d.input.serverDeployments.map(i => ({
-            oid: i.oid
+            oid: i.deployment.oid
           }))
+        },
+
+        serverDeployments: {
+          createMany: {
+            data: d.input.serverDeployments.map(i => ({
+              id: ID.generateIdSync('sessionServerDeployment'),
+              serverDeploymentOid: i.deployment.oid,
+              oauthSessionOid: i.oauthSession?.oid ?? null
+            }))
+          }
         }
       },
       include
@@ -176,8 +283,21 @@ class SessionImpl {
     performedBy: OrganizationActor;
     organization: Organization;
     instance: Instance;
-    serverDeployments: ServerDeployment[];
+    serverDeployments: {
+      deployment: ServerDeployment & {
+        server: Server;
+        serverImplementation: ServerImplementation;
+      };
+      oauthSession: ServerOAuthSession | undefined;
+    }[];
+    ephemeralPermittedDeployments: Set<string>;
   }) {
+    await this.checkServerDeploymentsForSession({
+      instance: d.instance,
+      serverDeployments: d.serverDeployments,
+      ephemeralPermittedDeployments: d.ephemeralPermittedDeployments
+    });
+
     await this.ensureSessionActive(d.session);
 
     let session = await db.session.update({
@@ -185,10 +305,20 @@ class SessionImpl {
         id: d.session.id
       },
       data: {
-        serverDeployments: {
+        serverDeploymentsOldDontUse: {
           connect: d.serverDeployments.map(i => ({
-            oid: i.oid
+            oid: i.deployment.oid
           }))
+        },
+
+        serverDeployments: {
+          createMany: {
+            data: d.serverDeployments.map(i => ({
+              id: ID.generateIdSync('sessionServerDeployment'),
+              serverDeploymentOid: i.deployment.oid,
+              oauthSessionOid: i.oauthSession?.oid ?? null
+            }))
+          }
         }
       },
       include

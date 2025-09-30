@@ -66,14 +66,19 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 	}
 
 	var conn Connection
-	if msg.Init.RunConfig.Server.Protocol == remotePb.RunConfigRemoteServer_sse {
-		conn, err = NewConnectionSSE(stream.Context(), msg.Init.RunConfig)
+	switch msg.Init.RunConfig.Config.(type) {
+	case *remotePb.RunConfig_RemoteRunConfig:
+		conn, err = NewConnectionSSE(stream.Context(), msg.Init.RunConfig.GetRemoteRunConfig())
 		if err != nil {
 			log.Printf("Failed to create SSE connection: %v", err)
 			return err
 		}
-	} else {
-		return fmt.Errorf("unsupported protocol: %s", msg.Init.RunConfig.Server.Protocol)
+	case *remotePb.RunConfig_LambdaRunConfig:
+		conn, err = NewConnectionLambdaWs(stream.Context(), msg.Init.Client, msg.Init.RunConfig.GetLambdaRunConfig())
+		if err != nil {
+			log.Printf("Failed to create SSE connection: %v", err)
+			return err
+		}
 	}
 
 	lastPing := time.Now()
@@ -90,7 +95,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 				return
 
 			case <-ticker.C:
-				if time.Since(lastPing) > 25*time.Second {
+				if time.Since(lastPing) > 25*time.Second && msg.Init.RunConfig.GetLambdaRunConfig() == nil {
 					// Container has not responded in a while, consider it dead
 					conn.Close()
 					stream.Send(&remotePb.RunResponse{
@@ -112,7 +117,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 					return
 				}
 
-				conn.SendString(
+				conn.SendControl(
 					fmt.Sprintf(`{"jsonrpc": "2.0", "id": "mtr/ping/%d", "method": "ping", "params": {}}`, time.Now().UnixMicro()),
 				)
 			}
@@ -120,7 +125,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 	}()
 
 	conn.Subscribe(func(response *remotePb.RunResponse) {
-		lastPing = time.Now()
+		// lastPing = time.Now()
 
 		message, ok := response.Type.(*remotePb.RunResponse_McpMessage)
 		if ok && message != nil {
@@ -131,7 +136,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 
 			if message.McpMessage.Message.MessageType == mcpPb.McpMessageType_request &&
 				message.McpMessage.Message.Method == "ping" {
-				conn.SendString(
+				conn.SendControl(
 					fmt.Sprintf(`{"jsonrpc": "2.0", "id": %s, "result": {}}`, message.McpMessage.Message.IdJson),
 				)
 
@@ -189,6 +194,8 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 				}
 
 			case *remotePb.RunRequest_Close:
+				log.Printf("Manager requested to close the connection\n")
+
 				err := conn.Close()
 				if err != nil {
 					errChan <- fmt.Errorf("failed to close connection: %w", err)
@@ -216,6 +223,7 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 	select {
 	case err := <-errChan:
 		if err != nil {
+			log.Printf("Remote server error: %v", err)
 			conn.Close()
 			break
 		}

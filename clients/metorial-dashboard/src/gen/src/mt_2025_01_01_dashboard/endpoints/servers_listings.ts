@@ -5,9 +5,11 @@ import {
 
 import {
   mapServersListingsGetOutput,
+  mapServersListingsGetQuery,
   mapServersListingsListOutput,
   mapServersListingsListQuery,
   type ServersListingsGetOutput,
+  type ServersListingsGetQuery,
   type ServersListingsListOutput,
   type ServersListingsListQuery
 } from '../resources';
@@ -70,6 +72,7 @@ export class MetorialServersListingsEndpoint {
    * @description Returns metadata and readme content for a specific server listing.
    *
    * @param `serverListingId` - string
+   * @param `query` - ServersListingsGetQuery
    * @param `opts` - { headers?: Record<string, string> }
    * @returns ServersListingsGetOutput
    * @see https://metorial.com/api
@@ -77,6 +80,7 @@ export class MetorialServersListingsEndpoint {
    */
   get(
     serverListingId: string,
+    query?: ServersListingsGetQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<ServersListingsGetOutput> {
     let path = `server-listings/${serverListingId}`;
@@ -84,6 +88,7 @@ export class MetorialServersListingsEndpoint {
     let request = {
       path,
 
+      query: query ? mapServersListingsGetQuery.transformTo(query) : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 

@@ -8,7 +8,13 @@ export let getFullServerSession = async (serverSession: ServerSession) => {
         include: {
           config: true,
           serverVariant: {
-            include: { currentVersion: true }
+            include: {
+              currentVersion: {
+                include: {
+                  lambda: true
+                }
+              }
+            }
           },
           serverImplementation: true
         }

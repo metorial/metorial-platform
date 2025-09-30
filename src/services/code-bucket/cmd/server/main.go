@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -27,10 +28,30 @@ func main() {
 	jwtSecret := mustGetEnv("CODE_BUCKET_JWT_SECRET")
 	awsBucket := mustGetEnv("CODE_BUCKET_AWS_S3_BUCKET")
 	awsRegion := mustGetEnv("CODE_BUCKET_AWS_REGION")
-	awsAccessKey := mustGetEnv("CODE_BUCKET_AWS_ACCESS_KEY")
-	awsSecretKey := mustGetEnv("CODE_BUCKET_AWS_SECRET_KEY")
+	awsAccessKey := os.Getenv("CODE_BUCKET_AWS_ACCESS_KEY")
+	awsSecretKey := os.Getenv("CODE_BUCKET_AWS_SECRET_KEY")
 	awsEndpoint := os.Getenv("CODE_BUCKET_AWS_ENDPOINT")
 	redisURL := os.Getenv("CODE_BUCKET_REDIS_URL")
+
+	if redisURL == "" {
+		redisHost := os.Getenv("REDIS_ENDPOINT")
+		redisPort := os.Getenv("REDIS_PORT")
+		redisTLS := os.Getenv("REDIS_TLS")
+		redisDB := os.Getenv("REDIS_DB")
+		redisPassword := os.Getenv("REDIS_PASSWORD")
+
+		redisURL = "redis://"
+		if redisTLS == "true" {
+			redisURL = "rediss://"
+		}
+		if redisPassword != "" {
+			redisURL += fmt.Sprintf(":%s@", redisPassword)
+		}
+		redisURL += fmt.Sprintf("%s:%s", redisHost, redisPort)
+		if redisDB != "" {
+			redisURL += fmt.Sprintf("/%s", redisDB)
+		}
+	}
 
 	service := service.NewService(jwtSecret,
 		fs.WithAwsAccessKey(awsAccessKey),

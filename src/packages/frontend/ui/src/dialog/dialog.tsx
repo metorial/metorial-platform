@@ -17,6 +17,7 @@ let Wrapper = styled(Content)`
   padding: 0px;
   border-radius: 15px;
   border: solid 1px ${theme.colors.gray500};
+  transition: all 0.2s ease-in-out;
 `;
 
 let Inner = styled('div')<{ variant: 'slim' | 'padded' }>`

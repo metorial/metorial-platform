@@ -41,6 +41,11 @@ export let backendEnv: Env = [
   // },
 
   {
+    key: 'CODE_WORKSPACE_SERVICE_ADDRESS',
+    defaultValue: `http://localhost:4041`
+  },
+
+  {
     key: 'OPENSEARCH_HOST',
     defaultValue: `http://localhost:9200`
   },
@@ -53,7 +58,8 @@ export let backendEnv: Env = [
     defaultValue: `admin`
   },
 
-  { key: 'ETCD_ENDPOINTS', defaultValue: `http://localhost:32379` },
+  // { key: 'ETCD_ENDPOINTS', defaultValue: `http://localhost:32379` },
+  { key: 'REDIS_ENDPOINTS', defaultValue: `localhost:36379` },
   {
     key: 'ENGINE_DATABASE_DSN',
     defaultValue: `host=localhost user=postgres password=postgres dbname=${DB_PREFIX}-engine port=35432 sslmode=disable`
@@ -62,6 +68,8 @@ export let backendEnv: Env = [
     key: 'ENGINE_MANAGER_ADDRESSES',
     defaultValue: `localhost:50050`
   },
+
+  { key: 'PROVIDER_OAUTH_TICKET_SECRET', defaultValue: `provider-oauth-ticket-secret` },
 
   { key: 'AUTH_TICKET_SECRET', defaultValue: `auth-ticket-secret` },
   {
@@ -109,9 +117,11 @@ export let backendEnv: Env = [
   { key: 'ID_API_HOST', defaultValue: `http://${HOSTNAME}:4321`, isEnterprise: true },
   { key: 'BILLING_API_URL', defaultValue: `http://${HOSTNAME}:4320`, isEnterprise: true },
   { key: 'MCP_URL', defaultValue: `http://${HOSTNAME}:4311` },
-  { key: 'PROVIDER_OAUTH_URL', defaultValue: `http://${HOSTNAME}:4313`, isEnterprise: true },
+  { key: 'PROVIDER_OAUTH_URL', defaultValue: `http://${HOSTNAME}:4313` },
   { key: 'AUTH_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4301`, isEnterprise: true },
+  { key: 'TEAM_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4303`, isEnterprise: true },
   { key: 'DASHBOARD_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300` },
+  { key: 'PORTALS_URL', defaultValue: `http://${HOSTNAME}:4315` },
   { key: 'COOKIE_DOMAIN', defaultValue: `${HOSTNAME}`, isEnterprise: true },
 
   { key: 'EARLY_ACCESS_XATA_API_KEY', isEnterprise: true },
@@ -157,5 +167,13 @@ export let backendEnv: Env = [
     isEnterprise: true
   },
   { key: 'ISLAND_PORT', defaultValue: '4201', isEnterprise: true },
-  { key: 'FEDERATION_PORT', defaultValue: '4200', isEnterprise: true }
+  { key: 'FEDERATION_PORT', defaultValue: '4200', isEnterprise: true },
+
+  { key: 'ALGOLIA_APP_ID', isEnterprise: false, isRequired: false },
+  { key: 'ALGOLIA_ADMIN_KEY', isEnterprise: false, isRequired: false },
+
+  { key: 'SLACK_INVITE_BOT_TOKEN', isEnterprise: true, isRequired: false },
+
+  { key: 'DENO_DEPLOY_TOKEN', isEnterprise: true },
+  { key: 'DENO_ORGANIZATION_ID', isEnterprise: true }
 ];

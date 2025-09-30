@@ -49,27 +49,62 @@ type FileSystemManager struct {
 	flushTicker *time.Ticker
 }
 
+type FileContentsBase struct {
+	Path    string `json:"path"`
+	Content []byte `json:"content"`
+}
+
 func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 	options := &FileSystemManagerOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	rdb := redis.NewClient(util.Must(redis.ParseURL(options.RedisURL)))
+	rdb := redis.NewClient(
+		util.Must(redis.ParseURL(options.RedisURL)),
+	)
 
-	awsConfig := aws.NewConfig().
-		WithRegion(options.AwsRegion).
-		WithCredentials(credentials.NewStaticCredentials(
-			options.AwsAccessKey,
-			options.AwsSecretKey,
-			"",
-		)).
-		WithEndpoint(options.AwsEndpoint).
-		WithS3ForcePathStyle(true)
-	sess, err := session.NewSession(awsConfig)
+	// Create AWS session using default credential chain
+	// This will automatically use IAM roles, environment variables, or AWS credentials file
+	var sess *session.Session
+	var err error
+
+	if options.AwsEndpoint != "" {
+		awsConfig := &aws.Config{
+			Region:           aws.String(options.AwsRegion),
+			Endpoint:         aws.String(options.AwsEndpoint),
+			S3ForcePathStyle: aws.Bool(true),
+		}
+
+		if options.AwsAccessKey != "" && options.AwsSecretKey != "" {
+			awsConfig.Credentials = credentials.NewStaticCredentials(
+				options.AwsAccessKey,
+				options.AwsSecretKey,
+				"",
+			)
+		}
+
+		sess, err = session.NewSession(awsConfig)
+	} else {
+		awsConfig := &aws.Config{
+			Region: aws.String(options.AwsRegion),
+		}
+
+		if options.AwsAccessKey != "" && options.AwsSecretKey != "" {
+			awsConfig.Credentials = credentials.NewStaticCredentials(
+				options.AwsAccessKey,
+				options.AwsSecretKey,
+				"",
+			)
+		}
+
+		sess, err = session.NewSession(awsConfig)
+	}
+
 	if err != nil {
 		panic(fmt.Sprintf("failed to create AWS session: %v", err))
 	}
+
 	s3Client := s3.New(sess)
 
 	fsm := &FileSystemManager{
@@ -79,7 +114,7 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 		flushTicker: time.NewTicker(60 * time.Second),
 	}
 
-	// Start background flush routine
+	// Start background flush routines
 	go fsm.backgroundFlush()
 	go fsm.cleanupZipFiles()
 
@@ -377,6 +412,21 @@ func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string,
 
 		queue.AddAndBlockIfFull(func() error {
 			fsm.PutBucketFile(ctx, newBucketId, file.Path, file.Content, "application/octet-stream")
+
+			return nil
+		})
+	}
+
+	return queue.Wait()
+}
+
+func (fsm *FileSystemManager) ImportContents(ctx context.Context, newBucketId string, contents []*FileContentsBase) error {
+	queue := memoryQueue.NewBlockingJobQueue(15)
+
+	for _, file := range contents {
+		f := file
+		queue.AddAndBlockIfFull(func() error {
+			fsm.PutBucketFile(ctx, newBucketId, f.Path, f.Content, "application/octet-stream")
 
 			return nil
 		})

@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	mcpPB "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	remotePb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/pkg/mcp"
 	"github.com/metorial/metorial/modules/pubsub"
 )
@@ -21,6 +22,7 @@ type Run struct {
 
 	ConnectionID string
 	Config       *remotePb.RunConfig
+	input        *workers.WorkerConnectionInput
 
 	client remotePb.McpRemoteClient
 	stream remotePb.McpRemote_StreamMcpRunClient
@@ -36,7 +38,7 @@ type Run struct {
 	initError error
 }
 
-func NewRun(config *remotePb.RunConfig, client remotePb.McpRemoteClient, connectionId string) *Run {
+func NewRun(input *workers.WorkerConnectionInput, client remotePb.McpRemoteClient, connectionId string) *Run {
 	if client == nil {
 		log.Println("McpRemoteClient is nil, cannot create Run")
 		return nil
@@ -48,9 +50,10 @@ func NewRun(config *remotePb.RunConfig, client remotePb.McpRemoteClient, connect
 		context: ctx,
 		cancel:  cancel,
 
-		Config:       config,
+		Config:       input.RemoteRunConfig,
 		ConnectionID: connectionId,
 
+		input:  input,
 		client: client,
 
 		doneBroadcaster: pubsub.NewBroadcaster[struct{}](),
@@ -102,11 +105,12 @@ func (r *Run) SendMessage(msg *mcpPB.McpMessageRaw) error {
 func (r *Run) Close() error {
 	r.createStreamWg.Wait()
 
-	if r.stream == nil {
+	stream := r.stream
+	if stream == nil {
 		return fmt.Errorf("Run stream is not initialized")
 	}
 
-	err := r.stream.Send(&remotePb.RunRequest{
+	err := stream.Send(&remotePb.RunRequest{
 		Type: &remotePb.RunRequest_Close{
 			Close: &remotePb.RunRequestClose{},
 		},
@@ -120,11 +124,11 @@ func (r *Run) Close() error {
 	// Wait for the stream to close
 	select {
 	case <-r.context.Done():
-		r.stream.CloseSend()
-	case <-r.stream.Context().Done():
-		r.stream.CloseSend()
+		stream.CloseSend()
+	case <-stream.Context().Done():
+		stream.CloseSend()
 	case <-timeout:
-		r.stream.CloseSend()
+		stream.CloseSend()
 	}
 
 	r.stream = nil
@@ -143,10 +147,12 @@ func (r *Run) Clone() *Run {
 		context: ctx,
 		cancel:  cancel,
 
+		Config:       r.Config,
 		ConnectionID: uuid.Must(uuid.NewV7()).String(),
 
-		Config:          r.Config,
-		client:          r.client,
+		input:  r.input,
+		client: r.client,
+
 		doneBroadcaster: pubsub.NewBroadcaster[struct{}](),
 		messages:        pubsub.NewBroadcaster[*mcp.MCPMessage](),
 		output:          pubsub.NewBroadcaster[*mcpPB.McpOutput](),
@@ -173,6 +179,19 @@ func (r *Run) handleStream() {
 		return
 	}
 
+	if r.input.MCPClient == nil {
+		r.createStreamWg.Done()
+		r.initError = fmt.Errorf("MCP client is not initialized")
+		return
+	}
+
+	participant, err := r.input.MCPClient.ToPbParticipant()
+	if err != nil {
+		r.createStreamWg.Done()
+		r.initError = fmt.Errorf("failed to create participant info: %w", err)
+		return
+	}
+
 	stream, err := r.client.StreamMcpRun(context.Background())
 	if err != nil {
 		r.createStreamWg.Done()
@@ -188,6 +207,9 @@ func (r *Run) handleStream() {
 			Init: &remotePb.RunRequestInit{
 				RunConfig:    r.Config,
 				ConnectionId: r.ConnectionID,
+				Client: &remotePb.RunConfigLambdaClient{
+					Participant: participant,
+				},
 			},
 		},
 	})

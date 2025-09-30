@@ -21,11 +21,13 @@ export let defaultConfig: MetorialConfig = {
       }
     : {
         type: 'ses',
-        aws: {
-          accessKeyId: env.smtp.EMAIL_SES_ACCESS_KEY_ID!,
-          secretAccessKey: env.smtp.EMAIL_SES_SECRET_ACCESS_KEY!,
-          region: env.smtp.EMAIL_SES_REGION!
-        },
+        aws: env.smtp.EMAIL_SES_ACCESS_KEY_ID
+          ? {
+              accessKeyId: env.smtp.EMAIL_SES_ACCESS_KEY_ID!,
+              secretAccessKey: env.smtp.EMAIL_SES_SECRET_ACCESS_KEY!,
+              region: env.smtp.EMAIL_SES_REGION!
+            }
+          : undefined,
         fromEmail: env.smtp.EMAIL_FROM,
         fromName: env.smtp.EMAIL_FROM_NAME
       },
@@ -42,7 +44,8 @@ export let defaultConfig: MetorialConfig = {
     appUrl: env.urls.APP_URL,
     mcpUrl: env.urls.MCP_URL,
     filesUrl: env.urls.API_URL,
-    providerOauthUrl: env.urls.PROVIDER_OAUTH_URL
+    providerOauthUrl: env.urls.PROVIDER_OAUTH_URL,
+    portalsUrl: env.urls.PORTALS_URL
   },
 
   s3: env.s3.S3_ACCESS_KEY_ID

@@ -1,0 +1,35 @@
+enum RemoteServerInstanceProviderOAuthDiscoveryStatus {
+  pending
+  manual_config
+  completed_config_found
+  completed_no_config_found
+}
+
+enum RemoteServerStatus {
+  pending
+  active
+}
+
+model RemoteServerInstance {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status RemoteServerStatus @default(pending)
+
+  name        String?
+  description String?
+
+  remoteUrl String
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  providerOAuthDiscoveryStatus RemoteServerInstanceProviderOAuthDiscoveryStatus @default(pending)
+  providerOAuthConfigOid       BigInt?
+  providerOAuthConfig          ProviderOAuthConfig?                             @relation(fields: [providerOAuthConfigOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  customServerVersion CustomServerVersion?
+}

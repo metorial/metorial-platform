@@ -52,6 +52,8 @@ let Item = styled.li`
 `;
 
 export let Skills = ({ skills }: { skills: string[] }) => {
+  if (skills.length === 0) return null;
+
   return (
     <Wrapper>
       <Header>

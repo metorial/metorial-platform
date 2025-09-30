@@ -6,7 +6,6 @@ option go_package = "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mana
 
 import "runner.proto";
 import "mcp.proto";
-import "workerBroker.proto";
 import "launcher.proto";
 import "remote.proto";
 
@@ -22,7 +21,7 @@ service McpManager {
 
   rpc GetServerInfo(GetServerInfoRequest) returns (broker.mcp.McpParticipant);
 
-  rpc ListManagers(broker.workerBroker.ListManagersRequest) returns (broker.workerBroker.ListManagersResponse);
+  rpc ListManagers(ListManagersRequest) returns (ListManagersResponse);
   rpc ListWorkers(ListWorkersRequest) returns (ListWorkersResponse);
 
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
@@ -51,6 +50,17 @@ service McpManager {
   rpc ListServers(ListServersRequest) returns (ListServersResponse);
 }
 
+message ListManagersRequest {}
+
+message ListManagersResponse {
+  repeated Manager managers = 1;
+}
+
+message Manager {
+  string id = 1;
+  string address = 2;
+}
+
 message CheckActiveSessionRequest {
   string session_id = 1;
 }
@@ -59,6 +69,15 @@ message CheckActiveSessionResponse {
   bool is_active = 1;
   string session_id = 2;
   EngineSession session = 3;
+}
+
+message StatefulServerInfo {
+  string capabilities_json = 1;
+  string server_info_json = 2;
+  string instructions_json = 3;
+  string tools_json = 4;
+  string prompts_json = 5;
+  string resource_templates_json = 6;
 }
 
 message CreateSessionRequest {
@@ -78,19 +97,28 @@ message RemoteRunConfigWithLauncher {
   broker.launcher.LauncherConfig launcher = 2;
 }
 
+message LambdaRunConfigWithLauncher {
+  broker.remote.RunConfigLambdaServer server = 1;
+  broker.launcher.LauncherConfig launcher = 2;
+}
+
 message ServerConfig {
   oneof config_type {
     ContainerRunConfigWithLauncher container_run_config_with_launcher = 1;
     broker.runner.RunConfig container_run_config_with_container_arguments = 2;
 
     RemoteRunConfigWithLauncher remote_run_config_with_launcher = 3;
-    broker.remote.RunConfig remote_run_config_with_server = 4;
+    broker.remote.RunConfigRemote remote_run_config_with_server = 4;
+
+    LambdaRunConfigWithLauncher lambda_run_config_with_launcher = 5;
+    broker.remote.RunConfigLambda lambda_run_config_with_server = 6;
   }
 }
 
 message SessionConfig {
   ServerConfig server_config = 1;
   broker.mcp.McpConfig mcp_config = 10; // Optional, MCP specific configuration
+  optional StatefulServerInfo stateful_server_info = 6;
 }
 
 message CreateSessionResponse {
@@ -187,6 +215,7 @@ enum EngineSessionType {
   session_type_unknown = 0;
   session_type_container = 1;
   session_type_remote = 2;
+  session_type_lambda = 3;
 }
 
 message EngineSession {
@@ -223,6 +252,7 @@ enum EngineRunType {
   run_type_unknown = 0;
   run_type_container = 1;
   run_type_remote = 2;
+  run_type_lambda = 3;
 }
 
 message EngineSessionRun {

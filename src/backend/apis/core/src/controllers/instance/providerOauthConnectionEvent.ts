@@ -1,8 +1,9 @@
-import { oauthConnectionService } from '@metorial/module-oauth';
+import { providerOauthConnectionService } from '@metorial/module-provider-oauth';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerOauthConnectionEventPresenter } from '../../presenters';
 import { connectionGroup } from './providerOauthConnection';
@@ -10,7 +11,7 @@ import { connectionGroup } from './providerOauthConnection';
 export let connectionEventGroup = connectionGroup.use(async ctx => {
   if (!ctx.params.eventId) throw new Error('eventId is required');
 
-  let event = await oauthConnectionService.getConnectionEventById({
+  let event = await providerOauthConnectionService.getConnectionEventById({
     eventId: ctx.params.eventId,
     connection: ctx.connection
   });
@@ -39,8 +40,9 @@ export let providerOauthConnectionEventController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.connection.event:read'] }))
       .outputList(providerOauthConnectionEventPresenter)
       .query('default', Paginator.validate(v.object({})))
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
-        let paginator = await oauthConnectionService.listConnectionEvents({
+        let paginator = await providerOauthConnectionService.listConnectionEvents({
           connection: ctx.connection
         });
 
@@ -64,6 +66,7 @@ export let providerOauthConnectionEventController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.connection.event:read'] }))
       .output(providerOauthConnectionEventPresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         return providerOauthConnectionEventPresenter.present({
           providerOauthConnectionEvent: ctx.event

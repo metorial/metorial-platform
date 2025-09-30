@@ -25,9 +25,13 @@ export let openWindow = (url: string) => {
       return () => clearInterval(interval);
     },
     onMessage: (cb: (e: MessageEvent) => void) => {
-      window.addEventListener('message', cb);
+      let innerCb = (e: MessageEvent) => {
+        // if (e.origin !== window.location.origin) return;
+        cb(e);
+      };
 
-      return () => window.removeEventListener('message', cb);
+      window.addEventListener('message', innerCb);
+      return () => window.removeEventListener('message', innerCb);
     }
   };
 };

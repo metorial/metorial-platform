@@ -13,7 +13,7 @@ export let syncUserUpdateQueueProcessor = syncUserUpdateQueue.process(async data
       members: { include: { organization: true } }
     }
   });
-  if (!user) return;
+  if (!user) throw new Error('retry ... not found');
 
   await syncUserUpdateSingleQueue.addMany(
     user.members.map(m => ({
@@ -32,7 +32,7 @@ export let syncUserUpdateSingleQueueProcessor = syncUserUpdateSingleQueue.proces
     let user = await db.user.findUnique({
       where: { id: data.userId }
     });
-    if (!user) return;
+    if (!user) throw new Error('retry ... not found');
 
     let member = await db.organizationMember.findUnique({
       where: { id: data.memberId },
@@ -41,7 +41,7 @@ export let syncUserUpdateSingleQueueProcessor = syncUserUpdateSingleQueue.proces
         actor: true
       }
     });
-    if (!member) return;
+    if (!member) throw new Error('retry ... not found');
 
     await Fabric.fire('organization.member.updated:before', {
       member,

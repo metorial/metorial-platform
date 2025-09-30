@@ -1,15 +1,19 @@
-import { oauthTemplateService } from '@metorial/module-oauth';
+import { providerOauthTemplateService } from '@metorial/module-provider-oauth';
 import { Paginator } from '@metorial/pagination';
 import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { apiGroup } from '../../middleware/apiGroup';
-import { providerOauthConnectionTemplatePresenter } from '../../presenters';
+import { isDashboardGroup } from '../../middleware/isDashboard';
+import {
+  providerOauthConnectionTemplateEvaluationPresenter,
+  providerOauthConnectionTemplatePresenter
+} from '../../presenters';
 
 export let oauthTemplateGroup = apiGroup.use(async ctx => {
   if (!ctx.params.oauthTemplateId) throw new Error('oauthTemplateId is required');
 
-  let oauthTemplate = await oauthTemplateService.getTemplateById({
+  let oauthTemplate = await providerOauthTemplateService.getTemplateById({
     templateId: ctx.params.oauthTemplateId
   });
 
@@ -33,6 +37,7 @@ export let dashboardOauthConnectionTemplateController = Controller.create(
           description: 'List all oauth connection templates'
         }
       )
+      .use(isDashboardGroup())
       .outputList(providerOauthConnectionTemplatePresenter)
       .query(
         'default',
@@ -43,7 +48,7 @@ export let dashboardOauthConnectionTemplateController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await oauthTemplateService.listTemplates({
+        let paginator = await providerOauthTemplateService.listTemplates({
           profileIds: normalizeArrayParam(ctx.query.profile_id)
         });
 
@@ -65,10 +70,43 @@ export let dashboardOauthConnectionTemplateController = Controller.create(
           description: 'Get the information of a specific oauth connection template'
         }
       )
+      .use(isDashboardGroup())
       .output(providerOauthConnectionTemplatePresenter)
       .do(async ctx => {
         return providerOauthConnectionTemplatePresenter.present({
           providerOauthConnectionTemplate: ctx.oauthTemplate
+        });
+      }),
+
+    evaluate: oauthTemplateGroup
+      .post(
+        Path(
+          'provider-oauth-connection-template/:oauthTemplateId/evaluate',
+          'provider_oauth.connection_template.evaluate'
+        ),
+        {
+          name: 'Evaluate oauth connection template',
+          description: 'Evaluate the configuration of an oauth connection template'
+        }
+      )
+      .body(
+        'default',
+        v.object({
+          data: v.record(v.any())
+        })
+      )
+      .use(isDashboardGroup())
+      .output(providerOauthConnectionTemplateEvaluationPresenter)
+      .do(async ctx => {
+        let output = await providerOauthTemplateService.evaluateTemplateConfig({
+          template: ctx.oauthTemplate,
+          data: ctx.body.data
+        });
+
+        return providerOauthConnectionTemplateEvaluationPresenter.present({
+          providerOauthConnectionTemplate: ctx.oauthTemplate,
+          input: ctx.body.data,
+          output
         });
       })
   }

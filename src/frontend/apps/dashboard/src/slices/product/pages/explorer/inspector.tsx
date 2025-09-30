@@ -1,8 +1,9 @@
-import { useCurrentInstance, useSessionForDeployment } from '@metorial/state';
-import { CenteredSpinner } from '@metorial/ui';
+import { useCurrentInstance } from '@metorial/state';
+import { Button, CenteredSpinner, Error, Spacer } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { useSessionForDeployment } from './state';
 
 let Wrapper = styled.div`
   position: relative;
@@ -28,6 +29,15 @@ let Iframe = styled.iframe`
   border: none;
 `;
 
+let Center = styled.div`
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+`;
+
 export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: string } }) => {
   let instance = useCurrentInstance();
   let session = useSessionForDeployment(instance.data?.id, serverDeployment.id);
@@ -37,7 +47,7 @@ export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: str
   let url = useMemo(() => {
     if (!session.data) return undefined;
 
-    let url = new URL(import.meta.env.VITE_EXPLORER_URL); // https://inspector.mcp.metorial.com
+    let url = new URL(import.meta.env.VITE_EXPLORER_URL!); // https://inspector.mcp.metorial.com
     url.searchParams.set(
       'sse_url',
       new URL(
@@ -55,15 +65,33 @@ export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: str
 
   return (
     <Wrapper>
-      <Iframe src={url} onLoad={() => setIsLoading(false)} key={url} />
+      {session.error || session.state == 'error' ? (
+        <Center>
+          <Error>{session.error?.message ?? 'Unable to create session'}</Error>
+        </Center>
+      ) : session.state == 'ready' ||
+        session.state == 'loading' ||
+        session.state == 'oauth_pending' ? (
+        <>
+          <Iframe src={url} onLoad={() => setIsLoading(false)} key={url} />
 
-      <AnimatePresence>
-        {isLoading && (
-          <Overlay>
-            <CenteredSpinner />
-          </Overlay>
-        )}
-      </AnimatePresence>
+          <AnimatePresence>
+            {isLoading && (
+              <Overlay>
+                <CenteredSpinner />
+              </Overlay>
+            )}
+          </AnimatePresence>
+        </>
+      ) : session.state == 'oauth_error' ? (
+        <Center>
+          <Error>Please authenticate with the provider to continue.</Error>
+
+          <Spacer size={16} />
+
+          <Button onClick={() => location.reload()}>Retry OAuth Flow</Button>
+        </Center>
+      ) : null}
     </Wrapper>
   );
 };

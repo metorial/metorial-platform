@@ -1,11 +1,18 @@
+import {
+  ServersListingsGetOutput,
+  ServersListingsListQuery
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ServersListingsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useServerListings } from '@metorial/state';
 import { RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
-export let ServersTable = (filter: ServersListingsListQuery) => {
+export let ServersTable = (
+  filter: ServersListingsListQuery & {
+    getUrl: (listing: ServersListingsGetOutput) => string;
+  }
+) => {
   let listings = useServerListings(filter);
   let instance = useCurrentInstance();
 
@@ -27,18 +34,20 @@ export let ServersTable = (filter: ServersListingsListQuery) => {
             listing.vendor?.name ?? 'Unknown',
             listing.installation ? <RenderDate date={listing.installation.createdAt} /> : 'N/A'
           ],
-          href: Paths.instance.server(
-            instance.data?.organization,
-            instance.data?.project,
-            instance.data,
-            listing.server.id
-          )
+          href: filter.getUrl
+            ? filter.getUrl(listing)
+            : Paths.instance.server(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                listing.server.id
+              )
         }))}
       />
 
       {servers.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No servers found
+          No servers found.
         </Text>
       )}
     </>

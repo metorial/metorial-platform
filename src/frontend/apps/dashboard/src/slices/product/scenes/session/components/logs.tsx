@@ -1,4 +1,4 @@
-import { SessionsEventsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
+import { SessionsEventsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { RenderDate } from '@metorial/ui';
 import Ansi from 'ansi-to-react';
 import styled from 'styled-components';

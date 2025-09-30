@@ -41,4 +41,6 @@ model Organization {
   profile         Profile?
   servers         Server[]
   uploads         Upload[]
+  customServers   CustomServer[]
+  serverListings  ServerListing[]
 }

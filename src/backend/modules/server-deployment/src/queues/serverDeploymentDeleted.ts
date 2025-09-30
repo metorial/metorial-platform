@@ -18,12 +18,12 @@ export let serverDeploymentDeletedQueueProcessor = serverDeploymentDeletedQueue.
         config: true
       }
     });
-    if (!deployment) return;
+    if (!deployment) throw new Error('retry ... not found');
 
     let actor = await db.organizationActor.findUnique({
       where: { id: data.performedById }
     });
-    if (!actor) return;
+    if (!actor) throw new Error('retry ... not found');
 
     await secretService.deleteSecret({
       performedBy: actor,

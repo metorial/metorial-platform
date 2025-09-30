@@ -12,7 +12,8 @@ export let syncEngineSession = async (d: { engineSessionId: string }) => {
       serverSession: true
     }
   });
-  if (!engineSession || engineSession.isFinalized) return;
+  if (!engineSession) throw new Error('retry ... not found');
+  if (engineSession.isFinalized) return;
 
   let hasEndedBefore = engineSession.hasEnded;
   let serverSession = engineSession.serverSession;

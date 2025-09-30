@@ -147,6 +147,19 @@ let InstancePaths = Object.assign(
       return InstancePaths(organization, project, instance, 'server-run', id, ...subPages);
     },
 
+    profile: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'community', 'profile', ...subPages),
+    communityServers: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'community', 'servers', ...subPages),
+
     externalServers: (
       organization: EntityParam,
       project: EntityParam,

@@ -45,9 +45,15 @@ let scopeRaw = [
   'instance.provider_oauth.connection:read' as const,
   'instance.provider_oauth.connection:write' as const,
 
+  'instance.provider_oauth.session:read' as const,
+  'instance.provider_oauth.session:write' as const,
+
   'instance.provider_oauth.connection.authentication:read' as const,
   'instance.provider_oauth.connection.event:read' as const,
-  'instance.provider_oauth.connection.profile:read' as const
+  'instance.provider_oauth.connection.profile:read' as const,
+
+  'instance.custom_server:read' as const,
+  'instance.custom_server:write' as const
 
   // 'organization.machine_access.api_key.organization:read' as const,
   // 'organization.machine_access.api_key.organization:write' as const,
@@ -97,6 +103,9 @@ export let instanceSecretTokenScopes: Scope[] = [
 
   'instance.provider_oauth.connection:read' as const,
   'instance.provider_oauth.connection:write' as const,
+
+  'instance.provider_oauth.session:read' as const,
+  'instance.provider_oauth.session:write' as const,
 
   'instance.provider_oauth.connection.authentication:read' as const,
   'instance.provider_oauth.connection.event:read' as const,

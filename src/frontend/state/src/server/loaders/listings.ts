@@ -1,5 +1,5 @@
-import { createLoader } from '@metorial/data-hooks';
 import { ServersListingsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -21,13 +21,22 @@ export let useServerListings = (input: ServersListingsListQuery | null | undefin
 export let serverListingLoader = createLoader({
   name: 'serverListing',
   parents: [],
-  fetch: (i: { serverListingId: string }) =>
-    withAuth(sdk => sdk.servers.listings.get(i.serverListingId)),
+  fetch: (i: { serverListingId: string; instanceId: string }) =>
+    withAuth(sdk =>
+      sdk.servers.listings.get(i.serverListingId, {
+        instanceId: i.instanceId
+      })
+    ),
   mutators: {}
 });
 
-export let useServerListing = (serverListingId: string | null | undefined) => {
-  let data = serverListingLoader.use(serverListingId ? { serverListingId } : null);
+export let useServerListing = (
+  instanceId: string | null | undefined,
+  serverListingId: string | null | undefined
+) => {
+  let data = serverListingLoader.use(
+    serverListingId && instanceId ? { instanceId, serverListingId } : null
+  );
 
   return data;
 };

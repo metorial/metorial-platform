@@ -32,10 +32,6 @@ export let v1OrganizationActorPresenter = Presenter.create(organizationActorType
         name: 'organization_id',
         description: `The organization member's organization ID`
       }),
-      actor_id: v.string({
-        name: 'actor_id',
-        description: `The organization member's actor ID`
-      }),
       name: v.string({
         name: 'name',
         description: `The organization member's name`
@@ -47,7 +43,7 @@ export let v1OrganizationActorPresenter = Presenter.create(organizationActorType
         })
       ),
       image_url: v.string({
-        name: 'imageUrl',
+        name: 'image_url',
         description: `The organization member's image URL`,
         examples: ['https://avatar-cdn.metorial.com/aimg_1234567890']
       }),

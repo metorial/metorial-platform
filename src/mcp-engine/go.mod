@@ -2,7 +2,17 @@ module github.com/metorial/metorial/mcp-engine
 
 go 1.24
 
+require github.com/aws/aws-sdk-go-v2 v1.39.0
+
 require (
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.7 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.7 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
+)
+
+require (
+	github.com/aws/aws-sdk-go-v2/service/servicediscovery v1.39.7
+	github.com/aws/smithy-go v1.23.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/creack/pty v1.1.24 // indirect

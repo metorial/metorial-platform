@@ -1,9 +1,9 @@
-import { createLoader } from '@metorial/data-hooks';
 import {
   DashboardInstanceServersImplementationsCreateBody,
   DashboardInstanceServersImplementationsListQuery,
   DashboardInstanceServersImplementationsUpdateBody
-} from '@metorial/generated/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -47,7 +47,7 @@ export let serverImplementationLoader = createLoader({
         sdk.servers.implementations.update(instanceId, serverImplementationId, i)
       ),
 
-    delete: ({ input: { instanceId, serverImplementationId } }) =>
+    delete: (_, { input: { instanceId, serverImplementationId } }) =>
       withAuth(sdk => sdk.servers.implementations.delete(instanceId, serverImplementationId))
   }
 });

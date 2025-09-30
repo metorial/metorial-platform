@@ -7,11 +7,35 @@ model ProviderOAuthDiscoveryDocument {
   discoveryUrl String @unique
 
   /// [ProviderOAuthConfig]
-  config     Json
+  config Json
+
   configHash String
 
   version Int
 
   createdAt   DateTime @default(now())
   refreshedAt DateTime @default(now()) @updatedAt
+
+  providerOAuthAutoRegistrations ProviderOAuthAutoRegistration[]
+}
+
+model ProviderOAuthAutoRegistration {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  clientId     String
+  clientSecret String?
+
+  generatedClientName String
+
+  registrationClientUri   String?
+  registrationAccessToken String?
+  clientSecretExpiresAt   DateTime?
+
+  discoveryDocumentOid BigInt?
+  discoveryDocument    ProviderOAuthDiscoveryDocument? @relation(fields: [discoveryDocumentOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  connections ProviderOAuthConnection[]
 }

@@ -9,7 +9,15 @@ import { generateSnowflakeId } from '@metorial/id';
 import { memo } from '@metorial/memo';
 import { parseRedisUrl } from '@metorial/redis';
 import { getSentry } from '@metorial/sentry';
-import { JobsOptions, Queue, QueueEvents, QueueOptions, Worker, WorkerOptions } from 'bullmq';
+import {
+  DeduplicationOptions,
+  JobsOptions,
+  Queue,
+  QueueEvents,
+  QueueOptions,
+  Worker,
+  WorkerOptions
+} from 'bullmq';
 import SuperJson from 'superjson';
 import { IQueue } from '../types';
 
@@ -17,12 +25,24 @@ let Sentry = getSentry();
 
 let log = (...any: any[]) => console.log('[QUEUE MANAGER]:', ...any);
 
-export let createBullMqQueue = <JobData>(opts: {
+let anyQueueStartedRef = { started: false };
+
+export interface BullMqQueueOptions {
+  delay?: number;
+  id?: string;
+  deduplication?: DeduplicationOptions;
+}
+
+export interface BullMqCreateOptions {
   name: string;
   jobOpts?: JobsOptions;
   queueOpts?: Omit<QueueOptions, 'connection'>;
   workerOpts?: Omit<WorkerOptions, 'connection'>;
-}): IQueue<JobData> => {
+}
+
+export let createBullMqQueue = <JobData>(
+  opts: BullMqCreateOptions
+): IQueue<JobData, BullMqQueueOptions> => {
   let config = getConfig();
   let redisOpts = parseRedisUrl(config.redisUrl);
 
@@ -116,7 +136,7 @@ export let createBullMqQueue = <JobData>(opts: {
       let staredRef = { started: false };
 
       setTimeout(() => {
-        if (!staredRef.started) {
+        if (anyQueueStartedRef.started && !staredRef.started) {
           log(`Queue ${opts.name} was not started within 10 seconds, this is likely a bug`);
         }
       }, 10000);
@@ -125,6 +145,7 @@ export let createBullMqQueue = <JobData>(opts: {
         start: async () => {
           log(`Starting queue ${opts.name} using bullmq`);
           staredRef.started = true;
+          anyQueueStartedRef.started = true;
 
           let worker = new Worker<JobData>(
             opts.name,
@@ -166,6 +187,7 @@ export let createBullMqQueue = <JobData>(opts: {
               }
             },
             {
+              concurrency: 50,
               ...opts.workerOpts,
               connection: redisOpts
             }

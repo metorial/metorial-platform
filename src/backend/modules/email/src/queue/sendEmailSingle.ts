@@ -42,7 +42,7 @@ export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async da
     }
   });
   let email = destination?.email;
-  if (!destination || !email?.content) return;
+  if (!destination || !email?.content) throw new Error('retry ... not found');
 
   let sendRes: any;
   let status: OutgoingEmailSendStatus = 'success';

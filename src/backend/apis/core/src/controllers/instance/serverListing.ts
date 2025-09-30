@@ -11,8 +11,18 @@ import { serverListingPresenter } from '../../presenters';
 export let serverListingGroup = apiGroup.use(async ctx => {
   if (!ctx.params.serverListingId) throw new Error('serverListingId is required');
 
+  let instance = ctx.query.instance_id
+    ? (
+        await accessService.accessInstance({
+          authInfo: ctx.auth,
+          instanceId: ctx.query.instance_id
+        })
+      )?.instance
+    : undefined;
+
   let serverListing = await serverListingService.getServerListingById({
-    serverListingId: ctx.params.serverListingId
+    serverListingId: ctx.params.serverListingId,
+    instance
   });
 
   return { serverListing };
@@ -35,6 +45,19 @@ export let serverListingController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
       .outputList(serverListingPresenter)
       .query(
+        'mt_2025_01_01_pulsar',
+        Paginator.validate(
+          v.object({
+            search: v.optional(v.string()),
+            collection_id: v.optional(v.union([v.array(v.string()), v.string()])),
+            category_id: v.optional(v.union([v.array(v.string()), v.string()])),
+            profile_id: v.optional(v.union([v.array(v.string()), v.string()])),
+            instance_id: v.optional(v.string())
+          })
+        ),
+        i => i
+      )
+      .query(
         'default',
         Paginator.validate(
           v.object({
@@ -43,10 +66,13 @@ export let serverListingController = Controller.create(
             category_id: v.optional(v.union([v.array(v.string()), v.string()])),
             profile_id: v.optional(v.union([v.array(v.string()), v.string()])),
             instance_id: v.optional(v.string()),
-            order_by_rank: v.optional(v.boolean())
+            order_by_rank: v.optional(v.boolean()),
+            is_public: v.optional(v.boolean()),
+            only_from_organization: v.optional(v.boolean())
           })
         )
       )
+
       .do(async ctx => {
         let instance = ctx.query.instance_id
           ? (
@@ -58,11 +84,16 @@ export let serverListingController = Controller.create(
           : undefined;
 
         let paginator = await serverListingService.listServerListings({
-          search: ctx.query.search,
           collectionIds: normalizeArrayParam(ctx.query.collection_id),
           categoryIds: normalizeArrayParam(ctx.query.category_id),
           profileIds: normalizeArrayParam(ctx.query.profile_id),
+
+          search: ctx.query.search,
+
           orderByRank: ctx.query.order_by_rank,
+          isPublic: ctx.query.is_public,
+          onlyFromOrganization: ctx.query.only_from_organization,
+
           instance
         });
 
@@ -80,6 +111,12 @@ export let serverListingController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
       .output(serverListingPresenter)
+      .query(
+        'default',
+        v.object({
+          instance_id: v.optional(v.string())
+        })
+      )
       .do(async ctx => {
         return serverListingPresenter.present({
           serverListing: ctx.serverListing,

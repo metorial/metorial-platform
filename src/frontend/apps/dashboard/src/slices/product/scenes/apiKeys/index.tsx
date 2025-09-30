@@ -383,7 +383,6 @@ export let ApiKeysScene = ({
 
             <Table
               headers={['Status', 'Type', 'Name', 'Secret', 'Expires', 'Last Used', ' ']}
-              padding={{ sides: '20px' }}
               data={apiKeys.data
                 .filter(
                   apiKey =>

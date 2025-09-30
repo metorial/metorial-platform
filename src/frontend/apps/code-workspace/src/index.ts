@@ -41,8 +41,8 @@ window.product = {
   },
   additionalBuiltinExtensions: [
     {
-      scheme: 'http',
-      path: '/extensions/memfs'
+      scheme: location.protocol == 'https:' ? 'https' : 'http',
+      path: `${queryParams.get('extension_prefix') ?? ''}/extensions/memfs`
     }
   ]
 };

@@ -59,7 +59,6 @@ func (t *MetorialTransport) Close() error {
 }
 
 func (t *MetorialTransport) SendRequest(ctx context.Context, request transport.JSONRPCRequest) (*transport.JSONRPCResponse, error) {
-
 	request.ID = wrapRequestId(request.ID)
 
 	id := request.ID.String()

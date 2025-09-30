@@ -24,11 +24,13 @@ model OrganizationActor {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  member         OrganizationMember?
-  createdInvites OrganizationInvite[]
-  machineAccess  MachineAccess?
-
-  SecretEvent SecretEvent[]
+  member                  OrganizationMember?
+  createdInvites          OrganizationInvite[]
+  machineAccess           MachineAccess?
+  secretEvents            SecretEvent[]
+  customServerDeployments CustomServerDeployment[]
+  profileUpdates          ProfileUpdate[]
+  serverListingUpdates    ServerListingUpdate[]
 
   @@unique([isSystem, organizationOid])
 }

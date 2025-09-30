@@ -108,8 +108,12 @@ export let ServerSearch = ({
               .filter(server => server.isOfficial)
               .slice(0, 12)
               .map(server => (
-                <PopularItem key={server.id} onClick={() => onSelect?.(server)} type="button">
-                  <Avatar entity={server.vendor} size={24} />
+                <PopularItem
+                  key={server.id}
+                  onClick={() => onSelect?.(server as any)}
+                  type="button"
+                >
+                  <Avatar entity={server} size={24} />
 
                   <span>{server.name}</span>
                 </PopularItem>
@@ -128,7 +132,11 @@ export let ServerSearch = ({
 
           <Items>
             {server.data?.items.map(server => (
-              <ItemButton key={server.id} onClick={() => onSelect?.(server)} type="button">
+              <ItemButton
+                key={server.id}
+                onClick={() => onSelect?.(server as any)}
+                type="button"
+              >
                 <Entity.Wrapper>
                   <Entity.Content>
                     <Entity.Field
@@ -139,9 +147,15 @@ export let ServerSearch = ({
                         //   </Badge>
                         // ) : undefined
 
-                        <Avatar entity={server.vendor} />
+                        <Avatar entity={server} />
                       }
-                      title={[server.vendor?.name, server.name].filter(Boolean).join(' / ')}
+                      title={[
+                        server.vendor?.name,
+                        server.profile?.isMetorial ? undefined : server.profile?.name,
+                        server.name
+                      ]
+                        .filter(Boolean)
+                        .join(' / ')}
                       description={
                         server.description.substring(0, 100) +
                         (server.description.length > 100 ? '...' : '')

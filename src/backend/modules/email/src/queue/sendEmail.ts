@@ -24,7 +24,7 @@ export let sendEmailQueueProcessor = sendEmailQueue.process(async data => {
       destinations: true
     }
   });
-  if (!email) return;
+  if (!email) throw new Error('retry ... not found');
 
   await sendEmailSingleQueue.addMany(
     email.destinations.map(d => ({

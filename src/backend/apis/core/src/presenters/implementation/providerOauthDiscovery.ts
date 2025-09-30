@@ -5,19 +5,23 @@ import { providerOauthConnectionDiscoveryType } from '../types';
 export let v1ProviderOauthDiscoveryPresenter = Presenter.create(
   providerOauthConnectionDiscoveryType
 )
-  .presenter(async ({ providerOauthDiscoveryDocument }, opts) => ({
-    object: 'provider_oauth.discovery',
+  .presenter(
+    async ({ providerOauthDiscoveryDocument, providerOauthAutoRegistration }, opts) => ({
+      object: 'provider_oauth.discovery',
 
-    id: providerOauthDiscoveryDocument.id,
+      id: providerOauthDiscoveryDocument.id,
 
-    provider_name: providerOauthDiscoveryDocument.providerName,
-    provider_url: providerOauthDiscoveryDocument.providerUrl,
+      provider_name: providerOauthDiscoveryDocument.providerName,
+      provider_url: providerOauthDiscoveryDocument.providerUrl,
 
-    config: providerOauthDiscoveryDocument.config,
+      config: providerOauthDiscoveryDocument.config,
 
-    created_at: providerOauthDiscoveryDocument.createdAt,
-    refreshed_at: providerOauthDiscoveryDocument.refreshedAt
-  }))
+      created_at: providerOauthDiscoveryDocument.createdAt,
+      refreshed_at: providerOauthDiscoveryDocument.refreshedAt,
+
+      auto_registration_id: providerOauthAutoRegistration?.id ?? null
+    })
+  )
   .schema(
     v.object({
       object: v.literal('provider_oauth.discovery'),
@@ -50,7 +54,15 @@ export let v1ProviderOauthDiscoveryPresenter = Presenter.create(
       refreshed_at: v.date({
         name: 'refreshed_at',
         description: 'Timestamp when the discovery configuration was last refreshed'
-      })
+      }),
+
+      auto_registration_id: v.nullable(
+        v.string({
+          name: 'auto_registration_id',
+          description:
+            'The ID of the auto-registration record if this discovery was used for auto-registration, null otherwise'
+        })
+      )
     })
   )
   .build();

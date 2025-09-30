@@ -6,6 +6,21 @@ export type ServersListingsListOutput = {
     id: string;
     status: 'active' | 'archived' | 'banned';
     slug: string;
+    imageUrl: string;
+    profile: {
+      object: 'profile';
+      id: string;
+      name: string;
+      description: string | null;
+      slug: string;
+      imageUrl: string;
+      isOfficial: boolean;
+      isMetorial: boolean;
+      isVerified: boolean;
+      badges: { type: 'system' | 'staff'; name: string }[];
+      createdAt: Date;
+      updatedAt: Date;
+    } | null;
     name: string;
     description: string;
     readme: string;
@@ -22,12 +37,14 @@ export type ServersListingsListOutput = {
     isOfficial: boolean;
     isCommunity: boolean;
     isHostable: boolean;
+    isMetorial: boolean;
+    isVerified: boolean;
     server: {
       object: 'server#preview';
       id: string;
       name: string;
       description: string | null;
-      type: 'public';
+      type: 'public' | 'custom';
       createdAt: Date;
       updatedAt: Date;
     };
@@ -85,6 +102,44 @@ export let mapServersListingsListOutput =
               id: mtMap.objectField('id', mtMap.passthrough()),
               status: mtMap.objectField('status', mtMap.passthrough()),
               slug: mtMap.objectField('slug', mtMap.passthrough()),
+              imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+              profile: mtMap.objectField(
+                'profile',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  description: mtMap.objectField(
+                    'description',
+                    mtMap.passthrough()
+                  ),
+                  slug: mtMap.objectField('slug', mtMap.passthrough()),
+                  imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+                  isOfficial: mtMap.objectField(
+                    'is_official',
+                    mtMap.passthrough()
+                  ),
+                  isMetorial: mtMap.objectField(
+                    'is_metorial',
+                    mtMap.passthrough()
+                  ),
+                  isVerified: mtMap.objectField(
+                    'is_verified',
+                    mtMap.passthrough()
+                  ),
+                  badges: mtMap.objectField(
+                    'badges',
+                    mtMap.array(
+                      mtMap.object({
+                        type: mtMap.objectField('type', mtMap.passthrough()),
+                        name: mtMap.objectField('name', mtMap.passthrough())
+                      })
+                    )
+                  ),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
+              ),
               name: mtMap.objectField('name', mtMap.passthrough()),
               description: mtMap.objectField(
                 'description',
@@ -118,6 +173,8 @@ export let mapServersListingsListOutput =
                 mtMap.passthrough()
               ),
               isHostable: mtMap.objectField('is_hostable', mtMap.passthrough()),
+              isMetorial: mtMap.objectField('is_metorial', mtMap.passthrough()),
+              isVerified: mtMap.objectField('is_verified', mtMap.passthrough()),
               server: mtMap.objectField(
                 'server',
                 mtMap.object({
@@ -268,6 +325,8 @@ export type ServersListingsListQuery = {
   profileId?: string[] | string | undefined;
   instanceId?: string | undefined;
   orderByRank?: boolean | undefined;
+  isPublic?: boolean | undefined;
+  onlyFromOrganization?: boolean | undefined;
 };
 
 export let mapServersListingsListQuery = mtMap.union([
@@ -311,7 +370,12 @@ export let mapServersListingsListQuery = mtMap.union([
         ])
       ),
       instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-      orderByRank: mtMap.objectField('order_by_rank', mtMap.passthrough())
+      orderByRank: mtMap.objectField('order_by_rank', mtMap.passthrough()),
+      isPublic: mtMap.objectField('is_public', mtMap.passthrough()),
+      onlyFromOrganization: mtMap.objectField(
+        'only_from_organization',
+        mtMap.passthrough()
+      )
     })
   )
 ]);

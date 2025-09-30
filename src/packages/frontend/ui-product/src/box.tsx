@@ -5,7 +5,7 @@ import { styled } from 'styled-components';
 let Wrapper = styled.div`
   border: 1px solid ${theme.colors.gray300};
   border-radius: 12px;
-  padding: 20px;
+  padding: 15px 20px;
 `;
 
 let Header = styled.header`

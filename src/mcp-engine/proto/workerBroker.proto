@@ -20,7 +20,8 @@ message ListManagersResponse {
 
 message Manager {
   string id = 1;
-  string address = 2;
+  string managerAddress = 2;
+  string workerBrokerAddress = 3;
 }
 
 message RegisterWorkerRequest {
@@ -35,5 +36,6 @@ message GetManagerInfoRequest {}
 
 message GetManagerInfoResponse {
   string id = 1;
-  string address = 2;
+  string managerAddress = 2;
+  string workerBrokerAddress = 3;
 }

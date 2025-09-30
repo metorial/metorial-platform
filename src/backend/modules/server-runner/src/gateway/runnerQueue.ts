@@ -3,11 +3,14 @@ import { createQueue, IQueue } from '@metorial/queue';
 
 let queues = new Map<
   string,
-  IQueue<{
-    task: 'start_session_run';
-    serverSessionId: string;
-    created: number;
-  }>
+  IQueue<
+    {
+      task: 'start_session_run';
+      serverSessionId: string;
+      created: number;
+    },
+    any
+  >
 >();
 
 let getRunnerQueueInternal = (runner: ServerRunner) => {

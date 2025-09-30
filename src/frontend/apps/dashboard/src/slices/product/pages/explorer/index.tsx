@@ -1,5 +1,5 @@
+import { ServersListingsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useServerDeployments, useServerListing } from '@metorial/state';
 import { Button, Flex, Spacer, Tabs, Text, theme } from '@metorial/ui';
 import { RiArrowLeftLine, RiArrowRightLine, RiCloseLine } from '@remixicon/react';
@@ -89,7 +89,7 @@ export let ExplorerPage = () => {
   let serverDeploymentIdParam = search.get('server_deployment_id');
   let serverImplementationIdParam = search.get('server_implementation_id');
 
-  let server = useServerListing(serverIdParam);
+  let server = useServerListing(instance.data?.id, serverIdParam);
   let [selectedServer, _setSelectedServer] = useState<ServersListingsGetOutput | null>(null);
   useEffect(() => _setSelectedServer(server.data), [server.data]);
 
@@ -177,7 +177,7 @@ export let ExplorerPage = () => {
 
                     <ServerSearch
                       onSelect={server => {
-                        _setSelectedServer(server);
+                        _setSelectedServer(server as any);
                         setSearch(v => {
                           v.set('server_id', server.id);
                           return v;
@@ -273,6 +273,7 @@ export let ExplorerPage = () => {
                       {serverTab == 'list' && (
                         <ServerDeploymentsList
                           {...serverDeploymentsFilter}
+                          order="desc"
                           onDeploymentClick={deployment => {
                             setOpen(false);
                             setServerDeploymentId(deployment.id);

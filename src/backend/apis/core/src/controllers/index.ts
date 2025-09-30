@@ -1,12 +1,19 @@
 import { Controller } from '@metorial/rest';
 import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
+import { dashboardManagedServerTemplateController } from './dashboard/managedServerTemplate';
 import { dashboardOauthConnectionTemplateController } from './dashboard/oauthConnectionTemplate';
 import { dashboardOauthDiscoveryController } from './dashboard/oauthDiscovery';
 import { dashboardOrganizationController } from './dashboard/organization';
 import { dashboardOrganizationInviteController } from './dashboard/organizationInvite';
+import { profileController } from './dashboard/profile';
 import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
+import { customServerController } from './instance/customServer';
+import { customServerCodeController } from './instance/customServerCode';
+import { customServerDeploymentController } from './instance/customServerDeployment';
+import { customServerEventController } from './instance/customServerEvent';
+import { customServerVersionController } from './instance/customServerVersion';
 import { fileController } from './instance/file';
 import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
@@ -14,6 +21,7 @@ import { providerOauthConnectionController } from './instance/providerOauthConne
 import { providerOauthConnectionAuthenticationController } from './instance/providerOauthConnectionAuthentication';
 import { providerOauthConnectionEventController } from './instance/providerOauthConnectionEvent';
 import { providerOauthConnectionProfileController } from './instance/providerOauthConnectionProfile';
+import { remoteServerController } from './instance/remoteServer';
 import { secretController } from './instance/secret';
 import { serverController } from './instance/server';
 import { serverCapabilitiesController } from './instance/serverCapabilities';
@@ -22,6 +30,7 @@ import { serverImplementationController } from './instance/serverImplementation'
 import { serverListingController } from './instance/serverListing';
 import { serverListingCategoryController } from './instance/serverListingCategory';
 import { serverListingCollectionController } from './instance/serverListingCollection';
+import { serverOauthSessionController } from './instance/serverOAuthSession';
 import { serverRunController } from './instance/serverRun';
 import { serverRunErrorController } from './instance/serverRunError';
 import { serverRunErrorGroupController } from './instance/serverRunErrorGroup';
@@ -70,7 +79,9 @@ export let pulsarController = Controller.create<any>(
 
     providerOauthConnectionController,
     providerOauthConnectionAuthenticationController,
-    providerOauthConnectionProfileController
+    providerOauthConnectionProfileController,
+
+    serverOauthSessionController
   }
 );
 
@@ -126,7 +137,19 @@ export let dashboardController = Controller.create<any>(
     providerOauthConnectionEventController,
     providerOauthConnectionProfileController,
 
+    serverOauthSessionController,
+
+    profileController,
+
     dashboardOauthConnectionTemplateController,
-    dashboardOauthDiscoveryController
+    dashboardOauthDiscoveryController,
+
+    customServerController,
+    customServerVersionController,
+    customServerEventController,
+    customServerDeploymentController,
+    remoteServerController,
+    customServerCodeController,
+    dashboardManagedServerTemplateController
   }
 );

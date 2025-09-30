@@ -36,6 +36,8 @@ type LocalSession struct {
 	dbSession *db.Session
 	db        *db.DB
 
+	sendMu *sync.Mutex
+
 	counter atomic.Int32
 
 	sessionManager *Sessions
@@ -46,6 +48,8 @@ type LocalSession struct {
 	cancel  context.CancelFunc
 
 	hasError bool
+
+	statefulServerInfo *managerPb.StatefulServerInfo
 
 	activeConnection          workers.WorkerConnection
 	activeConnectionCreated   *pubsub.Broadcaster[any]
@@ -70,6 +74,7 @@ func newLocalSession(
 	dbSession *db.Session,
 	workerType workers.WorkerType,
 	client *mcp.MCPClient,
+	statefulServerInfo *managerPb.StatefulServerInfo,
 ) *LocalSession {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -89,10 +94,14 @@ func newLocalSession(
 		dbSession:      dbSession,
 		db:             sessions.db,
 
+		sendMu: &sync.Mutex{},
+
 		hasError: false,
 
 		storedSession:   storedSession,
 		connectionInput: connectionInput,
+
+		statefulServerInfo: statefulServerInfo,
 
 		activeConnection:          nil,
 		activeConnectionCreated:   pubsub.NewBroadcaster[any](),
@@ -115,7 +124,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	}
 
 	go func() {
-		sendStreamResponseSessionEventInfoSession(stream, s.dbSession)
+		sendStreamResponseSessionEventInfoSession(s.sendMu, stream, s.dbSession)
 	}()
 
 	// Now we need to get a handle on the connection
@@ -143,8 +152,8 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 	go func() {
 		defer wg.Done()
 
-		sendStreamResponseSessionEventInfoSession(stream, s.dbSession)
-		sendStreamResponseSessionEventInfoRun(stream, run)
+		sendStreamResponseSessionEventInfoSession(s.sendMu, stream, s.dbSession)
+		sendStreamResponseSessionEventInfoRun(s.sendMu, stream, run)
 	}()
 
 	// If the client has sent and initialization message,
@@ -225,7 +234,7 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 				case <-doneChan:
 					if responsesToWaitFor > 0 {
-						err := sendStreamResponseMcpError(stream, &mcpPb.McpError{
+						err := sendStreamResponseMcpError(s.sendMu, stream, &mcpPb.McpError{
 							ErrorCode:    mcpPb.McpError_timeout,
 							ErrorMessage: fmt.Sprintf("timeout waiting for %d MCP responses", responsesToWaitFor),
 						})
@@ -239,12 +248,12 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 				case <-timeout.C:
 					if responsesToWaitFor > 0 {
-						err := sendStreamResponseMcpError(stream, &mcpPb.McpError{
+						err := sendStreamResponseMcpError(s.sendMu, stream, &mcpPb.McpError{
 							ErrorCode:    mcpPb.McpError_timeout,
 							ErrorMessage: fmt.Sprintf("timeout waiting for %d MCP responses", responsesToWaitFor),
 						})
 						if err != nil {
-							log.Printf("Failed to send response message: %v", err)
+							log.Printf("Failed to send direct response message: %v", err)
 							return
 						}
 					}
@@ -254,8 +263,9 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 				case message := <-msgChan:
 					if slices.Contains(mcpRequestMessageIdsToListenFor, message.GetStringId()) {
 						responsesToWaitFor--
-						err := sendStreamResponseMcpMessage(stream, message)
+						err := sendStreamResponseMcpMessage(s.sendMu, stream, message)
 						if err != nil {
+							log.Printf("Failed to send direct response message: %v", err)
 							return
 						}
 					}
@@ -263,16 +273,16 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 				case message := <-internalMessages:
 					if slices.Contains(mcpRequestMessageIdsToListenFor, message.GetStringId()) {
 						responsesToWaitFor--
-						err := sendStreamResponseMcpMessage(stream, message)
+						err := sendStreamResponseMcpMessage(s.sendMu, stream, message)
 						if err != nil {
+							log.Printf("Failed to send direct response message (internal): %v", err)
 							return
 						}
 					}
 
 				case mcpErr := <-errChan:
-					sendStreamResponseMcpError(stream, mcpErr)
+					sendStreamResponseMcpError(s.sendMu, stream, mcpErr)
 					return
-
 				}
 			}
 		}()
@@ -302,13 +312,15 @@ func (s *LocalSession) SendMcpMessage(req *managerPb.SendMcpMessageRequest, stre
 
 	wg.Wait()
 
+	time.Sleep(time.Millisecond * 100)
+
 	return nil
 }
 
 func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest, stream grpc.ServerStreamingServer[managerPb.McpConnectionStreamResponse]) *mterror.MTError {
 	s.Touch()
 
-	go sendStreamResponseSessionEventInfoSession(stream, s.dbSession)
+	go sendStreamResponseSessionEventInfoSession(s.sendMu, stream, s.dbSession)
 
 	if req.OnlyIds != nil && len(req.OnlyIds) == 0 {
 		req.OnlyIds = nil // If no IDs are requested, we don't need to filter
@@ -340,7 +352,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 					continue
 				}
 
-				err = sendStreamResponseMcpMessageReplay(stream, message)
+				err = sendStreamResponseMcpMessageReplay(s.sendMu, stream, message)
 				if err != nil {
 					return
 				}
@@ -391,7 +403,7 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 			case message := <-internalMessages:
 				if s.canSendMessage(req, message) {
 					responsesToWaitFor--
-					err := sendStreamResponseMcpMessage(stream, message)
+					err := sendStreamResponseMcpMessage(s.sendMu, stream, message)
 					if err != nil {
 						log.Printf("Failed to send response message: %v", err)
 						return nil
@@ -430,8 +442,8 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 			s.mutex.RUnlock()
 
 			if dbRun != nil {
-				sendStreamResponseSessionEventInfoRun(stream, dbRun)
-				sendStreamResponseSessionEventInfoSession(stream, s.dbSession)
+				sendStreamResponseSessionEventInfoRun(s.sendMu, stream, dbRun)
+				sendStreamResponseSessionEventInfoSession(s.sendMu, stream, s.dbSession)
 			}
 		}
 
@@ -451,8 +463,9 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 		case message := <-msgChan:
 			if s.canSendMessage(req, message) {
 				responsesToWaitFor--
-				err := sendStreamResponseMcpMessage(stream, message)
+				err := sendStreamResponseMcpMessage(s.sendMu, stream, message)
 				if err != nil {
+					log.Printf("Failed to send response message: %v", err)
 					return nil
 				}
 			}
@@ -460,21 +473,22 @@ func (s *LocalSession) StreamMcpMessages(req *managerPb.StreamMcpMessagesRequest
 		case message := <-internalMessages:
 			if s.canSendMessage(req, message) {
 				responsesToWaitFor--
-				err := sendStreamResponseMcpMessage(stream, message)
+				err := sendStreamResponseMcpMessage(s.sendMu, stream, message)
 				if err != nil {
+					log.Printf("Failed to send response message (internal): %v", err)
 					return nil
 				}
 			}
 
 		case mcpErr := <-errChan:
-			err := sendStreamResponseMcpError(stream, mcpErr)
+			err := sendStreamResponseMcpError(s.sendMu, stream, mcpErr)
 			if err != nil {
 				log.Printf("Failed to send error message: %v", err)
 				return nil
 			}
 
 		case output := <-outChan:
-			err := sendStreamResponseMcpOutput(stream, output)
+			err := sendStreamResponseMcpOutput(s.sendMu, stream, output)
 			if err != nil {
 				log.Printf("Failed to send output message: %v", err)
 				return nil

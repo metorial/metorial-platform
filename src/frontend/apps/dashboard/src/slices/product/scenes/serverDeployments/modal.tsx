@@ -1,4 +1,4 @@
-import { ServersDeploymentsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
+import { ServersDeploymentsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { Dialog, showModal } from '@metorial/ui';
 import { ServerDeploymentForm, ServerDeploymentFormProps } from './form';
 

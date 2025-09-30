@@ -1,21 +1,30 @@
 import { canonicalize } from '@metorial/canonicalize';
-import { useForm } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import {
   ServersDeploymentsGetOutput,
   ServersListingsGetOutput
-} from '@metorial/generated/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { useForm } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import {
   useCreateDeployment,
   useCurrentInstance,
   useServerDeployment,
   useServerVariants
 } from '@metorial/state';
-import { Button, Callout, CenteredSpinner, Input, Spacer } from '@metorial/ui';
+import {
+  Button,
+  Callout,
+  CenteredSpinner,
+  Copy,
+  Dialog,
+  Input,
+  showModal,
+  Spacer
+} from '@metorial/ui';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { JsonSchemaEditor } from '../jsonSchemaEditor/jsonSchemaEditor';
+import { JsonSchemaInput } from '../jsonSchemaInput';
 import { ServerSearch } from '../servers/search';
 import { Stepper } from '../stepper';
 
@@ -72,8 +81,8 @@ export let ServerDeploymentForm = (
     : variants.data?.items[0];
 
   let serverNeedsConfig =
-    variant?.currentVersion?.schema.schema &&
-    Object.entries(variant?.currentVersion?.schema.schema?.properties ?? {}).length > 0;
+    variant?.currentVersion?.schema &&
+    Object.entries(variant?.currentVersion?.schema?.properties ?? {}).length > 0;
 
   if (!serverNeedsConfig && currentStep == 1) currentStep = 2;
 
@@ -106,31 +115,105 @@ export let ServerDeploymentForm = (
           config: configChanged ? values.config : undefined
         });
       } else if (p.type == 'create') {
-        let [res] = await create.mutate({
-          name: values.name,
-          description: values.description,
-          metadata: values.metadata,
-          config: values.config,
-          instanceId: instance.data?.id!,
-          serverId: p.for?.serverId ?? searchServer?.server.id!,
-          ...p.for
-        });
+        let doCreate = async (
+          oauthConfig: { clientId: string; clientSecret: string } | undefined
+        ) => {
+          let [res, err] = await create.mutate({
+            name: values.name,
+            description: values.description,
+            metadata: values.metadata,
+            config: values.config,
+            instanceId: instance.data?.id!,
+            serverId: p.for?.serverId ?? searchServer?.server.id!,
+            oauthConfig,
+            ...p.for
+          });
 
-        if (res) {
-          if (p.onCreate) {
-            p.onCreate(res);
-            p.close?.();
-          } else {
-            navigate(
-              Paths.instance.serverDeployment(
-                instance.data?.organization,
-                instance.data?.project,
-                instance.data,
-                res.id
-              )
-            );
+          if (err?.message.includes('OAuth configuration is required')) {
+            showModal(({ dialogProps, close }) => {
+              let form = useForm({
+                initialValues: {
+                  clientId: '',
+                  clientSecret: ''
+                },
+                schema: yup =>
+                  yup.object({
+                    clientId: yup.string().required('Client ID is required'),
+                    clientSecret: yup.string().required('Client Secret is required')
+                  }),
+                onSubmit: async values => {
+                  doCreate({
+                    clientId: values.clientId,
+                    clientSecret: values.clientSecret
+                  });
+                  close();
+                }
+              });
+
+              let rootDomain = document.location.hostname.split('.').slice(-2).join('.');
+              return (
+                <Dialog.Wrapper {...dialogProps}>
+                  <Dialog.Title>OAuth Configuration Required</Dialog.Title>
+
+                  <Dialog.Description>
+                    Please provide an OAuth Client ID and Client Secret to proceed with the
+                    server deployment.
+                  </Dialog.Description>
+
+                  <Copy
+                    label="Redirect URL"
+                    value={`https://provider-auth.${rootDomain}/provider-oauth/callback`}
+                  />
+                  <Spacer size={15} />
+
+                  <Form onSubmit={form.handleSubmit}>
+                    <Input
+                      label="Client ID"
+                      placeholder="Enter your OAuth Client ID"
+                      {...form.getFieldProps('clientId')}
+                      autoFocus
+                    />
+                    <form.RenderError field="clientId" />
+                    <Spacer size={15} />
+
+                    <Input
+                      label="Client Secret"
+                      placeholder="Enter your OAuth Client Secret"
+                      type="password"
+                      {...form.getFieldProps('clientSecret')}
+                    />
+                    <form.RenderError field="clientSecret" />
+                    <Spacer size={15} />
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                      <Button type="submit" loading={form.isSubmitting}>
+                        Submit
+                      </Button>
+                    </div>
+                  </Form>
+                </Dialog.Wrapper>
+              );
+            });
           }
-        }
+
+          if (res) {
+            if (p.onCreate) {
+              p.onCreate(res);
+              p.close?.();
+            } else {
+              navigate(
+                Paths.instance.serverDeployment(
+                  instance.data?.organization,
+                  instance.data?.project,
+                  instance.data,
+                  res.id
+                )
+              );
+            }
+          }
+        };
+
+        doCreate(undefined);
       }
     }
   });
@@ -212,7 +295,7 @@ export let ServerDeploymentForm = (
               return (
                 <ServerSearch
                   onSelect={server => {
-                    setSearchServer(server);
+                    setSearchServer(server as any);
                   }}
                 />
               );
@@ -227,9 +310,9 @@ export let ServerDeploymentForm = (
                 return <p>This server does not require any configuration.</p>;
 
               return (
-                <JsonSchemaEditor
+                <JsonSchemaInput
                   label="Config"
-                  schema={variant?.currentVersion?.schema.schema ?? {}}
+                  schema={variant?.currentVersion?.schema ?? {}}
                   value={form.values.config}
                   onChange={v => form.setFieldValue('config', v)}
                   variant="raw"

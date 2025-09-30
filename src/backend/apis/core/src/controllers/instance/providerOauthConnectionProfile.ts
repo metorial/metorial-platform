@@ -1,8 +1,9 @@
-import { oauthConnectionService } from '@metorial/module-oauth';
+import { providerOauthConnectionService } from '@metorial/module-provider-oauth';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerOauthConnectionProfilePresenter } from '../../presenters';
 import { connectionGroup } from './providerOauthConnection';
@@ -10,7 +11,7 @@ import { connectionGroup } from './providerOauthConnection';
 export let connectionProfileGroup = connectionGroup.use(async ctx => {
   if (!ctx.params.profileId) throw new Error('profileId is required');
 
-  let profile = await oauthConnectionService.getConnectionProfileById({
+  let profile = await providerOauthConnectionService.getConnectionProfileById({
     profileId: ctx.params.profileId,
     connection: ctx.connection
   });
@@ -41,8 +42,9 @@ export let providerOauthConnectionProfileController = Controller.create(
       )
       .outputList(providerOauthConnectionProfilePresenter)
       .query('default', Paginator.validate(v.object({})))
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
-        let paginator = await oauthConnectionService.listConnectionProfiles({
+        let paginator = await providerOauthConnectionService.listConnectionProfiles({
           connection: ctx.connection
         });
 
@@ -68,6 +70,7 @@ export let providerOauthConnectionProfileController = Controller.create(
         checkAccess({ possibleScopes: ['instance.provider_oauth.connection.profile:read'] })
       )
       .output(providerOauthConnectionProfilePresenter)
+      .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         return providerOauthConnectionProfilePresenter.present({
           providerOauthConnectionProfile: ctx.profile

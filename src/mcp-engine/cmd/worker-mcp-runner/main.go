@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"flag"
 	"log"
 	"os"
@@ -11,6 +12,7 @@ import (
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	workerMcpRunner "github.com/metorial/metorial/mcp-engine/internal/services/worker-mcp-runner"
+	"github.com/metorial/metorial/mcp-engine/pkg/aws"
 	"github.com/metorial/metorial/mcp-engine/pkg/docker"
 	"github.com/metorial/metorial/modules/addr"
 	sentryUtil "github.com/metorial/metorial/modules/sentry-util"
@@ -22,7 +24,29 @@ func main() {
 
 	ownAddress, port, managerAddress := getConfig()
 
-	dockerManager := docker.NewDockerManager(docker.RuntimeDocker)
+	config := docker.ImageManagerCreateOptions{}
+
+	externalHostMetorialServiceName := os.Getenv("EXTERNAL_HOST_METORIAL_SERVICE_NAME")
+	externalHostMetorialServiceBroker := os.Getenv("EXTERNAL_HOST_METORIAL_SERVICE_BROKER")
+	externalHostMetorialListToken := os.Getenv("EXTERNAL_HOST_METORIAL_LIST_TOKEN")
+	externalHostPrivateKey := os.Getenv("EXTERNAL_HOST_PRIVATE_KEY")
+
+	if os.Getenv("EXTERNAL_HOST_PRIVATE_KEY_BASE64") != "" {
+		decoded, err := base64.StdEncoding.DecodeString(os.Getenv("EXTERNAL_HOST_PRIVATE_KEY_BASE64"))
+		if err != nil {
+			log.Fatalf("Failed to decode EXTERNAL_HOST_PRIVATE_KEY_BASE64: %v", err)
+		}
+		externalHostPrivateKey = string(decoded)
+	}
+
+	if externalHostMetorialServiceName != "" && externalHostMetorialServiceBroker != "" && externalHostMetorialListToken != "" {
+		config.ExternalHostMetorialServiceName = externalHostMetorialServiceName
+		config.ExternalHostMetorialServiceBroker = externalHostMetorialServiceBroker
+		config.ExternalHostMetorialListToken = externalHostMetorialListToken
+		config.ExternalHostPrivateKey = externalHostPrivateKey
+	}
+
+	dockerManager := docker.NewDockerManager(docker.RuntimeDocker, config)
 	runner := workerMcpRunner.NewRunner(context.Background(), dockerManager)
 
 	worker, err := worker.NewWorker(context.Background(), workerPb.WorkerType_mcp_runner, ownAddress, managerAddress, runner)
@@ -58,6 +82,26 @@ func getConfig() (string, int, string) {
 	managerAddressEnv := os.Getenv("MANAGER_ADDRESS")
 	if managerAddressEnv != "" {
 		managerAddress = managerAddressEnv
+	}
+
+	if os.Getenv("STANDALONE_MODE") == "true" {
+		managerAddress = ""
+	}
+
+	if os.Getenv("AWS_MODE") == "true" {
+		log.Printf("Running in AWS mode, fetching private IP and random port")
+
+		port := os.Getenv("WORKER_PORT")
+		if port == "" {
+			log.Fatalf("WORKER_PORT environment variable is required in AWS mode")
+		}
+
+		privateIP, err := aws.GetPrivateIP()
+		if err != nil {
+			log.Fatalf("Failed to get private IP: %v", err)
+		}
+
+		address = privateIP + ":" + port
 	}
 
 	port, err := addr.ExtractPort(address)

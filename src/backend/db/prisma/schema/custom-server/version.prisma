@@ -1,0 +1,41 @@
+enum CustomServerVersionStatus {
+  available
+
+  deploying
+  deployment_failed
+}
+
+model CustomServerVersion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status CustomServerVersionStatus
+
+  versionIndex Int
+  versionHash  String
+
+  customServerOid BigInt
+  customServer    CustomServer @relation(fields: [customServerOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  serverVersionOid BigInt?        @unique
+  serverVersion    ServerVersion? @relation(fields: [serverVersionOid], references: [oid])
+
+  deploymentOid BigInt?                 @unique
+  deployment    CustomServerDeployment? @relation(fields: [deploymentOid], references: [oid])
+
+  currentVersionForServer CustomServer? @relation(name: "CurrentCustomServerVersion")
+
+  remoteServerInstanceOid BigInt?               @unique
+  remoteServerInstance    RemoteServerInstance? @relation(fields: [remoteServerInstanceOid], references: [oid])
+
+  lambdaServerInstanceOid BigInt?               @unique
+  lambdaServerInstance    LambdaServerInstance? @relation(fields: [lambdaServerInstanceOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  events CustomServerEvent[]
+}

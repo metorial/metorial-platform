@@ -93,7 +93,7 @@ export let v1OrganizationInvitePresenter = Presenter.create(organizationInviteTy
           })
         ),
         key_redacted: v.string({
-          name: 'keyRedacted',
+          name: 'key_redacted',
           description: `The invite link's key redacted`,
           examples: ['...6YuLEErWCdFSdVGnqZLp']
         }),
@@ -105,32 +105,32 @@ export let v1OrganizationInvitePresenter = Presenter.create(organizationInviteTy
           })
         ),
         created_at: v.date({
-          name: 'createdAt',
+          name: 'created_at',
           description: `The invite link's creation date`
         })
       }),
       created_at: v.date({
-        name: 'createdAt',
+        name: 'created_at',
         description: `The organization invite's creation date`
       }),
       updated_at: v.date({
-        name: 'updatedAt',
+        name: 'updated_at',
         description: `The organization invite's last update date`
       }),
       deleted_at: v.date({
-        name: 'deletedAt',
+        name: 'deleted_at',
         description: `The organization invite's deletion date`
       }),
       expires_at: v.date({
-        name: 'expiresAt',
+        name: 'expires_at',
         description: `The organization invite's expiration date`
       }),
       accepted_at: v.date({
-        name: 'acceptedAt',
+        name: 'accepted_at',
         description: `The organization invite's acceptance date`
       }),
       rejected_at: v.date({
-        name: 'rejectedAt',
+        name: 'rejected_at',
         description: `The organization invite's rejection date`
       })
     })

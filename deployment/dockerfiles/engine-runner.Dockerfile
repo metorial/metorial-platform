@@ -1,7 +1,9 @@
 # --------- Builder stage ---------
-FROM golang:1.24-alpine AS builder
+FROM golang:1.24-bookworm AS builder
 
-RUN apk add --no-cache make git
+RUN apt update && apt install -y make git curl unzip wget
+RUN apt install -y ca-certificates curl
+RUN update-ca-certificates
 
 WORKDIR /app
 
@@ -18,14 +20,15 @@ RUN go mod download
 RUN make build-worker-mcp-runner
 
 # --------- Runner stage ---------
-FROM alpine:latest
+FROM debian:bookworm-slim
 
 WORKDIR /app
 
 ADD https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/v0.4.15/grpc_health_probe-linux-amd64 /bin/grpc-health-probe
 RUN chmod +x /bin/grpc-health-probe
 
-RUN apk add --no-cache docker-cli
+# RUN apk add --no-cache docker-cli
+RUN apt update && apt install -y docker.io openssh-client
 
 COPY --from=builder /app/src/mcp-engine/bin/worker-mcp-runner .
 

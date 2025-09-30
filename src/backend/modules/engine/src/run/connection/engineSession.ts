@@ -65,7 +65,12 @@ let createEngineSession = async (
               )
             }
           : undefined,
-      config: await getSessionConfig(srvSes.serverDeployment, DANGEROUSLY_UNENCRYPTED_CONFIG),
+      config: await getSessionConfig(
+        srvSes.serverDeployment,
+        config.instance,
+        srvSes,
+        DANGEROUSLY_UNENCRYPTED_CONFIG
+      ),
       sessionId: srvSes.id
     });
 
@@ -75,7 +80,7 @@ let createEngineSession = async (
       create: {
         id: engineSession.session!.id,
         serverSessionOid: srvSes.oid,
-        type: getEngineSessionType(engineSession.session!),
+        type: getEngineSessionType(engineSession.session!) as any,
         lastSyncAt: new Date(0),
         createdAt: new Date(engineSession.session!.createdAt.toNumber())
       }
@@ -91,6 +96,7 @@ let createEngineSession = async (
     if (!srvSes.serverDeployment.serverVariant.lastDiscoveredAt) {
       await addServerDeploymentDiscovery({
         serverDeploymentId: srvSes.serverDeployment.id,
+        serverSessionId: srvSes.id,
         delay: 1000 * 5 // 5 seconds
       });
     }
@@ -148,7 +154,7 @@ export class EngineSessionManager {
     let deployment = srvSes.serverDeployment;
     let variant = deployment.serverVariant;
     let version = variant.currentVersion;
-    if (!version) return null;
+    if (!version || variant.status != 'active') return null;
 
     await Fabric.fire('server.engine_session.created:before', {
       organization: config.instance.organization,
@@ -196,7 +202,7 @@ export class EngineSessionManager {
       where: { id: engineSession.id },
       data: {
         serverSessionOid: this.config.serverSession.oid,
-        type: getEngineSessionType(engineSession),
+        type: getEngineSessionType(engineSession) as any,
         createdAt: new Date(engineSession.createdAt.toNumber())
       }
     });

@@ -1,5 +1,5 @@
+import { DashboardInstanceSessionsServerSessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { DashboardInstanceSessionsServerSessionsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useServerRuns } from '@metorial/state';
 import { Button, theme } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';

@@ -22,6 +22,7 @@ import (
 
 type ConnectionSSE struct {
 	sendEndpoint string
+	baseEndpoint string
 
 	req  *http.Request
 	conn *sse.Connection
@@ -30,6 +31,8 @@ type ConnectionSSE struct {
 	cancel  context.CancelCauseFunc
 
 	extraOutputChan chan *remotePb.RunResponse
+
+	config *remotePb.RunConfigRemote
 
 	wg    sync.WaitGroup
 	mutex sync.Mutex
@@ -48,7 +51,7 @@ var ignoreHeaders = map[string]bool{
 	"Upgrade":       true,
 }
 
-func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*ConnectionSSE, error) {
+func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfigRemote) (*ConnectionSSE, error) {
 	err := ssrfProtection.ValidateURL(config.Server.ServerUri)
 	if err != nil {
 		return nil, fmt.Errorf("server URI validation failed: %w", err)
@@ -89,6 +92,9 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*Connect
 		}
 	}
 
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("User-Agent", "Metorial MCP Engine (https://metorial.com)")
+
 	secureClient := &sse.Client{
 		// Use our own HTTP client with SSRF protection
 		HTTPClient: ssrfProtection.CreateSecureHTTPClient(),
@@ -109,8 +115,12 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*Connect
 		req:  req,
 		conn: conn,
 
+		baseEndpoint: finalUrl,
+
 		context: ctx,
 		cancel:  cancel,
+
+		config: config,
 
 		extraOutputChan: make(chan *remotePb.RunResponse, 10),
 	}
@@ -171,16 +181,7 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*Connect
 			return
 		}
 
-		uri := event.Data
-
-		if !strings.HasPrefix(uri, "http") {
-			newURI, err := addr.ReplaceURIPath(req.URL.String(), uri)
-			if err == nil {
-				uri = newURI
-			}
-		}
-
-		res.sendEndpoint = uri
+		res.sendEndpoint = res.getEndpointUrl(event.Data)
 	})
 
 	defer unsubscribe()
@@ -198,8 +199,25 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfig) (*Connect
 	return res, nil
 }
 
+func (c *ConnectionSSE) getEndpointUrl(endpoint string) string {
+	uri := endpoint
+
+	if !strings.HasPrefix(uri, "http") {
+		newURI, err := addr.ReplaceURIPath(c.baseEndpoint, endpoint)
+		if err == nil {
+			uri = newURI
+		}
+	}
+
+	return uri
+}
+
 func (c *ConnectionSSE) Send(msg *mcpPb.McpMessageRaw) error {
 	return c.SendString(msg.Message)
+}
+
+func (c *ConnectionSSE) SendControl(msg string) error {
+	return c.SendString(msg)
 }
 
 func (c *ConnectionSSE) SendString(msg string) error {
@@ -222,7 +240,20 @@ func (c *ConnectionSSE) SendString(msg string) error {
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("User-Agent", "Metorial MCP Engine (https://metorial.com)")
 
-	resp, err := http.DefaultClient.Do(req)
+	if c.config.Arguments.Headers != nil {
+		for k, v := range c.config.Arguments.Headers {
+			if ignoreHeaders[strings.ToLower(k)] {
+				continue
+			}
+			if strings.Contains(k, "Sec-WebSocket") {
+				continue // Ignore WebSocket headers
+			}
+
+			req.Header.Set(k, v)
+		}
+	}
+
+	resp, err := ssrfProtection.CreateSecureHTTPClient().Do(req)
 
 	if err != nil {
 		return fmt.Errorf("failed to send data: %w", err)
@@ -256,6 +287,11 @@ func (c *ConnectionSSE) SendString(msg string) error {
 
 func (c *ConnectionSSE) Subscribe(cb MessageReceiver) {
 	c.conn.SubscribeToAll(func(e sse.Event) {
+		if e.Type == "endpoint" {
+			c.sendEndpoint = c.getEndpointUrl(e.Data)
+			return
+		}
+
 		msg, err := mcp.ParseMCPMessage(util.Must(uuid.NewV7()).String(), e.Data)
 		if err != nil {
 			cb(&remotePb.RunResponse{
@@ -300,6 +336,11 @@ func (c *ConnectionSSE) Close() error {
 	if c.cancel != nil {
 		c.cancel(nil)
 		c.cancel = nil
+	}
+
+	if c.extraOutputChan != nil {
+		close(c.extraOutputChan)
+		c.extraOutputChan = nil
 	}
 
 	c.req = nil

@@ -1,15 +1,15 @@
-import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject
 } from '@metorial/state';
-import { Button, LinkTabs } from '@metorial/ui';
+import { Button } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
-import { showServerDeploymentFormModal } from '../../../scenes/serverDeployments/modal';
+import { showCustomServerRemoteFormModal } from '../../../scenes/customServer/modal';
+import { showProviderConnectionFormModal } from '../../../scenes/providerConnection/modal';
 
-export let ExternalServersListLayout = () => {
+export let ProviderConnectionsListLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
@@ -19,38 +19,13 @@ export let ExternalServersListLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="External Servers"
-        description="Metorial can connect to external MCP servers, giving you the features you know and love from Metorial, but with external infrastructure."
+        title="OAuth Connections"
+        description="Use OAuth to seamlessly authenticate with external providers, like Google or GitHub."
         actions={
-          <Button
-            onClick={() =>
-              showServerDeploymentFormModal({
-                type: 'create'
-              })
-            }
-            size="2"
-          >
-            Connect External Server
+          <Button onClick={() => showProviderConnectionFormModal({})} size="2">
+            Create OAuth Connection
           </Button>
         }
-      />
-
-      <LinkTabs
-        current={pathname}
-        links={[
-          {
-            label: 'External Servers',
-            to: Paths.instance.externalServers(organization.data, project.data, instance.data)
-          },
-          {
-            label: 'OAuth Connections',
-            to: Paths.instance.providerConnections(
-              organization.data,
-              project.data,
-              instance.data
-            )
-          }
-        ]}
       />
 
       <Outlet />
@@ -70,6 +45,49 @@ export let ManagedServersListLayout = () => {
       <PageHeader
         title="Managed Servers"
         description="Build custom MCP servers powered by Metorial. Deploy them on your own infrastructure or use our managed servers."
+        actions={
+          <Button
+            onClick={() =>
+              showCustomServerRemoteFormModal({
+                type: 'managed'
+              })
+            }
+            size="2"
+          >
+            Create Managed Server
+          </Button>
+        }
+      />
+
+      <Outlet />
+    </ContentLayout>
+  );
+};
+
+export let ExternalServersListLayout = () => {
+  let instance = useCurrentInstance();
+  let project = useCurrentProject();
+  let organization = useCurrentOrganization();
+
+  let pathname = useLocation().pathname;
+
+  return (
+    <ContentLayout>
+      <PageHeader
+        title="External Servers"
+        description="Connect to external MCP servers using the Metorial platform."
+        actions={
+          <Button
+            onClick={() =>
+              showCustomServerRemoteFormModal({
+                type: 'remote'
+              })
+            }
+            size="2"
+          >
+            Link Remote Server
+          </Button>
+        }
       />
 
       <Outlet />

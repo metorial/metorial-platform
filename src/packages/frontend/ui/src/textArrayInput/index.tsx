@@ -1,5 +1,5 @@
 import { RiDeleteBin4Line } from '@remixicon/react';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { styled } from 'styled-components';
 import { Button } from '../button';
 import { Error } from '../error';
@@ -30,7 +30,8 @@ export let TextArrayInput = ({
   label,
   error,
   onChange,
-  placeholder
+  placeholder,
+  autoAdd
 }: {
   label: string;
   description?: string;
@@ -38,10 +39,20 @@ export let TextArrayInput = ({
   placeholder?: string;
   error?: (string | undefined)[] | string;
   onChange: (value: string[]) => void;
+  autoAdd?: boolean;
 }) => {
   useEffect(() => {
     if (value.length === 0) onChange(['']);
   }, [value]);
+
+  let [enterPressed, setEnterPressed] = useState(false);
+  let addedRef = useRef(0);
+  useEffect(() => {
+    if (Date.now() - addedRef.current < 100) return;
+    addedRef.current = Date.now();
+
+    if (autoAdd && value[value.length - 1] !== '') onChange([...value, '']);
+  }, [value, autoAdd]);
 
   return (
     <>
@@ -65,10 +76,18 @@ export let TextArrayInput = ({
                   newValue[i] = e.target.value;
                   onChange(newValue);
                 }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    setEnterPressed(true);
+                    onChange([...value, '']);
+                  }
+                }}
                 label={label}
                 style={{ flexGrow: 1 }}
                 size="2"
                 hideLabel
+                autoFocus={i == value.length - 1 && enterPressed}
               />
 
               <Button
@@ -78,6 +97,7 @@ export let TextArrayInput = ({
                 size="2"
                 variant="soft"
                 disabled={value.length === 1}
+                type="button"
               />
             </ItemInner>
 
@@ -85,16 +105,18 @@ export let TextArrayInput = ({
           </Item>
         ))}
 
-        <div
-          style={{
-            display: 'flex',
-            gap: 10
-          }}
-        >
-          <Button size="2" onClick={() => onChange([...value, ''])}>
-            Add
-          </Button>
-        </div>
+        {!autoAdd && (
+          <div
+            style={{
+              display: 'flex',
+              gap: 10
+            }}
+          >
+            <Button size="2" onClick={() => onChange([...value, ''])} type="button">
+              Add
+            </Button>
+          </div>
+        )}
       </Wrapper>
     </>
   );

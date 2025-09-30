@@ -27,6 +27,10 @@ export let frontendEnv: Env = [
     key: 'VITE_PRIVATE_API_URL',
     defaultValue: `http://${HOSTNAME}:4314`
   },
+  {
+    key: 'VITE_CODE_EDITOR_URL',
+    defaultValue: `http://${HOSTNAME}:3302`
+  },
 
   {
     key: 'VITE_CODE_BUCKET_API_URL',
@@ -123,6 +127,11 @@ export let frontendEnv: Env = [
   {
     key: 'VITE_FEATURED_COLLECTION_SLUG',
     defaultValue: 'dashboard_collection',
+    isEnterprise: true
+  },
+  {
+    key: 'VITE_PUBLIC_API_URL',
+    defaultValue: `http://${HOSTNAME}:4310`,
     isEnterprise: true
   }
 ];

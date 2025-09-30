@@ -92,6 +92,8 @@ func (s *LocalSession) ensureConnection() (workers.WorkerConnection, *db.Session
 			},
 		)
 
+		log.Printf("Failed to start connection %s for session %s: %v", connection.ConnectionID(), s.storedSession.ID, err)
+
 		return nil, nil, mterror.NewWithCodeAndInnerError(mterror.InternalErrorKind, "run_error", "failed to start server", err)
 	}
 
@@ -128,7 +130,9 @@ func (s *LocalSession) ensureConnection() (workers.WorkerConnection, *db.Session
 		}()
 	}
 
-	if !s.dbSession.Server.LastDiscoveryAt.Valid || time.Since(s.dbSession.Server.LastDiscoveryAt.Time) > time.Hour*24 {
+	if (!s.dbSession.Server.LastDiscoveryAt.Valid ||
+		time.Since(s.dbSession.Server.LastDiscoveryAt.Time) > time.Hour*24) &&
+		s.statefulServerInfo == nil {
 		go s.discoverServer(connection)
 	}
 
@@ -199,6 +203,7 @@ loop:
 
 		case <-doneChan:
 			s.mutex.Lock()
+			defer s.mutex.Unlock()
 			if s.activeConnection != nil && s.activeConnection.ConnectionID() == connection.ConnectionID() {
 				s.activeConnection = nil
 
@@ -214,13 +219,11 @@ loop:
 					s.db.SaveRun(run)
 				}
 			}
-			s.mutex.Unlock()
 
 			break loop
 
 		case err := <-errChan:
 			s.hasError = true
-
 			s.CreateMcpError(run, err)
 
 		case message := <-msgChan:

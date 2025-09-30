@@ -1,7 +1,8 @@
-import { oauthDiscoveryService } from '@metorial/module-oauth';
+import { providerOauthDiscoveryService } from '@metorial/module-provider-oauth';
 import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { apiGroup } from '../../middleware/apiGroup';
+import { isDashboardGroup } from '../../middleware/isDashboard';
 import { providerOauthDiscoveryPresenter } from '../../presenters';
 
 export let dashboardOauthDiscoveryController = Controller.create(
@@ -10,31 +11,32 @@ export let dashboardOauthDiscoveryController = Controller.create(
     description: 'Get OAuth connection template information'
   },
   {
-    get: apiGroup
-      .post(
-        Path(
-          '/dashboard/organizations/:organizationId/provider-oauth-discovery',
-          'provider_oauth.discover'
-        ),
-        {
-          name: 'Discover OAuth Configuration',
-          description: 'Discover OAuth configuration from a discovery URL'
-        }
-      )
+    discover: apiGroup
+      .use(isDashboardGroup())
+      .post(Path('provider-oauth-discovery', 'provider_oauth.discover'), {
+        name: 'Discover OAuth Configuration',
+        description: 'Discover OAuth configuration from a discovery URL'
+      })
       .body(
         'default',
         v.object({
-          discovery_url: v.string({ modifiers: [v.url()] })
+          discovery_url: v.string({ modifiers: [v.url()] }),
+          client_name: v.string()
         })
       )
       .output(providerOauthDiscoveryPresenter)
       .do(async ctx => {
-        let discovery = await oauthDiscoveryService.discoverOauthConfig({
-          discoveryUrl: ctx.body.discovery_url
-        });
+        let { discovery, autoRegistration } =
+          await providerOauthDiscoveryService.discoverOauthConfig({
+            discoveryUrl: ctx.body.discovery_url,
+            input: {
+              clientName: ctx.body.client_name
+            }
+          });
 
         return providerOauthDiscoveryPresenter.present({
-          providerOauthDiscoveryDocument: discovery
+          providerOauthDiscoveryDocument: discovery,
+          providerOauthAutoRegistration: autoRegistration
         });
       })
   }

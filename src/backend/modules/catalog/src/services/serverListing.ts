@@ -1,8 +1,19 @@
-import { db, Instance, ServerListing } from '@metorial/db';
+import {
+  db,
+  ID,
+  Instance,
+  Organization,
+  OrganizationActor,
+  Server,
+  ServerListing,
+  withTransaction
+} from '@metorial/db';
 import { searchService } from '@metorial/module-search';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { notFoundError, ServiceError } from '../../../../../packages/shared/error/src';
+import { setCustomServerListingQueue } from '../queues/customListing';
+import { indexServerListingQueue } from '../queues/search';
 
 let include = {
   categories: true,
@@ -20,17 +31,56 @@ let include = {
   }
 };
 
+let getInclude = (instance: Instance | undefined) => ({
+  ...include,
+  server: {
+    include: instance
+      ? {
+          ...include.server.include,
+          instanceServers: {
+            where: {
+              instanceOid: instance.oid
+            },
+            include: {
+              instance: true
+            }
+          }
+        }
+      : include.server.include
+  }
+});
+
 class ServerListingService {
-  async getServerListingById(d: { serverListingId: string }) {
+  async getServerListingById(d: { serverListingId: string; instance?: Instance }) {
     let serverListing = await db.serverListing.findFirst({
       where: {
-        OR: [
-          { id: d.serverListingId },
-          { slug: d.serverListingId },
-          { server: { id: d.serverListingId } }
+        AND: [
+          {
+            OR: [
+              { id: d.serverListingId },
+              { slug: d.serverListingId },
+              { server: { id: d.serverListingId } }
+            ]
+          },
+
+          {
+            OR: d.instance
+              ? [{ ownerOrganizationOid: d.instance.organizationOid }, { isPublic: true }]
+              : [{ isPublic: true }]
+          }
+          // d.instance
+          //   ? {
+          //       server: {
+          //         OR: [
+          //           { ownerOrganizationOid: d.instance.organizationOid },
+          //           { ownerOrganizationOid: null, isPublic: true, status: 'active' }
+          //         ]
+          //       }
+          //     }
+          //   : { status: 'active' }
         ]
       },
-      include
+      include: getInclude(d.instance)
     });
     if (!serverListing) {
       throw new ServiceError(notFoundError('server_listing', d.serverListingId));
@@ -39,29 +89,79 @@ class ServerListingService {
     return serverListing;
   }
 
-  async ADMIN_updateServerListing(d: {
+  async updateServerListing(d: {
     serverListing: ServerListing;
+    performedBy: OrganizationActor;
     input: {
       status?: 'active' | 'archived' | 'banned';
       name?: string;
       description?: string;
       slug?: string;
+      readme?: string | null;
     };
   }) {
-    let serverListing = await db.serverListing.update({
-      where: {
-        id: d.serverListing.id
-      },
-      data: {
-        status: d.input.status,
-        name: d.input.name,
-        description: d.input.description,
-        slug: d.input.slug
-      },
-      include
+    let updates = {
+      status: d.input.status ?? d.serverListing.status,
+      name: d.input.name ?? d.serverListing.name,
+      description: d.input.description ?? d.serverListing.description,
+      slug: d.input.slug ?? d.serverListing.slug,
+      readme: d.input.readme ?? d.serverListing.readme
+    };
+
+    let serverListing = await withTransaction(async db => {
+      await db.serverListingUpdate.create({
+        data: {
+          id: await ID.generateId('serverListingUpdate'),
+          serverListingOid: d.serverListing.oid,
+
+          createdByOid: d.performedBy.oid,
+
+          before: {
+            status: d.serverListing.status,
+            name: d.serverListing.name,
+            description: d.serverListing.description,
+            slug: d.serverListing.slug,
+            readme: d.serverListing.readme
+          },
+
+          after: {
+            status: updates.status,
+            name: updates.name,
+            description: updates.description,
+            slug: updates.slug,
+            readme: updates.readme
+          }
+        }
+      });
+
+      let serverListing = await db.serverListing.update({
+        where: {
+          id: d.serverListing.id
+        },
+        data: updates,
+        include
+      });
+
+      return serverListing;
+    });
+
+    await indexServerListingQueue.add({
+      serverListingId: serverListing.id
     });
 
     return serverListing;
+  }
+
+  async setServerListing(d: {
+    server: Server;
+    instance: Instance;
+    organization: Organization;
+  }) {
+    await setCustomServerListingQueue.add({
+      serverId: d.server.id,
+      instanceId: d.instance.id,
+      organizationId: d.organization.id
+    });
   }
 
   async listServerListings(d: {
@@ -70,6 +170,10 @@ class ServerListingService {
     categoryIds?: string[];
     profileIds?: string[];
     providerIds?: string[];
+
+    isPublic?: boolean;
+    onlyFromOrganization?: boolean;
+
     instance?: Instance;
 
     orderByRank?: boolean;
@@ -105,7 +209,7 @@ class ServerListingService {
               index: 'server_listing',
               query: d.search,
               options: {
-                limit: opts.take
+                limit: opts.take * 2
               }
             })
           : undefined;
@@ -160,37 +264,31 @@ class ServerListingService {
                   }
                 : {},
 
-              d.instance
-                ? {
-                    server: {
-                      instanceServers: {
-                        some: {
-                          instanceOid: d.instance.oid
-                        }
-                      }
-                    }
-                  }
-                : {}
+              {
+                OR: d.instance
+                  ? [{ ownerOrganizationOid: d.instance.organizationOid }, { isPublic: true }]
+                  : [{ isPublic: true }]
+              },
+
+              d.onlyFromOrganization
+                ? { ownerOrganizationOid: d.instance?.organizationOid ?? -1 }
+                : {},
+
+              d.isPublic ? { isPublic: true } : {}
+
+              // d.instance
+              //   ? {
+              //       server: {
+              //         OR: [
+              //           { ownerOrganizationOid: d.instance.organizationOid },
+              //           { ownerOrganizationOid: null, isPublic: true, status: 'active' }
+              //         ]
+              //       }
+              //     }
+              //   : {}
             ]
           },
-          include: {
-            ...include,
-            server: {
-              include: d.instance
-                ? {
-                    ...include.server.include,
-                    instanceServers: {
-                      where: {
-                        instanceOid: d.instance.oid
-                      },
-                      include: {
-                        instance: true
-                      }
-                    }
-                  }
-                : include.server.include
-            }
-          },
+          include: getInclude(d.instance),
           omit: {
             readme: true
           }

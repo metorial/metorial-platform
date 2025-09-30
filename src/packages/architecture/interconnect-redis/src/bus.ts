@@ -1,12 +1,9 @@
-import { getConfig } from '@metorial/config';
 import { Emitter } from '@metorial/emitter';
 import { createLock } from '@metorial/lock';
 import { createRedisClient } from '@metorial/redis';
 import Redis from 'redis';
 
-let redisPromise = createRedisClient({
-  url: getConfig().redisUrl
-}).eager();
+let redisPromise = createRedisClient({}).eager();
 
 let sessionLock = createLock({ name: 'mic/ses' });
 

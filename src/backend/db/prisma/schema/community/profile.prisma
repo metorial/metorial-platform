@@ -9,11 +9,18 @@ model Profile {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
+  updateAllowed Boolean @default(true)
+  isCustomized  Boolean @default(false)
+
   type ProfileType
 
   name        String
   description String?
   slug        String  @unique
+
+  isMetorial Boolean @default(false)
+  isVerified Boolean @default(false)
+  isOfficial Boolean @default(false)
 
   /// [EntityImage]
   image Json
@@ -27,10 +34,31 @@ model Profile {
   userOid BigInt? @unique
   user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
 
+  providerOid BigInt?                @unique
+  provider    ServerVariantProvider? @relation(fields: [providerOid], references: [oid], onDelete: SetNull)
+
   vendors                ImportedServerVendor[]
   serverListings         ServerListing[]
   providerOAuthTemplates ProviderOAuthConnectionTemplate[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  profileUpdates ProfileUpdate[]
+}
+
+model ProfileUpdate {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  before Json
+  after  Json
+
+  createdByOid BigInt
+  createdBy    OrganizationActor @relation(fields: [createdByOid], references: [oid], onDelete: Cascade)
+
+  profileOid BigInt
+  profile    Profile @relation(fields: [profileOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 }

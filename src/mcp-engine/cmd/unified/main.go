@@ -13,6 +13,8 @@ import (
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
 	"github.com/metorial/metorial/mcp-engine/internal/db"
 	"github.com/metorial/metorial/mcp-engine/internal/services/manager"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/state"
+	"github.com/metorial/metorial/mcp-engine/internal/services/manager/workers"
 	"github.com/metorial/metorial/mcp-engine/internal/services/worker"
 	workerLauncher "github.com/metorial/metorial/mcp-engine/internal/services/worker-launcher"
 	workerMcpRemote "github.com/metorial/metorial/mcp-engine/internal/services/worker-mcp-remote"
@@ -32,16 +34,17 @@ func main() {
 
 	managerAddress := "localhost:50050"
 
-	etcdEndpoints, dsn := getConfig()
+	stateConfig, dsn := getConfig()
 
-	go runManager(managerAddress, etcdEndpoints, dsn)
+	go runManager(managerAddress, stateConfig, dsn)
 
 	timer := time.NewTimer(1 * time.Second)
 	<-timer.C
 
-	go runLauncher(managerAddress)
-	go runRemote(managerAddress)
 	go runRunner(managerAddress)
+
+	go runLauncher()
+	go runRemote()
 
 	log.Println("Unified MCP Engine is running...")
 
@@ -51,18 +54,27 @@ func main() {
 	<-sigChan
 }
 
-func runManager(address string, etcdEndpoints []string, dsn string) {
+func runManager(address string, stateConfig state.Config, dsn string) {
 	db, error := db.NewDB(dsn)
 	if error != nil {
 		log.Fatalf("Failed to connect to database: %v", error)
 	}
 
-	manager, err := manager.NewManager(db, etcdEndpoints, address)
+	standaloneWorkers := []manager.StandaloneWorker{
+		{Type: workers.WorkerTypeLauncher, Address: "localhost:50052"},
+		{Type: workers.WorkerTypeRemote, Address: "localhost:50053"},
+	}
+
+	manager, err := manager.NewManager(db, stateConfig, address, address, standaloneWorkers)
 	if err != nil {
 		log.Fatalf("Failed to create manager: %v", err)
 	}
 
-	go manager.Start()
+	go func() {
+		if err := manager.Start(); err != nil {
+			log.Panicf("Manager exited with error: %v", err)
+		}
+	}()
 
 	log.Printf("MCP Manager is running at %s", address)
 
@@ -78,10 +90,10 @@ func runManager(address string, etcdEndpoints []string, dsn string) {
 	}
 }
 
-func runLauncher(managerAddress string) {
+func runLauncher() {
 	runner := workerLauncher.NewLauncher()
 
-	worker, err := worker.NewWorker(context.Background(), workerPb.WorkerType_launcher, "localhost:50052", managerAddress, runner)
+	worker, err := worker.NewWorker(context.Background(), workerPb.WorkerType_launcher, "localhost:50052", "", runner)
 	if err != nil {
 		log.Fatalf("Failed to create worker: %v", err)
 	}
@@ -99,10 +111,10 @@ func runLauncher(managerAddress string) {
 	}
 }
 
-func runRemote(managerAddress string) {
+func runRemote() {
 	remote := workerMcpRemote.NewRemote()
 
-	worker, err := worker.NewWorker(context.Background(), workerPb.WorkerType_mcp_remote, "localhost:50053", managerAddress, remote)
+	worker, err := worker.NewWorker(context.Background(), workerPb.WorkerType_mcp_remote, "localhost:50053", "", remote)
 	if err != nil {
 		log.Fatalf("Failed to create worker: %v", err)
 	}
@@ -121,7 +133,7 @@ func runRemote(managerAddress string) {
 }
 
 func runRunner(managerAddress string) {
-	dockerManager := docker.NewDockerManager(docker.RuntimeDocker)
+	dockerManager := docker.NewDockerManager(docker.RuntimeDocker, docker.ImageManagerCreateOptions{})
 	runner := workerMcpRunner.NewRunner(context.Background(), dockerManager)
 
 	worker, err := worker.NewWorker(context.Background(), workerPb.WorkerType_mcp_runner, "localhost:50051", managerAddress, runner)
@@ -142,11 +154,23 @@ func runRunner(managerAddress string) {
 	}
 }
 
-func getConfig() ([]string, string) {
-	etcdEndpoints := []string{"http://localhost:2379"}
+func getConfig() (state.Config, string) {
+	stateConfig := state.Config{
+		BackendType: state.BackendEtcd,
+		Timeout:     5 * time.Second,
+		Endpoints:   []string{"http://localhost:2379"},
+	}
+
 	etcdEndpointsEnv := os.Getenv("ETCD_ENDPOINTS")
 	if etcdEndpointsEnv != "" {
-		etcdEndpoints = strings.Split(etcdEndpointsEnv, ",")
+		stateConfig.BackendType = state.BackendEtcd
+		stateConfig.Endpoints = strings.Split(etcdEndpointsEnv, ",")
+	}
+
+	redisEndpointsEnv := os.Getenv("REDIS_ENDPOINTS")
+	if redisEndpointsEnv != "" {
+		stateConfig.BackendType = state.BackendRedis
+		stateConfig.Endpoints = strings.Split(redisEndpointsEnv, ",")
 	}
 
 	dsn := os.Getenv("ENGINE_DATABASE_DSN")
@@ -154,5 +178,5 @@ func getConfig() ([]string, string) {
 		log.Fatal("ENGINE_DATABASE_DSN environment variable is not set")
 	}
 
-	return etcdEndpoints, dsn
+	return stateConfig, dsn
 }

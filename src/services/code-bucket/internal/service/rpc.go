@@ -64,6 +64,22 @@ func (rs *RcpService) CreateBucketFromZip(ctx context.Context, req *rpc.CreateBu
 	return &rpc.CreateBucketResponse{}, nil
 }
 
+func (rs *RcpService) CreateBucketFromContents(ctx context.Context, req *rpc.CreateBucketFromContentsRequest) (*rpc.CreateBucketResponse, error) {
+	contents := make([]*fs.FileContentsBase, 0, len(req.Contents))
+	for _, c := range req.Contents {
+		contents = append(contents, &fs.FileContentsBase{
+			Path:    c.Path,
+			Content: c.Content,
+		})
+	}
+
+	if err := rs.fsm.ImportContents(ctx, req.NewBucketId, contents); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to import contents: %v", err)
+	}
+
+	return &rpc.CreateBucketResponse{}, nil
+}
+
 func (rs *RcpService) GetBucketToken(ctx context.Context, req *rpc.GetBucketTokenRequest) (*rpc.GetBucketTokenResponse, error) {
 	expiresIn := req.ExpiresInSeconds
 	if expiresIn == 0 {

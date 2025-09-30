@@ -1,4 +1,4 @@
-import { db, ID } from '@metorial/db';
+import { db, ID, ServerSession } from '@metorial/db';
 import { secretService } from '@metorial/module-secret';
 import { getSentry } from '@metorial/sentry';
 import { InitializeResult } from '@modelcontextprotocol/sdk/types';
@@ -8,13 +8,20 @@ import { getSessionConfig } from '../config';
 
 let Sentry = getSentry();
 
-export let discoverServer = async (serverDeploymentId: string) => {
+export let discoverServer = async (
+  serverDeploymentId: string,
+  serverSession: ServerSession | null
+) => {
   let serverDeployment = await db.serverDeployment.findFirst({
     where: { id: serverDeploymentId },
     include: {
       config: true,
       serverVariant: {
-        include: { currentVersion: true }
+        include: {
+          currentVersion: {
+            include: { lambda: true }
+          }
+        }
       },
       serverImplementation: true,
       instance: true
@@ -42,7 +49,12 @@ export let discoverServer = async (serverDeploymentId: string) => {
       metadata: { discoveryId: id }
     });
 
-  let config = await getSessionConfig(serverDeployment, DANGEROUSLY_UNENCRYPTED_CONFIG);
+  let config = await getSessionConfig(
+    serverDeployment,
+    serverDeployment.instance,
+    serverSession,
+    DANGEROUSLY_UNENCRYPTED_CONFIG
+  );
 
   let client = getClientByHash(serverDeployment.serverVariant.identifier);
   if (!client) throw new Error('WTF - No manager found');
@@ -73,7 +85,8 @@ export let discoverServer = async (serverDeploymentId: string) => {
 
     let updatedVersion = await db.serverVersion.update({
       where: { oid: serverDeployment.serverVariant.currentVersion!.oid },
-      data
+      data,
+      include: { lambda: true }
     });
 
     serverDeployment.serverVariant = {

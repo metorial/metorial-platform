@@ -1,7 +1,7 @@
 import { SessionStatus } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { serverDeploymentService } from '@metorial/module-server-deployment';
-import { sessionService } from '@metorial/module-session';
+import { serverOAuthSessionService, sessionService } from '@metorial/module-session';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -87,53 +87,66 @@ export let sessionController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.session:write'] }))
       .body(
         'default',
-        v.union([
-          v.object({
-            server_deployments: v.array(
-              v.union([
+        v.object({
+          server_deployments: v.array(
+            v.union([
+              v.intersection([
                 createServerDeploymentSchema,
-                v.string(),
                 v.object({
-                  server_deployment_id: v.string()
+                  oauth_session_id: v.optional(v.string())
                 })
-              ])
-            )
-          }),
-          v.object({
-            server_deployment_ids: v.union([v.array(v.string()), v.string()])
-          })
-        ])
+              ]),
+              v.string(),
+              v.object({
+                server_deployment_id: v.string(),
+                oauth_session_id: v.optional(v.string())
+              })
+            ])
+          )
+        })
       )
       .output(sessionPresenter)
       .do(async ctx => {
-        let serverDeploymentInputs =
-          'server_deployments' in ctx.body
-            ? ctx.body.server_deployments
-            : Array.isArray(ctx.body.server_deployment_ids)
-              ? ctx.body.server_deployment_ids
-              : [ctx.body.server_deployment_ids];
+        let serverDeploymentInputs = ctx.body.server_deployments;
 
-        let deploymentIds = serverDeploymentInputs
+        let existingServerDeploymentIds = serverDeploymentInputs
           .map(d => {
             if (typeof d === 'string') return d;
             return 'server_deployment_id' in d ? d.server_deployment_id : undefined!;
           })
           .filter(Boolean);
 
-        let existingServerDeployments = deploymentIds.length
+        let existingServerDeploymentsRaw = existingServerDeploymentIds.length
           ? await serverDeploymentService.getManyServerDeployments({
               instance: ctx.instance,
-              serverDeploymentIds: deploymentIds
+              serverDeploymentIds: existingServerDeploymentIds
             })
           : [];
 
-        if (existingServerDeployments.some(d => d.status !== 'active')) {
+        if (existingServerDeploymentsRaw.some(d => d.status !== 'active')) {
           throw new ServiceError(
             badRequestError({
               message: 'Cannot create session with inactive server deployments'
             })
           );
         }
+
+        let oauthSessionIdMap = Object.fromEntries(
+          serverDeploymentInputs
+            .map(d => {
+              if (typeof d === 'string') return undefined!;
+              let sdId = 'server_deployment_id' in d ? d.server_deployment_id : undefined;
+              let oauthId = 'oauth_session_id' in d ? d.oauth_session_id : undefined;
+              if (!sdId || !oauthId) return undefined!;
+              return [sdId, oauthId] as const;
+            })
+            .filter(Boolean)
+        );
+
+        let existingServerDeployments = existingServerDeploymentsRaw.map(sd => ({
+          deployment: sd,
+          oauthSessionId: oauthSessionIdMap[sd.id]
+        }));
 
         let deploymentsToCreate = serverDeploymentInputs
           .map(d => {
@@ -143,20 +156,33 @@ export let sessionController = Controller.create(
           .filter(Boolean);
 
         let newServerDeployments = await Promise.all(
-          deploymentsToCreate.map(async d =>
-            createServerDeployment(
+          deploymentsToCreate.map(async d => ({
+            deployment: await createServerDeployment(
               d,
               {
                 instance: ctx.instance,
                 organization: ctx.organization,
-                actor: ctx.actor
+                actor: ctx.actor,
+                context: ctx.context
               },
               { type: 'ephemeral' }
-            )
-          )
+            ),
+            oauthSessionId: 'oauth_session_id' in d ? d.oauth_session_id : undefined
+          }))
         );
 
-        let serverDeployments = [...existingServerDeployments, ...newServerDeployments];
+        let serverDeploymentsRaw = [...existingServerDeployments, ...newServerDeployments];
+
+        let oauthSessions = await serverOAuthSessionService.getManyServerOAuthSessions({
+          sessionIds: serverDeploymentsRaw.map(d => d.oauthSessionId!).filter(Boolean),
+          instance: ctx.instance
+        });
+        let oauthSessionMap = Object.fromEntries(oauthSessions.map(s => [s.id, s] as const));
+
+        let serverDeployments = serverDeploymentsRaw.map(d => ({
+          deployment: d.deployment,
+          oauthSession: oauthSessionMap[d.oauthSessionId!]
+        }));
 
         let session = await sessionService.createSession({
           organization: ctx.organization,
@@ -165,7 +191,10 @@ export let sessionController = Controller.create(
           input: {
             connectionType: 'unified',
             serverDeployments
-          }
+          },
+          ephemeralPermittedDeployments: new Set(
+            newServerDeployments.map(d => d.deployment.id)
+          )
         });
 
         return sessionPresenter.present({ session });

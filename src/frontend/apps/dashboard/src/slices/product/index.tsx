@@ -5,12 +5,62 @@ import { NotFound } from '@metorial/pages';
 import { useDashboardFlags } from '@metorial/state';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
+import { CustomServerCodePage } from './pages/(custom-servers)/custom-server/code';
 
-let ExternalServersListLayout = dynamicPage(() =>
-  import('./pages/(custom-servers)/(list)/_layout').then(c => c.ExternalServersListLayout)
+let ProviderConnectionOverviewPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/provider-connection').then(
+    c => c.ProviderConnectionOverviewPage
+  )
+);
+let ProviderConnectionLogsPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/provider-connection/logs').then(
+    c => c.ProviderConnectionLogsPage
+  )
+);
+let ProviderConnectionProfilesPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/provider-connection/profiles').then(
+    c => c.ProviderConnectionProfilesPage
+  )
+);
+let ProviderConnectionSettingsPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/provider-connection/settings').then(
+    c => c.ProviderConnectionSettingsPage
+  )
+);
+let ProviderConnectionLayout = dynamicPage(() =>
+  import('./pages/(custom-servers)/provider-connection/_layout').then(
+    c => c.ProviderConnectionLayout
+  )
+);
+let ProviderConnectionTestResponsePage = dynamicPage(() =>
+  import('./pages/(custom-servers)/provider-connection/testResponse').then(
+    c => c.ProviderConnectionTestResponsePage
+  )
+);
+let CustomServerOverviewPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server').then(c => c.CustomServerOverviewPage)
+);
+let CustomServerVersionsPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/versions').then(
+    c => c.CustomServerVersionsPage
+  )
+);
+let CustomServerSettingsPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/settings/settings').then(
+    c => c.CustomServerSettingsPage
+  )
+);
+let CustomServerLayout = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/_layout').then(c => c.CustomServerLayout)
+);
+let ProviderConnectionsListLayout = dynamicPage(() =>
+  import('./pages/(custom-servers)/(list)/_layout').then(c => c.ProviderConnectionsListLayout)
 );
 let ManagedServersListLayout = dynamicPage(() =>
   import('./pages/(custom-servers)/(list)/_layout').then(c => c.ManagedServersListLayout)
+);
+let ExternalServersListLayout = dynamicPage(() =>
+  import('./pages/(custom-servers)/(list)/_layout').then(c => c.ExternalServersListLayout)
 );
 let ServersListLayout = dynamicPage(() =>
   import('./pages/(servers)/(list)/_layout').then(c => c.ServersListLayout)
@@ -161,7 +211,23 @@ let ProjectSettingsPage = dynamicPage(() =>
 let ProjectSettingsPageLayout = dynamicPage(() =>
   import('./pages/settings/_layout').then(c => c.ProjectSettingsPageLayout)
 );
-
+let CustomServerDeploymentsPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/deployments').then(
+    c => c.CustomServerDeploymentsPage
+  )
+);
+let CustomServerListingPage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/settings/listing').then(
+    c => c.CustomServerListingPage
+  )
+);
+let CommunityServersPage = dynamicPage(() =>
+  import('./pages/community/communityServers').then(c => c.CommunityServersPage)
+);
+let CommunityProfilePage = dynamicPage(() =>
+  import('./pages/community/profile').then(c => c.CommunityProfilePage)
+);
+let NotFoundPage = dynamicPage(() => import('@metorial/pages').then(c => c.NotFound));
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
 
@@ -246,10 +312,90 @@ export let productInnerSlice = createSlice([
               {
                 path: 'external-servers',
                 element: <ExternalServersPage />
-              },
+              }
+            ]
+          },
+
+          {
+            path: '',
+            element: (
+              <FlaggedPage flag="metorial-gateway-enabled">
+                <ProviderConnectionsListLayout />
+              </FlaggedPage>
+            ),
+
+            children: [
               {
                 path: 'provider-connections',
                 element: <ProviderConnectionsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'custom-server/:customServerId',
+            element: (
+              <FlaggedPage flag="metorial-gateway-enabled">
+                <CustomServerLayout />
+              </FlaggedPage>
+            ),
+
+            children: [
+              {
+                path: '',
+                element: <CustomServerOverviewPage />
+              },
+              {
+                path: 'versions',
+                element: <CustomServerVersionsPage />
+              },
+              {
+                path: 'code',
+                element: <CustomServerCodePage />
+              },
+              {
+                path: 'deployments',
+                element: <CustomServerDeploymentsPage />
+              },
+              {
+                path: 'settings',
+                element: <CustomServerSettingsPage />
+              },
+              {
+                path: 'listing',
+                element: <CustomServerListingPage />
+              }
+            ]
+          },
+
+          {
+            path: 'provider-connection/:providerConnectionId',
+            element: (
+              <FlaggedPage flag="metorial-gateway-enabled">
+                <ProviderConnectionLayout />
+              </FlaggedPage>
+            ),
+
+            children: [
+              {
+                path: '',
+                element: <ProviderConnectionOverviewPage />
+              },
+              {
+                path: 'logs',
+                element: <ProviderConnectionLogsPage />
+              },
+              {
+                path: 'profiles',
+                element: <ProviderConnectionProfilesPage />
+              },
+              {
+                path: 'settings',
+                element: <ProviderConnectionSettingsPage />
+              },
+              {
+                path: 'test-response',
+                element: <ProviderConnectionTestResponsePage />
               }
             ]
           },
@@ -449,6 +595,20 @@ export let productInnerSlice = createSlice([
       {
         path: 'explorer',
         element: <ExplorerPage />
+      },
+
+      {
+        path: 'community',
+        children: [
+          {
+            path: 'profile',
+            element: <CommunityProfilePage />
+          },
+          {
+            path: 'servers',
+            element: <CommunityServersPage />
+          }
+        ]
       }
     ]
   }

@@ -217,7 +217,7 @@ export let ProjectHomePage = () => {
           <ServersGrid
             orderByRank
             limit={6}
-            collectionId={(window as any).metorial_enterprise?.landing_collection_ids}
+            // collectionId={(window as any).metorial_enterprise?.landing_collection_ids}
           />
 
           <Spacer height={35} />
