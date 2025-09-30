@@ -1,0 +1,12 @@
+model ServerSyncJob {
+  oid BigInt @id @default(autoincrement())
+
+  importedSeversCount     Int @default(0)
+  importedVendorsCount    Int @default(0)
+  importedReposCount      Int @default(0)
+  importedCategoriesCount Int @default(0)
+  importedProvidersCount  Int @default(0)
+
+  createdAt  DateTime  @default(now())
+  finishedAt DateTime?
+}

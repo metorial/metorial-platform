@@ -37,13 +37,22 @@ let syncCron = createCron(
     cron: '0 * * * *'
   },
   async () => {
-    // await syncQueue.add({}, { id: 'init' });
+    if (process.env.NODE_ENV == 'development') return;
+
+    await syncQueue.add({}, { id: 'init' });
   }
 );
 
-// syncQueue
-//   .add({}, { id: 'init' })
-//   .catch(e => console.error('Error adding to full sync queue', e));
+(async () => {
+  let existingServer = await db.importedServer.findFirst();
+  if (!existingServer) {
+    await syncQueue.add({}, { id: 'init' });
+  }
+})().catch(e => {});
+
+export let manuallyTriggerCatalogSync = async () => {
+  await syncQueue.add({}, { id: 'init' });
+};
 
 export let syncProcessor = syncQueue.process(async () => {
   if (process.env.DISABLE_CATALOG_SYNC == 'true') {
@@ -51,8 +60,14 @@ export let syncProcessor = syncQueue.process(async () => {
     return;
   }
 
+  let syncJob = await db.serverSyncJob.create({
+    data: {}
+  });
+
   await IndexDB.createAndUse(async index => {
+    let vendorCount = 0;
     for (let vendor of index.vendors.iterate()) {
+      vendorCount++;
       await ensureImportedServerVendor(() => ({
         identifier: vendor.identifier,
         name: vendor.name,
@@ -62,7 +77,9 @@ export let syncProcessor = syncQueue.process(async () => {
       }));
     }
 
+    let categoryCount = 0;
     for (let category of index.categories.iterate()) {
+      categoryCount++;
       await ensureServerListingCategory(() => ({
         slug: category.identifier,
         name: category.name,
@@ -70,7 +87,9 @@ export let syncProcessor = syncQueue.process(async () => {
       }));
     }
 
+    let providerCount = 0;
     for (let provider of index.serverProviders.iterate()) {
+      providerCount++;
       await ensureServerVariantProvider(() => ({
         identifier: provider.identifier,
         name: provider.name,
@@ -80,7 +99,9 @@ export let syncProcessor = syncQueue.process(async () => {
       }));
     }
 
+    let repositoryCount = 0;
     for (let repository of index.repositories.iterate()) {
+      repositoryCount++;
       await ensureImportedRepository(() => ({
         identifier: repository.identifier,
         slug: repository.slug,
@@ -113,7 +134,9 @@ export let syncProcessor = syncQueue.process(async () => {
       }));
     }
 
+    let serverCount = 0;
     for (let server of index.servers.iterate()) {
+      serverCount++;
       try {
         let categoryIdentifiers = index.servers.categoryIdentifiers(server);
         let variants = index.servers.variants(server);
@@ -264,6 +287,18 @@ export let syncProcessor = syncQueue.process(async () => {
     }
 
     await startRankQueue.add({}, { id: 'rank' });
+
+    await db.serverSyncJob.update({
+      where: { oid: syncJob.oid },
+      data: {
+        importedSeversCount: serverCount,
+        importedVendorsCount: vendorCount,
+        importedReposCount: repositoryCount,
+        importedCategoriesCount: categoryCount,
+        importedProvidersCount: providerCount,
+        finishedAt: new Date()
+      }
+    });
   });
 });
 
