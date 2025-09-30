@@ -187,6 +187,7 @@ export type ManagementInstanceCustomServersVersionsCreateBody = {
           remoteUrl: string;
           oauthConfig?:
             | { config: Record<string, any>; scopes: string[] }
+            | null
             | undefined;
         };
         config?:
@@ -199,6 +200,7 @@ export type ManagementInstanceCustomServersVersionsCreateBody = {
           | {
               oauthConfig?:
                 | { config: Record<string, any>; scopes: string[] }
+                | null
                 | undefined;
             }
           | undefined;

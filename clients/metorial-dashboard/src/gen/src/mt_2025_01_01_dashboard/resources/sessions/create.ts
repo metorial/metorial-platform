@@ -156,6 +156,7 @@ export type SessionsCreateBody = {
         description?: string | undefined;
         metadata?: Record<string, any> | undefined;
         config: Record<string, any>;
+        oauthConfig?: { clientId: string; clientSecret: string } | undefined;
       } & (
         | {
             serverImplementation: {
@@ -186,6 +187,16 @@ export let mapSessionsCreateBody = mtMap.object<SessionsCreateBody>({
             description: mtMap.objectField('description', mtMap.passthrough()),
             metadata: mtMap.objectField('metadata', mtMap.passthrough()),
             config: mtMap.objectField('config', mtMap.passthrough()),
+            oauthConfig: mtMap.objectField(
+              'oauth_config',
+              mtMap.object({
+                clientId: mtMap.objectField('client_id', mtMap.passthrough()),
+                clientSecret: mtMap.objectField(
+                  'client_secret',
+                  mtMap.passthrough()
+                )
+              })
+            ),
             serverImplementation: mtMap.objectField(
               'server_implementation',
               mtMap.union([

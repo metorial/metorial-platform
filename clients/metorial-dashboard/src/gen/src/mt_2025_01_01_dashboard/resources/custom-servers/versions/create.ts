@@ -185,6 +185,7 @@ export type CustomServersVersionsCreateBody = {
           remoteUrl: string;
           oauthConfig?:
             | { config: Record<string, any>; scopes: string[] }
+            | null
             | undefined;
         };
         config?:
@@ -197,6 +198,7 @@ export type CustomServersVersionsCreateBody = {
           | {
               oauthConfig?:
                 | { config: Record<string, any>; scopes: string[] }
+                | null
                 | undefined;
             }
           | undefined;
