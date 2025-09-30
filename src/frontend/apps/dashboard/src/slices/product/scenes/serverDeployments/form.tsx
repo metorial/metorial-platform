@@ -295,7 +295,7 @@ export let ServerDeploymentForm = (
               return (
                 <ServerSearch
                   onSelect={server => {
-                    setSearchServer(server);
+                    setSearchServer(server as any);
                   }}
                 />
               );

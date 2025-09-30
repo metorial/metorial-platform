@@ -61,7 +61,7 @@ export let ServersGrid = (filter: ServersListingsListQuery) => {
                       </Badge>
                     ) : (
                       (server.profile?.isOfficial || server.isOfficial) && (
-                        <Badge size="1" color="blue">
+                        <Badge size="1" color="gray">
                           Official
                         </Badge>
                       )
