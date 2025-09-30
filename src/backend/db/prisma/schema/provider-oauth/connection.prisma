@@ -47,10 +47,11 @@ model ProviderOAuthConnection {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  profiles          ProviderOAuthConnectionProfile[]
-  tokens            ProviderOAuthConnectionAuthToken[]
-  attempts          ProviderOAuthConnectionAuthAttempt[]
-  events            ProviderOAuthConnectionEvent[]
-  sessions          ServerOAuthSession[]
-  serverDeployments ServerDeployment[]                   @relation("ProviderOAuthConnectionServerDeployments")
+  profiles                        ProviderOAuthConnectionProfile[]
+  tokens                          ProviderOAuthConnectionAuthToken[]
+  attempts                        ProviderOAuthConnectionAuthAttempt[]
+  events                          ProviderOAuthConnectionEvent[]
+  sessions                        ServerOAuthSession[]
+  serverDeployments               ServerDeployment[]                   @relation("ProviderOAuthConnectionServerDeployments")
+  providerOAuthRegistrationErrors ProviderOAuthRegistrationError[]
 }

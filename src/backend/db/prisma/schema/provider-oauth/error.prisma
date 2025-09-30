@@ -1,0 +1,15 @@
+model ProviderOAuthRegistrationError {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  payload  Json
+  endpoint String
+
+  configOid BigInt?
+  config    ProviderOAuthConfig? @relation(fields: [configOid], references: [oid], onDelete: SetNull)
+
+  connectionOid BigInt?
+  connection    ProviderOAuthConnection? @relation(fields: [connectionOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+}

@@ -26,8 +26,8 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
       skills: serverListing.skills,
 
       image_url: await getImageUrl(
-        serverListing.image?.type == 'default'
-          ? (serverListing.profile ?? vendor ?? serverListing)
+        !serverListing.image || serverListing.image?.type == 'default'
+          ? (vendor ?? serverListing.profile ?? serverListing)
           : serverListing
       ),
 

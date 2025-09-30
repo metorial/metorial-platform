@@ -83,6 +83,7 @@ export let ID = createIdGenerator({
   oauthConnectionEvent: idType.sorted('poce'),
   oauthAutoRegistration: idType.sorted('poar'),
   oauthConfig: idType.sorted('pocf'),
+  providerOAuthRegistrationError: idType.sorted('pore'),
 
   customServer: idType.sorted('csv'),
   customServerVersion: idType.sorted('csvv'),
