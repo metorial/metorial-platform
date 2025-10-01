@@ -17,7 +17,10 @@ export let serverDeploymentsLoader = createLoader({
 
 export let useCreateDeployment = serverDeploymentsLoader.createExternalMutator(
   (i: DashboardInstanceServersDeploymentsCreateBody & { instanceId: string }) =>
-    withAuth(sdk => sdk.servers.deployments.create(i.instanceId, i))
+    withAuth(sdk => sdk.servers.deployments.create(i.instanceId, i)),
+  {
+    disableToast: true
+  }
 );
 
 export let useServerDeployments = (

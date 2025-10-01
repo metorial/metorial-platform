@@ -21,6 +21,7 @@ export let serverSessionCreatedQueueProcessor = serverSessionCreatedQueue.proces
         instance: true,
         serverDeployment: {
           include: {
+            server: true,
             serverImplementation: true
           }
         }
@@ -73,6 +74,18 @@ export let serverSessionCreatedQueueProcessor = serverSessionCreatedQueue.proces
       entity: {
         id: serverDeployment.id,
         type: 'server_deployment'
+      },
+      type: 'server_run.created'
+    });
+
+    await usageService.ingestUsageRecord({
+      owner: {
+        id: instance.id,
+        type: 'instance'
+      },
+      entity: {
+        id: serverDeployment.server.id,
+        type: 'server'
       },
       type: 'server_run.created'
     });

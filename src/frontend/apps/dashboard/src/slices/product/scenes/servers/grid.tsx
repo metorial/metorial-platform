@@ -55,21 +55,18 @@ export let ServersGrid = (filter: ServersListingsListQuery) => {
                   />
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    {server.profile?.isMetorial || server.isMetorial ? (
-                      <Badge size="1" color="blue">
-                        From Metorial
-                      </Badge>
-                    ) : (
-                      (server.profile?.isOfficial || server.isOfficial) && (
-                        <Badge size="1" color="gray">
-                          Official
-                        </Badge>
-                      )
-                    )}
-
                     {(server.profile?.isVerified || server.isVerified) && (
                       <Badge size="1" color="blue">
                         <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
+                      </Badge>
+                    )}
+
+                    {(server.profile?.isMetorial ||
+                      server.profile?.isOfficial ||
+                      server.isMetorial ||
+                      server.isOfficial) && (
+                      <Badge size="1" color="gray">
+                        Official
                       </Badge>
                     )}
                   </div>

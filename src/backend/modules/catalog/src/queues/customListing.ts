@@ -77,6 +77,16 @@ export let setCustomServerListingQueueProcessor = setCustomServerListingQueue.pr
       update: listingData
     });
 
+    await db.server.update({
+      where: {
+        oid: server.oid
+      },
+      data: {
+        name: server.name,
+        description: server.description
+      }
+    });
+
     await indexServerListingQueue.add({
       serverListingId: listing.id
     });
