@@ -83,8 +83,6 @@ export class SessionConnection {
     if (opts.mode == 'send-and-receive') {
       this.#pingIv = setInterval(() => {
         (async () => {
-          console.log('Touching session', this.session.id);
-
           await db.session.updateMany({
             where: { oid: this.session.sessionOid },
             data: {

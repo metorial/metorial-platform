@@ -23,8 +23,6 @@ export let sendEmailSingleQueue = createQueue<{ destinationId: bigint }>({
 });
 
 export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async data => {
-  console.log('Processing email send single queue', data);
-
   let destination = await db.outgoingEmailDestination.findFirst({
     where: {
       id: data.destinationId,
