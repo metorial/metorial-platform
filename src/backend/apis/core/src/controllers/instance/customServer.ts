@@ -19,7 +19,7 @@ export let customServerGroup = instanceGroup.use(async ctx => {
 
   let customServer = await customServerService.getCustomServerById({
     serverId: ctx.params.customServerId,
-    organization: ctx.organization
+    instance: ctx.instance
   });
 
   return { customServer };
@@ -52,7 +52,7 @@ export let customServerController = Controller.create(
       )
       .do(async ctx => {
         let paginator = await customServerService.listCustomServers({
-          organization: ctx.organization,
+          instance: ctx.instance,
           types: normalizeArrayParam(ctx.query.type)
         });
 

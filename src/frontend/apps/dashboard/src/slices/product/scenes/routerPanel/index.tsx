@@ -1,7 +1,7 @@
 import { Panel } from '@metorial/ui';
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useSearchParam } from 'react-use';
+import { useNavigate } from 'react-router-dom';
+import { useInterval, useSearchParam } from 'react-use';
 
 export let RouterPanel = ({
   children,
@@ -12,28 +12,36 @@ export let RouterPanel = ({
   param: string;
   width?: number;
 }) => {
-  let [isOpen, setIsOpen] = useState(false);
+  let [isOpenFor, setIsOpenFor] = useState<string | null>();
+  let isOpenForRef = useRef(isOpenFor);
 
-  let [search] = useSearchParams();
   let paramValue = useSearchParam(param);
 
   let contentRef = useRef<any>(undefined);
   if (paramValue) contentRef.current = children(paramValue);
 
   let navigate = useNavigate();
-
   useEffect(() => {
-    setIsOpen(!!paramValue);
+    isOpenForRef.current = isOpenFor;
+    setIsOpenFor(paramValue ?? null);
   }, [paramValue]);
+
+  useInterval(() => {
+    if (paramValue && isOpenForRef.current != paramValue) {
+      setIsOpenFor(paramValue);
+    }
+  }, 150);
+
+  let isOpen = Boolean(isOpenFor);
 
   return (
     <Panel.Wrapper
       isOpen={isOpen}
       width={width}
       onOpenChange={v => {
-        setIsOpen(v);
+        setIsOpenFor(v && paramValue ? (paramValue as string) : null);
 
-        if (!v) {
+        if (!v || !paramValue) {
           let url = new URL(window.location.href);
           url.searchParams.delete(param);
           navigate(url.pathname + url.search + url.hash, { replace: true });

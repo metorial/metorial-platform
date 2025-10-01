@@ -46,7 +46,7 @@ export let CustomServerOverviewPage = () => {
 
       <SideBox
         title="Test Server"
-        description="Test your server to ensure it is working as expected."
+        description="Use the Metorial Explorer to test your custom server."
       >
         <Button
           as="span"
