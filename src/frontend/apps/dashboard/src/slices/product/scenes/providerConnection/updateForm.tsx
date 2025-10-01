@@ -22,6 +22,7 @@ let emptyClientSecret = '••••••••••••••••••�
 
 export let ProviderConnectionUpdateForm = (p: {
   providerConnection?: ProviderOauthConnectionsGetOutput;
+  hideDelete?: boolean;
 }) => {
   let instance = useCurrentInstance();
   let providerConnection = useProviderConnection(instance.data?.id, p.providerConnection?.id);
@@ -155,39 +156,41 @@ export let ProviderConnectionUpdateForm = (p: {
         </Field>
       </FormBox>
 
-      <Box
-        title="Delete Connection"
-        description="Delete this OAuth connection. This action cannot be undone."
-      >
-        <Button
-          color="red"
-          onClick={() =>
-            confirm({
-              title: 'Delete OAuth Connection',
-              description:
-                'Are you sure you want to delete this OAuth connection? This action cannot be undone.',
-              onConfirm: async () => {
-                if (!instance.data) return;
-
-                let [res] = await deleteMutator.mutate({});
-                if (res) {
-                  toast.success('OAuth connection deleted successfully.');
-                  navigate(
-                    Paths.instance.providerConnections(
-                      instance.data?.organization,
-                      instance.data?.project,
-                      instance.data
-                    )
-                  );
-                }
-              }
-            })
-          }
-          disabled={providerConnection.data?.status === 'archived'}
+      {p.hideDelete && (
+        <Box
+          title="Delete Connection"
+          description="Delete this OAuth connection. This action cannot be undone."
         >
-          Delete
-        </Button>
-      </Box>
+          <Button
+            color="red"
+            onClick={() =>
+              confirm({
+                title: 'Delete OAuth Connection',
+                description:
+                  'Are you sure you want to delete this OAuth connection? This action cannot be undone.',
+                onConfirm: async () => {
+                  if (!instance.data) return;
+
+                  let [res] = await deleteMutator.mutate({});
+                  if (res) {
+                    toast.success('OAuth connection deleted successfully.');
+                    navigate(
+                      Paths.instance.providerConnections(
+                        instance.data?.organization,
+                        instance.data?.project,
+                        instance.data
+                      )
+                    );
+                  }
+                }
+              })
+            }
+            disabled={providerConnection.data?.status === 'archived'}
+          >
+            Delete
+          </Button>
+        </Box>
+      )}
     </FormPage>
   );
 };

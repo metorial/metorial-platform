@@ -19,7 +19,6 @@ import { badRequestError, ServiceError } from '@metorial/error';
 import { Hash } from '@metorial/hash';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { subMinutes } from 'date-fns';
-import { startRankQueue } from '../rank';
 import { indexServerListingQueue } from '../search';
 import { IndexDB } from './indexDb';
 
@@ -353,8 +352,6 @@ export let syncProcessor = syncQueue.process(async () => {
         finishedAt: new Date()
       }
     });
-
-    await startRankQueue.add({}, { id: 'rank' });
   });
 });
 

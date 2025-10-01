@@ -1,3 +1,4 @@
+import { renderWithLoader } from '@metorial/data-hooks';
 import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useServerListings } from '@metorial/state';
 import {
@@ -103,22 +104,24 @@ export let ServerSearch = ({
 
           <Spacer size={20} />
 
-          <Popular>
-            {popularServers.data?.items
-              .filter(server => server.isOfficial)
-              .slice(0, 12)
-              .map(server => (
-                <PopularItem
-                  key={server.id}
-                  onClick={() => onSelect?.(server as any)}
-                  type="button"
-                >
-                  <Avatar entity={server} size={24} />
+          {renderWithLoader({ popularServers })(({ popularServers }) => (
+            <Popular>
+              {popularServers.data.items
+                .filter(server => server.isOfficial)
+                .slice(0, 12)
+                .map(server => (
+                  <PopularItem
+                    key={server.id}
+                    onClick={() => onSelect?.(server as any)}
+                    type="button"
+                  >
+                    <Avatar entity={server} size={24} />
 
-                  <span>{server.name}</span>
-                </PopularItem>
-              ))}
-          </Popular>
+                    <span>{server.name}</span>
+                  </PopularItem>
+                ))}
+            </Popular>
+          ))}
         </>
       ) : (
         <>

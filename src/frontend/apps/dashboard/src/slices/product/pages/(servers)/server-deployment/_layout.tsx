@@ -92,30 +92,40 @@ export let ServerDeploymentLayout = () => {
         }
       />
 
-      <LinkTabs
-        current={pathname}
-        links={[
-          {
-            label: 'Overview',
-            to: Paths.instance.serverDeployment(...serverPathParams)
-          },
-          {
-            label: 'Configuration',
-            to: Paths.instance.serverDeployment(...serverPathParams, 'config')
-          },
-          {
-            label: 'Runs',
-            to: Paths.instance.serverDeployment(...serverPathParams, 'runs')
-          },
-          {
-            label: 'Errors',
-            to: Paths.instance.serverDeployment(...serverPathParams, 'errors')
-          }
-        ]}
-      />
+      {renderWithLoader({ deployment })(({ deployment }) => (
+        <>
+          <LinkTabs
+            current={pathname}
+            links={[
+              {
+                label: 'Overview',
+                to: Paths.instance.serverDeployment(...serverPathParams)
+              },
+              ...(deployment.data.oauthConnection
+                ? [
+                    {
+                      label: 'OAuth Configuration',
+                      to: Paths.instance.serverDeployment(...serverPathParams, 'oauth')
+                    }
+                  ]
+                : []),
+              {
+                label: 'Runs',
+                to: Paths.instance.serverDeployment(...serverPathParams, 'runs')
+              },
+              {
+                label: 'Errors',
+                to: Paths.instance.serverDeployment(...serverPathParams, 'errors')
+              },
+              {
+                label: 'Settings',
+                to: Paths.instance.serverDeployment(...serverPathParams, 'config')
+              }
+            ]}
+          />
 
-      {renderWithLoader({ deployment })(() => (
-        <Outlet />
+          <Outlet />
+        </>
       ))}
     </ContentLayout>
   );

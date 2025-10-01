@@ -5,9 +5,10 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useServer
+  useServer,
+  useServerListing
 } from '@metorial/state';
-import { Button, LinkTabs } from '@metorial/ui';
+import { Badge, Button, LinkTabs } from '@metorial/ui';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import { showServerDeploymentFormModal } from '../../../scenes/serverDeployments/modal';
 
@@ -18,6 +19,7 @@ export let ServerLayout = () => {
 
   let { serverId } = useParams();
   let server = useServer(instance.data?.id, serverId);
+  let listing = useServerListing(instance.data?.id, serverId);
 
   let pathname = useLocation().pathname;
 
@@ -33,6 +35,17 @@ export let ServerLayout = () => {
       <PageHeader
         title={server.data?.name ?? '...'}
         description={server.data?.description ?? undefined}
+        top={
+          (listing.data?.isVerified ||
+            listing.data?.isOfficial ||
+            listing.data?.isMetorial) && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              {listing.data?.isVerified && <Badge color="blue">Verified</Badge>}
+              {listing.data?.isOfficial && <Badge color="blue">Official</Badge>}
+              {listing.data?.isMetorial && <Badge color="blue">From Metorial</Badge>}
+            </div>
+          )
+        }
         pagination={[
           {
             label: 'Servers',

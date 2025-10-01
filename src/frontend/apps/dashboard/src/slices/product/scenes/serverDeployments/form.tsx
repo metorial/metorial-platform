@@ -15,12 +15,15 @@ import {
   Button,
   Callout,
   CenteredSpinner,
+  confirm,
   Copy,
   Dialog,
   Input,
   showModal,
-  Spacer
+  Spacer,
+  toast
 } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -56,8 +59,9 @@ export let ServerDeploymentForm = (
     p.type == 'update' ? p.serverDeploymentId : undefined
   );
 
-  let update = deployment?.useUpdateMutator();
-  let create = useCreateDeployment();
+  let updateMutator = deployment?.useUpdateMutator();
+  let deleteMutator = deployment?.useDeleteMutator();
+  let createMutator = useCreateDeployment();
 
   let [currentStep, setCurrentStep] = useState(0);
 
@@ -108,7 +112,7 @@ export let ServerDeploymentForm = (
         let configChanged =
           canonicalize(values.config) !== canonicalize(deployment?.data?.config);
 
-        await update.mutate({
+        await updateMutator.mutate({
           name: values.name,
           description: values.description,
           metadata: values.metadata,
@@ -118,7 +122,7 @@ export let ServerDeploymentForm = (
         let doCreate = async (
           oauthConfig: { clientId: string; clientSecret: string } | undefined
         ) => {
-          let [res, err] = await create.mutate({
+          let [res, err] = await createMutator.mutate({
             name: values.name,
             description: values.description,
             metadata: values.metadata,
@@ -226,48 +230,91 @@ export let ServerDeploymentForm = (
 
   if (p.type == 'update') {
     return (
-      <Form onSubmit={form.handleSubmit}>
-        <Input label="Name" {...form.getFieldProps('name')} />
-        <form.RenderError field="name" />
-
-        <Spacer size={15} />
-
-        <Input label="Description" {...form.getFieldProps('description')} />
-        <form.RenderError field="description" />
-
-        <Spacer size={15} />
-
-        <div
-          style={{
-            display: 'flex',
-            gap: 10,
-            justifyContent: 'flex-end'
-          }}
+      <>
+        <Box
+          title="Server Deployment Settings"
+          description="Modify the settings of this server deployment."
         >
-          {p.extraActions}
+          <Form onSubmit={form.handleSubmit}>
+            <Input label="Name" {...form.getFieldProps('name')} />
+            <form.RenderError field="name" />
 
-          {p.close && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={p.close}
-              disabled={update?.isLoading || create.isLoading}
+            <Spacer size={15} />
+
+            <Input label="Description" {...form.getFieldProps('description')} />
+            <form.RenderError field="description" />
+
+            <Spacer size={15} />
+
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                justifyContent: 'flex-end'
+              }}
             >
-              Close
-            </Button>
-          )}
+              {p.extraActions}
 
+              {p.close && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={p.close}
+                  disabled={updateMutator?.isLoading || createMutator.isLoading}
+                >
+                  Close
+                </Button>
+              )}
+
+              <Button
+                loading={updateMutator?.isLoading || createMutator.isLoading}
+                success={updateMutator?.isSuccess || createMutator.isSuccess}
+                type="submit"
+              >
+                Save
+              </Button>
+            </div>
+
+            {updateMutator && <updateMutator.RenderError />}
+          </Form>
+        </Box>
+
+        <Spacer size={20} />
+
+        <Box
+          title="Delete Connection"
+          description="Delete this server deployment connection. This action cannot be undone."
+        >
           <Button
-            loading={update?.isLoading || create.isLoading}
-            success={update?.isSuccess || create.isSuccess}
-            type="submit"
-          >
-            Save
-          </Button>
-        </div>
+            color="red"
+            onClick={() =>
+              confirm({
+                title: 'Delete Server Deployment',
+                description:
+                  'Are you sure you want to delete this server deployment? This action cannot be undone.',
+                onConfirm: async () => {
+                  if (!instance.data) return;
 
-        {update && <update.RenderError />}
-      </Form>
+                  let [res] = await deleteMutator.mutate({});
+                  if (res) {
+                    toast.success('Server deployment deleted successfully.');
+                    navigate(
+                      Paths.instance.serverDeployments(
+                        instance.data?.organization,
+                        instance.data?.project,
+                        instance.data
+                      )
+                    );
+                  }
+                }
+              })
+            }
+            disabled={deployment.data?.status === 'archived'}
+          >
+            Delete
+          </Button>
+        </Box>
+      </>
     );
   }
 
@@ -357,7 +404,7 @@ export let ServerDeploymentForm = (
               type="button"
               variant="outline"
               onClick={p.close}
-              disabled={update?.isLoading || create.isLoading}
+              disabled={updateMutator?.isLoading || createMutator.isLoading}
               size="2"
             >
               Close
@@ -378,8 +425,8 @@ export let ServerDeploymentForm = (
             </Button>
           ) : (
             <Button
-              loading={update?.isLoading || create.isLoading}
-              success={update?.isSuccess || create.isSuccess}
+              loading={updateMutator?.isLoading || createMutator.isLoading}
+              success={updateMutator?.isSuccess || createMutator.isSuccess}
               type="submit"
               size="2"
             >
@@ -389,7 +436,7 @@ export let ServerDeploymentForm = (
         </div>
       )}
 
-      <create.RenderError />
+      <createMutator.RenderError />
     </Form>
   );
 };

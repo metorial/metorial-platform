@@ -44,11 +44,10 @@ model ServerDeployment {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  serverRunErrors                     ServerRunError[]
-  serverSessions                      ServerSession[]
-  serverRuns                          ServerRun[]
-  sessionsOldDontUse                  Session[]
-  serverAutoDiscoveryJobs             ServerAutoDiscoveryJob[]
-  sessionServerDeployments            SessionServerDeployment[]
-  providerOAuthConnectionsAutoCreated ProviderOAuthConnection[] @relation("ProviderOAuthConnectionServerDeploymentsAutoCreated")
+  serverRunErrors          ServerRunError[]
+  serverSessions           ServerSession[]
+  serverRuns               ServerRun[]
+  sessionsOldDontUse       Session[]
+  serverAutoDiscoveryJobs  ServerAutoDiscoveryJob[]
+  sessionServerDeployments SessionServerDeployment[]
 }

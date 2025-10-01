@@ -36,7 +36,16 @@ export let ServersPage = () => {
 
       <Spacer size={15} />
 
-      <ServersGrid limit={6} orderByRank search={searchDebounced} />
+      <ServersGrid
+        limit={15}
+        orderByRank
+        search={searchDebounced}
+        collectionId={
+          searchDebounced
+            ? undefined
+            : (window as any).metorial_enterprise?.landing_collection_ids
+        }
+      />
 
       <Spacer size={15} />
 

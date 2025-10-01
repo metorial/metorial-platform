@@ -82,7 +82,7 @@ I would like to request support for the ${server.data.name} server (ID: ${server
               ]),
           {
             label: 'Vendor',
-            content: listing.data.vendor?.name
+            content: listing.data.vendor?.name ?? listing.data.profile?.name
           },
           {
             label: 'Server ID',

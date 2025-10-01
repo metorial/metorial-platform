@@ -1,7 +1,6 @@
 import { Panel } from '@metorial/ui';
-import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useInterval, useSearchParam } from 'react-use';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export let RouterPanel = ({
   children,
@@ -15,7 +14,11 @@ export let RouterPanel = ({
   let [isOpenFor, setIsOpenFor] = useState<string | null>();
   let isOpenForRef = useRef(isOpenFor);
 
-  let paramValue = useSearchParam(param);
+  let location = useLocation();
+  let paramValue = useMemo(() => {
+    let params = new URLSearchParams(location.search);
+    return params.get(param);
+  }, [location.search]);
 
   let contentRef = useRef<any>(undefined);
   if (paramValue) contentRef.current = children(paramValue);
@@ -24,13 +27,16 @@ export let RouterPanel = ({
   useEffect(() => {
     isOpenForRef.current = isOpenFor;
     setIsOpenFor(paramValue ?? null);
-  }, [paramValue]);
 
-  useInterval(() => {
-    if (paramValue && isOpenForRef.current != paramValue) {
-      setIsOpenFor(paramValue);
-    }
-  }, 150);
+    let i = 0;
+    let iv = setInterval(() => {
+      if (i == 10) clearInterval(iv);
+      setIsOpenFor(paramValue ?? null);
+      i++;
+    }, 50);
+
+    return () => clearInterval(iv);
+  }, [paramValue]);
 
   let isOpen = Boolean(isOpenFor);
 
