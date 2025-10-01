@@ -436,7 +436,9 @@ export let ServerDeploymentForm = (
         </div>
       )}
 
-      <createMutator.RenderError />
+      {!createMutator.error?.message.includes('OAuth configuration is required') && (
+        <createMutator.RenderError />
+      )}
     </Form>
   );
 };

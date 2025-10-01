@@ -81,10 +81,10 @@ let defaultManagedConfigSchema = {
 
 let defaultManagedLaunchParams = `(config, ctx) => ({
   args: {
-    ...config,
-
     // Get access to oauth token (if oauth is configured)
-    token: config.oauthToken 
+    token: config.oauthToken,
+
+    ...config
   }
 });`;
 

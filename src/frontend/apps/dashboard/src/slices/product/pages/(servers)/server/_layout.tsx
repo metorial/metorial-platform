@@ -41,8 +41,9 @@ export let ServerLayout = () => {
             listing.data?.isMetorial) && (
             <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
               {listing.data?.isVerified && <Badge color="blue">Verified</Badge>}
-              {listing.data?.isOfficial && <Badge color="blue">Official</Badge>}
-              {listing.data?.isMetorial && <Badge color="blue">From Metorial</Badge>}
+              {(listing.data?.isOfficial || listing.data?.isMetorial) && (
+                <Badge color="gray">Official</Badge>
+              )}
             </div>
           )
         }

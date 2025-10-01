@@ -348,10 +348,11 @@ export let createLoader = <
   };
 
   let createExternalMutator =
-    <I, O>(mutator: (data: I) => Promise<O>) =>
+    <I, O>(mutator: (data: I) => Promise<O>, opts?: { disableToast?: boolean }) =>
     () =>
       useMutation(mutator, {
-        onSuccess: refetchAll
+        onSuccess: refetchAll,
+        disableToast: opts?.disableToast
       });
 
   return {

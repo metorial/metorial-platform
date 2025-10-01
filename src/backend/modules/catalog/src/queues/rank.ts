@@ -127,7 +127,7 @@ export let processSingleRankQueueProcessor = processSingleRankQueue.process(asyn
     rank = Math.ceil(deploymentsCount * 5 + serverSessionsCount * 3);
 
     if (serverListing.profile.isMetorial) {
-      rank += 35_000;
+      rank += 1_000_000;
       isVerified = serverListing.isVerified;
       isMetorial = serverListing.isMetorial;
       isOfficial = serverListing.isOfficial;
