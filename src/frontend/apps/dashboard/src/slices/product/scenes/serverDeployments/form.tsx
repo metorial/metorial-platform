@@ -8,6 +8,7 @@ import { Paths } from '@metorial/frontend-config';
 import {
   useCreateDeployment,
   useCurrentInstance,
+  useServer,
   useServerDeployment,
   useServerVariants
 } from '@metorial/state';
@@ -24,7 +25,7 @@ import {
   toast
 } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { JsonSchemaInput } from '../jsonSchemaInput';
@@ -79,6 +80,7 @@ export let ServerDeploymentForm = (
   if (serverId && currentStep == 0) currentStep = 1;
 
   let variants = useServerVariants(instance.data?.id, serverId);
+  let server = useServer(instance.data?.id, serverId);
 
   let variant = (p as any).for?.serverVariantId
     ? variants.data?.items.find(v => v.id == (p as any).for?.serverVariantId)
@@ -221,6 +223,11 @@ export let ServerDeploymentForm = (
       }
     }
   });
+
+  useEffect(() => {
+    if (!server.data) return;
+    form.setFieldValue('name', server.data.name);
+  }, [server.data?.id]);
 
   if (variants.data?.items.length === 0 && p.type == 'create') {
     return <Callout color="orange">This server cannot yet be deployed on Metorial.</Callout>;
