@@ -1,3 +1,4 @@
+import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 
@@ -15,6 +16,17 @@ let processSingleRankQueue = createQueue<{ serverListingId: string }>({
     limiter: process.env.NODE_ENV == 'development' ? undefined : { max: 20, duration: 1000 }
   }
 });
+
+let rankCron = createCron(
+  {
+    name: 'cat/rank/cron',
+    cron: '0 * * * *'
+  },
+  async () => {
+    if (process.env.NODE_ENV == 'development') return;
+    await startRankQueue.add({}, { id: 'rank' });
+  }
+);
 
 export let startRankQueueProcessor = startRankQueue.process(async () => {
   let afterId: string | undefined = undefined;
@@ -43,7 +55,7 @@ export let startRankQueueProcessor = startRankQueue.process(async () => {
 
 export let processSingleRankQueueProcessor = processSingleRankQueue.process(async data => {
   let serverListing = await db.serverListing.findUnique({
-    where: { id: data.serverListingId },
+    where: { id: data.serverListingId, isPublic: true },
     include: {
       profile: true,
       server: {
@@ -64,6 +76,10 @@ export let processSingleRankQueueProcessor = processSingleRankQueue.process(asyn
   let serverSessionsCount = 0;
   let serverMessagesCount = 0;
   let repoStarsCount = 0;
+
+  let isVerified = serverListing.isVerified;
+  let isMetorial = serverListing.isMetorial;
+  let isOfficial = serverListing.isOfficial;
 
   // Only calculate rank for hostable servers
   if (serverListing.server.importedServer?.isHostable) {
@@ -100,7 +116,7 @@ export let processSingleRankQueueProcessor = processSingleRankQueue.process(asyn
     if (!!serverListing.server.importedServer?.isOfficial) rank = Math.ceil(rank * 3);
 
     rank = Math.min(rank, 1_000_000_000);
-  } else if (serverListing.profile?.isMetorial) {
+  } else if (serverListing.profile) {
     deploymentsCount = await db.serverDeployment.count({
       where: { serverOid: serverListing.serverOid }
     });
@@ -108,7 +124,15 @@ export let processSingleRankQueueProcessor = processSingleRankQueue.process(asyn
       where: { serverDeployment: { serverOid: serverListing.serverOid } }
     });
 
-    rank = 35_000 + Math.ceil(deploymentsCount * 5 + serverSessionsCount * 3);
+    rank = Math.ceil(deploymentsCount * 5 + serverSessionsCount * 3);
+
+    if (serverListing.profile.isMetorial) {
+      rank += 35_000;
+      isVerified = serverListing.isVerified;
+      isMetorial = serverListing.isMetorial;
+      isOfficial = serverListing.isOfficial;
+    }
+
     rank = Math.min(rank, 1_000_000_000);
   } else {
     rank = -1;
@@ -129,6 +153,7 @@ export let processSingleRankQueueProcessor = processSingleRankQueue.process(asyn
 });
 
 export let rankProcessors = combineQueueProcessors([
+  rankCron,
   startRankQueueProcessor,
   processSingleRankQueueProcessor
 ]);

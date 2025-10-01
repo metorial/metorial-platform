@@ -49,16 +49,24 @@ let PaginationItem = styled.li`
   }
 `;
 
+let Layer = styled.div`
+  display: flex;
+`;
+
 export let PageHeader = ({
   title,
   description,
   actions,
+  top,
+  subHeader,
   pagination,
   size = '7'
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
   actions?: React.ReactNode;
+  top?: React.ReactNode;
+  subHeader?: React.ReactNode;
   pagination?: {
     href: string;
     label: React.ReactNode;
@@ -87,9 +95,13 @@ export let PageHeader = ({
             </PaginationList>
           )}
 
+          {top && <Layer>{top}</Layer>}
+
           <Title as="h1" size={size} weight="strong">
             {title}
           </Title>
+
+          {subHeader && <Layer>{subHeader}</Layer>}
         </Content>
 
         {actions && <Nav>{actions}</Nav>}
