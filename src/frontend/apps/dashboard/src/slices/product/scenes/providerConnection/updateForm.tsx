@@ -156,7 +156,7 @@ export let ProviderConnectionUpdateForm = (p: {
         </Field>
       </FormBox>
 
-      {p.hideDelete && (
+      {!p.hideDelete && (
         <Box
           title="Delete Connection"
           description="Delete this OAuth connection. This action cannot be undone."
