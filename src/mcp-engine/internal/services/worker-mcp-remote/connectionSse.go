@@ -34,8 +34,9 @@ type ConnectionSSE struct {
 
 	config *remotePb.RunConfigRemote
 
-	wg    sync.WaitGroup
-	mutex sync.Mutex
+	wg        sync.WaitGroup
+	mutex     sync.Mutex
+	sendMutex sync.Mutex
 }
 
 var ignoreHeaders = map[string]bool{
@@ -155,12 +156,14 @@ func NewConnectionSSE(ctx context.Context, config *remotePb.RunConfigRemote) (*C
 			}
 		})
 
-		doneOnce.Do(func() {
-			res.mutex.Lock()
-			defer res.mutex.Unlock()
+		if err != nil {
+			doneOnce.Do(func() {
+				res.mutex.Lock()
+				defer res.mutex.Unlock()
 
-			res.wg.Done()
-		})
+				res.wg.Done()
+			})
+		}
 	}()
 
 	unsubscribe := conn.SubscribeEvent("endpoint", func(event sse.Event) {
@@ -223,6 +226,8 @@ func (c *ConnectionSSE) SendControl(msg string) error {
 func (c *ConnectionSSE) SendString(msg string) error {
 	c.wg.Wait()
 
+	fmt.Printf("Sending message to %s: %s\n", c.sendEndpoint, msg)
+
 	if c.conn == nil {
 		return fmt.Errorf("connection has ended")
 	}
@@ -230,6 +235,12 @@ func (c *ConnectionSSE) SendString(msg string) error {
 	if c.sendEndpoint == "" {
 		return fmt.Errorf("send endpoint is not set")
 	}
+
+	c.sendMutex.Lock()
+	defer func() {
+		time.Sleep(time.Millisecond * 10)
+		c.sendMutex.Unlock()
+	}()
 
 	req, err := http.NewRequestWithContext(c.context, http.MethodPost, c.sendEndpoint, strings.NewReader(msg))
 	if err != nil {
@@ -291,6 +302,8 @@ func (c *ConnectionSSE) Subscribe(cb MessageReceiver) {
 			c.sendEndpoint = c.getEndpointUrl(e.Data)
 			return
 		}
+
+		fmt.Printf("Received message from %s: %s\n", c.sendEndpoint, e.Data)
 
 		msg, err := mcp.ParseMCPMessage(util.Must(uuid.NewV7()).String(), e.Data)
 		if err != nil {
