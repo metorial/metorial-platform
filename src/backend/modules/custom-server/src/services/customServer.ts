@@ -273,14 +273,14 @@ class customServerServiceImpl {
     });
   }
 
-  async listCustomServers(d: { organization: Organization; types?: CustomServerType[] }) {
+  async listCustomServers(d: { instance: Instance; types?: CustomServerType[] }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.customServer.findMany({
             ...opts,
             where: {
-              organizationOid: d.organization.oid,
+              instanceOid: d.instance.oid,
               status: 'active',
               type: d.types ? { in: d.types } : undefined
             },
@@ -290,10 +290,10 @@ class customServerServiceImpl {
     );
   }
 
-  async getCustomServerById(d: { organization: Organization; serverId: string }) {
+  async getCustomServerById(d: { instance: Instance; serverId: string }) {
     let server = await db.customServer.findFirst({
       where: {
-        organizationOid: d.organization.oid,
+        instanceOid: d.instance.oid,
         OR: [{ id: d.serverId }, { server: { id: d.serverId } }]
       },
       include
