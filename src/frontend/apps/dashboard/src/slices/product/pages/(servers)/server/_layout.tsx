@@ -7,7 +7,7 @@ import {
   useCurrentProject,
   useServer
 } from '@metorial/state';
-import { Button, LinkTabs } from '@metorial/ui';
+import { Badge, Button, LinkTabs } from '@metorial/ui';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import { showServerDeploymentFormModal } from '../../../scenes/serverDeployments/modal';
 
@@ -31,7 +31,14 @@ export let ServerLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title={server.data?.name ?? '...'}
+        title={
+          <span style={{ display: 'flex', gap: 4, flexDirection: 'column' }}>
+            <div style={{ display: 'flex' }}>
+              <Badge color="red">Test</Badge>
+            </div>
+            <span>{server.data?.name ?? '...'}</span>
+          </span>
+        }
         description={server.data?.description ?? undefined}
         pagination={[
           {
