@@ -298,7 +298,7 @@ class OauthConnectionServiceImpl {
       );
     }
 
-    if (d.connection.autoCreatedForServerDeploymentOid) {
+    if (d.connection.isEphemeral) {
       throw new ServiceError(
         badRequestError({
           message: 'Cannot archive a connection that was auto created for a server deployment'

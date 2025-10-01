@@ -41,8 +41,8 @@ model ProviderOAuthConnection {
   failureCode    String?
   failureMessage String?
 
-  autoCreatedForServerDeploymentOid BigInt?
-  autoCreatedForServerDeployment    ServerDeployment? @relation(fields: [autoCreatedForServerDeploymentOid], references: [oid], name: "ProviderOAuthConnectionServerDeploymentsAutoCreated")
+  // autoCreatedForServerDeploymentOid BigInt?
+  // autoCreatedForServerDeployment    ServerDeployment? @relation(fields: [autoCreatedForServerDeploymentOid], references: [oid], name: "ProviderOAuthConnectionServerDeploymentsAutoCreated")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt

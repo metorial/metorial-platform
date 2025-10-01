@@ -133,6 +133,9 @@ let ServerDeploymentLayout = dynamicPage(() =>
 let ServerDeploymentConfigPage = dynamicPage(() =>
   import('./pages/(servers)/server-deployment/config').then(c => c.ServerDeploymentConfigPage)
 );
+let ServerDeploymentOauthPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/oauth').then(c => c.ServerDeploymentOauthPage)
+);
 let ServerDeploymentErrorsPage = dynamicPage(() =>
   import('./pages/(servers)/server-deployment/errors').then(c => c.ServerDeploymentErrorsPage)
 );
@@ -484,6 +487,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'errors',
                 element: <ServerDeploymentErrorsPage />
+              },
+              {
+                path: 'oauth',
+                element: <ServerDeploymentOauthPage />
               }
             ]
           },

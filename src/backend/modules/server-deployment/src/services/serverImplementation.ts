@@ -332,7 +332,7 @@ class ServerImplementationServiceImpl {
           await db.serverImplementation.findMany({
             ...opts,
             where: {
-              status: d.status ? { in: d.status } : undefined,
+              status: d.status ? { in: d.status } : { notIn: ['archived', 'deleted'] },
               isEphemeral: false,
 
               instanceOid: d.instance.oid,

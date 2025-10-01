@@ -11,7 +11,7 @@ export let startRankQueue = createQueue({
 let processSingleRankQueue = createQueue<{ serverListingId: string }>({
   name: 'cat/rank/single',
   workerOpts: {
-    concurrency: 1,
+    concurrency: 2,
     limiter: process.env.NODE_ENV == 'development' ? undefined : { max: 20, duration: 1000 }
   }
 });
@@ -45,6 +45,7 @@ export let processSingleRankQueueProcessor = processSingleRankQueue.process(asyn
   let serverListing = await db.serverListing.findUnique({
     where: { id: data.serverListingId },
     include: {
+      profile: true,
       server: {
         include: {
           importedServer: {
@@ -98,6 +99,16 @@ export let processSingleRankQueueProcessor = processSingleRankQueue.process(asyn
     // Boost rank for official servers
     if (!!serverListing.server.importedServer?.isOfficial) rank = Math.ceil(rank * 3);
 
+    rank = Math.min(rank, 1_000_000_000);
+  } else if (serverListing.profile?.isMetorial) {
+    deploymentsCount = await db.serverDeployment.count({
+      where: { serverOid: serverListing.serverOid }
+    });
+    serverSessionsCount = await db.serverSession.count({
+      where: { serverDeployment: { serverOid: serverListing.serverOid } }
+    });
+
+    rank = 35_000 + Math.ceil(deploymentsCount * 5 + serverSessionsCount * 3);
     rank = Math.min(rank, 1_000_000_000);
   } else {
     rank = -1;

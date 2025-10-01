@@ -311,6 +311,8 @@ class ServerDeploymentServiceImpl {
             performedBy: d.performedBy,
             context: d.context,
 
+            isEphemeral: true,
+
             input: {
               name: `OAuth Connection for ${d.input.name ?? d.serverImplementation.instance.name ?? d.serverImplementation.instance.server.name}`,
               description: 'Auto-created by Metorial for server deployment',
@@ -371,6 +373,13 @@ class ServerDeploymentServiceImpl {
         },
         include
       });
+
+      if (connection && !connection.isEphemeral) {
+        await db.providerOAuthConnection.updateMany({
+          where: { oid: connection.oid },
+          data: { isEphemeral: true }
+        });
+      }
 
       await ingestEventService.ingest('server.server_deployment:created', {
         serverDeployment,
@@ -603,7 +612,7 @@ class ServerDeploymentServiceImpl {
           await db.serverDeployment.findMany({
             ...opts,
             where: {
-              status: d.status ? { in: d.status } : undefined,
+              status: d.status ? { in: d.status } : { notIn: ['archived', 'deleted'] },
               isEphemeral: false,
 
               instanceOid: d.instance.oid,

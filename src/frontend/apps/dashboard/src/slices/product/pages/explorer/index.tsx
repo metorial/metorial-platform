@@ -188,7 +188,7 @@ export let ExplorerPage = () => {
                 )}
 
                 {selectedServer &&
-                  renderWithLoader({ deployments })(() => (
+                  renderWithLoader({ deployments, server })(() => (
                     <>
                       <Flex justify="space-between" align="center">
                         <Button
