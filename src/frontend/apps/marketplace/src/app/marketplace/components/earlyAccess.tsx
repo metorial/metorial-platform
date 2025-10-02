@@ -94,12 +94,12 @@ export let EarlyAccessBar = () => {
           </div>
 
           <a
-            href="https://metorial.com/early-access"
+            href="https://auth.metorial.com/signup?nextUrl=https%3A%2F%2Fapp.metorial.com"
             target="_blank"
             rel="noopener noreferrer"
           >
             <LandingButton variant="white" as="span">
-              Get early access
+              Get Started
             </LandingButton>
           </a>
         </Wrapper>
