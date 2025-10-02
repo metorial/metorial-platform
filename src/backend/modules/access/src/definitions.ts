@@ -76,6 +76,10 @@ let allScopesExcept = (except: Scope[]) => scopes.filter(s => !except.includes(s
 export let orgManagementTokenScopes: Scope[] = allScopesExcept(['user:read', 'user:write']);
 
 export let instanceSecretTokenScopes: Scope[] = [
+  'organization:read' as const,
+  'organization.project:read' as const,
+  'organization.instance:read' as const,
+
   'instance.file:read' as const,
   'instance.file:write' as const,
   'instance.file_link:read' as const,
