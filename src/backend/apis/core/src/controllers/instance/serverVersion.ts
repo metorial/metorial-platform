@@ -44,6 +44,7 @@ export let serverVersionController = Controller.create(
         let variant = ctx.query.variant_id
           ? await serverVariantService.getServerVariantById({
               server: ctx.server,
+              instance: ctx.instance,
               serverVariantId: ctx.query.variant_id
             })
           : undefined;
