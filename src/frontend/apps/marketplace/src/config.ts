@@ -14,6 +14,7 @@ if (!metorialEnvironment) throw new Error('METORIAL_ENV is not defined');
 setConfig({
   apiUrl: coreApiUrl,
   privateApiUrl: coreApiUrl,
+  publicApiUrl: coreApiUrl,
 
   environment: metorialEnvironment as any,
 
@@ -21,6 +22,8 @@ setConfig({
     organizationFrontendUrl: teamFrontendUrl,
     accountFrontendUrl: accountFrontendUrl
   },
+
+  microFrontends: {},
 
   auth: {
     authFrontendUrl: authFrontendUrl,

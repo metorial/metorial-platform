@@ -84,7 +84,7 @@ export let frontendEnv: Env = [
   },
   {
     key: 'VITE_MARKETPLACE_API_URL',
-    defaultValue: `http://${HOSTNAME}:4326/metorial-dashboard`,
+    defaultValue: `http://${HOSTNAME}:4312`,
     isEnterprise: true
   },
 

@@ -139,9 +139,9 @@ export let Help = ({
             href: 'https://app.metorial.com'
           },
           {
-            title: 'Early Access',
+            title: 'Get Started',
             icon: <Star size={18} />,
-            href: 'https://metorial.com/early-access'
+            href: 'https://auth.metorial.com/signup?nextUrl=https%3A%2F%2Fapp.metorial.com'
           }
         ]
       : [

@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@metorial/state';
+import { redirectToAuth, useUser } from '@metorial/state';
 import { Logo, theme } from '@metorial/ui';
 import { RiArrowRightSLine, RiMenuLine } from '@remixicon/react';
 import Link from 'next/link';
@@ -240,7 +240,7 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
                 <></>
               ) : user.error ? (
                 <>
-                  {/* <LandingButton
+                  <LandingButton
                     rounded="soft"
                     variant="soft"
                     onClick={() => redirectToAuth(window.location.href, { intent: 'login' })}
@@ -253,7 +253,7 @@ export let Nav = ({ categories }: { categories: ServerCategory[] }) => {
                     onClick={() => redirectToAuth(window.location.href, { intent: 'signup' })}
                   >
                     Get Started
-                  </LandingButton> */}
+                  </LandingButton>
                 </>
               ) : (
                 <div style={{ paddingLeft: 10 }}>

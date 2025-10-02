@@ -14,6 +14,7 @@
     "@metorial/execution-context": "^1.0.0",
     "@metorial/id": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.11.4",
+    "@prisma/adapter-pg": "^6.16.3",
     "@prisma/client": "^6.16.2",
     "@types/json-schema": "^7.0.15",
     "json-schema": "^0.4.0",
