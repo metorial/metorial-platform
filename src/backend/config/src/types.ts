@@ -29,7 +29,11 @@ export interface MetorialConfig {
   };
 
   urls: {
-    getInviteUrl: (invite: { key: string; email?: string | null }) => string;
+    getInviteUrl: (invite: {
+      key: string;
+      email?: string | null;
+      type: 'email' | 'link';
+    }) => string;
     apiUrl: string;
     appUrl: string;
     mcpUrl: string;

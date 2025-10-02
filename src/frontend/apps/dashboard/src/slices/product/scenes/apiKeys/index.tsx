@@ -534,15 +534,17 @@ export let ApiKeySecret = ({ apiKey }: { apiKey: MetorialApiKey }) => {
   let canReveal =
     apiKey.revealInfo && (apiKey.revealInfo.forever || apiKey.revealInfo.until > now);
 
+  let [isRevealed, setIsRevealed] = useState(false);
+
   return (
     <SecretWrapper>
       {canReveal || secret ? (
         <>
-          <Code style={!secret ? { filter: 'blur(10px)' } : {}}>
+          <Code style={!secret || !isRevealed ? { filter: 'blur(10px)' } : {}}>
             {secret ?? apiKey.secretRedactedLong}
           </Code>
 
-          <Action style={{ opacity: secret ? 1 : 0 }}>
+          <Action style={{ opacity: secret && isRevealed ? 1 : 0 }}>
             <Tooltip content="Copy Secret">
               <Button
                 variant="outline"
@@ -559,14 +561,19 @@ export let ApiKeySecret = ({ apiKey }: { apiKey: MetorialApiKey }) => {
         <Code>{apiKey.secretRedacted}</Code>
       )}
 
-      <Overlay style={secret || !canReveal ? { opacity: 0, pointerEvents: 'none' } : {}}>
+      <Overlay
+        style={
+          isRevealed && (secret || !canReveal) ? { opacity: 0, pointerEvents: 'none' } : {}
+        }
+      >
         <div>
           <Button
             onClick={() => {
-              reveal.reveal();
+              setIsRevealed(true);
+              if (!secret) reveal.reveal();
             }}
             variant="solid"
-            loading={reveal.isLoading || !!reveal.value}
+            loading={isRevealed && (reveal.isLoading || !!reveal.value)}
             size="1"
           >
             Reveal Secret

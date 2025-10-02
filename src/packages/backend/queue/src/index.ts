@@ -11,6 +11,7 @@ export let createQueue = <JobData>(opts: { driver?: 'bullmq' } & BullMqCreateOpt
   if (seenNames.has(opts.name)) {
     throw new Error(`Queue with name ${opts.name} already exists`);
   }
+  seenNames.add(opts.name);
 
   if (opts.driver === 'bullmq') {
     return createBullMqQueue<JobData>({
