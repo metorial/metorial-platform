@@ -113,7 +113,7 @@ class OauthConnectionServiceImpl {
       });
     } else if (d.input.setup.mode === 'async_auto_registration') {
       config = await db.providerOAuthConfig.findUniqueOrThrow({
-        where: { id: d.input.setup.oauthConfigId, instanceOid: d.instance.oid }
+        where: { id: d.input.setup.oauthConfigId }
       });
 
       let tries = 0;
@@ -121,7 +121,7 @@ class OauthConnectionServiceImpl {
         await delay(tries < 2 ? 100 : 1000);
 
         config = await db.providerOAuthConfig.findUniqueOrThrow({
-          where: { id: d.input.setup.oauthConfigId, instanceOid: d.instance.oid }
+          where: { id: d.input.setup.oauthConfigId }
         });
 
         if (tries >= 10) {
@@ -145,6 +145,16 @@ class OauthConnectionServiceImpl {
             message: 'The provided OAuth configuration does not support auto registration'
           })
         );
+      }
+
+      // This happens if the config is for a (public) custom server from a different
+      // instance. This is totally fine, but we need to clone the config for this instance.
+      if (config.instanceOid !== d.instance.oid) {
+        config = await providerOauthConfigService.createConfig({
+          instance: d.instance,
+          config: config.config,
+          scopes: config.scopes
+        });
       }
 
       asyncAutoDiscovery = true;
