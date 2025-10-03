@@ -135,7 +135,7 @@ export let getSessionConfig = async (
           server: {
             serverUri: version.remoteUrl,
             protocol:
-              version.mcpTransport == 'sse'
+              version.remoteServerProtocol == 'sse'
                 ? RunConfigRemoteServer_ServerProtocol.sse
                 : RunConfigRemoteServer_ServerProtocol.streamable_http
           }

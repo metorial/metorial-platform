@@ -8,6 +8,7 @@ import {
   ManagedServerTemplate,
   Organization,
   OrganizationActor,
+  RemoteServerProtocol,
   Server,
   withTransaction
 } from '@metorial/db';
@@ -49,6 +50,7 @@ class customServerServiceImpl {
       | {
           type: 'remote';
           implementation: {
+            protocol: RemoteServerProtocol;
             remoteUrl: string;
           };
           config?: {
@@ -134,10 +136,12 @@ class customServerServiceImpl {
           providerOid: provider.oid,
           serverOid: server.oid,
 
-          remoteUrl:
-            d.serverInstance.type == 'remote'
-              ? d.serverInstance.implementation.remoteUrl
-              : null,
+          ...(d.serverInstance.type == 'remote'
+            ? {
+                remoteServerProtocol: d.serverInstance.implementation.protocol,
+                remoteUrl: d.serverInstance.implementation.remoteUrl
+              }
+            : {}),
 
           sourceType: d.serverInstance.type
         }

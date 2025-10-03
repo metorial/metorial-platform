@@ -1,8 +1,3 @@
-enum McpTransport {
-  sse
-  streamable_http
-}
-
 model ServerVersion {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -24,15 +19,10 @@ model ServerVersion {
   dockerImage String?
   dockerTag   String?
 
-  remoteUrl String?
+  remoteUrl            String?
+  remoteServerProtocol RemoteServerProtocol @default(sse)
 
-  lambdaOid BigInt?
-  lambda    LambdaServerInstance? @relation(fields: [lambdaOid], references: [oid])
-
-  customServerVersion CustomServerVersion?
-
-  mcpVersion   String       @default("2024-11-05")
-  mcpTransport McpTransport @default(sse) // For remote servers
+  mcpVersion String @default("2024-11-05")
 
   /// [ServerVersionTools]
   tools Json @default("null")
@@ -51,6 +41,11 @@ model ServerVersion {
 
   /// [ServerVersionServerInstructions]
   serverInstructions Json @default("null")
+
+  lambdaOid BigInt?
+  lambda    LambdaServerInstance? @relation(fields: [lambdaOid], references: [oid])
+
+  customServerVersion CustomServerVersion?
 
   currentConfigFor ServerVariant[] @relation("ServerVariantCurrentServerConfig")
   serverRuns       ServerRun[]

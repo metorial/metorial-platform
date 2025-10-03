@@ -7,6 +7,7 @@ import {
   Instance,
   Organization,
   OrganizationActor,
+  RemoteServerProtocol,
   ServerVersion,
   withTransaction
 } from '@metorial/db';
@@ -99,6 +100,7 @@ class CustomServerVersionServiceImpl {
       | {
           type: 'remote';
           implementation: {
+            protocol: RemoteServerProtocol;
             remoteUrl: string;
             oAuthConfig?: {
               config: any;
@@ -177,7 +179,6 @@ class CustomServerVersionServiceImpl {
           let getLaunchParams: string;
           let configSchema: any;
           let serverVersionParams: Partial<ServerVersion> = {};
-          let oauthConfigParams: any;
 
           if (d.serverInstance.type == 'remote') {
             getLaunchParams =
@@ -189,6 +190,7 @@ class CustomServerVersionServiceImpl {
               currentVersion?.serverVersion?.schema.schema ??
               defaultRemoteConfigSchema;
             serverVersionParams = {
+              remoteServerProtocol: d.serverInstance.implementation.protocol,
               remoteUrl: d.serverInstance.implementation.remoteUrl
             };
           } else {
@@ -276,8 +278,10 @@ class CustomServerVersionServiceImpl {
             let remoteServer = await db.remoteServerInstance.create({
               data: {
                 id: await ID.generateId('remoteServerInstance'),
-                remoteUrl: d.serverInstance.implementation.remoteUrl,
                 instanceOid: d.instance.oid,
+
+                remoteUrl: d.serverInstance.implementation.remoteUrl,
+                remoteProtocol: d.serverInstance.implementation.protocol,
 
                 providerOAuthConfigOid: oauthConfig?.oid,
                 providerOAuthDiscoveryStatus: oauthConfig ? 'manual_config' : 'pending'
@@ -404,7 +408,9 @@ class CustomServerVersionServiceImpl {
         where: { oid: d.server.serverVariantOid },
         data: {
           currentVersionOid: d.version.serverVersionOid,
+
           remoteUrl: serverVersion.remoteUrl,
+          remoteServerProtocol: serverVersion.remoteServerProtocol,
           dockerImage: serverVersion.dockerImage,
 
           tools: serverVersion.tools as any,

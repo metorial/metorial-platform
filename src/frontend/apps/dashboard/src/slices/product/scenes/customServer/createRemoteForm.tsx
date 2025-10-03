@@ -6,7 +6,7 @@ import {
   useCurrentInstance,
   useListServerVersions
 } from '@metorial/state';
-import { Avatar, Button, Input, Or, Spacer, theme, toast } from '@metorial/ui';
+import { Avatar, Button, Input, Or, Select, Spacer, theme, toast } from '@metorial/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -71,14 +71,16 @@ export let CustomServerRemoteCreateForm = (p: {
       name: '',
       remoteUrl: '',
       description: '',
-      metadata: {}
+      metadata: {},
+      remoteProtocol: 'sse'
     },
     schema: yup =>
       yup.object({
         name: yup.string().required('Name is required'),
         remoteUrl: yup.string().url().required('Remote URL is required'),
         description: yup.string().optional(),
-        metadata: yup.object().optional()
+        metadata: yup.object().optional(),
+        remoteProtocol: yup.string().optional()
       }),
     onSubmit: async values => {
       if (!instance.data) return;
@@ -90,7 +92,8 @@ export let CustomServerRemoteCreateForm = (p: {
         implementation: {
           type: 'remote',
           remoteServer: {
-            remoteUrl: values.remoteUrl
+            remoteUrl: values.remoteUrl,
+            remoteProtocol: values.remoteProtocol == 'sse' ? 'sse' : 'streamable_http'
           },
           config: defaultServerConfigRemote
         }
@@ -173,6 +176,20 @@ export let CustomServerRemoteCreateForm = (p: {
                   />
                   <form.RenderError field="remoteUrl" />
 
+                  <Spacer size={15} />
+
+                  <Select
+                    value={form.values.remoteProtocol}
+                    label="MCP Transport Protocol"
+                    description="Which transport protocol does your MCP server support?"
+                    items={[
+                      { label: 'SSE (Server-Sent Events)', id: 'sse' },
+                      { label: 'Streamable HTTP', id: 'streamable_http' }
+                    ]}
+                    onChange={v => form.setFieldValue('remoteProtocol', v)}
+                  />
+                  <form.RenderError field="remoteProtocol" />
+
                   <Spacer size={10} />
 
                   <Or text="Or" />
@@ -188,6 +205,7 @@ export let CustomServerRemoteCreateForm = (p: {
                           form.resetForm();
 
                           form.setFieldValue('remoteUrl', template.remoteUrl);
+                          form.setFieldValue('remoteProtocol', template.protocol ?? 'sse');
                           form.setFieldValue('name', template.name);
 
                           setCurrentStep(1);
