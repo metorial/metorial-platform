@@ -142,13 +142,15 @@ export let serverImplementationController = Controller.create(
               ])
             ),
             server_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            search: v.optional(v.string())
           })
         )
       )
       .do(async ctx => {
         let paginator = await serverImplementationService.listServerImplementations({
           instance: ctx.instance,
+          search: ctx.query.search,
           status: normalizeArrayParam(ctx.query.status) as any,
           serverIds: normalizeArrayParam(ctx.query.server_id),
           serverVariantIds: normalizeArrayParam(ctx.query.server_variant_id)

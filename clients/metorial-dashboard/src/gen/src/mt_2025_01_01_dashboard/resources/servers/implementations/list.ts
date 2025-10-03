@@ -137,6 +137,7 @@ export type ServersImplementationsListQuery = {
     | undefined;
   serverId?: string | string[] | undefined;
   serverVariantId?: string | string[] | undefined;
+  search?: string | undefined;
 };
 
 export let mapServersImplementationsListQuery = mtMap.union([
@@ -171,7 +172,8 @@ export let mapServersImplementationsListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
-      )
+      ),
+      search: mtMap.objectField('search', mtMap.passthrough())
     })
   )
 ]);
