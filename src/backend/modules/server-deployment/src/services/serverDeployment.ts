@@ -31,6 +31,7 @@ import {
   providerOauthConnectionService,
   providerOauthDiscoveryService
 } from '@metorial/module-provider-oauth';
+import { searchService } from '@metorial/module-search';
 import { secretService } from '@metorial/module-secret';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -401,8 +402,7 @@ class ServerDeploymentServiceImpl {
     });
 
     await serverDeploymentSetupQueue.add({
-      serverDeploymentId: serverDeployment.id,
-      tryNumber: 1
+      serverDeploymentId: serverDeployment.id
     });
 
     if (!serverDeployment.serverImplementation.serverVariant.lastDiscoveredAt) {
@@ -584,7 +584,21 @@ class ServerDeploymentServiceImpl {
     sessionIds?: string[];
     instance: Instance;
     status?: ServerDeploymentStatus[];
+    search?: string;
   }) {
+    let search = d.search
+      ? await searchService.search<{ id: string }>({
+          index: 'server_deployment',
+          query: d.search,
+          options: {
+            filters: {
+              instanceId: { $eq: d.instance.id }
+            },
+            limit: 50
+          }
+        })
+      : undefined;
+
     let servers = d.serverIds?.length
       ? await db.server.findMany({
           where: { id: { in: d.serverIds } }
@@ -631,7 +645,9 @@ class ServerDeploymentServiceImpl {
                       oid: { in: sessions.map(s => s.oid) }
                     }
                   }
-                : undefined
+                : undefined,
+
+              id: search ? { in: search.map(s => s.id) } : undefined
             },
             include
           })

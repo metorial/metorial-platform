@@ -1,6 +1,7 @@
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { getSentry } from '@metorial/sentry';
+import { serverDeploymentCreatedQueue } from './serverDeploymentCreated';
 
 let Sentry = getSentry();
 
@@ -40,6 +41,10 @@ export let serverDeploymentSetupQueueProcessor = serverDeploymentSetupQueue.proc
     let organization = instance.organization;
 
     if (serverDeployment.status != 'active') return;
+
+    await serverDeploymentCreatedQueue.add({
+      serverDeploymentId: serverDeployment.id
+    });
 
     // let system = await organizationActorService.getSystemActor({ organization });
 
