@@ -15,35 +15,37 @@ let include = {
 let serverVariantSourceTypeOrder: ServerVariantSourceType[] = ['remote', 'docker'];
 
 class ServerVariantService {
-  async getServerVariantById(
-    d: { serverVariantId: string } & ({ server: Server } | { instance: Instance })
-  ) {
+  async getServerVariantById(d: {
+    serverVariantId: string;
+    instance?: Instance;
+    server?: Server;
+  }) {
     let serverVariant = await db.serverVariant.findFirst({
       where: {
-        serverOid: 'server' in d ? d.server.oid : undefined,
+        serverOid: d.server ? d.server.oid : undefined,
 
         AND: [
           {
             OR: [{ id: d.serverVariantId }, { identifier: d.serverVariantId }]
           },
 
-          {
-            OR: [
-              { server: { type: 'imported' } },
+          // {
+          //   OR: [
+          //     { server: { type: 'imported' } },
 
-              ...('instance' in d
-                ? [
-                    { server: { ownerOrganizationOid: d.instance?.organizationOid } },
-                    { server: { isPublic: true } }
-                  ]
-                : [])
-            ]
-          },
+          //     ...('instance' in d
+          //       ? [
+          //           { server: { ownerOrganizationOid: d.instance?.organizationOid } },
+          //           { server: { isPublic: true } }
+          //         ]
+          //       : [])
+          //   ]
+          // },
 
           {
             OR: [
               { onlyForInstanceOid: null },
-              { onlyForInstanceOid: 'instance' in d ? d.instance.oid : null }
+              { onlyForInstanceOid: 'instance' in d ? d.instance?.oid : null }
             ]
           }
         ]

@@ -12,6 +12,7 @@ export let serverVariantGroup = serverGroup.use(async ctx => {
 
   let serverVariant = await serverVariantService.getServerVariantById({
     serverVariantId: ctx.params.serverVariantId,
+    instance: ctx.instance,
     server: ctx.server
   });
 
