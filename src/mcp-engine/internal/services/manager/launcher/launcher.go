@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"time"
 
 	launcherPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/launcher"
@@ -57,6 +58,9 @@ func (l *Launcher) GetContainerLaunchParams(input *managerPb.ContainerRunConfigW
 type RemoteLaunchParams struct {
 	Headers map[string]string `json:"headers,omitempty"`
 	Query   map[string]string `json:"query,omitempty"`
+
+	ServerUrl string `json:"remote_url,omitempty"`
+	Protocol  string `json:"protocol,omitempty"`
 }
 
 func (l *Launcher) GetRemoteLaunchParams(input *managerPb.RemoteRunConfigWithLauncher) (*remotePb.RunConfigRemote, error) {
@@ -73,8 +77,53 @@ func (l *Launcher) GetRemoteLaunchParams(input *managerPb.RemoteRunConfigWithLau
 		params.Query = make(map[string]string)
 	}
 
+	server := &remotePb.RunConfigRemoteServer{
+		ServerUri: input.Server.ServerUri,
+		Protocol:  input.Server.Protocol,
+	}
+
+	if params.ServerUrl != "" {
+		baseUri, err := url.Parse(input.Server.ServerUri)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse base server URI: %w", err)
+		}
+
+		updatedUri, err := url.Parse(params.ServerUrl)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse updated server URI: %w", err)
+		}
+
+		// Make sure that the host and scheme are the same as the base URI
+		if updatedUri.Scheme == "" {
+			baseUri.Scheme = updatedUri.Scheme
+		}
+		if updatedUri.Host == "" {
+			baseUri.Host = updatedUri.Host
+		}
+
+		if updatedUri.Host != baseUri.Host {
+			return nil, fmt.Errorf("updated server URI host does not match base URI host")
+		}
+		if updatedUri.Scheme != baseUri.Scheme {
+			return nil, fmt.Errorf("updated server URI scheme does not match base URI scheme")
+		}
+
+		server.ServerUri = updatedUri.String()
+	}
+
+	if params.Protocol != "" {
+		switch params.Protocol {
+		case "sse":
+			server.Protocol = remotePb.RunConfigRemoteServer_sse
+		case "streamable_http":
+			server.Protocol = remotePb.RunConfigRemoteServer_streamable_http
+		default:
+			return nil, fmt.Errorf("unsupported protocol: %s", params.Protocol)
+		}
+	}
+
 	return &remotePb.RunConfigRemote{
-		Server: input.Server,
+		Server: server,
 		Arguments: &remotePb.RunConfigRemoteArguments{
 			Headers: params.Headers,
 			Query:   params.Query,
