@@ -176,6 +176,25 @@ class CustomServerVersionServiceImpl {
               })
             : undefined;
 
+          if (
+            d.serverInstance.type == 'remote' &&
+            currentVersion?.remoteServerInstance &&
+            d.serverInstance.implementation.remoteUrl &&
+            d.serverInstance.implementation.remoteUrl !=
+              currentVersion.remoteServerInstance?.remoteUrl
+          ) {
+            let current = new URL(currentVersion.remoteServerInstance.remoteUrl);
+            let updated = new URL(d.serverInstance.implementation.remoteUrl);
+
+            if (server?.isPublic && current.hostname != updated.hostname) {
+              throw new ServiceError(
+                badRequestError({
+                  message: 'Cannot update remote url hostname for published server'
+                })
+              );
+            }
+          }
+
           let getLaunchParams: string;
           let configSchema: any;
           let serverVersionParams: Partial<ServerVersion> = {};

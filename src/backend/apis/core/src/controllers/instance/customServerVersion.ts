@@ -64,6 +64,7 @@ export let customServerVersionController = Controller.create(
 
               remote_server: v.object({
                 remote_url: v.string({ modifiers: [v.url()] }),
+                remote_protocol: v.enumOf(['sse', 'streamable_http']),
 
                 oauth_config: v.nullable(
                   v.optional(
@@ -132,6 +133,7 @@ export let customServerVersionController = Controller.create(
                   type: 'remote',
                   implementation: {
                     remoteUrl: ctx.body.implementation.remote_server.remote_url,
+                    protocol: ctx.body.implementation.remote_server.remote_protocol,
                     oAuthConfig: ctx.body.implementation.remote_server.oauth_config
                       ? {
                           config: ctx.body.implementation.remote_server.oauth_config.config,
