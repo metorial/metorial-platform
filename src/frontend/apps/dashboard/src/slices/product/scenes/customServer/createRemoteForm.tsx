@@ -205,6 +205,7 @@ export let CustomServerRemoteCreateForm = (p: {
                           form.resetForm();
 
                           form.setFieldValue('remoteUrl', template.remoteUrl);
+                          form.setFieldValue('remoteProtocol', template.protocol ?? 'sse');
                           form.setFieldValue('name', template.name);
 
                           setCurrentStep(1);
