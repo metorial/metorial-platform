@@ -518,18 +518,22 @@ const App = () => {
               defaultValue={
                 Object.keys(serverCapabilities ?? {}).includes(window.location.hash.slice(1))
                   ? window.location.hash.slice(1)
-                  : serverCapabilities?.resources
-                    ? 'resources'
-                    : serverCapabilities?.prompts
-                      ? 'prompts'
-                      : serverCapabilities?.tools
-                        ? 'tools'
+                  : serverCapabilities?.tools
+                    ? 'tools'
+                    : serverCapabilities?.resources
+                      ? 'resources'
+                      : serverCapabilities?.prompts
+                        ? 'prompts'
                         : 'ping'
               }
               className="w-full p-4"
               onValueChange={value => (window.location.hash = value)}
             >
               <TabsList className="mb-4">
+                <TabsTrigger value="tools" disabled={!serverCapabilities?.tools}>
+                  <Hammer className="w-4 h-4 mr-2" />
+                  Tools
+                </TabsTrigger>
                 <TabsTrigger value="resources" disabled={!serverCapabilities?.resources}>
                   <Files className="w-4 h-4 mr-2" />
                   Resources
@@ -537,10 +541,6 @@ const App = () => {
                 <TabsTrigger value="prompts" disabled={!serverCapabilities?.prompts}>
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Prompts
-                </TabsTrigger>
-                <TabsTrigger value="tools" disabled={!serverCapabilities?.tools}>
-                  <Hammer className="w-4 h-4 mr-2" />
-                  Tools
                 </TabsTrigger>
                 {/* <TabsTrigger value="ping">
                   <Bell className="w-4 h-4 mr-2" />

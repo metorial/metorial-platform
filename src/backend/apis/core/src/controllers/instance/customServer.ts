@@ -80,7 +80,8 @@ export let customServerController = Controller.create(
               type: v.literal('remote'),
 
               remote_server: v.object({
-                remote_url: v.string({ modifiers: [v.url()] })
+                remote_url: v.string({ modifiers: [v.url()] }),
+                remote_protocol: v.optional(v.enumOf(['sse', 'streamable_http']))
               }),
 
               config: v.optional(
@@ -157,7 +158,8 @@ export let customServerController = Controller.create(
               : {
                   type: 'remote',
                   implementation: {
-                    remoteUrl: ctx.body.implementation.remote_server.remote_url
+                    remoteUrl: ctx.body.implementation.remote_server.remote_url,
+                    protocol: ctx.body.implementation.remote_server.remote_protocol ?? 'sse'
                   },
                   config: {
                     schema: ctx.body.implementation.config?.schema,

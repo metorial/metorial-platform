@@ -13,6 +13,7 @@ import {
 import { badRequestError, forbiddenError, notFoundError, ServiceError } from '@metorial/error';
 import { Fabric } from '@metorial/fabric';
 import { ingestEventService } from '@metorial/module-event';
+import { searchService } from '@metorial/module-search';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { serverImplementationCreatedQueue } from '../queues/serverImplementationCreated';
@@ -314,7 +315,21 @@ class ServerImplementationServiceImpl {
     serverIds?: string[];
     instance: Instance;
     status?: ServerImplementationStatus[];
+    search?: string;
   }) {
+    let search = d.search
+      ? await searchService.search<{ id: string }>({
+          index: 'server_implementation',
+          query: d.search,
+          options: {
+            filters: {
+              instanceId: { $eq: d.instance.id }
+            },
+            limit: 50
+          }
+        })
+      : undefined;
+
     let servers = d.serverIds?.length
       ? await db.server.findMany({
           where: { id: { in: d.serverIds } }
@@ -340,7 +355,9 @@ class ServerImplementationServiceImpl {
               serverOid: servers ? { in: servers.map(s => s.oid) } : undefined,
               serverVariantOid: serverVariants
                 ? { in: serverVariants.map(s => s.oid) }
-                : undefined
+                : undefined,
+
+              id: search ? { in: search.map(s => s.id) } : undefined
             },
             include
           })

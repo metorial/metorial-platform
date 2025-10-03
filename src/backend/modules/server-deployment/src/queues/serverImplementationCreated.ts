@@ -1,5 +1,6 @@
 import { db, ID } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
+import { serverImplementationIndexSingleQueue } from './search';
 
 export let serverImplementationCreatedQueue = createQueue<{ serverImplementationId: string }>({
   name: 'srd/impl/create'
@@ -33,4 +34,8 @@ export let serverImplementationCreatedQueueProcessor =
     } catch (e) {
       // Just a unique constraint error
     }
+
+    await serverImplementationIndexSingleQueue.add({
+      serverImplementationId: implementation.id
+    });
   });

@@ -108,7 +108,10 @@ export type DashboardInstanceCustomServersCreateBody = {
   implementation:
     | {
         type: 'remote';
-        remoteServer: { remoteUrl: string };
+        remoteServer: {
+          remoteUrl: string;
+          remoteProtocol?: 'sse' | 'streamable_http' | undefined;
+        };
         config?:
           | { schema?: any | undefined; getLaunchParams?: string | undefined }
           | undefined;
@@ -137,7 +140,11 @@ export let mapDashboardInstanceCustomServersCreateBody =
             remoteServer: mtMap.objectField(
               'remote_server',
               mtMap.object({
-                remoteUrl: mtMap.objectField('remote_url', mtMap.passthrough())
+                remoteUrl: mtMap.objectField('remote_url', mtMap.passthrough()),
+                remoteProtocol: mtMap.objectField(
+                  'remote_protocol',
+                  mtMap.passthrough()
+                )
               })
             ),
             config: mtMap.objectField(

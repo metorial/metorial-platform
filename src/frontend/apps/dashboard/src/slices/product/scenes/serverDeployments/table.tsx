@@ -3,53 +3,79 @@ import { Paths } from '@metorial/frontend-config';
 import { ServersDeploymentsGetOutput } from '@metorial/generated';
 import { ServersDeploymentsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useServerDeployments } from '@metorial/state';
-import { Entity, RenderDate, Text, theme } from '@metorial/ui';
+import { Entity, Input, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useDebounced } from '../../../../hooks/useDebounced';
 
-export let ServerDeploymentsTable = (filter: ServersDeploymentsListQuery) => {
+export let ServerDeploymentsTable = (
+  filter: ServersDeploymentsListQuery & {
+    withSearch?: string;
+  }
+) => {
+  let [search, setSearch] = useState('');
+  let searchDebounced = useDebounced(search, 500);
+
   let instance = useCurrentInstance();
-  let deployments = useServerDeployments(instance.data?.id, filter);
+  let deployments = useServerDeployments(instance.data?.id, {
+    ...filter,
+    search: searchDebounced.length ? searchDebounced : undefined
+  });
 
-  return renderWithPagination(deployments)(deployments => (
+  return (
     <>
-      <Table
-        headers={['Info', 'Server', 'Created']}
-        data={deployments.data.items.map(deployment => ({
-          data: [
-            <Text size="2" weight="strong">
-              {deployment.name ?? (
-                <span style={{ color: theme.colors.gray600 }}>Untitled</span>
-              )}
-
-              {deployment.description && (
-                <Text size="2" color="gray600">
-                  {deployment.description.slice(0, 60)}
-                  {deployment.description.length > 60 ? '...' : ''}
-                </Text>
-              )}
-            </Text>,
-            <Text size="2" weight="strong">
-              {deployment.server.name}
-            </Text>,
-            <RenderDate date={deployment.createdAt} />
-          ],
-          href: Paths.instance.serverDeployment(
-            instance.data?.organization,
-            instance.data?.project,
-            instance.data,
-            deployment.id
-          )
-        }))}
+      <Input
+        label="Search"
+        hideLabel
+        placeholder="Search for servers"
+        value={search}
+        onInput={v => setSearch(v)}
       />
 
-      {deployments.data.items.length == 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No deployments found.
-        </Text>
-      )}
+      <Spacer size={15} />
+
+      {renderWithPagination(deployments)(deployments => (
+        <>
+          <Table
+            headers={['Info', 'Server', 'Created']}
+            data={deployments.data.items.map(deployment => ({
+              data: [
+                <Text size="2" weight="strong">
+                  {deployment.name ?? (
+                    <span style={{ color: theme.colors.gray600 }}>Untitled</span>
+                  )}
+
+                  {deployment.description && (
+                    <Text size="2" color="gray600">
+                      {deployment.description.slice(0, 60)}
+                      {deployment.description.length > 60 ? '...' : ''}
+                    </Text>
+                  )}
+                </Text>,
+                <Text size="2" weight="strong">
+                  {deployment.server.name}
+                </Text>,
+                <RenderDate date={deployment.createdAt} />
+              ],
+              href: Paths.instance.serverDeployment(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                deployment.id
+              )
+            }))}
+          />
+
+          {deployments.data.items.length == 0 && (
+            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+              No deployments found.
+            </Text>
+          )}
+        </>
+      ))}
     </>
-  ));
+  );
 };
 
 export let ServerDeploymentsList = (

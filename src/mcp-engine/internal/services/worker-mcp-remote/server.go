@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	mcpPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/mcp"
 	remotePb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/remote"
 	workerPb "github.com/metorial/metorial/mcp-engine/gen/mcp-engine/worker"
@@ -68,10 +69,23 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 	var conn Connection
 	switch msg.Init.RunConfig.Config.(type) {
 	case *remotePb.RunConfig_RemoteRunConfig:
-		conn, err = NewConnectionSSE(stream.Context(), msg.Init.RunConfig.GetRemoteRunConfig())
-		if err != nil {
-			log.Printf("Failed to create SSE connection: %v", err)
-			return err
+		switch msg.Init.RunConfig.GetRemoteRunConfig().Server.Protocol {
+		case remotePb.RunConfigRemoteServer_sse:
+			fmt.Printf("Creating SSE connection to %s\n", msg.Init.RunConfig.GetRemoteRunConfig().Server.ServerUri)
+			conn, err = NewConnectionSSE(stream.Context(), msg.Init.RunConfig.GetRemoteRunConfig())
+			if err != nil {
+				log.Printf("Failed to create SSE connection: %v", err)
+				return err
+			}
+		case remotePb.RunConfigRemoteServer_streamable_http:
+			fmt.Printf("Creating Streamable HTTP connection to %s\n", msg.Init.RunConfig.GetRemoteRunConfig().Server.ServerUri)
+			conn, err = NewConnectionStreamableHTTP(stream.Context(), msg.Init.RunConfig.GetRemoteRunConfig())
+			if err != nil {
+				log.Printf("Failed to create Streamable HTTP connection: %v", err)
+				return err
+			}
+		default:
+			return fmt.Errorf("unsupported remote server protocol: %v", msg.Init.RunConfig.GetRemoteRunConfig().Server.Protocol)
 		}
 	case *remotePb.RunConfig_LambdaRunConfig:
 		conn, err = NewConnectionLambdaWs(stream.Context(), msg.Init.Client, msg.Init.RunConfig.GetLambdaRunConfig())
@@ -79,6 +93,8 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 			log.Printf("Failed to create SSE connection: %v", err)
 			return err
 		}
+	default:
+		return fmt.Errorf("unsupported run config type: %T", msg.Init.RunConfig.Config)
 	}
 
 	lastPing := time.Now()
@@ -181,7 +197,10 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 					return // Client has closed the stream
 				}
 
+				sentry.CaptureException(err)
 				errChan <- fmt.Errorf("failed to receive request: %w", err)
+				log.Printf("Failed to receive request: %v", err)
+
 				return
 			}
 
@@ -190,7 +209,8 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 			case *remotePb.RunRequest_McpMessage:
 				err = conn.Send(msg.McpMessage.Message)
 				if err != nil {
-					errChan <- fmt.Errorf("failed to send MCP message: %w", err)
+					sentry.CaptureException(err)
+					log.Printf("Failed to send message: %v", err)
 				}
 
 			case *remotePb.RunRequest_Close:
@@ -198,7 +218,8 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 
 				err := conn.Close()
 				if err != nil {
-					errChan <- fmt.Errorf("failed to close connection: %w", err)
+					sentry.CaptureException(err)
+					log.Printf("Failed to close connection: %v", err)
 				}
 
 				err = stream.Send(&remotePb.RunResponse{
@@ -207,14 +228,14 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 					},
 				})
 				if err != nil {
+					sentry.CaptureException(err)
 					log.Printf("Failed to send close response: %v", err)
-					errChan <- fmt.Errorf("failed to send close response: %w", err)
 				}
 
 				return
 
 			default:
-				errChan <- fmt.Errorf("unexpected request type: %T", msg)
+				log.Printf("Unknown request type: %T", msg)
 				return
 			}
 		}

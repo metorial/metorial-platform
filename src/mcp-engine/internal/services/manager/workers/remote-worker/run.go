@@ -179,6 +179,8 @@ func (r *Run) handleStream() {
 		return
 	}
 
+	fmt.Printf("Starting MCP run with input client: %+v\n", r.input.MCPClient)
+
 	if r.input.MCPClient == nil {
 		r.createStreamWg.Done()
 		r.initError = fmt.Errorf("MCP client is not initialized")

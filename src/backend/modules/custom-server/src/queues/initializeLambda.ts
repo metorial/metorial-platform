@@ -186,6 +186,10 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
       {
         type: 'info',
         lines: [`Server capabilities discovered successfully.`]
+      },
+      {
+        type: 'info',
+        lines: JSON.stringify(discovery, null, 2).split('\n')
       }
     ]);
   } catch (error: any) {

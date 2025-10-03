@@ -31,10 +31,11 @@ model ServerVariant {
   sourceType ServerVariantSourceType
 
   dockerImage String?
-  remoteUrl   String?
 
-  mcpVersion   String       @default("2024-11-05")
-  mcpTransport McpTransport @default(sse) // For remote servers
+  remoteUrl            String?
+  remoteServerProtocol RemoteServerProtocol @default(sse)
+
+  mcpVersion String @default("2024-11-05")
 
   /// [ServerVersionTools]
   tools Json @default("null")

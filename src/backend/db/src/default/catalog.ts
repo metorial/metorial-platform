@@ -191,7 +191,7 @@ export let ensureServerVariant = createEnsureRecord(
         'dockerImage',
         'remoteUrl',
         'mcpVersion',
-        'mcpTransport',
+        'remoteServerProtocol',
         'createdAt'
       ])
   }
@@ -221,7 +221,7 @@ export let ensureServerVersion = createEnsureRecord(
         'dockerTag',
         'remoteUrl',
         'mcpVersion',
-        'mcpTransport',
+        'remoteServerProtocol',
         'createdAt'
       ])
   }
