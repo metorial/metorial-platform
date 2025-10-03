@@ -4,7 +4,10 @@ import { safePyName, toPyIdentifier, toPyClassName } from './utils';
 
 export let generateTypeFromIntrospectedType = async (name: string, type: IntrospectedType) => {
   let generatedTypes = new Set<string>();
-  let code = type.type === 'object' ? generateClass(name, type, generatedTypes) : generateAlias(name, type);
+  // Generate classes for object types AND intersection types (which should be structured)
+  let code = (type.type === 'object' || type.type === 'intersection') 
+    ? generateClass(name, type, generatedTypes) 
+    : generateAlias(name, type);
   
   return code + '\n';
 };
@@ -79,8 +82,12 @@ let processType = (type: IntrospectedType, typeName?: string): string => {
       
       return wrapType(type, `Union[${uniqueMembers.join(', ')}]`);
     case 'intersection':
-      // Python doesn't support intersection hints; fallback to Any
-      return wrapType(type, 'Any');
+      // For intersection types, we'll handle them in generateClass by merging properties
+      // Here we just use the provided typeName if available, otherwise fallback to Dict
+      if (typeName) {
+        return wrapType(type, typeName);
+      }
+      return wrapType(type, 'Dict[str, Any]');
     case 'literal':
       return wrapType(type, 'str');
     default:
@@ -92,11 +99,35 @@ let processType = (type: IntrospectedType, typeName?: string): string => {
 let generateClass = (name: string, type: IntrospectedType, generatedTypes: Set<string> = new Set(), isRoot: boolean = true): string => {
   let className = toPyClassName(name);
   
+  // Handle intersection types by merging properties
+  let mergedProperties: Record<string, IntrospectedType> = {};
+  
+  if (type.type === 'intersection' && type.items) {
+    // Merge properties from all objects in the intersection
+    for (let item of type.items) {
+      if (item.type === 'object' && item.properties) {
+        Object.assign(mergedProperties, item.properties);
+      } else if (item.type === 'union' && item.items) {
+        // For union types in intersection, merge properties from all union members
+        for (let unionItem of item.items) {
+          if (unionItem.type === 'object' && unionItem.properties) {
+            // For union members, make all properties optional since only one branch will be used
+            for (let [key, prop] of Object.entries(unionItem.properties)) {
+              mergedProperties[key] = { ...prop, optional: true };
+            }
+          }
+        }
+      }
+    }
+  } else if (type.properties) {
+    mergedProperties = type.properties;
+  }
+  
   // Generate nested types first
-  let nestedTypes = generateNestedTypes(type, className, generatedTypes);
+  let nestedTypes = generateNestedTypes({ ...type, properties: mergedProperties }, className, generatedTypes);
   
   // Ensure required fields come before optional fields
-  let entries = Object.entries(type.properties || {});
+  let entries = Object.entries(mergedProperties);
   
   // Sort fields based on actual optional/nullable flags
   let requiredFields = entries.filter(([key, v]) => 

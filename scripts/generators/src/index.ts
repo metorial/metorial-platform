@@ -356,7 +356,8 @@ for (let version of versions.versions) {
       endpoints: resourceEndpoints,
       controller,
       path: controllerPath,
-      typeIdToName
+      typeIdToName,
+      types
     });
 
     let fileNameParts = resourceParts.map(Cases.toKebabCase);
