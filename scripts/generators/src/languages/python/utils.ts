@@ -49,21 +49,21 @@ export const PYTHON_RESERVED_KEYWORDS = new Set([
  * - replaces dashes with underscores
  * - converts to lowercase
  */
-export const toPyIdentifier = (name: string): string => {
+export let toPyIdentifier = (name: string): string => {
   return name.replace(/-/g, '_').toLowerCase();
 };
 
 /**
  * Makes a Python name safe by appending underscore if it's a reserved keyword
  */
-export const safePyName = (name: string): string => {
+export let safePyName = (name: string): string => {
   return PYTHON_RESERVED_KEYWORDS.has(name) ? `${name}_` : name;
 };
 
 /**
  * Converts a name to PascalCase for Python class names
  */
-export const toPyClassName = (name: string): string => {
+export let toPyClassName = (name: string): string => {
   // convert snake_case or kebab-case to PascalCase
   return name
     .replace(/[-_]+/g, ' ')
@@ -74,6 +74,6 @@ export const toPyClassName = (name: string): string => {
 /**
  * Converts a name to a Python folder/module name (dashes to underscores)
  */
-export const toPyFolderName = (name: string): string => {
+export let toPyFolderName = (name: string): string => {
   return name.replace(/-/g, '_');
 };

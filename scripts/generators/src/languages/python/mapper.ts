@@ -7,7 +7,7 @@ export let generateMapper = async (
   typename: string,
   type: IntrospectedType
 ): Promise<string> => {
-  const className = name;
+  let className = name;
 
   let nestedMappers = generateNestedMappers(type, typename);
 

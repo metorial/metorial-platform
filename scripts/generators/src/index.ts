@@ -94,7 +94,7 @@ let toPyIdentifier: (name: string) => string = (name: string) => name;
 let toPyFolderName: (name: string) => string = (name: string) => name;
 
 if (language === 'python') {
-  const pythonUtils = await import('./languages/python/utils');
+  let pythonUtils = await import('./languages/python/utils');
   toPyIdentifier = pythonUtils.toPyIdentifier;
   toPyFolderName = pythonUtils.toPyFolderName;
 }

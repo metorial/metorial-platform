@@ -4,7 +4,7 @@ import type { Controller, Endpoint } from '../../fetch';
 
 // Helper function to convert introspected type to Python type hint
 let getPythonTypeHint = (type: any): string => {
-  const wrapOptional = (
+  let wrapOptional = (
     hint: string,
     optional: boolean = false,
     nullable: boolean = false
@@ -80,20 +80,39 @@ export let createController = async (i: {
   // Check if we need typing imports (if any endpoint uses keyword arguments)
   let needsTypingImports = i.endpoints.some(e => {
     let hasBody = e.bodyId && i.typeIdToName.get(e.bodyId);
-    let isModificationMethod = ['POST', 'PUT', 'PATCH'].includes(e.method.toUpperCase());
-    return hasBody && isModificationMethod;
+    let hasQuery = e.queryId && i.typeIdToName.get(e.queryId);
+    return (hasBody || hasQuery) && i.types;
   });
 
   // Check if we need datetime imports (if any endpoint uses datetime type hints)
   let needsDatetimeImports = i.endpoints.some(e => {
-    if (!e.bodyId) return false;
-    let bodyType = i.types?.find(t => t.id === e.bodyId)?.type;
-    if (!bodyType || bodyType.type !== 'object' || !bodyType.properties) return false;
+    // Check body fields for datetime
+    if (e.bodyId) {
+      let bodyType = i.types?.find(t => t.id === e.bodyId)?.type;
+      if (bodyType && bodyType.type === 'object' && bodyType.properties) {
+        if (Object.values(bodyType.properties).some(
+          (prop: any) =>
+            prop.type === 'date' || (prop.type === 'array' && prop.items?.[0]?.type === 'date')
+        )) {
+          return true;
+        }
+      }
+    }
 
-    return Object.values(bodyType.properties).some(
-      (prop: any) =>
-        prop.type === 'date' || (prop.type === 'array' && prop.items?.[0]?.type === 'date')
-    );
+    // Check query fields for datetime
+    if (e.queryId) {
+      let queryType = i.types?.find(t => t.id === e.queryId)?.type;
+      if (queryType && queryType.type === 'object' && queryType.properties) {
+        if (Object.values(queryType.properties).some(
+          (prop: any) =>
+            prop.type === 'date' || (prop.type === 'array' && prop.items?.[0]?.type === 'date')
+        )) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   });
 
   let typingImports = needsTypingImports
@@ -138,10 +157,14 @@ let createEndpoint = (i: {
   let pathParts = i.endpoint.path.path.split('/').filter(Boolean);
   let pathParams = pathParts.filter(p => p.startsWith(':')).map(p => p.slice(1));
 
+  // Create mapping from original param names to snake_case param names
+  let paramNameMapping = new Map<string, string>();
   for (let param of pathParams) {
+    let snakeCaseParam = Cases.toSnakeCase(param);
+    paramNameMapping.set(param, snakeCaseParam);
     inputs.push({
       type: 'str',
-      name: param
+      name: snakeCaseParam
     });
   }
 
@@ -155,13 +178,31 @@ let createEndpoint = (i: {
     : null;
   let bodyFields: { name: string; type: string; optional: boolean; pyName: string }[] = [];
 
+  // Extract query type properties for keyword arguments
+  let queryTypeObject = i.endpoint.queryId
+    ? i.types.find(t => t.id === i.endpoint.queryId)?.type
+    : null;
+  let queryFields: { name: string; type: string; optional: boolean; pyName: string }[] = [];
+
+  // Python keywords that can't be used as parameter names
+  let pythonKeywords = new Set([
+    'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del',
+    'elif', 'else', 'except', 'exec', 'finally', 'for', 'from', 'global', 'if', 'import',
+    'in', 'is', 'lambda', 'not', 'or', 'pass', 'print', 'raise', 'return', 'try',
+    'while', 'with', 'yield', 'None', 'True', 'False'
+  ]);
+
   // Helper function to extract properties from object types
-  let extractPropertiesFromObject = (obj: any) => {
+  let extractPropertiesFromObject = (obj: any, fields: { name: string; type: string; optional: boolean; pyName: string }[]) => {
     if (obj.properties) {
       Object.entries(obj.properties).forEach(([key, value]: [string, any]) => {
-        let pyName = Cases.toSnakeCase(key);
+        let pyName = Cases.toSnakeCase(key); // Use snake_case for parameter name
+        // Handle Python keywords by appending underscore
+        if (pythonKeywords.has(pyName)) {
+          pyName = `${pyName}_`;
+        }
         let fieldType = getPythonTypeHint(value);
-        bodyFields.push({
+        fields.push({
           name: key,
           pyName,
           type: fieldType,
@@ -174,12 +215,12 @@ let createEndpoint = (i: {
   if (bodyTypeObject) {
     if (bodyTypeObject.type === 'object' && bodyTypeObject.properties) {
       // Handle regular object types
-      extractPropertiesFromObject(bodyTypeObject);
+      extractPropertiesFromObject(bodyTypeObject, bodyFields);
     } else if (bodyTypeObject.type === 'intersection' && bodyTypeObject.items) {
       // Handle intersection types by merging properties from all objects
       for (let item of bodyTypeObject.items) {
         if (item.type === 'object') {
-          extractPropertiesFromObject(item);
+          extractPropertiesFromObject(item, bodyFields);
         } else if (item.type === 'union' && item.items) {
           // For union types in intersection, add properties from all union members as optional
           for (let unionItem of item.items) {
@@ -190,6 +231,40 @@ let createEndpoint = (i: {
                 // Check if field already exists to avoid duplicates
                 if (!bodyFields.some(f => f.name === key)) {
                   bodyFields.push({
+                    name: key,
+                    pyName,
+                    type: fieldType,
+                    optional: true // Union members are always optional since only one branch is used
+                  });
+                }
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Extract query fields for all methods
+  if (queryTypeObject) {
+    if (queryTypeObject.type === 'object' && queryTypeObject.properties) {
+      // Handle regular object types
+      extractPropertiesFromObject(queryTypeObject, queryFields);
+    } else if (queryTypeObject.type === 'intersection' && queryTypeObject.items) {
+      // Handle intersection types by merging properties from all objects
+      for (let item of queryTypeObject.items) {
+        if (item.type === 'object') {
+          extractPropertiesFromObject(item, queryFields);
+        } else if (item.type === 'union' && item.items) {
+          // For union types in intersection, add properties from all union members as optional
+          for (let unionItem of item.items) {
+            if (unionItem.type === 'object' && unionItem.properties) {
+              Object.entries(unionItem.properties).forEach(([key, value]: [string, any]) => {
+                let pyName = Cases.toSnakeCase(key);
+                let fieldType = getPythonTypeHint(value);
+                // Check if field already exists to avoid duplicates
+                if (!queryFields.some(f => f.name === key)) {
+                  queryFields.push({
                     name: key,
                     pyName,
                     type: fieldType,
@@ -219,24 +294,40 @@ let createEndpoint = (i: {
     });
   }
 
-  // Generate method signature with keyword arguments for POST/PUT/PATCH operations
+  // Generate method signature with keyword arguments for all operations
   let hasBody = bodyType && bodyFields.length > 0;
-  let isModificationMethod = ['POST', 'PUT', 'PATCH'].includes(
-    i.endpoint.method.toUpperCase()
-  );
+  let hasQuery = queryType && queryFields.length > 0;
 
   let params: string[] = ['self'];
 
   // Add path parameters first
   for (let param of pathParams) {
-    params.push(`${param}: str`);
+    let snakeCaseParam = Cases.toSnakeCase(param);
+    params.push(`${snakeCaseParam}: str`);
   }
 
-  // For methods with bodies, add keyword-only separator and individual fields
-  if (hasBody && isModificationMethod && bodyType) {
-    // Force keyword-only arguments for body fields
+  // Add keyword-only separator if we have body or query fields
+  if (hasBody || hasQuery) {
     params.push('*');
+  }
 
+  // Add query fields (these come before body fields for better parameter order)
+  if (hasQuery) {
+    // Add required query fields first (no default values)
+    let requiredQueryFields = queryFields.filter(f => !f.optional);
+    let optionalQueryFields = queryFields.filter(f => f.optional);
+
+    for (let field of requiredQueryFields) {
+      params.push(`${field.pyName}: ${field.type}`);
+    }
+
+    for (let field of optionalQueryFields) {
+      params.push(`${field.pyName}: ${field.type} = None`);
+    }
+  }
+
+  // For methods with bodies, add body fields
+  if (hasBody) {
     // Add required body fields first (no default values)
     let requiredFields = bodyFields.filter(f => !f.optional);
     let optionalFields = bodyFields.filter(f => f.optional);
@@ -248,43 +339,51 @@ let createEndpoint = (i: {
     for (let field of optionalFields) {
       params.push(`${field.pyName}: ${field.type} = None`);
     }
-
-    // Add legacy body parameter support
-    params.push(`_body: Optional[${bodyType.typeName}] = None`);
-  } else if (bodyType) {
-    // For non-modification methods or simple bodies, use the original body parameter
-    params.push(`body: ${bodyType.typeName}`);
-  }
-
-  // Add query parameter
-  if (queryType) {
-    params.push(`query: ${queryType.typeName} = None`);
   }
 
   let methodSignature = params.join(', ');
 
   // python path list
-  let pythonPath = pathParts.map(p => (p.startsWith(':') ? p.slice(1) : `'${p}'`)).join(', ');
+  let pythonPath = pathParts.map(p => {
+    if (p.startsWith(':')) {
+      let originalParam = p.slice(1);
+      let snakeCaseParam = paramNameMapping.get(originalParam) || originalParam;
+      return snakeCaseParam;
+    } else {
+      return `'${p}'`;
+    }
+  }).join(', ');
 
   // Generate method body
   let methodBody = '';
 
-  if (hasBody && isModificationMethod && bodyType) {
+  // Generate query construction logic for keyword arguments
+  if (hasQuery) {
+    methodBody += `        # Build query parameters from keyword arguments\n`;
+    methodBody += `        query_dict = {}\n`;
+
+    for (let field of queryFields) {
+      if (field.optional) {
+        methodBody += `        if ${field.pyName} is not None:\n`;
+        methodBody += `            query_dict["${field.name}"] = ${field.pyName}\n`;
+      } else {
+        methodBody += `        query_dict["${field.name}"] = ${field.pyName}\n`;
+      }
+    }
+    methodBody += `\n`;
+  }
+
+  if (hasBody) {
     // Generate body construction logic for keyword arguments
-    methodBody += `        # Handle body parameter - support both keyword args and legacy body dict\n`;
-    methodBody += `        if _body is not None:\n`;
-    methodBody += `            # Legacy dictionary support\n`;
-    methodBody += `            body_dict = ${bodyType.mapperName}.to_dict(_body)\n`;
-    methodBody += `        else:\n`;
-    methodBody += `            # Build from keyword arguments\n`;
-    methodBody += `            body_dict = {}\n`;
+    methodBody += `        # Build body parameters from keyword arguments\n`;
+    methodBody += `        body_dict = {}\n`;
 
     for (let field of bodyFields) {
       if (field.optional) {
-        methodBody += `            if ${field.pyName} is not None:\n`;
-        methodBody += `                body_dict["${field.name}"] = ${field.pyName}\n`;
-      } else {
+        methodBody += `        if ${field.pyName} is not None:\n`;
         methodBody += `            body_dict["${field.name}"] = ${field.pyName}\n`;
+      } else {
+        methodBody += `        body_dict["${field.name}"] = ${field.pyName}\n`;
       }
     }
     methodBody += `\n`;
@@ -295,26 +394,26 @@ let createEndpoint = (i: {
 
   // Document path parameters
   for (let param of pathParams) {
-    docArgs.push(`:param ${param}: str`);
+    let snakeCaseParam = Cases.toSnakeCase(param);
+    docArgs.push(`:param ${snakeCaseParam}: str`);
   }
 
-  // Document body fields (for modification methods) or body parameter
-  if (hasBody && isModificationMethod && bodyType) {
+  // Document query fields
+  if (hasQuery) {
+    for (let field of queryFields) {
+      let paramDoc = `:param ${field.pyName}: ${field.type}`;
+      if (field.optional) paramDoc += ' (optional)';
+      docArgs.push(paramDoc);
+    }
+  }
+
+  // Document body fields or body parameter
+  if (hasBody) {
     for (let field of bodyFields) {
       let paramDoc = `:param ${field.pyName}: ${field.type}`;
       if (field.optional) paramDoc += ' (optional)';
       docArgs.push(paramDoc);
     }
-    docArgs.push(
-      `:param _body: ${bodyType.typeName} (optional) - Legacy dictionary format (deprecated)`
-    );
-  } else if (bodyType) {
-    docArgs.push(`:param body: ${bodyType.typeName}`);
-  }
-
-  // Document query parameter
-  if (queryType) {
-    docArgs.push(`:param query: ${queryType.typeName} (optional)`);
   }
 
   let docstring = dedent`
@@ -329,16 +428,12 @@ let createEndpoint = (i: {
   // Generate request construction
   let requestArgs = [`path=[${pythonPath}]`];
 
-  if (hasBody && isModificationMethod && bodyType) {
+  if (hasBody) {
     requestArgs.push(`body=body_dict`);
-  } else if (bodyType) {
-    requestArgs.push(`body=${bodyType.mapperName}.to_dict(body)`);
   }
 
-  if (queryType) {
-    requestArgs.push(
-      `query=${queryType.mapperName}.to_dict(query) if query is not None else None`
-    );
+  if (hasQuery) {
+    requestArgs.push(`query=query_dict`);
   }
 
   // join arguments with commas and newlines for valid Python syntax
