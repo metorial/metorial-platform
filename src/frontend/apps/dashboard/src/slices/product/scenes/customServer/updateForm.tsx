@@ -16,6 +16,7 @@ import {
   Group,
   Input,
   InputLabel,
+  Select,
   Spacer,
   Switch,
   TextArrayInput,
@@ -111,6 +112,62 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
         </Field>
       </FormBox>
 
+      {customServer.data?.type == 'remote' && currentVersion.data && (
+        <FormBox
+          title="Remote Server Configuration"
+          description="Set up how Metorial connects to the remote server."
+          schema={yup =>
+            yup.object({
+              remoteUri: yup.string().optional(),
+              remoteProtocol: yup.string().optional()
+            })
+          }
+          initialValues={{
+            remoteUri: currentVersion.data.serverInstance.remoteServer?.remoteUrl,
+            remoteProtocol: currentVersion.data.serverInstance.remoteServer?.remoteProtocol
+          }}
+          mutators={[updateMutator]}
+          onSubmit={async values => {
+            if (!instance.data || !p.customServer) return;
+
+            let [res] = await createVersionMutatorSchema.mutate({
+              instanceId: instance.data.id,
+              customServerId: p.customServer.id,
+              implementation: {
+                type: 'remote',
+                remoteServer: {
+                  remoteUrl: values.remoteUri,
+                  remoteProtocol: values.remoteProtocol
+                }
+              }
+            });
+
+            if (res) {
+              toast.success('An updated version is currently being deployed.');
+            }
+          }}
+        >
+          <Field field="remoteUri">
+            {({ getFieldProps }) => <Input {...getFieldProps()} label="Remote URL" />}
+          </Field>
+
+          <Field field="remoteProtocol">
+            {({ value, setValue }) => (
+              <Select
+                value={value}
+                label="MCP Transport Protocol"
+                description="Which transport protocol does your MCP server support?"
+                items={[
+                  { label: 'SSE (Server-Sent Events)', id: 'sse' },
+                  { label: 'Streamable HTTP', id: 'streamable_http' }
+                ]}
+                onChange={v => setValue(v)}
+              />
+            )}
+          </Field>
+        </FormBox>
+      )}
+
       {currentVersion.error?.data.status != 404 && (
         <Group.Wrapper>
           <Group.Header
@@ -166,7 +223,11 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
                             },
                             remoteServer: {
                               remoteUrl:
-                                editingVersion.current?.serverInstance.remoteServer?.remoteUrl!
+                                editingVersion.current?.serverInstance.remoteServer
+                                  ?.remoteUrl!,
+                              remoteProtocol:
+                                editingVersion.current?.serverInstance.remoteServer
+                                  ?.remoteProtocol!
                             }
                           }
                   });
@@ -284,7 +345,9 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
                     remoteServer: {
                       remoteUrl:
                         editingVersion.current?.serverInstance.remoteServer?.remoteUrl ?? '',
-                      oauthConfig: values.enabled ? { scopes, config } : undefined
+                      oauthConfig: values.enabled ? { scopes, config } : undefined,
+                      remoteProtocol:
+                        editingVersion.current?.serverInstance.remoteServer?.remoteProtocol!
                     }
                   }
           });
