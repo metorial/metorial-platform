@@ -1,4 +1,5 @@
 import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
+import { delay } from '@metorial/delay';
 import {
   useCreateOAuthSession,
   useCreateSession,
@@ -79,8 +80,9 @@ export let useSessionForDeployment = (
             setTimeout(() => setState('oauth_error'), 100);
           });
 
-          win.onMessage(msg => {
+          win.onMessage(async msg => {
             if (msg.data?.type === 'oauth_complete') {
+              await delay(200);
               oauthSessionIdRef.current = oauthSession.id;
               doneRef.current = true;
               resolve();

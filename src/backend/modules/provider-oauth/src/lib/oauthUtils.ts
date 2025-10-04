@@ -134,6 +134,11 @@ export class OAuthUtils {
         ...getAxiosSsrfFilter(tokenEndpoint)
       });
 
+      // @ts-ignore
+      if (response.data.ok === false)
+        // @ts-ignore
+        throw new Error(response.data.message ?? 'Unknown oauth error (provider ok=false)');
+
       return response.data;
     } catch (error: any) {
       Sentry.captureException(error, {

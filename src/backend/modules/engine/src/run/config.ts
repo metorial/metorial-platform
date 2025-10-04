@@ -92,6 +92,8 @@ export let getSessionConfig = async (
     code: launchParams
   };
 
+  console.log(launcher);
+
   if (version.sourceType == 'docker') {
     if (!version.dockerImage) {
       throw new ServiceError(
