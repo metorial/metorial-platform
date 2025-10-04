@@ -19,6 +19,11 @@ export let metorial = {
   },
   get args() {
     return getArgs();
+  },
+  
+  withArgs: async (cb: (args: any) => void) => {
+    let args = await getArgs();
+    await cb(args);
   }
 }
 `;

@@ -6,7 +6,7 @@ export let setArgs = (args: any) => {
   currentArgs.resolve(args);
 };
 
-export let getArgs = () => {
-  return currentArgs.value;
+export let getArgs = async () => {
+  return await currentArgs.value;
 };
 `;
