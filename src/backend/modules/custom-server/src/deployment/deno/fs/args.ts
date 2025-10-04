@@ -1,10 +1,12 @@
-export let argsTs = `let currentArgs = {current: null};
+export let argsTs = `import { ProgrammablePromise } from './promise.ts';
+
+let currentArgs = new ProgrammablePromise();
 
 export let setArgs = (args: any) => {
-  currentArgs.current = args;
+  currentArgs.resolve(args);
 };
 
 export let getArgs = () => {
-  return currentArgs.current;
+  return currentArgs.value;
 };
 `;

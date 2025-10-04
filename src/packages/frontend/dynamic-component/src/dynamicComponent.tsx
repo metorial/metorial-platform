@@ -43,8 +43,14 @@ export let dynamicPage = <Params extends any[]>(
           completedRef.current = true;
         })
         .catch(() => {
-          // setError(true);
-          location.reload();
+          setError(true);
+
+          let current = new URL(window.location.href);
+          // Avoid infinite reload loop
+          if (current.searchParams.has('_cmp_ref')) return;
+
+          current.searchParams.set('_cmp_ref', Date.now().toString());
+          window.location.href = current.toString();
         });
 
       setTimeout(() => {
