@@ -27,8 +27,8 @@ Metorial abstracts away the complexities of MCP and offers a simple, unified int
 
 Metorial currently provides SDKs for the following languages:
 
-* <img src="assets/typescript.png" width="12px" height="12px" /> [**JavaScript/TypeScript**](clients/metorial-node)
-* <img src="assets/python.svg" width="12px" height="12px" /> [**Python**](clients/metorial-python)
+* <img src="assets/typescript.png" width="12px" height="12px" /> [**JavaScript/TypeScript**](https://github.com/metorial/metorial-node)
+* <img src="assets/python.svg" width="12px" height="12px" /> [**Python**](https://github.com/metorial/metorial-python)
 
 If you want to build a custom integration, check out our [API documentation](https://metorial.com/api) for details on how to use the Metorial API directly.
 
