@@ -127,7 +127,7 @@ class ServerCapabilitiesService {
           resourceTemplates = resourceTemplates?.resourceTemplates ?? [];
 
         return {
-          id: `mcap_${await Hash.sha256(String(variant.id + (version?.oid ?? variant.currentVersionOid)))}`,
+          id: `mcsrv_${await Hash.sha256(String(variant.id + (version?.oid ?? variant.currentVersionOid)))}`,
 
           serverVariant: variant,
           serverVersion: version,

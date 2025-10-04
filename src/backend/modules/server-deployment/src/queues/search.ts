@@ -39,12 +39,26 @@ export let serverDeploymentIndexSingleQueueProcessor =
     });
   });
 
-export let serverDeploymentIndexAllQueue = createQueue<{ afterId?: string }>({
+export let serverDeploymentIndexAllQueue = createQueue<{
+  afterId?: string;
+  indexOid?: bigint;
+}>({
   name: 'srd/dep/idx/all'
 });
 
 export let serverDeploymentIndexAllQueueProcessor = serverDeploymentIndexAllQueue.process(
   async data => {
+    let index = data.indexOid
+      ? await db.serverDeploymentOrInstanceIndexJob.findUnique({
+          where: { oid: data.indexOid }
+        })
+      : await db.serverDeploymentOrInstanceIndexJob.create({
+          data: {
+            type: 'server_deployment',
+            status: 'pending'
+          }
+        });
+
     let deployments = await db.serverDeployment.findMany({
       where: {
         id: data.afterId ? { gt: data.afterId } : undefined
@@ -55,6 +69,14 @@ export let serverDeploymentIndexAllQueueProcessor = serverDeploymentIndexAllQueu
       },
       select: { id: true }
     });
+    await db.serverDeploymentOrInstanceIndexJob.update({
+      where: { oid: index!.oid },
+      data: {
+        count: { increment: deployments.length },
+        status: deployments.length == 0 ? 'finished' : 'pending'
+      }
+    });
+
     if (deployments.length == 0) return;
 
     await serverDeploymentIndexSingleQueue.addMany(
@@ -105,12 +127,26 @@ export let serverImplementationIndexSingleQueueProcessor =
     });
   });
 
-export let serverImplementationIndexAllQueue = createQueue<{ afterId?: string }>({
+export let serverImplementationIndexAllQueue = createQueue<{
+  afterId?: string;
+  indexOid?: bigint;
+}>({
   name: 'srd/imp/idx/all'
 });
 
 export let serverImplementationIndexAllQueueProcessor =
   serverImplementationIndexAllQueue.process(async data => {
+    let index = data.indexOid
+      ? await db.serverDeploymentOrInstanceIndexJob.findUnique({
+          where: { oid: data.indexOid }
+        })
+      : await db.serverDeploymentOrInstanceIndexJob.create({
+          data: {
+            type: 'server_deployment',
+            status: 'pending'
+          }
+        });
+
     let implementations = await db.serverImplementation.findMany({
       where: {
         id: data.afterId ? { gt: data.afterId } : undefined
@@ -121,6 +157,14 @@ export let serverImplementationIndexAllQueueProcessor =
       },
       select: { id: true }
     });
+    await db.serverDeploymentOrInstanceIndexJob.update({
+      where: { oid: index!.oid },
+      data: {
+        count: { increment: implementations.length },
+        status: implementations.length == 0 ? 'finished' : 'pending'
+      }
+    });
+
     if (implementations.length == 0) return;
 
     await serverImplementationIndexSingleQueue.addMany(
@@ -142,3 +186,8 @@ export let serverIndexCron = createCron(
     await serverImplementationIndexAllQueue.add({});
   }
 );
+
+export let indexServerDeployments = async () => {
+  await serverDeploymentIndexAllQueue.add({});
+  await serverImplementationIndexAllQueue.add({});
+};

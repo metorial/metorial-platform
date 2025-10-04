@@ -1,0 +1,17 @@
+enum ServerDeploymentOrInstanceIndexJobStatus {
+  pending
+  finished
+}
+
+enum ServerDeploymentOrInstanceIndexJobType {
+  server_deployment
+  server_instance
+}
+
+model ServerDeploymentOrInstanceIndexJob {
+  oid       BigInt                                   @id @default(autoincrement())
+  status    ServerDeploymentOrInstanceIndexJobStatus
+  type      ServerDeploymentOrInstanceIndexJobType
+  count     Int                                      @default(0)
+  createdAt DateTime                                 @default(now())
+}
