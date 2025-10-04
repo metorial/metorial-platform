@@ -61,6 +61,8 @@ ensureTemplate({
       path: 'server.ts',
       content: `import { z, metorial, McpServer, ResourceTemplate } from '@metorial/mcp-server-sdk';
 
+let config = await metorial.getArgs();
+
 let server = new McpServer({
   name: 'demo-server',
   version: '1.0.0'

@@ -192,7 +192,11 @@ class OauthAuthorizationServiceImpl {
         codeVerifier: attempt.codeVerifier ?? undefined,
         config: connection.config.config
       });
-    } catch (error) {
+
+      if (!tokenResponse.access_token) {
+        throw new Error('Provider did not return `access_token`.');
+      }
+    } catch (error: any) {
       await db.providerOAuthConnectionAuthAttempt.update({
         where: {
           connectionOid: connection.oid,
@@ -205,7 +209,7 @@ class OauthAuthorizationServiceImpl {
           clientSecret: null,
 
           errorCode: 'token_exchange_failed',
-          errorMessage: `Failed to exchange authorization code for tokens`
+          errorMessage: `Failed to exchange authorization code for tokens: ${error.message}`
         }
       });
 
