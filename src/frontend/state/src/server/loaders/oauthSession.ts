@@ -49,7 +49,8 @@ export let useCreateOAuthSession = (instanceId: string | null | undefined) => {
       () => (body: DashboardInstanceProviderOauthSessionsCreateBody) =>
         withAuth(sdk => sdk.providerOauth.sessions.create(instanceId!, body)),
       [instanceId]
-    )
+    ),
+    { disableToast: true }
   );
 };
 
@@ -59,6 +60,7 @@ export let useGetOAuthSession = (instanceId: string | null | undefined) => {
       () => (input: { sessionId: string }) =>
         withAuth(sdk => sdk.providerOauth.sessions.get(instanceId!, input.sessionId)),
       [instanceId]
-    )
+    ),
+    { disableToast: true }
   );
 };
