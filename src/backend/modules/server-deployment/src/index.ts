@@ -13,6 +13,8 @@ import { serverImplementationCreatedQueueProcessor } from './queues/serverImplem
 
 export * from './services';
 
+export { indexServerDeployments } from './queues/search';
+
 export let serverDeploymentQueueProcessor = combineQueueProcessors([
   serverDeploymentSetupQueueProcessor,
   serverDeploymentDeletedQueueProcessor,
