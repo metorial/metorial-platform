@@ -9,6 +9,7 @@ export let v1RemoteServerPresenter = Presenter.create(remoteServerType)
     id: remoteServerInstance.id,
 
     remote_url: remoteServerInstance.remoteUrl,
+    remote_protocol: remoteServerInstance.remoteProtocol,
 
     provider_oauth: remoteServerInstance.providerOAuthConfig
       ? {
@@ -29,6 +30,10 @@ export let v1RemoteServerPresenter = Presenter.create(remoteServerType)
       remote_url: v.string({
         name: 'remote_url',
         description: `The URL of the remote server`
+      }),
+      remote_protocol: v.enumOf(['sse', 'streamable_http'], {
+        name: 'remote_protocol',
+        description: `The MCP transport protocol of the remote server`
       }),
 
       provider_oauth: v.nullable(

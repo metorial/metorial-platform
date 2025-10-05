@@ -278,6 +278,7 @@ export type ServersDeploymentsListQuery = {
   serverVariantId?: string | string[] | undefined;
   serverImplementationId?: string | string[] | undefined;
   sessionId?: string | string[] | undefined;
+  search?: string | undefined;
 };
 
 export let mapServersDeploymentsListQuery = mtMap.union([
@@ -332,7 +333,8 @@ export let mapServersDeploymentsListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
-      )
+      ),
+      search: mtMap.objectField('search', mtMap.passthrough())
     })
   )
 ]);

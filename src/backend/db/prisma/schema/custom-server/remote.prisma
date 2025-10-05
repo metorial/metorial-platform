@@ -10,6 +10,11 @@ enum RemoteServerStatus {
   active
 }
 
+enum RemoteServerProtocol {
+  sse
+  streamable_http
+}
+
 model RemoteServerInstance {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -19,7 +24,8 @@ model RemoteServerInstance {
   name        String?
   description String?
 
-  remoteUrl String
+  remoteUrl      String
+  remoteProtocol RemoteServerProtocol @default(sse)
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])

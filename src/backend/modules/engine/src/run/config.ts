@@ -17,6 +17,77 @@ import {
 import { RunConfigLambdaServer_Protocol } from '@metorial/mcp-engine-generated/ts-proto-gen/remote';
 import { providerOauthAuthorizationService } from '@metorial/module-provider-oauth';
 
+let getHeadersWithAuthorization = (
+  config: Record<string, any>,
+  otherHeaders: Record<string, any>
+) => {
+  let newHeaders: Record<string, any> = {};
+  if (typeof otherHeaders == 'object' && otherHeaders !== null) {
+    newHeaders = { ...otherHeaders };
+  }
+
+  if (config.token) {
+    newHeaders['Authorization'] = 'Bearer ' + config.token;
+  }
+
+  if (config.__metorial_oauth__ && config.__metorial_oauth__.accessToken) {
+    newHeaders['Authorization'] = 'Bearer ' + config.__metorial_oauth__.accessToken;
+  }
+
+  return newHeaders;
+};
+
+let knownLaunchers = [
+  {
+    impl: [
+      `(config, ctx) => ({
+  query: {},
+  headers: ctx.getHeadersWithAuthorization({})
+});`
+    ],
+    functionality: (config: Record<string, any>) => ({
+      query: {},
+      headers: getHeadersWithAuthorization(config, {})
+    })
+  },
+  {
+    impl: [
+      `(config, ctx) => ({
+  args: config
+});`
+    ],
+    functionality: (config: Record<string, any>) => ({
+      args: config
+    })
+  },
+  {
+    impl: [
+      `(config, ctx) => ({
+  args: {
+    ...config,
+
+    // Get access to oauth token (if oauth is configured)
+    token: config.oauthToken 
+  }
+});`,
+      `(config, ctx) => ({
+  args: {
+    // Get access to oauth token (if oauth is configured)
+    token: config.oauthToken,
+
+    ...config
+  }
+});`
+    ],
+    functionality: (config: Record<string, any>) => ({
+      args: {
+        token: config.oauthToken,
+        ...config
+      }
+    })
+  }
+];
+
 export let getSessionConfig = async (
   serverDeployment: ServerDeployment & {
     serverVariant: ServerVariant & {
@@ -73,23 +144,31 @@ export let getSessionConfig = async (
       })
     : null;
 
+  let DANGEROUSLY_serverConfigWithSecrets = {
+    accessToken: oauthToken?.accessToken,
+    oauthToken: oauthToken?.accessToken,
+    token: oauthToken?.accessToken,
+    oauth: oauthToken
+      ? {
+          accessToken: oauthToken.accessToken,
+          token: oauthToken.accessToken,
+          secret: oauthToken.accessToken
+        }
+      : undefined,
+    ...DANGEROUSLY_UNENCRYPTED_CONFIG,
+    __metorial_oauth__: oauthToken ? { accessToken: oauthToken.accessToken } : undefined
+  };
+
   let launcher = {
     launcherType: LauncherConfig_LauncherType.deno,
-    jsonConfig: JSON.stringify({
-      accessToken: oauthToken?.accessToken,
-      oauthToken: oauthToken?.accessToken,
-      token: oauthToken?.accessToken,
-      oauth: oauthToken
-        ? {
-            accessToken: oauthToken.accessToken,
-            token: oauthToken.accessToken,
-            secret: oauthToken.accessToken
-          }
-        : undefined,
-      ...DANGEROUSLY_UNENCRYPTED_CONFIG,
-      __metorial_oauth__: oauthToken ? { accessToken: oauthToken.accessToken } : undefined
-    }),
+    jsonConfig: JSON.stringify(DANGEROUSLY_serverConfigWithSecrets),
     code: launchParams
+  };
+
+  let knownLauncher = knownLaunchers.find(k => k.impl.includes(launchParams.trim()));
+
+  let mcpConfig = {
+    mcpVersion: version.mcpVersion
   };
 
   if (version.sourceType == 'docker') {
@@ -101,21 +180,21 @@ export let getSessionConfig = async (
       );
     }
 
+    let container = {
+      dockerImage: `${version.dockerImage}:${version.dockerTag ?? 'latest'}`,
+      maxCpu: '0.5',
+      maxMemory: '256mb'
+    };
+
     return {
       serverConfig: {
         containerRunConfigWithLauncher: {
           launcher,
-          container: {
-            dockerImage: `${version.dockerImage}:${version.dockerTag ?? 'latest'}`,
-            maxCpu: '0.5',
-            maxMemory: '256mb'
-          }
+          container
         }
       },
 
-      mcpConfig: {
-        mcpVersion: version.mcpVersion
-      }
+      mcpConfig
     };
   }
 
@@ -128,23 +207,32 @@ export let getSessionConfig = async (
       );
     }
 
-    return {
-      serverConfig: {
-        remoteRunConfigWithLauncher: {
-          launcher,
-          server: {
-            serverUri: version.remoteUrl,
-            protocol:
-              version.mcpTransport == 'sse'
-                ? RunConfigRemoteServer_ServerProtocol.sse
-                : RunConfigRemoteServer_ServerProtocol.streamable_http
-          }
-        }
-      },
+    let server = {
+      serverUri: version.remoteUrl,
+      protocol:
+        version.remoteServerProtocol == 'sse'
+          ? RunConfigRemoteServer_ServerProtocol.sse
+          : RunConfigRemoteServer_ServerProtocol.streamable_http
+    };
 
-      mcpConfig: {
-        mcpVersion: version.mcpVersion
-      }
+    return {
+      serverConfig: knownLauncher
+        ? {
+            remoteRunConfigWithServer: {
+              arguments: knownLauncher.functionality(
+                DANGEROUSLY_serverConfigWithSecrets
+              ) as any,
+              server
+            }
+          }
+        : {
+            remoteRunConfigWithLauncher: {
+              launcher,
+              server
+            }
+          },
+
+      mcpConfig
     };
   }
 
@@ -157,17 +245,31 @@ export let getSessionConfig = async (
       );
     }
 
+    let server = {
+      protocol: RunConfigLambdaServer_Protocol.metorial_stellar_over_websocket_v1,
+      providerResourceAccessIdentifier: version.lambda.providerResourceAccessIdentifier!,
+      securityToken: version.lambda.securityToken!
+    };
+
     return {
-      serverConfig: {
-        lambdaRunConfigWithLauncher: {
-          launcher,
-          server: {
-            protocol: RunConfigLambdaServer_Protocol.metorial_stellar_over_websocket_v1,
-            providerResourceAccessIdentifier: version.lambda.providerResourceAccessIdentifier!,
-            securityToken: version.lambda.securityToken!
+      serverConfig: knownLauncher
+        ? {
+            lambdaRunConfigWithServer: {
+              arguments: {
+                jsonArguments: JSON.stringify(
+                  // @ts-ignore
+                  knownLauncher.functionality(DANGEROUSLY_serverConfigWithSecrets).args || {}
+                )
+              },
+              server
+            }
           }
-        }
-      },
+        : {
+            lambdaRunConfigWithLauncher: {
+              launcher,
+              server
+            }
+          },
 
       statefulServerInfo: {
         toolsJson: JSON.stringify(version.tools),
@@ -178,9 +280,7 @@ export let getSessionConfig = async (
         instructionsJson: JSON.stringify(version.serverInstructions)
       },
 
-      mcpConfig: {
-        mcpVersion: version.mcpVersion
-      }
+      mcpConfig
     };
   }
 

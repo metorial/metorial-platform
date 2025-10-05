@@ -2,7 +2,7 @@
 
 <br />
 
-<h1 align="center">Metorial</h1>
+<h1 align="center">Metorial (YC F25)</h1>
 
 <p align="center">
 The open source integration platform for agentic AI. <br />
@@ -12,9 +12,9 @@ Connect any AI model to thousands of APIs, data sources, and tools with a single
 <br />
 
 > [!TIP]
-> *Skip the setup and go hosted:* The fasted, simplest and most reliable way to use [Metorial](https://metorial.com) is to sign up for [early access to our hosted platform](https://metorial.com/early-access).
+> *Skip the setup and go hosted:* The fasted, simplest and most reliable way to use [Metorial](https://metorial.com) is to sign up to [our hosted platform](https://app.metorial.com/).
 > 
-> ➡️ **[Get Early Access (for free)](https://metorial.com/early-access)**
+> ➡️ **[Get Started (for free)](https://metorial.com)**
 
 <br />
 
@@ -27,17 +27,10 @@ Metorial abstracts away the complexities of MCP and offers a simple, unified int
 
 Metorial currently provides SDKs for the following languages:
 
-* <img src="assets/typescript.png" width="12px" height="12px" /> [**JavaScript/TypeScript**](clients/metorial-js/sdk/metorial)
-* <img src="assets/python.svg" width="12px" height="12px" /> [**Python**](clients/metorial-py/sdk/metorial)
+* <img src="assets/typescript.png" width="12px" height="12px" /> [**JavaScript/TypeScript**](https://github.com/metorial/metorial-node)
+* <img src="assets/python.svg" width="12px" height="12px" /> [**Python**](https://github.com/metorial/metorial-python)
 
 If you want to build a custom integration, check out our [API documentation](https://metorial.com/api) for details on how to use the Metorial API directly.
-
-## Examples 
-
-We have several example projects that demonstrate how to use Metorial with different AI models and tools.
-
-* [Typescript + AI SDK](examples/typescript-ai-sdk) - Using Metorial with the [AI SDK](https://ai-sdk.dev/) in TypeScript.
-* [Typescript + OpenAI](examples/typescript-openai) - Using Metorial with the [OpenAI API](https://platform.openai.com/docs/api-reference/introduction) in TypeScript.
 
 ## Motivation
 

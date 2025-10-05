@@ -174,28 +174,39 @@ func (r *Run) handleStream() {
 	}()
 
 	if r.client == nil {
-		r.createStreamWg.Done()
 		r.initError = fmt.Errorf("McpRemoteClient is not initialized")
+		r.createStreamWg.Done()
 		return
 	}
 
+	fmt.Printf("Starting MCP run with input client: %+v\n", r.input.MCPClient)
+
 	if r.input.MCPClient == nil {
+		// r.initError = fmt.Errorf("MCP client is not initialized")
+		r.input.MCPClient = &mcp.MCPClient{
+			Info: mcp.ParticipantInfo{
+				Name:    "unknown",
+				Version: "1.0.0",
+			},
+			Capabilities:    mcp.Capabilities{},
+			ProtocolVersion: mcp.DEFAULT_MCP_VERSION.String(),
+			Extra:           map[string]any{},
+		}
 		r.createStreamWg.Done()
-		r.initError = fmt.Errorf("MCP client is not initialized")
 		return
 	}
 
 	participant, err := r.input.MCPClient.ToPbParticipant()
 	if err != nil {
-		r.createStreamWg.Done()
 		r.initError = fmt.Errorf("failed to create participant info: %w", err)
+		r.createStreamWg.Done()
 		return
 	}
 
 	stream, err := r.client.StreamMcpRun(context.Background())
 	if err != nil {
-		r.createStreamWg.Done()
 		r.initError = fmt.Errorf("failed to create MCP run stream: %w", err)
+		r.createStreamWg.Done()
 		return
 	}
 

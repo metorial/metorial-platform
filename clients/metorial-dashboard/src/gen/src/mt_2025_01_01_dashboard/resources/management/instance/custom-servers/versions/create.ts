@@ -35,6 +35,7 @@ export type ManagementInstanceCustomServersVersionsCreateOutput = {
       object: 'custom_server.remote_server';
       id: string;
       remoteUrl: string;
+      remoteProtocol: 'sse' | 'streamable_http';
       providerOauth: { config: Record<string, any>; scopes: string[] } | null;
       createdAt: Date;
       updatedAt: Date;
@@ -131,6 +132,10 @@ export let mapManagementInstanceCustomServersVersionsCreateOutput = mtMap.union(
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 remoteUrl: mtMap.objectField('remote_url', mtMap.passthrough()),
+                remoteProtocol: mtMap.objectField(
+                  'remote_protocol',
+                  mtMap.passthrough()
+                ),
                 providerOauth: mtMap.objectField(
                   'provider_oauth',
                   mtMap.object({
@@ -185,6 +190,7 @@ export type ManagementInstanceCustomServersVersionsCreateBody = {
         type: 'remote';
         remoteServer: {
           remoteUrl: string;
+          remoteProtocol: 'sse' | 'streamable_http';
           oauthConfig?:
             | { config: Record<string, any>; scopes: string[] }
             | null
@@ -223,6 +229,10 @@ export let mapManagementInstanceCustomServersVersionsCreateBody =
               'remote_server',
               mtMap.object({
                 remoteUrl: mtMap.objectField('remote_url', mtMap.passthrough()),
+                remoteProtocol: mtMap.objectField(
+                  'remote_protocol',
+                  mtMap.passthrough()
+                ),
                 oauthConfig: mtMap.objectField(
                   'oauth_config',
                   mtMap.object({

@@ -36,6 +36,7 @@ export type ManagementInstanceCustomServersVersionsListOutput = {
         object: 'custom_server.remote_server';
         id: string;
         remoteUrl: string;
+        remoteProtocol: 'sse' | 'streamable_http';
         providerOauth: { config: Record<string, any>; scopes: string[] } | null;
         createdAt: Date;
         updatedAt: Date;
@@ -151,6 +152,10 @@ export let mapManagementInstanceCustomServersVersionsListOutput =
                       id: mtMap.objectField('id', mtMap.passthrough()),
                       remoteUrl: mtMap.objectField(
                         'remote_url',
+                        mtMap.passthrough()
+                      ),
+                      remoteProtocol: mtMap.objectField(
+                        'remote_protocol',
                         mtMap.passthrough()
                       ),
                       providerOauth: mtMap.objectField(

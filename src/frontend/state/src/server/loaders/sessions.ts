@@ -52,6 +52,7 @@ export let useCreateSession = (instanceId: string | null | undefined) => {
       () => (body: DashboardInstanceSessionsCreateBody) =>
         withAuth(sdk => sdk.sessions.create(instanceId!, body)),
       [instanceId]
-    )
+    ),
+    { disableToast: true }
   );
 };
