@@ -28,6 +28,8 @@ model ServerListing {
   description String?
   readme      String?
 
+  oauthExplainer String?
+
   rank Int @default(0)
 
   skills String[]

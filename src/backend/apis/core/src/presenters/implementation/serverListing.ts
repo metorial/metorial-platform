@@ -401,6 +401,8 @@ export let dashboardServerListingPresenter = Presenter.create(serverListingType)
     return {
       ...v1,
 
+      oauth_explainer: serverListing.oauthExplainer,
+
       readme_html: readme
         ? await markdownService.renderMarkdown({
             markdown: readme,
@@ -420,6 +422,13 @@ export let dashboardServerListingPresenter = Presenter.create(serverListingType)
     v.intersection([
       v1ServerListingPresenter.schema,
       v.object({
+        oauth_explainer: v.nullable(
+          v.string({
+            name: 'oauth_explainer',
+            description: 'Explainer text for OAuth setup, if applicable'
+          })
+        ),
+
         readme_html: v.nullable(
           v.string({
             name: 'readme_html',

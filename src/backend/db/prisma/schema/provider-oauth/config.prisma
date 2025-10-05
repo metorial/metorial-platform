@@ -11,8 +11,7 @@ model ProviderOAuthConfig {
   discoverStatus ProviderOAuthConfigDiscoveryStatus @default(manual)
 
   /// [ProviderOAuthConfig]
-  config Json
-
+  config     Json
   configHash String
 
   scopes String[]

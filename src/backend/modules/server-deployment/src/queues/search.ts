@@ -9,7 +9,7 @@ export let serverDeploymentIndexSingleQueue = createQueue<{ serverDeploymentId: 
     concurrency: 5,
     limiter: {
       max: 50,
-      duration: 1000 * 60
+      duration: 1000
     }
   }
 });
@@ -24,6 +24,7 @@ export let serverDeploymentIndexSingleQueueProcessor =
       }
     });
     if (!deployment) throw new Error('retry ... not found');
+    if (deployment.isEphemeral) return;
 
     await searchService.indexDocument({
       index: 'server_deployment',
@@ -61,7 +62,8 @@ export let serverDeploymentIndexAllQueueProcessor = serverDeploymentIndexAllQueu
 
     let deployments = await db.serverDeployment.findMany({
       where: {
-        id: data.afterId ? { gt: data.afterId } : undefined
+        id: data.afterId ? { gt: data.afterId } : undefined,
+        isEphemeral: false
       },
       take: 500,
       orderBy: {
@@ -76,7 +78,6 @@ export let serverDeploymentIndexAllQueueProcessor = serverDeploymentIndexAllQueu
         status: deployments.length == 0 ? 'finished' : 'pending'
       }
     });
-
     if (deployments.length == 0) return;
 
     await serverDeploymentIndexSingleQueue.addMany(
@@ -84,7 +85,8 @@ export let serverDeploymentIndexAllQueueProcessor = serverDeploymentIndexAllQueu
     );
 
     await serverDeploymentIndexAllQueue.add({
-      afterId: deployments[deployments.length - 1].id
+      afterId: deployments[deployments.length - 1].id,
+      indexOid: index!.oid
     });
   }
 );
@@ -97,7 +99,7 @@ export let serverImplementationIndexSingleQueue = createQueue<{
     concurrency: 5,
     limiter: {
       max: 50,
-      duration: 1000 * 60
+      duration: 1000
     }
   }
 });
@@ -112,6 +114,7 @@ export let serverImplementationIndexSingleQueueProcessor =
       }
     });
     if (!implementation) throw new Error('retry ... not found');
+    if (implementation.isEphemeral) return;
 
     await searchService.indexDocument({
       index: 'server_implementation',
@@ -143,13 +146,15 @@ export let serverImplementationIndexAllQueueProcessor =
       : await db.serverDeploymentOrInstanceIndexJob.create({
           data: {
             type: 'server_deployment',
-            status: 'pending'
+            status: 'pending',
+            count: 0
           }
         });
 
     let implementations = await db.serverImplementation.findMany({
       where: {
-        id: data.afterId ? { gt: data.afterId } : undefined
+        id: data.afterId ? { gt: data.afterId } : undefined,
+        isEphemeral: false
       },
       take: 500,
       orderBy: {
@@ -172,7 +177,8 @@ export let serverImplementationIndexAllQueueProcessor =
     );
 
     await serverImplementationIndexAllQueue.add({
-      afterId: implementations[implementations.length - 1].id
+      afterId: implementations[implementations.length - 1].id,
+      indexOid: index!.oid
     });
   });
 

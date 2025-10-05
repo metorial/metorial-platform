@@ -1,14 +1,16 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCustomServer,
   useCustomServerListing,
+  useCustomServerVersion,
   useDashboardFlags
 } from '@metorial/state';
-import { confirm, Input, Switch } from '@metorial/ui';
+import { Button, confirm, Input, Switch } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { TextEditor } from '../../../../components/editor';
 import { FormBox } from '../../../../scenes/form/box';
 import { Field } from '../../../../scenes/form/field';
@@ -21,6 +23,12 @@ export let CustomServerListingPage = () => {
   let customServer = useCustomServer(instance.data?.id, customServerId);
 
   let listing = useCustomServerListing(instance.data?.id, customServer.data?.id);
+  let version = useCustomServerVersion(
+    instance.data?.id,
+    customServer.data?.id,
+    customServer.data?.currentVersionId
+  );
+
   let statusUpdate = listing.useUpdateMutator();
   let generalUpdate = listing.useUpdateMutator();
   let readmeUpdate = listing.useUpdateMutator();
@@ -30,6 +38,9 @@ export let CustomServerListingPage = () => {
     () => setIsPublic(customServer.data?.publicationStatus == 'public'),
     [customServer.data?.publicationStatus]
   );
+
+  let implementation =
+    version.data?.serverInstance.managedServer ?? version.data?.serverInstance.remoteServer;
 
   let flags = useDashboardFlags();
   if (!flags.data?.flags['community-profiles-enabled']) return;
@@ -74,6 +85,24 @@ export let CustomServerListingPage = () => {
 
       {customServer.data.publicationStatus == 'public' && (
         <>
+          <Box
+            title="Open Server Listing"
+            description="View this custom server listing in the Metorial catalog."
+          >
+            <Link
+              to={Paths.instance.server(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                customServer.data.server.id
+              )}
+            >
+              <Button as="span" size="2" variant="outline">
+                Open Listing
+              </Button>
+            </Link>
+          </Box>
+
           <FormBox
             title="Listing"
             description="Update how this server is listed in the Metorial catalog."
@@ -135,10 +164,47 @@ export let CustomServerListingPage = () => {
                   onChange={content => {
                     setValue(content);
                   }}
+                  placeholder="Write a readme for this custom server..."
                 />
               )}
             </Field>
           </FormBox>
+
+          {implementation?.providerOauth && (
+            <FormBox
+              title="OAuth Explainer"
+              description="Explain how to set up OAuth for this custom server."
+              schema={yup =>
+                yup.object({
+                  oauthExplainer: yup.string().optional()
+                })
+              }
+              initialValues={{
+                oauthExplainer: listing.data?.oauthExplainer ?? ''
+              }}
+              mutators={[readmeUpdate]}
+              onSubmit={async values => {
+                if (!instance.data) return;
+
+                await readmeUpdate.mutate({
+                  status: 'public',
+                  oauthExplainer: values.oauthExplainer
+                });
+              }}
+            >
+              <Field field="oauthExplainer">
+                {({ value, setValue }) => (
+                  <TextEditor
+                    content={value}
+                    onChange={content => {
+                      setValue(content);
+                    }}
+                    placeholder={`Explain how to set up OAuth for this custom server...`}
+                  />
+                )}
+              </Field>
+            </FormBox>
+          )}
         </>
       )}
     </FormPage>
