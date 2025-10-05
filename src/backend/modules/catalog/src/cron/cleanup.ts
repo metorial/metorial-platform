@@ -18,5 +18,13 @@ export let cleanupCron = createCron(
         }
       }
     });
+
+    await db.serverListingUpdate.deleteMany({
+      where: {
+        createdAt: {
+          lt: oneMonthAgo
+        }
+      }
+    });
   }
 );

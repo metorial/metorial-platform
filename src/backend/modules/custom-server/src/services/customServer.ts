@@ -320,6 +320,7 @@ class customServerServiceImpl {
           name?: string;
           description?: string;
           readme?: string;
+          oauthExplainer?: string | null;
         }
       | {
           isPublic: false;
@@ -396,7 +397,8 @@ class customServerServiceImpl {
           input: {
             name: input.name,
             description: input.description,
-            readme: input.readme
+            readme: input.readme,
+            oauthExplainer: input.oauthExplainer
           }
         });
       });

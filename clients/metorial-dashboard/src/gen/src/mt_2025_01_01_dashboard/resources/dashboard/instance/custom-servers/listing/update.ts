@@ -84,7 +84,7 @@ export type DashboardInstanceCustomServersListingUpdateOutput = {
   installation: { id: string; instanceId: string; createdAt: Date } | null;
   createdAt: Date;
   updatedAt: Date;
-} & { readmeHtml: string | null };
+} & { oauthExplainer: string | null; readmeHtml: string | null };
 
 export let mapDashboardInstanceCustomServersListingUpdateOutput = mtMap.union([
   mtMap.unionOption(
@@ -217,6 +217,7 @@ export let mapDashboardInstanceCustomServersListingUpdateOutput = mtMap.union([
       ),
       createdAt: mtMap.objectField('created_at', mtMap.date()),
       updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+      oauthExplainer: mtMap.objectField('oauth_explainer', mtMap.passthrough()),
       readmeHtml: mtMap.objectField('readme_html', mtMap.passthrough())
     })
   )
@@ -228,6 +229,7 @@ export type DashboardInstanceCustomServersListingUpdateBody =
       name?: string | undefined;
       description?: string | undefined;
       readme?: string | undefined;
+      oauthExplainer?: string | null | undefined;
     }
   | { status: 'private' };
 
@@ -238,7 +240,8 @@ export let mapDashboardInstanceCustomServersListingUpdateBody = mtMap.union([
       status: mtMap.objectField('status', mtMap.passthrough()),
       name: mtMap.objectField('name', mtMap.passthrough()),
       description: mtMap.objectField('description', mtMap.passthrough()),
-      readme: mtMap.objectField('readme', mtMap.passthrough())
+      readme: mtMap.objectField('readme', mtMap.passthrough()),
+      oauthExplainer: mtMap.objectField('oauth_explainer', mtMap.passthrough())
     })
   )
 ]);

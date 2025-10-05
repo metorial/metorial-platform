@@ -3,6 +3,7 @@ import {
   useCurrentInstance,
   useCustomServer,
   useCustomServerListing,
+  useCustomServerVersion,
   useDashboardFlags
 } from '@metorial/state';
 import { confirm, Input, Switch } from '@metorial/ui';
@@ -21,6 +22,12 @@ export let CustomServerListingPage = () => {
   let customServer = useCustomServer(instance.data?.id, customServerId);
 
   let listing = useCustomServerListing(instance.data?.id, customServer.data?.id);
+  let version = useCustomServerVersion(
+    instance.data?.id,
+    customServer.data?.id,
+    customServer.data?.currentVersionId
+  );
+
   let statusUpdate = listing.useUpdateMutator();
   let generalUpdate = listing.useUpdateMutator();
   let readmeUpdate = listing.useUpdateMutator();
@@ -30,6 +37,9 @@ export let CustomServerListingPage = () => {
     () => setIsPublic(customServer.data?.publicationStatus == 'public'),
     [customServer.data?.publicationStatus]
   );
+
+  let implementation =
+    version.data?.serverInstance.managedServer ?? version.data?.serverInstance.remoteServer;
 
   let flags = useDashboardFlags();
   if (!flags.data?.flags['community-profiles-enabled']) return;
@@ -135,10 +145,47 @@ export let CustomServerListingPage = () => {
                   onChange={content => {
                     setValue(content);
                   }}
+                  placeholder="Write a readme for this custom server..."
                 />
               )}
             </Field>
           </FormBox>
+
+          {implementation?.providerOauth && (
+            <FormBox
+              title="OAuth Explainer"
+              description="Explain how to set up OAuth for this custom server."
+              schema={yup =>
+                yup.object({
+                  oauthExplainer: yup.string().optional()
+                })
+              }
+              initialValues={{
+                oauthExplainer: listing.data?.oauthExplainer ?? ''
+              }}
+              mutators={[readmeUpdate]}
+              onSubmit={async values => {
+                if (!instance.data) return;
+
+                await readmeUpdate.mutate({
+                  status: 'public',
+                  oauthExplainer: values.oauthExplainer
+                });
+              }}
+            >
+              <Field field="oauthExplainer">
+                {({ value, setValue }) => (
+                  <TextEditor
+                    content={value}
+                    onChange={content => {
+                      setValue(content);
+                    }}
+                    placeholder={`Explain how to set up OAuth for this custom server...`}
+                  />
+                )}
+              </Field>
+            </FormBox>
+          )}
         </>
       )}
     </FormPage>

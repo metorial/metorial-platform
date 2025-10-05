@@ -10,6 +10,7 @@ import {
   RiStrikethrough
 } from '@remixicon/react';
 import { TextStyleKit } from '@tiptap/extension-text-style';
+import { Placeholder } from '@tiptap/extensions';
 import type { Editor } from '@tiptap/react';
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -38,6 +39,14 @@ let EditorWrapper = styled.div`
 
   .tiptap {
     outline: none !important;
+
+    p.is-editor-empty:first-child::before {
+      color: #999;
+      content: attr(data-placeholder);
+      float: left;
+      height: 0;
+      pointer-events: none;
+    }
 
     :first-child {
       margin-top: 0;
@@ -285,7 +294,11 @@ let MenuBar = ({ editor }: { editor: Editor }) => {
   );
 };
 
-export let TextEditor = (p: { content: string; onChange?: (content: string) => void }) => {
+export let TextEditor = (p: {
+  content: string;
+  onChange?: (content: string) => void;
+  placeholder: string;
+}) => {
   let debouncedUpdate = useMemo(
     () =>
       debounce(p.onChange || (() => {}), 300, {
@@ -295,8 +308,20 @@ export let TextEditor = (p: { content: string; onChange?: (content: string) => v
     [p.onChange]
   );
 
+  let ext = useMemo(
+    () => [
+      ...extensions,
+      Placeholder.configure({
+        placeholder: p.placeholder,
+        showOnlyWhenEditable: true,
+        showOnlyCurrent: false
+      })
+    ],
+    [p.placeholder]
+  );
+
   let editor = useEditor({
-    extensions,
+    extensions: ext,
     content: p.content,
     onUpdate: ({ editor }) => {
       // @ts-ignore
@@ -307,7 +332,7 @@ export let TextEditor = (p: { content: string; onChange?: (content: string) => v
     <Wrapper>
       <MenuBar editor={editor} />
       <EditorWrapper>
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} style={{ minHeight: 250 }} placeholder="Hello world" />
       </EditorWrapper>
     </Wrapper>
   );
