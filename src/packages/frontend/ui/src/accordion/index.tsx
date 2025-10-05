@@ -38,7 +38,7 @@ let Item = styled(RadixAccordion.Item)`
     border-bottom-right-radius: 10px;
   }
 
-  &[data-state='open'] {
+  &[data-state='open'][data-type='multiple'] {
     margin-bottom: 20px;
     border-radius: 10px;
     box-shadow: ${theme.shadows.medium};
@@ -135,6 +135,7 @@ export let Accordion = ({
             key={i}
             data-before-open={beforeOpen && !isOpen}
             data-after-open={afterOpen && !isOpen}
+            data-type={type}
           >
             <Trigger>
               <span>{item.title}</span>
@@ -149,7 +150,7 @@ export let Accordion = ({
               />
             </Trigger>
             <Content>
-              <div style={{ padding: 20 }}>{item.content}</div>
+              <div style={{ padding: '15px 20px' }}>{item.content}</div>
             </Content>
           </Item>
         );

@@ -98,6 +98,7 @@ class ServerListingService {
       description?: string;
       slug?: string;
       readme?: string | null;
+      oauthExplainer?: string | null;
     };
   }) {
     let updates = {
@@ -105,7 +106,11 @@ class ServerListingService {
       name: d.input.name ?? d.serverListing.name,
       description: d.input.description ?? d.serverListing.description,
       slug: d.input.slug ?? d.serverListing.slug,
-      readme: d.input.readme ?? d.serverListing.readme
+      readme: d.input.readme ?? d.serverListing.readme,
+      oauthExplainer:
+        d.input.oauthExplainer === null || d.input.oauthExplainer?.trim() === ''
+          ? null
+          : (d.input.oauthExplainer ?? d.serverListing.oauthExplainer)
     };
 
     let serverListing = await withTransaction(async db => {
@@ -121,7 +126,8 @@ class ServerListingService {
             name: d.serverListing.name,
             description: d.serverListing.description,
             slug: d.serverListing.slug,
-            readme: d.serverListing.readme
+            readme: d.serverListing.readme,
+            oauthExplainer: d.serverListing.oauthExplainer
           },
 
           after: {
@@ -129,7 +135,8 @@ class ServerListingService {
             name: updates.name,
             description: updates.description,
             slug: updates.slug,
-            readme: updates.readme
+            readme: updates.readme,
+            oauthExplainer: updates.oauthExplainer
           }
         }
       });

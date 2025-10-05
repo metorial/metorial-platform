@@ -274,7 +274,8 @@ export let customServerController = Controller.create(
             status: v.literal('public'),
             name: v.optional(v.string()),
             description: v.optional(v.string()),
-            readme: v.optional(v.string())
+            readme: v.optional(v.string()),
+            oauth_explainer: v.optional(v.nullable(v.string()))
           }),
           v.object({
             status: v.literal('private')
@@ -298,7 +299,8 @@ export let customServerController = Controller.create(
                   isPublic: true,
                   name: ctx.body.name,
                   description: ctx.body.description,
-                  readme: ctx.body.readme
+                  readme: ctx.body.readme,
+                  oauthExplainer: ctx.body.oauth_explainer
                 }
         });
 

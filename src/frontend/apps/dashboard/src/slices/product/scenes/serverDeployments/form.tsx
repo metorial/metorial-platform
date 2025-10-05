@@ -10,9 +10,11 @@ import {
   useCurrentInstance,
   useServer,
   useServerDeployment,
+  useServerListing,
   useServerVariants
 } from '@metorial/state';
 import {
+  AccordionSingle,
   Button,
   Callout,
   CenteredSpinner,
@@ -28,6 +30,7 @@ import { Box } from '@metorial/ui-product';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { Markdown } from '../../../../components/markdown';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 import { ServerSearch } from '../servers/search';
 import { Stepper } from '../stepper';
@@ -38,7 +41,7 @@ let Form = styled.form`
 `;
 
 export type ServerDeploymentFormProps =
-  | { type: 'update'; serverDeploymentId: string }
+  | { type: 'update'; serverDeploymentId: string; for?: undefined }
   | {
       type: 'create';
       for?:
@@ -58,6 +61,10 @@ export let ServerDeploymentForm = (
   let deployment = useServerDeployment(
     instance.data?.id,
     p.type == 'update' ? p.serverDeploymentId : undefined
+  );
+  let listing = useServerListing(
+    instance.data?.id,
+    deployment.data?.server.id ?? p.for?.serverId
   );
 
   let updateMutator = deployment?.useUpdateMutator();
@@ -165,6 +172,15 @@ export let ServerDeploymentForm = (
                     Please provide an OAuth Client ID and Client Secret to proceed with the
                     server deployment.
                   </Dialog.Description>
+
+                  {listing.data?.oauthExplainer && (
+                    <>
+                      <AccordionSingle title="OAuth Setup Instructions">
+                        <Markdown>{listing.data?.oauthExplainer}</Markdown>
+                      </AccordionSingle>
+                      <Spacer size={10} />
+                    </>
+                  )}
 
                   <Copy
                     label="Redirect URL"

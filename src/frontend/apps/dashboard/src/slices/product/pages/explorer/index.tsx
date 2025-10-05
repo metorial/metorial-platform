@@ -79,7 +79,6 @@ export let ExplorerPage = () => {
   let [open, setOpen] = useState(true);
 
   let [serverTab, setServerTab] = useState<'create' | 'list'>('create');
-
   let [serverDeploymentId, setServerDeploymentId] = useState<string | null>(null);
 
   let instance = useCurrentInstance();
@@ -101,10 +100,13 @@ export let ExplorerPage = () => {
     if (serverDeploymentId) {
       setOpen(false);
 
-      setSearch(v => {
-        v.set('server_deployment_id', serverDeploymentId);
-        return v;
-      });
+      setSearch(
+        v => {
+          v.set('server_deployment_id', serverDeploymentId);
+          return v;
+        },
+        { replace: true }
+      );
     }
   }, [serverDeploymentId]);
 
@@ -178,10 +180,13 @@ export let ExplorerPage = () => {
                     <ServerSearch
                       onSelect={server => {
                         _setSelectedServer(server as any);
-                        setSearch(v => {
-                          v.set('server_id', server.id);
-                          return v;
-                        });
+                        setSearch(
+                          v => {
+                            v.set('server_id', server.id);
+                            return v;
+                          },
+                          { replace: true }
+                        );
                       }}
                     />
                   </>
@@ -195,7 +200,7 @@ export let ExplorerPage = () => {
                           iconLeft={<RiArrowLeftLine />}
                           onClick={() => {
                             _setSelectedServer(null);
-                            setSearch(v => new URLSearchParams());
+                            setSearch(v => new URLSearchParams(), { replace: true });
                             setOpen(true);
                           }}
                           size="1"
@@ -257,7 +262,7 @@ export let ExplorerPage = () => {
                               size="2"
                               onClick={() => {
                                 _setSelectedServer(null);
-                                setSearch(v => new URLSearchParams());
+                                setSearch(v => new URLSearchParams(), { replace: true });
                                 setOpen(true);
                               }}
                             >

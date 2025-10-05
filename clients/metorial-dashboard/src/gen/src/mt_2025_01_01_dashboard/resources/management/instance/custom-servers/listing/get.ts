@@ -84,7 +84,7 @@ export type ManagementInstanceCustomServersListingGetOutput = {
   installation: { id: string; instanceId: string; createdAt: Date } | null;
   createdAt: Date;
   updatedAt: Date;
-} & { readmeHtml: string | null };
+} & { oauthExplainer: string | null; readmeHtml: string | null };
 
 export let mapManagementInstanceCustomServersListingGetOutput = mtMap.union([
   mtMap.unionOption(
@@ -217,6 +217,7 @@ export let mapManagementInstanceCustomServersListingGetOutput = mtMap.union([
       ),
       createdAt: mtMap.objectField('created_at', mtMap.date()),
       updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+      oauthExplainer: mtMap.objectField('oauth_explainer', mtMap.passthrough()),
       readmeHtml: mtMap.objectField('readme_html', mtMap.passthrough())
     })
   )
