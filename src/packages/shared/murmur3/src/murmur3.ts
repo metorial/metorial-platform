@@ -37,6 +37,8 @@ export let murmur3_32 = (key: string, seed: number = 0): number => {
       k1 = (k1 << 15) | (k1 >>> 17);
       k1 = Math.imul(k1, c2);
       h1 ^= k1;
+    default:
+    // do nothing
   }
 
   h1 ^= key.length;

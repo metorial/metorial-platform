@@ -10,7 +10,7 @@ import {
 } from '@metorial/mcp-engine-generated';
 import { getSentry } from '@metorial/sentry';
 import { getUnifiedIdIfNeeded, UnifiedID } from '@metorial/unified-id';
-import { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sdk/types';
+import { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { addRunSync } from '../../queues/syncRuns';
 import { createEngineRun } from '../data/engineRun';
 import { createSessionMessage } from '../data/message';
