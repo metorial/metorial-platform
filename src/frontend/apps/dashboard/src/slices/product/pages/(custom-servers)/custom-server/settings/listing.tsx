@@ -1,4 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCustomServer,
@@ -6,10 +7,10 @@ import {
   useCustomServerVersion,
   useDashboardFlags
 } from '@metorial/state';
-import { confirm, Input, Switch } from '@metorial/ui';
+import { Button, confirm, Input, Switch } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { TextEditor } from '../../../../components/editor';
 import { FormBox } from '../../../../scenes/form/box';
 import { Field } from '../../../../scenes/form/field';
@@ -84,6 +85,24 @@ export let CustomServerListingPage = () => {
 
       {customServer.data.publicationStatus == 'public' && (
         <>
+          <Box
+            title="Open Server Listing"
+            description="View this custom server listing in the Metorial catalog."
+          >
+            <Link
+              to={Paths.instance.server(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                customServer.data.server.id
+              )}
+            >
+              <Button as="span" size="2" variant="outline">
+                Open Listing
+              </Button>
+            </Link>
+          </Box>
+
           <FormBox
             title="Listing"
             description="Update how this server is listed in the Metorial catalog."

@@ -1,6 +1,10 @@
 import { Paths } from '@metorial/frontend-config';
 import { AppLayout } from '@metorial/layout';
-import { useCurrentInstance, useCurrentOrganization } from '@metorial/state';
+import {
+  lastInstanceIdStore,
+  useCurrentInstance,
+  useCurrentOrganization
+} from '@metorial/state';
 import { RiHomeLine, RiSettings2Line, RiTerminalBoxLine } from '@remixicon/react';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
@@ -21,6 +25,11 @@ export let ProjectPageLayout = () => {
   useEffect(() => {
     if (!instance.data) return;
     document.title = `${instance.data.project.name} • Metorial Dashboard`;
+  }, [instance.data]);
+
+  useEffect(() => {
+    if (!instance.data) return;
+    lastInstanceIdStore.set(instance.data.id);
   }, [instance.data]);
 
   let pathParts = [organization.data, instance.data?.project, instance.data] as const;

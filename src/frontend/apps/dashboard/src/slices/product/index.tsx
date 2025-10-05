@@ -2,7 +2,8 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { dynamicPage } from '@metorial/dynamic-component';
 import { createSlice } from '@metorial/microfrontend';
 import { NotFound } from '@metorial/pages';
-import { useDashboardFlags } from '@metorial/state';
+import { lastInstanceIdStore, useCurrentInstance, useDashboardFlags } from '@metorial/state';
+import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
 import { CustomServerCodePage } from './pages/(custom-servers)/custom-server/code';
@@ -239,10 +240,21 @@ let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string
   );
 };
 
+let ProductWrapper = () => {
+  let instance = useCurrentInstance();
+
+  useEffect(() => {
+    if (!instance.data) return;
+    lastInstanceIdStore.set(instance.data.id);
+  }, [instance.data]);
+
+  return <Outlet />;
+};
+
 export let productInnerSlice = createSlice([
   {
     path: ':organizationId/:projectId/:instanceId',
-    element: <Outlet />,
+    element: <ProductWrapper />,
 
     children: [
       {
