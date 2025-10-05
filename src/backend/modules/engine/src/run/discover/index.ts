@@ -1,7 +1,7 @@
 import { db, ID, ServerSession } from '@metorial/db';
 import { secretService } from '@metorial/module-secret';
 import { getSentry } from '@metorial/sentry';
-import { InitializeResult } from '@modelcontextprotocol/sdk/types';
+import { InitializeResult } from '@modelcontextprotocol/sdk/types.js';
 import { subMinutes } from 'date-fns';
 import { getClientByHash } from '../client';
 import { getSessionConfig } from '../config';

@@ -29,8 +29,10 @@ export let murmur3_32 = (key: string, seed: number = 0): number => {
   switch (remainder) {
     case 3:
       k1 ^= (key.charCodeAt(i + 2) & 0xff) << 16;
+    // fall through
     case 2:
       k1 ^= (key.charCodeAt(i + 1) & 0xff) << 8;
+    // fall through
     case 1:
       k1 ^= key.charCodeAt(i) & 0xff;
       k1 = Math.imul(k1, c1);

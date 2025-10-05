@@ -1,7 +1,7 @@
 import { McpMessage, McpMessageRaw, McpMessageType } from '@metorial/mcp-engine-generated';
 import { getMessageType } from '@metorial/mcp-utils';
 import { UnifiedID } from '@metorial/unified-id';
-import { JSONRPCMessage } from '@modelcontextprotocol/sdk/types';
+import { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { uuidv7 } from 'uuidv7';
 import { Participant } from './participant';
 import { MCPMessageType, pbToMessageType } from './types';

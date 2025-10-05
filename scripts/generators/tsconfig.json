@@ -17,7 +17,7 @@
     // Best practices
     "strict": true,
     "skipLibCheck": true,
-    "noFallthroughCasesInSwitch": true,
+    "noFallthroughCasesInSwitch": false,
 
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
