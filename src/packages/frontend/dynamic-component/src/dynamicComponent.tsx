@@ -4,6 +4,11 @@ import React, { ReactNode, useEffect, useRef, useState } from 'react';
 
 let queue = new PQueue({ concurrency: 10 });
 
+let requestIdleCallbackWithFallback =
+  typeof requestIdleCallback != 'undefined'
+    ? requestIdleCallback
+    : (cb: () => any, opts: any) => cb();
+
 export let dynamicPage = <Params extends any[]>(
   loader: () => Promise<(...p: Params) => ReactNode>
 ) => {
@@ -12,7 +17,7 @@ export let dynamicPage = <Params extends any[]>(
   // @ts-ignore
   if (import.meta.env.PROD) {
     setTimeout(() => {
-      requestIdleCallback(
+      requestIdleCallbackWithFallback(
         () =>
           queue.add(async () => {
             loadPromise = loadPromise ?? (loader() as any);
