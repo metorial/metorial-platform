@@ -22,6 +22,7 @@
     "@metorial/pagination": "^1.0.0",
     "@metorial/queue": "^1.0.0",
     "@metorial/service": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.19.1",
     "@types/fs-extra": "^11.0.4",
     "fs-extra": "^11.3.0",
     "uuid": "^11.1.0",
