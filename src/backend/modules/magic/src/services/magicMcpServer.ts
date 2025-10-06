@@ -19,7 +19,11 @@ import { slugify } from '@metorial/slugify';
 let include = {
   serverDeployment: {
     include: {
-      server: true
+      serverDeployment: {
+        include: {
+          server: true
+        }
+      }
     }
   },
   aliases: true
@@ -79,7 +83,12 @@ class MagicMcpServerImpl {
       data: {
         id: await ID.generateId('magicMcpServer'),
         status: 'active',
-        serverDeploymentOid: d.serverDeployment.oid,
+        serverDeployment: {
+          create: {
+            id: await ID.generateId('magicMcpServerDeployment'),
+            serverDeploymentOid: d.serverDeployment.oid
+          }
+        },
         instanceOid: d.instance.oid,
         name: d.input.name,
         description: d.input.description,
@@ -148,20 +157,26 @@ class MagicMcpServerImpl {
 
   async listMagicMcpServers(d: { instance: Instance; status?: MagicMcpServerStatus[] }) {
     return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.magicMcpServer.findMany({
-            ...opts,
-            where: {
-              instanceOid: d.instance.oid,
+      prisma(async opts => {
+        let res = await await db.magicMcpServer.findMany({
+          ...opts,
+          where: {
+            instanceOid: d.instance.oid,
 
-              AND: [d.status ? { status: { in: d.status } } : { not: 'archived' }].filter(
-                Boolean
-              )
-            },
-            include
-          })
-      )
+            AND: [
+              d.status
+                ? { status: { in: d.status } }
+                : { status: { not: 'archived' as const } }
+            ].filter(Boolean)
+          },
+          include
+        });
+
+        if (res.length == 0) {
+        }
+
+        return res;
+      })
     );
   }
 }

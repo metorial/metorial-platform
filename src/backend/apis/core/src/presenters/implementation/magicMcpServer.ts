@@ -11,10 +11,12 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
       id: magicMcpServer.id,
       status: magicMcpServer.status,
 
-      server_deployment: v1ServerDeploymentPreview(
-        magicMcpServer.serverDeployment,
-        magicMcpServer.serverDeployment.server
-      ),
+      server_deployments: [
+        v1ServerDeploymentPreview(
+          magicMcpServer.serverDeployment.serverDeployment,
+          magicMcpServer.serverDeployment.serverDeployment.server
+        )
+      ],
 
       aliases: magicMcpServer.aliases.map(a => a.slug),
 
@@ -45,7 +47,10 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         description: 'List of aliases associated with the magic MCP server'
       }),
 
-      server_deployment: v1ServerDeploymentPreview.schema,
+      server_deployments: v.array(v1ServerDeploymentPreview.schema, {
+        name: 'server_deployments',
+        description: 'List of server deployments associated with the magic MCP server'
+      }),
 
       name: v.string({
         name: 'name',

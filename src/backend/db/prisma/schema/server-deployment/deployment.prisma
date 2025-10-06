@@ -44,12 +44,12 @@ model ServerDeployment {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  serverRunErrors          ServerRunError[]
-  serverSessions           ServerSession[]
-  serverRuns               ServerRun[]
-  sessionsOldDontUse       Session[]
-  serverAutoDiscoveryJobs  ServerAutoDiscoveryJob[]
-  sessionServerDeployments SessionServerDeployment[]
-  magicMcpServers          MagicMcpServer[]
-  magicMcpSessions         MagicMcpSession[]
+  serverRunErrors           ServerRunError[]
+  serverSessions            ServerSession[]
+  serverRuns                ServerRun[]
+  sessionsOldDontUse        Session[]
+  serverAutoDiscoveryJobs   ServerAutoDiscoveryJob[]
+  sessionServerDeployments  SessionServerDeployment[]
+  magicMcpSessions          MagicMcpSession[]
+  magicMcpServerDeployments MagicMcpServerDeployment[]
 }

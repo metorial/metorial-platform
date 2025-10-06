@@ -9,6 +9,7 @@ export type Flags = {
   'provider-oauth-enabled': boolean;
   'managed-servers-enabled': boolean;
   'community-profiles-enabled': boolean;
+  'magic-mcp-enabled'?: boolean;
 };
 
 export let defaultFlags: Flags = {
@@ -19,7 +20,8 @@ export let defaultFlags: Flags = {
   'custom-servers-remote-enabled': true,
   'provider-oauth-enabled': true,
   'managed-servers-enabled': true,
-  'community-profiles-enabled': true
+  'community-profiles-enabled': true,
+  'magic-mcp-enabled': true
 };
 
 export type FlagProviderParams = {

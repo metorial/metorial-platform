@@ -5,7 +5,11 @@ import { Service } from '@metorial/service';
 
 let include = {
   magicMcpServer: true,
-  session: true
+  session: {
+    include: {
+      serverSessions: true
+    }
+  }
 };
 
 class MagicMcpSessionImpl {

@@ -4,15 +4,21 @@ import {
   ID,
   Instance,
   MagicMcpToken,
-  MagicMcpTokenStatus,
   Organization,
   OrganizationActor
 } from '@metorial/db';
 import { notFoundError, preconditionFailedError, ServiceError } from '@metorial/error';
+import { createLock } from '@metorial/lock';
+import { organizationActorService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
+import { subDays } from 'date-fns';
 
 let include = {};
+
+let autoCreateLock = createLock({
+  name: 'mgc/tkn/acrk'
+});
 
 class MagicMcpTokenImpl {
   async getMagicMcpTokenById(d: { instance: Instance; magicMcpTokenId: string }) {
@@ -44,7 +50,7 @@ class MagicMcpTokenImpl {
     organization: Organization;
     performedBy: OrganizationActor;
     instance: Instance;
-    context: Context;
+    context?: Context;
 
     input: {
       name?: string;
@@ -110,22 +116,52 @@ class MagicMcpTokenImpl {
     });
   }
 
-  async listMagicMcpTokens(d: { instance: Instance; status?: MagicMcpTokenStatus[] }) {
+  async listMagicMcpTokens(d: { instance: Instance }) {
     return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.magicMcpToken.findMany({
+      prisma(async opts => {
+        let getRes = async () =>
+          await await db.magicMcpToken.findMany({
             ...opts,
             where: {
               instanceOid: d.instance.oid,
 
-              AND: [d.status ? { status: { in: d.status } } : { not: 'archived' }].filter(
-                Boolean
-              )
+              OR: [{ deletedAt: null }, { deletedAt: { gt: subDays(new Date(), 3) } }]
             },
             include
-          })
-      )
+          });
+
+        let res = await getRes();
+
+        if (res.length == 0) {
+          res = await autoCreateLock.usingLock(d.instance.id, async () => {
+            let existingSevers = await db.magicMcpToken.count({
+              where: { instanceOid: d.instance.oid }
+            });
+
+            if (existingSevers == 0) {
+              let org = await db.organization.findFirstOrThrow({
+                where: { oid: d.instance.organizationOid }
+              });
+
+              await this.createMagicMcpToken({
+                organization: org,
+                performedBy: await organizationActorService.getSystemActor({
+                  organization: org
+                }),
+                instance: d.instance,
+                input: {
+                  name: 'Default Token',
+                  description: 'This token was automatically created for you.'
+                }
+              });
+            }
+
+            return await getRes();
+          });
+        }
+
+        return res;
+      })
     );
   }
 }

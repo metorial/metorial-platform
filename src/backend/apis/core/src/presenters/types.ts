@@ -19,6 +19,7 @@ import {
   MachineAccess,
   MagicMcpServer,
   MagicMcpServerAlias,
+  MagicMcpServerDeployment,
   MagicMcpSession,
   MagicMcpToken,
   ManagedServerTemplate,
@@ -478,8 +479,10 @@ export let managedServerTemplateType = PresentableType.create<{
 
 export let magicMcpServerType = PresentableType.create<{
   magicMcpServer: MagicMcpServer & {
-    serverDeployment: ServerDeployment & {
-      server: Server;
+    serverDeployment: MagicMcpServerDeployment & {
+      serverDeployment: ServerDeployment & {
+        server: Server;
+      };
     };
     aliases: MagicMcpServerAlias[];
   };
@@ -487,7 +490,9 @@ export let magicMcpServerType = PresentableType.create<{
 
 export let magicMcpSessionType = PresentableType.create<{
   magicMcpSession: MagicMcpSession & {
-    session: Session;
+    session: Session & {
+      serverSessions: ServerSession[];
+    };
     magicMcpServer: MagicMcpServer;
   };
 }>()('magic_mcp.session');
