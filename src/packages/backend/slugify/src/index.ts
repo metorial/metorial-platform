@@ -14,6 +14,10 @@ export let createSlugGenerator =
   async (d: { input: string; current?: string }, opts: Opts) => {
     let slug = slugify(d.input);
 
+    if (slug.length < 5) {
+      slug += generateCode(5 - slug.length);
+    }
+
     for (let i = 0; i < 10; i++) {
       if (d.current && slug == d.current) return slug;
 

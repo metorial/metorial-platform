@@ -18,7 +18,7 @@ let rotate = keyframes`
 let Wrapper = styled('div')`
   display: inline-block;
   animation: ${rotate} ${spinnerTheme.duration} ease infinite;
-  border: calc(${spinnerTheme.size} / 6) solid ${spinnerTheme.background};
+  border: calc(${spinnerTheme.size} / 7) solid ${spinnerTheme.background};
   border-top-color: ${spinnerTheme.foreground};
   border-radius: 50%;
   width: ${spinnerTheme.size};
@@ -48,7 +48,7 @@ export let Spinner = ({
         ...spinnerTheme.setRootStyles({
           duration: duration ?? '900ms',
           size: (size ?? '26px').toString(),
-          foreground: foreground ?? theme.colors.blue700,
+          foreground: foreground ?? theme.colors.black500,
           background: background ?? theme.colors.gray300
         }),
 
