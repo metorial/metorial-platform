@@ -5,14 +5,18 @@ import { Context } from 'hono';
 export let useValidatedBody = async <T>(c: Context, v: ValidationType<T>): Promise<T> => {
   let body: any;
 
-  try {
-    body = await c.req.json();
-  } catch (e) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'Invalid JSON body'
-      })
-    );
+  if (c.req.header('Content-Type')?.includes('application/x-www-form-urlencoded')) {
+    body = Object.fromEntries(new URLSearchParams(await c.req.text()));
+  } else {
+    try {
+      body = await c.req.json();
+    } catch (e) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Invalid JSON body'
+        })
+      );
+    }
   }
 
   let val = v.validate(body);
