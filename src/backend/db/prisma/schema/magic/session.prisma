@@ -1,0 +1,21 @@
+model MagicMcpSession {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  sessionOid BigInt
+  session    Session @relation(fields: [sessionOid], references: [oid])
+
+  magicMcpServerOid BigInt
+  magicMcpServer    MagicMcpServer @relation(fields: [magicMcpServerOid], references: [oid])
+
+  serverDeploymentOid BigInt
+  serverDeployment    ServerDeployment @relation(fields: [serverDeploymentOid], references: [oid])
+
+  tokenOid BigInt?
+  token    MagicMcpToken? @relation(fields: [tokenOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}

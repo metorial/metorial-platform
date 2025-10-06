@@ -17,6 +17,10 @@ import {
   InstanceServer,
   LambdaServerInstance,
   MachineAccess,
+  MagicMcpServer,
+  MagicMcpServerAlias,
+  MagicMcpSession,
+  MagicMcpToken,
   ManagedServerTemplate,
   Organization,
   OrganizationActor,
@@ -471,3 +475,23 @@ export let customServerCodeEditorTokenType = PresentableType.create<{
 export let managedServerTemplateType = PresentableType.create<{
   managedServerTemplate: ManagedServerTemplate & { bucketTemplate: CodeBucketTemplate };
 }>()('managed_server.template');
+
+export let magicMcpServerType = PresentableType.create<{
+  magicMcpServer: MagicMcpServer & {
+    serverDeployment: ServerDeployment & {
+      server: Server;
+    };
+    aliases: MagicMcpServerAlias[];
+  };
+}>()('magic_mcp.server');
+
+export let magicMcpSessionType = PresentableType.create<{
+  magicMcpSession: MagicMcpSession & {
+    session: Session;
+    magicMcpServer: MagicMcpServer;
+  };
+}>()('magic_mcp.session');
+
+export let magicMcpTokenType = PresentableType.create<{
+  magicMcpToken: MagicMcpToken;
+}>()('magic_mcp.token');

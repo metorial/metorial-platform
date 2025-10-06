@@ -50,4 +50,6 @@ model ServerDeployment {
   sessionsOldDontUse       Session[]
   serverAutoDiscoveryJobs  ServerAutoDiscoveryJob[]
   sessionServerDeployments SessionServerDeployment[]
+  magicMcpServers          MagicMcpServer[]
+  magicMcpSessions         MagicMcpSession[]
 }

@@ -13,6 +13,9 @@ import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
 import { v1InstancePresenter } from './implementation/instance';
 import { v1MachineAccessPresenter } from './implementation/machineAccess';
+import { v1MagicMcpServerPresenter } from './implementation/magicMcpServer';
+import { v1MagicMcpSessionPresenter } from './implementation/magicMcpSession';
+import { v1MagicMcpTokenPresenter } from './implementation/magicMcpToken';
 import { v1ManagedServerTemplatePresenter } from './implementation/managedServerTemplate';
 import { v1OrganizationPresenter } from './implementation/organization';
 import { v1OrganizationActorPresenter } from './implementation/organizationActor';
@@ -71,6 +74,9 @@ import {
   fileType,
   instanceType,
   machineAccessType,
+  magicMcpServerType,
+  magicMcpSessionType,
+  magicMcpTokenType,
   managedServerTemplateType,
   organizationActorType,
   organizationInviteType,
@@ -369,4 +375,19 @@ export let customServerCodeEditorTokenTypePresenter = declarePresenter(
 export let managedServerTemplateTypePresenter = declarePresenter(managedServerTemplateType, {
   mt_2025_01_01_pulsar: v1ManagedServerTemplatePresenter,
   mt_2025_01_01_dashboard: v1ManagedServerTemplatePresenter
+});
+
+export let magicMcpServerPresenter = declarePresenter(magicMcpServerType, {
+  mt_2025_01_01_pulsar: v1MagicMcpServerPresenter,
+  mt_2025_01_01_dashboard: v1MagicMcpServerPresenter
+});
+
+export let magicMcpSessionPresenter = declarePresenter(magicMcpSessionType, {
+  mt_2025_01_01_pulsar: v1MagicMcpSessionPresenter,
+  mt_2025_01_01_dashboard: v1MagicMcpSessionPresenter
+});
+
+export let magicMcpTokenPresenter = declarePresenter(magicMcpTokenType, {
+  mt_2025_01_01_pulsar: v1MagicMcpTokenPresenter,
+  mt_2025_01_01_dashboard: v1MagicMcpTokenPresenter
 });

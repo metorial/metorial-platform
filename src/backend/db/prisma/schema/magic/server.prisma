@@ -1,0 +1,37 @@
+enum MagicMcpServerStatus {
+  active
+  archived
+  deleted
+}
+
+model MagicMcpServer {
+  oid    BigInt               @id @default(autoincrement())
+  id     String               @unique
+  status MagicMcpServerStatus
+
+  serverDeploymentOid BigInt
+  serverDeployment    ServerDeployment @relation(fields: [serverDeploymentOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  name        String?
+  description String?
+
+  metadata Json
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  aliases  MagicMcpServerAlias[]
+  sessions MagicMcpSession[]
+}
+
+model MagicMcpServerAlias {
+  oid  BigInt @id @default(autoincrement())
+  slug String @unique
+
+  serverOid BigInt
+  server    MagicMcpServer @relation(fields: [serverOid], references: [oid])
+}

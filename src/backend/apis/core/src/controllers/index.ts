@@ -17,6 +17,9 @@ import { customServerVersionController } from './instance/customServerVersion';
 import { fileController } from './instance/file';
 import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
+import { magicMcpServerController } from './instance/magicMcpServer';
+import { magicMcpSessionController } from './instance/magicMcpSession';
+import { magicMcpTokenController } from './instance/magicMcpToken';
 import { providerOauthConnectionController } from './instance/providerOauthConnection';
 import { providerOauthConnectionAuthenticationController } from './instance/providerOauthConnectionAuthentication';
 import { providerOauthConnectionEventController } from './instance/providerOauthConnectionEvent';
@@ -81,7 +84,11 @@ export let pulsarController = Controller.create<any>(
     providerOauthConnectionAuthenticationController,
     providerOauthConnectionProfileController,
 
-    serverOauthSessionController
+    serverOauthSessionController,
+
+    magicMcpServerController,
+    magicMcpSessionController,
+    magicMcpTokenController
   }
 );
 
@@ -150,6 +157,10 @@ export let dashboardController = Controller.create<any>(
     customServerDeploymentController,
     remoteServerController,
     customServerCodeController,
-    dashboardManagedServerTemplateController
+    dashboardManagedServerTemplateController,
+
+    magicMcpServerController,
+    magicMcpSessionController,
+    magicMcpTokenController
   }
 );
