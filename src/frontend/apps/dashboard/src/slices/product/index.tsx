@@ -6,8 +6,28 @@ import { lastInstanceIdStore, useCurrentInstance, useDashboardFlags } from '@met
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
-import { CustomServerCodePage } from './pages/(custom-servers)/custom-server/code';
+import { MagicMcpServerLayout } from './pages/magic-mcp/server/_layout';
+import { MagicMcpServerConfigPage } from './pages/magic-mcp/server/config';
+import { MagicMcpServerErrorsPage } from './pages/magic-mcp/server/errors';
+import { MagicMcpServerOauthPage } from './pages/magic-mcp/server/oauth';
+import { MagicMcpServerOverviewPage } from './pages/magic-mcp/server/overview';
+import { MagicMcpServerRunsPage } from './pages/magic-mcp/server/runs';
 
+let CustomServerCodePage = dynamicPage(() =>
+  import('./pages/(custom-servers)/custom-server/code').then(c => c.CustomServerCodePage)
+);
+let MagicMcpListLayout = dynamicPage(() =>
+  import('./pages/magic-mcp/(list)/_layout').then(c => c.MagicMcpListLayout)
+);
+let MagicMcpServerPage = dynamicPage(() =>
+  import('./pages/magic-mcp/(list)/servers').then(c => c.MagicMcpServerPage)
+);
+let MagicMcpTokensPage = dynamicPage(() =>
+  import('./pages/magic-mcp/(list)/tokens').then(c => c.MagicMcpTokensPage)
+);
+let MagicMcpSessionsPage = dynamicPage(() =>
+  import('./pages/magic-mcp/(list)/sessions').then(c => c.MagicMcpSessionsPage)
+);
 let ProviderConnectionOverviewPage = dynamicPage(() =>
   import('./pages/(custom-servers)/provider-connection').then(
     c => c.ProviderConnectionOverviewPage
@@ -602,6 +622,59 @@ export let productInnerSlice = createSlice([
               {
                 path: 'runs',
                 element: <SessionServerRunsPage />
+              }
+            ]
+          }
+        ]
+      },
+
+      {
+        path: 'magic-mcp',
+
+        children: [
+          {
+            element: <MagicMcpListLayout />,
+
+            children: [
+              {
+                path: 'servers',
+                element: <MagicMcpServerPage />
+              },
+              {
+                path: 'tokens',
+                element: <MagicMcpTokensPage />
+              },
+              {
+                path: 'sessions',
+                element: <MagicMcpSessionsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'server/:magicMcpServerId',
+            element: <MagicMcpServerLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <MagicMcpServerOverviewPage />
+              },
+              {
+                path: 'config',
+                element: <MagicMcpServerConfigPage />
+              },
+              {
+                path: 'runs',
+                element: <MagicMcpServerRunsPage />
+              },
+              {
+                path: 'errors',
+                element: <MagicMcpServerErrorsPage />
+              },
+              {
+                path: 'oauth',
+                element: <MagicMcpServerOauthPage />
               }
             ]
           }

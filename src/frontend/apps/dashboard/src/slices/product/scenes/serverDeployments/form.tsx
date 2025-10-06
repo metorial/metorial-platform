@@ -1,5 +1,6 @@
 import { canonicalize } from '@metorial/canonicalize';
 import {
+  MagicMcpServersGetOutput,
   ServersDeploymentsGetOutput,
   ServersListingsGetOutput
 } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
@@ -7,7 +8,9 @@ import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCreateDeployment,
+  useCreateMagicMcpServer,
   useCurrentInstance,
+  useMagicMcpServer,
   useServer,
   useServerDeployment,
   useServerListing,
@@ -40,36 +43,62 @@ let Form = styled.form`
   flex-direction: column;
 `;
 
-export type ServerDeploymentFormProps =
-  | { type: 'update'; serverDeploymentId: string; for?: undefined }
+type For =
+  | { serverId: string }
+  | { serverId: string; serverVariantId: string }
+  | { serverId: string; serverVariantId: string; serverImplementationId: string };
+
+export type ServerDeploymentFormPropsInternal =
+  | { type: 'server_deployment.update'; serverDeploymentId: string; for?: undefined }
   | {
-      type: 'create';
-      for?:
-        | { serverId: string }
-        | { serverId: string; serverVariantId: string }
-        | { serverId: string; serverVariantId: string; serverImplementationId: string };
+      type: 'server_deployment.create';
+      for?: For;
+    }
+  | { type: 'magic_mcp_server.update'; magicMcpServerId: string; for?: undefined }
+  | {
+      type: 'magic_mcp_server.create';
+      for?: For;
     };
 
-export let ServerDeploymentForm = (
-  p: ServerDeploymentFormProps & {
+let ServerDeploymentFormInternal = (
+  p: ServerDeploymentFormPropsInternal & {
     close?: () => any;
     extraActions?: React.ReactNode;
-    onCreate?: (depl: ServersDeploymentsGetOutput) => any;
+    onCreate?: (depl: ServersDeploymentsGetOutput | MagicMcpServersGetOutput) => any;
   }
 ) => {
   let instance = useCurrentInstance();
-  let deployment = useServerDeployment(
+
+  let resource =
+    p.type == 'magic_mcp_server.update' || p.type == 'magic_mcp_server.create'
+      ? ('magic_mcp_server' as const)
+      : ('server_deployment' as const);
+
+  let magicMcpServer = useMagicMcpServer(
     instance.data?.id,
-    p.type == 'update' ? p.serverDeploymentId : undefined
-  );
-  let listing = useServerListing(
-    instance.data?.id,
-    deployment.data?.server.id ?? p.for?.serverId
+    p.type == 'magic_mcp_server.update' ? p.magicMcpServerId : undefined
   );
 
-  let updateMutator = deployment?.useUpdateMutator();
-  let deleteMutator = deployment?.useDeleteMutator();
-  let createMutator = useCreateDeployment();
+  let serverDeployment = useServerDeployment(
+    instance.data?.id,
+    magicMcpServer.data
+      ? magicMcpServer.data.serverDeployments[0].id
+      : p.type == 'server_deployment.update'
+        ? p.serverDeploymentId
+        : undefined
+  );
+
+  let updateResource = resource == 'magic_mcp_server' ? magicMcpServer : serverDeployment;
+
+  let listing = useServerListing(
+    instance.data?.id,
+    serverDeployment.data?.server.id ?? p.for?.serverId
+  );
+
+  let updateMutator = updateResource?.useUpdateMutator();
+  let deleteMutator = updateResource?.useDeleteMutator();
+  let createMutator =
+    p.type == 'magic_mcp_server.create' ? useCreateMagicMcpServer() : useCreateDeployment();
 
   let [currentStep, setCurrentStep] = useState(0);
 
@@ -80,9 +109,9 @@ export let ServerDeploymentForm = (
   );
 
   let serverId =
-    p.type == 'create'
+    p.type == 'server_deployment.create' || p.type == 'magic_mcp_server.create'
       ? (p.for?.serverId ?? searchServer?.server.id)
-      : deployment?.data?.server.id;
+      : serverDeployment?.data?.server.id;
 
   if (serverId && currentStep == 0) currentStep = 1;
 
@@ -99,15 +128,19 @@ export let ServerDeploymentForm = (
 
   if (!serverNeedsConfig && currentStep == 1) currentStep = 2;
 
-  let loading =
-    (p.type == 'update' && deployment.isLoading) || (serverId && variants.isLoading);
+  let isUpdate = p.type == 'server_deployment.update' || p.type == 'magic_mcp_server.update';
+  let loading = (isUpdate && updateResource.isLoading) || (serverId && variants.isLoading);
+
+  let nameUpperCase =
+    resource == 'server_deployment' ? 'Server Deployment' : 'Magic MCP Server';
+  let nameLowerCase = nameUpperCase.toLowerCase();
 
   let form = useForm({
     initialValues: {
-      name: deployment?.data?.name ?? '',
-      description: deployment?.data?.description ?? '',
-      metadata: deployment?.data?.metadata ?? {},
-      config: deployment?.data?.config ?? {}
+      name: updateResource?.data?.name ?? '',
+      description: updateResource?.data?.description ?? '',
+      metadata: updateResource?.data?.metadata ?? {},
+      config: serverDeployment?.data?.config ?? {}
     },
     schema: yup =>
       yup.object({
@@ -117,9 +150,9 @@ export let ServerDeploymentForm = (
         config: yup.object()
       }),
     onSubmit: async values => {
-      if (p.type == 'update') {
+      if (p.type == 'server_deployment.update' || p.type == 'magic_mcp_server.update') {
         let configChanged =
-          canonicalize(values.config) !== canonicalize(deployment?.data?.config);
+          canonicalize(values.config) !== canonicalize(serverDeployment?.data?.config);
 
         await updateMutator.mutate({
           name: values.name,
@@ -127,7 +160,8 @@ export let ServerDeploymentForm = (
           metadata: values.metadata,
           config: configChanged ? values.config : undefined
         });
-      } else if (p.type == 'create') {
+        serverDeployment?.refetch();
+      } else if (p.type == 'server_deployment.create' || p.type == 'magic_mcp_server.create') {
         let doCreate = async (
           oauthConfig: { clientId: string; clientSecret: string } | undefined
         ) => {
@@ -170,7 +204,7 @@ export let ServerDeploymentForm = (
 
                   <Dialog.Description>
                     Please provide an OAuth Client ID and Client Secret to proceed with the
-                    server deployment.
+                    {nameLowerCase}.
                   </Dialog.Description>
 
                   {listing.data?.oauthExplainer && (
@@ -224,12 +258,19 @@ export let ServerDeploymentForm = (
               p.close?.();
             } else {
               navigate(
-                Paths.instance.serverDeployment(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data,
-                  res.id
-                )
+                resource == 'magic_mcp_server'
+                  ? Paths.instance.magicMcp.server(
+                      instance.data?.organization,
+                      instance.data?.project,
+                      instance.data,
+                      res.id
+                    )
+                  : Paths.instance.serverDeployment(
+                      instance.data?.organization,
+                      instance.data?.project,
+                      instance.data,
+                      res.id
+                    )
               );
             }
           }
@@ -245,18 +286,21 @@ export let ServerDeploymentForm = (
     form.setFieldValue('name', server.data.name);
   }, [server.data?.id]);
 
-  if (variants.data?.items.length === 0 && p.type == 'create') {
+  if (
+    variants.data?.items.length === 0 &&
+    (p.type == 'server_deployment.create' || p.type == 'magic_mcp_server.create')
+  ) {
     return <Callout color="orange">This server cannot yet be deployed on Metorial.</Callout>;
   }
 
   if (loading) return <CenteredSpinner />;
 
-  if (p.type == 'update') {
+  if (p.type == 'server_deployment.update' || p.type == 'magic_mcp_server.update') {
     return (
       <>
         <Box
-          title="Server Deployment Settings"
-          description="Modify the settings of this server deployment."
+          title={`${nameUpperCase} Settings`}
+          description={`Modify the settings of this ${nameLowerCase}.`}
         >
           <Form onSubmit={form.handleSubmit}>
             <Input label="Name" {...form.getFieldProps('name')} />
@@ -305,34 +349,39 @@ export let ServerDeploymentForm = (
         <Spacer size={20} />
 
         <Box
-          title="Delete Connection"
-          description="Delete this server deployment connection. This action cannot be undone."
+          title={`Delete ${nameUpperCase}`}
+          description={`Permanently delete this ${nameLowerCase}. This action cannot be undone.`}
         >
           <Button
             color="red"
             onClick={() =>
               confirm({
-                title: 'Delete Server Deployment',
-                description:
-                  'Are you sure you want to delete this server deployment? This action cannot be undone.',
+                title: `Delete ${nameUpperCase}`,
+                description: `Are you sure you want to delete this ${nameLowerCase}? This action cannot be undone.`,
                 onConfirm: async () => {
                   if (!instance.data) return;
 
                   let [res] = await deleteMutator.mutate({});
                   if (res) {
-                    toast.success('Server deployment deleted successfully.');
+                    toast.success(`${nameUpperCase} deleted successfully.`);
                     navigate(
-                      Paths.instance.serverDeployments(
-                        instance.data?.organization,
-                        instance.data?.project,
-                        instance.data
-                      )
+                      resource == 'magic_mcp_server'
+                        ? Paths.instance.magicMcp.servers(
+                            instance.data?.organization,
+                            instance.data?.project,
+                            instance.data
+                          )
+                        : Paths.instance.serverDeployments(
+                            instance.data?.organization,
+                            instance.data?.project,
+                            instance.data
+                          )
                     );
                   }
                 }
               })
             }
-            disabled={deployment.data?.status === 'archived'}
+            disabled={updateResource.data?.status === 'archived'}
           >
             Delete
           </Button>
@@ -465,3 +514,45 @@ export let ServerDeploymentForm = (
     </Form>
   );
 };
+
+export type ServerDeploymentFormProps =
+  | { type: 'update'; serverDeploymentId: string; for?: undefined }
+  | {
+      type: 'create';
+      for?: For;
+    };
+
+export let ServerDeploymentForm = (
+  p: ServerDeploymentFormProps & {
+    close?: () => any;
+    extraActions?: React.ReactNode;
+    onCreate?: (depl: ServersDeploymentsGetOutput) => any;
+  }
+) => (
+  // @ts-ignore
+  <ServerDeploymentFormInternal
+    {...p}
+    type={p.type == 'update' ? 'server_deployment.update' : 'server_deployment.create'}
+  />
+);
+
+export type MagicMcpServerFormProps =
+  | { type: 'update'; magicMcpServerId: string; for?: undefined }
+  | {
+      type: 'create';
+      for?: For;
+    };
+
+export let MagicMcpServerForm = (
+  p: MagicMcpServerFormProps & {
+    close?: () => any;
+    extraActions?: React.ReactNode;
+    onCreate?: (depl: MagicMcpServersGetOutput) => any;
+  }
+) => (
+  // @ts-ignore
+  <ServerDeploymentFormInternal
+    {...p}
+    type={p.type == 'update' ? 'magic_mcp_server.update' : 'magic_mcp_server.create'}
+  />
+);
