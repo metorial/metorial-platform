@@ -6,10 +6,12 @@ enum ServerDeploymentStatus {
 }
 
 model ServerDeployment {
-  oid         BigInt                 @id @default(autoincrement())
-  id          String                 @unique
-  status      ServerDeploymentStatus
-  isEphemeral Boolean
+  oid    BigInt                 @id @default(autoincrement())
+  id     String                 @unique
+  status ServerDeploymentStatus
+
+  isEphemeral       Boolean
+  isMagicMcpSession Boolean @default(false)
 
   name        String?
   description String?
@@ -44,10 +46,11 @@ model ServerDeployment {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  serverRunErrors          ServerRunError[]
-  serverSessions           ServerSession[]
-  serverRuns               ServerRun[]
-  sessionsOldDontUse       Session[]
-  serverAutoDiscoveryJobs  ServerAutoDiscoveryJob[]
-  sessionServerDeployments SessionServerDeployment[]
+  serverRunErrors           ServerRunError[]
+  serverSessions            ServerSession[]
+  serverRuns                ServerRun[]
+  sessionsOldDontUse        Session[]
+  serverAutoDiscoveryJobs   ServerAutoDiscoveryJob[]
+  sessionServerDeployments  SessionServerDeployment[]
+  magicMcpServerDeployments MagicMcpServerDeployment[]
 }

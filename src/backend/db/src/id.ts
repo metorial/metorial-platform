@@ -95,5 +95,10 @@ export let ID = createIdGenerator({
   remoteServerInstance: idType.sorted('rsi'),
 
   codeBucket: idType.sorted('cbu'),
-  codeBucketTemplate: idType.sorted('cbt')
+  codeBucketTemplate: idType.sorted('cbt'),
+
+  magicMcpServer: idType.sorted('mgsr'),
+  magicMcpSession: idType.sorted('mgsn'),
+  magicMcpToken: idType.sorted('mgtk'),
+  magicMcpServerDeployment: idType.sorted('mgsrd')
 });

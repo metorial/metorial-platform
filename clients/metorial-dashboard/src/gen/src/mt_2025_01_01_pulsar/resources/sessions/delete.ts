@@ -30,7 +30,7 @@ export type SessionsDeleteOutput = {
       createdAt: Date;
       updatedAt: Date;
     };
-    connectionUrls: { sse: string; streamableHttp: string; websocket: string };
+    connectionUrls: { sse: string; streamableHttp: string };
   }[];
   usage: {
     totalProductiveMessageCount: number;
@@ -91,8 +91,7 @@ export let mapSessionsDeleteOutput = mtMap.object<SessionsDeleteOutput>({
             streamableHttp: mtMap.objectField(
               'streamable_http',
               mtMap.passthrough()
-            ),
-            websocket: mtMap.objectField('websocket', mtMap.passthrough())
+            )
           })
         )
       })

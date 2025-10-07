@@ -55,11 +55,60 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         c.req.header('mcp-session-id') ??
         c.req.header('metorial-server-session-id');
 
-      let sessionInfo = await getSessionAndAuthenticate(sessionId, req, url, d.authenticate);
+      let sessionInfo = await getSessionAndAuthenticate(
+        {
+          type: 'session',
+          sessionId
+        },
+        req,
+        url,
+        d.authenticate,
+        context
+      );
       let { serverSession, sessionCreated } = await getServerSession(
         sessionInfo,
         context,
         serverDeploymentId ?? null,
+        serverSessionId ?? null,
+        connectionType
+      );
+
+      return await mcpConnectionHandler(c, next, sessionInfo, serverSession, {
+        connectionType,
+        upgradeWebSocket,
+        sessionCreated
+      });
+    })
+    .all('/magic/:magicMcpServerId/:connectionType', async (c, next) => {
+      let { magicMcpServerId, connectionType: connectionTypeRaw } = c.req.param();
+      let context = useRequestContext(c);
+
+      let connectionType = toConnectionType(connectionTypeRaw ?? 'sse');
+      if (!connectionType) connectionType = 'sse';
+
+      let url = new URL(c.req.url);
+      let req = c.req.raw;
+
+      let serverSessionId =
+        c.req.query('metorial_server_session_id') ??
+        c.req.header('mcp-session-id') ??
+        c.req.header('metorial-server-session-id');
+
+      let sessionInfo = await getSessionAndAuthenticate(
+        {
+          type: 'magic_mcp_server',
+          magicMcpServerId,
+          oauthSessionId: c.req.query('oauth_session_id') || undefined
+        },
+        req,
+        url,
+        d.authenticate,
+        context
+      );
+      let { serverSession, sessionCreated } = await getServerSession(
+        sessionInfo,
+        context,
+        null,
         serverSessionId ?? null,
         connectionType
       );

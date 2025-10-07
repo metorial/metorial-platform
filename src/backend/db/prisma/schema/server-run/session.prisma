@@ -17,6 +17,9 @@ model Session {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
+  isEphemeral       Boolean @default(false)
+  isMagicMcpSession Boolean @default(false)
+
   clientSecretId        String    @unique
   clientSecretValue     String    @unique
   clientSecretExpiresAt DateTime?
@@ -46,6 +49,7 @@ model Session {
   events                      SessionEvent[]
   connections                 SessionConnection[]
   serverDeployments           SessionServerDeployment[]
+  magicMcpSessions            MagicMcpSession[]
 
   @@index([connectionStatus])
   @@index([lastClientPingAt])

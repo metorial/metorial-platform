@@ -4,6 +4,7 @@ import {
   db,
   ID,
   Instance,
+  MagicMcpToken,
   Organization,
   OrganizationActor,
   Prisma,
@@ -13,7 +14,8 @@ import {
   ServerOAuthSession,
   Session,
   SessionConnectionType,
-  SessionStatus
+  SessionStatus,
+  withTransaction
 } from '@metorial/db';
 import {
   badRequestError,
@@ -38,7 +40,6 @@ let include = {
       },
       oauthSession: true
     },
-
     orderBy: { id: 'asc' as const }
   },
   serverSessions: {
@@ -160,7 +161,27 @@ class SessionImpl {
       }[];
     };
     ephemeralPermittedDeployments: Set<string>;
+    magicMcpToken?: MagicMcpToken;
   }) {
+    let isMagicMcpSession = false;
+    let hasNonMagicServer = false;
+    for (let sd of d.input.serverDeployments) {
+      if (sd.deployment.isMagicMcpSession) {
+        isMagicMcpSession = true;
+        d.ephemeralPermittedDeployments.add(sd.deployment.id);
+      } else {
+        hasNonMagicServer = true;
+      }
+    }
+
+    if (isMagicMcpSession && hasNonMagicServer) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot mix magic MCP servers with regular server deployments'
+        })
+      );
+    }
+
     await this.checkServerDeploymentsForSession({
       instance: d.instance,
       serverDeployments: d.input.serverDeployments,
@@ -173,40 +194,81 @@ class SessionImpl {
       performedBy: d.performedBy
     });
 
-    let session = await db.session.create({
-      data: {
-        id: await ID.generateId('session'),
+    let session = await withTransaction(async db => {
+      let session = await db.session.create({
+        data: {
+          id: await ID.generateId('session'),
 
-        clientSecretId: await ID.generateId('clientSecret'),
-        clientSecretValue: UnifiedApiKey.create({
-          type: 'ephemeral_client_secret',
-          config: { url: getConfig().urls.apiUrl }
-        }).toString(),
-        clientSecretExpiresAt: null,
+          clientSecretId: await ID.generateId('clientSecret'),
+          clientSecretValue: UnifiedApiKey.create({
+            type: 'ephemeral_client_secret',
+            config: { url: getConfig().urls.apiUrl }
+          }).toString(),
+          clientSecretExpiresAt: null,
 
-        status: 'active',
-        connectionStatus: 'disconnected',
-        connectionType: d.input.connectionType,
+          // @ts-ignore
+          isMagicMcpSession,
+          isEphemeral: isMagicMcpSession,
 
-        instanceOid: d.instance.oid,
+          status: 'active',
+          connectionStatus: 'disconnected',
+          connectionType: d.input.connectionType,
 
-        serverDeploymentsOldDontUse: {
-          connect: d.input.serverDeployments.map(i => ({
-            oid: i.deployment.oid
-          }))
-        },
+          instanceOid: d.instance.oid,
 
-        serverDeployments: {
-          createMany: {
-            data: d.input.serverDeployments.map(i => ({
-              id: ID.generateIdSync('sessionServerDeployment'),
-              serverDeploymentOid: i.deployment.oid,
-              oauthSessionOid: i.oauthSession?.oid ?? null
+          serverDeploymentsOldDontUse: {
+            connect: d.input.serverDeployments.map(i => ({
+              oid: i.deployment.oid
             }))
+          },
+
+          serverDeployments: {
+            createMany: {
+              data: d.input.serverDeployments.map(i => ({
+                id: ID.generateIdSync('sessionServerDeployment'),
+                serverDeploymentOid: i.deployment.oid,
+                oauthSessionOid: i.oauthSession?.oid ?? null
+              }))
+            }
           }
+        },
+        include
+      });
+
+      if (isMagicMcpSession) {
+        let magicMcpDeployments = await db.magicMcpServerDeployment.findMany({
+          where: {
+            serverDeploymentOid: {
+              in: session.serverDeployments.map(i => i.serverDeployment.oid)
+            }
+          },
+          include: { magicMcpServer: true }
+        });
+        if (!magicMcpDeployments.length)
+          throw new Error('WTF - magic MCP session without deployments');
+
+        let magicMcpServer = magicMcpDeployments[0].magicMcpServer;
+        if (magicMcpDeployments.some(d => d.magicMcpServerOid !== magicMcpServer.oid)) {
+          throw new ServiceError(
+            badRequestError({
+              message:
+                'Cannot mix deployments from different magic MCP servers in a single session'
+            })
+          );
         }
-      },
-      include
+
+        await db.magicMcpSession.create({
+          data: {
+            id: await ID.generateId('magicMcpSession'),
+            instanceOid: d.instance.oid,
+            sessionOid: session.oid,
+            magicMcpServerOid: magicMcpServer.oid,
+            tokenOid: d.magicMcpToken?.oid ?? null
+          }
+        });
+      }
+
+      return session;
     });
 
     await ingestEventService.ingest('session:created', {

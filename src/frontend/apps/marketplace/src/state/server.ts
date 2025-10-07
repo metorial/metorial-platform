@@ -7,14 +7,13 @@ let fetchOpts = {
   }
 };
 
-export let getServer = async (vendorSlug: string, serverSlug: string) =>
+export let getServer = async (slug: string[]) =>
   withSdk(
     async client =>
-      await client.servers[':vendorSlug'][':serverSlug'].$get(
+      await client.servers[':slug'].$get(
         {
           param: {
-            vendorSlug,
-            serverSlug
+            slug: slug.join('---')
           }
         },
         fetchOpts
@@ -46,14 +45,13 @@ export let listServers = async (input: {
       )
   );
 
-export let getServerCapabilities = async (vendorSlug: string, serverSlug: string) =>
+export let getServerCapabilities = async (slug: string[]) =>
   withSdk(
     async client =>
-      await client.servers[':vendorSlug'][':serverSlug'].capabilities.$get(
+      await client.servers[':slug'].capabilities.$get(
         {
           param: {
-            vendorSlug,
-            serverSlug
+            slug: slug.join('---')
           }
         },
         fetchOpts
@@ -61,8 +59,7 @@ export let getServerCapabilities = async (vendorSlug: string, serverSlug: string
   );
 
 export let listServerVariants = async (
-  vendorSlug: string,
-  serverSlug: string,
+  slug: string[],
   input: {
     after?: string;
     before?: string;
@@ -71,11 +68,10 @@ export let listServerVariants = async (
 ) =>
   withSdk(
     async client =>
-      await client.servers[':vendorSlug'][':serverSlug'].variants.$get(
+      await client.servers[':slug'].variants.$get(
         {
           param: {
-            vendorSlug,
-            serverSlug
+            slug: slug.join('---')
           },
 
           // @ts-ignore
@@ -86,8 +82,7 @@ export let listServerVariants = async (
   );
 
 export let listServerVersions = async (
-  vendorSlug: string,
-  serverSlug: string,
+  slug: string[],
   input: {
     after?: string;
     before?: string;
@@ -96,11 +91,10 @@ export let listServerVersions = async (
 ) =>
   withSdk(
     async client =>
-      await client.servers[':vendorSlug'][':serverSlug'].versions.$get(
+      await client.servers[':slug'].versions.$get(
         {
           param: {
-            vendorSlug,
-            serverSlug
+            slug: slug.join('---')
           },
 
           // @ts-ignore

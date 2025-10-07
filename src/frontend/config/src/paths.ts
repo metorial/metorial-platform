@@ -212,7 +212,66 @@ let InstancePaths = Object.assign(
       project: EntityParam,
       instance: EntityParam,
       ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'explorer', ...subPages)
+    ) => InstancePaths(organization, project, instance, 'explorer', ...subPages),
+
+    magicMcp: {
+      server: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        id?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!id) return '#';
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'magic-mcp/server',
+          id,
+          ...subPages
+        );
+      },
+
+      servers: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => {
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'magic-mcp/servers',
+          ...subPages
+        );
+      },
+
+      tokens: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => {
+        return InstancePaths(organization, project, instance, 'magic-mcp/tokens', ...subPages);
+      },
+
+      sessions: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => {
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'magic-mcp/sessions',
+          ...subPages
+        );
+      }
+    }
   }
 );
 

@@ -123,7 +123,9 @@ export let sessionController = Controller.create(
             })
           : [];
 
-        if (existingServerDeploymentsRaw.some(d => d.status !== 'active')) {
+        if (
+          existingServerDeploymentsRaw.some(d => d.status !== 'active' && !d.isMagicMcpSession)
+        ) {
           throw new ServiceError(
             badRequestError({
               message: 'Cannot create session with inactive server deployments'

@@ -14,7 +14,7 @@ export default async ({
   children: React.ReactNode;
 }) => {
   let params = await paramsPromise;
-  let serverRes = await serverFetch(() => getServer(params.vendorSlug, params.serverSlug));
+  let serverRes = await serverFetch(() => getServer([params.vendorSlug, params.serverSlug]));
   if (!serverRes.success) {
     if (serverRes.error.status === 404) return notFound();
     throw serverRes.error.error;

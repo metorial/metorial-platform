@@ -31,11 +31,7 @@ export type SessionsListOutput = {
         createdAt: Date;
         updatedAt: Date;
       };
-      connectionUrls: {
-        sse: string;
-        streamableHttp: string;
-        websocket: string;
-      };
+      connectionUrls: { sse: string; streamableHttp: string };
     }[];
     usage: {
       totalProductiveMessageCount: number;
@@ -111,8 +107,7 @@ export let mapSessionsListOutput = mtMap.object<SessionsListOutput>({
                   streamableHttp: mtMap.objectField(
                     'streamable_http',
                     mtMap.passthrough()
-                  ),
-                  websocket: mtMap.objectField('websocket', mtMap.passthrough())
+                  )
                 })
               )
             })

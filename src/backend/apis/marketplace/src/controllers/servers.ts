@@ -15,6 +15,8 @@ import { serverListingPresenter } from '../presenters/serverListing';
 import { serverVariantPresenter } from '../presenters/serverVariant';
 import { serverVersionPresenter } from '../presenters/serverVersion';
 
+let normalizeSlug = (slug: string) => slug.replaceAll('---', '/').toLowerCase();
+
 export let serversController = createHono()
   .get(
     '',
@@ -49,10 +51,9 @@ export let serversController = createHono()
       return c.json(await Paginator.presentLight(list, serverListingPresenter));
     }
   )
-  .get(':vendorSlug/:serverSlug', async c => {
+  .get(':slug', async c => {
     let listing = await serverListingService.getServerListingById({
-      serverListingId:
-        `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
+      serverListingId: normalizeSlug(c.req.param('slug'))
     });
 
     return c.json({
@@ -60,10 +61,9 @@ export let serversController = createHono()
       readme: listing.readme
     });
   })
-  .get(':vendorSlug/:serverSlug/capabilities', async c => {
+  .get(':slug/capabilities', async c => {
     let listing = await serverListingService.getServerListingById({
-      serverListingId:
-        `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
+      serverListingId: normalizeSlug(c.req.param('slug'))
     });
 
     let [capabilities] = await serverCapabilitiesService.getManyServerCapabilities({
@@ -74,27 +74,23 @@ export let serversController = createHono()
 
     return c.json(await serverCapabilitiesPresenter(capabilities));
   })
-  .get(
-    ':vendorSlug/:serverSlug/variants',
-    useValidation('query', paginatorSchema),
-    async c => {
-      let query = c.req.query();
+  .get(':slug/variants', useValidation('query', paginatorSchema), async c => {
+    let query = c.req.query();
 
-      let server = await serverService.getServerById({
-        serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
-      });
-
-      let paginator = await serverVariantService.listServerVariants({
-        server
-      });
-      let list = await paginator.run(query);
-
-      return c.json(await Paginator.presentLight(list, serverVariantPresenter));
-    }
-  )
-  .get(':vendorSlug/:serverSlug/variants/:variantId', async c => {
     let server = await serverService.getServerById({
-      serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
+      serverId: normalizeSlug(c.req.param('slug'))
+    });
+
+    let paginator = await serverVariantService.listServerVariants({
+      server
+    });
+    let list = await paginator.run(query);
+
+    return c.json(await Paginator.presentLight(list, serverVariantPresenter));
+  })
+  .get(':slug/variants/:variantId', async c => {
+    let server = await serverService.getServerById({
+      serverId: normalizeSlug(c.req.param('slug'))
     });
 
     let collection = await serverVariantService.getServerVariantById({
@@ -104,27 +100,23 @@ export let serversController = createHono()
 
     return c.json(await serverVariantPresenter(collection));
   })
-  .get(
-    ':vendorSlug/:serverSlug/versions',
-    useValidation('query', paginatorSchema),
-    async c => {
-      let query = c.req.query();
+  .get(':slug/versions', useValidation('query', paginatorSchema), async c => {
+    let query = c.req.query();
 
-      let server = await serverService.getServerById({
-        serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
-      });
-
-      let paginator = await serverVersionService.listServerVersions({
-        server
-      });
-      let list = await paginator.run(query);
-
-      return c.json(await Paginator.presentLight(list, serverVersionPresenter));
-    }
-  )
-  .get(':vendorSlug/:serverSlug/versions/:versionId', async c => {
     let server = await serverService.getServerById({
-      serverId: `${c.req.param('vendorSlug')}/${c.req.param('serverSlug')}`.toLowerCase()
+      serverId: normalizeSlug(c.req.param('slug'))
+    });
+
+    let paginator = await serverVersionService.listServerVersions({
+      server
+    });
+    let list = await paginator.run(query);
+
+    return c.json(await Paginator.presentLight(list, serverVersionPresenter));
+  })
+  .get(':slug/versions/:versionId', async c => {
+    let server = await serverService.getServerById({
+      serverId: normalizeSlug(c.req.param('slug'))
     });
 
     let collection = await serverVersionService.getServerVersionById({

@@ -1,0 +1,26 @@
+enum MagicMcpTokenStatus {
+  active
+  deleted
+}
+
+model MagicMcpToken {
+  oid    BigInt              @id @default(autoincrement())
+  id     String              @unique
+  status MagicMcpTokenStatus
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  secret String @unique
+
+  name        String?
+  description String?
+
+  metadata Json
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  magicMcpSessions MagicMcpSession[]
+}

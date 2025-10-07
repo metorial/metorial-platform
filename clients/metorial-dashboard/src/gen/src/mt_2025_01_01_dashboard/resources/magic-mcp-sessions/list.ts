@@ -1,0 +1,144 @@
+import { mtMap } from '@metorial/util-resource-mapper';
+
+export type MagicMcpSessionsListOutput = {
+  items: ({
+    object: 'magic_mcp.session';
+    id: string;
+    sessionId: string;
+    connectionStatus: 'connected' | 'disconnected';
+    magicMcpServer: {
+      id: string;
+      status: 'active' | 'archived' | 'deleted';
+      name: string;
+      description: string | null;
+      metadata: Record<string, any>;
+      createdAt: Date;
+      updatedAt: Date;
+    };
+    usage: {
+      totalProductiveMessageCount: number;
+      totalProductiveClientMessageCount: number;
+      totalProductiveServerMessageCount: number;
+    };
+    createdAt: Date;
+    updatedAt: Date;
+  } & {
+    client: {
+      object: 'session.client#preview';
+      info: { name: string; version: string };
+    } | null;
+  })[];
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+};
+
+export let mapMagicMcpSessionsListOutput =
+  mtMap.object<MagicMcpSessionsListOutput>({
+    items: mtMap.objectField(
+      'items',
+      mtMap.array(
+        mtMap.union([
+          mtMap.unionOption(
+            'object',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
+              connectionStatus: mtMap.objectField(
+                'connection_status',
+                mtMap.passthrough()
+              ),
+              magicMcpServer: mtMap.objectField(
+                'magic_mcp_server',
+                mtMap.object({
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  status: mtMap.objectField('status', mtMap.passthrough()),
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  description: mtMap.objectField(
+                    'description',
+                    mtMap.passthrough()
+                  ),
+                  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
+              ),
+              usage: mtMap.objectField(
+                'usage',
+                mtMap.object({
+                  totalProductiveMessageCount: mtMap.objectField(
+                    'total_productive_message_count',
+                    mtMap.passthrough()
+                  ),
+                  totalProductiveClientMessageCount: mtMap.objectField(
+                    'total_productive_client_message_count',
+                    mtMap.passthrough()
+                  ),
+                  totalProductiveServerMessageCount: mtMap.objectField(
+                    'total_productive_server_message_count',
+                    mtMap.passthrough()
+                  )
+                })
+              ),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+              client: mtMap.objectField(
+                'client',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  info: mtMap.objectField(
+                    'info',
+                    mtMap.object({
+                      name: mtMap.objectField('name', mtMap.passthrough()),
+                      version: mtMap.objectField('version', mtMap.passthrough())
+                    })
+                  )
+                })
+              )
+            })
+          )
+        ])
+      )
+    ),
+    pagination: mtMap.objectField(
+      'pagination',
+      mtMap.object({
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
+        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
+      })
+    )
+  });
+
+export type MagicMcpSessionsListQuery = {
+  limit?: number | undefined;
+  after?: string | undefined;
+  before?: string | undefined;
+  cursor?: string | undefined;
+  order?: 'asc' | 'desc' | undefined;
+} & { magicMcpServerId?: string | string[] | undefined };
+
+export let mapMagicMcpSessionsListQuery = mtMap.union([
+  mtMap.unionOption(
+    'object',
+    mtMap.object({
+      limit: mtMap.objectField('limit', mtMap.passthrough()),
+      after: mtMap.objectField('after', mtMap.passthrough()),
+      before: mtMap.objectField('before', mtMap.passthrough()),
+      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      magicMcpServerId: mtMap.objectField(
+        'magic_mcp_server_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
+    })
+  )
+]);
+
