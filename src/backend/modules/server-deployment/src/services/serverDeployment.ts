@@ -178,7 +178,9 @@ class ServerDeploymentServiceImpl {
         clientSecret: string;
       };
     };
+
     type: 'ephemeral' | 'persistent';
+    parent?: 'magic_mcp_server';
   }) {
     if (
       d.serverImplementation.instance.status != 'active' &&
@@ -370,7 +372,9 @@ class ServerDeploymentServiceImpl {
           serverOid: d.serverImplementation.instance.server.oid,
           serverVariantOid: d.serverImplementation.instance.serverVariant.oid,
           configOid: config.oid,
-          instanceOid: d.instance.oid
+          instanceOid: d.instance.oid,
+
+          isMagicMcpSession: d.parent === 'magic_mcp_server'
         },
         include
       });

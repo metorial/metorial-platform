@@ -1,6 +1,8 @@
 import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
 import { delay } from '@metorial/delay';
 import {
+  createOAuthSession,
+  getOAuthSession,
   useCreateOAuthSession,
   useCreateSession,
   useGetOAuthSession,
@@ -37,58 +39,12 @@ export let useSessionForDeployment = (
       if (deployment.data!.oauthConnection) {
         setState('oauth_pending');
 
-        let [oauthSession] = await createOAuthSession.mutate({
-          connectionId: deployment.data.oauthConnection.id,
-          serverDeploymentId: deployment.data.id
-        });
-        if (!oauthSession) return setState('oauth_error');
-
-        let url = new URL(oauthSession.url);
-        url.searchParams.set(
-          'metorial_dashboard_payload',
-          JSON.stringify({ useClientResponse: true })
-        );
-
-        let win = openWindow(url.toString());
-
-        await new Promise<void>((resolve, reject) => {
-          let doneRef = { current: false };
-
-          setTimeout(() => {
-            let countRef = { current: 0 };
-
-            let task = async () => {
-              if (countRef.current++ > 60) return reject();
-
-              let [res] = await getAuthSession.mutate({ sessionId: oauthSession.id });
-              if (res?.status == 'completed') {
-                oauthSessionIdRef.current = oauthSession.id;
-                doneRef.current = true;
-                resolve();
-                win.close();
-                return;
-              }
-
-              setTimeout(task, Math.min(1000 * 2 ** countRef.current, 7000));
-            };
-
-            task();
-          }, 5000);
-
-          win.onClose(() => {
-            if (doneRef.current) return;
-            setTimeout(() => setState('oauth_error'), 100);
-          });
-
-          win.onMessage(async msg => {
-            if (msg.data?.type === 'oauth_complete') {
-              await delay(200);
-              oauthSessionIdRef.current = oauthSession.id;
-              doneRef.current = true;
-              resolve();
-              win.close();
-            }
-          });
+        oauthSessionIdRef.current = await authenticateWithOauth({
+          instanceId,
+          serverDeploymentId: deployment.data.id,
+          onClose: () => {
+            setState('oauth_error');
+          }
         });
       }
 
@@ -125,4 +81,70 @@ export let useSessionForDeployment = (
     isLoading: sessionGetter.isLoading || state === 'loading',
     state
   };
+};
+
+export let authenticateWithOauth = async (d: {
+  instanceId: string;
+  serverDeploymentId: string;
+  onClose?: () => void;
+}) => {
+  let oauthSessionIdRef: { current: string | null } = { current: null };
+
+  let oauthSession = await createOAuthSession({
+    instanceId: d.instanceId,
+    serverDeploymentId: d.serverDeploymentId
+  });
+
+  let url = new URL(oauthSession.url);
+  url.searchParams.set(
+    'metorial_dashboard_payload',
+    JSON.stringify({ useClientResponse: true })
+  );
+
+  let win = openWindow(url.toString());
+
+  await new Promise<void>((resolve, reject) => {
+    let doneRef = { current: false };
+
+    setTimeout(() => {
+      let countRef = { current: 0 };
+
+      let task = async () => {
+        if (countRef.current++ > 60) return reject();
+
+        let res = await getOAuthSession({
+          instanceId: d.instanceId,
+          sessionId: oauthSession.id
+        });
+        if (res?.status == 'completed') {
+          oauthSessionIdRef.current = oauthSession.id;
+          doneRef.current = true;
+          resolve();
+          win.close();
+          return;
+        }
+
+        setTimeout(task, Math.min(1000 * 2 ** countRef.current, 7000));
+      };
+
+      task();
+    }, 5000);
+
+    win.onClose(() => {
+      if (doneRef.current) return;
+      setTimeout(() => d.onClose?.(), 100);
+    });
+
+    win.onMessage(async msg => {
+      if (msg.data?.type === 'oauth_complete') {
+        await delay(200);
+        oauthSessionIdRef.current = oauthSession.id;
+        doneRef.current = true;
+        resolve();
+        win.close();
+      }
+    });
+  });
+
+  return oauthSessionIdRef.current!;
 };

@@ -1,6 +1,5 @@
 import { Paths } from '@metorial/frontend-config';
-import { createProject } from '@metorial/layout';
-import { useCurrentOrganization } from '@metorial/state';
+import { createProject, useCurrentOrganization } from '@metorial/state';
 import { useLayoutEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 

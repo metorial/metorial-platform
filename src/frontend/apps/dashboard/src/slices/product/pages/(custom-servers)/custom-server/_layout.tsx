@@ -8,9 +8,13 @@ import {
   useCustomServer,
   useDashboardFlags
 } from '@metorial/state';
-import { Callout, LinkTabs, Spacer } from '@metorial/ui';
+import { Button, Callout, LinkTabs, Menu, Spacer } from '@metorial/ui';
 import { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+  showMagicMcpServerFormModal,
+  showServerDeploymentFormModal
+} from '../../../scenes/serverDeployments/modal';
 
 export let CustomServerLayout = () => {
   let instance = useCurrentInstance();
@@ -62,6 +66,51 @@ export let CustomServerLayout = () => {
             href: Paths.instance.customServer(...pathParams)
           }
         ]}
+        actions={
+          flags.data?.flags['magic-mcp-enabled'] ? (
+            <Menu
+              items={[
+                {
+                  id: 'server-deployment',
+                  label: 'Server Deployment',
+                  description: 'More powerful and flexible.'
+                },
+                {
+                  id: 'magic-mcp-server',
+                  label: 'Magic MCP Server',
+                  description: 'Easier to use and manage.'
+                }
+              ]}
+              onItemClick={item => {
+                if (item === 'server-deployment') {
+                  showServerDeploymentFormModal({
+                    type: 'create',
+                    for: { serverId: customServer.data?.server.id! }
+                  });
+                } else if (item === 'magic-mcp-server') {
+                  showMagicMcpServerFormModal({
+                    type: 'create',
+                    for: { serverId: customServer.data?.server.id! }
+                  });
+                }
+              }}
+            >
+              <Button size="2">Deploy Server</Button>
+            </Menu>
+          ) : (
+            <Button
+              size="2"
+              onClick={() =>
+                showServerDeploymentFormModal({
+                  type: 'create',
+                  for: { serverId: customServer.data?.server.id! }
+                })
+              }
+            >
+              Deploy Server
+            </Button>
+          )
+        }
       />
 
       {renderWithLoader({ customServer })(({ customServer }) => (

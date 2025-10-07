@@ -69,8 +69,16 @@ export let useCopy = (topVal?: string) => {
   };
 };
 
-export let Copy = ({ value, label }: { value: string; label?: string }) => {
-  let { copied, copy: doCopy } = useCopy(value);
+export let Copy = ({
+  value,
+  label,
+  copyValue
+}: {
+  value: string;
+  label?: string;
+  copyValue?: string;
+}) => {
+  let { copied, copy: doCopy } = useCopy(copyValue ?? value);
 
   return (
     <div
