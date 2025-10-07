@@ -23,7 +23,10 @@ export let JumpstartPage = () => {
     creating.current = true;
 
     let org = orgs.data[0];
-    if (org) return navigate(`/o/${org.slug}?path=${path ?? ''}`, { replace: true });
+    if (org)
+      return navigate(`/o/${org.slug}?path=${encodeURIComponent(path ?? '')}`, {
+        replace: true
+      });
 
     (async () => {
       let [org] = await createOrganization.mutate({
@@ -36,7 +39,9 @@ export let JumpstartPage = () => {
         name: 'My Project'
       });
 
-      navigate(`/p/${org.slug}/${project.slug}?path=${path ?? ''}`, { replace: true });
+      navigate(`/p/${org.slug}/${project.slug}?path=${encodeURIComponent(path ?? '')}`, {
+        replace: true
+      });
     })().catch(e => {
       console.error(e);
     });

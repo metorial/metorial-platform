@@ -18,6 +18,11 @@ export let MagicMcpServerOverviewPage = () => {
     status: 'active'
   });
 
+  let url = server.data?.endpoints[0]?.urls.streamableHttp;
+  if (url && tokens.data?.items.length) {
+    url += `?key=${tokens.data.items[0].secret}`;
+  }
+
   return renderWithLoader({ server })(({ server }) => (
     <>
       <Attributes
@@ -72,10 +77,7 @@ export let MagicMcpServerOverviewPage = () => {
         title={`Connect to ${server.data.name}`}
         description="Use this Magic MCP endpoint to connect to your server."
       >
-        <Copy
-          label="Endpoint"
-          value={server.data.endpoints[0]?.urls.streamableHttp ?? '...'}
-        />
+        <Copy label="Endpoint" value={url ?? '...'} />
       </Box>
 
       <Spacer height={15} />

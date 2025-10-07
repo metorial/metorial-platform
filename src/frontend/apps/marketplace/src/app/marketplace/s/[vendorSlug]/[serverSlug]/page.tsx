@@ -13,7 +13,7 @@ export default async ({
   params: Promise<{ vendorSlug: string; serverSlug: string }>;
 }) => {
   let params = await paramsPromise;
-  let serverRes = await serverFetch(() => getServer(params.vendorSlug, params.serverSlug));
+  let serverRes = await serverFetch(() => getServer([params.vendorSlug, params.serverSlug]));
 
   if (!serverRes.success) {
     if (serverRes.error.status === 404) return notFound();
@@ -51,7 +51,7 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   let params = await paramsPromise;
-  let serverRes = await serverFetch(() => getServer(params.vendorSlug, params.serverSlug));
+  let serverRes = await serverFetch(() => getServer([params.vendorSlug, params.serverSlug]));
 
   return {
     title: `${serverRes.data?.name ?? 'Not Found'} • Metorial Marketplace`,

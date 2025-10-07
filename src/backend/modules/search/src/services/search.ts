@@ -5,7 +5,11 @@ import createAwsOpensearchConnector from 'aws-opensearch-connector';
 import { MeiliSearch, MeiliSearchApiError, Index as MeiliSearchIndex } from 'meilisearch';
 import { env } from '../env';
 
-export type SearchIndex = 'server_listing' | 'server_implementation' | 'server_deployment';
+export type SearchIndex =
+  | 'server_listing'
+  | 'server_implementation'
+  | 'server_deployment'
+  | 'magic_mcp_server';
 
 let meilisearchIndices = new Map<string, MeiliSearchIndex>();
 let openSearchIndices = new Set<string>();

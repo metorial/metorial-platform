@@ -31,6 +31,11 @@ let Main = styled.main`
   width: 100%;
 `;
 
+let AsideWrapper = styled.aside`
+  max-width: min(390px, calc(100vw - 80px - min(calc(100vw - 60px), calc(80rem - 450px))));
+  width: 100%;
+`;
+
 export let ClientLayout = ({
   children,
   server
@@ -47,9 +52,9 @@ export let ClientLayout = ({
           <Grid>
             <Main>{children}</Main>
 
-            <div>
+            <AsideWrapper>
               <ServerAside server={server} />
-            </div>
+            </AsideWrapper>
           </Grid>
         </Inner>
       </Wrapper>

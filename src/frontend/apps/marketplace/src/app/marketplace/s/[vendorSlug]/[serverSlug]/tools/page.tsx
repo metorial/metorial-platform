@@ -12,7 +12,7 @@ export default async ({
   params: Promise<{ vendorSlug: string; serverSlug: string }>;
 }) => {
   let params = await paramsPromise;
-  let serverRes = await serverFetch(() => getServer(params.vendorSlug, params.serverSlug));
+  let serverRes = await serverFetch(() => getServer([params.vendorSlug, params.serverSlug]));
   if (!serverRes.success) {
     if (serverRes.error.status === 404) return notFound();
     throw serverRes.error.error;
@@ -21,7 +21,7 @@ export default async ({
   let server = serverRes.data;
 
   let capabilities = await serverFetch(() =>
-    getServerCapabilities(params.vendorSlug, params.serverSlug)
+    getServerCapabilities([params.vendorSlug, params.serverSlug])
   );
 
   if (!capabilities.data?.tools?.length) return <NoTools server={server} />;

@@ -14,6 +14,7 @@ import {
 } from '@metorial/db';
 import { notFoundError, preconditionFailedError, ServiceError } from '@metorial/error';
 import { generateCode } from '@metorial/id';
+import { searchService } from '@metorial/module-search';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { slugify } from '@metorial/slugify';
@@ -186,7 +187,49 @@ class MagicMcpServerImpl {
     });
   }
 
-  async listMagicMcpServers(d: { instance: Instance; status?: MagicMcpServerStatus[] }) {
+  async listMagicMcpServers(d: {
+    serverVariantIds?: string[];
+    serverImplementationIds?: string[];
+    serverIds?: string[];
+    sessionIds?: string[];
+    search?: string;
+    instance: Instance;
+    status?: MagicMcpServerStatus[];
+  }) {
+    let search = d.search
+      ? await searchService.search<{ id: string }>({
+          index: 'magic_mcp_server',
+          query: d.search,
+          options: {
+            // filters: {
+            //   instanceId: { $eq: d.instance.id }
+            // },
+            limit: 50
+          }
+        })
+      : undefined;
+
+    let servers = d.serverIds?.length
+      ? await db.server.findMany({
+          where: { id: { in: d.serverIds } }
+        })
+      : undefined;
+    let serverVariants = d.serverVariantIds?.length
+      ? await db.serverVariant.findMany({
+          where: { id: { in: d.serverVariantIds } }
+        })
+      : undefined;
+    let serverImplementations = d.serverImplementationIds?.length
+      ? await db.serverImplementation.findMany({
+          where: { id: { in: d.serverImplementationIds } }
+        })
+      : undefined;
+    let sessions = d.sessionIds?.length
+      ? await db.session.findMany({
+          where: { id: { in: d.sessionIds } }
+        })
+      : undefined;
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         let res = await await db.magicMcpServer.findMany({
@@ -198,7 +241,29 @@ class MagicMcpServerImpl {
               d.status
                 ? { status: { in: d.status } }
                 : { status: { not: 'archived' as const } }
-            ].filter(Boolean)
+            ].filter(Boolean),
+
+            serverDeployment: {
+              serverDeployment: {
+                serverOid: servers ? { in: servers.map(s => s.oid) } : undefined,
+                serverImplementationOid: serverImplementations
+                  ? { in: serverImplementations.map(s => s.oid) }
+                  : undefined,
+                serverImplementation: serverVariants
+                  ? { serverVariantOid: { in: serverVariants.map(s => s.oid) } }
+                  : undefined,
+
+                sessionsOldDontUse: sessions
+                  ? {
+                      some: {
+                        oid: { in: sessions.map(s => s.oid) }
+                      }
+                    }
+                  : undefined
+              }
+            },
+
+            id: search ? { in: search.map(s => s.id) } : undefined
           },
           include
         });

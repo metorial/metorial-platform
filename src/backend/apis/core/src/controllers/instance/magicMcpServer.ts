@@ -45,7 +45,13 @@ export let magicMcpServerController = Controller.create(
                 v.enumOf(Object.keys(MagicMcpServerStatus) as any),
                 v.array(v.enumOf(Object.keys(MagicMcpServerStatus) as any))
               ])
-            )
+            ),
+
+            server_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            session_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            search: v.optional(v.string())
           })
         )
       )
@@ -53,7 +59,12 @@ export let magicMcpServerController = Controller.create(
       .do(async ctx => {
         let paginator = await magicMcpServerService.listMagicMcpServers({
           instance: ctx.instance,
-          status: normalizeArrayParam(ctx.query.status) as any
+          status: normalizeArrayParam(ctx.query.status) as any,
+          serverIds: normalizeArrayParam(ctx.query.server_id),
+          serverVariantIds: normalizeArrayParam(ctx.query.server_variant_id),
+          serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_id),
+          sessionIds: normalizeArrayParam(ctx.query.session_id),
+          search: ctx.query.search
         });
 
         let list = await paginator.run(ctx.query);

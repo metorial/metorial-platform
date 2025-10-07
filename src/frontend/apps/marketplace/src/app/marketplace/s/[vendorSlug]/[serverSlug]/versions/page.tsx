@@ -16,9 +16,9 @@ export default async ({
   let searchParams = await searchParamsPromise;
 
   let [serverRes, versionsRes] = await Promise.all([
-    serverFetch(() => getServer(params.vendorSlug, params.serverSlug)),
+    serverFetch(() => getServer([params.vendorSlug, params.serverSlug])),
     serverFetch(() =>
-      listServerVersions(params.vendorSlug, params.serverSlug, {
+      listServerVersions([params.vendorSlug, params.serverSlug], {
         limit: '50',
         after: searchParams.after,
         before: searchParams.before

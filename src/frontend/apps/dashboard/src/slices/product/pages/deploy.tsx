@@ -9,6 +9,7 @@ export let DeployPage = () => {
 
   let [search] = useSearchParams();
   let serverId = search.get('server_id');
+  let nextUrl = search.get('next_url');
 
   let serverListing = useServerListing(instance.data?.id, serverId);
 
@@ -18,13 +19,19 @@ export let DeployPage = () => {
         serverListing.data
           ? {
               title: `Deploy ${serverListing.data.name}`,
-              description: `Let's set up your server deployment.`
+              description: `Let's set up your Magic MCP server.`
             }
           : undefined
       }
       backgroundUrl={bg}
     >
-      {serverId && <MagicMcpServerForm type="create" for={{ serverId }} />}
+      {serverId && (
+        <MagicMcpServerForm
+          type="create"
+          for={{ serverId }}
+          onCreate={nextUrl ? () => location.replace(nextUrl) : undefined}
+        />
+      )}
     </SetupLayout>
   );
 };
