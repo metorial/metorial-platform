@@ -172,6 +172,11 @@ export type MagicMcpServersListQuery = {
     | 'deleted'
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
+  serverId?: string | string[] | undefined;
+  serverVariantId?: string | string[] | undefined;
+  serverImplementationId?: string | string[] | undefined;
+  sessionId?: string | string[] | undefined;
+  search?: string | undefined;
 };
 
 export let mapMagicMcpServersListQuery = mtMap.union([
@@ -186,7 +191,48 @@ export let mapMagicMcpServersListQuery = mtMap.union([
       status: mtMap.objectField(
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      )
+      ),
+      serverId: mtMap.objectField(
+        'server_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      serverVariantId: mtMap.objectField(
+        'server_variant_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      serverImplementationId: mtMap.objectField(
+        'server_implementation_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      sessionId: mtMap.objectField(
+        'session_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      search: mtMap.objectField('search', mtMap.passthrough())
     })
   )
 ]);
