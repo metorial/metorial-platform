@@ -11,9 +11,6 @@ model MagicMcpSession {
   magicMcpServerOid BigInt
   magicMcpServer    MagicMcpServer @relation(fields: [magicMcpServerOid], references: [oid])
 
-  serverDeploymentOid BigInt
-  serverDeployment    ServerDeployment @relation(fields: [serverDeploymentOid], references: [oid])
-
   tokenOid BigInt?
   token    MagicMcpToken? @relation(fields: [tokenOid], references: [oid])
 

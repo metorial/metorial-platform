@@ -8,7 +8,9 @@ import {
   MagicMcpServerStatus,
   Organization,
   OrganizationActor,
-  ServerDeployment
+  ServerDeployment,
+  ServerOAuthSession,
+  withTransaction
 } from '@metorial/db';
 import { notFoundError, preconditionFailedError, ServiceError } from '@metorial/error';
 import { generateCode } from '@metorial/id';
@@ -21,11 +23,13 @@ let include = {
     include: {
       serverDeployment: {
         include: {
-          server: true
+          server: true,
+          serverImplementation: true
         }
       }
     }
   },
+  defaultServerOauthSession: true,
   aliases: true
 };
 
@@ -45,6 +49,28 @@ class MagicMcpServerImpl {
         ]
       },
       include
+    });
+    if (!magicMcpServer) throw new ServiceError(notFoundError('magic_mcp.server'));
+
+    return magicMcpServer;
+  }
+
+  async DANGEROUSLY_getMagicMcpServerOnlyById(d: { magicMcpServerId: string }) {
+    let magicMcpServer = await db.magicMcpServer.findFirst({
+      where: {
+        OR: [
+          { id: d.magicMcpServerId },
+          {
+            aliases: {
+              some: { slug: d.magicMcpServerId }
+            }
+          }
+        ]
+      },
+      include: {
+        ...include,
+        instance: true
+      }
     });
     if (!magicMcpServer) throw new ServiceError(notFoundError('magic_mcp.server'));
 
@@ -79,25 +105,27 @@ class MagicMcpServerImpl {
   }) {
     let slug = await slugify(`${d.input.name}-${generateCode(5)}`);
 
-    return await db.magicMcpServer.create({
-      data: {
-        id: await ID.generateId('magicMcpServer'),
-        status: 'active',
-        serverDeployment: {
-          create: {
-            id: await ID.generateId('magicMcpServerDeployment'),
-            serverDeploymentOid: d.serverDeployment.oid
+    return withTransaction(async db => {
+      return await db.magicMcpServer.create({
+        data: {
+          id: await ID.generateId('magicMcpServer'),
+          status: 'active',
+          serverDeployment: {
+            create: {
+              id: await ID.generateId('magicMcpServerDeployment'),
+              serverDeploymentOid: d.serverDeployment.oid
+            }
+          },
+          instanceOid: d.instance.oid,
+          name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata || {},
+          aliases: {
+            create: { slug }
           }
         },
-        instanceOid: d.instance.oid,
-        name: d.input.name,
-        description: d.input.description,
-        metadata: d.input.metadata || {},
-        aliases: {
-          create: { slug }
-        }
-      },
-      include
+        include
+      });
     });
   }
 
@@ -124,6 +152,7 @@ class MagicMcpServerImpl {
       description?: string | null;
       metadata?: Record<string, any> | null;
       aliases?: string[];
+      defaultOauthSession?: ServerOAuthSession;
     };
   }) {
     if (d.server.status === 'archived') {
@@ -144,6 +173,8 @@ class MagicMcpServerImpl {
         description:
           d.input.description === undefined ? d.server.description : d.input.description,
         metadata: d.input.metadata === undefined ? d.server.metadata : d.input.metadata,
+
+        defaultServerOauthSessionOid: d.input.defaultOauthSession?.oid,
 
         aliases: {
           create: newAliases.map(slug => ({

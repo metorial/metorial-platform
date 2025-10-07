@@ -10,7 +10,8 @@ export let CONNECTION_TYPE_ALIASES: {
     '2025-03-26',
     '2025_03_26',
     '2025-06-18',
-    '2025_06_18'
+    '2025_06_18',
+    'mcp'
   ],
   websocket: ['websocket', 'ws']
 };

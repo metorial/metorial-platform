@@ -1,13 +1,21 @@
+import { UnifiedApiKey } from '@metorial/api-keys';
+import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
 import {
   db,
   ID,
   Instance,
   MagicMcpToken,
+  MagicMcpTokenStatus,
   Organization,
   OrganizationActor
 } from '@metorial/db';
-import { notFoundError, preconditionFailedError, ServiceError } from '@metorial/error';
+import {
+  notFoundError,
+  preconditionFailedError,
+  ServiceError,
+  unauthorizedError
+} from '@metorial/error';
 import { createLock } from '@metorial/lock';
 import { organizationActorService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
@@ -30,6 +38,28 @@ class MagicMcpTokenImpl {
       include
     });
     if (!magicMcpToken) throw new ServiceError(notFoundError('magic_mcp.token'));
+
+    return magicMcpToken;
+  }
+
+  async getMagicMcpTokenBySecret(d: { secret: string }) {
+    let magicMcpToken = await db.magicMcpToken.findFirst({
+      where: {
+        secret: d.secret,
+        status: 'active'
+      },
+      include: {
+        instance: {
+          include: { organization: true }
+        }
+      }
+    });
+    if (!magicMcpToken)
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'Invalid magic MCP token'
+        })
+      );
 
     return magicMcpToken;
   }
@@ -61,7 +91,10 @@ class MagicMcpTokenImpl {
     return await db.magicMcpToken.create({
       data: {
         id: await ID.generateId('magicMcpToken'),
-        secret: await ID.generateId('magicMcpToken_ClientSecret'),
+        secret: await UnifiedApiKey.create({
+          type: 'magic_mcp_token_secret',
+          config: { url: getConfig().urls.mcpUrl }
+        }).toString(),
         status: 'active',
         instanceOid: d.instance.oid,
         name: d.input.name,
@@ -116,7 +149,7 @@ class MagicMcpTokenImpl {
     });
   }
 
-  async listMagicMcpTokens(d: { instance: Instance }) {
+  async listMagicMcpTokens(d: { instance: Instance; status?: MagicMcpTokenStatus[] }) {
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         let getRes = async () =>
@@ -125,6 +158,8 @@ class MagicMcpTokenImpl {
             where: {
               instanceOid: d.instance.oid,
 
+              status: d.status ? { in: d.status } : undefined,
+
               OR: [{ deletedAt: null }, { deletedAt: { gt: subDays(new Date(), 3) } }]
             },
             include
@@ -132,10 +167,10 @@ class MagicMcpTokenImpl {
 
         let res = await getRes();
 
-        if (res.length == 0) {
+        if (res.filter(s => s.status == 'active').length == 0) {
           res = await autoCreateLock.usingLock(d.instance.id, async () => {
             let existingSevers = await db.magicMcpToken.count({
-              where: { instanceOid: d.instance.oid }
+              where: { instanceOid: d.instance.oid, status: 'active' }
             });
 
             if (existingSevers == 0) {
