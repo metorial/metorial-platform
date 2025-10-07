@@ -5,7 +5,11 @@ export type MagicMcpServersListOutput = {
     object: 'magic_mcp.server';
     id: string;
     status: 'active' | 'archived' | 'deleted';
-    aliases: string[];
+    endpoints: {
+      id: string;
+      alias: string;
+      urls: { sse: string; streamableHttp: string };
+    }[];
     serverDeployments: {
       object: 'server.server_deployment#preview';
       id: string;
@@ -42,9 +46,24 @@ export let mapMagicMcpServersListOutput =
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
-          aliases: mtMap.objectField(
-            'aliases',
-            mtMap.array(mtMap.passthrough())
+          endpoints: mtMap.objectField(
+            'endpoints',
+            mtMap.array(
+              mtMap.object({
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                alias: mtMap.objectField('alias', mtMap.passthrough()),
+                urls: mtMap.objectField(
+                  'urls',
+                  mtMap.object({
+                    sse: mtMap.objectField('sse', mtMap.passthrough()),
+                    streamableHttp: mtMap.objectField(
+                      'streamable_http',
+                      mtMap.passthrough()
+                    )
+                  })
+                )
+              })
+            )
           ),
           serverDeployments: mtMap.objectField(
             'server_deployments',
