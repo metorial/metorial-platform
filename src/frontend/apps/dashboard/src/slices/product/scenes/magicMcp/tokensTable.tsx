@@ -34,7 +34,7 @@ export let MagicTokensTable = (filter: DashboardInstanceMagicMcpTokensListQuery)
   let instance = useCurrentInstance();
   let tokens = useMagicMcpTokens(instance.data?.id, {
     ...filter,
-    order: filter.order ?? 'desc'
+    order: filter.order ?? 'asc'
   });
 
   let deleteTokenMutation = tokens.revokeMutator();
@@ -298,8 +298,7 @@ export let createMagicMcpTokenModal = () =>
                     <Dialog.Title>Magic MCP Token Created</Dialog.Title>
                     <Dialog.Description>
                       Your new Magic MCP token is ready to use. Please don't share it with
-                      anyone and keep it in a safe place, such as a password manager. You won't
-                      be able to see it again.
+                      anyone and keep it in a safe place, such as a password manager.
                     </Dialog.Description>
 
                     <Copy label="Magic MCP Token" value={res.secret ?? '...'} />

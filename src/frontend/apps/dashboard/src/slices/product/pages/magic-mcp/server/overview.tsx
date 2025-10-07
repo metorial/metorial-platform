@@ -1,10 +1,11 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useMagicMcpServer } from '@metorial/state';
-import { Attributes, Button, RenderDate, Spacer } from '@metorial/ui';
-import { ID, SideBox } from '@metorial/ui-product';
+import { useCurrentInstance, useMagicMcpServer, useMagicMcpTokens } from '@metorial/state';
+import { Attributes, Button, Copy, RenderDate, Spacer } from '@metorial/ui';
+import { Box, ID, SideBox } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import { UsageScene } from '../../../scenes/usage/usage';
+import { MagicMcpServerOauthCallout } from './oauth';
 
 export let MagicMcpServerOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -12,6 +13,10 @@ export let MagicMcpServerOverviewPage = () => {
   let { magicMcpServerId } = useParams();
   let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
   let serverDeployment = server.data?.serverDeployments[0];
+
+  let tokens = useMagicMcpTokens(instance.data?.id, {
+    status: 'active'
+  });
 
   return renderWithLoader({ server })(({ server }) => (
     <>
@@ -39,6 +44,10 @@ export let MagicMcpServerOverviewPage = () => {
 
       <Spacer height={15} />
 
+      <MagicMcpServerOauthCallout />
+
+      <Spacer height={15} />
+
       <SideBox
         title="Test your Magic MCP server"
         description="Use the Metorial Explorer to test your Magic MCP server."
@@ -56,6 +65,18 @@ export let MagicMcpServerOverviewPage = () => {
           </Button>
         </Link>
       </SideBox>
+
+      <Spacer height={15} />
+
+      <Box
+        title={`Connect to ${server.data.name}`}
+        description="Use this Magic MCP endpoint to connect to your server."
+      >
+        <Copy
+          label="Endpoint"
+          value={server.data.endpoints[0]?.urls.streamableHttp ?? '...'}
+        />
+      </Box>
 
       <Spacer height={15} />
 

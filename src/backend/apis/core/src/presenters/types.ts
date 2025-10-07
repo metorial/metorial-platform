@@ -479,12 +479,15 @@ export let managedServerTemplateType = PresentableType.create<{
 
 export let magicMcpServerType = PresentableType.create<{
   magicMcpServer: MagicMcpServer & {
-    serverDeployment: MagicMcpServerDeployment & {
-      serverDeployment: ServerDeployment & {
-        server: Server;
-      };
-    };
+    serverDeployment:
+      | (MagicMcpServerDeployment & {
+          serverDeployment: ServerDeployment & {
+            server: Server;
+          };
+        })
+      | null;
     aliases: MagicMcpServerAlias[];
+    defaultServerOauthSession: ServerOAuthSession | null;
   };
 }>()('magic_mcp.server');
 

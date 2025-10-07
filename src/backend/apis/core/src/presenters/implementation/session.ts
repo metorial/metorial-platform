@@ -39,8 +39,8 @@ export let v1SessionPresenter = Presenter.create(sessionType)
 
           connection_urls: {
             sse: `${getConfig().urls.mcpUrl}/mcp/${session.id}/${deployment.id}/sse`,
-            streamable_http: `${getConfig().urls.mcpUrl}/mcp/${session.id}/${deployment.id}/streamable_http`,
-            websocket: `${getConfig().urls.mcpUrl}/mcp/${session.id}/${deployment.id}/websocket`
+            streamable_http: `${getConfig().urls.mcpUrl}/mcp/${session.id}/${deployment.id}/mcp`
+            // websocket: `${getConfig().urls.mcpUrl}/mcp/${session.id}/${deployment.id}/websocket`
           },
 
           created_at: deployment.createdAt,
@@ -164,11 +164,11 @@ export let v1SessionPresenter = Presenter.create(sessionType)
               streamable_http: v.string({
                 name: 'streamable_http',
                 description: 'URL for Streamable HTTP connection'
-              }),
-              websocket: v.string({
-                name: 'websocket',
-                description: 'URL for WebSocket connection'
               })
+              // websocket: v.string({
+              //   name: 'websocket',
+              //   description: 'URL for WebSocket connection'
+              // })
             },
             {
               name: 'url',

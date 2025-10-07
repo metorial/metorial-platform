@@ -7,6 +7,7 @@ import {
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
+  updateMagicMcpServer,
   useCreateDeployment,
   useCreateMagicMcpServer,
   useCurrentInstance,
@@ -34,6 +35,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Markdown } from '../../../../components/markdown';
+import { authenticateWithOauth } from '../../pages/explorer/state';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 import { ServerSearch } from '../servers/search';
 import { Stepper } from '../stepper';
@@ -253,6 +255,25 @@ let ServerDeploymentFormInternal = (
           }
 
           if (res) {
+            console.log(res);
+
+            if ('needsDefaultOauthSession' in res && res.needsDefaultOauthSession) {
+              try {
+                let oauthSessionId = await authenticateWithOauth({
+                  instanceId: instance.data?.id!,
+                  serverDeploymentId: res.serverDeployments[0].id
+                });
+
+                await updateMagicMcpServer({
+                  instanceId: instance.data?.id!,
+                  magicMcpServerId: res.id,
+                  defaultOauthSessionId: oauthSessionId
+                });
+              } catch (e) {
+                toast.error('OAuth authentication failed. Please try again.');
+              }
+            }
+
             if (p.onCreate) {
               p.onCreate(res);
               p.close?.();

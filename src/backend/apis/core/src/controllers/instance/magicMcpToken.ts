@@ -5,6 +5,7 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { magicMcpTokenPresenter } from '../../presenters';
 
@@ -46,6 +47,7 @@ export let magicMcpTokenController = Controller.create(
           })
         )
       )
+      .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
         let paginator = await magicMcpTokenService.listMagicMcpTokens({
           instance: ctx.instance,
@@ -66,6 +68,7 @@ export let magicMcpTokenController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.session:read'] }))
       .output(magicMcpTokenPresenter)
+      .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
         return magicMcpTokenPresenter.present({ magicMcpToken: ctx.magicMcpToken });
       }),
@@ -89,6 +92,7 @@ export let magicMcpTokenController = Controller.create(
         })
       )
       .output(magicMcpTokenPresenter)
+      .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
         let magicMcpToken = await magicMcpTokenService.createMagicMcpToken({
           organization: ctx.organization,
@@ -112,6 +116,7 @@ export let magicMcpTokenController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.session:write'] }))
       .output(magicMcpTokenPresenter)
+      .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
         let magicMcpToken = await magicMcpTokenService.deletedMagicMcpToken({
           token: ctx.magicMcpToken
@@ -139,6 +144,7 @@ export let magicMcpTokenController = Controller.create(
         })
       )
       .output(magicMcpTokenPresenter)
+      .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
         let magicMcpToken = await magicMcpTokenService.updateMagicMcpToken({
           token: ctx.magicMcpToken,

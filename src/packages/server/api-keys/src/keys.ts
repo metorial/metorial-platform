@@ -7,17 +7,19 @@ export type ApiKeyType =
   | 'organization_app_access_token'
   | 'instance_access_token_secret'
   | 'instance_access_token_publishable'
-  | 'ephemeral_client_secret';
+  | 'ephemeral_client_secret'
+  | 'magic_mcp_token_secret';
 
 export type ApiKeyVersions = 'v1';
 
 let keyTypes = {
   uk: 'user_auth_token',
-  mk: 'organization_management_token',
+  lk: 'organization_management_token',
   ak: 'organization_app_access_token',
   sk: 'instance_access_token_secret',
   pk: 'instance_access_token_publishable',
-  ek: 'ephemeral_client_secret'
+  ek: 'ephemeral_client_secret',
+  mk: 'magic_mcp_token_secret'
 } as const;
 
 let keyTypesReverse = Object.fromEntries(

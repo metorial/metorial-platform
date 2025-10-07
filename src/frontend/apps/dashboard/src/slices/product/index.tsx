@@ -6,13 +6,28 @@ import { lastInstanceIdStore, useCurrentInstance, useDashboardFlags } from '@met
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
-import { MagicMcpServerLayout } from './pages/magic-mcp/server/_layout';
-import { MagicMcpServerConfigPage } from './pages/magic-mcp/server/config';
-import { MagicMcpServerErrorsPage } from './pages/magic-mcp/server/errors';
-import { MagicMcpServerOauthPage } from './pages/magic-mcp/server/oauth';
-import { MagicMcpServerOverviewPage } from './pages/magic-mcp/server/overview';
-import { MagicMcpServerRunsPage } from './pages/magic-mcp/server/runs';
 
+let MagicMcpServerLayout = dynamicPage(() =>
+  import('./pages/magic-mcp/server/_layout').then(c => c.MagicMcpServerLayout)
+);
+let MagicMcpServerConfigPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/config').then(c => c.MagicMcpServerConfigPage)
+);
+let MagicMcpServerErrorsPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/errors').then(c => c.MagicMcpServerErrorsPage)
+);
+let MagicMcpServerOauthPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/oauth').then(c => c.MagicMcpServerOauthPage)
+);
+let MagicMcpServerOverviewPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/overview').then(c => c.MagicMcpServerOverviewPage)
+);
+let MagicMcpServerRunsPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/runs').then(c => c.MagicMcpServerRunsPage)
+);
+let MagicMcpServerSessionsPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/sessions').then(c => c.MagicMcpServerSessionsPage)
+);
 let CustomServerCodePage = dynamicPage(() =>
   import('./pages/(custom-servers)/custom-server/code').then(c => c.CustomServerCodePage)
 );
@@ -675,6 +690,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'oauth',
                 element: <MagicMcpServerOauthPage />
+              },
+              {
+                path: 'sessions',
+                element: <MagicMcpServerSessionsPage />
               }
             ]
           }

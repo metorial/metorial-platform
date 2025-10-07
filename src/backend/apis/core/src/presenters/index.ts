@@ -13,7 +13,10 @@ import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
 import { v1InstancePresenter } from './implementation/instance';
 import { v1MachineAccessPresenter } from './implementation/machineAccess';
-import { v1MagicMcpServerPresenter } from './implementation/magicMcpServer';
+import {
+  v1DashboardMagicMcpServerPresenter,
+  v1MagicMcpServerPresenter
+} from './implementation/magicMcpServer';
 import {
   v1DashboardMagicMcpSessionPresenter,
   v1MagicMcpSessionPresenter
@@ -382,7 +385,7 @@ export let managedServerTemplateTypePresenter = declarePresenter(managedServerTe
 
 export let magicMcpServerPresenter = declarePresenter(magicMcpServerType, {
   mt_2025_01_01_pulsar: v1MagicMcpServerPresenter,
-  mt_2025_01_01_dashboard: v1MagicMcpServerPresenter
+  mt_2025_01_01_dashboard: v1DashboardMagicMcpServerPresenter
 });
 
 export let magicMcpSessionPresenter = declarePresenter(magicMcpSessionType, {

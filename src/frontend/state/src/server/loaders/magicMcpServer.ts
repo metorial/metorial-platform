@@ -64,3 +64,11 @@ export let useMagicMcpServer = (
     useDeleteMutator: data.useMutator('delete')
   };
 };
+
+export let updateMagicMcpServer = (
+  body: DashboardInstanceMagicMcpServersUpdateBody & {
+    instanceId: string;
+    magicMcpServerId: string;
+  }
+) =>
+  withAuth(sdk => sdk.magicMcp.servers.update(body.instanceId, body.magicMcpServerId, body));

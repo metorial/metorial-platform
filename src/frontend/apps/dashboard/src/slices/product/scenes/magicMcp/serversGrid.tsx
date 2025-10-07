@@ -26,7 +26,10 @@ let Alias = styled.div`
 
 export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQuery) => {
   let instance = useCurrentInstance();
-  let servers = useMagicMcpServers(instance.data?.id, filter);
+  let servers = useMagicMcpServers(instance.data?.id, {
+    ...filter,
+    order: filter.order ?? 'desc'
+  });
   let navigate = useNavigate();
 
   return renderWithLoader({ servers })(({ servers }) => (
@@ -64,8 +67,8 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
               }
               bottom={
                 <Aliases>
-                  {server.aliases.map(alias => (
-                    <Alias key={alias}>{alias}</Alias>
+                  {server.endpoints.map(e => (
+                    <Alias key={e.id}>{e.alias}</Alias>
                   ))}
                 </Aliases>
               }

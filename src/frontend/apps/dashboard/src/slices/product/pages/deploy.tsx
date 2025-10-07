@@ -2,7 +2,7 @@ import { SetupLayout } from '@metorial/layout';
 import { useCurrentInstance, useServerListing } from '@metorial/state';
 import { useSearchParams } from 'react-router-dom';
 import bg from '../../../assets/bg.webp';
-import { ServerDeploymentForm } from '../scenes/serverDeployments/form';
+import { MagicMcpServerForm } from '../scenes/serverDeployments/form';
 
 export let DeployPage = () => {
   let instance = useCurrentInstance();
@@ -24,7 +24,7 @@ export let DeployPage = () => {
       }
       backgroundUrl={bg}
     >
-      {serverId && <ServerDeploymentForm type="create" for={{ serverId }} />}
+      {serverId && <MagicMcpServerForm type="create" for={{ serverId }} />}
     </SetupLayout>
   );
 };

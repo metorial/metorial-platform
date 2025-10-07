@@ -3,7 +3,8 @@ import {
   Instance,
   Organization,
   OrganizationActor,
-  ServerDeploymentStatus
+  ServerDeploymentStatus,
+  withTransaction
 } from '@metorial/db';
 import {
   serverDeploymentService,
@@ -72,49 +73,53 @@ export let createServerDeployment = async (
   },
   opts?: {
     type: 'persistent' | 'ephemeral';
+    parent?: 'magic_mcp_server';
   }
 ) => {
-  let serverImplementation =
-    'server_implementation_id' in data
-      ? {
-          isNewEphemeral: false,
-          instance: await serverImplementationService.getServerImplementationById({
-            instance: ctx.instance,
-            serverImplementationId: data.server_implementation_id
-          })
-        }
-      : {
-          isNewEphemeral: true,
-          instance:
-            'server_implementation' in data
-              ? await createServerImplementation(data.server_implementation, ctx, {
-                  type: 'ephemeral'
-                })
-              : await ensureDefaultServerImplementation(data, ctx)
-        };
-
-  let serverDeployment = await serverDeploymentService.createServerDeployment({
-    organization: ctx.organization,
-    performedBy: ctx.actor,
-    instance: ctx.instance,
-    serverImplementation,
-    type: opts?.type ?? 'persistent',
-    context: ctx.context,
-    input: {
-      name: data.name?.trim() || undefined,
-      description: data.description?.trim() || undefined,
-      metadata: data.metadata,
-      config: data.config,
-      oauthConfig: data.oauth_config
+  return withTransaction(async db => {
+    let serverImplementation =
+      'server_implementation_id' in data
         ? {
-            clientId: data.oauth_config.client_id,
-            clientSecret: data.oauth_config.client_secret
+            isNewEphemeral: false,
+            instance: await serverImplementationService.getServerImplementationById({
+              instance: ctx.instance,
+              serverImplementationId: data.server_implementation_id
+            })
           }
-        : undefined
-    }
-  });
+        : {
+            isNewEphemeral: true,
+            instance:
+              'server_implementation' in data
+                ? await createServerImplementation(data.server_implementation, ctx, {
+                    type: 'ephemeral'
+                  })
+                : await ensureDefaultServerImplementation(data, ctx)
+          };
 
-  return serverDeployment;
+    let serverDeployment = await serverDeploymentService.createServerDeployment({
+      organization: ctx.organization,
+      performedBy: ctx.actor,
+      instance: ctx.instance,
+      serverImplementation,
+      type: opts?.type ?? 'persistent',
+      context: ctx.context,
+      parent: opts?.parent,
+      input: {
+        name: data.name?.trim() || undefined,
+        description: data.description?.trim() || undefined,
+        metadata: data.metadata,
+        config: data.config,
+        oauthConfig: data.oauth_config
+          ? {
+              clientId: data.oauth_config.client_id,
+              clientSecret: data.oauth_config.client_secret
+            }
+          : undefined
+      }
+    });
+
+    return serverDeployment;
+  });
 };
 
 export let serverDeploymentController = Controller.create(

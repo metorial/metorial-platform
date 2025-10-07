@@ -80,6 +80,18 @@ export let MagicMcpServerLayout = () => {
                 label: 'Overview',
                 to: Paths.instance.magicMcp.server(...serverPathParams)
               },
+              {
+                label: 'Sessions',
+                to: Paths.instance.magicMcp.server(...serverPathParams, 'sessions')
+              },
+              // {
+              //   label: 'Runs',
+              //   to: Paths.instance.magicMcp.server(...serverPathParams, 'runs')
+              // },
+              {
+                label: 'Errors',
+                to: Paths.instance.magicMcp.server(...serverPathParams, 'errors')
+              },
               ...(serverDeployment.data.oauthConnection
                 ? [
                     {
@@ -88,14 +100,6 @@ export let MagicMcpServerLayout = () => {
                     }
                   ]
                 : []),
-              {
-                label: 'Runs',
-                to: Paths.instance.magicMcp.server(...serverPathParams, 'runs')
-              },
-              {
-                label: 'Errors',
-                to: Paths.instance.magicMcp.server(...serverPathParams, 'errors')
-              },
               {
                 label: 'Settings',
                 to: Paths.instance.magicMcp.server(...serverPathParams, 'config')

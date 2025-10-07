@@ -4,6 +4,7 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { magicMcpSessionPresenter } from '../../presenters';
 
@@ -40,6 +41,7 @@ export let magicMcpSessionController = Controller.create(
           })
         )
       )
+      .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
         let paginator = await magicMcpSessionService.listMagicMcpSessions({
           instance: ctx.instance,
@@ -60,6 +62,7 @@ export let magicMcpSessionController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.session:read'] }))
       .output(magicMcpSessionPresenter)
+      .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
         return magicMcpSessionPresenter.present({ magicMcpSession: ctx.magicMcpSession });
       })

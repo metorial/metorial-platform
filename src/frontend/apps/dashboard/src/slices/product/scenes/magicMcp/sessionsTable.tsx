@@ -54,11 +54,11 @@ export let MagicSessionsTable = (filter: DashboardInstanceMagicMcpSessionsListQu
             </Text>,
             <RenderDate date={session.createdAt} />
           ],
-          href: Paths.instance.magicMcp.session(
+          href: Paths.instance.session(
             instance.data?.organization,
             instance.data?.project,
             instance.data,
-            session.id
+            session.sessionId
           )
         }))}
       />

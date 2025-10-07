@@ -256,23 +256,6 @@ let InstancePaths = Object.assign(
       ) => {
         return InstancePaths(organization, project, instance, 'magic-mcp/tokens', ...subPages);
       },
-      session: (
-        organization: EntityParam,
-        project: EntityParam,
-        instance: EntityParam,
-        id?: string,
-        ...subPages: SubPages
-      ) => {
-        if (!id) return '#';
-        return InstancePaths(
-          organization,
-          project,
-          instance,
-          'magic-mcp/session',
-          id,
-          ...subPages
-        );
-      },
 
       sessions: (
         organization: EntityParam,

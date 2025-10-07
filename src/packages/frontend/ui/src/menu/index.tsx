@@ -98,7 +98,9 @@ let Item = styled(RadixMenu.Item)`
   font-size: 14px;
   font-weight: 500;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
   gap: 5px;
   padding: 7px 13px;
   border-radius: 6px;
@@ -107,6 +109,7 @@ let Item = styled(RadixMenu.Item)`
   background: transparent;
   transition: all 0.3s ease;
   color: ${theme.colors.background};
+  max-width: 250px;
 
   &:not(:disabled) {
     &:hover {
@@ -120,6 +123,17 @@ let Item = styled(RadixMenu.Item)`
 
   &:disabled {
     opacity: 0.7;
+  }
+
+  h1 {
+    font-size: 14px;
+    font-weight: 500;
+    color: ${theme.colors.background};
+  }
+
+  p {
+    font-size: 12px;
+    color: ${theme.colors.gray600};
   }
 `;
 
@@ -151,6 +165,7 @@ export let Menu = ({
     | {
         id: string;
         disabled?: boolean;
+        description?: React.ReactNode;
         label: React.ReactNode;
       }
     | {
@@ -195,7 +210,10 @@ export let Menu = ({
                 disabled={item.disabled}
                 asChild
               >
-                <button disabled={item.disabled}>{item.label}</button>
+                <button disabled={item.disabled}>
+                  <h1>{item.label}</h1>
+                  {item.description && <p>{item.description}</p>}
+                </button>
               </Item>
             )
           )}

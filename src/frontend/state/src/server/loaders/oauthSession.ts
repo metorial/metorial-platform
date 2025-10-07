@@ -64,3 +64,12 @@ export let useGetOAuthSession = (instanceId: string | null | undefined) => {
     { disableToast: true }
   );
 };
+
+export let createOAuthSession = (
+  body: DashboardInstanceProviderOauthSessionsCreateBody & {
+    instanceId: string;
+  }
+) => withAuth(sdk => sdk.providerOauth.sessions.create(body.instanceId, body));
+
+export let getOAuthSession = (input: { instanceId: string; sessionId: string }) =>
+  withAuth(sdk => sdk.providerOauth.sessions.get(input.instanceId, input.sessionId));
