@@ -10,7 +10,7 @@ import {
 } from '@metorial/state';
 import { Badge, Button, LinkTabs } from '@metorial/ui';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
-import { showServerDeploymentFormModal } from '../../../scenes/serverDeployments/modal';
+import { DeployServerButton } from '../../(custom-servers)/custom-server/_layout';
 
 export let ServerLayout = () => {
   let instance = useCurrentInstance();
@@ -74,22 +74,12 @@ export let ServerLayout = () => {
               </Button>
             </Link>
 
-            <Button
-              size="2"
+            <DeployServerButton
               disabled={!server.data?.variants.length}
-              onClick={() => {
-                if (!server.data) return;
-
-                showServerDeploymentFormModal({
-                  type: 'create',
-                  for: {
-                    serverId: server.data.id
-                  }
-                });
-              }}
+              serverId={server.data?.id!}
             >
               Deploy Server
-            </Button>
+            </DeployServerButton>
           </>
         }
       />

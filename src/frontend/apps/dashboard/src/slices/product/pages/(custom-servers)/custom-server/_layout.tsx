@@ -67,49 +67,9 @@ export let CustomServerLayout = () => {
           }
         ]}
         actions={
-          flags.data?.flags['magic-mcp-enabled'] ? (
-            <Menu
-              items={[
-                {
-                  id: 'server-deployment',
-                  label: 'Server Deployment',
-                  description: 'More powerful and flexible.'
-                },
-                {
-                  id: 'magic-mcp-server',
-                  label: 'Magic MCP Server',
-                  description: 'Easier to use and manage.'
-                }
-              ]}
-              onItemClick={item => {
-                if (item === 'server-deployment') {
-                  showServerDeploymentFormModal({
-                    type: 'create',
-                    for: { serverId: customServer.data?.server.id! }
-                  });
-                } else if (item === 'magic-mcp-server') {
-                  showMagicMcpServerFormModal({
-                    type: 'create',
-                    for: { serverId: customServer.data?.server.id! }
-                  });
-                }
-              }}
-            >
-              <Button size="2">Deploy Server</Button>
-            </Menu>
-          ) : (
-            <Button
-              size="2"
-              onClick={() =>
-                showServerDeploymentFormModal({
-                  type: 'create',
-                  for: { serverId: customServer.data?.server.id! }
-                })
-              }
-            >
-              Deploy Server
-            </Button>
-          )
+          <DeployServerButton serverId={customServer.data?.id!}>
+            Deploy Server
+          </DeployServerButton>
         }
       />
 
@@ -171,5 +131,64 @@ export let CustomServerLayout = () => {
         </>
       ))}
     </ContentLayout>
+  );
+};
+
+export let DeployServerButton = ({
+  children,
+  serverId,
+  disabled
+}: {
+  children: React.ReactNode;
+  serverId: string;
+  disabled?: boolean;
+}) => {
+  let flags = useDashboardFlags();
+
+  return flags.data?.flags['magic-mcp-enabled'] ? (
+    <Menu
+      items={[
+        {
+          id: 'server-deployment',
+          label: 'Server Deployment',
+          description: 'More powerful and flexible.'
+        },
+        {
+          id: 'magic-mcp-server',
+          label: 'Magic MCP Server',
+          description: 'Easier to use and manage.'
+        }
+      ]}
+      onItemClick={item => {
+        if (item === 'server-deployment') {
+          showServerDeploymentFormModal({
+            type: 'create',
+            for: { serverId }
+          });
+        } else if (item === 'magic-mcp-server') {
+          showMagicMcpServerFormModal({
+            type: 'create',
+            for: { serverId }
+          });
+        }
+      }}
+    >
+      <Button size="2" disabled={disabled}>
+        Deploy Server
+      </Button>
+    </Menu>
+  ) : (
+    <Button
+      disabled={disabled}
+      size="2"
+      onClick={() =>
+        showServerDeploymentFormModal({
+          type: 'create',
+          for: { serverId }
+        })
+      }
+    >
+      {children}
+    </Button>
   );
 };
