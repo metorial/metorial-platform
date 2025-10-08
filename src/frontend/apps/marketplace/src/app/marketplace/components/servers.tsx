@@ -38,7 +38,7 @@ export let LandingServers = ({ servers }: { servers: ServerListing[] }) => {
             <CardWrapper key={server.id}>
               <Card
                 card={{
-                  category: server.vendor?.name ?? 'External',
+                  category: server.vendor?.name ?? server.profile?.name ?? 'External',
                   title: server.name,
                   src: `https://avatar-cdn.metorial.com/${server.id}`
                 }}

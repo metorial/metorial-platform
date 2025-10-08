@@ -29,30 +29,46 @@ export let ServerAside = ({ server }: { server: ServerListing }) => {
           <Datalist
             variant="large"
             items={[
-              {
-                label: 'Repository',
-                value: (
-                  <a
-                    href={server.repository?.providerUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {server.repository?.identifier.replace('github.com/', '')}
-                  </a>
-                )
-              },
-              {
-                label: 'License',
-                value: server.repository?.licenseName ?? 'Unknown'
-              },
-              {
-                label: 'Stars',
-                value: server.repository?.starCount ?? '0'
-              },
-              {
-                label: 'Vendor',
-                value: server.vendor?.name
-              },
+              ...(server.repository
+                ? [
+                    {
+                      label: 'Repository',
+                      value: (
+                        <a
+                          href={server.repository?.providerUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {server.repository?.identifier.replace('github.com/', '')}
+                        </a>
+                      )
+                    },
+                    {
+                      label: 'License',
+                      value: server.repository?.licenseName ?? 'Unknown'
+                    },
+                    {
+                      label: 'Stars',
+                      value: server.repository?.starCount ?? '0'
+                    }
+                  ]
+                : []),
+              ...(server.vendor
+                ? [
+                    {
+                      label: 'Vendor',
+                      value: server.vendor?.name
+                    }
+                  ]
+                : []),
+              ...(server.profile
+                ? [
+                    {
+                      label: 'Profile',
+                      value: server.profile?.name
+                    }
+                  ]
+                : []),
               {
                 label: 'Hosted on Metorial',
                 value: server.isHostable ? 'Yes' : 'No'
