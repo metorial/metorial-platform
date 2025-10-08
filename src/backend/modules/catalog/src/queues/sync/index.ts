@@ -22,7 +22,7 @@ import { subMinutes } from 'date-fns';
 import { indexServerListingQueue } from '../search';
 import { IndexDB } from './indexDb';
 
-let NAME = 'init4';
+let NAME = 'init6';
 
 let syncQueue = createQueue({
   name: 'cat/sync',
@@ -49,6 +49,7 @@ let syncCron = createCron(
 
 (async () => {
   let existingServer = await db.importedServer.findFirst();
+  console.log('Existing server', Boolean(existingServer));
   if (!existingServer) {
     await syncQueue.add({}, { id: NAME });
   }
@@ -78,6 +79,8 @@ export let syncProcessor = syncQueue.process(async () => {
   //   console.log('Catalog sync is disabled, skipping...');
   //   return;
   // }
+
+  console.log('Starting catalog sync job');
 
   let syncJob = await db.serverSyncJob.create({
     data: {}
@@ -172,7 +175,7 @@ export let syncProcessor = syncQueue.process(async () => {
         updatedAt: new Date(repository.updatedAt)
       }));
     }
-    console.log(`Imported ${repositoryCount} repositorys`);
+    console.log(`Imported ${repositoryCount} repositories`);
 
     await db.serverSyncJob.updateMany({
       where: { oid: syncJob.oid },
@@ -183,8 +186,7 @@ export let syncProcessor = syncQueue.process(async () => {
     for (let server of index.servers.iterate()) {
       serverCount++;
       if (serverCount % 100 == 0) {
-        console.log(`Imported ${serverCount} repositories`);
-        console.log(`Waiting 2 sec before continuing import`);
+        console.log(`Imported ${serverCount} servers`);
         await db.serverSyncJob.updateMany({
           where: { oid: syncJob.oid },
           data: { importedSeversCount: serverCount }

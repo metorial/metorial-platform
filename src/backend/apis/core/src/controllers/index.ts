@@ -164,3 +164,12 @@ export let dashboardController = Controller.create<any>(
     magicMcpTokenController
   }
 );
+
+export let fullDashboardController = Controller.create<any>(dashboardController.descriptor, {
+  ...dashboardController.handlers,
+
+  dashboardOrganizationController,
+  dashboardOrganizationInviteController,
+  dashboardBootController,
+  dashboardUserController
+});

@@ -5,7 +5,21 @@ import {
   useCurrentInstance,
   useCurrentOrganization
 } from '@metorial/state';
-import { RiHomeLine, RiSettings2Line, RiTerminalBoxLine } from '@remixicon/react';
+import {
+  RiArrowLeftRightLine,
+  RiBriefcase4Line,
+  RiFlowChart,
+  RiFunctionLine,
+  RiGroupLine,
+  RiHome6Line,
+  RiListCheck2,
+  RiRfidLine,
+  RiServerLine,
+  RiSettings2Line,
+  RiShieldKeyholeLine,
+  RiSurveyLine,
+  RiUploadCloud2Line
+} from '@remixicon/react';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 
@@ -32,7 +46,7 @@ export let ProjectPageLayout = () => {
     lastInstanceIdStore.set(instance.data.id);
   }, [instance.data]);
 
-  let pathParts = [organization.data, instance.data?.project, instance.data] as const;
+  let params = [organization.data, instance.data?.project, instance.data] as const;
 
   return (
     <AppLayout
@@ -41,13 +55,119 @@ export let ProjectPageLayout = () => {
         {
           items: [
             {
-              icon: <RiHomeLine />,
+              icon: <RiHome6Line />,
               label: 'Home',
-              to: Paths.instance(...pathParts),
+              to: Paths.instance(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            }
+          ]
+        },
 
-              getProps: i => ({
-                isActive: checkPath(i, { exact: true })
-              })
+        {
+          label: 'Connect',
+          collapsible: true,
+          items: [
+            {
+              icon: <RiServerLine />,
+              label: 'Servers',
+              to: Paths.instance.servers(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            },
+
+            {
+              icon: <RiFlowChart />,
+              label: 'Deployments',
+              to: Paths.instance.serverDeployments(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) }),
+
+              children: [
+                {
+                  label: 'Deployments',
+                  to: Paths.instance.serverDeployments(...params),
+                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+                },
+                {
+                  label: 'Implementations',
+                  to: Paths.instance.serverImplementations(...params),
+                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+                }
+              ]
+            },
+
+            {
+              icon: <RiListCheck2 />,
+              label: 'Logs',
+              to: Paths.instance.sessions(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) }),
+
+              children: [
+                {
+                  label: 'Sessions',
+                  to: Paths.instance.sessions(...params),
+                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+                },
+                {
+                  label: 'Server Runs',
+                  to: Paths.instance.serverRuns(...params),
+                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+                },
+                {
+                  label: 'Errors',
+                  to: Paths.instance.serverErrors(...params),
+                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+                }
+              ]
+            },
+
+            {
+              icon: <RiSurveyLine />,
+              label: 'Explorer',
+              to: Paths.instance.explorer(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            }
+          ]
+        },
+
+        {
+          label: 'Gateway',
+          collapsible: true,
+          items: [
+            {
+              icon: <RiUploadCloud2Line />,
+              label: 'External Servers',
+              to: Paths.instance.externalServers(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            },
+            {
+              icon: <RiArrowLeftRightLine />,
+              label: 'OAuth Connections',
+              to: Paths.instance.providerConnections(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            }
+          ]
+        },
+
+        {
+          label: 'Developer',
+          collapsible: true,
+          items: [
+            {
+              icon: <RiShieldKeyholeLine />,
+              label: 'API Keys',
+              to: Paths.instance.developer(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            },
+            {
+              icon: <RiFunctionLine />,
+              label: 'Instances',
+              to: Paths.instance.developer(...params, 'environments'),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            },
+            {
+              icon: <RiRfidLine />,
+              label: 'API Access',
+              to: Paths.instance.developer(...params, 'api'),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             }
           ]
         },
@@ -57,61 +177,24 @@ export let ProjectPageLayout = () => {
           collapsible: true,
           items: [
             {
-              icon: <RiTerminalBoxLine />,
-              label: 'Developer',
-              to: Paths.instance.developer(...pathParts),
-
-              children: [
-                {
-                  label: 'API Keys',
-                  to: Paths.instance.developer(...pathParts),
-
-                  getProps: i => ({
-                    isActive: checkPath(i, { exact: true })
-                  })
-                },
-                {
-                  label: 'Environments',
-                  to: Paths.instance.developer(...pathParts, 'environments'),
-
-                  getProps: i => ({
-                    isActive: checkPath(i)
-                  })
-                },
-                {
-                  label: 'API Access',
-                  to: Paths.instance.developer(...pathParts, 'api'),
-
-                  getProps: i => ({
-                    isActive: checkPath(i)
-                  })
-                }
-              ]
+              icon: <RiSettings2Line />,
+              label: 'Settings',
+              to: Paths.instance.settings(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },
 
             {
-              icon: <RiSettings2Line />,
-              label: 'Settings',
-              to: Paths.instance.settings(...pathParts),
+              icon: <RiBriefcase4Line />,
+              label: 'Organization',
+              to: Paths.organization.settings(organization.data),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            },
 
-              children: [
-                {
-                  label: 'Project',
-                  to: Paths.instance.settings(...pathParts),
-
-                  getProps: i => ({
-                    isActive: checkPath(i, { exact: true })
-                  })
-                },
-                {
-                  label: 'Organization',
-                  to: Paths.organization.settings(organization.data)
-                },
-                {
-                  label: 'Team',
-                  to: Paths.organization.members(organization.data)
-                }
-              ]
+            {
+              icon: <RiGroupLine />,
+              label: 'Team',
+              to: Paths.organization.members(organization.data),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             }
           ]
         }

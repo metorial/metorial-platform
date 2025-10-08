@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import { join } from 'path';
-import type { Env } from './types';
+import type { Env } from './type';
 
 let envJson: Record<string, string> | null = null;
 

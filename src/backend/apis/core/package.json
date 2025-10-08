@@ -4,9 +4,7 @@
   "author": "Tobias Herber",
   "license": "AGPL",
   "main": "src/index.ts",
-  "scripts": {
-    "dev": "bun --watch ./src/server.ts"
-  },
+  "scripts": {},
   "dependencies": {
     "@metorial/db": "^1.0.0",
     "@metorial/env": "^1.0.0",
