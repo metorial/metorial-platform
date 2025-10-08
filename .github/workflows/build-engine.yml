@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [launcher, manager, remote, runner]
+        service: [unified]
 
     permissions:
       contents: read
