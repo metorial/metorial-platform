@@ -155,6 +155,8 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
                 ]}
                 onItemClick={async id => {
                   if (id == '__production_instance__') {
+                    // @ts-ignore
+                    await window.metorial_enterprise?.beforeCreateInstance?.();
                     let [res] = await createInstanceMutator.mutate({
                       name: 'Production',
                       type: 'production',
@@ -162,19 +164,14 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
                     });
                     if (res) navigate(Paths.instance(org.data!, project.data!, res));
                   } else if (id == '__new_instance__') {
+                    // @ts-ignore
+                    await window.metorial_enterprise?.beforeCreateInstance?.();
                     createInstance(project.data!);
                   } else {
                     let foundInstance = project.data?.instances.find(
                       i => i.slug == id || i.id == id
                     );
                     if (!foundInstance) return;
-
-                    let currentBasePath = Paths.instance(
-                      org.data!,
-                      project.data!,
-                      instance.data!
-                    );
-                    let afterPath = location.pathname.replace(currentBasePath, '');
 
                     navigate(
                       Paths.instance(
