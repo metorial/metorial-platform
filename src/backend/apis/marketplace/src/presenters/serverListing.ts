@@ -1,4 +1,5 @@
 import {
+  getImageUrl,
   ImportedRepository,
   ImportedServer,
   ImportedServerVendor,
@@ -51,9 +52,20 @@ export let serverListingPresenter = async (
 
     categories: serverListing.categories.map(category => serverCategoryPresenter(category)),
 
-    isOfficial: !!serverListing.server.importedServer?.isOfficial,
+    imageUrl: await getImageUrl(
+      !serverListing.image || serverListing.image?.type == 'default'
+        ? (vendor ?? serverListing.profile ?? serverListing)
+        : serverListing
+    ),
+
+    isVerified: !!serverListing.isVerified,
+    isMetorial: !!serverListing.isMetorial,
+    isOfficial:
+      !!serverListing.isOfficial || !!serverListing.server.importedServer?.isOfficial,
     isCommunity: !!serverListing.server.importedServer?.isCommunity,
-    isHostable: !!serverListing.server.importedServer?.isHostable,
+    isHostable:
+      serverListing.server.type == 'custom' ||
+      !!serverListing.server.importedServer?.isHostable,
 
     subdirectory: serverListing.server.importedServer?.subdirectory,
 
