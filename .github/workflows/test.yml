@@ -31,8 +31,8 @@ jobs:
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Patch bun
-        run: mv _package.json package.json
+      # - name: Patch bun
+      #   run: mv _package.json package.json
 
       - name: Install Packages
         run: bun i
