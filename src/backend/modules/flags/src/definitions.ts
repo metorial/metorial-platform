@@ -19,9 +19,9 @@ export let defaultFlags: Flags = {
   'metorial-gateway-enabled': true,
   'custom-servers-remote-enabled': true,
   'provider-oauth-enabled': true,
-  'managed-servers-enabled': true,
-  'community-profiles-enabled': true,
-  'magic-mcp-enabled': true
+  'managed-servers-enabled': false,
+  'community-profiles-enabled': false,
+  'magic-mcp-enabled': false
 };
 
 export type FlagProviderParams = {
