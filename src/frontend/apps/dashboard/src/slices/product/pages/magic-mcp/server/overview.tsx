@@ -18,9 +18,20 @@ export let MagicMcpServerOverviewPage = () => {
     status: 'active'
   });
 
+  let secret = tokens.data?.items?.[0]?.secret;
+
   let url = server.data?.endpoints[0]?.urls.streamableHttp;
-  if (url && tokens.data?.items.length) {
-    url += `?key=${tokens.data.items[0].secret}`;
+  if (url && secret) {
+    url += `?key=${secret}`;
+  }
+
+  let cleanUrl = server.data?.endpoints[0]?.urls.streamableHttp;
+  if (url && secret) {
+    let keyParts = secret.split('_');
+    let secretPart = keyParts.pop()!;
+    let cleanSecret =
+      keyParts.join('_') + '_' + secretPart.slice(0, 4) + '...' + secretPart.slice(-4);
+    cleanUrl += `?key=${cleanSecret}`;
   }
 
   return renderWithLoader({ server })(({ server }) => (
@@ -77,7 +88,7 @@ export let MagicMcpServerOverviewPage = () => {
         title={`Connect to ${server.data.name}`}
         description="Use this Magic MCP endpoint to connect to your server."
       >
-        <Copy label="Endpoint" value={url ?? '...'} />
+        <Copy label="Endpoint" value={cleanUrl ?? '...'} copyValue={url ?? ''} />
       </Box>
 
       <Spacer height={15} />
