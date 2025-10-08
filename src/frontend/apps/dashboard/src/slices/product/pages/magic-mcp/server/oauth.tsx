@@ -40,7 +40,7 @@ export let MagicMcpServerOauthPage = () => {
   );
 };
 
-export let MagicMcpServerOauthCallout = () => {
+export let MagicMcpServerOauthCallout = ({ noSpacer }: { noSpacer?: boolean }) => {
   let instance = useCurrentInstance();
 
   let { magicMcpServerId } = useParams();
@@ -54,50 +54,54 @@ export let MagicMcpServerOauthCallout = () => {
   if (!deployment.data?.oauthConnection) return;
 
   return (
-    <Box
-      title="Default OAuth Connection"
-      description={
-        <>
-          Set up a default oauth connection for this Magic MCP server. This connection will be
-          used for all sessions created without an explicit OAuth session. You can also pass an{' '}
-          <code style={{ fontSize: '14px' }}>oauth_session_id</code> query parameter to the MCP
-          request to use a specific OAuth session.
-        </>
-      }
-    >
-      {magicMcpServer.data?.needsDefaultOauthSession && (
-        <>
-          <Callout color="red">
-            You don't have a default OAuth connection set up for this Magic MCP server. This
-            means that you will need to pass an OAuth connection id to every MCP request.
-          </Callout>
-          <Spacer size={15} />
-        </>
-      )}
+    <>
+      {noSpacer && <Spacer height={15} />}
 
-      <Button
-        onClick={async () => {
-          try {
-            let oauthSessionId = await authenticateWithOauth({
-              instanceId: instance.data?.id!,
-              serverDeploymentId: deployment.data?.id!
-            });
-
-            await updateMutation.mutate({
-              defaultOauthSessionId: oauthSessionId
-            });
-
-            toast.success('OAuth connection set as default for this Magic MCP server.');
-          } catch (e) {
-            toast.error('OAuth authentication failed. Please try again.');
-          }
-        }}
-        size="2"
+      <Box
+        title="Default OAuth Connection"
+        description={
+          <>
+            Set up a default oauth connection for this Magic MCP server. This connection will
+            be used for all sessions created without an explicit OAuth session. You can also
+            pass an <code style={{ fontSize: '14px' }}>oauth_session_id</code> query parameter
+            to the MCP request to use a specific OAuth session.
+          </>
+        }
       >
-        {magicMcpServer.data?.needsDefaultOauthSession
-          ? 'Set up OAuth Connection'
-          : 'Update OAuth Connection'}
-      </Button>
-    </Box>
+        {magicMcpServer.data?.needsDefaultOauthSession && (
+          <>
+            <Callout color="red">
+              You don't have a default OAuth connection set up for this Magic MCP server. This
+              means that you will need to pass an OAuth connection id to every MCP request.
+            </Callout>
+            <Spacer size={15} />
+          </>
+        )}
+
+        <Button
+          onClick={async () => {
+            try {
+              let oauthSessionId = await authenticateWithOauth({
+                instanceId: instance.data?.id!,
+                serverDeploymentId: deployment.data?.id!
+              });
+
+              await updateMutation.mutate({
+                defaultOauthSessionId: oauthSessionId
+              });
+
+              toast.success('OAuth connection set as default for this Magic MCP server.');
+            } catch (e) {
+              toast.error('OAuth authentication failed. Please try again.');
+            }
+          }}
+          size="2"
+        >
+          {magicMcpServer.data?.needsDefaultOauthSession
+            ? 'Set up OAuth Connection'
+            : 'Update OAuth Connection'}
+        </Button>
+      </Box>
+    </>
   );
 };
