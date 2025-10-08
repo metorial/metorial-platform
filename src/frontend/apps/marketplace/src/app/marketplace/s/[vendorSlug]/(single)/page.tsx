@@ -2,18 +2,18 @@
 
 import { Metadata, ResolvingMetadata } from 'next';
 import { notFound } from 'next/navigation';
-import { serverFetch } from '../../../../state/sdk';
-import { getServer } from '../../../../state/server';
-import { ServerReadme } from '../[vendorSlug]/[serverSlug]/components/readme';
-import { Skills } from '../[vendorSlug]/[serverSlug]/components/skills';
+import { serverFetch } from '../../../../../state/sdk';
+import { getServer } from '../../../../../state/server';
+import { ServerReadme } from '../[serverSlug]/components/readme';
+import { Skills } from '../[serverSlug]/components/skills';
 
 export default async ({
   params: paramsPromise
 }: {
-  params: Promise<{ serverSlug: string }>;
+  params: Promise<{ vendorSlug: string }>;
 }) => {
   let params = await paramsPromise;
-  let serverRes = await serverFetch(() => getServer([params.serverSlug]));
+  let serverRes = await serverFetch(() => getServer([params.vendorSlug]));
 
   if (!serverRes.success) {
     if (serverRes.error.status === 404) return notFound();
@@ -47,11 +47,11 @@ export default async ({
 };
 
 export async function generateMetadata(
-  { params: paramsPromise }: { params: Promise<{ serverSlug: string }> },
+  { params: paramsPromise }: { params: Promise<{ vendorSlug: string }> },
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   let params = await paramsPromise;
-  let serverRes = await serverFetch(() => getServer([params.serverSlug]));
+  let serverRes = await serverFetch(() => getServer([params.vendorSlug]));
 
   return {
     title: `${serverRes.data?.name ?? 'Not Found'} • Metorial Marketplace`,

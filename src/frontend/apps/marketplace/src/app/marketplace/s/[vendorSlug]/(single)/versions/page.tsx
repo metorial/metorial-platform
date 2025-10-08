@@ -1,24 +1,24 @@
 'use server';
 
 import { notFound } from 'next/navigation';
-import { serverFetch } from '../../../../../state/sdk';
-import { getServer, listServerVersions } from '../../../../../state/server';
-import { VersionsPageClient } from '../../[vendorSlug]/[serverSlug]/versions/client';
+import { serverFetch } from '../../../../../../state/sdk';
+import { getServer, listServerVersions } from '../../../../../../state/server';
+import { VersionsPageClient } from '../../[serverSlug]/versions/client';
 
 export default async ({
   params: paramsPromise,
   searchParams: searchParamsPromise
 }: {
-  params: Promise<{ serverSlug: string }>;
+  params: Promise<{ vendorSlug: string }>;
   searchParams: Promise<{ after?: string; before?: string }>;
 }) => {
   let params = await paramsPromise;
   let searchParams = await searchParamsPromise;
 
   let [serverRes, versionsRes] = await Promise.all([
-    serverFetch(() => getServer([params.serverSlug])),
+    serverFetch(() => getServer([params.vendorSlug])),
     serverFetch(() =>
-      listServerVersions([params.serverSlug], {
+      listServerVersions([params.vendorSlug], {
         limit: '50',
         after: searchParams.after,
         before: searchParams.before
