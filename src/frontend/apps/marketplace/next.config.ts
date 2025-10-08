@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     styledComponents: true
   },
   env: {
+    PRIVATE_API_URL: process.env.PRIVATE_API_URL ?? process.env.VITE_PRIVATE_API_URL,
     ADMIN_API_URL: process.env.ADMIN_API_URL ?? process.env.VITE_ADMIN_API_URL,
     AUTH_API_URL: process.env.AUTH_API_URL ?? process.env.VITE_AUTH_API_URL,
     LANDING_API_URL: process.env.LANDING_API_URL ?? process.env.VITE_LANDING_API_URL,
