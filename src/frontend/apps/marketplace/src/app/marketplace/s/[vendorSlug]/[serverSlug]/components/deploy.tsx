@@ -1,16 +1,23 @@
 import { CodeBlock } from '@metorial/code';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useBoot, useMagicMcpServers, useMagicMcpTokens } from '@metorial/state';
+import {
+  useBoot,
+  useDashboardFlagForManyOrgs,
+  useMagicMcpServers,
+  useMagicMcpTokens
+} from '@metorial/state';
 import { Button, InfoTooltip, Select, Spacer, theme, useCopy } from '@metorial/ui';
+import { motion } from 'motion/react';
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { ServerListing } from '../../../../../../state/server';
 import { ConnectionType, connectionTypes } from './connection';
 
-let Wrapper = styled.div`
+let Wrapper = styled(motion.div)`
   border: ${theme.colors.gray400} solid 1px;
   border-radius: 8px;
   margin-bottom: 35px;
+  overflow: hidden;
 `;
 
 let Header = styled.header`
@@ -46,18 +53,27 @@ let List = styled.ol`
 
 export let Deploy = ({ server }: { server: ServerListing }) => {
   let boot = useBoot();
+  let flags = useDashboardFlagForManyOrgs(
+    boot.data ? { organizationIds: boot.data.organizations.map(o => o.id) } : null
+  );
+
   let [selectedInstanceId, setSelectedInstanceId] = useState<string>();
 
   let orgsWithInstances = useMemo(
     () =>
-      boot.data?.organizations.map(o => {
-        let instances = boot.data!.instances.filter(i => i.organizationId == o.id);
-        return {
-          ...o,
-          instances
-        };
-      }),
-    [boot.data]
+      boot.data?.organizations
+        .filter(o => {
+          let f = flags.data?.find(f => f.organization.id == o.id);
+          return f?.flags['magic-mcp-enabled'];
+        })
+        .map(o => {
+          let instances = boot.data!.instances.filter(i => i.organizationId == o.id);
+          return {
+            ...o,
+            instances
+          };
+        }),
+    [boot.data, flags.data]
   );
 
   let instance = useMemo(
@@ -92,13 +108,17 @@ export let Deploy = ({ server }: { server: ServerListing }) => {
 
   let doDeploy = () => {
     let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/deploy?server_id=${server.serverId}&next_url=${encodeURIComponent(window.location.href)}`)}`;
-    location.replace(url);
+    location.href = url;
   };
 
-  if (!server.isHostable) return;
+  if (!server.isHostable || !orgsWithInstances?.length) return;
 
   return (
-    <Wrapper>
+    <Wrapper
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      transition={{ duration: 0.3 }}
+    >
       <Header>
         <h1>Connect to {server.name} on Metorial</h1>
         <InfoTooltip>Connect to this server via Metorial Magic MCP.</InfoTooltip>
@@ -128,7 +148,13 @@ export let Deploy = ({ server }: { server: ServerListing }) => {
             />
           </Content>
 
-          {renderWithLoader({ deployments, tokens })(({ deployments, tokens }) => {
+          {renderWithLoader(
+            { deployments, tokens },
+            {
+              spaceBottom: 20,
+              spaceTop: 20
+            }
+          )(({ deployments, tokens }) => {
             let deployment = deployments.data.items[0];
             if (!deployment) {
               return (

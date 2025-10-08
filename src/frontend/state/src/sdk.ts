@@ -22,9 +22,10 @@ let privateClients = new Map<string, PrivateClient>();
 
 let ensurePrivateClient = async (organizationId: string) => {
   let privateClient = privateClients.get(organizationId);
-  if (privateClient) return privateClient;
+  // if (privateClient) return privateClient;
 
   let config = await awaitConfig();
+  console.log(config);
 
   privateClient = createPrivateClient({
     address: `${config.privateApiUrl}/dashboard/organizations/${organizationId}/graphql`
