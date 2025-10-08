@@ -5,8 +5,7 @@
   "license": "AGPL",
   "main": "src/index.ts",
   "scripts": {
-    "build": "bunx -y @genql/cli@latest --schema ./schema.graphql --output ./generated",
-    "dev": "bun --watch ./src/server.ts"
+    "build": "bunx -y @genql/cli@latest --schema ./schema.graphql --output ./generated"
   },
   "dependencies": {
     "@apollo/server": "^5.0.0",

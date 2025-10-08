@@ -1,6 +1,7 @@
 import { setConfig } from '@metorial/frontend-config';
 
 let coreApiUrl = process.env.CORE_API_URL;
+let privateApiUrl = process.env.PRIVATE_API_URL;
 
 let authFrontendUrl = process.env.AUTH_FRONTEND_URL;
 let accountFrontendUrl = process.env.ACCOUNT_FRONTEND_URL;
@@ -13,7 +14,7 @@ if (!metorialEnvironment) throw new Error('METORIAL_ENV is not defined');
 
 setConfig({
   apiUrl: coreApiUrl,
-  privateApiUrl: coreApiUrl,
+  privateApiUrl: privateApiUrl || coreApiUrl,
   publicApiUrl: coreApiUrl,
 
   environment: metorialEnvironment as any,

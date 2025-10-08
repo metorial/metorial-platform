@@ -164,9 +164,11 @@ export let ProjectHomePage = () => {
                 >
                   <Button
                     size="2"
-                    onClick={() =>
-                      createInstance(instance.data?.project!, { type: 'production' })
-                    }
+                    onClick={async () => {
+                      // @ts-ignore
+                      await window.metorial_enterprise?.beforeCreateInstance?.();
+                      createInstance(instance.data?.project!, { type: 'production' });
+                    }}
                   >
                     Set up Production Instance
                   </Button>

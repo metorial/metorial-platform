@@ -8,6 +8,11 @@ export let destinations: Destination[] = [
     env: frontendEnv,
     path: 'src/frontend/apps/marketplace'
   },
+  {
+    type: 'oss',
+    env: frontendEnv,
+    path: 'src/frontend/apps/dashboard'
+  },
 
   {
     type: 'oss',
@@ -19,6 +24,11 @@ export let destinations: Destination[] = [
     type: 'oss',
     env: backendEnv,
     path: 'src/mcp-engine'
+  },
+  {
+    type: 'oss',
+    env: backendEnv,
+    path: 'src/backend/apps/api'
   },
 
   ...['code-bucket', 'listener', 'log', 'usage'].map(v => ({

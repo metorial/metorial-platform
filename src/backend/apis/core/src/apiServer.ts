@@ -1,4 +1,4 @@
-import { dashboardController, pulsarController } from './controllers';
+import { fullDashboardController } from './controllers';
 import { restServer } from './rest';
 
 export let apiServer = restServer.launch({
@@ -13,14 +13,14 @@ export let apiServer = restServer.launch({
         'mt_2025_01_01_pulsar',
         '2025-01-01-pulsar'
       ],
-      controller: pulsarController
+      controller: fullDashboardController
     },
 
     mt_2025_01_01_dashboard: {
       displayVersion: '2025-01-01-dashboard',
       apiVersion: 'mt_2025_01_01_dashboard',
       alternativeIdentifiers: ['mt_2025_01_01_dashboard', '2025-01-01-dashboard'],
-      controller: dashboardController
+      controller: fullDashboardController
     }
   },
   currentVersion: 'mt_2025_01_01_pulsar'

@@ -1,7 +1,35 @@
 import { setConfig } from '@metorial/frontend-config';
 
+let coreApiUrl = process.env.CORE_API_URL;
+let privateApiUrl = process.env.VITE_PRIVATE_API_URL ?? process.env.PRIVATE_API_URL;
+
+let authFrontendUrl = process.env.AUTH_FRONTEND_URL;
+let accountFrontendUrl = process.env.ACCOUNT_FRONTEND_URL;
+let teamFrontendUrl = process.env.TEAM_FRONTEND_URL;
+
+let metorialEnvironment = process.env.METORIAL_ENV;
+
+if (!coreApiUrl) throw new Error('CORE_API_URL is not defined');
+if (!metorialEnvironment) throw new Error('METORIAL_ENV is not defined');
+
 setConfig({
-  apiUrl: import.meta.env.VITE_API_URL,
-  privateApiUrl: import.meta.env.VITE_PRIVATE_API_URL,
-  environment: import.meta.env.VITE_METORIAL_ENV
+  apiUrl: coreApiUrl,
+  privateApiUrl: privateApiUrl || coreApiUrl,
+  publicApiUrl: coreApiUrl,
+
+  environment: metorialEnvironment as any,
+
+  enterprise: {
+    organizationFrontendUrl: teamFrontendUrl,
+    accountFrontendUrl: accountFrontendUrl
+  },
+
+  microFrontends: {},
+
+  auth: {
+    authFrontendUrl: authFrontendUrl,
+    loginPath: '/login',
+    logoutPath: '/logout',
+    signupPath: '/signup'
+  }
 });
