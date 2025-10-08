@@ -117,11 +117,15 @@ export let ServerEntry = ({ server }: { server: ServerListing }) => {
         <Figcaption>
           <FigAvatar
             src={
-              server.vendor?.imageUrl ?? `https://avatar-cdn.metorial.com/vendor_${server.id}`
+              server.vendor?.imageUrl ??
+              server.profile?.imageUrl ??
+              `https://avatar-cdn.metorial.com/vendor_${server.id}`
             }
-            alt={server.vendor?.name}
+            alt={server.vendor?.name ?? server.profile?.name}
           />
-          <span>{server.vendor?.name ?? server.slug.split('/').join(' / ')}</span>
+          <span>
+            {server.vendor?.name ?? server.profile?.name ?? server.slug.split('/').join(' / ')}
+          </span>
         </Figcaption>
       </ImageOuter>
 

@@ -4,10 +4,12 @@ import {
   ImportedServerVendor,
   Instance,
   InstanceServer,
+  Profile,
   Server,
   ServerListing,
   ServerListingCategory
 } from '@metorial/db';
+import { profilePresenter } from './profile';
 import { repositoryPresenter } from './repository';
 import { serverCategoryPresenter } from './serverCategory';
 import { vendorPresenter } from './vendor';
@@ -25,10 +27,12 @@ export let serverListingPresenter = async (
 
       instanceServers?: (InstanceServer & { instance: Instance })[];
     };
+    profile: Profile | null;
   }
 ) => {
   let vendor = serverListing.server.importedServer?.vendor;
   let repository = serverListing.server.importedServer?.repository;
+  let profile = serverListing.profile;
 
   return {
     object: 'marketplace*server_listing',
@@ -54,6 +58,7 @@ export let serverListingPresenter = async (
     subdirectory: serverListing.server.importedServer?.subdirectory,
 
     vendor: vendor ? await vendorPresenter(vendor) : null,
+    profile: profile ? await profilePresenter(profile) : null,
     repository: repository ? await repositoryPresenter(repository) : null,
 
     installation: serverListing.server.instanceServers?.length

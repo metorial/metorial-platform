@@ -63,6 +63,14 @@ let include = {
 
 class SessionImpl {
   private async ensureSessionActive(session: Session) {
+    if (session.isMagicMcpSession) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Magic MCP sessions cannot be edited'
+        })
+      );
+    }
+
     if (session.status !== 'active') {
       throw new ServiceError(
         forbiddenError({

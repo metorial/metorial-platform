@@ -51,6 +51,8 @@ export let MagicMcpServerOauthCallout = () => {
     magicMcpServer.data?.serverDeployments[0]?.id
   );
 
+  if (!deployment.data?.oauthConnection) return;
+
   return (
     <Box
       title="Default OAuth Connection"
