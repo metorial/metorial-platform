@@ -5,8 +5,6 @@ import { DeploymentError } from './error.ts';
 import { delay } from './delay.ts';
 import { createInProcessTransport } from './transport.ts';
 
-export let currentServer = new ProgrammablePromise<McpServer>();
-
 interface BootOptions {
   client: {
     name: string;
@@ -25,7 +23,7 @@ export let getClient = async (opts: BootOptions) => {
 
   let client = (async () => {
     let server = await Promise.race([
-      currentServer.promise,
+      globalThis.__metorial_getServer__(),
       delay(100).then(() => {
         throw new DeploymentError({
           code: 'server_start_timeout',
