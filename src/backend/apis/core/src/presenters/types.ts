@@ -38,6 +38,9 @@ import {
   ProviderOAuthConnectionTemplate,
   ProviderOAuthDiscoveryDocument,
   RemoteServerInstance,
+  ScmAccount,
+  ScmInstallation,
+  ScmRepo,
   Secret,
   SecretType,
   Server,
@@ -62,6 +65,7 @@ import {
   User
 } from '@metorial/db';
 import { ServerCapabilities } from '@metorial/module-catalog';
+import { ScmAccountPreview, ScmRepoPreview } from '@metorial/module-scm';
 import { PresentableType } from '@metorial/presenter';
 
 export let bootType = PresentableType.create<{
@@ -503,3 +507,25 @@ export let magicMcpSessionType = PresentableType.create<{
 export let magicMcpTokenType = PresentableType.create<{
   magicMcpToken: MagicMcpToken;
 }>()('magic_mcp.token');
+
+export let scmRepoPreviewType = PresentableType.create<{
+  scmRepoPreviews: ScmRepoPreview[];
+}>()('integrations.scm.repo#preview');
+
+export let scmAccountPreviewType = PresentableType.create<{
+  scmAccountPreviews: ScmAccountPreview[];
+}>()('integrations.scm.account#preview');
+
+export let scmRepoType = PresentableType.create<{
+  scmRepo: ScmRepo & {
+    account: ScmAccount;
+  };
+}>()('integrations.scm.repo');
+
+export let scmInstallType = PresentableType.create<{
+  authorizationUrl: string;
+}>()('integrations.scm.install');
+
+export let scmInstallationType = PresentableType.create<{
+  scmInstallation: ScmInstallation;
+}>()('integrations.scm.installation');

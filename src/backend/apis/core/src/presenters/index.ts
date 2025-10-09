@@ -37,6 +37,11 @@ import { v1ProviderOauthConnectionTemplatePresenter } from './implementation/pro
 import { v1ProviderOauthConnectionTemplateEvaluationPresenter } from './implementation/providerOauthConnectionTemplateEvaluation';
 import { v1ProviderOauthDiscoveryPresenter } from './implementation/providerOauthDiscovery';
 import { v1RemoteServerPresenter } from './implementation/remoteServer';
+import { v1ScmAccountPreviewPresenter } from './implementation/scmAccountPreview';
+import { v1ScmInstallPresenter } from './implementation/scmInstall';
+import { v1ScmInstallationPresenter } from './implementation/scmInstallation';
+import { v1ScmRepoPresenter } from './implementation/scmRepo';
+import { v1ScmRepoPreviewPresenter } from './implementation/scmRepoPreview';
 import { v1SecretPresenter } from './implementation/secret';
 import { v1ServerPresenter } from './implementation/server';
 import { v1ServerCapabilitiesPresenter } from './implementation/serverCapabilities';
@@ -98,6 +103,11 @@ import {
   providerOauthConnectionTemplateType,
   providerOauthConnectionType,
   remoteServerType,
+  scmAccountPreviewType,
+  scmInstallationType,
+  scmInstallType,
+  scmRepoPreviewType,
+  scmRepoType,
   secretType,
   serverCapabilitiesType,
   serverDeploymentConfigType,
@@ -396,4 +406,29 @@ export let magicMcpSessionPresenter = declarePresenter(magicMcpSessionType, {
 export let magicMcpTokenPresenter = declarePresenter(magicMcpTokenType, {
   mt_2025_01_01_pulsar: v1MagicMcpTokenPresenter,
   mt_2025_01_01_dashboard: v1MagicMcpTokenPresenter
+});
+
+export let scmInstallPresenter = declarePresenter(scmInstallType, {
+  mt_2025_01_01_pulsar: v1ScmInstallPresenter,
+  mt_2025_01_01_dashboard: v1ScmInstallPresenter
+});
+
+export let scmRepoPreviewPresenter = declarePresenter(scmRepoPreviewType, {
+  mt_2025_01_01_pulsar: v1ScmRepoPreviewPresenter,
+  mt_2025_01_01_dashboard: v1ScmRepoPreviewPresenter
+});
+
+export let scmAccountPreviewPresenter = declarePresenter(scmAccountPreviewType, {
+  mt_2025_01_01_pulsar: v1ScmAccountPreviewPresenter,
+  mt_2025_01_01_dashboard: v1ScmAccountPreviewPresenter
+});
+
+export let scmRepoPresenter = declarePresenter(scmRepoType, {
+  mt_2025_01_01_pulsar: v1ScmRepoPresenter,
+  mt_2025_01_01_dashboard: v1ScmRepoPresenter
+});
+
+export let scmInstallationPresenter = declarePresenter(scmInstallationType, {
+  mt_2025_01_01_pulsar: v1ScmInstallationPresenter,
+  mt_2025_01_01_dashboard: v1ScmInstallationPresenter
 });

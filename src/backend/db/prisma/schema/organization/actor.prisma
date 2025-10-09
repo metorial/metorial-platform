@@ -31,6 +31,8 @@ model OrganizationActor {
   customServerDeployments CustomServerDeployment[]
   profileUpdates          ProfileUpdate[]
   serverListingUpdates    ServerListingUpdate[]
+  scmInstallations        ScmInstallation[]
+  scmInstallationAttempts ScmInstallationAttempt[]
 
   @@unique([isSystem, organizationOid])
 }

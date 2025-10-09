@@ -3,18 +3,21 @@ import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCreateCustomServer,
+  useCreateScmInstallation,
   useCurrentInstance,
   useListServerVersions,
-  useManagedServerTemplates
+  useManagedServerTemplates,
+  useScmInstallations
 } from '@metorial/state';
-import { Button, Input, Spacer, theme, toast } from '@metorial/ui';
+import { Button, Input, Or, Spacer, theme, toast } from '@metorial/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { openWindow } from '../../../../lib/openWindows';
 import { Stepper } from '../stepper';
 import { defaultServerConfigManaged } from './config';
 
-let TemplateWrapper = styled.div`
+let PageWrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -65,6 +68,8 @@ export let CustomServerManagedCreateForm = (p: {
   let managedServerTemplates = useManagedServerTemplates({
     limit: 100
   });
+  let installations = useScmInstallations(instance.data?.organization.id);
+  let createInstallation = useCreateScmInstallation();
 
   let [currentStep, setCurrentStep] = useState(0);
 
@@ -172,7 +177,43 @@ export let CustomServerManagedCreateForm = (p: {
             render: () => {
               return renderWithLoader({ managedServerTemplates })(
                 ({ managedServerTemplates }) => (
-                  <TemplateWrapper>
+                  <PageWrapper>
+                    <Button
+                      onClick={async () => {
+                        let [res] = await createInstallation.mutate({
+                          organizationId: instance.data?.organization.id!,
+                          provider: 'github',
+                          redirectUrl: window.location.href
+                        });
+
+                        let toastShownRef = { current: false };
+
+                        if (res) {
+                          openWindow(res?.authorizationUrl!).onMessage(msg => {
+                            if (msg.data.type === 'scm_complete') {
+                              installations.refetch();
+
+                              if (!toastShownRef.current) {
+                                toast.success('GitHub connected successfully');
+                                toastShownRef.current = true;
+                              }
+                            }
+                          });
+                        }
+                      }}
+                      size="3"
+                      fullWidth
+                      type="button"
+                    >
+                      Connect GitHub
+                    </Button>
+
+                    <Spacer size={10} />
+
+                    <Or />
+
+                    <Spacer size={10} />
+
                     <Templates>
                       {managedServerTemplates.data.items.map(template => (
                         <TemplatesItem
@@ -204,7 +245,7 @@ export let CustomServerManagedCreateForm = (p: {
                         Continue without template
                       </Button>
                     </Actions>
-                  </TemplateWrapper>
+                  </PageWrapper>
                 )
               );
             }

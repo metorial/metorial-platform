@@ -122,6 +122,8 @@ export let backendEnv: Env = [
   { key: 'TEAM_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4303`, isEnterprise: true },
   { key: 'DASHBOARD_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300` },
   { key: 'PORTALS_URL', defaultValue: `http://${HOSTNAME}:4315` },
+  { key: 'INTEGRATIONS_API_URL', defaultValue: `http://${HOSTNAME}:4316` },
+
   { key: 'COOKIE_DOMAIN', defaultValue: `${HOSTNAME}`, isEnterprise: true },
 
   { key: 'EARLY_ACCESS_XATA_API_KEY', isEnterprise: true },
@@ -175,5 +177,8 @@ export let backendEnv: Env = [
   { key: 'SLACK_INVITE_BOT_TOKEN', isEnterprise: true, isRequired: false },
 
   { key: 'DENO_DEPLOY_TOKEN', isEnterprise: true },
-  { key: 'DENO_ORGANIZATION_ID', isEnterprise: true }
+  { key: 'DENO_ORGANIZATION_ID', isEnterprise: true },
+
+  { key: 'SCM_GITHUB_CLIENT_ID', isEnterprise: false },
+  { key: 'SCM_GITHUB_CLIENT_SECRET', isEnterprise: false }
 ];
