@@ -36,14 +36,20 @@ export type ManagementInstanceCustomServersVersionsGetOutput = {
       id: string;
       remoteUrl: string;
       remoteProtocol: 'sse' | 'streamable_http';
-      providerOauth: { config: Record<string, any>; scopes: string[] } | null;
+      providerOauth:
+        | { type: 'custom' }
+        | { type: 'json'; config: Record<string, any>; scopes: string[] }
+        | null;
       createdAt: Date;
       updatedAt: Date;
     } | null;
     managedServer: {
       object: 'custom_server.managed_server';
       id: string;
-      providerOauth: { config: Record<string, any>; scopes: string[] } | null;
+      providerOauth:
+        | { type: 'custom' }
+        | { type: 'json'; config: Record<string, any>; scopes: string[] }
+        | null;
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -137,13 +143,19 @@ export let mapManagementInstanceCustomServersVersionsGetOutput = mtMap.union([
               ),
               providerOauth: mtMap.objectField(
                 'provider_oauth',
-                mtMap.object({
-                  config: mtMap.objectField('config', mtMap.passthrough()),
-                  scopes: mtMap.objectField(
-                    'scopes',
-                    mtMap.array(mtMap.passthrough())
+                mtMap.union([
+                  mtMap.unionOption(
+                    'object',
+                    mtMap.object({
+                      type: mtMap.objectField('type', mtMap.passthrough()),
+                      config: mtMap.objectField('config', mtMap.passthrough()),
+                      scopes: mtMap.objectField(
+                        'scopes',
+                        mtMap.array(mtMap.passthrough())
+                      )
+                    })
                   )
-                })
+                ])
               ),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
@@ -156,13 +168,19 @@ export let mapManagementInstanceCustomServersVersionsGetOutput = mtMap.union([
               id: mtMap.objectField('id', mtMap.passthrough()),
               providerOauth: mtMap.objectField(
                 'provider_oauth',
-                mtMap.object({
-                  config: mtMap.objectField('config', mtMap.passthrough()),
-                  scopes: mtMap.objectField(
-                    'scopes',
-                    mtMap.array(mtMap.passthrough())
+                mtMap.union([
+                  mtMap.unionOption(
+                    'object',
+                    mtMap.object({
+                      type: mtMap.objectField('type', mtMap.passthrough()),
+                      config: mtMap.objectField('config', mtMap.passthrough()),
+                      scopes: mtMap.objectField(
+                        'scopes',
+                        mtMap.array(mtMap.passthrough())
+                      )
+                    })
                   )
-                })
+                ])
               ),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
