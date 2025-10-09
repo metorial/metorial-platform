@@ -88,7 +88,7 @@ class ProfileService {
     return await db.profile.update({
       where: { oid: d.profile.oid },
       data: {
-        name: d.profile.name,
+        name: d.input.name,
         description: d.input.description,
 
         isCustomized: true

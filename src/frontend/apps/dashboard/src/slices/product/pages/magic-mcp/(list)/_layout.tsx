@@ -22,7 +22,7 @@ export let MagicMcpListLayout = () => {
     <ContentLayout>
       <PageHeader
         title="Magic MCP"
-        description="MCP that feels like magic. Set up your Magic MCP server here and connect to it. That's it."
+        description="MCP servers on easy more. Just create your server and connect to it."
         actions={
           {
             servers: (

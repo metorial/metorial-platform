@@ -114,19 +114,37 @@ export let ServerEntry = ({ server }: { server: ServerListing }) => {
           backgroundRepeat: 'no-repeat'
         }}
       >
-        <Figcaption>
-          <FigAvatar
-            src={
-              server.vendor?.imageUrl ??
-              server.profile?.imageUrl ??
-              `https://avatar-cdn.metorial.com/vendor_${server.id}`
-            }
-            alt={server.vendor?.name ?? server.profile?.name}
-          />
-          <span>
-            {server.vendor?.name ?? server.profile?.name ?? server.slug.split('/').join(' / ')}
-          </span>
-        </Figcaption>
+        {server.isMetorial ? (
+          <Figcaption>
+            <FigAvatar
+              src={
+                server.imageUrl ??
+                server.vendor?.imageUrl ??
+                server.profile?.imageUrl ??
+                `https://avatar-cdn.metorial.com/vendor_${server.id}`
+              }
+              alt={server.vendor?.name ?? server.profile?.name ?? server.name}
+            />
+            <span>Official</span>
+          </Figcaption>
+        ) : (
+          <Figcaption>
+            <FigAvatar
+              src={
+                server.imageUrl ??
+                server.vendor?.imageUrl ??
+                server.profile?.imageUrl ??
+                `https://avatar-cdn.metorial.com/vendor_${server.id}`
+              }
+              alt={server.vendor?.name ?? server.profile?.name}
+            />
+            <span>
+              {server.vendor?.name ??
+                server.profile?.name ??
+                server.slug.split('/').join(' / ')}
+            </span>
+          </Figcaption>
+        )}
       </ImageOuter>
 
       <Content>

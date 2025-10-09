@@ -390,6 +390,11 @@ const App = () => {
 
   const callTool = async (name: string, params: Record<string, unknown>) => {
     try {
+      // Remove null params
+      for (let key in params) {
+        if (params[key] === null) delete params[key];
+      }
+
       const response = await sendMCPRequest(
         {
           method: 'tools/call' as const,
