@@ -2,7 +2,7 @@
   "name": "@metorial/axios-sse",
   "version": "1.0.29",
   "author": "Tobias Herber",
-  "license": "AGPL",
+  "license": "FSL-1.1",
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",

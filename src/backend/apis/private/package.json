@@ -2,7 +2,7 @@
   "name": "@metorial/api-private",
   "version": "1.0.0",
   "author": "Tobias Herber",
-  "license": "AGPL",
+  "license": "FSL-1.1",
   "main": "src/index.ts",
   "scripts": {
     "build": "bunx -y @genql/cli@latest --schema ./schema.graphql --output ./generated"
