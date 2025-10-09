@@ -47,10 +47,22 @@ class OauthConnectionServiceImpl {
       setup:
         | {
             mode: 'manual';
-            clientId: string;
-            clientSecret: string;
-            config: OAuthConfiguration;
-            scopes: string[];
+            implementation:
+              | {
+                  type: 'json';
+                  clientId: string;
+                  clientSecret: string;
+                  config: OAuthConfiguration;
+                  scopes: string[];
+                }
+              | {
+                  type: 'managed_server_http';
+                  hasRemoteOauthForm: boolean;
+                  httpEndpoint: string;
+                  clientId: string;
+                  clientSecret: string;
+                  lambdaServerInstanceOid: bigint;
+                };
           }
         | {
             mode: 'existing_auto_registration';
@@ -84,14 +96,28 @@ class OauthConnectionServiceImpl {
     let asyncAutoDiscovery = false;
 
     if (d.input.setup.mode === 'manual') {
-      clientId = d.input.setup.clientId;
-      clientSecret = d.input.setup.clientSecret;
+      clientId = d.input.setup.implementation.clientId;
+      clientSecret = d.input.setup.implementation.clientSecret;
 
-      config = await providerOauthConfigService.createConfig({
-        instance: d.instance,
-        config: d.input.setup.config,
-        scopes: d.input.setup.scopes
-      });
+      config =
+        d.input.setup.implementation.type == 'json'
+          ? await providerOauthConfigService.createConfig({
+              instance: d.instance,
+              implementation: {
+                type: 'json',
+                config: d.input.setup.implementation.config,
+                scopes: d.input.setup.implementation.scopes
+              }
+            })
+          : await providerOauthConfigService.createConfig({
+              instance: d.instance,
+              implementation: {
+                type: 'managed_server_http',
+                httpEndpoint: d.input.setup.implementation.httpEndpoint,
+                hasRemoteOauthForm: d.input.setup.implementation.hasRemoteOauthForm,
+                lambdaServerInstanceOid: d.input.setup.implementation.lambdaServerInstanceOid
+              }
+            });
     } else if (d.input.setup.mode === 'existing_auto_registration') {
       let autoReg = await db.providerOAuthAutoRegistration.findUnique({
         where: { id: d.input.setup.autoRegistrationId }
@@ -108,8 +134,11 @@ class OauthConnectionServiceImpl {
 
       config = await providerOauthConfigService.createConfig({
         instance: d.instance,
-        config: d.input.setup.config,
-        scopes: d.input.setup.scopes
+        implementation: {
+          type: 'json',
+          config: d.input.setup.config,
+          scopes: d.input.setup.scopes
+        }
       });
     } else if (d.input.setup.mode === 'async_auto_registration') {
       config = await db.providerOAuthConfig.findUniqueOrThrow({
@@ -150,10 +179,9 @@ class OauthConnectionServiceImpl {
       // This happens if the config is for a (public) custom server from a different
       // instance. This is totally fine, but we need to clone the config for this instance.
       if (config.instanceOid !== d.instance.oid) {
-        config = await providerOauthConfigService.createConfig({
+        config = await providerOauthConfigService.cloneConfig({
           instance: d.instance,
-          config: config.config,
-          scopes: config.scopes
+          config
         });
       }
 
@@ -266,8 +294,11 @@ class OauthConnectionServiceImpl {
     if (d.input.config || d.input.scopes) {
       let config = await providerOauthConfigService.createConfig({
         instance: d.instance,
-        config: d.input.config ?? d.connection.config.config,
-        scopes: d.input.scopes ?? d.connection.config.scopes
+        implementation: {
+          type: 'json',
+          config: d.input.config ?? d.connection.config.config,
+          scopes: d.input.scopes ?? d.connection.config.scopes
+        }
       });
 
       updateData.configOid = config.oid;

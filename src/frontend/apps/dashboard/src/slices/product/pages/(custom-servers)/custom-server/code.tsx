@@ -117,7 +117,7 @@ export let CustomServerCodePage = () => {
               }
             }}
           >
-            Deploy New Version
+            Publish New Version
           </Button>
         </Nav>
 

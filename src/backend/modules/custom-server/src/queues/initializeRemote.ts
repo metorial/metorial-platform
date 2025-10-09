@@ -145,8 +145,11 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
       if (autoDiscoveryRes) {
         let config = await providerOauthConfigService.createConfig({
           instance,
-          config: autoDiscoveryRes.config,
-          scopes: []
+          implementation: {
+            type: 'json',
+            config: autoDiscoveryRes.config,
+            scopes: autoDiscoveryRes.config.default_scopes ?? []
+          }
         });
 
         await db.remoteServerInstance.updateMany({

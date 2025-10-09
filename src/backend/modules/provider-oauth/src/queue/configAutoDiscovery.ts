@@ -18,16 +18,23 @@ export let configAutoDiscoveryQueueProcessor = configAutoDiscoveryQueue.process(
   });
   if (!config) throw new Error('retry ... not found');
 
-  let autoReg = await providerOauthDiscoveryService.autoRegisterForOauthConfig({
-    config: config.config as OAuthConfiguration,
-    clientName: 'Metorial Auto Discovery'
-  });
-
-  if (autoReg) {
-    await db.providerOAuthConfig.update({
-      where: { id: config.id },
-      data: { discoverStatus: 'supports_auto_registration' }
+  if (config.type == 'json') {
+    let autoReg = await providerOauthDiscoveryService.autoRegisterForOauthConfig({
+      config: config.config as OAuthConfiguration,
+      clientName: 'Metorial Auto Discovery'
     });
+
+    if (autoReg) {
+      await db.providerOAuthConfig.update({
+        where: { id: config.id },
+        data: { discoverStatus: 'supports_auto_registration' }
+      });
+    } else {
+      await db.providerOAuthConfig.update({
+        where: { id: config.id },
+        data: { discoverStatus: 'manual' }
+      });
+    }
   } else {
     await db.providerOAuthConfig.update({
       where: { id: config.id },

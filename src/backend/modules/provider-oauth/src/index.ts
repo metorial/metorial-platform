@@ -9,6 +9,8 @@ import './templates';
 
 export * from './services';
 
+export type { AuthForm } from './lib/formSchema';
+
 export let providerOauthQueueProcessor = combineQueueProcessors([
   oauthCleanupCron,
   autoUpdateQueueProcessor,
