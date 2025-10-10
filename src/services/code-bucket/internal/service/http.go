@@ -18,7 +18,8 @@ type HttpService struct {
 }
 
 type Claims struct {
-	BucketID string `json:"bucket_id"`
+	BucketID   string `json:"bucket_id"`
+	IsReadOnly bool   `json:"is_read_only"`
 	jwt.RegisteredClaims
 }
 

@@ -76,6 +76,7 @@ export interface CreateBucketResponse {
 export interface GetBucketTokenRequest {
   bucketId: string;
   expiresInSeconds: Long;
+  isReadOnly: boolean;
 }
 
 export interface GetBucketTokenResponse {
@@ -932,7 +933,7 @@ export const CreateBucketResponse: MessageFns<CreateBucketResponse> = {
 };
 
 function createBaseGetBucketTokenRequest(): GetBucketTokenRequest {
-  return { bucketId: "", expiresInSeconds: Long.ZERO };
+  return { bucketId: "", expiresInSeconds: Long.ZERO, isReadOnly: false };
 }
 
 export const GetBucketTokenRequest: MessageFns<GetBucketTokenRequest> = {
@@ -942,6 +943,9 @@ export const GetBucketTokenRequest: MessageFns<GetBucketTokenRequest> = {
     }
     if (!message.expiresInSeconds.equals(Long.ZERO)) {
       writer.uint32(16).int64(message.expiresInSeconds.toString());
+    }
+    if (message.isReadOnly !== false) {
+      writer.uint32(24).bool(message.isReadOnly);
     }
     return writer;
   },
@@ -969,6 +973,14 @@ export const GetBucketTokenRequest: MessageFns<GetBucketTokenRequest> = {
           message.expiresInSeconds = Long.fromString(reader.int64().toString());
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.isReadOnly = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -982,6 +994,7 @@ export const GetBucketTokenRequest: MessageFns<GetBucketTokenRequest> = {
     return {
       bucketId: isSet(object.bucketId) ? globalThis.String(object.bucketId) : "",
       expiresInSeconds: isSet(object.expiresInSeconds) ? Long.fromValue(object.expiresInSeconds) : Long.ZERO,
+      isReadOnly: isSet(object.isReadOnly) ? globalThis.Boolean(object.isReadOnly) : false,
     };
   },
 
@@ -992,6 +1005,9 @@ export const GetBucketTokenRequest: MessageFns<GetBucketTokenRequest> = {
     }
     if (!message.expiresInSeconds.equals(Long.ZERO)) {
       obj.expiresInSeconds = (message.expiresInSeconds || Long.ZERO).toString();
+    }
+    if (message.isReadOnly !== false) {
+      obj.isReadOnly = message.isReadOnly;
     }
     return obj;
   },
@@ -1005,6 +1021,7 @@ export const GetBucketTokenRequest: MessageFns<GetBucketTokenRequest> = {
     message.expiresInSeconds = (object.expiresInSeconds !== undefined && object.expiresInSeconds !== null)
       ? Long.fromValue(object.expiresInSeconds)
       : Long.ZERO;
+    message.isReadOnly = object.isReadOnly ?? false;
     return message;
   },
 };

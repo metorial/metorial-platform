@@ -87,7 +87,8 @@ func (rs *RcpService) GetBucketToken(ctx context.Context, req *rpc.GetBucketToke
 	}
 
 	claims := &Claims{
-		BucketID: req.BucketId,
+		BucketID:   req.BucketId,
+		IsReadOnly: req.IsReadOnly,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiresIn) * time.Second)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

@@ -489,6 +489,7 @@ type GetBucketTokenRequest struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	BucketId         string                 `protobuf:"bytes,1,opt,name=bucket_id,json=bucketId,proto3" json:"bucket_id,omitempty"`
 	ExpiresInSeconds int64                  `protobuf:"varint,2,opt,name=expires_in_seconds,json=expiresInSeconds,proto3" json:"expires_in_seconds,omitempty"`
+	IsReadOnly       bool                   `protobuf:"varint,3,opt,name=is_read_only,json=isReadOnly,proto3" json:"is_read_only,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -535,6 +536,13 @@ func (x *GetBucketTokenRequest) GetExpiresInSeconds() int64 {
 		return x.ExpiresInSeconds
 	}
 	return 0
+}
+
+func (x *GetBucketTokenRequest) GetIsReadOnly() bool {
+	if x != nil {
+		return x.IsReadOnly
+	}
+	return false
 }
 
 type GetBucketTokenResponse struct {
@@ -1071,10 +1079,12 @@ const file_rpc_proto_rawDesc = "" +
 	"\x04path\x18\x04 \x01(\tR\x04path\x12\x10\n" +
 	"\x03ref\x18\x05 \x01(\tR\x03ref\x12\x14\n" +
 	"\x05token\x18\x06 \x01(\tR\x05token\"\x16\n" +
-	"\x14CreateBucketResponse\"b\n" +
+	"\x14CreateBucketResponse\"\x84\x01\n" +
 	"\x15GetBucketTokenRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12,\n" +
-	"\x12expires_in_seconds\x18\x02 \x01(\x03R\x10expiresInSeconds\".\n" +
+	"\x12expires_in_seconds\x18\x02 \x01(\x03R\x10expiresInSeconds\x12 \n" +
+	"\fis_read_only\x18\x03 \x01(\bR\n" +
+	"isReadOnly\".\n" +
 	"\x16GetBucketTokenResponse\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"G\n" +
 	"\x14GetBucketFileRequest\x12\x1b\n" +

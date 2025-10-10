@@ -67,6 +67,7 @@ message CreateBucketResponse {}
 message GetBucketTokenRequest {
   string bucket_id = 1;
   int64 expires_in_seconds = 2;
+  bool is_read_only = 3;
 }
 
 message GetBucketTokenResponse {

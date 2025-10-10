@@ -340,7 +340,8 @@ class CustomServerVersionServiceImpl {
             });
 
             let immutableCodeBucket = await codeBucketService.cloneCodeBucket({
-              codeBucket: draftCodeBucket
+              codeBucket: draftCodeBucket,
+              isReadOnly: true
             });
 
             let lambdaServerInstance = await db.lambdaServerInstance.create({

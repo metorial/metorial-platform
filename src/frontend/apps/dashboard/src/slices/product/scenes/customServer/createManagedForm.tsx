@@ -584,7 +584,7 @@ export let CustomServerManagedCreateForm = (p: {
                   <Input label="Description" {...form.getFieldProps('description')} />
                   <form.RenderError field="description" />
 
-                  {selectedRepoId && (
+                  {selectedRepoId && !templateId && (
                     <>
                       <Spacer size={15} />
 

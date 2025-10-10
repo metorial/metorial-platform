@@ -13,6 +13,7 @@ import { Service } from '@metorial/service';
 import Long from 'long';
 import { codeWorkspaceClient } from '../lib/codeWorkspace';
 import { normalizePath } from '../lib/normalizePath';
+import { cloneBucketQueue } from '../queue/cloneBucket';
 import { exportGithubQueue } from '../queue/exportGithub';
 import { importGithubQueue } from '../queue/importGithub';
 
@@ -21,12 +22,17 @@ let include = {
 };
 
 class codeBucketServiceImpl {
-  async createCodeBucket(d: { instance: Instance; purpose: CodeBucketPurpose }) {
+  async createCodeBucket(d: {
+    instance: Instance;
+    purpose: CodeBucketPurpose;
+    isReadOnly?: boolean;
+  }) {
     let codeBucket = await db.codeBucket.create({
       data: {
         id: await ID.generateId('codeBucket'),
         instanceOid: d.instance.oid,
-        purpose: d.purpose
+        purpose: d.purpose,
+        isReadOnly: d.isReadOnly
       },
       include
     });
@@ -40,6 +46,7 @@ class codeBucketServiceImpl {
     repo: ScmRepo;
     path?: string;
     ref?: string;
+    isReadOnly?: boolean;
   }) {
     if (d.repo.provider != 'github') {
       throw new ServiceError(
@@ -56,7 +63,8 @@ class codeBucketServiceImpl {
         purpose: d.purpose,
         repositoryOid: d.repo.oid,
         path: normalizePath(d.path ?? '/'),
-        status: 'importing'
+        status: 'importing',
+        isReadOnly: d.isReadOnly
       },
       include
     });
@@ -77,13 +85,15 @@ class codeBucketServiceImpl {
     instance: Instance;
     purpose: CodeBucketPurpose;
     template: CodeBucketTemplate;
+    isReadOnly?: boolean;
   }) {
     let codeBucket = await db.codeBucket.create({
       data: {
         id: await ID.generateId('codeBucket'),
         instanceOid: d.instance.oid,
         purpose: d.purpose,
-        templateOid: d.template.oid
+        templateOid: d.template.oid,
+        isReadOnly: d.isReadOnly
       },
       include
     });
@@ -111,22 +121,21 @@ class codeBucketServiceImpl {
     }
   }
 
-  async cloneCodeBucket(d: { codeBucket: CodeBucket }) {
-    await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
-
+  async cloneCodeBucket(d: { codeBucket: CodeBucket; isReadOnly?: boolean }) {
     let codeBucket = await db.codeBucket.create({
       data: {
         id: await ID.generateId('codeBucket'),
         instanceOid: d.codeBucket.instanceOid,
         purpose: d.codeBucket.purpose,
-        parentOid: d.codeBucket.oid
+        parentOid: d.codeBucket.oid,
+        isReadOnly: d.isReadOnly,
+        status: 'importing'
       },
       include
     });
 
-    await codeWorkspaceClient.cloneBucket({
-      sourceBucketId: d.codeBucket.id,
-      newBucketId: codeBucket.id
+    await cloneBucketQueue.add({
+      bucketId: codeBucket.id
     });
 
     return codeBucket;
@@ -169,6 +178,7 @@ class codeBucketServiceImpl {
 
     let res = await codeWorkspaceClient.getBucketToken({
       bucketId: d.codeBucket.id,
+      isReadOnly: d.codeBucket.isReadOnly,
       expiresInSeconds: Long.fromNumber(expiresInSeconds)
     });
 
