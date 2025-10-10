@@ -118,7 +118,12 @@ export type CustomServersCreateBody = {
       }
     | {
         type: 'managed';
-        managedServer?: { templateId?: string | undefined } | undefined;
+        managedServer?:
+          | {
+              templateId?: string | undefined;
+              repository?: { repositoryId: string; path: string } | undefined;
+            }
+          | undefined;
         config?:
           | { schema?: any | undefined; getLaunchParams?: string | undefined }
           | undefined;
@@ -159,7 +164,17 @@ export let mapCustomServersCreateBody = mtMap.object<CustomServersCreateBody>({
           managedServer: mtMap.objectField(
             'managed_server',
             mtMap.object({
-              templateId: mtMap.objectField('template_id', mtMap.passthrough())
+              templateId: mtMap.objectField('template_id', mtMap.passthrough()),
+              repository: mtMap.objectField(
+                'repository',
+                mtMap.object({
+                  repositoryId: mtMap.objectField(
+                    'repository_id',
+                    mtMap.passthrough()
+                  ),
+                  path: mtMap.objectField('path', mtMap.passthrough())
+                })
+              )
             })
           )
         })

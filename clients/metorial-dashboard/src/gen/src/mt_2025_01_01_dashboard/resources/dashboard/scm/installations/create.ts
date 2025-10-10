@@ -19,6 +19,6 @@ export type DashboardScmInstallationsCreateBody = {
 export let mapDashboardScmInstallationsCreateBody =
   mtMap.object<DashboardScmInstallationsCreateBody>({
     provider: mtMap.objectField('provider', mtMap.passthrough()),
-    redirectUrl: mtMap.objectField('redirectUrl', mtMap.passthrough())
+    redirectUrl: mtMap.objectField('redirect_url', mtMap.passthrough())
   });
 

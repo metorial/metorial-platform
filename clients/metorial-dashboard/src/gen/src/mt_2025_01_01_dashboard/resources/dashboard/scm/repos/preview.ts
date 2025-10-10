@@ -7,6 +7,9 @@ export type DashboardScmReposPreviewOutput = {
     name: string;
     identifier: string;
     externalId: string;
+    createdAt: Date;
+    updatedAt: Date;
+    lastPushedAt: Date | null;
     account: {
       externalId: string;
       name: string;
@@ -27,6 +30,9 @@ export let mapDashboardScmReposPreviewOutput =
           name: mtMap.objectField('name', mtMap.passthrough()),
           identifier: mtMap.objectField('identifier', mtMap.passthrough()),
           externalId: mtMap.objectField('externalId', mtMap.passthrough()),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+          lastPushedAt: mtMap.objectField('lastPushedAt', mtMap.date()),
           account: mtMap.objectField(
             'account',
             mtMap.object({
@@ -43,12 +49,15 @@ export let mapDashboardScmReposPreviewOutput =
 
 export type DashboardScmReposPreviewQuery = {
   installationId: string;
-  search: string;
+  externalAccountId: string;
 };
 
 export let mapDashboardScmReposPreviewQuery =
   mtMap.object<DashboardScmReposPreviewQuery>({
-    installationId: mtMap.objectField('installationId', mtMap.passthrough()),
-    search: mtMap.objectField('search', mtMap.passthrough())
+    installationId: mtMap.objectField('installation_id', mtMap.passthrough()),
+    externalAccountId: mtMap.objectField(
+      'external_account_id',
+      mtMap.passthrough()
+    )
   });
 

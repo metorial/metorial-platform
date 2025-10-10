@@ -118,7 +118,12 @@ export type ManagementInstanceCustomServersCreateBody = {
       }
     | {
         type: 'managed';
-        managedServer?: { templateId?: string | undefined } | undefined;
+        managedServer?:
+          | {
+              templateId?: string | undefined;
+              repository?: { repositoryId: string; path: string } | undefined;
+            }
+          | undefined;
         config?:
           | { schema?: any | undefined; getLaunchParams?: string | undefined }
           | undefined;
@@ -163,6 +168,16 @@ export let mapManagementInstanceCustomServersCreateBody =
                 templateId: mtMap.objectField(
                   'template_id',
                   mtMap.passthrough()
+                ),
+                repository: mtMap.objectField(
+                  'repository',
+                  mtMap.object({
+                    repositoryId: mtMap.objectField(
+                      'repository_id',
+                      mtMap.passthrough()
+                    ),
+                    path: mtMap.objectField('path', mtMap.passthrough())
+                  })
                 )
               })
             )

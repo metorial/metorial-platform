@@ -26,14 +26,10 @@ export let mapDashboardScmAccountsPreviewOutput =
     )
   });
 
-export type DashboardScmAccountsPreviewQuery = {
-  installationId: string;
-  search: string;
-};
+export type DashboardScmAccountsPreviewQuery = { installationId: string };
 
 export let mapDashboardScmAccountsPreviewQuery =
   mtMap.object<DashboardScmAccountsPreviewQuery>({
-    installationId: mtMap.objectField('installationId', mtMap.passthrough()),
-    search: mtMap.objectField('search', mtMap.passthrough())
+    installationId: mtMap.objectField('installation_id', mtMap.passthrough())
   });
 

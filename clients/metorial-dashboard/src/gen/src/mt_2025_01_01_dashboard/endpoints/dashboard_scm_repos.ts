@@ -4,8 +4,12 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
+  mapDashboardScmReposCreateBody,
+  mapDashboardScmReposCreateOutput,
   mapDashboardScmReposPreviewOutput,
   mapDashboardScmReposPreviewQuery,
+  type DashboardScmReposCreateBody,
+  type DashboardScmReposCreateOutput,
   type DashboardScmReposPreviewOutput,
   type DashboardScmReposPreviewQuery
 } from '../resources';
@@ -35,6 +39,34 @@ export class MetorialDashboardScmReposEndpoint {
   }
   private _delete(request: any) {
     return this._manager._delete(request);
+  }
+
+  /**
+   * @name Link SCM Repository
+   * @description Link an SCM repository to the organization
+   *
+   * @param `organizationId` - string
+   * @param `body` - DashboardScmReposCreateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardScmReposCreateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  create(
+    organizationId: string,
+    body: DashboardScmReposCreateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardScmReposCreateOutput> {
+    let path = `dashboard/organizations/${organizationId}/scm/repos`;
+
+    let request = {
+      path,
+      body: mapDashboardScmReposCreateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(mapDashboardScmReposCreateOutput);
   }
 
   /**
