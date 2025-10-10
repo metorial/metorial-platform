@@ -69,8 +69,13 @@ Deno.serve(async (req) => {
     if (!oauthResult) return json({ error: 'OAuth not configured' }, 400);
 
     try {
-      let authorizationUrl = await oauthResult.getAuthorizationUrl(body.input || {});
-      return json({ success: true, authorizationUrl });
+      let authUrlResRaw = await oauthResult.getAuthorizationUrl(body.input || {});
+
+      let authUrlRes = typeof authUrlResRaw == 'string' ? {
+        authorizationUrl: authUrlResRaw
+      } : authUrlResRaw;
+
+      return json({ ...authUrlRes, success: true });
     } catch (error: any) {
       return json({ error: error?.message || 'Failed to get authorization URL' }, 400);
     }

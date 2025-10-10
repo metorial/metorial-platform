@@ -25,7 +25,10 @@ export let setOauthHandler = (c: {
     clientSecret: string;
     state: string;
     redirectUri: string;
-  }) => Promise<string>;
+  }) => Promise<string | {
+    authorizationUrl: string;
+    supportsPKCE?: boolean; 
+  }>;
   handleCallback: (d: {
     fields: Record<string, string>;
     clientId: string;

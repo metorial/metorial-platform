@@ -155,12 +155,11 @@ export let getSessionConfig = async (
           secret: oauthToken.accessToken
         }
       : undefined,
+    fields: oauthToken?.fields,
     ...(oauthToken?.additionalAuthData as any),
     ...DANGEROUSLY_UNENCRYPTED_CONFIG,
     __metorial_oauth__: oauthToken ? { accessToken: oauthToken.accessToken } : undefined
   };
-
-  console.log(DANGEROUSLY_serverConfigWithSecrets);
 
   let launcher = {
     launcherType: LauncherConfig_LauncherType.deno,

@@ -165,8 +165,6 @@ export let createDenoLambdaDeployment = async (config: {
     },
 
     discoverServer: async () => {
-      console.log('Discovering server at', serverUrl.current);
-
       let discoverUrl = new URL('/discover', serverUrl.current).toString();
       let discoverRes = await axios.get<any>(discoverUrl, {
         headers: {
@@ -175,21 +173,12 @@ export let createDenoLambdaDeployment = async (config: {
         timeout: 5000
       });
 
-      console.log({
-        discover: discoverRes.data
-      });
-
       let oauthUrl = new URL('/oauth', serverUrl.current).toString();
       let oauthRes = await axios.get<{ enabled: boolean; hasForm: boolean }>(oauthUrl, {
         headers: {
           'metorial-stellar-token': lambdaServerInstance.securityToken
         },
         timeout: 5000
-      });
-
-      console.log({
-        discover: discoverRes.data,
-        oauth: oauthRes.data
       });
 
       return {

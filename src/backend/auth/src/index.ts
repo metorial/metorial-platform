@@ -69,8 +69,6 @@ export let authenticate = async (req: Request, url: URL) => {
         }
   );
 
-  console.log('Authenticated request', auth);
-
   await updateExecutionContext({
     apiKeyId: auth.type == 'machine' ? auth.apiKey.id : undefined,
     userId: auth.type == 'user' ? auth.user.id : undefined,

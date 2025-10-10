@@ -169,6 +169,8 @@ class OauthAuthorizationServiceImpl {
           status: 'pending',
           redirectUri: d.redirectUri,
 
+          // codeVerifier: supportsPKCE ? OAuthUtils.generateCodeVerifier() : undefined,
+
           connectionOid: d.connection.oid
         }
       });
@@ -205,6 +207,17 @@ class OauthAuthorizationServiceImpl {
             message: 'Remote server did not return an authorization URL'
           })
         );
+      }
+
+      console.log(authUrlRes.data);
+
+      if (typeof authUrlRes.data.codeVerifier == 'string') {
+        await db.providerOAuthConnectionAuthAttempt.updateMany({
+          where: { oid: authAttempt.oid },
+          data: {
+            codeVerifier: authUrlRes.data.codeVerifier
+          }
+        });
       }
 
       return {
@@ -450,7 +463,8 @@ class OauthAuthorizationServiceImpl {
             clientId: connection.clientId!,
             clientSecret: connection.clientSecret,
             redirectUri: callbackUrl,
-            fullUrl: d.fullUrl
+            fullUrl: d.fullUrl,
+            codeVerifier: attempt.codeVerifier
           }
         },
         {
@@ -542,6 +556,7 @@ class OauthAuthorizationServiceImpl {
         scope: tokenResponse.scope || null,
 
         additionalAuthData,
+        additionalValuesFromAuthAttempt: attempt.additionalValues,
 
         connectionOid: connection.oid,
         connectionProfileOid: profile?.oid
@@ -722,9 +737,11 @@ class OauthAuthorizationServiceImpl {
             `${connection.config.httpEndpoint}/oauth/refresh`,
             {
               input: {
+                redirectUri: callbackUrl,
                 refreshToken: token.refreshToken,
                 clientId: connection.clientId!,
-                clientSecret: connection.clientSecret
+                clientSecret: connection.clientSecret,
+                fields: token.additionalValuesFromAuthAttempt ?? {}
               }
             },
             {
@@ -855,6 +872,7 @@ class OauthAuthorizationServiceImpl {
       idToken: token.idToken,
       scope: token.scope,
       additionalAuthData: token.additionalAuthData,
+      fields: token.additionalValuesFromAuthAttempt,
       connection
     };
   }

@@ -95,7 +95,8 @@ model ProviderOAuthConnectionAuthToken {
   tokenType String?
   idToken   String?
 
-  additionalAuthData Json?
+  additionalValuesFromAuthAttempt Json?
+  additionalAuthData              Json?
 
   expiresAt DateTime?
 
