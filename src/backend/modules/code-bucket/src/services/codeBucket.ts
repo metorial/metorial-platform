@@ -4,11 +4,21 @@ import {
   CodeBucketTemplate,
   db,
   ID,
-  Instance
+  Instance,
+  ScmRepo
 } from '@metorial/db';
+import { delay } from '@metorial/delay';
+import { badRequestError, ServiceError } from '@metorial/error';
 import { Service } from '@metorial/service';
 import Long from 'long';
 import { codeWorkspaceClient } from '../lib/codeWorkspace';
+import { normalizePath } from '../lib/normalizePath';
+import { exportGithubQueue } from '../queue/exportGithub';
+import { importGithubQueue } from '../queue/importGithub';
+
+let include = {
+  repository: true
+};
 
 class codeBucketServiceImpl {
   async createCodeBucket(d: { instance: Instance; purpose: CodeBucketPurpose }) {
@@ -17,7 +27,47 @@ class codeBucketServiceImpl {
         id: await ID.generateId('codeBucket'),
         instanceOid: d.instance.oid,
         purpose: d.purpose
-      }
+      },
+      include
+    });
+
+    return codeBucket;
+  }
+
+  async createCodeBucketFromRepo(d: {
+    instance: Instance;
+    purpose: CodeBucketPurpose;
+    repo: ScmRepo;
+    path?: string;
+    ref?: string;
+  }) {
+    if (d.repo.provider != 'github') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Only GitHub repositories are supported'
+        })
+      );
+    }
+
+    let codeBucket = await db.codeBucket.create({
+      data: {
+        id: await ID.generateId('codeBucket'),
+        instanceOid: d.instance.oid,
+        purpose: d.purpose,
+        repositoryOid: d.repo.oid,
+        path: normalizePath(d.path ?? '/'),
+        status: 'importing'
+      },
+      include
+    });
+
+    await importGithubQueue.add({
+      newBucketId: codeBucket.id,
+      owner: d.repo.externalOwner,
+      path: d.path ?? '/',
+      repo: d.repo.externalName,
+      ref: d.ref ?? d.repo.defaultBranch ?? 'main',
+      repoId: d.repo.id
     });
 
     return codeBucket;
@@ -34,7 +84,8 @@ class codeBucketServiceImpl {
         instanceOid: d.instance.oid,
         purpose: d.purpose,
         templateOid: d.template.oid
-      }
+      },
+      include
     });
 
     await codeWorkspaceClient.createBucketFromContents({
@@ -48,14 +99,29 @@ class codeBucketServiceImpl {
     return codeBucket;
   }
 
+  async waitForCodeBucketReady(d: { codeBucketId: string }) {
+    let currentBucket = await db.codeBucket.findFirstOrThrow({
+      where: { id: d.codeBucketId }
+    });
+    while (currentBucket.status === 'importing') {
+      await delay(1000);
+      currentBucket = await db.codeBucket.findFirstOrThrow({
+        where: { id: d.codeBucketId }
+      });
+    }
+  }
+
   async cloneCodeBucket(d: { codeBucket: CodeBucket }) {
+    await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
+
     let codeBucket = await db.codeBucket.create({
       data: {
         id: await ID.generateId('codeBucket'),
         instanceOid: d.codeBucket.instanceOid,
         purpose: d.codeBucket.purpose,
         parentOid: d.codeBucket.oid
-      }
+      },
+      include
     });
 
     await codeWorkspaceClient.cloneBucket({
@@ -66,7 +132,25 @@ class codeBucketServiceImpl {
     return codeBucket;
   }
 
+  async exportCodeBucketToGithub(d: { codeBucket: CodeBucket; repo: ScmRepo; path: string }) {
+    if (d.repo.provider != 'github') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Only GitHub repositories are supported'
+        })
+      );
+    }
+
+    await exportGithubQueue.add({
+      bucketId: d.codeBucket.id,
+      repoId: d.repo.id,
+      path: d.path
+    });
+  }
+
   async getCodeBucketFilesWithContent(d: { codeBucket: CodeBucket; prefix?: string }) {
+    await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
+
     let res = await codeWorkspaceClient.getBucketFilesWithContent({
       bucketId: d.codeBucket.id,
       prefix: d.prefix ?? ''
@@ -79,6 +163,8 @@ class codeBucketServiceImpl {
   }
 
   async getEditorToken(d: { codeBucket: CodeBucket }) {
+    await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
+
     let expiresInSeconds = 60 * 60 * 24 * 7;
 
     let res = await codeWorkspaceClient.getBucketToken({

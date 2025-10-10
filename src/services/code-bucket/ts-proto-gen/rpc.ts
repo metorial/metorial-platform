@@ -116,6 +116,17 @@ export interface GetBucketFilesAsZipResponse {
   expiresAt: Long;
 }
 
+export interface ExportBucketToGithubRequest {
+  bucketId: string;
+  owner: string;
+  repo: string;
+  path: string;
+  token: string;
+}
+
+export interface ExportBucketToGithubResponse {
+}
+
 function createBaseFileInfo(): FileInfo {
   return { path: "", size: Long.ZERO, contentType: "", modifiedAt: Long.ZERO };
 }
@@ -1540,6 +1551,173 @@ export const GetBucketFilesAsZipResponse: MessageFns<GetBucketFilesAsZipResponse
   },
 };
 
+function createBaseExportBucketToGithubRequest(): ExportBucketToGithubRequest {
+  return { bucketId: "", owner: "", repo: "", path: "", token: "" };
+}
+
+export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest> = {
+  encode(message: ExportBucketToGithubRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.bucketId !== "") {
+      writer.uint32(10).string(message.bucketId);
+    }
+    if (message.owner !== "") {
+      writer.uint32(18).string(message.owner);
+    }
+    if (message.repo !== "") {
+      writer.uint32(26).string(message.repo);
+    }
+    if (message.path !== "") {
+      writer.uint32(34).string(message.path);
+    }
+    if (message.token !== "") {
+      writer.uint32(42).string(message.token);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ExportBucketToGithubRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseExportBucketToGithubRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.bucketId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.owner = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.repo = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.path = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.token = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ExportBucketToGithubRequest {
+    return {
+      bucketId: isSet(object.bucketId) ? globalThis.String(object.bucketId) : "",
+      owner: isSet(object.owner) ? globalThis.String(object.owner) : "",
+      repo: isSet(object.repo) ? globalThis.String(object.repo) : "",
+      path: isSet(object.path) ? globalThis.String(object.path) : "",
+      token: isSet(object.token) ? globalThis.String(object.token) : "",
+    };
+  },
+
+  toJSON(message: ExportBucketToGithubRequest): unknown {
+    const obj: any = {};
+    if (message.bucketId !== "") {
+      obj.bucketId = message.bucketId;
+    }
+    if (message.owner !== "") {
+      obj.owner = message.owner;
+    }
+    if (message.repo !== "") {
+      obj.repo = message.repo;
+    }
+    if (message.path !== "") {
+      obj.path = message.path;
+    }
+    if (message.token !== "") {
+      obj.token = message.token;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<ExportBucketToGithubRequest>): ExportBucketToGithubRequest {
+    return ExportBucketToGithubRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ExportBucketToGithubRequest>): ExportBucketToGithubRequest {
+    const message = createBaseExportBucketToGithubRequest();
+    message.bucketId = object.bucketId ?? "";
+    message.owner = object.owner ?? "";
+    message.repo = object.repo ?? "";
+    message.path = object.path ?? "";
+    message.token = object.token ?? "";
+    return message;
+  },
+};
+
+function createBaseExportBucketToGithubResponse(): ExportBucketToGithubResponse {
+  return {};
+}
+
+export const ExportBucketToGithubResponse: MessageFns<ExportBucketToGithubResponse> = {
+  encode(_: ExportBucketToGithubResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ExportBucketToGithubResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseExportBucketToGithubResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): ExportBucketToGithubResponse {
+    return {};
+  },
+
+  toJSON(_: ExportBucketToGithubResponse): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create(base?: DeepPartial<ExportBucketToGithubResponse>): ExportBucketToGithubResponse {
+    return ExportBucketToGithubResponse.fromPartial(base ?? {});
+  },
+  fromPartial(_: DeepPartial<ExportBucketToGithubResponse>): ExportBucketToGithubResponse {
+    const message = createBaseExportBucketToGithubResponse();
+    return message;
+  },
+};
+
 export type CodeBucketService = typeof CodeBucketService;
 export const CodeBucketService = {
   cloneBucket: {
@@ -1641,6 +1819,17 @@ export const CodeBucketService = {
       Buffer.from(GetBucketFilesAsZipResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetBucketFilesAsZipResponse => GetBucketFilesAsZipResponse.decode(value),
   },
+  exportBucketToGithub: {
+    path: "/rpc.rpc.CodeBucket/ExportBucketToGithub",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: ExportBucketToGithubRequest): Buffer =>
+      Buffer.from(ExportBucketToGithubRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ExportBucketToGithubRequest => ExportBucketToGithubRequest.decode(value),
+    responseSerialize: (value: ExportBucketToGithubResponse): Buffer =>
+      Buffer.from(ExportBucketToGithubResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ExportBucketToGithubResponse => ExportBucketToGithubResponse.decode(value),
+  },
 } as const;
 
 export interface CodeBucketServer extends UntypedServiceImplementation {
@@ -1653,6 +1842,7 @@ export interface CodeBucketServer extends UntypedServiceImplementation {
   getBucketFiles: handleUnaryCall<GetBucketFilesRequest, GetBucketFilesResponse>;
   getBucketFilesWithContent: handleUnaryCall<GetBucketFilesRequest, GetBucketFilesWithContentResponse>;
   getBucketFilesAsZip: handleUnaryCall<GetBucketFilesAsZipRequest, GetBucketFilesAsZipResponse>;
+  exportBucketToGithub: handleUnaryCall<ExportBucketToGithubRequest, ExportBucketToGithubResponse>;
 }
 
 export interface CodeBucketClient extends Client {
@@ -1790,6 +1980,21 @@ export interface CodeBucketClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetBucketFilesAsZipResponse) => void,
+  ): ClientUnaryCall;
+  exportBucketToGithub(
+    request: ExportBucketToGithubRequest,
+    callback: (error: ServiceError | null, response: ExportBucketToGithubResponse) => void,
+  ): ClientUnaryCall;
+  exportBucketToGithub(
+    request: ExportBucketToGithubRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ExportBucketToGithubResponse) => void,
+  ): ClientUnaryCall;
+  exportBucketToGithub(
+    request: ExportBucketToGithubRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ExportBucketToGithubResponse) => void,
   ): ClientUnaryCall;
 }
 
