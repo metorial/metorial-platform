@@ -39,7 +39,13 @@ model ScmRepo {
   name       String
   identifier String
 
-  externalId String
+  externalId        String
+  externalName      String
+  externalOwner     String
+  externalUrl       String
+  externalIsPrivate Boolean
+
+  defaultBranch String @default("main")
 
   accountOid BigInt
   account    ScmAccount @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
@@ -52,6 +58,9 @@ model ScmRepo {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  customServers CustomServer[]
+  codeBuckets   CodeBucket[]
 
   @@unique([organizationOid, provider, externalId])
 }

@@ -9,6 +9,7 @@ import {
   Organization,
   OrganizationActor,
   RemoteServerProtocol,
+  ScmRepo,
   Server,
   withTransaction
 } from '@metorial/db';
@@ -69,6 +70,10 @@ class customServerServiceImpl {
             schema?: any;
             getLaunchParams?: string;
           };
+          repository?: {
+            repo: ScmRepo;
+            path: string;
+          };
         };
 
     isEphemeral: boolean;
@@ -77,17 +82,42 @@ class customServerServiceImpl {
       let codeBucket = await (async () => {
         if (d.serverInstance.type != 'managed') return;
 
-        if (!d.serverInstance.implementation.template) {
-          return await codeBucketService.createCodeBucket({
+        if (d.serverInstance.repository) {
+          if (d.serverInstance.implementation.template) {
+            let codeBucket = await codeBucketService.cloneCodeBucketTemplate({
+              instance: d.instance,
+              purpose: 'custom_server',
+              template: d.serverInstance.implementation.template.bucketTemplate
+            });
+
+            await codeBucketService.exportCodeBucketToGithub({
+              codeBucket,
+              repo: d.serverInstance.repository.repo,
+              path: d.serverInstance.repository.path
+            });
+
+            return codeBucket;
+          }
+
+          return await codeBucketService.createCodeBucketFromRepo({
             instance: d.instance,
-            purpose: 'custom_server'
+            purpose: 'custom_server',
+            repo: d.serverInstance.repository.repo,
+            path: d.serverInstance.repository.path
           });
         }
 
-        return await codeBucketService.cloneCodeBucketTemplate({
+        if (d.serverInstance.implementation.template) {
+          return await codeBucketService.cloneCodeBucketTemplate({
+            instance: d.instance,
+            purpose: 'custom_server',
+            template: d.serverInstance.implementation.template.bucketTemplate
+          });
+        }
+
+        return await codeBucketService.createCodeBucket({
           instance: d.instance,
-          purpose: 'custom_server',
-          template: d.serverInstance.implementation.template.bucketTemplate
+          purpose: 'custom_server'
         });
       })();
 
@@ -159,7 +189,9 @@ class customServerServiceImpl {
           instanceOid: d.instance.oid,
           name: d.input.name,
           description: d.input.description,
-          draftCodeBucketOid: codeBucket?.oid
+          draftCodeBucketOid: codeBucket?.oid,
+          repositoryOid: codeBucket?.repository?.oid,
+          serverPath: codeBucket?.path
         }
       });
 

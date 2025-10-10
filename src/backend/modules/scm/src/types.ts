@@ -5,6 +5,9 @@ export interface ScmRepoPreview {
   name: String;
   identifier: String;
   externalId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastPushedAt: Date | null;
   account: {
     externalId: string;
     name: string;

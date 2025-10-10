@@ -8,6 +8,7 @@ import {
   scmAccountPreviewPresenter,
   scmInstallationPresenter,
   scmInstallPresenter,
+  scmRepoPresenter,
   scmRepoPreviewPresenter
 } from '../../presenters';
 
@@ -82,7 +83,7 @@ export let dashboardRepoController = Controller.create(
         'default',
         v.object({
           provider: v.enumOf(['github']),
-          redirectUrl: v.string()
+          redirect_url: v.string()
         })
       )
       .output(scmInstallPresenter)
@@ -91,12 +92,64 @@ export let dashboardRepoController = Controller.create(
           organization: ctx.organization,
           organizationActor: ctx.actor,
           provider: ctx.body.provider,
-          redirectUrl: ctx.body.redirectUrl
+          redirectUrl: ctx.body.redirect_url
         });
 
         return scmInstallPresenter.present({
           authorizationUrl
         });
+      }),
+
+    createRepo: organizationGroup
+      .use(isDashboardGroup())
+      .post(
+        Path(
+          '/dashboard/organizations/:organizationId/scm/repos',
+          'dashboard.scm.repos.create'
+        ),
+        {
+          name: 'Link SCM Repository',
+          description: 'Link an SCM repository to the organization'
+        }
+      )
+      .body(
+        'default',
+        v.union([
+          v.object({
+            installation_id: v.string(),
+            external_repo_id: v.string()
+          }),
+          v.object({
+            installation_id: v.string(),
+            external_account_id: v.string(),
+            name: v.string(),
+            description: v.optional(v.string()),
+            is_private: v.boolean()
+          })
+        ])
+      )
+      .output(scmRepoPresenter)
+      .do(async ctx => {
+        let installation = await scmInstallationService.getScmInstallationById({
+          organization: ctx.organization,
+          scmInstallationId: ctx.body.installation_id
+        });
+
+        let scmRepo =
+          'external_repo_id' in ctx.body
+            ? await scmRepoService.linkRepository({
+                installation,
+                externalId: ctx.body.external_repo_id
+              })
+            : await scmRepoService.createRepository({
+                installation,
+                externalAccountId: ctx.body.external_account_id,
+                name: ctx.body.name,
+                description: ctx.body.description,
+                isPrivate: ctx.body.is_private
+              });
+
+        return scmRepoPresenter.present({ scmRepo });
       }),
 
     reposPreview: organizationGroup
@@ -114,21 +167,20 @@ export let dashboardRepoController = Controller.create(
       .query(
         'default',
         v.object({
-          installationId: v.string(),
-          search: v.string()
+          installation_id: v.string(),
+          external_account_id: v.string()
         })
       )
       .output(scmRepoPreviewPresenter)
       .do(async ctx => {
         let installation = await scmInstallationService.getScmInstallationById({
           organization: ctx.organization,
-          scmInstallationId: ctx.query.installationId
+          scmInstallationId: ctx.query.installation_id
         });
 
         let scmRepoPreviews = await scmRepoService.listRepositoryPreviews({
           installation,
-          search: ctx.query.search || undefined,
-          externalAccountId: installation.externalUserId
+          externalAccountId: ctx.query.external_account_id
         });
 
         return scmRepoPreviewPresenter.present({
@@ -151,20 +203,18 @@ export let dashboardRepoController = Controller.create(
       .query(
         'default',
         v.object({
-          installationId: v.string(),
-          search: v.string()
+          installation_id: v.string()
         })
       )
       .output(scmAccountPreviewPresenter)
       .do(async ctx => {
         let installation = await scmInstallationService.getScmInstallationById({
           organization: ctx.organization,
-          scmInstallationId: ctx.query.installationId
+          scmInstallationId: ctx.query.installation_id
         });
 
         let scmAccountPreviews = await scmRepoService.listAccountPreviews({
-          installation,
-          search: ctx.query.search || undefined
+          installation
         });
 
         return scmAccountPreviewPresenter.present({

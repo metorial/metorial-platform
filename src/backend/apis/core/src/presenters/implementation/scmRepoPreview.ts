@@ -11,6 +11,9 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
       name: scmRepoPreview.name,
       identifier: scmRepoPreview.identifier,
       externalId: scmRepoPreview.externalId,
+      createdAt: scmRepoPreview.createdAt,
+      updatedAt: scmRepoPreview.updatedAt,
+      lastPushedAt: scmRepoPreview.lastPushedAt,
       account: {
         externalId: scmRepoPreview.account.externalId,
         name: scmRepoPreview.account.name,
@@ -38,6 +41,14 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
             name: 'external_id',
             description: `The SCM repository's external ID`
           }),
+          createdAt: v.date({ name: 'created_at', description: 'When the repo was created' }),
+          updatedAt: v.date({
+            name: 'updated_at',
+            description: 'When the repo was last updated'
+          }),
+          lastPushedAt: v.nullable(
+            v.date({ name: 'last_pushed_at', description: 'When the repo was last pushed to' })
+          ),
           account: v.object(
             {
               externalId: v.string({
