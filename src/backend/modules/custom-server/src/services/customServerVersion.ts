@@ -27,6 +27,7 @@ import { initializeLambdaQueue } from '../queues/initializeLambda';
 import { initializeRemoteQueue } from '../queues/initializeRemote';
 
 let include = {
+  push: true,
   customServer: {
     include: {
       server: true,

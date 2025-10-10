@@ -123,6 +123,20 @@ export let dashboardCustomServerVersionPresenter = Presenter.create(customServer
 
     return {
       ...v1,
+
+      push: customServerVersion.push
+        ? {
+            object: 'custom_server.version.push',
+            id: customServerVersion.push.id,
+            branch: customServerVersion.push.branchName,
+            commit_sha: customServerVersion.push.sha,
+            commit_message: customServerVersion.push.commitMessage,
+            author_email: customServerVersion.push.pusherEmail,
+            author_name: customServerVersion.push.pusherName,
+            created_at: customServerVersion.push.createdAt
+          }
+        : null,
+
       version_hash: customServerVersion.versionHash,
       deployment_id: customServerVersion.deployment?.id ?? null
     };
@@ -140,6 +154,47 @@ export let dashboardCustomServerVersionPresenter = Presenter.create(customServer
           v.string({
             name: 'deployment_id',
             description: `The ID of the deployment associated with this custom server version`
+          })
+        ),
+
+        push: v.nullable(
+          v.object({
+            object: v.literal('custom_server.version.push'),
+
+            id: v.string({
+              name: 'id',
+              description: `The unique identifier for the push event`
+            }),
+
+            branch: v.string({
+              name: 'branch',
+              description: `The branch name from which the version was pushed`
+            }),
+
+            commit_sha: v.string({
+              name: 'commit_sha',
+              description: `The SHA of the commit associated with the push`
+            }),
+
+            commit_message: v.string({
+              name: 'commit_message',
+              description: `The commit message associated with the push`
+            }),
+
+            author_email: v.string({
+              name: 'author_email',
+              description: `The email of the author who made the push`
+            }),
+
+            author_name: v.string({
+              name: 'author_name',
+              description: `The name of the author who made the push`
+            }),
+
+            created_at: v.date({
+              name: 'created_at',
+              description: `The timestamp when the push event was created`
+            })
           })
         )
       })

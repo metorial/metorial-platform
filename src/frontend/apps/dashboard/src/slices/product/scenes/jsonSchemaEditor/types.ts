@@ -66,8 +66,6 @@ let propertyToJsonSchema = (property: JsonPropertyStored): any => {
   if (property.property.multipleOf !== undefined)
     result.multipleOf = property.property.multipleOf;
 
-  console.log(property);
-
   // Object properties
   if (property.property.type === 'object' && property.children) {
     result.properties = {};

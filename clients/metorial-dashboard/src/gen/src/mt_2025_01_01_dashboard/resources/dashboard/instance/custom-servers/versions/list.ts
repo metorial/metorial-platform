@@ -52,7 +52,20 @@ export type DashboardInstanceCustomServersVersionsListOutput = {
     customServerId: string;
     createdAt: Date;
     updatedAt: Date;
-  } & { versionHash: string; deploymentId: string | null })[];
+  } & {
+    versionHash: string;
+    deploymentId: string | null;
+    push: {
+      object: 'custom_server.version.push';
+      id: string;
+      branch: string;
+      commitSha: string;
+      commitMessage: string;
+      authorEmail: string;
+      authorName: string;
+      createdAt: Date;
+    } | null;
+  })[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
@@ -212,6 +225,31 @@ export let mapDashboardInstanceCustomServersVersionsListOutput =
               deploymentId: mtMap.objectField(
                 'deployment_id',
                 mtMap.passthrough()
+              ),
+              push: mtMap.objectField(
+                'push',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  branch: mtMap.objectField('branch', mtMap.passthrough()),
+                  commitSha: mtMap.objectField(
+                    'commit_sha',
+                    mtMap.passthrough()
+                  ),
+                  commitMessage: mtMap.objectField(
+                    'commit_message',
+                    mtMap.passthrough()
+                  ),
+                  authorEmail: mtMap.objectField(
+                    'author_email',
+                    mtMap.passthrough()
+                  ),
+                  authorName: mtMap.objectField(
+                    'author_name',
+                    mtMap.passthrough()
+                  ),
+                  createdAt: mtMap.objectField('created_at', mtMap.date())
+                })
               )
             })
           )

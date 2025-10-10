@@ -102,8 +102,6 @@ export let dashboardCustomServerPresenter = Presenter.create(customServerType)
   .presenter(async ({ customServer }, opts) => {
     let base = await v1CustomServerPresenter.present({ customServer }, opts).run();
 
-    console.log({ customServer });
-
     return {
       ...base,
       repository: customServer.repository

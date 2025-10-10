@@ -40,8 +40,6 @@ export let KeySelector = ({
     if (apiKey) onApiKey?.(apiKey);
   }, [apiKey, onApiKey]);
 
-  console.log('apiKeys', apiKey);
-
   if (apiKey) return <span>{apiKey}</span>;
 
   return (

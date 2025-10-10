@@ -41,6 +41,7 @@ import {
   ScmAccount,
   ScmInstallation,
   ScmRepo,
+  ScmRepoPush,
   Secret,
   SecretType,
   Server,
@@ -451,6 +452,7 @@ export let customServerVersionType = PresentableType.create<{
           providerOAuthConfig: ProviderOAuthConfig | null;
         })
       | null;
+    push: ScmRepoPush | null;
   };
 }>()('custom_server.version');
 
