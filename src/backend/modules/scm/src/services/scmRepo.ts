@@ -2,6 +2,9 @@ import { db, ID, Organization, ScmInstallation } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { Service } from '@metorial/service';
 import { Octokit } from '@octokit/core';
+import crypto from 'crypto';
+import { createRepoWebhookQueue } from '../queue/createRepoWebhook';
+import { createHandleRepoPushQueue } from '../queue/handleRepoPush';
 import { ScmAccountPreview, ScmRepoPreview } from '../types';
 
 class scmRepoServiceImpl {
@@ -159,6 +162,8 @@ class scmRepoServiceImpl {
         }
       });
 
+      await createRepoWebhookQueue.add({ repoId: repo.id });
+
       return repo;
     }
 
@@ -216,6 +221,78 @@ class scmRepoServiceImpl {
       );
     }
     return repo;
+  }
+
+  async receiveWebhookEvent(i: {
+    webhookId: string;
+    eventType: string;
+    payload: string;
+    signature: string;
+  }) {
+    let webhook = await db.scmRepoWebhook.findUnique({
+      where: { id: i.webhookId },
+      include: { repo: true }
+    });
+    if (!webhook) {
+      throw new ServiceError(badRequestError({ message: 'Invalid webhook' }));
+    }
+
+    let hmac = crypto.createHmac('sha256', webhook.signingSecret);
+    let digest = 'sha256=' + hmac.update(i.payload).digest('hex');
+    if (!crypto.timingSafeEqual(Buffer.from(i.signature), Buffer.from(digest))) {
+      throw new ServiceError(badRequestError({ message: 'Invalid signature' }));
+    }
+
+    let event = JSON.parse(i.payload) as {
+      ref: string;
+      before: string;
+      after: string;
+      pusher: { name: string; email: string };
+      repository: { id: number; name: string; full_name: string; owner: { login: string } };
+      sender: { id: number; login: string };
+      commits: {
+        id: string;
+        message: string;
+        timestamp: string;
+        url: string;
+        author: { name: string; email: string };
+      }[];
+    };
+
+    if (webhook.repo.provider == 'github') {
+      await db.scmRepoWebhookReceivedEvent.create({
+        data: {
+          webhookOid: webhook.oid,
+          eventType: i.eventType,
+          payload: i.payload
+        }
+      });
+
+      if (
+        i.eventType == 'push' &&
+        event.ref?.replace('refs/heads/', '') == webhook.repo.defaultBranch
+      ) {
+        let push = await db.scmRepoPush.create({
+          data: {
+            id: await ID.generateId('scmRepoPush'),
+            repoOid: webhook.repo.oid,
+
+            sha: event.after,
+            branchName: webhook.repo.defaultBranch,
+
+            pusherEmail: event.pusher.email,
+            pusherName: event.pusher.name,
+
+            senderIdentifier: `github.com/${event.sender.login}`,
+            commitMessage: event.commits?.[0]?.message || null
+          }
+        });
+
+        await createHandleRepoPushQueue.add({ pushId: push.id });
+      }
+    }
+
+    throw new ServiceError(badRequestError({ message: 'Unsupported provider' }));
   }
 }
 

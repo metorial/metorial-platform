@@ -30,6 +30,7 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
       instance: true,
       customServerVersion: {
         include: {
+          push: true,
           deployment: true,
           customServer: true
         }

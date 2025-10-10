@@ -97,3 +97,70 @@ export let v1CustomServerPresenter = Presenter.create(customServerType)
     })
   )
   .build();
+
+export let dashboardCustomServerPresenter = Presenter.create(customServerType)
+  .presenter(async ({ customServer }, opts) => {
+    let base = await v1CustomServerPresenter.present({ customServer }, opts).run();
+
+    console.log({ customServer });
+
+    return {
+      ...base,
+      repository: customServer.repository
+        ? {
+            object: 'scm.repo',
+            id: customServer.repository.id,
+            name: customServer.repository.externalName,
+            owner: customServer.repository.externalOwner,
+            url: customServer.repository.externalUrl,
+            default_branch: customServer.repository.defaultBranch,
+            created_at: customServer.repository.createdAt,
+            updated_at: customServer.repository.updatedAt
+          }
+        : null
+    };
+  })
+  .schema(
+    v.intersection([
+      v1CustomServerPresenter.schema,
+      v.object({
+        repository: v.nullable(
+          v.object({
+            object: v.literal('scm.repo'),
+
+            id: v.string({
+              name: 'id',
+              description: `The unique identifier of the SCM repository`
+            }),
+
+            name: v.string({
+              name: 'name',
+              description: `The name of the SCM repository`
+            }),
+            owner: v.string({
+              name: 'owner',
+              description: `The owner of the SCM repository`
+            }),
+            url: v.string({
+              name: 'url',
+              description: `The external URL of the SCM repository`
+            }),
+            default_branch: v.string({
+              name: 'default_branch',
+              description: `The default branch of the SCM repository`
+            }),
+
+            created_at: v.date({
+              name: 'created_at',
+              description: `The timestamp when the SCM repository was created`
+            }),
+            updated_at: v.date({
+              name: 'updated_at',
+              description: `The timestamp when the SCM repository was last updated`
+            })
+          })
+        )
+      })
+    ])
+  )
+  .build();

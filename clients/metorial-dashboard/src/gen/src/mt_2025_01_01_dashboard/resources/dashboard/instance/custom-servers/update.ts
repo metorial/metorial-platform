@@ -32,74 +32,105 @@ export type DashboardInstanceCustomServersUpdateOutput = {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+} & {
+  repository: {
+    object: 'scm.repo';
+    id: string;
+    name: string;
+    owner: string;
+    url: string;
+    defaultBranch: string;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
 };
 
-export let mapDashboardInstanceCustomServersUpdateOutput =
-  mtMap.object<DashboardInstanceCustomServersUpdateOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
-    publicationStatus: mtMap.objectField(
-      'publication_status',
-      mtMap.passthrough()
-    ),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    server: mtMap.objectField(
-      'server',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    serverVariant: mtMap.objectField(
-      'server_variant',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-        serverId: mtMap.objectField('server_id', mtMap.passthrough()),
-        source: mtMap.objectField(
-          'source',
-          mtMap.union([
-            mtMap.unionOption(
-              'object',
-              mtMap.object({
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                docker: mtMap.objectField(
-                  'docker',
-                  mtMap.object({
-                    image: mtMap.objectField('image', mtMap.passthrough())
-                  })
-                ),
-                remote: mtMap.objectField(
-                  'remote',
-                  mtMap.object({
-                    domain: mtMap.objectField('domain', mtMap.passthrough())
-                  })
-                )
-              })
-            )
-          ])
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date())
-      })
-    ),
-    currentVersionId: mtMap.objectField(
-      'current_version_id',
-      mtMap.passthrough()
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    deletedAt: mtMap.objectField('deleted_at', mtMap.date())
-  });
+export let mapDashboardInstanceCustomServersUpdateOutput = mtMap.union([
+  mtMap.unionOption(
+    'object',
+    mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      status: mtMap.objectField('status', mtMap.passthrough()),
+      type: mtMap.objectField('type', mtMap.passthrough()),
+      publicationStatus: mtMap.objectField(
+        'publication_status',
+        mtMap.passthrough()
+      ),
+      name: mtMap.objectField('name', mtMap.passthrough()),
+      description: mtMap.objectField('description', mtMap.passthrough()),
+      metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+      server: mtMap.objectField(
+        'server',
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          type: mtMap.objectField('type', mtMap.passthrough()),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      ),
+      serverVariant: mtMap.objectField(
+        'server_variant',
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
+          serverId: mtMap.objectField('server_id', mtMap.passthrough()),
+          source: mtMap.objectField(
+            'source',
+            mtMap.union([
+              mtMap.unionOption(
+                'object',
+                mtMap.object({
+                  type: mtMap.objectField('type', mtMap.passthrough()),
+                  docker: mtMap.objectField(
+                    'docker',
+                    mtMap.object({
+                      image: mtMap.objectField('image', mtMap.passthrough())
+                    })
+                  ),
+                  remote: mtMap.objectField(
+                    'remote',
+                    mtMap.object({
+                      domain: mtMap.objectField('domain', mtMap.passthrough())
+                    })
+                  )
+                })
+              )
+            ])
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date())
+        })
+      ),
+      currentVersionId: mtMap.objectField(
+        'current_version_id',
+        mtMap.passthrough()
+      ),
+      createdAt: mtMap.objectField('created_at', mtMap.date()),
+      updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+      deletedAt: mtMap.objectField('deleted_at', mtMap.date()),
+      repository: mtMap.objectField(
+        'repository',
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          owner: mtMap.objectField('owner', mtMap.passthrough()),
+          url: mtMap.objectField('url', mtMap.passthrough()),
+          defaultBranch: mtMap.objectField(
+            'default_branch',
+            mtMap.passthrough()
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      )
+    })
+  )
+]);
 
 export type DashboardInstanceCustomServersUpdateBody = {
   name?: string | undefined;

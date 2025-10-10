@@ -25,6 +25,7 @@ import { customServerVersionService } from './customServerVersion';
 let include = {
   server: true,
   instance: true,
+  repository: true,
   serverVariant: true,
   currentVersion: true,
   draftCodeBucket: true
@@ -190,8 +191,11 @@ class customServerServiceImpl {
           name: d.input.name,
           description: d.input.description,
           draftCodeBucketOid: codeBucket?.oid,
-          repositoryOid: codeBucket?.repository?.oid,
-          serverPath: codeBucket?.path
+          serverPath: codeBucket?.path,
+          repositoryOid:
+            d.serverInstance.type == 'managed'
+              ? d.serverInstance.repository?.repo.oid
+              : undefined
         }
       });
 

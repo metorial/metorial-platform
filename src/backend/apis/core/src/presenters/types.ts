@@ -428,6 +428,7 @@ export let customServerType = PresentableType.create<{
     instance: Instance;
     serverVariant: ServerVariant;
     currentVersion: CustomServerVersion | null;
+    repository: ScmRepo | null;
   };
 }>()('custom_server');
 

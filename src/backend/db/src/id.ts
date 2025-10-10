@@ -104,5 +104,7 @@ export let ID = createIdGenerator({
 
   scmInstallation: idType.sorted('sci'),
   scmAccount: idType.sorted('sca'),
-  scmRepo: idType.sorted('scr')
+  scmRepo: idType.sorted('scr'),
+  scmRepoWebhook: idType.sorted('scrw'),
+  scmRepoPush: idType.sorted('scmp')
 });

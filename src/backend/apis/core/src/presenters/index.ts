@@ -1,7 +1,10 @@
 import { declarePresenter } from '@metorial/presenter';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
-import { v1CustomServerPresenter } from './implementation/customServer';
+import {
+  dashboardCustomServerPresenter,
+  v1CustomServerPresenter
+} from './implementation/customServer';
 import { v1CustomServerCodeEditorTokenPresenter } from './implementation/customServerCodeEditorToken';
 import { v1CustomServerDeploymentPresenter } from './implementation/customServerDeployment';
 import { v1CustomServerEventPresenter } from './implementation/customServerEvent';
@@ -362,7 +365,7 @@ export let remoteServerPresenter = declarePresenter(remoteServerType, {
 
 export let customServerPresenter = declarePresenter(customServerType, {
   mt_2025_01_01_pulsar: v1CustomServerPresenter,
-  mt_2025_01_01_dashboard: v1CustomServerPresenter
+  mt_2025_01_01_dashboard: dashboardCustomServerPresenter
 });
 
 export let customServerVersionPresenter = declarePresenter(customServerVersionType, {

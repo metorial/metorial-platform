@@ -59,8 +59,10 @@ model ScmRepo {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  customServers CustomServer[]
-  codeBuckets   CodeBucket[]
+  customServers   CustomServer[]
+  codeBuckets     CodeBucket[]
+  scmRepoWebhooks ScmRepoWebhook[]
+  scmRepoPushes   ScmRepoPush[]
 
   @@unique([organizationOid, provider, externalId])
 }
@@ -104,4 +106,58 @@ model ScmInstallationAttempt {
   ownerActor    OrganizationActor @relation(fields: [ownerActorOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+}
+
+enum ScmRepoWebhookType {
+  push
+}
+
+model ScmRepoWebhook {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ScmRepoWebhookType
+
+  repoOid BigInt  @unique
+  repo    ScmRepo @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
+
+  externalId    String
+  signingSecret String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  events ScmRepoWebhookReceivedEvent[]
+}
+
+model ScmRepoWebhookReceivedEvent {
+  oid BigInt @id @default(autoincrement())
+
+  webhookOid BigInt
+  webhook    ScmRepoWebhook @relation(fields: [webhookOid], references: [oid], onDelete: Cascade)
+
+  eventType String
+  payload   String
+
+  createdAt DateTime @default(now())
+}
+
+model ScmRepoPush {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  repoOid BigInt
+  repo    ScmRepo @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
+
+  pusherName       String?
+  pusherEmail      String?
+  senderIdentifier String?
+  commitMessage    String?
+
+  branchName String
+  sha        String
+
+  createdAt DateTime @default(now())
+
+  customServerVersion CustomServerVersion?
 }
