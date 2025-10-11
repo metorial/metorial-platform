@@ -3,6 +3,7 @@ import { scmRepoService } from '@metorial/module-scm';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizePath } from '../../lib/normalizePath';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
@@ -198,7 +199,9 @@ export let customServerVersionController = Controller.create(
                           scmRepoId:
                             ctx.body.implementation.managed_server.repository.repository_id
                         }),
-                        path: ctx.body.implementation.managed_server.repository.path
+                        path: normalizePath(
+                          ctx.body.implementation.managed_server.repository.path
+                        )
                       }
                     : undefined
                 }

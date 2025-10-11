@@ -233,6 +233,18 @@ class CustomServerVersionServiceImpl {
               currentVersion?.serverVersion?.schema.schema ??
               defaultManagedConfigSchema;
 
+            let repo = d.serverInstance.repository;
+            if (d.server.repositoryOid) {
+              let repoRes = await db.scmRepo.findFirstOrThrow({
+                where: { oid: d.server.repositoryOid }
+              });
+
+              repo = {
+                repo: repoRes,
+                path: d.server.serverPath ?? '/'
+              };
+            }
+
             if (d.serverInstance.repository) {
               await db.customServer.updateMany({
                 where: { oid: server.oid },
