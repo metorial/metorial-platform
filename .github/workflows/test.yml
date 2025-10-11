@@ -35,7 +35,7 @@ jobs:
       #   run: mv _package.json package.json
 
       - name: Install Packages
-        run: bun i
+        run: bun i --linker=hoisted
 
       - name: Generate Prisma Clients
         run: bun run prisma:generate

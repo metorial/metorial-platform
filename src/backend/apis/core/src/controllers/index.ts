@@ -7,6 +7,7 @@ import { dashboardOauthDiscoveryController } from './dashboard/oauthDiscovery';
 import { dashboardOrganizationController } from './dashboard/organization';
 import { dashboardOrganizationInviteController } from './dashboard/organizationInvite';
 import { profileController } from './dashboard/profile';
+import { dashboardRepoController } from './dashboard/repo';
 import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
 import { customServerController } from './instance/customServer';
@@ -161,7 +162,9 @@ export let dashboardController = Controller.create<any>(
 
     magicMcpServerController,
     magicMcpSessionController,
-    magicMcpTokenController
+    magicMcpTokenController,
+
+    dashboardRepoController
   }
 );
 

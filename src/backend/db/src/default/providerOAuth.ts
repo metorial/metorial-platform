@@ -5,9 +5,10 @@ import { createEnsureRecord } from '../lib';
 export let ensureProviderOAuthConfig = createEnsureRecord(
   db.providerOAuthConfig,
   d => ({
-    instanceOid_configHash: {
+    instanceOid_type_configHash: {
       instanceOid: d.instanceOid!,
-      configHash: d.configHash
+      configHash: d.configHash,
+      type: d.type ?? 'json'
     }
   }),
   async () => ({

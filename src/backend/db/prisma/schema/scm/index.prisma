@@ -1,0 +1,163 @@
+enum ScmProvider {
+  github
+}
+
+enum ScmAccountType {
+  user
+  organization
+}
+
+model ScmAccount {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  provider ScmProvider
+  type     ScmAccountType
+
+  name       String
+  identifier String
+
+  externalId String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  scmRepos ScmRepo[]
+
+  @@unique([organizationOid, provider, externalId])
+}
+
+model ScmRepo {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  provider ScmProvider
+
+  name       String
+  identifier String
+
+  externalId        String
+  externalName      String
+  externalOwner     String
+  externalUrl       String
+  externalIsPrivate Boolean
+
+  defaultBranch String @default("main")
+
+  accountOid BigInt
+  account    ScmAccount @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  installationOid BigInt
+  installation    ScmInstallation @relation(fields: [installationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  customServers   CustomServer[]
+  codeBuckets     CodeBucket[]
+  scmRepoWebhooks ScmRepoWebhook[]
+  scmRepoPushes   ScmRepoPush[]
+
+  @@unique([organizationOid, provider, externalId])
+}
+
+model ScmInstallation {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  provider ScmProvider
+
+  ownerActorOid BigInt
+  ownerActor    OrganizationActor @relation(fields: [ownerActorOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  accessToken String
+
+  externalUserId       String
+  externalUserName     String
+  externalUserEmail    String?
+  externalUserImageUrl String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  ScmRepo   ScmRepo[]
+
+  @@unique([organizationOid, provider, externalUserId])
+}
+
+model ScmInstallationAttempt {
+  oid BigInt @id @default(autoincrement())
+
+  redirectUrl String
+  state       String @unique
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  ownerActorOid BigInt
+  ownerActor    OrganizationActor @relation(fields: [ownerActorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+enum ScmRepoWebhookType {
+  push
+}
+
+model ScmRepoWebhook {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ScmRepoWebhookType
+
+  repoOid BigInt  @unique
+  repo    ScmRepo @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
+
+  externalId    String
+  signingSecret String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  events ScmRepoWebhookReceivedEvent[]
+}
+
+model ScmRepoWebhookReceivedEvent {
+  oid BigInt @id @default(autoincrement())
+
+  webhookOid BigInt
+  webhook    ScmRepoWebhook @relation(fields: [webhookOid], references: [oid], onDelete: Cascade)
+
+  eventType String
+  payload   String
+
+  createdAt DateTime @default(now())
+}
+
+model ScmRepoPush {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  repoOid BigInt
+  repo    ScmRepo @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
+
+  pusherName       String?
+  pusherEmail      String?
+  senderIdentifier String?
+  commitMessage    String?
+
+  branchName String
+  sha        String
+
+  createdAt DateTime @default(now())
+
+  customServerVersion CustomServerVersion?
+}

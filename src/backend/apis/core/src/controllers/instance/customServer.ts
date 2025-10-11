@@ -5,10 +5,12 @@ import {
   managedServerTemplateService
 } from '@metorial/module-custom-server';
 import { flagService } from '@metorial/module-flags';
+import { scmRepoService } from '@metorial/module-scm';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
+import { normalizePath } from '../../lib/normalizePath';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -96,7 +98,13 @@ export let customServerController = Controller.create(
 
               managed_server: v.optional(
                 v.object({
-                  template_id: v.optional(v.string())
+                  template_id: v.optional(v.string()),
+                  repository: v.optional(
+                    v.object({
+                      repository_id: v.string(),
+                      path: v.string()
+                    })
+                  )
                 })
               ),
 
@@ -109,6 +117,48 @@ export let customServerController = Controller.create(
             })
           ])
         })
+      )
+      .body(
+        'mt_2025_01_01_pulsar',
+        v.object({
+          name: v.string(),
+          description: v.optional(v.string()),
+          metadata: v.optional(v.record(v.any())),
+          implementation: v.union([
+            v.object({
+              type: v.literal('remote'),
+
+              remote_server: v.object({
+                remote_url: v.string({ modifiers: [v.url()] }),
+                remote_protocol: v.optional(v.enumOf(['sse', 'streamable_http']))
+              }),
+
+              config: v.optional(
+                v.object({
+                  schema: v.optional(v.any()),
+                  getLaunchParams: v.optional(v.string())
+                })
+              )
+            }),
+            v.object({
+              type: v.literal('managed'),
+
+              managed_server: v.optional(
+                v.object({
+                  template_id: v.optional(v.string())
+                })
+              ),
+
+              config: v.optional(
+                v.object({
+                  schema: v.optional(v.any()),
+                  getLaunchParams: v.optional(v.string())
+                })
+              )
+            })
+          ])
+        }),
+        v => v
       )
       .use(hasFlags(['metorial-gateway-enabled']))
       .output(customServerPresenter)
@@ -133,6 +183,15 @@ export let customServerController = Controller.create(
               })
             : undefined;
 
+        let repository =
+          ctx.body.implementation.type == 'managed' &&
+          ctx.body.implementation.managed_server?.repository
+            ? await scmRepoService.getScmRepoById({
+                organization: ctx.organization,
+                scmRepoId: ctx.body.implementation.managed_server.repository.repository_id
+              })
+            : undefined;
+
         let customServer = await customServerService.createCustomServer({
           organization: ctx.organization,
           instance: ctx.instance,
@@ -153,7 +212,15 @@ export let customServerController = Controller.create(
                   config: {
                     schema: ctx.body.implementation.config?.schema,
                     getLaunchParams: ctx.body.implementation.config?.getLaunchParams
-                  }
+                  },
+                  repository: repository
+                    ? {
+                        repo: repository,
+                        path: normalizePath(
+                          ctx.body.implementation.managed_server!.repository!.path
+                        )
+                      }
+                    : undefined
                 }
               : {
                   type: 'remote',

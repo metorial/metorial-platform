@@ -12,10 +12,15 @@ export let v1RemoteServerPresenter = Presenter.create(remoteServerType)
     remote_protocol: remoteServerInstance.remoteProtocol,
 
     provider_oauth: remoteServerInstance.providerOAuthConfig
-      ? {
-          config: remoteServerInstance.providerOAuthConfig.config as Record<string, any>,
-          scopes: remoteServerInstance.providerOAuthConfig.scopes
-        }
+      ? remoteServerInstance.providerOAuthConfig.type == 'json'
+        ? {
+            type: 'json' as const,
+            config: remoteServerInstance.providerOAuthConfig.config as Record<string, any>,
+            scopes: remoteServerInstance.providerOAuthConfig.scopes
+          }
+        : {
+            type: 'custom' as const
+          }
       : null,
 
     created_at: remoteServerInstance.createdAt,
@@ -37,16 +42,28 @@ export let v1RemoteServerPresenter = Presenter.create(remoteServerType)
       }),
 
       provider_oauth: v.nullable(
-        v.object({
-          config: v.record(v.any(), {
-            name: 'config',
-            description: `The provider OAuth configuration, if available`
+        v.union([
+          v.object({
+            type: v.literal('custom', {
+              name: 'type',
+              description: `Indicates that the provider OAuth configuration is custom and not directly accessible`
+            })
           }),
-          scopes: v.array(v.string(), {
-            name: 'scopes',
-            description: `The scopes associated with the provider OAuth configuration`
+          v.object({
+            type: v.literal('json', {
+              name: 'type',
+              description: `Indicates that the provider OAuth configuration is provided as JSON`
+            }),
+            config: v.record(v.any(), {
+              name: 'config',
+              description: `The provider OAuth configuration, if available`
+            }),
+            scopes: v.array(v.string(), {
+              name: 'scopes',
+              description: `The scopes associated with the provider OAuth configuration`
+            })
           })
-        })
+        ])
       ),
 
       created_at: v.date({

@@ -25,7 +25,6 @@ let ensurePrivateClient = async (organizationId: string) => {
   // if (privateClient) return privateClient;
 
   let config = await awaitConfig();
-  console.log(config);
 
   privateClient = createPrivateClient({
     address: `${config.privateApiUrl}/dashboard/organizations/${organizationId}/graphql`

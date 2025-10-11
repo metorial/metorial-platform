@@ -1,7 +1,9 @@
 import { db, ServerVersion, withTransaction } from '@metorial/db';
 import { delay } from '@metorial/delay';
+import { providerOauthConfigService } from '@metorial/module-provider-oauth';
 import { createQueue } from '@metorial/queue';
 import { getSentry } from '@metorial/sentry';
+import { DeploymentError } from '../deployment/base/error';
 import { createDenoLambdaDeployment, DenoDeployment } from '../deployment/deno/deployment';
 import { createDeploymentStepManager } from '../lib/stepManager';
 import { customServerVersionService } from '../services';
@@ -29,6 +31,7 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
       instance: true,
       customServerVersion: {
         include: {
+          push: true,
           deployment: true,
           customServer: true
         }
@@ -102,6 +105,18 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
     checkStep.complete([]);
   } catch (error: any) {
     console.error('Error during managed server deployment setup:', error);
+
+    if (error instanceof DeploymentError) {
+      await checkStep.fail([
+        {
+          type: 'error',
+          lines: [error.message]
+        }
+      ]);
+      await failDeployment();
+      return;
+    }
+
     if (error.response && error.response.data && error.response.data.message) {
       await checkStep.fail([
         {
@@ -110,9 +125,7 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
         }
       ]);
     }
-
     Sentry.captureException(error);
-    await checkStep.fail();
     await failDeployment();
     return;
   }
@@ -175,26 +188,49 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
   });
 
   try {
-    let discovery = await deno.discoverServer();
-    data.serverVersionData.tools = discovery.tools ?? [];
-    data.serverVersionData.resourceTemplates = discovery.resourceTemplates ?? [];
-    data.serverVersionData.prompts = discovery.prompts ?? [];
-    data.serverVersionData.serverCapabilities = discovery.capabilities ?? [];
-    data.serverVersionData.serverInfo = discovery.implementation ?? [];
-    data.serverVersionData.serverInstructions = discovery.instructions ?? null;
-    await discoverStep.complete([
-      {
-        type: 'info',
-        lines: [`Server capabilities discovered successfully.`]
-      },
-      {
-        type: 'info',
-        lines: JSON.stringify(discovery, null, 2).split('\n')
-      }
-    ]);
+    let { capabilities, oauth } = await deno.discoverServer();
+    data.serverVersionData.tools = capabilities.tools ?? [];
+    data.serverVersionData.resourceTemplates = capabilities.resourceTemplates ?? [];
+    data.serverVersionData.prompts = capabilities.prompts ?? [];
+    data.serverVersionData.serverCapabilities = capabilities.capabilities ?? [];
+    data.serverVersionData.serverInfo = capabilities.implementation ?? [];
+    data.serverVersionData.serverInstructions = capabilities.instructions || null;
+    await discoverStep.addLog([`Server capabilities discovered successfully.`], 'info');
+    await discoverStep.addLog(JSON.stringify(capabilities, null, 2).split('\n'), 'info');
+
+    if (oauth.enabled) {
+      let config = await providerOauthConfigService.createConfig({
+        instance: lambda.instance,
+        implementation: {
+          type: 'managed_server_http',
+          httpEndpoint: deno.httpEndpoint,
+          hasRemoteOauthForm: !!oauth.hasForm,
+          lambdaServerInstanceOid: lambda.oid
+        }
+      });
+
+      await db.lambdaServerInstance.updateMany({
+        where: { id: lambda.id },
+        data: {
+          providerOAuthConfigOid: config.oid
+        }
+      });
+
+      await discoverStep.addLog(
+        ['Server implements custom OAuth. OAuth configuration created successfully.'],
+        'info'
+      );
+    }
+
+    await discoverStep.complete();
   } catch (error: any) {
     console.error('Error during managed server discovery:', error);
     Sentry.captureException(error);
+
+    if (error?.response?.data?.message) {
+      await discoverStep.addLog([error.response.data.message], 'error');
+    }
+
     await discoverStep.fail([
       {
         type: 'error',

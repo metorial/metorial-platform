@@ -5,7 +5,7 @@
 <h1 align="center">Metorial (YC F25)</h1>
 
 <p align="center">
-The open source integration platform for agentic AI. <br />
+The integration platform for agentic AI. <br />
 Connect any AI model to thousands of APIs, data sources, and tools with a single function call.
 </p>
 
@@ -36,7 +36,7 @@ If you want to build a custom integration, check out our [API documentation](htt
 
 MCP is a powerful standard for connecting AI models to external data and tools, but it focuses on enabling AI clients (like Claude Desktop or Cursor) to connect to tools and data sources. 
 Metorial builds on MCP but makes it a one-liner for developers to connect their AI apps to any API, data source, or tool.
-Thereby we enable developers to create agentic AI applications that can interact with the world in simple, flexible, and powerful ways.
+Thereby we enable developers to create agentic AI applications that can interact with other systems in a reliable, simple, and secure way.
 
 ## Tech Stack
 
@@ -60,7 +60,7 @@ Metorial is built to make it super easy for developers to connect their AI apps 
 * **✨ One-liner SDKs**: Connect your AI model to any API, data source, or tool with a single function call.
 * **🛠️ Powered by MCP**: Metorial is built on the Model Context Protocol, a standard for connecting AI models to external data and tools.
 * **🚀 Get started in minutes**: Metorial is designed to be easy to use, with a simple setup process and a unified interface for all your AI integrations.
-* **🕊️ Open source**: Metorial is open source, so you can run it on your own infrastructure or use our hosted platform.
+* **🕊️ Self-hosting**: Metorial's source code is hosted on GitHub and you can self-host it.
 * **👩‍💻 Built for developers**: Metorial isn't built for end users, but for developers who need high quality tooling, monitoring, and customization options to build agentic AI applications.
 
 ### Large Server Catalog
@@ -95,7 +95,7 @@ Metorial is built from the ground up for developers. Here are some of the key fe
 
 ## License
 
-Metorial is licensed under the [AGPL-3.0](LICENSE) license.
+Metorial is licensed under the [FSL-1.1](LICENSE) license.
 
 <div align="center">
   <sub>Built with ❤️ by <a href="https://metorial.com">Metorial</a></sub>

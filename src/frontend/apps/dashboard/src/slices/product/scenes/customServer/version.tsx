@@ -14,6 +14,7 @@ import {
   Badge,
   Button,
   Group,
+  InputLabel,
   RenderDate,
   Spacer,
   theme,
@@ -78,6 +79,31 @@ export let CustomServerVersion = ({
       />
 
       <Spacer height={15} />
+
+      {version.data.push && (
+        <>
+          <InputLabel>Repository Push</InputLabel>
+
+          <Attributes
+            attributes={[
+              {
+                label: 'Commit',
+                content: <ID id={version.data.push.commitSha} />
+              },
+              {
+                label: 'Author',
+                content: `${version.data.push.authorName} (${version.data.push.authorEmail})`
+              },
+              {
+                label: 'Pushed At',
+                content: <RenderDate date={version.data.push.createdAt} />
+              }
+            ]}
+          />
+
+          <Spacer height={15} />
+        </>
+      )}
 
       <Group.Wrapper>
         <Group.Header

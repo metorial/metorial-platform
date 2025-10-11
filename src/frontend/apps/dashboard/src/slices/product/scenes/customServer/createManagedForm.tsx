@@ -3,18 +3,22 @@ import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCreateCustomServer,
+  useCreateScmRepo,
   useCurrentInstance,
   useListServerVersions,
-  useManagedServerTemplates
+  useManagedServerTemplates,
+  useScmAccounts,
+  useScmInstallations
 } from '@metorial/state';
-import { Button, Input, Spacer, theme, toast } from '@metorial/ui';
-import { useState } from 'react';
+import { Button, Flex, Input, Or, Select, Spacer, theme, toast } from '@metorial/ui';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Stepper } from '../stepper';
 import { defaultServerConfigManaged } from './config';
+import { SelectRepo } from './selectRepo';
 
-let TemplateWrapper = styled.div`
+let PageWrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -38,7 +42,7 @@ let TemplatesItem = styled.button`
   align-items: center;
   padding: 10px;
   background: none;
-  border: ${theme.colors.gray300} 1px solid;
+  border: ${theme.colors.gray400} 1px solid;
   border-radius: 8px;
   text-align: left;
   gap: 10px;
@@ -66,6 +70,8 @@ export let CustomServerManagedCreateForm = (p: {
     limit: 100
   });
 
+  let [selectedRepoId, setSelectedRepoId] = useState<string | undefined>(undefined);
+
   let [currentStep, setCurrentStep] = useState(0);
 
   let navigate = useNavigate();
@@ -75,20 +81,22 @@ export let CustomServerManagedCreateForm = (p: {
     initialValues: {
       name: '',
       description: '',
-      metadata: {}
+      metadata: {},
+      path: ''
     },
     schema: yup =>
       yup.object({
         name: yup.string().required('Name is required'),
         description: yup.string().optional(),
-        metadata: yup.object().optional()
+        metadata: yup.object().optional(),
+        path: yup.string().optional()
       }),
     onSubmit: async values => {
       if (!instance.data) return;
 
-      let plainTemplate = managedServerTemplates.data?.items.find(
-        t => t.slug == 'plain-typescript'
-      );
+      let plainTemplate = selectedRepoId
+        ? undefined
+        : managedServerTemplates.data?.items.find(t => t.slug == 'plain-typescript');
 
       let [customServerRes] = await createCustomServer.mutate({
         instanceId: instance.data.id,
@@ -97,7 +105,13 @@ export let CustomServerManagedCreateForm = (p: {
         implementation: {
           type: 'managed',
           managedServer: {
-            templateId: templateId ?? plainTemplate?.id
+            templateId: templateId ?? plainTemplate?.id,
+            repository: selectedRepoId
+              ? {
+                  repositoryId: selectedRepoId,
+                  path: values.path?.trim() || '/'
+                }
+              : undefined
           },
           config: defaultServerConfigManaged
         }
@@ -137,6 +151,9 @@ export let CustomServerManagedCreateForm = (p: {
     }
   });
 
+  let [createRepoName, setCreateRepoName] = useState('');
+  let [createRepoIsPrivate, setCreateRepoIsPrivate] = useState(true);
+
   let close = p.close && (
     <Button
       type="button"
@@ -148,6 +165,27 @@ export let CustomServerManagedCreateForm = (p: {
       Close
     </Button>
   );
+
+  let installations = useScmInstallations(instance.data?.organization.id);
+  let createRepo = useCreateScmRepo();
+  let [selectedInstallationId, setSelectedInstallationId] = useState<string | undefined>(
+    undefined
+  );
+  useEffect(() => {
+    if (installations.data?.items.length) {
+      setSelectedInstallationId(installations.data.items[0].id);
+    }
+  }, [installations.data?.items]);
+  let accounts = useScmAccounts(
+    instance.data?.organization.id,
+    selectedInstallationId ? { installationId: selectedInstallationId } : undefined
+  );
+  let [selectedAccountId, setSelectedAccountId] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (accounts.data?.items.length) {
+      setSelectedAccountId(accounts.data.items[0].externalId);
+    }
+  }, [accounts.data?.items]);
 
   return (
     <Form
@@ -172,7 +210,7 @@ export let CustomServerManagedCreateForm = (p: {
             render: () => {
               return renderWithLoader({ managedServerTemplates })(
                 ({ managedServerTemplates }) => (
-                  <TemplateWrapper>
+                  <PageWrapper>
                     <Templates>
                       {managedServerTemplates.data.items.map(template => (
                         <TemplatesItem
@@ -181,6 +219,7 @@ export let CustomServerManagedCreateForm = (p: {
                           onClick={() => {
                             form.resetForm();
                             form.setFieldValue('name', template.name);
+                            setCreateRepoName(template.slug);
                             setTemplateId(template.id);
                             setCurrentStep(1);
                           }}
@@ -190,6 +229,22 @@ export let CustomServerManagedCreateForm = (p: {
                       ))}
                     </Templates>
 
+                    <Spacer size={10} />
+
+                    <Or />
+
+                    <Spacer size={10} />
+
+                    <SelectRepo
+                      onSelect={repo => {
+                        setSelectedRepoId(repo.id);
+                        form.resetForm();
+                        form.setFieldValue('name', repo.name);
+                        setCurrentStep(2);
+                        setTemplateId(undefined);
+                      }}
+                    />
+
                     <Actions>
                       {close}
 
@@ -198,14 +253,124 @@ export let CustomServerManagedCreateForm = (p: {
                         size="2"
                         onClick={() => {
                           setTemplateId(undefined);
-                          setCurrentStep(1);
+                          setCurrentStep(2);
                         }}
                       >
                         Continue without template
                       </Button>
                     </Actions>
-                  </TemplateWrapper>
+                  </PageWrapper>
                 )
+              );
+            }
+          },
+
+          {
+            title: 'Connect Repository',
+            subtitle: 'Connect a GitHub repository',
+            render: () => {
+              return (
+                <>
+                  {renderWithLoader({ accounts, installations })(
+                    ({ accounts, installations }) => (
+                      <>
+                        {installations.data.items.length > 1 && (
+                          <>
+                            <Select
+                              label="GitHub Installation"
+                              items={installations.data.items.map(i => ({
+                                label: i.user.name,
+                                id: i.id
+                              }))}
+                              value={selectedInstallationId}
+                              onChange={v => setSelectedInstallationId(v)}
+                            />
+                            <Spacer size={10} />
+                          </>
+                        )}
+
+                        {accounts.data.items.length > 0 && (
+                          <>
+                            <Select
+                              label="GitHub Account"
+                              items={accounts.data.items.map(i => ({
+                                label: i.name,
+                                id: i.externalId
+                              }))}
+                              value={selectedAccountId}
+                              onChange={v => setSelectedAccountId(v)}
+                            />
+                            <Spacer size={10} />
+                          </>
+                        )}
+
+                        <Input
+                          label="Repository Name"
+                          placeholder="e.g. my-repo"
+                          value={createRepoName}
+                          onChange={e => setCreateRepoName(e.target.value)}
+                        />
+
+                        <Spacer size={10} />
+
+                        <Select
+                          label="Repository Visibility"
+                          items={[
+                            { label: 'Private', id: 'private' },
+                            { label: 'Public', id: 'public' }
+                          ]}
+                          value={createRepoIsPrivate ? 'private' : 'public'}
+                          onChange={v => setCreateRepoIsPrivate(v === 'private')}
+                        />
+
+                        <Spacer size={10} />
+
+                        <Flex align="center" gap="10px">
+                          <Button
+                            size="2"
+                            disabled={
+                              !selectedInstallationId ||
+                              !selectedAccountId ||
+                              !createRepoName.trim()
+                            }
+                            onClick={async () => {
+                              let [res] = await createRepo.mutate({
+                                organizationId: instance.data?.organization.id!,
+                                installationId: selectedInstallationId!,
+                                externalAccountId: selectedAccountId!,
+                                name: createRepoName,
+                                isPrivate: createRepoIsPrivate
+                              });
+
+                              if (res) {
+                                setSelectedRepoId(res.id);
+                                form.resetForm();
+                                form.setFieldValue('name', createRepoName);
+                                setCurrentStep(2);
+                              }
+                            }}
+                            loading={createRepo.isLoading}
+                          >
+                            Continue
+                          </Button>
+
+                          <Button
+                            size="2"
+                            variant="outline"
+                            disabled={createRepo.isLoading}
+                            onClick={() => {
+                              setSelectedRepoId(undefined);
+                              form.resetForm();
+                              setCurrentStep(2);
+                            }}
+                          >
+                            Continue without Repo
+                          </Button>
+                        </Flex>
+                      </>
+                    )
+                  )}
+                </>
               );
             }
           },
@@ -224,12 +389,27 @@ export let CustomServerManagedCreateForm = (p: {
                   <Input label="Description" {...form.getFieldProps('description')} />
                   <form.RenderError field="description" />
 
+                  {selectedRepoId && !templateId && (
+                    <>
+                      <Spacer size={15} />
+
+                      <Input
+                        label="Path (optional)"
+                        description="The path of the MCP server in the repository."
+                        {...form.getFieldProps('path')}
+                        placeholder="e.g. ./my-server"
+                      />
+                      <form.RenderError field="path" />
+                    </>
+                  )}
+
                   <Actions>
                     {close}
 
                     <Button
                       loading={createCustomServer.isLoading}
                       success={createCustomServer.isSuccess}
+                      disabled={createRepo.isLoading || createCustomServer.isLoading}
                       type="submit"
                       size="2"
                     >

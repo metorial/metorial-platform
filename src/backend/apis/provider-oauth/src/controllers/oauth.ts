@@ -10,12 +10,13 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
 import { wrapHtmlError } from '../lib/htmlError';
 import { useValidation } from '../lib/validator';
+import { formHtml } from '../templates/form';
 import { redirectHtml } from '../templates/redirect';
 
 let STATE_COOKIE_NAME = 'oauth_state';
 
 export let providerOauthController = createHono()
-  .get(
+  .all(
     '/:organizationId/start',
     useValidation(
       'query',
@@ -24,12 +25,15 @@ export let providerOauthController = createHono()
         ticket: z.string()
       })
     ),
-    async c =>
-      wrapHtmlError(c)(async () => {
-        let query = c.req.query();
-        let organizationId = c.req.param('organizationId');
-        let context = useRequestContext(c);
+    async c => {
+      if (c.req.method !== 'GET' && c.req.method !== 'POST') {
+        return c.json({ error: 'Method not allowed' }, 405);
+      }
+      let query = c.req.query();
+      let organizationId = c.req.param('organizationId');
+      let context = useRequestContext(c);
 
+      let inner = async () => {
         let ticketRes = await providerOauthTicketService.verifyTicket({
           ticket: query.ticket,
           clientId: query.client_id,
@@ -59,27 +63,50 @@ export let providerOauthController = createHono()
           }
         }
 
-        let { redirectUrl, authAttempt } =
-          await providerOauthAuthorizationService.startAuthorization({
-            context,
-            connection,
-            redirectUri: ticketRes.redirectUri
-          });
+        let body = c.req.method === 'POST' ? await c.req.json() : {};
+        let fieldValues = body.fieldValues || null;
 
-        if (authAttempt.stateIdentifier) {
-          setCookie(c, STATE_COOKIE_NAME, authAttempt.stateIdentifier, {
-            path: '/',
-            httpOnly: true,
-            sameSite: 'lax'
-          });
+        let authRes = await providerOauthAuthorizationService.startAuthorization({
+          context,
+          connection,
+          redirectUri: ticketRes.redirectUri,
+          fieldValues
+        });
+
+        if (authRes.type == 'redirect') {
+          let { redirectUrl, authAttempt } = authRes;
+
+          if (authAttempt.stateIdentifier) {
+            setCookie(c, STATE_COOKIE_NAME, authAttempt.stateIdentifier, {
+              path: '/',
+              httpOnly: true,
+              sameSite: 'lax'
+            });
+          }
+
+          if (c.req.method == 'POST') {
+            return c.json({ url: redirectUrl });
+          } else {
+            if (ticketRes.immediate) {
+              return c.redirect(redirectUrl, 302);
+            }
+
+            return c.html(redirectHtml({ url: redirectUrl, delay: 1000 }));
+          }
         }
 
-        if (ticketRes.immediate) {
-          return c.redirect(redirectUrl, 302);
+        if (authRes.type == 'form') {
+          return c.html(
+            await formHtml({ form: authRes.form, profile: authRes.profile, connection })
+          );
         }
 
-        return c.html(redirectHtml({ url: redirectUrl, delay: 1000 }));
-      })
+        throw new ServiceError(badRequestError({ message: 'Invalid auth attempt state' }));
+      };
+
+      if (c.req.method == 'GET') return wrapHtmlError(c)(inner);
+      return await inner();
+    }
   )
   .get(
     '/callback',
@@ -106,6 +133,7 @@ export let providerOauthController = createHono()
 
         let { redirectUrl } = await providerOauthAuthorizationService.completeAuthorization({
           context,
+          fullUrl: c.req.url,
           response: {
             code: query.code,
             state: query.state,

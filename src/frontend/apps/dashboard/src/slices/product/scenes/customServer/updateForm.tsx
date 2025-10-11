@@ -306,16 +306,20 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
             })
           })
         }
-        initialValues={{
-          enabled: !!providerOauth?.config,
-
-          scopes: providerOauth?.scopes ?? [],
-          config: JSON.stringify(providerOauth?.config || {}, null, 2)
-        }}
+        initialValues={
+          providerOauth?.type == 'json'
+            ? {
+                enabled: !!providerOauth?.config,
+                scopes: providerOauth?.scopes ?? [],
+                config: JSON.stringify(providerOauth?.config || {}, null, 2)
+              }
+            : {}
+        }
         updateInitialValues
         mutators={[createVersionMutatorOauth]}
+        actionsWrapper={() => null}
         onSubmit={async values => {
-          if (!instance.data || !p.customServer) return;
+          if (!instance.data || !p.customServer || providerOauth?.type != 'json') return;
 
           let config: any = providerOauth?.config || {};
           if (values.config) {
@@ -363,64 +367,81 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
           }
         }}
       >
-        {(form: any) => (
-          <>
-            <Field field="enabled">
-              {({ value, setValue }) => (
-                <Switch
-                  label="Use OAuth to connect to the MCP server."
-                  checked={value}
-                  onCheckedChange={v => {
-                    if (v) {
-                      showProviderConnectionFormModal({
-                        onCreate: con => {
-                          form.setFieldValue('scopes', con.scopes);
-                          form.setFieldValue('config', JSON.stringify(con.config, null, 2));
-                          form.setFieldValue('enabled', true);
+        {(form: any) =>
+          editingVersion.current?.serverInstance.managedServer?.providerOauth?.type ==
+          'custom' ? (
+            <Callout color="blue">
+              This server uses a custom OAuth provider defined in the server's code.
+            </Callout>
+          ) : (
+            <>
+              <Field field="enabled">
+                {({ value, setValue }) => (
+                  <Switch
+                    label="Use OAuth to connect to the MCP server."
+                    checked={value}
+                    onCheckedChange={v => {
+                      if (v) {
+                        showProviderConnectionFormModal({
+                          onCreate: con => {
+                            form.setFieldValue(
+                              'scopes',
+                              con.config.type == 'json' ? con.config.scopes : []
+                            );
+                            form.setFieldValue(
+                              'config',
+                              JSON.stringify(
+                                con.config.type == 'json' ? con.config.config : {},
+                                null,
+                                2
+                              )
+                            );
+                            form.setFieldValue('enabled', true);
 
-                          setTimeout(() => {
-                            form.submitForm();
-                          }, 500);
-                        }
-                      });
-                    } else {
-                      setValue(false);
-                    }
-                  }}
-                />
+                            setTimeout(() => {
+                              form.submitForm();
+                            }, 500);
+                          }
+                        });
+                      } else {
+                        setValue(false);
+                      }
+                    }}
+                  />
+                )}
+              </Field>
+
+              {form.values.enabled && (
+                <>
+                  <Field field="scopes">
+                    {({ value, setValue }) => (
+                      <TextArrayInput label="Scopes" value={value} onChange={setValue} />
+                    )}
+                  </Field>
+
+                  <Field field="config">
+                    {({ value, form }) => (
+                      <>
+                        <InputLabel>Configuration</InputLabel>
+                        <Spacer size={6} />
+                        <CodeEditor
+                          value={value}
+                          onChange={v => form.setFieldValue('config', v)}
+                          onBlur={() => {
+                            form.validateField('config');
+                            form.setFieldTouched('config', true);
+                          }}
+                          lang="json"
+                          height="350px"
+                        />
+                      </>
+                    )}
+                  </Field>
+                </>
               )}
-            </Field>
-
-            {form.values.enabled && (
-              <>
-                <Field field="scopes">
-                  {({ value, setValue }) => (
-                    <TextArrayInput label="Scopes" value={value} onChange={setValue} />
-                  )}
-                </Field>
-
-                <Field field="config">
-                  {({ value, form }) => (
-                    <>
-                      <InputLabel>Configuration</InputLabel>
-                      <Spacer size={6} />
-                      <CodeEditor
-                        value={value}
-                        onChange={v => form.setFieldValue('config', v)}
-                        onBlur={() => {
-                          form.validateField('config');
-                          form.setFieldTouched('config', true);
-                        }}
-                        lang="json"
-                        height="350px"
-                      />
-                    </>
-                  )}
-                </Field>
-              </>
-            )}
-          </>
-        )}
+            </>
+          )
+        }
       </FormBox>
 
       <Box

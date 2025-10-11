@@ -34,6 +34,9 @@ model CustomServerVersion {
   lambdaServerInstanceOid BigInt?               @unique
   lambdaServerInstance    LambdaServerInstance? @relation(fields: [lambdaServerInstanceOid], references: [oid])
 
+  pushOid BigInt?      @unique
+  push    ScmRepoPush? @relation(fields: [pushOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 

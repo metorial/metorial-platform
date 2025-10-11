@@ -4,11 +4,24 @@ enum ProviderOAuthConfigDiscoveryStatus {
   supports_auto_registration
 }
 
+enum ProviderOAuthConfigType {
+  json
+  managed_server_http
+}
+
 model ProviderOAuthConfig {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   discoverStatus ProviderOAuthConfigDiscoveryStatus @default(manual)
+
+  type ProviderOAuthConfigType @default(json)
+
+  httpEndpoint       String? // used if type is managed_server_http
+  hasRemoteOauthForm Boolean? // used if type is managed_server_http
+
+  lambdaServerInstanceForHttpEndpointOid BigInt? // used if type is managed_server_http
+  lambdaServerInstanceForHttpEndpoint    LambdaServerInstance? @relation(fields: [lambdaServerInstanceForHttpEndpointOid], references: [oid], name: "ProviderOAuthConfig_remoteServerInstanceForHttpEndpoint")
 
   /// [ProviderOAuthConfig]
   config     Json
@@ -28,5 +41,5 @@ model ProviderOAuthConfig {
   serverDeployments               ServerDeployment[]
   providerOAuthRegistrationErrors ProviderOAuthRegistrationError[]
 
-  @@unique([instanceOid, configHash])
+  @@unique([instanceOid, type, configHash])
 }

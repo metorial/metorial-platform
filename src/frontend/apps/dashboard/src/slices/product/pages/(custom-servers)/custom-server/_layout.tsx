@@ -67,7 +67,7 @@ export let CustomServerLayout = () => {
           }
         ]}
         actions={
-          <DeployServerButton serverId={customServer.data?.id!}>
+          <DeployServerButton serverId={customServer.data?.server.id!}>
             Deploy Server
           </DeployServerButton>
         }
@@ -174,7 +174,7 @@ export let DeployServerButton = ({
       }}
     >
       <Button size="2" disabled={disabled}>
-        Deploy Server
+        {children}
       </Button>
     </Menu>
   ) : (

@@ -2,11 +2,19 @@ enum CodeBucketPurpose {
   custom_server
 }
 
+enum CodeBucketStatus {
+  ready
+  importing
+}
+
 model CodeBucket {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   purpose CodeBucketPurpose
+  status  CodeBucketStatus  @default(ready)
+
+  isReadOnly Boolean @default(false)
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])
@@ -17,6 +25,10 @@ model CodeBucket {
 
   templateOid BigInt?
   template    CodeBucketTemplate? @relation(fields: [templateOid], references: [oid])
+
+  repositoryOid BigInt?
+  repository    ScmRepo? @relation(fields: [repositoryOid], references: [oid])
+  path          String?
 
   createdAt DateTime @default(now())
 

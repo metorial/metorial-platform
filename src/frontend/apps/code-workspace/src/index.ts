@@ -17,6 +17,9 @@ if (!id || !token) {
 let projectName = queryParams.get('projectName') || 'Metorial Project';
 let url = (import.meta as any).env.VITE_CODE_BUCKET_API_URL;
 
+let tokenData = decodeJwtPayload(token);
+let isReadOnly = tokenData.is_read_only;
+
 window.product = {
   productConfiguration: {
     nameShort: 'Metorial Editor',
@@ -24,6 +27,9 @@ window.product = {
     applicationName: 'metorial-editor',
     dataFolderName: '.vscode-web',
     version: '1.75.0',
+
+    readonly: isReadOnly,
+
     // extensionsGallery: {
     //   serviceUrl: 'https://marketplace.visualstudio.com/_apis/public/gallery',
     //   itemUrl: 'https://marketplace.visualstudio.com/_apis/public/item',
@@ -80,6 +86,7 @@ setTimeout(async () => {
     Object.keys(self.webPackagePaths).forEach(function (key) {
       self.webPackagePaths[key] = \`${window.location.origin}/vscode/\${key}/\${self.webPackagePaths[key]}\`;
     });
+
     require.config({
       baseUrl: \`${window.location.origin}/vscode/out\`,
       recordStats: true,
@@ -123,3 +130,26 @@ setTimeout(async () => {
     }, 500);
   }
 }, 100);
+
+function decodeJwtPayload(token: string) {
+  if (!token || typeof token !== 'string') return null;
+
+  let parts = token.split('.');
+  if (parts.length !== 3) {
+    console.error('Invalid JWT format.');
+    return null;
+  }
+  let base64Payload = parts[1];
+
+  base64Payload = base64Payload.replace(/-/g, '+').replace(/_/g, '/');
+
+  while (base64Payload.length % 4) base64Payload += '=';
+
+  try {
+    let jsonString = atob(base64Payload);
+    return JSON.parse(jsonString);
+  } catch (e) {
+    console.error('Failed to decode or parse JWT payload:', e);
+    return null;
+  }
+}

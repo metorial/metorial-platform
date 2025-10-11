@@ -117,15 +117,18 @@ export let providerOauthConnectionController = Controller.create(
               'client_id' in ctx.body
                 ? {
                     mode: 'manual',
-                    config: ctx.body.config as any,
-                    clientId: ctx.body.client_id,
-                    clientSecret:
-                      'client_secret' in ctx.body
-                        ? ctx.body.client_secret!
-                        : (() => {
-                            throw new Error('Unreachable');
-                          })(),
-                    scopes: ctx.body.scopes
+                    implementation: {
+                      type: 'json',
+                      config: ctx.body.config as any,
+                      clientId: ctx.body.client_id,
+                      clientSecret:
+                        'client_secret' in ctx.body
+                          ? ctx.body.client_secret!
+                          : (() => {
+                              throw new Error('Unreachable');
+                            })(),
+                      scopes: ctx.body.scopes
+                    }
                   }
                 : {
                     mode: 'existing_auto_registration',

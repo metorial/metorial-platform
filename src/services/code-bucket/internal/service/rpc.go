@@ -87,7 +87,8 @@ func (rs *RcpService) GetBucketToken(ctx context.Context, req *rpc.GetBucketToke
 	}
 
 	claims := &Claims{
-		BucketID: req.BucketId,
+		BucketID:   req.BucketId,
+		IsReadOnly: req.IsReadOnly,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiresIn) * time.Second)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -183,4 +184,30 @@ func (rs *RcpService) GetBucketFilesWithContent(ctx context.Context, req *rpc.Ge
 	}
 
 	return &rpc.GetBucketFilesWithContentResponse{Files: pbFiles}, nil
+}
+
+func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportBucketToGithubRequest) (*rpc.ExportBucketToGithubResponse, error) {
+	files, err := rs.fsm.GetBucketFiles(ctx, req.BucketId, "")
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get bucket files: %v", err)
+	}
+
+	filesToUpload := make([]github.FileToUpload, 0, len(files))
+	for _, file := range files {
+		_, content, err := rs.fsm.GetBucketFile(ctx, req.BucketId, file.Path)
+		if err != nil {
+			continue
+		}
+
+		filesToUpload = append(filesToUpload, github.FileToUpload{
+			Path:    file.Path,
+			Content: content.Content,
+		})
+	}
+
+	if err := github.UploadToRepo(req.Owner, req.Repo, req.Path, req.Token, filesToUpload); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to upload to GitHub: %v", err)
+	}
+
+	return &rpc.ExportBucketToGithubResponse{}, nil
 }

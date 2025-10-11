@@ -11,8 +11,6 @@ export let setConfig = (newConfig: RequiredFrontendConfig) => {
     ...newConfig
   };
 
-  console.log('Frontend config set', configRef.current);
-
   setTimeout(() => configPromise.resolve(), 0);
 };
 

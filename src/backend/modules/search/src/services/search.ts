@@ -1,6 +1,6 @@
 import { Service } from '@metorial/service';
 import { Client as OpenSearchClient } from '@opensearch-project/opensearch';
-import { algoliasearch, SearchClient } from 'algoliasearch';
+import { algoliasearch, Algoliasearch } from 'algoliasearch';
 import createAwsOpensearchConnector from 'aws-opensearch-connector';
 import { MeiliSearch, MeiliSearchApiError, Index as MeiliSearchIndex } from 'meilisearch';
 import { env } from '../env';
@@ -54,7 +54,7 @@ export let openSearch = env.openSearch?.OPENSEARCH_HOST
     )
   : undefined;
 
-export let algoliaSearch: SearchClient | undefined =
+export let algoliaSearch: Algoliasearch | undefined =
   env.algolia.ALGOLIA_APP_ID && env.algolia.ALGOLIA_ADMIN_KEY
     ? algoliasearch(env.algolia.ALGOLIA_APP_ID, env.algolia.ALGOLIA_ADMIN_KEY)
     : undefined;
