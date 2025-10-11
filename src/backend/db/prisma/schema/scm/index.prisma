@@ -136,6 +136,8 @@ model ScmRepoWebhookReceivedEvent {
   webhookOid BigInt
   webhook    ScmRepoWebhook @relation(fields: [webhookOid], references: [oid], onDelete: Cascade)
 
+  idempotencyKey String?
+
   eventType String
   payload   String
 
