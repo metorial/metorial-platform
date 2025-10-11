@@ -29,16 +29,13 @@ jobs:
           node-version: 20
 
       - name: Install Bun
-        run: |
-          curl -fsSL https://bun.sh/install | bash
-          echo "BUN_INSTALL=\"$HOME/.bun\"" >> $GITHUB_ENV
-          echo "$HOME/.bun/bin" >> $GITHUB_PATH
+        uses: oven-sh/setup-bun@v2
 
       # - name: Patch bun
       #   run: mv _package.json package.json
 
       - name: Install Packages
-        run: bun i
+        run: bun i --linker=hoisted
 
       - name: Generate Prisma Clients
         run: bun run prisma:generate
