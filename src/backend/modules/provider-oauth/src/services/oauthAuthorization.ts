@@ -712,6 +712,7 @@ class OauthAuthorizationServiceImpl {
         }
 
         let res: Awaited<ReturnType<typeof OAuthUtils.refreshAccessToken>>;
+        let additionalAuthData: Record<string, any> = {};
 
         if (connection.config.type == 'json') {
           res = await OAuthUtils.refreshAccessToken({
@@ -761,16 +762,23 @@ class OauthAuthorizationServiceImpl {
                 message: 'Callback implementation returned an invalid token response'
               };
             } else {
+              let tokenResponse = {
+                access_token: tokenResVal.value.access_token,
+                token_type: tokenResVal.value.token_type,
+                expires_in: tokenResVal.value.expires_in,
+                refresh_token: tokenResVal.value.refresh_token,
+                id_token: tokenResVal.value.id_token,
+                scope: tokenResVal.value.scope
+              };
+
+              additionalAuthData = { ...tokenRes.data.authData };
+              for (let key of Object.keys(tokenResponse)) {
+                delete additionalAuthData[key];
+              }
+
               res = {
                 ok: true as const,
-                response: {
-                  access_token: tokenResVal.value.access_token,
-                  token_type: tokenResVal.value.token_type,
-                  expires_in: tokenResVal.value.expires_in,
-                  refresh_token: tokenResVal.value.refresh_token,
-                  id_token: tokenResVal.value.id_token,
-                  scope: tokenResVal.value.scope
-                }
+                response: tokenResponse
               };
             }
           }
@@ -826,7 +834,11 @@ class OauthAuthorizationServiceImpl {
             refreshToken: tokenResponse.refresh_token || undefined,
             idToken: tokenResponse.id_token || undefined,
             scope: tokenResponse.scope || undefined,
-            lastUsedAt: new Date()
+            lastUsedAt: new Date(),
+            additionalAuthData: {
+              ...(token.additionalAuthData ?? {}),
+              ...additionalAuthData
+            }
           }
         });
       })();

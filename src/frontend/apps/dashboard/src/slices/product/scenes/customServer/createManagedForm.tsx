@@ -185,9 +185,9 @@ export let CustomServerManagedCreateForm = (p: {
     onSubmit: async values => {
       if (!instance.data) return;
 
-      let plainTemplate = managedServerTemplates.data?.items.find(
-        t => t.slug == 'plain-typescript'
-      );
+      let plainTemplate = selectedRepoId
+        ? undefined
+        : managedServerTemplates.data?.items.find(t => t.slug == 'plain-typescript');
 
       let [customServerRes] = await createCustomServer.mutate({
         instanceId: instance.data.id,

@@ -33,7 +33,6 @@ export let getClient = async (args: any, opts: BootOptions) => {
       })
     ]);
 
-
     globalThis.__metorial_setArgs__(args);
     if (server.type == 'metorial.server::v1') {
       server = await server.start(args);
