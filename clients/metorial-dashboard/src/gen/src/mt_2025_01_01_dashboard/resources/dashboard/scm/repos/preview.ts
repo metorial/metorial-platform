@@ -29,14 +29,14 @@ export let mapDashboardScmReposPreviewOutput =
           provider: mtMap.objectField('provider', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          externalId: mtMap.objectField('externalId', mtMap.passthrough()),
+          externalId: mtMap.objectField('external_id', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          lastPushedAt: mtMap.objectField('lastPushedAt', mtMap.date()),
+          lastPushedAt: mtMap.objectField('lastPushed_at', mtMap.date()),
           account: mtMap.objectField(
             'account',
             mtMap.object({
-              externalId: mtMap.objectField('externalId', mtMap.passthrough()),
+              externalId: mtMap.objectField('external_id', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
               identifier: mtMap.objectField('identifier', mtMap.passthrough()),
               provider: mtMap.objectField('provider', mtMap.passthrough())

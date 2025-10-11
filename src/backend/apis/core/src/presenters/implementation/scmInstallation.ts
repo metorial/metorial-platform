@@ -13,11 +13,11 @@ export let v1ScmInstallationPresenter = Presenter.create(scmInstallationType)
       id: scmInstallation.externalUserId,
       name: scmInstallation.externalUserName,
       email: scmInstallation.externalUserEmail,
-      imageUrl: scmInstallation.externalUserImageUrl
+      image_url: scmInstallation.externalUserImageUrl
     },
 
-    createdAt: scmInstallation.createdAt,
-    updatedAt: scmInstallation.updatedAt
+    created_at: scmInstallation.createdAt,
+    updated_at: scmInstallation.updatedAt
   }))
   .schema(
     v.object({
@@ -30,15 +30,15 @@ export let v1ScmInstallationPresenter = Presenter.create(scmInstallationType)
           id: v.string({ name: 'id', description: `The SCM user's unique identifier` }),
           name: v.string({ name: 'name', description: `The SCM user's name` }),
           email: v.string({ name: 'email', description: `The SCM user's email` }),
-          imageUrl: v.string({ name: 'image_url', description: `The SCM user's image URL` })
+          image_url: v.string({ name: 'image_url', description: `The SCM user's image URL` })
         },
         { name: 'user', description: `The SCM user associated with the installation` }
       ),
-      createdAt: v.date({
+      created_at: v.date({
         name: 'created_at',
         description: `The SCM repository's creation date`
       }),
-      updatedAt: v.date({
+      updated_at: v.date({
         name: 'updated_at',
         description: `The SCM repository's last update date`
       })

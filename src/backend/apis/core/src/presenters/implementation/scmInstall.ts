@@ -6,13 +6,13 @@ export let v1ScmInstallPresenter = Presenter.create(scmInstallType)
   .presenter(async ({ authorizationUrl }, opts) => ({
     object: 'integrations.scm.install',
 
-    authorizationUrl
+    authorization_url: authorizationUrl
   }))
   .schema(
     v.object({
       object: v.literal('integrations.scm.install'),
 
-      authorizationUrl: v.string({
+      authorization_url: v.string({
         name: 'authorization_url',
         description: 'The URL to redirect the user to for installing the SCM integration'
       })

@@ -10,7 +10,7 @@ export let v1ScmAccountPreviewPresenter = Presenter.create(scmAccountPreviewType
       provider: scmAccountPreview.provider,
       name: scmAccountPreview.name,
       identifier: scmAccountPreview.identifier,
-      externalId: scmAccountPreview.externalId
+      external_id: scmAccountPreview.externalId
     }))
   }))
   .schema(
@@ -28,7 +28,7 @@ export let v1ScmAccountPreviewPresenter = Presenter.create(scmAccountPreviewType
             name: 'identifier',
             description: `The SCM account's identifier`
           }),
-          externalId: v.string({
+          external_id: v.string({
             name: 'external_id',
             description: `The SCM account's external ID`
           })

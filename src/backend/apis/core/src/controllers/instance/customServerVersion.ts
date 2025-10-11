@@ -1,4 +1,5 @@
 import { customServerVersionService } from '@metorial/module-custom-server';
+import { scmRepoService } from '@metorial/module-scm';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -95,6 +96,13 @@ export let customServerVersionController = Controller.create(
                         scopes: v.array(v.string())
                       })
                     )
+                  ),
+
+                  repository: v.optional(
+                    v.object({
+                      repository_id: v.string(),
+                      path: v.string()
+                    })
                   )
                 })
               ),
@@ -108,6 +116,61 @@ export let customServerVersionController = Controller.create(
             })
           ])
         })
+      )
+      .body(
+        'mt_2025_01_01_pulsar',
+        v.object({
+          implementation: v.union([
+            v.object({
+              type: v.literal('remote'),
+
+              remote_server: v.object({
+                remote_url: v.string({ modifiers: [v.url()] }),
+                remote_protocol: v.enumOf(['sse', 'streamable_http']),
+
+                oauth_config: v.nullable(
+                  v.optional(
+                    v.object({
+                      config: v.record(v.any()),
+                      scopes: v.array(v.string())
+                    })
+                  )
+                )
+              }),
+
+              config: v.optional(
+                v.object({
+                  schema: v.optional(v.any()),
+                  getLaunchParams: v.optional(v.string())
+                })
+              )
+            }),
+            v.object({
+              type: v.literal('managed'),
+
+              managed_server: v.optional(
+                v.object({
+                  oauth_config: v.nullable(
+                    v.optional(
+                      v.object({
+                        config: v.record(v.any()),
+                        scopes: v.array(v.string())
+                      })
+                    )
+                  )
+                })
+              ),
+
+              config: v.optional(
+                v.object({
+                  schema: v.optional(v.any()),
+                  getLaunchParams: v.optional(v.string())
+                })
+              )
+            })
+          ])
+        }),
+        v => v
       )
       .output(customServerVersionPresenter)
       .use(hasFlags(['metorial-gateway-enabled']))
@@ -127,7 +190,17 @@ export let customServerVersionController = Controller.create(
                   config: {
                     schema: ctx.body.implementation.config?.schema,
                     getLaunchParams: ctx.body.implementation.config?.getLaunchParams
-                  }
+                  },
+                  repository: ctx.body.implementation.managed_server?.repository
+                    ? {
+                        repo: await scmRepoService.getScmRepoById({
+                          organization: ctx.organization,
+                          scmRepoId:
+                            ctx.body.implementation.managed_server.repository.repository_id
+                        }),
+                        path: ctx.body.implementation.managed_server.repository.path
+                      }
+                    : undefined
                 }
               : {
                   type: 'remote',

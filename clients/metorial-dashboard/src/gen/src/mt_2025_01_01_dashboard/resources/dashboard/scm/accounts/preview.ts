@@ -20,7 +20,7 @@ export let mapDashboardScmAccountsPreviewOutput =
           provider: mtMap.objectField('provider', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-          externalId: mtMap.objectField('externalId', mtMap.passthrough())
+          externalId: mtMap.objectField('external_id', mtMap.passthrough())
         })
       )
     )

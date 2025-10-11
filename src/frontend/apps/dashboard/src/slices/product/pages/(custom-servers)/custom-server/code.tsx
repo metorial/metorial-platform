@@ -1,3 +1,4 @@
+import { DashboardScmReposCreateOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { getConfig, Paths } from '@metorial/frontend-config';
 import {
@@ -6,13 +7,14 @@ import {
   useCustomServer,
   useCustomServerCodeEditorToken
 } from '@metorial/state';
-import { Button, Spacer, theme } from '@metorial/ui';
+import { Button, Dialog, Input, showModal, Spacer, theme } from '@metorial/ui';
 import { SideBox } from '@metorial/ui-product';
 import { RiArrowRightSLine, RiExpandDiagonal2Line, RiUpload2Line } from '@remixicon/react';
 import { motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { SelectRepo } from '../../../scenes/customServer/selectRepo';
 
 let Wrapper = styled.div`
   &[data-expanded='true'] {
@@ -77,7 +79,7 @@ export let CustomServerCodePage = () => {
 
   return renderWithLoader({ customServer, editorToken })(({ customServer, editorToken }) => (
     <>
-      {customServer.data.repository && (
+      {customServer.data.repository ? (
         <>
           <SideBox
             title="Repository"
@@ -92,6 +94,101 @@ export let CustomServerCodePage = () => {
               iconRight={<RiArrowRightSLine />}
             >
               View Repository
+            </Button>
+          </SideBox>
+          <Spacer height={15} />
+        </>
+      ) : (
+        <>
+          <SideBox
+            title="Link Repository"
+            description="Connect a Git repository to automatically sync code changes."
+          >
+            <Button
+              as="span"
+              size="2"
+              onClick={() =>
+                showModal(({ dialogProps, close }) => {
+                  let [path, setPath] = useState<string | undefined>(undefined);
+                  let [repo, setRepo] = useState<DashboardScmReposCreateOutput | undefined>(
+                    undefined
+                  );
+
+                  let createVersion = useCreateCustomServerVersion();
+
+                  return (
+                    <Dialog.Wrapper {...dialogProps} width={600}>
+                      <Dialog.Title>Connect Repository</Dialog.Title>
+                      <Dialog.Description>
+                        Select a repository from your connected Git accounts to link it to this
+                        custom server.
+                      </Dialog.Description>
+                      <SelectRepo
+                        onSelect={repo => setRepo(repo)}
+                        selectedRepoId={repo?.externalId}
+                      />
+
+                      <Spacer height={15} />
+
+                      <Input
+                        label="Path"
+                        description="The path within the repository where the server code is located."
+                        placeholder="e.g. /my-server"
+                        value={path}
+                        onChange={e => setPath(e.target.value)}
+                      />
+
+                      <Spacer height={15} />
+
+                      <Dialog.Actions>
+                        <Button onClick={close} variant="outline" size="2">
+                          Cancel
+                        </Button>
+                        <Button
+                          size="2"
+                          disabled={!repo}
+                          loading={createVersion.isLoading}
+                          success={createVersion.isSuccess}
+                          onClick={async () => {
+                            let [res] = await createVersion.mutate({
+                              instanceId: instance.data!.id,
+                              customServerId: customServer.data!.id,
+                              implementation: {
+                                type: 'managed',
+                                managedServer: {
+                                  repository: {
+                                    repositoryId: repo!.id,
+                                    path: path || '/'
+                                  }
+                                }
+                              }
+                            });
+
+                            if (res) {
+                              navigate(
+                                Paths.instance.customServer(
+                                  instance.data?.organization,
+                                  instance.data?.project,
+                                  instance.data,
+                                  res.customServerId,
+                                  'versions',
+                                  { version_id: res.id }
+                                )
+                              );
+                              setTimeout(() => close(), 500);
+                            }
+                          }}
+                        >
+                          Connect Repository
+                        </Button>
+                      </Dialog.Actions>
+                    </Dialog.Wrapper>
+                  );
+                })
+              }
+              iconRight={<RiArrowRightSLine />}
+            >
+              Connect Repository
             </Button>
           </SideBox>
           <Spacer height={15} />

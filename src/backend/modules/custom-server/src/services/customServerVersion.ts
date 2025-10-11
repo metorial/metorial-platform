@@ -9,6 +9,7 @@ import {
   Organization,
   OrganizationActor,
   RemoteServerProtocol,
+  ScmRepo,
   ScmRepoPush,
   ServerVersion,
   withTransaction
@@ -19,6 +20,7 @@ import { generatePlainId } from '@metorial/id';
 import { createLock } from '@metorial/lock';
 import { codeBucketService } from '@metorial/module-code-bucket';
 import { providerOauthConfigService } from '@metorial/module-provider-oauth';
+import { scmRepoService } from '@metorial/module-scm';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { createShortIdGenerator } from '@metorial/slugify';
@@ -129,6 +131,10 @@ class CustomServerVersionServiceImpl {
             schema?: any;
             getLaunchParams?: string;
           };
+          repository?: {
+            repo: ScmRepo;
+            path: string;
+          };
         };
 
     isEphemeralUpdate?: boolean;
@@ -226,6 +232,20 @@ class CustomServerVersionServiceImpl {
               d.serverInstance.config?.schema ??
               currentVersion?.serverVersion?.schema.schema ??
               defaultManagedConfigSchema;
+
+            if (d.serverInstance.repository) {
+              await db.customServer.updateMany({
+                where: { oid: server.oid },
+                data: {
+                  repositoryOid: d.serverInstance.repository.repo.oid,
+                  serverPath: d.serverInstance.repository.path
+                }
+              });
+
+              d.push = await scmRepoService.createPushForCurrentCommitOnDefaultBranch({
+                repo: d.serverInstance.repository.repo
+              });
+            }
           }
 
           let { maxVersionIndex } = await db.customServer.update({

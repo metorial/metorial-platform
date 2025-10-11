@@ -8,7 +8,10 @@ export type DashboardScmInstallationsCreateOutput = {
 export let mapDashboardScmInstallationsCreateOutput =
   mtMap.object<DashboardScmInstallationsCreateOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
-    authorizationUrl: mtMap.objectField('authorizationUrl', mtMap.passthrough())
+    authorizationUrl: mtMap.objectField(
+      'authorization_url',
+      mtMap.passthrough()
+    )
   });
 
 export type DashboardScmInstallationsCreateBody = {
