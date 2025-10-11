@@ -7,7 +7,7 @@ run: build
 	./bin/server $(ARGS)
 
 dev:
-	air --build.cmd "go build -o bin/server ./cmd/server" --build.bin "./bin/server"
+	air --build.exclude_dir node_modules --build.cmd "go build -o bin/server ./cmd/server" --build.bin "./bin/server"
 
 vet:
 	go vet ./...

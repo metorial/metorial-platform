@@ -284,8 +284,11 @@ class CustomServerVersionServiceImpl {
           let oauthConfig = d.serverInstance.implementation.oAuthConfig
             ? await providerOauthConfigService.createConfig({
                 instance: d.instance,
-                config: d.serverInstance.implementation.oAuthConfig.config,
-                scopes: d.serverInstance.implementation.oAuthConfig.scopes
+                implementation: {
+                  type: 'json',
+                  config: d.serverInstance.implementation.oAuthConfig.config,
+                  scopes: d.serverInstance.implementation.oAuthConfig.scopes
+                }
               })
             : undefined;
 
