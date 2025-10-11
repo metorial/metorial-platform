@@ -384,8 +384,18 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
                       if (v) {
                         showProviderConnectionFormModal({
                           onCreate: con => {
-                            form.setFieldValue('scopes', con.scopes);
-                            form.setFieldValue('config', JSON.stringify(con.config, null, 2));
+                            form.setFieldValue(
+                              'scopes',
+                              con.config.type == 'json' ? con.config.scopes : []
+                            );
+                            form.setFieldValue(
+                              'config',
+                              JSON.stringify(
+                                con.config.type == 'json' ? con.config.config : {},
+                                null,
+                                2
+                              )
+                            );
                             form.setFieldValue('enabled', true);
 
                             setTimeout(() => {
