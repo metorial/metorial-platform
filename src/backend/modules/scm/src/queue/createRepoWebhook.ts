@@ -20,26 +20,35 @@ export let createRepoWebhookQueueProcessor = createRepoWebhookQueue.process(asyn
   let secret = generatePlainId(32);
   let webhookId = await ID.generateId('scmRepoWebhook');
 
-  let wh = await octokit.request('POST /repos/{owner}/{repo}/hooks', {
+  let existingWebhook = await db.scmRepoWebhook.findUnique({
+    where: { repoOid: repo.oid }
+  });
+  if (existingWebhook) return;
+
+  let whRes = await octokit.request('POST /repos/{owner}/{repo}/hooks', {
     owner: repo.externalOwner,
     repo: repo.externalName,
     config: {
-      url: `${(await getFullConfig()).urls.integrationsApiUrl}/integrations/scm/webhook-ingest/${webhookId}`,
+      url: `${(await getFullConfig()).urls.integrationsApiUrl}/integrations/scm/webhook-ingest/gh/${webhookId}`,
       content_type: 'json',
       secret,
       insecure_ssl: '0'
     },
-    events: ['push', 'pull_request', 'pull_request_review', 'pull_request_review_comment'],
+    events: ['push'],
     active: true
   });
 
-  await db.scmRepoWebhook.create({
-    data: {
+  await db.scmRepoWebhook.upsert({
+    where: {
+      repoOid: repo.oid
+    },
+    create: {
       id: webhookId,
       repoOid: repo.oid,
-      externalId: wh.data.id.toString(),
+      externalId: whRes.data.id.toString(),
       signingSecret: secret,
       type: 'push'
-    }
+    },
+    update: {}
   });
 });
