@@ -245,17 +245,17 @@ class CustomServerVersionServiceImpl {
               };
             }
 
-            if (d.serverInstance.repository) {
+            if (repo) {
               await db.customServer.updateMany({
                 where: { oid: server.oid },
                 data: {
-                  repositoryOid: d.serverInstance.repository.repo.oid,
-                  serverPath: d.serverInstance.repository.path
+                  repositoryOid: repo.repo.oid,
+                  serverPath: repo.path
                 }
               });
 
               d.push = await scmRepoService.createPushForCurrentCommitOnDefaultBranch({
-                repo: d.serverInstance.repository.repo
+                repo: repo.repo
               });
             }
           }
@@ -387,7 +387,8 @@ class CustomServerVersionServiceImpl {
                 repo: repo,
                 isReadOnly: true,
                 ref: d.push.sha,
-                purpose: 'custom_server'
+                purpose: 'custom_server',
+                path: d.server.serverPath ?? '/'
               });
             } else {
               let draftCodeBucket = await db.codeBucket.findFirstOrThrow({
