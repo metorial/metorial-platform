@@ -10,7 +10,7 @@ import {
   useScmAccounts,
   useScmInstallations
 } from '@metorial/state';
-import { Button, Input, Or, Select, Spacer, theme, toast } from '@metorial/ui';
+import { Button, Flex, Input, Or, Select, Spacer, theme, toast } from '@metorial/ui';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -325,33 +325,48 @@ export let CustomServerManagedCreateForm = (p: {
 
                         <Spacer size={10} />
 
-                        <Button
-                          size="2"
-                          disabled={
-                            !selectedInstallationId ||
-                            !selectedAccountId ||
-                            !createRepoName.trim()
-                          }
-                          onClick={async () => {
-                            let [res] = await createRepo.mutate({
-                              organizationId: instance.data?.organization.id!,
-                              installationId: selectedInstallationId!,
-                              externalAccountId: selectedAccountId!,
-                              name: createRepoName,
-                              isPrivate: createRepoIsPrivate
-                            });
-
-                            if (res) {
-                              setSelectedRepoId(res.id);
-                              form.resetForm();
-                              form.setFieldValue('name', createRepoName);
-                              setCurrentStep(2);
+                        <Flex align="center" gap="10px">
+                          <Button
+                            size="2"
+                            disabled={
+                              !selectedInstallationId ||
+                              !selectedAccountId ||
+                              !createRepoName.trim()
                             }
-                          }}
-                          loading={createRepo.isLoading}
-                        >
-                          Continue
-                        </Button>
+                            onClick={async () => {
+                              let [res] = await createRepo.mutate({
+                                organizationId: instance.data?.organization.id!,
+                                installationId: selectedInstallationId!,
+                                externalAccountId: selectedAccountId!,
+                                name: createRepoName,
+                                isPrivate: createRepoIsPrivate
+                              });
+
+                              if (res) {
+                                setSelectedRepoId(res.id);
+                                form.resetForm();
+                                form.setFieldValue('name', createRepoName);
+                                setCurrentStep(2);
+                              }
+                            }}
+                            loading={createRepo.isLoading}
+                          >
+                            Continue
+                          </Button>
+
+                          <Button
+                            size="2"
+                            variant="outline"
+                            disabled={createRepo.isLoading}
+                            onClick={() => {
+                              setSelectedRepoId(undefined);
+                              form.resetForm();
+                              setCurrentStep(2);
+                            }}
+                          >
+                            Continue without Repo
+                          </Button>
+                        </Flex>
                       </>
                     )
                   )}
