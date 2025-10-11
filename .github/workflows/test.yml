@@ -29,7 +29,10 @@ jobs:
           node-version: 20
 
       - name: Install Bun
-        uses: oven-sh/setup-bun@v2
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "BUN_INSTALL=\"$HOME/.bun\"" >> $GITHUB_ENV
+          echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
       # - name: Patch bun
       #   run: mv _package.json package.json
