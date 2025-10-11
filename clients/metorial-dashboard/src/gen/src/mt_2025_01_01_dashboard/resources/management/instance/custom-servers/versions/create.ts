@@ -261,6 +261,7 @@ export type ManagementInstanceCustomServersVersionsCreateBody = {
                 | { config: Record<string, any>; scopes: string[] }
                 | null
                 | undefined;
+              repository?: { repositoryId: string; path: string } | undefined;
             }
           | undefined;
         config?:
@@ -319,6 +320,16 @@ export let mapManagementInstanceCustomServersVersionsCreateBody =
                       'scopes',
                       mtMap.array(mtMap.passthrough())
                     )
+                  })
+                ),
+                repository: mtMap.objectField(
+                  'repository',
+                  mtMap.object({
+                    repositoryId: mtMap.objectField(
+                      'repository_id',
+                      mtMap.passthrough()
+                    ),
+                    path: mtMap.objectField('path', mtMap.passthrough())
                   })
                 )
               })

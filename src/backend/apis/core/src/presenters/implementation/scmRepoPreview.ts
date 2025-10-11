@@ -10,12 +10,12 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
       provider: scmRepoPreview.provider,
       name: scmRepoPreview.name,
       identifier: scmRepoPreview.identifier,
-      externalId: scmRepoPreview.externalId,
-      createdAt: scmRepoPreview.createdAt,
-      updatedAt: scmRepoPreview.updatedAt,
-      lastPushedAt: scmRepoPreview.lastPushedAt,
+      external_id: scmRepoPreview.externalId,
+      created_at: scmRepoPreview.createdAt,
+      updated_at: scmRepoPreview.updatedAt,
+      lastPushed_at: scmRepoPreview.lastPushedAt,
       account: {
-        externalId: scmRepoPreview.account.externalId,
+        external_id: scmRepoPreview.account.externalId,
         name: scmRepoPreview.account.name,
         identifier: scmRepoPreview.account.identifier,
         provider: scmRepoPreview.account.provider
@@ -37,21 +37,21 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
             name: 'identifier',
             description: `The SCM repository's identifier`
           }),
-          externalId: v.string({
+          external_id: v.string({
             name: 'external_id',
             description: `The SCM repository's external ID`
           }),
-          createdAt: v.date({ name: 'created_at', description: 'When the repo was created' }),
-          updatedAt: v.date({
+          created_at: v.date({ name: 'created_at', description: 'When the repo was created' }),
+          updated_at: v.date({
             name: 'updated_at',
             description: 'When the repo was last updated'
           }),
-          lastPushedAt: v.nullable(
+          lastPushed_at: v.nullable(
             v.date({ name: 'last_pushed_at', description: 'When the repo was last pushed to' })
           ),
           account: v.object(
             {
-              externalId: v.string({
+              external_id: v.string({
                 name: 'external_id',
                 description: `The SCM account's external ID`
               }),

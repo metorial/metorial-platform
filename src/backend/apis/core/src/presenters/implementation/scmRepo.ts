@@ -10,18 +10,18 @@ export let v1ScmRepoPresenter = Presenter.create(scmRepoType)
     provider: scmRepo.provider,
     name: scmRepo.name,
     identifier: scmRepo.identifier,
-    externalId: scmRepo.externalId,
+    external_id: scmRepo.externalId,
     account: {
       id: scmRepo.account.id,
-      externalId: scmRepo.account.externalId,
+      external_id: scmRepo.account.externalId,
       name: scmRepo.account.name,
       identifier: scmRepo.account.identifier,
       provider: scmRepo.account.provider,
-      createdAt: scmRepo.account.createdAt,
-      updatedAt: scmRepo.account.updatedAt
+      created_at: scmRepo.account.createdAt,
+      updated_at: scmRepo.account.updatedAt
     },
-    createdAt: scmRepo.createdAt,
-    updatedAt: scmRepo.updatedAt
+    created_at: scmRepo.createdAt,
+    updated_at: scmRepo.updatedAt
   }))
   .schema(
     v.object({
@@ -34,14 +34,14 @@ export let v1ScmRepoPresenter = Presenter.create(scmRepoType)
         name: 'identifier',
         description: `The SCM repository's identifier`
       }),
-      externalId: v.string({
+      external_id: v.string({
         name: 'external_id',
         description: `The SCM repository's external ID`
       }),
       account: v.object(
         {
           id: v.string({ name: 'id', description: `The SCM account's unique identifier` }),
-          externalId: v.string({
+          external_id: v.string({
             name: 'external_id',
             description: `The SCM account's external ID`
           }),
@@ -54,22 +54,22 @@ export let v1ScmRepoPresenter = Presenter.create(scmRepoType)
             name: 'provider',
             description: `The SCM provider`
           }),
-          createdAt: v.date({
+          created_at: v.date({
             name: 'created_at',
             description: `The SCM account's creation date`
           }),
-          updatedAt: v.date({
+          updated_at: v.date({
             name: 'updated_at',
             description: `The SCM account's last update date`
           })
         },
         { name: 'account', description: `The SCM account` }
       ),
-      createdAt: v.date({
+      created_at: v.date({
         name: 'created_at',
         description: `The SCM repository's creation date`
       }),
-      updatedAt: v.date({
+      updated_at: v.date({
         name: 'updated_at',
         description: `The SCM repository's last update date`
       })

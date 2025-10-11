@@ -1,4 +1,4 @@
-import { db, ID, Organization, ScmInstallation } from '@metorial/db';
+import { db, ID, Organization, ScmInstallation, ScmRepo } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { Service } from '@metorial/service';
 import { Octokit } from '@octokit/core';
@@ -290,6 +290,49 @@ class scmRepoServiceImpl {
 
         await createHandleRepoPushQueue.add({ pushId: push.id });
       }
+    }
+
+    throw new ServiceError(badRequestError({ message: 'Unsupported provider' }));
+  }
+
+  async createPushForCurrentCommitOnDefaultBranch(i: { repo: ScmRepo }) {
+    if (i.repo.provider == 'github') {
+      let installation = await db.scmInstallation.findUniqueOrThrow({
+        where: { oid: i.repo.installationOid }
+      });
+      let octokit = new Octokit({ auth: installation.accessToken });
+
+      let refRes = await octokit.request('GET /repos/{owner}/{repo}/git/refs/heads/{branch}', {
+        owner: i.repo.externalOwner,
+        repo: i.repo.externalName,
+        branch: i.repo.defaultBranch
+      });
+
+      let commitRes = await octokit.request('GET /repos/{owner}/{repo}/commits/{ref}', {
+        owner: i.repo.externalOwner,
+        repo: i.repo.externalName,
+        ref: refRes.data.object.sha
+      });
+
+      let push = await db.scmRepoPush.create({
+        data: {
+          id: await ID.generateId('scmRepoPush'),
+          repoOid: i.repo.oid,
+
+          sha: commitRes.data.sha,
+          branchName: i.repo.defaultBranch,
+
+          pusherEmail: commitRes.data.commit.author?.email || null,
+          pusherName: commitRes.data.commit.author?.name || null,
+
+          senderIdentifier: `github.com/${commitRes.data.author?.login || 'unknown'}`,
+          commitMessage: commitRes.data.commit.message
+        }
+      });
+
+      // await createHandleRepoPushQueue.add({ pushId: push.id });
+
+      return push;
     }
 
     throw new ServiceError(badRequestError({ message: 'Unsupported provider' }));
