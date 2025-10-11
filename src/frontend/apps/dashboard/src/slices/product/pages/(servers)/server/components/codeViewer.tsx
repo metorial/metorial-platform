@@ -39,7 +39,6 @@ export let CodeViewer = ({
       }
       url.searchParams.set('replacements', btoa(JSON.stringify(final)));
     }
-    console.log(replacements, url);
 
     return url.toString();
   }, [repo, owner, path, title]);

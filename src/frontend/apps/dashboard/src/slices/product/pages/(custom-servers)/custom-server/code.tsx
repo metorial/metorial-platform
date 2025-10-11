@@ -6,8 +6,9 @@ import {
   useCustomServer,
   useCustomServerCodeEditorToken
 } from '@metorial/state';
-import { Button, theme } from '@metorial/ui';
-import { RiExpandDiagonal2Line, RiUpload2Line } from '@remixicon/react';
+import { Button, Spacer, theme } from '@metorial/ui';
+import { SideBox } from '@metorial/ui-product';
+import { RiArrowRightSLine, RiExpandDiagonal2Line, RiUpload2Line } from '@remixicon/react';
 import { motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -76,6 +77,27 @@ export let CustomServerCodePage = () => {
 
   return renderWithLoader({ customServer, editorToken })(({ customServer, editorToken }) => (
     <>
+      {customServer.data.repository && (
+        <>
+          <SideBox
+            title="Repository"
+            description="Code is managed through the connected repository."
+          >
+            <Button
+              as="span"
+              size="2"
+              onClick={async () => {
+                window.open(customServer.data.repository!.url, '_blank');
+              }}
+              iconRight={<RiArrowRightSLine />}
+            >
+              View Repository
+            </Button>
+          </SideBox>
+          <Spacer height={15} />
+        </>
+      )}
+
       <Wrapper data-expanded={isExpanded}>
         <Nav
           initial={{ y: -40, opacity: 0 }}

@@ -13,6 +13,7 @@ import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
 import { magicQueueProcessor } from '@metorial/module-magic';
 import { organizationQueueProcessor } from '@metorial/module-organization';
 import { providerOauthQueueProcessor } from '@metorial/module-provider-oauth';
+import { scmQueueProcessor } from '@metorial/module-scm';
 import { searchQueueProcessor } from '@metorial/module-search';
 import { secretQueueProcessor } from '@metorial/module-secret';
 import { serverDeploymentQueueProcessor } from '@metorial/module-server-deployment';
@@ -41,5 +42,6 @@ export let worker = runQueueProcessors([
   customServerQueueProcessor,
   codeBucketQueueProcessor,
   communityQueueProcessor,
-  magicQueueProcessor
+  magicQueueProcessor,
+  scmQueueProcessor
 ]);

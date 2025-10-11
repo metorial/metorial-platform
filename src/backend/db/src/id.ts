@@ -100,5 +100,11 @@ export let ID = createIdGenerator({
   magicMcpServer: idType.sorted('mgsr'),
   magicMcpSession: idType.sorted('mgsn'),
   magicMcpToken: idType.sorted('mgtk'),
-  magicMcpServerDeployment: idType.sorted('mgsrd')
+  magicMcpServerDeployment: idType.sorted('mgsrd'),
+
+  scmInstallation: idType.sorted('sci'),
+  scmAccount: idType.sorted('sca'),
+  scmRepo: idType.sorted('scr'),
+  scmRepoWebhook: idType.sorted('scrw'),
+  scmRepoPush: idType.sorted('scmp')
 });

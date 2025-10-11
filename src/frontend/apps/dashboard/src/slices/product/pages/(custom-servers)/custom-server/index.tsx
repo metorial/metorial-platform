@@ -3,6 +3,7 @@ import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCustomServer } from '@metorial/state';
 import { Attributes, Button, RenderDate, Spacer } from '@metorial/ui';
 import { Box, ID, SideBox } from '@metorial/ui-product';
+import { RiExternalLinkLine } from '@remixicon/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CustomServerEventsTable } from '../../../scenes/customServer/events';
 import { UsageScene } from '../../../scenes/usage/usage';
@@ -35,10 +36,30 @@ export let CustomServerOverviewPage = () => {
             label: 'Server ID',
             content: <ID id={customServer.data.server.id} />
           },
-          {
-            label: 'Created At',
-            content: <RenderDate date={customServer.data.createdAt!} />
-          }
+
+          ...(customServer.data.repository
+            ? [
+                {
+                  label: 'Repository',
+                  content: (
+                    <a
+                      href={customServer.data.repository.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'unset' }}
+                    >
+                      {customServer.data.repository.owner}/{customServer.data.repository.name}
+                      <RiExternalLinkLine size={18} />
+                    </a>
+                  )
+                }
+              ]
+            : [
+                {
+                  label: 'Created At',
+                  content: <RenderDate date={customServer.data.createdAt!} />
+                }
+              ])
         ]}
       />
 
@@ -78,7 +99,7 @@ export let CustomServerOverviewPage = () => {
       <Spacer height={15} />
 
       <Box title="Server Events" description="Important events about this custom server.">
-        <CustomServerEventsTable customServer={customServer.data} />
+        <CustomServerEventsTable customServer={customServer.data as any} />
       </Box>
     </>
   ));

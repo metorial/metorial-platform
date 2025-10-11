@@ -200,7 +200,7 @@ export let Tabs = ({
                   {item.label}
                 </Link>
               ) : (
-                <button onClick={() => action(item.id)} style={{ height }}>
+                <button onClick={() => action(item.id)} style={{ height }} type="button">
                   {item.label}
                 </button>
               )}

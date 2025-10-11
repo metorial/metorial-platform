@@ -28,6 +28,7 @@ const (
 	CodeBucket_GetBucketFiles_FullMethodName            = "/rpc.rpc.CodeBucket/GetBucketFiles"
 	CodeBucket_GetBucketFilesWithContent_FullMethodName = "/rpc.rpc.CodeBucket/GetBucketFilesWithContent"
 	CodeBucket_GetBucketFilesAsZip_FullMethodName       = "/rpc.rpc.CodeBucket/GetBucketFilesAsZip"
+	CodeBucket_ExportBucketToGithub_FullMethodName      = "/rpc.rpc.CodeBucket/ExportBucketToGithub"
 )
 
 // CodeBucketClient is the client API for CodeBucket service.
@@ -43,6 +44,7 @@ type CodeBucketClient interface {
 	GetBucketFiles(ctx context.Context, in *GetBucketFilesRequest, opts ...grpc.CallOption) (*GetBucketFilesResponse, error)
 	GetBucketFilesWithContent(ctx context.Context, in *GetBucketFilesRequest, opts ...grpc.CallOption) (*GetBucketFilesWithContentResponse, error)
 	GetBucketFilesAsZip(ctx context.Context, in *GetBucketFilesAsZipRequest, opts ...grpc.CallOption) (*GetBucketFilesAsZipResponse, error)
+	ExportBucketToGithub(ctx context.Context, in *ExportBucketToGithubRequest, opts ...grpc.CallOption) (*ExportBucketToGithubResponse, error)
 }
 
 type codeBucketClient struct {
@@ -143,6 +145,16 @@ func (c *codeBucketClient) GetBucketFilesAsZip(ctx context.Context, in *GetBucke
 	return out, nil
 }
 
+func (c *codeBucketClient) ExportBucketToGithub(ctx context.Context, in *ExportBucketToGithubRequest, opts ...grpc.CallOption) (*ExportBucketToGithubResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExportBucketToGithubResponse)
+	err := c.cc.Invoke(ctx, CodeBucket_ExportBucketToGithub_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CodeBucketServer is the server API for CodeBucket service.
 // All implementations must embed UnimplementedCodeBucketServer
 // for forward compatibility.
@@ -156,6 +168,7 @@ type CodeBucketServer interface {
 	GetBucketFiles(context.Context, *GetBucketFilesRequest) (*GetBucketFilesResponse, error)
 	GetBucketFilesWithContent(context.Context, *GetBucketFilesRequest) (*GetBucketFilesWithContentResponse, error)
 	GetBucketFilesAsZip(context.Context, *GetBucketFilesAsZipRequest) (*GetBucketFilesAsZipResponse, error)
+	ExportBucketToGithub(context.Context, *ExportBucketToGithubRequest) (*ExportBucketToGithubResponse, error)
 	mustEmbedUnimplementedCodeBucketServer()
 }
 
@@ -192,6 +205,9 @@ func (UnimplementedCodeBucketServer) GetBucketFilesWithContent(context.Context, 
 }
 func (UnimplementedCodeBucketServer) GetBucketFilesAsZip(context.Context, *GetBucketFilesAsZipRequest) (*GetBucketFilesAsZipResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBucketFilesAsZip not implemented")
+}
+func (UnimplementedCodeBucketServer) ExportBucketToGithub(context.Context, *ExportBucketToGithubRequest) (*ExportBucketToGithubResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExportBucketToGithub not implemented")
 }
 func (UnimplementedCodeBucketServer) mustEmbedUnimplementedCodeBucketServer() {}
 func (UnimplementedCodeBucketServer) testEmbeddedByValue()                    {}
@@ -376,6 +392,24 @@ func _CodeBucket_GetBucketFilesAsZip_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CodeBucket_ExportBucketToGithub_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExportBucketToGithubRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CodeBucketServer).ExportBucketToGithub(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CodeBucket_ExportBucketToGithub_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CodeBucketServer).ExportBucketToGithub(ctx, req.(*ExportBucketToGithubRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CodeBucket_ServiceDesc is the grpc.ServiceDesc for CodeBucket service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -418,6 +452,10 @@ var CodeBucket_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetBucketFilesAsZip",
 			Handler:    _CodeBucket_GetBucketFilesAsZip_Handler,
+		},
+		{
+			MethodName: "ExportBucketToGithub",
+			Handler:    _CodeBucket_ExportBucketToGithub_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

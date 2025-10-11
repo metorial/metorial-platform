@@ -1,5 +1,6 @@
 import { canonicalize } from '@metorial/canonicalize';
 import {
+  CodeBucket,
   CustomServer,
   CustomServerVersion,
   db,
@@ -8,6 +9,7 @@ import {
   Organization,
   OrganizationActor,
   RemoteServerProtocol,
+  ScmRepoPush,
   ServerVersion,
   withTransaction
 } from '@metorial/db';
@@ -25,6 +27,7 @@ import { initializeLambdaQueue } from '../queues/initializeLambda';
 import { initializeRemoteQueue } from '../queues/initializeRemote';
 
 let include = {
+  push: true,
   customServer: {
     include: {
       server: true,
@@ -95,6 +98,8 @@ class CustomServerVersionServiceImpl {
     instance: Instance;
     organization: Organization;
     performedBy: OrganizationActor;
+
+    push?: ScmRepoPush;
 
     serverInstance:
       | {
@@ -270,7 +275,9 @@ class CustomServerVersionServiceImpl {
 
               customServerOid: server.oid,
               // serverVersionOid: serverVersion.oid,
-              instanceOid: d.instance.oid
+              instanceOid: d.instance.oid,
+
+              pushOid: d.push?.oid
             }
           });
 
@@ -332,16 +339,34 @@ class CustomServerVersionServiceImpl {
               { delay: 1000 }
             );
           } else if (d.serverInstance.type == 'managed') {
-            let draftCodeBucket = await db.codeBucket.findFirstOrThrow({
-              where: {
-                instanceOid: d.instance.oid,
-                oid: server.draftCodeBucketOid!
-              }
-            });
+            let immutableCodeBucket: CodeBucket;
 
-            let immutableCodeBucket = await codeBucketService.cloneCodeBucket({
-              codeBucket: draftCodeBucket
-            });
+            if (d.push) {
+              let repo = await db.scmRepo.findFirstOrThrow({
+                where: { oid: d.push.repoOid },
+                include: { installation: true }
+              });
+
+              immutableCodeBucket = await codeBucketService.createCodeBucketFromRepo({
+                instance: d.instance,
+                repo: repo,
+                isReadOnly: true,
+                ref: d.push.sha,
+                purpose: 'custom_server'
+              });
+            } else {
+              let draftCodeBucket = await db.codeBucket.findFirstOrThrow({
+                where: {
+                  instanceOid: d.instance.oid,
+                  oid: server.draftCodeBucketOid!
+                }
+              });
+
+              immutableCodeBucket = await codeBucketService.cloneCodeBucket({
+                codeBucket: draftCodeBucket,
+                isReadOnly: true
+              });
+            }
 
             let lambdaServerInstance = await db.lambdaServerInstance.create({
               data: {

@@ -255,8 +255,6 @@ let ServerDeploymentFormInternal = (
           }
 
           if (res) {
-            console.log(res);
-
             if ('needsDefaultOauthSession' in res && res.needsDefaultOauthSession) {
               try {
                 let oauthSessionId = await authenticateWithOauth({

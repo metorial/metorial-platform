@@ -26,7 +26,8 @@ export let env = createValidatedEnv({
     APP_URL: v.string(),
     MCP_URL: v.string(),
     PROVIDER_OAUTH_URL: v.string(),
-    PORTALS_URL: v.string()
+    PORTALS_URL: v.string(),
+    INTEGRATIONS_API_URL: v.string()
   },
 
   env: {

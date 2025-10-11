@@ -3,6 +3,7 @@ import { delay } from '@metorial/delay';
 import { providerOauthConfigService } from '@metorial/module-provider-oauth';
 import { createQueue } from '@metorial/queue';
 import { getSentry } from '@metorial/sentry';
+import { DeploymentError } from '../deployment/base/error';
 import { createDenoLambdaDeployment, DenoDeployment } from '../deployment/deno/deployment';
 import { createDeploymentStepManager } from '../lib/stepManager';
 import { customServerVersionService } from '../services';
@@ -30,6 +31,7 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
       instance: true,
       customServerVersion: {
         include: {
+          push: true,
           deployment: true,
           customServer: true
         }
@@ -103,6 +105,18 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
     checkStep.complete([]);
   } catch (error: any) {
     console.error('Error during managed server deployment setup:', error);
+
+    if (error instanceof DeploymentError) {
+      await checkStep.fail([
+        {
+          type: 'error',
+          lines: [error.message]
+        }
+      ]);
+      await failDeployment();
+      return;
+    }
+
     if (error.response && error.response.data && error.response.data.message) {
       await checkStep.fail([
         {
@@ -111,9 +125,7 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
         }
       ]);
     }
-
     Sentry.captureException(error);
-    await checkStep.fail();
     await failDeployment();
     return;
   }
