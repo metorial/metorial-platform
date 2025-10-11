@@ -27,6 +27,7 @@ import { createShortIdGenerator } from '@metorial/slugify';
 import { validateJsonSchema } from '../lib/jsonSchema';
 import { initializeLambdaQueue } from '../queues/initializeLambda';
 import { initializeRemoteQueue } from '../queues/initializeRemote';
+import { syncCurrentDraftBucketToRepoQueue } from '../queues/syncCurrentDraftBucketToRepo';
 
 let include = {
   push: true,
@@ -389,6 +390,11 @@ class CustomServerVersionServiceImpl {
                 ref: d.push.sha,
                 purpose: 'custom_server',
                 path: d.server.serverPath ?? '/'
+              });
+
+              await syncCurrentDraftBucketToRepoQueue.add({
+                draftBucketOid: server.draftCodeBucketOid!,
+                immutableBucketOid: immutableCodeBucket.oid
               });
             } else {
               let draftCodeBucket = await db.codeBucket.findFirstOrThrow({

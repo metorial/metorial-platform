@@ -3,6 +3,7 @@ import { customServerCleanupCron } from './cron/cleanup';
 import { checkRemoteQueueProcessor } from './queues/checkRemote';
 import { initializeLambdaQueueProcessor } from './queues/initializeLambda';
 import { initializeRemoteQueueProcessor } from './queues/initializeRemote';
+import { syncCurrentDraftBucketToRepoQueueProcessor } from './queues/syncCurrentDraftBucketToRepo';
 
 export * from './services';
 export * from './templates';
@@ -11,5 +12,6 @@ export let customServerQueueProcessor = combineQueueProcessors([
   customServerCleanupCron,
   checkRemoteQueueProcessor,
   initializeLambdaQueueProcessor,
-  initializeRemoteQueueProcessor
+  initializeRemoteQueueProcessor,
+  syncCurrentDraftBucketToRepoQueueProcessor
 ]);

@@ -14,6 +14,7 @@ import Long from 'long';
 import { codeWorkspaceClient } from '../lib/codeWorkspace';
 import { normalizePath } from '../lib/normalizePath';
 import { cloneBucketQueue } from '../queue/cloneBucket';
+import { copyFromToBucketQueue } from '../queue/copyFromToBucket';
 import { exportGithubQueue } from '../queue/exportGithub';
 import { importGithubQueue } from '../queue/importGithub';
 
@@ -187,6 +188,18 @@ class codeBucketServiceImpl {
       token: res.token,
       expiresAt: new Date(Date.now() + (expiresInSeconds - 1) * 1000)
     };
+  }
+
+  async syncCodeBuckets(d: { source: CodeBucket; target: CodeBucket }) {
+    await db.codeBucket.update({
+      where: { oid: d.target.oid },
+      data: { status: 'importing' }
+    });
+
+    await copyFromToBucketQueue.add({
+      sourceBucketId: d.source.id,
+      targetBucketId: d.target.id
+    });
   }
 }
 
