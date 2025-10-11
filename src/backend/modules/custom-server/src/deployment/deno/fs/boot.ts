@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
   if (url.pathname == '/discover' && req.method === 'GET') {
     await dryImport();
 
-    let client = await getClient({
+    let client = await getClient({}, {
       client: {
         name: 'Metorial Auto Discover',
         version: '0.1.0'
@@ -136,8 +136,9 @@ Deno.serve(async (req) => {
 
     let clientInfoRaw = req.headers.get('metorial-stellar-client')!;
     let clientInfo = JSON.parse(clientInfoRaw || '{}');
-    let args = req.headers.get('metorial-stellar-arguments')!;
-    globalThis.__metorial_setArgs__(JSON.parse(args || '{}'));
+    let argsRaw = req.headers.get('metorial-stellar-arguments')!;
+    let args = JSON.parse(argsRaw || '{}');
+    globalThis.__metorial_setArgs__(args);
 
     let socketReadyPromise = new ProgrammablePromise<any>();
 
@@ -156,7 +157,7 @@ Deno.serve(async (req) => {
       let msg = JSON.parse(event.data);
       if (msg.type == 'mcp.message') {
         try {
-          let client = await getClient({
+          let client = await getClient(args, {
             client: clientInfo.clientInfo ?? { name: 'Unknown', version: '0.0.0' },
             // capabilities: clientInfo.capabilities || {},
             capabilities: {}, // Client's can't have capabilities for now

@@ -16,7 +16,7 @@ interface BootOptions {
 
 let clients = new Map<string, Promise<Client>>();
 
-export let getClient = async (opts: BootOptions) => {
+export let getClient = async (args: any, opts: BootOptions) => {
   if (clients.has(opts.client.name)) {
     return clients.get(opts.client.name)!;
   }
@@ -32,6 +32,12 @@ export let getClient = async (opts: BootOptions) => {
         });
       })
     ]);
+
+
+    globalThis.__metorial_setArgs__(args);
+    if (server.type == 'metorial.server::v1') {
+      server = await server.start(args);
+    }
 
     let transport = createInProcessTransport();
     await server.connect(transport.server);
