@@ -225,6 +225,7 @@ class scmRepoServiceImpl {
 
   async receiveWebhookEvent(i: {
     webhookId: string;
+    idempotencyKey: string;
     eventType: string;
     payload: string;
     signature: string;
@@ -264,7 +265,8 @@ class scmRepoServiceImpl {
         data: {
           webhookOid: webhook.oid,
           eventType: i.eventType,
-          payload: i.payload
+          payload: i.payload,
+          idempotencyKey: i.idempotencyKey
         }
       });
 
