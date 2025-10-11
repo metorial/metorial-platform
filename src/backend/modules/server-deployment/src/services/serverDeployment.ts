@@ -295,15 +295,29 @@ class ServerDeploymentServiceImpl {
             isEphemeral: true,
 
             input: {
-              name: `OAuth Connection for ${d.input.name ?? d.serverImplementation.instance.name ?? d.serverImplementation.instance.server.name}`,
+              name: `${d.input.name ?? d.serverImplementation.instance.name ?? d.serverImplementation.instance.server.name}`,
               description: 'Auto-created by Metorial for server deployment',
 
               setup: {
                 mode: 'manual',
-                config: oauthConfig.config,
-                scopes: oauthConfig.scopes,
-                clientId: d.input.oauthConfig.clientId,
-                clientSecret: d.input.oauthConfig.clientSecret
+                implementation:
+                  oauthConfig.type == 'json'
+                    ? {
+                        type: 'json',
+                        config: oauthConfig.config,
+                        scopes: oauthConfig.scopes,
+                        clientId: d.input.oauthConfig.clientId,
+                        clientSecret: d.input.oauthConfig.clientSecret
+                      }
+                    : {
+                        type: 'managed_server_http',
+                        httpEndpoint: oauthConfig.httpEndpoint!,
+                        hasRemoteOauthForm: oauthConfig.hasRemoteOauthForm!,
+                        clientId: d.input.oauthConfig.clientId,
+                        clientSecret: d.input.oauthConfig.clientSecret,
+                        lambdaServerInstanceOid:
+                          oauthConfig.lambdaServerInstanceForHttpEndpointOid!
+                      }
               }
             }
           });
@@ -317,7 +331,7 @@ class ServerDeploymentServiceImpl {
             isEphemeral: true,
 
             input: {
-              name: `OAuth Connection for ${d.input.name ?? d.serverImplementation.instance.name ?? d.serverImplementation.instance.server.name}`,
+              name: `${d.input.name ?? d.serverImplementation.instance.name ?? d.serverImplementation.instance.server.name}`,
               description: 'Auto-created by Metorial for server deployment',
 
               setup: {

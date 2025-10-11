@@ -9,10 +9,15 @@ export let v1ManagedServerPresenter = Presenter.create(managedServerType)
     id: managedServerInstance.id,
 
     provider_oauth: managedServerInstance.providerOAuthConfig
-      ? {
-          config: managedServerInstance.providerOAuthConfig.config as Record<string, any>,
-          scopes: managedServerInstance.providerOAuthConfig.scopes
-        }
+      ? managedServerInstance.providerOAuthConfig.type == 'json'
+        ? {
+            type: 'json' as const,
+            config: managedServerInstance.providerOAuthConfig.config as Record<string, any>,
+            scopes: managedServerInstance.providerOAuthConfig.scopes
+          }
+        : {
+            type: 'custom' as const
+          }
       : null,
 
     created_at: managedServerInstance.createdAt,
@@ -25,16 +30,28 @@ export let v1ManagedServerPresenter = Presenter.create(managedServerType)
       id: v.string({ name: 'id', description: `The managed server's unique identifier` }),
 
       provider_oauth: v.nullable(
-        v.object({
-          config: v.record(v.any(), {
-            name: 'config',
-            description: `The provider OAuth configuration, if available`
+        v.union([
+          v.object({
+            type: v.literal('custom', {
+              name: 'type',
+              description: `Indicates that the provider OAuth configuration is custom and not directly accessible`
+            })
           }),
-          scopes: v.array(v.string(), {
-            name: 'scopes',
-            description: `The scopes associated with the provider OAuth configuration`
+          v.object({
+            type: v.literal('json', {
+              name: 'type',
+              description: `Indicates that the provider OAuth configuration is provided as JSON`
+            }),
+            config: v.record(v.any(), {
+              name: 'config',
+              description: `The provider OAuth configuration, if available`
+            }),
+            scopes: v.array(v.string(), {
+              name: 'scopes',
+              description: `The scopes associated with the provider OAuth configuration`
+            })
           })
-        })
+        ])
       ),
 
       created_at: v.date({

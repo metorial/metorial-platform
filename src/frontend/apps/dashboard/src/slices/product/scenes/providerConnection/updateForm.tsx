@@ -90,8 +90,16 @@ export let ProviderConnectionUpdateForm = (p: {
         initialValues={{
           clientId: providerConnection.data?.clientId ?? '',
           clientSecret: emptyClientSecret,
-          scopes: providerConnection.data?.scopes ?? [],
-          config: JSON.stringify(providerConnection.data?.config ?? {}, null, 2)
+
+          ...(providerConnection.data?.config.type == 'json'
+            ? {
+                scopes: providerConnection.data.config.config.scopes ?? [],
+                config: JSON.stringify(providerConnection.data.config.config ?? {}, null, 2)
+              }
+            : {
+                scopes: [],
+                config: JSON.stringify({}, null, 2)
+              })
         }}
         mutators={[updateMutator]}
         onSubmit={async values => {

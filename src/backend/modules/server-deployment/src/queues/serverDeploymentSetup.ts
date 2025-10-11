@@ -70,7 +70,7 @@ export let serverDeploymentSetupQueueProcessor = serverDeploymentSetupQueue.proc
     //       performedBy: system,
 
     //       input: {
-    //         name: `OAuth Connection for ${serverDeployment.name ?? serverDeployment.serverImplementation.name ?? serverDeployment.server.name}`,
+    //         name: `${serverDeployment.name ?? serverDeployment.serverImplementation.name ?? serverDeployment.server.name}`,
     //         description: 'Auto-created by Metorial for server deployment',
     //         config: oauthConfig.config,
     //         scopes: oauthConfig.scopes,

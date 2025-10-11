@@ -33,8 +33,17 @@ export let v1ProviderOauthConnectionPresenter = Presenter.create(providerOauthCo
       })
     },
 
-    config: providerOauthConnection.config.config,
-    scopes: providerOauthConnection.config.scopes,
+    config:
+      providerOauthConnection.config.type == 'json'
+        ? {
+            type: 'json' as const,
+            config: providerOauthConnection.config.config,
+            scopes: providerOauthConnection.config.scopes
+          }
+        : {
+            type: 'custom' as const
+          },
+
     client_id: providerOauthConnection.clientId,
 
     instance_id: providerOauthConnection.instance.id,
@@ -97,22 +106,35 @@ export let v1ProviderOauthConnectionPresenter = Presenter.create(providerOauthCo
         })
       }),
 
-      config: v.record(v.any(), {
-        name: 'config',
-        description: 'A key-value map of custom configuration options specific to the provider'
-      }),
-
-      scopes: v.array(
-        v.string({
-          name: 'scope',
-          description: 'A requested OAuth scope for this connection',
-          examples: ['repo', 'openid', 'email']
+      config: v.union([
+        v.object({
+          type: v.enumOf(['json'], {
+            name: 'type',
+            description: 'The format type of the configuration data'
+          }),
+          config: v.record(v.any(), {
+            name: 'config',
+            description: 'The OAuth configuration details as a key-value map'
+          }),
+          scopes: v.array(
+            v.string({
+              name: 'scope',
+              description: 'A requested OAuth scope for this connection',
+              examples: ['repo', 'openid', 'email']
+            }),
+            {
+              name: 'scopes',
+              description: 'The list of OAuth scopes associated with this connection'
+            }
+          )
         }),
-        {
-          name: 'scopes',
-          description: 'The list of OAuth scopes associated with this connection'
-        }
-      ),
+        v.object({
+          type: v.enumOf(['custom'], {
+            name: 'type',
+            description: 'The format type of the configuration data'
+          })
+        })
+      ]),
 
       client_id: v.string({
         name: 'client_id',

@@ -62,6 +62,8 @@ model ProviderOAuthConnectionAuthAttempt {
   errorCode    String?
   errorMessage String?
 
+  additionalValues Json?
+
   associatedTokenErrorDisabledAt DateTime?
 
   redirectUri String
@@ -92,6 +94,9 @@ model ProviderOAuthConnectionAuthToken {
   scope     String?
   tokenType String?
   idToken   String?
+
+  additionalValuesFromAuthAttempt Json?
+  additionalAuthData              Json?
 
   expiresAt DateTime?
 

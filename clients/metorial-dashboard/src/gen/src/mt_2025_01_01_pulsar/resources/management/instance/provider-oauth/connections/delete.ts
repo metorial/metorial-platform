@@ -8,8 +8,9 @@ export type ManagementInstanceProviderOauthConnectionsDeleteOutput = {
   description: string | null;
   metadata: Record<string, any>;
   provider: { id: string; name: string; url: string; imageUrl: string };
-  config: Record<string, any>;
-  scopes: string[];
+  config:
+    | { type: 'json'; config: Record<string, any>; scopes: string[] }
+    | { type: 'custom' };
   clientId: string;
   instanceId: string;
   templateId: string | null;
@@ -34,8 +35,22 @@ export let mapManagementInstanceProviderOauthConnectionsDeleteOutput =
         imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
       })
     ),
-    config: mtMap.objectField('config', mtMap.passthrough()),
-    scopes: mtMap.objectField('scopes', mtMap.array(mtMap.passthrough())),
+    config: mtMap.objectField(
+      'config',
+      mtMap.union([
+        mtMap.unionOption(
+          'object',
+          mtMap.object({
+            type: mtMap.objectField('type', mtMap.passthrough()),
+            config: mtMap.objectField('config', mtMap.passthrough()),
+            scopes: mtMap.objectField(
+              'scopes',
+              mtMap.array(mtMap.passthrough())
+            )
+          })
+        )
+      ])
+    ),
     clientId: mtMap.objectField('client_id', mtMap.passthrough()),
     instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
     templateId: mtMap.objectField('template_id', mtMap.passthrough()),

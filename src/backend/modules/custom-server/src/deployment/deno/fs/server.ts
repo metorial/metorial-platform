@@ -5,8 +5,6 @@ import { DeploymentError } from './error.ts';
 import { delay } from './delay.ts';
 import { createInProcessTransport } from './transport.ts';
 
-export let currentServer = new ProgrammablePromise<McpServer>();
-
 interface BootOptions {
   client: {
     name: string;
@@ -18,14 +16,14 @@ interface BootOptions {
 
 let clients = new Map<string, Promise<Client>>();
 
-export let getClient = async (opts: BootOptions) => {
+export let getClient = async (args: any, opts: BootOptions) => {
   if (clients.has(opts.client.name)) {
     return clients.get(opts.client.name)!;
   }
 
   let client = (async () => {
     let server = await Promise.race([
-      currentServer.promise,
+      globalThis.__metorial_getServer__(),
       delay(100).then(() => {
         throw new DeploymentError({
           code: 'server_start_timeout',
@@ -34,6 +32,12 @@ export let getClient = async (opts: BootOptions) => {
         });
       })
     ]);
+
+
+    globalThis.__metorial_setArgs__(args);
+    if (server.type == 'metorial.server::v1') {
+      server = await server.start(args);
+    }
 
     let transport = createInProcessTransport();
     await server.connect(transport.server);

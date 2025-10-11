@@ -35,12 +35,21 @@ export interface CreateConnectionRequest {
 
 export interface TokenResponse {
   access_token: string;
-  token_type: string;
+  token_type?: string;
   expires_in?: number;
   refresh_token?: string;
   id_token?: string;
   scope?: string;
 }
+
+export let tokenResponseValidator = v.object({
+  access_token: v.string(),
+  token_type: v.optional(v.string()),
+  expires_in: v.optional(v.number()),
+  refresh_token: v.optional(v.string()),
+  id_token: v.optional(v.string()),
+  scope: v.optional(v.string())
+});
 
 export interface UserProfile {
   raw: Record<string, any>;

@@ -132,7 +132,7 @@ export let createDenoLambdaDeployment = async (config: {
         });
       }
 
-      let logs = await axios.get<{ level: 'error' | 'info'; message: string }[]>(
+      let buildLogs = await axios.get<{ level: 'error' | 'info'; message: string }[]>(
         `https://api.deno.com/v1/deployments/${deployment.providerResourceId}/build_logs`,
         {
           headers: {
@@ -142,9 +142,9 @@ export let createDenoLambdaDeployment = async (config: {
         }
       );
 
-      logs.data = logs.data.filter(l => !l.message.includes('.deno.dev'));
+      buildLogs.data = buildLogs.data.filter(l => !l.message.includes('.deno.dev'));
 
-      let newLogs = logs.data.slice(offsetRef.current);
+      let newLogs = buildLogs.data.slice(offsetRef.current);
       offsetRef.current += newLogs.length;
 
       let groupedLogs: { type: 'info' | 'error'; lines: string[] }[] = [];
@@ -165,14 +165,30 @@ export let createDenoLambdaDeployment = async (config: {
     },
 
     discoverServer: async () => {
-      let url = new URL('/discover', serverUrl.current).toString();
-      let res = await axios.get<any>(url, {
+      let discoverUrl = new URL('/discover', serverUrl.current).toString();
+      let discoverRes = await axios.get<any>(discoverUrl, {
         headers: {
           'metorial-stellar-token': lambdaServerInstance.securityToken
-        }
+        },
+        timeout: 5000
       });
 
-      return res.data;
+      let oauthUrl = new URL('/oauth', serverUrl.current).toString();
+      let oauthRes = await axios.get<{ enabled: boolean; hasForm: boolean }>(oauthUrl, {
+        headers: {
+          'metorial-stellar-token': lambdaServerInstance.securityToken
+        },
+        timeout: 5000
+      });
+
+      return {
+        capabilities: discoverRes.data,
+        oauth: oauthRes.data
+      };
+    },
+
+    get httpEndpoint() {
+      return serverUrl.current;
     }
   };
 };

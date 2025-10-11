@@ -2,13 +2,16 @@ import { CodeBucket, Instance, LambdaServerInstance } from '@metorial/db';
 import { codeBucketService } from '@metorial/module-code-bucket';
 import { v } from '@metorial/validation';
 import { DeploymentError } from '../../base/error';
-import { argsTs } from './args';
 import { bootTs } from './boot';
+import { configTs } from './config';
 import { delayTs } from './delay';
 import { discoverTs } from './discover';
 import { errorTs } from './error';
-import { libTs } from './lib';
+import { libArgsTs } from './lib/args';
+import { libIndexTs } from './lib/lib';
+import { libOauthTs } from './lib/oauth';
 import { logsTs } from './logs';
+import { oauthTs } from './oauth';
 import { promiseTs } from './promise';
 import { serverTs } from './server';
 import { transportTs } from './transport';
@@ -36,8 +39,11 @@ export let getDenoFs = async (
       'promise.ts': promiseTs,
       'server.ts': serverTs,
       'transport.ts': transportTs,
-      'lib.ts': libTs,
-      'args.ts': argsTs
+      'lib/index.ts': libIndexTs,
+      'lib/args.ts': libArgsTs,
+      'lib/oauth.ts': libOauthTs,
+      'config.ts': configTs,
+      'oauth.ts': oauthTs
     })
   );
 
@@ -151,7 +157,7 @@ export let getDenoFs = async (
 
   let denoJson = {
     imports: {
-      '@metorial/mcp-server-sdk': './lib.ts'
+      '@metorial/mcp-server-sdk': './lib/index.ts'
     }
   };
   files.set('deno.json', JSON.stringify(denoJson, null, 2));

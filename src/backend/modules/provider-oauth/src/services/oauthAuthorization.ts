@@ -1,3 +1,4 @@
+import { createCachedFunction } from '@metorial/cache';
 import { Context } from '@metorial/context';
 import {
   db,
@@ -5,22 +6,69 @@ import {
   Instance,
   ProviderOAuthConfig,
   ProviderOAuthConnection,
-  ProviderOAuthConnectionAuthToken
+  ProviderOAuthConnectionAuthToken,
+  ProviderOAuthConnectionProfile
 } from '@metorial/db';
 import { ServiceError } from '@metorial/error';
 import { badRequestError } from '@metorial/error/src/defaultErrors';
 import { Fabric } from '@metorial/fabric';
+import { profileService } from '@metorial/module-community';
 import { usageService } from '@metorial/module-usage';
 import { getSentry } from '@metorial/sentry';
 import { Service } from '@metorial/service';
+import { getAxiosSsrfFilter } from '@metorial/ssrf';
+import axios from 'axios';
 import { differenceInDays, differenceInMinutes, subMinutes } from 'date-fns';
 import { callbackUrl } from '../const';
+import { formSchema } from '../lib/formSchema';
 import { oauthErrorDescriptions } from '../lib/oauthErrors';
 import { OAuthUtils } from '../lib/oauthUtils';
 import { addErrorCheck } from '../queue/errorCheck';
-import { OAuthConfiguration, TokenResponse, UserProfile } from '../types';
+import {
+  OAuthConfiguration,
+  TokenResponse,
+  tokenResponseValidator,
+  UserProfile
+} from '../types';
 
 let Sentry = getSentry();
+
+let getFormCached = createCachedFunction({
+  name: 'pao/aut/form/remot2',
+  provider: async (i: { securityToken: string; httpEndpoint: string }) => {
+    let form = await axios.post(
+      `${i.httpEndpoint}/oauth/authorization-form`,
+      { input: {} },
+      {
+        ...getAxiosSsrfFilter(i.httpEndpoint),
+        headers: {
+          'metorial-stellar-token': i.securityToken
+        }
+      }
+    );
+    if (form.status !== 200 || !form.data.success) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Failed to fetch authorization form from remote server'
+        })
+      );
+    }
+
+    let valRes = formSchema.validate(form.data.authForm);
+    if (!valRes.success) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Remote server returned an invalid authorization form',
+          details: valRes.errors
+        })
+      );
+    }
+
+    return valRes.value;
+  },
+  ttlSeconds: 60 * 5,
+  getHash: i => i.httpEndpoint
+});
 
 class OauthAuthorizationServiceImpl {
   async startAuthorization(d: {
@@ -29,6 +77,7 @@ class OauthAuthorizationServiceImpl {
       config: ProviderOAuthConfig;
     };
     redirectUri: string;
+    fieldValues: Record<string, string> | null;
   }) {
     if (d.connection.status != 'active') {
       throw new ServiceError(
@@ -44,6 +93,138 @@ class OauthAuthorizationServiceImpl {
           message: 'Connection is not fully set up yet and cannot be used for authentication'
         })
       );
+    }
+
+    if (d.connection.config.type == 'managed_server_http') {
+      if (
+        !d.connection.config.httpEndpoint ||
+        !d.connection.config.lambdaServerInstanceForHttpEndpointOid
+      ) {
+        throw new Error(
+          'WTF - Remote OAuth configuration is missing httpEndpoint or lambdaServerInstanceForHttpEndpointOid'
+        );
+      }
+
+      let lambdaInstance = await db.lambdaServerInstance.findUniqueOrThrow({
+        where: { oid: d.connection.config.lambdaServerInstanceForHttpEndpointOid },
+        include: { instance: { include: { organization: true } } }
+      });
+
+      if (d.connection.config.hasRemoteOauthForm && !d.fieldValues) {
+        let form = await getFormCached({
+          securityToken: lambdaInstance.securityToken,
+          httpEndpoint: d.connection.config.httpEndpoint
+        });
+
+        let profile = await profileService.ensureProfile({
+          for: {
+            type: 'organization',
+            organization: lambdaInstance.instance.organization
+          }
+        });
+
+        return {
+          type: 'form' as const,
+          form,
+          profile
+        };
+      }
+
+      if (d.fieldValues) {
+        let form = await getFormCached({
+          securityToken: lambdaInstance.securityToken,
+          httpEndpoint: d.connection.config.httpEndpoint
+        });
+
+        for (let field of form.fields) {
+          if (field.isRequired && !d.fieldValues[field.key]) {
+            throw new ServiceError(
+              badRequestError({
+                message: `Missing required field: ${field.label}`
+              })
+            );
+          }
+
+          if (field.type === 'select') {
+            let allowedFields = field.options.map(o => o.value);
+            if (!allowedFields.includes(d.fieldValues[field.key])) {
+              throw new ServiceError(
+                badRequestError({
+                  message: `Invalid value for field: ${field.label}`
+                })
+              );
+            }
+          }
+        }
+      }
+
+      let authAttempt = await db.providerOAuthConnectionAuthAttempt.create({
+        data: {
+          id: await ID.generateId('oauthConnectionAuthAttempt'),
+
+          stateIdentifier: await ID.generateId('oauthConnectionAuthAttempt_State'),
+
+          additionalValues: d.fieldValues,
+
+          status: 'pending',
+          redirectUri: d.redirectUri,
+
+          // codeVerifier: supportsPKCE ? OAuthUtils.generateCodeVerifier() : undefined,
+
+          connectionOid: d.connection.oid
+        }
+      });
+
+      let authUrlRes = await axios.post(
+        `${d.connection.config.httpEndpoint}/oauth/authorization-url`,
+        {
+          input: {
+            fields: d.fieldValues ?? {},
+            clientId: d.connection.clientId,
+            clientSecret: d.connection.clientSecret,
+            state: authAttempt.stateIdentifier,
+            redirectUri: callbackUrl
+          }
+        },
+        {
+          ...getAxiosSsrfFilter(d.connection.config.httpEndpoint),
+          headers: {
+            'metorial-stellar-token': lambdaInstance.securityToken
+          }
+        }
+      );
+      if (authUrlRes.status !== 200 || !authUrlRes.data.success) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Failed to fetch authorization URL from remote server'
+          })
+        );
+      }
+
+      if (!authUrlRes.data.authorizationUrl) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Remote server did not return an authorization URL'
+          })
+        );
+      }
+
+      console.log(authUrlRes.data);
+
+      if (typeof authUrlRes.data.codeVerifier == 'string') {
+        await db.providerOAuthConnectionAuthAttempt.updateMany({
+          where: { oid: authAttempt.oid },
+          data: {
+            codeVerifier: authUrlRes.data.codeVerifier
+          }
+        });
+      }
+
+      return {
+        type: 'redirect' as const,
+        authAttempt,
+        redirectUrl: authUrlRes.data.authorizationUrl
+      };
     }
 
     let config = d.connection.config.config as OAuthConfiguration;
@@ -80,6 +261,7 @@ class OauthAuthorizationServiceImpl {
     });
 
     return {
+      type: 'redirect' as const,
       authAttempt,
       redirectUrl: OAuthUtils.buildAuthorizationUrl({
         authEndpoint: config.authorization_endpoint,
@@ -94,6 +276,8 @@ class OauthAuthorizationServiceImpl {
 
   async completeAuthorization(d: {
     context: Context;
+
+    fullUrl: string;
 
     response: {
       code?: string;
@@ -180,80 +364,181 @@ class OauthAuthorizationServiceImpl {
       authAttempt: attempt
     });
 
+    let additionalAuthData: Record<string, any> = {};
     let tokenResponse: TokenResponse;
+    let profile: ProviderOAuthConnectionProfile | null = null;
 
-    try {
-      tokenResponse = await OAuthUtils.exchangeCodeForTokens({
-        tokenEndpoint: connection.config.config.token_endpoint,
-        clientId: connection.clientId!,
-        clientSecret: connection.clientSecret ?? undefined,
-        code: d.response.code!,
-        redirectUri: callbackUrl,
-        codeVerifier: attempt.codeVerifier ?? undefined,
-        config: connection.config.config
-      });
-
-      if (!tokenResponse.access_token) {
-        throw new Error('Provider did not return `access_token`.');
-      }
-    } catch (error: any) {
-      await db.providerOAuthConnectionAuthAttempt.update({
-        where: {
-          connectionOid: connection.oid,
-          stateIdentifier: d.response.state!,
-          status: 'pending'
-        },
-        data: {
-          status: 'failed',
-          stateIdentifier: null,
-          clientSecret: null,
-
-          errorCode: 'token_exchange_failed',
-          errorMessage: `Failed to exchange authorization code for tokens: ${error.message}`
-        }
-      });
-
-      throw error;
-    }
-
-    let providerProfile: UserProfile | null = null;
-    if (connection.config.config.userinfo_endpoint) {
+    if (connection.config.type == 'json') {
       try {
-        providerProfile = await OAuthUtils.getUserProfile({
-          userInfoEndpoint: connection.config.config.userinfo_endpoint,
-          accessToken: tokenResponse.access_token
+        tokenResponse = await OAuthUtils.exchangeCodeForTokens({
+          tokenEndpoint: connection.config.config.token_endpoint,
+          clientId: connection.clientId!,
+          clientSecret: connection.clientSecret ?? undefined,
+          code: d.response.code!,
+          redirectUri: callbackUrl,
+          codeVerifier: attempt.codeVerifier ?? undefined,
+          config: connection.config.config
         });
-      } catch (error) {
-        // Ignore
-      }
-    }
 
-    let profile = providerProfile
-      ? await db.providerOAuthConnectionProfile.upsert({
+        if (!tokenResponse.access_token) {
+          throw new Error('Provider did not return `access_token`.');
+        }
+      } catch (error: any) {
+        await db.providerOAuthConnectionAuthAttempt.update({
           where: {
-            connectionOid_sub: {
-              connectionOid: connection.oid,
-              sub: providerProfile.sub
-            }
-          },
-          update: {
-            name: providerProfile.name,
-            email: providerProfile.email,
-            rawProfile: {}, // providerProfile.raw,
-            lastUsedAt: new Date()
-          },
-          create: {
-            id: await ID.generateId('oauthConnectionProfile'),
-
             connectionOid: connection.oid,
+            stateIdentifier: d.response.state!,
+            status: 'pending'
+          },
+          data: {
+            status: 'failed',
+            stateIdentifier: null,
+            clientSecret: null,
 
-            sub: providerProfile.sub,
-            name: providerProfile.name,
-            email: providerProfile.email,
-            rawProfile: {} // providerProfile.raw
+            errorCode: 'token_exchange_failed',
+            errorMessage: `Failed to exchange authorization code for tokens: ${error.message}`
           }
-        })
-      : null;
+        });
+
+        throw error;
+      }
+
+      let providerProfile: UserProfile | null = null;
+      if (connection.config.config.userinfo_endpoint) {
+        try {
+          providerProfile = await OAuthUtils.getUserProfile({
+            userInfoEndpoint: connection.config.config.userinfo_endpoint,
+            accessToken: tokenResponse.access_token
+          });
+        } catch (error) {
+          // Ignore
+        }
+      }
+
+      profile = providerProfile
+        ? await db.providerOAuthConnectionProfile.upsert({
+            where: {
+              connectionOid_sub: {
+                connectionOid: connection.oid,
+                sub: providerProfile.sub
+              }
+            },
+            update: {
+              name: providerProfile.name,
+              email: providerProfile.email,
+              rawProfile: {}, // providerProfile.raw,
+              lastUsedAt: new Date()
+            },
+            create: {
+              id: await ID.generateId('oauthConnectionProfile'),
+
+              connectionOid: connection.oid,
+
+              sub: providerProfile.sub,
+              name: providerProfile.name,
+              email: providerProfile.email,
+              rawProfile: {} // providerProfile.raw
+            }
+          })
+        : null;
+    } else if (connection.config.type == 'managed_server_http') {
+      if (!connection.config.lambdaServerInstanceForHttpEndpointOid) {
+        throw new Error(
+          'WTF - Remote OAuth configuration is missing lambdaServerInstanceForHttpEndpointOid'
+        );
+      }
+
+      let lambdaInstance = await db.lambdaServerInstance.findUniqueOrThrow({
+        where: { oid: connection.config.lambdaServerInstanceForHttpEndpointOid },
+        include: { instance: { include: { organization: true } } }
+      });
+
+      let tokenRes = await axios.post<Record<any, any>>(
+        `${connection.config.httpEndpoint}/oauth/callback`,
+        {
+          input: {
+            fields: attempt.additionalValues || {},
+            code: d.response.code!,
+            state: d.response.state!,
+            clientId: connection.clientId!,
+            clientSecret: connection.clientSecret,
+            redirectUri: callbackUrl,
+            fullUrl: d.fullUrl,
+            codeVerifier: attempt.codeVerifier
+          }
+        },
+        {
+          ...getAxiosSsrfFilter(connection.config.httpEndpoint!),
+          headers: {
+            'metorial-stellar-token': lambdaInstance.securityToken
+          }
+        }
+      );
+      if (tokenRes.status !== 200 || !tokenRes.data.success) {
+        await db.providerOAuthConnectionAuthAttempt.update({
+          where: {
+            connectionOid: connection.oid,
+            stateIdentifier: d.response.state!,
+            status: 'pending'
+          },
+          data: {
+            status: 'failed',
+            stateIdentifier: null,
+            clientSecret: null,
+
+            errorCode: 'token_exchange_failed',
+            errorMessage: `Failed to fetch tokens from remote server`
+          }
+        });
+
+        throw new ServiceError(
+          badRequestError({
+            message: 'Failed to fetch tokens from remote server'
+          })
+        );
+      }
+
+      let tokenResVal = tokenResponseValidator.validate(tokenRes.data.authData);
+      if (!tokenResVal.success) {
+        await db.providerOAuthConnectionAuthAttempt.update({
+          where: {
+            connectionOid: connection.oid,
+            stateIdentifier: d.response.state!,
+            status: 'pending'
+          },
+          data: {
+            status: 'failed',
+            stateIdentifier: null,
+            clientSecret: null,
+            errorCode: 'token_exchange_failed',
+            errorMessage: 'Callback implementation returned an invalid token response'
+          }
+        });
+
+        throw new ServiceError(
+          badRequestError({
+            message: 'Callback implementation returned an invalid token response',
+            details: tokenResVal.errors
+          })
+        );
+      }
+
+      tokenResponse = {
+        access_token: tokenResVal.value.access_token,
+        token_type: tokenResVal.value.token_type,
+        expires_in: tokenResVal.value.expires_in,
+        refresh_token: tokenResVal.value.refresh_token,
+        id_token: tokenResVal.value.id_token,
+        scope: tokenResVal.value.scope
+      };
+
+      additionalAuthData = { ...tokenRes.data.authData };
+      for (let key of Object.keys(tokenResponse)) {
+        delete additionalAuthData[key];
+      }
+    } else {
+      throw new Error('WTF - Unknown connection config type');
+    }
 
     let expiresAt = tokenResponse.expires_in
       ? new Date(Date.now() + tokenResponse.expires_in * 1000)
@@ -269,6 +554,9 @@ class OauthAuthorizationServiceImpl {
         refreshToken: tokenResponse.refresh_token || null,
         idToken: tokenResponse.id_token || null,
         scope: tokenResponse.scope || null,
+
+        additionalAuthData,
+        additionalValuesFromAuthAttempt: attempt.additionalValues,
 
         connectionOid: connection.oid,
         connectionProfileOid: profile?.oid
@@ -423,13 +711,72 @@ class OauthAuthorizationServiceImpl {
           );
         }
 
-        let res = await OAuthUtils.refreshAccessToken({
-          tokenEndpoint: connection.config.config.token_endpoint,
-          clientId: connection.clientId!,
-          clientSecret: connection.clientSecret ?? undefined,
-          refreshToken: token.refreshToken,
-          config: connection.config.config
-        });
+        let res: Awaited<ReturnType<typeof OAuthUtils.refreshAccessToken>>;
+
+        if (connection.config.type == 'json') {
+          res = await OAuthUtils.refreshAccessToken({
+            tokenEndpoint: connection.config.config.token_endpoint,
+            clientId: connection.clientId!,
+            clientSecret: connection.clientSecret ?? undefined,
+            refreshToken: token.refreshToken,
+            config: connection.config.config
+          });
+        } else if (connection.config.type == 'managed_server_http') {
+          if (!connection.config.lambdaServerInstanceForHttpEndpointOid) {
+            throw new Error(
+              'WTF - Remote OAuth configuration is missing lambdaServerInstanceForHttpEndpointOid'
+            );
+          }
+
+          let lambdaInstance = await db.lambdaServerInstance.findUniqueOrThrow({
+            where: { oid: connection.config.lambdaServerInstanceForHttpEndpointOid },
+            include: { instance: { include: { organization: true } } }
+          });
+
+          let tokenRes = await axios.post<Record<any, any>>(
+            `${connection.config.httpEndpoint}/oauth/refresh`,
+            {
+              input: {
+                redirectUri: callbackUrl,
+                refreshToken: token.refreshToken,
+                clientId: connection.clientId!,
+                clientSecret: connection.clientSecret,
+                fields: token.additionalValuesFromAuthAttempt ?? {}
+              }
+            },
+            {
+              ...getAxiosSsrfFilter(connection.config.httpEndpoint!),
+              headers: {
+                'metorial-stellar-token': lambdaInstance.securityToken
+              }
+            }
+          );
+          if (tokenRes.status !== 200 || !tokenRes.data.success) {
+            res = { ok: false as const, message: 'Failed to fetch tokens from remote server' };
+          } else {
+            let tokenResVal = tokenResponseValidator.validate(tokenRes.data.authData);
+            if (!tokenResVal.success) {
+              res = {
+                ok: false as const,
+                message: 'Callback implementation returned an invalid token response'
+              };
+            } else {
+              res = {
+                ok: true as const,
+                response: {
+                  access_token: tokenResVal.value.access_token,
+                  token_type: tokenResVal.value.token_type,
+                  expires_in: tokenResVal.value.expires_in,
+                  refresh_token: tokenResVal.value.refresh_token,
+                  id_token: tokenResVal.value.id_token,
+                  scope: tokenResVal.value.scope
+                }
+              };
+            }
+          }
+        } else {
+          throw new Error('WTF - Unknown connection config type');
+        }
 
         if (!res.ok) {
           (async () => {
@@ -524,6 +871,8 @@ class OauthAuthorizationServiceImpl {
       expiresAt: token.expiresAt,
       idToken: token.idToken,
       scope: token.scope,
+      additionalAuthData: token.additionalAuthData,
+      fields: token.additionalValuesFromAuthAttempt,
       connection
     };
   }

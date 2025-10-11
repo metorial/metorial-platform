@@ -51,6 +51,8 @@ model LambdaServerInstance {
 
   customServerVersion CustomServerVersion?
   serverVersions      ServerVersion[]
+
+  providerOAuthConfigHttpEndpoints ProviderOAuthConfig[] @relation("ProviderOAuthConfig_remoteServerInstanceForHttpEndpoint")
 }
 
 model LambdaServerDenoDeployProject {

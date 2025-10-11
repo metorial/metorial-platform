@@ -72,6 +72,16 @@ class ServerVariantService {
     }
 
     if (d.serverId) {
+      let server = await db.server.findFirst({
+        where: {
+          id: d.serverId,
+          OR: [{ ownerOrganizationOid: d.instance.organizationOid }, { isPublic: true }]
+        }
+      });
+      if (!server) {
+        throw new ServiceError(notFoundError('server', d.serverId));
+      }
+
       let allServerVariant = (
         await db.serverVariant.findMany({
           where: {
