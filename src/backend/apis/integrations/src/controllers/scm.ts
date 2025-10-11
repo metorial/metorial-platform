@@ -22,7 +22,7 @@ export let scmController = createHono()
 
     return c.html(completeDashboardHtml());
   })
-  .get('/webhook-ingest/gh/:webhookId', async c => {
+  .post('/webhook-ingest/gh/:webhookId', async c => {
     let webhookId = c.req.param('webhookId');
 
     let eventType = c.req.header('X-GitHub-Event');
