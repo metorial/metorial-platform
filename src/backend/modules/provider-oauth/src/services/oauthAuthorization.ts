@@ -123,11 +123,13 @@ class OauthAuthorizationServiceImpl {
           }
         });
 
-        return {
-          type: 'form' as const,
-          form,
-          profile
-        };
+        if (form.fields.length) {
+          return {
+            type: 'form' as const,
+            form,
+            profile
+          };
+        }
       }
 
       if (d.fieldValues) {
