@@ -1,13 +1,19 @@
 import { extractToken } from '@metorial/bearer';
 import { Context } from '@metorial/context';
 import {
+  db,
   Instance,
   MagicMcpToken,
   Organization,
   OrganizationActor,
   ServerOAuthSession
 } from '@metorial/db';
-import { badRequestError, ServiceError, unauthorizedError } from '@metorial/error';
+import {
+  badRequestError,
+  notFoundError,
+  ServiceError,
+  unauthorizedError
+} from '@metorial/error';
 import { createExecutionContext, provideExecutionContext } from '@metorial/execution-context';
 import { accessService, AuthInfo } from '@metorial/module-access';
 import { magicMcpServerService, magicMcpTokenService } from '@metorial/module-magic';
@@ -25,6 +31,7 @@ export let getSessionAndAuthenticate = async (
         type: 'magic_mcp_server';
         magicMcpServerId: string;
         oauthSessionId?: string;
+        serverSessionId?: string;
       },
   request: Request,
   url: URL,
@@ -115,59 +122,73 @@ export let getSessionAndAuthenticate = async (
       );
     }
 
-    let oauthSession: ServerOAuthSession | undefined = undefined;
+    if (d.serverSessionId) {
+      let serverSession = await db.serverSession.findFirst({
+        where: { id: d.serverSessionId },
+        include: { session: true }
+      });
+      if (!serverSession) throw new ServiceError(notFoundError('session.server_session'));
 
-    if (serverDeployment.oauthConnectionOid) {
-      if (!d.oauthSessionId && !server.defaultServerOauthSession) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'OAuth session ID is required for this Magic MCP server.',
-            hint: 'You can set up OAuth in the Metorial dashboard or pass an `oauth_session_id` query parameter to the request.'
+      return {
+        type: 'magic_mcp_session' as const,
+        session: serverSession.session,
+        instance
+      };
+    } else {
+      let oauthSession: ServerOAuthSession | undefined = undefined;
+
+      if (serverDeployment.oauthConnectionOid) {
+        if (!d.oauthSessionId && !server.defaultServerOauthSession) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'OAuth session ID is required for this Magic MCP server.',
+              hint: 'You can set up OAuth in the Metorial dashboard or pass an `oauth_session_id` query parameter to the request.'
+            })
+          );
+        }
+
+        if (d.oauthSessionId) {
+          oauthSession = await serverOAuthSessionService.getServerOAuthSessionById({
+            instance,
+            serverOAuthSessionId: d.oauthSessionId
+          });
+        } else {
+          oauthSession = server.defaultServerOauthSession!;
+        }
+      }
+
+      let session = await provideExecutionContext(
+        createExecutionContext({
+          type: 'request',
+          contextId: '',
+          ip: context.ip,
+          userAgent: context.ua ?? 'unknown'
+        }),
+        async () =>
+          await sessionService.createSession({
+            instance,
+            organization: instance.organization,
+            performedBy: actor,
+            magicMcpToken: token,
+            ephemeralPermittedDeployments: new Set(),
+            input: {
+              connectionType: 'mcp',
+              serverDeployments: [
+                {
+                  deployment: serverDeployment,
+                  oauthSession
+                }
+              ]
+            }
           })
-        );
-      }
+      );
 
-      if (d.oauthSessionId) {
-        oauthSession = await serverOAuthSessionService.getServerOAuthSessionById({
-          instance,
-          serverOAuthSessionId: d.oauthSessionId
-        });
-      } else {
-        oauthSession = server.defaultServerOauthSession!;
-      }
+      return {
+        type: 'magic_mcp_session' as const,
+        session,
+        instance
+      };
     }
-
-    let session = await provideExecutionContext(
-      createExecutionContext({
-        type: 'request',
-        contextId: '',
-        ip: context.ip,
-        userAgent: context.ua ?? 'unknown'
-      }),
-      async () =>
-        await sessionService.createSession({
-          instance,
-          organization: instance.organization,
-          performedBy: actor,
-          magicMcpToken: token,
-          ephemeralPermittedDeployments: new Set(),
-          input: {
-            connectionType: 'mcp',
-            serverDeployments: [
-              {
-                deployment: serverDeployment,
-                oauthSession
-              }
-            ]
-          }
-        })
-    );
-
-    return {
-      type: 'magic_mcp_session' as const,
-      session,
-      instance
-    };
   }
 
   throw new ServiceError(

@@ -55,7 +55,7 @@ export let MagicMcpServerOauthCallout = ({ noSpacer }: { noSpacer?: boolean }) =
 
   return (
     <>
-      {noSpacer && <Spacer height={15} />}
+      {!noSpacer && <Spacer height={15} />}
 
       <Box
         title="Default OAuth Connection"
