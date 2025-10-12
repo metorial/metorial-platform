@@ -94,17 +94,21 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         c.req.header('mcp-session-id') ??
         c.req.header('metorial-server-session-id');
 
+      let oauthSessionId = c.req.query('oauth_session_id');
+
       let sessionInfo = await getSessionAndAuthenticate(
         {
           type: 'magic_mcp_server',
           magicMcpServerId,
-          oauthSessionId: c.req.query('oauth_session_id') || undefined
+          serverSessionId,
+          oauthSessionId
         },
         req,
         url,
         d.authenticate,
         context
       );
+
       let { serverSession, sessionCreated } = await getServerSession(
         sessionInfo,
         context,
