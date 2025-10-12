@@ -1,4 +1,5 @@
 import { db } from '@metorial/db';
+import { delay } from '@metorial/delay';
 import { createQueue } from '@metorial/queue';
 import { codeWorkspaceClient } from '../lib/codeWorkspace';
 
@@ -27,6 +28,8 @@ export let importGithubQueueProcessor = importGithubQueue.process(async data => 
     path: data.path,
     token: repo.installation.accessToken
   });
+
+  await delay(2000);
 
   await db.codeBucket.updateMany({
     where: { id: data.newBucketId },

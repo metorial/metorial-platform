@@ -50,6 +50,7 @@ export let getDenoFs = async (
   let bucketFiles = await codeBucketService.getCodeBucketFilesWithContent({
     codeBucket: lambda.immutableCodeBucket
   });
+  console.log(bucketFiles, lambda.immutableCodeBucket);
 
   let metorialJsonFile = bucketFiles.find(f => f.path === 'metorial.json');
   let metorialJson = {
