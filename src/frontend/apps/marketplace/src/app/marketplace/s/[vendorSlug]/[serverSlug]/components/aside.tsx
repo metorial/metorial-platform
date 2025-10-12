@@ -64,7 +64,7 @@ export let ServerAside = ({ server }: { server: ServerListing }) => {
               ...(server.profile
                 ? [
                     {
-                      label: 'Profile',
+                      label: 'Created by',
                       value: server.profile?.name
                     }
                   ]

@@ -12,7 +12,9 @@ export let ServerHeader = ({ server }: { server: ServerListing }) => {
       basePath={basePath}
       extra={
         <>
-          <span>{server.vendor?.name ?? 'Unknown'}</span>/
+          {!server.isOfficial && (server.vendor || server.profile) && (
+            <span>{server.vendor?.name ?? server.profile?.name ?? 'Unknown'}</span>
+          )}
           <span>{server.repository?.name ?? server.slug}</span>
         </>
       }
