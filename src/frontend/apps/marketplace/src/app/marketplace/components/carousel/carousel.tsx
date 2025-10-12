@@ -39,7 +39,7 @@ export let ServerCarouselWithGroup = ({
           <Card
             key={server.id}
             card={{
-              category: server.vendor?.name ?? 'External',
+              // category: server.vendor?.name ?? 'External',
               title: server.name,
               src: `https://avatar-cdn.metorial.com/${server.id}`
             }}

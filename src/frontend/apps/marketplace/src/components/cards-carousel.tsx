@@ -11,7 +11,7 @@ import { cn } from '../lib/utils';
 type Card = {
   src: string;
   title: string;
-  category: string;
+  category?: string;
 };
 
 export let CarouselContext = createContext<{
@@ -278,9 +278,11 @@ export let Card = ({
   return (
     <CardButton href={href} prefetch={false}>
       <CardContent>
-        <CardCategory layoutId={layout ? `category-${card.category}` : undefined}>
-          {card.category}
-        </CardCategory>
+        {card.category && (
+          <CardCategory layoutId={layout ? `category-${card.category}` : undefined}>
+            {card.category}
+          </CardCategory>
+        )}
         <CardTitle layoutId={layout ? `title-${card.title}` : undefined}>
           {card.title}
         </CardTitle>
