@@ -21,22 +21,22 @@ export let ServerHeader = ({ server }: { server: ServerListing }) => {
       title={server.name}
       items={[
         { label: 'Overview', href: '' },
-        { label: 'Tools', href: `/tools` },
-        { label: 'Versions', href: `/versions` }
-        // {
-        //   label: 'Deploy',
-        //   onClick: () => {
-        //     let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/deploy?server_id=${server.serverId}`)}`;
-        //     window.open(url, '_blank');
-        //   }
-        // },
-        // {
-        //   label: 'Explore',
-        //   onClick: () => {
-        //     let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/explorer?server_id=${server.serverId}`)}`;
-        //     window.open(url, '_blank');
-        //   }
-        // }
+        // { label: 'Tools', href: `/tools` },
+        { label: 'Versions', href: `/versions` },
+        {
+          label: 'Deploy',
+          onClick: () => {
+            let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/deploy?server_id=${server.serverId}`)}`;
+            window.open(url, '_blank');
+          }
+        },
+        {
+          label: 'Explore',
+          onClick: () => {
+            let url = `${process.env.DASHBOARD_FRONTEND_URL}/welcome/jumpstart?path=${encodeURIComponent(`/explorer?server_id=${server.serverId}`)}`;
+            window.open(url, '_blank');
+          }
+        }
       ]}
     />
   );

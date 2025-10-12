@@ -1,8 +1,8 @@
 import { SetupLayout } from '@metorial/layout';
-import { useCurrentInstance, useServerListing } from '@metorial/state';
+import { useCurrentInstance, useDashboardFlags, useServerListing } from '@metorial/state';
 import { useSearchParams } from 'react-router-dom';
 import bg from '../../../assets/bg.webp';
-import { MagicMcpServerForm } from '../scenes/serverDeployments/form';
+import { MagicMcpServerForm, ServerDeploymentForm } from '../scenes/serverDeployments/form';
 
 export let DeployPage = () => {
   let instance = useCurrentInstance();
@@ -10,6 +10,8 @@ export let DeployPage = () => {
   let [search] = useSearchParams();
   let serverId = search.get('server_id');
   let nextUrl = search.get('next_url');
+
+  let flags = useDashboardFlags();
 
   let serverListing = useServerListing(instance.data?.id, serverId);
 
@@ -26,11 +28,21 @@ export let DeployPage = () => {
       backgroundUrl={bg}
     >
       {serverId && (
-        <MagicMcpServerForm
-          type="create"
-          for={{ serverId }}
-          onCreate={nextUrl ? () => location.replace(nextUrl) : undefined}
-        />
+        <>
+          {flags.data?.flags['magic-mcp-enabled'] ? (
+            <MagicMcpServerForm
+              type="create"
+              for={{ serverId }}
+              onCreate={nextUrl ? () => location.replace(nextUrl) : undefined}
+            />
+          ) : (
+            <ServerDeploymentForm
+              type="create"
+              for={{ serverId }}
+              onCreate={nextUrl ? () => location.replace(nextUrl) : undefined}
+            />
+          )}
+        </>
       )}
     </SetupLayout>
   );
