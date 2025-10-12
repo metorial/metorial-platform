@@ -66,14 +66,7 @@ export let mcpConnectionHandler = async (
       }
 
       c.res.headers.set('Mcp-Session-Id', serverSession.id);
-      c.res.headers.set('Mcp-Powered-By', 'Metorial');
       c.res.headers.set('Metorial-Session-Id', sessionInfo.session.id);
-      c.res.headers.set('Metorial-Server-Session-Id', serverSession.id);
-      c.res.headers.set('Metorial-Server-Deployment-Id', serverSession.serverDeployment.id);
-      c.res.headers.set(
-        'Metorial-Server-Variant',
-        serverSession.serverDeployment.serverVariant.identifier
-      );
 
       if (c.req.method == 'DELETE') {
         // TODO: Handle this like a session delete
