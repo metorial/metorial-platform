@@ -1,7 +1,7 @@
 import { db, ServerVersion, withTransaction } from '@metorial/db';
 import { delay } from '@metorial/delay';
 import { providerOauthConfigService } from '@metorial/module-provider-oauth';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { getSentry } from '@metorial/sentry';
 import { DeploymentError } from '../deployment/base/error';
 import { createDenoLambdaDeployment, DenoDeployment } from '../deployment/deno/deployment';
@@ -38,7 +38,7 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
       }
     }
   });
-  if (!lambda) throw new Error('retry ... not found');
+  if (!lambda) throw new QueueRetryError();
 
   let customServerVersion = lambda.customServerVersion;
   let deployment = customServerVersion?.deployment;

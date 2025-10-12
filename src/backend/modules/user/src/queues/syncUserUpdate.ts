@@ -1,6 +1,6 @@
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let syncUserUpdateQueue = createQueue<{ userId: string }>({
   name: 'usr/syncUserUpdate'
@@ -13,7 +13,7 @@ export let syncUserUpdateQueueProcessor = syncUserUpdateQueue.process(async data
       members: { include: { organization: true } }
     }
   });
-  if (!user) throw new Error('retry ... not found');
+  if (!user) throw new QueueRetryError();
 
   await syncUserUpdateSingleQueue.addMany(
     user.members.map(m => ({
@@ -32,7 +32,7 @@ export let syncUserUpdateSingleQueueProcessor = syncUserUpdateSingleQueue.proces
     let user = await db.user.findUnique({
       where: { id: data.userId }
     });
-    if (!user) throw new Error('retry ... not found');
+    if (!user) throw new QueueRetryError();
 
     let member = await db.organizationMember.findUnique({
       where: { id: data.memberId },
@@ -41,7 +41,7 @@ export let syncUserUpdateSingleQueueProcessor = syncUserUpdateSingleQueue.proces
         actor: true
       }
     });
-    if (!member) throw new Error('retry ... not found');
+    if (!member) throw new QueueRetryError();
 
     await Fabric.fire('organization.member.updated:before', {
       member,

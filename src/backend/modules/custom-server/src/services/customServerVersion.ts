@@ -27,6 +27,7 @@ import { createShortIdGenerator } from '@metorial/slugify';
 import { validateJsonSchema } from '../lib/jsonSchema';
 import { initializeLambdaQueue } from '../queues/initializeLambda';
 import { initializeRemoteQueue } from '../queues/initializeRemote';
+import { syncCurrentDraftBucketToRepoQueue } from '../queues/syncCurrentDraftBucketToRepo';
 
 let include = {
   push: true,
@@ -233,17 +234,29 @@ class CustomServerVersionServiceImpl {
               currentVersion?.serverVersion?.schema.schema ??
               defaultManagedConfigSchema;
 
-            if (d.serverInstance.repository) {
+            let repo = d.serverInstance.repository;
+            if (d.server.repositoryOid) {
+              let repoRes = await db.scmRepo.findFirstOrThrow({
+                where: { oid: d.server.repositoryOid }
+              });
+
+              repo = {
+                repo: repoRes,
+                path: d.server.serverPath ?? '/'
+              };
+            }
+
+            if (repo) {
               await db.customServer.updateMany({
                 where: { oid: server.oid },
                 data: {
-                  repositoryOid: d.serverInstance.repository.repo.oid,
-                  serverPath: d.serverInstance.repository.path
+                  repositoryOid: repo.repo.oid,
+                  serverPath: repo.path
                 }
               });
 
               d.push = await scmRepoService.createPushForCurrentCommitOnDefaultBranch({
-                repo: d.serverInstance.repository.repo
+                repo: repo.repo
               });
             }
           }
@@ -375,7 +388,13 @@ class CustomServerVersionServiceImpl {
                 repo: repo,
                 isReadOnly: true,
                 ref: d.push.sha,
-                purpose: 'custom_server'
+                purpose: 'custom_server',
+                path: d.server.serverPath ?? '/'
+              });
+
+              await syncCurrentDraftBucketToRepoQueue.add({
+                draftBucketOid: server.draftCodeBucketOid!,
+                immutableBucketOid: immutableCodeBucket.oid
               });
             } else {
               let draftCodeBucket = await db.codeBucket.findFirstOrThrow({

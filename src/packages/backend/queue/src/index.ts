@@ -1,6 +1,7 @@
 import { BullMqCreateOptions, createBullMqQueue } from './drivers/bullmq';
 import { IQueueProcessor } from './types';
 
+export * from './lib/queueRetryError';
 export * from './types';
 
 let seenNames = new Set<string>();

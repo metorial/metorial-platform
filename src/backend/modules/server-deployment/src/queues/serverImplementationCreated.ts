@@ -1,5 +1,5 @@
 import { db, ID } from '@metorial/db';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { serverImplementationIndexSingleQueue } from './search';
 
 export let serverImplementationCreatedQueue = createQueue<{ serverImplementationId: string }>({
@@ -11,7 +11,7 @@ export let serverImplementationCreatedQueueProcessor =
     let implementation = await db.serverImplementation.findUnique({
       where: { id: data.serverImplementationId }
     });
-    if (!implementation) throw new Error('retry ... not found');
+    if (!implementation) throw new QueueRetryError();
 
     let instanceServers = await db.instanceServer.findUnique({
       where: {
@@ -21,7 +21,7 @@ export let serverImplementationCreatedQueueProcessor =
         }
       }
     });
-    if (instanceServers) throw new Error('retry ... not found');
+    if (instanceServers) throw new QueueRetryError();
 
     try {
       await db.instanceServer.createMany({

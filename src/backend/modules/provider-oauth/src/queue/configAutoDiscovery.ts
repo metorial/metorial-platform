@@ -1,5 +1,5 @@
 import { db } from '@metorial/db';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { providerOauthDiscoveryService } from '../services';
 import { OAuthConfiguration } from '../types';
 
@@ -16,7 +16,7 @@ export let configAutoDiscoveryQueueProcessor = configAutoDiscoveryQueue.process(
   let config = await db.providerOAuthConfig.findUnique({
     where: { id: data.configId }
   });
-  if (!config) throw new Error('retry ... not found');
+  if (!config) throw new QueueRetryError();
 
   if (config.type == 'json') {
     let autoReg = await providerOauthDiscoveryService.autoRegisterForOauthConfig({
