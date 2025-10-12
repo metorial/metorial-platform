@@ -1,6 +1,6 @@
 import { db } from '@metorial/db';
 import { searchService } from '@metorial/module-search';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let syncMagicMcpServerQueue = createQueue<{
   magicMcpServerId: string;
@@ -26,7 +26,7 @@ export let syncMagicMcpServerQueueProcessor = syncMagicMcpServerQueue.process(as
       }
     }
   });
-  if (!server) throw new Error('retry ... not found');
+  if (!server) throw new QueueRetryError();
 
   await searchService.indexDocument({
     index: 'magic_mcp_server',

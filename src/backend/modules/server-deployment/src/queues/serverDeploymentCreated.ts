@@ -1,5 +1,5 @@
 import { db } from '@metorial/db';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { serverDeploymentIndexSingleQueue } from './search';
 
 export let serverDeploymentCreatedQueue = createQueue<{ serverDeploymentId: string }>({
@@ -11,7 +11,7 @@ export let serverDeploymentCreatedQueueProcessor = serverDeploymentCreatedQueue.
     let deployment = await db.serverDeployment.findUnique({
       where: { id: data.serverDeploymentId }
     });
-    if (!deployment) throw new Error('retry ... not found');
+    if (!deployment) throw new QueueRetryError();
 
     await serverDeploymentIndexSingleQueue.add({
       serverDeploymentId: deployment.id

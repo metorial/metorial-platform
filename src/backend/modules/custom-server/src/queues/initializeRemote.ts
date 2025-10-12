@@ -3,7 +3,7 @@ import {
   providerOauthConfigService,
   providerOauthDiscoveryService
 } from '@metorial/module-provider-oauth';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { getSentry } from '@metorial/sentry';
 import { createDeploymentStepManager } from '../lib/stepManager';
 import { customServerVersionService } from '../services';
@@ -37,7 +37,7 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
       }
     }
   });
-  if (!remote) throw new Error('retry ... not found');
+  if (!remote) throw new QueueRetryError();
 
   let instance = remote.instance;
 

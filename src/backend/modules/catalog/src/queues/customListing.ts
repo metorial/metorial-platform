@@ -1,7 +1,7 @@
 import { db, ID } from '@metorial/db';
 import { generateCode } from '@metorial/id';
 import { profileService } from '@metorial/module-community';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { createSlugGenerator } from '@metorial/slugify';
 import { indexServerListingQueue } from './search';
 
@@ -35,7 +35,7 @@ export let setCustomServerListingQueueProcessor = setCustomServerListingQueue.pr
         }
       }
     });
-    if (!server || !server.customServer) throw new Error('retry ... not found');
+    if (!server || !server.customServer) throw new QueueRetryError();
 
     let existingListing = await db.serverListing.findFirst({
       where: {

@@ -1,7 +1,7 @@
 import { db } from '@metorial/db';
 import { customServerVersionService } from '@metorial/module-custom-server';
 import { organizationActorService } from '@metorial/module-organization';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let createHandleRepoPushQueue = createQueue<{ pushId: string }>({
   name: 'scm/rep/hndl-push'
@@ -13,7 +13,7 @@ export let createHandleRepoPushQueueProcessor = createHandleRepoPushQueue.proces
       where: { id: data.pushId },
       include: { repo: true }
     });
-    if (!push) throw new Error('retry ... not found');
+    if (!push) throw new QueueRetryError();
 
     let customServers = await db.customServer.findMany({
       where: {
@@ -53,7 +53,7 @@ export let createHandleRepoPushForCustomServerQueueProcessor =
         }
       }
     });
-    if (!push || !customServers) throw new Error('retry ... not found');
+    if (!push || !customServers) throw new QueueRetryError();
 
     await customServerVersionService.createVersion({
       server: customServers,

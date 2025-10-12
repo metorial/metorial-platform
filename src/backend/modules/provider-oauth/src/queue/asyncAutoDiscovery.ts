@@ -1,5 +1,5 @@
 import { db } from '@metorial/db';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { providerOauthDiscoveryService } from '../services';
 import { OAuthConfiguration } from '../types';
 
@@ -18,7 +18,7 @@ export let asyncAutoDiscoveryQueueProcessor = asyncAutoDiscoveryQueue.process(as
       where: { id: data.connectionId },
       include: { config: true, instance: { include: { organization: true } } }
     });
-    if (!connection) throw new Error('retry ... not found');
+    if (!connection) throw new QueueRetryError();
     if (!connection.isAutoDiscoveryActive) return;
     let autoReg = await providerOauthDiscoveryService.autoRegisterForOauthConfig({
       config: connection.config.config as OAuthConfiguration,

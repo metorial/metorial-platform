@@ -1,6 +1,6 @@
 import { db } from '@metorial/db';
 import { secretService } from '@metorial/module-secret';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let serverDeploymentDeletedQueue = createQueue<{
   serverDeploymentId: string;
@@ -18,12 +18,12 @@ export let serverDeploymentDeletedQueueProcessor = serverDeploymentDeletedQueue.
         config: true
       }
     });
-    if (!deployment) throw new Error('retry ... not found');
+    if (!deployment) throw new QueueRetryError();
 
     let actor = await db.organizationActor.findUnique({
       where: { id: data.performedById }
     });
-    if (!actor) throw new Error('retry ... not found');
+    if (!actor) throw new QueueRetryError();
 
     await secretService.deleteSecret({
       performedBy: actor,

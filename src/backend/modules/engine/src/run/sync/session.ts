@@ -1,4 +1,5 @@
 import { db } from '@metorial/db';
+import { QueueRetryError } from '@metorial/queue';
 import { subSeconds } from 'date-fns';
 import Long from 'long';
 import { addRunSync } from '../../queues/syncRuns';
@@ -12,7 +13,7 @@ export let syncEngineSession = async (d: { engineSessionId: string }) => {
       serverSession: true
     }
   });
-  if (!engineSession) throw new Error('retry ... not found');
+  if (!engineSession) throw new QueueRetryError();
   if (engineSession.isFinalized) return;
 
   let hasEndedBefore = engineSession.hasEnded;

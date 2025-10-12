@@ -1,6 +1,6 @@
 import { db } from '@metorial/db';
 import { searchService } from '@metorial/module-search';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let indexServerListingQueue = createQueue<{ serverListingId: string }>({
   name: 'cat/search/srvlst',
@@ -20,7 +20,7 @@ export let indexServerListingQueueProcessor = indexServerListingQueue.process(as
       collections: true
     }
   });
-  if (!server) throw new Error('retry ... not found');
+  if (!server) throw new QueueRetryError();
 
   await searchService.indexDocument({
     index: 'server_listing',

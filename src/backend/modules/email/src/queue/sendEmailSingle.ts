@@ -1,5 +1,5 @@
-import { OutgoingEmailDestination, OutgoingEmailSendStatus, db } from '@metorial/db';
-import { createQueue } from '@metorial/queue';
+import { db, OutgoingEmailDestination, OutgoingEmailSendStatus } from '@metorial/db';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { getSentry } from '@metorial/sentry';
 import { send } from '../lib/send';
 
@@ -40,7 +40,7 @@ export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async da
     }
   });
   let email = destination?.email;
-  if (!destination || !email?.content) throw new Error('retry ... not found');
+  if (!destination || !email?.content) throw new QueueRetryError();
 
   let sendRes: any;
   let status: OutgoingEmailSendStatus = 'success';

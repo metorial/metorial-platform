@@ -1,5 +1,5 @@
 import { db, ID } from '@metorial/db';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { startOfWeek, subDays } from 'date-fns';
 
 let errorCheckQueue = createQueue<{ connectionId: string }>({
@@ -11,7 +11,7 @@ export let errorCheckQueueProcessor = errorCheckQueue.process(async data => {
   let connection = await db.providerOAuthConnection.findUnique({
     where: { id: data.connectionId }
   });
-  if (!connection) throw new Error('retry ... not found');
+  if (!connection) throw new QueueRetryError();
 
   let timeframe = subDays(new Date(), 4);
 

@@ -1,6 +1,6 @@
 import { axiosWithoutSse } from '@metorial/axios-sse';
 import { CustomServerVersion, db, ID, RemoteServerInstance } from '@metorial/db';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { getAxiosSsrfFilter } from '@metorial/ssrf';
 
 export let checkRemoteQueue = createQueue<{ remoteId: string }>({
@@ -17,7 +17,7 @@ export let checkRemoteQueueProcessor = checkRemoteQueue.process(async data => {
       customServerVersion: true
     }
   });
-  if (!remote) throw new Error('retry ... not found');
+  if (!remote) throw new QueueRetryError();
 
   await checkRemote(remote, {
     createEvent: true

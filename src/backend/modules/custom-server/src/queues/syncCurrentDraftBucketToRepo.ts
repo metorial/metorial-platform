@@ -1,6 +1,6 @@
 import { db } from '@metorial/db';
 import { codeBucketService } from '@metorial/module-code-bucket';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let syncCurrentDraftBucketToRepoQueue = createQueue<{
   draftBucketOid: bigint;
@@ -21,7 +21,7 @@ export let syncCurrentDraftBucketToRepoQueueProcessor =
         oid: data.immutableBucketOid
       }
     });
-    if (!draftCodeBucket || !immutableCodeBucket) throw new Error('retry ... not found');
+    if (!draftCodeBucket || !immutableCodeBucket) throw new QueueRetryError();
 
     await codeBucketService.syncCodeBuckets({
       source: immutableCodeBucket,

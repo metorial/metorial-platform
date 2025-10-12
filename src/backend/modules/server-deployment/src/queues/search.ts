@@ -1,7 +1,7 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { searchService } from '@metorial/module-search';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let serverDeploymentIndexSingleQueue = createQueue<{ serverDeploymentId: string }>({
   name: 'srd/dep/idx/sgl',
@@ -23,7 +23,7 @@ export let serverDeploymentIndexSingleQueueProcessor =
         instance: true
       }
     });
-    if (!deployment) throw new Error('retry ... not found');
+    if (!deployment) throw new QueueRetryError();
     if (deployment.isEphemeral) return;
 
     await searchService.indexDocument({
@@ -113,7 +113,7 @@ export let serverImplementationIndexSingleQueueProcessor =
         instance: true
       }
     });
-    if (!implementation) throw new Error('retry ... not found');
+    if (!implementation) throw new QueueRetryError();
     if (implementation.isEphemeral) return;
 
     await searchService.indexDocument({

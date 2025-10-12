@@ -1,5 +1,6 @@
 import { db, ID, ServerRun } from '@metorial/db';
 import { EngineRunStatus, McpOutput_McpOutputType } from '@metorial/mcp-engine-generated';
+import { QueueRetryError } from '@metorial/queue';
 import { UnifiedID } from '@metorial/unified-id';
 import { subSeconds } from 'date-fns';
 import Long from 'long';
@@ -18,7 +19,7 @@ export let syncEngineRun = async (d: { engineRunId: string }) => {
       serverRuns: true
     }
   });
-  if (!engineRun) throw new Error('retry ... not found');
+  if (!engineRun) throw new QueueRetryError();
   if (engineRun.isFinalized) return;
 
   let serverRun = engineRun.serverRuns[0] as ServerRun | undefined;

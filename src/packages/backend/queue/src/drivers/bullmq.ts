@@ -1,4 +1,5 @@
 import { getConfig } from '@metorial/config';
+import { delay } from '@metorial/delay';
 import {
   createExecutionContext,
   ExecutionContext,
@@ -19,6 +20,7 @@ import {
   WorkerOptions
 } from 'bullmq';
 import SuperJson from 'superjson';
+import { QueueRetryError } from '../lib/queueRetryError';
 import { IQueue } from '../types';
 
 let Sentry = getSentry();
@@ -180,10 +182,14 @@ export let createBullMqQueue = <JobData>(
                   () => cb(payload as any, job)
                 );
               } catch (e: any) {
-                Sentry.captureException(e);
-                // TODO: add sentry
-                console.error(e);
-                throw e;
+                if (e instanceof QueueRetryError) {
+                  await delay(1000);
+                  throw e;
+                } else {
+                  Sentry.captureException(e);
+                  console.error(e);
+                  throw e;
+                }
               }
             },
             {

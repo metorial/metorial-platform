@@ -1,7 +1,7 @@
 import { getFullConfig } from '@metorial/config';
 import { db, ID } from '@metorial/db';
 import { generatePlainId } from '@metorial/id';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { Octokit } from '@octokit/core';
 
 export let createRepoWebhookQueue = createQueue<{ repoId: string }>({
@@ -13,7 +13,7 @@ export let createRepoWebhookQueueProcessor = createRepoWebhookQueue.process(asyn
     where: { id: data.repoId },
     include: { installation: true }
   });
-  if (!repo) throw new Error('retry ... not found');
+  if (!repo) throw new QueueRetryError();
 
   let octokit = new Octokit({ auth: repo.installation.accessToken });
 

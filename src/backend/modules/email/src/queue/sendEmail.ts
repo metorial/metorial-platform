@@ -1,5 +1,5 @@
 import { db } from '@metorial/db';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { sendEmailSingleQueue } from './sendEmailSingle';
 
 export let sendEmailQueue = createQueue<{ emailId: string }>({
@@ -24,7 +24,7 @@ export let sendEmailQueueProcessor = sendEmailQueue.process(async data => {
       destinations: true
     }
   });
-  if (!email) throw new Error('retry ... not found');
+  if (!email) throw new QueueRetryError();
 
   await sendEmailSingleQueue.addMany(
     email.destinations.map(d => ({

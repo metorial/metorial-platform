@@ -1,5 +1,5 @@
 import { db } from '@metorial/db';
-import { createQueue } from '@metorial/queue';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { getSentry } from '@metorial/sentry';
 import { serverDeploymentCreatedQueue } from './serverDeploymentCreated';
 
@@ -33,7 +33,7 @@ export let serverDeploymentSetupQueueProcessor = serverDeploymentSetupQueue.proc
         serverImplementation: true
       }
     });
-    if (!serverDeployment) throw new Error('retry ... not found');
+    if (!serverDeployment) throw new QueueRetryError();
 
     let tryNumber = data.tryNumber ?? 1;
 

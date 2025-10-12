@@ -1,7 +1,7 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { combineQueueProcessors, createQueue } from '@metorial/queue';
+import { combineQueueProcessors, createQueue, QueueRetryError } from '@metorial/queue';
 
 let expireCron = createCron(
   {
@@ -44,7 +44,7 @@ let expireSingleQueueProcessor = expireSingleQueue.process(async data => {
       machineAccess: true
     }
   });
-  if (!apiKey) throw new Error('retry ... not found');
+  if (!apiKey) throw new QueueRetryError();
 
   await Fabric.fire('machine_access.api_key.expired:before', {
     apiKey,

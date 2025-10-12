@@ -1,6 +1,6 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
-import { combineQueueProcessors, createQueue } from '@metorial/queue';
+import { combineQueueProcessors, createQueue, QueueRetryError } from '@metorial/queue';
 import { OAuthDiscovery } from '../lib/discovery';
 import { OAuthUtils } from '../lib/oauthUtils';
 import { oauthConfigValidator } from '../types';
@@ -53,12 +53,12 @@ let autoDiscoverSingleQueueProcessor = autoDiscoverSingleQueue.process(async dat
   let discoveryDocument = await db.providerOAuthDiscoveryDocument.findUnique({
     where: { id: data.discoveryDocumentId }
   });
-  if (!discoveryDocument) throw new Error('retry ... not found');
+  if (!discoveryDocument) throw new QueueRetryError();
 
   let oldConfigHash = discoveryDocument.configHash;
 
   let doc = await OAuthDiscovery.discover(discoveryDocument.discoveryUrl);
-  if (!doc) throw new Error('retry ... not found');
+  if (!doc) throw new QueueRetryError();
 
   let configHash = await OAuthUtils.getConfigHash(doc, []);
   if (configHash === discoveryDocument.configHash) return;
