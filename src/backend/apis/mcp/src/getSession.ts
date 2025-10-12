@@ -125,7 +125,22 @@ export let getSessionAndAuthenticate = async (
     if (d.serverSessionId) {
       let serverSession = await db.serverSession.findFirst({
         where: { id: d.serverSessionId },
-        include: { session: true }
+        include: {
+          session: {
+            include: {
+              serverDeployments: {
+                include: {
+                  serverDeployment: {
+                    include: {
+                      server: true,
+                      serverVariant: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       });
       if (!serverSession) throw new ServiceError(notFoundError('session.server_session'));
 
