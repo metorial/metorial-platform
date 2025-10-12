@@ -247,7 +247,7 @@ class CustomServerVersionServiceImpl {
             }
 
             if (repo) {
-              await db.customServer.updateMany({
+              d.server = await db.customServer.update({
                 where: { oid: server.oid },
                 data: {
                   repositoryOid: repo.repo.oid,
