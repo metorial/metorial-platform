@@ -5,6 +5,7 @@ import { CustomServerRemoteCreateForm } from './createRemoteForm';
 
 export let showCustomServerRemoteFormModal = (p: {
   type: 'remote' | 'managed';
+  templateId?: string;
   onCreate?: (deal: CustomServersGetOutput) => any;
 }) =>
   showModal(({ dialogProps, close }) => {

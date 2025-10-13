@@ -70,6 +70,43 @@ let RepoItem = styled.button`
   }
 `;
 
+export let ConnectGitHubButton = (p: { onConnected: () => void }) => {
+  let instance = useCurrentInstance();
+  let createInstallation = useCreateScmInstallation();
+
+  return (
+    <Button
+      onClick={async () => {
+        let [res] = await createInstallation.mutate({
+          organizationId: instance.data?.organization.id!,
+          provider: 'github',
+          redirectUrl: window.location.href
+        });
+
+        let toastShownRef = { current: false };
+
+        if (res) {
+          openWindow(res?.authorizationUrl!).onMessage(msg => {
+            if (msg.data.type === 'scm_complete') {
+              p.onConnected();
+
+              if (!toastShownRef.current) {
+                toast.success('GitHub connected successfully');
+                toastShownRef.current = true;
+              }
+            }
+          });
+        }
+      }}
+      size="3"
+      fullWidth
+      type="button"
+    >
+      Connect GitHub
+    </Button>
+  );
+};
+
 export let SelectRepo = (props: {
   onSelect: (repo: DashboardScmReposCreateOutput) => void;
   selectedRepoId?: string;
@@ -112,35 +149,11 @@ export let SelectRepo = (props: {
   return renderWithLoader({ installations })(({ installations }) => (
     <>
       {!installations.data.items.length ? (
-        <Button
-          onClick={async () => {
-            let [res] = await createInstallation.mutate({
-              organizationId: instance.data?.organization.id!,
-              provider: 'github',
-              redirectUrl: window.location.href
-            });
-
-            let toastShownRef = { current: false };
-
-            if (res) {
-              openWindow(res?.authorizationUrl!).onMessage(msg => {
-                if (msg.data.type === 'scm_complete') {
-                  installationsOuter.refetch();
-
-                  if (!toastShownRef.current) {
-                    toast.success('GitHub connected successfully');
-                    toastShownRef.current = true;
-                  }
-                }
-              });
-            }
+        <ConnectGitHubButton
+          onConnected={() => {
+            installationsOuter.refetch();
           }}
-          size="3"
-          fullWidth
-          type="button"
-        >
-          Connect GitHub
-        </Button>
+        />
       ) : (
         renderWithLoader({ accounts, repos })(({ accounts, repos }) => (
           <div>

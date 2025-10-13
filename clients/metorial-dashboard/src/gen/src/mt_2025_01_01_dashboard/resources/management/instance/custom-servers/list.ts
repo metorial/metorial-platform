@@ -34,6 +34,7 @@ export type ManagementInstanceCustomServersListOutput = {
     updatedAt: Date;
     deletedAt: Date | null;
   } & {
+    fork: { status: 'disabled' } | { status: 'enabled'; templateId: string };
     repository: {
       object: 'scm.repo';
       id: string;
@@ -135,6 +136,21 @@ export let mapManagementInstanceCustomServersListOutput =
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date()),
               deletedAt: mtMap.objectField('deleted_at', mtMap.date()),
+              fork: mtMap.objectField(
+                'fork',
+                mtMap.union([
+                  mtMap.unionOption(
+                    'object',
+                    mtMap.object({
+                      status: mtMap.objectField('status', mtMap.passthrough()),
+                      templateId: mtMap.objectField(
+                        'template_id',
+                        mtMap.passthrough()
+                      )
+                    })
+                  )
+                ])
+              ),
               repository: mtMap.objectField(
                 'repository',
                 mtMap.object({

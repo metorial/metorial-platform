@@ -26,6 +26,11 @@ let include = {
           vendor: true,
           repository: true
         }
+      },
+      customServer: {
+        include: {
+          forkTemplateManagedServer: true
+        }
       }
     }
   }

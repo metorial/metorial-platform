@@ -403,6 +403,15 @@ export let dashboardServerListingPresenter = Presenter.create(serverListingType)
 
       oauth_explainer: serverListing.oauthExplainer,
 
+      fork: serverListing.server.customServer?.isForkable
+        ? {
+            status: 'enabled',
+            template_id: serverListing.server.customServer.forkTemplateManagedServer?.id!
+          }
+        : {
+            status: 'disabled'
+          },
+
       readme_html: readme
         ? await markdownService.renderMarkdown({
             markdown: readme,
@@ -422,6 +431,26 @@ export let dashboardServerListingPresenter = Presenter.create(serverListingType)
     v.intersection([
       v1ServerListingPresenter.schema,
       v.object({
+        fork: v.union([
+          v.object({
+            status: v.literal('disabled', {
+              name: 'status',
+              description: 'Indicates if forking is enabled for this server listing'
+            })
+          }),
+          v.object({
+            status: v.literal('enabled', {
+              name: 'status',
+              description: 'Indicates if forking is enabled for this server listing'
+            }),
+            template_id: v.string({
+              name: 'template_id',
+              description:
+                'The ID of the managed server template created when this listing is forked'
+            })
+          })
+        ]),
+
         oauth_explainer: v.nullable(
           v.string({
             name: 'oauth_explainer',

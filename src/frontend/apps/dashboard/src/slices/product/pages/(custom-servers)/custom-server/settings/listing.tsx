@@ -32,6 +32,7 @@ export let CustomServerListingPage = () => {
   let statusUpdate = listing.useUpdateMutator();
   let generalUpdate = listing.useUpdateMutator();
   let readmeUpdate = listing.useUpdateMutator();
+  let forkUpdate = customServer.useUpdateMutator();
 
   let [isPublic, setIsPublic] = useState(false);
   useEffect(
@@ -101,6 +102,40 @@ export let CustomServerListingPage = () => {
                 Open Listing
               </Button>
             </Link>
+          </Box>
+
+          <Box
+            title="Enable forking"
+            description="Let other users fork this custom server to their own Metorial instance."
+          >
+            <Switch
+              label="Enable forking"
+              disabled={
+                statusUpdate.isLoading ||
+                generalUpdate.isLoading ||
+                readmeUpdate.isLoading ||
+                forkUpdate.isLoading
+              }
+              checked={customServer.data?.fork.status == 'enabled'}
+              onCheckedChange={async checked => {
+                if (checked) {
+                  confirm({
+                    title: 'Are you sure you want to enable forking for this custom server?',
+                    description:
+                      'This will let other users fork this custom server to their own Metorial instance. This might expose sensitive information, so make sure you understand the implications.',
+                    onConfirm: async () => {
+                      await forkUpdate.mutate({
+                        isForkable: true
+                      });
+                    }
+                  });
+                } else {
+                  await forkUpdate.mutate({
+                    isForkable: false
+                  });
+                }
+              }}
+            />
           </Box>
 
           <FormBox

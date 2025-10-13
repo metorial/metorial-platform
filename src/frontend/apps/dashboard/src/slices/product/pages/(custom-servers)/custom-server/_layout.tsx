@@ -6,11 +6,13 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useCustomServer,
-  useDashboardFlags
+  useDashboardFlags,
+  useServerListing
 } from '@metorial/state';
 import { Button, Callout, LinkTabs, Menu, Spacer } from '@metorial/ui';
 import { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { showCustomServerRemoteFormModal } from '../../../scenes/customServer/modal';
 import {
   showMagicMcpServerFormModal,
   showServerDeploymentFormModal
@@ -144,8 +146,11 @@ export let DeployServerButton = ({
   disabled?: boolean;
 }) => {
   let flags = useDashboardFlags();
+  let instance = useCurrentInstance();
+  let server = useServerListing(instance.data?.id, serverId);
 
-  return flags.data?.flags['magic-mcp-enabled'] ? (
+  return flags.data?.flags['magic-mcp-enabled'] ||
+    (flags.data?.flags['managed-servers-enabled'] && server.data?.fork.status == 'enabled') ? (
     <Menu
       items={[
         {
@@ -153,11 +158,25 @@ export let DeployServerButton = ({
           label: 'Server Deployment',
           description: 'More powerful and flexible.'
         },
-        {
-          id: 'magic-mcp-server',
-          label: 'Magic MCP Server',
-          description: 'Easier to use and manage.'
-        }
+        ...(flags.data?.flags['magic-mcp-enabled']
+          ? [
+              {
+                id: 'magic-mcp-server',
+                label: 'Magic MCP Server',
+                description: 'Easier to use and manage.'
+              }
+            ]
+          : []),
+        ...(flags.data?.flags['managed-servers-enabled'] &&
+        server.data?.fork.status == 'enabled'
+          ? [
+              {
+                id: 'fork-server',
+                label: 'Fork Server',
+                description: 'Create a copy of this server and edit the code.'
+              }
+            ]
+          : [])
       ]}
       onItemClick={item => {
         if (item === 'server-deployment') {
@@ -169,6 +188,11 @@ export let DeployServerButton = ({
           showMagicMcpServerFormModal({
             type: 'create',
             for: { serverId }
+          });
+        } else if (item === 'fork-server' && server.data?.fork.status == 'enabled') {
+          showCustomServerRemoteFormModal({
+            type: 'managed',
+            templateId: server.data.fork.templateId
           });
         }
       }}

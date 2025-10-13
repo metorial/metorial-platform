@@ -34,6 +34,7 @@ model CodeBucket {
 
   customServers         CustomServer[]
   lambdaServerInstances LambdaServerInstance[]
+  providerFor           CodeBucketTemplate[]   @relation("ProviderBucket")
 }
 
 model CodeBucketTemplate {
@@ -44,6 +45,9 @@ model CodeBucketTemplate {
 
   /// [CodeBucketTemplateContents]
   contents Json
+
+  providerBucketOid BigInt?
+  providerBucket    CodeBucket? @relation(fields: [providerBucketOid], references: [oid], name: "ProviderBucket")
 
   createdAt DateTime @default(now())
 
