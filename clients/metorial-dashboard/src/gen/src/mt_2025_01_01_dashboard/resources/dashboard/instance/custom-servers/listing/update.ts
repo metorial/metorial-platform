@@ -84,7 +84,11 @@ export type DashboardInstanceCustomServersListingUpdateOutput = {
   installation: { id: string; instanceId: string; createdAt: Date } | null;
   createdAt: Date;
   updatedAt: Date;
-} & { oauthExplainer: string | null; readmeHtml: string | null };
+} & {
+  fork: { status: 'disabled' } | { status: 'enabled'; templateId: string };
+  oauthExplainer: string | null;
+  readmeHtml: string | null;
+};
 
 export let mapDashboardInstanceCustomServersListingUpdateOutput = mtMap.union([
   mtMap.unionOption(
@@ -217,6 +221,18 @@ export let mapDashboardInstanceCustomServersListingUpdateOutput = mtMap.union([
       ),
       createdAt: mtMap.objectField('created_at', mtMap.date()),
       updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+      fork: mtMap.objectField(
+        'fork',
+        mtMap.union([
+          mtMap.unionOption(
+            'object',
+            mtMap.object({
+              status: mtMap.objectField('status', mtMap.passthrough()),
+              templateId: mtMap.objectField('template_id', mtMap.passthrough())
+            })
+          )
+        ])
+      ),
       oauthExplainer: mtMap.objectField('oauth_explainer', mtMap.passthrough()),
       readmeHtml: mtMap.objectField('readme_html', mtMap.passthrough())
     })

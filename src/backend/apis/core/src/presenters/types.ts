@@ -192,6 +192,12 @@ export let serverListingType = PresentableType.create<{
           })
         | null;
 
+      customServer:
+        | (CustomServer & {
+            forkTemplateManagedServer: ManagedServerTemplate | null;
+          })
+        | null;
+
       instanceServers?: (InstanceServer & { instance: Instance })[];
     };
   };
@@ -430,6 +436,7 @@ export let customServerType = PresentableType.create<{
     serverVariant: ServerVariant;
     currentVersion: CustomServerVersion | null;
     repository: ScmRepo | null;
+    forkTemplateManagedServer: ManagedServerTemplate | null;
   };
 }>()('custom_server');
 

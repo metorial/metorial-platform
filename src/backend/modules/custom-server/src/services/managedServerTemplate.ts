@@ -14,7 +14,10 @@ class ManagedServerTemplateServiceImpl {
         async opts =>
           await db.managedServerTemplate.findMany({
             ...opts,
-            where: {},
+            where: {
+              status: 'active',
+              isListed: true
+            },
             include
           })
       )

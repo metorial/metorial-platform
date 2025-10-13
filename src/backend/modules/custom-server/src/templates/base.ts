@@ -21,7 +21,7 @@ export let ensureTemplate = (d: {
 
       await db.managedServerTemplate.updateMany({
         where: { oid: existing.oid },
-        data: { name: d.name }
+        data: { name: d.name, status: 'active', isListed: true }
       });
     } else {
       try {
@@ -38,12 +38,15 @@ export let ensureTemplate = (d: {
             id: await ID.generateId('managedServerTemplate'),
             name: d.name,
             slug: d.slug,
-            bucketTemplateOid: bucketTemplate.oid
+            bucketTemplateOid: bucketTemplate.oid,
+            status: 'active',
+            isListed: true
           }
         });
       } catch (e: any) {
         if (e.code === 'P2002') {
           // ignore unique constraint violation
+          return;
         }
 
         throw e;

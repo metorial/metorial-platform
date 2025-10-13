@@ -17,6 +17,10 @@ model CustomServer {
 
   isEphemeral Boolean
   isPublic    Boolean @default(false)
+  isForkable  Boolean @default(false)
+
+  forkTemplateManagedServerOid BigInt?                @unique
+  forkTemplateManagedServer    ManagedServerTemplate? @relation(fields: [forkTemplateManagedServerOid], references: [oid])
 
   name        String
   description String?
