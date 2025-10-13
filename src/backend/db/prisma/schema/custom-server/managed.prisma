@@ -1,12 +1,22 @@
+enum ManagedServerTemplateStatus {
+  active
+  inactive
+}
+
 model ManagedServerTemplate {
-  oid BigInt @id @default(autoincrement())
-  id  String @unique
+  oid    BigInt                      @id @default(autoincrement())
+  id     String                      @unique
+  status ManagedServerTemplateStatus @default(active)
 
   name String
   slug String @unique
+
+  isListed Boolean @default(false)
 
   createdAt DateTime @default(now())
 
   bucketTemplateOid BigInt
   bucketTemplate    CodeBucketTemplate @relation(fields: [bucketTemplateOid], references: [oid])
+
+  customServers CustomServer?
 }

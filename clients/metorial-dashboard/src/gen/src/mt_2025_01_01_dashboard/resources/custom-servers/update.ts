@@ -33,6 +33,7 @@ export type CustomServersUpdateOutput = {
   updatedAt: Date;
   deletedAt: Date | null;
 } & {
+  fork: { status: 'disabled' } | { status: 'enabled'; templateId: string };
   repository: {
     object: 'scm.repo';
     id: string;
@@ -112,6 +113,18 @@ export let mapCustomServersUpdateOutput = mtMap.union([
       createdAt: mtMap.objectField('created_at', mtMap.date()),
       updatedAt: mtMap.objectField('updated_at', mtMap.date()),
       deletedAt: mtMap.objectField('deleted_at', mtMap.date()),
+      fork: mtMap.objectField(
+        'fork',
+        mtMap.union([
+          mtMap.unionOption(
+            'object',
+            mtMap.object({
+              status: mtMap.objectField('status', mtMap.passthrough()),
+              templateId: mtMap.objectField('template_id', mtMap.passthrough())
+            })
+          )
+        ])
+      ),
       repository: mtMap.objectField(
         'repository',
         mtMap.object({
@@ -136,11 +149,13 @@ export type CustomServersUpdateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
+  isForkable?: boolean | undefined;
 };
 
 export let mapCustomServersUpdateBody = mtMap.object<CustomServersUpdateBody>({
   name: mtMap.objectField('name', mtMap.passthrough()),
   description: mtMap.objectField('description', mtMap.passthrough()),
-  metadata: mtMap.objectField('metadata', mtMap.passthrough())
+  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+  isForkable: mtMap.objectField('is_forkable', mtMap.passthrough())
 });
 

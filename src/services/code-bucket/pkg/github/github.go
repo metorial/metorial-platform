@@ -40,9 +40,8 @@ type githubContentRequest struct {
 }
 
 type githubContentResponse struct {
-	Content struct {
-		SHA string `json:"sha"`
-	} `json:"content"`
+	SHA     string `json:"sha"`
+	Content string `json:"content"` // This is the base64-encoded file content
 }
 
 func UploadToRepo(owner, repo, targetPath, token string, files []FileToUpload) error {
@@ -64,37 +63,12 @@ func UploadToRepo(owner, repo, targetPath, token string, files []FileToUpload) e
 		// Encode content to base64
 		encodedContent := base64.StdEncoding.EncodeToString(file.Content)
 
-		// Check if file exists to get its SHA (for updates)
 		fileURL := fmt.Sprintf("%s/repos/%s/%s/contents/%s", baseURL, owner, repo, fullPath)
-		req, err := http.NewRequest("GET", fileURL, nil)
+
+		// Fetch the latest SHA immediately before upload
+		existingSHA, err := getLatestFileSHA(client, fileURL, branch, token)
 		if err != nil {
-			return fmt.Errorf("failed to create get request for %s: %w", fullPath, err)
-		}
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-		req.Header.Set("Accept", "application/vnd.github+json")
-
-		// Add branch parameter to check for file on specific branch
-		q := req.URL.Query()
-		q.Add("ref", branch)
-		req.URL.RawQuery = q.Encode()
-
-		resp, err := client.Do(req)
-		if err != nil {
-			return fmt.Errorf("failed to check file %s: %w", fullPath, err)
-		}
-
-		var existingSHA string
-		if resp.StatusCode == http.StatusOK {
-			// File exists, get its SHA
-			var contentResp githubContentResponse
-			body, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
-			if err := json.Unmarshal(body, &contentResp); err != nil {
-				return fmt.Errorf("failed to decode content response for %s: %w", fullPath, err)
-			}
-			existingSHA = contentResp.Content.SHA
-		} else {
-			resp.Body.Close()
+			return fmt.Errorf("failed to get SHA for %s: %w", fullPath, err)
 		}
 
 		// Create or update the file
@@ -114,7 +88,7 @@ func UploadToRepo(owner, repo, targetPath, token string, files []FileToUpload) e
 			return fmt.Errorf("failed to marshal content request for %s: %w", fullPath, err)
 		}
 
-		req, err = http.NewRequest("PUT", fileURL, bytes.NewBuffer(contentJSON))
+		req, err := http.NewRequest("PUT", fileURL, bytes.NewBuffer(contentJSON))
 		if err != nil {
 			return fmt.Errorf("failed to create put request for %s: %w", fullPath, err)
 		}
@@ -122,17 +96,52 @@ func UploadToRepo(owner, repo, targetPath, token string, files []FileToUpload) e
 		req.Header.Set("Accept", "application/vnd.github+json")
 		req.Header.Set("Content-Type", "application/json")
 
-		resp, err = client.Do(req)
+		resp, err := client.Do(req)
 		if err != nil {
 			return fmt.Errorf("failed to upload file %s: %w", fullPath, err)
 		}
-		defer resp.Body.Close()
+
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-			body, _ := io.ReadAll(resp.Body)
 			return fmt.Errorf("failed to upload file %s (status %d): %s", fullPath, resp.StatusCode, string(body))
 		}
 	}
 
 	return nil
+}
+
+// Helper function to get the latest SHA for a file
+func getLatestFileSHA(client *http.Client, fileURL, branch, token string) (string, error) {
+	req, err := http.NewRequest("GET", fileURL, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	req.Header.Set("Accept", "application/vnd.github+json")
+
+	// Add branch parameter
+	q := req.URL.Query()
+	q.Add("ref", branch)
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		// File exists, get its SHA
+		var contentResp githubContentResponse
+		body, _ := io.ReadAll(resp.Body)
+		if err := json.Unmarshal(body, &contentResp); err != nil {
+			return "", err
+		}
+		return contentResp.SHA, nil
+	}
+
+	// File doesn't exist (404), return empty SHA
+	return "", nil
 }

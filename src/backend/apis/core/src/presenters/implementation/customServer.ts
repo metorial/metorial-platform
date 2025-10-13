@@ -104,6 +104,7 @@ export let dashboardCustomServerPresenter = Presenter.create(customServerType)
 
     return {
       ...base,
+
       repository: customServer.repository
         ? {
             object: 'scm.repo',
@@ -115,13 +116,44 @@ export let dashboardCustomServerPresenter = Presenter.create(customServerType)
             created_at: customServer.repository.createdAt,
             updated_at: customServer.repository.updatedAt
           }
-        : null
+        : null,
+
+      fork:
+        customServer.isForkable && customServer.forkTemplateManagedServer
+          ? {
+              status: 'enabled' as const,
+              template_id: customServer.forkTemplateManagedServer.id
+            }
+          : {
+              status: 'disabled' as const
+            }
     };
   })
   .schema(
     v.intersection([
       v1CustomServerPresenter.schema,
+
       v.object({
+        fork: v.union([
+          v.object({
+            status: v.literal('disabled', {
+              name: 'enabled',
+              description: 'Indicates if forking is enabled for this custom server'
+            })
+          }),
+          v.object({
+            status: v.literal('enabled', {
+              name: 'enabled',
+              description: 'Indicates if forking is enabled for this custom server'
+            }),
+            template_id: v.string({
+              name: 'template_id',
+              description:
+                'The unique identifier of the managed server template used for forking'
+            })
+          })
+        ]),
+
         repository: v.nullable(
           v.object({
             object: v.literal('scm.repo'),

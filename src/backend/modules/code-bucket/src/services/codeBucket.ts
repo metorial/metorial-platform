@@ -17,6 +17,7 @@ import { cloneBucketQueue } from '../queue/cloneBucket';
 import { copyFromToBucketQueue } from '../queue/copyFromToBucket';
 import { exportGithubQueue } from '../queue/exportGithub';
 import { importGithubQueue } from '../queue/importGithub';
+import { importTemplateQueue } from '../queue/importTemplate';
 
 let include = {
   repository: true
@@ -94,18 +95,27 @@ class codeBucketServiceImpl {
         instanceOid: d.instance.oid,
         purpose: d.purpose,
         templateOid: d.template.oid,
-        isReadOnly: d.isReadOnly
+        isReadOnly: d.isReadOnly,
+        status: 'importing'
       },
       include
     });
 
-    await codeWorkspaceClient.createBucketFromContents({
-      newBucketId: codeBucket.id,
-      contents: d.template.contents.map(f => ({
-        path: f.path,
-        content: Buffer.from(f.content, 'utf-8')
-      }))
-    });
+    if (d.template.providerBucketOid) {
+      let providerBucket = await db.codeBucket.findFirstOrThrow({
+        where: { oid: d.template.providerBucketOid }
+      });
+
+      await copyFromToBucketQueue.add({
+        sourceBucketId: providerBucket.id,
+        targetBucketId: codeBucket.id
+      });
+    } else {
+      await importTemplateQueue.add({
+        bucketId: codeBucket.id,
+        templateId: d.template.id
+      });
+    }
 
     return codeBucket;
   }

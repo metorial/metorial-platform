@@ -255,9 +255,11 @@ class CustomServerVersionServiceImpl {
                 }
               });
 
-              d.push = await scmRepoService.createPushForCurrentCommitOnDefaultBranch({
-                repo: repo.repo
-              });
+              // Can be null if the repo isn't ready yet (the import is still in progress and the repo has not content)
+              let currentPush = await scmRepoService.createPushForCurrentCommitOnDefaultBranch(
+                { repo: repo.repo }
+              );
+              if (currentPush) d.push = currentPush;
             }
           }
 

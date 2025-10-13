@@ -14,6 +14,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
+import { generatePlainId } from '@metorial/id';
 import { serverListingService } from '@metorial/module-catalog';
 import { codeBucketService } from '@metorial/module-code-bucket';
 import { profileService } from '@metorial/module-community';
@@ -28,7 +29,8 @@ let include = {
   repository: true,
   serverVariant: true,
   currentVersion: true,
-  draftCodeBucket: true
+  draftCodeBucket: true,
+  forkTemplateManagedServer: true
 };
 
 let getVariantIdentifier = createShortIdGenerator(
@@ -82,6 +84,18 @@ class customServerServiceImpl {
     return withTransaction(async db => {
       let codeBucket = await (async () => {
         if (d.serverInstance.type != 'managed') return;
+
+        if (
+          'template' in d.serverInstance.implementation &&
+          d.serverInstance.implementation.template &&
+          d.serverInstance.implementation.template.status != 'active'
+        ) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Cannot use inactive managed server template'
+            })
+          );
+        }
 
         if (d.serverInstance.repository) {
           if (d.serverInstance.implementation.template) {
@@ -232,6 +246,7 @@ class customServerServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      isForkable?: boolean;
     };
   }) {
     if (d.server.status != 'active') {
@@ -242,7 +257,7 @@ class customServerServiceImpl {
       );
     }
 
-    return withTransaction(async db => {
+    let { server, customServer } = await withTransaction(async db => {
       let server = await db.server.update({
         where: { oid: d.server.serverOid },
         data: {
@@ -251,14 +266,6 @@ class customServerServiceImpl {
           metadata: d.input.metadata
         }
       });
-
-      setTimeout(async () => {
-        await serverListingService.setServerListing({
-          server,
-          instance: d.instance,
-          organization: d.organization
-        });
-      }, 2000);
 
       let customServer = await db.customServer.update({
         where: { id: d.server.id },
@@ -269,8 +276,78 @@ class customServerServiceImpl {
         include
       });
 
-      return customServer;
+      if (d.input.isForkable !== undefined && customServer.isForkable !== d.input.isForkable) {
+        if (d.input.isForkable) {
+          if (customServer.type != 'managed') {
+            throw new ServiceError(
+              badRequestError({
+                message: 'Only managed servers can be made forkable'
+              })
+            );
+          }
+
+          if (!customServer.isPublic) {
+            throw new ServiceError(
+              badRequestError({
+                message: 'Only public servers can be made forkable'
+              })
+            );
+          }
+
+          let codeBucketTemplate = await db.codeBucketTemplate.create({
+            data: {
+              id: await ID.generateId('codeBucketTemplate'),
+              name: `${customServer.name} (fork template)`,
+              providerBucketOid: customServer.draftCodeBucketOid!,
+              contents: []
+            }
+          });
+
+          let template = await db.managedServerTemplate.create({
+            data: {
+              id: await ID.generateId('managedServerTemplate'),
+              name: `${customServer.name} (fork template)`,
+              bucketTemplateOid: codeBucketTemplate.oid,
+              slug: generatePlainId(20),
+              isListed: false
+            }
+          });
+
+          await db.customServer.update({
+            where: { oid: d.server.oid },
+            data: {
+              isForkable: true,
+              forkTemplateManagedServerOid: template.oid
+            }
+          });
+        } else {
+          if (d.server.forkTemplateManagedServerOid != null) {
+            await db.managedServerTemplate.updateMany({
+              where: { oid: d.server.forkTemplateManagedServerOid },
+              data: { status: 'inactive' }
+            });
+          }
+
+          await db.customServer.update({
+            where: { oid: d.server.oid },
+            data: {
+              isForkable: false,
+              forkTemplateManagedServerOid: null
+            }
+          });
+        }
+      }
+
+      return { customServer, server };
     });
+
+    await serverListingService.setServerListing({
+      server,
+      instance: d.instance,
+      organization: d.organization
+    });
+
+    return customServer;
   }
 
   async deleteCustomServer(d: { server: CustomServer & { server: Server } }) {

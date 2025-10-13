@@ -249,8 +249,18 @@ export let customServerController = Controller.create(
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any()))
+          metadata: v.optional(v.record(v.any())),
+          is_forkable: v.optional(v.boolean())
         })
+      )
+      .body(
+        'mt_2025_01_01_pulsar',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
+          metadata: v.optional(v.record(v.any()))
+        }),
+        v => v
       )
       .use(hasFlags(['metorial-gateway-enabled']))
       .output(customServerPresenter)
@@ -262,7 +272,8 @@ export let customServerController = Controller.create(
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            metadata: ctx.body.metadata
+            metadata: ctx.body.metadata,
+            isForkable: ctx.body.is_forkable
           }
         });
 
