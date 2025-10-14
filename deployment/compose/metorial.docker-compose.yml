@@ -1,0 +1,188 @@
+services:
+  etcd:
+    image: bitnami/etcd:latest
+    ports:
+      - '32379:2379'
+      - '32380:2380'
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - '32707:27017'
+    volumes:
+      - ./_volumes/mongodb:/data/db
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: mongo
+
+  redis-db:
+    image: redis:latest
+    ports:
+      - '36379:6379'
+    volumes:
+      - ./_volumes/redis:/data
+    restart: unless-stopped
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.14
+    ports:
+      - '37700:7700'
+    volumes:
+      - ./_volumes/meilisearch:/meili_data
+    environment:
+      - MEILI_ENV=development
+    restart: unless-stopped
+
+  postgres-db:
+    image: postgres:latest
+    ports:
+      - '35432:5432'
+    volumes:
+      - ./_volumes/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+    command: postgres -c 'max_connections=1000'
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"  
+      - "9001:9001"  # MinIO Console
+    volumes:
+      - ./_volumes/minio:/data
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    command: server --console-address ":9001" /data
+    restart: unless-stopped
+
+  opensearch:
+    image: opensearchproject/opensearch:2.9.0
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - DISABLE_SECURITY_PLUGIN=true   # disable SSL & auth
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - OPENSEARCH_USERNAME=admin
+      - OPENSEARCH_PASSWORD=admin
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+      - "9600:9600"  # Performance analyzer
+    volumes:
+      - ./_volumes/opensearch:/usr/share/opensearch/data
+    restart: unless-stopped
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.9.0
+    ports:
+      - "5601:5601"
+    environment:
+      - OPENSEARCH_HOSTS=http://opensearch:9200
+      - OPENSEARCH_USERNAME=admin
+      - OPENSEARCH_PASSWORD=admin
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true   # disable SSL & auth
+    depends_on:
+      - opensearch
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ../../
+      dockerfile: deployment/dockerfiles/api.Dockerfile
+    environment:
+      - EMAIL_SES_ACCESS_KEY_ID=${EMAIL_SES_ACCESS_KEY_ID}
+      - EMAIL_SES_SECRET_ACCESS_KEY=${EMAIL_SES_SECRET_ACCESS_KEY}
+      - EMAIL_SES_REGION=${EMAIL_SES_REGION}
+      - EMAIL_FROM=Metorial
+      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME}
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-db:5432/postgres
+      - REDIS_URL=redis://:@redis-db:6379
+      - USAGE_MONGO_URL=mongodb://mongo:mongo@mongodb:27017
+      - CODE_WORKSPACE_SERVICE_ADDRESS=http://code-workspace:3000
+      - OPENSEARCH_HOST=http://opensearch:9200
+      - OPENSEARCH_USERNAME=admin
+      - OPENSEARCH_PASSWORD=admin
+      - PROVIDER_OAUTH_TICKET_SECRET=${SECRET}
+      - AUTH_TICKET_SECRET=${SECRET}
+      - ENCRYPTION_SECRET=${SECRET}
+      - API_URL=${HOST}:4310
+      - APP_URL=${HOST}:4300
+      - MCP_URL=${HOST}:4311
+      - PROVIDER_OAUTH_URL=${HOST}:4313
+      - PORTALS_URL=${HOST}:4315
+      - INTEGRATIONS_API_URL=${HOST}:4316
+      - DENO_DEPLOY_TOKEN=placeholder
+      - DENO_ORGANIZATION_ID=placeholder
+      - SCM_GITHUB_CLIENT_ID=placeholder
+      - SCM_GITHUB_CLIENT_SECRET=placeholder
+      - METORIAL_ENV=production
+      - NODE_ENV=production
+    ports:
+      - '4310:4310' # API
+      - '4311:4311' # MCP
+      - '4312:4312' # Marketplace
+      - '4313:4313' # OAuth
+      - '4314:4314' # Private API
+      - '4315:4315' # Portals
+      - '4321:4321' # ID API
+      - '4316:4316' # Integrations API
+    depends_on:
+      - postgres-db
+      - redis-db
+      - mongodb
+      - meilisearch
+      - etcd
+      - opensearch
+    restart: unless-stopped
+
+  engine:
+    build:
+      context: ../../
+      dockerfile: deployment/dockerfiles/engine.Dockerfile
+    ports:
+      - '50050:50050'
+    depends_on:
+      - postgres-db
+      - redis-db
+    environment:
+      - REDIS_ENDPOINTS=redis://:@redis-db:6379
+      - ENGINE_DATABASE_DSN=host=postgres-db user=postgres password=postgres dbname=engine port=5432 sslmode=disable
+      - ENGINE_MANAGER_ADDRESSES=localhost:50050
+      - ENABLE_RESOURCE_CHECK=false
+
+  frontend:
+    build:
+      context: ../../
+      dockerfile: deployment/dockerfiles/engine.Dockerfile
+    ports:
+      - '50050:50050'
+    depends_on:
+      - postgres-db
+      - redis-db
+    environment:
+      - VITE_METORIAL_ENV=production
+      - METORIAL_ENV=production
+      - VITE_EXPLORER_URL=https://explorer.metorial.com
+      - VITE_MCP_API_URL=${HOST}:4311
+      - VITE_CORE_API_URL=${HOST}:4310
+      - VITE_PRIVATE_API_URL=${HOST}:4314
+      - VITE_CODE_EDITOR_URL=${HOST}:3000
+      - VITE_CODE_BUCKET_API_URL=${HOST}:3000
+      - VITE_MARKETPLACE_API_URL=${HOST}:4312
+      - VITE_DASHBOARD_FRONTEND_URL=${HOST}:4300
+      - VITE_DOCS_FRONTEND_URL=https://metorial.com/docs
+      - VITE_API_DOCS_FRONTEND_URL=https://metorial.com/api
+      - VITE_PUBLIC_API_URL=${HOST}:4310
+
+      
+  
