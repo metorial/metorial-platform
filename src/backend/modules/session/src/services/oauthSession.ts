@@ -165,7 +165,9 @@ class ServerOAuthSessionImpl {
               instanceOid: d.instance.oid,
 
               AND: [
-                d.status ? { status: { in: d.status } } : { not: 'archived' },
+                d.status
+                  ? { status: { in: d.status } }
+                  : { status: { not: 'archived' as const } },
 
                 sessions
                   ? {
