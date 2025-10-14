@@ -69,7 +69,7 @@ export async function generateMetadata(
     },
     twitter: {
       card: 'summary_large_image',
-      site: '@metorial_ai',
+      site: '@metorialAi',
       title: 'Metorial',
       description: 'The open source integration platform for agentic AI.',
       images: { url: '/twitter-image.jpg', alt: 'Metorial' }
