@@ -16,6 +16,12 @@ import { serverVariantPresenter } from '../presenters/serverVariant';
 import { serverVersionPresenter } from '../presenters/serverVersion';
 
 let normalizeSlug = (slug: string) => slug.replaceAll('---', '/').toLowerCase();
+let stringToBoolean = (str: string | undefined) => {
+  if (!str) return undefined;
+  if (str === 'true') return true;
+  if (str === 'false') return false;
+  return undefined;
+};
 
 export let serversController = createHono()
   .get(
@@ -29,7 +35,10 @@ export let serversController = createHono()
           collectionIds: z.optional(z.string()),
           categoryIds: z.optional(z.string()),
           profileIds: z.optional(z.string()),
-          providerIds: z.optional(z.string())
+          providerIds: z.optional(z.string()),
+          isVerified: z.optional(z.string()),
+          isOfficial: z.optional(z.string()),
+          isMetorial: z.optional(z.string())
         })
       )
     ),
@@ -43,6 +52,12 @@ export let serversController = createHono()
         categoryIds: query.categoryIds?.split(','),
         profileIds: query.profileIds?.split(','),
         providerIds: query.providerIds?.split(','),
+
+        isMetorial: stringToBoolean(query.isMetorial),
+        isOfficial: stringToBoolean(query.isOfficial),
+        isVerified: stringToBoolean(query.isVerified),
+
+        isPublic: true,
 
         orderByRank: true
       });

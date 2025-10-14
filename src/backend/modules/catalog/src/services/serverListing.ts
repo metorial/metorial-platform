@@ -186,6 +186,10 @@ class ServerListingService {
     isPublic?: boolean;
     onlyFromOrganization?: boolean;
 
+    isVerified?: boolean;
+    isOfficial?: boolean;
+    isMetorial?: boolean;
+
     instance?: Instance;
 
     orderByRank?: boolean;
@@ -286,7 +290,11 @@ class ServerListingService {
                 ? { ownerOrganizationOid: d.instance?.organizationOid ?? -1 }
                 : {},
 
-              d.isPublic ? { isPublic: true } : {}
+              d.isPublic ? { isPublic: true } : {},
+
+              d.isVerified !== undefined ? { isVerified: d.isVerified } : {},
+              d.isOfficial !== undefined ? { isOfficial: d.isOfficial } : {},
+              d.isMetorial !== undefined ? { isMetorial: d.isMetorial } : {}
 
               // d.instance
               //   ? {
