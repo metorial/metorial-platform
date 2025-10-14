@@ -77,6 +77,16 @@
         "METORIAL_ENV"
       ]
     },
+    "oss:server:build": {
+      "dependsOn": [
+        "^build",
+        "^server:build",
+        "^oss:server:build"
+      ],
+      "env": [
+        "METORIAL_ENV"
+      ]
+    },
     "test": {
       "dependsOn": [
         "^test"

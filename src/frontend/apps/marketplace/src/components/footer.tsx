@@ -132,7 +132,7 @@ export let Footer = () => {
                 <a href="/blog">Blog</a>
               </li>
               <li>
-                <a href="https://x.com/metorial_ai">X</a>
+                <a href="https://x.com/metorialAi">X</a>
               </li>
               <li>
                 <a href="https://github.com/metorial">Github</a>
