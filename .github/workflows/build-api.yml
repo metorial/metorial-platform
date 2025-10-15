@@ -30,10 +30,6 @@ jobs:
         with:
           bun-version: '1.2.20'
 
-      - name: RM package.json
-        working-directory: oss
-        run: rm -f package.json
-
       - name: Install Packages
         run: bun i --linker=hoisted
 
