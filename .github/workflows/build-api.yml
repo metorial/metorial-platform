@@ -58,7 +58,7 @@ jobs:
     env:
       SERVICE_NAME: metorial-api
       IMAGE_NAME: metorial/metorial-api
-      DOCKERFILE: ./deployment/dockerfiles/metorial-api.Dockerfile
+      DOCKERFILE: ./deployment/dockerfiles/api.Dockerfile
       GHCR_REGISTRY: ghcr.io
       CONTAINER_TAG: mte-${{ github.ref_name }}-${{ github.sha }}
 
