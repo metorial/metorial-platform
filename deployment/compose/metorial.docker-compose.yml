@@ -163,13 +163,14 @@ services:
   frontend:
     build:
       context: ../../
-      dockerfile: deployment/dockerfiles/engine.Dockerfile
+      dockerfile: deployment/dockerfiles/frontend.Dockerfile
     ports:
-      - '50050:50050'
+      - '3300:3000'
     depends_on:
       - postgres-db
       - redis-db
     environment:
+      - PORT=3000
       - VITE_METORIAL_ENV=production
       - METORIAL_ENV=production
       - VITE_EXPLORER_URL=https://explorer.metorial.com

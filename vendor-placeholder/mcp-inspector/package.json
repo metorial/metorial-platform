@@ -1,0 +1,9 @@
+{
+  "name": "@metorial/vendor-mcp",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "AGPL",
+  "scripts": {
+    "dev": "cd ../../vendor/mcp-inspector && bun run dev"
+  }
+}

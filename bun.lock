@@ -2279,6 +2279,10 @@
         "typescript": "^5",
       },
     },
+    "vendor-placeholder/mcp-inspector": {
+      "name": "@metorial/vendor-mcp",
+      "version": "1.0.0",
+    },
   },
   "packages": {
     "@algolia/abtesting": ["@algolia/abtesting@1.6.0", "", { "dependencies": { "@algolia/client-common": "5.40.0", "@algolia/requester-browser-xhr": "5.40.0", "@algolia/requester-fetch": "5.40.0", "@algolia/requester-node-http": "5.40.0" } }, "sha512-c4M/Z/KWkEG+RHpZsWKDTTlApXu3fe4vlABNcpankWBhdMe4oPZ/r4JxEr2zKUP6K+BT66tnp8UbHmgOd/vvqQ=="],
@@ -2972,6 +2976,8 @@
     "@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@1.0.0", "", {}, "sha512-CUPXTqEJXyYBYIDaUXvMQywimC43Q5DTycXcXEpT+cxSVngKswqe3F1Zih0CLFyaLHeSGqXRRaSOBsZebSv+iw=="],
 
     "@metorial/validation": ["@metorial/validation@workspace:src/packages/shared/validation"],
+
+    "@metorial/vendor-mcp": ["@metorial/vendor-mcp@workspace:vendor-placeholder/mcp-inspector"],
 
     "@metorial/websocket": ["@metorial/websocket@workspace:src/packages/shared/websocket"],
 

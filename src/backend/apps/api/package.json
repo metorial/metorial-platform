@@ -5,7 +5,7 @@
   "license": "FSL-1.1",
   "main": "src/index.ts",
   "scripts": {
-    "oss:server:build": "ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite && bun run sentry:sourcemaps",
+    "oss:server:build": "ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite",
     "oss:server:start": "bun ./dist/index.js",
     "dev": "bun --watch ./src/server.ts"
   },

@@ -26,6 +26,10 @@ export let createDenoLambdaDeployment = async (config: {
   customServer: CustomServer;
   deployment: CustomServerDeployment;
 }) => {
+  if (!env.deno.DENO_DEPLOY_TOKEN) {
+    throw new Error('DENO_DEPLOY_TOKEN is not set');
+  }
+
   let lambdaServerInstance = config.lambdaServerInstance;
 
   let deployment = await deploymentLock.usingLock(config.customServer.id, async () => {
