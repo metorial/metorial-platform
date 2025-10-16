@@ -17,6 +17,8 @@ ENV METORIAL_ENV=production
 WORKDIR /app
 
 # Copy all necessary source directories
+COPY /clients ./clients
+
 COPY /src/frontend ./src/frontend
 COPY /src/backend ./src/backend
 COPY /src/packages ./src/packages
