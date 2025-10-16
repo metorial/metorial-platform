@@ -50,9 +50,9 @@ export let getEnvRecord = ({
     }
 
     if (value) {
-      // if (entry.isEnterprise && type !== 'enterprise') {
-      //   continue; // Skip enterprise variables for OSS
-      // }
+      if (entry.isEnterprise && type !== 'enterprise') {
+        continue; // Skip enterprise variables for OSS
+      }
 
       out[entry.key] = value;
     }

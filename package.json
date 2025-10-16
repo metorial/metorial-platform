@@ -6,12 +6,12 @@
     "generate:client": "turbo run generate:client && turbo run build",
     "client:generate": "bun run generate:client",
     "client:generate:dashboard": "turbo run generate:client:dashboard",
-    "dev": "turbo run --concurrency 99 --ui=stream dev",
+    "dev": "turbo run --concurrency 99 dev",
     "test": "turbo run --concurrency=1 --ui=stream test",
     "prisma:generate": "turbo run --ui=stream prisma:generate",
     "prisma:push": "turbo run --ui=stream --concurrency=1 prisma:push --",
     "prepare": "echo prepare",
-    "postinstall": "echo postinstall",
+    "postinstall": "echo postinstall && [ -f \"./vendor/mcp-inspector\" ] && { cd ./vendor/mcp-inspector && npm install; } || { echo \"No vendor dependencies to install.\"; }",
     "preinstall": "[ -f \"../metorial_enterprise_install.sh\" ] && { ../metorial_enterprise_install.sh; } || { [ ! -f \"../metorial_enterprise_install.sh\" ] && echo \"Ignoring enterprise dependencies.\"; }"
   },
   "devDependencies": {
@@ -28,6 +28,7 @@
     "_clients/metorial-node/*/*",
     "clients/metorial-dashboard",
     "scripts/*",
+    "vendor-placeholder/*",
     "src/*",
     "src/*/*",
     "src/*/*/*"

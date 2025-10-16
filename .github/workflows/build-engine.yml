@@ -3,12 +3,10 @@ name: 'Build and Push MCP Engine'
 on:
   workflow_dispatch:
 
-  # push:
-  #   branches:
-  #     - main
-  #     - dev
-  #   paths:
-  #     - 'src/mcp-engine/**'
+  push:
+    branches:
+      - main
+      - dev
 
 jobs:
   build-and-push-mcp-engine:
@@ -74,5 +72,6 @@ jobs:
           context: .
           push: true
           file: ${{ env.DOCKERFILE }}
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

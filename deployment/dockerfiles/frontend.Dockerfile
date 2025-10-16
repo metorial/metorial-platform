@@ -17,6 +17,8 @@ ENV METORIAL_ENV=production
 WORKDIR /app
 
 # Copy all necessary source directories
+COPY /clients ./clients
+
 COPY /src/frontend ./src/frontend
 COPY /src/backend ./src/backend
 COPY /src/packages ./src/packages
@@ -38,6 +40,8 @@ RUN apt-get update && apt-get install -y ca-certificates
 RUN bun turbo run prisma:generate --concurrency=1 --log-prefix=task
 
 # Build the frontend application
+RUN bun turbo run build --concurrency=1 --log-prefix=task
+
 RUN bun turbo run frontend:build --filter=${PACKAGE_NAME} --concurrency=1 --log-prefix=task
 
 # ------------------------

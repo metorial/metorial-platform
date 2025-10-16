@@ -13,7 +13,7 @@ services:
     ports:
       - '32707:27017'
     volumes:
-      - ./_volumes/mongodb:/data/db
+      - mongodb_data:/data/db
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: mongo
@@ -24,7 +24,7 @@ services:
     ports:
       - '36379:6379'
     volumes:
-      - ./_volumes/redis:/data
+      - redis_data:/data
     restart: unless-stopped
 
   meilisearch:
@@ -32,7 +32,7 @@ services:
     ports:
       - '37700:7700'
     volumes:
-      - ./_volumes/meilisearch:/meili_data
+      - meilisearch_data:/meili_data
     environment:
       - MEILI_ENV=development
     restart: unless-stopped
@@ -42,7 +42,7 @@ services:
     ports:
       - '35432:5432'
     volumes:
-      - ./_volumes/postgres:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
@@ -55,7 +55,7 @@ services:
       - "9000:9000"  
       - "9001:9001"  # MinIO Console
     volumes:
-      - ./_volumes/minio:/data
+      - minio_data:/data
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
@@ -63,27 +63,24 @@ services:
     restart: unless-stopped
 
   opensearch:
-    image: opensearchproject/opensearch:2.9.0
+    image: opensearchproject/opensearch:2.18.0
     environment:
       - discovery.type=single-node
-      - bootstrap.memory_lock=true
+      - bootstrap.memory_lock=false  # Changed from true to avoid ulimit issues
       - DISABLE_SECURITY_PLUGIN=true   # disable SSL & auth
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - OPENSEARCH_USERNAME=admin
       - OPENSEARCH_PASSWORD=admin
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
+    # Removed ulimits as they can cause permission issues on some systems
     ports:
       - "9200:9200"
       - "9600:9600"  # Performance analyzer
     volumes:
-      - ./_volumes/opensearch:/usr/share/opensearch/data
+      - opensearch_data:/usr/share/opensearch/data
     restart: unless-stopped
 
   opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:2.9.0
+    image: opensearchproject/opensearch-dashboards:2.18.0
     ports:
       - "5601:5601"
     environment:
@@ -96,15 +93,17 @@ services:
     restart: unless-stopped
 
   api:
-    image: 
+    image: ghcr.io/metorial/metorial-api:dev
     environment:
-      - EMAIL_SES_ACCESS_KEY_ID=${EMAIL_SES_ACCESS_KEY_ID}
-      - EMAIL_SES_SECRET_ACCESS_KEY=${EMAIL_SES_SECRET_ACCESS_KEY}
-      - EMAIL_SES_REGION=${EMAIL_SES_REGION}
-      - EMAIL_FROM=Metorial
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_SECURE=${EMAIL_SECURE}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - EMAIL_FROM=${EMAIL_FROM}
       - EMAIL_FROM_NAME=${EMAIL_FROM_NAME}
       - DATABASE_URL=postgresql://postgres:postgres@postgres-db:5432/postgres
-      - REDIS_URL=redis://:@redis-db:6379
+      - REDIS_URL=redis://:@redis-db:6379/0
       - USAGE_MONGO_URL=mongodb://mongo:mongo@mongodb:27017
       - CODE_WORKSPACE_SERVICE_ADDRESS=http://code-workspace:3000
       - OPENSEARCH_HOST=http://opensearch:9200
@@ -125,6 +124,7 @@ services:
       - SCM_GITHUB_CLIENT_SECRET=placeholder
       - METORIAL_ENV=production
       - NODE_ENV=production
+      - ENGINE_MANAGER_ADDRESSES=engine:50050
     ports:
       - '4310:4310' # API
       - '4311:4311' # MCP
@@ -144,9 +144,7 @@ services:
     restart: unless-stopped
 
   engine:
-    build:
-      context: ../../
-      dockerfile: deployment/dockerfiles/engine.Dockerfile
+    image: ghcr.io/metorial/metorial-mcp-engine-unified:dev
     ports:
       - '50050:50050'
     depends_on:
@@ -157,31 +155,12 @@ services:
       - ENGINE_DATABASE_DSN=host=postgres-db user=postgres password=postgres dbname=engine port=5432 sslmode=disable
       - ENGINE_MANAGER_ADDRESSES=localhost:50050
       - ENABLE_RESOURCE_CHECK=false
+    restart: unless-stopped
 
-  frontend:
-    build:
-      context: ../../
-      dockerfile: deployment/dockerfiles/frontend.Dockerfile
-    ports:
-      - '3300:3000'
-    depends_on:
-      - postgres-db
-      - redis-db
-    environment:
-      - PORT=3000
-      - VITE_METORIAL_ENV=production
-      - METORIAL_ENV=production
-      - VITE_EXPLORER_URL=https://explorer.metorial.com
-      - VITE_MCP_API_URL=${HOST}:4311
-      - VITE_CORE_API_URL=${HOST}:4310
-      - VITE_PRIVATE_API_URL=${HOST}:4314
-      - VITE_CODE_EDITOR_URL=${HOST}:3000
-      - VITE_CODE_BUCKET_API_URL=${HOST}:3000
-      - VITE_MARKETPLACE_API_URL=${HOST}:4312
-      - VITE_DASHBOARD_FRONTEND_URL=${HOST}:4300
-      - VITE_DOCS_FRONTEND_URL=https://metorial.com/docs
-      - VITE_API_DOCS_FRONTEND_URL=https://metorial.com/api
-      - VITE_PUBLIC_API_URL=${HOST}:4310
-
-      
-  
+volumes:
+  mongodb_data:
+  redis_data:
+  meilisearch_data:
+  postgres_data:
+  minio_data:
+  opensearch_data:

@@ -8,10 +8,7 @@ export let restServer = new RestServerBuilder<AuthInfo, ApiVersion>()
   .authenticate(authenticate)
   .checkCors(
     ({ auth, origin }) =>
-      auth.machineAccess?.type == 'instance_publishable' ||
-      (auth.type == 'user' &&
-        (getConfig().env == 'development' ||
-          ['metorial.com', 'metorial-staging.space'].some(domain => origin.includes(domain))))
+      auth.machineAccess?.type == 'instance_publishable' || auth.type == 'user'
   )
   .rateLimiter(
     new RateLimiter(

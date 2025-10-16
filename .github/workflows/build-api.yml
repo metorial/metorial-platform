@@ -1,0 +1,114 @@
+name: 'Build and Push API'
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  test-and-build-ts:
+    name: 'Test and Build TypeScript'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          token: ${{ secrets.GH_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.2.20'
+
+      - name: Install Packages
+        run: bun i --linker=hoisted
+
+      - name: Generate Prisma Clients
+        run: bun run prisma:generate
+
+      - name: Build Packages
+        run: bun run build
+
+      - name: Test
+        run: bun run test
+
+  build-and-push-api:
+    name: 'Build and Push API'
+    runs-on: ubuntu-latest
+
+    needs:
+      - test-and-build-ts
+
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    env:
+      SERVICE_NAME: metorial-api
+      IMAGE_NAME: metorial/metorial-api
+      DOCKERFILE: ./deployment/dockerfiles/api.Dockerfile
+      GHCR_REGISTRY: ghcr.io
+      CONTAINER_TAG: mto-${{ github.ref_name }}-${{ github.sha }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_NAME }}
+          labels: |
+            org.opencontainers.image.title=${{ env.SERVICE_NAME }}
+            org.opencontainers.image.vendor=Metorial
+          tags: |
+            type=sha
+            type=sha,format=long
+            type=ref,event=branch
+            type=ref,event=tag,prefix=tag-
+            type=ref,event=pr,prefix=pr-
+            type=raw,value=${{ env.CONTAINER_TAG }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+
+      - name: Build and push Docker image to GHCR & ECR
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          file: ${{ env.DOCKERFILE }}
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            METORIAL_ENV=${{ github.ref_name == 'main' && 'production' || 'staging' }}
+            BRANCH=${{ github.ref_name }}
