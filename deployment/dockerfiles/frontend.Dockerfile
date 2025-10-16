@@ -40,6 +40,8 @@ RUN apt-get update && apt-get install -y ca-certificates
 RUN bun turbo run prisma:generate --concurrency=1 --log-prefix=task
 
 # Build the frontend application
+RUN bun turbo run build --concurrency=1 --log-prefix=task
+
 RUN bun turbo run frontend:build --filter=${PACKAGE_NAME} --concurrency=1 --log-prefix=task
 
 # ------------------------
