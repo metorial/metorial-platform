@@ -667,27 +667,14 @@ fi
 if [ "$SKIP_SERVE" = false ]; then
     print_header "STEP 3: SERVE FRONTEND APPLICATIONS"
     
-    # Check for Python
-    print_step "Checking for Python..."
-    if command -v python3 &> /dev/null; then
-        PYTHON_CMD="python3"
-        print_success "$(python3 --version) detected"
-    elif command -v python &> /dev/null; then
-        PYTHON_CMD="python"
-        print_success "$(python --version) detected"
-    else
-        print_error "Python is not installed!"
-        echo "Please install Python 3 to serve the applications"
+    # Check for Node.js (we'll use a simple Node server for SPA support)
+    print_step "Checking for Node.js..."
+    if ! command -v node &> /dev/null; then
+        print_error "Node.js is not installed!"
+        echo "Node.js is required to serve the SPA applications"
         exit 1
     fi
-    
-    # Check if ports are available
-    check_port() {
-        if lsof -Pi :$1 -sTCP:LISTEN -t >/dev/null 2>&1; then
-            return 1
-        fi
-        return 0
-    }
+    print_success "$(node --version) detected"
     
     # Stop any existing servers
     if [ -f "$PIDS_FILE" ]; then
@@ -698,10 +685,77 @@ if [ "$SKIP_SERVE" = false ]; then
         rm -f "$PIDS_FILE"
     fi
     
+    # Create a simple SPA server script
+    print_step "Creating SPA server scripts..."
+    
+    cat > "$SELF_HOSTING_DIR/spa-server.js" << 'SERVEREOF'
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+
+const port = process.argv[2] || 3000;
+const rootDir = process.argv[3] || '.';
+
+const mimeTypes = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.eot': 'application/vnd.ms-fontobject'
+};
+
+const server = http.createServer((req, res) => {
+  let filePath = path.join(rootDir, req.url === '/' ? 'index.html' : req.url);
+  
+  // Remove query string
+  filePath = filePath.split('?')[0];
+  
+  // Check if file exists
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      // File doesn't exist, serve index.html for SPA routing
+      filePath = path.join(rootDir, 'index.html');
+    }
+    
+    const extname = String(path.extname(filePath)).toLowerCase();
+    const contentType = mimeTypes[extname] || 'application/octet-stream';
+    
+    fs.readFile(filePath, (error, content) => {
+      if (error) {
+        if (error.code === 'ENOENT') {
+          res.writeHead(404, { 'Content-Type': 'text/html' });
+          res.end('<h1>404 Not Found</h1>', 'utf-8');
+        } else {
+          res.writeHead(500);
+          res.end('Server Error: ' + error.code, 'utf-8');
+        }
+      } else {
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(content, 'utf-8');
+      }
+    });
+  });
+});
+
+server.listen(port, '0.0.0.0', () => {
+  console.log(`SPA server running at http://localhost:${port}/`);
+});
+SERVEREOF
+    
+    print_success "SPA server script created"
+    
     # Start Dashboard server
     print_step "Starting dashboard server on port 3300..."
-    cd "$FINAL_OUTPUT_DIR"
-    $PYTHON_CMD -m http.server 3300 > /dev/null 2>&1 &
+    cd "$SELF_HOSTING_DIR"
+    node spa-server.js 3300 "$FINAL_OUTPUT_DIR" > /dev/null 2>&1 &
     DASHBOARD_PID=$!
     echo $DASHBOARD_PID >> "$PIDS_FILE"
     sleep 1
@@ -715,8 +769,7 @@ if [ "$SKIP_SERVE" = false ]; then
     
     # Start Inspector server
     print_step "Starting inspector server on port 6050..."
-    cd "$FINAL_INSPECTOR_OUTPUT_DIR"
-    $PYTHON_CMD -m http.server 6050 > /dev/null 2>&1 &
+    node spa-server.js 6050 "$FINAL_INSPECTOR_OUTPUT_DIR" > /dev/null 2>&1 &
     INSPECTOR_PID=$!
     echo $INSPECTOR_PID >> "$PIDS_FILE"
     sleep 1
