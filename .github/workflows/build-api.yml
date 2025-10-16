@@ -7,7 +7,6 @@ on:
     branches:
       - main
       - dev
-      - next
 
 jobs:
   test-and-build-ts:
@@ -60,7 +59,7 @@ jobs:
       IMAGE_NAME: metorial/metorial-api
       DOCKERFILE: ./deployment/dockerfiles/api.Dockerfile
       GHCR_REGISTRY: ghcr.io
-      CONTAINER_TAG: mte-${{ github.ref_name }}-${{ github.sha }}
+      CONTAINER_TAG: mto-${{ github.ref_name }}-${{ github.sha }}
 
     steps:
       - name: Checkout repository
@@ -107,6 +106,7 @@ jobs:
           context: .
           push: true
           file: ${{ env.DOCKERFILE }}
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |

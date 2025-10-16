@@ -96,12 +96,14 @@ services:
     restart: unless-stopped
 
   api:
-    image: 
+    image: docker pull ghcr.io/metorial/metorial-api:dev
     environment:
-      - EMAIL_SES_ACCESS_KEY_ID=${EMAIL_SES_ACCESS_KEY_ID}
-      - EMAIL_SES_SECRET_ACCESS_KEY=${EMAIL_SES_SECRET_ACCESS_KEY}
-      - EMAIL_SES_REGION=${EMAIL_SES_REGION}
-      - EMAIL_FROM=Metorial
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_SECURE=${EMAIL_SECURE}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - EMAIL_FROM=${EMAIL_FROM}
       - EMAIL_FROM_NAME=${EMAIL_FROM_NAME}
       - DATABASE_URL=postgresql://postgres:postgres@postgres-db:5432/postgres
       - REDIS_URL=redis://:@redis-db:6379
@@ -144,9 +146,7 @@ services:
     restart: unless-stopped
 
   engine:
-    build:
-      context: ../../
-      dockerfile: deployment/dockerfiles/engine.Dockerfile
+    image: docker pull ghcr.io/metorial/metorial-mcp-engine-unified:latest
     ports:
       - '50050:50050'
     depends_on:
@@ -157,31 +157,3 @@ services:
       - ENGINE_DATABASE_DSN=host=postgres-db user=postgres password=postgres dbname=engine port=5432 sslmode=disable
       - ENGINE_MANAGER_ADDRESSES=localhost:50050
       - ENABLE_RESOURCE_CHECK=false
-
-  frontend:
-    build:
-      context: ../../
-      dockerfile: deployment/dockerfiles/frontend.Dockerfile
-    ports:
-      - '3300:3000'
-    depends_on:
-      - postgres-db
-      - redis-db
-    environment:
-      - PORT=3000
-      - VITE_METORIAL_ENV=production
-      - METORIAL_ENV=production
-      - VITE_EXPLORER_URL=https://explorer.metorial.com
-      - VITE_MCP_API_URL=${HOST}:4311
-      - VITE_CORE_API_URL=${HOST}:4310
-      - VITE_PRIVATE_API_URL=${HOST}:4314
-      - VITE_CODE_EDITOR_URL=${HOST}:3000
-      - VITE_CODE_BUCKET_API_URL=${HOST}:3000
-      - VITE_MARKETPLACE_API_URL=${HOST}:4312
-      - VITE_DASHBOARD_FRONTEND_URL=${HOST}:4300
-      - VITE_DOCS_FRONTEND_URL=https://metorial.com/docs
-      - VITE_API_DOCS_FRONTEND_URL=https://metorial.com/api
-      - VITE_PUBLIC_API_URL=${HOST}:4310
-
-      
-  
