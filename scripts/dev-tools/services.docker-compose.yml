@@ -13,7 +13,7 @@ services:
     ports:
       - '32707:27017'
     volumes:
-      - ./_volumes/mongodb:/data/db
+      - mongodb_1:/data/db
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: mongo
@@ -24,25 +24,25 @@ services:
     ports:
       - '36379:6379'
     volumes:
-      - ./_volumes/redis:/data
+      - redis_1:/data
     restart: unless-stopped
 
-  meilisearch:
-    image: getmeili/meilisearch:v1.14
-    ports:
-      - '37700:7700'
-    volumes:
-      - ./_volumes/meilisearch:/meili_data
-    environment:
-      - MEILI_ENV=development
-    restart: unless-stopped
+  # meilisearch:
+  #   image: getmeili/meilisearch:v1.14
+  #   ports:
+  #     - '37700:7700'
+  #   volumes:
+  #     - meilisearch_1:/meili_data
+  #   environment:
+  #     - MEILI_ENV=development
+  #   restart: unless-stopped
 
-  postgres-db:
+  postgres-db1:
     image: postgres:latest
     ports:
       - '35432:5432'
     volumes:
-      - ./_volumes/postgres:/var/lib/postgresql/data
+      - pg_1:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
@@ -81,7 +81,7 @@ services:
       - "9200:9200"
       - "9600:9600"  # Performance analyzer
     volumes:
-      - ./_volumes/opensearch:/usr/share/opensearch/data
+      - open_search_1:/usr/share/opensearch/data
     restart: unless-stopped
 
   opensearch-dashboards:
@@ -97,3 +97,10 @@ services:
     depends_on:
       - opensearch
     restart: unless-stopped
+
+volumes:
+  mongodb_1:
+  redis_1:
+  meilisearch_1:
+  pg_1:
+  open_search_1:

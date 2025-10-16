@@ -220,6 +220,21 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
         ['Server implements custom OAuth. OAuth configuration created successfully.'],
         'info'
       );
+    } else if (lambda.providerOAuthConfigOid) {
+      let currentOauthConfig = await db.providerOAuthConfig.findFirstOrThrow({
+        where: { oid: lambda.providerOAuthConfigOid }
+      });
+
+      // If the server used to be oauth enabled but isn't anymore,
+      // we remove the config from the lambda
+      if (currentOauthConfig.type == 'managed_server_http') {
+        await db.lambdaServerInstance.updateMany({
+          where: { id: lambda.id },
+          data: {
+            providerOAuthConfigOid: null
+          }
+        });
+      }
     }
 
     await discoverStep.complete();

@@ -15,7 +15,7 @@ let json = (data: any, status = 200) => new Response(JSON.stringify(data), {
   headers: { 'Content-Type': 'application/json' }
 });
 
-Deno.serve(async (req) => {
+let handler = async (req: Request) => {
   let url = new URL(req.url);
 
   let entrypoint = Deno.env.get('CUSTOM_SERVER_ENTRYPOINT')!
@@ -230,5 +230,13 @@ Deno.serve(async (req) => {
   }
 
   return new Response('Not Found', { status: 404 });
-});
+}
+
+let portEnv = Deno.env.get('PORT');
+if (!portEnv) {
+  Deno.serve(handler);
+} else {
+  let port = parseInt(portEnv);
+  Deno.serve({ port }, handler);
+}
 `;

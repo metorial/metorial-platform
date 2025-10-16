@@ -16,4 +16,5 @@ use (
 	./src/services/usage
 	./src/services/listener
 	./src/services/log
+	./src/services/deno-runner
 )
