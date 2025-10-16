@@ -1,3 +1,4 @@
 output
 _volumes
 spa-server.js
+.server_pids

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"path"
 	"sync"
 	"time"
 
@@ -107,7 +108,13 @@ func (c *ConnectionLambdaWs) ensureConnection() (*websocket.Conn, error) {
 		return nil, fmt.Errorf("failed to parse WebSocket URL: %w", err)
 	}
 
-	u := url.URL{Scheme: "wss", Host: baseUrl.Host, Path: "/mcp", RawQuery: baseUrl.RawQuery}
+	u := url.URL{Scheme: "wss", Host: baseUrl.Host, Path: baseUrl.Path, RawQuery: baseUrl.RawQuery}
+	if baseUrl.Scheme == "http" {
+		u.Scheme = "ws"
+	}
+	u.Path = path.Join(u.Path, "mcp")
+
+	fmt.Println("Connecting to WebSocket server at", u.String())
 
 	headers := http.Header{}
 	headers.Set("User-Agent", "Metorial MCP Engine (https://metorial.com)")

@@ -1,9 +1,11 @@
 enum LambdaServerInstanceRuntime {
   deno_deploy_v1
+  deno_self_hosted_v1
 }
 
 enum LambdaServerInstanceProvider {
   deno_deploy
+  deno_self_hosted
 }
 
 enum LambdaServerInstancePlatform {

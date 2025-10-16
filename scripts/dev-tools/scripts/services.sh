@@ -32,7 +32,7 @@ start_services() {
   wait_for_port 127.0.0.1 32379 "etcd"
   wait_for_port 127.0.0.1 32707 "MongoDB"
   wait_for_port 127.0.0.1 36379 "Redis"
-  wait_for_port 127.0.0.1 37700 "MeiliSearch"
+  # wait_for_port 127.0.0.1 37700 "MeiliSearch"
   wait_for_port 127.0.0.1 35432 "Postgres"
 
   echo "All checks completed."

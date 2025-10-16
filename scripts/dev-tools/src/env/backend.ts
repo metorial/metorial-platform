@@ -58,6 +58,8 @@ export let backendEnv: Env = [
     defaultValue: `admin`
   },
 
+  { key: 'DENO_RUNNER_ADDRESS', defaultValue: `http://localhost:52000` },
+
   // { key: 'ETCD_ENDPOINTS', defaultValue: `http://localhost:32379` },
   { key: 'REDIS_ENDPOINTS', defaultValue: `localhost:36379` },
   {
