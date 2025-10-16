@@ -62,7 +62,9 @@ export let providerOauthController = createHono().get(
           if (dashboardState?.useClientResponse) {
             return c.html(completeDashboardHtml());
           } else if (session.redirectUri) {
-            return c.redirect(session.redirectUri);
+            let redirectUri = new URL(session.redirectUri);
+            redirectUri.searchParams.set('oauth_session_id', session.id);
+            return c.redirect(redirectUri);
           } else {
             return c.html(completeHtml());
           }
