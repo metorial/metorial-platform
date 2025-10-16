@@ -1,6 +1,6 @@
 services:
   etcd:
-    image: bitnami/etcd:latest
+    image: bitnamilegacy/etcd:latest
     ports:
       - '32379:2379'
       - '32380:2380'

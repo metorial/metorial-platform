@@ -402,6 +402,16 @@ if [ "$SKIP_BUILD" = false ]; then
     NPM_VERSION=$(npm --version)
     print_success "npm $NPM_VERSION detected"
     
+    # Check for bun
+    print_step "Checking for Bun..."
+    if ! command -v bun &> /dev/null; then
+        print_error "Bun is not installed!"
+        echo "Please install Bun: curl -fsSL https://bun.sh/install | bash"
+        exit 1
+    fi
+    BUN_VERSION=$(bun --version)
+    print_success "Bun v$BUN_VERSION detected"
+    
     # Install dashboard dependencies
     cd "$FRONTEND_DIR"
     if [ ! -d "node_modules" ]; then
@@ -430,6 +440,37 @@ if [ "$SKIP_BUILD" = false ]; then
         print_info "Inspector dependencies already installed"
     fi
     
+    # Run prerequisite commands at repository root
+    print_header "RUNNING PREREQUISITE BUILD STEPS"
+    
+    cd "$REPO_ROOT"
+    
+    print_step "Running prisma:generate at repository root..."
+    print_info "Location: $REPO_ROOT"
+    echo ""
+    if bun run prisma:generate; then
+        echo ""
+        print_success "Prisma client generated successfully"
+    else
+        echo ""
+        print_error "Prisma generation failed!"
+        print_info "Make sure your database connection is configured correctly"
+        exit 1
+    fi
+    
+    print_step "Running root build (this may take a while)..."
+    print_info "Location: $REPO_ROOT"
+    echo ""
+    if bun run build; then
+        echo ""
+        print_success "Root build completed successfully"
+    else
+        echo ""
+        print_error "Root build failed!"
+        print_info "Check the error messages above for details"
+        exit 1
+    fi
+    
     # Set environment variables for build
     export METORIAL_ENV="$METORIAL_BUILD_ENV"
     export METORIAL_SOURCE="$METORIAL_SOURCE_TYPE"
@@ -449,10 +490,14 @@ if [ "$SKIP_BUILD" = false ]; then
     cd "$FRONTEND_DIR"
     [ -d "$BUILD_OUTPUT_DIR" ] && rm -rf "$BUILD_OUTPUT_DIR"
     
-    if npm run frontend:build > /dev/null 2>&1; then
+    echo ""
+    if npm run frontend:build; then
+        echo ""
         print_success "Dashboard built successfully"
     else
+        echo ""
         print_error "Dashboard build failed!"
+        print_info "Check the error messages above for details"
         exit 1
     fi
     
@@ -461,10 +506,14 @@ if [ "$SKIP_BUILD" = false ]; then
     cd "$INSPECTOR_DIR"
     [ -d "$INSPECTOR_BUILD_OUTPUT_DIR" ] && rm -rf "$INSPECTOR_BUILD_OUTPUT_DIR"
     
-    if npm run frontend:build > /dev/null 2>&1; then
+    echo ""
+    if npm run frontend:build; then
+        echo ""
         print_success "Inspector built successfully"
     else
+        echo ""
         print_error "Inspector build failed!"
+        print_info "Check the error messages above for details"
         exit 1
     fi
     
@@ -556,17 +605,51 @@ EOF
     print_success "Environment configured"
     
     # Pull images
-    print_step "Pulling Docker images..."
-    docker compose -f "$COMPOSE_FILE" pull > /dev/null 2>&1 || print_warning "Some images could not be pulled"
+    print_step "Pulling Docker images (this may take a few minutes)..."
+    if docker compose -f "$COMPOSE_FILE" pull 2>&1 | tee /tmp/docker_pull.log; then
+        print_success "Images pulled successfully"
+    else
+        # Check if it's just some optional images that failed
+        if grep -q "manifest unknown" /tmp/docker_pull.log; then
+            print_warning "Some images could not be pulled (possibly private/unavailable)"
+            print_info "Attempting to continue with available images..."
+        else
+            print_error "Failed to pull required images"
+            cat /tmp/docker_pull.log
+            exit 1
+        fi
+    fi
+    rm -f /tmp/docker_pull.log
     
     # Start services
     print_step "Starting backend services..."
-    if docker compose -f "$COMPOSE_FILE" up -d; then
+    if docker compose -f "$COMPOSE_FILE" up -d 2>&1 | tee /tmp/docker_up.log; then
         print_success "Backend services started"
     else
         print_error "Failed to start backend services"
+        echo ""
+        print_info "Error details:"
+        cat /tmp/docker_up.log
+        echo ""
+        
+        # Check if it's an image availability issue
+        if grep -q "manifest unknown\|pull access denied" /tmp/docker_up.log; then
+            print_warning "Some Docker images are not available"
+            print_info "This might be because:"
+            echo "  • The 'engine' image might be private or not yet published"
+            echo "  • You may need to authenticate with: docker login ghcr.io"
+            echo "  • Some images might not exist for your architecture"
+            echo ""
+            print_info "You can:"
+            echo "  1. Comment out unavailable services in docker-compose.yml"
+            echo "  2. Authenticate with the registry if you have access"
+            echo "  3. Continue without those services (some features may not work)"
+        fi
+        
+        rm -f /tmp/docker_up.log
         exit 1
     fi
+    rm -f /tmp/docker_up.log
     
     # Wait for services
     print_step "Waiting for services to initialize..."
@@ -655,48 +738,45 @@ fi
 
 print_header "🎉 DEPLOYMENT COMPLETE!"
 
-cat << EOF
-${GREEN}✓${NC} Metorial is now running on your system!
-
-${CYAN}Frontend Applications:${NC}
-  • Dashboard:  ${PROTOCOL}://${METORIAL_HOST}:3300
-  • Inspector:  ${PROTOCOL}://${METORIAL_HOST}:6050
-
-${CYAN}Backend API Endpoints:${NC}
-  • Core API:          ${PROTOCOL}://${METORIAL_HOST}:4310
-  • MCP API:           ${PROTOCOL}://${METORIAL_HOST}:4311
-  • Marketplace:       ${PROTOCOL}://${METORIAL_HOST}:4312
-  • OAuth:             ${PROTOCOL}://${METORIAL_HOST}:4313
-  • Private API:       ${PROTOCOL}://${METORIAL_HOST}:4314
-  • Portals:           ${PROTOCOL}://${METORIAL_HOST}:4315
-  • Integrations API:  ${PROTOCOL}://${METORIAL_HOST}:4316
-  • ID API:            ${PROTOCOL}://${METORIAL_HOST}:4321
-  • MCP Engine:        ${PROTOCOL}://${METORIAL_HOST}:50050
-
-${CYAN}Database Services:${NC}
-  • PostgreSQL:     localhost:35432 (user: postgres, pass: postgres)
-  • MongoDB:        localhost:32707 (user: mongo, pass: mongo)
-  • Redis:          localhost:36379
-  • Meilisearch:    localhost:37700
-  • OpenSearch:     localhost:9200 (user: admin, pass: admin)
-  • MinIO:          localhost:9000 (user: minio, pass: minio123)
-  • MinIO Console:  localhost:9001
-
-${CYAN}Management Commands:${NC}
-  • View logs:      $0 --logs
-  • Check status:   $0 --status
-  • Stop all:       $0 --stop
-  • Restart:        $0 --host $METORIAL_HOST --secret [SECRET]
-
-${CYAN}Data Storage:${NC}
-  All persistent data is stored in: $SCRIPT_DIR/_volumes/
-  To reset everything, stop services and delete this directory.
-
-${YELLOW}Note:${NC} Backend services may take 1-2 minutes to fully initialize.
-      If you encounter errors, wait a moment and refresh your browser.
-
-EOF
-
+echo -e "${GREEN}✓${NC} Metorial is now running on your system!"
+echo ""
+echo -e "${CYAN}Frontend Applications:${NC}"
+echo "  • Dashboard:  ${PROTOCOL}://${METORIAL_HOST}:3300"
+echo "  • Inspector:  ${PROTOCOL}://${METORIAL_HOST}:6050"
+echo ""
+echo -e "${CYAN}Backend API Endpoints:${NC}"
+echo "  • Core API:          ${PROTOCOL}://${METORIAL_HOST}:4310"
+echo "  • MCP API:           ${PROTOCOL}://${METORIAL_HOST}:4311"
+echo "  • Marketplace:       ${PROTOCOL}://${METORIAL_HOST}:4312"
+echo "  • OAuth:             ${PROTOCOL}://${METORIAL_HOST}:4313"
+echo "  • Private API:       ${PROTOCOL}://${METORIAL_HOST}:4314"
+echo "  • Portals:           ${PROTOCOL}://${METORIAL_HOST}:4315"
+echo "  • Integrations API:  ${PROTOCOL}://${METORIAL_HOST}:4316"
+echo "  • ID API:            ${PROTOCOL}://${METORIAL_HOST}:4321"
+echo "  • MCP Engine:        ${PROTOCOL}://${METORIAL_HOST}:50050"
+echo ""
+echo -e "${CYAN}Database Services:${NC}"
+echo "  • PostgreSQL:     localhost:35432 (user: postgres, pass: postgres)"
+echo "  • MongoDB:        localhost:32707 (user: mongo, pass: mongo)"
+echo "  • Redis:          localhost:36379"
+echo "  • Meilisearch:    localhost:37700"
+echo "  • OpenSearch:     localhost:9200 (user: admin, pass: admin)"
+echo "  • MinIO:          localhost:9000 (user: minio, pass: minio123)"
+echo "  • MinIO Console:  localhost:9001"
+echo ""
+echo -e "${CYAN}Management Commands:${NC}"
+echo "  • View logs:      $0 --logs"
+echo "  • Check status:   $0 --status"
+echo "  • Stop all:       $0 --stop"
+echo "  • Restart:        $0 --host $METORIAL_HOST --secret [SECRET]"
+echo ""
+echo -e "${CYAN}Data Storage:${NC}"
+echo "  All persistent data is stored in: $SCRIPT_DIR/_volumes/"
+echo "  To reset everything, stop services and delete this directory."
+echo ""
+echo -e "${YELLOW}Note:${NC} Backend services may take 1-2 minutes to fully initialize."
+echo "      If you encounter errors, wait a moment and refresh your browser."
+echo ""
 print_info "Ready to use! Open ${PROTOCOL}://${METORIAL_HOST}:3300 in your browser."
 echo ""
 

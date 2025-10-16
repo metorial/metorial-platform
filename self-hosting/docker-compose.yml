@@ -1,6 +1,6 @@
 services:
   etcd:
-    image: bitnami/etcd:latest
+    image: bitnamilegacy/etcd:latest
     ports:
       - '32379:2379'
       - '32380:2380'
@@ -63,18 +63,15 @@ services:
     restart: unless-stopped
 
   opensearch:
-    image: opensearchproject/opensearch:2.9.0
+    image: opensearchproject/opensearch:2.18.0
     environment:
       - discovery.type=single-node
-      - bootstrap.memory_lock=true
+      - bootstrap.memory_lock=false  # Changed from true to avoid ulimit issues
       - DISABLE_SECURITY_PLUGIN=true   # disable SSL & auth
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - OPENSEARCH_USERNAME=admin
       - OPENSEARCH_PASSWORD=admin
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
+    # Removed ulimits as they can cause permission issues on some systems
     ports:
       - "9200:9200"
       - "9600:9600"  # Performance analyzer
@@ -83,7 +80,7 @@ services:
     restart: unless-stopped
 
   opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:2.9.0
+    image: opensearchproject/opensearch-dashboards:2.18.0
     ports:
       - "5601:5601"
     environment:
@@ -96,8 +93,9 @@ services:
     restart: unless-stopped
 
   api:
-    image: docker pull ghcr.io/metorial/metorial-api:dev
+    image: ghcr.io/metorial/metorial-api:dev
     environment:
+      - REDIS_URL=redis://:@redis-db:6379
       - EMAIL_HOST=${EMAIL_HOST}
       - EMAIL_PORT=${EMAIL_PORT}
       - EMAIL_SECURE=${EMAIL_SECURE}
@@ -146,7 +144,7 @@ services:
     restart: unless-stopped
 
   engine:
-    image: docker pull ghcr.io/metorial/metorial-mcp-engine-unified:latest
+    image: ghcr.io/metorial/metorial-mcp-engine-unified:dev
     ports:
       - '50050:50050'
     depends_on:
@@ -157,3 +155,4 @@ services:
       - ENGINE_DATABASE_DSN=host=postgres-db user=postgres password=postgres dbname=engine port=5432 sslmode=disable
       - ENGINE_MANAGER_ADDRESSES=localhost:50050
       - ENABLE_RESOURCE_CHECK=false
+    restart: unless-stopped
