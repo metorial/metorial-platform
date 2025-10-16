@@ -13,7 +13,7 @@ services:
     ports:
       - '32707:27017'
     volumes:
-      - ./_volumes/mongodb:/data/db
+      - mongodb_data:/data/db
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: mongo
@@ -24,7 +24,7 @@ services:
     ports:
       - '36379:6379'
     volumes:
-      - ./_volumes/redis:/data
+      - redis_data:/data
     restart: unless-stopped
 
   meilisearch:
@@ -32,7 +32,7 @@ services:
     ports:
       - '37700:7700'
     volumes:
-      - ./_volumes/meilisearch:/meili_data
+      - meilisearch_data:/meili_data
     environment:
       - MEILI_ENV=development
     restart: unless-stopped
@@ -42,7 +42,7 @@ services:
     ports:
       - '35432:5432'
     volumes:
-      - ./_volumes/postgres:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
@@ -55,7 +55,7 @@ services:
       - "9000:9000"  
       - "9001:9001"  # MinIO Console
     volumes:
-      - ./_volumes/minio:/data
+      - minio_data:/data
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
@@ -76,7 +76,7 @@ services:
       - "9200:9200"
       - "9600:9600"  # Performance analyzer
     volumes:
-      - ./_volumes/opensearch:/usr/share/opensearch/data
+      - opensearch_data:/usr/share/opensearch/data
     restart: unless-stopped
 
   opensearch-dashboards:
@@ -95,7 +95,6 @@ services:
   api:
     image: ghcr.io/metorial/metorial-api:dev
     environment:
-      - REDIS_URL=redis://:@redis-db:6379
       - EMAIL_HOST=${EMAIL_HOST}
       - EMAIL_PORT=${EMAIL_PORT}
       - EMAIL_SECURE=${EMAIL_SECURE}
@@ -104,7 +103,7 @@ services:
       - EMAIL_FROM=${EMAIL_FROM}
       - EMAIL_FROM_NAME=${EMAIL_FROM_NAME}
       - DATABASE_URL=postgresql://postgres:postgres@postgres-db:5432/postgres
-      - REDIS_URL=redis://:@redis-db:6379
+      - REDIS_URL=redis://:@redis-db:6379/0
       - USAGE_MONGO_URL=mongodb://mongo:mongo@mongodb:27017
       - CODE_WORKSPACE_SERVICE_ADDRESS=http://code-workspace:3000
       - OPENSEARCH_HOST=http://opensearch:9200
@@ -125,6 +124,7 @@ services:
       - SCM_GITHUB_CLIENT_SECRET=placeholder
       - METORIAL_ENV=production
       - NODE_ENV=production
+      - ENGINE_MANAGER_ADDRESSES=engine:50050
     ports:
       - '4310:4310' # API
       - '4311:4311' # MCP
@@ -156,3 +156,11 @@ services:
       - ENGINE_MANAGER_ADDRESSES=localhost:50050
       - ENABLE_RESOURCE_CHECK=false
     restart: unless-stopped
+
+volumes:
+  mongodb_data:
+  redis_data:
+  meilisearch_data:
+  postgres_data:
+  minio_data:
+  opensearch_data:

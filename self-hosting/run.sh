@@ -340,6 +340,9 @@ PROTOCOL="http"
 if [ "$METORIAL_BUILD_ENV" = "production" ]; then
     PROTOCOL="https"
 fi
+if [ "$METORIAL_HOST" = "localhost" ] || [[ "$METORIAL_HOST" =~ ^127\.0\.0\.1$ ]] || [[ "$METORIAL_HOST" =~ ^192\.168\..* ]] || [[ "$METORIAL_HOST" =~ ^10\..* ]] || [[ "$METORIAL_HOST" =~ ^172\.(1[6-9]|2[0-9]|3[0-1])\..* ]]; then
+    PROTOCOL="http"
+fi
 
 print_header "METORIAL SELF-HOSTING DEPLOYMENT"
 
