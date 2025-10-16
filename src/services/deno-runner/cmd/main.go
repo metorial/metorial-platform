@@ -55,6 +55,8 @@ type runningProcess struct {
 	port         int
 	restartCount int
 	lastRestart  time.Time
+	lastActivity time.Time
+	stopTimer    *time.Timer
 }
 
 var upgrader = websocket.Upgrader{
@@ -90,7 +92,7 @@ func (dm *DeployManager) restoreDeployments() {
 		return
 	}
 
-	restoredCount := 0
+	deploymentCount := 0
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -99,25 +101,13 @@ func (dm *DeployManager) restoreDeployments() {
 		deploymentID := entry.Name()
 		metaPath := filepath.Join(dm.baseDir, deploymentID, ".meta.json")
 
-		data, err := os.ReadFile(metaPath)
-		if err != nil {
-			continue
+		if _, err := os.Stat(metaPath); err == nil {
+			deploymentCount++
 		}
-
-		var meta DeploymentMeta
-		if err := json.Unmarshal(data, &meta); err != nil {
-			continue
-		}
-
-		// Start the deployment
-		deployDir := filepath.Join(dm.baseDir, deploymentID)
-		go dm.startDeployment(deploymentID, &meta, deployDir)
-
-		restoredCount++
 	}
 
-	if restoredCount > 0 {
-		log.Printf("Restored %d deployment(s)", restoredCount)
+	if deploymentCount > 0 {
+		log.Printf("Found %d deployment(s), will start on demand", deploymentCount)
 	}
 }
 
@@ -368,13 +358,97 @@ func (dm *DeployManager) startDeployment(deploymentID string, meta *DeploymentMe
 
 func (dm *DeployManager) GetDeploymentPort(deploymentID string) (int, bool) {
 	dm.mu.RLock()
-	defer dm.mu.RUnlock()
-
 	proc, ok := dm.runningProcs[deploymentID]
+	dm.mu.RUnlock()
+
 	if !ok {
 		return 0, false
 	}
+
+	// Update last activity time
+	dm.mu.Lock()
+	proc.lastActivity = time.Now()
+
+	// Reset the stop timer
+	if proc.stopTimer != nil {
+		proc.stopTimer.Stop()
+	}
+	proc.stopTimer = time.AfterFunc(5*time.Minute, func() {
+		dm.stopDeployment(deploymentID)
+	})
+	dm.mu.Unlock()
+
 	return proc.port, true
+}
+
+func (dm *DeployManager) stopDeployment(deploymentID string) {
+	dm.mu.Lock()
+	proc, exists := dm.runningProcs[deploymentID]
+	if !exists {
+		dm.mu.Unlock()
+		return
+	}
+
+	// Check if there was recent activity (race condition protection)
+	if time.Since(proc.lastActivity) < 5*time.Minute {
+		dm.mu.Unlock()
+		return
+	}
+
+	log.Printf("Deployment %s: stopping due to inactivity", deploymentID)
+
+	// Stop the timer
+	if proc.stopTimer != nil {
+		proc.stopTimer.Stop()
+	}
+
+	// Kill the process
+	if proc.cancel != nil {
+		proc.cancel()
+	}
+	if proc.cmd != nil && proc.cmd.Process != nil {
+		proc.cmd.Process.Kill()
+	}
+
+	// Remove from running processes
+	delete(dm.runningProcs, deploymentID)
+	dm.mu.Unlock()
+}
+
+func (dm *DeployManager) ensureDeploymentRunning(deploymentID string) error {
+	dm.mu.RLock()
+	_, exists := dm.runningProcs[deploymentID]
+	dm.mu.RUnlock()
+
+	if exists {
+		// Already running, just update activity
+		dm.GetDeploymentPort(deploymentID)
+		return nil
+	}
+
+	// Need to start it
+	deployDir := filepath.Join(dm.baseDir, deploymentID)
+	metaPath := filepath.Join(deployDir, ".meta.json")
+
+	data, err := os.ReadFile(metaPath)
+	if err != nil {
+		return fmt.Errorf("deployment not found")
+	}
+
+	var meta DeploymentMeta
+	if err := json.Unmarshal(data, &meta); err != nil {
+		return fmt.Errorf("invalid deployment metadata")
+	}
+
+	log.Printf("Deployment %s: starting on demand", deploymentID)
+
+	// Start the deployment
+	go dm.startDeployment(deploymentID, &meta, deployDir)
+
+	// Wait a bit for it to start
+	time.Sleep(500 * time.Millisecond)
+
+	return nil
 }
 
 func (dm *DeployManager) proxyHandler(w http.ResponseWriter, r *http.Request) {
@@ -382,9 +456,15 @@ func (dm *DeployManager) proxyHandler(w http.ResponseWriter, r *http.Request) {
 	deploymentID := vars["deploymentId"]
 	path := vars["path"]
 
+	// Ensure deployment is running (start if needed)
+	if err := dm.ensureDeploymentRunning(deploymentID); err != nil {
+		http.Error(w, "Deployment not found", http.StatusNotFound)
+		return
+	}
+
 	port, ok := dm.GetDeploymentPort(deploymentID)
 	if !ok {
-		http.Error(w, "Deployment not found or not running", http.StatusNotFound)
+		http.Error(w, "Deployment not ready", http.StatusServiceUnavailable)
 		return
 	}
 
