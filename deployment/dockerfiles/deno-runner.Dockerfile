@@ -13,6 +13,7 @@ RUN chmod +x /app/deno
 
 COPY ./src/services /app/src/services
 COPY ./src/modules /app/src/modules
+COPY ./src/mcp-engine /app/src/mcp-engine
 COPY ./go.work /app/go.work
 COPY ./go.work.sum /app/go.work.sum
 
