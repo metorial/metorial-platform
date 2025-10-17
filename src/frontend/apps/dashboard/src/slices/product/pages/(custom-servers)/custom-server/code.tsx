@@ -68,7 +68,11 @@ export let CustomServerCodePage = () => {
 
   let url = useMemo(() => {
     if (!editorToken.data) return null;
-    let url = new URL(getConfig().microFrontends.codeEditorUrl!);
+
+    let baseUrl = getConfig().microFrontends.codeEditorUrl;
+    if (!baseUrl) return null;
+
+    let url = new URL(baseUrl);
     url.searchParams.set('token', editorToken.data.token);
     url.searchParams.set('id', editorToken.data.id);
     return url.toString();
@@ -195,53 +199,55 @@ export let CustomServerCodePage = () => {
         </>
       )}
 
-      <Wrapper data-expanded={isExpanded}>
-        <Nav
-          initial={{ y: -40, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 2 }}
-        >
-          <Button
-            size="1"
-            iconLeft={<RiExpandDiagonal2Line />}
-            onClick={() => setIsExpanded(v => !v)}
+      {url && (
+        <Wrapper data-expanded={isExpanded}>
+          <Nav
+            initial={{ y: -40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 2 }}
           >
-            {isExpanded ? 'Exit Fullscreen' : 'Fullscreen'}
-          </Button>
+            <Button
+              size="1"
+              iconLeft={<RiExpandDiagonal2Line />}
+              onClick={() => setIsExpanded(v => !v)}
+            >
+              {isExpanded ? 'Exit Fullscreen' : 'Fullscreen'}
+            </Button>
 
-          <Button
-            size="1"
-            iconLeft={<RiUpload2Line />}
-            onClick={async () => {
-              let [version] = await createVersion.mutate({
-                instanceId: instance.data!.id,
-                customServerId: customServer.data!.id,
-                implementation: {
-                  type: 'managed',
-                  managedServer: {}
+            <Button
+              size="1"
+              iconLeft={<RiUpload2Line />}
+              onClick={async () => {
+                let [version] = await createVersion.mutate({
+                  instanceId: instance.data!.id,
+                  customServerId: customServer.data!.id,
+                  implementation: {
+                    type: 'managed',
+                    managedServer: {}
+                  }
+                });
+
+                if (version) {
+                  navigate(
+                    Paths.instance.customServer(
+                      instance.data?.organization,
+                      instance.data?.project,
+                      instance.data,
+                      version.customServerId,
+                      'versions',
+                      { version_id: version.id }
+                    )
+                  );
                 }
-              });
+              }}
+            >
+              Publish New Version
+            </Button>
+          </Nav>
 
-              if (version) {
-                navigate(
-                  Paths.instance.customServer(
-                    instance.data?.organization,
-                    instance.data?.project,
-                    instance.data,
-                    version.customServerId,
-                    'versions',
-                    { version_id: version.id }
-                  )
-                );
-              }
-            }}
-          >
-            Publish New Version
-          </Button>
-        </Nav>
-
-        <Iframe src={url!} title={customServer.data?.name ?? 'Code Editor'} />
-      </Wrapper>
+          <Iframe src={url!} title={customServer.data?.name ?? 'Code Editor'} />
+        </Wrapper>
+      )}
     </>
   ));
 };
