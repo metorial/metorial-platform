@@ -7,6 +7,8 @@ export * from './sendWithTemplate';
 export * from './services';
 export * from './templates';
 
+export { setSenderOverride } from './lib/send';
+
 export let emailQueueProcessor = combineQueueProcessors([
   cleanupCron,
   sendEmailQueueProcessor,
