@@ -13,8 +13,8 @@ RUN chmod +x /app/deno
 
 COPY ./src/services /app/src/services
 COPY ./src/modules /app/src/modules
-COPY ./src/go.work /app/src/go.work
-COPY ./src/go.work.sum /app/src/go.work.sum
+COPY ./go.work /app/go.work
+COPY ./go.work.sum /app/go.work.sum
 
 WORKDIR /app/src/services/deno-runner
 
