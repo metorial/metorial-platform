@@ -24,7 +24,7 @@ export let setDashboardAuthCookie = (sessionClientSecret: string) =>
   Cookies.serialize(SESSION_COOKIE_NAME, sessionClientSecret, {
     path: '/',
     httpOnly: true,
-    secure: getConfig().env != 'development',
+    // secure: getConfig().env != 'development',
     sameSite: 'lax',
     maxAge: getConfig().env == 'production' ? 60 * 60 * 24 * 7 : 60 * 60 * 24 * 365
   });
