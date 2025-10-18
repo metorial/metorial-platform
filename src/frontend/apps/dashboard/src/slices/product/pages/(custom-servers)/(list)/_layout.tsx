@@ -2,7 +2,8 @@ import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject
+  useCurrentProject,
+  useDashboardFlags
 } from '@metorial/state';
 import { Button } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
@@ -40,22 +41,26 @@ export let ManagedServersListLayout = () => {
 
   let pathname = useLocation().pathname;
 
+  let flags = useDashboardFlags();
+
   return (
     <ContentLayout>
       <PageHeader
         title="Managed Servers"
         description="Build custom MCP servers powered by Metorial. Deploy them on your own infrastructure or use our managed servers."
         actions={
-          <Button
-            onClick={() =>
-              showCustomServerRemoteFormModal({
-                type: 'managed'
-              })
-            }
-            size="2"
-          >
-            Create Managed Server
-          </Button>
+          !!flags.data?.flags['managed-servers-enabled'] && (
+            <Button
+              onClick={() =>
+                showCustomServerRemoteFormModal({
+                  type: 'managed'
+                })
+              }
+              size="2"
+            >
+              Create Managed Server
+            </Button>
+          )
         }
       />
 
