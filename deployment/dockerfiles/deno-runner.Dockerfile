@@ -11,7 +11,11 @@ RUN wget https://github.com/denoland/deno/releases/download/v2.4.2/deno-x86_64-u
 RUN unzip deno-x86_64-unknown-linux-gnu.zip -d /app
 RUN chmod +x /app/deno
 
-COPY ./src/services/deno-runner /app/src/services/deno-runner
+COPY ./src/services /app/src/services
+COPY ./src/modules /app/src/modules
+COPY ./src/mcp-engine /app/src/mcp-engine
+COPY ./go.work /app/go.work
+COPY ./go.work.sum /app/go.work.sum
 
 WORKDIR /app/src/services/deno-runner
 

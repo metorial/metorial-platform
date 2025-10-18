@@ -3,6 +3,23 @@ import { getConfig } from '@metorial/config';
 import { EmailIdentity } from '@metorial/db';
 import nodemailer from 'nodemailer';
 
+let senderOverride: {
+  current:
+    | null
+    | ((ident: { to: string; subject: string; html: string; text: string }) => Promise<void>);
+} = { current: null };
+
+export let setSenderOverride = (
+  override: (ident: {
+    to: string;
+    subject: string;
+    html: string;
+    text: string;
+  }) => Promise<void>
+) => {
+  senderOverride.current = override;
+};
+
 let email = getConfig().email;
 
 let transport =
@@ -45,6 +62,15 @@ export let send = async (opts: {
     opts.subject = `[STAGING] ${opts.subject}`;
   } else if (getConfig().env == 'development') {
     opts.subject = `[DEV] ${opts.subject}`;
+  }
+
+  if (senderOverride.current) {
+    return await senderOverride.current({
+      to: opts.to,
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text
+    });
   }
 
   if (transport.type == 'ses') {

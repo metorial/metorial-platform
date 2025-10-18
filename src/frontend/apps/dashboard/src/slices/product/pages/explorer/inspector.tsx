@@ -73,12 +73,14 @@ export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: str
   let url = useMemo(() => {
     if (!session.data) return undefined;
 
-    let url = new URL(import.meta.env.VITE_EXPLORER_URL!); // https://inspector.mcp.metorial.com
+    let url = new URL(
+      (window as any).METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!
+    ); // https://inspector.mcp.metorial.com
     url.searchParams.set(
       'sse_url',
       new URL(
         `/mcp/${session.data.id}/${serverDeployment.id}/sse`,
-        import.meta.env.VITE_MCP_API_URL
+        (window as any).METORIAL_MCP_API_URL ?? import.meta.env.VITE_MCP_API_URL
       ).toString()
     );
     url.searchParams.set('transport_type', 'sse');

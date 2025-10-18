@@ -1,3 +1,5 @@
+process.env.TZ = 'UTC';
+
 import { runQueueProcessors } from '@metorial/queue';
 
 import { accessQueueProcessor } from '@metorial/module-access';
