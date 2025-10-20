@@ -1,0 +1,21 @@
+model ProviderOAuthTakeout {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  note     String?
+  ip       String?
+  ua       String?
+  metadata Json?
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  tokenOid BigInt?
+  token    ProviderOAuthConnectionAuthToken? @relation(fields: [tokenOid], references: [oid], onDelete: SetNull)
+
+  connectionOid BigInt?
+  connection    ProviderOAuthConnection? @relation(fields: [connectionOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+}

@@ -56,4 +56,5 @@ model Instance {
   magicMcpServers          MagicMcpServer[]
   magicMcpSession          MagicMcpSession[]
   magicMcpToken            MagicMcpToken[]
+  providerOAuthTakeouts    ProviderOAuthTakeout[]
 }
