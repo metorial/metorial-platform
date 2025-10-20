@@ -149,8 +149,10 @@ export let DeployServerButton = ({
   let instance = useCurrentInstance();
   let server = useServerListing(instance.data?.id, serverId);
 
-  return flags.data?.flags['magic-mcp-enabled'] ||
-    (flags.data?.flags['managed-servers-enabled'] && server.data?.fork.status == 'enabled') ? (
+  return !disabled &&
+    (flags.data?.flags['magic-mcp-enabled'] ||
+      (flags.data?.flags['managed-servers-enabled'] &&
+        server.data?.fork.status == 'enabled')) ? (
     <Menu
       items={[
         {
@@ -197,9 +199,7 @@ export let DeployServerButton = ({
         }
       }}
     >
-      <Button size="2" disabled={disabled}>
-        {children}
-      </Button>
+      <Button size="2">{children}</Button>
     </Menu>
   ) : (
     <Button

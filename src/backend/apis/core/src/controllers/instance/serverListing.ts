@@ -88,6 +88,8 @@ export let serverListingController = Controller.create(
           categoryIds: normalizeArrayParam(ctx.query.category_id),
           profileIds: normalizeArrayParam(ctx.query.profile_id),
 
+          isHostable: true,
+
           search: ctx.query.search,
 
           orderByRank: ctx.query.order_by_rank,
