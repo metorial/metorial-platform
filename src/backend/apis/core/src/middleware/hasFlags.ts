@@ -1,4 +1,4 @@
-import { forbiddenError, ServiceError } from '@metorial/error';
+import { forbiddenError, paymentRequiredError, ServiceError } from '@metorial/error';
 import { Flags, flagService } from '@metorial/module-flags';
 import { apiGroup } from './apiGroup';
 
@@ -16,7 +16,17 @@ export let hasFlags = apiGroup.createMiddleware(
       organization: ctx.organization as any
     });
 
-    if (expectedFlags.some(f => !flags[f])) {
+    let missingFlags = expectedFlags.filter(f => !flags[f]);
+
+    if (missingFlags.length) {
+      if (missingFlags.some(f => f.startsWith('paid'))) {
+        throw new ServiceError(
+          paymentRequiredError({
+            message: 'Upgrade to a different plan to access this feature'
+          })
+        );
+      }
+
       throw new ServiceError(
         forbiddenError({
           message: 'You are not entitled to access this endpoint'

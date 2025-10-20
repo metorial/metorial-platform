@@ -35,7 +35,7 @@ export let providerOauthTakeoutController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.takeout:read'] }))
       .outputList(providerOauthTakeoutPresenter)
       .query('default', Paginator.validate(v.object({})))
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-oauth-takeout']))
       .do(async ctx => {
         let paginator = await providerOauthTakeoutService.listTakeouts({
           instance: ctx.instance
@@ -65,7 +65,7 @@ export let providerOauthTakeoutController = Controller.create(
           oauth_session_id: v.string()
         })
       )
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-oauth-takeout']))
       .output(providerOauthTakeoutPresenter)
       .do(async ctx => {
         let session = await serverOAuthSessionService.getServerOAuthSessionById({
@@ -106,7 +106,7 @@ export let providerOauthTakeoutController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.takeout:read'] }))
       .output(providerOauthTakeoutPresenter)
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-oauth-takeout']))
       .do(async ctx => {
         return providerOauthTakeoutPresenter.present({
           providerOauthTakeout: ctx.takeout,
