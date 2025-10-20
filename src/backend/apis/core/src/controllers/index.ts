@@ -25,6 +25,7 @@ import { providerOauthConnectionController } from './instance/providerOauthConne
 import { providerOauthConnectionAuthenticationController } from './instance/providerOauthConnectionAuthentication';
 import { providerOauthConnectionEventController } from './instance/providerOauthConnectionEvent';
 import { providerOauthConnectionProfileController } from './instance/providerOauthConnectionProfile';
+import { providerOauthTakeoutController } from './instance/providerOauthTakeout';
 import { remoteServerController } from './instance/remoteServer';
 import { secretController } from './instance/secret';
 import { serverController } from './instance/server';
@@ -84,6 +85,7 @@ export let pulsarController = Controller.create<any>(
     providerOauthConnectionController,
     providerOauthConnectionAuthenticationController,
     providerOauthConnectionProfileController,
+    providerOauthTakeoutController,
 
     serverOauthSessionController,
 
@@ -144,6 +146,7 @@ export let dashboardController = Controller.create<any>(
     providerOauthConnectionAuthenticationController,
     providerOauthConnectionEventController,
     providerOauthConnectionProfileController,
+    providerOauthTakeoutController,
 
     serverOauthSessionController,
 

@@ -33,10 +33,12 @@ import {
   ProviderOAuthConfig,
   ProviderOAuthConnection,
   ProviderOAuthConnectionAuthAttempt,
+  ProviderOAuthConnectionAuthToken,
   ProviderOAuthConnectionEvent,
   ProviderOAuthConnectionProfile,
   ProviderOAuthConnectionTemplate,
   ProviderOAuthDiscoveryDocument,
+  ProviderOAuthTakeout,
   RemoteServerInstance,
   ScmAccount,
   ScmInstallation,
@@ -416,6 +418,13 @@ export let providerOauthConnectionDiscoveryType = PresentableType.create<{
   providerOauthDiscoveryDocument: ProviderOAuthDiscoveryDocument;
   providerOauthAutoRegistration: ProviderOAuthAutoRegistration | null;
 }>()('provider_oauth.discovery');
+
+export let providerOauthTakeoutType = PresentableType.create<{
+  providerOauthTakeout: ProviderOAuthTakeout & {
+    token: ProviderOAuthConnectionAuthToken | null;
+  };
+  includeSensitiveData: boolean;
+}>()('provider_oauth.takeout');
 
 export let remoteServerType = PresentableType.create<{
   remoteServerInstance: RemoteServerInstance & {
