@@ -9,7 +9,8 @@ export let Avatar = ({
   entity,
   size = 30,
   noTooltip,
-  withInitials
+  withInitials,
+  radius
 }: {
   entity: {
     name: string;
@@ -19,6 +20,7 @@ export let Avatar = ({
   size?: number;
   noTooltip?: boolean;
   withInitials?: boolean;
+  radius?: number | 'round';
 }) => {
   let src = entity?.photoUrl || entity?.imageUrl!;
   let name = entity?.name;
@@ -47,7 +49,7 @@ export let Avatar = ({
       style={{
         width: size,
         aspectRatio: '1 / 1',
-        borderRadius: '50%',
+        borderRadius: typeof radius == 'number' ? radius : '50%',
         backgroundColor: theme.colors.gray200,
         display: 'flex',
         position: 'relative'

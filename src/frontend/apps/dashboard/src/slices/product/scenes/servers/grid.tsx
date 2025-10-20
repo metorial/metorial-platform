@@ -52,6 +52,7 @@ export let ServersGrid = (filter: ServersListingsListQuery) => {
                       photoUrl: server.imageUrl
                     }}
                     size={30}
+                    radius={5}
                   />
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
