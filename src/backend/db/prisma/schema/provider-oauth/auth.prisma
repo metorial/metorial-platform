@@ -115,8 +115,9 @@ model ProviderOAuthConnectionAuthToken {
   lastUsedAt  DateTime  @default(now())
   refreshedAt DateTime?
 
-  authAttempts ProviderOAuthConnectionAuthAttempt[]
-  references   ProviderOAuthConnectionAuthTokenReference[]
+  authAttempts          ProviderOAuthConnectionAuthAttempt[]
+  references            ProviderOAuthConnectionAuthTokenReference[]
+  providerOAuthTakeouts ProviderOAuthTakeout[]
 }
 
 model ProviderOAuthConnectionAuthTokenReference {

@@ -18,7 +18,7 @@ import { getSentry } from '@metorial/sentry';
 import { Service } from '@metorial/service';
 import { getAxiosSsrfFilter } from '@metorial/ssrf';
 import axios from 'axios';
-import { differenceInDays, differenceInMinutes, subMinutes } from 'date-fns';
+import { addMinutes, differenceInDays, differenceInMinutes, subMinutes } from 'date-fns';
 import { callbackUrl } from '../const';
 import { formSchema } from '../lib/formSchema';
 import { oauthErrorDescriptions } from '../lib/oauthErrors';
@@ -627,33 +627,64 @@ class OauthAuthorizationServiceImpl {
     });
   }
 
-  async useAuthToken(d: { referenceOid: bigint; instance: Instance }) {
-    if (!d.referenceOid) throw new Error('WTF - Invalid reference OID');
+  async useAuthToken(
+    d: { instance: Instance } & ({ referenceOid: bigint } | { tokenOid: bigint })
+  ) {
+    let connection: ProviderOAuthConnection & { config: ProviderOAuthConfig };
+    let token: ProviderOAuthConnectionAuthToken;
 
-    let ref = await db.providerOAuthConnectionAuthTokenReference.findUnique({
-      where: { oid: d.referenceOid },
-      include: {
-        authToken: {
-          include: {
-            connection: {
-              include: {
-                config: true
+    if ('referenceOid' in d) {
+      if (!d.referenceOid) throw new Error('WTF - Invalid reference OID');
+
+      let ref = await db.providerOAuthConnectionAuthTokenReference.findUnique({
+        where: { oid: d.referenceOid },
+        include: {
+          authToken: {
+            include: {
+              connection: {
+                include: {
+                  config: true
+                }
               }
             }
           }
         }
+      });
+      if (!ref || !ref.authToken) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Provider authentication token has expired. Please reauthenticate.'
+          })
+        );
       }
-    });
-    if (!ref || !ref.authToken) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Provider authentication token has expired. Please reauthenticate.'
-        })
-      );
-    }
 
-    let connection = ref.authToken.connection;
-    let token: ProviderOAuthConnectionAuthToken = ref.authToken;
+      connection = ref.authToken.connection;
+      token = ref.authToken;
+    } else {
+      if (!d.tokenOid) throw new Error('WTF - Invalid token OID');
+
+      let tkn = await db.providerOAuthConnectionAuthToken.findUnique({
+        where: { oid: d.tokenOid },
+        include: {
+          connection: {
+            include: {
+              config: true
+            }
+          }
+        }
+      });
+
+      if (!tkn) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Provider authentication token has expired. Please reauthenticate.'
+          })
+        );
+      }
+
+      connection = tkn.connection;
+      token = tkn;
+    }
 
     if (Math.abs(differenceInMinutes(token.lastUsedAt, new Date())) > 5) {
       await db.providerOAuthConnectionAuthToken.updateMany({
@@ -662,7 +693,9 @@ class OauthAuthorizationServiceImpl {
       });
     }
 
-    if (token.expiresAt && token.expiresAt <= new Date()) {
+    let expiryWindow = addMinutes(new Date(), 10);
+
+    if (token.expiresAt && token.expiresAt < expiryWindow) {
       token = await (async () => {
         if (!token.refreshToken) {
           // Maybe we have another token for the same profile
@@ -689,10 +722,12 @@ class OauthAuthorizationServiceImpl {
               }
 
               // Update the reference to the other token
-              await db.providerOAuthConnectionAuthTokenReference.update({
-                where: { oid: d.referenceOid },
-                data: { authTokenOid: otherToken.oid }
-              });
+              if ('referenceOid' in d) {
+                await db.providerOAuthConnectionAuthTokenReference.update({
+                  where: { oid: d.referenceOid },
+                  data: { authTokenOid: otherToken.oid }
+                });
+              }
 
               // We can just continue with the other token
               if (!otherToken.expiresAt || otherToken.expiresAt > new Date()) {
@@ -879,6 +914,8 @@ class OauthAuthorizationServiceImpl {
       }))().catch(e => Sentry.captureException(e));
 
     return {
+      token,
+
       id: token.id,
       accessToken: token.accessToken,
       tokenType: token.tokenType,

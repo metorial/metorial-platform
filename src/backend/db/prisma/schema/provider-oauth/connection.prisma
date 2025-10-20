@@ -54,4 +54,5 @@ model ProviderOAuthConnection {
   sessions                        ServerOAuthSession[]
   serverDeployments               ServerDeployment[]                   @relation("ProviderOAuthConnectionServerDeployments")
   providerOAuthRegistrationErrors ProviderOAuthRegistrationError[]
+  providerOAuthTakeouts           ProviderOAuthTakeout[]
 }
