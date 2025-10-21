@@ -39,6 +39,7 @@ import { v1ProviderOauthConnectionProfilePresenter } from './implementation/prov
 import { v1ProviderOauthConnectionTemplatePresenter } from './implementation/providerOauthConnectionTemplate';
 import { v1ProviderOauthConnectionTemplateEvaluationPresenter } from './implementation/providerOauthConnectionTemplateEvaluation';
 import { v1ProviderOauthDiscoveryPresenter } from './implementation/providerOauthDiscovery';
+import { v1ProviderOauthTakeoutPresenter } from './implementation/providerOauthTakeout';
 import { v1RemoteServerPresenter } from './implementation/remoteServer';
 import { v1ScmAccountPreviewPresenter } from './implementation/scmAccountPreview';
 import { v1ScmInstallPresenter } from './implementation/scmInstall';
@@ -105,6 +106,7 @@ import {
   providerOauthConnectionTemplateEvaluationType,
   providerOauthConnectionTemplateType,
   providerOauthConnectionType,
+  providerOauthTakeoutType,
   remoteServerType,
   scmAccountPreviewType,
   scmInstallationType,
@@ -357,6 +359,11 @@ export let providerOauthDiscoveryPresenter = declarePresenter(
     mt_2025_01_01_dashboard: v1ProviderOauthDiscoveryPresenter
   }
 );
+
+export let providerOauthTakeoutPresenter = declarePresenter(providerOauthTakeoutType, {
+  mt_2025_01_01_pulsar: v1ProviderOauthTakeoutPresenter,
+  mt_2025_01_01_dashboard: v1ProviderOauthTakeoutPresenter
+});
 
 export let remoteServerPresenter = declarePresenter(remoteServerType, {
   mt_2025_01_01_dashboard: v1RemoteServerPresenter,

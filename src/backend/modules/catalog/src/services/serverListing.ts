@@ -178,6 +178,7 @@ class ServerListingService {
 
   async listServerListings(d: {
     search?: string;
+
     collectionIds?: string[];
     categoryIds?: string[];
     profileIds?: string[];
@@ -189,6 +190,8 @@ class ServerListingService {
     isVerified?: boolean;
     isOfficial?: boolean;
     isMetorial?: boolean;
+
+    isHostable?: boolean;
 
     instance?: Instance;
 
@@ -245,6 +248,15 @@ class ServerListingService {
                   { slug: { in: search?.map(s => s.id) } }
                 ]
               },
+
+              d.isHostable
+                ? {
+                    OR: [
+                      { server: { type: 'custom' } },
+                      { server: { importedServer: { isHostable: true } } }
+                    ]
+                  }
+                : {},
 
               collections
                 ? {

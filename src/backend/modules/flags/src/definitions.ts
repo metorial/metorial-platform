@@ -3,25 +3,25 @@ import { MachineAccess, Organization, User } from '@metorial/db';
 export type Flags = {
   'test-flag': boolean;
 
-  // Metorial Gateway
   'metorial-gateway-enabled': boolean;
   'custom-servers-remote-enabled': boolean;
   'provider-oauth-enabled': boolean;
   'managed-servers-enabled': boolean;
   'community-profiles-enabled': boolean;
-  'magic-mcp-enabled'?: boolean;
+  'magic-mcp-enabled': boolean;
+  'paid-oauth-takeout': boolean;
 };
 
 export let defaultFlags: Flags = {
   'test-flag': false,
 
-  // Metorial Gateway
   'metorial-gateway-enabled': true,
   'custom-servers-remote-enabled': true,
   'provider-oauth-enabled': true,
   'managed-servers-enabled': false,
   'community-profiles-enabled': false,
-  'magic-mcp-enabled': false
+  'magic-mcp-enabled': false,
+  'paid-oauth-takeout': true
 };
 
 export type FlagProviderParams = {
