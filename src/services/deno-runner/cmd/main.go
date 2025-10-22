@@ -462,8 +462,23 @@ func (dm *DeployManager) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	port, ok := dm.GetDeploymentPort(deploymentID)
-	if !ok {
+	// port, ok := dm.GetDeploymentPort(deploymentID)
+	// if !ok {
+	// 	http.Error(w, "Deployment not ready", http.StatusServiceUnavailable)
+	// 	return
+	// }
+
+	// Wait for deployment to be ready
+	var port int
+	for i := 0; i < 1000; i++ {
+		var ok bool
+		port, ok = dm.GetDeploymentPort(deploymentID)
+		if ok {
+			break
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	if port == 0 {
 		http.Error(w, "Deployment not ready", http.StatusServiceUnavailable)
 		return
 	}

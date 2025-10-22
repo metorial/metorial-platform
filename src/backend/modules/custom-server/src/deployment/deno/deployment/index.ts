@@ -21,7 +21,7 @@ let deploymentLock = createLock({
 
 // Determine deployment mode
 const USE_DENO_DEPLOY = !!(env.deno.DENO_DEPLOY_TOKEN && env.deno.DENO_ORGANIZATION_ID);
-const USE_SELF_HOSTED = !!env.deno.DENO_RUNNER_ADDRESS;
+const USE_SELF_HOSTED = !USE_DENO_DEPLOY && !!env.deno.DENO_RUNNER_ADDRESS;
 
 export let createDenoLambdaDeployment = async (config: {
   lambdaServerInstance: LambdaServerInstance & {

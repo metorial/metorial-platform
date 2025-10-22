@@ -7,7 +7,7 @@ import {
   useCustomServer,
   useCustomServerCodeEditorToken
 } from '@metorial/state';
-import { Button, Dialog, Input, showModal, Spacer, theme } from '@metorial/ui';
+import { Button, Dialog, Flex, Input, showModal, Spacer, theme } from '@metorial/ui';
 import { SideBox } from '@metorial/ui-product';
 import { RiArrowRightSLine, RiExpandDiagonal2Line, RiUpload2Line } from '@remixicon/react';
 import { motion } from 'framer-motion';
@@ -81,7 +81,31 @@ export let CustomServerCodePage = () => {
   let createVersion = useCreateCustomServerVersion();
   let navigate = useNavigate();
 
-  return renderWithLoader({ customServer, editorToken })(({ customServer, editorToken }) => (
+  let publishNewVersion = async () => {
+    let [version] = await createVersion.mutate({
+      instanceId: instance.data!.id,
+      customServerId: customServer.data!.id,
+      implementation: {
+        type: 'managed',
+        managedServer: {}
+      }
+    });
+
+    if (version) {
+      navigate(
+        Paths.instance.customServer(
+          instance.data?.organization,
+          instance.data?.project,
+          instance.data,
+          version.customServerId,
+          'versions',
+          { version_id: version.id }
+        )
+      );
+    }
+  };
+
+  return renderWithLoader({ customServer })(({ customServer }) => (
     <>
       {customServer.data.repository ? (
         <>
@@ -89,16 +113,22 @@ export let CustomServerCodePage = () => {
             title="Repository"
             description="Code is managed through the connected repository."
           >
-            <Button
-              as="span"
-              size="2"
-              onClick={async () => {
-                window.open(customServer.data.repository!.url, '_blank');
-              }}
-              iconRight={<RiArrowRightSLine />}
-            >
-              View Repository
-            </Button>
+            <Flex align="center" gap={10}>
+              <Button as="span" size="2" variant="outline" onClick={publishNewVersion}>
+                Publish New Version
+              </Button>
+
+              <Button
+                as="span"
+                size="2"
+                onClick={async () => {
+                  window.open(customServer.data.repository!.url, '_blank');
+                }}
+                iconRight={<RiArrowRightSLine />}
+              >
+                View Repository
+              </Button>
+            </Flex>
           </SideBox>
           <Spacer height={15} />
         </>
@@ -214,33 +244,7 @@ export let CustomServerCodePage = () => {
               {isExpanded ? 'Exit Fullscreen' : 'Fullscreen'}
             </Button>
 
-            <Button
-              size="1"
-              iconLeft={<RiUpload2Line />}
-              onClick={async () => {
-                let [version] = await createVersion.mutate({
-                  instanceId: instance.data!.id,
-                  customServerId: customServer.data!.id,
-                  implementation: {
-                    type: 'managed',
-                    managedServer: {}
-                  }
-                });
-
-                if (version) {
-                  navigate(
-                    Paths.instance.customServer(
-                      instance.data?.organization,
-                      instance.data?.project,
-                      instance.data,
-                      version.customServerId,
-                      'versions',
-                      { version_id: version.id }
-                    )
-                  );
-                }
-              }}
-            >
+            <Button size="1" iconLeft={<RiUpload2Line />} onClick={publishNewVersion}>
               Publish New Version
             </Button>
           </Nav>
