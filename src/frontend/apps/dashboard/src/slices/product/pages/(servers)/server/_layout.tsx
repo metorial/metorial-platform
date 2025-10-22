@@ -11,6 +11,7 @@ import {
 import { Badge, Button, LinkTabs } from '@metorial/ui';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import { DeployServerButton } from '../../(custom-servers)/custom-server/_layout';
+import { Explainer } from '../../../../../components/explainer';
 
 export let ServerLayout = () => {
   let instance = useCurrentInstance();
@@ -109,6 +110,13 @@ export let ServerLayout = () => {
       {renderWithLoader({ server })(() => (
         <Outlet />
       ))}
+
+      <Explainer
+        title="Deploying a MCP Server"
+        description="Learn how to deploy a MCP server to your Metorial instance."
+        youtubeId="d6-Bp5vXQ8c"
+        id="deploy"
+      />
     </ContentLayout>
   );
 };

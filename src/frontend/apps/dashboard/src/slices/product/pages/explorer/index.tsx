@@ -11,6 +11,7 @@ import { ServerDeploymentForm } from '../../scenes/serverDeployments/form';
 import { ServerDeploymentsList } from '../../scenes/serverDeployments/table';
 import { ServerSearch } from '../../scenes/servers/search';
 import { InspectorFrame } from './inspector';
+import { Explainer } from '../../../../components/explainer';
 
 let Wrapper = styled.div`
   display: flex;
@@ -304,6 +305,13 @@ export let ExplorerPage = () => {
           <InspectorFrame serverDeployment={{ id: serverDeploymentId }} />
         )}
       </Main>
+
+      <Explainer
+        title="Using the MCP Explorer"
+        description="Learn how to use the Explorer to explore and interact with your MCP server."
+        youtubeId="mzGOU3LVuT0"
+        id="explorer"
+      />
     </Wrapper>
   );
 };
