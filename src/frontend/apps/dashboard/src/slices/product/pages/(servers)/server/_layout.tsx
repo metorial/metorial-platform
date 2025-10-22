@@ -113,8 +113,8 @@ export let ServerLayout = () => {
 
       <Explainer
         title="Deploying a MCP Server"
-        description="Learn how to deploy a MCP server to your Metorial instance."
-        youtubeId="d6-Bp5vXQ8c"
+        description="Learn how to deploy a MCP server."
+        youtubeId="lx60LEI1ZPc"
         id="deploy"
       />
     </ContentLayout>
