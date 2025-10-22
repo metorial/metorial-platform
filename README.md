@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/metorial-metorial-platform-badge.png)](https://mseep.ai/app/metorial-metorial-platform)
+
 <img src="./assets/repo-header.webp" alt="Metorial" width="100%" />
 
 <br />
