@@ -2,10 +2,10 @@
 
 <br />
 
-<h1 align="center">Metorial (YC F25)</h1>
+<h1 align="center">Metorial Platform</h1>
 
 <p align="center">
-The integration platform for agentic AI. <br />
+The open source integration platform for agentic AI. <br />
 Connect any AI model to thousands of APIs, data sources, and tools with a single function call.
 </p>
 
@@ -16,8 +16,10 @@ Connect any AI model to thousands of APIs, data sources, and tools with a single
 
 ## Introduction
 
-Metorial enables AI agent developers to easily connect their models to a wide range of APIs, data sources, and tools using the Model Context Protocol (MCP).
-Metorial abstracts away the complexities of MCP and offers a simple, unified interface for developers, including powerful SDKs, detailed monitoring, and a highly customizable platform.
+The Metorial Platform is an open source integration platform that makes it easy for developers to connect their AI applications to external data sources, APIs, and tools.
+It's built to scale to tens or hundreds of thousands of concurrent MCP connections, making it ready for enterprise-grade applications.
+
+If you're interested in the MCP serves that power Metorial, check out the [MCP server catalog](https://github.com/metorial/metorial).
 
 ## Features
 
@@ -35,185 +37,6 @@ Metorial currently provides SDKs for the following languages:
 * <img src="assets/python.svg" width="12px" height="12px" /> [**Python**](https://github.com/metorial/metorial-python)
 
 If you want to build a custom integration, check out our [API documentation](https://metorial.com/api) for details on how to use the Metorial API directly.
-
-## Quick Start
-
-The simplest way to get started is with the `.run()` method, which handles session management and conversation loops automatically:
-
-```typescript
-import { Metorial } from 'metorial';
-import OpenAI from 'openai';
-
-let metorial = new Metorial({ apiKey: 'your-metorial-api-key' });
-let openai = new OpenAI({ apiKey: 'your-openai-api-key' });
-
-let result = await metorial.run({
-  message: 'Scan my slack messages for meetings and put them on my google calendar.',
-  serverDeployments: ['google-calendar-server', 'slack-server'], 
-  model: 'gpt-4o',
-  client: openai,
-  maxSteps: 10 // Optional: limit conversation steps
-});
-
-console.log(`Response (completed in ${result.steps} steps):`);
-console.log(result.text);
-```
-
-```python
-import asyncio
-from metorial import Metorial
-from openai import AsyncOpenAI
-
-async def main():
-  metorial = Metorial(api_key="your-metorial-api-key")
-  openai = AsyncOpenAI(api_key="your-openai-api-key")
-  
-  response = await metorial.run(
-    message="Search Hackernews for the latest AI discussions.",
-    server_deployments=["hacker-news-server-deployment"],
-    client=openai,
-    model="gpt-4o",
-    max_steps=25    # optional
-  )
-  
-  print("Response:", response.text)
-
-asyncio.run(main())
-```
-
-## OAuth Integration
-
-When working with services that require user authentication (like Google Calendar, Slack, etc.), Metorial provides OAuth session management to handle the authentication flow:
-
-```typescript
-import { Metorial } from 'metorial';
-import Anthropic from '@anthropic-ai/sdk';
-
-let metorial = new Metorial({ apiKey: 'your-metorial-api-key' });
-let anthropic = new Anthropic({ apiKey: 'your-anthropic-api-key' });
-
-// Create OAuth sessions for services that require user authentication
-let [googleCalOAuthSession, slackOAuthSession] = await Promise.all([
-  metorial.oauth.sessions.create({ 
-    serverDeploymentId: 'your-google-calendar-server-deployment-id' 
-  }),
-  metorial.oauth.sessions.create({ 
-    serverDeploymentId: 'your-slack-server-deployment-id' 
-  })
-]);
-
-// Give user OAuth URLs for authentication
-console.log('OAuth URLs for user authentication:');
-console.log(`   Google Calendar: ${googleCalOAuthSession.url}`);
-console.log(`   Slack: ${slackOAuthSession.url}`);
-
-// Wait for user to complete OAuth flow
-await metorial.oauth.waitForCompletion([googleCalOAuthSession, slackOAuthSession]);
-
-console.log('OAuth sessions completed!');
-
-// Now use the authenticated sessions in your run
-let result = await metorial.run({
-  message: `Look in Slack for mentions of potential partners. Use Exa to research their background, 
-  company, and email. Schedule a 30-minute intro call with them for an open slot on Dec 13th, 2025 
-  SF time and send me the calendar link. Proceed without asking for any confirmations.`,
-
-  serverDeployments: [
-    { 
-      serverDeploymentId: 'your-google-calendar-server-deployment-id', 
-      oauthSessionId: googleCalOAuthSession.id 
-    },
-    { 
-      serverDeploymentId: 'your-slack-server-deployment-id', 
-      oauthSessionId: slackOAuthSession.id 
-    },
-    { 
-      serverDeploymentId: 'your-exa-server-deployment-id' // No OAuth needed for Exa
-    }
-  ],
-  client: anthropic,
-  model: 'claude-3-5-sonnet-20241022'
-});
-
-console.log(result.text);
-```
-
-```python
-import asyncio
-import os
-from metorial import Metorial
-from anthropic import AsyncAnthropic
-
-async def main():
-  metorial = Metorial(api_key=os.getenv("METORIAL_API_KEY"))
-  anthropic = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-
-  # Create OAuth session for authenticated services
-  google_cal_deployment_id = os.getenv("GOOGLE_CALENDAR_DEPLOYMENT_ID")
-  
-  print("🔗 Creating OAuth session...")
-  oauth_session = metorial.oauth.sessions.create(
-    server_deployment_id=google_cal_deployment_id
-  )
-
-  print("OAuth URLs for user authentication:")
-  print(f"   Google Calendar: {oauth_session.url}")
-
-  print("\n⏳ Waiting for OAuth completion...")
-  await metorial.oauth.wait_for_completion([oauth_session])
-  print("✅ OAuth session completed!")
-
-  # Use multiple server deployments with mixed auth
-  hackernews_deployment_id = os.getenv("HACKERNEWS_DEPLOYMENT_ID")
-  
-  result = await metorial.run(
-    message="""Search Hackernews for the latest AI discussions using the available tools. 
-    Then create a calendar event using Google Calendar tools with my@email.address for tomorrow at 2pm to discuss AI trends.""",
-    server_deployments=[
-      { "serverDeploymentId": google_cal_deployment_id, "oauthSessionId": oauth_session.id },
-      { "serverDeploymentId": hackernews_deployment_id },
-    ],
-    client=anthropic,
-    model="claude-sonnet-4-20250514",
-    max_tokens=4096,
-    max_steps=25,
-  )
-  print(result.text)
-
-asyncio.run(main())
-```
-
-### OAuth Flow Explained
-
-1. **Create OAuth Sessions**: Call `metorial.oauth.sessions.create()` for each service requiring user authentication
-2. **Send URLs**: Show the OAuth URLs to users so they can authenticate in their browser
-3. **Wait for Completion**: Use `metorial.oauth.waitForCompletion()` to wait for users to complete the OAuth flow
-4. **Use Authenticated Sessions**: Pass the `oauthSessionId` when configuring `serverDeployments`
-
-## Examples
-
-Check out the `examples/` directory for more comprehensive examples:
-
-- [`https://github.com/metorial/metorial-node/tree/main/examples/typescript-openai-run/`](examples/typescript-openai-run/) - **Simple `.run()` method example**
-- [`https://github.com/metorial/metorial-node/tree/main/examples/typescript-openai/`](examples/typescript-openai/) - Manual OpenAI integration
-- [`https://github.com/metorial/metorial-node/tree/main/examples/typescript-anthropic/`](examples/typescript-anthropic/) - Anthropic integration
-- [`https://github.com/metorial/metorial-node/tree/main/examples/typescript-ai-sdk/`](examples/typescript-ai-sdk/) - AI SDK integration
-
-
-## Multi-Provider Support
-
-Use the same tools across different AI providers
-
-| Provider   | Model Examples                    | Client Required     |
-|------------|-----------------------------------|---------------------|
-| OpenAI     | `gpt-4o`, `gpt-4`, `gpt-3.5-turbo` | `openaiClient`     |
-| Anthropic  | `claude-3-5-sonnet-20241022`, `claude-3-haiku-20240307` | `anthropicClient` |
-| Google     | `gemini-pro`, `gemini-1.5-pro`, `gemini-flash` | `googleClient` |
-| DeepSeek   | `deepseek-chat`, `deepseek-coder` | `deepseekClient` |
-| Mistral    | `mistral-large-latest`, `mistral-small-latest` | `mistralClient` |
-| XAI        | `grok-beta`, `grok-vision-beta`   | `xaiClient`        |
-| TogetherAI | `meta-llama/Llama-2-70b-chat-hf`, `NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO` | `togetheraiClient` |
-
 
 ## Motivation
 
