@@ -8,16 +8,25 @@ export let ProjectDeveloperPage = () => {
   return (
     <>
       {renderWithLoader({ instance })(({ instance }) => (
-        <ApiKeysScene
-          header={{
-            title: 'Developer',
-            description: 'Manage your API keys and applications.'
-          }}
-          filter={{
-            type: 'instance_access_token',
-            instanceId: instance.data?.id
-          }}
-        />
+        <>
+          <ApiKeysScene
+            header={{
+              title: 'Developer',
+              description: 'Manage your API keys and applications.'
+            }}
+            filter={{
+              type: 'instance_access_token',
+              instanceId: instance.data?.id
+            }}
+          />
+
+          <Explainer
+            title="Integrating Metorial"
+            description="Learn how to use the Metorial SDKs to give your AI agents access to the MCP tools."
+            youtubeId="otdHro6fpK0"
+            id="integration"
+          />
+        </>
       ))}
     </>
   );

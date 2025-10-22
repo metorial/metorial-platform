@@ -3,7 +3,6 @@ import { PageHeader } from '@metorial/layout';
 import { useCurrentProject } from '@metorial/state';
 import { Callout, Select } from '@metorial/ui';
 import { styled } from 'styled-components';
-import { Explainer } from '../../../../components/explainer';
 
 let Wrapper = styled.div`
   display: flex;
@@ -41,13 +40,6 @@ export let ProjectDeveloperAPIPage = () => {
             />
           </>
         ))}
-
-      <Explainer
-        title="Integrating Metorial"
-        description="Learn how to use the Metorial SDKs to give your AI agents access to the MCP tools."
-        youtubeId="otdHro6fpK0"
-        id="integration"
-      />
       </Wrapper>
     </>
   );
