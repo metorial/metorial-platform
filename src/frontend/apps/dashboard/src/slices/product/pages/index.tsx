@@ -237,8 +237,8 @@ export let ProjectHomePage = () => {
 
       <Explainer
         title="Welcome to Metorial"
-        description="Let us show you around the dashboard and help you get started with your first MCP server."
-        youtubeId="_hAvxzTCLyQ"
+        description="Head to the servers page to deploy your first MCP server."
+        youtubeId="1QAFqyxSX5E"
         id="home"
       />
     </ContentLayout>
