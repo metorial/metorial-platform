@@ -112,7 +112,7 @@ export let ServerLayout = () => {
       ))}
 
       <Explainer
-        title="Deploying a MCP Server"
+        title="Deploying an MCP Server"
         description="Learn how to deploy a MCP server."
         youtubeId="lx60LEI1ZPc"
         id="deploy"

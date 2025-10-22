@@ -1,5 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance } from '@metorial/state';
+import { Explainer } from '../../../../components/explainer';
 import { ApiKeysScene } from '../../scenes/apiKeys';
 
 export let ProjectDeveloperPage = () => {
