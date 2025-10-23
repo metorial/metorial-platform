@@ -5,8 +5,10 @@ import {
   MetorialApiKeysEndpoint,
   MetorialCustomServersManagedServerTemplatesEndpoint,
   MetorialDashboardEndpoint,
+  MetorialDashboardInstanceCallbacksDestinationsEndpoint,
   MetorialDashboardInstanceCallbacksEndpoint,
   MetorialDashboardInstanceCallbacksEventsEndpoint,
+  MetorialDashboardInstanceCallbacksNotificationsEndpoint,
   MetorialDashboardInstanceCustomServersCodeEndpoint,
   MetorialDashboardInstanceCustomServersDeploymentsEndpoint,
   MetorialDashboardInstanceCustomServersEndpoint,
@@ -193,7 +195,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   },
 
   callbacks: Object.assign(new MetorialDashboardInstanceCallbacksEndpoint(manager), {
-    events: new MetorialDashboardInstanceCallbacksEventsEndpoint(manager)
+    events: new MetorialDashboardInstanceCallbacksEventsEndpoint(manager),
+    notifications: new MetorialDashboardInstanceCallbacksNotificationsEndpoint(manager),
+    destinations: new MetorialDashboardInstanceCallbacksDestinationsEndpoint(manager)
   })
 }));
 

@@ -3,7 +3,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type CallbacksEventsGetOutput = {
   object: 'callback.event';
   id: string;
-  type: 'webhook_received' | 'polling_result';
+  type: string | null;
   status: 'pending' | 'succeeded' | 'retrying' | 'failed';
   payloadIncoming: string;
   payloadOutgoing: string | null;

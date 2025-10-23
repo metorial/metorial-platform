@@ -4,7 +4,7 @@ export type DashboardInstanceCallbacksEventsListOutput = {
   items: {
     object: 'callback.event';
     id: string;
-    type: 'webhook_received' | 'polling_result';
+    type: string | null;
     status: 'pending' | 'succeeded' | 'retrying' | 'failed';
     payloadIncoming: string;
     payloadOutgoing: string | null;
@@ -79,7 +79,7 @@ export type DashboardInstanceCallbacksEventsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & { callbackIds?: string | string[] | undefined };
 
 export let mapDashboardInstanceCallbacksEventsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -89,7 +89,17 @@ export let mapDashboardInstanceCallbacksEventsListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      callbackIds: mtMap.objectField(
+        'callback_ids',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
     })
   )
 ]);
