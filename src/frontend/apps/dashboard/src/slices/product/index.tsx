@@ -287,6 +287,14 @@ let CallbackEventsPage = dynamicPage(() =>
     c => c.CallbackEventsPage
   )
 );
+let CallbackDestinationsPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/callbacks/destinations').then(
+    c => c.CallbackDestinationsPage
+  )
+);
+let CallbackLogsPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/callbacks/logs').then(c => c.CallbackLogsPage)
+);
 
 let ProductWrapper = () => {
   let instance = useCurrentInstance();
@@ -565,6 +573,14 @@ export let productInnerSlice = createSlice([
                   {
                     path: 'events',
                     element: <CallbackEventsPage />
+                  },
+                  {
+                    path: 'destinations',
+                    element: <CallbackDestinationsPage />
+                  },
+                  {
+                    path: 'logs',
+                    element: <CallbackLogsPage />
                   }
                 ]
               }

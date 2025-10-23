@@ -23,7 +23,7 @@ export let CallbackLayout = () => {
     <SimpleSidebarLayout
       groups={[
         {
-          icon: '⚙️',
+          icon: '',
           items: [
             {
               title: 'Overview',
@@ -32,6 +32,18 @@ export let CallbackLayout = () => {
             {
               title: 'Events',
               to: Paths.instance.serverDeployment(...serverPathParams, 'callbacks', 'events')
+            },
+            {
+              title: 'Logs',
+              to: Paths.instance.serverDeployment(...serverPathParams, 'callbacks', 'logs')
+            },
+            {
+              title: 'Destinations',
+              to: Paths.instance.serverDeployment(
+                ...serverPathParams,
+                'callbacks',
+                'destinations'
+              )
             }
           ]
         }

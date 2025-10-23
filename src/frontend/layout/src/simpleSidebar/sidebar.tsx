@@ -79,7 +79,7 @@ let ItemContent = styled('span')`
   cursor: pointer;
   border-radius: 7px;
   transition: all 0.2s;
-  color: #333;
+  color: #666;
   font-size: 14px;
   font-weight: 500;
 
@@ -87,7 +87,7 @@ let ItemContent = styled('span')`
   &:focus,
   &:active {
     background: #efefef;
-    color: #222;
+    color: #555;
   }
 
   &[data-state='active'] {

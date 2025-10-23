@@ -3,6 +3,7 @@ import { useCallback, useCurrentInstance, useServerDeployment } from '@metorial/
 import { Attributes, Copy, RenderDate, Spacer } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
+import { UsageScene } from '../../../../scenes/usage/usage';
 
 export let CallbackOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -48,9 +49,18 @@ export let CallbackOverviewPage = () => {
           title="Callback URL"
           description="Register this URL with the external provider to receive Metorial callbacks."
         >
-          <Copy label="Callback ID" value={callback.data?.url ?? ''} />
+          <Copy value={callback.data?.url ?? ''} />
         </Box>
       )}
+
+      <Spacer height={15} />
+
+      <UsageScene
+        title="Usage"
+        description="Events received for this callback."
+        entities={[{ type: 'callback', id: callback.data.id }]}
+        entityNames={{ [callback.data.id]: 'Callback' }}
+      />
     </>
   ));
 };
