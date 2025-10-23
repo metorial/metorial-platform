@@ -3,6 +3,7 @@ import { OutputInstrumentation } from './logs.ts';
 import { getClient } from './server.ts';
 import { discover } from './discover.ts';
 import { oauth } from "./oauth.ts";
+import { callbacks } from "./callbacks.ts";
 import { McpError } from '@modelcontextprotocol/sdk/types.js';
 import { JWTPayload, jwtVerify, SignJWT } from "npm:jose@5.9.6";
 import path from 'node:path';
@@ -129,6 +130,79 @@ let handler = async (req: Request) => {
       return json({ error: error?.message || 'Failed to get authorization form' }, 400);
     }
   }
+
+  if (url.pathname === '/callbacks' && req.method === 'GET') {
+    await dryImport();
+
+    let callbacksResult = await callbacks.get();
+    if (!callbacksResult) return json({ enabled: false });
+
+    return json({ enabled: true, type: callbacksResult.installHook ? 'webhook' : callbacksResult.pollHook ? 'polling' : 'manual' });
+  }
+
+  if (url.pathname === '/callbacks/handle' && req.method === 'POST') {
+    await dryImport();
+
+    let body = await req.json();
+    let callbacksResult = await callbacks.get();
+    if (!callbacksResult) return json({ error: 'Callbacks not configured' }, 400);
+
+    try {
+      let results = await Promise.all(body.events.map(async (event: any) => {
+        try {
+          let result = await callbacksResult.handleHook({ callbackId: body.callbackId, ...event })
+          return { success: true, eventId: event.eventId, result };
+        } catch (error: any) {
+          return { success: false, eventId: event.eventId, error: error?.message || 'Failed to handle event' };
+        }
+      }));
+      return json({ success: true, results });
+    } catch (error: any) {
+      return json({ error: error?.message || 'Failed to handle callback' }, 400);
+    }
+  }
+
+  if (url.pathname === '/callbacks/install' && req.method === 'POST') {
+    await dryImport();
+
+    let body = await req.json();
+    let callbacksResult = await callbacks.get();
+    if (!callbacksResult) return json({ error: 'Callbacks not configured' }, 400);
+
+    try {
+      await callbacksResult.installHook(body);
+      return json({ success: true });
+    } catch (error: any) {
+      return json({ error: error?.message || 'Failed to install callback' }, 400);
+    }
+  }
+
+  if (url.pathname === '/callbacks/poll' && req.method === 'POST') {
+    await dryImport();
+
+    let body = await req.json();
+    let callbacksResult = await callbacks.get();
+    if (!callbacksResult) return json({ error: 'Callbacks not configured' }, 400);
+
+    try {
+      let state = body.state || null;
+      let stateRef = {current: state};
+      let setState = (v: any) => {
+        stateRef.current = v;
+      }
+
+      let events = await callbacksResult.pollHook({
+        ...body,
+        state,
+        setState
+      });
+
+      return json({ success: true, events: Array.isArray(events) ? events : [events], newState: stateRef.current });
+    } catch (error: any) {
+      return json({ error: error?.message || 'Failed to install callback' }, 400);
+    }
+  }
+
 
   if (url.pathname == '/mcp') {
     if (req.headers.get('upgrade') != 'websocket') return new Response(null, { status: 426 });

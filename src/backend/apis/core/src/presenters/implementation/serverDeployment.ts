@@ -1,6 +1,7 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { serverDeploymentType } from '../types';
+import { v1CallbackPresenter } from './callback';
 import { v1ProviderOauthConnectionPresenter } from './providerOauthConnection';
 import { v1ServerDeploymentConfigPresenter } from './serverDeploymentConfig';
 import { v1ServerImplementationPresenter } from './serverImplementation';
@@ -32,6 +33,10 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
       ? await v1ProviderOauthConnectionPresenter
           .present({ providerOauthConnection: serverDeployment.oauthConnection }, opts)
           .run()
+      : null,
+
+    callback: serverDeployment.callback
+      ? await v1CallbackPresenter.present({ callback: serverDeployment.callback }, opts).run()
       : null,
 
     server: v1ServerPreview(serverDeployment.server),
@@ -74,6 +79,8 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
       ),
 
       oauth_connection: v.nullable(v1ProviderOauthConnectionPresenter.schema),
+
+      callback: v.nullable(v1CallbackPresenter.schema),
 
       result: v.union(
         [

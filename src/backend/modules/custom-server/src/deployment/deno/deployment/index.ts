@@ -241,9 +241,22 @@ export let createDenoLambdaDeployment = async (config: {
         }
       );
 
+      let callbacksUrl = new URL(serverUrl.current);
+      callbacksUrl.pathname = joinPaths(callbacksUrl.pathname, '/callbacks');
+      let callbacksRes = await axios.get<{
+        enabled: boolean;
+        type: 'webhook' | 'polling' | 'manual';
+      }>(callbacksUrl.toString(), {
+        headers: {
+          'metorial-stellar-token': lambdaServerInstance.securityToken
+        },
+        timeout: 5000
+      });
+
       return {
         capabilities: discoverRes.data,
-        oauth: oauthRes.data
+        oauth: oauthRes.data,
+        callbacks: callbacksRes.data
       };
     },
 

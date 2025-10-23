@@ -1,6 +1,8 @@
 import { declarePresenter } from '@metorial/presenter';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
+import { v1CallbackPresenter } from './implementation/callback';
+import { v1CallbackEventPresenter } from './implementation/callbackEvent';
 import {
   dashboardCustomServerPresenter,
   v1CustomServerPresenter
@@ -80,6 +82,8 @@ import { v1UserPresenter } from './implementation/user';
 import {
   apiKeyType,
   bootType,
+  callbackEventType,
+  callbackType,
   customServerCodeEditorTokenType,
   customServerDeploymentType,
   customServerEventType,
@@ -441,4 +445,14 @@ export let scmRepoPresenter = declarePresenter(scmRepoType, {
 export let scmInstallationPresenter = declarePresenter(scmInstallationType, {
   mt_2025_01_01_pulsar: v1ScmInstallationPresenter,
   mt_2025_01_01_dashboard: v1ScmInstallationPresenter
+});
+
+export let callbackPresenter = declarePresenter(callbackType, {
+  mt_2025_01_01_pulsar: v1CallbackPresenter,
+  mt_2025_01_01_dashboard: v1CallbackPresenter
+});
+
+export let callbackEventPresenter = declarePresenter(callbackEventType, {
+  mt_2025_01_01_pulsar: v1CallbackEventPresenter,
+  mt_2025_01_01_dashboard: v1CallbackEventPresenter
 });

@@ -10,6 +10,8 @@ import { profileController } from './dashboard/profile';
 import { dashboardRepoController } from './dashboard/repo';
 import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
+import { callbackController } from './instance/callback';
+import { callbackEventController } from './instance/callbackEvent';
 import { customServerController } from './instance/customServer';
 import { customServerCodeController } from './instance/customServerCode';
 import { customServerDeploymentController } from './instance/customServerDeployment';
@@ -91,7 +93,10 @@ export let pulsarController = Controller.create<any>(
 
     magicMcpServerController,
     magicMcpSessionController,
-    magicMcpTokenController
+    magicMcpTokenController,
+
+    callbackController,
+    callbackEventController
   }
 );
 
@@ -167,7 +172,10 @@ export let dashboardController = Controller.create<any>(
     magicMcpSessionController,
     magicMcpTokenController,
 
-    dashboardRepoController
+    dashboardRepoController,
+
+    callbackController,
+    callbackEventController
   }
 );
 

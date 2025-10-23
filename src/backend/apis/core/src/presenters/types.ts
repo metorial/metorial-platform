@@ -1,6 +1,11 @@
 import {
   ApiKey,
   ApiKeySecret,
+  Callback,
+  CallbackEvent,
+  CallbackEventProcessingAttempt,
+  CallbackHook,
+  CallbackSchedule,
   CodeBucketTemplate,
   CustomServer,
   CustomServerDeployment,
@@ -228,6 +233,12 @@ export let serverDeploymentType = PresentableType.create<{
           instance: Instance;
           template: ProviderOAuthConnectionTemplate | null;
           config: ProviderOAuthConfig;
+        })
+      | null;
+    callback:
+      | (Callback & {
+          hooks: CallbackHook[];
+          schedule: CallbackSchedule | null;
         })
       | null;
   };
@@ -548,3 +559,16 @@ export let scmInstallType = PresentableType.create<{
 export let scmInstallationType = PresentableType.create<{
   scmInstallation: ScmInstallation;
 }>()('integrations.scm.installation');
+
+export let callbackType = PresentableType.create<{
+  callback: Callback & {
+    hooks: CallbackHook[];
+    schedule: CallbackSchedule | null;
+  };
+}>()('callback');
+
+export let callbackEventType = PresentableType.create<{
+  callbackEvent: CallbackEvent & {
+    processingAttempts: CallbackEventProcessingAttempt[];
+  };
+}>()('callback.event');
