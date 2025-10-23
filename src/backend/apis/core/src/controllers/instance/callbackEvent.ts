@@ -2,17 +2,17 @@ import { callbackEventService } from '@metorial/module-callbacks';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { callbackEventPresenter } from '../../presenters';
-import { callbackGroup } from './callback';
 
-export let callbackEventGroup = callbackGroup.use(async ctx => {
+export let callbackEventGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.eventId) throw new Error('eventId is required');
 
   let callbackEvent = await callbackEventService.getCallbackEventById({
     eventId: ctx.params.eventId,
-    callback: ctx.callback
+    instance: ctx.instance
   });
 
   return { callbackEvent };
@@ -25,17 +25,25 @@ export let callbackEventController = Controller.create(
       'Represents callbacks that you have uploaded to Metorial. Callbacks can be linked to various resources based on their purpose. Metorial can also automatically extract callbacks for you, for example for data exports.'
   },
   {
-    list: callbackGroup
-      .get(instancePath('callbacks/:callbackId/events', 'callbacks.events.list'), {
+    list: instanceGroup
+      .get(instancePath('callbacks-events', 'callbacks.events.list'), {
         name: 'List callback events',
         description: 'Returns a paginated list of callback events for a specific callback.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .outputList(callbackEventPresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            callback_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await callbackEventService.listCallbackEvents({
-          callback: ctx.callback
+          instance: ctx.instance,
+          callbackIds: normalizeArrayParam(ctx.query.callback_ids)
         });
 
         let list = await paginator.run(ctx.query);
@@ -46,7 +54,7 @@ export let callbackEventController = Controller.create(
       }),
 
     get: callbackEventGroup
-      .get(instancePath('callbacks/:callbackId/events/:eventId', 'callbacks.events.get'), {
+      .get(instancePath('callbacks-events/:eventId', 'callbacks.events.get'), {
         name: 'Get callback event by ID',
         description: 'Retrieves details for a specific callback by its ID.'
       })

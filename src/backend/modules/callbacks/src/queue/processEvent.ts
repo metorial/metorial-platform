@@ -2,6 +2,7 @@ import { db, ID } from '@metorial/db';
 import { lambdaServerCallbackService } from '@metorial/module-custom-server';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { getConnectionLambda } from '../lib/getLambda';
+import { sendEventQueue } from './sendEvent';
 
 export let processEventQueue = createQueue<{ eventId: string }>({
   name: 'clb/evt/proc'
@@ -30,6 +31,7 @@ export let processEventQueueProcessor = processEventQueue.process(async data => 
         data: {
           status: 'succeeded',
           attemptCount: { increment: 1 },
+          eventType: r.type,
           payloadOutgoing: JSON.stringify(r.result)
         }
       });
@@ -51,6 +53,9 @@ export let processEventQueueProcessor = processEventQueue.process(async data => 
       }
 
       if (r.result !== null && r.result !== undefined) {
+        await sendEventQueue.add({
+          eventId: r.event.id
+        });
       }
     } else {
       if (event.attemptCount >= 5) {

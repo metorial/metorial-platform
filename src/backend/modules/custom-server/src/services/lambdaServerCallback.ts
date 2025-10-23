@@ -48,9 +48,39 @@ class LambdaServerCallbackServiceImpl {
         }
 
         if (r.success) {
+          let fullResult = r.result;
+          if (fullResult === null) {
+            return {
+              event: e,
+              result: null,
+              type: 'noop',
+              success: true as const
+            };
+          }
+
+          console.log('FULL RESULT', fullResult);
+
+          if (
+            typeof fullResult != 'object' ||
+            fullResult === null ||
+            Array.isArray(fullResult) ||
+            typeof fullResult.type !== 'string' ||
+            !('result' in fullResult)
+          ) {
+            return {
+              event: e,
+              success: false as const,
+              error: {
+                code: 'invalid_result',
+                message: 'Invalid result format returned from server'
+              }
+            };
+          }
+
           return {
             event: e,
-            result: r.result!,
+            result: fullResult.result,
+            type: fullResult.type,
             success: true as const
           };
         } else {

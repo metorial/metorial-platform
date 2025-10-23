@@ -9,12 +9,12 @@ export let cleanupCron = createCron(
   },
   async () => {
     let now = new Date();
-    let oneWeekAgo = subDays(now, 7);
+    let twoWeeksAgo = subDays(now, 14);
 
     await db.callbackEvent.deleteMany({
       where: {
         createdAt: {
-          lt: oneWeekAgo
+          lt: twoWeeksAgo
         }
       }
     });
@@ -22,7 +22,15 @@ export let cleanupCron = createCron(
     await db.callbackPollingAttempt.deleteMany({
       where: {
         createdAt: {
-          lt: oneWeekAgo
+          lt: twoWeeksAgo
+        }
+      }
+    });
+
+    await db.callbackNotification.deleteMany({
+      where: {
+        createdAt: {
+          lt: twoWeeksAgo
         }
       }
     });

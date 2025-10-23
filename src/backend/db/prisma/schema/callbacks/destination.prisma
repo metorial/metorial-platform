@@ -1,15 +1,34 @@
+enum CallbackDestinationSelectionType {
+  all // We always send there
+  selected
+}
+
 enum CallbackDestinationType {
-  auto // We always send there
-  specific
+  webhook_http
+}
+
+enum CallbackDestinationStatus {
+  active
+  inactive
 }
 
 model CallbackDestination {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  type CallbackDestinationType
+  status CallbackDestinationStatus @default(active)
 
-  url String
+  name        String
+  description String?
+
+  selectionType CallbackDestinationSelectionType
+  type          CallbackDestinationType
+
+  url           String?
+  signingSecret String?
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
 
   createdAt DateTime @default(now())
 
@@ -18,6 +37,8 @@ model CallbackDestination {
 }
 
 model CallbackDestinationCallback {
+  isSelected Boolean
+
   callbackOid BigInt
   callback    Callback @relation(fields: [callbackOid], references: [oid], onDelete: Cascade)
 

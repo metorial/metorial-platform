@@ -60,4 +60,5 @@ model Instance {
   magicMcpToken            MagicMcpToken[]
   providerOAuthTakeouts    ProviderOAuthTakeout[]
   callbacks                Callback[]
+  callbackDestinations     CallbackDestination[]
 }

@@ -8,6 +8,11 @@ import {
 import { installCallbackQueueProcessor } from './queue/installCallback';
 import { processEventQueueProcessor } from './queue/processEvent';
 import { registerCallbackQueueProcessor } from './queue/registerCallback';
+import {
+  prepareEventSingleQueueProcessor,
+  sendEventQueueProcessor,
+  sendEventSingleQueueProcessor
+} from './queue/sendEvent';
 
 export * from './services';
 
@@ -15,6 +20,10 @@ export let callbacksQueueProcessor = combineQueueProcessors([
   pollingSingleQueueProcessor,
   pollingManyQueueProcessor,
   pollingCron,
+
+  sendEventQueueProcessor,
+  prepareEventSingleQueueProcessor,
+  sendEventSingleQueueProcessor,
 
   cleanupCron,
 

@@ -2,7 +2,9 @@ import { declarePresenter } from '@metorial/presenter';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
 import { v1CallbackPresenter } from './implementation/callback';
+import { v1CallbackDestinationPresenter } from './implementation/callbackDestination';
 import { v1CallbackEventPresenter } from './implementation/callbackEvent';
+import { v1CallbackNotificationPresenter } from './implementation/callbackNotification';
 import {
   dashboardCustomServerPresenter,
   v1CustomServerPresenter
@@ -82,7 +84,9 @@ import { v1UserPresenter } from './implementation/user';
 import {
   apiKeyType,
   bootType,
+  callbackDestinationType,
   callbackEventType,
+  callbackNotificationType,
   callbackType,
   customServerCodeEditorTokenType,
   customServerDeploymentType,
@@ -455,4 +459,14 @@ export let callbackPresenter = declarePresenter(callbackType, {
 export let callbackEventPresenter = declarePresenter(callbackEventType, {
   mt_2025_01_01_pulsar: v1CallbackEventPresenter,
   mt_2025_01_01_dashboard: v1CallbackEventPresenter
+});
+
+export let callbackNotificationPresenter = declarePresenter(callbackNotificationType, {
+  mt_2025_01_01_pulsar: v1CallbackNotificationPresenter,
+  mt_2025_01_01_dashboard: v1CallbackNotificationPresenter
+});
+
+export let callbackDestinationPresenter = declarePresenter(callbackDestinationType, {
+  mt_2025_01_01_pulsar: v1CallbackDestinationPresenter,
+  mt_2025_01_01_dashboard: v1CallbackDestinationPresenter
 });

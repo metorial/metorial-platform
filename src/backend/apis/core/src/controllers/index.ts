@@ -11,7 +11,9 @@ import { dashboardRepoController } from './dashboard/repo';
 import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
 import { callbackController } from './instance/callback';
+import { callbackDestinationController } from './instance/callbackDestination';
 import { callbackEventController } from './instance/callbackEvent';
+import { callbackNotificationController } from './instance/callbackNotification';
 import { customServerController } from './instance/customServer';
 import { customServerCodeController } from './instance/customServerCode';
 import { customServerDeploymentController } from './instance/customServerDeployment';
@@ -96,7 +98,9 @@ export let pulsarController = Controller.create<any>(
     magicMcpTokenController,
 
     callbackController,
-    callbackEventController
+    callbackEventController,
+    callbackDestinationController,
+    callbackNotificationController
   }
 );
 
@@ -175,7 +179,9 @@ export let dashboardController = Controller.create<any>(
     dashboardRepoController,
 
     callbackController,
-    callbackEventController
+    callbackEventController,
+    callbackDestinationController,
+    callbackNotificationController
   }
 );
 

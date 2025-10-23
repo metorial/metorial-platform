@@ -21,9 +21,8 @@ model Callback {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  hooks  CallbackHook[]
-  events CallbackEvent[]
-
+  hooks                        CallbackHook[]
+  events                       CallbackEvent[]
   serverDeployment             ServerDeployment?
   schedule                     CallbackSchedule?
   callbackPollingAttempts      CallbackPollingAttempt[]
@@ -41,5 +40,4 @@ model CallbackHook {
   callback    Callback @relation(fields: [callbackOid], references: [oid])
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
 }

@@ -1,12 +1,64 @@
+enum CallbackNotificationStatus {
+  pending
+  succeeded
+  failed
+  retrying
+}
+
+enum CallbackNotificationType {
+  webhook_http
+}
+
 model CallbackNotification {
   oid BigInt @id @default(autoincrement())
   id  String @unique
+
+  status CallbackNotificationStatus
+  type   CallbackNotificationType
+
+  url         String?
+  requestBody String?
+
+  /// [Headers]
+  requestHeaders Json?
+
+  attemptCount Int @default(0)
 
   eventOid BigInt
   event    CallbackEvent @relation(fields: [eventOid], references: [oid], onDelete: Cascade)
 
   destinationOid BigInt
   destination    CallbackDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  attempts CallbackNotificationAttempt[]
+}
+
+enum CallbackNotificationAttemptStatus {
+  succeeded
+  failed
+}
+
+model CallbackNotificationAttempt {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status       CallbackNotificationAttemptStatus
+  attemptIndex Int                               @db.SmallInt
+
+  notificationOid BigInt
+  notification    CallbackNotification @relation(fields: [notificationOid], references: [oid], onDelete: Cascade)
+
+  responseStatusCode Int?
+  responseBody       String?
+
+  /// [Headers]
+  responseHeaders Json?
+
+  requestError String?
+
+  durationMs Int
 
   createdAt DateTime @default(now())
 }

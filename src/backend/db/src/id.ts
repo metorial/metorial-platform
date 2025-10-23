@@ -116,5 +116,8 @@ export let ID = createIdGenerator({
   callbackSchedule: idType.sorted('cbs'),
   callbackEventProcessingAttempt: idType.sorted('cbep'),
   callbackPollingAttempt: idType.sorted('cbpa'),
-  callbackInstallation: idType.sorted('cbi')
+  callbackInstallation: idType.sorted('cbi'),
+  callbackNotification: idType.sorted('cbn'),
+  callbackNotificationAttempt: idType.sorted('cbna'),
+  callbackDestination: idType.sorted('cld')
 });

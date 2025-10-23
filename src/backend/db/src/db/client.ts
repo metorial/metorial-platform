@@ -259,5 +259,7 @@ declare global {
       path: string;
       content: string;
     }[];
+
+    type Headers = [string, string][];
   }
 }

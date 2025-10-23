@@ -8,8 +8,8 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
 
     id: callbackEvent.id,
 
-    type: callbackEvent.type,
     status: callbackEvent.status,
+    type: callbackEvent.eventType,
 
     payload_incoming: callbackEvent.payloadIncoming,
     payload_outgoing: callbackEvent.payloadOutgoing,
@@ -44,10 +44,12 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
         description: 'The unique identifier of the callback event'
       }),
 
-      type: v.enumOf(['webhook_received', 'polling_result'], {
-        name: 'type',
-        description: 'The type of the callback event'
-      }),
+      type: v.nullable(
+        v.string({
+          name: 'type',
+          description: 'The type of the callback event'
+        })
+      ),
 
       status: v.enumOf(['pending', 'succeeded', 'retrying', 'failed'], {
         name: 'status',

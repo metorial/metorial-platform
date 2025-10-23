@@ -2,9 +2,13 @@ import {
   ApiKey,
   ApiKeySecret,
   Callback,
+  CallbackDestination,
+  CallbackDestinationCallback,
   CallbackEvent,
   CallbackEventProcessingAttempt,
   CallbackHook,
+  CallbackNotification,
+  CallbackNotificationAttempt,
   CallbackSchedule,
   CodeBucketTemplate,
   CustomServer,
@@ -572,3 +576,19 @@ export let callbackEventType = PresentableType.create<{
     processingAttempts: CallbackEventProcessingAttempt[];
   };
 }>()('callback.event');
+
+export let callbackDestinationType = PresentableType.create<{
+  callbackDestination: CallbackDestination & {
+    callbacks: (CallbackDestinationCallback & {
+      callback: Callback;
+    })[];
+  };
+}>()('callback.destination');
+
+export let callbackNotificationType = PresentableType.create<{
+  callbackNotification: CallbackNotification & {
+    destination: CallbackDestination;
+    event: CallbackEvent;
+    attempts: CallbackNotificationAttempt[];
+  };
+}>()('callback.notification');

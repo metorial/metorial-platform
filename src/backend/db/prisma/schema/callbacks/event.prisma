@@ -21,6 +21,7 @@ model CallbackEvent {
 
   payloadIncoming String  @default("{}")
   payloadOutgoing String?
+  eventType       String?
 
   ip String?
   ua String?
