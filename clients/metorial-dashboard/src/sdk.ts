@@ -5,6 +5,8 @@ import {
   MetorialApiKeysEndpoint,
   MetorialCustomServersManagedServerTemplatesEndpoint,
   MetorialDashboardEndpoint,
+  MetorialDashboardInstanceCallbacksEndpoint,
+  MetorialDashboardInstanceCallbacksEventsEndpoint,
   MetorialDashboardInstanceCustomServersCodeEndpoint,
   MetorialDashboardInstanceCustomServersDeploymentsEndpoint,
   MetorialDashboardInstanceCustomServersEndpoint,
@@ -188,7 +190,11 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     installation: new MetorialDashboardScmInstallationsEndpoint(manager),
     repos: new MetorialDashboardScmReposEndpoint(manager),
     accounts: new MetorialDashboardScmAccountsEndpoint(manager)
-  }
+  },
+
+  callbacks: Object.assign(new MetorialDashboardInstanceCallbacksEndpoint(manager), {
+    events: new MetorialDashboardInstanceCallbacksEventsEndpoint(manager)
+  })
 }));
 
 export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>;

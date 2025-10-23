@@ -23,6 +23,19 @@ export type DashboardInstanceServersDeploymentsUpdateOutput = {
     createdAt: Date;
     updatedAt: Date;
   } | null;
+  callback: {
+    object: 'callback';
+    id: string;
+    url: string | null;
+    type: 'webhook_managed' | 'polling' | 'webhook_manual';
+    schedule: {
+      object: 'callback.schedule';
+      intervalSeconds: number;
+      nextRunAt: Date;
+    };
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
   result:
     | { status: 'active' }
     | { status: 'pending'; step: 'oauth_discovery' }
@@ -123,6 +136,28 @@ export let mapDashboardInstanceServersDeploymentsUpdateOutput =
         clientId: mtMap.objectField('client_id', mtMap.passthrough()),
         instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
         templateId: mtMap.objectField('template_id', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+      })
+    ),
+    callback: mtMap.objectField(
+      'callback',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        url: mtMap.objectField('url', mtMap.passthrough()),
+        type: mtMap.objectField('type', mtMap.passthrough()),
+        schedule: mtMap.objectField(
+          'schedule',
+          mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
+            intervalSeconds: mtMap.objectField(
+              'interval_seconds',
+              mtMap.passthrough()
+            ),
+            nextRunAt: mtMap.objectField('next_run_at', mtMap.date())
+          })
+        ),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
