@@ -1,0 +1,36 @@
+model CallbackSchedule {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  intervalSeconds Int
+  nextRunAt       DateTime
+
+  state Json
+
+  callbackOid BigInt   @unique
+  callback    Callback @relation(fields: [callbackOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@index([nextRunAt])
+}
+
+enum CallbackPollingAttemptStatus {
+  succeeded
+  failed
+}
+
+model CallbackPollingAttempt {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status CallbackPollingAttemptStatus
+
+  errorCode    String?
+  errorMessage String?
+
+  callbackOid BigInt
+  callback    Callback @relation(fields: [callbackOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}

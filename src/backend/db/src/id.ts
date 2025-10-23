@@ -107,5 +107,14 @@ export let ID = createIdGenerator({
   scmAccount: idType.sorted('sca'),
   scmRepo: idType.sorted('scr'),
   scmRepoWebhook: idType.sorted('scrw'),
-  scmRepoPush: idType.sorted('scmp')
+  scmRepoPush: idType.sorted('scmp'),
+
+  callback: idType.sorted('clb'),
+  callbackHook: idType.sorted('cbh'),
+  callbackTemplate: idType.sorted('clt'),
+  callbackEvent: idType.sorted('cbe'),
+  callbackSchedule: idType.sorted('cbs'),
+  callbackEventProcessingAttempt: idType.sorted('cbep'),
+  callbackPollingAttempt: idType.sorted('cbpa'),
+  callbackInstallation: idType.sorted('cbi')
 });

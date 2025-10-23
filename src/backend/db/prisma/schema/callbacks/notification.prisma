@@ -1,0 +1,12 @@
+model CallbackNotification {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  eventOid BigInt
+  event    CallbackEvent @relation(fields: [eventOid], references: [oid], onDelete: Cascade)
+
+  destinationOid BigInt
+  destination    CallbackDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}

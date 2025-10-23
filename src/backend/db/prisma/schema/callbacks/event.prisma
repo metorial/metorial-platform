@@ -1,0 +1,57 @@
+enum CallbackEventType {
+  webhook_received
+  polling_result
+}
+
+enum CallbackEventStatus {
+  pending
+  succeeded
+  failed
+  retrying
+}
+
+model CallbackEvent {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  attemptCount Int @default(0)
+
+  type   CallbackEventType
+  status CallbackEventStatus
+
+  payloadIncoming String  @default("{}")
+  payloadOutgoing String?
+
+  ip String?
+  ua String?
+
+  callbackOid BigInt
+  callback    Callback @relation(fields: [callbackOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  processingAttempts    CallbackEventProcessingAttempt[]
+  callbackNotifications CallbackNotification[]
+}
+
+enum CallbackEventProcessingAttemptStatus {
+  succeeded
+  failed
+}
+
+model CallbackEventProcessingAttempt {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status CallbackEventProcessingAttemptStatus
+
+  attemptIndex Int @db.SmallInt
+
+  errorCode    String?
+  errorMessage String?
+
+  callbackEventOid BigInt
+  callbackEvent    CallbackEvent @relation(fields: [callbackEventOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}

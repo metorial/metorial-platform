@@ -1,0 +1,28 @@
+enum CallbackDestinationType {
+  auto // We always send there
+  specific
+}
+
+model CallbackDestination {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type CallbackDestinationType
+
+  url String
+
+  createdAt DateTime @default(now())
+
+  callbacks     CallbackDestinationCallback[]
+  notifications CallbackNotification[]
+}
+
+model CallbackDestinationCallback {
+  callbackOid BigInt
+  callback    Callback @relation(fields: [callbackOid], references: [oid], onDelete: Cascade)
+
+  destinationOid BigInt
+  destination    CallbackDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  @@id([callbackOid, destinationOid])
+}

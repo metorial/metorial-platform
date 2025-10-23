@@ -33,6 +33,9 @@ model LambdaServerInstance {
   platform LambdaServerInstancePlatform?
   protocol LambdaServerInstanceProtocol?
 
+  callbackTemplateOid BigInt?
+  callbackTemplate    CallbackTemplate? @relation(fields: [callbackTemplateOid], references: [oid])
+
   securityToken String
 
   providerResourceId               String?

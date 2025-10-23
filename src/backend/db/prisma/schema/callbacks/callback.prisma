@@ -1,0 +1,45 @@
+enum CallbackType {
+  webhook
+  polling
+  manual
+}
+
+model Callback {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  eventType CallbackType
+
+  consecutivePollingFailures Int @default(0)
+  consecutiveEventFailures   Int @default(0)
+
+  intervalSeconds Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  hooks  CallbackHook[]
+  events CallbackEvent[]
+
+  serverDeployment             ServerDeployment?
+  schedule                     CallbackSchedule?
+  callbackPollingAttempts      CallbackPollingAttempt[]
+  callbackInstallationAttempts CallbackInstallationAttempt[]
+  callbackDestinations         CallbackDestinationCallback[]
+}
+
+model CallbackHook {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  key String @unique
+
+  callbackOid BigInt
+  callback    Callback @relation(fields: [callbackOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
