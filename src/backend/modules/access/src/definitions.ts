@@ -56,7 +56,10 @@ let scopeRaw = [
   'instance.provider_oauth.takeout:write' as const,
 
   'instance.custom_server:read' as const,
-  'instance.custom_server:write' as const
+  'instance.custom_server:write' as const,
+
+  'instance.callback:read' as const,
+  'instance.callback:write' as const
 
   // 'organization.machine_access.api_key.organization:read' as const,
   // 'organization.machine_access.api_key.organization:write' as const,
@@ -119,7 +122,10 @@ export let instanceSecretTokenScopes: Scope[] = [
   'instance.provider_oauth.connection.profile:read' as const,
 
   'instance.provider_oauth.takeout:read' as const,
-  'instance.provider_oauth.takeout:write' as const
+  'instance.provider_oauth.takeout:write' as const,
+
+  'instance.callback:read' as const,
+  'instance.callback:write' as const
 ];
 
 export let instancePublishableTokenScopes: Scope[] = ['instance.server_listing:read' as const];

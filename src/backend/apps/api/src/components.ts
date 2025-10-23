@@ -1,6 +1,7 @@
 process.env.TZ = 'UTC';
 
 import { authApi } from '@metorial/api-auth';
+import { callbacksApp } from '@metorial/api-callbacks';
 import { apiServer } from '@metorial/api-core';
 import { fileApi } from '@metorial/api-files';
 import { integrationsApp } from '@metorial/api-integrations';
@@ -22,6 +23,7 @@ let runnerPort = parseInt(process.env.RUNNER_PORT || '3399');
 let privateApiPort = parseInt(process.env.PRIVATE_API_PORT || '4314');
 let marketplaceApiPort = parseInt(process.env.MARKETPLACE_API_PORT || '4312');
 let integrationsApiPort = parseInt(process.env.INTEGRATIONS_API_PORT || '4316');
+let callbacksApiPort = parseInt(process.env.CALLBACKS_API_PORT || '4317');
 
 let server = apiMux(
   [
@@ -65,6 +67,11 @@ Bun.serve({
 Bun.serve({
   port: integrationsApiPort,
   fetch: integrationsApp.fetch
+});
+
+Bun.serve({
+  port: callbacksApiPort,
+  fetch: callbacksApp.fetch
 });
 
 console.log(`Listening on port ${apiPort}`);

@@ -3,6 +3,7 @@ process.env.TZ = 'UTC';
 import { runQueueProcessors } from '@metorial/queue';
 
 import { accessQueueProcessor } from '@metorial/module-access';
+import { callbacksQueueProcessor } from '@metorial/module-callbacks';
 import { catalogQueueProcessor } from '@metorial/module-catalog';
 import { codeBucketQueueProcessor } from '@metorial/module-code-bucket';
 import { communityQueueProcessor } from '@metorial/module-community';
@@ -45,5 +46,6 @@ export let worker = runQueueProcessors([
   codeBucketQueueProcessor,
   communityQueueProcessor,
   magicQueueProcessor,
-  scmQueueProcessor
+  scmQueueProcessor,
+  callbacksQueueProcessor
 ]);

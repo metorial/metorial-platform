@@ -1,4 +1,3 @@
-import { theme } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -92,7 +91,8 @@ let ItemContent = styled('span')`
   }
 
   &[data-state='active'] {
-    color: ${theme.colors.primary}!important;
+    color: black;
+    font-weight: 600;
   }
 `;
 
@@ -107,6 +107,7 @@ let ItemLink = styled(Link)`
   display: flex;
   flex-direction: column;
   cursor: pointer;
+  color: unset;
 `;
 
 let ItemButton = styled('button')`
@@ -151,7 +152,7 @@ export let SimpleSidebar = ({ groups }: { groups: SimpleSidebarGroup[] }) => {
 
           <List
             style={{
-              paddingLeft: 20
+              marginLeft: -10
             }}
           >
             {group.items.map((item, i) => (

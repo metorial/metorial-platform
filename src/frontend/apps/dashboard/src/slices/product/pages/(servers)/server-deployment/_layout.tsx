@@ -109,6 +109,14 @@ export let ServerDeploymentLayout = () => {
                     }
                   ]
                 : []),
+              ...(deployment.data.callback
+                ? [
+                    {
+                      label: 'Callbacks',
+                      to: Paths.instance.serverDeployment(...serverPathParams, 'callbacks')
+                    }
+                  ]
+                : []),
               {
                 label: 'Runs',
                 to: Paths.instance.serverDeployment(...serverPathParams, 'runs')

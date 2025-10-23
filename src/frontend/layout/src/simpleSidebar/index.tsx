@@ -6,7 +6,7 @@ let Wrapper = styled.div`
   display: grid;
   grid-template-columns: 260px 1fr;
   gap: 30px;
-  max-width: 1220px;
+  /* max-width: 1220px; */
   /* padding: 70px 15px 20px 20px; */
   padding: 20px 0px;
   width: 100%;

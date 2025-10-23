@@ -274,6 +274,19 @@ let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string
     (flags.data.flags as any)[flag] ? children : <NotFound />
   );
 };
+let CallbackLayout = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/callbacks/_layout').then(c => c.CallbackLayout)
+);
+let CallbackOverviewPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/callbacks/overview').then(
+    c => c.CallbackOverviewPage
+  )
+);
+let CallbackEventsPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/callbacks/events').then(
+    c => c.CallbackEventsPage
+  )
+);
 
 let ProductWrapper = () => {
   let instance = useCurrentInstance();
@@ -538,6 +551,22 @@ export let productInnerSlice = createSlice([
               {
                 path: 'oauth',
                 element: <ServerDeploymentOauthPage />
+              },
+
+              {
+                path: 'callbacks',
+                element: <CallbackLayout />,
+
+                children: [
+                  {
+                    path: '',
+                    element: <CallbackOverviewPage />
+                  },
+                  {
+                    path: 'events',
+                    element: <CallbackEventsPage />
+                  }
+                ]
               }
             ]
           },

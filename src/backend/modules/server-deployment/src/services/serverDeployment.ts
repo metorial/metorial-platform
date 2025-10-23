@@ -1,5 +1,6 @@
 import { Context } from '@metorial/context';
 import {
+  Callback,
   db,
   ID,
   Instance,
@@ -24,6 +25,7 @@ import {
   ServiceError
 } from '@metorial/error';
 import { Fabric } from '@metorial/fabric';
+import { callbackService } from '@metorial/module-callbacks';
 import { serverVariantService } from '@metorial/module-catalog';
 import { engineServerDiscoveryService } from '@metorial/module-engine';
 import { ingestEventService } from '@metorial/module-event';
@@ -59,6 +61,12 @@ let include = {
   config: {
     include: {
       configSecret: true
+    }
+  },
+  callback: {
+    include: {
+      hooks: true,
+      schedule: true
     }
   }
 };
@@ -228,7 +236,11 @@ class ServerDeploymentServiceImpl {
             customServerVersion: {
               include: {
                 remoteServerInstance: true,
-                lambdaServerInstance: true
+                lambdaServerInstance: {
+                  include: {
+                    callbackTemplate: true
+                  }
+                }
               }
             }
           }
@@ -250,6 +262,7 @@ class ServerDeploymentServiceImpl {
     let serverDeployment = await withTransaction(async db => {
       let connection: ProviderOAuthConnection | null = null;
       let oauthConfig: ProviderOAuthConfig | null = null;
+      let callback: Callback | null = null;
 
       if (serverInstance?.providerOAuthConfigOid) {
         oauthConfig = await db.providerOAuthConfig.findFirstOrThrow({
@@ -343,6 +356,15 @@ class ServerDeploymentServiceImpl {
         }
       }
 
+      let lambda = currentVersion?.customServerVersion?.lambdaServerInstance;
+      if (lambda?.callbackTemplate) {
+        callback = await callbackService.internalCreateCallbackForServerDeployment({
+          callbackTemplate: lambda.callbackTemplate,
+          instance: d.instance,
+          lambda
+        });
+      }
+
       let { schema, data } = await this.checkServerDeploymentConfig({
         serverImplementation: d.serverImplementation.instance,
         config: d.input.config,
@@ -387,6 +409,7 @@ class ServerDeploymentServiceImpl {
           serverVariantOid: d.serverImplementation.instance.serverVariant.oid,
           configOid: config.oid,
           instanceOid: d.instance.oid,
+          callbackOid: callback?.oid,
 
           isMagicMcpSession: d.parent === 'magic_mcp_server'
         },
