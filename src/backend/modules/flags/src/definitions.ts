@@ -9,7 +9,10 @@ export type Flags = {
   'managed-servers-enabled': boolean;
   'community-profiles-enabled': boolean;
   'magic-mcp-enabled': boolean;
+  'callbacks-enabled': boolean;
+
   'paid-oauth-takeout': boolean;
+  'paid-callbacks': boolean;
 };
 
 export let defaultFlags: Flags = {
@@ -21,7 +24,10 @@ export let defaultFlags: Flags = {
   'managed-servers-enabled': false,
   'community-profiles-enabled': false,
   'magic-mcp-enabled': false,
-  'paid-oauth-takeout': true
+  'callbacks-enabled': true,
+
+  'paid-oauth-takeout': true,
+  'paid-callbacks': true
 };
 
 export type FlagProviderParams = {

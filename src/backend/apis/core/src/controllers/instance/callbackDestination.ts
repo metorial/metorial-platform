@@ -4,6 +4,7 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { callbackDestinationPresenter } from '../../presenters';
 
@@ -32,6 +33,7 @@ export let callbackDestinationController = Controller.create(
           'Returns a paginated list of callback destinations for a specific callback.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
+      .use(hasFlags(['callbacks-enabled', 'paid-callbacks']))
       .outputList(callbackDestinationPresenter)
       .query(
         'default',
@@ -63,6 +65,7 @@ export let callbackDestinationController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
+      .use(hasFlags(['callbacks-enabled', 'paid-callbacks']))
       .output(callbackDestinationPresenter)
       .do(async ctx => {
         return callbackDestinationPresenter.present({
@@ -76,6 +79,7 @@ export let callbackDestinationController = Controller.create(
         description: 'Creates a new callback destination for the instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .use(hasFlags(['callbacks-enabled', 'paid-callbacks']))
       .body(
         'default',
         v.object({
@@ -120,6 +124,7 @@ export let callbackDestinationController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .use(hasFlags(['callbacks-enabled', 'paid-callbacks']))
       .body(
         'default',
         v.object({
@@ -149,6 +154,7 @@ export let callbackDestinationController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .use(hasFlags(['callbacks-enabled', 'paid-callbacks']))
       .output(callbackDestinationPresenter)
       .do(async ctx => {
         let callbackDestination = await callbackDestinationService.deleteCallbackDestination({

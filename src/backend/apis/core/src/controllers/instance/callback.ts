@@ -3,6 +3,7 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { callbackPresenter } from '../../presenters';
 
@@ -30,6 +31,7 @@ export let callbackController = Controller.create(
         description: 'Returns a paginated list of callbacks.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
+      .use(hasFlags(['callbacks-enabled', 'paid-callbacks']))
       .outputList(callbackPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -48,6 +50,7 @@ export let callbackController = Controller.create(
         description: 'Retrieves details for a specific callback by its ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
+      .use(hasFlags(['callbacks-enabled', 'paid-callbacks']))
       .output(callbackPresenter)
       .do(async ctx => {
         return callbackPresenter.present({ callback: ctx.callback });

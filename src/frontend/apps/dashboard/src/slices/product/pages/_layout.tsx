@@ -18,7 +18,8 @@ import {
   RiSettings2Line,
   RiShieldKeyholeLine,
   RiSurveyLine,
-  RiUploadCloud2Line
+  RiUploadCloud2Line,
+  RiWebhookLine
 } from '@remixicon/react';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
@@ -123,6 +124,13 @@ export let ProjectPageLayout = () => {
               icon: <RiSurveyLine />,
               label: 'Explorer',
               to: Paths.instance.explorer(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            },
+
+            {
+              icon: <RiWebhookLine />,
+              label: 'Callbacks',
+              to: Paths.instance.callbacks(...params),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             }
           ]

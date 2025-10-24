@@ -5,6 +5,8 @@ export type ManagementInstanceCallbacksListOutput = {
     object: 'callback';
     id: string;
     url: string | null;
+    name: string | null;
+    description: string | null;
     type: 'webhook_managed' | 'polling' | 'webhook_manual';
     schedule: {
       object: 'callback.schedule';
@@ -26,6 +28,8 @@ export let mapManagementInstanceCallbacksListOutput =
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           url: mtMap.objectField('url', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          description: mtMap.objectField('description', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
           schedule: mtMap.objectField(
             'schedule',

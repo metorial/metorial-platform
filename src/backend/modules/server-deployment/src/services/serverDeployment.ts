@@ -361,7 +361,8 @@ class ServerDeploymentServiceImpl {
         callback = await callbackService.internalCreateCallbackForServerDeployment({
           callbackTemplate: lambda.callbackTemplate,
           instance: d.instance,
-          lambda
+          lambda,
+          name: d.input.name
         });
       }
 

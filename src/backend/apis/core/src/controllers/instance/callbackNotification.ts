@@ -4,6 +4,7 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { callbackNotificationPresenter } from '../../presenters';
 
@@ -32,6 +33,7 @@ export let callbackNotificationController = Controller.create(
           'Returns a paginated list of callback notifications for a specific callback.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
+      .use(hasFlags(['callbacks-enabled', 'paid-callbacks']))
       .outputList(callbackNotificationPresenter)
       .query(
         'default',
@@ -67,6 +69,7 @@ export let callbackNotificationController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
+      .use(hasFlags(['callbacks-enabled', 'paid-callbacks']))
       .output(callbackNotificationPresenter)
       .do(async ctx => {
         return callbackNotificationPresenter.present({

@@ -4,6 +4,7 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { callbackEventPresenter } from '../../presenters';
 
@@ -59,6 +60,7 @@ export let callbackEventController = Controller.create(
         description: 'Retrieves details for a specific callback by its ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
+      .use(hasFlags(['callbacks-enabled', 'paid-callbacks']))
       .output(callbackEventPresenter)
       .do(async ctx => {
         return callbackEventPresenter.present({ callbackEvent: ctx.callbackEvent });

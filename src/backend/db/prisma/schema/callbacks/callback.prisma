@@ -11,6 +11,9 @@ model Callback {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])
 
+  name        String?
+  description String?
+
   eventType CallbackType
 
   consecutivePollingFailures Int @default(0)

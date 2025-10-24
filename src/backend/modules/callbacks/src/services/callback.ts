@@ -22,6 +22,7 @@ class callbackServiceImpl {
     instance: Instance;
     callbackTemplate: CallbackTemplate;
     lambda: LambdaServerInstance;
+    name?: string;
   }) {
     return withTransaction(async db => {
       let callback = await db.callback.create({
@@ -29,6 +30,8 @@ class callbackServiceImpl {
           id: await ID.generateId('callback'),
           instanceOid: d.instance.oid,
           eventType: d.callbackTemplate.eventType,
+
+          name: d.name,
 
           intervalSeconds: d.instance.defaultCallbackPollingIntervalSeconds,
 

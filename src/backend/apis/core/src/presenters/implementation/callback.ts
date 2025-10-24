@@ -13,6 +13,9 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
       manual: 'webhook_manual'
     }[callback.eventType],
 
+    name: callback.name,
+    description: callback.description,
+
     url:
       callback.eventType == 'manual'
         ? `${process.env.CALLBACKS_URL}/callbacks/hook/${callback.hooks[0].key}`
@@ -45,6 +48,20 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
           name: 'url',
           description:
             'The URL to which the callback will send data (only for manual webhook type)'
+        })
+      ),
+
+      name: v.nullable(
+        v.string({
+          name: 'name',
+          description: 'The name of the callback'
+        })
+      ),
+
+      description: v.nullable(
+        v.string({
+          name: 'description',
+          description: 'The description of the callback'
         })
       ),
 

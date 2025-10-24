@@ -5,6 +5,7 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useDashboardFlags,
   useServerDeployment
 } from '@metorial/state';
 import { Button, LinkTabs } from '@metorial/ui';
@@ -19,6 +20,8 @@ export let ServerDeploymentLayout = () => {
   let deployment = useServerDeployment(instance.data?.id, serverDeploymentId);
 
   let pathname = useLocation().pathname;
+
+  let flags = useDashboardFlags();
 
   let serverPathParams = [
     organization.data,
@@ -109,7 +112,7 @@ export let ServerDeploymentLayout = () => {
                     }
                   ]
                 : []),
-              ...(deployment.data.callback
+              ...(deployment.data.callback && flags.data?.flags['callbacks-enabled']
                 ? [
                     {
                       label: 'Callbacks',
