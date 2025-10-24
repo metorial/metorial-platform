@@ -58,8 +58,6 @@ class LambdaServerCallbackServiceImpl {
             };
           }
 
-          console.log('FULL RESULT', fullResult);
-
           if (
             typeof fullResult != 'object' ||
             fullResult === null ||

@@ -21,6 +21,8 @@ model Callback {
 
   intervalSeconds Int
 
+  hasDestinations Boolean
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 

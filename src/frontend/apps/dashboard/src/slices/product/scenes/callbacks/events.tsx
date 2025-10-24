@@ -21,6 +21,7 @@ import { Box, ID, Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { RouterPanel } from '../routerPanel';
+import { Notifications } from './logs';
 
 export let CallbackEventsList = (p: { callbackId: string | undefined }) => {
   let instance = useCurrentInstance();
@@ -153,6 +154,18 @@ let Event = ({ eventId, callbackId }: { eventId: string; callbackId: string }) =
       />
 
       <Spacer height={15} />
+
+      {event.data.status == 'succeeded' && (
+        <>
+          <Box
+            title="Notifications Sent"
+            description="The notifications sent to your callback destinations for this event."
+          >
+            <Notifications eventIds={event.data.id} />
+          </Box>
+          <Spacer height={15} />
+        </>
+      )}
 
       <InputLabel>Incoming Payload</InputLabel>
       <InputDescription>The payload the provider sent to Metorial</InputDescription>

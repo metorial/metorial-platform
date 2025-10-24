@@ -19,6 +19,7 @@ export let sendEventQueueProcessor = sendEventQueue.process(async data => {
   let destinations = await db.callbackDestination.findMany({
     where: {
       status: 'active',
+      instanceOid: event.callback.instanceOid,
       OR: [
         { selectionType: 'all' },
         { selectionType: 'selected', callbacks: { some: { callbackOid: event.callback.oid } } }

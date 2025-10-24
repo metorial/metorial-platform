@@ -1,4 +1,5 @@
 import { db, ID } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { lambdaServerCallbackService } from '@metorial/module-custom-server';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { getConnectionLambda } from '../lib/getLambda';
@@ -14,6 +15,16 @@ export let processEventQueueProcessor = processEventQueue.process(async data => 
     include: { callback: true }
   });
   if (!event) throw new QueueRetryError();
+
+  await Fabric.fire('callback.event.received', { event, callback: event.callback });
+
+  if (!event.callback.hasDestinations) {
+    await db.callbackEvent.updateMany({
+      where: { id: event.id },
+      data: { status: 'succeeded' }
+    });
+    return;
+  }
 
   let callbackData = await getConnectionLambda(event.callback.id);
   if (!callbackData.lambdaInstance) return;

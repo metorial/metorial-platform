@@ -25,6 +25,13 @@ class callbackServiceImpl {
     name?: string;
   }) {
     return withTransaction(async db => {
+      let hasDestinations = await db.callbackDestination.findFirst({
+        where: {
+          selectionType: 'all',
+          instanceOid: d.instance.oid
+        }
+      });
+
       let callback = await db.callback.create({
         data: {
           id: await ID.generateId('callback'),
@@ -32,6 +39,8 @@ class callbackServiceImpl {
           eventType: d.callbackTemplate.eventType,
 
           name: d.name,
+
+          hasDestinations: !!hasDestinations,
 
           intervalSeconds: d.instance.defaultCallbackPollingIntervalSeconds,
 

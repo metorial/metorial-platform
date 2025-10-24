@@ -1,4 +1,4 @@
-import { CallbackDestination, db, ID, Instance } from '@metorial/db';
+import { CallbackDestination, db, ID, Instance, withTransaction } from '@metorial/db';
 import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
 import { generateCustomId } from '@metorial/id';
 import { Paginator } from '@metorial/pagination';
@@ -93,27 +93,45 @@ class callbackDestinationServiceImpl {
       );
     }
 
-    let destination = await db.callbackDestination.create({
-      data: {
-        id: await ID.generateId('callbackDestination'),
-        instanceOid: d.instance.oid,
-        name: d.input.name,
-        description: d.input.description,
-        url: d.input.url,
-        selectionType: d.input.callbacks.type === 'all' ? 'all' : 'selected',
-        type: 'webhook_http',
-        signingSecret: await generateCustomId('clb_sec_', 50),
-        callbacks: {
-          create: callbacks.map(c => ({
-            isSelected: true,
-            callbackOid: c.oid
-          }))
-        }
-      },
-      include
-    });
+    return withTransaction(async db => {
+      let destination = await db.callbackDestination.create({
+        data: {
+          id: await ID.generateId('callbackDestination'),
+          instanceOid: d.instance.oid,
+          name: d.input.name,
+          description: d.input.description,
+          url: d.input.url,
+          selectionType: d.input.callbacks.type === 'all' ? 'all' : 'selected',
+          type: 'webhook_http',
+          signingSecret: await generateCustomId('clb_sec_', 50),
+          callbacks: {
+            create: callbacks.map(c => ({
+              isSelected: true,
+              callbackOid: c.oid
+            }))
+          }
+        },
+        include
+      });
 
-    return destination;
+      if (destination.selectionType == 'all') {
+        await db.callback.updateMany({
+          where: { instanceOid: d.instance.oid },
+          data: {
+            hasDestinations: true
+          }
+        });
+      } else {
+        await db.callback.updateMany({
+          where: { oid: { in: callbacks.map(c => c.oid) } },
+          data: {
+            hasDestinations: true
+          }
+        });
+      }
+
+      return destination;
+    });
   }
 
   async updateCallbackDestination(d: {

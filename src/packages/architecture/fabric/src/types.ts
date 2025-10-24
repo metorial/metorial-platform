@@ -1,6 +1,8 @@
 import { Context } from '@metorial/context';
 import {
   ApiKey,
+  Callback,
+  CallbackEvent,
   EngineSession,
   Instance,
   MachineAccess,
@@ -160,4 +162,6 @@ export interface FabricEvents {
   'provider_oauth.connection.authentication.started:after': { context?: Context; providerOauthConnection: ProviderOAuthConnection; authAttempt: ProviderOAuthConnectionAuthAttempt };
   'provider_oauth.connection.authentication.completed:before': { context?: Context; providerOauthConnection: ProviderOAuthConnection; authAttempt: ProviderOAuthConnectionAuthAttempt };
   'provider_oauth.connection.authentication.completed:after': { context?: Context; providerOauthConnection: ProviderOAuthConnection; authAttempt: ProviderOAuthConnectionAuthAttempt };
+
+  'callback.event.received': { event: CallbackEvent; callback: Callback };
 }
