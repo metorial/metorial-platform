@@ -29,7 +29,7 @@ export let customServerDeploymentController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .outputList(customServerDeploymentPresenter)
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
       .query(
         'default',
         Paginator.validate(
@@ -65,7 +65,7 @@ export let customServerDeploymentController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .output(customServerDeploymentPresenter)
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
       .do(async ctx => {
         let customServerDeployment =
           await customServerDeploymentService.getCustomServerDeploymentById({

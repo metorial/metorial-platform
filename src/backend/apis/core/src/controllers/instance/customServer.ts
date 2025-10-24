@@ -43,7 +43,7 @@ export let customServerController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .outputList(customServerPresenter)
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
       .query(
         'default',
         Paginator.validate(
@@ -160,7 +160,7 @@ export let customServerController = Controller.create(
         }),
         v => v
       )
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
       .output(customServerPresenter)
       .do(async ctx => {
         let flags = await flagService.getFlags({
@@ -262,7 +262,7 @@ export let customServerController = Controller.create(
         }),
         v => v
       )
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
       .output(customServerPresenter)
       .do(async ctx => {
         let customServer = await customServerService.updateCustomServer({
@@ -287,7 +287,7 @@ export let customServerController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.custom_server:write'] }))
       .output(customServerPresenter)
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
       .do(async ctx => {
         let customServer = await customServerService.deleteCustomServer({
           server: ctx.customServer
@@ -303,7 +303,7 @@ export let customServerController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .output(customServerPresenter)
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
       .do(async ctx => {
         return customServerPresenter.present({
           customServer: ctx.customServer
@@ -320,7 +320,7 @@ export let customServerController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .output(serverListingPresenter)
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
       .do(async ctx => {
         let listing = await serverListingService.getServerListingById({
           instance: ctx.instance,
@@ -361,7 +361,7 @@ export let customServerController = Controller.create(
         ])
       )
       .output(serverListingPresenter)
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
       .do(async ctx => {
         let listing = await customServerService.setCustomServerListing({
           server: ctx.customServer,

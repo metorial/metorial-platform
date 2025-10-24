@@ -26,7 +26,7 @@ export let customServerEventController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .outputList(customServerEventPresenter)
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
       .query(
         'default',
         Paginator.validate(
@@ -63,7 +63,7 @@ export let customServerEventController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .output(customServerEventPresenter)
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
       .do(async ctx => {
         let customServerEvent = await customServerEventService.getCustomServerEventById({
           eventId: ctx.params.customServerEventId,

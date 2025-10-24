@@ -13,6 +13,7 @@ export type Flags = {
 
   'paid-oauth-takeout': boolean;
   'paid-callbacks': boolean;
+  'paid-custom-servers': boolean;
 };
 
 export let defaultFlags: Flags = {
@@ -21,13 +22,14 @@ export let defaultFlags: Flags = {
   'metorial-gateway-enabled': true,
   'custom-servers-remote-enabled': true,
   'provider-oauth-enabled': true,
-  'managed-servers-enabled': false,
-  'community-profiles-enabled': false,
+  'managed-servers-enabled': true,
+  'community-profiles-enabled': true,
   'magic-mcp-enabled': false,
   'callbacks-enabled': true,
 
   'paid-oauth-takeout': true,
-  'paid-callbacks': true
+  'paid-callbacks': true,
+  'paid-custom-servers': true
 };
 
 export type FlagProviderParams = {

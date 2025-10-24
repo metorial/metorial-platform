@@ -27,7 +27,7 @@ export let customServerCodeController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:write'] }))
       .output(customServerCodeEditorTokenTypePresenter)
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
       .do(async ctx => {
         if (!ctx.customServer.draftCodeBucket) {
           throw new ServiceError(
