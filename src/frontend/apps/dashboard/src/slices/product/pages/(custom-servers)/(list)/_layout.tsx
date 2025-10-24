@@ -49,7 +49,10 @@ export let ManagedServersListLayout = () => {
         title="Managed Servers"
         description="Build custom MCP servers powered by Metorial. Deploy them on your own infrastructure or use our managed servers."
         actions={
-          !!flags.data?.flags['managed-servers-enabled'] && (
+          !!(
+            flags.data?.flags['managed-servers-enabled'] &&
+            flags.data?.flags['paid-custom-servers']
+          ) && (
             <Button
               onClick={() =>
                 showCustomServerRemoteFormModal({
@@ -76,22 +79,26 @@ export let ExternalServersListLayout = () => {
 
   let pathname = useLocation().pathname;
 
+  let flags = useDashboardFlags();
+
   return (
     <ContentLayout>
       <PageHeader
         title="External Servers"
         description="Connect to external MCP servers using the Metorial platform."
         actions={
-          <Button
-            onClick={() =>
-              showCustomServerRemoteFormModal({
-                type: 'remote'
-              })
-            }
-            size="2"
-          >
-            Link Remote Server
-          </Button>
+          !!flags.data?.flags['paid-custom-servers'] && (
+            <Button
+              onClick={() =>
+                showCustomServerRemoteFormModal({
+                  type: 'remote'
+                })
+              }
+              size="2"
+            >
+              Link Remote Server
+            </Button>
+          )
         }
       />
 
