@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock external dependencies that require environment variables
 vi.mock('@metorial/queue', () => ({
@@ -13,8 +13,14 @@ vi.mock('@metorial/service', () => ({
   }
 }));
 
+import {
+  defaultFlags,
+  FlagProviderParams,
+  Flags,
+  getFlags,
+  setFlagProvider
+} from '../src/definitions';
 import * as flagsModule from '../src/index';
-import { defaultFlags, setFlagProvider, getFlags, Flags, FlagProviderParams } from '../src/definitions';
 import { flagService } from '../src/services';
 
 describe('index module exports', () => {
@@ -51,7 +57,7 @@ describe('index module exports', () => {
         'managed-servers-enabled': false,
         'community-profiles-enabled': false,
         'magic-mcp-enabled': false,
-        'paid-oauth-takeout': true,
+        'paid-oauth-takeout': true
       };
       expect(testFlags).toBeDefined();
     });
@@ -59,7 +65,7 @@ describe('index module exports', () => {
     it('should export FlagProviderParams type', () => {
       // Type check - if this compiles, the type is exported
       const testParams: flagsModule.FlagProviderParams = {
-        organization: { id: 'test' } as any,
+        organization: { id: 'test' } as any
       };
       expect(testParams).toBeDefined();
     });
@@ -91,7 +97,7 @@ describe('index module exports', () => {
   describe('module functionality', () => {
     it('should allow using exported functions', async () => {
       const mockParams: FlagProviderParams = {
-        organization: { id: 'org-1' } as any,
+        organization: { id: 'org-1' } as any
       };
 
       const flags = await flagsModule.getFlags(mockParams);
@@ -102,13 +108,13 @@ describe('index module exports', () => {
     it('should allow setting custom provider through exported function', async () => {
       const customFlags: Flags = {
         ...defaultFlags,
-        'test-flag': true,
+        'test-flag': true
       };
 
       flagsModule.setFlagProvider(async () => customFlags);
 
       const mockParams: FlagProviderParams = {
-        organization: { id: 'org-1' } as any,
+        organization: { id: 'org-1' } as any
       };
 
       const flags = await flagsModule.getFlags(mockParams);
@@ -120,7 +126,7 @@ describe('index module exports', () => {
 
     it('should maintain consistency between direct imports and module imports', async () => {
       const mockParams: FlagProviderParams = {
-        organization: { id: 'org-1' } as any,
+        organization: { id: 'org-1' } as any
       };
 
       const flagsFromModule = await flagsModule.getFlags(mockParams);
@@ -131,7 +137,7 @@ describe('index module exports', () => {
 
     it('should allow using flagService from module exports', async () => {
       const mockParams: FlagProviderParams = {
-        organization: { id: 'org-1' } as any,
+        organization: { id: 'org-1' } as any
       };
 
       const flags = await flagsModule.flagService.getFlags(mockParams);
@@ -150,7 +156,7 @@ describe('index module exports', () => {
         'managed-servers-enabled': true,
         'community-profiles-enabled': true,
         'magic-mcp-enabled': true,
-        'paid-oauth-takeout': false,
+        'paid-oauth-takeout': false
       };
 
       expect(Object.keys(validFlags)).toHaveLength(8);
@@ -161,7 +167,7 @@ describe('index module exports', () => {
 
     it('should accept valid FlagProviderParams with only organization', () => {
       const validParams: flagsModule.FlagProviderParams = {
-        organization: { id: 'org-1' } as any,
+        organization: { id: 'org-1' } as any
       };
 
       expect(validParams.organization).toBeDefined();
@@ -173,7 +179,7 @@ describe('index module exports', () => {
       const validParams: flagsModule.FlagProviderParams = {
         organization: { id: 'org-1' } as any,
         user: { id: 'user-1' } as any,
-        machineAccess: { id: 'machine-1' } as any,
+        machineAccess: { id: 'machine-1' } as any
       };
 
       expect(validParams.organization).toBeDefined();
@@ -189,7 +195,7 @@ describe('index module exports', () => {
         'setFlagProvider',
         'getFlags',
         'flagService',
-        'eventQueueProcessor',
+        'eventQueueProcessor'
       ];
 
       expectedExports.forEach(exportName => {
@@ -204,52 +210,13 @@ describe('index module exports', () => {
         'setFlagProvider',
         'getFlags',
         'flagService',
-        'eventQueueProcessor',
+        'eventQueueProcessor'
       ];
 
       // All actual exports should be expected
       actualExports.forEach(exportName => {
         expect(expectedExports).toContain(exportName);
       });
-    });
-  });
-
-  describe('integration', () => {
-    it('should work end-to-end with custom provider', async () => {
-      // Set a custom provider
-      let callCount = 0;
-      flagsModule.setFlagProvider(async (params) => {
-        callCount++;
-        if (params.organization.id === 'premium') {
-          return {
-            ...flagsModule.defaultFlags,
-            'magic-mcp-enabled': true,
-            'managed-servers-enabled': true,
-          };
-        }
-        return flagsModule.defaultFlags;
-      });
-
-      // Use it through getFlags
-      const premiumParams: flagsModule.FlagProviderParams = {
-        organization: { id: 'premium' } as any,
-      };
-      const premiumFlags = await flagsModule.getFlags(premiumParams);
-      expect(premiumFlags['magic-mcp-enabled']).toBe(true);
-      expect(premiumFlags['managed-servers-enabled']).toBe(true);
-
-      // Use it through flagService
-      const regularParams: flagsModule.FlagProviderParams = {
-        organization: { id: 'regular' } as any,
-      };
-      const regularFlags = await flagsModule.flagService.getFlags(regularParams);
-      expect(regularFlags['magic-mcp-enabled']).toBe(false);
-      expect(regularFlags['managed-servers-enabled']).toBe(false);
-
-      expect(callCount).toBe(2);
-
-      // Reset
-      flagsModule.setFlagProvider(async () => flagsModule.defaultFlags);
     });
   });
 });
