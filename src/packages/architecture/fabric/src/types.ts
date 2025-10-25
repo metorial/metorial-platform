@@ -23,7 +23,6 @@ import {
   Team,
   TeamMember,
   TeamProject,
-  TeamProjectRoleAssignment,
   TeamRole,
   User,
   UserSession
@@ -132,29 +131,24 @@ export interface FabricEvents {
   'organization.team.role.deleted:before': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
   'organization.team.role.deleted:after': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
 
-  'organization.team.role.assignment.created:before': { organization: Organization, team: Team, role: TeamRole; project: Project; performedBy: OrganizationActor; context?: Context };
-  'organization.team.role.assignment.created:after': { organization: Organization, team: Team, role: TeamRole; project: Project; roleAssignment: TeamProjectRoleAssignment, performedBy: OrganizationActor; context?: Context };
-  'organization.team.role.assignment.deleted:before': { organization: Organization, team: Team, role: TeamRole; project: Project; roleAssignment: TeamProjectRoleAssignment, performedBy: OrganizationActor; context?: Context };
-  'organization.team.role.assignment.deleted:after': { organization: Organization, team: Team, role: TeamRole; project: Project; roleAssignment: TeamProjectRoleAssignment, performedBy: OrganizationActor; context?: Context };
-
   'machine_access.created:before': MachineAccessInput & { context?: Context };
   'machine_access.created:after': MachineAccessInput & { context?: Context, machineAccess: MachineAccess };
-  'machine_access.updated:before': { machineAccess: MachineAccess, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.updated:after': { machineAccess: MachineAccess, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.deleted:before': { machineAccess: MachineAccess, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.deleted:after': { machineAccess: MachineAccess, performedBy?: OrganizationActor; context?: Context };
+  'machine_access.updated:before': { machineAccess: MachineAccess, organization: Organization, performedBy: OrganizationActor; context?: Context };
+  'machine_access.updated:after': { machineAccess: MachineAccess, organization: Organization, performedBy: OrganizationActor; context?: Context };
+  'machine_access.deleted:before': { machineAccess: MachineAccess, organization: Organization, performedBy: OrganizationActor; context?: Context };
+  'machine_access.deleted:after': { machineAccess: MachineAccess, organization: Organization, performedBy: OrganizationActor; context?: Context };
 
-  'machine_access.api_key.created:before': { machineAccess: MachineAccess, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.created:after': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.updated:before': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.updated:after': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.revoked:before': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.revoked:after': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.rotated:before': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.rotated:after': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.expired:before': { machineAccess: MachineAccess, apiKey: ApiKey };
-  'machine_access.api_key.expired:after': { machineAccess: MachineAccess, apiKey: ApiKey };
-  'machine_access.api_key:revealed': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
+  'machine_access.api_key.created:before': { machineAccess: MachineAccess, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.created:after': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.updated:before': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.updated:after': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.revoked:before': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.revoked:after': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.rotated:before': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.rotated:after': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.expired:before': { machineAccess: MachineAccess, apiKey: ApiKey; organization: Organization; performedBy: OrganizationActor };
+  'machine_access.api_key.expired:after': { machineAccess: MachineAccess, apiKey: ApiKey; organization: Organization; performedBy: OrganizationActor };
+  'machine_access.api_key:revealed': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
 
   'server.server_deployment.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context, implementation: ServerImplementation };
   'server.server_deployment.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; deployment: ServerDeployment, implementation: ServerImplementation };
