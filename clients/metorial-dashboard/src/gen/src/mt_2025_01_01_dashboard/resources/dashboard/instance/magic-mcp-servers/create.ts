@@ -61,7 +61,10 @@ export let mapDashboardInstanceMagicMcpServersCreateOutput = mtMap.union([
               'urls',
               mtMap.object({
                 sse: mtMap.objectField('sse', mtMap.passthrough()),
-                streamableHttp: mtMap.objectField('streamable_http', mtMap.passthrough())
+                streamableHttp: mtMap.objectField(
+                  'streamable_http',
+                  mtMap.passthrough()
+                )
               })
             )
           })
@@ -84,7 +87,10 @@ export let mapDashboardInstanceMagicMcpServersCreateOutput = mtMap.union([
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField('description', mtMap.passthrough()),
+                description: mtMap.objectField(
+                  'description',
+                  mtMap.passthrough()
+                ),
                 type: mtMap.objectField('type', mtMap.passthrough()),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
@@ -122,6 +128,9 @@ export type DashboardInstanceMagicMcpServersCreateBody = ({
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   oauthConfig?: { clientId: string; clientSecret: string } | undefined;
+  access?:
+    | { ipAllowlist: { ipWhitelist: string[]; ipBlacklist: string[] } | null }
+    | undefined;
 } & ({ config: Record<string, any> } | { serverConfigVaultId: string })) &
   (
     | {
@@ -151,8 +160,29 @@ export let mapDashboardInstanceMagicMcpServersCreateBody = mtMap.union([
           clientSecret: mtMap.objectField('client_secret', mtMap.passthrough())
         })
       ),
+      access: mtMap.objectField(
+        'access',
+        mtMap.object({
+          ipAllowlist: mtMap.objectField(
+            'ip_allowlist',
+            mtMap.object({
+              ipWhitelist: mtMap.objectField(
+                'ip_whitelist',
+                mtMap.array(mtMap.passthrough())
+              ),
+              ipBlacklist: mtMap.objectField(
+                'ip_blacklist',
+                mtMap.array(mtMap.passthrough())
+              )
+            })
+          )
+        })
+      ),
       config: mtMap.objectField('config', mtMap.passthrough()),
-      serverConfigVaultId: mtMap.objectField('server_config_vault_id', mtMap.passthrough()),
+      serverConfigVaultId: mtMap.objectField(
+        'server_config_vault_id',
+        mtMap.passthrough()
+      ),
       serverImplementation: mtMap.objectField(
         'server_implementation',
         mtMap.union([
@@ -160,11 +190,20 @@ export let mapDashboardInstanceMagicMcpServersCreateBody = mtMap.union([
             'object',
             mtMap.object({
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField('description', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              getLaunchParams: mtMap.objectField('get_launch_params', mtMap.passthrough()),
+              getLaunchParams: mtMap.objectField(
+                'get_launch_params',
+                mtMap.passthrough()
+              ),
               serverId: mtMap.objectField('server_id', mtMap.passthrough()),
-              serverVariantId: mtMap.objectField('server_variant_id', mtMap.passthrough())
+              serverVariantId: mtMap.objectField(
+                'server_variant_id',
+                mtMap.passthrough()
+              )
             })
           )
         ])
@@ -173,8 +212,12 @@ export let mapDashboardInstanceMagicMcpServersCreateBody = mtMap.union([
         'server_implementation_id',
         mtMap.passthrough()
       ),
-      serverVariantId: mtMap.objectField('server_variant_id', mtMap.passthrough()),
+      serverVariantId: mtMap.objectField(
+        'server_variant_id',
+        mtMap.passthrough()
+      ),
       serverId: mtMap.objectField('server_id', mtMap.passthrough())
     })
   )
 ]);
+

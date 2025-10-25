@@ -102,19 +102,20 @@ export type ManagementInstanceMagicMcpServersCreateBody = ({
   access?:
     | { ipAllowlist: { ipWhitelist: string[]; ipBlacklist: string[] } | null }
     | undefined;
-} & (
-  | {
-      serverImplementation: {
-        name?: string | undefined;
-        description?: string | undefined;
-        metadata?: Record<string, any> | undefined;
-        getLaunchParams?: string | undefined;
-      } & ({ serverId: string } | { serverVariantId: string });
-    }
-  | { serverImplementationId: string }
-  | { serverVariantId: string }
-  | { serverId: string }
-);
+} & ({ config: Record<string, any> } | { serverConfigVaultId: string })) &
+  (
+    | {
+        serverImplementation: {
+          name?: string | undefined;
+          description?: string | undefined;
+          metadata?: Record<string, any> | undefined;
+          getLaunchParams?: string | undefined;
+        } & ({ serverId: string } | { serverVariantId: string });
+      }
+    | { serverImplementationId: string }
+    | { serverVariantId: string }
+    | { serverId: string }
+  );
 
 export let mapManagementInstanceMagicMcpServersCreateBody = mtMap.union([
   mtMap.unionOption(
@@ -147,6 +148,11 @@ export let mapManagementInstanceMagicMcpServersCreateBody = mtMap.union([
             })
           )
         })
+      ),
+      config: mtMap.objectField('config', mtMap.passthrough()),
+      serverConfigVaultId: mtMap.objectField(
+        'server_config_vault_id',
+        mtMap.passthrough()
       ),
       serverImplementation: mtMap.objectField(
         'server_implementation',

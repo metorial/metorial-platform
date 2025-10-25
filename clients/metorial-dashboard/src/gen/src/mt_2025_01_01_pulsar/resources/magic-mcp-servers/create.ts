@@ -99,6 +99,9 @@ export type MagicMcpServersCreateBody = ({
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   oauthConfig?: { clientId: string; clientSecret: string } | undefined;
+  access?:
+    | { ipAllowlist: { ipWhitelist: string[]; ipBlacklist: string[] } | null }
+    | undefined;
 } & ({ config: Record<string, any> } | { serverConfigVaultId: string })) &
   (
     | {
@@ -113,22 +116,6 @@ export type MagicMcpServersCreateBody = ({
     | { serverVariantId: string }
     | { serverId: string }
   );
-  access?:
-    | { ipAllowlist: { ipWhitelist: string[]; ipBlacklist: string[] } | null }
-    | undefined;
-} & (
-  | {
-      serverImplementation: {
-        name?: string | undefined;
-        description?: string | undefined;
-        metadata?: Record<string, any> | undefined;
-        getLaunchParams?: string | undefined;
-      } & ({ serverId: string } | { serverVariantId: string });
-    }
-  | { serverImplementationId: string }
-  | { serverVariantId: string }
-  | { serverId: string }
-);
 
 export let mapMagicMcpServersCreateBody = mtMap.union([
   mtMap.unionOption(
@@ -144,10 +131,6 @@ export let mapMagicMcpServersCreateBody = mtMap.union([
           clientSecret: mtMap.objectField('client_secret', mtMap.passthrough())
         })
       ),
-      config: mtMap.objectField('config', mtMap.passthrough()),
-      serverConfigVaultId: mtMap.objectField(
-        'server_config_vault_id',
-        mtMap.passthrough()
       access: mtMap.objectField(
         'access',
         mtMap.object({
@@ -165,6 +148,11 @@ export let mapMagicMcpServersCreateBody = mtMap.union([
             })
           )
         })
+      ),
+      config: mtMap.objectField('config', mtMap.passthrough()),
+      serverConfigVaultId: mtMap.objectField(
+        'server_config_vault_id',
+        mtMap.passthrough()
       ),
       serverImplementation: mtMap.objectField(
         'server_implementation',
