@@ -119,5 +119,7 @@ export let ID = createIdGenerator({
   callbackInstallation: idType.sorted('cbi'),
   callbackNotification: idType.sorted('cbn'),
   callbackNotificationAttempt: idType.sorted('cbna'),
-  callbackDestination: idType.sorted('cld')
+  callbackDestination: idType.sorted('cld'),
+
+  serverConfigVault: idType.sorted('scv')
 });

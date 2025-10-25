@@ -61,4 +61,5 @@ model Instance {
   providerOAuthTakeouts    ProviderOAuthTakeout[]
   callbacks                Callback[]
   callbackDestinations     CallbackDestination[]
+  serverConfigVaults       ServerConfigVault[]
 }
