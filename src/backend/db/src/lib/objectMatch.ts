@@ -1,4 +1,4 @@
-import { deepEquals } from 'bun';
+import deepEquals from 'fast-deep-equal';
 
 export let checkObjectMatch =
   <A extends {}, B extends {}>(a: A, b: B) =>
