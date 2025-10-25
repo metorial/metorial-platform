@@ -91,6 +91,11 @@ export type ServersDeploymentsListOutput = {
       createdAt: Date;
       updatedAt: Date;
     };
+    access: {
+      ipAllowlist:
+        | { status: 'enabled'; ipWhitelist: string[]; ipBlacklist: string[] }
+        | { status: 'disabled' };
+    } | null;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -295,6 +300,30 @@ export let mapServersDeploymentsListOutput =
               ),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
+            })
+          ),
+          access: mtMap.objectField(
+            'access',
+            mtMap.object({
+              ipAllowlist: mtMap.objectField(
+                'ip_allowlist',
+                mtMap.union([
+                  mtMap.unionOption(
+                    'object',
+                    mtMap.object({
+                      status: mtMap.objectField('status', mtMap.passthrough()),
+                      ipWhitelist: mtMap.objectField(
+                        'ip_whitelist',
+                        mtMap.array(mtMap.passthrough())
+                      ),
+                      ipBlacklist: mtMap.objectField(
+                        'ip_blacklist',
+                        mtMap.array(mtMap.passthrough())
+                      )
+                    })
+                  )
+                ])
+              )
             })
           ),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
