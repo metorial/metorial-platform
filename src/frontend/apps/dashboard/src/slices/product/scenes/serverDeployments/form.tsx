@@ -55,6 +55,7 @@ export type ServerDeploymentFormPropsInternal =
   | {
       type: 'server_deployment.create';
       for?: For;
+      serverConfigVaultId?: string;
     }
   | { type: 'magic_mcp_server.update'; magicMcpServerId: string; for?: undefined }
   | {
@@ -137,6 +138,9 @@ let ServerDeploymentFormInternal = (
     resource == 'server_deployment' ? 'Server Deployment' : 'Magic MCP Server';
   let nameLowerCase = nameUpperCase.toLowerCase();
 
+  let serverConfigVaultId =
+    p.type == 'server_deployment.create' ? p.serverConfigVaultId : undefined;
+
   let form = useForm({
     initialValues: {
       name: updateResource?.data?.name ?? '',
@@ -171,7 +175,8 @@ let ServerDeploymentFormInternal = (
             name: values.name,
             description: values.description,
             metadata: values.metadata,
-            config: values.config,
+            config: serverConfigVaultId ? undefined! : values.config,
+            serverConfigVaultId: serverConfigVaultId!,
             instanceId: instance.data?.id!,
             serverId: p.for?.serverId ?? searchServer?.server.id!,
             oauthConfig,
@@ -304,6 +309,10 @@ let ServerDeploymentFormInternal = (
     if (!server.data) return;
     form.setFieldValue('name', server.data.name);
   }, [server.data?.id]);
+
+  useEffect(() => {
+    if (serverConfigVaultId && currentStep == 1) setCurrentStep(2);
+  }, [serverConfigVaultId, currentStep]);
 
   if (
     variants.data?.items.length === 0 &&
@@ -539,6 +548,7 @@ export type ServerDeploymentFormProps =
   | {
       type: 'create';
       for?: For;
+      serverConfigVaultId?: string;
     };
 
 export let ServerDeploymentForm = (

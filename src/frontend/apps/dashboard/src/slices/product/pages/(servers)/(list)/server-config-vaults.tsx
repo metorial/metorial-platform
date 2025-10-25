@@ -19,6 +19,7 @@ import {
 } from '@metorial/ui';
 import { ID, Table } from '@metorial/ui-product';
 import { RiMoreLine } from '@remixicon/react';
+import { showServerDeploymentFormModal } from '../../../scenes/serverDeployments/modal';
 
 export let ServerConfigVaultsPage = () => {
   let instance = useCurrentInstance();
@@ -45,10 +46,20 @@ export let ServerConfigVaultsPage = () => {
                 {
                   id: 'update',
                   label: 'Update'
+                },
+                {
+                  id: 'deploy',
+                  label: 'Deploy'
                 }
               ]}
               onItemClick={item => {
                 if (item == 'update') showUpdateServerConfigVaultModal({ vaultId: vault.id });
+                if (item == 'deploy') {
+                  showServerDeploymentFormModal({
+                    type: 'create',
+                    serverConfigVaultId: vault.id
+                  });
+                }
               }}
             >
               <Button size="1" variant="outline" iconLeft={<RiMoreLine />} title="Actions" />
