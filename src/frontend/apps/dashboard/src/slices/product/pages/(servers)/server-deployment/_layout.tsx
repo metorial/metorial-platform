@@ -121,6 +121,10 @@ export let ServerDeploymentLayout = () => {
                   ]
                 : []),
               {
+                label: 'Tools and Capabilities',
+                to: Paths.instance.serverDeployment(...serverPathParams, 'capabilities')
+              },
+              {
                 label: 'Runs',
                 to: Paths.instance.serverDeployment(...serverPathParams, 'runs')
               },

@@ -323,6 +323,11 @@ let CallbackLogsPage = dynamicPage(() =>
 let ServerConfigVaultsPage = dynamicPage(() =>
   import('./pages/(servers)/(list)/server-config-vaults').then(c => c.ServerConfigVaultsPage)
 );
+let ServerDeploymentCapabilitiesPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/capabilities').then(
+    c => c.ServerDeploymentCapabilitiesPage
+  )
+);
 
 let ProductWrapper = () => {
   let instance = useCurrentInstance();
@@ -591,6 +596,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'oauth',
                 element: <ServerDeploymentOauthPage />
+              },
+              {
+                path: 'capabilities',
+                element: <ServerDeploymentCapabilitiesPage />
               },
 
               {
