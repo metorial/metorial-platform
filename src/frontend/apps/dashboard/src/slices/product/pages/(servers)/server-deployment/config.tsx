@@ -62,7 +62,10 @@ export let ServerDeploymentConfigPage = () => {
           <Switch
             checked={advancedSecurityForm.values.ipAllowlistEnabled}
             label="Enable IP Allowlist"
+            disabled={!flags.data?.flags['paid-advanced-security']}
             onCheckedChange={async v => {
+              if (!flags.data?.flags['paid-advanced-security']) return;
+
               await advancedSecurityForm.setFieldValue('ipAllowlistEnabled', v);
               if (!v) {
                 setTimeout(() => {
