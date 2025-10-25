@@ -1,0 +1,19 @@
+enum CallbackInstallationAttemptStatus {
+  succeeded
+  failed
+}
+
+model CallbackInstallationAttempt {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status CallbackInstallationAttemptStatus
+
+  errorCode    String?
+  errorMessage String?
+
+  callbackOid BigInt
+  callback    Callback @relation(fields: [callbackOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}

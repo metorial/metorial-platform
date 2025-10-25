@@ -36,7 +36,7 @@ export let remoteServerController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .outputList(remoteServerPresenter)
       .query('default', Paginator.validate(v.object({})))
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
       .do(async ctx => {
         let paginator = await remoteServerService.listRemoteServers({
           instance: ctx.instance
@@ -62,7 +62,7 @@ export let remoteServerController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.custom_server:read'] }))
       .output(remoteServerPresenter)
-      .use(hasFlags(['metorial-gateway-enabled']))
+      .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
       .do(async ctx => {
         return remoteServerPresenter.present({
           remoteServerInstance: ctx.remoteServer

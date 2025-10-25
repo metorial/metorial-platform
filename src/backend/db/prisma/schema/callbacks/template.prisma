@@ -1,0 +1,10 @@
+model CallbackTemplate {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  eventType CallbackType
+
+  createdAt DateTime @default(now())
+
+  lambdaServerInstances LambdaServerInstance[]
+}

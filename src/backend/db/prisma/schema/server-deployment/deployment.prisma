@@ -39,6 +39,15 @@ model ServerDeployment {
   oauthConfigOid BigInt?
   oauthConfig    ProviderOAuthConfig? @relation(fields: [oauthConfigOid], references: [oid])
 
+  callbackOid BigInt?   @unique
+  callback    Callback? @relation(fields: [callbackOid], references: [oid])
+
+  serverConfigVaultOid BigInt?
+  serverConfigVault    ServerConfigVault? @relation(fields: [serverConfigVaultOid], references: [oid])
+
+  accessLimiterOid BigInt?
+  accessLimiter    AccessLimiter? @relation(fields: [accessLimiterOid], references: [oid])
+
   failureCode    String?
   failureMessage String?
 

@@ -6,6 +6,7 @@ import {
   InstanceType,
   Organization,
   OrganizationActor,
+  OrganizationMember,
   Project,
   User,
   withTransaction
@@ -21,6 +22,7 @@ import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { createSlugGenerator } from '@metorial/slugify';
 import { differenceInMinutes } from 'date-fns';
+import { projectService } from './project';
 
 let getInstanceSlug = createSlugGenerator(
   async slug => !(await db.instance.findFirst({ where: { slug } }))
@@ -135,11 +137,40 @@ class InstanceService {
     };
   }
 
-  async getInstanceById(d: { organization: Organization; instanceId: string }) {
+  getInstanceTeamAccessWhere(d: {
+    organization: Organization;
+    actor: OrganizationActor;
+    member: OrganizationMember | undefined;
+  }) {
+    let project = projectService.getProjectTeamAccessWhere({
+      organization: d.organization,
+      actor: d.actor,
+      member: d.member
+    });
+
+    if (!project) return undefined;
+
+    return {
+      teams: project
+    };
+  }
+
+  async getInstanceById(d: {
+    organization: Organization;
+    instanceId: string;
+    actor: OrganizationActor;
+    member: OrganizationMember | undefined;
+  }) {
     let instance = await db.instance.findFirst({
       where: {
         OR: [{ id: d.instanceId }, { slug: d.instanceId }],
-        organizationOid: d.organization.oid
+        organizationOid: d.organization.oid,
+
+        project: this.getInstanceTeamAccessWhere({
+          organization: d.organization,
+          actor: d.actor,
+          member: d.member
+        })
       },
       include: {
         organization: true,
@@ -151,7 +182,12 @@ class InstanceService {
     return instance;
   }
 
-  async listInstances(d: { organization: Organization; project?: Project }) {
+  async listInstances(d: {
+    organization: Organization;
+    project?: Project;
+    actor: OrganizationActor;
+    member: OrganizationMember | undefined;
+  }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -160,7 +196,13 @@ class InstanceService {
             where: {
               organizationOid: d.organization.oid,
               projectOid: d.project?.oid,
-              status: 'active'
+              status: 'active',
+
+              project: this.getInstanceTeamAccessWhere({
+                organization: d.organization,
+                actor: d.actor,
+                member: d.member
+              })
             },
             include: {
               organization: true,

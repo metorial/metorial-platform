@@ -1,3 +1,4 @@
+export * from './callbacks';
 export * from './dashboard';
 export * from './files';
 export * from './instance';
@@ -8,6 +9,7 @@ export * from './magic-mcp-tokens';
 export * from './management';
 export * from './provider-oauth';
 export * from './secrets';
+export * from './server-config-vaults';
 export * from './server-run-errors';
 export * from './server-runs';
 export * from './servers';

@@ -1,5 +1,6 @@
 import { Context } from '@metorial/context';
 import {
+  db,
   ID,
   Instance,
   MachineAccess,
@@ -93,9 +94,17 @@ class MachineAccessService {
   }) {
     await this.ensureMachineAccessActive(d.machineAccess);
 
-    let res = await withTransaction(async db => {
-      await Fabric.fire('machine_access.updated:before', d);
+    let org = await db.organization.findUniqueOrThrow({
+      where: { oid: d.performedBy.organizationOid }
+    });
 
+    await Fabric.fire('machine_access.updated:before', {
+      ...d,
+      organization: org,
+      machineAccess: d.machineAccess
+    });
+
+    let res = await withTransaction(async db => {
       let machineAccess = await db.machineAccess.update({
         where: { oid: d.machineAccess.oid },
         data: {
@@ -108,6 +117,7 @@ class MachineAccessService {
 
     await Fabric.fire('machine_access.updated:after', {
       ...d,
+      organization: org,
       machineAccess: res
     });
 
@@ -121,9 +131,17 @@ class MachineAccessService {
   }) {
     await this.ensureMachineAccessActive(d.machineAccess);
 
-    let res = await withTransaction(async db => {
-      await Fabric.fire('machine_access.deleted:before', d);
+    let org = await db.organization.findUniqueOrThrow({
+      where: { oid: d.performedBy.organizationOid }
+    });
 
+    await Fabric.fire('machine_access.deleted:before', {
+      ...d,
+      organization: org,
+      machineAccess: d.machineAccess
+    });
+
+    let res = await withTransaction(async db => {
       let machineAccess = await db.machineAccess.update({
         where: { oid: d.machineAccess.oid },
         data: {
@@ -137,6 +155,7 @@ class MachineAccessService {
 
     await Fabric.fire('machine_access.deleted:after', {
       ...d,
+      organization: org,
       machineAccess: res
     });
 

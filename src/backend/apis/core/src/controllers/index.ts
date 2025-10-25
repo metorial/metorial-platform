@@ -10,6 +10,10 @@ import { profileController } from './dashboard/profile';
 import { dashboardRepoController } from './dashboard/repo';
 import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
+import { callbackController } from './instance/callback';
+import { callbackDestinationController } from './instance/callbackDestination';
+import { callbackEventController } from './instance/callbackEvent';
+import { callbackNotificationController } from './instance/callbackNotification';
 import { customServerController } from './instance/customServer';
 import { customServerCodeController } from './instance/customServerCode';
 import { customServerDeploymentController } from './instance/customServerDeployment';
@@ -30,6 +34,7 @@ import { remoteServerController } from './instance/remoteServer';
 import { secretController } from './instance/secret';
 import { serverController } from './instance/server';
 import { serverCapabilitiesController } from './instance/serverCapabilities';
+import { serverConfigVaultController } from './instance/serverConfigVault';
 import { serverDeploymentController } from './instance/serverDeployment';
 import { serverImplementationController } from './instance/serverImplementation';
 import { serverListingController } from './instance/serverListing';
@@ -51,6 +56,9 @@ import { organizationManagementController } from './management/organization';
 import { organizationInviteManagementController } from './management/organizationInvite';
 import { organizationMemberManagementController } from './management/organizationMember';
 import { projectManagementController } from './management/project';
+import { teamManagementController } from './management/team';
+import { teamRoleManagementController } from './management/teamRole';
+import { teamRolePermissionsManagementController } from './management/teamRolePermissions';
 
 export let pulsarController = Controller.create<any>(
   {
@@ -91,7 +99,17 @@ export let pulsarController = Controller.create<any>(
 
     magicMcpServerController,
     magicMcpSessionController,
-    magicMcpTokenController
+    magicMcpTokenController,
+
+    callbackController,
+    callbackEventController,
+    callbackDestinationController,
+    callbackNotificationController,
+
+    serverConfigVaultController,
+    teamRolePermissionsManagementController,
+    teamRoleManagementController,
+    teamManagementController
   }
 );
 
@@ -167,7 +185,17 @@ export let dashboardController = Controller.create<any>(
     magicMcpSessionController,
     magicMcpTokenController,
 
-    dashboardRepoController
+    dashboardRepoController,
+
+    callbackController,
+    callbackEventController,
+    callbackDestinationController,
+    callbackNotificationController,
+
+    serverConfigVaultController,
+    teamRolePermissionsManagementController,
+    teamRoleManagementController,
+    teamManagementController
   }
 );
 

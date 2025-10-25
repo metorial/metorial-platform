@@ -1,6 +1,7 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { organizationActorService } from '@metorial/module-organization';
 import { combineQueueProcessors, createQueue, QueueRetryError } from '@metorial/queue';
 
 let expireCron = createCron(
@@ -46,10 +47,23 @@ let expireSingleQueueProcessor = expireSingleQueue.process(async data => {
   });
   if (!apiKey) throw new QueueRetryError();
 
-  await Fabric.fire('machine_access.api_key.expired:before', {
-    apiKey,
-    machineAccess: apiKey.machineAccess
-  });
+  let organization = apiKey.machineAccess.organizationOid
+    ? await db.organization.findUniqueOrThrow({
+        where: { oid: apiKey.machineAccess.organizationOid }
+      })
+    : null;
+  let systemActor = organization
+    ? await organizationActorService.getSystemActor({ organization })
+    : null;
+
+  if (organization && systemActor) {
+    await Fabric.fire('machine_access.api_key.expired:before', {
+      apiKey,
+      organization,
+      performedBy: systemActor,
+      machineAccess: apiKey.machineAccess
+    });
+  }
 
   let updatedApiKey = await db.apiKey.update({
     where: {
@@ -59,10 +73,15 @@ let expireSingleQueueProcessor = expireSingleQueue.process(async data => {
       status: 'expired'
     }
   });
-  await Fabric.fire('machine_access.api_key.expired:after', {
-    apiKey: updatedApiKey,
-    machineAccess: apiKey.machineAccess
-  });
+
+  if (organization && systemActor) {
+    await Fabric.fire('machine_access.api_key.expired:after', {
+      organization,
+      apiKey: updatedApiKey,
+      performedBy: systemActor,
+      machineAccess: apiKey.machineAccess
+    });
+  }
 });
 
 export let expiresApiKeysProcessors = combineQueueProcessors([

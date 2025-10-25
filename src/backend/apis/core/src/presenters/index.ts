@@ -1,6 +1,10 @@
 import { declarePresenter } from '@metorial/presenter';
 import { dashboardApiKeyPresenter, v1ApiKeyPresenter } from './implementation/apiKey';
 import { v1BootPresenter } from './implementation/boot';
+import { v1CallbackPresenter } from './implementation/callback';
+import { v1CallbackDestinationPresenter } from './implementation/callbackDestination';
+import { v1CallbackEventPresenter } from './implementation/callbackEvent';
+import { v1CallbackNotificationPresenter } from './implementation/callbackNotification';
 import {
   dashboardCustomServerPresenter,
   v1CustomServerPresenter
@@ -51,6 +55,7 @@ import { v1ServerPresenter } from './implementation/server';
 import { v1ServerCapabilitiesPresenter } from './implementation/serverCapabilities';
 import { v1ServerListingCategoryPresenter } from './implementation/serverCategory';
 import { v1ServerListingCollectionPresenter } from './implementation/serverCollection';
+import { v1ServerConfigVaultPresenter } from './implementation/serverConfigVault';
 import { v1ServerDeploymentPresenter } from './implementation/serverDeployment';
 import { v1ServerDeploymentConfigPresenter } from './implementation/serverDeploymentConfig';
 import {
@@ -75,11 +80,18 @@ import {
   dashboardSessionMessagePresenter,
   v1SessionMessagePresenter
 } from './implementation/sessionMessage';
+import { v1TeamPresenter } from './implementation/team';
+import { v1TeamRolePresenter } from './implementation/teamRole';
+import { v1TeamRolePermissionsPresenter } from './implementation/teamRolePermissons';
 import { v1UsagePresenter } from './implementation/usage';
 import { v1UserPresenter } from './implementation/user';
 import {
   apiKeyType,
   bootType,
+  callbackDestinationType,
+  callbackEventType,
+  callbackNotificationType,
+  callbackType,
   customServerCodeEditorTokenType,
   customServerDeploymentType,
   customServerEventType,
@@ -115,6 +127,7 @@ import {
   scmRepoType,
   secretType,
   serverCapabilitiesType,
+  serverConfigVaultType,
   serverDeploymentConfigType,
   serverDeploymentType,
   serverImplementationType,
@@ -133,6 +146,9 @@ import {
   sessionEventType,
   sessionMessageType,
   sessionType,
+  teamRolePermissionsType,
+  teamRoleType,
+  teamType,
   usageType,
   userType
 } from './types';
@@ -441,4 +457,44 @@ export let scmRepoPresenter = declarePresenter(scmRepoType, {
 export let scmInstallationPresenter = declarePresenter(scmInstallationType, {
   mt_2025_01_01_pulsar: v1ScmInstallationPresenter,
   mt_2025_01_01_dashboard: v1ScmInstallationPresenter
+});
+
+export let callbackPresenter = declarePresenter(callbackType, {
+  mt_2025_01_01_pulsar: v1CallbackPresenter,
+  mt_2025_01_01_dashboard: v1CallbackPresenter
+});
+
+export let callbackEventPresenter = declarePresenter(callbackEventType, {
+  mt_2025_01_01_pulsar: v1CallbackEventPresenter,
+  mt_2025_01_01_dashboard: v1CallbackEventPresenter
+});
+
+export let callbackNotificationPresenter = declarePresenter(callbackNotificationType, {
+  mt_2025_01_01_pulsar: v1CallbackNotificationPresenter,
+  mt_2025_01_01_dashboard: v1CallbackNotificationPresenter
+});
+
+export let callbackDestinationPresenter = declarePresenter(callbackDestinationType, {
+  mt_2025_01_01_pulsar: v1CallbackDestinationPresenter,
+  mt_2025_01_01_dashboard: v1CallbackDestinationPresenter
+});
+
+export let serverConfigVaultPresenter = declarePresenter(serverConfigVaultType, {
+  mt_2025_01_01_pulsar: v1ServerConfigVaultPresenter,
+  mt_2025_01_01_dashboard: v1ServerConfigVaultPresenter
+});
+
+export let teamPresenter = declarePresenter(teamType, {
+  mt_2025_01_01_pulsar: v1TeamPresenter,
+  mt_2025_01_01_dashboard: v1TeamPresenter
+});
+
+export let teamRolePresenter = declarePresenter(teamRoleType, {
+  mt_2025_01_01_pulsar: v1TeamRolePresenter,
+  mt_2025_01_01_dashboard: v1TeamRolePresenter
+});
+
+export let teamRolePermissionsPresenter = declarePresenter(teamRolePermissionsType, {
+  mt_2025_01_01_pulsar: v1TeamRolePermissionsPresenter,
+  mt_2025_01_01_dashboard: v1TeamRolePermissionsPresenter
 });

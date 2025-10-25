@@ -1,5 +1,8 @@
+import {
+  DashboardOrganizationsProjectsCreateBody,
+  DashboardOrganizationsProjectsListQuery
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
-import { DashboardOrganizationsProjectsCreateBody } from '@metorial/generated/src/mt_2025_01_01_dashboard';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { withAuth } from '../../user';
 import { bootLoader } from './boot';
@@ -7,9 +10,11 @@ import { bootLoader } from './boot';
 export let projectsLoader = createLoader({
   name: 'projects',
   parents: [bootLoader],
-  fetch: (i: { organizationId: string }) =>
+  fetch: (i: { organizationId: string } & DashboardOrganizationsProjectsListQuery) =>
     withAuth(sdk =>
-      autoPaginate(cursor => sdk.projects.list(i.organizationId, { limit: 100, ...cursor }))
+      autoPaginate(cursor =>
+        sdk.projects.list(i.organizationId, { limit: 100, ...cursor, ...i })
+      )
     ),
   mutators: {
     create: (i: DashboardOrganizationsProjectsCreateBody, { input: { organizationId } }) =>
@@ -23,8 +28,11 @@ export let createProject = (
   return withAuth(sdk => sdk.projects.create(d.organizationId, d));
 };
 
-export let useProjects = (organizationId: string | null | undefined) => {
-  let projects = projectsLoader.use(organizationId ? { organizationId } : null);
+export let useProjects = (
+  organizationId: string | null | undefined,
+  query?: Partial<DashboardOrganizationsProjectsListQuery>
+) => {
+  let projects = projectsLoader.use(organizationId ? { organizationId, ...query } : null);
 
   return {
     ...projects,

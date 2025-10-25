@@ -274,6 +274,60 @@ let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string
     (flags.data.flags as any)[flag] ? children : <NotFound />
   );
 };
+let ServerDeploymentCallbackLayout = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/callbacks/_layout').then(
+    c => c.ServerDeploymentCallbackLayout
+  )
+);
+let ServerDeploymentCallbackOverviewPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/callbacks/overview').then(
+    c => c.ServerDeploymentCallbackOverviewPage
+  )
+);
+let ServerDeploymentCallbackEventsPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/callbacks/events').then(
+    c => c.ServerDeploymentCallbackEventsPage
+  )
+);
+let ServerDeploymentCallbackDestinationsPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/callbacks/destinations').then(
+    c => c.ServerDeploymentCallbackDestinationsPage
+  )
+);
+let ServerDeploymentCallbackLogsPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/callbacks/logs').then(
+    c => c.ServerDeploymentCallbackLogsPage
+  )
+);
+let CallbacksListLayout = dynamicPage(() =>
+  import('./pages/(callbacks)/(list)/_layout').then(c => c.CallbacksListLayout)
+);
+let CallbacksPage = dynamicPage(() =>
+  import('./pages/(callbacks)/(list)/index').then(c => c.CallbacksPage)
+);
+let CallbackLayout = dynamicPage(() =>
+  import('./pages/(callbacks)/_layout').then(c => c.CallbackLayout)
+);
+let CallbackOverviewPage = dynamicPage(() =>
+  import('./pages/(callbacks)/overview').then(c => c.CallbackOverviewPage)
+);
+let CallbackEventsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/events').then(c => c.CallbackEventsPage)
+);
+let CallbackDestinationsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/destinations').then(c => c.CallbackDestinationsPage)
+);
+let CallbackLogsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/logs').then(c => c.CallbackLogsPage)
+);
+let ServerConfigVaultsPage = dynamicPage(() =>
+  import('./pages/(servers)/(list)/server-config-vaults').then(c => c.ServerConfigVaultsPage)
+);
+let ServerDeploymentCapabilitiesPage = dynamicPage(() =>
+  import('./pages/(servers)/server-deployment/capabilities').then(
+    c => c.ServerDeploymentCapabilitiesPage
+  )
+);
 
 let ProductWrapper = () => {
   let instance = useCurrentInstance();
@@ -474,6 +528,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'server-implementations',
                 element: <ServersImplementationsPage />
+              },
+              {
+                path: 'server-config-vaults',
+                element: <ServerConfigVaultsPage />
               }
             ]
           },
@@ -538,6 +596,34 @@ export let productInnerSlice = createSlice([
               {
                 path: 'oauth',
                 element: <ServerDeploymentOauthPage />
+              },
+              {
+                path: 'capabilities',
+                element: <ServerDeploymentCapabilitiesPage />
+              },
+
+              {
+                path: 'callbacks',
+                element: <ServerDeploymentCallbackLayout />,
+
+                children: [
+                  {
+                    path: '',
+                    element: <ServerDeploymentCallbackOverviewPage />
+                  },
+                  {
+                    path: 'events',
+                    element: <ServerDeploymentCallbackEventsPage />
+                  },
+                  {
+                    path: 'destinations',
+                    element: <ServerDeploymentCallbackDestinationsPage />
+                  },
+                  {
+                    path: 'logs',
+                    element: <ServerDeploymentCallbackLogsPage />
+                  }
+                ]
               }
             ]
           },
@@ -639,6 +725,42 @@ export let productInnerSlice = createSlice([
                 element: <SessionServerRunsPage />
               }
             ]
+          }
+        ]
+      },
+
+      {
+        path: 'callback/:callbackId',
+        element: <CallbackLayout />,
+
+        children: [
+          {
+            path: '',
+            element: <CallbackOverviewPage />
+          },
+          {
+            path: 'events',
+            element: <CallbackEventsPage />
+          },
+          {
+            path: 'destinations',
+            element: <CallbackDestinationsPage />
+          },
+          {
+            path: 'logs',
+            element: <CallbackLogsPage />
+          }
+        ]
+      },
+
+      {
+        path: 'callbacks',
+        element: <CallbacksListLayout />,
+
+        children: [
+          {
+            path: '',
+            element: <CallbacksPage />
           }
         ]
       },

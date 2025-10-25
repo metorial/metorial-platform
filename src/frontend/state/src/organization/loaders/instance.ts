@@ -6,11 +6,9 @@ import { bootLoader } from './boot';
 export let instancesLoader = createLoader({
   name: 'instances',
   parents: [bootLoader],
-  fetch: (i: { organizationId: string; projectId?: string }) =>
+  fetch: (i: { organizationId: string }) =>
     withAuth(sdk =>
-      autoPaginate(cursor =>
-        sdk.instances.list(i.organizationId, { ...cursor, limit: 100, projectId: i.projectId })
-      )
+      autoPaginate(cursor => sdk.instances.list(i.organizationId, { ...cursor, limit: 100 }))
     ),
   mutators: {
     create: (

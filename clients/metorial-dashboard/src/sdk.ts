@@ -5,6 +5,10 @@ import {
   MetorialApiKeysEndpoint,
   MetorialCustomServersManagedServerTemplatesEndpoint,
   MetorialDashboardEndpoint,
+  MetorialDashboardInstanceCallbacksDestinationsEndpoint,
+  MetorialDashboardInstanceCallbacksEndpoint,
+  MetorialDashboardInstanceCallbacksEventsEndpoint,
+  MetorialDashboardInstanceCallbacksNotificationsEndpoint,
   MetorialDashboardInstanceCustomServersCodeEndpoint,
   MetorialDashboardInstanceCustomServersDeploymentsEndpoint,
   MetorialDashboardInstanceCustomServersEndpoint,
@@ -23,6 +27,7 @@ import {
   MetorialDashboardInstanceProviderOauthConnectionsProfilesEndpoint,
   MetorialDashboardInstanceProviderOauthSessionsEndpoint,
   MetorialDashboardInstanceSecretsEndpoint,
+  MetorialDashboardInstanceServerConfigVaultsEndpoint,
   MetorialDashboardInstanceServerRunErrorGroupsEndpoint,
   MetorialDashboardInstanceServerRunErrorsEndpoint,
   MetorialDashboardInstanceServerRunsEndpoint,
@@ -43,6 +48,10 @@ import {
   MetorialDashboardOrganizationsJoinEndpoint,
   MetorialDashboardOrganizationsMembersEndpoint,
   MetorialDashboardOrganizationsProjectsEndpoint,
+  MetorialDashboardOrganizationsTeamsEndpoint,
+  MetorialDashboardOrganizationsTeamsMembersEndpoint,
+  MetorialDashboardOrganizationsTeamsProjectsEndpoint,
+  MetorialDashboardOrganizationsTeamsRolesEndpoint,
   MetorialDashboardScmAccountsEndpoint,
   MetorialDashboardScmInstallationsEndpoint,
   MetorialDashboardScmReposEndpoint,
@@ -136,7 +145,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
     runs: new MetorialDashboardInstanceServerRunsEndpoint(manager),
 
-    capabilities: new MetorialDashboardInstanceServersCapabilitiesEndpoint(manager)
+    capabilities: new MetorialDashboardInstanceServersCapabilitiesEndpoint(manager),
+
+    configVaults: new MetorialDashboardInstanceServerConfigVaultsEndpoint(manager)
   }),
 
   magicMcp: {
@@ -188,7 +199,19 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     installation: new MetorialDashboardScmInstallationsEndpoint(manager),
     repos: new MetorialDashboardScmReposEndpoint(manager),
     accounts: new MetorialDashboardScmAccountsEndpoint(manager)
-  }
+  },
+
+  callbacks: Object.assign(new MetorialDashboardInstanceCallbacksEndpoint(manager), {
+    events: new MetorialDashboardInstanceCallbacksEventsEndpoint(manager),
+    notifications: new MetorialDashboardInstanceCallbacksNotificationsEndpoint(manager),
+    destinations: new MetorialDashboardInstanceCallbacksDestinationsEndpoint(manager)
+  }),
+
+  teams: Object.assign(new MetorialDashboardOrganizationsTeamsEndpoint(manager), {
+    roles: new MetorialDashboardOrganizationsTeamsRolesEndpoint(manager),
+    projects: new MetorialDashboardOrganizationsTeamsProjectsEndpoint(manager),
+    members: new MetorialDashboardOrganizationsTeamsMembersEndpoint(manager)
+  })
 }));
 
 export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>;

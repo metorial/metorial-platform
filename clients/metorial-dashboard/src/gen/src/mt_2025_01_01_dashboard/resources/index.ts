@@ -1,4 +1,5 @@
 export * from './api-keys';
+export * from './callbacks';
 export * from './custom-servers';
 export * from './dashboard';
 export * from './files';
@@ -10,6 +11,7 @@ export * from './management';
 export * from './organizations';
 export * from './provider-oauth';
 export * from './secrets';
+export * from './server-config-vaults';
 export * from './server-run-error-groups';
 export * from './server-run-errors';
 export * from './server-runs';

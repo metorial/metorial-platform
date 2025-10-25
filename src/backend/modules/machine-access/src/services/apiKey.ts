@@ -169,9 +169,14 @@ class ApiKeyService {
   }) {
     await this.ensureApiKeyActive(d.apiKey);
 
+    let organization = await db.organization.findUniqueOrThrow({
+      where: { oid: d.performedBy.organizationOid }
+    });
+
     let res = await withTransaction(async db => {
       await Fabric.fire('machine_access.api_key.updated:before', {
         ...d,
+        organization,
         machineAccess: d.apiKey.machineAccess
       });
 
@@ -213,6 +218,7 @@ class ApiKeyService {
     await Fabric.fire('machine_access.api_key.updated:after', {
       ...d,
       apiKey: res,
+      organization,
       machineAccess: d.apiKey.machineAccess
     });
 
@@ -226,9 +232,14 @@ class ApiKeyService {
   }) {
     await this.ensureApiKeyActive(d.apiKey);
 
+    let organization = await db.organization.findUniqueOrThrow({
+      where: { oid: d.performedBy.organizationOid }
+    });
+
     let res = await withTransaction(async db => {
       await Fabric.fire('machine_access.api_key.revoked:before', {
         ...d,
+        organization,
         machineAccess: d.apiKey.machineAccess
       });
 
@@ -262,6 +273,7 @@ class ApiKeyService {
     await Fabric.fire('machine_access.api_key.revoked:after', {
       ...d,
       apiKey: res,
+      organization,
       machineAccess: d.apiKey.machineAccess
     });
 
@@ -276,9 +288,14 @@ class ApiKeyService {
   }) {
     await this.ensureApiKeyActive(d.apiKey);
 
+    let organization = await db.organization.findUniqueOrThrow({
+      where: { oid: d.performedBy.organizationOid }
+    });
+
     let res = await withTransaction(async db => {
       await Fabric.fire('machine_access.api_key.rotated:before', {
         ...d,
+        organization,
         machineAccess: d.apiKey.machineAccess
       });
 
@@ -346,6 +363,7 @@ class ApiKeyService {
 
     await Fabric.fire('machine_access.api_key.rotated:after', {
       ...d,
+      organization,
       apiKey: res.apiKey,
       machineAccess: d.apiKey.machineAccess
     });
@@ -368,8 +386,13 @@ class ApiKeyService {
       );
     }
 
+    let organization = await db.organization.findUniqueOrThrow({
+      where: { oid: d.performedBy.organizationOid }
+    });
+
     await Fabric.fire('machine_access.api_key:revealed', {
       ...d,
+      organization,
       machineAccess: d.apiKey.machineAccess
     });
 

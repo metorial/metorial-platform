@@ -1,6 +1,16 @@
 import {
+  AccessLimiter,
   ApiKey,
   ApiKeySecret,
+  Callback,
+  CallbackDestination,
+  CallbackDestinationCallback,
+  CallbackEvent,
+  CallbackEventProcessingAttempt,
+  CallbackHook,
+  CallbackNotification,
+  CallbackNotificationAttempt,
+  CallbackSchedule,
   CodeBucketTemplate,
   CustomServer,
   CustomServerDeployment,
@@ -48,6 +58,7 @@ import {
   SecretType,
   Server,
   ServerConfigSchema,
+  ServerConfigVault,
   ServerDeployment,
   ServerDeploymentConfig,
   ServerImplementation,
@@ -65,6 +76,11 @@ import {
   SessionConnection,
   SessionEvent,
   SessionMessage,
+  Team,
+  TeamMember,
+  TeamProject,
+  TeamProjectRoleAssignment,
+  TeamRole,
   User
 } from '@metorial/db';
 import { ServerCapabilities } from '@metorial/module-catalog';
@@ -74,7 +90,13 @@ import { PresentableType } from '@metorial/presenter';
 export let bootType = PresentableType.create<{
   user: User;
   organizations: (Organization & {
-    member: OrganizationMember & { actor: OrganizationActor };
+    member: OrganizationMember & {
+      actor: OrganizationActor & {
+        teams: (TeamMember & {
+          team: Team;
+        })[];
+      };
+    };
   })[];
   projects: (Project & { organization: Organization })[];
   instances: (Instance & { project: Project; organization: Organization })[];
@@ -106,7 +128,9 @@ export let organizationInviteType = PresentableType.create<{
 export let organizationMemberType = PresentableType.create<{
   organizationMember: OrganizationMember & {
     organization: Organization;
-    actor: OrganizationActor;
+    actor: OrganizationActor & {
+      teams: (TeamMember & { team: Team })[];
+    };
     user: User;
   };
 }>()('organization_member');
@@ -114,6 +138,7 @@ export let organizationMemberType = PresentableType.create<{
 export let organizationActorType = PresentableType.create<{
   organizationActor: OrganizationActor & {
     organization: Organization;
+    teams?: (TeamMember & { team: Team })[] | null | undefined;
   };
 }>()('organization_actor');
 
@@ -230,6 +255,13 @@ export let serverDeploymentType = PresentableType.create<{
           config: ProviderOAuthConfig;
         })
       | null;
+    callback:
+      | (Callback & {
+          hooks: CallbackHook[];
+          schedule: CallbackSchedule | null;
+        })
+      | null;
+    accessLimiter: AccessLimiter | null;
   };
 }>()('server.server_deployment');
 
@@ -548,3 +580,60 @@ export let scmInstallType = PresentableType.create<{
 export let scmInstallationType = PresentableType.create<{
   scmInstallation: ScmInstallation;
 }>()('integrations.scm.installation');
+
+export let callbackType = PresentableType.create<{
+  callback: Callback & {
+    hooks: CallbackHook[];
+    schedule: CallbackSchedule | null;
+  };
+}>()('callback');
+
+export let callbackEventType = PresentableType.create<{
+  callbackEvent: CallbackEvent & {
+    processingAttempts: CallbackEventProcessingAttempt[];
+  };
+}>()('callback.event');
+
+export let callbackDestinationType = PresentableType.create<{
+  callbackDestination: CallbackDestination & {
+    callbacks: (CallbackDestinationCallback & {
+      callback: Callback;
+    })[];
+  };
+}>()('callback.destination');
+
+export let callbackNotificationType = PresentableType.create<{
+  callbackNotification: CallbackNotification & {
+    destination: CallbackDestination;
+    event: CallbackEvent;
+    attempts: CallbackNotificationAttempt[];
+  };
+}>()('callback.notification');
+
+export let serverConfigVaultType = PresentableType.create<{
+  serverConfigVault: ServerConfigVault & {
+    secret: Secret;
+  };
+}>()('server_config_vault');
+
+export let teamType = PresentableType.create<{
+  team: Team & {
+    organization: Organization;
+    projects: (TeamProject & { project: Project })[];
+    assignments: (TeamProjectRoleAssignment & {
+      teamProject: TeamProject;
+      teamRole: TeamRole;
+      project: Project;
+    })[];
+  };
+}>()('management.team');
+
+export let teamRoleType = PresentableType.create<{
+  teamRole: TeamRole & {
+    organization: Organization;
+  };
+}>()('management.team.role');
+
+export let teamRolePermissionsType = PresentableType.create<{
+  permissions: string[];
+}>()('management.team.role_permissions');

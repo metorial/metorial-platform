@@ -7,7 +7,6 @@ import {
   mapDashboardOrganizationsCreateBody,
   mapDashboardOrganizationsCreateOutput,
   mapDashboardOrganizationsDeleteOutput,
-  mapDashboardOrganizationsGetMembershipOutput,
   mapDashboardOrganizationsGetOutput,
   mapDashboardOrganizationsListOutput,
   mapDashboardOrganizationsListQuery,
@@ -16,7 +15,6 @@ import {
   type DashboardOrganizationsCreateBody,
   type DashboardOrganizationsCreateOutput,
   type DashboardOrganizationsDeleteOutput,
-  type DashboardOrganizationsGetMembershipOutput,
   type DashboardOrganizationsGetOutput,
   type DashboardOrganizationsListOutput,
   type DashboardOrganizationsListQuery,
@@ -184,33 +182,6 @@ export class MetorialDashboardOrganizationsEndpoint {
 
     return this._delete(request).transform(
       mapDashboardOrganizationsDeleteOutput
-    );
-  }
-
-  /**
-   * @name Get organization
-   * @description Get the current organization information
-   *
-   * @param `organizationId` - string
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardOrganizationsGetMembershipOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  getMembership(
-    organizationId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardOrganizationsGetMembershipOutput> {
-    let path = `dashboard/organizations/${organizationId}/membership`;
-
-    let request = {
-      path,
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._get(request).transform(
-      mapDashboardOrganizationsGetMembershipOutput
     );
   }
 }

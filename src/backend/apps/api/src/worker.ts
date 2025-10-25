@@ -3,6 +3,7 @@ process.env.TZ = 'UTC';
 import { runQueueProcessors } from '@metorial/queue';
 
 import { accessQueueProcessor } from '@metorial/module-access';
+import { callbacksQueueProcessor } from '@metorial/module-callbacks';
 import { catalogQueueProcessor } from '@metorial/module-catalog';
 import { codeBucketQueueProcessor } from '@metorial/module-code-bucket';
 import { communityQueueProcessor } from '@metorial/module-community';
@@ -14,6 +15,7 @@ import { fileQueueProcessor } from '@metorial/module-file';
 import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
 import { magicQueueProcessor } from '@metorial/module-magic';
 import { organizationQueueProcessor } from '@metorial/module-organization';
+import { protectQueueProcessor } from '@metorial/module-protect';
 import { providerOauthQueueProcessor } from '@metorial/module-provider-oauth';
 import { scmQueueProcessor } from '@metorial/module-scm';
 import { searchQueueProcessor } from '@metorial/module-search';
@@ -45,5 +47,7 @@ export let worker = runQueueProcessors([
   codeBucketQueueProcessor,
   communityQueueProcessor,
   magicQueueProcessor,
-  scmQueueProcessor
+  scmQueueProcessor,
+  callbacksQueueProcessor,
+  protectQueueProcessor
 ]);

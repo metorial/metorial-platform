@@ -1,4 +1,4 @@
-import { db, ServerVersion, withTransaction } from '@metorial/db';
+import { db, ID, ServerVersion, withTransaction } from '@metorial/db';
 import { delay } from '@metorial/delay';
 import { providerOauthConfigService } from '@metorial/module-provider-oauth';
 import { createQueue, QueueRetryError } from '@metorial/queue';
@@ -188,7 +188,7 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
   });
 
   try {
-    let { capabilities, oauth } = await deno.discoverServer();
+    let { capabilities, oauth, callbacks } = await deno.discoverServer();
     data.serverVersionData.tools = capabilities.tools ?? [];
     data.serverVersionData.resourceTemplates = capabilities.resourceTemplates ?? [];
     data.serverVersionData.prompts = capabilities.prompts ?? [];
@@ -235,6 +235,24 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
           }
         });
       }
+    }
+
+    if (callbacks.enabled) {
+      let callbackTemplate = await db.callbackTemplate.create({
+        data: {
+          id: await ID.generateId('callbackTemplate'),
+          eventType: callbacks.type
+        }
+      });
+
+      await db.lambdaServerInstance.updateMany({
+        where: { id: lambda.id },
+        data: {
+          callbackTemplateOid: callbackTemplate.oid
+        }
+      });
+
+      await discoverStep.addLog(['Discovered server callback support.'], 'info');
     }
 
     await discoverStep.complete();

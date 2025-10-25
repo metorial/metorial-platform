@@ -1,6 +1,8 @@
 import { Context } from '@metorial/context';
 import {
   ApiKey,
+  Callback,
+  CallbackEvent,
   EngineSession,
   Instance,
   MachineAccess,
@@ -18,6 +20,10 @@ import {
   ServerSession,
   Session,
   SessionMessage,
+  Team,
+  TeamMember,
+  TeamProject,
+  TeamRole,
   User,
   UserSession
 } from '@metorial/db';
@@ -87,7 +93,7 @@ export interface FabricEvents {
   'organization.invitation.join.created:before': { organization: Organization, member: OrganizationMember; invite: OrganizationInvite; performedBy: OrganizationActor; context?: Context };
   'organization.invitation.join.created:after': { organization: Organization, member: OrganizationMember; invite: OrganizationInvite; join: OrganizationInviteJoin; performedBy: OrganizationActor; context?: Context };
 
-  'organization.project.created:before': { organization: Organization,  performedBy: OrganizationActor; context?: Context };
+  'organization.project.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
   'organization.project.created:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };
   'organization.project.updated:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };
   'organization.project.updated:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };
@@ -101,24 +107,48 @@ export interface FabricEvents {
   'organization.project.instance.deleted:before': { organization: Organization, project: Project; instance: Instance, performedBy: OrganizationActor; context?: Context };
   'organization.project.instance.deleted:after': { organization: Organization, project: Project; instance: Instance, performedBy: OrganizationActor; context?: Context };
 
+  'organization.team.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
+  'organization.team.created:after': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
+  'organization.team.updated:before': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
+  'organization.team.updated:after': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
+  'organization.team.deleted:before': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
+  'organization.team.deleted:after': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
+
+  'organization.team.member.added:before': { organization: Organization, team: Team, actor: OrganizationActor, performedBy: OrganizationActor; context?: Context };
+  'organization.team.member.added:after': { organization: Organization, team: Team, actor: OrganizationActor, member: TeamMember; performedBy: OrganizationActor; context?: Context };
+  'organization.team.member.removed:before': { organization: Organization, team: Team, actor: OrganizationActor, member: TeamMember; performedBy: OrganizationActor; context?: Context };
+  'organization.team.member.removed:after': { organization: Organization, team: Team, actor: OrganizationActor, member: TeamMember; performedBy: OrganizationActor; context?: Context };
+
+  'organization.team.project.assigned:before': { organization: Organization, team: Team, project: Project, performedBy: OrganizationActor; context?: Context };
+  'organization.team.project.assigned:after': { organization: Organization, team: Team, project: Project, teamProject: TeamProject; performedBy: OrganizationActor; context?: Context };
+  'organization.team.project.unassigned:before': { organization: Organization, team: Team, project: Project, teamProject: TeamProject; performedBy: OrganizationActor; context?: Context };
+  'organization.team.project.unassigned:after': { organization: Organization, team: Team, project: Project, teamProject: TeamProject; performedBy: OrganizationActor; context?: Context };
+
+  'organization.team.role.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
+  'organization.team.role.created:after': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
+  'organization.team.role.updated:before': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
+  'organization.team.role.updated:after': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
+  'organization.team.role.deleted:before': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
+  'organization.team.role.deleted:after': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
+
   'machine_access.created:before': MachineAccessInput & { context?: Context };
   'machine_access.created:after': MachineAccessInput & { context?: Context, machineAccess: MachineAccess };
-  'machine_access.updated:before': { machineAccess: MachineAccess, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.updated:after': { machineAccess: MachineAccess, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.deleted:before': { machineAccess: MachineAccess, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.deleted:after': { machineAccess: MachineAccess, performedBy?: OrganizationActor; context?: Context };
+  'machine_access.updated:before': { machineAccess: MachineAccess, organization: Organization, performedBy: OrganizationActor; context?: Context };
+  'machine_access.updated:after': { machineAccess: MachineAccess, organization: Organization, performedBy: OrganizationActor; context?: Context };
+  'machine_access.deleted:before': { machineAccess: MachineAccess, organization: Organization, performedBy: OrganizationActor; context?: Context };
+  'machine_access.deleted:after': { machineAccess: MachineAccess, organization: Organization, performedBy: OrganizationActor; context?: Context };
 
-  'machine_access.api_key.created:before': { machineAccess: MachineAccess, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.created:after': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.updated:before': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.updated:after': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.revoked:before': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.revoked:after': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.rotated:before': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.rotated:after': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
-  'machine_access.api_key.expired:before': { machineAccess: MachineAccess, apiKey: ApiKey };
-  'machine_access.api_key.expired:after': { machineAccess: MachineAccess, apiKey: ApiKey };
-  'machine_access.api_key:revealed': { machineAccess: MachineAccess, apiKey: ApiKey, performedBy?: OrganizationActor; context?: Context };
+  'machine_access.api_key.created:before': { machineAccess: MachineAccess, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.created:after': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.updated:before': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.updated:after': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.revoked:before': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.revoked:after': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.rotated:before': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.rotated:after': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
+  'machine_access.api_key.expired:before': { machineAccess: MachineAccess, apiKey: ApiKey; organization: Organization; performedBy: OrganizationActor };
+  'machine_access.api_key.expired:after': { machineAccess: MachineAccess, apiKey: ApiKey; organization: Organization; performedBy: OrganizationActor };
+  'machine_access.api_key:revealed': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
 
   'server.server_deployment.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context, implementation: ServerImplementation };
   'server.server_deployment.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; deployment: ServerDeployment, implementation: ServerImplementation };
@@ -160,4 +190,6 @@ export interface FabricEvents {
   'provider_oauth.connection.authentication.started:after': { context?: Context; providerOauthConnection: ProviderOAuthConnection; authAttempt: ProviderOAuthConnectionAuthAttempt };
   'provider_oauth.connection.authentication.completed:before': { context?: Context; providerOauthConnection: ProviderOAuthConnection; authAttempt: ProviderOAuthConnectionAuthAttempt };
   'provider_oauth.connection.authentication.completed:after': { context?: Context; providerOauthConnection: ProviderOAuthConnection; authAttempt: ProviderOAuthConnectionAuthAttempt };
+
+  'callback.event.received': { event: CallbackEvent; callback: Callback };
 }

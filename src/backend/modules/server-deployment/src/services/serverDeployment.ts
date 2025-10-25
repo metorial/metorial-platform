@@ -1,5 +1,6 @@
 import { Context } from '@metorial/context';
 import {
+  Callback,
   db,
   ID,
   Instance,
@@ -24,9 +25,11 @@ import {
   ServiceError
 } from '@metorial/error';
 import { Fabric } from '@metorial/fabric';
+import { callbackService } from '@metorial/module-callbacks';
 import { serverVariantService } from '@metorial/module-catalog';
 import { engineServerDiscoveryService } from '@metorial/module-engine';
 import { ingestEventService } from '@metorial/module-event';
+import { accessLimiterService } from '@metorial/module-protect';
 import {
   providerOauthConnectionService,
   providerOauthDiscoveryService
@@ -60,7 +63,14 @@ let include = {
     include: {
       configSecret: true
     }
-  }
+  },
+  callback: {
+    include: {
+      hooks: true,
+      schedule: true
+    }
+  },
+  accessLimiter: true
 };
 
 class ServerDeploymentServiceImpl {
@@ -172,10 +182,24 @@ class ServerDeploymentServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
-      config: Record<string, any>;
+      config:
+        | {
+            type: 'direct';
+            config: Record<string, any>;
+          }
+        | {
+            type: 'vault';
+            serverConfigVaultId: string;
+          };
       oauthConfig?: {
         clientId: string;
         clientSecret: string;
+      };
+      accessLimiter?: {
+        ipAllowlist: {
+          ipWhitelist?: string[];
+          ipBlacklist?: string[];
+        } | null;
       };
     };
 
@@ -228,7 +252,11 @@ class ServerDeploymentServiceImpl {
             customServerVersion: {
               include: {
                 remoteServerInstance: true,
-                lambdaServerInstance: true
+                lambdaServerInstance: {
+                  include: {
+                    callbackTemplate: true
+                  }
+                }
               }
             }
           }
@@ -250,6 +278,7 @@ class ServerDeploymentServiceImpl {
     let serverDeployment = await withTransaction(async db => {
       let connection: ProviderOAuthConnection | null = null;
       let oauthConfig: ProviderOAuthConfig | null = null;
+      let callback: Callback | null = null;
 
       if (serverInstance?.providerOAuthConfigOid) {
         oauthConfig = await db.providerOAuthConfig.findFirstOrThrow({
@@ -343,10 +372,47 @@ class ServerDeploymentServiceImpl {
         }
       }
 
+      let lambda = currentVersion?.customServerVersion?.lambdaServerInstance;
+      if (lambda?.callbackTemplate) {
+        callback = await callbackService.internalCreateCallbackForServerDeployment({
+          callbackTemplate: lambda.callbackTemplate,
+          instance: d.instance,
+          lambda,
+          name: d.input.name
+        });
+      }
+
+      let configValue: any;
+      if (d.input.config.type == 'direct') {
+        configValue = d.input.config.config;
+      } else {
+        let vault = await db.serverConfigVault.findFirst({
+          where: {
+            id: d.input.config.serverConfigVaultId,
+            instanceOid: d.instance.oid
+          }
+        });
+        if (!vault) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Server config vault not found'
+            })
+          );
+        }
+
+        let configSecret = await secretService.DANGEROUSLY_readSecretValue({
+          secretId: vault.secretOid,
+          performedBy: d.performedBy,
+          instance: d.instance,
+          type: 'server_config_vault'
+        });
+        configValue = configSecret.data;
+      }
+
       let { schema, data } = await this.checkServerDeploymentConfig({
         serverImplementation: d.serverImplementation.instance,
-        config: d.input.config,
-        instance: d.instance
+        instance: d.instance,
+        config: configValue
       });
 
       let secret = await secretService.createSecret({
@@ -369,6 +435,15 @@ class ServerDeploymentServiceImpl {
         }
       });
 
+      let accessLimiter = d.input.accessLimiter
+        ? await accessLimiterService.createAccessLimiter({
+            target: 'server_deployment',
+            ipAllowlist: d.input.accessLimiter.ipAllowlist,
+            createdByActor: d.performedBy,
+            organization: d.organization
+          })
+        : null;
+
       let serverDeployment = await db.serverDeployment.create({
         data: {
           id: await ID.generateId('serverDeployment'),
@@ -387,6 +462,8 @@ class ServerDeploymentServiceImpl {
           serverVariantOid: d.serverImplementation.instance.serverVariant.oid,
           configOid: config.oid,
           instanceOid: d.instance.oid,
+          callbackOid: callback?.oid,
+          accessLimiterOid: accessLimiter?.oid,
 
           isMagicMcpSession: d.parent === 'magic_mcp_server'
         },
@@ -449,6 +526,12 @@ class ServerDeploymentServiceImpl {
       description?: string | null;
       metadata?: Record<string, any>;
       config?: Record<string, any>;
+      accessLimiter?: {
+        ipAllowlist: {
+          ipWhitelist?: string[];
+          ipBlacklist?: string[];
+        } | null;
+      };
     };
   }) {
     await Fabric.fire('server.server_deployment.updated:before', {
@@ -506,6 +589,15 @@ class ServerDeploymentServiceImpl {
         });
       }
 
+      let accessLimiter = d.input.accessLimiter
+        ? await accessLimiterService.createAccessLimiter({
+            target: 'server_deployment',
+            ipAllowlist: d.input.accessLimiter.ipAllowlist,
+            createdByActor: d.performedBy,
+            organization: d.organization
+          })
+        : undefined;
+
       let serverDeployment = await db.serverDeployment.update({
         where: {
           oid: d.serverDeployment.oid
@@ -513,7 +605,8 @@ class ServerDeploymentServiceImpl {
         data: {
           name: d.input.name,
           description: d.input.description,
-          metadata: d.input.metadata
+          metadata: d.input.metadata,
+          accessLimiterOid: accessLimiter?.oid
         },
         include
       });

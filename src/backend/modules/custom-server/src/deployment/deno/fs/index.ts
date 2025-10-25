@@ -3,11 +3,13 @@ import { codeBucketService } from '@metorial/module-code-bucket';
 import { v } from '@metorial/validation';
 import { DeploymentError } from '../../base/error';
 import { bootTs } from './boot';
+import { callbacksTs } from './callbacks';
 import { configTs } from './config';
 import { delayTs } from './delay';
 import { discoverTs } from './discover';
 import { errorTs } from './error';
 import { libArgsTs } from './lib/args';
+import { libCallbacksTs } from './lib/callbacks';
 import { libIndexTs } from './lib/lib';
 import { libOauthTs } from './lib/oauth';
 import { logsTs } from './logs';
@@ -42,8 +44,10 @@ export let getDenoFs = async (
       'lib/index.ts': libIndexTs,
       'lib/args.ts': libArgsTs,
       'lib/oauth.ts': libOauthTs,
+      'lib/callbacks.ts': libCallbacksTs,
       'config.ts': configTs,
-      'oauth.ts': oauthTs
+      'oauth.ts': oauthTs,
+      'callbacks.ts': callbacksTs
     })
   );
 

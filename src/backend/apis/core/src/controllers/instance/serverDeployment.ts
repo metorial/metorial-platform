@@ -35,18 +35,37 @@ export let serverDeploymentGroup = instanceGroup.use(async ctx => {
 });
 
 export let createServerDeploymentSchema = v.intersection([
-  v.object({
-    name: v.optional(v.string()),
-    description: v.optional(v.string()),
-    metadata: v.optional(v.record(v.any())),
-    config: v.record(v.any()),
-    oauth_config: v.optional(
+  v.intersection([
+    v.object({
+      name: v.optional(v.string()),
+      description: v.optional(v.string()),
+      metadata: v.optional(v.record(v.any())),
+      oauth_config: v.optional(
+        v.object({
+          client_id: v.string(),
+          client_secret: v.string()
+        })
+      ),
+      access: v.optional(
+        v.object({
+          ip_allowlist: v.nullable(
+            v.object({
+              ip_whitelist: v.array(v.string()),
+              ip_blacklist: v.array(v.string())
+            })
+          )
+        })
+      )
+    }),
+    v.union([
       v.object({
-        client_id: v.string(),
-        client_secret: v.string()
+        config: v.record(v.any())
+      }),
+      v.object({
+        server_config_vault_id: v.string()
       })
-    )
-  }),
+    ])
+  ]),
   v.union([
     v.object({
       server_implementation: createServerImplementationSchema
@@ -108,11 +127,30 @@ export let createServerDeployment = async (
         name: data.name?.trim() || undefined,
         description: data.description?.trim() || undefined,
         metadata: data.metadata,
-        config: data.config,
         oauthConfig: data.oauth_config
           ? {
               clientId: data.oauth_config.client_id,
               clientSecret: data.oauth_config.client_secret
+            }
+          : undefined,
+        config:
+          'config' in data
+            ? {
+                type: 'direct',
+                config: data.config
+              }
+            : {
+                type: 'vault',
+                serverConfigVaultId: data.server_config_vault_id
+              },
+        accessLimiter: data.access
+          ? {
+              ipAllowlist: data.access.ip_allowlist
+                ? {
+                    ipWhitelist: data.access.ip_allowlist.ip_whitelist,
+                    ipBlacklist: data.access.ip_allowlist.ip_blacklist
+                  }
+                : null
             }
           : undefined
       }
@@ -224,7 +262,17 @@ export let serverDeploymentController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          config: v.optional(v.record(v.any()))
+          config: v.optional(v.record(v.any())),
+          access: v.optional(
+            v.object({
+              ip_allowlist: v.nullable(
+                v.object({
+                  ip_whitelist: v.array(v.string()),
+                  ip_blacklist: v.array(v.string())
+                })
+              )
+            })
+          )
         })
       )
       .output(serverDeploymentPresenter)
@@ -238,7 +286,17 @@ export let serverDeploymentController = Controller.create(
             name: ctx.body.name?.trim() || undefined,
             description: ctx.body.description?.trim() || null,
             metadata: ctx.body.metadata,
-            config: ctx.body.config
+            config: ctx.body.config,
+            accessLimiter: ctx.body.access
+              ? {
+                  ipAllowlist: ctx.body.access.ip_allowlist
+                    ? {
+                        ipWhitelist: ctx.body.access.ip_allowlist.ip_whitelist,
+                        ipBlacklist: ctx.body.access.ip_allowlist.ip_blacklist
+                      }
+                    : null
+                }
+              : undefined
           }
         });
 

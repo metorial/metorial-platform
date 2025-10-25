@@ -1,22 +1,4 @@
-let scopeRaw = [
-  'user:read' as const,
-  'user:write' as const,
-
-  'organization:read' as const,
-  'organization:write' as const,
-
-  'organization.invite:read' as const,
-  'organization.invite:write' as const,
-
-  'organization.project:read' as const,
-  'organization.project:write' as const,
-
-  'organization.member:read' as const,
-  'organization.member:write' as const,
-
-  'organization.instance:read' as const,
-  'organization.instance:write' as const,
-
+export let instanceScopes = [
   'instance.file:read' as const,
   'instance.file:write' as const,
   'instance.file_link:read' as const,
@@ -56,7 +38,41 @@ let scopeRaw = [
   'instance.provider_oauth.takeout:write' as const,
 
   'instance.custom_server:read' as const,
-  'instance.custom_server:write' as const
+  'instance.custom_server:write' as const,
+
+  'instance.callback:read' as const,
+  'instance.callback:write' as const,
+
+  'instance.server.config_vault:read' as const,
+  'instance.server.config_vault:write' as const
+] satisfies readonly `instance.${string}`[];
+
+let scopeRaw = [
+  'user:read' as const,
+  'user:write' as const,
+
+  'organization:read' as const,
+  'organization:write' as const,
+
+  'organization.invite:read' as const,
+  'organization.invite:write' as const,
+
+  'organization.project:read' as const,
+  'organization.project:write' as const,
+
+  'organization.member:read' as const,
+  'organization.member:write' as const,
+
+  'organization.instance:read' as const,
+  'organization.instance:write' as const,
+
+  'organization.team:read' as const,
+  'organization.team:write' as const,
+
+  'organization.team.role:read' as const,
+  'organization.team.role:write' as const,
+
+  ...instanceScopes
 
   // 'organization.machine_access.api_key.organization:read' as const,
   // 'organization.machine_access.api_key.organization:write' as const,
@@ -119,7 +135,13 @@ export let instanceSecretTokenScopes: Scope[] = [
   'instance.provider_oauth.connection.profile:read' as const,
 
   'instance.provider_oauth.takeout:read' as const,
-  'instance.provider_oauth.takeout:write' as const
+  'instance.provider_oauth.takeout:write' as const,
+
+  'instance.callback:read' as const,
+  'instance.callback:write' as const,
+
+  'instance.server.config_vault:read' as const,
+  'instance.server.config_vault:write' as const
 ];
 
 export let instancePublishableTokenScopes: Scope[] = ['instance.server_listing:read' as const];

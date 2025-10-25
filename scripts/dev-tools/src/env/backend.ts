@@ -125,6 +125,7 @@ export let backendEnv: Env = [
   { key: 'DASHBOARD_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300` },
   { key: 'PORTALS_URL', defaultValue: `http://${HOSTNAME}:4315` },
   { key: 'INTEGRATIONS_API_URL', defaultValue: `http://${HOSTNAME}:4316` },
+  { key: 'CALLBACKS_URL', defaultValue: `http://${HOSTNAME}:4317` },
 
   { key: 'COOKIE_DOMAIN', defaultValue: `${HOSTNAME}`, isEnterprise: true },
 
