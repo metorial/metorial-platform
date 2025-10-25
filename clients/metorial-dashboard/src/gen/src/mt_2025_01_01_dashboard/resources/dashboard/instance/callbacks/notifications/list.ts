@@ -120,9 +120,9 @@ export type DashboardInstanceCallbacksNotificationsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  callbackIds?: string | string[] | undefined;
-  eventIds?: string | string[] | undefined;
-  destinationIds?: string | string[] | undefined;
+  callbackId?: string | string[] | undefined;
+  eventId?: string | string[] | undefined;
+  destinationId?: string | string[] | undefined;
 };
 
 export let mapDashboardInstanceCallbacksNotificationsListQuery = mtMap.union([
@@ -134,8 +134,8 @@ export let mapDashboardInstanceCallbacksNotificationsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      callbackIds: mtMap.objectField(
-        'callback_ids',
+      callbackId: mtMap.objectField(
+        'callback_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -144,8 +144,8 @@ export let mapDashboardInstanceCallbacksNotificationsListQuery = mtMap.union([
           )
         ])
       ),
-      eventIds: mtMap.objectField(
-        'event_ids',
+      eventId: mtMap.objectField(
+        'event_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -154,8 +154,8 @@ export let mapDashboardInstanceCallbacksNotificationsListQuery = mtMap.union([
           )
         ])
       ),
-      destinationIds: mtMap.objectField(
-        'destination_ids',
+      destinationId: mtMap.objectField(
+        'destination_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

@@ -4,6 +4,7 @@ import {
   ID,
   Organization,
   OrganizationActor,
+  OrganizationMember,
   Project,
   withTransaction
 } from '@metorial/db';
@@ -133,11 +134,42 @@ class ProjectService {
     };
   }
 
-  async getProjectById(d: { organization: Organization; projectId: string }) {
+  getProjectTeamAccessWhere(d: {
+    organization: Organization;
+    actor: OrganizationActor;
+    member: OrganizationMember | undefined;
+  }) {
+    if (!d.organization.enforceTeamAccess || d.member?.role == 'admin') return undefined;
+
+    return {
+      some: {
+        team: {
+          members: {
+            some: {
+              organizationActorOid: d.actor.oid
+            }
+          }
+        }
+      }
+    };
+  }
+
+  async getProjectById(d: {
+    organization: Organization;
+    projectId: string;
+    actor: OrganizationActor;
+    member: OrganizationMember | undefined;
+  }) {
     let project = await db.project.findFirst({
       where: {
         OR: [{ id: d.projectId }, { slug: d.projectId }],
-        organizationOid: d.organization.oid
+        organizationOid: d.organization.oid,
+
+        teams: this.getProjectTeamAccessWhere({
+          organization: d.organization,
+          actor: d.actor,
+          member: d.member
+        })
       },
       include: {
         organization: true
@@ -148,7 +180,22 @@ class ProjectService {
     return project;
   }
 
-  async listProjects(d: { organization: Organization }) {
+  async listProjects(d: {
+    organization: Organization;
+    actor: OrganizationActor;
+    member: OrganizationMember | undefined;
+
+    teamIds?: string[];
+  }) {
+    let teams = d.teamIds
+      ? await db.team.findMany({
+          where: {
+            organizationOid: d.organization.oid,
+            OR: [{ id: { in: d.teamIds } }, { slug: { in: d.teamIds } }]
+          }
+        })
+      : undefined;
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -156,7 +203,29 @@ class ProjectService {
             ...opts,
             where: {
               organizationOid: d.organization.oid,
-              status: 'active'
+              status: 'active',
+
+              AND: [
+                {
+                  teams: this.getProjectTeamAccessWhere({
+                    organization: d.organization,
+                    actor: d.actor,
+                    member: d.member
+                  })
+                },
+
+                ...(teams
+                  ? [
+                      {
+                        teams: {
+                          some: {
+                            teamOid: { in: teams.map(t => t.oid) }
+                          }
+                        }
+                      }
+                    ]
+                  : [])
+              ].filter(Boolean)
             },
             include: {
               organization: true
@@ -164,6 +233,43 @@ class ProjectService {
           })
       )
     );
+  }
+
+  async getAllProjects(d: {
+    organization: Organization;
+    actor: OrganizationActor;
+    member: OrganizationMember | undefined;
+  }) {
+    return await db.project.findMany({
+      where: {
+        organizationOid: d.organization.oid,
+        status: 'active',
+
+        teams: this.getProjectTeamAccessWhere({
+          organization: d.organization,
+          actor: d.actor,
+          member: d.member
+        })
+      },
+      include: {
+        organization: true,
+        instances: true
+      }
+    });
+  }
+
+  async getManyProjectsByIds(d: { organization: Organization; projectIds: string[] }) {
+    let projects = await db.project.findMany({
+      where: {
+        organizationOid: d.organization.oid,
+        OR: [{ id: { in: d.projectIds } }, { slug: { in: d.projectIds } }]
+      },
+      include: {
+        organization: true
+      }
+    });
+
+    return projects;
   }
 }
 

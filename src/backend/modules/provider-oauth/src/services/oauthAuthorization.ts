@@ -211,8 +211,6 @@ class OauthAuthorizationServiceImpl {
         );
       }
 
-      console.log(authUrlRes.data);
-
       if (typeof authUrlRes.data.codeVerifier == 'string') {
         await db.providerOAuthConnectionAuthAttempt.updateMany({
           where: { oid: authAttempt.oid },

@@ -1,4 +1,3 @@
-import { forbiddenError, ServiceError } from '@metorial/error';
 import { organizationService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Controller, Path } from '@metorial/rest';
@@ -6,7 +5,7 @@ import { v } from '@metorial/validation';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
 import { userGroup } from '../../middleware/userGroup';
-import { organizationMemberPresenter, organizationPresenter } from '../../presenters';
+import { organizationPresenter } from '../../presenters';
 
 export let dashboardOrganizationController = Controller.create(
   {
@@ -120,36 +119,6 @@ export let dashboardOrganizationController = Controller.create(
         });
 
         return organizationPresenter.present({ organization });
-      }),
-
-    getMembership: organizationGroup
-      .use(isDashboardGroup())
-      .get(
-        Path(
-          '/dashboard/organizations/:organizationId/membership',
-          'dashboard.organizations.getMembership'
-        ),
-        {
-          name: 'Get organization',
-          description: 'Get the current organization information'
-        }
-      )
-      .output(organizationMemberPresenter)
-      .do(async ctx => {
-        if (!ctx.member) {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'Endpoint can only be accessed with a user token'
-            })
-          );
-        }
-
-        return organizationMemberPresenter.present({
-          organizationMember: {
-            ...ctx.member,
-            organization: ctx.organization
-          }
-        });
       })
   }
 );

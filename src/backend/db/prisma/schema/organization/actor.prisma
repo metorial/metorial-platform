@@ -33,6 +33,7 @@ model OrganizationActor {
   serverListingUpdates    ServerListingUpdate[]
   scmInstallations        ScmInstallation[]
   scmInstallationAttempts ScmInstallationAttempt[]
+  teams                   TeamMember[]
 
   @@unique([isSystem, organizationOid])
 }
