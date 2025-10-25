@@ -123,28 +123,28 @@ export let mapManagementInstanceMagicMcpServersCreateOutput = mtMap.union([
   )
 ]);
 
-export type ManagementInstanceMagicMcpServersCreateBody = {
+export type ManagementInstanceMagicMcpServersCreateBody = ({
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  config: Record<string, any>;
   oauthConfig?: { clientId: string; clientSecret: string } | undefined;
   access?:
     | { ipAllowlist: { ipWhitelist: string[]; ipBlacklist: string[] } | null }
     | undefined;
-} & (
-  | {
-      serverImplementation: {
-        name?: string | undefined;
-        description?: string | undefined;
-        metadata?: Record<string, any> | undefined;
-        getLaunchParams?: string | undefined;
-      } & ({ serverId: string } | { serverVariantId: string });
-    }
-  | { serverImplementationId: string }
-  | { serverVariantId: string }
-  | { serverId: string }
-);
+} & ({ config: Record<string, any> } | { serverConfigVaultId: string })) &
+  (
+    | {
+        serverImplementation: {
+          name?: string | undefined;
+          description?: string | undefined;
+          metadata?: Record<string, any> | undefined;
+          getLaunchParams?: string | undefined;
+        } & ({ serverId: string } | { serverVariantId: string });
+      }
+    | { serverImplementationId: string }
+    | { serverVariantId: string }
+    | { serverId: string }
+  );
 
 export let mapManagementInstanceMagicMcpServersCreateBody = mtMap.union([
   mtMap.unionOption(
@@ -153,7 +153,6 @@ export let mapManagementInstanceMagicMcpServersCreateBody = mtMap.union([
       name: mtMap.objectField('name', mtMap.passthrough()),
       description: mtMap.objectField('description', mtMap.passthrough()),
       metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-      config: mtMap.objectField('config', mtMap.passthrough()),
       oauthConfig: mtMap.objectField(
         'oauth_config',
         mtMap.object({
@@ -178,6 +177,11 @@ export let mapManagementInstanceMagicMcpServersCreateBody = mtMap.union([
             })
           )
         })
+      ),
+      config: mtMap.objectField('config', mtMap.passthrough()),
+      serverConfigVaultId: mtMap.objectField(
+        'server_config_vault_id',
+        mtMap.passthrough()
       ),
       serverImplementation: mtMap.objectField(
         'server_implementation',

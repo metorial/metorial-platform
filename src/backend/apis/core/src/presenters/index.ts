@@ -55,6 +55,7 @@ import { v1ServerPresenter } from './implementation/server';
 import { v1ServerCapabilitiesPresenter } from './implementation/serverCapabilities';
 import { v1ServerListingCategoryPresenter } from './implementation/serverCategory';
 import { v1ServerListingCollectionPresenter } from './implementation/serverCollection';
+import { v1ServerConfigVaultPresenter } from './implementation/serverConfigVault';
 import { v1ServerDeploymentPresenter } from './implementation/serverDeployment';
 import { v1ServerDeploymentConfigPresenter } from './implementation/serverDeploymentConfig';
 import {
@@ -126,6 +127,7 @@ import {
   scmRepoType,
   secretType,
   serverCapabilitiesType,
+  serverConfigVaultType,
   serverDeploymentConfigType,
   serverDeploymentType,
   serverImplementationType,
@@ -475,6 +477,11 @@ export let callbackNotificationPresenter = declarePresenter(callbackNotification
 export let callbackDestinationPresenter = declarePresenter(callbackDestinationType, {
   mt_2025_01_01_pulsar: v1CallbackDestinationPresenter,
   mt_2025_01_01_dashboard: v1CallbackDestinationPresenter
+});
+
+export let serverConfigVaultPresenter = declarePresenter(serverConfigVaultType, {
+  mt_2025_01_01_pulsar: v1ServerConfigVaultPresenter,
+  mt_2025_01_01_dashboard: v1ServerConfigVaultPresenter
 });
 
 export let teamPresenter = declarePresenter(teamType, {

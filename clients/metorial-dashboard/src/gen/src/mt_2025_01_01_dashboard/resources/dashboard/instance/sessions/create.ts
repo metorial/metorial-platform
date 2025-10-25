@@ -150,11 +150,10 @@ export let mapDashboardInstanceSessionsCreateOutput = mtMap.union([
 
 export type DashboardInstanceSessionsCreateBody = {
   serverDeployments: (
-    | (({
+    | ((({
         name?: string | undefined;
         description?: string | undefined;
         metadata?: Record<string, any> | undefined;
-        config: Record<string, any>;
         oauthConfig?: { clientId: string; clientSecret: string } | undefined;
         access?:
           | {
@@ -164,19 +163,20 @@ export type DashboardInstanceSessionsCreateBody = {
               } | null;
             }
           | undefined;
-      } & (
-        | {
-            serverImplementation: {
-              name?: string | undefined;
-              description?: string | undefined;
-              metadata?: Record<string, any> | undefined;
-              getLaunchParams?: string | undefined;
-            } & ({ serverId: string } | { serverVariantId: string });
-          }
-        | { serverImplementationId: string }
-        | { serverVariantId: string }
-        | { serverId: string }
-      )) & { oauthSessionId?: string | undefined })
+      } & ({ config: Record<string, any> } | { serverConfigVaultId: string })) &
+        (
+          | {
+              serverImplementation: {
+                name?: string | undefined;
+                description?: string | undefined;
+                metadata?: Record<string, any> | undefined;
+                getLaunchParams?: string | undefined;
+              } & ({ serverId: string } | { serverVariantId: string });
+            }
+          | { serverImplementationId: string }
+          | { serverVariantId: string }
+          | { serverId: string }
+        )) & { oauthSessionId?: string | undefined })
     | string
     | { serverDeploymentId: string; oauthSessionId?: string | undefined }
   )[];
@@ -197,7 +197,6 @@ export let mapDashboardInstanceSessionsCreateBody =
                 mtMap.passthrough()
               ),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              config: mtMap.objectField('config', mtMap.passthrough()),
               oauthConfig: mtMap.objectField(
                 'oauth_config',
                 mtMap.object({
@@ -225,6 +224,11 @@ export let mapDashboardInstanceSessionsCreateBody =
                     })
                   )
                 })
+              ),
+              config: mtMap.objectField('config', mtMap.passthrough()),
+              serverConfigVaultId: mtMap.objectField(
+                'server_config_vault_id',
+                mtMap.passthrough()
               ),
               serverImplementation: mtMap.objectField(
                 'server_implementation',

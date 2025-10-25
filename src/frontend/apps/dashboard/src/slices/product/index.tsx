@@ -320,6 +320,9 @@ let CallbackDestinationsPage = dynamicPage(() =>
 let CallbackLogsPage = dynamicPage(() =>
   import('./pages/(callbacks)/logs').then(c => c.CallbackLogsPage)
 );
+let ServerConfigVaultsPage = dynamicPage(() =>
+  import('./pages/(servers)/(list)/server-config-vaults').then(c => c.ServerConfigVaultsPage)
+);
 
 let ProductWrapper = () => {
   let instance = useCurrentInstance();
@@ -520,6 +523,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'server-implementations',
                 element: <ServersImplementationsPage />
+              },
+              {
+                path: 'server-config-vaults',
+                element: <ServerConfigVaultsPage />
               }
             ]
           },

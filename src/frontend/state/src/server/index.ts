@@ -23,6 +23,7 @@ export * from './loaders/providerConnections';
 export * from './loaders/providerConnectionTemplates';
 export * from './loaders/remoteServers';
 export * from './loaders/repos';
+export * from './loaders/serverConfigVaults';
 export * from './loaders/serverDeployments';
 export * from './loaders/serverImplementations';
 export * from './loaders/serverRunErrorGroups';

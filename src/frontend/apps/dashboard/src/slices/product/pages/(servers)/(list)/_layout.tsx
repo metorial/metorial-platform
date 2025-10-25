@@ -9,6 +9,7 @@ import { Button, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
 import { showServerDeploymentFormModal } from '../../../scenes/serverDeployments/modal';
 import { showServerImplementationFormModal } from '../../../scenes/serverImplementations/modal';
+import { showCreateSeverConfigVaultsModal } from './server-config-vaults';
 
 export let ServersListLayout = () => {
   let instance = useCurrentInstance();
@@ -68,6 +69,12 @@ export let ServerDeploymentsListLayout = () => {
                 Create Server Implementation
               </Button>
             )}
+
+            {pathname.endsWith('server-config-vaults') && (
+              <Button onClick={() => showCreateSeverConfigVaultsModal()} size="2">
+                Create Config Vault
+              </Button>
+            )}
           </>
         }
       />
@@ -86,6 +93,14 @@ export let ServerDeploymentsListLayout = () => {
           {
             label: 'Server Implementations',
             to: Paths.instance.serverImplementations(
+              organization.data,
+              project.data,
+              instance.data
+            )
+          },
+          {
+            label: 'Config Vault',
+            to: Paths.instance.serverConfigVaults(
               organization.data,
               project.data,
               instance.data

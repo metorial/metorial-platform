@@ -91,6 +91,11 @@ export let ProjectPageLayout = () => {
                   label: 'Implementations',
                   to: Paths.instance.serverImplementations(...params),
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+                },
+                {
+                  label: 'Config Vaults',
+                  to: Paths.instance.serverConfigVaults(...params),
+                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 }
               ]
             },

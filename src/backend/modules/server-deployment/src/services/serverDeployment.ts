@@ -182,7 +182,15 @@ class ServerDeploymentServiceImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
-      config: Record<string, any>;
+      config:
+        | {
+            type: 'direct';
+            config: Record<string, any>;
+          }
+        | {
+            type: 'vault';
+            serverConfigVaultId: string;
+          };
       oauthConfig?: {
         clientId: string;
         clientSecret: string;
@@ -374,10 +382,37 @@ class ServerDeploymentServiceImpl {
         });
       }
 
+      let configValue: any;
+      if (d.input.config.type == 'direct') {
+        configValue = d.input.config.config;
+      } else {
+        let vault = await db.serverConfigVault.findFirst({
+          where: {
+            id: d.input.config.serverConfigVaultId,
+            instanceOid: d.instance.oid
+          }
+        });
+        if (!vault) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Server config vault not found'
+            })
+          );
+        }
+
+        let configSecret = await secretService.DANGEROUSLY_readSecretValue({
+          secretId: vault.secretOid,
+          performedBy: d.performedBy,
+          instance: d.instance,
+          type: 'server_config_vault'
+        });
+        configValue = configSecret.data;
+      }
+
       let { schema, data } = await this.checkServerDeploymentConfig({
         serverImplementation: d.serverImplementation.instance,
-        config: d.input.config,
-        instance: d.instance
+        instance: d.instance,
+        config: configValue
       });
 
       let secret = await secretService.createSecret({

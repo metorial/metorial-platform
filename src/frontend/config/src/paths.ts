@@ -113,6 +113,30 @@ let InstancePaths = Object.assign(
       );
     },
 
+    serverConfigVaults: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'server-config-vaults', ...subPages),
+    serverConfigVault: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'server-config-vault',
+        id,
+        ...subPages
+      );
+    },
+
     sessions: (
       organization: EntityParam,
       project: EntityParam,

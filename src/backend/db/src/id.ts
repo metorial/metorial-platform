@@ -121,6 +121,8 @@ export let ID = createIdGenerator({
   callbackNotificationAttempt: idType.sorted('cbna'),
   callbackDestination: idType.sorted('cld'),
 
+  serverConfigVault: idType.sorted('scv'),
+
   accessLimiter: idType.sorted('acl'),
 
   team: idType.sorted('tm'),

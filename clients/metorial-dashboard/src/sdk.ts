@@ -27,6 +27,7 @@ import {
   MetorialDashboardInstanceProviderOauthConnectionsProfilesEndpoint,
   MetorialDashboardInstanceProviderOauthSessionsEndpoint,
   MetorialDashboardInstanceSecretsEndpoint,
+  MetorialDashboardInstanceServerConfigVaultsEndpoint,
   MetorialDashboardInstanceServerRunErrorGroupsEndpoint,
   MetorialDashboardInstanceServerRunErrorsEndpoint,
   MetorialDashboardInstanceServerRunsEndpoint,
@@ -144,7 +145,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
     runs: new MetorialDashboardInstanceServerRunsEndpoint(manager),
 
-    capabilities: new MetorialDashboardInstanceServersCapabilitiesEndpoint(manager)
+    capabilities: new MetorialDashboardInstanceServersCapabilitiesEndpoint(manager),
+
+    configVaults: new MetorialDashboardInstanceServerConfigVaultsEndpoint(manager)
   }),
 
   magicMcp: {

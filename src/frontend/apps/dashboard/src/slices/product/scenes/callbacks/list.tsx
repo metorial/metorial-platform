@@ -39,7 +39,7 @@ export let CallbacksList = () => {
 
           {callbacks.data.items.length == 0 && (
             <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              No callbacks for this callback.
+              No callbacks found.
             </Text>
           )}
         </>
