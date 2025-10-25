@@ -94,25 +94,25 @@ export let mapDashboardInstanceMagicMcpServersCreateOutput =
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
 
-export type DashboardInstanceMagicMcpServersCreateBody = {
+export type DashboardInstanceMagicMcpServersCreateBody = ({
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  config: Record<string, any>;
   oauthConfig?: { clientId: string; clientSecret: string } | undefined;
-} & (
-  | {
-      serverImplementation: {
-        name?: string | undefined;
-        description?: string | undefined;
-        metadata?: Record<string, any> | undefined;
-        getLaunchParams?: string | undefined;
-      } & ({ serverId: string } | { serverVariantId: string });
-    }
-  | { serverImplementationId: string }
-  | { serverVariantId: string }
-  | { serverId: string }
-);
+} & ({ config: Record<string, any> } | { serverConfigVaultId: string })) &
+  (
+    | {
+        serverImplementation: {
+          name?: string | undefined;
+          description?: string | undefined;
+          metadata?: Record<string, any> | undefined;
+          getLaunchParams?: string | undefined;
+        } & ({ serverId: string } | { serverVariantId: string });
+      }
+    | { serverImplementationId: string }
+    | { serverVariantId: string }
+    | { serverId: string }
+  );
 
 export let mapDashboardInstanceMagicMcpServersCreateBody = mtMap.union([
   mtMap.unionOption(
@@ -121,13 +121,17 @@ export let mapDashboardInstanceMagicMcpServersCreateBody = mtMap.union([
       name: mtMap.objectField('name', mtMap.passthrough()),
       description: mtMap.objectField('description', mtMap.passthrough()),
       metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-      config: mtMap.objectField('config', mtMap.passthrough()),
       oauthConfig: mtMap.objectField(
         'oauth_config',
         mtMap.object({
           clientId: mtMap.objectField('client_id', mtMap.passthrough()),
           clientSecret: mtMap.objectField('client_secret', mtMap.passthrough())
         })
+      ),
+      config: mtMap.objectField('config', mtMap.passthrough()),
+      serverConfigVaultId: mtMap.objectField(
+        'server_config_vault_id',
+        mtMap.passthrough()
       ),
       serverImplementation: mtMap.objectField(
         'server_implementation',
