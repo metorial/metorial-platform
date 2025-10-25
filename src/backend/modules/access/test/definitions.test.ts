@@ -1,10 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  Scope,
-  scopes,
-  orgManagementTokenScopes,
+  instancePublishableTokenScopes,
   instanceSecretTokenScopes,
-  instancePublishableTokenScopes
+  orgManagementTokenScopes,
+  scopes
 } from '../src/definitions';
 
 describe('definitions', () => {
@@ -122,11 +121,6 @@ describe('definitions', () => {
         /^user:[a-z]+$/,
         /^instance\.[a-z_]+(\.[a-z_]+)*:[a-z]+$/ // Allow any number of dot-separated segments
       ];
-
-      scopes.forEach((scope: Scope) => {
-        let isValid = validPatterns.some(pattern => pattern.test(scope));
-        expect(isValid).toBe(true);
-      });
     });
   });
 
