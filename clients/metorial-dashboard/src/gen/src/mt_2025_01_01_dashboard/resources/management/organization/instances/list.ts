@@ -80,7 +80,7 @@ export type ManagementOrganizationInstancesListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { projectId?: string | undefined };
+} & {};
 
 export let mapManagementOrganizationInstancesListQuery = mtMap.union([
   mtMap.unionOption(
@@ -90,8 +90,7 @@ export let mapManagementOrganizationInstancesListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough()),
-      projectId: mtMap.objectField('project_id', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough())
     })
   )
 ]);
