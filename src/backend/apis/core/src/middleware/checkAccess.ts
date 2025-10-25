@@ -1,4 +1,4 @@
-import { Instance, Organization } from '@metorial/db';
+import { Instance, Organization, OrganizationMember } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { accessService, Scope } from '@metorial/module-access';
 import { teamService } from '@metorial/module-organization';
@@ -18,6 +18,12 @@ export let checkAccess = apiGroup.createMiddleware(
 
     if ('instance' in ctx) {
       let instance = ctx.instance as Instance & { organization: Organization };
+
+      if ('member' in ctx) {
+        let member = ctx.member as OrganizationMember;
+        if (member.role == 'admin') return;
+      }
+
       if (instance.organization.enforceTeamAccess) {
         let { scopes } = await teamService.getTeamAccessForInstance({
           instance,

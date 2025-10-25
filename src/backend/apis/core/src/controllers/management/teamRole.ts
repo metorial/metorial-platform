@@ -4,6 +4,7 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import {
   organizationGroup,
   organizationManagementPath
@@ -22,6 +23,7 @@ export let teamRoleManagementController = Controller.create(
         description: 'List all organization teams'
       })
       .use(checkAccess({ possibleScopes: ['organization.team:read'] }))
+      .use(hasFlags(['paid-advanced-roles']))
       .outputList(teamRolePresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -40,6 +42,7 @@ export let teamRoleManagementController = Controller.create(
         description: 'Get the information of a specific team'
       })
       .use(checkAccess({ possibleScopes: ['organization.team:read'] }))
+      .use(hasFlags(['paid-advanced-roles']))
       .output(teamRolePresenter)
       .do(async ctx => {
         let teamRole = await teamRoleService.getTeamRoleById({
@@ -56,6 +59,7 @@ export let teamRoleManagementController = Controller.create(
         description: 'Update the role of an team'
       })
       .use(checkAccess({ possibleScopes: ['organization.team:write'] }))
+      .use(hasFlags(['paid-advanced-roles']))
       .body(
         'default',
         v.object({
@@ -100,6 +104,7 @@ export let teamRoleManagementController = Controller.create(
         description: 'Create a new organization team'
       })
       .use(checkAccess({ possibleScopes: ['organization.team:write'] }))
+      .use(hasFlags(['paid-advanced-roles']))
       .body(
         'default',
         v.object({

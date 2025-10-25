@@ -1,6 +1,7 @@
 import { instanceScopes } from '@metorial/module-access';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
+import { hasFlags } from '../../middleware/hasFlags';
 import {
   organizationGroup,
   organizationManagementPath
@@ -19,6 +20,7 @@ export let teamRolePermissionsManagementController = Controller.create(
         description: 'Get the information of a specific team'
       })
       .use(checkAccess({ possibleScopes: ['organization.team:read'] }))
+      .use(hasFlags(['paid-advanced-roles']))
       .output(teamRolePermissionsPresenter)
       .do(async ctx => {
         return teamRolePermissionsPresenter.present({ permissions: instanceScopes });
