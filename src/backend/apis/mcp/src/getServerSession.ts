@@ -1,6 +1,7 @@
 import { Context } from '@metorial/context';
 import { SessionMcpConnectionType } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
+import { accessLimiterService } from '@metorial/module-protect';
 import { serverSessionService } from '@metorial/module-session';
 import { SessionInfo } from './getSession';
 
@@ -17,6 +18,14 @@ export let getServerSession = async (
       serverSessionId
     });
 
+    if (serverSession.serverDeployment.accessLimiter) {
+      await accessLimiterService.checkAccessLimiter({
+        accessLimiter: serverSession.serverDeployment.accessLimiter,
+        ip: context.ip,
+        ua: context.ua ?? 'unknown'
+      });
+    }
+
     return {
       serverSession,
       sessionCreated: false
@@ -31,6 +40,14 @@ export let getServerSession = async (
     context,
     connectionType
   });
+
+  if (serverSession.serverDeployment.accessLimiter) {
+    await accessLimiterService.checkAccessLimiter({
+      accessLimiter: serverSession.serverDeployment.accessLimiter,
+      ip: context.ip,
+      ua: context.ua ?? 'unknown'
+    });
+  }
 
   return {
     serverSession,

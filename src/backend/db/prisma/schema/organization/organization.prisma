@@ -47,4 +47,5 @@ model Organization {
   scmInstallations        ScmInstallation[]
   scmInstallationAttempts ScmInstallationAttempt[]
   scmRepos                ScmRepo[]
+  accessLimiters          AccessLimiter[]
 }

@@ -11,7 +11,8 @@ let include = {
   serverDeployment: {
     include: {
       server: true,
-      serverVariant: true
+      serverVariant: true,
+      accessLimiter: true
     }
   },
   sessionConnection: true

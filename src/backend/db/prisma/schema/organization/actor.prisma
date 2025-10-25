@@ -33,6 +33,7 @@ model OrganizationActor {
   serverListingUpdates    ServerListingUpdate[]
   scmInstallations        ScmInstallation[]
   scmInstallationAttempts ScmInstallationAttempt[]
+  accessLimiters          AccessLimiter[]
 
   @@unique([isSystem, organizationOid])
 }

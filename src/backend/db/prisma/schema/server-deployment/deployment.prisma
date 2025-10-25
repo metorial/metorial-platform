@@ -42,6 +42,9 @@ model ServerDeployment {
   callbackOid BigInt?   @unique
   callback    Callback? @relation(fields: [callbackOid], references: [oid])
 
+  accessLimiterOid BigInt?
+  accessLimiter    AccessLimiter? @relation(fields: [accessLimiterOid], references: [oid])
+
   failureCode    String?
   failureMessage String?
 
