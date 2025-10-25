@@ -35,18 +35,27 @@ export let serverDeploymentGroup = instanceGroup.use(async ctx => {
 });
 
 export let createServerDeploymentSchema = v.intersection([
-  v.object({
-    name: v.optional(v.string()),
-    description: v.optional(v.string()),
-    metadata: v.optional(v.record(v.any())),
-    config: v.record(v.any()),
-    oauth_config: v.optional(
+  v.intersection([
+    v.object({
+      name: v.optional(v.string()),
+      description: v.optional(v.string()),
+      metadata: v.optional(v.record(v.any())),
+      oauth_config: v.optional(
+        v.object({
+          client_id: v.string(),
+          client_secret: v.string()
+        })
+      )
+    }),
+    v.union([
       v.object({
-        client_id: v.string(),
-        client_secret: v.string()
+        config: v.record(v.any())
+      }),
+      v.object({
+        server_config_vault_id: v.string()
       })
-    )
-  }),
+    ])
+  ]),
   v.union([
     v.object({
       server_implementation: createServerImplementationSchema
@@ -108,13 +117,22 @@ export let createServerDeployment = async (
         name: data.name?.trim() || undefined,
         description: data.description?.trim() || undefined,
         metadata: data.metadata,
-        config: data.config,
         oauthConfig: data.oauth_config
           ? {
               clientId: data.oauth_config.client_id,
               clientSecret: data.oauth_config.client_secret
             }
-          : undefined
+          : undefined,
+        config:
+          'config' in data
+            ? {
+                type: 'direct',
+                config: data.config
+              }
+            : {
+                type: 'vault',
+                serverConfigVaultId: data.server_config_vault_id
+              }
       }
     });
 

@@ -57,6 +57,7 @@ import {
   SecretType,
   Server,
   ServerConfigSchema,
+  ServerConfigVault,
   ServerDeployment,
   ServerDeploymentConfig,
   ServerImplementation,
@@ -592,3 +593,9 @@ export let callbackNotificationType = PresentableType.create<{
     attempts: CallbackNotificationAttempt[];
   };
 }>()('callback.notification');
+
+export let serverConfigVaultType = PresentableType.create<{
+  serverConfigVault: ServerConfigVault & {
+    secret: Secret;
+  };
+}>()('server_config_vault');

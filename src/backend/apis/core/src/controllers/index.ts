@@ -34,6 +34,7 @@ import { remoteServerController } from './instance/remoteServer';
 import { secretController } from './instance/secret';
 import { serverController } from './instance/server';
 import { serverCapabilitiesController } from './instance/serverCapabilities';
+import { serverConfigVaultController } from './instance/serverConfigVault';
 import { serverDeploymentController } from './instance/serverDeployment';
 import { serverImplementationController } from './instance/serverImplementation';
 import { serverListingController } from './instance/serverListing';
@@ -100,7 +101,9 @@ export let pulsarController = Controller.create<any>(
     callbackController,
     callbackEventController,
     callbackDestinationController,
-    callbackNotificationController
+    callbackNotificationController,
+
+    serverConfigVaultController
   }
 );
 
@@ -181,7 +184,9 @@ export let dashboardController = Controller.create<any>(
     callbackController,
     callbackEventController,
     callbackDestinationController,
-    callbackNotificationController
+    callbackNotificationController,
+
+    serverConfigVaultController
   }
 );
 
