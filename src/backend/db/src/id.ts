@@ -119,5 +119,11 @@ export let ID = createIdGenerator({
   callbackInstallation: idType.sorted('cbi'),
   callbackNotification: idType.sorted('cbn'),
   callbackNotificationAttempt: idType.sorted('cbna'),
-  callbackDestination: idType.sorted('cld')
+  callbackDestination: idType.sorted('cld'),
+
+  team: idType.sorted('tm'),
+  teamRole: idType.sorted('tmr'),
+  teamRoleAssignment: idType.sorted('tmra'),
+  teamProject: idType.sorted('tmp'),
+  teamMember: idType.sorted('tmm')
 });
