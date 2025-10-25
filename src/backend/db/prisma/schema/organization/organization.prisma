@@ -49,6 +49,7 @@ model Organization {
   scmInstallations        ScmInstallation[]
   scmInstallationAttempts ScmInstallationAttempt[]
   scmRepos                ScmRepo[]
+  accessLimiters          AccessLimiter[]
   team                    Team[]
   teamRole                TeamRole[]
 }

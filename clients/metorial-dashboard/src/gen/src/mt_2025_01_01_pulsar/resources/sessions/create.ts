@@ -127,6 +127,14 @@ export type SessionsCreateBody = {
         metadata?: Record<string, any> | undefined;
         config: Record<string, any>;
         oauthConfig?: { clientId: string; clientSecret: string } | undefined;
+        access?:
+          | {
+              ipAllowlist: {
+                ipWhitelist: string[];
+                ipBlacklist: string[];
+              } | null;
+            }
+          | undefined;
       } & (
         | {
             serverImplementation: {
@@ -164,6 +172,24 @@ export let mapSessionsCreateBody = mtMap.object<SessionsCreateBody>({
                 clientSecret: mtMap.objectField(
                   'client_secret',
                   mtMap.passthrough()
+                )
+              })
+            ),
+            access: mtMap.objectField(
+              'access',
+              mtMap.object({
+                ipAllowlist: mtMap.objectField(
+                  'ip_allowlist',
+                  mtMap.object({
+                    ipWhitelist: mtMap.objectField(
+                      'ip_whitelist',
+                      mtMap.array(mtMap.passthrough())
+                    ),
+                    ipBlacklist: mtMap.objectField(
+                      'ip_blacklist',
+                      mtMap.array(mtMap.passthrough())
+                    )
+                  })
                 )
               })
             ),

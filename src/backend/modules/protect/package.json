@@ -1,0 +1,26 @@
+{
+  "name": "@metorial/module-protect",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@metorial/queue": "1.0.0",
+    "@metorial/error": "1.0.0",
+    "@metorial/module-organization": "1.0.0",
+    "@metorial/service": "1.0.0",
+    "@metorial/context": "1.0.0",
+    "@metorial/db": "1.0.0",
+    "@metorial/module-machine-access": "1.0.0",
+    "@metorial/module-user": "1.0.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

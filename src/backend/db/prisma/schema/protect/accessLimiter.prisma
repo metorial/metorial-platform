@@ -1,0 +1,24 @@
+enum AccessLimiterTarget {
+  server_deployment
+}
+
+model AccessLimiter {
+  oid    BigInt              @id @default(autoincrement())
+  id     String              @unique
+  target AccessLimiterTarget
+
+  hasIpAllowlist Boolean  @default(false)
+  ipWhitelist    String[] // list of allowed IPs/CIDRs
+  ipBlacklist    String[] // list of blocked IPs/CIDRs
+
+  createdByActorOid BigInt
+  createdByActor    OrganizationActor @relation(fields: [createdByActorOid], references: [oid])
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serverDeployments ServerDeployment[]
+}

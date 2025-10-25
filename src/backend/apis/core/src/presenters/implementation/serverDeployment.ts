@@ -49,6 +49,18 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
       .present({ serverImplementation: serverDeployment.serverImplementation }, opts)
       .run(),
 
+    access: serverDeployment.accessLimiter
+      ? {
+          ip_allowlist: serverDeployment.accessLimiter.hasIpAllowlist
+            ? {
+                status: 'enabled',
+                ip_whitelist: serverDeployment.accessLimiter.ipWhitelist,
+                ip_blacklist: serverDeployment.accessLimiter.ipBlacklist
+              }
+            : { status: 'disabled' }
+        }
+      : null,
+
     created_at: serverDeployment.createdAt,
     updated_at: serverDeployment.updatedAt
   }))
@@ -137,6 +149,52 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
       config: v1ServerDeploymentConfigPresenter.schema,
 
       server_implementation: v1ServerImplementationPresenter.schema,
+
+      access: v.nullable(
+        v.object({
+          ip_allowlist: v.union(
+            [
+              v.object({
+                status: v.literal('enabled', {
+                  name: 'status',
+                  description: 'IP allowlist is enabled for this server deployment'
+                }),
+                ip_whitelist: v.array(
+                  v.string({
+                    name: 'ip_whitelist_item',
+                    description: 'An IP address or CIDR notation in the whitelist'
+                  }),
+                  {
+                    name: 'ip_whitelist',
+                    description: 'List of whitelisted IP addresses or CIDR notations'
+                  }
+                ),
+                ip_blacklist: v.array(
+                  v.string({
+                    name: 'ip_blacklist_item',
+                    description: 'An IP address or CIDR notation in the blacklist'
+                  }),
+                  {
+                    name: 'ip_blacklist',
+                    description: 'List of blacklisted IP addresses or CIDR notations'
+                  }
+                )
+              }),
+              v.object({
+                status: v.literal('disabled', {
+                  name: 'status',
+                  description: 'IP allowlist is disabled for this server deployment'
+                })
+              })
+            ],
+            {
+              name: 'ip_allowlist',
+              description:
+                'Configuration for IP allowlisting, indicating whether it is enabled or disabled along with the relevant lists'
+            }
+          )
+        })
+      ),
 
       created_at: v.date({
         name: 'created_at',

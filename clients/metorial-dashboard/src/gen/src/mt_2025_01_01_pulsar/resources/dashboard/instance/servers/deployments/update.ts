@@ -90,6 +90,11 @@ export type DashboardInstanceServersDeploymentsUpdateOutput = {
     createdAt: Date;
     updatedAt: Date;
   };
+  access: {
+    ipAllowlist:
+      | { status: 'enabled'; ipWhitelist: string[]; ipBlacklist: string[] }
+      | { status: 'disabled' };
+  } | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -266,6 +271,30 @@ export let mapDashboardInstanceServersDeploymentsUpdateOutput =
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
     ),
+    access: mtMap.objectField(
+      'access',
+      mtMap.object({
+        ipAllowlist: mtMap.objectField(
+          'ip_allowlist',
+          mtMap.union([
+            mtMap.unionOption(
+              'object',
+              mtMap.object({
+                status: mtMap.objectField('status', mtMap.passthrough()),
+                ipWhitelist: mtMap.objectField(
+                  'ip_whitelist',
+                  mtMap.array(mtMap.passthrough())
+                ),
+                ipBlacklist: mtMap.objectField(
+                  'ip_blacklist',
+                  mtMap.array(mtMap.passthrough())
+                )
+              })
+            )
+          ])
+        )
+      })
+    ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
@@ -275,6 +304,9 @@ export type DashboardInstanceServersDeploymentsUpdateBody = {
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   config?: Record<string, any> | undefined;
+  access?:
+    | { ipAllowlist: { ipWhitelist: string[]; ipBlacklist: string[] } | null }
+    | undefined;
 };
 
 export let mapDashboardInstanceServersDeploymentsUpdateBody =
@@ -282,6 +314,24 @@ export let mapDashboardInstanceServersDeploymentsUpdateBody =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    config: mtMap.objectField('config', mtMap.passthrough())
+    config: mtMap.objectField('config', mtMap.passthrough()),
+    access: mtMap.objectField(
+      'access',
+      mtMap.object({
+        ipAllowlist: mtMap.objectField(
+          'ip_allowlist',
+          mtMap.object({
+            ipWhitelist: mtMap.objectField(
+              'ip_whitelist',
+              mtMap.array(mtMap.passthrough())
+            ),
+            ipBlacklist: mtMap.objectField(
+              'ip_blacklist',
+              mtMap.array(mtMap.passthrough())
+            )
+          })
+        )
+      })
+    )
   });
 

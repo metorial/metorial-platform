@@ -1,4 +1,5 @@
 import {
+  AccessLimiter,
   ApiKey,
   ApiKeySecret,
   Callback,
@@ -253,6 +254,7 @@ export let serverDeploymentType = PresentableType.create<{
           schedule: CallbackSchedule | null;
         })
       | null;
+    accessLimiter: AccessLimiter | null;
   };
 }>()('server.server_deployment');
 

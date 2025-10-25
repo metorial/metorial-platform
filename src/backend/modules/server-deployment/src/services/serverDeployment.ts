@@ -29,6 +29,7 @@ import { callbackService } from '@metorial/module-callbacks';
 import { serverVariantService } from '@metorial/module-catalog';
 import { engineServerDiscoveryService } from '@metorial/module-engine';
 import { ingestEventService } from '@metorial/module-event';
+import { accessLimiterService } from '@metorial/module-protect';
 import {
   providerOauthConnectionService,
   providerOauthDiscoveryService
@@ -68,7 +69,8 @@ let include = {
       hooks: true,
       schedule: true
     }
-  }
+  },
+  accessLimiter: true
 };
 
 class ServerDeploymentServiceImpl {
@@ -184,6 +186,12 @@ class ServerDeploymentServiceImpl {
       oauthConfig?: {
         clientId: string;
         clientSecret: string;
+      };
+      accessLimiter?: {
+        ipAllowlist: {
+          ipWhitelist?: string[];
+          ipBlacklist?: string[];
+        } | null;
       };
     };
 
@@ -392,6 +400,15 @@ class ServerDeploymentServiceImpl {
         }
       });
 
+      let accessLimiter = d.input.accessLimiter
+        ? await accessLimiterService.createAccessLimiter({
+            target: 'server_deployment',
+            ipAllowlist: d.input.accessLimiter.ipAllowlist,
+            createdByActor: d.performedBy,
+            organization: d.organization
+          })
+        : null;
+
       let serverDeployment = await db.serverDeployment.create({
         data: {
           id: await ID.generateId('serverDeployment'),
@@ -411,6 +428,7 @@ class ServerDeploymentServiceImpl {
           configOid: config.oid,
           instanceOid: d.instance.oid,
           callbackOid: callback?.oid,
+          accessLimiterOid: accessLimiter?.oid,
 
           isMagicMcpSession: d.parent === 'magic_mcp_server'
         },
@@ -473,6 +491,12 @@ class ServerDeploymentServiceImpl {
       description?: string | null;
       metadata?: Record<string, any>;
       config?: Record<string, any>;
+      accessLimiter?: {
+        ipAllowlist: {
+          ipWhitelist?: string[];
+          ipBlacklist?: string[];
+        } | null;
+      };
     };
   }) {
     await Fabric.fire('server.server_deployment.updated:before', {
@@ -530,6 +554,15 @@ class ServerDeploymentServiceImpl {
         });
       }
 
+      let accessLimiter = d.input.accessLimiter
+        ? await accessLimiterService.createAccessLimiter({
+            target: 'server_deployment',
+            ipAllowlist: d.input.accessLimiter.ipAllowlist,
+            createdByActor: d.performedBy,
+            organization: d.organization
+          })
+        : undefined;
+
       let serverDeployment = await db.serverDeployment.update({
         where: {
           oid: d.serverDeployment.oid
@@ -537,7 +570,8 @@ class ServerDeploymentServiceImpl {
         data: {
           name: d.input.name,
           description: d.input.description,
-          metadata: d.input.metadata
+          metadata: d.input.metadata,
+          accessLimiterOid: accessLimiter?.oid
         },
         include
       });

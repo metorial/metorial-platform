@@ -14,6 +14,7 @@ export type Flags = {
   'paid-oauth-takeout': boolean;
   'paid-callbacks': boolean;
   'paid-custom-servers': boolean;
+  'paid-advanced-security': boolean;
   'paid-advanced-roles': boolean;
 };
 
@@ -31,6 +32,7 @@ export let defaultFlags: Flags = {
   'paid-oauth-takeout': true,
   'paid-callbacks': true,
   'paid-custom-servers': true,
+  'paid-advanced-security': true,
   'paid-advanced-roles': true
 };
 
