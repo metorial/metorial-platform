@@ -69,86 +69,90 @@ export let CapabilityEntry = (p: {
       <Entity.ContentRaw>
         {renderWithLoader({ capabilities })(({ capabilities }) => (
           <>
-            {/* {capabilities.data.tools.map(tool => (
+            {capabilities.data.tools.length ||
+            capabilities.data.resourceTemplates.length ||
+            capabilities.data.prompts.length ? (
+              <Table
+                headers={['Name', 'Type', '']}
+                data={[
+                  ...capabilities.data.tools.map(t => ({
+                    name: t.name,
+                    description: t.description,
+                    type: (
+                      <Badge size="1" color="blue">
+                        Tool
+                      </Badge>
+                    ),
+                    details: t
+                  })),
 
-          ))} */}
+                  ...capabilities.data.resourceTemplates.map(i => ({
+                    name: i.name,
+                    description: i.description,
+                    type: (
+                      <Badge size="1" color="purple">
+                        Resource Template
+                      </Badge>
+                    ),
+                    details: i
+                  })),
 
-            <Table
-              headers={['Name', 'Type', '']}
-              data={[
-                ...capabilities.data.tools.map(t => ({
-                  name: t.name,
-                  description: t.description,
-                  type: (
-                    <Badge size="1" color="blue">
-                      Tool
-                    </Badge>
-                  ),
-                  details: t
-                })),
-
-                ...capabilities.data.resourceTemplates.map(i => ({
-                  name: i.name,
-                  description: i.description,
-                  type: (
-                    <Badge size="1" color="purple">
-                      Resource Template
-                    </Badge>
-                  ),
-                  details: i
-                })),
-
-                ...capabilities.data.prompts.map(i => ({
-                  name: i.name,
-                  description: i.description,
-                  type: (
-                    <Badge size="1" color="yellow">
-                      Prompt
-                    </Badge>
-                  ),
-                  details: i
-                }))
-              ].map(tool => [
-                <Flex direction="column" gap="4">
-                  <Text size="2" weight="medium">
-                    {tool.name}
-                  </Text>
-                  <Text size="1" color="gray600">
-                    {tool.description}
-                  </Text>
-                </Flex>,
-                tool.type,
-                <div
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    justifyContent: 'end'
-                  }}
-                >
-                  <Button
-                    size="1"
-                    variant="outline"
-                    onClick={() =>
-                      showModal(({ dialogProps }) => (
-                        <Dialog.Wrapper {...dialogProps} width={600}>
-                          <Dialog.Title>{tool.name} Details</Dialog.Title>
-                          {tool.description && (
-                            <Dialog.Description>{tool.description}</Dialog.Description>
-                          )}
-
-                          <CodeBlock
-                            language="json"
-                            code={JSON.stringify(tool.details, null, 2)}
-                          />
-                        </Dialog.Wrapper>
-                      ))
-                    }
+                  ...capabilities.data.prompts.map(i => ({
+                    name: i.name,
+                    description: i.description,
+                    type: (
+                      <Badge size="1" color="yellow">
+                        Prompt
+                      </Badge>
+                    ),
+                    details: i
+                  }))
+                ].map(tool => [
+                  <Flex direction="column" gap="4">
+                    <Text size="2" weight="medium">
+                      {tool.name}
+                    </Text>
+                    <Text size="1" color="gray600">
+                      {tool.description}
+                    </Text>
+                  </Flex>,
+                  tool.type,
+                  <div
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      justifyContent: 'end'
+                    }}
                   >
-                    View Details
-                  </Button>
-                </div>
-              ])}
-            />
+                    <Button
+                      size="1"
+                      variant="outline"
+                      onClick={() =>
+                        showModal(({ dialogProps }) => (
+                          <Dialog.Wrapper {...dialogProps} width={600}>
+                            <Dialog.Title>{tool.name} Details</Dialog.Title>
+                            {tool.description && (
+                              <Dialog.Description>{tool.description}</Dialog.Description>
+                            )}
+
+                            <CodeBlock
+                              language="json"
+                              code={JSON.stringify(tool.details, null, 2)}
+                            />
+                          </Dialog.Wrapper>
+                        ))
+                      }
+                    >
+                      View Details
+                    </Button>
+                  </div>
+                ])}
+              />
+            ) : (
+              <Text size="2" color="gray600">
+                No capabilities found for this server version.
+              </Text>
+            )}
           </>
         ))}
       </Entity.ContentRaw>
