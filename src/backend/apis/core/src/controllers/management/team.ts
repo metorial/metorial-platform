@@ -134,7 +134,6 @@ export let teamManagementController = Controller.create(
           context: ctx.context,
           performedBy: ctx.actor
         });
-        console.log('created team', team);
 
         return teamPresenter.present({ team });
       }),

@@ -240,17 +240,6 @@ class ProjectService {
     actor: OrganizationActor;
     member: OrganizationMember | undefined;
   }) {
-    console.log(
-      d.organization,
-      d.actor,
-      d.member,
-      this.getProjectTeamAccessWhere({
-        organization: d.organization,
-        actor: d.actor,
-        member: d.member
-      })?.some.team.members
-    );
-
     return await db.project.findMany({
       where: {
         organizationOid: d.organization.oid,
