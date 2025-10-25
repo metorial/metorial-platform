@@ -34,6 +34,7 @@ model OrganizationActor {
   scmInstallations        ScmInstallation[]
   scmInstallationAttempts ScmInstallationAttempt[]
   accessLimiters          AccessLimiter[]
+  teams                   TeamMember[]
 
   @@unique([isSystem, organizationOid])
 }

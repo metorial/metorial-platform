@@ -47,7 +47,7 @@ export type CallbacksDestinationsCreateBody = {
   name: string;
   description?: string | undefined;
   url: string;
-  callbacks: { type: 'all' } | { type: 'selected'; callbackIds: string[] };
+  callbacks: { type: 'all' } | { type: 'selected'; callbackId: string[] };
 };
 
 export let mapCallbacksDestinationsCreateBody =
@@ -62,8 +62,8 @@ export let mapCallbacksDestinationsCreateBody =
           'object',
           mtMap.object({
             type: mtMap.objectField('type', mtMap.passthrough()),
-            callbackIds: mtMap.objectField(
-              'callback_ids',
+            callbackId: mtMap.objectField(
+              'callback_id',
               mtMap.array(mtMap.passthrough())
             )
           })

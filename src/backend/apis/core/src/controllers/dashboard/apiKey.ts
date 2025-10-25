@@ -83,7 +83,9 @@ export let getApiKeyFilter = async (
 
       let instance = await instanceService.getInstanceById({
         instanceId: body.instance_id,
-        organization: auth.restrictions.organization
+        organization: auth.restrictions.organization,
+        actor: auth.restrictions.actor,
+        member: undefined
       });
 
       filter = {
@@ -204,7 +206,9 @@ export let dashboardApiKeyController = Controller.create(
         } else {
           let instance = await instanceService.getInstanceById({
             instanceId: ctx.body.instance_id,
-            organization: ctx.organization
+            organization: ctx.organization,
+            actor: ctx.actor,
+            member: undefined
           });
 
           let { apiKey, secret } = await apiKeyService.createApiKey({

@@ -37,14 +37,14 @@ export let callbackEventController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            callback_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+            callback_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
       .do(async ctx => {
         let paginator = await callbackEventService.listCallbackEvents({
           instance: ctx.instance,
-          callbackIds: normalizeArrayParam(ctx.query.callback_ids)
+          callbackIds: normalizeArrayParam(ctx.query.callback_id)
         });
 
         let list = await paginator.run(ctx.query);

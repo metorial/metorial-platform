@@ -38,7 +38,7 @@ export let CallbackLogsList = (p: { callbackId: string | undefined }) => {
       </Text>
       <Spacer height={20} />
 
-      <Notifications callbackIds={callback.data?.id} details />
+      <Notifications callbackId={callback.data?.id} details />
 
       <RouterPanel param="notification_id" width={1000}>
         {notificationId => (

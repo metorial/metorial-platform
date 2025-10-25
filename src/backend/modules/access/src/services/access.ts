@@ -63,7 +63,9 @@ class AccessService {
     if (d.authInfo.machineAccess.type == 'organization_management') {
       let instance = await instanceService.getInstanceById({
         instanceId: d.instanceId,
-        organization: d.authInfo.restrictions.organization
+        organization: d.authInfo.restrictions.organization,
+        actor: d.authInfo.restrictions.actor,
+        member: undefined
       });
 
       return {

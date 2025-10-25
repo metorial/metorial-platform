@@ -32,7 +32,7 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
 
   let callback = useCallback(instance.data?.id, p.callbackId);
   let destinations = useCallbackDestinations(instance.data?.id, {
-    callbackIds: callback.data?.id
+    callbackId: callback.data?.id
   });
   let deleteMutator = destinations.useDeleteMutator();
 
@@ -78,7 +78,7 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
                     url: values.url,
                     callbacks: {
                       type: 'selected',
-                      callbackIds: [callback.data?.id!]
+                      callbackId: [callback.data?.id!]
                     }
                   });
                   if (res) close();
@@ -231,7 +231,7 @@ let Destination = ({ destinationId }: { destinationId: string }) => {
         title="Recent Logs"
         description="View recent notifications sent to this destination."
       >
-        <Notifications destinationIds={destination.data?.id} />
+        <Notifications destinationId={destination.data?.id} />
       </Box>
     </>
   ));

@@ -3,6 +3,7 @@ import { organizationMemberService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import {
   organizationGroup,
@@ -23,10 +24,18 @@ export let organizationMemberManagementController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['organization.member:read'] }))
       .outputList(organizationMemberPresenter)
-      .query('default', Paginator.validate())
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            team_id: v.optional(v.union([v.string(), v.array(v.string())]))
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await organizationMemberService.listOrganizationMembers({
-          organization: ctx.organization
+          organization: ctx.organization,
+          teamIds: normalizeArrayParam(ctx.query.team_id)
         });
 
         let list = await paginator.run(ctx.query);

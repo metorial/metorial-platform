@@ -121,5 +121,11 @@ export let ID = createIdGenerator({
   callbackNotificationAttempt: idType.sorted('cbna'),
   callbackDestination: idType.sorted('cld'),
 
-  accessLimiter: idType.sorted('acl')
+  accessLimiter: idType.sorted('acl'),
+
+  team: idType.sorted('tm'),
+  teamRole: idType.sorted('tmr'),
+  teamRoleAssignment: idType.sorted('tmra'),
+  teamProject: idType.sorted('tmp'),
+  teamMember: idType.sorted('tmm')
 });

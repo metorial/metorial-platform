@@ -47,6 +47,10 @@ import {
   MetorialDashboardOrganizationsJoinEndpoint,
   MetorialDashboardOrganizationsMembersEndpoint,
   MetorialDashboardOrganizationsProjectsEndpoint,
+  MetorialDashboardOrganizationsTeamsEndpoint,
+  MetorialDashboardOrganizationsTeamsMembersEndpoint,
+  MetorialDashboardOrganizationsTeamsProjectsEndpoint,
+  MetorialDashboardOrganizationsTeamsRolesEndpoint,
   MetorialDashboardScmAccountsEndpoint,
   MetorialDashboardScmInstallationsEndpoint,
   MetorialDashboardScmReposEndpoint,
@@ -198,6 +202,12 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     events: new MetorialDashboardInstanceCallbacksEventsEndpoint(manager),
     notifications: new MetorialDashboardInstanceCallbacksNotificationsEndpoint(manager),
     destinations: new MetorialDashboardInstanceCallbacksDestinationsEndpoint(manager)
+  }),
+
+  teams: Object.assign(new MetorialDashboardOrganizationsTeamsEndpoint(manager), {
+    roles: new MetorialDashboardOrganizationsTeamsRolesEndpoint(manager),
+    projects: new MetorialDashboardOrganizationsTeamsProjectsEndpoint(manager),
+    members: new MetorialDashboardOrganizationsTeamsMembersEndpoint(manager)
   })
 }));
 
