@@ -90,7 +90,13 @@ import { PresentableType } from '@metorial/presenter';
 export let bootType = PresentableType.create<{
   user: User;
   organizations: (Organization & {
-    member: OrganizationMember & { actor: OrganizationActor };
+    member: OrganizationMember & {
+      actor: OrganizationActor & {
+        teams: (TeamMember & {
+          team: Team;
+        })[];
+      };
+    };
   })[];
   projects: (Project & { organization: Organization })[];
   instances: (Instance & { project: Project; organization: Organization })[];

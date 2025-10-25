@@ -52,7 +52,9 @@ export let resolvers = {
       wrapGQL(ctx, async () => {
         let instance = await instanceService.getInstanceById({
           organization: ctx.organization,
-          instanceId
+          instanceId,
+          actor: ctx.actor,
+          member: ctx.member
         });
 
         let connection = await providerOauthConnectionService.getConnectionById({
