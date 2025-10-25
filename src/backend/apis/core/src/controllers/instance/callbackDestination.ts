@@ -39,14 +39,14 @@ export let callbackDestinationController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            callback_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+            callback_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
       .do(async ctx => {
         let paginator = await callbackDestinationService.listCallbackDestinations({
           instance: ctx.instance,
-          callbackIds: normalizeArrayParam(ctx.query.callback_ids)
+          callbackIds: normalizeArrayParam(ctx.query.callback_id)
         });
 
         let list = await paginator.run(ctx.query);
@@ -92,7 +92,7 @@ export let callbackDestinationController = Controller.create(
             }),
             v.object({
               type: v.literal('selected'),
-              callback_ids: v.array(v.string())
+              callback_id: v.array(v.string())
             })
           ])
         })
@@ -108,7 +108,7 @@ export let callbackDestinationController = Controller.create(
             callbacks:
               ctx.body.callbacks.type === 'all'
                 ? { type: 'all' }
-                : { type: 'selected', callbackIds: ctx.body.callbacks.callback_ids }
+                : { type: 'selected', callbackIds: ctx.body.callbacks.callback_id }
           }
         });
 

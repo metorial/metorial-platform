@@ -15,6 +15,17 @@ import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { organizationActorService } from './organizationActor';
 
+let include = {
+  actor: {
+    include: {
+      organization: true,
+      teams: { include: { team: true } }
+    }
+  },
+  organization: true,
+  user: true
+};
+
 class OrganizationMemberService {
   private async ensureOrganizationMemberActive(organizationMember: OrganizationMember) {
     if (organizationMember.status !== 'active') {
@@ -84,11 +95,7 @@ class OrganizationMemberService {
               actorOid: actor.oid,
               userOid: d.user.oid
             },
-            include: {
-              actor: { include: { organization: true } },
-              organization: true,
-              user: true
-            }
+            include
           })
         : await db.organizationMember.create({
             data: {
@@ -99,11 +106,7 @@ class OrganizationMemberService {
               actorOid: actor.oid,
               userOid: d.user.oid
             },
-            include: {
-              actor: { include: { organization: true } },
-              organization: true,
-              user: true
-            }
+            include
           });
 
       await Fabric.fire('organization.member.created:after', {
@@ -139,11 +142,7 @@ class OrganizationMemberService {
         data: {
           role: d.input.role
         },
-        include: {
-          actor: { include: { organization: true } },
-          organization: true,
-          user: true
-        }
+        include
       });
 
       await Fabric.fire('organization.member.updated:after', {
@@ -176,11 +175,7 @@ class OrganizationMemberService {
           status: 'deleted',
           deletedAt: new Date()
         },
-        include: {
-          actor: { include: { organization: true } },
-          organization: true,
-          user: true
-        }
+        include
       });
 
       await Fabric.fire('organization.member.deleted:after', {
@@ -200,18 +195,23 @@ class OrganizationMemberService {
 
         OR: [{ id: d.memberId }, { user: { id: d.memberId } }]
       },
-      include: {
-        actor: { include: { organization: true } },
-        organization: true,
-        user: true
-      }
+      include
     });
     if (!member) throw new ServiceError(notFoundError('organization_member', d.memberId));
 
     return member;
   }
 
-  async listOrganizationMembers(d: { organization: Organization }) {
+  async listOrganizationMembers(d: { organization: Organization; teamIds?: string[] }) {
+    let teams = d.teamIds
+      ? await db.team.findMany({
+          where: {
+            organizationOid: d.organization.oid,
+            OR: [{ id: { in: d.teamIds } }, { slug: { in: d.teamIds } }]
+          }
+        })
+      : undefined;
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -219,13 +219,19 @@ class OrganizationMemberService {
             ...opts,
             where: {
               organizationOid: d.organization.oid,
-              status: 'active'
+              status: 'active',
+
+              actor: teams
+                ? {
+                    teams: {
+                      some: {
+                        teamOid: { in: teams.map(t => t.oid) }
+                      }
+                    }
+                  }
+                : undefined
             },
-            include: {
-              actor: { include: { organization: true } },
-              organization: true,
-              user: true
-            }
+            include
           })
       )
     );

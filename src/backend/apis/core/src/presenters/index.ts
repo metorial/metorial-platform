@@ -79,6 +79,9 @@ import {
   dashboardSessionMessagePresenter,
   v1SessionMessagePresenter
 } from './implementation/sessionMessage';
+import { v1TeamPresenter } from './implementation/team';
+import { v1TeamRolePresenter } from './implementation/teamRole';
+import { v1TeamRolePermissionsPresenter } from './implementation/teamRolePermissons';
 import { v1UsagePresenter } from './implementation/usage';
 import { v1UserPresenter } from './implementation/user';
 import {
@@ -141,6 +144,9 @@ import {
   sessionEventType,
   sessionMessageType,
   sessionType,
+  teamRolePermissionsType,
+  teamRoleType,
+  teamType,
   usageType,
   userType
 } from './types';
@@ -469,4 +475,19 @@ export let callbackNotificationPresenter = declarePresenter(callbackNotification
 export let callbackDestinationPresenter = declarePresenter(callbackDestinationType, {
   mt_2025_01_01_pulsar: v1CallbackDestinationPresenter,
   mt_2025_01_01_dashboard: v1CallbackDestinationPresenter
+});
+
+export let teamPresenter = declarePresenter(teamType, {
+  mt_2025_01_01_pulsar: v1TeamPresenter,
+  mt_2025_01_01_dashboard: v1TeamPresenter
+});
+
+export let teamRolePresenter = declarePresenter(teamRoleType, {
+  mt_2025_01_01_pulsar: v1TeamRolePresenter,
+  mt_2025_01_01_dashboard: v1TeamRolePresenter
+});
+
+export let teamRolePermissionsPresenter = declarePresenter(teamRolePermissionsType, {
+  mt_2025_01_01_pulsar: v1TeamRolePermissionsPresenter,
+  mt_2025_01_01_dashboard: v1TeamRolePermissionsPresenter
 });

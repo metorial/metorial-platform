@@ -13,6 +13,13 @@ import { Fabric } from '@metorial/fabric';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 
+let include = {
+  organization: true,
+  member: true,
+  machineAccess: true,
+  teams: { include: { team: true } }
+};
+
 class OrganizationActorService {
   async createOrganizationActor(d: {
     input: {
@@ -41,11 +48,7 @@ class OrganizationActorService {
 
           organizationOid: d.organization.oid
         },
-        include: {
-          member: true,
-          machineAccess: true,
-          organization: true
-        }
+        include
       });
 
       await Fabric.fire('organization.actor.created:after', {
@@ -64,11 +67,7 @@ class OrganizationActorService {
         organizationOid: d.organization.oid,
         isSystem: true
       },
-      include: {
-        member: true,
-        machineAccess: true,
-        organization: true
-      }
+      include
     });
     if (!actor) throw new Error('WTF - System actor not found');
 
@@ -101,11 +100,7 @@ class OrganizationActorService {
           email: d.input.email,
           image: d.input.image
         },
-        include: {
-          member: true,
-          machineAccess: true,
-          organization: true
-        }
+        include
       });
 
       await Fabric.fire('organization.actor.updated:after', {
@@ -124,31 +119,40 @@ class OrganizationActorService {
         id: d.actorId,
         organizationOid: d.organization.oid
       },
-      include: {
-        member: true,
-        machineAccess: true,
-        organization: true
-      }
+      include
     });
     if (!actor) throw new ServiceError(notFoundError('organization_actor', d.actorId));
 
     return actor;
   }
 
-  async listOrganizationActors(d: { organization: Organization; context: Context }) {
+  async listOrganizationActors(d: { organization: Organization; teamIds?: string[] }) {
+    let teams = d.teamIds
+      ? await db.team.findMany({
+          where: {
+            organizationOid: d.organization.oid,
+            OR: [{ id: { in: d.teamIds } }, { slug: { in: d.teamIds } }]
+          }
+        })
+      : undefined;
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.organizationActor.findMany({
             ...opts,
             where: {
-              organizationOid: d.organization.oid
+              organizationOid: d.organization.oid,
+
+              teams: teams
+                ? {
+                    some: {
+                      id: { in: teams.map(t => t.id) }
+                    }
+                  }
+                : undefined
             },
-            include: {
-              member: true,
-              machineAccess: true,
-              organization: true
-            }
+            include
           })
       )
     );

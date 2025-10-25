@@ -74,6 +74,11 @@ import {
   SessionConnection,
   SessionEvent,
   SessionMessage,
+  Team,
+  TeamMember,
+  TeamProject,
+  TeamProjectRoleAssignment,
+  TeamRole,
   User
 } from '@metorial/db';
 import { ServerCapabilities } from '@metorial/module-catalog';
@@ -115,7 +120,9 @@ export let organizationInviteType = PresentableType.create<{
 export let organizationMemberType = PresentableType.create<{
   organizationMember: OrganizationMember & {
     organization: Organization;
-    actor: OrganizationActor;
+    actor: OrganizationActor & {
+      teams: (TeamMember & { team: Team })[];
+    };
     user: User;
   };
 }>()('organization_member');
@@ -123,6 +130,7 @@ export let organizationMemberType = PresentableType.create<{
 export let organizationActorType = PresentableType.create<{
   organizationActor: OrganizationActor & {
     organization: Organization;
+    teams?: (TeamMember & { team: Team })[] | null | undefined;
   };
 }>()('organization_actor');
 
@@ -592,3 +600,25 @@ export let callbackNotificationType = PresentableType.create<{
     attempts: CallbackNotificationAttempt[];
   };
 }>()('callback.notification');
+
+export let teamType = PresentableType.create<{
+  team: Team & {
+    organization: Organization;
+    projects: (TeamProject & { project: Project })[];
+    assignments: (TeamProjectRoleAssignment & {
+      teamProject: TeamProject;
+      teamRole: TeamRole;
+      project: Project;
+    })[];
+  };
+}>()('management.team');
+
+export let teamRoleType = PresentableType.create<{
+  teamRole: TeamRole & {
+    organization: Organization;
+  };
+}>()('management.team.role');
+
+export let teamRolePermissionsType = PresentableType.create<{
+  permissions: string[];
+}>()('management.team.role_permissions');

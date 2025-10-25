@@ -29,7 +29,7 @@ export let CallbackEventsList = (p: { callbackId: string | undefined }) => {
 
   let events = useCallbackEvents(instance.data?.id, {
     order: 'desc',
-    callbackIds: callback.data?.id
+    callbackId: callback.data?.id
   });
 
   let [_, setSearchParams] = useSearchParams();
@@ -161,7 +161,7 @@ let Event = ({ eventId, callbackId }: { eventId: string; callbackId: string }) =
             title="Notifications Sent"
             description="The notifications sent to your callback destinations for this event."
           >
-            <Notifications eventIds={event.data.id} />
+            <Notifications eventId={event.data.id} />
           </Box>
           <Spacer height={15} />
         </>

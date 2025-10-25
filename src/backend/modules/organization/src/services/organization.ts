@@ -14,6 +14,7 @@ import { differenceInMinutes } from 'date-fns';
 import { syncProfileQueue } from '../queues/syncProfile';
 import { organizationActorService } from './organizationActor';
 import { organizationMemberService } from './organizationMember';
+import { projectService } from './project';
 
 let getOrgSlug = createSlugGenerator(
   async slug => !(await db.organization.findFirst({ where: { slug } }))
@@ -236,31 +237,71 @@ class OrganizationService {
             status: 'active'
           },
           include: {
-            actor: true
+            actor: {
+              include: {
+                teams: {
+                  include: {
+                    team: true
+                  }
+                }
+              }
+            }
           }
-        },
-        projects: {
-          orderBy: { id: 'asc' }
-        },
-        instances: {
-          include: {
-            project: true
-          },
-          orderBy: { id: 'asc' }
         }
+        // projects: {
+        //   orderBy: { id: 'asc' }
+        // },
+        // instances: {
+        //   include: {
+        //     project: true
+        //   },
+        //   orderBy: { id: 'asc' }
+        // }
       }
     });
 
+    // return {
+    //   user: d.user,
+    //   organizations: orgs.map(org => ({
+    //     ...org,
+    //     member: org.members[0]
+    //   })),
+    //   projects: orgs.flatMap(org =>
+    //     org.projects.map(project => ({ ...project, organization: org }))
+    //   ),
+    //   instances: orgs.flatMap(org =>
+    //     org.instances.map(instance => ({
+    //       ...instance,
+    //       organization: org,
+    //       project: instance.project
+    //     }))
+    //   )
+    // };
+
+    let orgsWithProjectAndInstances = await Promise.all(
+      orgs.map(async org => {
+        let projects = await projectService.getAllProjects({
+          organization: org,
+          actor: org.members[0].actor,
+          member: org.members[0]
+        });
+
+        return {
+          ...org,
+          member: org.members[0],
+          projects,
+          instances: projects.flatMap(p => p.instances.map(i => ({ ...i, project: p })))
+        };
+      })
+    );
+
     return {
       user: d.user,
-      organizations: orgs.map(org => ({
-        ...org,
-        member: org.members[0]
-      })),
-      projects: orgs.flatMap(org =>
+      organizations: orgsWithProjectAndInstances,
+      projects: orgsWithProjectAndInstances.flatMap(org =>
         org.projects.map(project => ({ ...project, organization: org }))
       ),
-      instances: orgs.flatMap(org =>
+      instances: orgsWithProjectAndInstances.flatMap(org =>
         org.instances.map(instance => ({
           ...instance,
           organization: org,
