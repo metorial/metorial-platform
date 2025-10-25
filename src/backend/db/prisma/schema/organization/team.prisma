@@ -1,0 +1,92 @@
+model Team {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  slug        String
+  name        String
+  description String?
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  projects    TeamProject[]
+  members     TeamMember[]
+  assignments TeamProjectRoleAssignment[]
+}
+
+model TeamRole {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  slug        String
+  name        String
+  description String?
+
+  scopes String[]
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  assignments TeamProjectRoleAssignment[]
+}
+
+model TeamProject {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  teamOid BigInt
+  team    Team   @relation(fields: [teamOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project                     @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+  roles      TeamProjectRoleAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([teamOid, projectOid])
+}
+
+model TeamProjectRoleAssignment {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  teamProjectOid BigInt
+  teamProject    TeamProject @relation(fields: [teamProjectOid], references: [oid], onDelete: Cascade)
+
+  teamRoleOid BigInt
+  teamRole    TeamRole @relation(fields: [teamRoleOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  teamOid BigInt
+  team    Team   @relation(fields: [teamOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([teamRoleOid, teamProjectOid])
+}
+
+model TeamMember {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  teamOid BigInt
+  team    Team   @relation(fields: [teamOid], references: [oid], onDelete: Cascade)
+
+  organizationActorOid BigInt
+  organizationActor    OrganizationActor @relation(fields: [organizationActorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([teamOid, organizationActorOid])
+}

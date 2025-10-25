@@ -20,6 +20,11 @@ import {
   ServerSession,
   Session,
   SessionMessage,
+  Team,
+  TeamMember,
+  TeamProject,
+  TeamProjectRoleAssignment,
+  TeamRole,
   User,
   UserSession
 } from '@metorial/db';
@@ -89,7 +94,7 @@ export interface FabricEvents {
   'organization.invitation.join.created:before': { organization: Organization, member: OrganizationMember; invite: OrganizationInvite; performedBy: OrganizationActor; context?: Context };
   'organization.invitation.join.created:after': { organization: Organization, member: OrganizationMember; invite: OrganizationInvite; join: OrganizationInviteJoin; performedBy: OrganizationActor; context?: Context };
 
-  'organization.project.created:before': { organization: Organization,  performedBy: OrganizationActor; context?: Context };
+  'organization.project.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
   'organization.project.created:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };
   'organization.project.updated:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };
   'organization.project.updated:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };
@@ -102,6 +107,35 @@ export interface FabricEvents {
   'organization.project.instance.updated:after': { organization: Organization, project: Project; instance: Instance, performedBy: OrganizationActor; context?: Context };
   'organization.project.instance.deleted:before': { organization: Organization, project: Project; instance: Instance, performedBy: OrganizationActor; context?: Context };
   'organization.project.instance.deleted:after': { organization: Organization, project: Project; instance: Instance, performedBy: OrganizationActor; context?: Context };
+
+  'organization.team.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
+  'organization.team.created:after': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
+  'organization.team.updated:before': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
+  'organization.team.updated:after': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
+  'organization.team.deleted:before': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
+  'organization.team.deleted:after': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
+
+  'organization.team.member.added:before': { organization: Organization, team: Team, actor: OrganizationActor, performedBy: OrganizationActor; context?: Context };
+  'organization.team.member.added:after': { organization: Organization, team: Team, actor: OrganizationActor, member: TeamMember; performedBy: OrganizationActor; context?: Context };
+  'organization.team.member.removed:before': { organization: Organization, team: Team, actor: OrganizationActor, member: TeamMember; performedBy: OrganizationActor; context?: Context };
+  'organization.team.member.removed:after': { organization: Organization, team: Team, actor: OrganizationActor, member: TeamMember; performedBy: OrganizationActor; context?: Context };
+
+  'organization.team.project.assigned:before': { organization: Organization, team: Team, project: Project, performedBy: OrganizationActor; context?: Context };
+  'organization.team.project.assigned:after': { organization: Organization, team: Team, project: Project, teamProject: TeamProject; performedBy: OrganizationActor; context?: Context };
+  'organization.team.project.unassigned:before': { organization: Organization, team: Team, project: Project, teamProject: TeamProject; performedBy: OrganizationActor; context?: Context };
+  'organization.team.project.unassigned:after': { organization: Organization, team: Team, project: Project, teamProject: TeamProject; performedBy: OrganizationActor; context?: Context };
+
+  'organization.team.role.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
+  'organization.team.role.created:after': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
+  'organization.team.role.updated:before': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
+  'organization.team.role.updated:after': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
+  'organization.team.role.deleted:before': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
+  'organization.team.role.deleted:after': { organization: Organization, role: TeamRole, performedBy: OrganizationActor; context?: Context };
+
+  'organization.team.role.assignment.created:before': { organization: Organization, team: Team, role: TeamRole; project: Project; performedBy: OrganizationActor; context?: Context };
+  'organization.team.role.assignment.created:after': { organization: Organization, team: Team, role: TeamRole; project: Project; roleAssignment: TeamProjectRoleAssignment, performedBy: OrganizationActor; context?: Context };
+  'organization.team.role.assignment.deleted:before': { organization: Organization, team: Team, role: TeamRole; project: Project; roleAssignment: TeamProjectRoleAssignment, performedBy: OrganizationActor; context?: Context };
+  'organization.team.role.assignment.deleted:after': { organization: Organization, team: Team, role: TeamRole; project: Project; roleAssignment: TeamProjectRoleAssignment, performedBy: OrganizationActor; context?: Context };
 
   'machine_access.created:before': MachineAccessInput & { context?: Context };
   'machine_access.created:after': MachineAccessInput & { context?: Context, machineAccess: MachineAccess };

@@ -22,17 +22,12 @@ export let instanceManagementController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['organization.instance:read'] }))
       .outputList(instancePresenter)
-      .query(
-        'default',
-        Paginator.validate(
-          v.object({
-            project_id: v.optional(v.string())
-          })
-        )
-      )
+      .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
         let paginator = await instanceService.listInstances({
-          organization: ctx.organization
+          organization: ctx.organization,
+          member: ctx.member,
+          actor: ctx.actor
         });
 
         let list = await paginator.run(ctx.query);
@@ -50,7 +45,9 @@ export let instanceManagementController = Controller.create(
       .do(async ctx => {
         let instance = await instanceService.getInstanceById({
           organization: ctx.organization,
-          instanceId: ctx.params.instanceId
+          instanceId: ctx.params.instanceId,
+          member: ctx.member,
+          actor: ctx.actor
         });
 
         return instancePresenter.present({ instance });
@@ -74,7 +71,9 @@ export let instanceManagementController = Controller.create(
       .do(async ctx => {
         let project = await projectService.getProjectById({
           organization: ctx.organization,
-          projectId: ctx.body.project_id
+          projectId: ctx.body.project_id,
+          member: ctx.member,
+          actor: ctx.actor
         });
 
         let instance = await instanceService.createInstance({
@@ -101,7 +100,9 @@ export let instanceManagementController = Controller.create(
       .do(async ctx => {
         let instance = await instanceService.getInstanceById({
           organization: ctx.organization,
-          instanceId: ctx.params.instanceId
+          instanceId: ctx.params.instanceId,
+          member: ctx.member,
+          actor: ctx.actor
         });
 
         instance = await instanceService.deleteInstance({
@@ -130,7 +131,9 @@ export let instanceManagementController = Controller.create(
       .do(async ctx => {
         let instance = await instanceService.getInstanceById({
           organization: ctx.organization,
-          instanceId: ctx.params.instanceId
+          instanceId: ctx.params.instanceId,
+          member: ctx.member,
+          actor: ctx.actor
         });
 
         instance = await instanceService.updateInstance({

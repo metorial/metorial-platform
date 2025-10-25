@@ -72,7 +72,7 @@ export type CallbacksDestinationsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { callbackIds?: string | string[] | undefined };
+} & { callbackId?: string | string[] | undefined };
 
 export let mapCallbacksDestinationsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -83,8 +83,8 @@ export let mapCallbacksDestinationsListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      callbackIds: mtMap.objectField(
-        'callback_ids',
+      callbackId: mtMap.objectField(
+        'callback_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

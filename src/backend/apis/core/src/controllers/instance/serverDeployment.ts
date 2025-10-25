@@ -45,6 +45,16 @@ export let createServerDeploymentSchema = v.intersection([
           client_id: v.string(),
           client_secret: v.string()
         })
+      ),
+      access: v.optional(
+        v.object({
+          ip_allowlist: v.nullable(
+            v.object({
+              ip_whitelist: v.array(v.string()),
+              ip_blacklist: v.array(v.string())
+            })
+          )
+        })
       )
     }),
     v.union([
@@ -132,7 +142,17 @@ export let createServerDeployment = async (
             : {
                 type: 'vault',
                 serverConfigVaultId: data.server_config_vault_id
-              }
+              },
+        accessLimiter: data.access
+          ? {
+              ipAllowlist: data.access.ip_allowlist
+                ? {
+                    ipWhitelist: data.access.ip_allowlist.ip_whitelist,
+                    ipBlacklist: data.access.ip_allowlist.ip_blacklist
+                  }
+                : null
+            }
+          : undefined
       }
     });
 
@@ -242,7 +262,17 @@ export let serverDeploymentController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          config: v.optional(v.record(v.any()))
+          config: v.optional(v.record(v.any())),
+          access: v.optional(
+            v.object({
+              ip_allowlist: v.nullable(
+                v.object({
+                  ip_whitelist: v.array(v.string()),
+                  ip_blacklist: v.array(v.string())
+                })
+              )
+            })
+          )
         })
       )
       .output(serverDeploymentPresenter)
@@ -256,7 +286,17 @@ export let serverDeploymentController = Controller.create(
             name: ctx.body.name?.trim() || undefined,
             description: ctx.body.description?.trim() || null,
             metadata: ctx.body.metadata,
-            config: ctx.body.config
+            config: ctx.body.config,
+            accessLimiter: ctx.body.access
+              ? {
+                  ipAllowlist: ctx.body.access.ip_allowlist
+                    ? {
+                        ipWhitelist: ctx.body.access.ip_allowlist.ip_whitelist,
+                        ipBlacklist: ctx.body.access.ip_allowlist.ip_blacklist
+                      }
+                    : null
+                }
+              : undefined
           }
         });
 

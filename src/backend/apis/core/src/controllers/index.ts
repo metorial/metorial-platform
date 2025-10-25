@@ -56,6 +56,9 @@ import { organizationManagementController } from './management/organization';
 import { organizationInviteManagementController } from './management/organizationInvite';
 import { organizationMemberManagementController } from './management/organizationMember';
 import { projectManagementController } from './management/project';
+import { teamManagementController } from './management/team';
+import { teamRoleManagementController } from './management/teamRole';
+import { teamRolePermissionsManagementController } from './management/teamRolePermissions';
 
 export let pulsarController = Controller.create<any>(
   {
@@ -103,7 +106,10 @@ export let pulsarController = Controller.create<any>(
     callbackDestinationController,
     callbackNotificationController,
 
-    serverConfigVaultController
+    serverConfigVaultController,
+    teamRolePermissionsManagementController,
+    teamRoleManagementController,
+    teamManagementController
   }
 );
 
@@ -186,7 +192,10 @@ export let dashboardController = Controller.create<any>(
     callbackDestinationController,
     callbackNotificationController,
 
-    serverConfigVaultController
+    serverConfigVaultController,
+    teamRolePermissionsManagementController,
+    teamRoleManagementController,
+    teamManagementController
   }
 );
 

@@ -39,18 +39,18 @@ export let callbackNotificationController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            callback_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            event_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            destination_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+            callback_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            event_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            destination_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
       .do(async ctx => {
         let paginator = await callbackNotificationService.listCallbackNotifications({
           instance: ctx.instance,
-          callbackIds: normalizeArrayParam(ctx.query.callback_ids),
-          eventIds: normalizeArrayParam(ctx.query.event_ids),
-          destinationIds: normalizeArrayParam(ctx.query.destination_ids)
+          callbackIds: normalizeArrayParam(ctx.query.callback_id),
+          eventIds: normalizeArrayParam(ctx.query.event_id),
+          destinationIds: normalizeArrayParam(ctx.query.destination_id)
         });
 
         let list = await paginator.run(ctx.query);

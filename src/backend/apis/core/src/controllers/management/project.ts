@@ -1,7 +1,9 @@
+import { forbiddenError, ServiceError } from '@metorial/error';
 import { projectService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import {
   organizationGroup,
@@ -22,10 +24,20 @@ export let projectManagementController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['organization.project:read'] }))
       .outputList(projectPresenter)
-      .query('default', Paginator.validate())
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            team_id: v.optional(v.union([v.string(), v.array(v.string())]))
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await projectService.listProjects({
-          organization: ctx.organization
+          organization: ctx.organization,
+          member: ctx.member,
+          actor: ctx.actor,
+          teamIds: normalizeArrayParam(ctx.query.team_id)
         });
 
         let list = await paginator.run(ctx.query);
@@ -43,7 +55,9 @@ export let projectManagementController = Controller.create(
       .do(async ctx => {
         let project = await projectService.getProjectById({
           organization: ctx.organization,
-          projectId: ctx.params.projectId
+          projectId: ctx.params.projectId,
+          member: ctx.member,
+          actor: ctx.actor
         });
 
         return projectPresenter.present({ project });
@@ -63,6 +77,14 @@ export let projectManagementController = Controller.create(
       )
       .output(projectPresenter)
       .do(async ctx => {
+        if (ctx.member?.role == 'member') {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not permitted to manage organization projects'
+            })
+          );
+        }
+
         let project = await projectService.createProject({
           input: {
             name: ctx.body.name
@@ -83,9 +105,19 @@ export let projectManagementController = Controller.create(
       .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
       .output(projectPresenter)
       .do(async ctx => {
+        if (ctx.member?.role == 'member') {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not permitted to manage organization projects'
+            })
+          );
+        }
+
         let project = await projectService.getProjectById({
           organization: ctx.organization,
-          projectId: ctx.params.projectId
+          projectId: ctx.params.projectId,
+          member: ctx.member,
+          actor: ctx.actor
         });
 
         project = await projectService.deleteProject({
@@ -112,9 +144,19 @@ export let projectManagementController = Controller.create(
       )
       .output(projectPresenter)
       .do(async ctx => {
+        if (ctx.member?.role == 'member') {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not permitted to manage organization projects'
+            })
+          );
+        }
+
         let project = await projectService.getProjectById({
           organization: ctx.organization,
-          projectId: ctx.params.projectId
+          projectId: ctx.params.projectId,
+          member: ctx.member,
+          actor: ctx.actor
         });
 
         project = await projectService.updateProject({

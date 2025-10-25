@@ -19,6 +19,8 @@ model Organization {
   type   OrganizationType
   status OrganizationStatus
 
+  enforceTeamAccess Boolean @default(false)
+
   slug String @unique
   name String
 
@@ -47,4 +49,7 @@ model Organization {
   scmInstallations        ScmInstallation[]
   scmInstallationAttempts ScmInstallationAttempt[]
   scmRepos                ScmRepo[]
+  accessLimiters          AccessLimiter[]
+  team                    Team[]
+  teamRole                TeamRole[]
 }

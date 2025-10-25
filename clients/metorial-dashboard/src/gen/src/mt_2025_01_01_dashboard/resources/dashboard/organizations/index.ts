@@ -1,6 +1,5 @@
 export * from './create';
 export * from './delete';
-export * from './get-membership';
 export * from './get';
 export * from './instances';
 export * from './invites';
@@ -8,4 +7,5 @@ export * from './join';
 export * from './list';
 export * from './members';
 export * from './projects';
+export * from './teams';
 export * from './update';

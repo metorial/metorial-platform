@@ -18,8 +18,6 @@ export let CallbackLayout = () => {
     callbackId
   ] as const;
 
-  console.log('Rendering CallbackLayout for callbackId:', callbackId, callback);
-
   return (
     <ContentLayout>
       {renderWithLoader({ callback })(({ callback }) => (

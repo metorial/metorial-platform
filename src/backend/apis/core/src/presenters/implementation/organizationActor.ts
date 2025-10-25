@@ -16,6 +16,16 @@ export let v1OrganizationActorPresenter = Presenter.create(organizationActorType
     email: organizationActor.email,
     image_url: await getImageUrl(organizationActor),
 
+    teams:
+      organizationActor.teams?.map(t => ({
+        id: t.team.id,
+        name: t.team.name,
+        slug: t.team.slug,
+        assignment_id: t.id,
+        created_at: t.createdAt,
+        updated_at: t.updatedAt
+      })) ?? null,
+
     created_at: organizationActor.createdAt,
     updated_at: organizationActor.updatedAt
   }))
@@ -47,6 +57,42 @@ export let v1OrganizationActorPresenter = Presenter.create(organizationActorType
         description: `The organization member's image URL`,
         examples: ['https://avatar-cdn.metorial.com/aimg_1234567890']
       }),
+
+      teams: v.array(
+        v.object(
+          {
+            id: v.string({
+              name: 'id',
+              description: `The team ID`
+            }),
+            name: v.string({
+              name: 'name',
+              description: `The team name`
+            }),
+            slug: v.string({
+              name: 'slug',
+              description: `The team slug`
+            }),
+            assignment_id: v.string({
+              name: 'assignment_id',
+              description: `The team assignment ID`
+            }),
+            created_at: v.date({
+              name: 'created_at',
+              description: `The team assignment creation date`
+            }),
+            updated_at: v.date({
+              name: 'updated_at',
+              description: `The team assignment last update date`
+            })
+          },
+          {
+            name: 'teams',
+            description: `The teams the actor belongs to`
+          }
+        )
+      ),
+
       created_at: v.date({
         name: 'created_at',
         description: `The organization member's creation date`

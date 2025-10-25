@@ -52,7 +52,7 @@ export type ManagementOrganizationProjectsListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & { teamId?: string | string[] | undefined };
 
 export let mapManagementOrganizationProjectsListQuery = mtMap.union([
   mtMap.unionOption(
@@ -62,7 +62,17 @@ export let mapManagementOrganizationProjectsListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      teamId: mtMap.objectField(
+        'team_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
     })
   )
 ]);
