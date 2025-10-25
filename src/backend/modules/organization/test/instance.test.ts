@@ -322,7 +322,9 @@ describe('InstanceService', () => {
 
       let result = await instanceService.getInstanceById({
         organization: { id: 'org-1', oid: 1 } as any,
-        instanceId: 'inst-1'
+        instanceId: 'inst-1',
+        actor: { id: 'actor-1', oid: 1 } as any,
+        member: undefined
       });
 
       expect(result).toEqual(mockInstance);
@@ -350,7 +352,9 @@ describe('InstanceService', () => {
 
       let result = await instanceService.getInstanceById({
         organization: { id: 'org-1', oid: 1 } as any,
-        instanceId: 'test-slug'
+        instanceId: 'test-slug',
+        actor: { id: 'actor-1', oid: 1 } as any,
+        member: undefined
       });
 
       expect(result).toEqual(mockInstance);
@@ -362,7 +366,9 @@ describe('InstanceService', () => {
       await expect(
         instanceService.getInstanceById({
           organization: { id: 'org-1', oid: 1 } as any,
-          instanceId: 'inst-999'
+          instanceId: 'inst-999',
+          actor: { id: 'actor-1', oid: 1 } as any,
+          member: undefined
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -373,7 +379,9 @@ describe('InstanceService', () => {
       let mockOrg = { id: 'org-1', oid: 1 };
 
       let result = await instanceService.listInstances({
-        organization: mockOrg as any
+        organization: mockOrg as any,
+        actor: { id: 'actor-1', oid: 1 } as any,
+        member: undefined
       });
 
       expect(result).toBeDefined();
@@ -385,7 +393,9 @@ describe('InstanceService', () => {
 
       let result = await instanceService.listInstances({
         organization: mockOrg as any,
-        project: mockProject as any
+        project: mockProject as any,
+        actor: { id: 'actor-1', oid: 1 } as any,
+        member: undefined
       });
 
       expect(result).toBeDefined();
@@ -395,7 +405,9 @@ describe('InstanceService', () => {
       let mockOrg = { id: 'org-1', oid: 1 };
 
       let result = await instanceService.listInstances({
-        organization: mockOrg as any
+        organization: mockOrg as any,
+        actor: { id: 'actor-1', oid: 1 } as any,
+        member: undefined
       });
 
       // The filter should include status: 'active'
@@ -628,7 +640,9 @@ describe('InstanceService', () => {
       await expect(
         instanceService.getInstanceById({
           organization: { id: 'org-1', oid: 1 } as any,
-          instanceId: 'inst-1'
+          instanceId: 'inst-1',
+          actor: { id: 'actor-1', oid: 1 } as any,
+          member: undefined
         })
       ).rejects.toThrow('Database error');
     });

@@ -285,7 +285,9 @@ describe('ProjectService', () => {
 
       let result = await projectService.getProjectById({
         organization: { id: 'org-1', oid: 1 } as any,
-        projectId: 'proj-1'
+        projectId: 'proj-1',
+        actor: { id: 'actor-1', oid: 1 } as any,
+        member: undefined
       });
 
       expect(result).toEqual(mockProject);
@@ -312,7 +314,9 @@ describe('ProjectService', () => {
 
       let result = await projectService.getProjectById({
         organization: { id: 'org-1', oid: 1 } as any,
-        projectId: 'test-slug'
+        projectId: 'test-slug',
+        actor: { id: 'actor-1', oid: 1 } as any,
+        member: undefined
       });
 
       expect(result).toEqual(mockProject);
@@ -324,7 +328,9 @@ describe('ProjectService', () => {
       await expect(
         projectService.getProjectById({
           organization: { id: 'org-1', oid: 1 } as any,
-          projectId: 'proj-999'
+          projectId: 'proj-999',
+          actor: { id: 'actor-1', oid: 1 } as any,
+          member: undefined
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -335,7 +341,9 @@ describe('ProjectService', () => {
       let mockOrg = { id: 'org-1', oid: 1 };
 
       let result = await projectService.listProjects({
-        organization: mockOrg as any
+        organization: mockOrg as any,
+        actor: { id: 'actor-1', oid: 1 } as any,
+        member: undefined
       });
 
       expect(result).toBeDefined();
@@ -345,7 +353,9 @@ describe('ProjectService', () => {
       let mockOrg = { id: 'org-1', oid: 1 };
 
       let result = await projectService.listProjects({
-        organization: mockOrg as any
+        organization: mockOrg as any,
+        actor: { id: 'actor-1', oid: 1 } as any,
+        member: undefined
       });
 
       expect(result).toBeDefined();
@@ -388,7 +398,9 @@ describe('ProjectService', () => {
       await expect(
         projectService.getProjectById({
           organization: { id: 'org-1', oid: 1 } as any,
-          projectId: 'proj-1'
+          projectId: 'proj-1',
+          actor: { id: 'actor-1', oid: 1 } as any,
+          member: undefined
         })
       ).rejects.toThrow('Database error');
     });

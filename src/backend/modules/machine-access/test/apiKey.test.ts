@@ -19,6 +19,9 @@ vi.mock('@metorial/db', () => ({
       findFirst: vi.fn(),
       findMany: vi.fn(),
       updateMany: vi.fn()
+    },
+    organization: {
+      findUniqueOrThrow: vi.fn()
     }
   },
   withTransaction: (fn: any) => fn(db),
@@ -95,6 +98,8 @@ describe('apiKeyService', () => {
       type: 'organization_management_token',
       machineAccess: {}
     });
+    // @ts-ignore
+    db.organization.findUniqueOrThrow.mockResolvedValue(baseOrg);
 
     const apiKey = {
       oid: 'api-key-oid',
@@ -121,6 +126,8 @@ describe('apiKeyService', () => {
       type: 'organization_management_token',
       machineAccess: {}
     });
+    // @ts-ignore
+    db.organization.findUniqueOrThrow.mockResolvedValue(baseOrg);
 
     const apiKey = {
       oid: 'api-key-oid',
@@ -152,6 +159,8 @@ describe('apiKeyService', () => {
     db.apiKeySecret.findMany.mockResolvedValue([{ id: 'secret-1' }]);
     // @ts-ignore
     db.apiKeySecret.updateMany.mockResolvedValue({});
+    // @ts-ignore
+    db.organization.findUniqueOrThrow.mockResolvedValue(baseOrg);
 
     const apiKey = {
       oid: 'api-key-oid',
@@ -175,6 +184,8 @@ describe('apiKeyService', () => {
   it('should reveal an api key secret', async () => {
     // @ts-ignore
     db.apiKeySecret.findFirst.mockResolvedValue({ secret: 'secret-key' });
+    // @ts-ignore
+    db.organization.findUniqueOrThrow.mockResolvedValue(baseOrg);
 
     const apiKey = {
       oid: 'api-key-oid',
