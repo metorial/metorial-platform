@@ -25,6 +25,9 @@ vi.mock('@metorial/db', () => ({
       create: vi.fn(),
       update: vi.fn()
     },
+    serverConfigVault: {
+      findFirst: vi.fn()
+    },
     server: {
       findMany: vi.fn()
     },
@@ -48,6 +51,9 @@ vi.mock('@metorial/db', () => ({
         create: vi.fn(),
         update: vi.fn()
       },
+      serverConfigVault: {
+        findFirst: vi.fn()
+      },
       providerOAuthConfig: {
         findFirstOrThrow: vi.fn(),
         findUniqueOrThrow: vi.fn()
@@ -59,7 +65,8 @@ vi.mock('@metorial/db', () => ({
   }),
   ID: {
     generateId: vi.fn(async (type: string) => `${type}-123`)
-  }
+  },
+  ensureEmailIdentity: vi.fn((factory: any) => factory())
 }));
 
 vi.mock('@metorial/delay', () => ({
@@ -411,7 +418,7 @@ describe('ServerDeploymentService', () => {
         input: {
           name: 'Test Deployment',
           description: 'Test Description',
-          config: { key: 'value' }
+          config: { type: 'direct', config: { key: 'value' } }
         },
         type: 'persistent'
       });
@@ -457,7 +464,7 @@ describe('ServerDeploymentService', () => {
             isNewEphemeral: false
           },
           input: {
-            config: {}
+            config: { type: 'direct', config: {} }
           },
           type: 'persistent'
         })
@@ -494,7 +501,7 @@ describe('ServerDeploymentService', () => {
             isNewEphemeral: false
           },
           input: {
-            config: {}
+            config: { type: 'direct', config: {} }
           },
           type: 'persistent'
         })
@@ -573,7 +580,7 @@ describe('ServerDeploymentService', () => {
           isNewEphemeral: true
         },
         input: {
-          config: {}
+          config: { type: 'direct', config: {} }
         },
         type: 'ephemeral'
       });
@@ -620,7 +627,7 @@ describe('ServerDeploymentService', () => {
             isNewEphemeral: false
           },
           input: {
-            config: {}
+            config: { type: 'direct', config: {} }
           },
           type: 'persistent'
         })

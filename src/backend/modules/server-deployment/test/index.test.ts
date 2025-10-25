@@ -59,7 +59,8 @@ vi.mock('@metorial/db', () => ({
   withTransaction: vi.fn(async (fn: any) => fn({})),
   ID: {
     generateId: vi.fn(async (type: string) => `${type}-123`)
-  }
+  },
+  ensureEmailIdentity: vi.fn((factory: any) => factory())
 }));
 
 // Mock all other dependencies
