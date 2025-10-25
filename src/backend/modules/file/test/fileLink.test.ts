@@ -69,7 +69,14 @@ describe('fileLinkService', () => {
     oid: 'file-oid',
     id: 'file-id',
     status: 'active',
-    purpose: 'test'
+    purpose: { canHaveLinks: true }
+  } as any;
+
+  const fileWithoutLinks = {
+    oid: 'file-oid-2',
+    id: 'file-id-2',
+    status: 'active',
+    purpose: { canHaveLinks: false }
   } as any;
 
   const fileLink = {
@@ -82,6 +89,83 @@ describe('fileLinkService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('createFileLink', () => {
+    it('creates file link with expiresAt', async () => {
+      const expiresAt = new Date('2025-12-31');
+      (db.fileLink.create as any).mockResolvedValue({
+        id: 'new-link-id',
+        fileOid: file.oid,
+        key: 'generated-key',
+        expiresAt,
+        file
+      });
+      (generatePlainId as any).mockResolvedValue('generated-key');
+
+      const result = await fileLinkService.createFileLink({
+        file,
+        input: { expiresAt }
+      });
+
+      expect(result).toBeDefined();
+      expect(result.key).toBe('generated-key');
+      expect(db.fileLink.create).toHaveBeenCalledWith({
+        data: {
+          id: undefined, // Will be mocked by ID.generateId
+          fileOid: file.oid,
+          expiresAt,
+          key: 'generated-key'
+        },
+        include: { file: true }
+      });
+    });
+
+    it('creates file link without expiresAt', async () => {
+      (db.fileLink.create as any).mockResolvedValue({
+        id: 'new-link-id',
+        fileOid: file.oid,
+        key: 'generated-key',
+        expiresAt: undefined,
+        file
+      });
+      (generatePlainId as any).mockResolvedValue('generated-key');
+
+      const result = await fileLinkService.createFileLink({
+        file,
+        input: {}
+      });
+
+      expect(result).toBeDefined();
+      expect(result.expiresAt).toBeUndefined();
+      expect(db.fileLink.create).toHaveBeenCalled();
+    });
+
+    it('throws when file purpose does not allow links', async () => {
+      await expect(
+        fileLinkService.createFileLink({
+          file: fileWithoutLinks,
+          input: {}
+        })
+      ).rejects.toThrow(ServiceError);
+    });
+
+    it('generates unique key for file link', async () => {
+      (db.fileLink.create as any).mockResolvedValue({
+        id: 'new-link-id',
+        fileOid: file.oid,
+        key: 'unique-key-123',
+        file
+      });
+      (generatePlainId as any).mockResolvedValue('unique-key-123');
+
+      await fileLinkService.createFileLink({
+        file,
+        input: {}
+      });
+
+      expect(generatePlainId).toHaveBeenCalledWith(30);
+    });
   });
 
   describe('getFileLinkById', () => {
@@ -134,6 +218,33 @@ describe('fileLinkService', () => {
         include: { file: true }
       });
     });
+
+    it('updates file link with new expiresAt', async () => {
+      const newExpiresAt = new Date('2026-01-01');
+      const updatedLink = { ...fileLink, expiresAt: newExpiresAt };
+      (db.fileLink.update as any).mockResolvedValue(updatedLink);
+
+      const result = await fileLinkService.updateFileLink({
+        // @ts-ignore
+        fileLink,
+        input: { expiresAt: newExpiresAt }
+      });
+
+      expect(result.expiresAt).toBe(newExpiresAt);
+    });
+
+    it('updates file link to remove expiresAt', async () => {
+      const updatedLink = { ...fileLink, expiresAt: undefined };
+      (db.fileLink.update as any).mockResolvedValue(updatedLink);
+
+      const result = await fileLinkService.updateFileLink({
+        // @ts-ignore
+        fileLink,
+        input: { expiresAt: undefined }
+      });
+
+      expect(result.expiresAt).toBeUndefined();
+    });
   });
 
   describe('listFileLinks', () => {
@@ -141,6 +252,31 @@ describe('fileLinkService', () => {
       (db.fileLink.findMany as any).mockResolvedValue([fileLink]);
       const paginator = await fileLinkService.listFileLinks({ file });
       expect(Array.isArray(await paginator)).toBe(true);
+    });
+
+    it('lists multiple file links', async () => {
+      const fileLink2 = { ...fileLink, id: 'link-id-2', key: 'link-key-2' };
+      (db.fileLink.findMany as any).mockResolvedValue([fileLink, fileLink2]);
+      const paginator = await fileLinkService.listFileLinks({ file });
+      const result = await paginator;
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('lists empty array when no links exist', async () => {
+      (db.fileLink.findMany as any).mockResolvedValue([]);
+      const paginator = await fileLinkService.listFileLinks({ file });
+      const result = await paginator;
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('filters by file oid', async () => {
+      (db.fileLink.findMany as any).mockResolvedValue([fileLink]);
+      await fileLinkService.listFileLinks({ file });
+      expect(db.fileLink.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { fileOid: file.oid }
+        })
+      );
     });
   });
 
@@ -166,6 +302,41 @@ describe('fileLinkService', () => {
       await expect(
         fileLinkService.getFileLinkByKey({ fileId: file.id, key: 'bad-key' })
       ).rejects.toThrow(ServiceError);
+    });
+
+    it('only returns links for active files', async () => {
+      (db.fileLink.findUnique as any).mockResolvedValue(fileLink);
+      await fileLinkService.getFileLinkByKey({
+        fileId: file.id,
+        key: fileLink.key
+      });
+      expect(db.fileLink.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            file: expect.objectContaining({ status: 'active' })
+          })
+        })
+      );
+    });
+
+    it('returns correct file object structure', async () => {
+      (db.fileLink.findUnique as any).mockResolvedValue(fileLink);
+      const result = await fileLinkService.getFileLinkByKey({
+        fileId: file.id,
+        key: fileLink.key
+      });
+      expect(result.file).toEqual(fileLink.file);
+      expect(result.link).toEqual(fileLink);
+    });
+
+    it('throws with correct error for invalid key', async () => {
+      (db.fileLink.findUnique as any).mockResolvedValue(null);
+      try {
+        await fileLinkService.getFileLinkByKey({ fileId: file.id, key: 'invalid-key' });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ServiceError);
+      }
     });
   });
 });
