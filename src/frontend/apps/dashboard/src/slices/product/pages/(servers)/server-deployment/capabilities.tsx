@@ -150,7 +150,7 @@ export let CapabilityEntry = (p: {
               />
             ) : (
               <Text size="2" color="gray600">
-                No capabilities found for this server version.
+                No capability changes found for this server version.
               </Text>
             )}
           </>
