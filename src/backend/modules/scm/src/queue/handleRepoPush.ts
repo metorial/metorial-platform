@@ -34,7 +34,14 @@ export let createHandleRepoPushForCustomServerQueue = createQueue<{
   pushId: string;
   customServerId: string;
 }>({
-  name: 'scm/rep/hndl-push/csrv'
+  name: 'scm/rep/hndl-push/csrv',
+  workerOpts: {
+    concurrency: 5,
+    limiter: {
+      max: 2,
+      duration: 30 * 1000
+    }
+  }
 });
 
 export let createHandleRepoPushForCustomServerQueueProcessor =
