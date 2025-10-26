@@ -16,10 +16,10 @@ export let checkAccess = apiGroup.createMiddleware(
       possibleScopes: input.possibleScopes
     });
 
-    if ('instance' in ctx) {
+    if ('instance' in ctx && ctx.instance) {
       let instance = ctx.instance as Instance & { organization: Organization };
 
-      if ('member' in ctx) {
+      if ('member' in ctx && ctx.member) {
         let member = ctx.member as OrganizationMember;
         if (member.role == 'admin') return;
       }

@@ -691,9 +691,11 @@ class OauthAuthorizationServiceImpl {
       });
     }
 
-    let expiryWindow = addMinutes(new Date(), 10);
+    let lastRefreshAt = token.refreshedAt ?? token.lastUsedAt;
+    let duration = differenceInMinutes(new Date(), lastRefreshAt);
+    let expiryWindow = duration < 10 ? new Date() : addMinutes(new Date(), 10);
 
-    if (token.expiresAt && token.expiresAt < expiryWindow) {
+    if (token.expiresAt && token.expiresAt.getTime() < expiryWindow.getTime()) {
       token = await (async () => {
         if (!token.refreshToken) {
           // Maybe we have another token for the same profile
@@ -870,6 +872,8 @@ class OauthAuthorizationServiceImpl {
             idToken: tokenResponse.id_token || undefined,
             scope: tokenResponse.scope || undefined,
             lastUsedAt: new Date(),
+            refreshedAt:
+              tokenResponse.refresh_token != token.refreshToken ? new Date() : undefined,
             additionalAuthData: {
               ...(token.additionalAuthData ?? {}),
               ...additionalAuthData
