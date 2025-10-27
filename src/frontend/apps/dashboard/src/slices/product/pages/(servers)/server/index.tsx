@@ -255,9 +255,10 @@ export let ServerOverviewPage = () => {
       path: opts.path,
       initialFile: opts.initialFile,
       replacements: {
-        '...your-metorial-api-key...': apiKeySecret,
-        '...metorial-api-key...': apiKeySecret,
-        '...server-deployment-id...': serverDeployment?.id
+        'your-server-deployment-id': serverDeployment?.id,
+        'your-metorial-api-key': apiKeySecret,
+        'metorial-api-key': apiKeySecret,
+        'server-deployment-id': serverDeployment?.id
       }
     };
   };
