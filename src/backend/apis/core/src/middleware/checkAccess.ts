@@ -16,7 +16,7 @@ export let checkAccess = apiGroup.createMiddleware(
       possibleScopes: input.possibleScopes
     });
 
-    if ('instance' in ctx && ctx.instance) {
+    if (ctx.auth.type == 'user' && 'instance' in ctx && ctx.instance) {
       let instance = ctx.instance as Instance & { organization: Organization };
 
       if ('member' in ctx && ctx.member) {
@@ -36,6 +36,7 @@ export let checkAccess = apiGroup.createMiddleware(
                 }
               : {
                   type: 'actor',
+                  // @ts-ignore
                   actor: ctx.auth.restrictions.actor
                 }
         });
