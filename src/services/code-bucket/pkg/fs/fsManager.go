@@ -25,8 +25,8 @@ import (
 
 const (
 	redisFlushDelay = 5 * time.Minute
-	zipExpiration   = 5 * 24 * time.Hour
-	s3ZipExpiration = 365 * 24 * time.Hour
+	zipExpiration   = 3 * 24 * time.Hour
+	s3ZipExpiration = 5 * 24 * time.Hour
 )
 
 type FileInfo struct {
@@ -351,6 +351,7 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 		Key:         aws.String(zipKey),
 		Body:        bytes.NewReader(buf.Bytes()),
 		ContentType: aws.String("application/zip"),
+		// Tagging:     aws.String("temporary=true"),
 	})
 	if err != nil {
 		return nil, nil, status.Errorf(codes.Internal, "failed to upload zip: %v", err)
