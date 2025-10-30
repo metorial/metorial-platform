@@ -8,6 +8,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -26,11 +27,20 @@ func (fsm *FileSystemManager) flushPendingFiles() {
 	ctx := context.Background()
 	pattern := "flush:*"
 
-	keys, err := fsm.redis.Keys(ctx, pattern).Result()
-	if err != nil {
-		log.Printf("Error getting flush keys: %v", err)
+	// Use SCAN instead of KEYS to avoid blocking Redis
+	var keys []string
+	iter := fsm.redis.Scan(ctx, 0, pattern, 100).Iterator()
+	for iter.Next(ctx) {
+		keys = append(keys, iter.Val())
+	}
+	if err := iter.Err(); err != nil {
+		log.Printf("Error scanning flush keys: %v", err)
 		return
 	}
+
+	// Limit concurrent flushes to prevent goroutine explosion
+	semaphore := make(chan struct{}, 10)
+	var wg sync.WaitGroup
 
 	for _, key := range keys {
 		parts := strings.Split(key, ":")
@@ -62,7 +72,12 @@ func (fsm *FileSystemManager) flushPendingFiles() {
 			continue
 		}
 
+		wg.Add(1)
+		semaphore <- struct{}{} // Acquire semaphore
+
 		go func(bucketID, filePath, key, lockKey string) {
+			defer wg.Done()
+			defer func() { <-semaphore }() // Release semaphore
 			defer fsm.releaseLock(ctx, lockKey)
 
 			if err := fsm.flushFileToS3(ctx, bucketID, filePath); err != nil {
@@ -72,6 +87,8 @@ func (fsm *FileSystemManager) flushPendingFiles() {
 			}
 		}(bucketID, filePath, key, lockKey)
 	}
+
+	wg.Wait()
 }
 
 func (fsm *FileSystemManager) acquireLock(ctx context.Context, lockKey string) bool {
@@ -115,8 +132,13 @@ func (fsm *FileSystemManager) cleanupZipFiles() {
 		ctx := context.Background()
 		pattern := "zip:*"
 
-		keys, err := fsm.redis.Keys(ctx, pattern).Result()
-		if err != nil {
+		// Use SCAN instead of KEYS to avoid blocking Redis
+		var keys []string
+		iter := fsm.redis.Scan(ctx, 0, pattern, 100).Iterator()
+		for iter.Next(ctx) {
+			keys = append(keys, iter.Val())
+		}
+		if iter.Err() != nil {
 			continue
 		}
 
