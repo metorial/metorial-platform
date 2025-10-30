@@ -248,7 +248,10 @@ export let getSessionConfig = async (
     }
 
     let server = {
-      protocol: RunConfigLambdaServer_Protocol.metorial_stellar_over_websocket_v1,
+      protocol:
+        version.lambda.provider == 'aws_lambda'
+          ? RunConfigLambdaServer_Protocol.metorial_stellar_over_aws_lambda_v1
+          : RunConfigLambdaServer_Protocol.metorial_stellar_over_websocket_v1,
       providerResourceAccessIdentifier: version.lambda.providerResourceAccessIdentifier!,
       securityToken: version.lambda.securityToken!
     };

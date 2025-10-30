@@ -46,10 +46,11 @@ message RunConfigRemote {
 message RunConfigLambdaServer {
   enum Protocol {
     metorial_stellar_over_websocket_v1 = 0;
+    metorial_stellar_over_aws_lambda_v1 = 1;
   }
 
   Protocol protocol = 1;
-  optional string provider_resource_access_identifier = 2;
+  string provider_resource_access_identifier = 2;
   optional string security_token = 3;
 }
 

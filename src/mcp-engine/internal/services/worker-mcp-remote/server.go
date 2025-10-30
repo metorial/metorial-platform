@@ -61,40 +61,50 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 		return err // Other error
 	}
 
-	msg, ok := req.Type.(*remotePb.RunRequest_Init)
+	initMsg, ok := req.Type.(*remotePb.RunRequest_Init)
 	if !ok {
 		return fmt.Errorf("expected McpInit request, got %T", req.Type)
 	}
 
 	var conn Connection
-	switch msg.Init.RunConfig.Config.(type) {
+	switch initMsg.Init.RunConfig.Config.(type) {
 	case *remotePb.RunConfig_RemoteRunConfig:
-		switch msg.Init.RunConfig.GetRemoteRunConfig().Server.Protocol {
+		switch initMsg.Init.RunConfig.GetRemoteRunConfig().Server.Protocol {
 		case remotePb.RunConfigRemoteServer_sse:
-			fmt.Printf("Creating SSE connection to %s\n", msg.Init.RunConfig.GetRemoteRunConfig().Server.ServerUri)
-			conn, err = NewConnectionSSE(stream.Context(), msg.Init.RunConfig.GetRemoteRunConfig())
+			fmt.Printf("Creating SSE connection to %s\n", initMsg.Init.RunConfig.GetRemoteRunConfig().Server.ServerUri)
+			conn, err = NewConnectionSSE(stream.Context(), initMsg.Init.RunConfig.GetRemoteRunConfig())
 			if err != nil {
 				log.Printf("Failed to create SSE connection: %v", err)
 				return err
 			}
 		case remotePb.RunConfigRemoteServer_streamable_http:
-			fmt.Printf("Creating Streamable HTTP connection to %s\n", msg.Init.RunConfig.GetRemoteRunConfig().Server.ServerUri)
-			conn, err = NewConnectionStreamableHTTP(stream.Context(), msg.Init.RunConfig.GetRemoteRunConfig())
+			fmt.Printf("Creating Streamable HTTP connection to %s\n", initMsg.Init.RunConfig.GetRemoteRunConfig().Server.ServerUri)
+			conn, err = NewConnectionStreamableHTTP(stream.Context(), initMsg.Init.RunConfig.GetRemoteRunConfig())
 			if err != nil {
 				log.Printf("Failed to create Streamable HTTP connection: %v", err)
 				return err
 			}
 		default:
-			return fmt.Errorf("unsupported remote server protocol: %v", msg.Init.RunConfig.GetRemoteRunConfig().Server.Protocol)
+			return fmt.Errorf("unsupported remote server protocol: %v", initMsg.Init.RunConfig.GetRemoteRunConfig().Server.Protocol)
 		}
 	case *remotePb.RunConfig_LambdaRunConfig:
-		conn, err = NewConnectionLambdaWs(stream.Context(), msg.Init.Client, msg.Init.RunConfig.GetLambdaRunConfig())
-		if err != nil {
-			log.Printf("Failed to create SSE connection: %v", err)
-			return err
+		switch initMsg.Init.RunConfig.GetLambdaRunConfig().Server.Protocol {
+		case remotePb.RunConfigLambdaServer_metorial_stellar_over_aws_lambda_v1:
+			conn, err = NewConnectionLambdaOverAwsApi(stream.Context(), ensureLambdaClient(), initMsg.Init.Client, initMsg.Init.RunConfig.GetLambdaRunConfig())
+			if err != nil {
+				log.Printf("Failed to create SSE connection: %v", err)
+				return err
+			}
+		case remotePb.RunConfigLambdaServer_metorial_stellar_over_websocket_v1:
+			conn, err = NewConnectionLambdaWs(stream.Context(), initMsg.Init.Client, initMsg.Init.RunConfig.GetLambdaRunConfig())
+			if err != nil {
+				log.Printf("Failed to create SSE connection: %v", err)
+				return err
+			}
 		}
+
 	default:
-		return fmt.Errorf("unsupported run config type: %T", msg.Init.RunConfig.Config)
+		return fmt.Errorf("unsupported run config type: %T", initMsg.Init.RunConfig.Config)
 	}
 
 	lastPing := time.Now()
@@ -111,37 +121,41 @@ func (r *remoteServer) StreamMcpRun(stream grpc.BidiStreamingServer[remotePb.Run
 				return
 
 			case <-ticker.C:
-				if time.Since(lastPing) > 25*time.Second && msg.Init.RunConfig.GetLambdaRunConfig() == nil {
-					// Container has not responded in a while, consider it dead
-					conn.Close()
-					stream.Send(&remotePb.RunResponse{
-						Type: &remotePb.RunResponse_Error{
-							Error: &remotePb.RunResponseError{
-								McpError: &mcpPb.McpError{
-									ErrorMessage: "Connection timed out",
-									ErrorCode:    mcpPb.McpError_timeout,
+				// We only have pings for remote servers
+				switch initMsg.Init.RunConfig.Config.(type) {
+				case *remotePb.RunConfig_RemoteRunConfig:
+					if time.Since(lastPing) > 25*time.Second && initMsg.Init.RunConfig.GetLambdaRunConfig() == nil {
+						// Container has not responded in a while, consider it dead
+						conn.Close()
+						stream.Send(&remotePb.RunResponse{
+							Type: &remotePb.RunResponse_Error{
+								Error: &remotePb.RunResponseError{
+									McpError: &mcpPb.McpError{
+										ErrorMessage: "Connection timed out",
+										ErrorCode:    mcpPb.McpError_timeout,
+									},
 								},
 							},
-						},
-					})
-					stream.Send(&remotePb.RunResponse{
-						Type: &remotePb.RunResponse_Close{
-							Close: &remotePb.RunResponseClose{},
-						},
-					})
+						})
+						stream.Send(&remotePb.RunResponse{
+							Type: &remotePb.RunResponse_Close{
+								Close: &remotePb.RunResponseClose{},
+							},
+						})
 
-					return
+						return
+					}
+
+					conn.SendControl(
+						fmt.Sprintf(`{"jsonrpc": "2.0", "id": "mtr/ping/%d", "method": "ping", "params": {}}`, time.Now().UnixMicro()),
+					)
 				}
-
-				conn.SendControl(
-					fmt.Sprintf(`{"jsonrpc": "2.0", "id": "mtr/ping/%d", "method": "ping", "params": {}}`, time.Now().UnixMicro()),
-				)
 			}
 		}
 	}()
 
 	conn.Subscribe(func(response *remotePb.RunResponse) {
-		// lastPing = time.Now()
+		lastPing = time.Now()
 
 		message, ok := response.Type.(*remotePb.RunResponse_McpMessage)
 		if ok && message != nil {

@@ -37,7 +37,7 @@ func discoverServer(db_ *db.DB, server *db.Server, connection workers.WorkerConn
 		return nil
 	}
 
-	log.Printf("Discovering server for server %s with connection %s", server.ID, connection.ConnectionID())
+	log.Printf("Discovering server %s with connection %s", server.ID, connection.ConnectionID())
 
 	err := client.WithClient(connection, func(c *client.Client) error {
 		log.Printf("Discovering server and applying updates for server %s", server.ID)

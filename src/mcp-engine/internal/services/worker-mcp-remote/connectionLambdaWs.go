@@ -19,44 +19,44 @@ import (
 	"github.com/metorial/metorial/modules/util"
 )
 
-type BaseMessage struct {
+type WsBaseMessage struct {
 	Type string `json:"type"`
 }
 
-type LogsMessage_Line struct {
+type WsLogsMessage_Line struct {
 	Type  string   `json:"type"`
 	Lines []string `json:"lines"`
 }
 
-type LogsMessage struct {
-	Type  string             `json:"type"`
-	Lines []LogsMessage_Line `json:"lines"`
+type WsLogsMessage struct {
+	Type  string               `json:"type"`
+	Lines []WsLogsMessage_Line `json:"lines"`
 }
 
-type McpMessageResponse struct {
+type WsMcpMessageResponse struct {
 	Type    string `json:"type"`
 	Message string `json:"message"`
 }
 
-type McpMessageRequest_Opts struct {
+type WsMcpMessageRequest_Opts struct {
 	TimeoutMs int64 `json:"timeoutMs"`
 }
 
-type McpMessageRequest struct {
-	Type    string                 `json:"type"`
-	Message string                 `json:"message"`
-	Opts    McpMessageRequest_Opts `json:"opts"`
+type WsMcpMessageRequest struct {
+	Type    string                   `json:"type"`
+	Message string                   `json:"message"`
+	Opts    WsMcpMessageRequest_Opts `json:"opts"`
 	// Capabilities any                    `json:"capabilities,omitempty"`
 }
 
-type RemoteError struct {
+type WsRemoteError struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
-type ErrorMessage struct {
-	Type  string      `json:"type"`
-	Error RemoteError `json:"error"`
+type WsErrorMessage struct {
+	Type  string        `json:"type"`
+	Error WsRemoteError `json:"error"`
 }
 
 type ConnectionLambdaWs struct {
@@ -103,7 +103,7 @@ func (c *ConnectionLambdaWs) ensureConnection() (*websocket.Conn, error) {
 		return c.activeConnection, nil
 	}
 
-	baseUrl, err := url.ParseRequestURI(*c.config.Server.ProviderResourceAccessIdentifier)
+	baseUrl, err := url.ParseRequestURI(c.config.Server.ProviderResourceAccessIdentifier)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse WebSocket URL: %w", err)
 	}
@@ -138,7 +138,7 @@ func (c *ConnectionLambdaWs) ensureConnection() (*websocket.Conn, error) {
 			}
 
 			// First unmarshal into BaseMessage to check type
-			var base BaseMessage
+			var base WsBaseMessage
 			if err := json.Unmarshal(message, &base); err != nil {
 				log.Println("lambda ws unmarshal error:", err)
 				continue
@@ -146,7 +146,7 @@ func (c *ConnectionLambdaWs) ensureConnection() (*websocket.Conn, error) {
 
 			switch base.Type {
 			case "logs":
-				var logsMsg LogsMessage
+				var logsMsg WsLogsMessage
 				if err := json.Unmarshal(message, &logsMsg); err != nil {
 					log.Println("lambda ws unmarshal logs error:", err)
 					continue
@@ -171,7 +171,7 @@ func (c *ConnectionLambdaWs) ensureConnection() (*websocket.Conn, error) {
 					}
 				}
 			case "mcp.message":
-				var mcpMsg McpMessageResponse
+				var mcpMsg WsMcpMessageResponse
 				if err := json.Unmarshal(message, &mcpMsg); err != nil {
 					log.Println("lambda ws unmarshal mcp message error:", err)
 					continue
@@ -200,7 +200,7 @@ func (c *ConnectionLambdaWs) ensureConnection() (*websocket.Conn, error) {
 					},
 				}
 			case "error":
-				var errMsg ErrorMessage
+				var errMsg WsErrorMessage
 				if err := json.Unmarshal(message, &errMsg); err != nil {
 					log.Println("lambda ws unmarshal error message error:", err)
 					continue
@@ -272,10 +272,10 @@ func (c *ConnectionLambdaWs) SendMcp(msg string) error {
 		return fmt.Errorf("failed to ensure WebSocket connection: %w", err)
 	}
 
-	req := McpMessageRequest{
+	req := WsMcpMessageRequest{
 		Type:    "mcp.message",
 		Message: msg,
-		Opts: McpMessageRequest_Opts{
+		Opts: WsMcpMessageRequest_Opts{
 			TimeoutMs: 30000,
 		},
 	}

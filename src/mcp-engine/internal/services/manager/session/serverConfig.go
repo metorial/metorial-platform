@@ -54,9 +54,9 @@ func processServerConfig(
 		dbType = db.SessionTypeLambda
 
 		if config.GetLambdaRunConfigWithLauncher() != nil {
-			serverIdentifier = *config.GetLambdaRunConfigWithLauncher().Server.ProviderResourceAccessIdentifier
+			serverIdentifier = config.GetLambdaRunConfigWithLauncher().Server.ProviderResourceAccessIdentifier
 		} else if config.GetLambdaRunConfigWithServer() != nil {
-			serverIdentifier = *config.GetLambdaRunConfigWithServer().Server.ProviderResourceAccessIdentifier
+			serverIdentifier = config.GetLambdaRunConfigWithServer().Server.ProviderResourceAccessIdentifier
 		}
 	}
 

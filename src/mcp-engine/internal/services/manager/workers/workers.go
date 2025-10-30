@@ -197,10 +197,7 @@ func (wm *WorkerManager) GetConnectionHashForWorkerType(workerType WorkerType, i
 			if config.LambdaRunConfig == nil || config.LambdaRunConfig.Server == nil {
 				return nil, fmt.Errorf("LambdaRunConfig.Server is required to create a connection hash")
 			}
-			if config.LambdaRunConfig.Server.ProviderResourceAccessIdentifier == nil {
-				return nil, fmt.Errorf("LambdaRunConfig.Server.ProviderResourceAccessIdentifier is required to create a connection hash")
-			}
-			return []byte(*config.LambdaRunConfig.Server.ProviderResourceAccessIdentifier), nil
+			return []byte(config.LambdaRunConfig.Server.ProviderResourceAccessIdentifier), nil
 		default:
 			return nil, fmt.Errorf("unsupported RemoteRunConfig type: %T", config)
 		}
