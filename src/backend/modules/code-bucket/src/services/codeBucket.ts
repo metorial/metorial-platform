@@ -222,6 +222,17 @@ class codeBucketServiceImpl {
 
     return res;
   }
+
+  async getFile(d: { codeBucket: CodeBucket; path: string }) {
+    await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
+
+    let res = await codeWorkspaceClient.getBucketFile({
+      bucketId: d.codeBucket.id,
+      path: d.path
+    });
+
+    return res.content;
+  }
 }
 
 export let codeBucketService = Service.create(

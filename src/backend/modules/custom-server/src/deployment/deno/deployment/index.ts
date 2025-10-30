@@ -20,6 +20,8 @@ axios.defaults.headers.common['Accept-Encoding'] = 'gzip';
 const USE_DENO_DEPLOY = !!(env.deno.DENO_DEPLOY_TOKEN && env.deno.DENO_ORGANIZATION_ID);
 const USE_SELF_HOSTED = !USE_DENO_DEPLOY && !!env.deno.DENO_RUNNER_ADDRESS;
 
+export let isDenoDeployEnabled = () => USE_DENO_DEPLOY || USE_SELF_HOSTED;
+
 export let createDenoLambdaDeployment = async (config: {
   lambdaServerInstance: LambdaServerInstance & {
     immutableCodeBucket: CodeBucket;

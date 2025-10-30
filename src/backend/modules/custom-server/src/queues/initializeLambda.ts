@@ -1,7 +1,10 @@
 import { db, ServerVersion } from '@metorial/db';
+import { codeBucketService } from '@metorial/module-code-bucket';
 import { createQueue } from '@metorial/queue';
 import { getSentry } from '@metorial/sentry';
+import { isAwsLambdaEnabled } from '../deployment/aws-lambda/lib/aws';
 import { lambdaDeployMainQueue } from '../deployment/aws-lambda/queues';
+import { isDenoDeployEnabled } from '../deployment/deno/deployment';
 import { denoDeployMainQueue } from '../deployment/deno/queues/main';
 import { useDeploymentQueue } from '../lib/useDeploymentQueue';
 
@@ -30,7 +33,7 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
     serverVersionData: data.serverVersionData
   });
 
-  await stepManager.createDeploymentStep({
+  let deploymentStep = await stepManager.createDeploymentStep({
     type: 'started',
     status: 'completed',
     log: [
@@ -43,16 +46,67 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
     ]
   });
 
-  switch (lambda.provider) {
-    case 'aws_lambda':
-    case null:
-      if (lambda.provider === null) {
-        await db.lambdaServerInstance.update({
-          where: { oid: lambda.oid },
-          data: { provider: 'aws_lambda', runtime: 'aws_lambda_nodejs_24_x' }
-        });
+  let provider = lambda.provider;
+  let lang: 'python' | 'ts' = 'ts'; // TODO: @RahmeKarim add detection for python
+
+  try {
+    let metorialJson = await codeBucketService.getFile({
+      codeBucket: lambda.immutableCodeBucket,
+      path: 'metorial.json'
+    });
+
+    let content = JSON.parse(new TextDecoder().decode(metorialJson?.content!));
+
+    if (content.runtime == 'typescript.deno' || content.runtime == 'javascript.deno') {
+      if (!isDenoDeployEnabled() && isAwsLambdaEnabled()) {
+        provider = 'aws_lambda';
+      } else {
+        provider = 'deno_deploy';
       }
 
+      lang = 'ts';
+    } else if (content.runtime == 'typescript.node' || content.runtime == 'javascript.node') {
+      if (!isAwsLambdaEnabled() && isDenoDeployEnabled()) {
+        provider = 'deno_deploy';
+      } else {
+        provider = 'aws_lambda';
+      }
+
+      lang = 'ts';
+    } else if (content.runtime == 'python') {
+      provider = 'aws_lambda';
+      lang = 'python';
+    }
+  } catch {
+    deploymentStep.addLog(['Unable to find metorial.json']);
+  }
+
+  if (!provider) {
+    if (isDenoDeployEnabled()) {
+      provider = 'deno_deploy';
+    } else {
+      provider = 'aws_lambda';
+    }
+  }
+
+  if (provider != lambda.provider) {
+    await db.lambdaServerInstance.updateMany({
+      where: { oid: lambda.oid },
+      data: { provider }
+    });
+  }
+
+  if (!lambda.runtime) {
+    await db.lambdaServerInstance.updateMany({
+      where: { oid: lambda.oid },
+      data: {
+        runtime: lang == 'python' ? 'aws_lambda_python_3_12' : 'aws_lambda_nodejs_22_x'
+      }
+    });
+  }
+
+  switch (provider) {
+    case 'aws_lambda':
       await lambdaDeployMainQueue.add({
         lambdaId: data.lambdaId,
         serverVersionData: data.serverVersionData

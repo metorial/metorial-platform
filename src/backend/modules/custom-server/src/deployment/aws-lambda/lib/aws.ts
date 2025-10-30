@@ -26,6 +26,8 @@ export let awsLambda = new LambdaClient(awsConfig);
 export let awsAccountId = env.aws.AWS_ACCOUNT_ID;
 export let awsRegion = env.aws.AWS_REGION;
 
+export let isAwsLambdaEnabled = () => !!awsRegion;
+
 if (env.aws.AWS_ACCESS_KEY_ID && !env.aws.AWS_SECRET_ACCESS_KEY) {
   throw new Error('AWS_SECRET_ACCESS_KEY must be set if AWS_ACCESS_KEY_ID is set');
 }
