@@ -43,6 +43,7 @@ func (rs *RcpService) CreateBucketFromGithub(ctx context.Context, req *rpc.Creat
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to download GitHub repository: %v", err)
 	}
+	defer iter.Close()
 
 	if err := rs.fsm.ImportZip(ctx, req.NewBucketId, iter); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to import zip: %v", err)
@@ -56,6 +57,7 @@ func (rs *RcpService) CreateBucketFromZip(ctx context.Context, req *rpc.CreateBu
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to download zip: %v", err)
 	}
+	defer iter.Close()
 
 	if err := rs.fsm.ImportZip(ctx, req.NewBucketId, iter); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to import zip: %v", err)
