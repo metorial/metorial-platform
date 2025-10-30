@@ -37,18 +37,28 @@ export let createDeploymentStepManager = (opts: { deployment: CustomServerDeploy
         return currentLogs;
       };
 
-      let step = await db.customServerDeploymentStep.create({
-        data: {
-          id: await ID.generateId('customServerDeploymentStep'),
-          type: d.type,
-          status: d.status ?? 'running',
-          index: indexRef.current++,
+      let existingStep = await db.customServerDeploymentStep.findFirst({
+        where: {
           deploymentOid: opts.deployment.oid,
-          startedAt: new Date(),
-          endedAt: d.status == 'completed' ? new Date() : null,
-          logs: upsertLogs(undefined, d.log || [])
+          type: d.type,
+          status: 'running'
         }
       });
+
+      let step =
+        existingStep ??
+        (await db.customServerDeploymentStep.create({
+          data: {
+            id: await ID.generateId('customServerDeploymentStep'),
+            type: d.type,
+            status: d.status ?? 'running',
+            index: indexRef.current++,
+            deploymentOid: opts.deployment.oid,
+            startedAt: new Date(),
+            endedAt: d.status == 'completed' ? new Date() : null,
+            logs: upsertLogs(undefined, d.log || [])
+          }
+        }));
 
       let setStatus = async (status: CustomServerDeploymentStepStatus, logs?: Logs) => {
         if (step.status != 'running') return;

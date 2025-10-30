@@ -32,40 +32,43 @@ export let v1CustomServerDeploymentPresenter = Presenter.create(customServerDepl
     started_at: customServerDeployment.startedAt ?? null,
     ended_at: customServerDeployment.endedAt ?? null,
 
-    steps: customServerDeployment.steps.map(step => ({
-      object: 'custom_server.deployment.step',
-      id: step.id,
-      index: step.index,
+    steps: customServerDeployment.steps
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+      .map((step, index) => ({
+        object: 'custom_server.deployment.step',
+        id: step.id,
+        index,
 
-      status: {
-        running: 'running',
-        completed: 'completed',
-        failed: 'failed'
-      }[step.status],
+        status: {
+          running: 'running',
+          completed: 'completed',
+          failed: 'failed'
+        }[step.status],
 
-      type: {
-        started: 'started',
-        remote_server_connection_test: 'remote_server_connection_test',
-        remote_oauth_auto_discovery: 'remote_oauth_auto_discovery',
-        deploying: 'deploying',
-        deployed: 'deployed',
-        lambda_deploy_build: 'lambda_deploy_build',
-        lambda_deploy_create: 'lambda_deploy_create',
-        discovering: 'discovering'
-      }[step.type],
+        type: {
+          started: 'started',
+          remote_server_connection_test: 'remote_server_connection_test',
+          remote_oauth_auto_discovery: 'remote_oauth_auto_discovery',
+          deploying: 'deploying',
+          deployed: 'deployed',
+          lambda_deploy_build: 'lambda_deploy_build',
+          lambda_deploy_create: 'lambda_deploy_create',
+          lambda_deploy_publish: 'lambda_deploy_publish',
+          discovering: 'discovering'
+        }[step.type],
 
-      logs: (step.logs ?? []).flatMap(([ts, lines, type]) =>
-        lines.map(line => ({
-          timestamp: new Date(ts),
-          line,
-          type: type == 1 ? 'error' : 'info'
-        }))
-      ),
+        logs: (step.logs ?? []).flatMap(([ts, lines, type]) =>
+          lines.map(line => ({
+            timestamp: new Date(ts),
+            line,
+            type: type == 1 ? 'error' : 'info'
+          }))
+        ),
 
-      created_at: step.createdAt,
-      started_at: step.startedAt ?? null,
-      ended_at: step.endedAt ?? null
-    }))
+        created_at: step.createdAt,
+        started_at: step.startedAt ?? null,
+        ended_at: step.endedAt ?? null
+      }))
   }))
   .schema(
     v.object({

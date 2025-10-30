@@ -254,6 +254,7 @@ let StepDetails = ({ step }: { step: Step }) => {
                   deploying: 'Deploying Server',
                   deployed: 'Deployment Completed',
                   lambda_deploy_create: 'Creating Managed Deployment',
+                  lambda_deploy_publish: 'Publishing Managed Deployment',
                   lambda_deploy_build: 'Building Managed Deployment',
                   discovering: 'Discovering Server Capabilities'
                 }[step.type]

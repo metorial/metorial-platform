@@ -150,7 +150,7 @@ export let createDenoLambdaDeployment = async (config: {
             providerResourceId: deploymentId,
             // providerResourceAccessIdentifier will be set in pollDeploymentStatus
             runtime: 'deno_deploy_v1',
-            provider: 'deno_deploy',
+            provider: USE_SELF_HOSTED ? 'deno_self_hosted' : 'deno_deploy',
             platform: 'metorial_stellar_v1',
             protocol: 'metorial_stellar_over_websocket_v1'
           }

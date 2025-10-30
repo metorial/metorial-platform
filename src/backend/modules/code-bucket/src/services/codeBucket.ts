@@ -211,6 +211,17 @@ class codeBucketServiceImpl {
       targetBucketId: d.target.id
     });
   }
+
+  async getBucketFilesAsZip(d: { codeBucket: CodeBucket }) {
+    await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
+
+    let res = await codeWorkspaceClient.getBucketFilesAsZip({
+      bucketId: d.codeBucket.id,
+      prefix: ''
+    });
+
+    return res;
+  }
 }
 
 export let codeBucketService = Service.create(

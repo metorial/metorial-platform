@@ -6,22 +6,26 @@ import { OAuthUtils } from '../lib/oauthUtils';
 import { configAutoDiscoveryQueue } from '../queue/configAutoDiscovery';
 import { OAuthConfiguration, oauthConfigValidator } from '../types';
 
+type OAuthConfigImplementation =
+  | {
+      type: 'json';
+      config: OAuthConfiguration;
+      scopes: string[];
+    }
+  | {
+      type: 'managed_server_http';
+      httpEndpoint: string;
+      hasRemoteOauthForm: boolean;
+      lambdaServerInstanceOid: bigint;
+    }
+  | {
+      type: 'managed_server_lambda';
+      lambdaServerInstanceOid: bigint;
+      hasRemoteOauthForm: boolean;
+    };
+
 class OauthConfigServiceImpl {
-  async createConfig(d: {
-    instance: Instance;
-    implementation:
-      | {
-          type: 'json';
-          config: OAuthConfiguration;
-          scopes: string[];
-        }
-      | {
-          type: 'managed_server_http';
-          httpEndpoint: string;
-          hasRemoteOauthForm: boolean;
-          lambdaServerInstanceOid: bigint;
-        };
-  }) {
+  async createConfig(d: { instance: Instance; implementation: OAuthConfigImplementation }) {
     if (d.implementation.type === 'json') {
       let valRes = oauthConfigValidator.validate(d.implementation.config);
       if (!valRes.success) {
@@ -39,7 +43,9 @@ class OauthConfigServiceImpl {
         configHash:
           d.implementation.type == 'json'
             ? await OAuthUtils.getConfigHash(d.implementation.config, d.implementation.scopes)
-            : await Hash.sha256(d.implementation.type + d.implementation.httpEndpoint),
+            : await Hash.sha256(
+                d.implementation.type + d.implementation.lambdaServerInstanceOid
+              ),
 
         scopes: d.implementation.type == 'json' ? d.implementation.scopes : [],
         config: d.implementation.type == 'json' ? d.implementation.config : {},
@@ -48,14 +54,11 @@ class OauthConfigServiceImpl {
           d.implementation.type == 'managed_server_http'
             ? d.implementation.httpEndpoint
             : null,
+
         hasRemoteOauthForm:
-          d.implementation.type == 'managed_server_http'
-            ? d.implementation.hasRemoteOauthForm
-            : null,
-        lambdaServerInstanceForHttpEndpointOid:
-          d.implementation.type == 'managed_server_http'
-            ? d.implementation.lambdaServerInstanceOid
-            : null,
+          d.implementation.type == 'json' ? null : d.implementation.hasRemoteOauthForm,
+        lambdaServerInstanceForManagedServerOid:
+          d.implementation.type == 'json' ? null : d.implementation.lambdaServerInstanceOid,
 
         instanceOid: d.instance.oid,
         discoverStatus: 'discovering',
@@ -76,21 +79,41 @@ class OauthConfigServiceImpl {
   }
 
   async cloneConfig(d: { instance: Instance; config: ProviderOAuthConfig }) {
+    let implementation: OAuthConfigImplementation;
+
+    switch (d.config.type) {
+      case 'json':
+        implementation = {
+          type: 'json',
+          config: d.config.config as OAuthConfiguration,
+          scopes: d.config.scopes
+        };
+        break;
+
+      case 'managed_server_http':
+        implementation = {
+          type: 'managed_server_http',
+          httpEndpoint: d.config.httpEndpoint!,
+          hasRemoteOauthForm: d.config.hasRemoteOauthForm!,
+          lambdaServerInstanceOid: d.config.lambdaServerInstanceForManagedServerOid!
+        };
+        break;
+
+      case 'managed_server_lambda':
+        implementation = {
+          type: 'managed_server_lambda',
+          lambdaServerInstanceOid: d.config.lambdaServerInstanceForManagedServerOid!,
+          hasRemoteOauthForm: d.config.hasRemoteOauthForm!
+        };
+        break;
+
+      default:
+        throw new Error(`Unsupported OAuth config type: ${d.config.type}`);
+    }
+
     return this.createConfig({
       instance: d.instance,
-      implementation:
-        d.config.type === 'json'
-          ? {
-              type: 'json' as const,
-              config: d.config.config as OAuthConfiguration,
-              scopes: d.config.scopes
-            }
-          : {
-              type: 'managed_server_http' as const,
-              httpEndpoint: d.config.httpEndpoint!,
-              hasRemoteOauthForm: d.config.hasRemoteOauthForm!,
-              lambdaServerInstanceOid: d.config.lambdaServerInstanceForHttpEndpointOid!
-            }
+      implementation
     });
   }
 }
