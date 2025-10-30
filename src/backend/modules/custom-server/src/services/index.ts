@@ -3,5 +3,6 @@ export * from './customServerDeployment';
 export * from './customServerEvent';
 export * from './customServerVersion';
 export * from './lambdaServerCallback';
+export * from './lambdaServerOAuth';
 export * from './managedServerTemplate';
 export * from './remoteServer';

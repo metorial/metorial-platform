@@ -540,6 +540,7 @@ export let lambdaDeployDiscoveryQueueProcessor = discoveryQueue.process(async da
           lambdaServerInstanceOid: lambda.oid
         }
       });
+      console.log('Created OAuth config during discovery:', config);
       await db.lambdaServerInstance.updateMany({
         where: { id: lambda.id },
         data: {

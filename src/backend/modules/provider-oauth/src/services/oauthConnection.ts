@@ -62,6 +62,13 @@ class OauthConnectionServiceImpl {
                   clientId: string;
                   clientSecret: string;
                   lambdaServerInstanceOid: bigint;
+                }
+              | {
+                  type: 'managed_server_lambda';
+                  hasRemoteOauthForm: boolean;
+                  lambdaServerInstanceOid: bigint;
+                  clientId: string;
+                  clientSecret: string;
                 };
           }
         | {
@@ -109,15 +116,24 @@ class OauthConnectionServiceImpl {
                 scopes: d.input.setup.implementation.scopes
               }
             })
-          : await providerOauthConfigService.createConfig({
-              instance: d.instance,
-              implementation: {
-                type: 'managed_server_http',
-                httpEndpoint: d.input.setup.implementation.httpEndpoint,
-                hasRemoteOauthForm: d.input.setup.implementation.hasRemoteOauthForm,
-                lambdaServerInstanceOid: d.input.setup.implementation.lambdaServerInstanceOid
-              }
-            });
+          : d.input.setup.implementation.type == 'managed_server_http'
+            ? await providerOauthConfigService.createConfig({
+                instance: d.instance,
+                implementation: {
+                  type: 'managed_server_http',
+                  httpEndpoint: d.input.setup.implementation.httpEndpoint,
+                  hasRemoteOauthForm: d.input.setup.implementation.hasRemoteOauthForm,
+                  lambdaServerInstanceOid: d.input.setup.implementation.lambdaServerInstanceOid
+                }
+              })
+            : await providerOauthConfigService.createConfig({
+                instance: d.instance,
+                implementation: {
+                  type: 'managed_server_lambda',
+                  hasRemoteOauthForm: d.input.setup.implementation.hasRemoteOauthForm,
+                  lambdaServerInstanceOid: d.input.setup.implementation.lambdaServerInstanceOid
+                }
+              });
     } else if (d.input.setup.mode === 'existing_auto_registration') {
       let autoReg = await db.providerOAuthAutoRegistration.findUnique({
         where: { id: d.input.setup.autoRegistrationId }

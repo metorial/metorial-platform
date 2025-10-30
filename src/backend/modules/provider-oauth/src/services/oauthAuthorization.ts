@@ -1,4 +1,3 @@
-import { createCachedFunction } from '@metorial/cache';
 import { Context } from '@metorial/context';
 import {
   db,
@@ -9,15 +8,14 @@ import {
   ProviderOAuthConnectionAuthToken,
   ProviderOAuthConnectionProfile
 } from '@metorial/db';
-import { ServiceError } from '@metorial/error';
+import { isServiceError, ServiceError } from '@metorial/error';
 import { badRequestError } from '@metorial/error/src/defaultErrors';
 import { Fabric } from '@metorial/fabric';
 import { profileService } from '@metorial/module-community';
+import { lambdaServerOAuthService } from '@metorial/module-custom-server';
 import { usageService } from '@metorial/module-usage';
 import { getSentry } from '@metorial/sentry';
 import { Service } from '@metorial/service';
-import { getAxiosSsrfFilter } from '@metorial/ssrf';
-import axios from 'axios';
 import { addMinutes, differenceInDays, differenceInMinutes, subMinutes } from 'date-fns';
 import { callbackUrl } from '../const';
 import { formSchema } from '../lib/formSchema';
@@ -32,43 +30,6 @@ import {
 } from '../types';
 
 let Sentry = getSentry();
-
-let getFormCached = createCachedFunction({
-  name: 'pao/aut/form/remot2',
-  provider: async (i: { securityToken: string; httpEndpoint: string }) => {
-    let form = await axios.post(
-      `${i.httpEndpoint}/oauth/authorization-form`,
-      { input: {} },
-      {
-        ...getAxiosSsrfFilter(i.httpEndpoint),
-        headers: {
-          'metorial-stellar-token': i.securityToken
-        }
-      }
-    );
-    if (form.status !== 200 || !form.data.success) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Failed to fetch authorization form from remote server'
-        })
-      );
-    }
-
-    let valRes = formSchema.validate(form.data.authForm);
-    if (!valRes.success) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Remote server returned an invalid authorization form',
-          details: valRes.errors
-        })
-      );
-    }
-
-    return valRes.value;
-  },
-  ttlSeconds: 60 * 5,
-  getHash: i => i.httpEndpoint
-});
 
 class OauthAuthorizationServiceImpl {
   async startAuthorization(d: {
@@ -95,27 +56,46 @@ class OauthAuthorizationServiceImpl {
       );
     }
 
-    if (d.connection.config.type == 'managed_server_http') {
-      if (
-        !d.connection.config.httpEndpoint ||
-        !d.connection.config.lambdaServerInstanceForHttpEndpointOid
-      ) {
+    console.log('Starting authorization for connection:', d.connection);
+
+    if (
+      d.connection.config.type == 'managed_server_http' ||
+      d.connection.config.type == 'managed_server_lambda'
+    ) {
+      if (!d.connection.config.lambdaServerInstanceForManagedServerOid) {
         throw new Error(
-          'WTF - Remote OAuth configuration is missing httpEndpoint or lambdaServerInstanceForHttpEndpointOid'
+          'WTF - Remote OAuth configuration is missing lambdaServerInstanceForManagedServerOid'
         );
       }
 
       let lambdaInstance = await db.lambdaServerInstance.findUniqueOrThrow({
-        where: { oid: d.connection.config.lambdaServerInstanceForHttpEndpointOid },
+        where: { oid: d.connection.config.lambdaServerInstanceForManagedServerOid },
         include: { instance: { include: { organization: true } } }
       });
 
-      if (d.connection.config.hasRemoteOauthForm && !d.fieldValues) {
-        let form = await getFormCached({
-          securityToken: lambdaInstance.securityToken,
-          httpEndpoint: d.connection.config.httpEndpoint
-        });
+      let form = d.connection.config.hasRemoteOauthForm
+        ? undefined
+        : await (async () => {
+            if (!d.connection.config.hasRemoteOauthForm) return undefined;
 
+            let form = await lambdaServerOAuthService.getOAuthForm({
+              lambda: lambdaInstance
+            });
+
+            let valRes = formSchema.validate(form);
+            if (!valRes.success) {
+              throw new ServiceError(
+                badRequestError({
+                  message: 'Remote server returned an invalid authorization form',
+                  details: valRes.errors
+                })
+              );
+            }
+
+            return valRes.value;
+          })();
+
+      if (form && !d.fieldValues) {
         let profile = await profileService.ensureProfile({
           for: {
             type: 'organization',
@@ -132,12 +112,7 @@ class OauthAuthorizationServiceImpl {
         }
       }
 
-      if (d.fieldValues) {
-        let form = await getFormCached({
-          securityToken: lambdaInstance.securityToken,
-          httpEndpoint: d.connection.config.httpEndpoint
-        });
-
+      if (form && d.fieldValues) {
         for (let field of form.fields) {
           if (field.isRequired && !d.fieldValues[field.key]) {
             throw new ServiceError(
@@ -177,54 +152,45 @@ class OauthAuthorizationServiceImpl {
         }
       });
 
-      let authUrlRes = await axios.post(
-        `${d.connection.config.httpEndpoint}/oauth/authorization-url`,
-        {
-          input: {
-            fields: d.fieldValues ?? {},
-            clientId: d.connection.clientId,
-            clientSecret: d.connection.clientSecret,
-            state: authAttempt.stateIdentifier,
-            redirectUri: callbackUrl
-          }
-        },
-        {
-          ...getAxiosSsrfFilter(d.connection.config.httpEndpoint),
-          headers: {
-            'metorial-stellar-token': lambdaInstance.securityToken
-          }
+      try {
+        let authUrlData = await lambdaServerOAuthService.getOauthAuthorizationUrl({
+          connection: d.connection,
+          authAttempt: authAttempt,
+          fields: d.fieldValues || {},
+          redirectUri: callbackUrl,
+          lambda: lambdaInstance
+        });
+        if (!authUrlData.authorizationUrl) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Remote server did not return an authorization URL'
+            })
+          );
         }
-      );
-      if (authUrlRes.status !== 200 || !authUrlRes.data.success) {
+
+        if (typeof authUrlData.codeVerifier == 'string') {
+          await db.providerOAuthConnectionAuthAttempt.updateMany({
+            where: { oid: authAttempt.oid },
+            data: {
+              codeVerifier: authUrlData.codeVerifier
+            }
+          });
+        }
+
+        return {
+          type: 'redirect' as const,
+          authAttempt,
+          redirectUrl: authUrlData.authorizationUrl
+        };
+      } catch (error: any) {
+        if (isServiceError(error)) throw error;
+
         throw new ServiceError(
           badRequestError({
             message: 'Failed to fetch authorization URL from remote server'
           })
         );
       }
-
-      if (!authUrlRes.data.authorizationUrl) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Remote server did not return an authorization URL'
-          })
-        );
-      }
-
-      if (typeof authUrlRes.data.codeVerifier == 'string') {
-        await db.providerOAuthConnectionAuthAttempt.updateMany({
-          where: { oid: authAttempt.oid },
-          data: {
-            codeVerifier: authUrlRes.data.codeVerifier
-          }
-        });
-      }
-
-      return {
-        type: 'redirect' as const,
-        authAttempt,
-        redirectUrl: authUrlRes.data.authorizationUrl
-      };
     }
 
     let config = d.connection.config.config as OAuthConfiguration;
@@ -441,40 +407,70 @@ class OauthAuthorizationServiceImpl {
             }
           })
         : null;
-    } else if (connection.config.type == 'managed_server_http') {
-      if (!connection.config.lambdaServerInstanceForHttpEndpointOid) {
+    } else if (
+      connection.config.type == 'managed_server_http' ||
+      connection.config.type == 'managed_server_lambda'
+    ) {
+      if (!connection.config.lambdaServerInstanceForManagedServerOid) {
         throw new Error(
-          'WTF - Remote OAuth configuration is missing lambdaServerInstanceForHttpEndpointOid'
+          'WTF - Remote OAuth configuration is missing lambdaServerInstanceForManagedServerOid'
         );
       }
 
       let lambdaInstance = await db.lambdaServerInstance.findUniqueOrThrow({
-        where: { oid: connection.config.lambdaServerInstanceForHttpEndpointOid },
+        where: { oid: connection.config.lambdaServerInstanceForManagedServerOid },
         include: { instance: { include: { organization: true } } }
       });
 
-      let tokenRes = await axios.post<Record<any, any>>(
-        `${connection.config.httpEndpoint}/oauth/callback`,
-        {
-          input: {
-            fields: attempt.additionalValues || {},
-            code: d.response.code!,
-            state: d.response.state!,
-            clientId: connection.clientId!,
-            clientSecret: connection.clientSecret,
-            redirectUri: callbackUrl,
-            fullUrl: d.fullUrl,
-            codeVerifier: attempt.codeVerifier
-          }
-        },
-        {
-          ...getAxiosSsrfFilter(connection.config.httpEndpoint!),
-          headers: {
-            'metorial-stellar-token': lambdaInstance.securityToken
-          }
+      try {
+        let callbackData = await lambdaServerOAuthService.handleOAuthCallback({
+          fullUrl: d.fullUrl,
+          redirectUri: callbackUrl,
+          response: d.response,
+          connection: connection,
+          authAttempt: attempt,
+          lambda: lambdaInstance
+        });
+
+        let tokenResVal = tokenResponseValidator.validate(callbackData);
+        if (!tokenResVal.success) {
+          await db.providerOAuthConnectionAuthAttempt.update({
+            where: {
+              connectionOid: connection.oid,
+              stateIdentifier: d.response.state!,
+              status: 'pending'
+            },
+            data: {
+              status: 'failed',
+              stateIdentifier: null,
+              clientSecret: null,
+              errorCode: 'token_exchange_failed',
+              errorMessage: 'Callback implementation returned an invalid token response'
+            }
+          });
+
+          throw new ServiceError(
+            badRequestError({
+              message: 'Callback implementation returned an invalid token response',
+              details: tokenResVal.errors
+            })
+          );
         }
-      );
-      if (tokenRes.status !== 200 || !tokenRes.data.success) {
+
+        tokenResponse = {
+          access_token: tokenResVal.value.access_token,
+          token_type: tokenResVal.value.token_type,
+          expires_in: tokenResVal.value.expires_in,
+          refresh_token: tokenResVal.value.refresh_token,
+          id_token: tokenResVal.value.id_token,
+          scope: tokenResVal.value.scope
+        };
+
+        additionalAuthData = { ...callbackData };
+        for (let key of Object.keys(tokenResponse)) {
+          delete additionalAuthData[key];
+        }
+      } catch (error: any) {
         await db.providerOAuthConnectionAuthAttempt.update({
           where: {
             connectionOid: connection.oid,
@@ -496,45 +492,6 @@ class OauthAuthorizationServiceImpl {
             message: 'Failed to fetch tokens from remote server'
           })
         );
-      }
-
-      let tokenResVal = tokenResponseValidator.validate(tokenRes.data.authData);
-      if (!tokenResVal.success) {
-        await db.providerOAuthConnectionAuthAttempt.update({
-          where: {
-            connectionOid: connection.oid,
-            stateIdentifier: d.response.state!,
-            status: 'pending'
-          },
-          data: {
-            status: 'failed',
-            stateIdentifier: null,
-            clientSecret: null,
-            errorCode: 'token_exchange_failed',
-            errorMessage: 'Callback implementation returned an invalid token response'
-          }
-        });
-
-        throw new ServiceError(
-          badRequestError({
-            message: 'Callback implementation returned an invalid token response',
-            details: tokenResVal.errors
-          })
-        );
-      }
-
-      tokenResponse = {
-        access_token: tokenResVal.value.access_token,
-        token_type: tokenResVal.value.token_type,
-        expires_in: tokenResVal.value.expires_in,
-        refresh_token: tokenResVal.value.refresh_token,
-        id_token: tokenResVal.value.id_token,
-        scope: tokenResVal.value.scope
-      };
-
-      additionalAuthData = { ...tokenRes.data.authData };
-      for (let key of Object.keys(tokenResponse)) {
-        delete additionalAuthData[key];
       }
     } else {
       throw new Error('WTF - Unknown connection config type');
@@ -759,40 +716,31 @@ class OauthAuthorizationServiceImpl {
             refreshToken: token.refreshToken,
             config: connection.config.config
           });
-        } else if (connection.config.type == 'managed_server_http') {
-          if (!connection.config.lambdaServerInstanceForHttpEndpointOid) {
+        } else if (
+          connection.config.type == 'managed_server_http' ||
+          connection.config.type == 'managed_server_lambda'
+        ) {
+          if (!connection.config.lambdaServerInstanceForManagedServerOid) {
             throw new Error(
-              'WTF - Remote OAuth configuration is missing lambdaServerInstanceForHttpEndpointOid'
+              'WTF - Remote OAuth configuration is missing lambdaServerInstanceForManagedServerOid'
             );
           }
 
           let lambdaInstance = await db.lambdaServerInstance.findUniqueOrThrow({
-            where: { oid: connection.config.lambdaServerInstanceForHttpEndpointOid },
+            where: { oid: connection.config.lambdaServerInstanceForManagedServerOid },
             include: { instance: { include: { organization: true } } }
           });
 
-          let tokenRes = await axios.post<Record<any, any>>(
-            `${connection.config.httpEndpoint}/oauth/refresh`,
-            {
-              input: {
-                redirectUri: callbackUrl,
-                refreshToken: token.refreshToken,
-                clientId: connection.clientId!,
-                clientSecret: connection.clientSecret,
-                fields: token.additionalValuesFromAuthAttempt ?? {}
-              }
-            },
-            {
-              ...getAxiosSsrfFilter(connection.config.httpEndpoint!),
-              headers: {
-                'metorial-stellar-token': lambdaInstance.securityToken
-              }
-            }
-          );
-          if (tokenRes.status !== 200 || !tokenRes.data.success) {
-            res = { ok: false as const, message: 'Failed to fetch tokens from remote server' };
-          } else {
-            let tokenResVal = tokenResponseValidator.validate(tokenRes.data.authData);
+          try {
+            let tokenData = await lambdaServerOAuthService.refreshOAuthToken({
+              connection: connection,
+              refreshToken: token.refreshToken,
+              redirectUri: callbackUrl,
+              lambda: lambdaInstance,
+              additionalAuthData: token.additionalValuesFromAuthAttempt ?? {}
+            });
+
+            let tokenResVal = tokenResponseValidator.validate(tokenData.authData);
             if (!tokenResVal.success) {
               res = {
                 ok: false as const,
@@ -808,7 +756,7 @@ class OauthAuthorizationServiceImpl {
                 scope: tokenResVal.value.scope
               };
 
-              additionalAuthData = { ...tokenRes.data.authData };
+              additionalAuthData = { ...tokenData };
               for (let key of Object.keys(tokenResponse)) {
                 delete additionalAuthData[key];
               }
@@ -818,6 +766,8 @@ class OauthAuthorizationServiceImpl {
                 response: tokenResponse
               };
             }
+          } catch (error: any) {
+            res = { ok: false as const, message: 'Failed to fetch tokens from remote server' };
           }
         } else {
           throw new Error('WTF - Unknown connection config type');

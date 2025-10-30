@@ -338,15 +338,24 @@ class ServerDeploymentServiceImpl {
                         clientId: d.input.oauthConfig.clientId,
                         clientSecret: d.input.oauthConfig.clientSecret
                       }
-                    : {
-                        type: 'managed_server_http',
-                        httpEndpoint: oauthConfig.httpEndpoint!,
-                        hasRemoteOauthForm: oauthConfig.hasRemoteOauthForm!,
-                        clientId: d.input.oauthConfig.clientId,
-                        clientSecret: d.input.oauthConfig.clientSecret,
-                        lambdaServerInstanceOid:
-                          oauthConfig.lambdaServerInstanceForHttpEndpointOid!
-                      }
+                    : oauthConfig.type == 'managed_server_http'
+                      ? {
+                          type: 'managed_server_http',
+                          httpEndpoint: oauthConfig.httpEndpoint!,
+                          hasRemoteOauthForm: oauthConfig.hasRemoteOauthForm!,
+                          clientId: d.input.oauthConfig.clientId,
+                          clientSecret: d.input.oauthConfig.clientSecret,
+                          lambdaServerInstanceOid:
+                            oauthConfig.lambdaServerInstanceForManagedServerOid!
+                        }
+                      : {
+                          type: 'managed_server_lambda',
+                          hasRemoteOauthForm: oauthConfig.hasRemoteOauthForm!,
+                          clientId: d.input.oauthConfig.clientId,
+                          clientSecret: d.input.oauthConfig.clientSecret,
+                          lambdaServerInstanceOid:
+                            oauthConfig.lambdaServerInstanceForManagedServerOid!
+                        }
               }
             }
           });

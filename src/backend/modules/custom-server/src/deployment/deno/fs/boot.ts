@@ -109,8 +109,8 @@ let handler = async (req: Request) => {
     }
 
     try {
-      let authForm = await oauthResult.refreshAccessToken(body.input || {});
-      return json({ success: true, authForm });
+      let authData = await oauthResult.refreshAccessToken(body.input || {});
+      return json({ success: true, authData });
     } catch (error: any) {
       return json({ error: error?.message || 'Failed to get refresh access token' }, 400);
     }

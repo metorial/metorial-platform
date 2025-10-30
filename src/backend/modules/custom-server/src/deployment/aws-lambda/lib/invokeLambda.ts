@@ -77,10 +77,12 @@ export let invokeLambda = async (
     console.log('Lambda execution logs:', logs);
   }
 
+  if (!result.success) {
+    throw new Error(`Invocation failed: ${result.error?.code} - ${result.error?.message}`);
+  }
+
   return result;
 };
-
-// Helper functions for specific actions
 
 export let discoverLambda = async ({
   functionName,
