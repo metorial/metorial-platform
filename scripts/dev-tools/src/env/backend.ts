@@ -183,5 +183,11 @@ export let backendEnv: Env = [
   { key: 'DENO_ORGANIZATION_ID', isEnterprise: true },
 
   { key: 'SCM_GITHUB_CLIENT_ID', isEnterprise: false },
-  { key: 'SCM_GITHUB_CLIENT_SECRET', isEnterprise: false }
+  { key: 'SCM_GITHUB_CLIENT_SECRET', isEnterprise: false },
+
+  { key: 'AWS_ACCESS_KEY_ID', isEnterprise: true },
+  { key: 'AWS_SECRET_ACCESS_KEY', isEnterprise: true },
+  { key: 'AWS_REGION', isEnterprise: true },
+  { key: 'AWS_ACCOUNT_ID', isEnterprise: true },
+  { key: 'LAMBDA_DEPLOY_RESOURCE_PREFIX', isEnterprise: true }
 ];
