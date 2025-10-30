@@ -44,6 +44,7 @@ enum CustomServerDeploymentStepType {
 
   lambda_deploy_create
   lambda_deploy_build
+  lambda_deploy_publish
 
   discovering
   deploying

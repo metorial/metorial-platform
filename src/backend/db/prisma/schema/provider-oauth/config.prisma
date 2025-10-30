@@ -7,6 +7,7 @@ enum ProviderOAuthConfigDiscoveryStatus {
 enum ProviderOAuthConfigType {
   json
   managed_server_http
+  managed_server_lambda
 }
 
 model ProviderOAuthConfig {
@@ -20,8 +21,8 @@ model ProviderOAuthConfig {
   httpEndpoint       String? // used if type is managed_server_http
   hasRemoteOauthForm Boolean? // used if type is managed_server_http
 
-  lambdaServerInstanceForHttpEndpointOid BigInt? // used if type is managed_server_http
-  lambdaServerInstanceForHttpEndpoint    LambdaServerInstance? @relation(fields: [lambdaServerInstanceForHttpEndpointOid], references: [oid], name: "ProviderOAuthConfig_remoteServerInstanceForHttpEndpoint")
+  lambdaServerInstanceForManagedServerOid BigInt?               @map("lambdaServerInstanceForHttpEndpointOid") // used if type is managed_server_http
+  lambdaServerInstanceForManagedServer    LambdaServerInstance? @relation(fields: [lambdaServerInstanceForManagedServerOid], references: [oid], name: "ProviderOAuthConfig_remoteServerInstanceForHttpEndpoint")
 
   /// [ProviderOAuthConfig]
   config     Json
