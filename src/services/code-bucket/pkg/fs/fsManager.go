@@ -25,9 +25,9 @@ import (
 )
 
 const (
-	redisFlushDelay  = 5 * time.Minute
-	zipExpiration    = 5 * 24 * time.Hour
-	s3ZipExpiration  = 365 * 24 * time.Hour
+	redisFlushDelay   = 5 * time.Minute
+	zipExpiration     = 5 * 24 * time.Hour
+	s3ZipExpiration   = 365 * 24 * time.Hour
 	maxRedisCacheSize = 1 * 1024 * 1024 // 1MB - don't cache files larger than this
 )
 
@@ -115,7 +115,7 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 		s3Client:        s3Client,
 		bucketName:      options.S3Bucket,
 		flushTicker:     time.NewTicker(60 * time.Second),
-		importSemaphore: make(chan struct{}, 3),
+		importSemaphore: make(chan struct{}, 15),
 	}
 
 	// Start background flush routines

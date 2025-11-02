@@ -6,12 +6,10 @@ import {
   Instance,
   LambdaServerInstance
 } from '@metorial/db';
-import { delay } from '@metorial/delay';
 import { generatePlainId } from '@metorial/id';
 import { joinPaths } from '@metorial/join-paths';
 import axios from 'axios';
 import { env } from '../../../env';
-import { DeploymentError } from '../../base/error';
 import { getDenoFs } from '../fs';
 
 axios.defaults.headers.common['Accept-Encoding'] = 'gzip';
@@ -36,102 +34,72 @@ export let createDenoLambdaDeployment = async (config: {
 
   let lambdaServerInstance = config.lambdaServerInstance;
 
-  let deployment = await Promise.race([
-    delay(1000 * 60 * 5).then(() => {
-      throw new DeploymentError({
-        code: 'deployment_timeout',
-        message: 'Deno deployment timed out after 5 minutes'
-      });
-    }),
-    (async () => {
-      let fs = await getDenoFs(lambdaServerInstance);
+  let deployment = await (async () => {
+    let fs = await getDenoFs(lambdaServerInstance);
 
-      let deploymentPayload = {
-        entryPointUrl: fs.entrypoint,
-        envVars: {
-          ...fs.env,
-          METORIAL_AUTH_TOKEN_SECRET: lambdaServerInstance.securityToken
-        },
-        description: `CSRV ${config.customServer.id} / DEPL ${config.deployment.id}`,
-        permissions: {
-          net: ['*']
-        },
-        assets: Object.fromEntries(
-          Array.from(fs.files.entries()).map(([k, v]) => [
-            k,
-            {
-              kind: 'file',
-              encoding: 'utf-8',
-              content: v
-            }
-          ])
-        )
-      };
-
-      let deploymentId: string;
-      let providerResourceAccessIdentifier: string;
-
-      if (!USE_DENO_DEPLOY) {
-        // Self-hosted runner deployment
-        let runnerDeployment = await axios.post<{ id: string }>(
-          `${env.deno.DENO_RUNNER_ADDRESS}/deployments`,
-          deploymentPayload
-        );
-
-        deploymentId = runnerDeployment.data.id;
-        providerResourceAccessIdentifier = `${env.deno.DENO_RUNNER_ADDRESS}/${deploymentId}`;
-
-        return await db.lambdaServerInstance.update({
-          where: { oid: lambdaServerInstance.oid },
-          data: {
-            status: 'deploying',
-            providerInfo: { id: deploymentId },
-            providerResourceId: deploymentId,
-            providerResourceAccessIdentifier,
-            runtime: 'deno_self_hosted_v1',
-            provider: 'deno_self_hosted',
-            platform: 'metorial_stellar_v1',
-            protocol: 'metorial_stellar_over_websocket_v1'
+    let deploymentPayload = {
+      entryPointUrl: fs.entrypoint,
+      envVars: {
+        ...fs.env,
+        METORIAL_AUTH_TOKEN_SECRET: lambdaServerInstance.securityToken
+      },
+      description: `CSRV ${config.customServer.id} / DEPL ${config.deployment.id}`,
+      permissions: {
+        net: ['*']
+      },
+      assets: Object.fromEntries(
+        Array.from(fs.files.entries()).map(([k, v]) => [
+          k,
+          {
+            kind: 'file',
+            encoding: 'utf-8',
+            content: v
           }
-        });
-      } else {
-        // Deno Deploy
-        let project = await db.lambdaServerDenoDeployProject.findFirst({
-          where: {
-            customServerOid: config.customServer.oid
-          }
-        });
+        ])
+      )
+    };
 
-        if (!project) {
-          let denoProject = await axios.post<{
-            id: string;
-          }>(
-            `https://api.deno.com/v1/organizations/${env.deno.DENO_ORGANIZATION_ID}/projects`,
-            {
-              name: `mt-crv-${generatePlainId(15)}`.toLowerCase()
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${env.deno.DENO_DEPLOY_TOKEN}`
-              }
-            }
-          );
+    let deploymentId: string;
+    let providerResourceAccessIdentifier: string;
 
-          project = await db.lambdaServerDenoDeployProject.create({
-            data: {
-              customServerOid: config.customServer.oid,
-              denoDeployProjectId: denoProject.data.id
-            }
-          });
+    if (!USE_DENO_DEPLOY) {
+      // Self-hosted runner deployment
+      let runnerDeployment = await axios.post<{ id: string }>(
+        `${env.deno.DENO_RUNNER_ADDRESS}/deployments`,
+        deploymentPayload
+      );
+
+      deploymentId = runnerDeployment.data.id;
+      providerResourceAccessIdentifier = `${env.deno.DENO_RUNNER_ADDRESS}/${deploymentId}`;
+
+      return await db.lambdaServerInstance.update({
+        where: { oid: lambdaServerInstance.oid },
+        data: {
+          status: 'deploying',
+          providerInfo: { id: deploymentId },
+          providerResourceId: deploymentId,
+          providerResourceAccessIdentifier,
+          runtime: 'deno_self_hosted_v1',
+          provider: 'deno_self_hosted',
+          platform: 'metorial_stellar_v1',
+          protocol: 'metorial_stellar_over_websocket_v1'
         }
+      });
+    } else {
+      // Deno Deploy
+      let project = await db.lambdaServerDenoDeployProject.findFirst({
+        where: {
+          customServerOid: config.customServer.oid
+        }
+      });
 
-        let denoDeployment = await axios.post<{
+      if (!project) {
+        let denoProject = await axios.post<{
           id: string;
         }>(
-          `https://api.deno.com/v1/projects/${project.denoDeployProjectId}/deployments`,
+          `https://api.deno.com/v1/organizations/${env.deno.DENO_ORGANIZATION_ID}/projects`,
           {
-            ...deploymentPayload,
-            domains: ['{project.name}-{deployment.id}.deno.dev']
+            name: `mt-crv-${generatePlainId(15)}`.toLowerCase()
           },
           {
             headers: {
@@ -140,24 +108,46 @@ export let createDenoLambdaDeployment = async (config: {
           }
         );
 
-        deploymentId = denoDeployment.data.id;
-
-        return await db.lambdaServerInstance.update({
-          where: { oid: lambdaServerInstance.oid },
+        project = await db.lambdaServerDenoDeployProject.create({
           data: {
-            status: 'deploying',
-            providerInfo: denoDeployment.data,
-            providerResourceId: deploymentId,
-            // providerResourceAccessIdentifier will be set in pollDeploymentStatus
-            runtime: 'deno_deploy_v1',
-            provider: 'deno_deploy',
-            platform: 'metorial_stellar_v1',
-            protocol: 'metorial_stellar_over_websocket_v1'
+            customServerOid: config.customServer.oid,
+            denoDeployProjectId: denoProject.data.id
           }
         });
       }
-    })()
-  ]);
+
+      let denoDeployment = await axios.post<{
+        id: string;
+      }>(
+        `https://api.deno.com/v1/projects/${project.denoDeployProjectId}/deployments`,
+        {
+          ...deploymentPayload,
+          domains: ['{project.name}-{deployment.id}.deno.dev']
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${env.deno.DENO_DEPLOY_TOKEN}`
+          }
+        }
+      );
+
+      deploymentId = denoDeployment.data.id;
+
+      return await db.lambdaServerInstance.update({
+        where: { oid: lambdaServerInstance.oid },
+        data: {
+          status: 'deploying',
+          providerInfo: denoDeployment.data,
+          providerResourceId: deploymentId,
+          // providerResourceAccessIdentifier will be set in pollDeploymentStatus
+          runtime: 'deno_deploy_v1',
+          provider: 'deno_deploy',
+          platform: 'metorial_stellar_v1',
+          protocol: 'metorial_stellar_over_websocket_v1'
+        }
+      });
+    }
+  })();
 
   let offsetRef = { current: 0 };
   let serverUrl = { current: deployment.providerResourceAccessIdentifier || '' };
