@@ -31,8 +31,6 @@ let handler = async (req: Request) => {
   }
 
   let dryImport = async () => {
-    globalThis.__metorial_setArgs__({});
-
     let file = \`./app/\${entrypoint}\`
     console.log('Importing entrypoint file:', file);
     await import(file);
@@ -212,7 +210,6 @@ let handler = async (req: Request) => {
     let clientInfo = JSON.parse(clientInfoRaw || '{}');
     let argsRaw = req.headers.get('metorial-stellar-arguments')!;
     let args = JSON.parse(argsRaw || '{}');
-    globalThis.__metorial_setArgs__({});
 
     let socketReadyPromise = new ProgrammablePromise<any>();
 
@@ -231,6 +228,8 @@ let handler = async (req: Request) => {
       let msg = JSON.parse(event.data);
       if (msg.type == 'mcp.message') {
         try {
+          console.log('Initial', argsRaw, args);
+
           let client = await getClient(args, {
             client: clientInfo.clientInfo ?? { name: 'Unknown', version: '0.0.0' },
             // capabilities: clientInfo.capabilities || {},
