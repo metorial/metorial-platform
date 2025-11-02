@@ -212,7 +212,7 @@ let handler = async (req: Request) => {
     let clientInfo = JSON.parse(clientInfoRaw || '{}');
     let argsRaw = req.headers.get('metorial-stellar-arguments')!;
     let args = JSON.parse(argsRaw || '{}');
-    globalThis.__metorial_setArgs__(args);
+    globalThis.__metorial_setArgs__({});
 
     let socketReadyPromise = new ProgrammablePromise<any>();
 
