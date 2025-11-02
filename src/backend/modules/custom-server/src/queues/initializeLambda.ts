@@ -5,7 +5,6 @@ import { getSentry } from '@metorial/sentry';
 import { isAwsLambdaEnabled } from '../deployment/aws-lambda/lib/aws';
 import { lambdaDeployMainQueue } from '../deployment/aws-lambda/queues';
 import { isDenoDeployEnabled } from '../deployment/deno/deployment';
-import { denoDeployMainQueue } from '../deployment/deno/queues/main';
 import { useDeploymentQueue } from '../lib/useDeploymentQueue';
 
 let Sentry = getSentry();
@@ -105,26 +104,26 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
     });
   }
 
-  switch (provider) {
-    case 'aws_lambda':
-      await lambdaDeployMainQueue.add({
-        lambdaId: data.lambdaId,
-        serverVersionData: data.serverVersionData
-      });
-      break;
+  // switch (provider) {
+  //case 'aws_lambda':
+  await lambdaDeployMainQueue.add({
+    lambdaId: data.lambdaId,
+    serverVersionData: data.serverVersionData
+  });
+  // break;
 
-    case 'deno_deploy':
-    case 'deno_self_hosted':
-      await denoDeployMainQueue.add({
-        lambdaId: data.lambdaId,
-        serverVersionData: data.serverVersionData
-      });
-      break;
+  // case 'deno_deploy':
+  // case 'deno_self_hosted':
+  //   await denoDeployMainQueue.add({
+  //     lambdaId: data.lambdaId,
+  //     serverVersionData: data.serverVersionData
+  //   });
+  //   break;
 
-    default:
-      Sentry.captureException(
-        new Error(`Unsupported lambda provider: ${(lambda as any).provider}`)
-      );
-      throw new Error(`Unsupported lambda provider: ${(lambda as any).provider}`);
-  }
+  //   default:
+  //     Sentry.captureException(
+  //       new Error(`Unsupported lambda provider: ${(lambda as any).provider}`)
+  //     );
+  //     throw new Error(`Unsupported lambda provider: ${(lambda as any).provider}`);
+  // }
 });
