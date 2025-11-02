@@ -201,7 +201,6 @@ let handler = async (req: Request) => {
     }
   }
 
-
   if (url.pathname == '/mcp') {
     if (req.headers.get('upgrade') != 'websocket') return new Response(null, { status: 426 });
     let { socket, response } = Deno.upgradeWebSocket(req);
@@ -228,8 +227,6 @@ let handler = async (req: Request) => {
       let msg = JSON.parse(event.data);
       if (msg.type == 'mcp.message') {
         try {
-          console.log('Initial', argsRaw, args);
-
           let client = await getClient(args, {
             client: clientInfo.clientInfo ?? { name: 'Unknown', version: '0.0.0' },
             // capabilities: clientInfo.capabilities || {},
