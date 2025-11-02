@@ -19,7 +19,7 @@ export let initializeLambdaQueue = createQueue<{
     attempts: 10
   },
   workerOpts: {
-    concurrency: 5
+    concurrency: 10
   }
 });
 
