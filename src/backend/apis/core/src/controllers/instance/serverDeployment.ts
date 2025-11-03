@@ -34,52 +34,60 @@ export let serverDeploymentGroup = instanceGroup.use(async ctx => {
   return { serverDeployment };
 });
 
+export let createServerDeploymentConfigSchema = v.union([
+  v.object({
+    config: v.record(v.any())
+  }),
+  v.object({
+    server_config_vault_id: v.string()
+  })
+]);
+
+export let createServerDeploymentImplementationSchema = v.union([
+  v.object({
+    server_implementation: createServerImplementationSchema
+  }),
+  v.object({
+    server_implementation_id: v.string()
+  }),
+  v.object({
+    server_variant_id: v.string()
+  }),
+  v.object({
+    server_id: v.string()
+  })
+]);
+
+export let createServerDeploymentAccessSchema = v.optional(
+  v.object({
+    ip_allowlist: v.nullable(
+      v.object({
+        ip_whitelist: v.array(v.string()),
+        ip_blacklist: v.array(v.string())
+      })
+    )
+  })
+);
+
+export let createServerDeploymentOAuthConfigSchema = v.optional(
+  v.object({
+    client_id: v.string(),
+    client_secret: v.string()
+  })
+);
+
 export let createServerDeploymentSchema = v.intersection([
   v.intersection([
     v.object({
       name: v.optional(v.string()),
       description: v.optional(v.string()),
       metadata: v.optional(v.record(v.any())),
-      oauth_config: v.optional(
-        v.object({
-          client_id: v.string(),
-          client_secret: v.string()
-        })
-      ),
-      access: v.optional(
-        v.object({
-          ip_allowlist: v.nullable(
-            v.object({
-              ip_whitelist: v.array(v.string()),
-              ip_blacklist: v.array(v.string())
-            })
-          )
-        })
-      )
+      oauth_config: createServerDeploymentOAuthConfigSchema,
+      access: createServerDeploymentAccessSchema
     }),
-    v.union([
-      v.object({
-        config: v.record(v.any())
-      }),
-      v.object({
-        server_config_vault_id: v.string()
-      })
-    ])
+    createServerDeploymentConfigSchema
   ]),
-  v.union([
-    v.object({
-      server_implementation: createServerImplementationSchema
-    }),
-    v.object({
-      server_implementation_id: v.string()
-    }),
-    v.object({
-      server_variant_id: v.string()
-    }),
-    v.object({
-      server_id: v.string()
-    })
-  ])
+  createServerDeploymentImplementationSchema
 ]);
 
 export let createServerDeployment = async (

@@ -9,7 +9,14 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { magicMcpServerPresenter } from '../../presenters';
-import { createServerDeployment, createServerDeploymentSchema } from './serverDeployment';
+import {
+  createServerDeployment,
+  createServerDeploymentAccessSchema,
+  createServerDeploymentConfigSchema,
+  createServerDeploymentImplementationSchema,
+  createServerDeploymentOAuthConfigSchema,
+  createServerDeploymentSchema
+} from './serverDeployment';
 
 export let magicMcpServerGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpServerId) throw new Error('magicMcpServerId is required');
@@ -21,6 +28,20 @@ export let magicMcpServerGroup = instanceGroup.use(async ctx => {
 
   return { magicMcpServer };
 });
+
+export let createMagicMcpServerSchema = v.intersection([
+  v.intersection([
+    v.object({
+      name: v.string(),
+      description: v.optional(v.string()),
+      metadata: v.optional(v.record(v.any())),
+      oauth_config: createServerDeploymentOAuthConfigSchema,
+      access: createServerDeploymentAccessSchema
+    }),
+    createServerDeploymentConfigSchema
+  ]),
+  createServerDeploymentImplementationSchema
+]);
 
 export let magicMcpServerController = Controller.create(
   {
