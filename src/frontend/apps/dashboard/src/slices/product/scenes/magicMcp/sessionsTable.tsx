@@ -45,7 +45,7 @@ export let MagicSessionsTable = (filter: DashboardInstanceMagicMcpSessionsListQu
           data: [
             <SessionConnectionStatusBadge session={session} />,
             <Text size="2" weight="strong">
-              {session.magicMcpServer.name}
+              {session.magicMcpServer.name ?? 'Unknown Server'}
             </Text>,
             <Text size="2">
               {session.client?.info?.name ?? (
