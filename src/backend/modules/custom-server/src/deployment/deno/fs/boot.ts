@@ -31,8 +31,6 @@ let handler = async (req: Request) => {
   }
 
   let dryImport = async () => {
-    globalThis.__metorial_setArgs__({});
-
     let file = \`./app/\${entrypoint}\`
     console.log('Importing entrypoint file:', file);
     await import(file);
@@ -203,7 +201,6 @@ let handler = async (req: Request) => {
     }
   }
 
-
   if (url.pathname == '/mcp') {
     if (req.headers.get('upgrade') != 'websocket') return new Response(null, { status: 426 });
     let { socket, response } = Deno.upgradeWebSocket(req);
@@ -212,7 +209,6 @@ let handler = async (req: Request) => {
     let clientInfo = JSON.parse(clientInfoRaw || '{}');
     let argsRaw = req.headers.get('metorial-stellar-arguments')!;
     let args = JSON.parse(argsRaw || '{}');
-    globalThis.__metorial_setArgs__(args);
 
     let socketReadyPromise = new ProgrammablePromise<any>();
 

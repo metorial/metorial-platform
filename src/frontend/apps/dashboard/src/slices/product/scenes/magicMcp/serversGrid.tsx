@@ -108,7 +108,7 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
             <ItemGrid.Item
               key={server.id}
               entity={{ id: server.id, hasUsage: true }}
-              title={server.name}
+              title={server.name ?? 'Unknown Server'}
               description={
                 server.description?.slice(0, 100) +
                 (server.description && server.description.length > 100 ? '...' : '')

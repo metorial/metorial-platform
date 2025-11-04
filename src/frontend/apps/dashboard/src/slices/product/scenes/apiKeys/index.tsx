@@ -1,7 +1,12 @@
 import { capitalize } from '@metorial/case';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { PageHeader } from '@metorial/layout';
-import { ApiKeysFilter, MetorialApiKey, useRevealableApiKey } from '@metorial/state';
+import {
+  ApiKeysFilter,
+  MetorialApiKey,
+  useCurrentOrganization,
+  useRevealableApiKey
+} from '@metorial/state';
 import {
   Badge,
   Button,
@@ -49,6 +54,7 @@ export let ApiKeysScene = ({
   }[filter.type];
 
   let apiKeys = useApiKeysWithAutoInit(filter);
+  let org = useCurrentOrganization();
 
   let createApiKeyModal = () =>
     showModal(({ dialogProps, close }) => {
@@ -373,9 +379,11 @@ export let ApiKeysScene = ({
               title={header.title}
               description={header.description}
               actions={
-                <Button size="2" onClick={() => createApiKeyModal()}>
-                  Create {name}
-                </Button>
+                org.data?.member.role == 'admin' && (
+                  <Button size="2" onClick={() => createApiKeyModal()}>
+                    Create {name}
+                  </Button>
+                )
               }
             />
 
@@ -417,46 +425,50 @@ export let ApiKeysScene = ({
                   apiKey.expiresAt ? <RenderDate date={apiKey.expiresAt} /> : 'Never',
                   apiKey.lastUsedAt ? <RenderDate date={apiKey.lastUsedAt} /> : 'Never',
 
-                  <Menu
-                    items={[
-                      {
-                        id: 'update',
-                        label: 'Update',
-                        disabled: apiKey.status != 'active'
-                      },
-                      {
-                        id: 'delete',
-                        label: 'Delete',
-                        disabled: apiKey.status != 'active'
-                      },
-                      {
-                        id: 'rotate',
-                        label: 'Rotate',
-                        disabled: apiKey.status != 'active'
-                      }
-                    ]}
-                    onItemClick={item => {
-                      if (item == 'update')
-                        updateApiKeyModal({
-                          apiKeyId: apiKey.id
-                        });
-                      if (item == 'delete')
-                        deleteApiKeyModal({
-                          apiKeyId: apiKey.id
-                        });
-                      if (item == 'rotate')
-                        rotateApiKeyModal({
-                          apiKeyId: apiKey.id
-                        });
-                    }}
-                  >
-                    <Button
-                      size="1"
-                      variant="outline"
-                      iconLeft={<RiMoreLine />}
-                      title="Open API key options"
-                    />
-                  </Menu>
+                  org.data?.member.role == 'admin' ? (
+                    <Menu
+                      items={[
+                        {
+                          id: 'update',
+                          label: 'Update',
+                          disabled: apiKey.status != 'active'
+                        },
+                        {
+                          id: 'delete',
+                          label: 'Delete',
+                          disabled: apiKey.status != 'active'
+                        },
+                        {
+                          id: 'rotate',
+                          label: 'Rotate',
+                          disabled: apiKey.status != 'active'
+                        }
+                      ]}
+                      onItemClick={item => {
+                        if (item == 'update')
+                          updateApiKeyModal({
+                            apiKeyId: apiKey.id
+                          });
+                        if (item == 'delete')
+                          deleteApiKeyModal({
+                            apiKeyId: apiKey.id
+                          });
+                        if (item == 'rotate')
+                          rotateApiKeyModal({
+                            apiKeyId: apiKey.id
+                          });
+                      }}
+                    >
+                      <Button
+                        size="1"
+                        variant="outline"
+                        iconLeft={<RiMoreLine />}
+                        title="Open API key options"
+                      />
+                    </Menu>
+                  ) : (
+                    <div />
+                  )
                 ])}
             />
 
@@ -563,7 +575,7 @@ export let ApiKeySecret = ({ apiKey }: { apiKey: MetorialApiKey }) => {
 
       <Overlay
         style={
-          isRevealed && (secret || !canReveal) ? { opacity: 0, pointerEvents: 'none' } : {}
+          !canReveal || (isRevealed && secret) ? { opacity: 0, pointerEvents: 'none' } : {}
         }
       >
         <div>

@@ -8,7 +8,17 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
+
+var httpClient = &http.Client{
+	Timeout: 10 * time.Minute,
+	Transport: &http.Transport{
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     90 * time.Second,
+	},
+}
 
 func DownloadZip(url, path string, headers map[string]string) (*ZipFileIterator, error) {
 	tmpDir, err := os.MkdirTemp("", "gh-zip-*")
@@ -62,7 +72,7 @@ func downloadFile(url, dest string, headers map[string]string) error {
 		req.Header.Set(key, value)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
