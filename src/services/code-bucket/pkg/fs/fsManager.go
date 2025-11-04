@@ -28,7 +28,7 @@ const (
 	redisFlushDelay   = 5 * time.Minute
 	zipExpiration     = 3 * 24 * time.Hour
 	s3ZipExpiration   = 5 * 24 * time.Hour
-	maxRedisCacheSize = 1 * 1024 * 1024 // 1MB - don't cache files larger than this
+	maxRedisCacheSize = 1 * 1024 * 1024
 )
 
 type FileInfo struct {
@@ -67,8 +67,6 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 		util.Must(redis.ParseURL(options.RedisURL)),
 	)
 
-	// Create AWS session using default credential chain
-	// This will automatically use IAM roles, environment variables, or AWS credentials file
 	var sess *session.Session
 	var err error
 
@@ -118,7 +116,6 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 		importSemaphore: make(chan struct{}, 15),
 	}
 
-	// Start background flush routines
 	go fsm.backgroundFlush()
 	go fsm.cleanupZipFiles()
 
@@ -126,14 +123,12 @@ func NewFileSystemManager(opts ...FileSystemManagerOption) *FileSystemManager {
 }
 
 func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, filePath string) (*FileInfo, *FileData, error) {
-	// First check Redis
 	redisKey := fmt.Sprintf("bucket:%s:file:%s", bucketID, filePath)
 
 	result, err := fsm.redis.Get(ctx, redisKey).Result()
 	if err == nil {
 		var fileData FileData
 		if err := json.Unmarshal([]byte(result), &fileData); err == nil {
-			// return fileData.Content, fileData.ContentType, nil
 
 			info := &FileInfo{
 				Path:        filePath,
@@ -146,7 +141,6 @@ func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, fileP
 		}
 	}
 
-	// Check S3
 	s3Key := fmt.Sprintf("%s/%s", bucketID, filePath)
 	obj, err := fsm.s3Client.GetObjectWithContext(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(fsm.bucketName),
@@ -178,7 +172,6 @@ func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, fileP
 		ModifiedAt:  modifiedAt,
 	}
 
-	// Cache in Redis only if file is small enough
 	if len(content) <= maxRedisCacheSize {
 		if data, err := json.Marshal(fileData); err == nil {
 			fsm.redis.Set(ctx, redisKey, data, redisFlushDelay*2)
@@ -196,7 +189,7 @@ func (fsm *FileSystemManager) GetBucketFile(ctx context.Context, bucketID, fileP
 }
 
 func (fsm *FileSystemManager) PutBucketFile(ctx context.Context, bucketID, filePath string, content []byte, contentType string) error {
-	// For large files, write directly to S3 to avoid Redis memory pressure
+
 	if len(content) > maxRedisCacheSize {
 		s3Key := fmt.Sprintf("%s/%s", bucketID, filePath)
 		_, err := fsm.s3Client.PutObjectWithContext(ctx, &s3.PutObjectInput{
@@ -208,7 +201,6 @@ func (fsm *FileSystemManager) PutBucketFile(ctx context.Context, bucketID, fileP
 		return err
 	}
 
-	// Store small files in Redis first with reduced TTL
 	redisKey := fmt.Sprintf("bucket:%s:file:%s", bucketID, filePath)
 	fileData := FileData{
 		Content:     content,
@@ -226,7 +218,6 @@ func (fsm *FileSystemManager) PutBucketFile(ctx context.Context, bucketID, fileP
 		return err
 	}
 
-	// Mark for flush
 	flushKey := fmt.Sprintf("flush:%s:%s", bucketID, filePath)
 	fsm.redis.Set(ctx, flushKey, time.Now().Unix(), redisFlushDelay*2)
 
@@ -234,16 +225,13 @@ func (fsm *FileSystemManager) PutBucketFile(ctx context.Context, bucketID, fileP
 }
 
 func (fsm *FileSystemManager) DeleteBucketFile(ctx context.Context, bucketID, filePath string) error {
-	// Check if file exists first
 	redisKey := fmt.Sprintf("bucket:%s:file:%s", bucketID, filePath)
 	exists := fsm.redis.Exists(ctx, redisKey).Val()
 
-	// Delete from Redis
 	if exists != 0 {
 		fsm.redis.Del(ctx, redisKey)
 	}
 
-	// Delete from S3
 	s3Key := fmt.Sprintf("%s/%s", bucketID, filePath)
 	_, err := fsm.s3Client.DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(fsm.bucketName),
@@ -256,7 +244,6 @@ func (fsm *FileSystemManager) DeleteBucketFile(ctx context.Context, bucketID, fi
 func (fsm *FileSystemManager) GetBucketFiles(ctx context.Context, bucketID, prefix string) ([]FileInfo, error) {
 	files := make([]FileInfo, 0)
 
-	// Get files from Redis using SCAN instead of KEYS to avoid blocking
 	pattern := fmt.Sprintf("bucket:%s:file:*", bucketID)
 	var keys []string
 	iter := fsm.redis.Scan(ctx, 0, pattern, 100).Iterator()
@@ -289,7 +276,6 @@ func (fsm *FileSystemManager) GetBucketFiles(ctx context.Context, bucketID, pref
 		}
 	}
 
-	// Get files from S3
 	s3Prefix := bucketID + "/"
 	if prefix != "" {
 		s3Prefix += prefix
@@ -303,7 +289,6 @@ func (fsm *FileSystemManager) GetBucketFiles(ctx context.Context, bucketID, pref
 		for _, obj := range result.Contents {
 			filePath := strings.TrimPrefix(*obj.Key, bucketID+"/")
 
-			// Skip if already in Redis results
 			found := false
 			for _, f := range files {
 				if f.Path == filePath {
@@ -317,7 +302,7 @@ func (fsm *FileSystemManager) GetBucketFiles(ctx context.Context, bucketID, pref
 
 			contentType := "application/octet-stream"
 			if obj.StorageClass != nil {
-				// Get content type from object metadata
+
 				headObj, err := fsm.s3Client.HeadObjectWithContext(ctx, &s3.HeadObjectInput{
 					Bucket: aws.String(fsm.bucketName),
 					Key:    obj.Key,
@@ -345,7 +330,6 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 		return nil, nil, status.Errorf(codes.Internal, "failed to get files: %v", err)
 	}
 
-	// Create temp file for ZIP to avoid loading entire ZIP into memory
 	tmpFile, err := os.CreateTemp("", "bucket-zip-*.zip")
 	if err != nil {
 		return nil, nil, status.Errorf(codes.Internal, "failed to create temp file: %v", err)
@@ -353,7 +337,6 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 	defer os.Remove(tmpFile.Name())
 	defer tmpFile.Close()
 
-	// Create hash writer to compute SHA256 while writing
 	hash := sha256.New()
 	multiWriter := io.MultiWriter(tmpFile, hash)
 
@@ -375,25 +358,20 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 
 	zipWriter.Close()
 
-	// Get hash and create S3 key
 	zipKey := fmt.Sprintf("zips/%x.zip", hash.Sum(nil))
 
-	// Seek to beginning for upload
 	tmpFile.Seek(0, 0)
 
-	// Upload zip to S3
 	_, err = fsm.s3Client.PutObjectWithContext(ctx, &s3.PutObjectInput{
 		Bucket:      aws.String(fsm.bucketName),
 		Key:         aws.String(zipKey),
 		Body:        tmpFile,
 		ContentType: aws.String("application/zip"),
-		// Tagging:     aws.String("temporary=true"),
 	})
 	if err != nil {
 		return nil, nil, status.Errorf(codes.Internal, "failed to upload zip: %v", err)
 	}
 
-	// Create presigned URL
 	req2, _ := fsm.s3Client.GetObjectRequest(&s3.GetObjectInput{
 		Bucket: aws.String(fsm.bucketName),
 		Key:    aws.String(zipKey),
@@ -404,7 +382,6 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 		return nil, nil, status.Errorf(codes.Internal, "failed to create presigned URL: %v", err)
 	}
 
-	// Track zip file for cleanup
 	redisKey := fmt.Sprintf("zip:%s", zipKey)
 	fsm.redis.Set(ctx, redisKey, time.Now().Unix(), zipExpiration*2)
 
@@ -414,7 +391,6 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 }
 
 func (fsm *FileSystemManager) Clone(ctx context.Context, sourceBucketId, newBucketId string) error {
-	// Acquire import semaphore to limit concurrent operations
 	select {
 	case fsm.importSemaphore <- struct{}{}:
 		defer func() { <-fsm.importSemaphore }()
@@ -429,7 +405,6 @@ func (fsm *FileSystemManager) Clone(ctx context.Context, sourceBucketId, newBuck
 
 	queue := memoryQueue.NewBlockingJobQueue(15)
 
-	// Copy all files to new bucket
 	for _, file := range files {
 		queue.AddAndBlockIfFull(func() error {
 			info, content, err := fsm.GetBucketFile(ctx, sourceBucketId, file.Path)
@@ -447,7 +422,6 @@ func (fsm *FileSystemManager) Clone(ctx context.Context, sourceBucketId, newBuck
 }
 
 func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string, iterator *zipImporter.ZipFileIterator) error {
-	// Acquire import semaphore to limit concurrent operations
 	select {
 	case fsm.importSemaphore <- struct{}{}:
 		defer func() { <-fsm.importSemaphore }()
@@ -474,7 +448,6 @@ func (fsm *FileSystemManager) ImportZip(ctx context.Context, newBucketId string,
 }
 
 func (fsm *FileSystemManager) ImportContents(ctx context.Context, newBucketId string, contents []*FileContentsBase) error {
-	// Acquire import semaphore to limit concurrent operations
 	select {
 	case fsm.importSemaphore <- struct{}{}:
 		defer func() { <-fsm.importSemaphore }()

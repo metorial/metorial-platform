@@ -29,7 +29,7 @@ interface LambdaInvocationResult {
   discovery?: any;
   oauth?: any;
   callbacks?: any;
-  logs?: Array<{
+  logs: Array<{
     type: 'info' | 'error';
     lines: string[];
   }>;
@@ -71,17 +71,32 @@ export let invokeLambda = async (
 
   let result: LambdaInvocationResult = JSON.parse(Buffer.from(response.Payload).toString());
 
+  let logLines: string[] = [];
+
   // Optionally decode and log CloudWatch logs
   if (response.LogResult) {
     let logs = Buffer.from(response.LogResult, 'base64').toString();
-    console.log('Lambda execution logs:', logs);
+
+    let lines = logs.split('\n');
+    let startIndex = lines.findIndex(line => line.includes('START RequestId'));
+    let endIndex = lines.findIndex(line => line.includes('END RequestId'));
+
+    logLines = lines.slice(startIndex + 1, endIndex);
   }
 
   if (!result.success) {
     throw new Error(`Invocation failed: ${result.error?.code} - ${result.error?.message}`);
   }
 
-  return result;
+  return {
+    ...result,
+    logs:
+      result.logs ??
+      logLines.map(line => ({
+        type: 'info',
+        lines: [line]
+      }))
+  };
 };
 
 export let discoverLambda = async ({

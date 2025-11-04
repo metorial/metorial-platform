@@ -64,7 +64,7 @@ ensureTemplate({
       content: JSON.stringify(
         {
           name: 'TypeScript MCP Server',
-          runtime: 'typescript.deno'
+          runtime: 'typescript.node'
         },
         null,
         2
