@@ -33,6 +33,10 @@ describe('env', () => {
     expect(env.deno).toBeDefined();
   });
 
+  it('should have aws configuration', () => {
+    expect(env.aws).toBeDefined();
+  });
+
   it('should define DENO_DEPLOY_TOKEN as optional string', () => {
     expect(createValidatedEnv).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -64,16 +68,32 @@ describe('env', () => {
       expect(callArgs.deno).toHaveProperty('DENO_RUNNER_ADDRESS');
     });
 
-    it('should only have deno configuration', () => {
+    it('should have deno and aws configurations', () => {
       const callArgs = (createValidatedEnv as any).mock.calls[0][0];
       const keys = Object.keys(callArgs);
-      expect(keys).toEqual(['deno']);
+      expect(keys).toEqual(['deno', 'aws']);
     });
 
     it('should have exactly 3 deno env variables', () => {
       const callArgs = (createValidatedEnv as any).mock.calls[0][0];
       const denoKeys = Object.keys(callArgs.deno);
       expect(denoKeys).toHaveLength(3);
+    });
+
+    it('should have correct structure for aws config', () => {
+      const callArgs = (createValidatedEnv as any).mock.calls[0][0];
+      expect(callArgs).toHaveProperty('aws');
+      expect(callArgs.aws).toHaveProperty('AWS_ACCESS_KEY_ID');
+      expect(callArgs.aws).toHaveProperty('AWS_SECRET_ACCESS_KEY');
+      expect(callArgs.aws).toHaveProperty('AWS_REGION');
+      expect(callArgs.aws).toHaveProperty('AWS_ACCOUNT_ID');
+      expect(callArgs.aws).toHaveProperty('LAMBDA_DEPLOY_RESOURCE_PREFIX');
+    });
+
+    it('should have exactly 5 aws env variables', () => {
+      const callArgs = (createValidatedEnv as any).mock.calls[0][0];
+      const awsKeys = Object.keys(callArgs.aws);
+      expect(awsKeys).toHaveLength(5);
     });
   });
 
@@ -83,13 +103,13 @@ describe('env', () => {
     });
 
     it('should validate all fields as optional', () => {
-      // All 3 fields should be optional
-      expect(v.optional).toHaveBeenCalledTimes(3);
+      // All 8 fields should be optional (3 deno + 5 aws)
+      expect(v.optional).toHaveBeenCalledTimes(8);
     });
 
     it('should validate all fields as strings', () => {
-      // All 3 fields should be strings
-      expect(v.string).toHaveBeenCalledTimes(3);
+      // All 8 fields should be strings (3 deno + 5 aws)
+      expect(v.string).toHaveBeenCalledTimes(8);
     });
   });
 });
