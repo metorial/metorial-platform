@@ -34,6 +34,13 @@ const mockEnvStructure = {
       user: 'test',
       pass: 'test'
     }
+  },
+  aws: {
+    AWS_REGION: 'us-east-1',
+    AWS_ACCOUNT_ID: '123456789012',
+    AWS_ACCESS_KEY_ID: '',
+    AWS_SECRET_ACCESS_KEY: '',
+    LAMBDA_DEPLOY_RESOURCE_PREFIX: 'test'
   }
 };
 
@@ -84,6 +91,6 @@ vi.mock('bun', () => ({
 // Mock Bun global for vitest
 (global as any).Bun = {
   hash: {
-    cityHash32: vi.fn((str: any) => 12345)
+    cityHash32: vi.fn((_str: any) => 12345)
   }
 };

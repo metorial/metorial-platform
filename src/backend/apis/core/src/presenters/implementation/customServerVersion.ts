@@ -56,6 +56,7 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
     },
 
     custom_server_id: customServerVersion.customServer.id,
+    deployment_id: customServerVersion.deployment?.id ?? null,
 
     created_at: customServerVersion.createdAt,
     updated_at: customServerVersion.updatedAt
@@ -105,6 +106,13 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
         description: `The ID of the custom server this version belongs to`
       }),
 
+      deployment_id: v.nullable(
+        v.string({
+          name: 'deployment_id',
+          description: `The ID of the deployment associated with this custom server version`
+        })
+      ),
+
       created_at: v.date({
         name: 'created_at',
         description: `The timestamp when the custom server version was created`
@@ -137,8 +145,7 @@ export let dashboardCustomServerVersionPresenter = Presenter.create(customServer
           }
         : null,
 
-      version_hash: customServerVersion.versionHash,
-      deployment_id: customServerVersion.deployment?.id ?? null
+      version_hash: customServerVersion.versionHash
     };
   })
   .schema(
@@ -149,13 +156,6 @@ export let dashboardCustomServerVersionPresenter = Presenter.create(customServer
           name: 'version_hash',
           description: `The hash of the custom server version`
         }),
-
-        deployment_id: v.nullable(
-          v.string({
-            name: 'deployment_id',
-            description: `The ID of the deployment associated with this custom server version`
-          })
-        ),
 
         push: v.nullable(
           v.object({

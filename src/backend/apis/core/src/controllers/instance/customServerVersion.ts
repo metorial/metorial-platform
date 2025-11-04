@@ -104,6 +104,16 @@ export let customServerVersionController = Controller.create(
                       repository_id: v.string(),
                       path: v.string()
                     })
+                  ),
+
+                  files: v.optional(
+                    v.array(
+                      v.object({
+                        data: v.string(),
+                        encoding: v.enumOf(['utf-8', 'base64']),
+                        path: v.string()
+                      })
+                    )
                   )
                 })
               ),
@@ -158,6 +168,16 @@ export let customServerVersionController = Controller.create(
                         scopes: v.array(v.string())
                       })
                     )
+                  ),
+
+                  files: v.optional(
+                    v.array(
+                      v.object({
+                        data: v.string(),
+                        encoding: v.enumOf(['utf-8', 'base64']),
+                        path: v.string()
+                      })
+                    )
                   )
                 })
               ),
@@ -192,6 +212,7 @@ export let customServerVersionController = Controller.create(
                     schema: ctx.body.implementation.config?.schema,
                     getLaunchParams: ctx.body.implementation.config?.getLaunchParams
                   },
+                  files: ctx.body.implementation.managed_server?.files,
                   repository: ctx.body.implementation.managed_server?.repository
                     ? {
                         repo: await scmRepoService.getScmRepoById({
@@ -244,8 +265,8 @@ export let customServerVersionController = Controller.create(
       .do(async ctx => {
         let customServerVersion = await customServerVersionService.getVersionById({
           versionId: ctx.params.customServerVersionId,
-          instance: ctx.instance,
-          server: ctx.customServer
+          server: ctx.customServer,
+          instance: ctx.instance
         });
 
         return customServerVersionPresenter.present({
