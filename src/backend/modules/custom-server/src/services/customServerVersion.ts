@@ -136,6 +136,11 @@ class CustomServerVersionServiceImpl {
             repo: ScmRepo;
             path: string;
           };
+          files?: {
+            data: string;
+            encoding: 'utf-8' | 'base64';
+            path: string;
+          }[];
         };
 
     isEphemeralUpdate?: boolean;
@@ -236,6 +241,15 @@ class CustomServerVersionServiceImpl {
 
             let repo = d.serverInstance.repository;
             if (d.server.repositoryOid) {
+              if (repo) {
+                throw new ServiceError(
+                  badRequestError({
+                    message:
+                      'Cannot specify repository for managed server when one is already set'
+                  })
+                );
+              }
+
               let repoRes = await db.scmRepo.findFirstOrThrow({
                 where: { oid: d.server.repositoryOid }
               });
@@ -260,6 +274,14 @@ class CustomServerVersionServiceImpl {
                 { repo: repo.repo }
               );
               if (currentPush) d.push = currentPush;
+            }
+
+            if (repo && d.serverInstance.files) {
+              throw new ServiceError(
+                badRequestError({
+                  message: 'Cannot specify files for managed server when repository is set'
+                })
+              );
             }
           }
 
@@ -397,6 +419,13 @@ class CustomServerVersionServiceImpl {
               await syncCurrentDraftBucketToRepoQueue.add({
                 draftBucketOid: server.draftCodeBucketOid!,
                 immutableBucketOid: immutableCodeBucket.oid
+              });
+            } else if (d.serverInstance.files) {
+              immutableCodeBucket = await codeBucketService.createCodeBucket({
+                isReadOnly: true,
+                purpose: 'custom_server',
+                instance: d.instance,
+                files: d.serverInstance.files
               });
             } else {
               let draftCodeBucket = await db.codeBucket.findFirstOrThrow({

@@ -28,6 +28,11 @@ class codeBucketServiceImpl {
     instance: Instance;
     purpose: CodeBucketPurpose;
     isReadOnly?: boolean;
+    files?: {
+      data: string;
+      encoding: 'utf-8' | 'base64';
+      path: string;
+    }[];
   }) {
     let codeBucket = await db.codeBucket.create({
       data: {
@@ -38,6 +43,19 @@ class codeBucketServiceImpl {
       },
       include
     });
+
+    if (d.files && d.files.length > 0) {
+      await codeWorkspaceClient.createBucketFromContents({
+        newBucketId: codeBucket.id,
+        contents: d.files.map(f => ({
+          path: normalizePath(f.path),
+          content:
+            f.encoding === 'base64'
+              ? Buffer.from(f.data, 'base64')
+              : Buffer.from(f.data, 'utf-8')
+        }))
+      });
+    }
 
     return codeBucket;
   }
