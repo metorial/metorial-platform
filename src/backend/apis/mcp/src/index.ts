@@ -1,4 +1,6 @@
+import { createExecutionContext, provideExecutionContext } from '@metorial/execution-context';
 import { createHono, useRequestContext } from '@metorial/hono';
+import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
 import { Authenticator } from '@metorial/rest';
 import type { ServerWebSocket } from 'bun';
@@ -55,29 +57,39 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         c.req.header('mcp-session-id') ??
         c.req.header('metorial-server-session-id');
 
-      let sessionInfo = await getSessionAndAuthenticate(
-        {
-          type: 'session',
-          sessionId
-        },
-        req,
-        url,
-        d.authenticate,
-        context
-      );
-      let { serverSession, sessionCreated } = await getServerSession(
-        sessionInfo,
-        context,
-        serverDeploymentId ?? null,
-        serverSessionId ?? null,
-        connectionType
-      );
+      return provideExecutionContext(
+        createExecutionContext({
+          userAgent: context.ua ?? 'unknown',
+          ip: context.ip,
+          contextId: generateSnowflakeId('mreq'),
+          type: 'request'
+        }),
+        async () => {
+          let sessionInfo = await getSessionAndAuthenticate(
+            {
+              type: 'session',
+              sessionId
+            },
+            req,
+            url,
+            d.authenticate,
+            context
+          );
+          let { serverSession, sessionCreated } = await getServerSession(
+            sessionInfo,
+            context,
+            serverDeploymentId ?? null,
+            serverSessionId ?? null,
+            connectionType
+          );
 
-      return await mcpConnectionHandler(c, next, sessionInfo, serverSession, {
-        connectionType,
-        upgradeWebSocket,
-        sessionCreated
-      });
+          return await mcpConnectionHandler(c, next, sessionInfo, serverSession, {
+            connectionType,
+            upgradeWebSocket,
+            sessionCreated
+          });
+        }
+      );
     })
     .all('/magic/:magicMcpServerId/:connectionType', async (c, next) => {
       let { magicMcpServerId, connectionType: connectionTypeRaw } = c.req.param();
@@ -96,32 +108,42 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
 
       let oauthSessionId = c.req.query('oauth_session_id');
 
-      let sessionInfo = await getSessionAndAuthenticate(
-        {
-          type: 'magic_mcp_server',
-          magicMcpServerId,
-          serverSessionId,
-          oauthSessionId
-        },
-        req,
-        url,
-        d.authenticate,
-        context
-      );
+      return provideExecutionContext(
+        createExecutionContext({
+          userAgent: context.ua ?? 'unknown',
+          ip: context.ip,
+          contextId: generateSnowflakeId('mreq'),
+          type: 'request'
+        }),
+        async () => {
+          let sessionInfo = await getSessionAndAuthenticate(
+            {
+              type: 'magic_mcp_server',
+              magicMcpServerId,
+              serverSessionId,
+              oauthSessionId
+            },
+            req,
+            url,
+            d.authenticate,
+            context
+          );
 
-      let { serverSession, sessionCreated } = await getServerSession(
-        sessionInfo,
-        context,
-        null,
-        serverSessionId ?? null,
-        connectionType
-      );
+          let { serverSession, sessionCreated } = await getServerSession(
+            sessionInfo,
+            context,
+            null,
+            serverSessionId ?? null,
+            connectionType
+          );
 
-      return await mcpConnectionHandler(c, next, sessionInfo, serverSession, {
-        connectionType,
-        upgradeWebSocket,
-        sessionCreated
-      });
+          return await mcpConnectionHandler(c, next, sessionInfo, serverSession, {
+            connectionType,
+            upgradeWebSocket,
+            sessionCreated
+          });
+        }
+      );
     });
 
   Bun.serve({

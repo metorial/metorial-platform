@@ -189,5 +189,12 @@ export let backendEnv: Env = [
   { key: 'AWS_SECRET_ACCESS_KEY' },
   { key: 'AWS_REGION' },
   { key: 'AWS_ACCOUNT_ID' },
-  { key: 'LAMBDA_DEPLOY_RESOURCE_PREFIX' }
+  { key: 'LAMBDA_DEPLOY_RESOURCE_PREFIX' },
+
+  { key: 'ENABLE_EMAIL_CAMPAIGNS', isEnterprise: true, defaultValue: 'true' },
+  { key: 'BILLING_ENABLED', isEnterprise: true, defaultValue: 'true' },
+  { key: 'SUPPORT_ENABLED', isEnterprise: true, defaultValue: 'true' },
+  { key: 'CHROME_SIDEBAR_DOCS_ENABLED', isEnterprise: true, defaultValue: 'true' },
+  { key: 'CHROME_ONBOARDING_ENABLED', isEnterprise: true, defaultValue: 'true' },
+  { key: 'CHROME_SIDEBAR_CHANGELOG_ENABLED', isEnterprise: true, defaultValue: 'true' }
 ];

@@ -5,7 +5,6 @@ import {
   Instance,
   ProviderOAuthConfig,
   ProviderOAuthConnection,
-  ProviderOAuthConnectionAuthToken,
   ProviderOAuthConnectionProfile
 } from '@metorial/db';
 import { isServiceError, ServiceError } from '@metorial/error';
@@ -21,7 +20,7 @@ import { callbackUrl } from '../const';
 import { formSchema } from '../lib/formSchema';
 import { oauthErrorDescriptions } from '../lib/oauthErrors';
 import { OAuthUtils } from '../lib/oauthUtils';
-import { addErrorCheck } from '../queue/errorCheck';
+import { useAuthToken } from '../lib/useToken';
 import {
   OAuthConfiguration,
   TokenResponse,
@@ -878,6 +877,7 @@ class OauthAuthorizationServiceImpl {
       fields: token.additionalValuesFromAuthAttempt,
       connection
     };
+    return useAuthToken(d);
   }
 }
 

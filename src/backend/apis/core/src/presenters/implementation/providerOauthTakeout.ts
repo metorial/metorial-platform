@@ -4,7 +4,7 @@ import { providerOauthTakeoutType } from '../types';
 
 export let v1ProviderOauthTakeoutPresenter = Presenter.create(providerOauthTakeoutType)
   .presenter(async ({ providerOauthTakeout, includeSensitiveData }, opts) => ({
-    object: 'provider_oauth.takeout',
+    object: 'provider_oauth.export',
 
     id: providerOauthTakeout.id,
 
@@ -15,6 +15,8 @@ export let v1ProviderOauthTakeoutPresenter = Presenter.create(providerOauthTakeo
 
     note: providerOauthTakeout.note,
     metadata: providerOauthTakeout.metadata ?? {},
+
+    connection_id: providerOauthTakeout.connection.id,
 
     access_token: !includeSensitiveData
       ? null
@@ -27,35 +29,40 @@ export let v1ProviderOauthTakeoutPresenter = Presenter.create(providerOauthTakeo
   }))
   .schema(
     v.object({
-      object: v.literal('provider_oauth.takeout'),
+      object: v.literal('provider_oauth.export'),
 
       id: v.string({
         name: 'id',
-        description: 'The unique identifier for this OAuth takeout'
+        description: 'The unique identifier for this OAuth export'
       }),
 
       status: v.enumOf(['active', 'expired'], {
         name: 'status',
-        description: 'The current state of the takeout'
+        description: 'The current state of the export'
       }),
 
       note: v.nullable(
         v.string({
           name: 'note',
-          description: 'An optional note associated with the takeout'
+          description: 'An optional note associated with the export'
         })
       ),
 
       metadata: v.record(v.any(), {
         name: 'metadata',
-        description: 'Additional metadata associated with the takeout'
+        description: 'Additional metadata associated with the export'
+      }),
+
+      connection_id: v.string({
+        name: 'connection_id',
+        description: 'The ID of the associated OAuth connection'
       }),
 
       access_token: v.nullable(
         v.string({
           name: 'access_token',
           description:
-            'The access token associated with the takeout. Only present when the takeout is created.'
+            'The access token associated with the export. Only present when the export is created.'
         })
       ),
 
@@ -63,7 +70,7 @@ export let v1ProviderOauthTakeoutPresenter = Presenter.create(providerOauthTakeo
         v.string({
           name: 'id_token',
           description:
-            'The ID token associated with the takeout. Only present when the takeout is created.'
+            'The ID token associated with the export. Only present when the export is created.'
         })
       ),
 
@@ -76,13 +83,13 @@ export let v1ProviderOauthTakeoutPresenter = Presenter.create(providerOauthTakeo
 
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the takeout was created'
+        description: 'Timestamp when the export was created'
       }),
 
       expires_at: v.nullable(
         v.date({
           name: 'expires_at',
-          description: 'Timestamp when the takeout expires'
+          description: 'Timestamp when the export expires'
         })
       )
     })

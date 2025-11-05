@@ -1,0 +1,44 @@
+model ProviderOAuthTakeIn {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  currentVersionIndex Int @default(1)
+
+  note     String?
+  metadata Json?
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  tokenOid BigInt                           @unique
+  token    ProviderOAuthConnectionAuthToken @relation(fields: [tokenOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt
+  connection    ProviderOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  currentVersionOid BigInt?
+  currentVersion    ProviderOAuthTakeInVersion? @relation(fields: [currentVersionOid], references: [oid], onDelete: Cascade, name: "ProviderOAuthTakeInCurrentVersion")
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  versions ProviderOAuthTakeInVersion[]
+}
+
+model ProviderOAuthTakeInVersion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  ip String?
+  ua String?
+
+  tokenHash String
+  version   Int
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  takeInOid  BigInt
+  takeIn     ProviderOAuthTakeIn   @relation(fields: [takeInOid], references: [oid], onDelete: Cascade)
+  currentFor ProviderOAuthTakeIn[] @relation("ProviderOAuthTakeInCurrentVersion")
+}

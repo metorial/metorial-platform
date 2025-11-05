@@ -2143,6 +2143,15 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/packages/shared/once": {
+      "name": "@metorial/once",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.8.3",
+        "vitest": "^3.1.2",
+      },
+    },
     "src/packages/shared/programmable-promise": {
       "name": "@metorial/programmable-promise",
       "version": "1.0.0",
@@ -3009,6 +3018,8 @@
     "@metorial/murmur3": ["@metorial/murmur3@workspace:src/packages/shared/murmur3"],
 
     "@metorial/normalize-email": ["@metorial/normalize-email@workspace:src/packages/backend/normalize-email"],
+
+    "@metorial/once": ["@metorial/once@workspace:src/packages/shared/once"],
 
     "@metorial/pages": ["@metorial/pages@workspace:src/packages/frontend/pages"],
 
@@ -6025,6 +6036,8 @@
     "@metorial/module-usage/date-fns": ["date-fns@4.1.0", "", {}, "sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg=="],
 
     "@metorial/murmur3/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@metorial/once/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial/programmable-promise/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

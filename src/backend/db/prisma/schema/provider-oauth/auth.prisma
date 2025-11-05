@@ -84,9 +84,16 @@ model ProviderOAuthConnectionAuthAttempt {
   @@index([status])
 }
 
+enum ProviderOAuthConnectionAuthTokenType {
+  default
+  take_in
+}
+
 model ProviderOAuthConnectionAuthToken {
   oid BigInt @id @default(autoincrement())
   id  String @unique
+
+  type ProviderOAuthConnectionAuthTokenType @default(take_in)
 
   accessToken  String
   refreshToken String?
@@ -118,6 +125,7 @@ model ProviderOAuthConnectionAuthToken {
   authAttempts          ProviderOAuthConnectionAuthAttempt[]
   references            ProviderOAuthConnectionAuthTokenReference[]
   providerOAuthTakeouts ProviderOAuthTakeout[]
+  providerOAuthTakeIn   ProviderOAuthTakeIn?
 }
 
 model ProviderOAuthConnectionAuthTokenReference {

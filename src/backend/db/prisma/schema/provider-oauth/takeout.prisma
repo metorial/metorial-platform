@@ -10,11 +10,11 @@ model ProviderOAuthTakeout {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
-  tokenOid BigInt?
-  token    ProviderOAuthConnectionAuthToken? @relation(fields: [tokenOid], references: [oid], onDelete: SetNull)
+  tokenOid BigInt
+  token    ProviderOAuthConnectionAuthToken @relation(fields: [tokenOid], references: [oid], onDelete: Cascade)
 
-  connectionOid BigInt?
-  connection    ProviderOAuthConnection? @relation(fields: [connectionOid], references: [oid], onDelete: SetNull)
+  connectionOid BigInt
+  connection    ProviderOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime  @default(now())
   expiresAt DateTime?

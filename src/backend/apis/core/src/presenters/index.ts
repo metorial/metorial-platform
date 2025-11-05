@@ -43,6 +43,7 @@ import { v1ProviderOauthConnectionProfilePresenter } from './implementation/prov
 import { v1ProviderOauthConnectionTemplatePresenter } from './implementation/providerOauthConnectionTemplate';
 import { v1ProviderOauthConnectionTemplateEvaluationPresenter } from './implementation/providerOauthConnectionTemplateEvaluation';
 import { v1ProviderOauthDiscoveryPresenter } from './implementation/providerOauthDiscovery';
+import { v1ProviderOauthTakeInPresenter } from './implementation/providerOauthTakeIn';
 import { v1ProviderOauthTakeoutPresenter } from './implementation/providerOauthTakeout';
 import { v1RemoteServerPresenter } from './implementation/remoteServer';
 import { v1ScmAccountPreviewPresenter } from './implementation/scmAccountPreview';
@@ -118,6 +119,7 @@ import {
   providerOauthConnectionTemplateEvaluationType,
   providerOauthConnectionTemplateType,
   providerOauthConnectionType,
+  providerOauthTakeInType,
   providerOauthTakeoutType,
   remoteServerType,
   scmAccountPreviewType,
@@ -379,6 +381,11 @@ export let providerOauthDiscoveryPresenter = declarePresenter(
 export let providerOauthTakeoutPresenter = declarePresenter(providerOauthTakeoutType, {
   mt_2025_01_01_pulsar: v1ProviderOauthTakeoutPresenter,
   mt_2025_01_01_dashboard: v1ProviderOauthTakeoutPresenter
+});
+
+export let providerOauthTakeInPresenter = declarePresenter(providerOauthTakeInType, {
+  mt_2025_01_01_pulsar: v1ProviderOauthTakeInPresenter,
+  mt_2025_01_01_dashboard: v1ProviderOauthTakeInPresenter
 });
 
 export let remoteServerPresenter = declarePresenter(remoteServerType, {
