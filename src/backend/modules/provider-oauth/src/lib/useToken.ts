@@ -7,10 +7,9 @@ import {
   db
 } from '@metorial/db';
 import { ServiceError, badRequestError } from '@metorial/error';
+import { lambdaServerOAuthService } from '@metorial/module-custom-server';
 import { usageService } from '@metorial/module-usage';
 import { getSentry } from '@metorial/sentry';
-import { getAxiosSsrfFilter } from '@metorial/ssrf';
-import axios from 'axios';
 import { addMinutes, differenceInDays, differenceInMinutes } from 'date-fns';
 import { callbackUrl } from '../const';
 import { addErrorCheck } from '../queue/errorCheck';
@@ -160,40 +159,31 @@ let refreshToken = async (d: {
       refreshToken: token.refreshToken,
       config: d.connection.config.config
     });
-  } else if (d.connection.config.type == 'managed_server_http') {
-    if (!d.connection.config.lambdaServerInstanceForHttpEndpointOid) {
+  } else if (
+    d.connection.config.type == 'managed_server_http' ||
+    d.connection.config.type == 'managed_server_lambda'
+  ) {
+    if (!d.connection.config.lambdaServerInstanceForManagedServerOid) {
       throw new Error(
-        'WTF - Remote OAuth configuration is missing lambdaServerInstanceForHttpEndpointOid'
+        'WTF - Remote OAuth configuration is missing lambdaServerInstanceForManagedServerOid'
       );
     }
 
     let lambdaInstance = await db.lambdaServerInstance.findUniqueOrThrow({
-      where: { oid: d.connection.config.lambdaServerInstanceForHttpEndpointOid },
+      where: { oid: d.connection.config.lambdaServerInstanceForManagedServerOid },
       include: { instance: { include: { organization: true } } }
     });
 
-    let tokenRes = await axios.post<Record<any, any>>(
-      `${d.connection.config.httpEndpoint}/oauth/refresh`,
-      {
-        input: {
-          redirectUri: callbackUrl,
-          refreshToken: token.refreshToken,
-          clientId: d.connection.clientId!,
-          clientSecret: d.connection.clientSecret,
-          fields: token.additionalValuesFromAuthAttempt ?? {}
-        }
-      },
-      {
-        ...getAxiosSsrfFilter(d.connection.config.httpEndpoint!),
-        headers: {
-          'metorial-stellar-token': lambdaInstance.securityToken
-        }
-      }
-    );
-    if (tokenRes.status !== 200 || !tokenRes.data.success) {
-      res = { ok: false as const, message: 'Failed to fetch tokens from remote server' };
-    } else {
-      let tokenResVal = tokenResponseValidator.validate(tokenRes.data.authData);
+    try {
+      let tokenData = await lambdaServerOAuthService.refreshOAuthToken({
+        connection: d.connection,
+        refreshToken: token.refreshToken,
+        redirectUri: callbackUrl,
+        lambda: lambdaInstance,
+        additionalAuthData: token.additionalValuesFromAuthAttempt ?? {}
+      });
+
+      let tokenResVal = tokenResponseValidator.validate(tokenData.authData);
       if (!tokenResVal.success) {
         res = {
           ok: false as const,
@@ -209,7 +199,7 @@ let refreshToken = async (d: {
           scope: tokenResVal.value.scope
         };
 
-        additionalAuthData = { ...tokenRes.data.authData };
+        additionalAuthData = { ...tokenData };
         for (let key of Object.keys(tokenResponse)) {
           delete additionalAuthData[key];
         }
@@ -219,6 +209,8 @@ let refreshToken = async (d: {
           response: tokenResponse
         };
       }
+    } catch (error: any) {
+      res = { ok: false as const, message: 'Failed to fetch tokens from remote server' };
     }
   } else {
     throw new Error('WTF - Unknown connection config type');
