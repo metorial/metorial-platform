@@ -48,6 +48,8 @@ import {
   ProviderOAuthConnectionProfile,
   ProviderOAuthConnectionTemplate,
   ProviderOAuthDiscoveryDocument,
+  ProviderOAuthTakeIn,
+  ProviderOAuthTakeInVersion,
   ProviderOAuthTakeout,
   RemoteServerInstance,
   ScmAccount,
@@ -454,10 +456,19 @@ export let providerOauthConnectionDiscoveryType = PresentableType.create<{
 
 export let providerOauthTakeoutType = PresentableType.create<{
   providerOauthTakeout: ProviderOAuthTakeout & {
-    token: ProviderOAuthConnectionAuthToken | null;
+    connection: ProviderOAuthConnection;
+    token: ProviderOAuthConnectionAuthToken;
   };
   includeSensitiveData: boolean;
-}>()('provider_oauth.takeout');
+}>()('provider_oauth.export');
+
+export let providerOauthTakeInType = PresentableType.create<{
+  providerOauthTakeIn: ProviderOAuthTakeIn & {
+    connection: ProviderOAuthConnection;
+    token: ProviderOAuthConnectionAuthToken;
+    currentVersion: ProviderOAuthTakeInVersion | null;
+  };
+}>()('provider_oauth.import');
 
 export let remoteServerType = PresentableType.create<{
   remoteServerInstance: RemoteServerInstance & {
