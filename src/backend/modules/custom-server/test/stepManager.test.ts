@@ -6,6 +6,7 @@ import type { CustomServerDeployment } from '@metorial/db';
 vi.mock('@metorial/db', () => ({
   db: {
     customServerDeploymentStep: {
+      findFirst: vi.fn(),
       create: vi.fn(),
       updateMany: vi.fn()
     }
@@ -29,6 +30,7 @@ describe('createDeploymentStepManager', () => {
     vi.clearAllMocks();
     // Setup default mock implementations
     (ID.generateId as any).mockResolvedValue('step-id-123');
+    (db.customServerDeploymentStep.findFirst as any).mockResolvedValue(null);
     (db.customServerDeploymentStep.create as any).mockImplementation(({ data }: any) => ({
       oid: 1,
       id: data.id,

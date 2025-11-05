@@ -161,6 +161,7 @@ export let apiKeyType = PresentableType.create<{
     };
   };
   secret?: ApiKeySecret;
+  canReveal: boolean;
 }>()('api_key');
 
 export let fileType = PresentableType.create<{

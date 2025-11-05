@@ -39,7 +39,7 @@ export let createDenoLambdaDeployment = async (config: {
   let lambdaServerInstance = config.lambdaServerInstance;
 
   let deployment = await Promise.race([
-    delay(1000 * 60 * 5).then(() => {
+    delay(1000 * 60 * 2).then(() => {
       throw new DeploymentError({
         code: 'deployment_timeout',
         message: 'Deno deployment timed out after 5 minutes'

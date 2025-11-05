@@ -59,7 +59,11 @@ type WsErrorMessage struct {
 	Error WsRemoteError `json:"error"`
 }
 
+var initialId int64 = 0
+
 type ConnectionLambdaWs struct {
+	id int64
+
 	context context.Context
 	cancel  context.CancelCauseFunc
 
@@ -79,6 +83,8 @@ func NewConnectionLambdaWs(ctx context.Context, client *remotePb.RunConfigLambda
 	ctx, cancel := context.WithCancelCause(ctx)
 
 	res := &ConnectionLambdaWs{
+		id: initialId,
+
 		context: ctx,
 		cancel:  cancel,
 
@@ -87,6 +93,8 @@ func NewConnectionLambdaWs(ctx context.Context, client *remotePb.RunConfigLambda
 		config: config,
 		client: client,
 	}
+
+	initialId++
 
 	if res.context.Err() != nil {
 		return nil, context.Cause(res.context)
@@ -114,13 +122,13 @@ func (c *ConnectionLambdaWs) ensureConnection() (*websocket.Conn, error) {
 	}
 	u.Path = path.Join(u.Path, "mcp")
 
-	fmt.Println("Connecting to WebSocket server at", u.String())
-
 	headers := http.Header{}
 	headers.Set("User-Agent", "Metorial MCP Engine (https://metorial.com)")
 	headers.Set("Metorial-Stellar-Token", *c.config.Server.SecurityToken)
 	headers.Set("Metorial-Stellar-Client", c.client.Participant.ParticipantJson)
 	headers.Set("Metorial-Stellar-Arguments", c.config.Arguments.JsonArguments)
+
+	fmt.Println("Metorial-Stellar-Arguments: ", c.id, c.config.Arguments.JsonArguments)
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), headers)
 	if err != nil {

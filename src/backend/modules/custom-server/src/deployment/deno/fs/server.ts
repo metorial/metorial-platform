@@ -14,13 +14,7 @@ interface BootOptions {
   notificationListener: (notification: Notification) => void;
 }
 
-let clients = new Map<string, Promise<Client>>();
-
 export let getClient = async (args: any, opts: BootOptions) => {
-  if (clients.has(opts.client.name)) {
-    return clients.get(opts.client.name)!;
-  }
-
   let client = (async () => {
     let server = await Promise.race([
       globalThis.__metorial_getServer__(),
@@ -33,7 +27,6 @@ export let getClient = async (args: any, opts: BootOptions) => {
       })
     ]);
 
-    globalThis.__metorial_setArgs__(args);
     if (server.type == 'metorial.server::v1') {
       server = await server.start(args);
     }
@@ -53,8 +46,6 @@ export let getClient = async (args: any, opts: BootOptions) => {
 
     return client;
   })()
-
-  clients.set(opts.client.name, client);
 
   return client;
 };

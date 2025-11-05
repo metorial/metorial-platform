@@ -6,7 +6,7 @@ import { instanceService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
-import { isDashboardGroup } from '../../middleware/isDashboard';
+import { isAdminGroup, isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
 import { apiKeyPresenter } from '../../presenters';
 
@@ -137,7 +137,9 @@ export let dashboardApiKeyController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, apiKey => apiKeyPresenter.present({ apiKey }));
+        return Paginator.present(list, apiKey =>
+          apiKeyPresenter.present({ canReveal: ctx.member?.role == 'admin', apiKey })
+        );
       }),
 
     get: organizationGroup
@@ -156,7 +158,7 @@ export let dashboardApiKeyController = Controller.create(
           organization: ctx.organization
         });
 
-        return apiKeyPresenter.present({ apiKey });
+        return apiKeyPresenter.present({ canReveal: ctx.member?.role == 'admin', apiKey });
       }),
 
     create: organizationGroup
@@ -187,6 +189,7 @@ export let dashboardApiKeyController = Controller.create(
         ])
       )
       .use(isDashboardGroup())
+      .use(isAdminGroup())
       .output(apiKeyPresenter)
       .do(async ctx => {
         if (ctx.body.type == 'organization_management_token') {
@@ -202,7 +205,11 @@ export let dashboardApiKeyController = Controller.create(
             performedBy: ctx.actor
           });
 
-          return apiKeyPresenter.present({ apiKey, secret });
+          return apiKeyPresenter.present({
+            canReveal: ctx.member?.role == 'admin',
+            apiKey,
+            secret
+          });
         } else {
           let instance = await instanceService.getInstanceById({
             instanceId: ctx.body.instance_id,
@@ -225,7 +232,11 @@ export let dashboardApiKeyController = Controller.create(
             performedBy: ctx.actor
           });
 
-          return apiKeyPresenter.present({ apiKey, secret });
+          return apiKeyPresenter.present({
+            canReveal: ctx.member?.role == 'admin',
+            apiKey,
+            secret
+          });
         }
       }),
 
@@ -246,6 +257,7 @@ export let dashboardApiKeyController = Controller.create(
         })
       )
       .use(isDashboardGroup())
+      .use(isAdminGroup())
       .output(apiKeyPresenter)
       .do(async ctx => {
         let apiKey = await apiKeyService.getApiKeyById({
@@ -264,7 +276,7 @@ export let dashboardApiKeyController = Controller.create(
           performedBy: ctx.actor
         });
 
-        return apiKeyPresenter.present({ apiKey });
+        return apiKeyPresenter.present({ canReveal: ctx.member?.role == 'admin', apiKey });
       }),
 
     revoke: organizationGroup
@@ -276,6 +288,7 @@ export let dashboardApiKeyController = Controller.create(
         }
       )
       .use(isDashboardGroup())
+      .use(isAdminGroup())
       .output(apiKeyPresenter)
       .do(async ctx => {
         let apiKey = await apiKeyService.getApiKeyById({
@@ -289,7 +302,7 @@ export let dashboardApiKeyController = Controller.create(
           performedBy: ctx.actor
         });
 
-        return apiKeyPresenter.present({ apiKey });
+        return apiKeyPresenter.present({ canReveal: ctx.member?.role == 'admin', apiKey });
       }),
 
     rotate: organizationGroup
@@ -310,6 +323,7 @@ export let dashboardApiKeyController = Controller.create(
         })
       )
       .use(isDashboardGroup())
+      .use(isAdminGroup())
       .output(apiKeyPresenter)
       .do(async ctx => {
         let apiKey = await apiKeyService.getApiKeyById({
@@ -326,7 +340,11 @@ export let dashboardApiKeyController = Controller.create(
           }
         });
 
-        return apiKeyPresenter.present({ apiKey: res.apiKey, secret: res.secret });
+        return apiKeyPresenter.present({
+          canReveal: ctx.member?.role == 'admin',
+          apiKey: res.apiKey,
+          secret: res.secret
+        });
       }),
 
     reveal: organizationGroup
@@ -341,6 +359,7 @@ export let dashboardApiKeyController = Controller.create(
         }
       )
       .use(isDashboardGroup())
+      .use(isAdminGroup())
       .output(apiKeyPresenter)
       .do(async ctx => {
         let apiKey = await apiKeyService.getApiKeyById({
@@ -354,7 +373,11 @@ export let dashboardApiKeyController = Controller.create(
           performedBy: ctx.actor
         });
 
-        return apiKeyPresenter.present({ apiKey, secret });
+        return apiKeyPresenter.present({
+          canReveal: ctx.member?.role == 'admin',
+          apiKey,
+          secret
+        });
       })
   }
 );

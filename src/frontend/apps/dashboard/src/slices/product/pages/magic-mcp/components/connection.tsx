@@ -8,7 +8,7 @@ export let getCursorConnection = (
   server: DashboardInstanceMagicMcpServersGetOutput,
   token: DashboardInstanceMagicMcpTokensGetOutput
 ) => {
-  let last = slugify(server.name);
+  let last = slugify(server.name ?? 'Unknown Server');
 
   return {
     steps: [
@@ -42,7 +42,7 @@ export let getClaudeCodeConnection = (
   server: DashboardInstanceMagicMcpServersGetOutput,
   token: DashboardInstanceMagicMcpTokensGetOutput
 ) => {
-  let last = slugify(server.name);
+  let last = slugify(server.name ?? 'Unknown Server');
 
   return {
     steps: [
@@ -61,7 +61,7 @@ export let getGeminiCliConnection = (
   server: DashboardInstanceMagicMcpServersGetOutput,
   token: DashboardInstanceMagicMcpTokensGetOutput
 ) => {
-  let last = slugify(server.name);
+  let last = slugify(server.name ?? 'Unknown Server');
 
   return {
     steps: [
@@ -93,7 +93,7 @@ export let getVisualStudioConnection = (
   server: DashboardInstanceMagicMcpServersGetOutput,
   token: DashboardInstanceMagicMcpTokensGetOutput
 ) => {
-  let last = slugify(server.name);
+  let last = slugify(server.name ?? 'Unknown Server');
 
   return {
     steps: [
@@ -124,7 +124,7 @@ export let getWindsurfConnection = (
   server: DashboardInstanceMagicMcpServersGetOutput,
   token: DashboardInstanceMagicMcpTokensGetOutput
 ) => {
-  let last = slugify(server.name);
+  let last = slugify(server.name ?? 'Unknown Server');
 
   return {
     steps: [

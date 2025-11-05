@@ -42,7 +42,7 @@ export let lambdaDeployMainQueue = createQueue<{
   workerOpts: {
     concurrency: 5,
     limiter: {
-      max: 5,
+      max: 20,
       duration: 30 * 1000
     }
   }
@@ -281,7 +281,12 @@ let lambdaDeployCheckerQueue = createQueue<{
     }
   },
   workerOpts: {
-    concurrency: 50
+    concurrency: 15,
+    limiter: {
+      // Avoid AWS API rate limits
+      max: 50,
+      duration: 30 * 1000
+    }
   }
 });
 
@@ -342,8 +347,6 @@ export let lambdaDeployCheckerQueueProcessor = lambdaDeployCheckerQueue.process(
       .map(code => code!);
     let nonZeroExit = !!exitCodes?.some(code => code != 0);
 
-    console.log('Deployment task exited with codes:', exitCodes, task);
-
     if (nonZeroExit) {
       await deployStep.fail([
         {
@@ -393,6 +396,9 @@ let lambdaDeployCompleterQueue = createQueue<{
   name: 'csrv/almb/complete',
   jobOpts: {
     attempts: 10
+  },
+  workerOpts: {
+    concurrency: 15
   }
 });
 
@@ -518,6 +524,9 @@ let discoveryQueue = createQueue<{
   name: 'csrv/almb/discovery',
   jobOpts: {
     attempts: 10
+  },
+  workerOpts: {
+    concurrency: 15
   }
 });
 
@@ -543,18 +552,39 @@ export let lambdaDeployDiscoveryQueueProcessor = discoveryQueue.process(async da
       functionName: lambda.providerResourceAccessIdentifier!,
       args: {}
     });
+    if (discoverRes.logs.length) {
+      discoverStep.addLog(
+        discoverRes.logs.flatMap(log => log.lines),
+        'info'
+      );
+    }
+
     let oauthRes = await invokeLambdaOAuth({
       functionName: lambda.providerResourceAccessIdentifier!,
       oauthAction: 'get'
     });
+    if (oauthRes.logs.length) {
+      await discoverStep.addLog(
+        oauthRes.logs.flatMap(log => log.lines),
+        'info'
+      );
+    }
+
     let callbacksRes = await invokeLambdaCallbacks({
       functionName: lambda.providerResourceAccessIdentifier!,
       callbackAction: 'get'
     });
-    console.log('Discovery result:', discoverRes, oauthRes, callbacksRes);
-    if (discoverRes.error) {
+    if (callbacksRes.logs.length) {
       await discoverStep.addLog(
-        [`Server discovery failed: ${discoverRes.error.code} - ${discoverRes.error.message}`],
+        callbacksRes.logs.flatMap(log => log.lines),
+        'info'
+      );
+    }
+
+    let error = discoverRes.error || oauthRes.error || callbacksRes.error;
+    if (error) {
+      await discoverStep.addLog(
+        [`Server discovery failed: ${error.code} - ${error.message}`],
         'error'
       );
       await discoverStep.fail([
@@ -667,6 +697,9 @@ let lambdaDeployFinalizerQueue = createQueue<{
   name: 'csrv/almb/finalizer',
   jobOpts: {
     attempts: 10
+  },
+  workerOpts: {
+    concurrency: 15
   }
 });
 

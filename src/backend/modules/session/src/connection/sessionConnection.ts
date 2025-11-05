@@ -230,5 +230,9 @@ export class SessionConnection {
 // }, 30 * 1000);
 
 setInterval(() => {
-  for (let con of connections.values()) con.sendPing();
+  try {
+    for (let con of connections.values()) con.sendPing();
+  } catch (e) {
+    console.error('Error sending pings', e);
+  }
 }, PING_INTERVAL);
