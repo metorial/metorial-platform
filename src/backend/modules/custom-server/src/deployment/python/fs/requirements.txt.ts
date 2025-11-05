@@ -1,0 +1,1 @@
+export let requirementsTxt = `mcp>=1.0.0`;
