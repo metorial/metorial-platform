@@ -37,6 +37,9 @@ export let instanceScopes = [
   'instance.provider_oauth.takeout:read' as const,
   'instance.provider_oauth.takeout:write' as const,
 
+  'instance.provider_oauth.takeIn:read' as const,
+  'instance.provider_oauth.takeIn:write' as const,
+
   'instance.custom_server:read' as const,
   'instance.custom_server:write' as const,
 
@@ -136,6 +139,9 @@ export let instanceSecretTokenScopes: Scope[] = [
 
   'instance.provider_oauth.takeout:read' as const,
   'instance.provider_oauth.takeout:write' as const,
+
+  'instance.provider_oauth.takeIn:read' as const,
+  'instance.provider_oauth.takeIn:write' as const,
 
   'instance.callback:read' as const,
   'instance.callback:write' as const,

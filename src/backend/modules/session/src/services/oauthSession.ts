@@ -3,9 +3,11 @@ import {
   ID,
   Instance,
   ProviderOAuthConnection,
+  ProviderOAuthConnectionAuthToken,
   ProviderOAuthConnectionAuthTokenReference,
   ServerOAuthSession,
-  ServerOAuthSessionStatus
+  ServerOAuthSessionStatus,
+  withTransaction
 } from '@metorial/db';
 import { notFoundError, preconditionFailedError, ServiceError } from '@metorial/error';
 import { Paginator } from '@metorial/pagination';
@@ -82,22 +84,34 @@ class ServerOAuthSessionImpl {
   async createServerOAuthSession(d: {
     instance: Instance;
     connection: ProviderOAuthConnection;
+    existingToken?: ProviderOAuthConnectionAuthToken;
     input: {
       metadata?: Record<string, string>;
       redirectUri?: string;
     };
   }) {
-    return await db.serverOAuthSession.create({
-      data: {
-        id: await ID.generateId('serverOAuthSession'),
-        clientSecret: await ID.generateId('serverOAuthSession_ClientSecret'),
-        status: 'pending',
-        instanceOid: d.instance.oid,
-        connectionOid: d.connection.oid,
-        metadata: d.input.metadata,
-        redirectUri: d.input.redirectUri
-      },
-      include
+    return withTransaction(async db => {
+      let ref = d.existingToken
+        ? await db.providerOAuthConnectionAuthTokenReference.create({
+            data: {
+              authTokenOid: d.existingToken.oid
+            }
+          })
+        : undefined;
+
+      return await db.serverOAuthSession.create({
+        data: {
+          id: await ID.generateId('serverOAuthSession'),
+          clientSecret: await ID.generateId('serverOAuthSession_ClientSecret'),
+          status: ref ? 'completed' : 'pending',
+          instanceOid: d.instance.oid,
+          connectionOid: d.connection.oid,
+          metadata: d.input.metadata,
+          redirectUri: d.input.redirectUri,
+          tokenReferenceOid: ref?.oid
+        },
+        include
+      });
     });
   }
 
