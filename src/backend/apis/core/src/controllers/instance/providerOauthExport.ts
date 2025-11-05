@@ -22,15 +22,15 @@ export let takeoutGroup = instanceGroup.use(async ctx => {
 
 export let providerOauthTakeoutController = Controller.create(
   {
-    name: 'OAuth Takeout',
-    description: 'Manage provider OAuth takeout information',
+    name: 'OAuth Token Export',
+    description: 'Manage provider OAuth token export information',
     hideInDocs: true
   },
   {
     list: instanceGroup
-      .get(instancePath('provider-oauth/takeouts', 'provider_oauth.takeouts.list'), {
-        name: 'List provider OAuth takeouts',
-        description: 'List all provider OAuth takeouts'
+      .get(instancePath('provider-oauth/token-exports', 'provider_oauth.token_exports.list'), {
+        name: 'List provider OAuth token exports',
+        description: 'List all provider OAuth token exports'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.takeout:read'] }))
       .outputList(providerOauthTakeoutPresenter)
@@ -52,10 +52,13 @@ export let providerOauthTakeoutController = Controller.create(
       }),
 
     create: instanceGroup
-      .post(instancePath('provider-oauth/takeouts', 'provider_oauth.takeouts.create'), {
-        name: 'Create provider OAuth takeout',
-        description: 'Create a new provider OAuth takeout'
-      })
+      .post(
+        instancePath('provider-oauth/token-exports', 'provider_oauth.token_exports.create'),
+        {
+          name: 'Create provider OAuth token export',
+          description: 'Create a new provider OAuth token export'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.takeout:write'] }))
       .body(
         'default',
@@ -100,10 +103,16 @@ export let providerOauthTakeoutController = Controller.create(
       }),
 
     get: takeoutGroup
-      .get(instancePath('provider-oauth/takeouts/:takeoutId', 'provider_oauth.takeouts.get'), {
-        name: 'Get provider OAuth takeout',
-        description: 'Get information for a specific provider OAuth takeout'
-      })
+      .get(
+        instancePath(
+          'provider-oauth/token-exports/:takeoutId',
+          'provider_oauth.token_exports.get'
+        ),
+        {
+          name: 'Get provider OAuth token export',
+          description: 'Get information for a specific provider OAuth token export'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider_oauth.takeout:read'] }))
       .output(providerOauthTakeoutPresenter)
       .use(hasFlags(['metorial-gateway-enabled', 'paid-oauth-takeout']))

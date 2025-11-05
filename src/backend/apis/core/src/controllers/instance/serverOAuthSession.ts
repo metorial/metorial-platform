@@ -1,5 +1,9 @@
+import { ProviderOAuthConnectionAuthToken } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { providerOauthConnectionService } from '@metorial/module-provider-oauth';
+import {
+  providerOauthConnectionService,
+  providerOauthTakeInService
+} from '@metorial/module-provider-oauth';
 import { serverDeploymentService } from '@metorial/module-server-deployment';
 import { serverOAuthSessionService } from '@metorial/module-session';
 import { Paginator } from '@metorial/pagination';
@@ -72,6 +76,9 @@ export let serverOauthSessionController = Controller.create(
             }),
             v.object({
               connection_id: v.string()
+            }),
+            v.object({
+              token_import_id: v.string()
             })
           ])
         ])
@@ -80,9 +87,17 @@ export let serverOauthSessionController = Controller.create(
       .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let connectionId: string;
+        let existingToken: ProviderOAuthConnectionAuthToken | undefined = undefined;
 
         if ('connection_id' in ctx.body) {
           connectionId = ctx.body.connection_id;
+        } else if ('token_import_id' in ctx.body) {
+          let takeIn = await providerOauthTakeInService.getTakeIn({
+            instance: ctx.instance,
+            takeInId: ctx.body.token_import_id
+          });
+          connectionId = takeIn.connection.id;
+          existingToken = takeIn.token;
         } else if ('server_deployment_id' in ctx.body) {
           let deployment = await serverDeploymentService.getServerDeploymentById({
             instance: ctx.instance,
@@ -111,6 +126,7 @@ export let serverOauthSessionController = Controller.create(
         let serverOauthSession = await serverOAuthSessionService.createServerOAuthSession({
           instance: ctx.instance,
           connection,
+          existingToken,
           input: {
             metadata: ctx.body.metadata,
             redirectUri: ctx.body.redirect_uri

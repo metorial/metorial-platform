@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { serverOAuthSessionService } from '../src/services/oauthSession';
 
 // Mock dependencies
-vi.mock('@metorial/db', () => ({
-  db: {
+vi.mock('@metorial/db', () => {
+  const mockDb = {
     serverOAuthSession: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
@@ -13,14 +13,22 @@ vi.mock('@metorial/db', () => ({
     providerOAuthConnection: {
       findMany: vi.fn()
     },
+    providerOAuthConnectionAuthTokenReference: {
+      create: vi.fn()
+    },
     session: {
       findMany: vi.fn()
     }
-  },
-  ID: {
-    generateId: vi.fn((type) => Promise.resolve(`${type}_test_id_${Date.now()}`))
-  }
-}));
+  };
+
+  return {
+    db: mockDb,
+    ID: {
+      generateId: vi.fn((type) => Promise.resolve(`${type}_test_id_${Date.now()}`))
+    },
+    withTransaction: vi.fn((callback) => callback(mockDb))
+  };
+});
 
 vi.mock('@metorial/error', () => ({
   notFoundError: vi.fn((msg) => ({ code: 'not_found', message: msg })),
@@ -43,7 +51,7 @@ vi.mock('@metorial/pagination', () => ({
 
 vi.mock('@metorial/service', () => ({
   Service: {
-    create: vi.fn((name, factory) => ({
+    create: vi.fn((_name, factory) => ({
       build: () => factory()
     }))
   }

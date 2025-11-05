@@ -1,5 +1,6 @@
 import { SessionStatus } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
+import { providerOauthTakeInService } from '@metorial/module-provider-oauth';
 import { serverDeploymentService } from '@metorial/module-server-deployment';
 import { serverOAuthSessionService, sessionService } from '@metorial/module-session';
 import { Paginator } from '@metorial/pagination';
@@ -92,15 +93,31 @@ export let sessionController = Controller.create(
             v.union([
               v.intersection([
                 createServerDeploymentSchema,
-                v.object({
-                  oauth_session_id: v.optional(v.string())
-                })
+                v.union([
+                  v.object({
+                    oauth_session_id: v.string()
+                  }),
+                  v.object({
+                    token_import_id: v.string()
+                  }),
+                  v.object({})
+                ])
               ]),
               v.string(),
-              v.object({
-                server_deployment_id: v.string(),
-                oauth_session_id: v.optional(v.string())
-              })
+              v.intersection([
+                v.object({
+                  server_deployment_id: v.string()
+                }),
+                v.union([
+                  v.object({
+                    oauth_session_id: v.string()
+                  }),
+                  v.object({
+                    token_import_id: v.string()
+                  }),
+                  v.object({})
+                ])
+              ])
             ])
           )
         })
@@ -133,21 +150,46 @@ export let sessionController = Controller.create(
           );
         }
 
-        let oauthSessionIdMap = Object.fromEntries(
-          serverDeploymentInputs
-            .map(d => {
-              if (typeof d === 'string') return undefined!;
-              let sdId = 'server_deployment_id' in d ? d.server_deployment_id : undefined;
-              let oauthId = 'oauth_session_id' in d ? d.oauth_session_id : undefined;
-              if (!sdId || !oauthId) return undefined!;
-              return [sdId, oauthId] as const;
-            })
-            .filter(Boolean)
+        let serverDeploymentInputsWithTransformedTokenImport = await Promise.all(
+          serverDeploymentInputs.map(async d => {
+            if (typeof d === 'object' && 'token_import_id' in d && d.token_import_id) {
+              let takeIn = await providerOauthTakeInService.getTakeIn({
+                instance: ctx.instance,
+                takeInId: d.token_import_id
+              });
+
+              let oauthSession = await serverOAuthSessionService.createServerOAuthSession({
+                instance: ctx.instance,
+                connection: takeIn.connection,
+                existingToken: takeIn.token,
+                input: {}
+              });
+
+              return { ...d, oauth_session_id: oauthSession.id };
+            }
+
+            return d;
+          })
+        );
+
+        console.log(serverDeploymentInputs, serverDeploymentInputsWithTransformedTokenImport);
+
+        let serverDeploymentConfigMap = Object.fromEntries(
+          serverDeploymentInputsWithTransformedTokenImport.map(d => {
+            if (typeof d === 'string') {
+              return [d, { oauthSessionId: undefined }] as const;
+            }
+
+            let sdId = 'server_deployment_id' in d ? d.server_deployment_id : undefined;
+            let oauthSessionId = 'oauth_session_id' in d ? d.oauth_session_id : undefined;
+
+            return [sdId, { oauthSessionId }] as const;
+          })
         );
 
         let existingServerDeployments = existingServerDeploymentsRaw.map(sd => ({
           deployment: sd,
-          oauthSessionId: oauthSessionIdMap[sd.id]
+          oauthSessionId: serverDeploymentConfigMap[sd.id]?.oauthSessionId
         }));
 
         let deploymentsToCreate = serverDeploymentInputs

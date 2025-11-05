@@ -6,7 +6,8 @@ import { Service } from '@metorial/service';
 import { providerOauthAuthorizationService } from './oauthAuthorization';
 
 let include = {
-  token: true
+  token: true,
+  connection: true
 };
 
 class OauthTakeoutServiceImpl {
