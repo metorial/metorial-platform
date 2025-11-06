@@ -138,30 +138,34 @@ export let ProviderConnectionUpdateForm = (p: {
           )}
         </Field>
 
-        <Field field="scopes">
-          {({ value, setValue }) => (
-            <TextArrayInput label="Scopes" value={value} onChange={setValue} />
-          )}
-        </Field>
+        {providerConnection.data?.config.type != 'custom' && (
+          <>
+            <Field field="scopes">
+              {({ value, setValue }) => (
+                <TextArrayInput label="Scopes" value={value} onChange={setValue} />
+              )}
+            </Field>
 
-        <Field field="config">
-          {({ value, form }) => (
-            <>
-              <InputLabel>Configuration</InputLabel>
-              <Spacer size={6} />
-              <CodeEditor
-                value={value}
-                onChange={v => form.setFieldValue('config', v)}
-                onBlur={() => {
-                  form.validateField('config');
-                  form.setFieldTouched('config', true);
-                }}
-                lang="json"
-                height="350px"
-              />
-            </>
-          )}
-        </Field>
+            <Field field="config">
+              {({ value, form }) => (
+                <>
+                  <InputLabel>Configuration</InputLabel>
+                  <Spacer size={6} />
+                  <CodeEditor
+                    value={value}
+                    onChange={v => form.setFieldValue('config', v)}
+                    onBlur={() => {
+                      form.validateField('config');
+                      form.setFieldTouched('config', true);
+                    }}
+                    lang="json"
+                    height="350px"
+                  />
+                </>
+              )}
+            </Field>
+          </>
+        )}
       </FormBox>
 
       {!p.hideDelete && (
