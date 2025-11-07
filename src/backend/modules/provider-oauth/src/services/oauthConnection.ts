@@ -307,7 +307,7 @@ class OauthConnectionServiceImpl {
       metadata: d.input.metadata
     };
 
-    if (d.input.config || d.input.scopes) {
+    if (d.connection.config.type == 'json' && (d.input.config || d.input.scopes)) {
       let config = await providerOauthConfigService.createConfig({
         instance: d.instance,
         implementation: {

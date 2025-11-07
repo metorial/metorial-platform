@@ -27,11 +27,11 @@ let NAME = 'init6';
 let syncQueue = createQueue({
   name: 'cat/sync',
   workerOpts: {
-    // concurrency: 1,
-    // limiter: {
-    //   max: 1,
-    //   duration: process.env.METORIAL_ENV == 'development' ? 1000 * 60 * 60 : 1000 * 60 * 60 * 6
-    // }
+    concurrency: 1,
+    limiter: {
+      max: 1,
+      duration: process.env.METORIAL_ENV == 'development' ? 1000 * 60 * 60 : 1000 * 60 * 60 * 6
+    }
   }
 });
 
@@ -43,7 +43,7 @@ let syncCron = createCron(
   async () => {
     if (process.env.NODE_ENV == 'development') return;
 
-    // await syncQueue.add({}, { id: NAME });
+    await syncQueue.add({}, { id: NAME });
   }
 );
 
@@ -75,10 +75,10 @@ export let manuallyTriggerCatalogSync = async () => {
 };
 
 export let syncProcessor = syncQueue.process(async () => {
-  // if (process.env.DISABLE_CATALOG_SYNC == 'true') {
-  //   console.log('Catalog sync is disabled, skipping...');
-  //   return;
-  // }
+  if (process.env.DISABLE_CATALOG_SYNC == 'true') {
+    console.log('Catalog sync is disabled, skipping...');
+    return;
+  }
 
   console.log('Starting catalog sync job');
 
