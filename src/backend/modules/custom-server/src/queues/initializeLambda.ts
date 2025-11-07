@@ -43,7 +43,7 @@ export let initializeLambdaQueueProcessor = initializeLambdaQueue.process(async 
   });
 
   let provider = lambda.provider;
-  let lang: 'python' | 'ts' = 'ts'; // TODO: @RahmeKarim add detection for python
+  let lang: 'python' | 'ts' = 'ts';
 
   try {
     let metorialJson = await codeBucketService.getFile({
