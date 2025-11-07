@@ -8,8 +8,6 @@ import { Runtime } from '@aws-sdk/client-lambda';
 import { db, ID, ServerVersion, withTransaction } from '@metorial/db';
 import { generatePlainId } from '@metorial/id';
 import { codeBucketService } from '@metorial/module-code-bucket';
-import { codeWorkspaceClient } from '@metorial/module-code-bucket/src/lib/codeWorkspace';
-import { getPythonFs } from '../../python/fs';
 import { providerOauthConfigService } from '@metorial/module-provider-oauth';
 import { createQueue } from '@metorial/queue';
 import { getSentry } from '@metorial/sentry';
@@ -135,52 +133,9 @@ export let lambdaDeployMainQueueProcessor = lambdaDeployMainQueue.process(async 
 
     vpcResources = await ensureVpc(vpc);
 
-    let zipUrl;
-    let tempBucket: any = null;
-    if (lambda.runtime?.startsWith('aws_lambda_python')) {
-      let pythonFs = await getPythonFs(lambda);
-      
-      let userFiles = await codeBucketService.getCodeBucketFilesWithContent({
-        codeBucket: lambda.immutableCodeBucket
-      });
-      
-      let mergedFiles = [...userFiles];
-      for (let [path, content] of pythonFs.files.entries()) {
-        mergedFiles.push({
-          path,
-          content: new TextEncoder().encode(content)
-        });
-      }
-      
-      tempBucket = await codeBucketService.createCodeBucket({
-        instance: lambda.instance,
-        purpose: 'custom_server',
-        isReadOnly: true
-      });
-      
-      await codeWorkspaceClient.createBucketFromContents({
-        newBucketId: tempBucket.id,
-        contents: mergedFiles
-          .filter(f => f.path)
-          .map(f => ({
-            path: f.path!,
-            content: Buffer.from(f.content)
-          }))
-      });
-      
-      await db.codeBucket.updateMany({
-        where: { id: tempBucket.id },
-        data: { status: 'ready' }
-      });
-      
-      zipUrl = await codeBucketService.getBucketFilesAsZip({
-        codeBucket: tempBucket
-      });
-    } else {
-      zipUrl = await codeBucketService.getBucketFilesAsZip({
-        codeBucket: lambda.immutableCodeBucket
-      });
-    }
+    let zipUrl = await codeBucketService.getBucketFilesAsZip({
+      codeBucket: lambda.immutableCodeBucket
+    });
 
     let buildImageUri = lambda.runtime?.startsWith('aws_lambda_python')
       ? 'public.ecr.aws/z8i8n6f7/metorial/python-lambda-build-image-v1:latest'
@@ -448,10 +403,6 @@ export let lambdaDeployCompleterQueueProcessor = lambdaDeployCompleterQueue.proc
       case 'aws_lambda_python_3_12':
         handler = 'index.handler';
         runtime = Runtime.python312;
-        break;
-      case 'aws_lambda_python_3_13':
-        handler = 'index.handler';
-        runtime = Runtime.python313;
         break;
       default:
         await deployStep.fail([
