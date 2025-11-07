@@ -19,7 +19,8 @@ ensureTemplate({
             metorial: 'latest',
             '@types/node': 'latest',
             '@modelcontextprotocol/sdk': '^1.18.2',
-            zod: '3'
+            zod: '3',
+            'patch-package': 'latest'
           }
         },
         null,
