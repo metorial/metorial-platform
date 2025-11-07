@@ -8,7 +8,7 @@
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
     "prisma:push": "prisma db push --accept-data-loss",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "./prisma-generate.sh"
   },
   "dependencies": {
     "@metorial/execution-context": "^1.0.0",
