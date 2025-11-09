@@ -48,9 +48,7 @@ RUN apt-get update && apt-get install -y \
   zlib1g-dev \
   && rm -rf /var/lib/apt/lists/*
 
-# Install uv for fast Python package management
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Copy built binary
 COPY --from=builder /app/src/services/python-runner/bin/python-runner .
@@ -59,9 +57,6 @@ RUN useradd -m -u 1001 mt-user
 
 # Create deployments directory with proper permissions
 RUN mkdir -p /app/deployments && chown -R mt-user:mt-user /app/deployments
-
-# Copy uv to user-accessible location
-RUN cp /root/.cargo/bin/uv /usr/local/bin/uv && chmod +x /usr/local/bin/uv
 
 USER mt-user
 
