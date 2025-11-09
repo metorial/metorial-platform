@@ -144,8 +144,6 @@ export let getSessionConfig = async (
       })
     : null;
 
-  console.log('OAuth Token for run:', oauthToken?.accessToken);
-
   let DANGEROUSLY_serverConfigWithSecrets = {
     accessToken: oauthToken?.accessToken,
     oauthToken: oauthToken?.accessToken,

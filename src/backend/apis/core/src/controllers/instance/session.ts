@@ -172,8 +172,6 @@ export let sessionController = Controller.create(
           })
         );
 
-        console.log(serverDeploymentInputs, serverDeploymentInputsWithTransformedTokenImport);
-
         let serverDeploymentConfigMap = Object.fromEntries(
           serverDeploymentInputsWithTransformedTokenImport.map(d => {
             if (typeof d === 'string') {

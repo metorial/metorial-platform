@@ -46,7 +46,6 @@ export let createRedisClient = (opts: RedisClientOptions & { url?: string | unde
 
     let origSendCommand = client.sendCommand;
     client.sendCommand = function (cmd: any, ...args: any[]) {
-      console.log('Redis CMD:', cmd.name, cmd.args);
       try {
         throw new Error('trace');
       } catch (e) {

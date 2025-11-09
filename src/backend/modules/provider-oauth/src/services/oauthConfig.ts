@@ -38,8 +38,6 @@ class OauthConfigServiceImpl {
       }
     }
 
-    console.log('Creating OAuth config with implementation:', d.implementation);
-
     let config = await ensureProviderOAuthConfig(
       async () => ({
         configHash:
@@ -112,8 +110,6 @@ class OauthConfigServiceImpl {
       default:
         throw new Error(`Unsupported OAuth config type: ${d.config.type}`);
     }
-
-    console.log('Cloning OAuth config with implementation:', d.config, implementation);
 
     return this.createConfig({
       instance: d.instance,

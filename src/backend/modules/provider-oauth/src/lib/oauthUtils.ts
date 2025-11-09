@@ -368,8 +368,6 @@ export class OAuthUtils {
           : undefined
       };
     } catch (error: any) {
-      console.log('Registration error', error?.response?.data || error.message);
-
       await db.providerOAuthRegistrationError.create({
         data: {
           id: await ID.generateId('providerOAuthRegistrationError'),

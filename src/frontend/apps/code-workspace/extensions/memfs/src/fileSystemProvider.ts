@@ -87,14 +87,11 @@ export class MemFS implements vscode.FileSystemProvider {
     await this.ensureLoaded();
 
     const entry = await this._lookup(uri, false);
-    console.log('MemFS: stat', uri.toString(), entry);
     return entry;
   }
 
   async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
     await this.ensureLoaded();
-
-    console.log('MemFS: readDirectory', uri.toString());
 
     const entry = await this._lookupAsDirectory(uri, false);
     const result: [string, vscode.FileType][] = [];
@@ -108,8 +105,6 @@ export class MemFS implements vscode.FileSystemProvider {
 
   async readFile(uri: vscode.Uri): Promise<Uint8Array> {
     await this.ensureLoaded();
-
-    console.log('MemFS: readFile', uri.toString());
 
     const file = await this._lookupAsFile(uri, false);
 
@@ -126,8 +121,6 @@ export class MemFS implements vscode.FileSystemProvider {
     options: { create: boolean; overwrite: boolean }
   ): Promise<void> {
     await this.ensureLoaded();
-
-    console.log('MemFS: writeFile', uri.toString(), content.byteLength, options);
 
     const basename = path.posix.basename(uri.path);
     const parent = await this._lookupParentDirectory(uri);
@@ -174,8 +167,6 @@ export class MemFS implements vscode.FileSystemProvider {
   ): Promise<void> {
     await this.ensureLoaded();
 
-    console.log('MemFS: rename', oldUri.toString(), 'to', newUri.toString(), options);
-
     if (!options.overwrite && (await this._lookup(newUri, true))) {
       throw vscode.FileSystemError.FileExists(newUri);
     }
@@ -215,8 +206,6 @@ export class MemFS implements vscode.FileSystemProvider {
   async delete(uri: vscode.Uri): Promise<void> {
     await this.ensureLoaded();
 
-    console.log('MemFS: delete', uri.toString());
-
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     const basename = path.posix.basename(uri.path);
     const parent = await this._lookupAsDirectory(dirname, false);
@@ -244,8 +233,6 @@ export class MemFS implements vscode.FileSystemProvider {
 
   async createDirectory(uri: vscode.Uri): Promise<void> {
     await this.ensureLoaded();
-
-    console.log('MemFS: createDirectory', uri.toString());
 
     const basename = path.posix.basename(uri.path);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
@@ -279,7 +266,6 @@ export class MemFS implements vscode.FileSystemProvider {
   private async _lookup(uri: vscode.Uri, silent: boolean): Promise<Entry | undefined> {
     if (!this.remoteConfig.token) {
       let parts = uri.path.split('/').filter(Boolean);
-      console.log(uri, parts);
 
       if (parts.length >= 2) {
         let [tokenId, name] = parts;
@@ -434,8 +420,6 @@ export class MemFS implements vscode.FileSystemProvider {
     }
 
     try {
-      console.log('MemFS: Loading all files from remote');
-
       const response = await this.makeRequest('GET', `/files`);
 
       // @ts-ignore
@@ -462,7 +446,6 @@ export class MemFS implements vscode.FileSystemProvider {
       await queue.onIdle();
 
       this.isLoaded = true;
-      console.log(`MemFS: Loaded ${files.length} files from remote`);
     } catch (error) {
       console.error('MemFS: Failed to load files from remote:', error);
       throw error;
@@ -589,8 +572,6 @@ export class MemFS implements vscode.FileSystemProvider {
     try {
       const operations = [...this.operationQueue];
       this.operationQueue = [];
-
-      console.log(`MemFS: Processing ${operations.length} queued operations`);
 
       for (const operation of operations) {
         try {

@@ -54,8 +54,6 @@ class OauthAuthorizationServiceImpl {
       );
     }
 
-    console.log('Starting authorization for connection:', d.connection);
-
     if (
       d.connection.config.type == 'managed_server_http' ||
       d.connection.config.type == 'managed_server_lambda'
