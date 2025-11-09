@@ -1,6 +1,7 @@
 enum LambdaServerInstanceRuntime {
   deno_deploy_v1
   deno_self_hosted_v1
+  python_self_hosted_v1
   aws_lambda_nodejs_24_x
   aws_lambda_nodejs_22_x
   aws_lambda_python_3_9
@@ -13,6 +14,7 @@ enum LambdaServerInstanceRuntime {
 enum LambdaServerInstanceProvider {
   deno_deploy
   deno_self_hosted
+  python_self_hosted
   aws_lambda
 }
 

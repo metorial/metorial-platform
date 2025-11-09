@@ -9,6 +9,10 @@ export let env = createValidatedEnv({
     DENO_RUNNER_ADDRESS: v.optional(v.string())
   },
 
+  python: {
+    PYTHON_RUNNER_ADDRESS: v.optional(v.string())
+  },
+
   aws: {
     AWS_ACCESS_KEY_ID: v.optional(v.string()),
     AWS_SECRET_ACCESS_KEY: v.optional(v.string()),
