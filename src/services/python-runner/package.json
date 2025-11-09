@@ -1,5 +1,5 @@
 {
-  "name": "@metorial/deno-runner-service-generated",
+  "name": "@metorial/python-runner-service-generated",
   "module": "index.ts",
   "type": "module",
   "private": true,
