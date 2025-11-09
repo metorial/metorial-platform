@@ -17,4 +17,5 @@ use (
 	./src/services/listener
 	./src/services/log
 	./src/services/deno-runner
+	./src/services/python-runner
 )
