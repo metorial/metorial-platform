@@ -72,7 +72,6 @@ func NewDeployManager(baseDir string) *DeployManager {
 		portCounter:  8000,
 	}
 
-	// Restore existing deployments on startup
 	dm.restoreDeployments()
 
 	return dm
@@ -119,7 +118,6 @@ func (dm *DeployManager) CreateDeployment(req DeploymentRequest) (string, error)
 		return "", fmt.Errorf("failed to create deployment directory: %w", err)
 	}
 
-	// Write files
 	for path, file := range req.Assets {
 		if file.Kind != "file" {
 			continue
@@ -135,7 +133,6 @@ func (dm *DeployManager) CreateDeployment(req DeploymentRequest) (string, error)
 		}
 	}
 
-	// Assign port and create metadata
 	port := dm.getNextPort()
 	meta := DeploymentMeta{
 		ID:          deploymentID,
@@ -145,14 +142,12 @@ func (dm *DeployManager) CreateDeployment(req DeploymentRequest) (string, error)
 		Port:        port,
 	}
 
-	// Save metadata
 	metaData, _ := json.MarshalIndent(meta, "", "  ")
 	metaPath := filepath.Join(deployDir, ".meta.json")
 	if err := os.WriteFile(metaPath, metaData, 0644); err != nil {
 		return "", fmt.Errorf("failed to write metadata: %w", err)
 	}
 
-	// Start the deployment
 	go dm.startDeployment(deploymentID, &meta, deployDir)
 
 	return deploymentID, nil
@@ -162,10 +157,8 @@ func (dm *DeployManager) startDeployment(deploymentID string, meta *DeploymentMe
 	const maxRestarts = 5
 	const restartBackoff = 2 * time.Second
 
-	// Check if we should restart
 	dm.mu.Lock()
 	if proc, exists := dm.runningProcs[deploymentID]; exists {
-		// Kill the old process first
 		if proc.cancel != nil {
 			proc.cancel()
 		}
@@ -180,7 +173,6 @@ func (dm *DeployManager) startDeployment(deploymentID string, meta *DeploymentMe
 			return
 		}
 
-		// Enforce backoff
 		timeSinceLastRestart := time.Since(proc.lastRestart)
 		if timeSinceLastRestart < restartBackoff {
 			sleepDuration := restartBackoff - timeSinceLastRestart
@@ -197,14 +189,11 @@ func (dm *DeployManager) startDeployment(deploymentID string, meta *DeploymentMe
 		dm.mu.Unlock()
 	}
 
-	// Assign a new port for this restart
 	port := dm.getNextPort()
 	meta.Port = port
 
-	// Build deno command with permissions
 	args := []string{"run", "--node-modules-dir=auto"}
 
-	// Network permissions
 	if netPerms, ok := meta.Permissions["net"]; ok {
 		if len(netPerms) == 1 && netPerms[0] == "*" {
 			args = append(args, "--allow-net")
@@ -213,19 +202,14 @@ func (dm *DeployManager) startDeployment(deploymentID string, meta *DeploymentMe
 		}
 	}
 
-	// Read permissions - only the deployment directory
 	args = append(args, fmt.Sprintf("--allow-read=%s", deployDir))
 
-	// Write permissions - allow writing to deployment directory for node_modules
 	args = append(args, fmt.Sprintf("--allow-write=%s", deployDir))
 
-	// Environment variable permissions
 	args = append(args, "--allow-env")
 
-	// Entry point - since cmd.Dir is set to deployDir, use relative path
 	entryPoint := meta.EntryPoint
 
-	// Strip any leading slash to ensure it's relative
 	entryPoint = strings.TrimPrefix(entryPoint, "/")
 
 	log.Printf("DEBUG deployment %s: entryPoint: %s (relative to deployDir: %s)", deploymentID, entryPoint, deployDir)
@@ -237,7 +221,6 @@ func (dm *DeployManager) startDeployment(deploymentID string, meta *DeploymentMe
 	cmd := exec.CommandContext(ctx, "deno", args...)
 	cmd.Dir = deployDir
 
-	// Set environment variables
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, fmt.Sprintf("PORT=%d", port))
 	for key, value := range meta.EnvVars {
@@ -246,7 +229,6 @@ func (dm *DeployManager) startDeployment(deploymentID string, meta *DeploymentMe
 
 	log.Printf("DEBUG deployment %s: Setting PORT env var to %d", deploymentID, port)
 
-	// Capture stderr to see why it's crashing
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		log.Printf("Failed to get stderr for deployment %s: %v", deploymentID, err)
@@ -254,7 +236,6 @@ func (dm *DeployManager) startDeployment(deploymentID string, meta *DeploymentMe
 		return
 	}
 
-	// Capture stdout
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		log.Printf("Failed to get stdout for deployment %s: %v", deploymentID, err)
@@ -262,7 +243,6 @@ func (dm *DeployManager) startDeployment(deploymentID string, meta *DeploymentMe
 		return
 	}
 
-	// Start the process
 	if err := cmd.Start(); err != nil {
 		log.Printf("Failed to start deployment %s: %v", deploymentID, err)
 		cancel()
@@ -278,7 +258,6 @@ func (dm *DeployManager) startDeployment(deploymentID string, meta *DeploymentMe
 		return 0
 	}())
 
-	// Track running process
 	dm.mu.Lock()
 	if _, exists := dm.runningProcs[deploymentID]; !exists {
 		dm.runningProcs[deploymentID] = &runningProcess{
@@ -294,7 +273,6 @@ func (dm *DeployManager) startDeployment(deploymentID string, meta *DeploymentMe
 	}
 	dm.mu.Unlock()
 
-	// Monitor output in goroutines - with limited buffering to see crash reasons
 	go func() {
 		buf := make([]byte, 4096)
 		for {
@@ -321,7 +299,6 @@ func (dm *DeployManager) startDeployment(deploymentID string, meta *DeploymentMe
 		}
 	}()
 
-	// Wait for process and restart if it crashes
 	go func() {
 		err := cmd.Wait()
 
@@ -341,7 +318,6 @@ func (dm *DeployManager) startDeployment(deploymentID string, meta *DeploymentMe
 			log.Printf("Deployment %s exited normally (restart %d/%d)", deploymentID, restartCount, maxRestarts)
 		}
 
-		// Check if deployment still exists, if so, restart it
 		if _, err := os.Stat(filepath.Join(deployDir, ".meta.json")); err == nil {
 			if restartCount < maxRestarts {
 				log.Printf("Deployment %s crashed, restarting...", deploymentID)
@@ -365,11 +341,9 @@ func (dm *DeployManager) GetDeploymentPort(deploymentID string) (int, bool) {
 		return 0, false
 	}
 
-	// Update last activity time
 	dm.mu.Lock()
 	proc.lastActivity = time.Now()
 
-	// Reset the stop timer
 	if proc.stopTimer != nil {
 		proc.stopTimer.Stop()
 	}
@@ -389,7 +363,6 @@ func (dm *DeployManager) stopDeployment(deploymentID string) {
 		return
 	}
 
-	// Check if there was recent activity (race condition protection)
 	if time.Since(proc.lastActivity) < 5*time.Minute {
 		dm.mu.Unlock()
 		return
@@ -397,12 +370,10 @@ func (dm *DeployManager) stopDeployment(deploymentID string) {
 
 	log.Printf("Deployment %s: stopping due to inactivity", deploymentID)
 
-	// Stop the timer
 	if proc.stopTimer != nil {
 		proc.stopTimer.Stop()
 	}
 
-	// Kill the process
 	if proc.cancel != nil {
 		proc.cancel()
 	}
@@ -410,7 +381,6 @@ func (dm *DeployManager) stopDeployment(deploymentID string) {
 		proc.cmd.Process.Kill()
 	}
 
-	// Remove from running processes
 	delete(dm.runningProcs, deploymentID)
 	dm.mu.Unlock()
 }
@@ -421,12 +391,10 @@ func (dm *DeployManager) ensureDeploymentRunning(deploymentID string) error {
 	dm.mu.RUnlock()
 
 	if exists {
-		// Already running, just update activity
 		dm.GetDeploymentPort(deploymentID)
 		return nil
 	}
 
-	// Need to start it
 	deployDir := filepath.Join(dm.baseDir, deploymentID)
 	metaPath := filepath.Join(deployDir, ".meta.json")
 
@@ -442,10 +410,8 @@ func (dm *DeployManager) ensureDeploymentRunning(deploymentID string) error {
 
 	log.Printf("Deployment %s: starting on demand", deploymentID)
 
-	// Start the deployment
 	go dm.startDeployment(deploymentID, &meta, deployDir)
 
-	// Wait a bit for it to start
 	time.Sleep(500 * time.Millisecond)
 
 	return nil
@@ -456,19 +422,11 @@ func (dm *DeployManager) proxyHandler(w http.ResponseWriter, r *http.Request) {
 	deploymentID := vars["deploymentId"]
 	path := vars["path"]
 
-	// Ensure deployment is running (start if needed)
 	if err := dm.ensureDeploymentRunning(deploymentID); err != nil {
 		http.Error(w, "Deployment not found", http.StatusNotFound)
 		return
 	}
 
-	// port, ok := dm.GetDeploymentPort(deploymentID)
-	// if !ok {
-	// 	http.Error(w, "Deployment not ready", http.StatusServiceUnavailable)
-	// 	return
-	// }
-
-	// Wait for deployment to be ready
 	var port int
 	for i := 0; i < 1000; i++ {
 		var ok bool
@@ -483,13 +441,11 @@ func (dm *DeployManager) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check for WebSocket upgrade
 	if websocket.IsWebSocketUpgrade(r) {
 		dm.proxyWebSocket(w, r, port, path)
 		return
 	}
 
-	// Regular HTTP proxy
 	target := fmt.Sprintf("http://localhost:%d", port)
 	targetURL, _ := url.Parse(target)
 
@@ -505,26 +461,21 @@ func (dm *DeployManager) proxyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (dm *DeployManager) proxyWebSocket(w http.ResponseWriter, r *http.Request, port int, path string) {
-	// Build backend URL
 	backendURL := fmt.Sprintf("ws://localhost:%d/%s", port, path)
 
-	// Filter out WebSocket-specific headers that Dial will add automatically
 	headers := http.Header{}
 	for key, values := range r.Header {
-		// Skip WebSocket handshake headers - Dial will add these
 		lowerKey := strings.ToLower(key)
 		if lowerKey == "upgrade" ||
 			lowerKey == "connection" ||
 			strings.HasPrefix(lowerKey, "sec-websocket-") {
 			continue
 		}
-		// Copy other headers (like auth tokens, etc.)
 		for _, value := range values {
 			headers.Add(key, value)
 		}
 	}
 
-	// Connect to backend with filtered headers
 	backendConn, _, err := websocket.DefaultDialer.Dial(backendURL, headers)
 	if err != nil {
 		http.Error(w, "Failed to connect to backend", http.StatusBadGateway)
@@ -532,17 +483,14 @@ func (dm *DeployManager) proxyWebSocket(w http.ResponseWriter, r *http.Request, 
 	}
 	defer backendConn.Close()
 
-	// Upgrade client connection
 	clientConn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
 	defer clientConn.Close()
 
-	// Proxy messages bidirectionally
 	errChan := make(chan error, 2)
 
-	// Client to backend
 	go func() {
 		for {
 			messageType, message, err := clientConn.ReadMessage()
@@ -557,7 +505,6 @@ func (dm *DeployManager) proxyWebSocket(w http.ResponseWriter, r *http.Request, 
 		}
 	}()
 
-	// Backend to client
 	go func() {
 		for {
 			messageType, message, err := backendConn.ReadMessage()
@@ -589,7 +536,6 @@ func main() {
 
 	r := mux.NewRouter()
 
-	// Create deployment
 	r.HandleFunc("/deployments", func(w http.ResponseWriter, r *http.Request) {
 		var req DeploymentRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -608,7 +554,6 @@ func main() {
 		})
 	}).Methods("POST")
 
-	// Get deployment status
 	r.HandleFunc("/deployments/{deploymentId}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		deploymentID := vars["deploymentId"]
@@ -626,7 +571,6 @@ func main() {
 			}
 			dm.mu.RUnlock()
 		} else {
-			// Check if deployment exists but is not running
 			deployDir := filepath.Join(dm.baseDir, deploymentID)
 			if _, err := os.Stat(filepath.Join(deployDir, ".meta.json")); err == nil {
 				status = "failed"
@@ -644,13 +588,11 @@ func main() {
 		})
 	}).Methods("GET")
 
-	// Health check
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}).Methods("GET")
 
-	// Proxy routes - must be last
 	r.HandleFunc("/{deploymentId}/{path:.*}", dm.proxyHandler)
 
 	port := os.Getenv("PORT")
