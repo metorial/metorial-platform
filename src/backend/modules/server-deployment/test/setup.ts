@@ -1,5 +1,27 @@
 import { vi } from 'vitest';
 
+// Mock ioredis to prevent Redis connection attempts
+vi.mock('ioredis', () => {
+  const RedisMock: any = vi.fn(() => ({
+    on: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    quit: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+    setex: vi.fn(),
+    expire: vi.fn()
+  }));
+  RedisMock.Cluster = vi.fn(() => ({
+    on: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    quit: vi.fn()
+  }));
+  return { default: RedisMock, Redis: RedisMock };
+});
+
 const mockEnvStructure = {
   config: {
     REDIS_URL: 'redis://localhost:6379',
@@ -94,3 +116,103 @@ vi.mock('bun', () => ({
     cityHash32: vi.fn((_str: any) => 12345)
   }
 };
+
+// Mock @metorial/db to prevent Prisma connection attempts
+vi.mock('@metorial/db', () => ({
+  db: {
+    $connect: vi.fn(),
+    $disconnect: vi.fn(),
+    $transaction: vi.fn((fn: any) => fn({
+      serverDeployment: {
+        create: vi.fn(),
+        update: vi.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn()
+      },
+      serverDeploymentConfig: {
+        create: vi.fn(),
+        update: vi.fn()
+      }
+    })),
+    serverDeployment: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn()
+    },
+    serverImplementation: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      upsert: vi.fn()
+    },
+    serverVersion: {
+      findFirst: vi.fn(),
+      findMany: vi.fn()
+    },
+    providerOAuthConfig: {
+      findFirstOrThrow: vi.fn(),
+      findUniqueOrThrow: vi.fn()
+    },
+    providerOAuthConnection: {
+      updateMany: vi.fn(),
+      findUnique: vi.fn()
+    },
+    serverDeploymentConfig: {
+      create: vi.fn(),
+      update: vi.fn(),
+      findUnique: vi.fn()
+    },
+    serverConfigVault: {
+      findFirst: vi.fn()
+    },
+    server: {
+      findMany: vi.fn()
+    },
+    serverVariant: {
+      findMany: vi.fn()
+    },
+    session: {
+      findMany: vi.fn()
+    },
+    instanceServer: {
+      findUnique: vi.fn(),
+      createMany: vi.fn()
+    },
+    profile: {
+      upsert: vi.fn()
+    }
+  },
+  withTransaction: vi.fn(async (fn: any) => {
+    return fn({
+      serverDeployment: {
+        create: vi.fn(),
+        update: vi.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn()
+      },
+      serverDeploymentConfig: {
+        create: vi.fn(),
+        update: vi.fn()
+      },
+      serverConfigVault: {
+        findFirst: vi.fn()
+      },
+      providerOAuthConfig: {
+        findFirstOrThrow: vi.fn(),
+        findUniqueOrThrow: vi.fn()
+      },
+      providerOAuthConnection: {
+        updateMany: vi.fn()
+      }
+    });
+  }),
+  ID: {
+    generateId: vi.fn(async (type: string) => `${type}-123`)
+  },
+  ensureEmailIdentity: vi.fn(async (factory: any) => factory())
+}));

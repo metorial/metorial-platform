@@ -48,13 +48,15 @@ export let customServerController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            type: v.optional(v.union([v.array(customServerTypeEnum), customServerTypeEnum]))
+            type: v.optional(v.union([v.array(customServerTypeEnum), customServerTypeEnum])),
+            search: v.optional(v.string())
           })
         )
       )
       .do(async ctx => {
         let paginator = await customServerService.listCustomServers({
           instance: ctx.instance,
+          search: ctx.query.search,
           types: normalizeArrayParam(ctx.query.type)
         });
 
