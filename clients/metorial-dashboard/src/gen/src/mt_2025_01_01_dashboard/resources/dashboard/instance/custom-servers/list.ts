@@ -190,7 +190,10 @@ export type DashboardInstanceCustomServersListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { type?: ('remote' | 'managed')[] | 'remote' | 'managed' | undefined };
+} & {
+  type?: ('remote' | 'managed')[] | 'remote' | 'managed' | undefined;
+  search?: string | undefined;
+};
 
 export let mapDashboardInstanceCustomServersListQuery = mtMap.union([
   mtMap.unionOption(
@@ -204,7 +207,8 @@ export let mapDashboardInstanceCustomServersListQuery = mtMap.union([
       type: mtMap.objectField(
         'type',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      )
+      ),
+      search: mtMap.objectField('search', mtMap.passthrough())
     })
   )
 ]);

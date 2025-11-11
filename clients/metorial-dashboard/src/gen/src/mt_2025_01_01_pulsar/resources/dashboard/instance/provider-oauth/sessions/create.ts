@@ -88,7 +88,11 @@ export let mapDashboardInstanceProviderOauthSessionsCreateOutput =
 export type DashboardInstanceProviderOauthSessionsCreateBody = {
   metadata?: Record<string, any> | undefined;
   redirectUri?: string | undefined;
-} & ({ serverDeploymentId: string } | { connectionId: string });
+} & (
+  | { serverDeploymentId: string }
+  | { connectionId: string }
+  | { tokenImportId: string }
+);
 
 export let mapDashboardInstanceProviderOauthSessionsCreateBody = mtMap.union([
   mtMap.unionOption(
@@ -100,7 +104,8 @@ export let mapDashboardInstanceProviderOauthSessionsCreateBody = mtMap.union([
         'server_deployment_id',
         mtMap.passthrough()
       ),
-      connectionId: mtMap.objectField('connection_id', mtMap.passthrough())
+      connectionId: mtMap.objectField('connection_id', mtMap.passthrough()),
+      tokenImportId: mtMap.objectField('token_import_id', mtMap.passthrough())
     })
   )
 ]);

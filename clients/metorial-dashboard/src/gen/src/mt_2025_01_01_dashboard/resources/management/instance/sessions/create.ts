@@ -176,9 +176,14 @@ export type ManagementInstanceSessionsCreateBody = {
           | { serverImplementationId: string }
           | { serverVariantId: string }
           | { serverId: string }
-        )) & { oauthSessionId?: string | undefined })
+        )) &
+        ({ oauthSessionId: string } | { tokenImportId: string } | {}))
     | string
-    | { serverDeploymentId: string; oauthSessionId?: string | undefined }
+    | ({ serverDeploymentId: string } & (
+        | { oauthSessionId: string }
+        | { tokenImportId: string }
+        | {}
+      ))
   )[];
 };
 
@@ -272,6 +277,10 @@ export let mapManagementInstanceSessionsCreateBody =
               serverId: mtMap.objectField('server_id', mtMap.passthrough()),
               oauthSessionId: mtMap.objectField(
                 'oauth_session_id',
+                mtMap.passthrough()
+              ),
+              tokenImportId: mtMap.objectField(
+                'token_import_id',
                 mtMap.passthrough()
               ),
               serverDeploymentId: mtMap.objectField(
