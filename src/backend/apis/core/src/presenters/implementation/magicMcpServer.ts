@@ -46,7 +46,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
 
       id: v.string({
         name: 'id',
-        description: 'The unique identifier of the session'
+        description: 'The unique identifier of the magic MCP server'
       }),
 
       status: v.enumOf(['active', 'archived', 'deleted'], {

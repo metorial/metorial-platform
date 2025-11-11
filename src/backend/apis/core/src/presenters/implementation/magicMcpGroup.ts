@@ -1,32 +1,31 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
-import { magicMcpTokenType } from '../types';
+import { magicMcpGroupType } from '../types';
 
-export let v1MagicMcpTokenPresenter = Presenter.create(magicMcpTokenType)
-  .presenter(async ({ magicMcpToken }, opts) => {
+export let v1MagicMcpGroupPresenter = Presenter.create(magicMcpGroupType)
+  .presenter(async ({ magicMcpGroup }, opts) => {
     return {
-      object: 'magic_mcp.token',
+      object: 'magic_mcp.group',
 
-      id: magicMcpToken.id,
-      status: magicMcpToken.status,
+      id: magicMcpGroup.id,
+      status: magicMcpGroup.status,
 
-      secret: magicMcpToken.secret,
+      slug: magicMcpGroup.slug,
+      name: magicMcpGroup.name,
+      description: magicMcpGroup.description,
+      metadata: magicMcpGroup.metadata,
 
-      name: magicMcpToken.name,
-      description: magicMcpToken.description,
-      metadata: magicMcpToken.metadata,
-
-      created_at: magicMcpToken.createdAt,
-      updated_at: magicMcpToken.updatedAt
+      created_at: magicMcpGroup.createdAt,
+      updated_at: magicMcpGroup.updatedAt
     };
   })
   .schema(
     v.object({
-      object: v.literal('magic_mcp.token'),
+      object: v.literal('magic_mcp.group'),
 
       id: v.string({
         name: 'id',
-        description: 'The unique identifier of the magic MCP token'
+        description: 'The unique identifier of the magic MCP group'
       }),
 
       status: v.enumOf(['active', 'deleted'], {
@@ -34,9 +33,9 @@ export let v1MagicMcpTokenPresenter = Presenter.create(magicMcpTokenType)
         description: 'The status of the magic MCP server'
       }),
 
-      secret: v.string({
-        name: 'secret',
-        description: 'The secret token used for authentication'
+      slug: v.string({
+        name: 'slug',
+        description: 'The slug identifier of the magic MCP group'
       }),
 
       name: v.string({
