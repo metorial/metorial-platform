@@ -28,6 +28,7 @@ model MagicMcpServer {
   sessions MagicMcpSession[]
 
   serverDeployment MagicMcpServerDeployment?
+  groups           MagicMcpGroupServer[]
 }
 
 model MagicMcpServerDeployment {

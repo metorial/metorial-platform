@@ -1,5 +1,5 @@
 import { MagicMcpTokenStatus } from '@metorial/db';
-import { magicMcpTokenService } from '@metorial/module-magic';
+import { magicMcpGroupService, magicMcpTokenService } from '@metorial/module-magic';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -43,7 +43,8 @@ export let magicMcpTokenController = Controller.create(
                 v.enumOf(Object.keys(MagicMcpTokenStatus) as any),
                 v.array(v.enumOf(Object.keys(MagicMcpTokenStatus) as any))
               ])
-            )
+            ),
+            magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
@@ -51,6 +52,7 @@ export let magicMcpTokenController = Controller.create(
       .do(async ctx => {
         let paginator = await magicMcpTokenService.listMagicMcpTokens({
           instance: ctx.instance,
+          groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
           status: normalizeArrayParam(ctx.query.status) as any
         });
 
@@ -88,17 +90,30 @@ export let magicMcpTokenController = Controller.create(
           ),
           metadata: v.optional(
             v.record(v.any(), { description: 'The metadata of the magic MCP token' })
+          ),
+          group_ids: v.optional(
+            v.array(v.string(), {
+              description: 'The IDs of the magic MCP groups to associate with the token'
+            })
           )
         })
       )
       .output(magicMcpTokenPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
+        let groups = ctx.body.group_ids?.length
+          ? await magicMcpGroupService.findManyGroupsById({
+              groupIds: ctx.body.group_ids,
+              instance: ctx.instance
+            })
+          : undefined;
+
         let magicMcpToken = await magicMcpTokenService.createMagicMcpToken({
           organization: ctx.organization,
           performedBy: ctx.actor,
           instance: ctx.instance,
           context: ctx.context,
+          groups,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -118,7 +133,7 @@ export let magicMcpTokenController = Controller.create(
       .output(magicMcpTokenPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
-        let magicMcpToken = await magicMcpTokenService.deletedMagicMcpToken({
+        let magicMcpToken = await magicMcpTokenService.deleteMagicMcpToken({
           token: ctx.magicMcpToken
         });
 
@@ -153,6 +168,68 @@ export let magicMcpTokenController = Controller.create(
             description: ctx.body.description,
             metadata: ctx.body.metadata
           }
+        });
+
+        return magicMcpTokenPresenter.present({ magicMcpToken });
+      }),
+
+    addGroups: magicMcpTokenGroup
+      .post(
+        instancePath(
+          'magic-mcp-tokens/:magicMcpTokenId/add-groups',
+          'magicMcpTokens.addGroups'
+        ),
+        {
+          name: 'Add magic MCP groups to token',
+          description: 'Add magic MCP groups to a specific magic MCP token'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.session:write'] }))
+      .body(
+        'default',
+        v.object({
+          magic_mcp_group_ids: v.array(v.string(), {
+            description: 'The IDs of the magic MCP groups to add to the token'
+          })
+        })
+      )
+      .output(magicMcpTokenPresenter)
+      .use(hasFlags(['magic-mcp-enabled']))
+      .do(async ctx => {
+        let magicMcpToken = await magicMcpTokenService.addGroupsToToken({
+          token: ctx.magicMcpToken,
+          groupIds: ctx.body.magic_mcp_group_ids
+        });
+
+        return magicMcpTokenPresenter.present({ magicMcpToken });
+      }),
+
+    removeGroups: magicMcpTokenGroup
+      .post(
+        instancePath(
+          'magic-mcp-tokens/:magicMcpTokenId/remove-groups',
+          'magicMcpTokens.removeGroups'
+        ),
+        {
+          name: 'Remove magic MCP groups from token',
+          description: 'Remove magic MCP groups from a specific magic MCP token'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.session:write'] }))
+      .body(
+        'default',
+        v.object({
+          magic_mcp_group_ids: v.array(v.string(), {
+            description: 'The IDs of the magic MCP groups to remove from the token'
+          })
+        })
+      )
+      .output(magicMcpTokenPresenter)
+      .use(hasFlags(['magic-mcp-enabled']))
+      .do(async ctx => {
+        let magicMcpToken = await magicMcpTokenService.removeGroupsFromToken({
+          token: ctx.magicMcpToken,
+          groupIds: ctx.body.magic_mcp_group_ids
         });
 
         return magicMcpTokenPresenter.present({ magicMcpToken });

@@ -1,0 +1,62 @@
+enum MagicMcpGroupStatus {
+  active
+  archived
+  deleted
+}
+
+enum MagicMcpGroupType {
+  default
+}
+
+model MagicMcpGroup {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status MagicMcpGroupStatus
+
+  // TODO: add portal user access
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  name        String?
+  description String?
+  slug        String  @unique
+
+  metadata Json
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  servers MagicMcpGroupServer[]
+  tokens  MagicMcpGroupToken[]
+}
+
+model MagicMcpGroupServer {
+  oid BigInt @id @default(autoincrement())
+
+  magicMcpGroupOid BigInt
+  magicMcpGroup    MagicMcpGroup @relation(fields: [magicMcpGroupOid], references: [oid])
+
+  magicMcpServerOid BigInt
+  magicMcpServer    MagicMcpServer @relation(fields: [magicMcpServerOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@unique([magicMcpGroupOid, magicMcpServerOid])
+}
+
+model MagicMcpGroupToken {
+  oid BigInt @id @default(autoincrement())
+
+  magicMcpGroupOid BigInt
+  magicMcpGroup    MagicMcpGroup @relation(fields: [magicMcpGroupOid], references: [oid])
+
+  magicMcpTokenOid BigInt
+  magicMcpToken    MagicMcpToken @relation(fields: [magicMcpTokenOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@unique([magicMcpGroupOid, magicMcpTokenOid])
+}

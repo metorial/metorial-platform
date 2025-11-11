@@ -103,6 +103,7 @@ export let ID = createIdGenerator({
   magicMcpServer: idType.sorted('mgsr'),
   magicMcpSession: idType.sorted('mgsn'),
   magicMcpToken: idType.sorted('mgtk'),
+  magicMcpGroup: idType.sorted('mggr'),
   magicMcpServerDeployment: idType.sorted('mgsrd'),
 
   scmInstallation: idType.sorted('sci'),

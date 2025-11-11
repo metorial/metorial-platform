@@ -107,7 +107,7 @@ export let MagicTokensTable = (filter: DashboardInstanceMagicMcpTokensListQuery)
   return renderWithPagination(tokens)(tokens => (
     <>
       <Table
-        headers={['Status', 'Name', 'Secret', 'Created', '']}
+        headers={['Status', 'Name', 'Secret', 'Restrictions', 'Created', '']}
         data={tokens.data.items.map(token => ({
           data: [
             {
@@ -132,40 +132,54 @@ export let MagicTokensTable = (filter: DashboardInstanceMagicMcpTokensListQuery)
                 </Text>
               )}
             </div>,
+
             <TokenSecret token={token} />,
+
+            <Text size="1" color="gray700">
+              {!token.groups.length ? 'None' : token.groups.map(g => g.name).join(', ')}
+            </Text>,
+
             <RenderDate date={token.createdAt} />,
 
-            <Menu
-              items={[
-                {
-                  id: 'update',
-                  label: 'Update',
-                  disabled: token.status != 'active'
-                },
-                {
-                  id: 'delete',
-                  label: 'Delete',
-                  disabled: token.status != 'active'
-                }
-              ]}
-              onItemClick={item => {
-                if (item == 'update')
-                  updateTokenModal({
-                    tokenId: token.id
-                  });
-                if (item == 'delete')
-                  deleteTokenModal({
-                    tokenId: token.id
-                  });
+            <div
+              style={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'flex-end'
               }}
             >
-              <Button
-                size="1"
-                variant="outline"
-                iconLeft={<RiMoreLine />}
-                title="Open token options"
-              />
-            </Menu>
+              <Menu
+                items={[
+                  {
+                    id: 'update',
+                    label: 'Update',
+                    disabled: token.status != 'active'
+                  },
+                  {
+                    id: 'delete',
+                    label: 'Delete',
+                    disabled: token.status != 'active'
+                  }
+                ]}
+                onItemClick={item => {
+                  if (item == 'update')
+                    updateTokenModal({
+                      tokenId: token.id
+                    });
+                  if (item == 'delete')
+                    deleteTokenModal({
+                      tokenId: token.id
+                    });
+                }}
+              >
+                <Button
+                  size="1"
+                  variant="outline"
+                  iconLeft={<RiMoreLine />}
+                  title="Open token options"
+                />
+              </Menu>
+            </div>
           ]
         }))}
       />
@@ -270,7 +284,7 @@ export let TokenSecret = ({ token }: { token: DashboardInstanceMagicMcpTokensGet
   );
 };
 
-export let createMagicMcpTokenModal = () =>
+export let createMagicMcpTokenModal = (opts?: { groupId?: string }) =>
   showModal(({ dialogProps, close }) => {
     let mutator = useCreateMagicMcpToken();
     let instance = useCurrentInstance();
@@ -284,7 +298,8 @@ export let createMagicMcpTokenModal = () =>
         let [res] = await mutator.mutate({
           name: values.name,
           description: values.description,
-          instanceId: instance.data!.id
+          instanceId: instance.data!.id,
+          groupIds: opts?.groupId ? [opts.groupId] : undefined
         });
 
         if (res) {
@@ -326,7 +341,7 @@ export let createMagicMcpTokenModal = () =>
       <Dialog.Wrapper {...dialogProps}>
         <Dialog.Title>Create Magic MCP Token</Dialog.Title>
         <Dialog.Description>
-          Create a new Magic MCP token for the application.
+          Create a new Magic MCP token to connect to Magic MCP servers.
         </Dialog.Description>
 
         <form onSubmit={form.handleSubmit}>

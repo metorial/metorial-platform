@@ -55,11 +55,11 @@ export type ManagementInstanceCustomServersVersionsCreateOutput = {
     } | null;
   };
   customServerId: string;
+  deploymentId: string | null;
   createdAt: Date;
   updatedAt: Date;
 } & {
   versionHash: string;
-  deploymentId: string | null;
   push: {
     object: 'custom_server.version.push';
     id: string;
@@ -212,10 +212,10 @@ export let mapManagementInstanceCustomServersVersionsCreateOutput = mtMap.union(
           'custom_server_id',
           mtMap.passthrough()
         ),
+        deploymentId: mtMap.objectField('deployment_id', mtMap.passthrough()),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date()),
         versionHash: mtMap.objectField('version_hash', mtMap.passthrough()),
-        deploymentId: mtMap.objectField('deployment_id', mtMap.passthrough()),
         push: mtMap.objectField(
           'push',
           mtMap.object({
@@ -262,6 +262,9 @@ export type ManagementInstanceCustomServersVersionsCreateBody = {
                 | null
                 | undefined;
               repository?: { repositoryId: string; path: string } | undefined;
+              files?:
+                | { data: string; encoding: 'utf-8' | 'base64'; path: string }[]
+                | undefined;
             }
           | undefined;
         config?:
@@ -331,6 +334,19 @@ export let mapManagementInstanceCustomServersVersionsCreateBody =
                     ),
                     path: mtMap.objectField('path', mtMap.passthrough())
                   })
+                ),
+                files: mtMap.objectField(
+                  'files',
+                  mtMap.array(
+                    mtMap.object({
+                      data: mtMap.objectField('data', mtMap.passthrough()),
+                      encoding: mtMap.objectField(
+                        'encoding',
+                        mtMap.passthrough()
+                      ),
+                      path: mtMap.objectField('path', mtMap.passthrough())
+                    })
+                  )
                 )
               })
             )

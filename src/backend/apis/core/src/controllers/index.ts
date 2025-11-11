@@ -22,6 +22,7 @@ import { customServerVersionController } from './instance/customServerVersion';
 import { fileController } from './instance/file';
 import { fileLinkController } from './instance/fileLink';
 import { instanceController } from './instance/instance';
+import { magicMcpGroupController } from './instance/magicMcpGroup';
 import { magicMcpServerController } from './instance/magicMcpServer';
 import { magicMcpSessionController } from './instance/magicMcpSession';
 import { magicMcpTokenController } from './instance/magicMcpToken';
@@ -103,6 +104,7 @@ export let pulsarController = Controller.create<any>(
     magicMcpServerController,
     magicMcpSessionController,
     magicMcpTokenController,
+    magicMcpGroupController,
 
     callbackController,
     callbackEventController,
@@ -192,6 +194,7 @@ export let dashboardController = Controller.create<any>(
     magicMcpServerController,
     magicMcpSessionController,
     magicMcpTokenController,
+    magicMcpGroupController,
 
     dashboardRepoController,
 

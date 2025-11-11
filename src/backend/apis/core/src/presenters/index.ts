@@ -20,6 +20,7 @@ import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
 import { v1InstancePresenter } from './implementation/instance';
 import { v1MachineAccessPresenter } from './implementation/machineAccess';
+import { v1MagicMcpGroupPresenter } from './implementation/magicMcpGroup';
 import {
   v1DashboardMagicMcpServerPresenter,
   v1MagicMcpServerPresenter
@@ -102,6 +103,7 @@ import {
   fileType,
   instanceType,
   machineAccessType,
+  magicMcpGroupType,
   magicMcpServerType,
   magicMcpSessionType,
   magicMcpTokenType,
@@ -439,6 +441,11 @@ export let magicMcpSessionPresenter = declarePresenter(magicMcpSessionType, {
 export let magicMcpTokenPresenter = declarePresenter(magicMcpTokenType, {
   mt_2025_01_01_pulsar: v1MagicMcpTokenPresenter,
   mt_2025_01_01_dashboard: v1MagicMcpTokenPresenter
+});
+
+export let magicMcpGroupPresenter = declarePresenter(magicMcpGroupType, {
+  mt_2025_01_01_pulsar: v1MagicMcpGroupPresenter,
+  mt_2025_01_01_dashboard: v1MagicMcpGroupPresenter
 });
 
 export let scmInstallPresenter = declarePresenter(scmInstallType, {

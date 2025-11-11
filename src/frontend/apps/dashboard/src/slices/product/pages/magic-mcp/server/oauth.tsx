@@ -31,7 +31,7 @@ export let MagicMcpServerOauthPage = () => {
     ({ deployment, oauthConnection }) => (
       <>
         <FormPage>
-          <MagicMcpServerOauthCallout />
+          <MagicMcpServerOauthCallout noSpacer />
 
           <ProviderConnectionUpdateForm providerConnection={oauthConnection.data} hideDelete />
         </FormPage>

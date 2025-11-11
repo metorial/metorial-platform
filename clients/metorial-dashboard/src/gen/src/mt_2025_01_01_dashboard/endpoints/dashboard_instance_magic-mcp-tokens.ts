@@ -4,20 +4,28 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
+  mapDashboardInstanceMagicMcpTokensAddGroupsBody,
+  mapDashboardInstanceMagicMcpTokensAddGroupsOutput,
   mapDashboardInstanceMagicMcpTokensCreateBody,
   mapDashboardInstanceMagicMcpTokensCreateOutput,
   mapDashboardInstanceMagicMcpTokensDeleteOutput,
   mapDashboardInstanceMagicMcpTokensGetOutput,
   mapDashboardInstanceMagicMcpTokensListOutput,
   mapDashboardInstanceMagicMcpTokensListQuery,
+  mapDashboardInstanceMagicMcpTokensRemoveGroupsBody,
+  mapDashboardInstanceMagicMcpTokensRemoveGroupsOutput,
   mapDashboardInstanceMagicMcpTokensUpdateBody,
   mapDashboardInstanceMagicMcpTokensUpdateOutput,
+  type DashboardInstanceMagicMcpTokensAddGroupsBody,
+  type DashboardInstanceMagicMcpTokensAddGroupsOutput,
   type DashboardInstanceMagicMcpTokensCreateBody,
   type DashboardInstanceMagicMcpTokensCreateOutput,
   type DashboardInstanceMagicMcpTokensDeleteOutput,
   type DashboardInstanceMagicMcpTokensGetOutput,
   type DashboardInstanceMagicMcpTokensListOutput,
   type DashboardInstanceMagicMcpTokensListQuery,
+  type DashboardInstanceMagicMcpTokensRemoveGroupsBody,
+  type DashboardInstanceMagicMcpTokensRemoveGroupsOutput,
   type DashboardInstanceMagicMcpTokensUpdateBody,
   type DashboardInstanceMagicMcpTokensUpdateOutput
 } from '../resources';
@@ -198,6 +206,72 @@ export class MetorialDashboardInstanceMagicMcpTokensEndpoint {
 
     return this._patch(request).transform(
       mapDashboardInstanceMagicMcpTokensUpdateOutput
+    );
+  }
+
+  /**
+   * @name Add magic MCP groups to token
+   * @description Add magic MCP groups to a specific magic MCP token
+   *
+   * @param `instanceId` - string
+   * @param `magicMcpTokenId` - string
+   * @param `body` - DashboardInstanceMagicMcpTokensAddGroupsBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceMagicMcpTokensAddGroupsOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  addGroups(
+    instanceId: string,
+    magicMcpTokenId: string,
+    body: DashboardInstanceMagicMcpTokensAddGroupsBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceMagicMcpTokensAddGroupsOutput> {
+    let path = `dashboard/instances/${instanceId}/magic-mcp-tokens/${magicMcpTokenId}/add-groups`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceMagicMcpTokensAddGroupsBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceMagicMcpTokensAddGroupsOutput
+    );
+  }
+
+  /**
+   * @name Remove magic MCP groups from token
+   * @description Remove magic MCP groups from a specific magic MCP token
+   *
+   * @param `instanceId` - string
+   * @param `magicMcpTokenId` - string
+   * @param `body` - DashboardInstanceMagicMcpTokensRemoveGroupsBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceMagicMcpTokensRemoveGroupsOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  removeGroups(
+    instanceId: string,
+    magicMcpTokenId: string,
+    body: DashboardInstanceMagicMcpTokensRemoveGroupsBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceMagicMcpTokensRemoveGroupsOutput> {
+    let path = `dashboard/instances/${instanceId}/magic-mcp-tokens/${magicMcpTokenId}/remove-groups`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceMagicMcpTokensRemoveGroupsBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceMagicMcpTokensRemoveGroupsOutput
     );
   }
 }

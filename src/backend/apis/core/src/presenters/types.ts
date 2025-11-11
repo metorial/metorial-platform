@@ -27,6 +27,8 @@ import {
   InstanceServer,
   LambdaServerInstance,
   MachineAccess,
+  MagicMcpGroup,
+  MagicMcpGroupToken,
   MagicMcpServer,
   MagicMcpServerAlias,
   MagicMcpServerDeployment,
@@ -568,8 +570,16 @@ export let magicMcpSessionType = PresentableType.create<{
 }>()('magic_mcp.session');
 
 export let magicMcpTokenType = PresentableType.create<{
-  magicMcpToken: MagicMcpToken;
+  magicMcpToken: MagicMcpToken & {
+    groups: (MagicMcpGroupToken & {
+      magicMcpGroup: MagicMcpGroup;
+    })[];
+  };
 }>()('magic_mcp.token');
+
+export let magicMcpGroupType = PresentableType.create<{
+  magicMcpGroup: MagicMcpGroup;
+}>()('magic_mcp.group');
 
 export let scmRepoPreviewType = PresentableType.create<{
   scmRepoPreviews: ScmRepoPreview[];

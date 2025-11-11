@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueueRetryError } from '@metorial/queue';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock external dependencies
 vi.mock('@metorial/db', () => ({
@@ -17,9 +17,9 @@ vi.mock('@metorial/module-search', () => ({
 }));
 
 vi.mock('@metorial/queue', () => ({
-  createQueue: vi.fn((config) => ({
+  createQueue: vi.fn(config => ({
     name: config.name,
-    process: vi.fn((fn) => fn),
+    process: vi.fn(fn => fn),
     config
   })),
   QueueRetryError: class QueueRetryError extends Error {
@@ -32,10 +32,15 @@ vi.mock('@metorial/queue', () => ({
 
 import { db } from '@metorial/db';
 import { searchService } from '@metorial/module-search';
-import { syncMagicMcpServerQueue, syncMagicMcpServerQueueProcessor } from '../src/queues/sync';
+import {
+  syncMagicMcpServerQueue,
+  syncMagicMcpServerQueueProcessor
+} from '../src/queues/syncServer';
 
 // Type assertion to make the processor callable in tests
-const processor = syncMagicMcpServerQueueProcessor as any as (data: { magicMcpServerId: string }) => Promise<void>;
+const processor = syncMagicMcpServerQueueProcessor as any as (data: {
+  magicMcpServerId: string;
+}) => Promise<void>;
 
 describe('syncMagicMcpServerQueue', () => {
   beforeEach(() => {
@@ -109,9 +114,9 @@ describe('syncMagicMcpServerQueue', () => {
     it('should throw QueueRetryError when server not found', async () => {
       vi.mocked(db.magicMcpServer.findUnique).mockResolvedValue(null);
 
-      await expect(
-        processor({ magicMcpServerId: 'nonexistent' })
-      ).rejects.toThrow(QueueRetryError);
+      await expect(processor({ magicMcpServerId: 'nonexistent' })).rejects.toThrow(
+        QueueRetryError
+      );
 
       expect(searchService.indexDocument).not.toHaveBeenCalled();
     });
@@ -325,19 +330,21 @@ describe('syncMagicMcpServerQueue', () => {
       };
 
       vi.mocked(db.magicMcpServer.findUnique).mockResolvedValue(mockServer as any);
-      vi.mocked(searchService.indexDocument).mockRejectedValue(new Error('Search service error'));
+      vi.mocked(searchService.indexDocument).mockRejectedValue(
+        new Error('Search service error')
+      );
 
-      await expect(
-        processor({ magicMcpServerId: 'mcp_srv_1' })
-      ).rejects.toThrow('Search service error');
+      await expect(processor({ magicMcpServerId: 'mcp_srv_1' })).rejects.toThrow(
+        'Search service error'
+      );
     });
 
     it('should handle database errors', async () => {
       vi.mocked(db.magicMcpServer.findUnique).mockRejectedValue(new Error('Database error'));
 
-      await expect(
-        processor({ magicMcpServerId: 'mcp_srv_1' })
-      ).rejects.toThrow('Database error');
+      await expect(processor({ magicMcpServerId: 'mcp_srv_1' })).rejects.toThrow(
+        'Database error'
+      );
 
       expect(searchService.indexDocument).not.toHaveBeenCalled();
     });
@@ -347,9 +354,7 @@ describe('syncMagicMcpServerQueue', () => {
     it('should handle empty server ID', async () => {
       vi.mocked(db.magicMcpServer.findUnique).mockResolvedValue(null);
 
-      await expect(
-        processor({ magicMcpServerId: '' })
-      ).rejects.toThrow(QueueRetryError);
+      await expect(processor({ magicMcpServerId: '' })).rejects.toThrow(QueueRetryError);
     });
 
     it('should handle server with very long names and descriptions', async () => {

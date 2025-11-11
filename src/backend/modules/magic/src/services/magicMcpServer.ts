@@ -18,6 +18,7 @@ import { searchService } from '@metorial/module-search';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { slugify } from '@metorial/slugify';
+import { syncMagicMcpServerQueue } from '../queues/syncServer';
 
 let include = {
   serverDeployment: {
@@ -107,7 +108,7 @@ class MagicMcpServerImpl {
     let slug = await slugify(`${d.input.name}-${generateCode(5)}`);
 
     return withTransaction(async db => {
-      return await db.magicMcpServer.create({
+      let server = await db.magicMcpServer.create({
         data: {
           id: await ID.generateId('magicMcpServer'),
           status: 'active',
@@ -127,6 +128,12 @@ class MagicMcpServerImpl {
         },
         include
       });
+
+      await syncMagicMcpServerQueue.add({
+        magicMcpServerId: server.id
+      });
+
+      return server;
     });
   }
 
@@ -156,10 +163,10 @@ class MagicMcpServerImpl {
       defaultOauthSession?: ServerOAuthSession;
     };
   }) {
-    if (d.server.status === 'archived') {
+    if (d.server.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
-          message: 'The server magic MCP server is archived'
+          message: 'Cannot update a magic MCP server that is not active'
         })
       );
     }
@@ -167,7 +174,7 @@ class MagicMcpServerImpl {
     let existingAliases = d.server.aliases.map(a => a.slug);
     let newAliases = (d.input.aliases ?? [])?.filter(s => !existingAliases.includes(s));
 
-    return await db.magicMcpServer.update({
+    let server = await db.magicMcpServer.update({
       where: { id: d.server.id },
       data: {
         name: d.input.name === undefined ? d.server.name : d.input.name,
@@ -185,6 +192,12 @@ class MagicMcpServerImpl {
       },
       include
     });
+
+    await syncMagicMcpServerQueue.add({
+      magicMcpServerId: server.id
+    });
+
+    return server;
   }
 
   async listMagicMcpServers(d: {
@@ -192,6 +205,7 @@ class MagicMcpServerImpl {
     serverImplementationIds?: string[];
     serverIds?: string[];
     sessionIds?: string[];
+    groupIds?: string[];
     search?: string;
     instance: Instance;
     status?: MagicMcpServerStatus[];
@@ -201,9 +215,9 @@ class MagicMcpServerImpl {
           index: 'magic_mcp_server',
           query: d.search,
           options: {
-            // filters: {
-            //   instanceId: { $eq: d.instance.id }
-            // },
+            filters: {
+              instanceId: { $eq: d.instance.id }
+            },
             limit: 50
           }
         })
@@ -229,6 +243,11 @@ class MagicMcpServerImpl {
           where: { id: { in: d.sessionIds } }
         })
       : undefined;
+    let groups = d.groupIds?.length
+      ? await db.magicMcpGroup.findMany({
+          where: { id: { in: d.groupIds } }
+        })
+      : undefined;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -242,6 +261,14 @@ class MagicMcpServerImpl {
                 ? { status: { in: d.status } }
                 : { status: { not: 'archived' as const } }
             ].filter(Boolean),
+
+            groups: groups
+              ? {
+                  some: {
+                    magicMcpGroupOid: { in: groups.map(g => g.oid) }
+                  }
+                }
+              : undefined,
 
             serverDeployment: {
               serverDeployment: {
@@ -267,9 +294,6 @@ class MagicMcpServerImpl {
           },
           include
         });
-
-        if (res.length == 0) {
-        }
 
         return res;
       })

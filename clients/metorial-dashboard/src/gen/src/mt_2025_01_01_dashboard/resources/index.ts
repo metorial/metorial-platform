@@ -4,6 +4,7 @@ export * from './custom-servers';
 export * from './dashboard';
 export * from './files';
 export * from './links';
+export * from './magic-mcp-groups';
 export * from './magic-mcp-servers';
 export * from './magic-mcp-sessions';
 export * from './magic-mcp-tokens';

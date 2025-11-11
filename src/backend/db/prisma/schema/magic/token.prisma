@@ -8,6 +8,8 @@ model MagicMcpToken {
   id     String              @unique
   status MagicMcpTokenStatus
 
+  isGroupLocked Boolean @default(false)
+
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])
 
@@ -23,4 +25,5 @@ model MagicMcpToken {
   deletedAt DateTime?
 
   magicMcpSessions MagicMcpSession[]
+  groups           MagicMcpGroupToken[]
 }

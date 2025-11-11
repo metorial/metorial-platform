@@ -63,4 +63,5 @@ model Instance {
   callbackDestinations     CallbackDestination[]
   serverConfigVaults       ServerConfigVault[]
   providerOAuthTakeIn      ProviderOAuthTakeIn[]
+  magicMcpGroups           MagicMcpGroup[]
 }
