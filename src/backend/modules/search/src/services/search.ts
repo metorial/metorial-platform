@@ -100,7 +100,7 @@ class SearchService {
       addDocuments: async (docs: any[], options: { primaryKey: string }) => {
         if (meiliSearch) {
           let indexName = meilisearchPrefix ? `${meilisearchPrefix}_${index}` : index;
-          let meiliIndex = meilisearchIndices.get(indexName)!;
+          let meiliIndex = meilisearchIndices.get(index)!;
           await meiliIndex.addDocuments(docs, options);
         }
 
