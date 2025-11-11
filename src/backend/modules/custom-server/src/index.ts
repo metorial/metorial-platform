@@ -9,6 +9,7 @@ import {
 } from './deployment/aws-lambda/queues';
 import { denoDeployMainQueueProcessor } from './deployment/deno/queues/main';
 import { checkRemoteQueueProcessor } from './queues/checkRemote';
+import { indexCustomServerQueueProcessor } from './queues/indexServer';
 import { initializeLambdaQueueProcessor } from './queues/initializeLambda';
 import { initializeRemoteQueueProcessor } from './queues/initializeRemote';
 import { syncCurrentDraftBucketToRepoQueueProcessor } from './queues/syncCurrentDraftBucketToRepo';
@@ -27,5 +28,6 @@ export let customServerQueueProcessor = combineQueueProcessors([
   lambdaDeployCompleterQueueProcessor,
   syncCurrentDraftBucketToRepoQueueProcessor,
   lambdaDeployDiscoveryQueueProcessor,
-  lambdaDeployFinalizerQueueProcessor
+  lambdaDeployFinalizerQueueProcessor,
+  indexCustomServerQueueProcessor
 ]);

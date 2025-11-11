@@ -9,7 +9,8 @@ export type SearchIndex =
   | 'server_listing'
   | 'server_implementation'
   | 'server_deployment'
-  | 'magic_mcp_server';
+  | 'magic_mcp_server'
+  | 'custom_server';
 
 let meilisearchIndices = new Map<string, MeiliSearchIndex>();
 let openSearchIndices = new Set<string>();

@@ -18,9 +18,11 @@ import { generatePlainId } from '@metorial/id';
 import { serverListingService } from '@metorial/module-catalog';
 import { codeBucketService } from '@metorial/module-code-bucket';
 import { profileService } from '@metorial/module-community';
+import { searchService } from '@metorial/module-search';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { createShortIdGenerator } from '@metorial/slugify';
+import { indexCustomServerQueue } from '../queues/indexServer';
 import { customServerVersionService } from './customServerVersion';
 
 let include = {
@@ -231,6 +233,8 @@ class customServerServiceImpl {
         isEphemeralUpdate: d.isEphemeral
       });
 
+      await indexCustomServerQueue.add({ customServerId: customServer.id }, { delay: 1000 });
+
       return (await db.customServer.findFirst({
         where: { id: customServer.id },
         include
@@ -347,6 +351,8 @@ class customServerServiceImpl {
       organization: d.organization
     });
 
+    await indexCustomServerQueue.add({ customServerId: customServer.id }, { delay: 1000 });
+
     return customServer;
   }
 
@@ -390,20 +396,40 @@ class customServerServiceImpl {
     });
   }
 
-  async listCustomServers(d: { instance: Instance; types?: CustomServerType[] }) {
+  async listCustomServers(d: {
+    instance: Instance;
+    types?: CustomServerType[];
+    search?: string;
+  }) {
     return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.customServer.findMany({
-            ...opts,
-            where: {
-              instanceOid: d.instance.oid,
-              status: 'active',
-              type: d.types ? { in: d.types } : undefined
-            },
-            include
-          })
-      )
+      prisma(async opts => {
+        let search = d.search
+          ? await searchService.search<{ id: string }>({
+              index: 'custom_server',
+              query: d.search,
+              options: {
+                limit: opts.take * 2,
+                filters: {
+                  instanceId: { $eq: d.instance.id }
+                }
+              }
+            })
+          : undefined;
+
+        return await db.customServer.findMany({
+          ...opts,
+          where: {
+            instanceOid: d.instance.oid,
+            status: 'active',
+
+            AND: [
+              d.types ? { type: { in: d.types } } : undefined!,
+              search ? { id: { in: search?.map(s => s.id) } } : undefined!
+            ].filter(Boolean)
+          },
+          include
+        });
+      })
     );
   }
 

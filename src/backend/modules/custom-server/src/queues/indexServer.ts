@@ -14,20 +14,21 @@ export let indexCustomServerQueueProcessor = indexCustomServerQueue.process(asyn
       id: data.customServerId
     },
     include: {
-      instance: true
+      instance: true,
+      server: true
     }
   });
   if (!server) throw new QueueRetryError();
 
   await searchService.indexDocument({
-    index: 'magic_mcp_server',
+    index: 'custom_server',
     document: {
       id: server.id,
       instanceId: server.instance.id,
-      name: server.name ?? server.serverDeployment?.serverDeployment.name,
-      description: server.description ?? server.serverDeployment?.serverDeployment.description,
-      serverName: server.serverDeployment?.serverDeployment.name,
-      serverDescription: server.serverDeployment?.serverDeployment.description
+      name: server.name,
+      description: server.description,
+      serverName: server.server.name,
+      serverDescription: server.server.description
     }
   });
 });
