@@ -1,6 +1,6 @@
 import { createLoader } from '@metorial/data-hooks';
 import type { Flags } from '@metorial/module-flags';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useCurrentOrganization } from '../../organization';
 import { withAuthPrivate } from '../../user/auth/withAuth';
 
@@ -37,16 +37,24 @@ export let flagsLoader = createLoader({
 
 export let useDashboardFlags = () => {
   let current = useCurrentOrganization();
-  let data = flagsLoader.use(
+  let res = flagsLoader.use(
     useMemo(
       () => (current.data ? { organizationIds: [current.data.id] } : null),
       [current.data?.id]
     )
   );
 
+  let data = res.data ? res.data[0] : null;
+
+  let useFlag = useCallback(
+    (flag: string) => data?.flags[flag as keyof typeof data.flags] ?? null,
+    [data]
+  );
+
   return {
-    ...data,
-    data: data.data ? data.data[0] : null
+    ...res,
+    data,
+    useFlag
   };
 };
 
