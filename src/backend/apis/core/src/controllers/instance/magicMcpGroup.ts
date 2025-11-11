@@ -43,7 +43,8 @@ export let magicMcpGroupController = Controller.create(
                 v.enumOf(Object.keys(MagicMcpGroupStatus) as any),
                 v.array(v.enumOf(Object.keys(MagicMcpGroupStatus) as any))
               ])
-            )
+            ),
+            search: v.optional(v.string())
           })
         )
       )
@@ -51,7 +52,8 @@ export let magicMcpGroupController = Controller.create(
       .do(async ctx => {
         let paginator = await magicMcpGroupService.listMagicMcpGroups({
           instance: ctx.instance,
-          status: normalizeArrayParam(ctx.query.status) as any
+          status: normalizeArrayParam(ctx.query.status) as any,
+          search: ctx.query.search
         });
 
         let list = await paginator.run(ctx.query);
@@ -160,7 +162,10 @@ export let magicMcpGroupController = Controller.create(
 
     addServers: magicMcpGroupGroup
       .post(
-        instancePath('magic-mcp-groups/:magicMcpGroupId/servers', 'magicMcpGroups.addServers'),
+        instancePath(
+          'magic-mcp-groups/:magicMcpGroupId/add-servers',
+          'magicMcpGroups.addServers'
+        ),
         {
           name: 'Add servers to magic MCP group',
           description: 'Add magic MCP servers to a specific magic MCP group'
@@ -187,9 +192,9 @@ export let magicMcpGroupController = Controller.create(
       }),
 
     removeServers: magicMcpGroupGroup
-      .delete(
+      .post(
         instancePath(
-          'magic-mcp-groups/:magicMcpGroupId/servers',
+          'magic-mcp-groups/:magicMcpGroupId/remove-servers',
           'magicMcpGroups.removeServers'
         ),
         {

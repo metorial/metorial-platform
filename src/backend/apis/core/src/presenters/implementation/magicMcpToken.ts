@@ -1,6 +1,7 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { magicMcpTokenType } from '../types';
+import { v1MagicMcpGroupPresenter } from './magicMcpGroup';
 
 export let v1MagicMcpTokenPresenter = Presenter.create(magicMcpTokenType)
   .presenter(async ({ magicMcpToken }, opts) => {
@@ -15,6 +16,12 @@ export let v1MagicMcpTokenPresenter = Presenter.create(magicMcpTokenType)
       name: magicMcpToken.name,
       description: magicMcpToken.description,
       metadata: magicMcpToken.metadata,
+
+      groups: await Promise.all(
+        magicMcpToken.groups.map(async g =>
+          v1MagicMcpGroupPresenter.present({ magicMcpGroup: g.magicMcpGroup }, opts).run({})
+        )
+      ),
 
       created_at: magicMcpToken.createdAt,
       updated_at: magicMcpToken.updatedAt
@@ -49,6 +56,11 @@ export let v1MagicMcpTokenPresenter = Presenter.create(magicMcpTokenType)
           description: 'A description of the magic MCP server, if available'
         })
       ),
+
+      groups: v.array(v1MagicMcpGroupPresenter.schema, {
+        name: 'groups',
+        description: 'The groups associated with the magic MCP token'
+      }),
 
       metadata: v.record(v.any(), {
         name: 'metadata',

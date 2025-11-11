@@ -23,7 +23,13 @@ import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { subDays } from 'date-fns';
 
-let include = {};
+let include = {
+  groups: {
+    include: {
+      magicMcpGroup: true
+    }
+  }
+};
 
 let autoCreateLock = createLock({
   name: 'mgc/tkn/acrk'

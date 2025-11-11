@@ -215,9 +215,9 @@ class MagicMcpServerImpl {
           index: 'magic_mcp_server',
           query: d.search,
           options: {
-            // filters: {
-            //   instanceId: { $eq: d.instance.id }
-            // },
+            filters: {
+              instanceId: { $eq: d.instance.id }
+            },
             limit: 50
           }
         })

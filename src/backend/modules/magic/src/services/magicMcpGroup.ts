@@ -129,9 +129,9 @@ class MagicMcpGroupImpl {
           index: 'magic_mcp_group',
           query: d.search,
           options: {
-            // filters: {
-            //   instanceId: { $eq: d.instance.id }
-            // },
+            filters: {
+              instanceId: { $eq: d.instance.id }
+            },
             limit: 50
           }
         })
@@ -212,6 +212,26 @@ class MagicMcpGroupImpl {
     });
 
     return d.group;
+  }
+
+  async findManyGroupsById(d: { groupIds: string[]; instance: Instance }) {
+    if (d.groupIds.length === 0) return [];
+
+    let idSet = [...new Set(d.groupIds)];
+
+    let groups = await db.magicMcpGroup.findMany({
+      where: {
+        id: { in: d.groupIds },
+        instanceOid: d.instance.oid
+      },
+      include
+    });
+
+    if (groups.length !== idSet.length) {
+      throw new ServiceError(notFoundError('magic_mcp.group'));
+    }
+
+    return groups;
   }
 }
 
