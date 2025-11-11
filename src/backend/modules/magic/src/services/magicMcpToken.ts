@@ -5,6 +5,7 @@ import {
   db,
   ID,
   Instance,
+  MagicMcpGroup,
   MagicMcpToken,
   MagicMcpTokenStatus,
   Organization,
@@ -81,6 +82,7 @@ class MagicMcpTokenImpl {
     performedBy: OrganizationActor;
     instance: Instance;
     context?: Context;
+    groups?: MagicMcpGroup[];
 
     input: {
       name?: string;
@@ -88,6 +90,15 @@ class MagicMcpTokenImpl {
       metadata?: Record<string, any>;
     };
   }) {
+    let groups = d.groups?.length
+      ? await db.magicMcpGroup.findMany({
+          where: {
+            id: { in: d.groups.map(g => g.id) },
+            instanceOid: d.instance.oid
+          }
+        })
+      : undefined;
+
     return await db.magicMcpToken.create({
       data: {
         id: await ID.generateId('magicMcpToken'),
@@ -99,13 +110,24 @@ class MagicMcpTokenImpl {
         instanceOid: d.instance.oid,
         name: d.input.name,
         description: d.input.description,
-        metadata: d.input.metadata || {}
+        metadata: d.input.metadata || {},
+
+        isGroupLocked: !!groups?.length,
+        groups: groups
+          ? {
+              createMany: {
+                data: groups.map(g => ({
+                  magicMcpGroupOid: g.oid
+                }))
+              }
+            }
+          : undefined
       },
       include
     });
   }
 
-  async deletedMagicMcpToken(d: { token: MagicMcpToken }) {
+  async deleteMagicMcpToken(d: { token: MagicMcpToken }) {
     if (d.token.status === 'deleted') {
       throw new ServiceError(
         preconditionFailedError({
@@ -149,7 +171,17 @@ class MagicMcpTokenImpl {
     });
   }
 
-  async listMagicMcpTokens(d: { instance: Instance; status?: MagicMcpTokenStatus[] }) {
+  async listMagicMcpTokens(d: {
+    instance: Instance;
+    status?: MagicMcpTokenStatus[];
+    groupIds?: string[];
+  }) {
+    let groups = d.groupIds?.length
+      ? await db.magicMcpGroup.findMany({
+          where: { id: { in: d.groupIds } }
+        })
+      : undefined;
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         let getRes = async () =>
@@ -157,6 +189,14 @@ class MagicMcpTokenImpl {
             ...opts,
             where: {
               instanceOid: d.instance.oid,
+
+              groups: groups
+                ? {
+                    some: {
+                      magicMcpGroupOid: { in: groups.map(g => g.oid) }
+                    }
+                  }
+                : undefined,
 
               status: d.status ? { in: d.status } : undefined,
 
@@ -167,7 +207,7 @@ class MagicMcpTokenImpl {
 
         let res = await getRes();
 
-        if (res.filter(s => s.status == 'active').length == 0) {
+        if (!groups && res.filter(s => s.status == 'active').length == 0) {
           res = await autoCreateLock.usingLock(d.instance.id, async () => {
             let existingSevers = await db.magicMcpToken.count({
               where: { instanceOid: d.instance.oid, status: 'active' }
@@ -198,6 +238,48 @@ class MagicMcpTokenImpl {
         return res;
       })
     );
+  }
+
+  async addGroupsToToken(d: { token: MagicMcpToken; groupIds: string[] }) {
+    let groups = await db.magicMcpGroup.findMany({
+      where: {
+        id: { in: d.groupIds },
+        instanceOid: d.token.instanceOid
+      }
+    });
+
+    await db.magicMcpGroupToken.createMany({
+      data: groups.map(g => ({
+        magicMcpTokenOid: d.token.oid,
+        magicMcpGroupOid: g.oid
+      })),
+      skipDuplicates: true
+    });
+
+    return await db.magicMcpToken.update({
+      where: { id: d.token.id },
+      data: {
+        isGroupLocked: true
+      }
+    });
+  }
+
+  async removeGroupsFromToken(d: { token: MagicMcpToken; groupIds: string[] }) {
+    let groups = await db.magicMcpGroup.findMany({
+      where: {
+        id: { in: d.groupIds },
+        instanceOid: d.token.instanceOid
+      }
+    });
+
+    await db.magicMcpGroupToken.deleteMany({
+      where: {
+        magicMcpTokenOid: d.token.oid,
+        magicMcpGroupOid: { in: groups.map(g => g.oid) }
+      }
+    });
+
+    return d.token;
   }
 }
 
