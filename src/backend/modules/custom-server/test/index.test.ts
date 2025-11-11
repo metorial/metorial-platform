@@ -2,6 +2,19 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock all the dependencies before importing
 vi.mock('@metorial/queue', () => ({
+  createQueue: vi.fn(() => ({
+    process: vi.fn((fn) => ({
+      type: 'queue',
+      name: 'mockQueue',
+      handler: fn
+    }))
+  })),
+  QueueRetryError: class QueueRetryError extends Error {
+    constructor(message?: string) {
+      super(message);
+      this.name = 'QueueRetryError';
+    }
+  },
   combineQueueProcessors: vi.fn((processors) => ({
     combined: true,
     processors
@@ -28,6 +41,10 @@ vi.mock('../src/queues/syncCurrentDraftBucketToRepo', () => ({
   syncCurrentDraftBucketToRepoQueueProcessor: { type: 'queue', name: 'syncCurrentDraftBucketToRepo' }
 }));
 
+vi.mock('../src/queues/indexServer', () => ({
+  indexCustomServerQueueProcessor: { type: 'queue', name: 'indexCustomServer' }
+}));
+
 vi.mock('../src/deployment/deno/queues/main', () => ({
   denoDeployMainQueueProcessor: { type: 'queue', name: 'denoDeployMain' }
 }));
@@ -47,6 +64,22 @@ vi.mock('../src/services', () => ({
 
 vi.mock('../src/templates', () => ({
   managedServerTemplateService: { name: 'managedServerTemplateService' }
+}));
+
+vi.mock('@metorial/db', () => ({
+  db: {
+    customServer: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn()
+    }
+  }
+}));
+
+vi.mock('@metorial/module-search', () => ({
+  searchService: {
+    indexDocument: vi.fn()
+  }
 }));
 
 // Import after mocks are set up
@@ -72,7 +105,8 @@ describe('index', () => {
         expect.objectContaining({ name: 'lambdaDeployCompleter' }),
         expect.objectContaining({ name: 'syncCurrentDraftBucketToRepo' }),
         expect.objectContaining({ name: 'lambdaDeployDiscovery' }),
-        expect.objectContaining({ name: 'lambdaDeployFinalizer' })
+        expect.objectContaining({ name: 'lambdaDeployFinalizer' }),
+        expect.objectContaining({ name: 'indexCustomServer' })
       ])
     );
   });
@@ -132,9 +166,14 @@ describe('index', () => {
     expect(processors).toContainEqual(expect.objectContaining({ name: 'lambdaDeployFinalizer' }));
   });
 
-  it('should combine exactly 11 processors', () => {
+  it('should include indexCustomServer queue processor', () => {
     const processors = (combineQueueProcessors as any).mock.calls[0][0];
-    expect(processors).toHaveLength(11);
+    expect(processors).toContainEqual(expect.objectContaining({ name: 'indexCustomServer' }));
+  });
+
+  it('should combine exactly 12 processors', () => {
+    const processors = (combineQueueProcessors as any).mock.calls[0][0];
+    expect(processors).toHaveLength(12);
   });
 
   it('should export services from services module', () => {

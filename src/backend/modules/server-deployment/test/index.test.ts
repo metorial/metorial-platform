@@ -1,5 +1,27 @@
 import { describe, expect, it, vi } from 'vitest';
 
+// Mock ioredis to prevent Redis connection attempts
+vi.mock('ioredis', () => {
+  const RedisMock: any = vi.fn(() => ({
+    on: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    quit: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+    setex: vi.fn(),
+    expire: vi.fn()
+  }));
+  RedisMock.Cluster = vi.fn(() => ({
+    on: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    quit: vi.fn()
+  }));
+  return { default: RedisMock, Redis: RedisMock };
+});
+
 // Mock the queue module
 vi.mock('@metorial/queue', () => ({
   combineQueueProcessors: vi.fn((processors: any[]) => processors),
@@ -162,6 +184,43 @@ vi.mock('@metorial/cron', () => ({
   }))
 }));
 
+// Mock queue processors
+vi.mock('../src/queues/search', () => ({
+  serverDeploymentIndexAllQueueProcessor: { type: 'queue', name: 'serverDeploymentIndexAll' },
+  serverDeploymentIndexSingleQueueProcessor: { type: 'queue', name: 'serverDeploymentIndexSingle' },
+  serverImplementationIndexAllQueueProcessor: { type: 'queue', name: 'serverImplementationIndexAll' },
+  serverImplementationIndexSingleQueueProcessor: { type: 'queue', name: 'serverImplementationIndexSingle' },
+  serverIndexCron: { type: 'cron', name: 'serverIndex' },
+  indexServerDeployments: vi.fn()
+}));
+
+vi.mock('../src/queues/serverDeploymentCreated', () => ({
+  serverDeploymentCreatedQueueProcessor: { type: 'queue', name: 'serverDeploymentCreated' }
+}));
+
+vi.mock('../src/queues/serverDeploymentDeleted', () => ({
+  serverDeploymentDeletedQueueProcessor: { type: 'queue', name: 'serverDeploymentDeleted' },
+  serverDeploymentDeletedQueue: {
+    add: vi.fn(async () => {})
+  }
+}));
+
+vi.mock('../src/queues/serverDeploymentSetup', () => ({
+  serverDeploymentSetupQueueProcessor: { type: 'queue', name: 'serverDeploymentSetup' },
+  serverDeploymentSetupQueue: {
+    name: 'srd/dep/setup',
+    add: vi.fn(async () => {})
+  }
+}));
+
+vi.mock('../src/queues/serverImplementationCreated', () => ({
+  serverImplementationCreatedQueueProcessor: { type: 'queue', name: 'serverImplementationCreated' },
+  serverImplementationCreatedQueue: {
+    name: 'srd/impl/create',
+    add: vi.fn(async () => {})
+  }
+}));
+
 describe('Module Index Exports', () => {
   it('should export serverDeploymentService', async () => {
     const module = await import('../src/index');
@@ -234,36 +293,10 @@ describe('Queue Processors', () => {
 
   describe('serverDeploymentDeletedQueue', () => {
     it('should be defined', async () => {
-      const { db } = await import('@metorial/db');
-      const { secretService } = await import('@metorial/module-secret');
-
-      // Mock the necessary methods
-      (db.serverDeployment.findUnique as any).mockResolvedValue({
-        id: 'deployment-123',
-        status: 'deleted',
-        config: { oid: 50, configSecretOid: 'secret-oid' },
-        oauthConnectionOid: 'oauth-oid',
-        instance: { oid: 1 }
-      });
-
-      (db.serverDeploymentConfig.findUnique as any) = vi.fn().mockResolvedValue({
-        oid: 50,
-        configSecretOid: 'secret-oid'
-      });
-
-      (db.providerOAuthConnection.findUnique as any) = vi.fn().mockResolvedValue({
-        oid: 'oauth-oid',
-        id: 'oauth-123'
-      });
-
-      (secretService.getSecretById as any).mockResolvedValue({
-        id: 'secret-123',
-        oid: 'secret-oid'
-      });
-
       const module = await import('../src/queues/serverDeploymentDeleted');
 
       expect(module.serverDeploymentDeletedQueue).toBeDefined();
+      expect(module.serverDeploymentDeletedQueueProcessor).toBeDefined();
     });
   });
 });

@@ -1,5 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Mock ioredis to prevent Redis connection attempts
+vi.mock('ioredis', () => {
+  const RedisMock: any = vi.fn(() => ({
+    on: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    quit: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+    setex: vi.fn(),
+    expire: vi.fn()
+  }));
+  RedisMock.Cluster = vi.fn(() => ({
+    on: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    quit: vi.fn()
+  }));
+  return { default: RedisMock, Redis: RedisMock };
+});
+
 // Mock all external dependencies
 vi.mock('@metorial/db', () => ({
   db: {
@@ -155,13 +177,37 @@ vi.mock('jsonschema', () => ({
 vi.mock('../src/queues/serverDeploymentDeleted', () => ({
   serverDeploymentDeletedQueue: {
     add: vi.fn(async () => {})
-  }
+  },
+  serverDeploymentDeletedQueueProcessor: { type: 'queue', name: 'serverDeploymentDeleted' }
 }));
 
 vi.mock('../src/queues/serverDeploymentSetup', () => ({
   serverDeploymentSetupQueue: {
+    name: 'srd/dep/setup',
+    add: vi.fn(async () => {})
+  },
+  serverDeploymentSetupQueueProcessor: { type: 'queue', name: 'serverDeploymentSetup' }
+}));
+
+vi.mock('../src/queues/serverDeploymentCreated', () => ({
+  serverDeploymentCreatedQueueProcessor: { type: 'queue', name: 'serverDeploymentCreated' }
+}));
+
+vi.mock('../src/queues/serverImplementationCreated', () => ({
+  serverImplementationCreatedQueueProcessor: { type: 'queue', name: 'serverImplementationCreated' },
+  serverImplementationCreatedQueue: {
+    name: 'srd/impl/create',
     add: vi.fn(async () => {})
   }
+}));
+
+vi.mock('../src/queues/search', () => ({
+  serverDeploymentIndexAllQueueProcessor: { type: 'queue', name: 'serverDeploymentIndexAll' },
+  serverDeploymentIndexSingleQueueProcessor: { type: 'queue', name: 'serverDeploymentIndexSingle' },
+  serverImplementationIndexAllQueueProcessor: { type: 'queue', name: 'serverImplementationIndexAll' },
+  serverImplementationIndexSingleQueueProcessor: { type: 'queue', name: 'serverImplementationIndexSingle' },
+  serverIndexCron: { type: 'cron', name: 'serverIndex' },
+  indexServerDeployments: vi.fn()
 }));
 
 describe('ServerDeploymentService', () => {
