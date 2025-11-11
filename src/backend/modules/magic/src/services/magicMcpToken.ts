@@ -6,6 +6,7 @@ import {
   ID,
   Instance,
   MagicMcpGroup,
+  MagicMcpServer,
   MagicMcpToken,
   MagicMcpTokenStatus,
   Organization,
@@ -49,11 +50,12 @@ class MagicMcpTokenImpl {
     return magicMcpToken;
   }
 
-  async getMagicMcpTokenBySecret(d: { secret: string }) {
+  async getMagicMcpTokenBySecret(d: { secret: string; instance: Instance }) {
     let magicMcpToken = await db.magicMcpToken.findFirst({
       where: {
         secret: d.secret,
-        status: 'active'
+        status: 'active',
+        instanceOid: d.instance.oid
       },
       include: {
         instance: {
@@ -69,6 +71,27 @@ class MagicMcpTokenImpl {
       );
 
     return magicMcpToken;
+  }
+
+  async checkMagicMcpTokenAccess(d: { token: MagicMcpToken; server: MagicMcpServer }) {
+    if (!d.token.isGroupLocked) return true;
+
+    let group = await db.magicMcpGroup.findFirst({
+      where: {
+        servers: {
+          some: {
+            magicMcpServerOid: d.server.oid
+          }
+        },
+        tokens: {
+          some: {
+            magicMcpTokenOid: d.token.oid
+          }
+        }
+      }
+    });
+
+    return !!group;
   }
 
   async getManyMagicMcpTokens(d: { magicMcpTokenId: string[]; instance: Instance }) {
@@ -266,7 +289,8 @@ class MagicMcpTokenImpl {
       where: { id: d.token.id },
       data: {
         isGroupLocked: true
-      }
+      },
+      include
     });
   }
 
@@ -285,7 +309,15 @@ class MagicMcpTokenImpl {
       }
     });
 
-    return d.token;
+    let otherGroups = await db.magicMcpGroupToken.count({
+      where: { magicMcpTokenOid: d.token.oid }
+    });
+
+    return await db.magicMcpToken.update({
+      where: { id: d.token.id },
+      data: { isGroupLocked: otherGroups > 0 },
+      include
+    });
   }
 }
 

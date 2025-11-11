@@ -10,6 +10,7 @@ import {
 } from '@metorial/db';
 import {
   badRequestError,
+  forbiddenError,
   notFoundError,
   ServiceError,
   unauthorizedError
@@ -92,8 +93,21 @@ export let getSessionAndAuthenticate = async (
 
     if (authTokenSecret?.startsWith('metorial_mk_')) {
       let token = await magicMcpTokenService.getMagicMcpTokenBySecret({
-        secret: authTokenSecret
+        secret: authTokenSecret,
+        instance: server.instance
       });
+
+      let ok = await magicMcpTokenService.checkMagicMcpTokenAccess({
+        token,
+        server
+      });
+      if (!ok) {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'Magic MCP token does not have access to this Magic MCP server.'
+          })
+        );
+      }
 
       token = token;
       instance = token.instance;
