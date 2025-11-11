@@ -93,7 +93,7 @@ export let ProviderConnectionUpdateForm = (p: {
 
           ...(providerConnection.data?.config.type == 'json'
             ? {
-                scopes: providerConnection.data.config.config.scopes ?? [],
+                scopes: providerConnection.data.config.scopes ?? [],
                 config: JSON.stringify(providerConnection.data.config.config ?? {}, null, 2)
               }
             : {

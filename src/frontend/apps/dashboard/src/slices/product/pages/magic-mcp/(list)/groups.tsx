@@ -3,19 +3,18 @@ import { useCurrentInstance } from '@metorial/state';
 import { Input, Spacer } from '@metorial/ui';
 import { useState } from 'react';
 import { useDebounced } from '../../../../../hooks/useDebounced';
-import { MagicMcpServersGrid } from '../../../scenes/magicMcp/serversGrid';
+import { MagicGroupsTable } from '../../../scenes/magicMcp/groupsTable';
 
-export let MagicMcpServerPage = () => {
+export let MagicMcpGroupsPage = () => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 300);
 
   let instance = useCurrentInstance();
-
   return renderWithLoader({ instance })(({ instance }) => (
     <>
       <Input
-        label="Search Servers"
-        placeholder="Search Magic MCP Servers"
+        label="Search Groups"
+        placeholder="Search Magic MCP Groups"
         hideLabel
         value={search}
         onChange={e => setSearch(e.target.value)}
@@ -23,7 +22,7 @@ export let MagicMcpServerPage = () => {
 
       <Spacer height={15} />
 
-      <MagicMcpServersGrid search={searchDebounced} />
+      <MagicGroupsTable search={searchDebounced} />
     </>
   ));
 };

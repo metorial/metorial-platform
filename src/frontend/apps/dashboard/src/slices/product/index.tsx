@@ -28,6 +28,18 @@ let MagicMcpServerRunsPage = dynamicPage(() =>
 let MagicMcpServerSessionsPage = dynamicPage(() =>
   import('./pages/magic-mcp/server/sessions').then(c => c.MagicMcpServerSessionsPage)
 );
+let MagicMcpGroupsPage = dynamicPage(() =>
+  import('./pages/magic-mcp/(list)/groups').then(c => c.MagicMcpGroupsPage)
+);
+let MagicMcpGroupLayout = dynamicPage(() =>
+  import('./pages/magic-mcp/group/_layout').then(c => c.MagicMcpGroupLayout)
+);
+let MagicMcpGroupOverviewPage = dynamicPage(() =>
+  import('./pages/magic-mcp/group/overview').then(c => c.MagicMcpGroupOverviewPage)
+);
+let MagicMcpGroupSettingsPage = dynamicPage(() =>
+  import('./pages/magic-mcp/group/settings').then(c => c.MagicMcpGroupSettingsPage)
+);
 let CustomServerCodePage = dynamicPage(() =>
   import('./pages/(custom-servers)/custom-server/code').then(c => c.CustomServerCodePage)
 );
@@ -784,6 +796,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'sessions',
                 element: <MagicMcpSessionsPage />
+              },
+              {
+                path: 'groups',
+                element: <MagicMcpGroupsPage />
               }
             ]
           },
@@ -816,6 +832,22 @@ export let productInnerSlice = createSlice([
               {
                 path: 'sessions',
                 element: <MagicMcpServerSessionsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'group/:magicMcpGroupId',
+            element: <MagicMcpGroupLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <MagicMcpGroupOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <MagicMcpGroupSettingsPage />
               }
             ]
           }

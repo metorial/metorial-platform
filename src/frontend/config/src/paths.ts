@@ -311,6 +311,24 @@ let InstancePaths = Object.assign(
           'magic-mcp/sessions',
           ...subPages
         );
+      },
+
+      groups: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => {
+        return InstancePaths(organization, project, instance, 'magic-mcp/groups', ...subPages);
+      },
+
+      group: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => {
+        return InstancePaths(organization, project, instance, 'magic-mcp/group', ...subPages);
       }
     }
   }

@@ -1,9 +1,9 @@
 import { DashboardInstanceMagicMcpServersListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
-import { renderWithLoader } from '@metorial/data-hooks';
+import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useMagicMcpServers } from '@metorial/state';
-import { Avatar, Button, Spacer } from '@metorial/ui';
-import { ItemGrid } from '@metorial/ui-product';
+import { Avatar, Button, RenderDate, Spacer, Text } from '@metorial/ui';
+import { ItemGrid, Table } from '@metorial/ui-product';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { showMagicMcpServerFormModal } from '../serverDeployments/modal';
@@ -146,25 +146,77 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
       )}
 
       {servers.data.items.length == 0 && (
-        <EmptyState>
-          <h1>Welcome to Magic MCP</h1>
-          <p>
-            Magic MCP enables to you create MCP servers in seconds. Configure it here, and
-            connect to it using Cursor, Claude Code, or the Metorial APIs and SDKs.
-          </p>
+        <>
+          {filter.search ? (
+            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+              No Magic MCP servers found for "{filter.search}".
+            </Text>
+          ) : (
+            <EmptyState>
+              <h1>Welcome to Magic MCP</h1>
+              <p>
+                Magic MCP enables to you create MCP servers in seconds. Configure it here, and
+                connect to it using Cursor, Claude Code, or the Metorial APIs and SDKs.
+              </p>
 
-          <Spacer size={30} />
+              <Spacer size={30} />
 
-          <Button
-            onClick={() =>
-              showMagicMcpServerFormModal({
-                type: 'create'
-              })
-            }
-          >
-            Create Magic MCP server
-          </Button>
-        </EmptyState>
+              <Button
+                onClick={() =>
+                  showMagicMcpServerFormModal({
+                    type: 'create'
+                  })
+                }
+              >
+                Create Magic MCP server
+              </Button>
+            </EmptyState>
+          )}
+        </>
+      )}
+    </>
+  ));
+};
+
+export let MagicMcpServersTable = (filter: DashboardInstanceMagicMcpServersListQuery) => {
+  let instance = useCurrentInstance();
+  let servers = useMagicMcpServers(instance.data?.id, {
+    ...filter,
+    order: filter.order ?? 'desc'
+  });
+
+  return renderWithPagination(servers)(servers => (
+    <>
+      <Table
+        headers={['Name', 'Created']}
+        data={servers.data.items.map(server => ({
+          data: [
+            <div>
+              <Text size="2" weight="strong">
+                {server.name}
+              </Text>
+              {server.description && (
+                <Text size="1" color="gray600">
+                  {server.description}
+                </Text>
+              )}
+            </div>,
+
+            <RenderDate date={server.createdAt} />
+          ],
+          href: Paths.instance.magicMcp.server(
+            instance.data?.organization,
+            instance.data?.project,
+            instance.data,
+            server.id
+          )
+        }))}
+      />
+
+      {servers.data.items.length == 0 && (
+        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
+          No Magic MCP servers found.
+        </Text>
       )}
     </>
   ));

@@ -7,6 +7,7 @@ import {
 } from '@metorial/state';
 import { Button, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
+import { createMagicMcpGroupModal } from '../../../scenes/magicMcp/groupsTable';
 import { createMagicMcpTokenModal } from '../../../scenes/magicMcp/tokensTable';
 import { showMagicMcpServerFormModal } from '../../../scenes/serverDeployments/modal';
 
@@ -22,7 +23,7 @@ export let MagicMcpListLayout = () => {
     <ContentLayout>
       <PageHeader
         title="Magic MCP"
-        description="MCP servers on easy more. Just create your server and connect to it."
+        description="Deploy and configure MCP servers instantly. Connect them to Cursor, Claude Code and more."
         actions={
           {
             servers: (
@@ -40,6 +41,11 @@ export let MagicMcpListLayout = () => {
             tokens: (
               <Button size="2" onClick={() => createMagicMcpTokenModal()}>
                 Create Magic MCP Token
+              </Button>
+            ),
+            groups: (
+              <Button size="2" onClick={() => createMagicMcpGroupModal()}>
+                Create Magic MCP Group
               </Button>
             )
           }[tab!]
@@ -60,6 +66,10 @@ export let MagicMcpListLayout = () => {
               project.data,
               instance.data
             )
+          },
+          {
+            label: 'Groups',
+            to: Paths.instance.magicMcp.groups(organization.data, project.data, instance.data)
           },
           {
             label: 'Tokens',
