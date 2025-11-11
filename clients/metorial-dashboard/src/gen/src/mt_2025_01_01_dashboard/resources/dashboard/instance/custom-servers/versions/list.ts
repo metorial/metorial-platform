@@ -56,11 +56,11 @@ export type DashboardInstanceCustomServersVersionsListOutput = {
       } | null;
     };
     customServerId: string;
+    deploymentId: string | null;
     createdAt: Date;
     updatedAt: Date;
   } & {
     versionHash: string;
-    deploymentId: string | null;
     push: {
       object: 'custom_server.version.push';
       id: string;
@@ -240,14 +240,14 @@ export let mapDashboardInstanceCustomServersVersionsListOutput =
                 'custom_server_id',
                 mtMap.passthrough()
               ),
+              deploymentId: mtMap.objectField(
+                'deployment_id',
+                mtMap.passthrough()
+              ),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date()),
               versionHash: mtMap.objectField(
                 'version_hash',
-                mtMap.passthrough()
-              ),
-              deploymentId: mtMap.objectField(
-                'deployment_id',
                 mtMap.passthrough()
               ),
               push: mtMap.objectField(
