@@ -1,6 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ServiceError, notFoundError, preconditionFailedError } from '@metorial/error';
+
+// Set environment variable before importing services
+process.env.REDIS_URL = 'redis://localhost:6379';
+
 import { magicMcpServerService } from '../src/services/magicMcpServer';
+
+// Mock ioredis to prevent Redis connection attempts
+vi.mock('ioredis', () => {
+  const RedisMock: any = vi.fn(() => ({
+    on: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    quit: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+    setex: vi.fn(),
+    expire: vi.fn()
+  }));
+  RedisMock.Cluster = vi.fn(() => ({
+    on: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    quit: vi.fn()
+  }));
+  return { default: RedisMock, Redis: RedisMock };
+});
 
 // Mock external dependencies
 vi.mock('@metorial/db', () => ({
@@ -54,6 +80,15 @@ vi.mock('@metorial/pagination', () => ({
   Paginator: {
     create: vi.fn(fn => fn({ prisma: (cb: any) => cb({}) }))
   }
+}));
+
+vi.mock('@metorial/queue', () => ({
+  createQueue: vi.fn(config => ({
+    name: config.name,
+    process: vi.fn(fn => fn),
+    add: vi.fn(async () => {}),
+    config
+  }))
 }));
 
 import { db, withTransaction } from '@metorial/db';
@@ -639,6 +674,11 @@ describe('magicMcpServerService', () => {
         index: 'magic_mcp_server',
         query: 'test query',
         options: {
+          filters: {
+            instanceId: {
+              $eq: 'inst_1'
+            }
+          },
           limit: 50
         }
       });

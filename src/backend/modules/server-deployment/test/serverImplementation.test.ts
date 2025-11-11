@@ -817,6 +817,11 @@ describe('ServerImplementationService', () => {
         index: 'server_implementation',
         query: 'test query',
         options: {
+          filters: {
+            instanceId: {
+              $eq: 'instance-123'
+            }
+          },
           limit: 50
         }
       });

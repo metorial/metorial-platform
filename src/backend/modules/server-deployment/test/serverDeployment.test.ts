@@ -174,6 +174,13 @@ vi.mock('jsonschema', () => ({
   }))
 }));
 
+vi.mock('@metorial/usage', () => ({
+  usageService: {
+    recordUsage: vi.fn(async () => {}),
+    getUsage: vi.fn(async () => ({}))
+  }
+}));
+
 vi.mock('../src/queues/serverDeploymentDeleted', () => ({
   serverDeploymentDeletedQueue: {
     add: vi.fn(async () => {})
@@ -947,6 +954,11 @@ describe('ServerDeploymentService', () => {
         index: 'server_deployment',
         query: 'test query',
         options: {
+          filters: {
+            instanceId: {
+              $eq: 'instance-123'
+            }
+          },
           limit: 50
         }
       });

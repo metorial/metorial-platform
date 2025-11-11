@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock ioredis to prevent Redis connection attempts
 vi.mock('ioredis', () => {
@@ -221,6 +221,18 @@ vi.mock('../src/queues/serverImplementationCreated', () => ({
   }
 }));
 
+// Mock mongoose-based usage module
+vi.mock('@metorial/usage', () => ({
+  usageService: {
+    recordUsage: vi.fn(async () => {}),
+    getUsage: vi.fn(async () => ({}))
+  }
+}));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
 describe('Module Index Exports', () => {
   it('should export serverDeploymentService', async () => {
     const module = await import('../src/index');
@@ -260,11 +272,11 @@ describe('Module Index Exports', () => {
   });
 
   it('should combine all queue processors', async () => {
-    const { combineQueueProcessors } = await import('@metorial/queue');
     const module = await import('../src/index');
 
-    expect(combineQueueProcessors).toHaveBeenCalled();
     expect(module.serverDeploymentQueueProcessor).toBeDefined();
+    expect(Array.isArray(module.serverDeploymentQueueProcessor)).toBe(true);
+    expect(module.serverDeploymentQueueProcessor.length).toBeGreaterThan(0);
   });
 });
 

@@ -90,7 +90,13 @@ describe('magicMcpTokenService', () => {
           instanceOid: 'inst_oid_1',
           id: 'mcp_tkn_1'
         },
-        include: {}
+        include: {
+          groups: {
+            include: {
+              magicMcpGroup: true
+            }
+          }
+        }
       });
     });
 
@@ -139,14 +145,16 @@ describe('magicMcpTokenService', () => {
       vi.mocked(db.magicMcpToken.findFirst).mockResolvedValue(mockToken as any);
 
       const result = await magicMcpTokenService.getMagicMcpTokenBySecret({
-        secret: 'met_mcp_secret_123'
+        secret: 'met_mcp_secret_123',
+        instance: mockInstance
       });
 
       expect(result).toEqual(mockToken);
       expect(db.magicMcpToken.findFirst).toHaveBeenCalledWith({
         where: {
           secret: 'met_mcp_secret_123',
-          status: 'active'
+          status: 'active',
+          instanceOid: 'inst_oid_1'
         },
         include: {
           instance: {
@@ -161,7 +169,8 @@ describe('magicMcpTokenService', () => {
 
       await expect(
         magicMcpTokenService.getMagicMcpTokenBySecret({
-          secret: 'met_mcp_deleted_secret'
+          secret: 'met_mcp_deleted_secret',
+          instance: mockInstance
         })
       ).rejects.toThrow(ServiceError);
 
@@ -179,7 +188,8 @@ describe('magicMcpTokenService', () => {
 
       await expect(
         magicMcpTokenService.getMagicMcpTokenBySecret({
-          secret: 'invalid_secret'
+          secret: 'invalid_secret',
+          instance: mockInstance
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -202,7 +212,8 @@ describe('magicMcpTokenService', () => {
       vi.mocked(db.magicMcpToken.findFirst).mockResolvedValue(mockToken as any);
 
       const result = await magicMcpTokenService.getMagicMcpTokenBySecret({
-        secret: 'met_mcp_secret_123'
+        secret: 'met_mcp_secret_123',
+        instance: mockInstance
       });
 
       expect(result.instance).toBeDefined();
@@ -229,7 +240,13 @@ describe('magicMcpTokenService', () => {
           id: { in: ['mcp_tkn_1', 'mcp_tkn_2'] },
           instanceOid: 'inst_oid_1'
         },
-        include: {}
+        include: {
+          groups: {
+            include: {
+              magicMcpGroup: true
+            }
+          }
+        }
       });
     });
 
@@ -355,7 +372,7 @@ describe('magicMcpTokenService', () => {
     });
   });
 
-  describe('deletedMagicMcpToken', () => {
+  describe('deleteMagicMcpToken', () => {
     it('should delete an active token', async () => {
       const mockToken = { id: 'mcp_tkn_1', status: 'active' } as any;
       const mockDeletedToken = {
@@ -366,7 +383,7 @@ describe('magicMcpTokenService', () => {
 
       vi.mocked(db.magicMcpToken.update).mockResolvedValue(mockDeletedToken as any);
 
-      const result = await magicMcpTokenService.deletedMagicMcpToken({
+      const result = await magicMcpTokenService.deleteMagicMcpToken({
         token: mockToken
       });
 
@@ -374,7 +391,13 @@ describe('magicMcpTokenService', () => {
       expect(db.magicMcpToken.update).toHaveBeenCalledWith({
         where: { id: 'mcp_tkn_1' },
         data: { status: 'deleted', deletedAt: expect.any(Date) },
-        include: {}
+        include: {
+          groups: {
+            include: {
+              magicMcpGroup: true
+            }
+          }
+        }
       });
     });
 
@@ -382,7 +405,7 @@ describe('magicMcpTokenService', () => {
       const mockToken = { id: 'mcp_tkn_1', status: 'deleted' } as any;
 
       await expect(
-        magicMcpTokenService.deletedMagicMcpToken({
+        magicMcpTokenService.deleteMagicMcpToken({
           token: mockToken
         })
       ).rejects.toThrow(ServiceError);
@@ -398,7 +421,7 @@ describe('magicMcpTokenService', () => {
         return { id: 'mcp_tkn_1', status: 'deleted', deletedAt: args.data.deletedAt } as any;
       });
 
-      await magicMcpTokenService.deletedMagicMcpToken({
+      await magicMcpTokenService.deleteMagicMcpToken({
         token: mockToken
       });
     });
