@@ -227,7 +227,7 @@ export class MetorialDashboardInstanceMagicMcpGroupsEndpoint {
     body: DashboardInstanceMagicMcpGroupsAddServersBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpGroupsAddServersOutput> {
-    let path = `dashboard/instances/${instanceId}/magic-mcp-groups/${magicMcpGroupId}/servers`;
+    let path = `dashboard/instances/${instanceId}/magic-mcp-groups/${magicMcpGroupId}/add-servers`;
 
     let request = {
       path,
@@ -259,7 +259,7 @@ export class MetorialDashboardInstanceMagicMcpGroupsEndpoint {
     body: DashboardInstanceMagicMcpGroupsRemoveServersBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpGroupsRemoveServersOutput> {
-    let path = `dashboard/instances/${instanceId}/magic-mcp-groups/${magicMcpGroupId}/servers`;
+    let path = `dashboard/instances/${instanceId}/magic-mcp-groups/${magicMcpGroupId}/remove-servers`;
 
     let request = {
       path,
@@ -270,7 +270,7 @@ export class MetorialDashboardInstanceMagicMcpGroupsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._delete(request).transform(
+    return this._post(request).transform(
       mapDashboardInstanceMagicMcpGroupsRemoveServersOutput
     );
   }

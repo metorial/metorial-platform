@@ -134,6 +134,7 @@ export type ManagementInstanceMagicMcpServersListQuery = {
   serverVariantId?: string | string[] | undefined;
   serverImplementationId?: string | string[] | undefined;
   sessionId?: string | string[] | undefined;
+  magicMcpGroupId?: string | string[] | undefined;
   search?: string | undefined;
 };
 
@@ -182,6 +183,16 @@ export let mapManagementInstanceMagicMcpServersListQuery = mtMap.union([
       ),
       sessionId: mtMap.objectField(
         'session_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      magicMcpGroupId: mtMap.objectField(
+        'magic_mcp_group_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

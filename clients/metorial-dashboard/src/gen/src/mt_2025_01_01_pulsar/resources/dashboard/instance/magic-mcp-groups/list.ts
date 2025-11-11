@@ -58,6 +58,7 @@ export type DashboardInstanceMagicMcpGroupsListQuery = {
     | 'deleted'
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
+  search?: string | undefined;
 };
 
 export let mapDashboardInstanceMagicMcpGroupsListQuery = mtMap.union([
@@ -72,7 +73,8 @@ export let mapDashboardInstanceMagicMcpGroupsListQuery = mtMap.union([
       status: mtMap.objectField(
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
-      )
+      ),
+      search: mtMap.objectField('search', mtMap.passthrough())
     })
   )
 ]);
