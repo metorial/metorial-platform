@@ -20,7 +20,7 @@ export let ManagedServersPage = () => {
           description="Deploy custom MCP servers on the same reliable infra that runs every MCP server on Metorial. Implement custom behavior or fork existing servers."
         />
       ) : (
-        <CustomServersTable type="managed" />
+        <CustomServersTable type="managed" withSearch />
       )}
     </>
   ));
