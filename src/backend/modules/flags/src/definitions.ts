@@ -16,6 +16,8 @@ export type Flags = {
   'paid-custom-servers': boolean;
   'paid-advanced-security': boolean;
   'paid-advanced-roles': boolean;
+  'paid-audit-logs': boolean;
+  'paid-magic-mcp-groups': boolean;
 };
 
 export let defaultFlags: Flags = {
@@ -33,7 +35,9 @@ export let defaultFlags: Flags = {
   'paid-callbacks': true,
   'paid-custom-servers': true,
   'paid-advanced-security': true,
-  'paid-advanced-roles': true
+  'paid-advanced-roles': true,
+  'paid-audit-logs': true,
+  'paid-magic-mcp-groups': true
 };
 
 export type FlagProviderParams = {
