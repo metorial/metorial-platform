@@ -1,3 +1,4 @@
+import { db } from '@metorial/db';
 import { Service } from '@metorial/service';
 import { Client as OpenSearchClient } from '@opensearch-project/opensearch';
 import { algoliasearch, Algoliasearch } from 'algoliasearch';
@@ -5,13 +6,26 @@ import createAwsOpensearchConnector from 'aws-opensearch-connector';
 import { MeiliSearch, MeiliSearchApiError, Index as MeiliSearchIndex } from 'meilisearch';
 import { env } from '../env';
 
-export type SearchIndex =
-  | 'server_listing'
-  | 'server_implementation'
-  | 'server_deployment'
-  | 'magic_mcp_server'
-  | 'magic_mcp_group'
-  | 'custom_server';
+let indexes = [
+  'server_listing',
+  'server_implementation',
+  'server_deployment',
+  'magic_mcp_server',
+  'magic_mcp_group',
+  'custom_server'
+] as const;
+
+export type SearchIndex = (typeof indexes)[number];
+
+let indexRecords = Promise.all(
+  indexes.map(idx =>
+    db.searchIndex.upsert({
+      where: { identifier: idx },
+      create: { identifier: idx },
+      update: {}
+    })
+  )
+).then(r => Object.fromEntries(r.map(r => [r.identifier as SearchIndex, r])));
 
 let meilisearchIndices = new Map<string, MeiliSearchIndex>();
 let openSearchIndices = new Set<string>();
@@ -79,14 +93,14 @@ class SearchService {
     }
 
     if (algoliaSearch && !algoliaIndices.has(index)) {
-      let indexName = algoliaPrefix ? `${algoliaPrefix}_${index}` : index;
       algoliaIndices.add(index);
     }
 
     return {
       addDocuments: async (docs: any[], options: { primaryKey: string }) => {
         if (meiliSearch) {
-          let meiliIndex = meilisearchIndices.get(index)!;
+          let indexName = meilisearchPrefix ? `${meilisearchPrefix}_${index}` : index;
+          let meiliIndex = meilisearchIndices.get(indexName)!;
           await meiliIndex.addDocuments(docs, options);
         }
 
@@ -102,14 +116,29 @@ class SearchService {
         }
 
         if (algoliaSearch) {
+          let indexName = algoliaPrefix ? `${algoliaPrefix}_${index}` : index;
           await algoliaSearch.saveObjects({
-            indexName: algoliaPrefix ? `${algoliaPrefix}_${index}` : index,
+            indexName,
             objects: docs.map(doc => ({
               ...doc,
               objectID: doc[options.primaryKey]
             }))
           });
         }
+
+        let record = (await indexRecords)[index];
+
+        await db.searchIndexEntry.createMany({
+          skipDuplicates: true,
+          data: docs.map(doc => ({
+            indexOid: record.oid,
+            documentId: doc[options.primaryKey],
+            content: Object.values(doc)
+              .filter(v => typeof v === 'string')
+              .join(' '),
+            fields: doc
+          }))
+        });
       },
 
       search: async (
@@ -176,7 +205,22 @@ class SearchService {
           return { hits: result.hits };
         }
 
-        return { hits: [] };
+        let record = (await indexRecords)[index];
+        let entries = await db.searchIndexEntry.findMany({
+          where: {
+            indexOid: record.oid,
+            content: { contains: query }
+          },
+          take: options?.limit
+        });
+
+        return {
+          hits: entries.map(e => ({
+            ...(e.fields as any),
+            id: e.documentId,
+            objectId: e.documentId
+          }))
+        };
       }
     };
   }

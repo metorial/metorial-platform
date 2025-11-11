@@ -1,0 +1,22 @@
+model SearchIndex {
+  oid        Int      @id @default(autoincrement())
+  identifier String   @unique
+  createdAt  DateTime @default(now())
+
+  searchIndexEntries SearchIndexEntry[]
+}
+
+model SearchIndexEntry {
+  oid Int @id @default(autoincrement())
+
+  indexOid Int
+  index    SearchIndex @relation(fields: [indexOid], references: [oid])
+
+  documentId String
+  content    String
+  fields     Json
+
+  createdAt DateTime @default(now())
+
+  @@unique([documentId])
+}
