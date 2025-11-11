@@ -1,5 +1,23 @@
 import { vi } from 'vitest';
 
+// Mock @metorial/db to prevent database connections during tests
+vi.mock('@metorial/db', () => ({
+  db: {
+    searchIndex: {
+      upsert: vi.fn().mockResolvedValue({
+        oid: 1,
+        identifier: 'test',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+    },
+    searchIndexEntry: {
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      findMany: vi.fn().mockResolvedValue([])
+    }
+  }
+}));
+
 // Mock environment variables
 process.env.MEILISEARCH_HOST = '';
 process.env.MEILISEARCH_API_KEY = '';
