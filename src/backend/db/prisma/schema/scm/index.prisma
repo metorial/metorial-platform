@@ -86,9 +86,10 @@ model ScmInstallation {
   externalUserEmail    String?
   externalUserImageUrl String?
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @default(now()) @updatedAt
-  ScmRepo   ScmRepo[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  repos ScmRepo[]
 
   @@unique([organizationOid, provider, externalUserId])
 }
