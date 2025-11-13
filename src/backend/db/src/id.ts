@@ -134,6 +134,6 @@ export let ID = createIdGenerator({
   teamProject: idType.sorted('tmp'),
   teamMember: idType.sorted('tmm'),
 
-  ssoTenant: idType.sorted('sst'),
-  ssoUser: idType.sorted('ssu')
+  ssoTenant: idType.sorted('ssot'),
+  ssoUser: idType.sorted('ssou')
 });
