@@ -3,7 +3,7 @@ import { jackson } from '../lib/jackson';
 import { errorHtml } from '../pages/error';
 
 export let jxnApi = createHono()
-  .post('/sso/jxn/saml/callback', async c => {
+  .post('/saml/callback', async c => {
     let form = await c.req.formData();
 
     let RelayState = form.get('RelayState') || '';
@@ -34,7 +34,7 @@ export let jxnApi = createHono()
 
     return c.redirect(res.redirect_url);
   })
-  .get('/sso/jxn/oidc/callback', async c => {
+  .get('/oidc/callback', async c => {
     let code = c.req.query('code') || '';
     let state = c.req.query('state') || '';
 

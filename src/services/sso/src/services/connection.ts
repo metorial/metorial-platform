@@ -1,3 +1,4 @@
+import { generatePlainId } from '@metorial/id';
 import { Service } from '@metorial/service';
 import { Connection, Tenant } from '../db/schema';
 import { jackson } from '../lib/jackson';
@@ -62,9 +63,11 @@ class connectionServiceImpl {
       clientSecret: string;
     };
   }) {
+    let internalId = generatePlainId(20);
+
     let con = await jackson.apiController.createOIDCConnection({
       product: 'metorial',
-      tenant: d.tenant._id,
+      tenant: internalId,
       name: d.input.name,
 
       oidcMetadata: undefined,
@@ -79,6 +82,7 @@ class connectionServiceImpl {
     return await Connection.create({
       tenantId: d.tenant._id,
 
+      internalId,
       internalClientId: con.clientID,
       internalClientSecret: con.clientSecret,
 

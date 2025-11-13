@@ -6,7 +6,7 @@ let ret = await jack({
   externalUrl: env.saml.SSO_SERVICE_HOST,
   samlPath: '/sso/jxn/saml/callback',
   oidcPath: '/sso/jxn/oidc/callback',
-  samlAudience: env.saml.SSO_SERVICE_HOST,
+  samlAudience: env.saml.SAML_AUDIENCE,
   db: {
     engine: 'mongo',
     url: env.jackson.SSO_MONGO_URL

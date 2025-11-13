@@ -12,6 +12,6 @@ export let ID = createIdGenerator({
   userProfile: idType.sorted('supr'),
   user: idType.sorted('susr'),
 
-  authorization: idType.sorted('saut'),
-  authorization_code: idType.key('saut_code', 50)
+  auth: idType.sorted('saut'),
+  auth_clientSecret: idType.key('saut_code', 50)
 });

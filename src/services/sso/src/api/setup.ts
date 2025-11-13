@@ -1,4 +1,5 @@
-import { createHono } from '@metorial/hono';
+import { createHono, useValidatedBody, useValidatedQuery } from '@metorial/hono';
+import { v } from '@metorial/validation';
 import { env } from '../env';
 import { errorHtml } from '../pages/error';
 import { setupConfigureHtml } from '../pages/setup-configure';
@@ -9,16 +10,14 @@ import { templates } from '../templates';
 export let setupApi = createHono()
   .get('/', async c => {
     try {
-      let clientSecret = c.req.query('clientSecret') || '';
-
-      if (!clientSecret) {
-        return c.html(
-          errorHtml({
-            title: 'Missing Client Secret',
-            message: 'Please provide a valid client secret to access the setup page.'
-          })
-        );
-      }
+      let res = await useValidatedQuery(
+        c,
+        v.union([
+          v.object({ client_secret: v.string() }),
+          v.object({ clientSecret: v.string() })
+        ])
+      );
+      let clientSecret = 'client_secret' in res ? res.client_secret : res.clientSecret;
 
       let { setup } = await setupService.getSetupByClientSecret({ clientSecret });
 
@@ -39,17 +38,13 @@ export let setupApi = createHono()
   })
   .get('/configure', async c => {
     try {
-      let clientSecret = c.req.query('clientSecret') || '';
-      let providerId = c.req.query('provider') || '';
-
-      if (!clientSecret || !providerId) {
-        return c.html(
-          errorHtml({
-            title: 'Invalid Request',
-            message: 'Missing required parameters.'
-          })
-        );
-      }
+      let { clientSecret, providerId } = await useValidatedQuery(
+        c,
+        v.object({
+          clientSecret: v.string(),
+          providerId: v.string()
+        })
+      );
 
       let { setup } = await setupService.getSetupByClientSecret({ clientSecret });
 
@@ -87,7 +82,7 @@ export let setupApi = createHono()
     } catch (error: any) {
       return c.html(
         errorHtml({
-          title: 'Error',
+          title: 'Unable to set up connection',
           message: 'An error occurred while loading the configuration page.',
           details: error.message
         })
@@ -96,8 +91,6 @@ export let setupApi = createHono()
   })
   .post('/create', async c => {
     try {
-      let body = await c.req.json();
-
       let {
         clientSecret,
         providerId,
@@ -106,7 +99,29 @@ export let setupApi = createHono()
         oidcDiscoveryUrl,
         oidcClientId,
         oidcClientSecret
-      } = body;
+      } = await useValidatedBody(
+        c,
+        v.object({
+          clientSecret: v.string(),
+          providerId: v.string(),
+          name: v.string(),
+          samlMetadata: v.optional(
+            v.union([
+              v.object({
+                type: v.literal('xml'),
+                payload: v.string()
+              }),
+              v.object({
+                type: v.literal('url'),
+                url: v.string()
+              })
+            ])
+          ),
+          oidcDiscoveryUrl: v.optional(v.string()),
+          oidcClientId: v.optional(v.string()),
+          oidcClientSecret: v.optional(v.string())
+        })
+      );
 
       if (!clientSecret || !providerId || !name) {
         return c.json({ error: 'Missing required fields' }, 400);
@@ -135,16 +150,12 @@ export let setupApi = createHono()
   })
   .get('/complete', async c => {
     try {
-      let clientSecret = c.req.query('clientSecret') || '';
-
-      if (!clientSecret) {
-        return c.html(
-          errorHtml({
-            title: 'Missing Client Secret',
-            message: 'Please provide a valid client secret.'
-          })
-        );
-      }
+      let { clientSecret } = await useValidatedQuery(
+        c,
+        v.object({
+          clientSecret: v.string()
+        })
+      );
 
       let { setup, connection, tenant } = await setupService.getSetupByClientSecret({
         clientSecret
@@ -163,7 +174,7 @@ export let setupApi = createHono()
     } catch (error: any) {
       return c.html(
         errorHtml({
-          title: 'Error',
+          title: 'Unable to set up connection',
           message: 'An error occurred while loading the completion page.',
           details: error.message
         })

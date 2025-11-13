@@ -37,6 +37,7 @@ let ConnectionSchema = new client.Schema({
     required: true
   },
 
+  internalId: { type: String, required: true },
   internalClientId: { type: String, required: true },
   internalClientSecret: { type: String, required: true },
 
@@ -103,15 +104,27 @@ let UserProfileSchema = new client.Schema({
     required: true
   },
 
-  externalId: { type: String, required: true, index: true },
   connectionId: {
     type: String,
     ref: 'Connection',
     required: true
   },
 
-  displayName: { type: String, required: false },
-  emails: [{ type: String, required: false }],
+  userId: {
+    type: String,
+    ref: 'User',
+    required: true
+  },
+
+  email: { type: String, required: true },
+  uid: { type: String, required: true },
+  uidHash: { type: String, required: true },
+  sub: { type: String, required: false },
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  roles: { type: [String], required: true },
+  groups: { type: [String], required: true },
+  raw: { type: Object, required: true },
 
   metadata: { type: Object, required: false },
 
@@ -133,13 +146,57 @@ let UserSchema = new client.Schema({
     required: true
   },
 
-  userProfileId: {
-    type: String,
-    ref: 'UserProfile',
-    required: true
-  },
+  email: { type: String, required: true, index: true },
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
 
   createdAt: { type: Date, required: true, default: () => new Date() },
   updatedAt: { type: Date, required: true, default: () => new Date() }
 });
 export let User = client.model('User', UserSchema);
+export type User = InferSchemaType<typeof UserSchema>;
+
+let AuthSchema = new client.Schema({
+  _id: {
+    type: String,
+    required: true,
+    default: () => ID.generateIdSync('auth')
+  },
+
+  status: {
+    type: String,
+    enum: ['pending', 'completed'] as const,
+    default: 'pending',
+    required: true
+  },
+
+  redirectUri: { type: String, required: true },
+  clientSecret: { type: String, required: true, unique: true },
+
+  tenantId: {
+    type: String,
+    ref: 'Tenant',
+    required: true
+  },
+  userProfileId: {
+    type: String,
+    ref: 'UserProfile'
+  },
+  userId: {
+    type: String,
+    ref: 'User'
+  },
+  connectionId: {
+    type: String,
+    ref: 'Connection'
+  },
+  email: { type: String, required: false },
+  codeVerifier: { type: String, required: false },
+
+  state: { type: String, required: true },
+
+  createdAt: { type: Date, required: true, default: () => new Date() },
+  updatedAt: { type: Date, required: true, default: () => new Date() }
+});
+export let Auth = client.model('Auth', AuthSchema);
+export type Auth = InferSchemaType<typeof AuthSchema>;

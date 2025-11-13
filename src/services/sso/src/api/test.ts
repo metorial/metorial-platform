@@ -1,7 +1,9 @@
 import { createHono, useValidatedBody } from '@metorial/hono';
 import { v } from '@metorial/validation';
+import { authPresenter } from '../presenters/auth';
 import { setupPresenter } from '../presenters/setup';
 import { tenantPresenter } from '../presenters/tenant';
+import { authService } from '../services/auth';
 import { setupService } from '../services/setup';
 import { tenantService } from '../services/tenant';
 
@@ -44,4 +46,28 @@ export let testApi = createHono()
     });
 
     return c.json(setupPresenter(setup));
+  })
+  .post('/auth', async c => {
+    let body = await useValidatedBody(
+      c,
+      v.object({
+        tenantId: v.string(),
+        redirectUri: v.string(),
+        state: v.string(),
+        email: v.optional(v.string({ modifiers: [v.email()] }))
+      })
+    );
+
+    let tenant = await tenantService.getTenantById({ tenantId: body.tenantId });
+
+    let auth = await authService.createAuth({
+      tenant,
+      input: {
+        state: body.state,
+        redirectUri: body.redirectUri,
+        email: body.email
+      }
+    });
+
+    return c.json(authPresenter(auth));
   });

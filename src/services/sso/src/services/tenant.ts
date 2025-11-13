@@ -15,7 +15,6 @@ class tenantServiceImpl {
       name: d.input.name,
       metadata: d.input.metadata,
       externalId: d.input.externalId,
-
       clientId: await ID.generateId('tenant_clientId')
     });
   }
