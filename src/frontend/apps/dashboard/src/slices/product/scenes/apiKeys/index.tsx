@@ -538,6 +538,7 @@ export let ApiKeySecret = ({ apiKey }: { apiKey: MetorialApiKey }) => {
   let reveal = useRevealableApiKey({
     apiKeyId: apiKey.id
   });
+  let org = useCurrentOrganization();
 
   let secret = reveal.value ?? apiKey.secret;
   let copy = useCopy(secret!);
@@ -587,6 +588,7 @@ export let ApiKeySecret = ({ apiKey }: { apiKey: MetorialApiKey }) => {
             variant="solid"
             loading={isRevealed && (reveal.isLoading || !!reveal.value)}
             size="1"
+            disabled={org.data?.member.role != 'admin'}
           >
             Reveal Secret
           </Button>
