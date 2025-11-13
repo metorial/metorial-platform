@@ -30,6 +30,11 @@ export let destinations: Destination[] = [
     env: backendEnv,
     path: 'src/backend/apps/api'
   },
+  {
+    type: 'oss',
+    env: backendEnv,
+    path: 'src/services/sso'
+  },
 
   ...['code-bucket', 'listener', 'log', 'usage'].map(v => ({
     type: 'oss' as const,

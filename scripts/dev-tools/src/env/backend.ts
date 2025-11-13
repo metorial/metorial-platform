@@ -40,6 +40,14 @@ export let backendEnv: Env = [
   //   defaultValue: `http://localhost:37700`
   // },
 
+  { key: 'SSO_SERVICE_HOST', defaultValue: 'http://localhost:4340' },
+  {
+    key: 'SSO_MONGO_URL',
+    defaultValue: 'mongodb://mongo:mongo@localhost:32707/sso?authSource=admin'
+  },
+  { key: 'SSO_SECRET', defaultValue: 'secret' },
+  { key: 'SAML_AUDIENCE', defaultValue: 'https://sso.development.metorial.work' },
+
   {
     key: 'SSO_SERVICE_RPC_URL',
     defaultValue: `http://localhost:4341`
