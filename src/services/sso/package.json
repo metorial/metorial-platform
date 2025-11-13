@@ -1,0 +1,32 @@
+{
+  "name": "@metorial/services-sso",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "oss:server:build": "ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite",
+    "oss:server:start": "bun ./dist/index.js",
+    "dev": "bun --watch ./src/server.ts"
+  },
+  "dependencies": {
+    "@boxyhq/saml-jackson": "^1.52.2",
+    "@metorial/api-auth": "1.0.0",
+    "@metorial/api-core": "1.0.0",
+    "@metorial/api-files": "1.0.0",
+    "@metorial/api-marketplace": "1.0.0",
+    "@metorial/api-mcp": "1.0.0",
+    "@metorial/api-mux": "1.0.0",
+    "@metorial/api-runner-gateway": "1.0.0",
+    "@metorial/auth": "1.0.0",
+    "@metorial/logging": "1.0.0",
+    "@metorial/queue": "1.0.0",
+    "@vercel/ncc": "^0.38.4",
+    "mongoose": "^8.19.3"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}
