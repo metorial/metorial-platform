@@ -5,10 +5,16 @@ import { ID } from '../id';
 import { connectionService } from './connection';
 
 class setupServiceImpl {
-  async createSetup(d: { tenant: Tenant }) {
+  async createSetup(d: {
+    tenant: Tenant;
+    input: {
+      redirectUri: string;
+    };
+  }) {
     return await ConnectionSetup.create({
       tenantId: d.tenant._id,
       status: 'pending',
+      redirectUri: d.input.redirectUri,
       clientSecret: await ID.generateId('setup_clientSecret')
     });
   }

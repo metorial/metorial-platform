@@ -1,7 +1,6 @@
 import { createHono } from '@metorial/hono';
 import { env } from '../env';
 import { errorHtml } from '../pages/error';
-import { setupCompleteHtml } from '../pages/setup-complete';
 import { setupConfigureHtml } from '../pages/setup-configure';
 import { setupSelectHtml } from '../pages/setup-select';
 import { setupService } from '../services/setup';
@@ -147,49 +146,20 @@ export let setupApi = createHono()
         );
       }
 
-      let { setup, connection } = await setupService.getSetupByClientSecret({ clientSecret });
+      let { setup, connection, tenant } = await setupService.getSetupByClientSecret({
+        clientSecret
+      });
 
       if (setup.status !== 'completed' || !connection) {
         return c.redirect(`/sso/setup?clientSecret=${clientSecret}`);
       }
 
-      let template = templates.find(t => t.id === connection.providerName);
-      if (!template) {
-        return c.html(
-          errorHtml({
-            title: 'Provider Not Found',
-            message: 'The provider template for this connection does not exist.'
-          })
-        );
-      }
+      let redirectUri = new URL(setup.redirectUri);
+      redirectUri.searchParams.set('connection_id', connection._id.toString());
+      redirectUri.searchParams.set('tenant_id', tenant._id.toString());
+      redirectUri.searchParams.set('setup_id', setup._id.toString());
 
-      let ssoServiceHost = env.saml.SSO_SERVICE_HOST;
-
-      // Generate connection values based on type
-      let connectionValues: any = {};
-
-      if (connection.providerType === 'saml') {
-        connectionValues.entityId = env.saml.SAML_AUDIENCE;
-        connectionValues.replyUrl = `${ssoServiceHost}/sso/jxn/saml/callback`;
-      } else {
-        connectionValues.redirectUri = `${ssoServiceHost}/sso/jxn/oidc/callback`;
-        connectionValues.clientId = connection.internalClientId;
-        connectionValues.clientSecret = connection.internalClientSecret;
-      }
-
-      // Replace template variables in markdown
-      let markdownContent = template.md
-        .replace(/\{\{ENTITY_ID\}\}/g, connectionValues.entityId || '')
-        .replace(/\{\{REPLY_URL\}\}/g, connectionValues.replyUrl || '')
-        .replace(/\{\{REDIRECT_URI\}\}/g, connectionValues.redirectUri || '');
-
-      return c.html(
-        setupCompleteHtml({
-          providerName: template.name,
-          markdownContent,
-          connectionValues
-        })
-      );
+      return c.redirect(redirectUri);
     } catch (error: any) {
       return c.html(
         errorHtml({

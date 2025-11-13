@@ -27,10 +27,20 @@ export let testApi = createHono()
     return c.json(tenantPresenter(tenant));
   })
   .post('/tenant/:tenantId/setup', async c => {
+    let body = await useValidatedBody(
+      c,
+      v.object({
+        redirectUri: v.string()
+      })
+    );
+
     let tenant = await tenantService.getTenantById({ tenantId: c.req.param('tenantId') });
 
     let setup = await setupService.createSetup({
-      tenant
+      tenant,
+      input: {
+        redirectUri: body.redirectUri
+      }
     });
 
     return c.json(setupPresenter(setup));
