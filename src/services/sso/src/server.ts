@@ -11,3 +11,12 @@ await import('./api');
 await import('./internal');
 
 export {};
+
+if (process.env.NODE_ENV === 'production') {
+  Bun.serve({
+    fetch: (req, server) => {
+      return new Response('OK');
+    },
+    port: 10101
+  });
+}
