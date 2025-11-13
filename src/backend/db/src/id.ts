@@ -132,5 +132,8 @@ export let ID = createIdGenerator({
   teamRole: idType.sorted('tmr'),
   teamRoleAssignment: idType.sorted('tmra'),
   teamProject: idType.sorted('tmp'),
-  teamMember: idType.sorted('tmm')
+  teamMember: idType.sorted('tmm'),
+
+  ssoTenant: idType.sorted('sst'),
+  ssoUser: idType.sorted('ssu')
 });

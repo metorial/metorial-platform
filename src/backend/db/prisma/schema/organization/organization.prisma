@@ -52,4 +52,5 @@ model Organization {
   accessLimiters          AccessLimiter[]
   team                    Team[]
   teamRole                TeamRole[]
+  ssoTenants              SsoTenant[]
 }

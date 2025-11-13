@@ -41,6 +41,11 @@ export let backendEnv: Env = [
   // },
 
   {
+    key: 'SSO_SERVICE_RPC_URL',
+    defaultValue: `http://localhost:4341`
+  },
+
+  {
     key: 'CODE_WORKSPACE_SERVICE_ADDRESS',
     defaultValue: `http://localhost:4041`
   },

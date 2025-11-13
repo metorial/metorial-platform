@@ -32,7 +32,15 @@ class authServiceImpl {
 
   async completeAuth(d: { authId: string }) {
     let auth = await Auth.findById(d.authId);
-    if (!auth) throw new ServiceError(notFoundError('sso.auth'));
+    if (
+      !auth ||
+      auth.status != 'completed' ||
+      !auth.userId ||
+      !auth.tenantId ||
+      !auth.connectionId ||
+      !auth.userProfileId
+    )
+      throw new ServiceError(notFoundError('sso.auth'));
 
     let user = await User.findById(auth.userId);
     let tenant = await Tenant.findById(auth.tenantId);

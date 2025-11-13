@@ -37,6 +37,11 @@ class connectionServiceImpl {
       metadataUrl: d.input.samlMetadata.type === 'url' ? d.input.samlMetadata.url : undefined
     });
 
+    if (d.tenant.status == 'pending') {
+      d.tenant.status = 'completed';
+      await Tenant.findByIdAndUpdate(d.tenant._id, { status: 'completed' });
+    }
+
     return await Connection.create({
       tenantId: d.tenant._id,
 
@@ -79,6 +84,11 @@ class connectionServiceImpl {
       redirectUrl: jackson.redirectUrl,
       defaultRedirectUrl: jackson.defaultRedirectUrl.oidc
     });
+
+    if (d.tenant.status == 'pending') {
+      d.tenant.status = 'completed';
+      await Tenant.findByIdAndUpdate(d.tenant._id, { status: 'completed' });
+    }
 
     return await Connection.create({
       tenantId: d.tenant._id,
