@@ -23,6 +23,7 @@ import { secretQueueProcessor } from '@metorial/module-secret';
 import { serverDeploymentQueueProcessor } from '@metorial/module-server-deployment';
 import { serverRunnerQueueProcessor } from '@metorial/module-server-runner';
 import { sessionQueueProcessor } from '@metorial/module-session';
+import { ssoQueueProcessor } from '@metorial/module-sso';
 import { usageQueueProcessor } from '@metorial/module-usage';
 import { userQueueProcessor } from '@metorial/module-user';
 
@@ -49,5 +50,6 @@ export let worker = runQueueProcessors([
   magicQueueProcessor,
   scmQueueProcessor,
   callbacksQueueProcessor,
-  protectQueueProcessor
+  protectQueueProcessor,
+  ssoQueueProcessor
 ]);
