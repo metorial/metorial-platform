@@ -103,7 +103,10 @@ let getCachedRevealedApiKey = (apiKeyId: string) => {
 };
 let useApiReveal = apiKeyLoader.createExternalMutator(
   ({ apiKeyId, organizationId }: { apiKeyId: string; organizationId: string }) =>
-    withAuth(sdk => sdk.apiKeys.reveal(organizationId, apiKeyId))
+    withAuth(sdk => sdk.apiKeys.reveal(organizationId, apiKeyId)),
+  {
+    disableToast: true
+  }
 );
 
 export let useRevealableApiKey = ({ apiKeyId }: { apiKeyId?: string }) => {
