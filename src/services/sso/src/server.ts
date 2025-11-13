@@ -4,4 +4,6 @@ process.env.DO_NOT_TRACK = '1';
 
 await import('./api');
 
+await import('./internal');
+
 export {};

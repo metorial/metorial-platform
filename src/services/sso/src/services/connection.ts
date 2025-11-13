@@ -1,3 +1,4 @@
+import { notFoundError, ServiceError } from '@metorial/error';
 import { generatePlainId } from '@metorial/id';
 import { Service } from '@metorial/service';
 import { Connection, Tenant } from '../db/schema';
@@ -99,7 +100,13 @@ class connectionServiceImpl {
   }
 
   async getConnectionById(d: { connectionId: string; tenant: Tenant }) {
-    return await Connection.findOne({ _id: d.connectionId, tenantId: d.tenant._id });
+    let con = await Connection.findOne({ _id: d.connectionId, tenantId: d.tenant._id });
+    if (!con) throw new ServiceError(notFoundError('sso.connection'));
+    return con;
+  }
+
+  async listConnections(d: { tenant: Tenant }) {
+    return await Connection.find({ tenantId: d.tenant._id });
   }
 }
 
