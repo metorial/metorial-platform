@@ -8,7 +8,7 @@ import {
   SsoUser,
   withTransaction
 } from '@metorial/db';
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, ServiceError, unauthorizedError } from '@metorial/error';
 import { generateCode, generatePlainId } from '@metorial/id';
 import { Service } from '@metorial/service';
 import { Tokens } from '@metorial/tokens';
@@ -24,10 +24,22 @@ let consumerToken = new Tokens({
 });
 
 class consumerAuthServiceImpl {
+  private ensureSurfaceIsActive(d: { surface: ConsumerSurface }) {
+    if (d.surface.status !== 'active') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'The consumer surface is not active.'
+        })
+      );
+    }
+  }
+
   async authenticateWithEmailCodeStart(d: {
     surface: ConsumerSurface;
     input: { email: string };
   }) {
+    await this.ensureSurfaceIsActive({ surface: d.surface });
+
     let factor = await db.consumerSurfaceAuthFactor.findFirst({
       where: {
         consumerSurfaceOid: d.surface.oid,
@@ -66,6 +78,8 @@ class consumerAuthServiceImpl {
     surface: ConsumerSurface;
     input: { email: string; code: string };
   }) {
+    await this.ensureSurfaceIsActive({ surface: d.surface });
+
     let factor = await db.consumerSurfaceAuthFactor.findFirst({
       where: {
         consumerSurfaceOid: d.surface.oid,
@@ -127,6 +141,8 @@ class consumerAuthServiceImpl {
   }
 
   async getSsoFactor(d: { surface: ConsumerSurface; factorId: string }) {
+    await this.ensureSurfaceIsActive({ surface: d.surface });
+
     let factor = await db.consumerSurfaceAuthFactor.findFirst({
       where: {
         consumerSurfaceOid: d.surface.oid,
@@ -157,6 +173,8 @@ class consumerAuthServiceImpl {
     ssoUser: SsoUser;
     context: Context;
   }) {
+    await this.ensureSurfaceIsActive({ surface: d.surface });
+
     let consumerProfile = await this.ensureConsumerProfile({
       surface: d.surface,
       email: d.ssoUser.email,
@@ -173,15 +191,58 @@ class consumerAuthServiceImpl {
     });
   }
 
-  async getConsumerSessionToken(d: { session: ConsumerSession }) {
+  async getConsumerSessionToken(d: { session: ConsumerSession; surface: ConsumerSurface }) {
     return await consumerSessionToken.sign({
       type: 'consumer_session',
       data: {
+        surfaceId: d.surface.id,
         sessionId: d.session.id,
         nonce: d.session.tokenNonce
       },
       expiresAt: d.session.expiresAt
     });
+  }
+
+  async authenticateWithConsumerSessionToken(d: { token: string; surface: ConsumerSurface }) {
+    let payload = await consumerSessionToken.verify({
+      token: d.token,
+      expectedType: 'consumer_session'
+    });
+    if (!payload.verified) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'Invalid consumer session token.'
+        })
+      );
+    }
+
+    let session = await db.consumerSession.findFirst({
+      where: {
+        id: payload.data.sessionId,
+        tokenNonce: payload.data.nonce,
+        consumerProfile: {
+          surfaceOid: d.surface.oid
+        },
+        expiresAt: { gt: new Date() }
+      },
+      include: {
+        consumerProfile: {
+          include: {
+            consumer: true,
+            ssoUser: true
+          }
+        }
+      }
+    });
+    if (!session) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'Invalid consumer session token.'
+        })
+      );
+    }
+
+    return session;
   }
 
   async getConsumerAuthToken(d: {}) {}
