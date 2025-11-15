@@ -39,6 +39,7 @@ import {
   OrganizationActor,
   OrganizationInvite,
   OrganizationMember,
+  Portal,
   Profile,
   Project,
   ProviderOAuthAutoRegistration,
@@ -80,6 +81,7 @@ import {
   SessionConnection,
   SessionEvent,
   SessionMessage,
+  SsoTenant,
   Team,
   TeamMember,
   TeamProject,
@@ -631,6 +633,14 @@ export let callbackNotificationType = PresentableType.create<{
     attempts: CallbackNotificationAttempt[];
   };
 }>()('callback.notification');
+
+export let ssoTenantType = PresentableType.create<{
+  ssoTenant: SsoTenant;
+}>()('sso.tenant');
+
+export let portalType = PresentableType.create<{
+  portal: Portal;
+}>()('portal');
 
 export let serverConfigVaultType = PresentableType.create<{
   serverConfigVault: ServerConfigVault & {

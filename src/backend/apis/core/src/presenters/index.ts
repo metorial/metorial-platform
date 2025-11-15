@@ -35,6 +35,7 @@ import { v1OrganizationPresenter } from './implementation/organization';
 import { v1OrganizationActorPresenter } from './implementation/organizationActor';
 import { v1OrganizationInvitePresenter } from './implementation/organizationInvite';
 import { v1OrganizationMemberPresenter } from './implementation/organizationMember';
+import { v1PortalPresenter } from './implementation/portal';
 import { v1ProfilePresenter } from './implementation/profile';
 import { v1ProjectPresenter } from './implementation/project';
 import { v1ProviderOauthConnectionPresenter } from './implementation/providerOauthConnection';
@@ -82,6 +83,7 @@ import {
   dashboardSessionMessagePresenter,
   v1SessionMessagePresenter
 } from './implementation/sessionMessage';
+import { v1SsoTenantPresenter } from './implementation/ssoTenant';
 import { v1TeamPresenter } from './implementation/team';
 import { v1TeamRolePresenter } from './implementation/teamRole';
 import { v1TeamRolePermissionsPresenter } from './implementation/teamRolePermissons';
@@ -112,6 +114,7 @@ import {
   organizationInviteType,
   organizationMemberType,
   organizationType,
+  portalType,
   profileType,
   projectType,
   providerOauthConnectionAuthenticationType,
@@ -150,6 +153,7 @@ import {
   sessionEventType,
   sessionMessageType,
   sessionType,
+  ssoTenantType,
   teamRolePermissionsType,
   teamRoleType,
   teamType,
@@ -471,6 +475,16 @@ export let scmRepoPresenter = declarePresenter(scmRepoType, {
 export let scmInstallationPresenter = declarePresenter(scmInstallationType, {
   mt_2025_01_01_pulsar: v1ScmInstallationPresenter,
   mt_2025_01_01_dashboard: v1ScmInstallationPresenter
+});
+
+export let ssoTenantPresenter = declarePresenter(ssoTenantType, {
+  mt_2025_01_01_pulsar: v1SsoTenantPresenter,
+  mt_2025_01_01_dashboard: v1SsoTenantPresenter
+});
+
+export let portalPresenter = declarePresenter(portalType, {
+  mt_2025_01_01_pulsar: v1PortalPresenter,
+  mt_2025_01_01_dashboard: v1PortalPresenter
 });
 
 export let callbackPresenter = declarePresenter(callbackType, {

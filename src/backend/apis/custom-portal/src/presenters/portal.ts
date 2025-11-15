@@ -1,6 +1,6 @@
 import { ConsumerSurface, getImageUrl, Portal } from '@metorial/db';
 
-export let portalPresenter = (portal: Portal & { surface: ConsumerSurface }) => ({
+export let portalPresenter = async (portal: Portal & { surface: ConsumerSurface }) => ({
   object: 'portal#portal',
 
   id: portal.id,
@@ -12,7 +12,7 @@ export let portalPresenter = (portal: Portal & { surface: ConsumerSurface }) => 
     object: 'portal#portal.brand',
 
     name: portal.brandName,
-    image: getImageUrl({
+    image: await getImageUrl({
       ...portal,
       image: portal.brandImage
     })

@@ -2,7 +2,10 @@ import { db, ID, Organization, SsoTenant, withTransaction } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
 import { generatePlainId } from '@metorial/id';
 import { Service } from '@metorial/service';
+import { Paginator } from '../../../../../packages/server/pagination/src';
 import { sso } from '../sso';
+
+let include = {};
 
 class ssoTenantServiceImpl {
   async createSsoTenant(d: {
@@ -35,9 +38,25 @@ class ssoTenantServiceImpl {
         data: {
           ssoTenantId: ssoTenant.id,
           ssoTenantClientId: ssoTenant.clientId
-        }
+        },
+        include
       });
     });
+  }
+
+  async listTenants(d: { organization: Organization }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.ssoTenant.findMany({
+            ...opts,
+            where: {
+              organizationOid: d.organization.oid
+            },
+            include
+          })
+      )
+    );
   }
 
   async createTenantSetup(d: {

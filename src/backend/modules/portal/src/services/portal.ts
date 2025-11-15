@@ -140,9 +140,10 @@ class portalServiceImpl {
         consumerSurface: d.portal.surface
       });
 
-      await db.portal.updateMany({
+      return await db.portal.update({
         where: { oid: d.portal.oid },
-        data: { status: 'inactive' }
+        data: { status: 'inactive' },
+        include
       });
     });
   }

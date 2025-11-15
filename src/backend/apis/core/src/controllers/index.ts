@@ -26,6 +26,7 @@ import { magicMcpGroupController } from './instance/magicMcpGroup';
 import { magicMcpServerController } from './instance/magicMcpServer';
 import { magicMcpSessionController } from './instance/magicMcpSession';
 import { magicMcpTokenController } from './instance/magicMcpToken';
+import { portalController } from './instance/portal';
 import { providerOauthConnectionController } from './instance/providerOauthConnection';
 import { providerOauthConnectionAuthenticationController } from './instance/providerOauthConnectionAuthentication';
 import { providerOauthConnectionEventController } from './instance/providerOauthConnectionEvent';
@@ -53,6 +54,7 @@ import { sessionController } from './instance/session';
 import { sessionConnectionController } from './instance/sessionConnection';
 import { sessionEventController } from './instance/sessionEvent';
 import { sessionMessageController } from './instance/sessionMessage';
+import { ssoTenantController } from './instance/ssoTenant';
 import { instanceManagementController } from './management/instance';
 import { organizationManagementController } from './management/organization';
 import { organizationInviteManagementController } from './management/organizationInvite';
@@ -118,7 +120,10 @@ export let pulsarController = Controller.create<any>(
     serverConfigVaultController,
     teamRolePermissionsManagementController,
     teamRoleManagementController,
-    teamManagementController
+    teamManagementController,
+
+    ssoTenantController,
+    portalController
   }
 );
 
@@ -206,7 +211,10 @@ export let dashboardController = Controller.create<any>(
     serverConfigVaultController,
     teamRolePermissionsManagementController,
     teamRoleManagementController,
-    teamManagementController
+    teamManagementController,
+
+    ssoTenantController,
+    portalController
   }
 );
 

@@ -21,7 +21,7 @@ export let bootController = publicApp.controller({
       : undefined;
 
     return {
-      portal: portalPresenter(ctx.portal),
+      portal: await portalPresenter(ctx.portal),
 
       consumer: ctx.consumerProfile ? consumerProfilePresenter(ctx.consumerProfile) : null,
       session: ctx.consumerSession ? authSessionPresenter(ctx.consumerSession) : null,
