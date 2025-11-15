@@ -1,26 +1,28 @@
-enum ConsumerSurfaceStatus {
+enum PortalStatus {
   active
   inactive
 }
 
-model ConsumerSurface {
+model Portal {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status ConsumerSurfaceStatus
+  status PortalStatus
 
   name        String
   description String?
+  slug        String  @unique
 
-  sessionExpiryTimeInSeconds Int
+  /// [EntityImage]
+  brandImage Json
+  brandName  String
 
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid])
 
+  surfaceOid BigInt
+  surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
-
-  consumerProfiles           ConsumerProfile[]
-  consumerSurfaceAuthFactors ConsumerSurfaceAuthFactor[]
-  portals                    Portal[]
 }
