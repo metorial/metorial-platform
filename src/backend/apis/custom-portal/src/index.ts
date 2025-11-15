@@ -7,7 +7,7 @@ export let customPortalRPC = createServer({})(rootController);
 
 export let customPortalApi = rpcMux(
   {
-    cors: { check: () => true },
+    cors: { check: () => true, headers: ['Metorial-Portal-Id'] },
     path: '/metorial-custom-portal'
   },
   [customPortalRPC]
