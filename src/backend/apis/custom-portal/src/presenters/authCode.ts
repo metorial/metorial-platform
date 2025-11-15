@@ -12,7 +12,7 @@ let redactEmail = (email: string) => {
 };
 
 export let authCodePresenter = (code: ConsumerAuthCode) => ({
-  object: 'consumer#auth_code',
+  object: 'portal#auth_code',
 
   id: code.id,
   deliveryMethod: code.deliveryMethod,
