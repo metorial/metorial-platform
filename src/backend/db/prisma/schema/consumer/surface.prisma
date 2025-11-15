@@ -5,6 +5,8 @@ model ConsumerSurface {
   name        String
   description String?
 
+  sessionExpiryTimeInSeconds Int
+
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid])
 

@@ -140,6 +140,26 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/backend/apis/custom-portal": {
+      "name": "@metorial/api-custom-portal",
+      "version": "1.0.0",
+      "dependencies": {
+        "@hono/zod-validator": "^0.5.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/error": "^1.0.0",
+        "@metorial/hono": "^1.0.0",
+        "@metorial/module-catalog": "^1.0.0",
+        "@metorial/pagination": "^1.0.0",
+        "cookie": "^1.0.2",
+        "hono": "^4.7.10",
+        "zod": "^3.24.4",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
     "src/backend/apis/files": {
       "name": "@metorial/api-files",
       "version": "1.0.0",
@@ -505,6 +525,26 @@
         "@metorial/service": "^1.0.0",
         "@types/fs-extra": "^11.0.4",
         "fs-extra": "^11.3.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/backend/modules/consumer": {
+      "name": "@metorial/module-consumer",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/context": "1.0.0",
+        "@metorial/db": "1.0.0",
+        "@metorial/error": "1.0.0",
+        "@metorial/module-machine-access": "1.0.0",
+        "@metorial/module-organization": "1.0.0",
+        "@metorial/module-user": "1.0.0",
+        "@metorial/queue": "1.0.0",
+        "@metorial/service": "1.0.0",
+        "@octokit/core": "^7.0.5",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -2976,6 +3016,8 @@
 
     "@metorial/api-core": ["@metorial/api-core@workspace:src/backend/apis/core"],
 
+    "@metorial/api-custom-portal": ["@metorial/api-custom-portal@workspace:src/backend/apis/custom-portal"],
+
     "@metorial/api-files": ["@metorial/api-files@workspace:src/backend/apis/files"],
 
     "@metorial/api-integrations": ["@metorial/api-integrations@workspace:src/backend/apis/integrations"],
@@ -3121,6 +3163,8 @@
     "@metorial/module-code-bucket": ["@metorial/module-code-bucket@workspace:src/backend/modules/code-bucket"],
 
     "@metorial/module-community": ["@metorial/module-community@workspace:src/backend/modules/community"],
+
+    "@metorial/module-consumer": ["@metorial/module-consumer@workspace:src/backend/modules/consumer"],
 
     "@metorial/module-custom-server": ["@metorial/module-custom-server@workspace:src/backend/modules/custom-server"],
 

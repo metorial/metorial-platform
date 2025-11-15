@@ -5,11 +5,16 @@ import { Service } from '@metorial/service';
 import { slugify } from '../../../../../packages/backend/slugify/src';
 import { Paginator } from '../../../../../packages/server/pagination/src';
 
+let include = {
+  consumerSurfaceAuthFactors: true
+};
+
 class consumerSurfaceServiceImpl {
   async createConsumerSurface(d: {
     input: {
       name: string;
       description?: string;
+      sessionExpiryTimeInSeconds: number;
     };
     organization: Organization;
   }) {
@@ -18,8 +23,10 @@ class consumerSurfaceServiceImpl {
         id: await ID.generateId('consumerSurface'),
         name: d.input.name,
         description: d.input.description,
-        organizationOid: d.organization.oid
-      }
+        organizationOid: d.organization.oid,
+        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds
+      },
+      include
     });
   }
 
@@ -28,6 +35,7 @@ class consumerSurfaceServiceImpl {
     input: {
       name?: string;
       description?: string;
+      sessionExpiryTimeInSeconds: number;
 
       factors: (
         | {
@@ -125,14 +133,26 @@ class consumerSurfaceServiceImpl {
       where: { oid: d.consumerSurface.oid },
       data: {
         name: d.input.name ?? d.consumerSurface.name,
-        description: d.input.description ?? d.consumerSurface.description
-      }
+        description: d.input.description ?? d.consumerSurface.description,
+        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds
+      },
+      include
     });
+  }
+
+  async getConsumerSurfacePublic(d: { consumerSurfaceId: string }) {
+    let consumerSurface = await db.consumerSurface.findFirst({
+      where: { id: d.consumerSurfaceId },
+      include
+    });
+    if (!consumerSurface) throw new ServiceError(notFoundError('consumer.surface'));
+    return consumerSurface;
   }
 
   async getConsumerSurfaceById(d: { organization: Organization; consumerSurfaceId: string }) {
     let consumerSurface = await db.consumerSurface.findFirst({
-      where: { id: d.consumerSurfaceId, organizationOid: d.organization.oid }
+      where: { id: d.consumerSurfaceId, organizationOid: d.organization.oid },
+      include
     });
     if (!consumerSurface) throw new ServiceError(notFoundError('consumer.surface'));
     return consumerSurface;
@@ -146,8 +166,7 @@ class consumerSurfaceServiceImpl {
             ...opts,
             where: {
               organizationOid: d.organization.oid
-            },
-            include: {}
+            }
           })
       )
     );

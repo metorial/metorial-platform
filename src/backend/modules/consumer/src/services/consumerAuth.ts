@@ -1,8 +1,27 @@
-import { ConsumerSurface, db, ID, SsoUser, withTransaction } from '@metorial/db';
+import { Context } from '@metorial/context';
+import {
+  ConsumerProfile,
+  ConsumerSession,
+  ConsumerSurface,
+  db,
+  ID,
+  SsoUser,
+  withTransaction
+} from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { generateCode } from '@metorial/id';
+import { generateCode, generatePlainId } from '@metorial/id';
 import { Service } from '@metorial/service';
-import { addMinutes } from 'date-fns';
+import { Tokens } from '@metorial/tokens';
+import { addMinutes, addSeconds } from 'date-fns';
+import { env } from '../env';
+
+let consumerSessionToken = new Tokens({
+  secret: env.tokens.CONSUMER_SESSION_SECRET
+});
+
+let consumerToken = new Tokens({
+  secret: env.tokens.CONSUMER_TOKEN_SECRET
+});
 
 class consumerAuthServiceImpl {
   async authenticateWithEmailCodeStart(d: {
@@ -43,6 +62,7 @@ class consumerAuthServiceImpl {
   }
 
   async authenticateWithEmailCodeComplete(d: {
+    context: Context;
     surface: ConsumerSurface;
     input: { email: string; code: string };
   }) {
@@ -91,11 +111,17 @@ class consumerAuthServiceImpl {
         data: { status: 'verified' }
       });
 
-      return await this.ensureConsumerProfile({
+      let consumerProfile = await this.ensureConsumerProfile({
         surface: d.surface,
         email: d.input.email,
         name: d.input.email.split('@')[0],
         overrideName: false
+      });
+
+      return this.createConsumerSession({
+        consumerProfile,
+        context: d.context,
+        consumerSurface: d.surface
       });
     });
   }
@@ -120,8 +146,12 @@ class consumerAuthServiceImpl {
     return factor;
   }
 
-  async authenticateWithSsoComplete(d: { surface: ConsumerSurface; ssoUser: SsoUser }) {
-    return await this.ensureConsumerProfile({
+  async authenticateWithSsoComplete(d: {
+    surface: ConsumerSurface;
+    ssoUser: SsoUser;
+    context: Context;
+  }) {
+    let consumerProfile = await this.ensureConsumerProfile({
       surface: d.surface,
       email: d.ssoUser.email,
       name:
@@ -129,7 +159,26 @@ class consumerAuthServiceImpl {
       overrideName: true,
       ssoUser: d.ssoUser
     });
+
+    return this.createConsumerSession({
+      consumerProfile,
+      context: d.context,
+      consumerSurface: d.surface
+    });
   }
+
+  async getConsumerSessionToken(d: { session: ConsumerSession }) {
+    return await consumerSessionToken.sign({
+      type: 'consumer_session',
+      data: {
+        sessionId: d.session.id,
+        nonce: d.session.tokenNonce
+      },
+      expiresAt: d.session.expiresAt
+    });
+  }
+
+  async getConsumerAuthToken(d: {}) {}
 
   private async ensureConsumerProfile(d: {
     surface: ConsumerSurface;
@@ -178,6 +227,25 @@ class consumerAuthServiceImpl {
         update: {
           email: d.email,
           name: d.overrideName ? d.name : undefined
+        }
+      });
+    });
+  }
+
+  private async createConsumerSession(d: {
+    consumerSurface: ConsumerSurface;
+    consumerProfile: ConsumerProfile;
+    context: Context;
+  }) {
+    return withTransaction(async db => {
+      return await db.consumerSession.create({
+        data: {
+          id: await ID.generateId('consumerSurface'),
+          tokenNonce: generatePlainId(35),
+          ip: d.context.ip,
+          ua: d.context.ua ?? 'unknown',
+          consumerProfileOid: d.consumerProfile.oid,
+          expiresAt: addSeconds(new Date(), d.consumerSurface.sessionExpiryTimeInSeconds)
         }
       });
     });
