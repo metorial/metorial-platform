@@ -1,0 +1,16 @@
+model ConsumerSurface {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name        String
+  description String?
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  consumerProfiles           ConsumerProfile[]
+  consumerSurfaceAuthFactors ConsumerSurfaceAuthFactor[]
+}
