@@ -1,5 +1,6 @@
-import { ConsumerSurface, db, ID, Organization } from '@metorial/db';
+import { ConsumerSurface, db, ID, Organization, withTransaction } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
+import { badRequestError } from '@metorial/error/src/defaultErrors';
 import { generatePlainId } from '@metorial/id';
 import { Service } from '@metorial/service';
 import { slugify } from '../../../../../packages/backend/slugify/src';
@@ -18,15 +19,18 @@ class consumerSurfaceServiceImpl {
     };
     organization: Organization;
   }) {
-    return await db.consumerSurface.create({
-      data: {
-        id: await ID.generateId('consumerSurface'),
-        name: d.input.name,
-        description: d.input.description,
-        organizationOid: d.organization.oid,
-        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds
-      },
-      include
+    return withTransaction(async db => {
+      return await db.consumerSurface.create({
+        data: {
+          id: await ID.generateId('consumerSurface'),
+          status: 'active',
+          name: d.input.name,
+          description: d.input.description,
+          organizationOid: d.organization.oid,
+          sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds
+        },
+        include
+      });
     });
   }
 
@@ -48,95 +52,105 @@ class consumerSurfaceServiceImpl {
       )[];
     };
   }) {
-    let existingFactors = await db.consumerSurfaceAuthFactor.findMany({
-      where: { consumerSurfaceOid: d.consumerSurface.oid }
-    });
-
-    let factorsToDelete: bigint[] = [];
-
-    let existingEmailFactor = existingFactors.find(f => f.type === 'email_code');
-    let newEmailFactor = d.input.factors.find(f => f.type === 'email_code');
-
-    if (existingEmailFactor && !newEmailFactor) {
-      factorsToDelete.push(existingEmailFactor.oid);
-    } else if (!existingEmailFactor && newEmailFactor) {
-      await db.consumerSurfaceAuthFactor.create({
-        data: {
-          id: await ID.generateId('consumerSurfaceAuthFactor'),
-          type: 'email_code',
-          status: 'active',
-          name: 'Email Code',
-          publicName: 'Login with Email Code',
-          emailSlug: `${slugify(d.consumerSurface.name)}-${generatePlainId(8)}`,
-          consumerSurfaceOid: d.consumerSurface.oid
-        }
-      });
-    } else if (existingEmailFactor && newEmailFactor) {
-      await db.consumerSurfaceAuthFactor.update({
-        where: { oid: existingEmailFactor.oid },
-        data: { status: 'active' }
-      });
+    if (d.consumerSurface.status !== 'active') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot update an inactive consumer surface.'
+        })
+      );
     }
 
-    let existingSsoFactors = existingFactors.filter(f => f.type === 'sso');
+    return withTransaction(async db => {
+      let existingFactors = await db.consumerSurfaceAuthFactor.findMany({
+        where: { consumerSurfaceOid: d.consumerSurface.oid }
+      });
 
-    let newSsoFactors = d.input.factors.filter(f => f.type === 'sso');
-    let newSsoFactorsTenants = await db.ssoTenant.findMany({
-      where: {
-        id: {
-          in: newSsoFactors
-            .map(f => (f.type === 'sso' ? f.ssoTenantId : undefined!))
-            .filter(Boolean)
-        },
-        organizationOid: d.consumerSurface.organizationOid
-      }
-    });
-    let newSsoFactorsTenantIds = newSsoFactorsTenants.map(t => t.oid);
+      let factorsToDelete: bigint[] = [];
 
-    for (let existingFactor of existingSsoFactors) {
-      if (!newSsoFactorsTenantIds.includes(existingFactor.ssoTenantOid!)) {
-        factorsToDelete.push(existingFactor.oid);
-      }
-    }
+      let existingEmailFactor = existingFactors.find(f => f.type === 'email_code');
+      let newEmailFactor = d.input.factors.find(f => f.type === 'email_code');
 
-    for (let newFactor of newSsoFactorsTenants) {
-      let existingFactor = existingSsoFactors.find(f => f.ssoTenantOid === newFactor.oid);
-      if (existingFactor) {
+      if (existingEmailFactor && !newEmailFactor) {
+        factorsToDelete.push(existingEmailFactor.oid);
+      } else if (!existingEmailFactor && newEmailFactor) {
+        await db.consumerSurfaceAuthFactor.create({
+          data: {
+            id: await ID.generateId('consumerSurfaceAuthFactor'),
+            type: 'email_code',
+            status: 'active',
+            name: 'Email Code',
+            publicName: 'Login with Email Code',
+            emailSlug: `${slugify(d.consumerSurface.name)}-${generatePlainId(8)}`,
+            consumerSurfaceOid: d.consumerSurface.oid
+          }
+        });
+      } else if (existingEmailFactor && newEmailFactor) {
         await db.consumerSurfaceAuthFactor.update({
-          where: { oid: existingFactor.oid },
+          where: { oid: existingEmailFactor.oid },
           data: { status: 'active' }
         });
-        continue;
       }
 
-      await db.consumerSurfaceAuthFactor.create({
-        data: {
-          id: await ID.generateId('consumerSurfaceAuthFactor'),
-          type: 'sso',
-          status: 'active',
-          name: `SSO (${newFactor.name})`,
-          publicName: `Login with ${newFactor.name}`,
-          ssoTenantOid: newFactor.oid,
-          consumerSurfaceOid: d.consumerSurface.oid
+      let existingSsoFactors = existingFactors.filter(f => f.type === 'sso');
+
+      let newSsoFactors = d.input.factors.filter(f => f.type === 'sso');
+      let newSsoFactorsTenants = await db.ssoTenant.findMany({
+        where: {
+          id: {
+            in: newSsoFactors
+              .map(f => (f.type === 'sso' ? f.ssoTenantId : undefined!))
+              .filter(Boolean)
+          },
+          organizationOid: d.consumerSurface.organizationOid
         }
       });
-    }
+      let newSsoFactorsTenantIds = newSsoFactorsTenants.map(t => t.oid);
 
-    if (factorsToDelete.length) {
-      await db.consumerSurfaceAuthFactor.updateMany({
-        where: { oid: { in: factorsToDelete } },
-        data: { status: 'inactive' }
+      for (let existingFactor of existingSsoFactors) {
+        if (!newSsoFactorsTenantIds.includes(existingFactor.ssoTenantOid!)) {
+          factorsToDelete.push(existingFactor.oid);
+        }
+      }
+
+      for (let newFactor of newSsoFactorsTenants) {
+        let existingFactor = existingSsoFactors.find(f => f.ssoTenantOid === newFactor.oid);
+        if (existingFactor) {
+          await db.consumerSurfaceAuthFactor.update({
+            where: { oid: existingFactor.oid },
+            data: { status: 'active' }
+          });
+          continue;
+        }
+
+        await db.consumerSurfaceAuthFactor.create({
+          data: {
+            id: await ID.generateId('consumerSurfaceAuthFactor'),
+            type: 'sso',
+            status: 'active',
+            name: `SSO (${newFactor.name})`,
+            publicName: `Login with ${newFactor.name}`,
+            ssoTenantOid: newFactor.oid,
+            consumerSurfaceOid: d.consumerSurface.oid
+          }
+        });
+      }
+
+      if (factorsToDelete.length) {
+        await db.consumerSurfaceAuthFactor.updateMany({
+          where: { oid: { in: factorsToDelete } },
+          data: { status: 'inactive' }
+        });
+      }
+
+      return await db.consumerSurface.update({
+        where: { oid: d.consumerSurface.oid },
+        data: {
+          name: d.input.name ?? d.consumerSurface.name,
+          description: d.input.description ?? d.consumerSurface.description,
+          sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds
+        },
+        include
       });
-    }
-
-    return await db.consumerSurface.update({
-      where: { oid: d.consumerSurface.oid },
-      data: {
-        name: d.input.name ?? d.consumerSurface.name,
-        description: d.input.description ?? d.consumerSurface.description,
-        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds
-      },
-      include
     });
   }
 
@@ -165,11 +179,34 @@ class consumerSurfaceServiceImpl {
           await db.consumerSurface.findMany({
             ...opts,
             where: {
-              organizationOid: d.organization.oid
+              organizationOid: d.organization.oid,
+              status: 'active'
             }
           })
       )
     );
+  }
+
+  async deleteConsumerSurface(d: { consumerSurface: ConsumerSurface }) {
+    if (d.consumerSurface.status !== 'active') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Consumer surface is already inactive.'
+        })
+      );
+    }
+
+    return withTransaction(async db => {
+      await db.consumerSurfaceAuthFactor.updateMany({
+        where: { consumerSurfaceOid: d.consumerSurface.oid },
+        data: { status: 'inactive' }
+      });
+
+      await db.consumerSurface.update({
+        where: { oid: d.consumerSurface.oid },
+        data: { status: 'inactive' }
+      });
+    });
   }
 }
 

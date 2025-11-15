@@ -1,42 +1,42 @@
 import { Consumer, ConsumerProfile, SsoUser } from '@metorial/db';
 
 export let consumerProfilePresenter = (
-  session: ConsumerProfile & { consumer: Consumer; ssoUser: SsoUser | null }
+  profile: ConsumerProfile & { consumer: Consumer; ssoUser: SsoUser | null }
 ) => ({
-  object: 'consumer#consumer.profile',
+  object: 'portal#consumer.profile',
 
-  id: session.id,
+  id: profile.id,
 
-  name: session.name,
-  email: session.email,
+  name: profile.name,
+  email: profile.email,
 
-  createdAt: session.createdAt,
-  updatedAt: session.updatedAt,
+  createdAt: profile.createdAt,
+  updatedAt: profile.updatedAt,
 
   consumer: {
-    object: 'consumer#consumer',
+    object: 'portal#consumer',
 
-    id: session.consumer.id,
+    id: profile.consumer.id,
 
-    email: session.consumer.email,
-    name: session.consumer.name,
+    email: profile.consumer.email,
+    name: profile.consumer.name,
 
-    createdAt: session.consumer.createdAt,
-    updatedAt: session.consumer.updatedAt
+    createdAt: profile.consumer.createdAt,
+    updatedAt: profile.consumer.updatedAt
   },
 
-  ssoUser: session.ssoUser
+  ssoUser: profile.ssoUser
     ? {
-        object: 'consumer#sso.user',
+        object: 'portal#sso.user',
 
-        id: session.ssoUser.id,
+        id: profile.ssoUser.id,
 
-        email: session.ssoUser.email,
-        firstName: session.ssoUser.firstName,
-        lastName: session.ssoUser.lastName,
+        email: profile.ssoUser.email,
+        firstName: profile.ssoUser.firstName,
+        lastName: profile.ssoUser.lastName,
 
-        createdAt: session.ssoUser.createdAt,
-        updatedAt: session.ssoUser.updatedAt
+        createdAt: profile.ssoUser.createdAt,
+        updatedAt: profile.ssoUser.updatedAt
       }
     : null
 });

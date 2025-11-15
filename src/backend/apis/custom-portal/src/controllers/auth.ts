@@ -1,21 +1,31 @@
-import { generatePlainId } from '@metorial/id';
-import { consumerAuthService, consumerSurfaceService } from '@metorial/module-consumer';
+import { ConsumerSession } from '@metorial/db';
+import { consumerAuthService } from '@metorial/module-consumer';
+import { portalService } from '@metorial/module-portal';
 import { ssoAuthService } from '@metorial/module-sso';
 import { v } from '@metorial/validation';
 import { getSessionCookieName } from '../middleware/portal';
 import { publicApp } from '../middleware/public';
 import { authCodePresenter } from '../presenters/authCode';
 
-let surfaceApp = publicApp.use(async ctx => {
-  let id = ctx.body.consumerSurfaceId as string;
-  if (!id) throw new Error('Missing consumer surface id');
+let getCookieOpts = (session: ConsumerSession) => ({
+  path: '/',
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  expires: session.expiresAt
+});
 
-  let surface = await consumerSurfaceService.getConsumerSurfacePublic({
-    consumerSurfaceId: id
+let surfaceApp = publicApp.use(async ctx => {
+  let id = ctx.body.portalId as string;
+  if (!id) throw new Error('Missing consumer_surface_id');
+
+  let portal = await portalService.getPortalPublic({
+    portalId: id
   });
 
   return {
-    surface
+    portal,
+    surface: portal.surface
   };
 });
 
@@ -24,7 +34,7 @@ export let authController = publicApp.controller({
     .handler()
     .input(
       v.object({
-        consumerSurfaceId: v.string(),
+        portalId: v.string(),
         email: v.string()
       })
     )
@@ -43,7 +53,7 @@ export let authController = publicApp.controller({
     .handler()
     .input(
       v.object({
-        consumerSurfaceId: v.string(),
+        portalId: v.string(),
         email: v.string(),
         code: v.string()
       })
@@ -59,21 +69,16 @@ export let authController = publicApp.controller({
       });
 
       let token = await consumerAuthService.getConsumerSessionToken({
-        session
+        session,
+        surface: ctx.surface
       });
 
       ctx.setCookie(
         getSessionCookieName({
-          consumerSurfaceId: ctx.input.consumerSurfaceId
+          consumerSurfaceId: ctx.surface.id
         }),
         token,
-        {
-          path: '/',
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          expires: session.expiresAt
-        }
+        getCookieOpts(session)
       );
 
       return {};
@@ -83,9 +88,8 @@ export let authController = publicApp.controller({
     .handler()
     .input(
       v.object({
-        consumerSurfaceId: v.string(),
-        authFactorId: v.string(),
-        ssoAuthId: v.string()
+        portalId: v.string(),
+        authFactorId: v.string()
       })
     )
     .do(async ctx => {
@@ -94,16 +98,72 @@ export let authController = publicApp.controller({
         factorId: ctx.input.authFactorId
       });
 
+      let portalHostRaw = await portalService.getPortalHost({ portal: ctx.portal });
+      let portalHost = new URL(portalHostRaw.host);
+      portalHost.searchParams.set('__metorial_portal_action__', 'sso_callback');
+      portalHost.searchParams.set('portalId', ctx.portal.id);
+
       let ssoAuth = await ssoAuthService.startSsoAuth({
         tenant: factor.ssoTenant!,
         input: {
-          state: generatePlainId(20),
-          redirectUri: 'https://example.com' // TODO: @herber
+          state: JSON.stringify({
+            portalId: ctx.portal.id,
+            authFactorId: factor.id
+          }),
+          redirectUri: portalHost.toString()
         }
       });
 
       return {
         url: ssoAuth.url
       };
+    }),
+
+  authenticateWithSsoComplete: publicApp
+    .handler()
+    .input(
+      v.object({
+        ssoAuthId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let ssoAuth = await ssoAuthService.completeSsoAuth({
+        authId: ctx.input.ssoAuthId
+      });
+
+      let parsedState = JSON.parse(ssoAuth.state) as {
+        portalId: string;
+        authFactorId: string;
+      };
+
+      let portal = await portalService.getPortalPublic({
+        portalId: parsedState.portalId
+      });
+
+      await consumerAuthService.getSsoFactor({
+        surface: portal.surface,
+        factorId: parsedState.authFactorId
+      });
+
+      let session = await consumerAuthService.authenticateWithSsoComplete({
+        context: ctx.context,
+        surface: portal.surface,
+        ssoUser: ssoAuth.user
+      });
+
+      let token = await consumerAuthService.getConsumerSessionToken({
+        session,
+        surface: portal.surface
+      });
+
+      ctx.setCookie(
+        getSessionCookieName({
+          consumerSurfaceId: portal.surface.id
+        }),
+        token,
+        getCookieOpts(session)
+      );
+
+      return {};
     })
 });

@@ -141,5 +141,7 @@ export let ID = createIdGenerator({
   consumer: idType.sorted('con'),
   consumerProfile: idType.sorted('cop'),
   consumerSurfaceAuthFactor: idType.sorted('csaf'),
-  consumerAuthCode: idType.sorted('cac')
+  consumerAuthCode: idType.sorted('cac'),
+
+  portal: idType.sorted('ptl')
 });

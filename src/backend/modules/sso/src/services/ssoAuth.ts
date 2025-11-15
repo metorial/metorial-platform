@@ -71,7 +71,8 @@ class ssoAuthServiceImpl {
     return {
       tenant,
       user,
-      profile
+      profile,
+      state: res.auth.state
     };
   }
 }
