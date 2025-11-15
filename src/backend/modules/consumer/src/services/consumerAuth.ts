@@ -203,6 +203,18 @@ class consumerAuthServiceImpl {
     });
   }
 
+  async getPortalSessionToken(d: { session: ConsumerSession; surface: ConsumerSurface }) {
+    return await consumerSessionToken.sign({
+      type: 'portal_session',
+      data: {
+        surfaceId: d.surface.id,
+        sessionId: d.session.id,
+        nonce: d.session.tokenNonce
+      },
+      expiresAt: d.session.expiresAt
+    });
+  }
+
   async authenticateWithConsumerSessionToken(d: { token: string; surface: ConsumerSurface }) {
     let payload = await consumerSessionToken.verify({
       token: d.token,
@@ -245,7 +257,18 @@ class consumerAuthServiceImpl {
     return session;
   }
 
-  async getConsumerAuthToken(d: {}) {}
+  async getConsumerAuthToken(d: { session: ConsumerSession; surface: ConsumerSurface }) {
+    return await consumerToken.sign({
+      type: 'consumer_token',
+      data: {
+        tokenId: generatePlainId(20),
+        surfaceId: d.surface.id,
+        sessionId: d.session.id,
+        sessionNonce: d.session.tokenNonce
+      },
+      expiresAt: d.session.expiresAt
+    });
+  }
 
   private async ensureConsumerProfile(d: {
     surface: ConsumerSurface;
