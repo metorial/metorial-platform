@@ -1,11 +1,26 @@
+import { generatePlainId } from '@metorial/id';
 import { consumerAuthService, consumerSurfaceService } from '@metorial/module-consumer';
+import { ssoAuthService } from '@metorial/module-sso';
 import { v } from '@metorial/validation';
 import { getSessionCookieName } from '../middleware/portal';
 import { publicApp } from '../middleware/public';
 import { authCodePresenter } from '../presenters/authCode';
 
+let surfaceApp = publicApp.use(async ctx => {
+  let id = ctx.body.consumerSurfaceId as string;
+  if (!id) throw new Error('Missing consumer surface id');
+
+  let surface = await consumerSurfaceService.getConsumerSurfacePublic({
+    consumerSurfaceId: id
+  });
+
+  return {
+    surface
+  };
+});
+
 export let authController = publicApp.controller({
-  authenticateWithEmailCodeStart: publicApp
+  authenticateWithEmailCodeStart: surfaceApp
     .handler()
     .input(
       v.object({
@@ -14,12 +29,8 @@ export let authController = publicApp.controller({
       })
     )
     .do(async ctx => {
-      let surface = await consumerSurfaceService.getConsumerSurfacePublic({
-        consumerSurfaceId: ctx.input.consumerSurfaceId
-      });
-
       let code = await consumerAuthService.authenticateWithEmailCodeStart({
-        surface,
+        surface: ctx.surface,
         input: {
           email: ctx.input.email
         }
@@ -28,7 +39,7 @@ export let authController = publicApp.controller({
       return authCodePresenter(code);
     }),
 
-  authenticateWithEmailCodeComplete: publicApp
+  authenticateWithEmailCodeComplete: surfaceApp
     .handler()
     .input(
       v.object({
@@ -38,13 +49,9 @@ export let authController = publicApp.controller({
       })
     )
     .do(async ctx => {
-      let surface = await consumerSurfaceService.getConsumerSurfacePublic({
-        consumerSurfaceId: ctx.input.consumerSurfaceId
-      });
-
       let session = await consumerAuthService.authenticateWithEmailCodeComplete({
         context: ctx.context,
-        surface,
+        surface: ctx.surface,
         input: {
           email: ctx.input.email,
           code: ctx.input.code
@@ -70,5 +77,33 @@ export let authController = publicApp.controller({
       );
 
       return {};
+    }),
+
+  authenticateWithSsoStart: surfaceApp
+    .handler()
+    .input(
+      v.object({
+        consumerSurfaceId: v.string(),
+        authFactorId: v.string(),
+        ssoAuthId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let factor = await consumerAuthService.getSsoFactor({
+        surface: ctx.surface,
+        factorId: ctx.input.authFactorId
+      });
+
+      let ssoAuth = await ssoAuthService.startSsoAuth({
+        tenant: factor.ssoTenant!,
+        input: {
+          state: generatePlainId(20),
+          redirectUri: 'https://example.com' // TODO: @herber
+        }
+      });
+
+      return {
+        url: ssoAuth.url
+      };
     })
 });

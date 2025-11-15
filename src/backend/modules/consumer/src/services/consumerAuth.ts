@@ -133,9 +133,12 @@ class consumerAuthServiceImpl {
         id: d.factorId,
         type: 'sso',
         status: 'active'
+      },
+      include: {
+        ssoTenant: true
       }
     });
-    if (!factor) {
+    if (!factor || !factor.ssoTenant) {
       throw new ServiceError(
         badRequestError({
           message: 'The provided SSO factor is invalid.'
@@ -143,7 +146,10 @@ class consumerAuthServiceImpl {
       );
     }
 
-    return factor;
+    return {
+      ...factor,
+      ssoTenant: factor.ssoTenant!
+    };
   }
 
   async authenticateWithSsoComplete(d: {
