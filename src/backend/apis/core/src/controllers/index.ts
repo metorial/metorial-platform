@@ -28,6 +28,7 @@ import { magicMcpServerController } from './instance/magicMcpServer';
 import { magicMcpSessionController } from './instance/magicMcpSession';
 import { magicMcpTokenController } from './instance/magicMcpToken';
 import { portalController } from './instance/portal';
+import { portalMagicMcpAccessController } from './instance/portalMagicMcpAccess';
 import { providerOauthConnectionController } from './instance/providerOauthConnection';
 import { providerOauthConnectionAuthenticationController } from './instance/providerOauthConnectionAuthentication';
 import { providerOauthConnectionEventController } from './instance/providerOauthConnectionEvent';
@@ -124,7 +125,9 @@ export let pulsarController = Controller.create<any>(
     teamManagementController,
 
     ssoTenantController,
+
     portalController,
+    portalMagicMcpAccessController,
 
     consumerSessionController
   }
@@ -217,7 +220,9 @@ export let dashboardController = Controller.create<any>(
     teamManagementController,
 
     ssoTenantController,
-    portalController
+
+    portalController,
+    portalMagicMcpAccessController
   }
 );
 
