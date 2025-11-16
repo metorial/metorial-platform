@@ -12,6 +12,9 @@ import {
   CallbackNotificationAttempt,
   CallbackSchedule,
   CodeBucketTemplate,
+  Consumer,
+  ConsumerProfile,
+  ConsumerSession,
   CustomServer,
   CustomServerDeployment,
   CustomServerDeploymentStep,
@@ -39,6 +42,7 @@ import {
   OrganizationActor,
   OrganizationInvite,
   OrganizationMember,
+  Portal,
   Profile,
   Project,
   ProviderOAuthAutoRegistration,
@@ -80,6 +84,9 @@ import {
   SessionConnection,
   SessionEvent,
   SessionMessage,
+  SsoTenant,
+  SsoUser,
+  SsoUserProfile,
   Team,
   TeamMember,
   TeamProject,
@@ -632,6 +639,10 @@ export let callbackNotificationType = PresentableType.create<{
   };
 }>()('callback.notification');
 
+export let portalType = PresentableType.create<{
+  portal: Portal;
+}>()('portal');
+
 export let serverConfigVaultType = PresentableType.create<{
   serverConfigVault: ServerConfigVault & {
     secret: Secret;
@@ -659,3 +670,28 @@ export let teamRoleType = PresentableType.create<{
 export let teamRolePermissionsType = PresentableType.create<{
   permissions: string[];
 }>()('management.team.role_permissions');
+
+export let ssoTenantType = PresentableType.create<{
+  ssoTenant: SsoTenant;
+}>()('sso.tenant');
+
+export let ssoUserType = PresentableType.create<{
+  ssoUser: SsoUser & {
+    profiles: SsoUserProfile[];
+  };
+}>()('sso.user');
+
+export let ssoUserProfileType = PresentableType.create<{
+  ssoUserProfile: SsoUserProfile;
+}>()('sso.user_profile');
+
+export let consumerProfileType = PresentableType.create<{
+  consumerProfile: ConsumerProfile & {
+    consumer: Consumer;
+    ssoUser: SsoUser | null;
+  };
+}>()('consumer.profile');
+
+export let consumerSessionType = PresentableType.create<{
+  consumerSession: ConsumerSession;
+}>()('consumer.session');

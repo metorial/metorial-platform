@@ -1,0 +1,18 @@
+model SsoTenant {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+
+  ssoTenantId       String @unique
+  ssoTenantClientId String @unique
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  users                      SsoUser[]
+  consumerSurfaceAuthFactors ConsumerSurfaceAuthFactor[]
+}

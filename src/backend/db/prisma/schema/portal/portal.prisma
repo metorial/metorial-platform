@@ -1,0 +1,28 @@
+enum PortalStatus {
+  active
+  inactive
+}
+
+model Portal {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status PortalStatus
+
+  name        String
+  description String?
+  slug        String  @unique
+
+  /// [EntityImage]
+  brandImage Json
+  brandName  String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  surfaceOid BigInt
+  surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

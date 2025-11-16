@@ -47,7 +47,13 @@ export let instanceScopes = [
   'instance.callback:write' as const,
 
   'instance.server.config_vault:read' as const,
-  'instance.server.config_vault:write' as const
+  'instance.server.config_vault:write' as const,
+
+  'instance.ssoTenant:read' as const,
+  'instance.ssoTenant:write' as const,
+
+  'instance.portal:read' as const,
+  'instance.portal:write' as const
 ] satisfies readonly `instance.${string}`[];
 
 let scopeRaw = [
@@ -147,7 +153,18 @@ export let instanceSecretTokenScopes: Scope[] = [
   'instance.callback:write' as const,
 
   'instance.server.config_vault:read' as const,
-  'instance.server.config_vault:write' as const
+  'instance.server.config_vault:write' as const,
+
+  'instance.ssoTenant:read' as const,
+  'instance.ssoTenant:write' as const,
+
+  'instance.portal:read' as const,
+  'instance.portal:write' as const
 ];
 
-export let instancePublishableTokenScopes: Scope[] = ['instance.server_listing:read' as const];
+export let instancePublishableTokenScopes: Scope[] = [
+  'organization.instance:read' as const,
+
+  'instance.server_listing:read' as const,
+  'instance.portal:read' as const
+];

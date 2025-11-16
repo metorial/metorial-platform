@@ -135,5 +135,13 @@ export let ID = createIdGenerator({
   teamMember: idType.sorted('tmm'),
 
   ssoTenant: idType.sorted('ssot'),
-  ssoUser: idType.sorted('ssou')
+  ssoUser: idType.sorted('ssou'),
+
+  consumerSurface: idType.sorted('csf'),
+  consumer: idType.sorted('con'),
+  consumerProfile: idType.sorted('cop'),
+  consumerSurfaceAuthFactor: idType.sorted('csaf'),
+  consumerAuthCode: idType.sorted('cac'),
+
+  portal: idType.sorted('ptl')
 });

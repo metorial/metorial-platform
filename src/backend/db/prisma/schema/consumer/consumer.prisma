@@ -1,0 +1,44 @@
+model Consumer {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name  String
+  email String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  profiles ConsumerProfile[]
+
+  @@unique([email, organizationOid])
+}
+
+model ConsumerProfile {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name  String
+  email String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  surfaceOid BigInt
+  surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid])
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid])
+
+  ssoUserOid BigInt?
+  ssoUser    SsoUser? @relation(fields: [ssoUserOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  consumerSessions ConsumerSession[]
+
+  @@unique([email, surfaceOid])
+}
