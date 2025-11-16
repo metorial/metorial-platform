@@ -11,7 +11,8 @@ import {
 export let consumerSessionController = Controller.create(
   {
     name: 'Consumer Session',
-    description: ''
+    description: '',
+    hideInDocs: true
   },
   {
     getSession: consumerGroup

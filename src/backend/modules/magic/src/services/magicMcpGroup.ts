@@ -227,7 +227,11 @@ class MagicMcpGroupImpl {
     return d.group;
   }
 
-  async findManyGroupsById(d: { groupIds: string[]; instance: Instance }) {
+  async findManyGroupsById(d: {
+    groupIds: string[];
+    instance: Instance;
+    consumerSurface?: ConsumerSurface;
+  }) {
     if (d.groupIds.length === 0) return [];
 
     let idSet = [...new Set(d.groupIds)];
@@ -235,7 +239,10 @@ class MagicMcpGroupImpl {
     let groups = await db.magicMcpGroup.findMany({
       where: {
         id: { in: d.groupIds },
-        instanceOid: d.instance.oid
+        instanceOid: d.instance.oid,
+        consumerSurfaceMagicMcpGroupAccesses: d.consumerSurface
+          ? { some: { surfaceOid: d.consumerSurface.oid } }
+          : undefined
       },
       include
     });

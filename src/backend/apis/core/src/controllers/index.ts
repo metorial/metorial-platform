@@ -1,4 +1,8 @@
 import { Controller } from '@metorial/rest';
+import { consumerMagicMcpGroupController } from './consumer/magicMcpGroup';
+import { consumerMagicMcpServerController } from './consumer/magicMcpServer';
+import { consumerMagicMcpSessionController } from './consumer/magicMcpSession';
+import { consumerMagicMcpTokenController } from './consumer/magicMcpToken';
 import { consumerSessionController } from './consumer/session';
 import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
@@ -129,7 +133,11 @@ export let pulsarController = Controller.create<any>(
     portalController,
     portalMagicMcpAccessController,
 
-    consumerSessionController
+    consumerSessionController,
+    consumerMagicMcpGroupController,
+    consumerMagicMcpServerController,
+    consumerMagicMcpSessionController,
+    consumerMagicMcpTokenController
   }
 );
 

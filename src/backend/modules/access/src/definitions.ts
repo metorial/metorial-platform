@@ -56,7 +56,12 @@ export let instanceScopes = [
   'instance.portal:write' as const
 ] satisfies readonly `instance.${string}`[];
 
-let scopeRaw = [
+export let consumerScopes = [
+  'consumer#instance.magic_mcp:read' as const,
+  'consumer#instance.magic_mcp:write' as const
+] satisfies readonly `consumer#instance.${string}`[];
+
+let coreScopesRaw = [
   'user:read' as const,
   'user:write' as const,
 
@@ -81,12 +86,12 @@ let scopeRaw = [
   'organization.team.role:read' as const,
   'organization.team.role:write' as const,
 
-  ...instanceScopes
-
   // 'organization.machine_access.api_key.organization:read' as const,
   // 'organization.machine_access.api_key.organization:write' as const,
   // 'organization.machine_access.api_key.instance:read' as const,
   // 'organization.machine_access.api_key.instance:write' as const
+
+  ...instanceScopes
 ] as const satisfies readonly (
   | `organization.${string}`
   | `organization:${string}`
@@ -95,11 +100,20 @@ let scopeRaw = [
   | `instance.${string}`
 )[];
 
+let scopeRaw = [...coreScopesRaw, ...consumerScopes] as const satisfies readonly (
+  | `organization.${string}`
+  | `organization:${string}`
+  | `user.${string}`
+  | `user:${string}`
+  | `instance.${string}`
+  | `consumer#instance.${string}`
+)[];
+
 export type Scope = (typeof scopeRaw)[number];
 
 export let scopes: Scope[] = [...scopeRaw];
 
-let allScopesExcept = (except: Scope[]) => scopes.filter(s => !except.includes(s));
+let allScopesExcept = (except: Scope[]) => coreScopesRaw.filter(s => !except.includes(s));
 
 export let orgManagementTokenScopes: Scope[] = allScopesExcept(['user:read', 'user:write']);
 
@@ -166,5 +180,7 @@ export let instancePublishableTokenScopes: Scope[] = [
   'organization.instance:read' as const,
 
   'instance.server_listing:read' as const,
-  'instance.portal:read' as const
+  'instance.portal:read' as const,
+
+  ...consumerScopes
 ];

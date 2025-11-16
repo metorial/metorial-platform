@@ -3,6 +3,7 @@ import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
 import {
   ConsumerProfile,
+  ConsumerSurface,
   db,
   ID,
   Instance,
@@ -283,11 +284,18 @@ class MagicMcpTokenImpl {
     );
   }
 
-  async addGroupsToToken(d: { token: MagicMcpToken; groupIds: string[] }) {
+  async addGroupsToToken(d: {
+    token: MagicMcpToken;
+    groupIds: string[];
+    consumerSurface?: ConsumerSurface;
+  }) {
     let groups = await db.magicMcpGroup.findMany({
       where: {
         id: { in: d.groupIds },
-        instanceOid: d.token.instanceOid
+        instanceOid: d.token.instanceOid,
+        consumerSurfaceMagicMcpGroupAccesses: d.consumerSurface
+          ? { some: { surfaceOid: d.consumerSurface.oid } }
+          : undefined
       }
     });
 
