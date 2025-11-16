@@ -162,4 +162,9 @@ export let instanceSecretTokenScopes: Scope[] = [
   'instance.portal:write' as const
 ];
 
-export let instancePublishableTokenScopes: Scope[] = ['instance.server_listing:read' as const];
+export let instancePublishableTokenScopes: Scope[] = [
+  'organization.instance:read' as const,
+
+  'instance.server_listing:read' as const,
+  'instance.portal:read' as const
+];

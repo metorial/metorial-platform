@@ -1,4 +1,5 @@
 import { Controller } from '@metorial/rest';
+import { consumerSessionController } from './consumer/session';
 import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
 import { dashboardManagedServerTemplateController } from './dashboard/managedServerTemplate';
@@ -123,7 +124,9 @@ export let pulsarController = Controller.create<any>(
     teamManagementController,
 
     ssoTenantController,
-    portalController
+    portalController,
+
+    consumerSessionController
   }
 );
 

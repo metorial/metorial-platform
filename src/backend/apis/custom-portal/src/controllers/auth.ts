@@ -6,6 +6,7 @@ import { v } from '@metorial/validation';
 import { getSessionCookieName } from '../middleware/portal';
 import { publicApp } from '../middleware/public';
 import { authCodePresenter } from '../presenters/authCode';
+import { authFactorPresenter } from '../presenters/authFactor';
 
 let getCookieOpts = (session: ConsumerSession) => ({
   path: '/',
@@ -30,6 +31,21 @@ let surfaceApp = publicApp.use(async ctx => {
 });
 
 export let authController = publicApp.controller({
+  getFactors: surfaceApp
+    .handler()
+    .input(
+      v.object({
+        portalId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let factors = await consumerAuthService.listAuthFactors({
+        surface: ctx.surface
+      });
+
+      return factors.map(f => authFactorPresenter(f));
+    }),
+
   authenticateWithEmailCodeStart: surfaceApp
     .handler()
     .input(

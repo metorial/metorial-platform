@@ -75,5 +75,5 @@ model ConsumerSession {
 
   expiresAt  DateTime
   createdAt  DateTime @default(now())
-  lastUsedAt DateTime @default(now()) @updatedAt
+  lastUsedAt DateTime @default(now())
 }

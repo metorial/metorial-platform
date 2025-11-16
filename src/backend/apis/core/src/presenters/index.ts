@@ -5,6 +5,8 @@ import { v1CallbackPresenter } from './implementation/callback';
 import { v1CallbackDestinationPresenter } from './implementation/callbackDestination';
 import { v1CallbackEventPresenter } from './implementation/callbackEvent';
 import { v1CallbackNotificationPresenter } from './implementation/callbackNotification';
+import { v1ConsumerProfilePresenter } from './implementation/consumerProfile';
+import { v1ConsumerSessionPresenter } from './implementation/consumerSession';
 import {
   dashboardCustomServerPresenter,
   v1CustomServerPresenter
@@ -84,6 +86,8 @@ import {
   v1SessionMessagePresenter
 } from './implementation/sessionMessage';
 import { v1SsoTenantPresenter } from './implementation/ssoTenant';
+import { v1SsoUserPresenter } from './implementation/ssoUser';
+import { v1SsoUserProfilePresenter } from './implementation/ssoUserProfile';
 import { v1TeamPresenter } from './implementation/team';
 import { v1TeamRolePresenter } from './implementation/teamRole';
 import { v1TeamRolePermissionsPresenter } from './implementation/teamRolePermissons';
@@ -96,6 +100,8 @@ import {
   callbackEventType,
   callbackNotificationType,
   callbackType,
+  consumerProfileType,
+  consumerSessionType,
   customServerCodeEditorTokenType,
   customServerDeploymentType,
   customServerEventType,
@@ -154,6 +160,8 @@ import {
   sessionMessageType,
   sessionType,
   ssoTenantType,
+  ssoUserProfileType,
+  ssoUserType,
   teamRolePermissionsType,
   teamRoleType,
   teamType,
@@ -477,16 +485,6 @@ export let scmInstallationPresenter = declarePresenter(scmInstallationType, {
   mt_2025_01_01_dashboard: v1ScmInstallationPresenter
 });
 
-export let ssoTenantPresenter = declarePresenter(ssoTenantType, {
-  mt_2025_01_01_pulsar: v1SsoTenantPresenter,
-  mt_2025_01_01_dashboard: v1SsoTenantPresenter
-});
-
-export let portalPresenter = declarePresenter(portalType, {
-  mt_2025_01_01_pulsar: v1PortalPresenter,
-  mt_2025_01_01_dashboard: v1PortalPresenter
-});
-
 export let callbackPresenter = declarePresenter(callbackType, {
   mt_2025_01_01_pulsar: v1CallbackPresenter,
   mt_2025_01_01_dashboard: v1CallbackPresenter
@@ -525,4 +523,34 @@ export let teamRolePresenter = declarePresenter(teamRoleType, {
 export let teamRolePermissionsPresenter = declarePresenter(teamRolePermissionsType, {
   mt_2025_01_01_pulsar: v1TeamRolePermissionsPresenter,
   mt_2025_01_01_dashboard: v1TeamRolePermissionsPresenter
+});
+
+export let ssoTenantPresenter = declarePresenter(ssoTenantType, {
+  mt_2025_01_01_pulsar: v1SsoTenantPresenter,
+  mt_2025_01_01_dashboard: v1SsoTenantPresenter
+});
+
+export let ssoUserPresenter = declarePresenter(ssoUserType, {
+  mt_2025_01_01_pulsar: v1SsoUserPresenter,
+  mt_2025_01_01_dashboard: v1SsoUserPresenter
+});
+
+export let ssoUserProfilePresenter = declarePresenter(ssoUserProfileType, {
+  mt_2025_01_01_pulsar: v1SsoUserProfilePresenter,
+  mt_2025_01_01_dashboard: v1SsoUserProfilePresenter
+});
+
+export let portalPresenter = declarePresenter(portalType, {
+  mt_2025_01_01_pulsar: v1PortalPresenter,
+  mt_2025_01_01_dashboard: v1PortalPresenter
+});
+
+export let consumerProfilePresenter = declarePresenter(consumerProfileType, {
+  mt_2025_01_01_pulsar: v1ConsumerProfilePresenter,
+  mt_2025_01_01_dashboard: v1ConsumerProfilePresenter
+});
+
+export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
+  mt_2025_01_01_pulsar: v1ConsumerSessionPresenter,
+  mt_2025_01_01_dashboard: v1ConsumerSessionPresenter
 });

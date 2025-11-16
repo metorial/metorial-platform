@@ -5,6 +5,7 @@ import {
   ConsumerSurface,
   db,
   ID,
+  Organization,
   SsoUser,
   withTransaction
 } from '@metorial/db';
@@ -168,6 +169,22 @@ class consumerAuthServiceImpl {
     };
   }
 
+  async listAuthFactors(d: { surface: ConsumerSurface }) {
+    await this.ensureSurfaceIsActive({ surface: d.surface });
+
+    let factors = await db.consumerSurfaceAuthFactor.findMany({
+      where: {
+        consumerSurfaceOid: d.surface.oid,
+        status: 'active'
+      },
+      include: {
+        ssoTenant: true
+      }
+    });
+
+    return factors;
+  }
+
   async authenticateWithSsoComplete(d: {
     surface: ConsumerSurface;
     ssoUser: SsoUser;
@@ -191,6 +208,45 @@ class consumerAuthServiceImpl {
     });
   }
 
+  private async getToken(d: {
+    session: ConsumerSession;
+    surface: ConsumerSurface;
+    type: string;
+  }) {
+    let expiresAt = addMinutes(new Date(), 10);
+
+    let token = await consumerSessionToken.sign({
+      type: d.type,
+      data: {
+        surfaceId: d.surface.id,
+        sessionId: d.session.id,
+        nonce: d.session.tokenNonce
+      },
+      expiresAt: d.session.expiresAt
+    });
+
+    return {
+      expiresAt,
+      token
+    };
+  }
+
+  async getPortalToken(d: { session: ConsumerSession; surface: ConsumerSurface }) {
+    return this.getToken({
+      session: d.session,
+      surface: d.surface,
+      type: 'portal_token'
+    });
+  }
+
+  async getConsumerToken(d: { session: ConsumerSession; surface: ConsumerSurface }) {
+    return this.getToken({
+      session: d.session,
+      surface: d.surface,
+      type: 'consumer_token'
+    });
+  }
+
   async getConsumerSessionToken(d: { session: ConsumerSession; surface: ConsumerSurface }) {
     return await consumerSessionToken.sign({
       type: 'consumer_session',
@@ -203,16 +259,48 @@ class consumerAuthServiceImpl {
     });
   }
 
-  async getPortalSessionToken(d: { session: ConsumerSession; surface: ConsumerSurface }) {
-    return await consumerSessionToken.sign({
-      type: 'portal_session',
-      data: {
-        surfaceId: d.surface.id,
-        sessionId: d.session.id,
-        nonce: d.session.tokenNonce
-      },
-      expiresAt: d.session.expiresAt
+  async authenticateWithConsumerToken(d: { token: string; organization: Organization }) {
+    let payload = await consumerToken.verify({
+      token: d.token,
+      expectedType: 'consumer_token'
     });
+    if (!payload.verified) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'Invalid consumer token.'
+        })
+      );
+    }
+
+    let session = await db.consumerSession.findFirst({
+      where: {
+        id: payload.data.sessionId,
+        tokenNonce: payload.data.sessionNonce,
+        expiresAt: { gt: new Date() }
+      },
+      include: {
+        consumerProfile: {
+          include: {
+            consumer: true,
+            ssoUser: true,
+            surface: true
+          }
+        }
+      }
+    });
+    if (!session || session.consumerProfile.organizationOid !== d.organization.oid) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'Invalid consumer token.'
+        })
+      );
+    }
+
+    return {
+      session,
+      consumerProfile: session.consumerProfile,
+      surface: session.consumerProfile.surface
+    };
   }
 
   async authenticateWithConsumerSessionToken(d: { token: string; surface: ConsumerSurface }) {
