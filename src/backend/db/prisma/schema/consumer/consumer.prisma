@@ -39,6 +39,7 @@ model ConsumerProfile {
   updatedAt DateTime @default(now()) @updatedAt
 
   consumerSessions ConsumerSession[]
+  magicMcpTokens   MagicMcpToken[]
 
   @@unique([email, surfaceOid])
 }

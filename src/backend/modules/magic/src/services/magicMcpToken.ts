@@ -2,6 +2,7 @@ import { UnifiedApiKey } from '@metorial/api-keys';
 import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
 import {
+  ConsumerProfile,
   db,
   ID,
   Instance,
@@ -37,11 +38,16 @@ let autoCreateLock = createLock({
 });
 
 class MagicMcpTokenImpl {
-  async getMagicMcpTokenById(d: { instance: Instance; magicMcpTokenId: string }) {
+  async getMagicMcpTokenById(d: {
+    consumerProfile?: ConsumerProfile;
+    instance: Instance;
+    magicMcpTokenId: string;
+  }) {
     let magicMcpToken = await db.magicMcpToken.findFirst({
       where: {
         instanceOid: d.instance.oid,
-        id: d.magicMcpTokenId
+        id: d.magicMcpTokenId,
+        consumerProfileOid: d.consumerProfile?.oid
       },
       include
     });
@@ -112,6 +118,7 @@ class MagicMcpTokenImpl {
     instance: Instance;
     context?: Context;
     groups?: MagicMcpGroup[];
+    consumerProfile?: ConsumerProfile;
 
     input: {
       name?: string;
@@ -140,6 +147,9 @@ class MagicMcpTokenImpl {
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata || {},
+
+        type: d.consumerProfile ? 'consumer' : 'default',
+        consumerProfileOid: d.consumerProfile?.oid,
 
         isGroupLocked: !!groups?.length,
         groups: groups
@@ -204,6 +214,7 @@ class MagicMcpTokenImpl {
     instance: Instance;
     status?: MagicMcpTokenStatus[];
     groupIds?: string[];
+    consumerProfile?: ConsumerProfile;
   }) {
     let groups = d.groupIds?.length
       ? await db.magicMcpGroup.findMany({
@@ -218,6 +229,9 @@ class MagicMcpTokenImpl {
             ...opts,
             where: {
               instanceOid: d.instance.oid,
+
+              consumerProfileOid: d.consumerProfile?.oid,
+              type: d.consumerProfile ? 'consumer' : 'default',
 
               groups: groups
                 ? {

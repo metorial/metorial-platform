@@ -1,5 +1,6 @@
 import { Context } from '@metorial/context';
 import {
+  ConsumerSurface,
   db,
   ID,
   Instance,
@@ -20,11 +21,18 @@ import { syncMagicMcpGroupQueue } from '../queues/syncGroup';
 let include = {};
 
 class MagicMcpGroupImpl {
-  async getMagicMcpGroupById(d: { instance: Instance; magicMcpGroupId: string }) {
+  async getMagicMcpGroupById(d: {
+    consumerSurface?: ConsumerSurface;
+    instance: Instance;
+    magicMcpGroupId: string;
+  }) {
     let magicMcpGroup = await db.magicMcpGroup.findFirst({
       where: {
         instanceOid: d.instance.oid,
-        id: d.magicMcpGroupId
+        id: d.magicMcpGroupId,
+        consumerSurfaceMagicMcpGroupAccesses: d.consumerSurface
+          ? { some: { surfaceOid: d.consumerSurface.oid } }
+          : undefined
       },
       include
     });
@@ -123,6 +131,7 @@ class MagicMcpGroupImpl {
     search?: string;
     instance: Instance;
     status?: MagicMcpGroupStatus[];
+    consumerSurface?: ConsumerSurface;
   }) {
     let search = d.search
       ? await searchService.search<{ id: string }>({
@@ -143,6 +152,10 @@ class MagicMcpGroupImpl {
           ...opts,
           where: {
             instanceOid: d.instance.oid,
+
+            consumerSurfaceMagicMcpGroupAccesses: d.consumerSurface
+              ? { some: { surfaceOid: d.consumerSurface.oid } }
+              : undefined,
 
             AND: [
               d.status

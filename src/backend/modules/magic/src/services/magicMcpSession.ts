@@ -1,4 +1,4 @@
-import { db, Instance } from '@metorial/db';
+import { ConsumerProfile, db, Instance } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -13,11 +13,16 @@ let include = {
 };
 
 class MagicMcpSessionImpl {
-  async getMagicMcpSessionById(d: { instance: Instance; magicMcpSessionId: string }) {
+  async getMagicMcpSessionById(d: {
+    instance: Instance;
+    magicMcpSessionId: string;
+    consumerProfile?: ConsumerProfile;
+  }) {
     let magicMcpSession = await db.magicMcpSession.findFirst({
       where: {
         id: d.magicMcpSessionId,
-        instanceOid: d.instance.oid
+        instanceOid: d.instance.oid,
+        token: d.consumerProfile ? { consumerProfileOid: d.consumerProfile?.oid } : undefined
       },
       include
     });
@@ -26,19 +31,11 @@ class MagicMcpSessionImpl {
     return magicMcpSession;
   }
 
-  async getManyMagicMcpSessions(d: { magicMcpSessionId: string[]; instance: Instance }) {
-    if (d.magicMcpSessionId.length === 0) return [];
-
-    return await db.magicMcpSession.findMany({
-      where: {
-        id: { in: d.magicMcpSessionId },
-        instanceOid: d.instance.oid
-      },
-      include
-    });
-  }
-
-  async listMagicMcpSessions(d: { instance: Instance; magicMcpServerId?: string[] }) {
+  async listMagicMcpSessions(d: {
+    instance: Instance;
+    magicMcpServerId?: string[];
+    consumerProfile?: ConsumerProfile;
+  }) {
     let servers = d.magicMcpServerId?.length
       ? await db.magicMcpServer.findMany({
           where: { id: { in: d.magicMcpServerId }, instanceOid: d.instance.oid }
@@ -54,13 +51,29 @@ class MagicMcpSessionImpl {
               instanceOid: d.instance.oid,
 
               AND: [
-                servers ? { magicMcpServerOid: { in: servers.map(s => s.oid) } } : undefined!
+                servers ? { magicMcpServerOid: { in: servers.map(s => s.oid) } } : undefined!,
+
+                d.consumerProfile
+                  ? { token: { consumerProfileOid: d.consumerProfile?.oid } }
+                  : undefined!
               ].filter(Boolean)
             },
             include
           })
       )
     );
+  }
+
+  async getManyMagicMcpSessions(d: { magicMcpSessionId: string[]; instance: Instance }) {
+    if (d.magicMcpSessionId.length === 0) return [];
+
+    return await db.magicMcpSession.findMany({
+      where: {
+        id: { in: d.magicMcpSessionId },
+        instanceOid: d.instance.oid
+      },
+      include
+    });
   }
 }
 

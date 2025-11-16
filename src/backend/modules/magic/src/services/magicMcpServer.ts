@@ -1,5 +1,6 @@
 import { Context } from '@metorial/context';
 import {
+  ConsumerSurface,
   db,
   ID,
   Instance,
@@ -36,10 +37,26 @@ let include = {
 };
 
 class MagicMcpServerImpl {
-  async getMagicMcpServerById(d: { instance: Instance; magicMcpServerId: string }) {
+  async getMagicMcpServerById(d: {
+    consumerSurface?: ConsumerSurface;
+    instance: Instance;
+    magicMcpServerId: string;
+  }) {
     let magicMcpServer = await db.magicMcpServer.findFirst({
       where: {
         instanceOid: d.instance.oid,
+
+        groups: d.consumerSurface
+          ? {
+              some: {
+                magicMcpGroup: {
+                  consumerSurfaceMagicMcpGroupAccesses: {
+                    some: { surfaceOid: d.consumerSurface.oid }
+                  }
+                }
+              }
+            }
+          : undefined,
 
         OR: [
           { id: d.magicMcpServerId },
@@ -209,6 +226,7 @@ class MagicMcpServerImpl {
     search?: string;
     instance: Instance;
     status?: MagicMcpServerStatus[];
+    consumerSurface?: ConsumerSurface;
   }) {
     let search = d.search
       ? await searchService.search<{ id: string }>({
@@ -259,7 +277,21 @@ class MagicMcpServerImpl {
             AND: [
               d.status
                 ? { status: { in: d.status } }
-                : { status: { not: 'archived' as const } }
+                : { status: { not: 'archived' as const } },
+
+              d.consumerSurface
+                ? {
+                    groups: {
+                      some: {
+                        magicMcpGroup: {
+                          consumerSurfaceMagicMcpGroupAccesses: {
+                            some: { surfaceOid: d.consumerSurface.oid }
+                          }
+                        }
+                      }
+                    }
+                  }
+                : undefined!
             ].filter(Boolean),
 
             groups: groups
