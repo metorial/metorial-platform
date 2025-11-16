@@ -132,7 +132,7 @@ export let dashboardApiKeyPresenter = Presenter.create(apiKeyType)
     reveal_info:
       opts.accessType == 'user_auth_token'
         ? {
-            until: apiKey.canRevealUntil,
+            until: apiKey.canRevealForever ? null : apiKey.canRevealUntil,
             forever: apiKey.canRevealForever
           }
         : null,

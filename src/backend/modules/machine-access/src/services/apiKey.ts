@@ -324,7 +324,7 @@ class ApiKeyService {
           secretRedacted: UnifiedApiKey.redact(secretKey),
           secretLength: secretKey.toString().length,
 
-          canRevealUntil: addMinutes(new Date(), 5)
+          canRevealUntil: d.apiKey.canRevealForever ? null : addMinutes(new Date(), 5)
         },
         include: {
           machineAccess: {
@@ -378,7 +378,11 @@ class ApiKeyService {
   }) {
     await this.ensureApiKeyActive(d.apiKey);
 
-    if (d.apiKey.canRevealUntil && d.apiKey.canRevealUntil < new Date()) {
+    if (
+      !d.apiKey.canRevealForever &&
+      d.apiKey.canRevealUntil &&
+      d.apiKey.canRevealUntil < new Date()
+    ) {
       throw new ServiceError(
         forbiddenError({
           message: 'Cannot reveal this api key anymore'
