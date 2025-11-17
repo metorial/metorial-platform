@@ -21,6 +21,7 @@ import {
   unauthorizedError
 } from '@metorial/error';
 import { createLock } from '@metorial/lock';
+import { consumerProfileService } from '@metorial/module-consumer';
 import { organizationActorService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -81,6 +82,34 @@ class MagicMcpTokenImpl {
   }
 
   async checkMagicMcpTokenAccess(d: { token: MagicMcpToken; server: MagicMcpServer }) {
+    if (d.token.consumerProfileOid) {
+      let consumerProfile = await db.consumerProfile.findFirstOrThrow({
+        where: { oid: d.token.consumerProfileOid },
+        include: { ssoUser: true }
+      });
+
+      let groups = await consumerProfileService.getGroupsForProfile({
+        consumerProfile
+      });
+
+      let group = await db.magicMcpGroup.findFirst({
+        where: {
+          tokens: {
+            some: {
+              magicMcpTokenOid: d.token.oid
+            }
+          },
+          consumerAccesses: {
+            some: {
+              consumerGroupOid: { in: groups.map(g => g.oid) }
+            }
+          }
+        }
+      });
+
+      return !!group;
+    }
+
     if (!d.token.isGroupLocked) return true;
 
     let group = await db.magicMcpGroup.findFirst({
