@@ -107,7 +107,7 @@ export let consumerMagicMcpTokenController = Controller.create(
           ? await magicMcpGroupService.findManyGroupsById({
               groupIds: ctx.body.group_ids,
               instance: ctx.instance,
-              consumerSurface: ctx.consumerSurface
+              consumerProfile: ctx.consumerProfile
             })
           : undefined;
 
@@ -202,7 +202,7 @@ export let consumerMagicMcpTokenController = Controller.create(
         let magicMcpToken = await magicMcpTokenService.addGroupsToToken({
           token: ctx.magicMcpToken,
           groupIds: ctx.body.magic_mcp_group_ids,
-          consumerSurface: ctx.consumerSurface
+          consumerProfile: ctx.consumerProfile
         });
 
         return magicMcpTokenPresenter.present({ magicMcpToken });
