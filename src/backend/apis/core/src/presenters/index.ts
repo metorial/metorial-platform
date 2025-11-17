@@ -5,6 +5,8 @@ import { v1CallbackPresenter } from './implementation/callback';
 import { v1CallbackDestinationPresenter } from './implementation/callbackDestination';
 import { v1CallbackEventPresenter } from './implementation/callbackEvent';
 import { v1CallbackNotificationPresenter } from './implementation/callbackNotification';
+import { v1ConsumerAccessPresenter } from './implementation/consumerAccess';
+import { v1ConsumerGroupPresenter } from './implementation/consumerGroup';
 import { v1ConsumerProfilePresenter } from './implementation/consumerProfile';
 import { v1ConsumerSessionPresenter } from './implementation/consumerSession';
 import {
@@ -100,6 +102,8 @@ import {
   callbackEventType,
   callbackNotificationType,
   callbackType,
+  consumerAccessType,
+  consumerGroupType,
   consumerProfileType,
   consumerSessionType,
   customServerCodeEditorTokenType,
@@ -543,6 +547,16 @@ export let ssoUserProfilePresenter = declarePresenter(ssoUserProfileType, {
 export let portalPresenter = declarePresenter(portalType, {
   mt_2025_01_01_pulsar: v1PortalPresenter,
   mt_2025_01_01_dashboard: v1PortalPresenter
+});
+
+export let consumerGroupPresenter = declarePresenter(consumerGroupType, {
+  mt_2025_01_01_pulsar: v1ConsumerGroupPresenter,
+  mt_2025_01_01_dashboard: v1ConsumerGroupPresenter
+});
+
+export let consumerAccessPresenter = declarePresenter(consumerAccessType, {
+  mt_2025_01_01_pulsar: v1ConsumerAccessPresenter,
+  mt_2025_01_01_dashboard: v1ConsumerAccessPresenter
 });
 
 export let consumerProfilePresenter = declarePresenter(consumerProfileType, {

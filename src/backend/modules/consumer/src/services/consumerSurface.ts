@@ -181,7 +181,8 @@ class consumerSurfaceServiceImpl {
             where: {
               organizationOid: d.organization.oid,
               status: 'active'
-            }
+            },
+            include
           })
       )
     );
@@ -202,9 +203,10 @@ class consumerSurfaceServiceImpl {
         data: { status: 'inactive' }
       });
 
-      await db.consumerSurface.update({
+      return await db.consumerSurface.update({
         where: { oid: d.consumerSurface.oid },
-        data: { status: 'inactive' }
+        data: { status: 'inactive' },
+        include
       });
     });
   }

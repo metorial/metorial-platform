@@ -1,5 +1,7 @@
 import { Context } from '@metorial/context';
 import {
+  ConsumerProfile,
+  ConsumerProfileGroup,
   db,
   ID,
   Instance,
@@ -36,10 +38,30 @@ let include = {
 };
 
 class MagicMcpServerImpl {
-  async getMagicMcpServerById(d: { instance: Instance; magicMcpServerId: string }) {
+  async getMagicMcpServerById(d: {
+    consumerProfile?: ConsumerProfile & { groups: ConsumerProfileGroup[] };
+    instance: Instance;
+    magicMcpServerId: string;
+  }) {
     let magicMcpServer = await db.magicMcpServer.findFirst({
       where: {
         instanceOid: d.instance.oid,
+
+        groups: d.consumerProfile
+          ? {
+              some: {
+                magicMcpGroup: {
+                  consumerAccesses: {
+                    some: {
+                      consumerGroupOid: {
+                        in: d.consumerProfile.groups.map(g => g.groupOid)
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          : undefined,
 
         OR: [
           { id: d.magicMcpServerId },
@@ -209,6 +231,7 @@ class MagicMcpServerImpl {
     search?: string;
     instance: Instance;
     status?: MagicMcpServerStatus[];
+    consumerProfile?: ConsumerProfile & { groups: ConsumerProfileGroup[] };
   }) {
     let search = d.search
       ? await searchService.search<{ id: string }>({
@@ -259,7 +282,25 @@ class MagicMcpServerImpl {
             AND: [
               d.status
                 ? { status: { in: d.status } }
-                : { status: { not: 'archived' as const } }
+                : { status: { not: 'archived' as const } },
+
+              d.consumerProfile
+                ? {
+                    groups: {
+                      some: {
+                        magicMcpGroup: {
+                          consumerAccesses: {
+                            some: {
+                              consumerGroupOid: {
+                                in: d.consumerProfile.groups.map(g => g.groupOid)
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                : undefined!
             ].filter(Boolean),
 
             groups: groups

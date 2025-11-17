@@ -1,5 +1,7 @@
 import { Context } from '@metorial/context';
 import {
+  ConsumerProfile,
+  ConsumerProfileGroup,
   db,
   ID,
   Instance,
@@ -20,11 +22,21 @@ import { syncMagicMcpGroupQueue } from '../queues/syncGroup';
 let include = {};
 
 class MagicMcpGroupImpl {
-  async getMagicMcpGroupById(d: { instance: Instance; magicMcpGroupId: string }) {
+  async getMagicMcpGroupById(d: {
+    consumerProfile?: ConsumerProfile & { groups: ConsumerProfileGroup[] };
+    instance: Instance;
+    magicMcpGroupId: string;
+  }) {
     let magicMcpGroup = await db.magicMcpGroup.findFirst({
       where: {
         instanceOid: d.instance.oid,
-        id: d.magicMcpGroupId
+        id: d.magicMcpGroupId,
+
+        consumerAccesses: d.consumerProfile
+          ? {
+              some: { consumerGroupOid: { in: d.consumerProfile.groups.map(g => g.groupOid) } }
+            }
+          : undefined
       },
       include
     });
@@ -123,6 +135,7 @@ class MagicMcpGroupImpl {
     search?: string;
     instance: Instance;
     status?: MagicMcpGroupStatus[];
+    consumerProfile?: ConsumerProfile & { groups: ConsumerProfileGroup[] };
   }) {
     let search = d.search
       ? await searchService.search<{ id: string }>({
@@ -143,6 +156,14 @@ class MagicMcpGroupImpl {
           ...opts,
           where: {
             instanceOid: d.instance.oid,
+
+            consumerAccesses: d.consumerProfile
+              ? {
+                  some: {
+                    consumerGroupOid: { in: d.consumerProfile.groups.map(g => g.groupOid) }
+                  }
+                }
+              : undefined,
 
             AND: [
               d.status
@@ -214,7 +235,11 @@ class MagicMcpGroupImpl {
     return d.group;
   }
 
-  async findManyGroupsById(d: { groupIds: string[]; instance: Instance }) {
+  async findManyGroupsById(d: {
+    groupIds: string[];
+    instance: Instance;
+    consumerProfile: ConsumerProfile & { groups: ConsumerProfileGroup[] };
+  }) {
     if (d.groupIds.length === 0) return [];
 
     let idSet = [...new Set(d.groupIds)];
@@ -222,7 +247,13 @@ class MagicMcpGroupImpl {
     let groups = await db.magicMcpGroup.findMany({
       where: {
         id: { in: d.groupIds },
-        instanceOid: d.instance.oid
+        instanceOid: d.instance.oid,
+
+        consumerAccesses: d.consumerProfile
+          ? {
+              some: { consumerGroupOid: { in: d.consumerProfile.groups.map(g => g.groupOid) } }
+            }
+          : undefined
       },
       include
     });

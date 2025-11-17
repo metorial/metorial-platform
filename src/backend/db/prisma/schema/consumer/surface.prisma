@@ -23,4 +23,29 @@ model ConsumerSurface {
   consumerProfiles           ConsumerProfile[]
   consumerSurfaceAuthFactors ConsumerSurfaceAuthFactor[]
   portals                    Portal[]
+  consumerGroups             ConsumerGroup[]
+  consumerAccesses           ConsumerAccess[]
+}
+
+enum ConsumerAccessType {
+  magic_mcp_group
+}
+
+model ConsumerAccess {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ConsumerAccessType
+
+  surfaceOid BigInt
+  surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid])
+
+  magicMcpGroupOid BigInt?
+  magicMcpGroup    MagicMcpGroup? @relation(fields: [magicMcpGroupOid], references: [oid])
+
+  consumerGroupOid BigInt
+  consumerGroup    ConsumerGroup @relation(fields: [consumerGroupOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }

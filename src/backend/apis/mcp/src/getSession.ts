@@ -15,7 +15,6 @@ import {
   ServiceError,
   unauthorizedError
 } from '@metorial/error';
-import { createExecutionContext, provideExecutionContext } from '@metorial/execution-context';
 import { accessService, AuthInfo } from '@metorial/module-access';
 import { magicMcpServerService, magicMcpTokenService } from '@metorial/module-magic';
 import { organizationActorService } from '@metorial/module-organization';
@@ -186,31 +185,22 @@ export let getSessionAndAuthenticate = async (
         }
       }
 
-      let session = await provideExecutionContext(
-        createExecutionContext({
-          type: 'request',
-          contextId: '',
-          ip: context.ip,
-          userAgent: context.ua ?? 'unknown'
-        }),
-        async () =>
-          await sessionService.createSession({
-            instance,
-            organization: instance.organization,
-            performedBy: actor,
-            magicMcpToken: token,
-            ephemeralPermittedDeployments: new Set(),
-            input: {
-              connectionType: 'mcp',
-              serverDeployments: [
-                {
-                  deployment: serverDeployment,
-                  oauthSession
-                }
-              ]
+      let session = await sessionService.createSession({
+        instance,
+        organization: instance.organization,
+        performedBy: actor,
+        magicMcpToken: token,
+        ephemeralPermittedDeployments: new Set(),
+        input: {
+          connectionType: 'mcp',
+          serverDeployments: [
+            {
+              deployment: serverDeployment,
+              oauthSession
             }
-          })
-      );
+          ]
+        }
+      });
 
       return {
         type: 'magic_mcp_session' as const,

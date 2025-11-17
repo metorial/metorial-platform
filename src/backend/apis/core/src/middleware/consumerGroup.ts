@@ -37,7 +37,7 @@ export let consumerGroup = apiGroup.use(async ctx => {
     actor,
     instance,
     organization,
-    surface: res.surface,
+    consumerSurface: res.surface,
     consumerSession: res.session,
     consumerProfile: res.consumerProfile
   };

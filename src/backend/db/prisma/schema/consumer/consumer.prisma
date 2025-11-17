@@ -39,6 +39,20 @@ model ConsumerProfile {
   updatedAt DateTime @default(now()) @updatedAt
 
   consumerSessions ConsumerSession[]
+  magicMcpTokens   MagicMcpToken[]
+  groups           ConsumerProfileGroup[]
 
   @@unique([email, surfaceOid])
+}
+
+model ConsumerProfileGroup {
+  oid BigInt @id @default(autoincrement())
+
+  profileOid BigInt
+  profile    ConsumerProfile @relation(fields: [profileOid], references: [oid])
+
+  groupOid BigInt
+  group    ConsumerGroup @relation(fields: [groupOid], references: [oid])
+
+  createdAt DateTime @default(now())
 }

@@ -1,4 +1,8 @@
 import { Controller } from '@metorial/rest';
+import { consumerMagicMcpGroupController } from './consumer/magicMcpGroup';
+import { consumerMagicMcpServerController } from './consumer/magicMcpServer';
+import { consumerMagicMcpSessionController } from './consumer/magicMcpSession';
+import { consumerMagicMcpTokenController } from './consumer/magicMcpToken';
 import { consumerSessionController } from './consumer/session';
 import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
@@ -28,6 +32,9 @@ import { magicMcpServerController } from './instance/magicMcpServer';
 import { magicMcpSessionController } from './instance/magicMcpSession';
 import { magicMcpTokenController } from './instance/magicMcpToken';
 import { portalController } from './instance/portal';
+import { portalConsumerAccessController } from './instance/portalConsumerAccess';
+import { portalConsumerGroupController } from './instance/portalConsumerGroup';
+import { portalConsumerProfileController } from './instance/portalConsumerProfile';
 import { providerOauthConnectionController } from './instance/providerOauthConnection';
 import { providerOauthConnectionAuthenticationController } from './instance/providerOauthConnectionAuthentication';
 import { providerOauthConnectionEventController } from './instance/providerOauthConnectionEvent';
@@ -124,9 +131,17 @@ export let pulsarController = Controller.create<any>(
     teamManagementController,
 
     ssoTenantController,
-    portalController,
 
-    consumerSessionController
+    portalController,
+    portalConsumerGroupController,
+    portalConsumerAccessController,
+    portalConsumerProfileController,
+
+    consumerSessionController,
+    consumerMagicMcpGroupController,
+    consumerMagicMcpServerController,
+    consumerMagicMcpSessionController,
+    consumerMagicMcpTokenController
   }
 );
 
@@ -217,7 +232,11 @@ export let dashboardController = Controller.create<any>(
     teamManagementController,
 
     ssoTenantController,
-    portalController
+
+    portalController,
+    portalConsumerGroupController,
+    portalConsumerAccessController,
+    portalConsumerProfileController
   }
 );
 

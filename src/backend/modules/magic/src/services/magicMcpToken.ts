@@ -2,6 +2,8 @@ import { UnifiedApiKey } from '@metorial/api-keys';
 import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
 import {
+  ConsumerProfile,
+  ConsumerProfileGroup,
   db,
   ID,
   Instance,
@@ -19,6 +21,7 @@ import {
   unauthorizedError
 } from '@metorial/error';
 import { createLock } from '@metorial/lock';
+import { consumerProfileService } from '@metorial/module-consumer';
 import { organizationActorService } from '@metorial/module-organization';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -37,11 +40,16 @@ let autoCreateLock = createLock({
 });
 
 class MagicMcpTokenImpl {
-  async getMagicMcpTokenById(d: { instance: Instance; magicMcpTokenId: string }) {
+  async getMagicMcpTokenById(d: {
+    consumerProfile?: ConsumerProfile;
+    instance: Instance;
+    magicMcpTokenId: string;
+  }) {
     let magicMcpToken = await db.magicMcpToken.findFirst({
       where: {
         instanceOid: d.instance.oid,
-        id: d.magicMcpTokenId
+        id: d.magicMcpTokenId,
+        consumerProfileOid: d.consumerProfile?.oid
       },
       include
     });
@@ -74,6 +82,34 @@ class MagicMcpTokenImpl {
   }
 
   async checkMagicMcpTokenAccess(d: { token: MagicMcpToken; server: MagicMcpServer }) {
+    if (d.token.consumerProfileOid) {
+      let consumerProfile = await db.consumerProfile.findFirstOrThrow({
+        where: { oid: d.token.consumerProfileOid },
+        include: { ssoUser: true }
+      });
+
+      let groups = await consumerProfileService.getGroupsForProfile({
+        consumerProfile
+      });
+
+      let group = await db.magicMcpGroup.findFirst({
+        where: {
+          tokens: {
+            some: {
+              magicMcpTokenOid: d.token.oid
+            }
+          },
+          consumerAccesses: {
+            some: {
+              consumerGroupOid: { in: groups.map(g => g.oid) }
+            }
+          }
+        }
+      });
+
+      return !!group;
+    }
+
     if (!d.token.isGroupLocked) return true;
 
     let group = await db.magicMcpGroup.findFirst({
@@ -112,6 +148,7 @@ class MagicMcpTokenImpl {
     instance: Instance;
     context?: Context;
     groups?: MagicMcpGroup[];
+    consumerProfile?: ConsumerProfile;
 
     input: {
       name?: string;
@@ -140,6 +177,9 @@ class MagicMcpTokenImpl {
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata || {},
+
+        type: d.consumerProfile ? 'consumer' : 'default',
+        consumerProfileOid: d.consumerProfile?.oid,
 
         isGroupLocked: !!groups?.length,
         groups: groups
@@ -204,6 +244,7 @@ class MagicMcpTokenImpl {
     instance: Instance;
     status?: MagicMcpTokenStatus[];
     groupIds?: string[];
+    consumerProfile?: ConsumerProfile;
   }) {
     let groups = d.groupIds?.length
       ? await db.magicMcpGroup.findMany({
@@ -218,6 +259,9 @@ class MagicMcpTokenImpl {
             ...opts,
             where: {
               instanceOid: d.instance.oid,
+
+              consumerProfileOid: d.consumerProfile?.oid,
+              type: d.consumerProfile ? 'consumer' : 'default',
 
               groups: groups
                 ? {
@@ -269,11 +313,21 @@ class MagicMcpTokenImpl {
     );
   }
 
-  async addGroupsToToken(d: { token: MagicMcpToken; groupIds: string[] }) {
+  async addGroupsToToken(d: {
+    token: MagicMcpToken;
+    groupIds: string[];
+    consumerProfile?: ConsumerProfile & { groups: ConsumerProfileGroup[] };
+  }) {
     let groups = await db.magicMcpGroup.findMany({
       where: {
         id: { in: d.groupIds },
-        instanceOid: d.token.instanceOid
+        instanceOid: d.token.instanceOid,
+
+        consumerAccesses: d.consumerProfile
+          ? {
+              some: { consumerGroupOid: { in: d.consumerProfile.groups.map(g => g.groupOid) } }
+            }
+          : undefined
       }
     });
 
