@@ -29,9 +29,9 @@ model MagicMcpGroup {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  servers                              MagicMcpGroupServer[]
-  tokens                               MagicMcpGroupToken[]
-  consumerSurfaceMagicMcpGroupAccesses ConsumerSurfaceMagicMcpGroupAccess[]
+  servers          MagicMcpGroupServer[]
+  tokens           MagicMcpGroupToken[]
+  consumerAccesses ConsumerAccess[]
 }
 
 model MagicMcpGroupServer {
