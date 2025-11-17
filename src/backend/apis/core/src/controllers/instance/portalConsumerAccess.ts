@@ -3,6 +3,7 @@ import { magicMcpGroupService } from '@metorial/module-magic';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
@@ -38,10 +39,21 @@ export let portalConsumerAccessController = Controller.create(
       )
       .use(hasFlags(['paid-portals']))
       .outputList(consumerAccessPresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            consumer_group_ids: v.optional(v.union([v.string(), v.array(v.string())])),
+            magic_mcp_group_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await consumerAccessService.listConsumerAccesses({
-          consumerSurface: ctx.portal.surface
+          consumerSurface: ctx.portal.surface,
+
+          magicMcpGroupIds: normalizeArrayParam(ctx.query.magic_mcp_group_ids),
+          consumerGroupIds: normalizeArrayParam(ctx.query.consumer_group_ids)
         });
 
         let list = await paginator.run(ctx.query);
@@ -103,7 +115,6 @@ export let portalConsumerAccessController = Controller.create(
       .output(consumerAccessPresenter)
       .do(async ctx => {
         let magicMcpGroup = await magicMcpGroupService.getMagicMcpGroupById({
-          consumerSurface: ctx.portal.surface,
           instance: ctx.instance,
           magicMcpGroupId: ctx.body.access.magic_mcp_group_id
         });

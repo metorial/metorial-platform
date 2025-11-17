@@ -1,6 +1,7 @@
 import { Context } from '@metorial/context';
 import {
-  ConsumerSurface,
+  ConsumerProfile,
+  ConsumerProfileGroup,
   db,
   ID,
   Instance,
@@ -22,7 +23,7 @@ let include = {};
 
 class MagicMcpGroupImpl {
   async getMagicMcpGroupById(d: {
-    consumerSurface?: ConsumerSurface;
+    consumerProfile?: ConsumerProfile & { groups: ConsumerProfileGroup[] };
     instance: Instance;
     magicMcpGroupId: string;
   }) {
@@ -30,8 +31,11 @@ class MagicMcpGroupImpl {
       where: {
         instanceOid: d.instance.oid,
         id: d.magicMcpGroupId,
-        consumerSurfaceMagicMcpGroupAccesses: d.consumerSurface
-          ? { some: { surfaceOid: d.consumerSurface.oid } }
+
+        consumerAccesses: d.consumerProfile
+          ? {
+              some: { consumerGroupOid: { in: d.consumerProfile.groups.map(g => g.groupOid) } }
+            }
           : undefined
       },
       include
@@ -131,7 +135,7 @@ class MagicMcpGroupImpl {
     search?: string;
     instance: Instance;
     status?: MagicMcpGroupStatus[];
-    consumerSurface?: ConsumerSurface;
+    consumerProfile?: ConsumerProfile & { groups: ConsumerProfileGroup[] };
   }) {
     let search = d.search
       ? await searchService.search<{ id: string }>({
@@ -153,8 +157,12 @@ class MagicMcpGroupImpl {
           where: {
             instanceOid: d.instance.oid,
 
-            consumerSurfaceMagicMcpGroupAccesses: d.consumerSurface
-              ? { some: { surfaceOid: d.consumerSurface.oid } }
+            consumerAccesses: d.consumerProfile
+              ? {
+                  some: {
+                    consumerGroupOid: { in: d.consumerProfile.groups.map(g => g.groupOid) }
+                  }
+                }
               : undefined,
 
             AND: [
@@ -230,7 +238,7 @@ class MagicMcpGroupImpl {
   async findManyGroupsById(d: {
     groupIds: string[];
     instance: Instance;
-    consumerSurface?: ConsumerSurface;
+    consumerProfile: ConsumerProfile & { groups: ConsumerProfileGroup[] };
   }) {
     if (d.groupIds.length === 0) return [];
 
@@ -240,8 +248,11 @@ class MagicMcpGroupImpl {
       where: {
         id: { in: d.groupIds },
         instanceOid: d.instance.oid,
-        consumerSurfaceMagicMcpGroupAccesses: d.consumerSurface
-          ? { some: { surfaceOid: d.consumerSurface.oid } }
+
+        consumerAccesses: d.consumerProfile
+          ? {
+              some: { consumerGroupOid: { in: d.consumerProfile.groups.map(g => g.groupOid) } }
+            }
           : undefined
       },
       include
