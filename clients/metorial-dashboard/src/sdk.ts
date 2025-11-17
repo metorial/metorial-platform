@@ -22,6 +22,10 @@ import {
   MetorialDashboardInstanceMagicMcpServersEndpoint,
   MetorialDashboardInstanceMagicMcpSessionsEndpoint,
   MetorialDashboardInstanceMagicMcpTokensEndpoint,
+  MetorialDashboardInstancePortalsConsumerAccessEndpoint,
+  MetorialDashboardInstancePortalsConsumerGroupsEndpoint,
+  MetorialDashboardInstancePortalsConsumerProfilesEndpoint,
+  MetorialDashboardInstancePortalsEndpoint,
   MetorialDashboardInstanceProviderOauthConnectionsAuthenticationsEndpoint,
   MetorialDashboardInstanceProviderOauthConnectionsEndpoint,
   MetorialDashboardInstanceProviderOauthConnectionsEventsEndpoint,
@@ -43,6 +47,7 @@ import {
   MetorialDashboardInstanceSessionsEventsEndpoint,
   MetorialDashboardInstanceSessionsMessagesEndpoint,
   MetorialDashboardInstanceSessionsServerSessionsEndpoint,
+  MetorialDashboardInstanceSsoTenantsEndpoint,
   MetorialDashboardOrganizationsEndpoint,
   MetorialDashboardOrganizationsInstancesEndpoint,
   MetorialDashboardOrganizationsInvitesEndpoint,
@@ -213,7 +218,15 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     roles: new MetorialDashboardOrganizationsTeamsRolesEndpoint(manager),
     projects: new MetorialDashboardOrganizationsTeamsProjectsEndpoint(manager),
     members: new MetorialDashboardOrganizationsTeamsMembersEndpoint(manager)
-  })
+  }),
+
+  portals: Object.assign(new MetorialDashboardInstancePortalsEndpoint(manager), {
+    consumerProfiles: new MetorialDashboardInstancePortalsConsumerProfilesEndpoint(manager),
+    consumerGroups: new MetorialDashboardInstancePortalsConsumerGroupsEndpoint(manager),
+    consumerAccess: new MetorialDashboardInstancePortalsConsumerAccessEndpoint(manager)
+  }),
+
+  ssoTenants: new MetorialDashboardInstanceSsoTenantsEndpoint(manager)
 }));
 
 export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>;

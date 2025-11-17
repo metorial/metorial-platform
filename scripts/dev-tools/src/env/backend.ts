@@ -12,6 +12,20 @@ export let backendEnv: Env = [
   { key: 'EMAIL_FROM_NAME' },
 
   {
+    key: 'CONSUMER_TOKEN_SECRET',
+    defaultValue: 'consumer-token-secret'
+  },
+  {
+    key: 'CONSUMER_SESSION_SECRET',
+    defaultValue: 'consumer-token-secret'
+  },
+
+  {
+    key: 'PORTAL_HOST_TEMPLATE',
+    defaultValue: 'http://localhost:4304/{portalId}'
+  },
+
+  {
     key: 'DATABASE_URL',
     defaultValue: `postgres://postgres:postgres@localhost:35432/${DB_PREFIX}`
   },
