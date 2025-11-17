@@ -6,7 +6,7 @@ import { consumerProfilePresenter } from '../presenters/consumer';
 import { portalPresenter } from '../presenters/portal';
 
 export let bootController = publicApp.controller({
-  boot: portalWithOptionalAuthApp.handler().do(async ctx => {
+  bootPortal: portalWithOptionalAuthApp.handler().do(async ctx => {
     let core = {
       portal: await portalPresenter(ctx.portal),
       flags: {}

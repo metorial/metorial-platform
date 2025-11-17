@@ -24,7 +24,8 @@ export let consumerMagicMcpSessionController = Controller.create(
   {
     name: 'Consumer Magic MCP Session',
     description:
-      'Magic MCP sessions are created when a user connects to a magic MCP session using a valid magic MCP token.'
+      'Magic MCP sessions are created when a user connects to a magic MCP session using a valid magic MCP token.',
+    hideInDocs: true
   },
   {
     list: consumerGroup

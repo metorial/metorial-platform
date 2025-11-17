@@ -25,7 +25,8 @@ export let consumerMagicMcpTokenController = Controller.create(
   {
     name: 'Consumer Magic MCP Token',
     description:
-      'Before you can connect to an MCP server, you need to create a magic MCP token.'
+      'Before you can connect to an MCP server, you need to create a magic MCP token.',
+    hideInDocs: true
   },
   {
     list: consumerGroup

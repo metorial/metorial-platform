@@ -1,7 +1,12 @@
 import { createServer, InferClient, rpcMux } from '@metorial/rpc';
+import { authController } from './controllers/auth';
+import { bootController } from './controllers/boot';
 import { publicApp } from './middleware/public';
 
-let rootController = publicApp.controller({});
+let rootController = publicApp.controller({
+  auth: authController,
+  boot: bootController
+});
 
 export let customPortalRPC = createServer({})(rootController);
 
