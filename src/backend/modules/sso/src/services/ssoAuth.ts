@@ -26,12 +26,23 @@ class ssoAuthServiceImpl {
       where: { ssoTenantId: res.tenant.id }
     });
 
+    let currentUser = await db.ssoUser.findUnique({
+      where: {
+        ssoUserId: res.user.id,
+        ssoTenantOid: tenant.oid
+      }
+    });
+    let allGroups = [...new Set([...(currentUser?.allGroups || []), ...res.profile.groups])];
+    let allRoles = [...new Set([...(currentUser?.allRoles || []), ...res.profile.roles])];
+
     let ssoUserData = {
       ssoTenantOid: tenant.oid,
       ssoUserId: res.user.id,
       email: res.user.email,
       firstName: res.user.firstName,
-      lastName: res.user.lastName
+      lastName: res.user.lastName,
+      allGroups,
+      allRoles
     };
     let user = await db.ssoUser.upsert({
       where: {
