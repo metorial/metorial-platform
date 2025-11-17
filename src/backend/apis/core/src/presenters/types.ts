@@ -13,7 +13,10 @@ import {
   CallbackSchedule,
   CodeBucketTemplate,
   Consumer,
+  ConsumerAccess,
+  ConsumerGroup,
   ConsumerProfile,
+  ConsumerProfileGroup,
   ConsumerSession,
   CustomServer,
   CustomServerDeployment,
@@ -643,6 +646,17 @@ export let portalType = PresentableType.create<{
   portal: Portal;
 }>()('portal');
 
+export let consumerGroupType = PresentableType.create<{
+  consumerGroup: ConsumerGroup;
+}>()('consumer.group');
+
+export let consumerAccessType = PresentableType.create<{
+  consumerAccess: ConsumerAccess & {
+    consumerGroup: ConsumerGroup;
+    magicMcpGroup: MagicMcpGroup | null;
+  };
+}>()('consumer.access');
+
 export let serverConfigVaultType = PresentableType.create<{
   serverConfigVault: ServerConfigVault & {
     secret: Secret;
@@ -689,6 +703,9 @@ export let consumerProfileType = PresentableType.create<{
   consumerProfile: ConsumerProfile & {
     consumer: Consumer;
     ssoUser: SsoUser | null;
+    groups: (ConsumerProfileGroup & {
+      group: ConsumerGroup;
+    })[];
   };
 }>()('consumer.profile');
 
