@@ -11,6 +11,9 @@ model SsoUser {
   firstName String
   lastName  String
 
+  allRoles  String[]
+  allGroups String[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 

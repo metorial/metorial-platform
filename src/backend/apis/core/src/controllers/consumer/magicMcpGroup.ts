@@ -15,7 +15,7 @@ export let consumerMagicMcpGroupGroup = consumerGroup.use(async ctx => {
   let magicMcpGroup = await magicMcpGroupService.getMagicMcpGroupById({
     magicMcpGroupId: ctx.params.magicMcpGroupId,
     instance: ctx.instance,
-    consumerSurface: ctx.consumerSurface
+    consumerProfile: ctx.consumerProfile
   });
 
   return { magicMcpGroup };
@@ -56,7 +56,7 @@ export let consumerMagicMcpGroupController = Controller.create(
           instance: ctx.instance,
           status: normalizeArrayParam(ctx.query.status) as any,
           search: ctx.query.search,
-          consumerSurface: ctx.consumerSurface
+          consumerProfile: ctx.consumerProfile
         });
 
         let list = await paginator.run(ctx.query);

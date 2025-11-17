@@ -1,6 +1,7 @@
 import { Context } from '@metorial/context';
 import {
-  ConsumerSurface,
+  ConsumerProfile,
+  ConsumerProfileGroup,
   db,
   ID,
   Instance,
@@ -38,7 +39,7 @@ let include = {
 
 class MagicMcpServerImpl {
   async getMagicMcpServerById(d: {
-    consumerSurface?: ConsumerSurface;
+    consumerProfile?: ConsumerProfile & { groups: ConsumerProfileGroup[] };
     instance: Instance;
     magicMcpServerId: string;
   }) {
@@ -46,12 +47,16 @@ class MagicMcpServerImpl {
       where: {
         instanceOid: d.instance.oid,
 
-        groups: d.consumerSurface
+        groups: d.consumerProfile
           ? {
               some: {
                 magicMcpGroup: {
-                  consumerSurfaceMagicMcpGroupAccesses: {
-                    some: { surfaceOid: d.consumerSurface.oid }
+                  consumerAccesses: {
+                    some: {
+                      consumerGroupOid: {
+                        in: d.consumerProfile.groups.map(g => g.groupOid)
+                      }
+                    }
                   }
                 }
               }
@@ -226,7 +231,7 @@ class MagicMcpServerImpl {
     search?: string;
     instance: Instance;
     status?: MagicMcpServerStatus[];
-    consumerSurface?: ConsumerSurface;
+    consumerProfile?: ConsumerProfile & { groups: ConsumerProfileGroup[] };
   }) {
     let search = d.search
       ? await searchService.search<{ id: string }>({
@@ -279,13 +284,17 @@ class MagicMcpServerImpl {
                 ? { status: { in: d.status } }
                 : { status: { not: 'archived' as const } },
 
-              d.consumerSurface
+              d.consumerProfile
                 ? {
                     groups: {
                       some: {
                         magicMcpGroup: {
-                          consumerSurfaceMagicMcpGroupAccesses: {
-                            some: { surfaceOid: d.consumerSurface.oid }
+                          consumerAccesses: {
+                            some: {
+                              consumerGroupOid: {
+                                in: d.consumerProfile.groups.map(g => g.groupOid)
+                              }
+                            }
                           }
                         }
                       }

@@ -14,7 +14,7 @@ export let consumerMagicMcpServerGroup = consumerGroup.use(async ctx => {
   let magicMcpServer = await magicMcpServerService.getMagicMcpServerById({
     magicMcpServerId: ctx.params.magicMcpServerId,
     instance: ctx.instance,
-    consumerSurface: ctx.consumerSurface
+    consumerProfile: ctx.consumerProfile
   });
 
   return { magicMcpServer };

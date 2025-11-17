@@ -283,7 +283,12 @@ class consumerAuthServiceImpl {
           include: {
             consumer: true,
             ssoUser: true,
-            surface: true
+            surface: true,
+            groups: {
+              include: {
+                group: true
+              }
+            }
           }
         }
       }
