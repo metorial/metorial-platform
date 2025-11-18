@@ -24,7 +24,7 @@ export let PortalOverviewPage = () => {
       {renderWithLoader({ portal })(({ portal }) => (
         <>
           <Attributes
-            itemWidth="300px"
+            itemWidth="250px"
             attributes={[
               {
                 label: 'Name',
@@ -33,6 +33,10 @@ export let PortalOverviewPage = () => {
               {
                 label: 'Portal ID',
                 content: <ID id={portal.data.id} />
+              },
+              {
+                label: 'Portal URL',
+                content: <ID id={portal.data.urls[0].url} />
               },
               {
                 label: 'Created At',

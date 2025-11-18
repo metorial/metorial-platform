@@ -8,6 +8,7 @@ import {
   usePortal
 } from '@metorial/state';
 import { Button, Callout, LinkTabs, Spacer } from '@metorial/ui';
+import { RiExternalLinkLine } from '@remixicon/react';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { showConsumerGroupFormModal } from '../../../scenes/portals/groupsTable';
 
@@ -45,6 +46,12 @@ export let PortalLayout = () => {
         ]}
         actions={
           <>
+            <a href={portal.data?.urls[0].url}>
+              <Button size="2" as="span" iconRight={<RiExternalLinkLine />}>
+                Open Portal
+              </Button>
+            </a>
+
             {pathname.endsWith('/groups') && (
               <Button
                 onClick={() => showConsumerGroupFormModal({ portalId: portal.data?.id! })}
