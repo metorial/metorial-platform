@@ -188,6 +188,20 @@ let InstancePaths = Object.assign(
       return InstancePaths(organization, project, instance, 'server-run', id, ...subPages);
     },
 
+    portals: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'portals', ...subPages),
+    portal: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'portal', id, ...subPages),
+
     profile: (
       organization: EntityParam,
       project: EntityParam,

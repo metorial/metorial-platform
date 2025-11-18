@@ -5,7 +5,7 @@ import { styled } from 'styled-components';
 
 export interface SimpleSidebarGroup {
   title?: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   items: SimpleSidebarItem[];
 }
 
@@ -41,9 +41,9 @@ let GroupHeader = styled('header')`
 `;
 
 let GroupTitle = styled('h1')`
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
+  font-size: 12px;
+  font-weight: 700;
+  color: #777;
 `;
 
 let GroupIcon = styled('span')`
@@ -145,7 +145,7 @@ export let SimpleSidebar = ({ groups }: { groups: SimpleSidebarGroup[] }) => {
         <Group key={i}>
           {group.title && (
             <GroupHeader>
-              <GroupIcon>{group.icon}</GroupIcon>
+              {group.icon && <GroupIcon>{group.icon}</GroupIcon>}
               <GroupTitle>{group.title}</GroupTitle>
             </GroupHeader>
           )}

@@ -188,7 +188,7 @@ export let MagicMcpServersTable = (filter: DashboardInstanceMagicMcpServersListQ
   return renderWithPagination(servers)(servers => (
     <>
       <Table
-        headers={['Name', 'Created']}
+        headers={['Info', 'Created']}
         data={servers.data.items.map(server => ({
           data: [
             <div>

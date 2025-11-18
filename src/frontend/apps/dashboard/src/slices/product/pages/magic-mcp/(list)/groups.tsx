@@ -6,10 +6,10 @@ import { useDebounced } from '../../../../../hooks/useDebounced';
 import { MagicGroupsTable } from '../../../scenes/magicMcp/groupsTable';
 
 export let MagicMcpGroupsPage = () => {
+  let instance = useCurrentInstance();
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 300);
 
-  let instance = useCurrentInstance();
   return renderWithLoader({ instance })(({ instance }) => (
     <>
       <Input

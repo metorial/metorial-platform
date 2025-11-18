@@ -58,11 +58,9 @@ export let TextArrayInput = ({
     <>
       {label && <InputLabel>{label}</InputLabel>}
 
-      {description && <InputDescription>{label}</InputDescription>}
+      {description && <InputDescription>{description}</InputDescription>}
 
-      {label && ( // Must be after description
-        <Spacer height={5} />
-      )}
+      {label && <Spacer height={5} />}
 
       <Wrapper>
         {value.map((v, i) => (
