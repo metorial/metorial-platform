@@ -110,8 +110,9 @@ export type PortalsConsumerAccessListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  consumerGroupIds?: string | string[] | undefined;
-  magicMcpGroupIds?: string | string[] | undefined;
+  consumerGroupId?: string | string[] | undefined;
+  magicMcpGroupId?: string | string[] | undefined;
+  type?: 'magic_mcp_group' | 'magic_mcp_group'[] | undefined;
 };
 
 export let mapPortalsConsumerAccessListQuery = mtMap.union([
@@ -123,8 +124,8 @@ export let mapPortalsConsumerAccessListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
-      consumerGroupIds: mtMap.objectField(
-        'consumer_group_ids',
+      consumerGroupId: mtMap.objectField(
+        'consumer_group_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -133,8 +134,8 @@ export let mapPortalsConsumerAccessListQuery = mtMap.union([
           )
         ])
       ),
-      magicMcpGroupIds: mtMap.objectField(
-        'magic_mcp_group_ids',
+      magicMcpGroupId: mtMap.objectField(
+        'magic_mcp_group_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
@@ -142,6 +143,10 @@ export let mapPortalsConsumerAccessListQuery = mtMap.union([
             mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
           )
         ])
+      ),
+      type: mtMap.objectField(
+        'type',
+        mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
       )
     })
   )

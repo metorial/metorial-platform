@@ -10,12 +10,16 @@ import {
   mapDashboardInstancePortalsConsumerGroupsGetOutput,
   mapDashboardInstancePortalsConsumerGroupsListOutput,
   mapDashboardInstancePortalsConsumerGroupsListQuery,
+  mapDashboardInstancePortalsConsumerGroupsUpdateBody,
+  mapDashboardInstancePortalsConsumerGroupsUpdateOutput,
   type DashboardInstancePortalsConsumerGroupsCreateBody,
   type DashboardInstancePortalsConsumerGroupsCreateOutput,
   type DashboardInstancePortalsConsumerGroupsDeleteOutput,
   type DashboardInstancePortalsConsumerGroupsGetOutput,
   type DashboardInstancePortalsConsumerGroupsListOutput,
-  type DashboardInstancePortalsConsumerGroupsListQuery
+  type DashboardInstancePortalsConsumerGroupsListQuery,
+  type DashboardInstancePortalsConsumerGroupsUpdateBody,
+  type DashboardInstancePortalsConsumerGroupsUpdateOutput
 } from '../resources';
 
 /**
@@ -135,6 +139,40 @@ export class MetorialPortalsConsumerGroupsEndpoint {
 
     return this._post(request).transform(
       mapDashboardInstancePortalsConsumerGroupsCreateOutput
+    );
+  }
+
+  /**
+   * @name Update Portal Consumer Group
+   * @description Updates an existing portal consumer group.
+   *
+   * @param `portalId` - string
+   * @param `consumerGroupId` - string
+   * @param `body` - DashboardInstancePortalsConsumerGroupsUpdateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstancePortalsConsumerGroupsUpdateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  update(
+    portalId: string,
+    consumerGroupId: string,
+    body: DashboardInstancePortalsConsumerGroupsUpdateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstancePortalsConsumerGroupsUpdateOutput> {
+    let path = `portals/${portalId}/consumer-groups/${consumerGroupId}`;
+
+    let request = {
+      path,
+      body: mapDashboardInstancePortalsConsumerGroupsUpdateBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._put(request).transform(
+      mapDashboardInstancePortalsConsumerGroupsUpdateOutput
     );
   }
 

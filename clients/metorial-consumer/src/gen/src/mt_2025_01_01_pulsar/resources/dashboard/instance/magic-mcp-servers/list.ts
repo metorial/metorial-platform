@@ -135,6 +135,8 @@ export type DashboardInstanceMagicMcpServersListQuery = {
   serverImplementationId?: string | string[] | undefined;
   sessionId?: string | string[] | undefined;
   magicMcpGroupId?: string | string[] | undefined;
+  consumerGroupId?: string | string[] | undefined;
+  portalId?: string | string[] | undefined;
   search?: string | undefined;
 };
 
@@ -193,6 +195,26 @@ export let mapDashboardInstanceMagicMcpServersListQuery = mtMap.union([
       ),
       magicMcpGroupId: mtMap.objectField(
         'magic_mcp_group_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      consumerGroupId: mtMap.objectField(
+        'consumer_group_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      portalId: mtMap.objectField(
+        'portal_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

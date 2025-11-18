@@ -7,6 +7,7 @@ export type DashboardInstancePortalsDeleteOutput = {
   name: string;
   slug: string;
   description: string | null;
+  urls: { type: 'default'; url: string }[];
   brand: { image: string; name: string };
   createdAt: Date;
   updatedAt: Date;
@@ -20,6 +21,15 @@ export let mapDashboardInstancePortalsDeleteOutput =
     name: mtMap.objectField('name', mtMap.passthrough()),
     slug: mtMap.objectField('slug', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
+    urls: mtMap.objectField(
+      'urls',
+      mtMap.array(
+        mtMap.object({
+          type: mtMap.objectField('type', mtMap.passthrough()),
+          url: mtMap.objectField('url', mtMap.passthrough())
+        })
+      )
+    ),
     brand: mtMap.objectField(
       'brand',
       mtMap.object({

@@ -31,11 +31,18 @@ export let mapDashboardInstancePortalsConsumerGroupsCreateOutput =
 export type DashboardInstancePortalsConsumerGroupsCreateBody = {
   name: string;
   description?: string | undefined;
+  ssoGroupIds?: string[] | undefined;
+  isDefault?: boolean | undefined;
 };
 
 export let mapDashboardInstancePortalsConsumerGroupsCreateBody =
   mtMap.object<DashboardInstancePortalsConsumerGroupsCreateBody>({
     name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough())
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    ssoGroupIds: mtMap.objectField(
+      'sso_group_ids',
+      mtMap.array(mtMap.passthrough())
+    ),
+    isDefault: mtMap.objectField('is_default', mtMap.passthrough())
   });
 
