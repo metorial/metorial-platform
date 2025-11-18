@@ -74,7 +74,7 @@ export let portalConsumerGroupController = Controller.create(
         });
       }),
 
-    create: consumerGroupGroup
+    create: portalGroup
       .post(
         instancePath('portals/:portalId/consumer-groups', 'portals.consumerGroups.create'),
         {
@@ -92,7 +92,9 @@ export let portalConsumerGroupController = Controller.create(
         'default',
         v.object({
           name: v.string(),
-          description: v.optional(v.string())
+          description: v.optional(v.string()),
+          sso_group_ids: v.optional(v.array(v.string())),
+          is_default: v.optional(v.boolean())
         })
       )
       .output(consumerGroupPresenter)
@@ -101,11 +103,56 @@ export let portalConsumerGroupController = Controller.create(
           consumerSurface: ctx.portal.surface,
           input: {
             name: ctx.body.name,
-            description: ctx.body.description
+            description: ctx.body.description,
+            ssoGroupIds: ctx.body.sso_group_ids,
+            isDefault: ctx.body.is_default
           }
         });
 
         return consumerGroupPresenter.present({ consumerGroup });
+      }),
+
+    update: consumerGroupGroup
+      .put(
+        instancePath(
+          'portals/:portalId/consumer-groups/:consumerGroupId',
+          'portals.consumerGroups.update'
+        ),
+        {
+          name: 'Update Portal Consumer Group',
+          description: 'Updates an existing portal consumer group.'
+        }
+      )
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.portal.access:write']
+        })
+      )
+      .use(hasFlags(['paid-portals']))
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
+          sso_group_ids: v.optional(v.array(v.string())),
+          is_default: v.optional(v.boolean())
+        })
+      )
+      .output(consumerGroupPresenter)
+      .do(async ctx => {
+        let consumerGroup = await consumerGroupService.updateConsumerGroup({
+          consumerGroup: ctx.consumerGroup,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            ssoGroupIds: ctx.body.sso_group_ids,
+            isDefault: ctx.body.is_default
+          }
+        });
+
+        return consumerGroupPresenter.present({
+          consumerGroup
+        });
       }),
 
     delete: consumerGroupGroup

@@ -4,7 +4,7 @@ import { v } from '@metorial/validation';
 import { portalType } from '../types';
 
 export let v1PortalPresenter = Presenter.create(portalType)
-  .presenter(async ({ portal }, opts) => ({
+  .presenter(async ({ portal, portalUrl }, opts) => ({
     object: 'portal',
 
     id: portal.id,
@@ -17,6 +17,13 @@ export let v1PortalPresenter = Presenter.create(portalType)
     name: portal.name,
     slug: portal.slug,
     description: portal.description,
+
+    urls: [
+      {
+        type: 'default',
+        url: portalUrl
+      }
+    ],
 
     brand: {
       image: await getImageUrl({
@@ -62,6 +69,23 @@ export let v1PortalPresenter = Presenter.create(portalType)
           name: 'description',
           description: 'The description of the portal'
         })
+      ),
+
+      urls: v.array(
+        v.object({
+          type: v.enumOf(['default'], {
+            name: 'urls.type',
+            description: 'The type of the portal URL'
+          }),
+          url: v.string({
+            name: 'urls.url',
+            description: 'The portal URL'
+          })
+        }),
+        {
+          name: 'urls',
+          description: 'List of URLs associated with the portal'
+        }
       ),
 
       brand: v.object(

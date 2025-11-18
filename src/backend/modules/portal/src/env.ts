@@ -18,7 +18,7 @@ let isVanityPath = !isVanityDomain;
 
 export let getPortalHost = (d: { portal: Portal }) => {
   return {
-    host: env.portals.PORTAL_HOST_TEMPLATE.replace('{portalId}', d.portal.id),
+    host: env.portals.PORTAL_HOST_TEMPLATE.replace('{portalId}', d.portal.slug),
     isVanityDomain,
     isVanityPath
   };

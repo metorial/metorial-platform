@@ -43,8 +43,11 @@ export let portalConsumerAccessController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            consumer_group_ids: v.optional(v.union([v.string(), v.array(v.string())])),
-            magic_mcp_group_ids: v.optional(v.union([v.string(), v.array(v.string())]))
+            consumer_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            type: v.optional(
+              v.union([v.enumOf(['magic_mcp_group']), v.array(v.enumOf(['magic_mcp_group']))])
+            )
           })
         )
       )
@@ -52,8 +55,9 @@ export let portalConsumerAccessController = Controller.create(
         let paginator = await consumerAccessService.listConsumerAccesses({
           consumerSurface: ctx.portal.surface,
 
-          magicMcpGroupIds: normalizeArrayParam(ctx.query.magic_mcp_group_ids),
-          consumerGroupIds: normalizeArrayParam(ctx.query.consumer_group_ids)
+          magicMcpGroupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
+          consumerGroupIds: normalizeArrayParam(ctx.query.consumer_group_id),
+          types: normalizeArrayParam(ctx.query.type)
         });
 
         let list = await paginator.run(ctx.query);
@@ -87,7 +91,7 @@ export let portalConsumerAccessController = Controller.create(
         });
       }),
 
-    create: consumerAccessGroup
+    create: portalGroup
       .post(
         instancePath('portals/:portalId/consumer-access', 'portals.consumerAccess.create'),
         {
@@ -97,7 +101,7 @@ export let portalConsumerAccessController = Controller.create(
       )
       .use(
         checkAccess({
-          possibleScopes: ['instance.portal.access:read']
+          possibleScopes: ['instance.portal.access:write']
         })
       )
       .use(hasFlags(['paid-portals']))
@@ -149,7 +153,7 @@ export let portalConsumerAccessController = Controller.create(
       )
       .use(
         checkAccess({
-          possibleScopes: ['instance.portal.access:read']
+          possibleScopes: ['instance.portal.access:write']
         })
       )
       .use(hasFlags(['paid-portals']))

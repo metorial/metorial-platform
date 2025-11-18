@@ -41,7 +41,21 @@ export let portalController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, portal => portalPresenter.present({ portal }));
+        let urls = Object.fromEntries(
+          await Promise.all(
+            list.items.map(async portal => [
+              portal.id,
+              (await portalService.getPortalHost({ portal })).host
+            ])
+          )
+        );
+
+        return Paginator.present(list, portal =>
+          portalPresenter.present({
+            portal,
+            portalUrl: urls[portal.id]
+          })
+        );
       }),
 
     get: portalGroup
@@ -53,7 +67,10 @@ export let portalController = Controller.create(
       .use(hasFlags(['paid-portals']))
       .output(portalPresenter)
       .do(async ctx => {
-        return portalPresenter.present({ portal: ctx.portal });
+        return portalPresenter.present({
+          portal: ctx.portal,
+          portalUrl: (await portalService.getPortalHost({ portal: ctx.portal })).host
+        });
       }),
 
     create: instanceGroup
@@ -75,12 +92,15 @@ export let portalController = Controller.create(
         let portal = await portalService.createPortal({
           organization: ctx.organization,
           input: {
-            name: ctx.input.name,
-            description: ctx.input.description
+            name: ctx.body.name,
+            description: ctx.body.description
           }
         });
 
-        return portalPresenter.present({ portal });
+        return portalPresenter.present({
+          portal,
+          portalUrl: (await portalService.getPortalHost({ portal })).host
+        });
       }),
 
     update: portalGroup
@@ -102,12 +122,15 @@ export let portalController = Controller.create(
         let portal = await portalService.updatePortal({
           portal: ctx.portal,
           input: {
-            name: ctx.input.name,
-            description: ctx.input.description
+            name: ctx.body.name,
+            description: ctx.body.description
           }
         });
 
-        return portalPresenter.present({ portal });
+        return portalPresenter.present({
+          portal,
+          portalUrl: (await portalService.getPortalHost({ portal })).host
+        });
       }),
 
     delete: portalGroup
@@ -123,7 +146,10 @@ export let portalController = Controller.create(
           portal: ctx.portal
         });
 
-        return portalPresenter.present({ portal });
+        return portalPresenter.present({
+          portal,
+          portalUrl: (await portalService.getPortalHost({ portal })).host
+        });
       })
   }
 );

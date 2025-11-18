@@ -228,6 +228,8 @@ class MagicMcpServerImpl {
     serverIds?: string[];
     sessionIds?: string[];
     groupIds?: string[];
+    consumerGroupIds?: string[];
+    portalIds?: string[];
     search?: string;
     instance: Instance;
     status?: MagicMcpServerStatus[];
@@ -271,6 +273,16 @@ class MagicMcpServerImpl {
           where: { id: { in: d.groupIds } }
         })
       : undefined;
+    let consumerGroups = d.consumerGroupIds?.length
+      ? await db.consumerGroup.findMany({
+          where: { id: { in: d.consumerGroupIds } }
+        })
+      : undefined;
+    let portals = d.portalIds?.length
+      ? await db.portal.findMany({
+          where: { id: { in: d.portalIds } }
+        })
+      : undefined;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -300,16 +312,58 @@ class MagicMcpServerImpl {
                       }
                     }
                   }
+                : undefined!,
+
+              groups
+                ? {
+                    groups: {
+                      some: {
+                        magicMcpGroupOid: { in: groups.map(g => g.oid) }
+                      }
+                    }
+                  }
+                : undefined!,
+
+              consumerGroups
+                ? {
+                    groups: {
+                      some: {
+                        magicMcpGroup: {
+                          consumerAccesses: {
+                            some: {
+                              consumerGroupOid: { in: consumerGroups.map(g => g.oid) }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                : undefined!,
+
+              portals
+                ? {
+                    groups: {
+                      some: {
+                        magicMcpGroup: {
+                          consumerAccesses: {
+                            some: {
+                              consumerGroup: {
+                                surface: {
+                                  portals: {
+                                    some: {
+                                      oid: { in: portals.map(p => p.oid) }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
                 : undefined!
             ].filter(Boolean),
-
-            groups: groups
-              ? {
-                  some: {
-                    magicMcpGroupOid: { in: groups.map(g => g.oid) }
-                  }
-                }
-              : undefined,
 
             serverDeployment: {
               serverDeployment: {

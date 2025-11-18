@@ -644,6 +644,7 @@ export let callbackNotificationType = PresentableType.create<{
 
 export let portalType = PresentableType.create<{
   portal: Portal;
+  portalUrl: string;
 }>()('portal');
 
 export let consumerGroupType = PresentableType.create<{

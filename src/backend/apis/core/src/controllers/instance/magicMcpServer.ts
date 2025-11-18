@@ -73,6 +73,8 @@ export let magicMcpServerController = Controller.create(
             server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())])),
             session_id: v.optional(v.union([v.string(), v.array(v.string())])),
             magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            consumer_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            portal_id: v.optional(v.union([v.string(), v.array(v.string())])),
             search: v.optional(v.string())
           })
         )
@@ -87,6 +89,8 @@ export let magicMcpServerController = Controller.create(
           serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_id),
           sessionIds: normalizeArrayParam(ctx.query.session_id),
           groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
+          consumerGroupIds: normalizeArrayParam(ctx.query.consumer_group_id),
+          portalIds: normalizeArrayParam(ctx.query.portal_id),
           search: ctx.query.search
         });
 

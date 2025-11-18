@@ -35,7 +35,7 @@ class consumerGroupServiceImpl {
     input: {
       name?: string;
       description?: string;
-      groupIds?: string[];
+      ssoGroupIds?: string[];
       isDefault?: boolean;
     };
   }) {
@@ -45,7 +45,7 @@ class consumerGroupServiceImpl {
         data: {
           name: d.input.name ?? d.consumerGroup.name,
           description: d.input.description ?? d.consumerGroup.description,
-          ssoGroupIds: d.input.groupIds ?? d.consumerGroup.ssoGroupIds,
+          ssoGroupIds: d.input.ssoGroupIds ?? d.consumerGroup.ssoGroupIds,
           isDefault: d.input.isDefault ?? d.consumerGroup.isDefault
         },
         include

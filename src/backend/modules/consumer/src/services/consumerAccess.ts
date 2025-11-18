@@ -1,5 +1,6 @@
 import {
   ConsumerAccess,
+  ConsumerAccessType,
   ConsumerGroup,
   ConsumerSurface,
   db,
@@ -20,6 +21,7 @@ class consumerAccessServiceImpl {
     consumerSurface: ConsumerSurface;
     consumerGroupIds?: string[];
     magicMcpGroupIds?: string[];
+    types?: ConsumerAccessType[];
   }) {
     let consumerGroups = d.consumerGroupIds
       ? await db.consumerGroup.findMany({
@@ -44,6 +46,8 @@ class consumerAccessServiceImpl {
             ...opts,
             where: {
               surfaceOid: d.consumerSurface.oid,
+
+              type: d.types ? { in: d.types } : undefined,
 
               magicMcpGroupOid: magicMcpGroups.length
                 ? { in: magicMcpGroups.map(g => g.oid) }
@@ -84,8 +88,14 @@ class consumerAccessServiceImpl {
       magicMcpGroup: MagicMcpGroup;
     };
   }) {
-    return await db.consumerAccess.create({
-      data: {
+    return await db.consumerAccess.upsert({
+      where: {
+        consumerGroupOid_magicMcpGroupOid: {
+          consumerGroupOid: d.consumerGroup.oid,
+          magicMcpGroupOid: d.access.magicMcpGroup.oid
+        }
+      },
+      create: {
         id: await ID.generateId('consumerAccess'),
         surfaceOid: d.consumerSurface.oid,
         consumerGroupOid: d.consumerGroup.oid,
@@ -94,6 +104,7 @@ class consumerAccessServiceImpl {
         magicMcpGroupOid:
           d.access.type === 'magic_mcp_group' ? d.access.magicMcpGroup.oid : undefined
       },
+      update: {},
       include
     });
   }
