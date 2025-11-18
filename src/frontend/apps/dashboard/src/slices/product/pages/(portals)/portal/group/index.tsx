@@ -1,5 +1,4 @@
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useMagicMcpGroups,
@@ -183,13 +182,7 @@ export let PortalGroupOverviewPage = () => {
                       Remove
                     </Button>
                   </div>
-                ],
-                href: Paths.instance.portal(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data,
-                  access.id
-                )
+                ]
               }))}
             />
 
