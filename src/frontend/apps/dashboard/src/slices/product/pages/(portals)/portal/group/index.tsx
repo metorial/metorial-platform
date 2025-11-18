@@ -88,20 +88,27 @@ export let PortalGroupOverviewPage = () => {
                               <Entity.Content>
                                 <Entity.Field
                                   prefix={
-                                    <Checkbox
-                                      checked={selected === server.id}
-                                      onCheckedChange={v =>
-                                        setSelected(prev => {
-                                          if (prev == server.id) {
-                                            return undefined;
-                                          } else {
-                                            return server.id;
-                                          }
-                                        })
-                                      }
-                                      label="Select Server"
-                                      hideLabel
-                                    />
+                                    <div
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                      }}
+                                    >
+                                      <Checkbox
+                                        checked={selected === server.id}
+                                        onCheckedChange={v =>
+                                          setSelected(prev => {
+                                            if (prev == server.id) {
+                                              return undefined;
+                                            } else {
+                                              return server.id;
+                                            }
+                                          })
+                                        }
+                                        label="Select Server"
+                                        hideLabel
+                                      />
+                                    </div>
                                   }
                                   title={server.name}
                                   description={server.description}
