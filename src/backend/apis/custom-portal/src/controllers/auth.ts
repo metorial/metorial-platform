@@ -7,6 +7,8 @@ import { getSessionCookieName } from '../middleware/portal';
 import { publicApp } from '../middleware/public';
 import { authCodePresenter } from '../presenters/authCode';
 import { authFactorPresenter } from '../presenters/authFactor';
+import { consumerSurfacePresenter } from '../presenters/consumerSurface';
+import { portalPresenter } from '../presenters/portal';
 
 let getCookieOpts = (session: ConsumerSession) => ({
   path: '/',
@@ -31,7 +33,7 @@ let surfaceApp = publicApp.use(async ctx => {
 });
 
 export let authController = publicApp.controller({
-  getFactors: surfaceApp
+  boot: surfaceApp
     .handler()
     .input(
       v.object({
@@ -43,7 +45,11 @@ export let authController = publicApp.controller({
         surface: ctx.surface
       });
 
-      return factors.map(f => authFactorPresenter(f));
+      return {
+        portal: await portalPresenter(ctx.portal),
+        surface: await consumerSurfacePresenter(ctx.surface),
+        factors: factors.map(f => authFactorPresenter(f))
+      };
     }),
 
   authenticateWithEmailCodeStart: surfaceApp
@@ -179,6 +185,21 @@ export let authController = publicApp.controller({
         token,
         getCookieOpts(session)
       );
+
+      return {};
+    }),
+
+  logout: surfaceApp
+    .handler()
+    .input(
+      v.object({
+        portalId: v.string()
+      })
+    )
+    .do(async ctx => {
+      ctx.setCookie(getSessionCookieName({ consumerSurfaceId: ctx.surface.id }), '', {
+        expires: new Date(0)
+      });
 
       return {};
     })

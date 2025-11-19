@@ -12,7 +12,7 @@ export let portalGroup = instanceGroup.use(async ctx => {
 
   let portal = await portalService.getPortalById({
     portalId: ctx.params.portalId,
-    organization: ctx.organization
+    instance: ctx.instance
   });
 
   return { portal };
@@ -36,7 +36,7 @@ export let portalController = Controller.create(
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
         let paginator = await portalService.listPortals({
-          organization: ctx.organization
+          instance: ctx.instance
         });
 
         let list = await paginator.run(ctx.query);
@@ -91,6 +91,7 @@ export let portalController = Controller.create(
       .do(async ctx => {
         let portal = await portalService.createPortal({
           organization: ctx.organization,
+          instance: ctx.instance,
           input: {
             name: ctx.body.name,
             description: ctx.body.description

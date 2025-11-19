@@ -7,6 +7,7 @@ import { callbacksQueueProcessor } from '@metorial/module-callbacks';
 import { catalogQueueProcessor } from '@metorial/module-catalog';
 import { codeBucketQueueProcessor } from '@metorial/module-code-bucket';
 import { communityQueueProcessor } from '@metorial/module-community';
+import { consumerQueueProcessor } from '@metorial/module-consumer';
 import { customServerQueueProcessor } from '@metorial/module-custom-server';
 import { emailQueueProcessor } from '@metorial/module-email';
 import { engineQueueProcessor } from '@metorial/module-engine';
@@ -15,6 +16,7 @@ import { fileQueueProcessor } from '@metorial/module-file';
 import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
 import { magicQueueProcessor } from '@metorial/module-magic';
 import { organizationQueueProcessor } from '@metorial/module-organization';
+import { portalQueueProcessor } from '@metorial/module-portal';
 import { protectQueueProcessor } from '@metorial/module-protect';
 import { providerOauthQueueProcessor } from '@metorial/module-provider-oauth';
 import { scmQueueProcessor } from '@metorial/module-scm';
@@ -51,5 +53,7 @@ export let worker = runQueueProcessors([
   scmQueueProcessor,
   callbacksQueueProcessor,
   protectQueueProcessor,
-  ssoQueueProcessor
+  ssoQueueProcessor,
+  consumerQueueProcessor,
+  portalQueueProcessor
 ]);

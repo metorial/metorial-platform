@@ -64,4 +64,5 @@ model Instance {
   serverConfigVaults       ServerConfigVault[]
   providerOAuthTakeIn      ProviderOAuthTakeIn[]
   magicMcpGroups           MagicMcpGroup[]
+  portals                  Portal[]
 }

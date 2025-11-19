@@ -23,6 +23,9 @@ model Portal {
   surfaceOid BigInt
   surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid])
 
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }
