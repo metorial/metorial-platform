@@ -35,6 +35,10 @@ class consumerSurfaceServiceImpl {
     instance: Instance;
   }) {
     return withTransaction(async db => {
+      let systemActor = await organizationActorService.getSystemActor({
+        organization: d.organization
+      });
+
       let publishableApiKey = await apiKeyService.createApiKey({
         kind: 'system_internal',
         instance: d.instance,
@@ -44,9 +48,7 @@ class consumerSurfaceServiceImpl {
           ua: 'system'
         },
         type: 'instance_access_token_publishable',
-        performedBy: await organizationActorService.getSystemActor({
-          organization: d.organization
-        }),
+        performedBy: systemActor,
         input: {
           name: `Publishable API Key for Consumer Surface ${d.input.name}`
         }

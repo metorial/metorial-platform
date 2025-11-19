@@ -28,10 +28,13 @@ export let bootController = publicApp.controller({
         portalId: urlRes.portalId
       });
 
+      let publishableApiKey = portal.surface.publishableApiKey.secrets[0].secret;
+
       let core = {
         portalUrl: urlRes.portalUrl,
         portal: await portalPresenter(portal),
         surface: await consumerSurfacePresenter(portal.surface),
+        publishableApiKey,
         flags: {}
       };
 

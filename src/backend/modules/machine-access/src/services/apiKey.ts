@@ -2,6 +2,7 @@ import { UnifiedApiKey } from '@metorial/api-keys';
 import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
 import {
+  addAfterTransactionHook,
   ApiKey,
   ApiKeyKind,
   db,
@@ -159,11 +160,13 @@ class ApiKeyService {
       };
     });
 
-    await Fabric.fire('machine_access.api_key.created:after', {
-      ...d,
-      apiKey: res.apiKey,
-      machineAccess: res.apiKey.machineAccess
-    });
+    addAfterTransactionHook(() =>
+      Fabric.fire('machine_access.api_key.created:after', {
+        ...d,
+        apiKey: res.apiKey,
+        machineAccess: res.apiKey.machineAccess
+      })
+    );
 
     return res;
   }
