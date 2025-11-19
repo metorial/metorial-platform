@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { createGlobalStyle } from 'styled-components';
 import { useDebounced } from '../../hooks/useDebounced';
+import { useServerListings } from '../../state/consumer/listings';
+import { usePaths } from '../../state/portal/path';
 
 let Global = createGlobalStyle`
   :root {
@@ -299,18 +301,13 @@ export let SearchMenu = ({
   let [value, setValue] = useState('');
   let searchDebounced = useDebounced(value, 500);
 
-  let instance = useCurrentInstance();
-  let org = useCurrentOrganization();
+  let Paths = usePaths();
 
-  let servers = useServerListings(
-    instance.data
-      ? {
-          limit: 50,
-          search: searchDebounced,
-          orderByRank: true
-        }
-      : null
-  );
+  let servers = useServerListings({
+    limit: 50,
+    search: searchDebounced,
+    orderByRank: true
+  });
 
   useEffect(() => {
     let down = (e: KeyboardEvent) => {
@@ -356,41 +353,13 @@ export let SearchMenu = ({
         <List>
           <Empty>No results found.</Empty>
 
-          {/* <Command.Group heading="Letters">
-            <Command.Item>a</Command.Item>
-            <Command.Item>b</Command.Item>
-            <Command.Separator />
-            <Command.Item>c</Command.Item>
-          </Command.Group>
-
-          <Command.Item>Apple</Command.Item>
-
-          <Command.Group heading="Fruits">
-            {Array.from({ length: 100 }, (_, i) => (
-              <Command.Item key={i}>Item {i + 1}</Command.Item>
-            ))}
-          </Command.Group> */}
-
           {items.map(server => (
             <Command.Item
               key={server.id}
               value={`${server.name} ${server.vendor?.name} ${server.slug}`}
               onSelect={() => {
                 setOpen(false);
-                // window.location.href = `/servers/${server.id}`;
-
-                if (instance.data) {
-                  navigate(
-                    `/i/${instance.data.organization.slug}/${instance.data.project.slug}/${instance.data.slug}/server/${server.server.id}`
-                  );
-                } else if (org.data) {
-                  let instance = org.data.instances[0];
-                  navigate(
-                    `/i/${org.data.slug}/${instance.project.slug}/${instance.slug}/server/${server.server.id}`
-                  );
-                } else {
-                  window.location.href = `https://metorial.com/marketplace/s/${server.slug}`;
-                }
+                navigate(Paths.server(server.id));
               }}
             >
               <img src={server?.imageUrl} alt={server.name} width={24} height={24} />

@@ -1,5 +1,5 @@
 import { Paths } from '@metorial/frontend-config';
-import { AppLayout } from '@metorial/layout';
+import { AppLayout, OssApplicationLayoutNav } from '@metorial/layout';
 import {
   lastInstanceIdStore,
   useCurrentInstance,
@@ -51,6 +51,7 @@ export let ProjectPageLayout = () => {
 
   return (
     <AppLayout
+      Nav={() => <OssApplicationLayoutNav />}
       id="product"
       mainGroups={[
         {

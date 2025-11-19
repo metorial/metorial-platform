@@ -27,6 +27,7 @@
   "workspaces": [
     "_clients/metorial-node/*/*",
     "clients/metorial-dashboard",
+    "clients/metorial-consumer",
     "scripts/*",
     "vendor-placeholder/*",
     "src/*",

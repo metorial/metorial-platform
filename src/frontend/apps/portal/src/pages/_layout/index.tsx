@@ -1,5 +1,4 @@
-import { AppLayout } from '@metorial/layout';
-import { Logo } from '@metorial/ui';
+import { AppLayout } from '@metorial/layout/src/applicationLayout/appLayout';
 import {
   RiFlowChart,
   RiHome6Line,
@@ -10,12 +9,12 @@ import {
 } from '@remixicon/react';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import styled from 'styled-components';
-import { useBoot } from '../../state/portal/client';
+import { useBootWithAuth } from '../../state/portal/client';
 import { usePaths } from '../../state/portal/path';
+import { PortalNav } from './nav';
 
 export let Layout = () => {
-  let boot = useBoot();
+  let boot = useBootWithAuth();
   let Paths = usePaths();
 
   let checkPath = (
@@ -35,7 +34,7 @@ export let Layout = () => {
   return (
     <>
       <AppLayout
-        Nav={AdminNav}
+        Nav={PortalNav}
         id="product"
         mainGroups={[
           {
@@ -102,7 +101,7 @@ export let Layout = () => {
 
               {
                 icon: <RiShieldKeyholeLine />,
-                label: 'Token',
+                label: 'Tokens',
                 to: Paths.tokens(),
                 getProps: i => ({ isActive: checkPath(i, { exact: true }) })
               }
@@ -113,58 +112,5 @@ export let Layout = () => {
         <Outlet />
       </AppLayout>
     </>
-  );
-};
-
-let Wrapper = styled.header`
-  padding: 5px 15px 5px 5px;
-`;
-
-let Inner = styled.nav`
-  display: grid;
-  gap: 15px;
-  height: 50px;
-`;
-
-let Part = styled.div`
-  height: 100%;
-  display: flex;
-  align-items: center;
-`;
-
-let LogoPart = styled(Part)`
-  justify-content: flex-start;
-  color: #222;
-
-  h1 {
-    font-size: 18px;
-    margin-left: 10px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-`;
-
-export let AdminNav = () => {
-  return (
-    <Wrapper>
-      <Inner
-        style={{
-          gridTemplateColumns: '1fr  1fr'
-        }}
-      >
-        <LogoPart>
-          <Logo size={30} />
-
-          <h1>
-            <span>Metorial</span>
-            <span>
-              <u>A</u>utomated <u>D</u>eterministic <u>M</u>odel <u>I</u>
-              nference <u>N</u>ode
-            </span>
-          </h1>
-        </LogoPart>
-      </Inner>
-    </Wrapper>
   );
 };

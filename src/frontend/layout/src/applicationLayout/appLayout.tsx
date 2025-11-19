@@ -3,7 +3,6 @@ import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { ISidebarGroup, SidebarItems } from './components/sidebarItems';
 import { RootLayout } from './layouts/rootLayout';
-import { OssApplicationLayoutNav } from './nav';
 
 let fadeIn = keyframes`
   from {
@@ -93,7 +92,7 @@ export let AppLayout = ({
   bottom,
   right,
   children,
-  Nav = () => <OssApplicationLayoutNav />
+  Nav
 }: {
   id: string;
   mainGroups: ISidebarGroup[];
@@ -101,7 +100,7 @@ export let AppLayout = ({
   bottom?: React.ReactNode;
   right?: React.ReactNode;
   children: React.ReactNode;
-  Nav?: () => React.ReactNode;
+  Nav: () => React.ReactNode;
 }) => {
   return (
     <RootLayout Nav={Nav}>

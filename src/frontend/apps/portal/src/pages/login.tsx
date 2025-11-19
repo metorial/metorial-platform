@@ -15,6 +15,7 @@ let Wrapper = styled.div`
   grid-template-columns: calc(50% - 40px) calc(50% - 40px);
   align-items: center;
   gap: 40px;
+  background: white;
 
   @media (max-width: 1000px) {
     display: flex;

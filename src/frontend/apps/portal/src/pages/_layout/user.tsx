@@ -1,10 +1,10 @@
-import { Paths } from '@metorial/frontend-config';
 import { fadeInDown, fadeOutUp } from '@metorial/layout/src/applicationLayout/animations';
 import { Avatar, Button, Spacer, theme } from '@metorial/ui';
 import * as Popover from '@radix-ui/react-popover';
 import { Link } from 'react-router-dom';
 import { styled } from 'styled-components';
-import { useConsumer } from '../../state/portal/client';
+import { useConsumer } from '../../state/consumer/consumer';
+import { usePaths } from '../../state/portal/path';
 
 let Trigger = styled(Popover.Trigger)`
   width: 30px;
@@ -77,6 +77,7 @@ let Actions = styled.div`
 export let UserMenu = () => {
   let consumer = useConsumer();
   let logoutMutator = consumer.useLogout();
+  let Paths = usePaths();
 
   if (!consumer.data) return null;
 
@@ -98,7 +99,7 @@ export let UserMenu = () => {
           </Header>
 
           <Actions>
-            <Link to={Paths.account()}>
+            <Link to={Paths.settings()}>
               <Button size="2" fullWidth variant="solid" as="span">
                 Account
               </Button>

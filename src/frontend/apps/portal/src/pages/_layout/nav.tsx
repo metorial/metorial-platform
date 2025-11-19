@@ -1,11 +1,10 @@
-import { useEnterpriseUser } from '@metorial-enterprise/federation-state';
-import { SwitcherHorizontal } from '@metorial/layout/src/applicationLayout/switcher';
-import { useCurrentInstance } from '@metorial/state';
-import { theme } from '@metorial/ui';
-import { RiSearch2Line } from '@remixicon/react';
+import { Logo, theme } from '@metorial/ui';
+import { RiArrowRightSLine, RiSearch2Line } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import styled from 'styled-components';
+import { useConsumer } from '../../state/consumer/consumer';
+import { usePortal } from '../../state/portal/client';
 import { SearchMenu } from './search';
 import { UserMenu } from './user';
 
@@ -28,9 +27,35 @@ let Part = styled.div`
 let LogoPart = styled(Part)`
   width: 30px;
   justify-content: flex-start;
+  color: #222;
+  padding-left: 10px;
 
   svg {
     height: 30px;
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-size: 18px;
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+    font-weight: 600;
+
+    i {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-style: normal;
+      color: #888;
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
   }
 `;
 
@@ -62,16 +87,15 @@ let ActionsPart = styled(Part)`
   justify-content: flex-end;
 `;
 
-export let EnterpriseNav = () => {
-  let user = useEnterpriseUser();
+export let PortalNav = () => {
   let [open, setOpen] = useState(false);
-
-  let instance = useCurrentInstance();
+  let consumer = useConsumer();
+  let portal = usePortal();
 
   return (
     <Wrapper
       style={{
-        opacity: user.isLoading ? 0 : 1,
+        opacity: consumer.isLoading ? 0 : 1,
         transition: 'opacity 0.2s'
       }}
     >
@@ -80,21 +104,29 @@ export let EnterpriseNav = () => {
           gridTemplateColumns: '1fr 1fr 1fr'
         }}
       >
-        <SwitcherHorizontal enabled />
+        <LogoPart>
+          <Logo size={30} color="#000000" />
+
+          <h1>
+            <span>Metorial</span>
+            <i>
+              <RiArrowRightSLine />
+            </i>
+            <span>{portal.data?.name}</span>
+          </h1>
+        </LogoPart>
 
         <SearchPart>
           <AnimatePresence>
-            {instance.data && (
-              <SearchButton
-                onClick={() => setOpen(!open)}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                <RiSearch2Line />
-                <span>Search</span>
-              </SearchButton>
-            )}
+            <SearchButton
+              onClick={() => setOpen(!open)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <RiSearch2Line />
+              <span>Search</span>
+            </SearchButton>
           </AnimatePresence>
         </SearchPart>
 
