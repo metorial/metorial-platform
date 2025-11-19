@@ -262,10 +262,10 @@ export let createLoader = <
     onFocus(refetchAll);
   }
 
-  let fetchManual = async (input: I) => {
+  let fetchManual = async (input: I, opts?: { force?: boolean }) => {
     let inst = getInstance(input);
 
-    inst.fetch();
+    inst.fetch(opts);
 
     return inst.state;
   };
@@ -292,7 +292,8 @@ export let createLoader = <
 
   let waitFor = (input: I) => waitForBase(ensureState(input).state);
 
-  let fetchAndReturn = async (input: I) => waitForBase(await fetchManual(input));
+  let fetchAndReturn = async (input: I, opts?: { force?: boolean }) =>
+    waitForBase(await fetchManual(input, opts));
 
   let use = (input: I | null): UseReturn<I, O, ReturnType<typeof getMutators>> => {
     let subStateRefs = useRef<{ current: (input: I) => void }[]>([]);

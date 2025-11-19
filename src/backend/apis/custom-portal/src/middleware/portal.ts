@@ -1,9 +1,4 @@
-import {
-  badRequestError,
-  isServiceError,
-  ServiceError,
-  unauthorizedError
-} from '@metorial/error';
+import { badRequestError, ServiceError, unauthorizedError } from '@metorial/error';
 import { consumerAuthService } from '@metorial/module-consumer';
 import { portalService } from '@metorial/module-portal';
 import { publicApp } from './public';
@@ -31,38 +26,7 @@ export let portalApp = publicApp.use(async ctx => {
   };
 });
 
-export let portalWithOptionalAuthApp = portalApp.use(async ctx => {
-  let cookieRes = ctx.getCookie(getSessionCookieName({ consumerSurfaceId: ctx.surface.id }));
-  if (!cookieRes) {
-    return {
-      consumerSession: undefined,
-      consumerProfile: undefined
-    };
-  }
-
-  try {
-    let session = await consumerAuthService.authenticateWithConsumerSessionToken({
-      token: cookieRes,
-      surface: ctx.surface
-    });
-
-    return {
-      consumerSession: session,
-      consumerProfile: session.consumerProfile
-    };
-  } catch (err) {
-    if (isServiceError(err)) {
-      return {
-        consumerSession: undefined,
-        consumerProfile: undefined
-      };
-    }
-
-    throw err;
-  }
-});
-
-export let portalWithAuthApp = portalWithOptionalAuthApp.use(async ctx => {
+export let portalWithAuthApp = portalApp.use(async ctx => {
   let cookieRes = ctx.getCookie(getSessionCookieName({ consumerSurfaceId: ctx.surface.id }));
   if (!cookieRes) {
     throw new ServiceError(

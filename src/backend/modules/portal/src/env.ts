@@ -16,10 +16,39 @@ let parsedTemplate = new URL(env.portals.PORTAL_HOST_TEMPLATE);
 let isVanityDomain = parsedTemplate.hostname.includes('{portalId}');
 let isVanityPath = !isVanityDomain;
 
+let templateRegex = new RegExp(
+  '^' +
+    env.portals.PORTAL_HOST_TEMPLATE.replace(/\./g, '\\.')
+      .replace(/\//g, '\\/')
+      .replace('{portalId}', '([^\\/]+)')
+);
+
 export let getPortalHost = (d: { portal: Portal }) => {
   return {
     host: env.portals.PORTAL_HOST_TEMPLATE.replace('{portalId}', d.portal.slug),
     isVanityDomain,
     isVanityPath
+  };
+};
+
+export let parsePortalIdFromHost = (d: { url: string }) => {
+  let match = d.url.match(templateRegex);
+  if (!match) return undefined;
+
+  let portalId = match[1];
+  let portalUrl = env.portals.PORTAL_HOST_TEMPLATE.replace('{portalId}', portalId).replace(
+    /\/+$/,
+    ''
+  );
+  while (portalUrl.endsWith('/')) {
+    portalUrl = portalUrl.slice(0, -1);
+  }
+
+  let extraPath = d.url.replace(portalUrl, '');
+
+  return {
+    portalId,
+    extraPath,
+    portalUrl
   };
 };

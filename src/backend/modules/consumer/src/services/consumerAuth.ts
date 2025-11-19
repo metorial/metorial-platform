@@ -15,6 +15,7 @@ import { Service } from '@metorial/service';
 import { Tokens } from '@metorial/tokens';
 import { addMinutes, addSeconds } from 'date-fns';
 import { env } from '../env';
+import { authCodeQueue } from '../queues/authCode';
 
 let consumerSessionToken = new Tokens({
   secret: env.tokens.CONSUMER_SESSION_SECRET
@@ -66,6 +67,10 @@ class consumerAuthServiceImpl {
         email: d.input.email,
         factorOid: factor.oid
       }
+    });
+
+    await authCodeQueue.add({
+      codeId: code.id
     });
 
     return {
