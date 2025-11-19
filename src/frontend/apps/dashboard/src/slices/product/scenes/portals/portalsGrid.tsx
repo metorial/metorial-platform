@@ -194,9 +194,9 @@ export let showPortalFormModal = () =>
 
     return (
       <Dialog.Wrapper {...dialogProps}>
-        <Dialog.Title>Create Magic MCP Group</Dialog.Title>
+        <Dialog.Title>Create Portal</Dialog.Title>
         <Dialog.Description>
-          Use Magic MCP groups to group together related servers.
+          Use Portals to create custom branded MCP server marketplaces for your
         </Dialog.Description>
 
         <form onSubmit={form.handleSubmit}>

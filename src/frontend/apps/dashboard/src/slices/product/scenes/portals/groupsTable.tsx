@@ -96,9 +96,9 @@ export let showConsumerGroupFormModal = (d: { portalId: string }) =>
 
     return (
       <Dialog.Wrapper {...dialogProps}>
-        <Dialog.Title>Create Magic MCP Group</Dialog.Title>
+        <Dialog.Title>Create Consumer Group</Dialog.Title>
         <Dialog.Description>
-          Use Magic MCP groups to group together related servers.
+          Use consumer groups to manage access to your portal's servers.
         </Dialog.Description>
 
         <form onSubmit={form.handleSubmit}>
