@@ -1,14 +1,9 @@
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useServerListings
-} from '@metorial/state';
 import { Logo } from '@metorial/ui';
 import { Command } from 'cmdk';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { createGlobalStyle } from 'styled-components';
-import { useDebounced } from './useDebounced';
+import { useDebounced } from '../../hooks/useDebounced';
 
 let Global = createGlobalStyle`
   :root {
