@@ -20,7 +20,11 @@ export let serverCapabilitiesController = Controller.create(
         description:
           'Returns a list of server capabilities, filterable by server attributes such as deployment, variant, or version.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.server_listing:read', 'instance.server:read']
+        })
+      )
       .output(serverCapabilitiesPresenter)
       .query(
         'default',

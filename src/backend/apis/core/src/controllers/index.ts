@@ -88,6 +88,9 @@ export let pulsarController = Controller.create<any>(
     serverController,
     serverVariantController,
     serverVersionController,
+    serverListingController,
+    serverListingCategoryController,
+    serverListingCollectionController,
 
     serverImplementationController,
     serverDeploymentController,

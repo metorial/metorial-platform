@@ -18,7 +18,7 @@ export let consumerGroup = apiGroup.use(async ctx => {
 
   let consumerSessionClientSecret =
     ctx.query['consumer_session_client_secret'] ??
-    ctx.headers['Metorial-Consumer-Session-Client-Secret'];
+    ctx.headers['metorial-consumer-session-client-secret'];
 
   if (!consumerSessionClientSecret) {
     throw new ServiceError(

@@ -1,3 +1,4 @@
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { consumerProfileType } from '../types';
@@ -10,6 +11,11 @@ export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
 
     name: consumerProfile.name,
     email: consumerProfile.email,
+
+    image_url: await getImageUrl({
+      ...consumerProfile,
+      image: null
+    }),
 
     consumer_id: consumerProfile.consumer.id,
     sso_user_id: consumerProfile.ssoUser?.id || null,
@@ -36,6 +42,11 @@ export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
       email: v.string({
         name: 'email',
         description: 'The email address of the consumer profile'
+      }),
+
+      image_url: v.string({
+        name: 'image_url',
+        description: 'The URL of the profile image associated with this consumer profile'
       }),
 
       consumer_id: v.string({
