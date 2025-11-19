@@ -10,6 +10,11 @@ enum ApiKeyStatus {
   expired
 }
 
+enum ApiKeyKind {
+  user_created
+  system_internal
+}
+
 model ApiKeySecret {
   id String @id
 
@@ -30,6 +35,7 @@ model ApiKey {
 
   type   ApiKeyType
   status ApiKeyStatus
+  kind   ApiKeyKind   @default(user_created)
 
   secretRedacted String
   secretLength   Int
