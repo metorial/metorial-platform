@@ -65,4 +65,5 @@ model Instance {
   providerOAuthTakeIn      ProviderOAuthTakeIn[]
   magicMcpGroups           MagicMcpGroup[]
   portals                  Portal[]
+  consumerSurfaces         ConsumerSurface[]
 }

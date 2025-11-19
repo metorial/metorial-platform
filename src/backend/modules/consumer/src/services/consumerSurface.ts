@@ -1,13 +1,27 @@
-import { ConsumerSurface, db, ID, Organization, withTransaction } from '@metorial/db';
+import {
+  ConsumerSurface,
+  db,
+  ID,
+  Instance,
+  Organization,
+  withTransaction
+} from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
 import { badRequestError } from '@metorial/error/src/defaultErrors';
 import { generatePlainId } from '@metorial/id';
+import { apiKeyService } from '@metorial/module-machine-access';
+import { organizationActorService } from '@metorial/module-organization';
 import { Service } from '@metorial/service';
 import { slugify } from '../../../../../packages/backend/slugify/src';
 import { Paginator } from '../../../../../packages/server/pagination/src';
 
 let include = {
-  consumerSurfaceAuthFactors: true
+  consumerSurfaceAuthFactors: true,
+  publishableApiKey: {
+    include: {
+      secrets: true
+    }
+  }
 };
 
 class consumerSurfaceServiceImpl {
@@ -18,15 +32,35 @@ class consumerSurfaceServiceImpl {
       sessionExpiryTimeInSeconds: number;
     };
     organization: Organization;
+    instance: Instance;
   }) {
     return withTransaction(async db => {
+      let publishableApiKey = await apiKeyService.createApiKey({
+        kind: 'system_internal',
+        instance: d.instance,
+        organization: d.organization,
+        context: {
+          ip: '0.0.0.0',
+          ua: 'system'
+        },
+        type: 'instance_access_token_publishable',
+        performedBy: await organizationActorService.getSystemActor({
+          organization: d.organization
+        }),
+        input: {
+          name: `Publishable API Key for Consumer Surface ${d.input.name}`
+        }
+      });
+
       return await db.consumerSurface.create({
         data: {
           id: await ID.generateId('consumerSurface'),
           status: 'active',
           name: d.input.name,
           description: d.input.description,
+          instanceOid: d.instance.oid,
           organizationOid: d.organization.oid,
+          publishableApiKeyOid: publishableApiKey.apiKey.oid,
           sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds
         },
         include
