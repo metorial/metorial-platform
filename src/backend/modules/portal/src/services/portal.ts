@@ -15,7 +15,15 @@ import { Paginator } from '../../../../../packages/server/pagination/src';
 import { getPortalHost, parsePortalIdFromHost } from '../env';
 
 let include = {
-  surface: true,
+  surface: {
+    include: {
+      publishableApiKey: {
+        include: {
+          secrets: true
+        }
+      }
+    }
+  },
   organization: true
 };
 
@@ -80,7 +88,8 @@ class portalServiceImpl {
           description: d.input.description,
           sessionExpiryTimeInSeconds: 3600 * 24 * 7
         },
-        organization: d.organization
+        organization: d.organization,
+        instance: d.instance
       });
 
       await consumerSurfaceService.updateConsumerSurface({

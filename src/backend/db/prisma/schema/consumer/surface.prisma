@@ -17,6 +17,12 @@ model ConsumerSurface {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid])
 
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  publishableApiKeyOid BigInt
+  publishableApiKey    ApiKey @relation(fields: [publishableApiKeyOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
