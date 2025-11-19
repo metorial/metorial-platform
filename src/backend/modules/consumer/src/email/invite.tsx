@@ -13,8 +13,8 @@ export let sendAuthCodeEmail = notificationClient.createTemplate(
       }
 
       return createEmail({
-        subject: `Your ${surfaceName} authentication code: ${splitCode}`,
-        preview: `Your authentication code for ${surfaceName} is ${splitCode}.`,
+        subject: `Your ${surfaceName} verification code`,
+        preview: `Your authentication code for ${surfaceName}.`,
         content: (
           <Layout
             title={`Your ${surfaceName} code`}

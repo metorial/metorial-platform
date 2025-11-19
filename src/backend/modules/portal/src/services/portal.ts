@@ -1,13 +1,22 @@
-import { ConsumerSurface, db, ID, Organization, Portal, withTransaction } from '@metorial/db';
+import {
+  ConsumerSurface,
+  db,
+  ID,
+  Instance,
+  Organization,
+  Portal,
+  withTransaction
+} from '@metorial/db';
 import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
 import { consumerSurfaceService } from '@metorial/module-consumer';
 import { Service } from '@metorial/service';
 import { createSlugGenerator } from '@metorial/slugify';
 import { Paginator } from '../../../../../packages/server/pagination/src';
-import { getPortalHost } from '../env';
+import { getPortalHost, parsePortalIdFromHost } from '../env';
 
 let include = {
-  surface: true
+  surface: true,
+  organization: true
 };
 
 let getPortalSlug = createSlugGenerator(
@@ -15,9 +24,9 @@ let getPortalSlug = createSlugGenerator(
 );
 
 class portalServiceImpl {
-  async getPortalById(d: { organization: Organization; portalId: string }) {
+  async getPortalById(d: { instance: Instance; portalId: string }) {
     let portal = await db.portal.findFirst({
-      where: { id: d.portalId, organizationOid: d.organization.oid },
+      where: { id: d.portalId, instanceOid: d.instance.oid },
       include
     });
     if (!portal) throw new ServiceError(notFoundError('portal'));
@@ -36,14 +45,14 @@ class portalServiceImpl {
     return portal;
   }
 
-  async listPortals(d: { organization: Organization }) {
+  async listPortals(d: { instance: Instance }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.portal.findMany({
             ...opts,
             where: {
-              organizationOid: d.organization.oid,
+              instanceOid: d.instance.oid,
               status: 'active'
             },
             include
@@ -53,6 +62,7 @@ class portalServiceImpl {
   }
 
   async createPortal(d: {
+    instance: Instance;
     organization: Organization;
     input: {
       name: string;
@@ -73,6 +83,13 @@ class portalServiceImpl {
         organization: d.organization
       });
 
+      await consumerSurfaceService.updateConsumerSurface({
+        consumerSurface: surface,
+        input: {
+          factors: [{ type: 'email_code' }]
+        }
+      });
+
       return await db.portal.create({
         data: {
           id: await ID.generateId('portal'),
@@ -86,6 +103,7 @@ class portalServiceImpl {
           brandName: d.organization.name,
 
           organizationOid: d.organization.oid,
+          instanceOid: d.instance.oid,
           surfaceOid: surface.oid
         },
         include
@@ -94,7 +112,9 @@ class portalServiceImpl {
   }
 
   async updatePortal(d: {
-    portal: Portal;
+    portal: Portal & {
+      surface: ConsumerSurface;
+    };
     input: {
       name?: string;
       description?: string;
@@ -110,15 +130,25 @@ class portalServiceImpl {
       );
     }
 
-    return await db.portal.update({
-      where: { oid: d.portal.oid },
-      data: {
-        name: d.input.name ?? d.portal.name,
-        description: d.input.description ?? d.portal.description,
-        brandImage: d.input.brandImage ?? d.portal.brandImage,
-        brandName: d.input.brandName
-      },
-      include
+    return await withTransaction(async db => {
+      await consumerSurfaceService.updateConsumerSurface({
+        consumerSurface: d.portal.surface,
+        input: {
+          name: d.input.name,
+          description: d.input.description
+        }
+      });
+
+      await db.portal.update({
+        where: { oid: d.portal.oid },
+        data: {
+          name: d.input.name ?? d.portal.name,
+          description: d.input.description ?? d.portal.description,
+          brandImage: d.input.brandImage ?? d.portal.brandImage,
+          brandName: d.input.brandName
+        },
+        include
+      });
     });
   }
 
@@ -151,6 +181,12 @@ class portalServiceImpl {
   async getPortalHost(d: { portal: Portal }) {
     return getPortalHost({
       portal: d.portal
+    });
+  }
+
+  async parsePortalIdFromHost(d: { url: string }) {
+    return parsePortalIdFromHost({
+      url: d.url
     });
   }
 }
