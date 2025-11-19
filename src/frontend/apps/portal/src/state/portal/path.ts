@@ -30,6 +30,10 @@ export let usePaths = () => {
         settings: (...subPages: SubPages) => InstancePaths('settings', ...subPages),
 
         servers: () => InstancePaths('servers'),
+        server: (serverId: string | null | undefined, ...subPages: SubPages) => {
+          if (!serverId) return '#';
+          return InstancePaths('servers', serverId, ...subPages);
+        },
 
         magicMcpServer: (...subPages: SubPages) =>
           InstancePaths('magic-mcp-server', ...subPages),

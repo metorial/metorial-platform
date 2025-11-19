@@ -69,16 +69,6 @@ export let useBootWithAuth = () => {
   };
 };
 
-export let useConsumer = () => {
-  let boot = useBootWithAuth();
-
-  return {
-    ...boot,
-    data: boot.data?.consumer,
-    useLogout: boot.useMutator('logout')
-  };
-};
-
 export let useSession = () => {
   let boot = useBootWithAuth();
 
