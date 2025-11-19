@@ -1,6 +1,11 @@
 import { createFetchWithRetry } from '@metorial/fetch';
 import { MetorialKeyPrefix, sdkBuilder } from './builder';
 import {
+  MetorialServersListingsCategoriesEndpoint,
+  MetorialServersListingsCollectionsEndpoint,
+  MetorialServersListingsEndpoint
+} from './gen/src/mt_2025_01_01_dashboard';
+import {
   MetorialConsumerMagicMcpGroupsEndpoint,
   MetorialConsumerMagicMcpServersEndpoint,
   MetorialConsumerMagicMcpSessionsEndpoint,
@@ -8,7 +13,11 @@ import {
   MetorialConsumerProfileEndpoint,
   MetorialConsumerProfileGroupsEndpoint,
   MetorialConsumerProfileSsoUserEndpoint,
-  MetorialConsumerSessionEndpoint
+  MetorialConsumerSessionEndpoint,
+  MetorialServersCapabilitiesEndpoint,
+  MetorialServersEndpoint,
+  MetorialServersVariantsEndpoint,
+  MetorialServersVersionsEndpoint
 } from './gen/src/mt_2025_01_01_pulsar';
 
 let fetchWithRetry = createFetchWithRetry();
@@ -40,13 +49,16 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
     apiVersion?: '2025-01-01-pulsar';
     headers?: Record<string, string>;
     apiHost?: string;
-    organizationId?: string;
-    instanceId?: string;
+    consumerToken: string;
   }) => ({
     ...soft,
     apiVersion: '2025-01-01-pulsar',
     fetch: fetchWithRetryAndLogging,
-    enableDebugLogging: true
+    enableDebugLogging: true,
+    headers: {
+      ...soft.headers,
+      'Metorial-Consumer-Session-Client-Secret': soft.consumerToken
+    }
   })
 )(manager => ({
   profile: Object.assign(new MetorialConsumerProfileEndpoint(manager), {
@@ -61,7 +73,19 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
     servers: new MetorialConsumerMagicMcpServersEndpoint(manager),
     sessions: new MetorialConsumerMagicMcpSessionsEndpoint(manager),
     tokens: new MetorialConsumerMagicMcpTokensEndpoint(manager)
-  }
+  },
+
+  servers: Object.assign(new MetorialServersEndpoint(manager), {
+    listings: Object.assign(new MetorialServersListingsEndpoint(manager), {
+      collections: new MetorialServersListingsCollectionsEndpoint(manager),
+      categories: new MetorialServersListingsCategoriesEndpoint(manager)
+    }),
+
+    variants: new MetorialServersVariantsEndpoint(manager),
+    versions: new MetorialServersVersionsEndpoint(manager),
+
+    capabilities: new MetorialServersCapabilitiesEndpoint(manager)
+  })
 }));
 
 export type MetorialConsumerSDK = ReturnType<typeof createMetorialConsumerSDK>;
