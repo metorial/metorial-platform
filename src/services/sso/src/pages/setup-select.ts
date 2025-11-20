@@ -123,7 +123,7 @@ export let setupSelectHtml = (d: { clientSecret: string }) => {
   <script>
     function selectProvider(providerId) {
       const clientSecret = '${d.clientSecret}';
-      window.location.href = '/sso/setup/configure?clientSecret=' + clientSecret + '&provider=' + providerId;
+      window.location.href = '/sso/setup/configure?clientSecret=' + clientSecret + '&providerId=' + providerId;
     }
   </script>
 </body>

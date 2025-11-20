@@ -1,4 +1,4 @@
-import { Tenant, Connection } from '../db/schema';
+import { Connection, Tenant } from '../db/schema';
 
 export let authSelectConnectionHtml = (d: {
   tenant: Tenant;

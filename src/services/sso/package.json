@@ -9,7 +9,8 @@
     "oss:server:build": "ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite",
     "server:start": "bun ./dist/index.js",
     "oss:server:start": "bun ./dist/index.js",
-    "dev": "bun --watch ./src/server.ts"
+    "dev": "bun --watch ./src/server.ts",
+    "enterprise:dev": "bun --watch ./src/server.ts"
   },
   "dependencies": {
     "@boxyhq/saml-jackson": "^1.52.2",
