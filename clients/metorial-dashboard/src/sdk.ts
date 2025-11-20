@@ -49,6 +49,8 @@ import {
   MetorialDashboardInstanceSessionsMessagesEndpoint,
   MetorialDashboardInstanceSessionsServerSessionsEndpoint,
   MetorialDashboardInstanceSsoTenantsEndpoint,
+  MetorialDashboardInstanceSsoTenantsProfilesEndpoint,
+  MetorialDashboardInstanceSsoTenantsUsersEndpoint,
   MetorialDashboardOrganizationsEndpoint,
   MetorialDashboardOrganizationsInstancesEndpoint,
   MetorialDashboardOrganizationsInvitesEndpoint,
@@ -230,7 +232,10 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     )
   }),
 
-  ssoTenants: new MetorialDashboardInstanceSsoTenantsEndpoint(manager)
+  ssoTenants: Object.assign(new MetorialDashboardInstanceSsoTenantsEndpoint(manager), {
+    profiles: new MetorialDashboardInstanceSsoTenantsProfilesEndpoint(manager),
+    users: new MetorialDashboardInstanceSsoTenantsUsersEndpoint(manager)
+  })
 }));
 
 export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>;
