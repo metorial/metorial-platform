@@ -18,6 +18,8 @@ import {
   ConsumerProfile,
   ConsumerProfileGroup,
   ConsumerSession,
+  ConsumerSurface,
+  ConsumerSurfaceAuthFactor,
   CustomServer,
   CustomServerDeployment,
   CustomServerDeploymentStep,
@@ -643,9 +645,15 @@ export let callbackNotificationType = PresentableType.create<{
 }>()('callback.notification');
 
 export let portalType = PresentableType.create<{
-  portal: Portal;
+  portal: Portal & {
+    surface: ConsumerSurface;
+  };
   portalUrl: string;
 }>()('portal');
+
+export let consumerAuthFactorType = PresentableType.create<{
+  consumerAuthFactor: ConsumerSurfaceAuthFactor;
+}>()('consumer.auth_factor');
 
 export let consumerGroupType = PresentableType.create<{
   consumerGroup: ConsumerGroup;
@@ -689,6 +697,20 @@ export let teamRolePermissionsType = PresentableType.create<{
 export let ssoTenantType = PresentableType.create<{
   ssoTenant: SsoTenant;
 }>()('sso.tenant');
+
+export let ssoTenantSetupType = PresentableType.create<{
+  ssoTenantSetup: {
+    id: string;
+    status: 'pending' | 'completed';
+    tenantId: string;
+    connectionId: string | null | undefined;
+    clientSecret: string;
+    redirectUri: string;
+    url: string;
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+  };
+}>()('sso.tenant.setup');
 
 export let ssoUserType = PresentableType.create<{
   ssoUser: SsoUser & {

@@ -32,6 +32,7 @@ import { magicMcpServerController } from './instance/magicMcpServer';
 import { magicMcpSessionController } from './instance/magicMcpSession';
 import { magicMcpTokenController } from './instance/magicMcpToken';
 import { portalController } from './instance/portal';
+import { portalConsumerAuthFactorController } from './instance/portalAuthFactors';
 import { portalConsumerAccessController } from './instance/portalConsumerAccess';
 import { portalConsumerGroupController } from './instance/portalConsumerGroup';
 import { portalConsumerProfileController } from './instance/portalConsumerProfile';
@@ -139,6 +140,7 @@ export let pulsarController = Controller.create<any>(
     portalConsumerGroupController,
     portalConsumerAccessController,
     portalConsumerProfileController,
+    portalConsumerAuthFactorController,
 
     consumerSessionController,
     consumerMagicMcpGroupController,
@@ -239,7 +241,8 @@ export let dashboardController = Controller.create<any>(
     portalController,
     portalConsumerGroupController,
     portalConsumerAccessController,
-    portalConsumerProfileController
+    portalConsumerProfileController,
+    portalConsumerAuthFactorController
   }
 );
 

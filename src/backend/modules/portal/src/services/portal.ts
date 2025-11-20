@@ -129,6 +129,7 @@ class portalServiceImpl {
       description?: string;
       brandImage?: PrismaJson.EntityImage;
       brandName?: string;
+      sessionExpiryTimeInSeconds?: number;
     };
   }) {
     if (d.portal.status !== 'active') {
@@ -144,11 +145,12 @@ class portalServiceImpl {
         consumerSurface: d.portal.surface,
         input: {
           name: d.input.name,
-          description: d.input.description
+          description: d.input.description,
+          sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds
         }
       });
 
-      await db.portal.update({
+      return await db.portal.update({
         where: { oid: d.portal.oid },
         data: {
           name: d.input.name ?? d.portal.name,

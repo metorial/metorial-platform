@@ -84,7 +84,7 @@ export let frontendEnv: Env = [
   },
   {
     key: 'VITE_CUSTOM_PORTAL_API_URL',
-    defaultValue: 'http://localhost:4315/metorial-custom-portal'
+    defaultValue: 'http://localhost:4315'
   },
   {
     key: 'VITE_MARKETPLACE_API_URL',

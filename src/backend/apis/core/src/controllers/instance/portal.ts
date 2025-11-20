@@ -115,7 +115,13 @@ export let portalController = Controller.create(
         'default',
         v.object({
           name: v.optional(v.string()),
-          description: v.optional(v.string())
+          description: v.optional(v.string()),
+          brand_name: v.optional(v.string()),
+          session_expiry_time_in_seconds: v.optional(
+            v.number({
+              modifiers: [v.minValue(600), v.maxValue(60 * 60 * 24 * 30 * 2)]
+            })
+          )
         })
       )
       .output(portalPresenter)
@@ -124,7 +130,9 @@ export let portalController = Controller.create(
           portal: ctx.portal,
           input: {
             name: ctx.body.name,
-            description: ctx.body.description
+            description: ctx.body.description,
+            brandName: ctx.body.brand_name,
+            sessionExpiryTimeInSeconds: ctx.body.session_expiry_time_in_seconds
           }
         });
 

@@ -6,6 +6,7 @@ import { v1CallbackDestinationPresenter } from './implementation/callbackDestina
 import { v1CallbackEventPresenter } from './implementation/callbackEvent';
 import { v1CallbackNotificationPresenter } from './implementation/callbackNotification';
 import { v1ConsumerAccessPresenter } from './implementation/consumerAccess';
+import { v1ConsumerAuthFactorPresenter } from './implementation/consumerAuthFactor';
 import { v1ConsumerGroupPresenter } from './implementation/consumerGroup';
 import { v1ConsumerProfilePresenter } from './implementation/consumerProfile';
 import { v1ConsumerSessionPresenter } from './implementation/consumerSession';
@@ -88,6 +89,7 @@ import {
   v1SessionMessagePresenter
 } from './implementation/sessionMessage';
 import { v1SsoTenantPresenter } from './implementation/ssoTenant';
+import { v1SsoTenantSetupPresenter } from './implementation/ssoTenantSetup';
 import { v1SsoUserPresenter } from './implementation/ssoUser';
 import { v1SsoUserProfilePresenter } from './implementation/ssoUserProfile';
 import { v1TeamPresenter } from './implementation/team';
@@ -103,6 +105,7 @@ import {
   callbackNotificationType,
   callbackType,
   consumerAccessType,
+  consumerAuthFactorType,
   consumerGroupType,
   consumerProfileType,
   consumerSessionType,
@@ -163,6 +166,7 @@ import {
   sessionEventType,
   sessionMessageType,
   sessionType,
+  ssoTenantSetupType,
   ssoTenantType,
   ssoUserProfileType,
   ssoUserType,
@@ -534,6 +538,11 @@ export let ssoTenantPresenter = declarePresenter(ssoTenantType, {
   mt_2025_01_01_dashboard: v1SsoTenantPresenter
 });
 
+export let ssoTenantSetupPresenter = declarePresenter(ssoTenantSetupType, {
+  mt_2025_01_01_pulsar: v1SsoTenantSetupPresenter,
+  mt_2025_01_01_dashboard: v1SsoTenantSetupPresenter
+});
+
 export let ssoUserPresenter = declarePresenter(ssoUserType, {
   mt_2025_01_01_pulsar: v1SsoUserPresenter,
   mt_2025_01_01_dashboard: v1SsoUserPresenter
@@ -552,6 +561,11 @@ export let portalPresenter = declarePresenter(portalType, {
 export let consumerGroupPresenter = declarePresenter(consumerGroupType, {
   mt_2025_01_01_pulsar: v1ConsumerGroupPresenter,
   mt_2025_01_01_dashboard: v1ConsumerGroupPresenter
+});
+
+export let consumerAuthFactorPresenter = declarePresenter(consumerAuthFactorType, {
+  mt_2025_01_01_pulsar: v1ConsumerAuthFactorPresenter,
+  mt_2025_01_01_dashboard: v1ConsumerAuthFactorPresenter
 });
 
 export let consumerAccessPresenter = declarePresenter(consumerAccessType, {
