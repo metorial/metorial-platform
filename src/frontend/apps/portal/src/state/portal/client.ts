@@ -1,5 +1,6 @@
 import { createCustomPortalClient } from '@metorial/api-custom-portal/client';
 import { createLoader } from '@metorial/data-hooks';
+import { delay } from '@metorial/delay';
 import { isServiceError, ServiceError, unauthorizedError } from '@metorial/error';
 import { useEffect } from 'react';
 
@@ -26,11 +27,35 @@ let redirectToAuthIfNotAuthenticated = async <R>(fn: () => Promise<R>) => {
 export let bootPortalState = createLoader({
   name: 'bootPortal',
   hash: () => 'v1',
-  fetch: (d: {}) =>
-    portalClient.boot.bootPortal({
+  fetch: async (d: {}) => {
+    let parsedUrl = new URL(window.location.href);
+    let action = parsedUrl.searchParams.get('__metorial_portal_action__');
+    if (action == 'sso_callback') {
+      let portalId = parsedUrl.searchParams.get('portal_id');
+      let authId = parsedUrl.searchParams.get('auth_id');
+
+      if (!portalId || !authId) {
+        throw new Error('Missing portal_id or auth_id in SSO callback');
+      }
+
+      await portalClient.auth.authenticateWithSsoComplete({
+        ssoAuthId: authId
+      });
+
+      let url = new URL(window.location.href);
+      url.search = '';
+      history.replaceState({}, '', url.toString());
+
+      await delay(100);
+    }
+
+    let portal = await portalClient.boot.bootPortal({
       // Metorial will find the correct portal based on the current URL
       portalUrl: window.location.href
-    }),
+    });
+
+    return portal;
+  },
   mutators: {
     logout: async (_, { output: { portal, portalUrl } }) => {
       await portalClient.auth.logout({ portalId: portal.id });
