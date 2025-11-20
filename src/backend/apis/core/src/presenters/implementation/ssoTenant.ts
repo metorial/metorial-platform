@@ -11,6 +11,8 @@ export let v1SsoTenantPresenter = Presenter.create(ssoTenantType)
     sso_tenant_id: ssoTenant.ssoTenantId,
     sso_tenant_client_id: ssoTenant.ssoTenantClientId,
 
+    name: ssoTenant.name,
+
     created_at: ssoTenant.createdAt,
     updated_at: ssoTenant.updatedAt
   }))
@@ -24,6 +26,11 @@ export let v1SsoTenantPresenter = Presenter.create(ssoTenantType)
       id: v.string({
         name: 'id',
         description: 'The unique identifier of the sso tenant'
+      }),
+
+      name: v.string({
+        name: 'name',
+        description: 'The name of the SSO tenant'
       }),
 
       sso_tenant_id: v.string({

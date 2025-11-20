@@ -227,8 +227,9 @@ export let LoginPage = () => {
               if (startRes) window.location.replace(startRes.url);
             }}
             fullWidth
+            variant="soft"
           >
-            Login with {factor.name}
+            {factor.name}
           </Button>
         ))}
       </Flex>

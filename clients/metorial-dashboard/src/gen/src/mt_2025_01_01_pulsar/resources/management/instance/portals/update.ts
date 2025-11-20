@@ -7,6 +7,7 @@ export type ManagementInstancePortalsUpdateOutput = {
   name: string;
   slug: string;
   description: string | null;
+  auth: { object: 'portal.auth'; sessionExpiryTimeInSeconds: number };
   urls: { type: 'default'; url: string }[];
   brand: { image: string; name: string };
   createdAt: Date;
@@ -21,6 +22,16 @@ export let mapManagementInstancePortalsUpdateOutput =
     name: mtMap.objectField('name', mtMap.passthrough()),
     slug: mtMap.objectField('slug', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
+    auth: mtMap.objectField(
+      'auth',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        sessionExpiryTimeInSeconds: mtMap.objectField(
+          'session_expiry_time_in_seconds',
+          mtMap.passthrough()
+        )
+      })
+    ),
     urls: mtMap.objectField(
       'urls',
       mtMap.array(
@@ -44,11 +55,18 @@ export let mapManagementInstancePortalsUpdateOutput =
 export type ManagementInstancePortalsUpdateBody = {
   name?: string | undefined;
   description?: string | undefined;
+  brandName?: string | undefined;
+  sessionExpiryTimeInSeconds?: number | undefined;
 };
 
 export let mapManagementInstancePortalsUpdateBody =
   mtMap.object<ManagementInstancePortalsUpdateBody>({
     name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough())
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    brandName: mtMap.objectField('brand_name', mtMap.passthrough()),
+    sessionExpiryTimeInSeconds: mtMap.objectField(
+      'session_expiry_time_in_seconds',
+      mtMap.passthrough()
+    )
   });
 

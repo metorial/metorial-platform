@@ -5,7 +5,7 @@ import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
-import { ssoTenantPresenter } from '../../presenters';
+import { ssoTenantPresenter, ssoTenantSetupPresenter } from '../../presenters';
 
 export let ssoTenantGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.ssoTenantId) throw new Error('ssoTenantId is required');
@@ -74,11 +74,38 @@ export let ssoTenantController = Controller.create(
         let ssoTenant = await ssoTenantService.createSsoTenant({
           organization: ctx.organization,
           input: {
-            name: ctx.input.name
+            name: ctx.body.name
           }
         });
 
         return ssoTenantPresenter.present({ ssoTenant });
+      }),
+
+    setup: ssoTenantGroup
+      .post(instancePath('sso-tenants/:ssoTenantId/setup', 'ssoTenants.setup'), {
+        name: 'Setup SSO Tenant',
+        description: 'Creates a new sso tenant setup for the tenant.'
+      })
+      .use(checkAccess({ possibleScopes: ['instance.ssoTenant:write'] }))
+      .use(hasFlags(['paid-sso-tenants']))
+      .output(ssoTenantSetupPresenter)
+      .body(
+        'default',
+        v.object({
+          redirect_uri: v.string({
+            modifiers: [v.url()]
+          })
+        })
+      )
+      .do(async ctx => {
+        let ssoTenantSetup = await ssoTenantService.createTenantSetup({
+          tenant: ctx.ssoTenant,
+          input: {
+            redirectUri: ctx.body.redirect_uri
+          }
+        });
+
+        return ssoTenantSetupPresenter.present({ ssoTenantSetup });
       })
   }
 );

@@ -21,6 +21,7 @@ export let PortalLayout = () => {
 
   let pathname = useLocation().pathname;
   if (pathname.includes('/group/')) pathname = pathname.split('/group/')[0] + '/groups';
+  if (pathname.includes('/user/')) pathname = pathname.split('/user/')[0] + '/users';
 
   let pathParams = [
     organization.data,
@@ -46,7 +47,7 @@ export let PortalLayout = () => {
         ]}
         actions={
           <>
-            <a href={portal.data?.urls[0].url}>
+            <a href={portal.data?.urls[0].url} target="_blank" rel="noopener noreferrer">
               <Button size="2" as="span" iconRight={<RiExternalLinkLine />}>
                 Open Portal
               </Button>

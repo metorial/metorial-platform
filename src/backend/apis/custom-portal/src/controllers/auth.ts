@@ -10,11 +10,15 @@ import { authFactorPresenter } from '../presenters/authFactor';
 import { consumerSurfacePresenter } from '../presenters/consumerSurface';
 import { portalPresenter } from '../presenters/portal';
 
-let getCookieOpts = (session: ConsumerSession) => ({
+let baseCookieOpts = {
   path: '/',
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
+  sameSite: 'lax' as const
+};
+
+let getCookieOpts = (session: ConsumerSession) => ({
+  ...baseCookieOpts,
   expires: session.expiresAt
 });
 
@@ -123,7 +127,7 @@ export let authController = publicApp.controller({
       let portalHostRaw = await portalService.getPortalHost({ portal: ctx.portal });
       let portalHost = new URL(portalHostRaw.host);
       portalHost.searchParams.set('__metorial_portal_action__', 'sso_callback');
-      portalHost.searchParams.set('portalId', ctx.portal.id);
+      portalHost.searchParams.set('portal_id', ctx.portal.id);
 
       let ssoAuth = await ssoAuthService.startSsoAuth({
         tenant: factor.ssoTenant!,
@@ -170,7 +174,8 @@ export let authController = publicApp.controller({
       let session = await consumerAuthService.authenticateWithSsoComplete({
         context: ctx.context,
         surface: portal.surface,
-        ssoUser: ssoAuth.user
+        ssoUser: ssoAuth.user,
+        ssoProfile: ssoAuth.profile
       });
 
       let token = await consumerAuthService.getConsumerSessionToken({
@@ -198,7 +203,8 @@ export let authController = publicApp.controller({
     )
     .do(async ctx => {
       ctx.setCookie(getSessionCookieName({ consumerSurfaceId: ctx.surface.id }), '', {
-        expires: new Date(0)
+        ...baseCookieOpts,
+        maxAge: 0
       });
 
       return {};

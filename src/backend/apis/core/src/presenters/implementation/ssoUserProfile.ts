@@ -1,6 +1,7 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { ssoUserProfileType } from '../types';
+import { v1SsoTenantPresenter } from './ssoTenant';
 
 export let v1SsoUserProfilePresenter = Presenter.create(ssoUserProfileType)
   .presenter(async ({ ssoUserProfile }, opts) => ({
@@ -9,6 +10,10 @@ export let v1SsoUserProfilePresenter = Presenter.create(ssoUserProfileType)
     id: ssoUserProfile.id,
 
     sso_connection_id: ssoUserProfile.ssoConnectionId,
+
+    sso_tenant: await v1SsoTenantPresenter
+      .present({ ssoTenant: ssoUserProfile.ssoUser.ssoTenant }, opts)
+      .run(),
 
     email: ssoUserProfile.email,
     uid: ssoUserProfile.uid,
@@ -37,6 +42,8 @@ export let v1SsoUserProfilePresenter = Presenter.create(ssoUserProfileType)
         name: 'sso_connection_id',
         description: 'The SSO Connection ID associated with this user profile'
       }),
+
+      sso_tenant: v1SsoTenantPresenter.schema,
 
       email: v.string({
         name: 'email',

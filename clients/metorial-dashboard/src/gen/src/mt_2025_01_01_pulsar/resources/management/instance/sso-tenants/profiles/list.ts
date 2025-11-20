@@ -1,0 +1,127 @@
+import { mtMap } from '@metorial/util-resource-mapper';
+
+export type ManagementInstanceSsoTenantsProfilesListOutput = {
+  items: {
+    object: 'sso.user_profile';
+    id: string;
+    ssoConnectionId: string;
+    ssoTenant: {
+      object: 'sso.tenant';
+      id: string;
+      name: string;
+      ssoTenantId: string;
+      ssoTenantClientId: string;
+      createdAt: Date;
+      updatedAt: Date;
+    };
+    email: string;
+    uid: string;
+    sub: string;
+    firstName: string;
+    lastName: string;
+    roles: string[];
+    groups: string[];
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+};
+
+export let mapManagementInstanceSsoTenantsProfilesListOutput =
+  mtMap.object<ManagementInstanceSsoTenantsProfilesListOutput>({
+    items: mtMap.objectField(
+      'items',
+      mtMap.array(
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          ssoConnectionId: mtMap.objectField(
+            'sso_connection_id',
+            mtMap.passthrough()
+          ),
+          ssoTenant: mtMap.objectField(
+            'sso_tenant',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              ssoTenantId: mtMap.objectField(
+                'sso_tenant_id',
+                mtMap.passthrough()
+              ),
+              ssoTenantClientId: mtMap.objectField(
+                'sso_tenant_client_id',
+                mtMap.passthrough()
+              ),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+            })
+          ),
+          email: mtMap.objectField('email', mtMap.passthrough()),
+          uid: mtMap.objectField('uid', mtMap.passthrough()),
+          sub: mtMap.objectField('sub', mtMap.passthrough()),
+          firstName: mtMap.objectField('first_name', mtMap.passthrough()),
+          lastName: mtMap.objectField('last_name', mtMap.passthrough()),
+          roles: mtMap.objectField('roles', mtMap.array(mtMap.passthrough())),
+          groups: mtMap.objectField('groups', mtMap.array(mtMap.passthrough())),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      )
+    ),
+    pagination: mtMap.objectField(
+      'pagination',
+      mtMap.object({
+        hasMoreBefore: mtMap.objectField(
+          'has_more_before',
+          mtMap.passthrough()
+        ),
+        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
+      })
+    )
+  });
+
+export type ManagementInstanceSsoTenantsProfilesListQuery = {
+  limit?: number | undefined;
+  after?: string | undefined;
+  before?: string | undefined;
+  cursor?: string | undefined;
+  order?: 'asc' | 'desc' | undefined;
+} & {
+  userId?: string | string[] | undefined;
+  consumerProfileId?: string | string[] | undefined;
+};
+
+export let mapManagementInstanceSsoTenantsProfilesListQuery = mtMap.union([
+  mtMap.unionOption(
+    'object',
+    mtMap.object({
+      limit: mtMap.objectField('limit', mtMap.passthrough()),
+      after: mtMap.objectField('after', mtMap.passthrough()),
+      before: mtMap.objectField('before', mtMap.passthrough()),
+      cursor: mtMap.objectField('cursor', mtMap.passthrough()),
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      userId: mtMap.objectField(
+        'user_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      consumerProfileId: mtMap.objectField(
+        'consumer_profile_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
+    })
+  )
+]);
+

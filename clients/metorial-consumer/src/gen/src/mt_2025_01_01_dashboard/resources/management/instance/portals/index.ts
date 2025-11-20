@@ -1,4 +1,5 @@
 export * from './consumer-access';
+export * from './consumer-auth-factors';
 export * from './consumer-groups';
 export * from './consumer-profiles';
 export * from './create';

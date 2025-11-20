@@ -10,7 +10,7 @@ let rootController = internalApp.controller({
 
 export let internalRPC = createServer({})(rootController);
 
-export let internalApi = rpcMux({ path: '/metorial-sso' }, []);
+export let internalApi = rpcMux({ path: '/metorial-sso' }, [internalRPC]);
 
 export type SSOClient = InferClient<typeof rootController>;
 

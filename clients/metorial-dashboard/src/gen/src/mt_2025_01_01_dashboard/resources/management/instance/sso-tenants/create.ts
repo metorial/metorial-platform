@@ -3,6 +3,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type ManagementInstanceSsoTenantsCreateOutput = {
   object: 'sso.tenant';
   id: string;
+  name: string;
   ssoTenantId: string;
   ssoTenantClientId: string;
   createdAt: Date;
@@ -13,6 +14,7 @@ export let mapManagementInstanceSsoTenantsCreateOutput =
   mtMap.object<ManagementInstanceSsoTenantsCreateOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
+    name: mtMap.objectField('name', mtMap.passthrough()),
     ssoTenantId: mtMap.objectField('sso_tenant_id', mtMap.passthrough()),
     ssoTenantClientId: mtMap.objectField(
       'sso_tenant_client_id',

@@ -31,8 +31,14 @@ export let getPortalHost = (d: { portal: Portal }) => {
   };
 };
 
-export let parsePortalIdFromHost = (d: { url: string }) => {
-  let match = d.url.match(templateRegex);
+export let parsePortalIdFromHost = ({ url: rawUrl }: { url: string }) => {
+  let parsedUrl = new URL(rawUrl);
+  parsedUrl.search = '';
+  parsedUrl.hash = '';
+
+  let parsedUrlString = parsedUrl.toString();
+
+  let match = parsedUrlString.match(templateRegex);
   if (!match) return undefined;
 
   let portalId = match[1];
@@ -44,7 +50,7 @@ export let parsePortalIdFromHost = (d: { url: string }) => {
     portalUrl = portalUrl.slice(0, -1);
   }
 
-  let extraPath = d.url.replace(portalUrl, '');
+  let extraPath = parsedUrlString.replace(portalUrl, '');
 
   return {
     portalId,

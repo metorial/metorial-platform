@@ -9,15 +9,15 @@ import {
   mapDashboardInstancePortalsConsumerProfilesGetOutput,
   mapDashboardInstancePortalsConsumerProfilesListOutput,
   mapDashboardInstancePortalsConsumerProfilesListQuery,
-  mapDashboardInstancePortalsConsumerProfilesRemoveFromGroupsBody,
-  mapDashboardInstancePortalsConsumerProfilesRemoveFromGroupsOutput,
+  mapDashboardInstancePortalsConsumerProfilesUnassignGroupsBody,
+  mapDashboardInstancePortalsConsumerProfilesUnassignGroupsOutput,
   type DashboardInstancePortalsConsumerProfilesAssignGroupsBody,
   type DashboardInstancePortalsConsumerProfilesAssignGroupsOutput,
   type DashboardInstancePortalsConsumerProfilesGetOutput,
   type DashboardInstancePortalsConsumerProfilesListOutput,
   type DashboardInstancePortalsConsumerProfilesListQuery,
-  type DashboardInstancePortalsConsumerProfilesRemoveFromGroupsBody,
-  type DashboardInstancePortalsConsumerProfilesRemoveFromGroupsOutput
+  type DashboardInstancePortalsConsumerProfilesUnassignGroupsBody,
+  type DashboardInstancePortalsConsumerProfilesUnassignGroupsOutput
 } from '../resources';
 
 /**
@@ -150,23 +150,23 @@ export class MetorialPortalsConsumerProfilesEndpoint {
    *
    * @param `portalId` - string
    * @param `consumerProfileId` - string
-   * @param `body` - DashboardInstancePortalsConsumerProfilesRemoveFromGroupsBody
+   * @param `body` - DashboardInstancePortalsConsumerProfilesUnassignGroupsBody
    * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstancePortalsConsumerProfilesRemoveFromGroupsOutput
+   * @returns DashboardInstancePortalsConsumerProfilesUnassignGroupsOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  removeFromGroups(
+  unassignGroups(
     portalId: string,
     consumerProfileId: string,
-    body: DashboardInstancePortalsConsumerProfilesRemoveFromGroupsBody,
+    body: DashboardInstancePortalsConsumerProfilesUnassignGroupsBody,
     opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstancePortalsConsumerProfilesRemoveFromGroupsOutput> {
-    let path = `portals/${portalId}/consumer-profile/${consumerProfileId}/remove-from-group`;
+  ): Promise<DashboardInstancePortalsConsumerProfilesUnassignGroupsOutput> {
+    let path = `portals/${portalId}/consumer-profile/${consumerProfileId}/unassign-groups`;
 
     let request = {
       path,
-      body: mapDashboardInstancePortalsConsumerProfilesRemoveFromGroupsBody.transformTo(
+      body: mapDashboardInstancePortalsConsumerProfilesUnassignGroupsBody.transformTo(
         body
       ),
 
@@ -174,7 +174,7 @@ export class MetorialPortalsConsumerProfilesEndpoint {
     } as any;
 
     return this._post(request).transform(
-      mapDashboardInstancePortalsConsumerProfilesRemoveFromGroupsOutput
+      mapDashboardInstancePortalsConsumerProfilesUnassignGroupsOutput
     );
   }
 }

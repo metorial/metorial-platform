@@ -12,7 +12,6 @@ import {
   MetorialConsumerMagicMcpTokensEndpoint,
   MetorialConsumerProfileEndpoint,
   MetorialConsumerProfileGroupsEndpoint,
-  MetorialConsumerProfileSsoUserEndpoint,
   MetorialConsumerSessionEndpoint,
   MetorialServersCapabilitiesEndpoint,
   MetorialServersEndpoint,
@@ -62,8 +61,7 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
   })
 )(manager => ({
   profile: Object.assign(new MetorialConsumerProfileEndpoint(manager), {
-    groups: new MetorialConsumerProfileGroupsEndpoint(manager),
-    ssoUser: new MetorialConsumerProfileSsoUserEndpoint(manager)
+    groups: new MetorialConsumerProfileGroupsEndpoint(manager)
   }),
 
   session: new MetorialConsumerSessionEndpoint(manager),

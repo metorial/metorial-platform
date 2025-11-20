@@ -59,7 +59,10 @@ export let instanceScopes = [
   'instance.portal.access:write' as const,
 
   'instance.portal.consumers:read' as const,
-  'instance.portal.consumers:write' as const
+  'instance.portal.consumers:write' as const,
+
+  'instance.portal.auth:read' as const,
+  'instance.portal.auth:write' as const
 ] satisfies readonly `instance.${string}`[];
 
 export let consumerScopes = [
@@ -185,7 +188,10 @@ export let instanceSecretTokenScopes: Scope[] = [
   'instance.portal.access:write' as const,
 
   'instance.portal.consumers:read' as const,
-  'instance.portal.consumers:write' as const
+  'instance.portal.consumers:write' as const,
+
+  'instance.portal.auth:read' as const,
+  'instance.portal.auth:write' as const
 ];
 
 export let instancePublishableTokenScopes: Scope[] = [

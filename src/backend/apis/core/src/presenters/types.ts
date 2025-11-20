@@ -18,6 +18,8 @@ import {
   ConsumerProfile,
   ConsumerProfileGroup,
   ConsumerSession,
+  ConsumerSurface,
+  ConsumerSurfaceAuthFactor,
   CustomServer,
   CustomServerDeployment,
   CustomServerDeploymentStep,
@@ -643,9 +645,15 @@ export let callbackNotificationType = PresentableType.create<{
 }>()('callback.notification');
 
 export let portalType = PresentableType.create<{
-  portal: Portal;
+  portal: Portal & {
+    surface: ConsumerSurface;
+  };
   portalUrl: string;
 }>()('portal');
+
+export let consumerAuthFactorType = PresentableType.create<{
+  consumerAuthFactor: ConsumerSurfaceAuthFactor;
+}>()('consumer.auth_factor');
 
 export let consumerGroupType = PresentableType.create<{
   consumerGroup: ConsumerGroup;
@@ -690,24 +698,47 @@ export let ssoTenantType = PresentableType.create<{
   ssoTenant: SsoTenant;
 }>()('sso.tenant');
 
+export let ssoTenantSetupType = PresentableType.create<{
+  ssoTenantSetup: {
+    id: string;
+    status: 'pending' | 'completed';
+    tenantId: string;
+    connectionId: string | null | undefined;
+    clientSecret: string;
+    redirectUri: string;
+    url: string;
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+  };
+}>()('sso.tenant.setup');
+
 export let ssoUserType = PresentableType.create<{
   ssoUser: SsoUser & {
     profiles: SsoUserProfile[];
+    ssoTenant: SsoTenant;
   };
 }>()('sso.user');
 
 export let ssoUserProfileType = PresentableType.create<{
-  ssoUserProfile: SsoUserProfile;
+  ssoUserProfile: SsoUserProfile & {
+    ssoUser: SsoUser & {
+      ssoTenant: SsoTenant;
+    };
+  };
 }>()('sso.user_profile');
 
 export let consumerProfileType = PresentableType.create<{
   consumerProfile: ConsumerProfile & {
     consumer: Consumer;
-    ssoUser: SsoUser | null;
     groups: (ConsumerProfileGroup & {
       group: ConsumerGroup;
     })[];
   };
+  assignedConsumerGroups:
+    | (ConsumerGroup & {
+        assignedVia: 'default' | 'manual' | 'sso';
+      })[]
+    | undefined;
 }>()('consumer.profile');
 
 export let consumerSessionType = PresentableType.create<{

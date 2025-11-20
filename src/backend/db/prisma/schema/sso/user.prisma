@@ -17,8 +17,8 @@ model SsoUser {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  profiles         SsoUserProfile[]
-  consumerProfiles ConsumerProfile[]
+  profiles                SsoUserProfile[]
+  consumerProfileSsoUsers ConsumerProfileSsoUser[]
 }
 
 model SsoUserProfile {
@@ -37,6 +37,7 @@ model SsoUserProfile {
   roles           String[]
   groups          String[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @default(now()) @updatedAt
+  consumerProfileSsoUsers ConsumerProfileSsoUser[]
 }

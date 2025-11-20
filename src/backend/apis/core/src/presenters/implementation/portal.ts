@@ -34,6 +34,11 @@ export let v1PortalPresenter = Presenter.create(portalType)
       name: portal.brandName
     },
 
+    auth: {
+      object: 'portal.auth',
+      session_expiry_time_in_seconds: portal.surface.sessionExpiryTimeInSeconds
+    },
+
     created_at: portal.createdAt,
     updated_at: portal.updatedAt
   }))
@@ -69,6 +74,24 @@ export let v1PortalPresenter = Presenter.create(portalType)
           name: 'description',
           description: 'The description of the portal'
         })
+      ),
+
+      auth: v.object(
+        {
+          object: v.literal('portal.auth', {
+            name: 'auth.object',
+            description: 'Type of the object, fixed as portal.auth'
+          }),
+
+          session_expiry_time_in_seconds: v.number({
+            name: 'auth.session_expiry_time_in_seconds',
+            description: 'The session expiry time in seconds for the portal'
+          })
+        },
+        {
+          name: 'auth',
+          description: 'Authentication settings for the portal'
+        }
       ),
 
       urls: v.array(

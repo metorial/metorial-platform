@@ -45,7 +45,7 @@ export let PortalOverviewPage = () => {
             ]}
           />
 
-          <Spacer height={25} />
+          <Spacer height={15} />
 
           <Box
             title="Users"
@@ -67,7 +67,7 @@ export let PortalOverviewPage = () => {
             <PortalConsumerProfilesTable portalId={portal.data?.id} limit={8} />
           </Box>
 
-          <Spacer height={25} />
+          <Spacer height={15} />
 
           <Box
             title="Magic MCP Servers"
