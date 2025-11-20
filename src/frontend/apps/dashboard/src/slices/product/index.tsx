@@ -358,8 +358,14 @@ let PortalGroupOverviewPage = dynamicPage(() =>
 let PortalGroupLayout = dynamicPage(() =>
   import('./pages/(portals)/portal/group/_layout').then(c => c.PortalGroupLayout)
 );
-let PortalSettingsPage = dynamicPage(() =>
-  import('./pages/(portals)/portal/settings').then(c => c.PortalSettingsPage)
+let PortalSettingsLayout = dynamicPage(() =>
+  import('./pages/(portals)/portal/settings/_layout').then(c => c.PortalSettingsLayout)
+);
+let PortalSettingsOverviewPage = dynamicPage(() =>
+  import('./pages/(portals)/portal/settings/index').then(c => c.PortalSettingsOverviewPage)
+);
+let PortalSettingsAuthPage = dynamicPage(() =>
+  import('./pages/(portals)/portal/settings/auth').then(c => c.PortalSettingsAuthPage)
 );
 let PortalGroupsPage = dynamicPage(() =>
   import('./pages/(portals)/portal/groups').then(c => c.PortalGroupsPage)
@@ -944,7 +950,18 @@ export let productInnerSlice = createSlice([
           },
           {
             path: 'settings',
-            element: <PortalSettingsPage />
+            element: <PortalSettingsLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <PortalSettingsOverviewPage />
+              },
+              {
+                path: 'authentication',
+                element: <PortalSettingsAuthPage />
+              }
+            ]
           },
 
           {

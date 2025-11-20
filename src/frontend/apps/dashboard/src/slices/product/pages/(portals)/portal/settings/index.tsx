@@ -3,9 +3,9 @@ import { useCurrentInstance, usePortal } from '@metorial/state';
 import { Button, confirm, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
-import { PortalForm } from '../../../scenes/portals/form';
+import { PortalForm } from '../../../../scenes/portals/form';
 
-export let PortalSettingsPage = () => {
+export let PortalSettingsOverviewPage = () => {
   let instance = useCurrentInstance();
   let params = useParams();
   let portal = usePortal(instance.data?.id, params.portalId!);

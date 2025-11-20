@@ -33,8 +33,8 @@ export let PortalConsumerProfilesTable = (
             instance.data?.organization,
             instance.data?.project,
             instance.data,
-            group.id,
-            'group',
+            filter.portalId,
+            'user',
             group.id
           )
         }))}
