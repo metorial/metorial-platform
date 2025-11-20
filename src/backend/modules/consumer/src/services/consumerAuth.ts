@@ -7,6 +7,7 @@ import {
   ID,
   Organization,
   SsoUser,
+  SsoUserProfile,
   withTransaction
 } from '@metorial/db';
 import { badRequestError, ServiceError, unauthorizedError } from '@metorial/error';
@@ -193,6 +194,7 @@ class consumerAuthServiceImpl {
   async authenticateWithSsoComplete(d: {
     surface: ConsumerSurface;
     ssoUser: SsoUser;
+    ssoProfile: SsoUserProfile;
     context: Context;
   }) {
     await this.ensureSurfaceIsActive({ surface: d.surface });
@@ -203,7 +205,7 @@ class consumerAuthServiceImpl {
       name:
         `${d.ssoUser.firstName} ${d.ssoUser.lastName}`.trim() || d.ssoUser.email.split('@')[0],
       overrideName: true,
-      ssoUser: d.ssoUser
+      ssoProfile: d.ssoProfile
     });
 
     return this.createConsumerSession({
@@ -287,8 +289,12 @@ class consumerAuthServiceImpl {
         consumerProfile: {
           include: {
             consumer: true,
-            ssoUser: true,
             surface: true,
+            ssoUsers: {
+              include: {
+                ssoUser: true
+              }
+            },
             groups: {
               include: {
                 group: true
@@ -339,7 +345,12 @@ class consumerAuthServiceImpl {
         consumerProfile: {
           include: {
             consumer: true,
-            ssoUser: true
+            ssoUsers: {
+              include: {
+                ssoProfile: true,
+                ssoUser: true
+              }
+            }
           }
         }
       }
@@ -373,7 +384,7 @@ class consumerAuthServiceImpl {
     email: string;
     name: string;
     overrideName: boolean;
-    ssoUser?: SsoUser;
+    ssoProfile?: SsoUserProfile;
   }) {
     return withTransaction(async db => {
       let consumer = await db.consumer.upsert({
@@ -395,7 +406,7 @@ class consumerAuthServiceImpl {
         }
       });
 
-      return await db.consumerProfile.upsert({
+      let profile = await db.consumerProfile.upsert({
         where: {
           email_surfaceOid: {
             email: d.email,
@@ -409,7 +420,6 @@ class consumerAuthServiceImpl {
 
           surfaceOid: d.surface.oid,
           consumerOid: consumer.oid,
-          ssoUserOid: d.ssoUser?.oid ?? null,
           organizationOid: d.surface.organizationOid
         },
         update: {
@@ -417,6 +427,25 @@ class consumerAuthServiceImpl {
           name: d.overrideName ? d.name : undefined
         }
       });
+
+      if (d.ssoProfile) {
+        await db.consumerProfileSsoUser.upsert({
+          where: {
+            consumerProfileOid_ssoProfileOid: {
+              consumerProfileOid: profile.oid,
+              ssoProfileOid: d.ssoProfile!.oid
+            }
+          },
+          create: {
+            consumerProfileOid: profile.oid,
+            ssoProfileOid: d.ssoProfile.oid,
+            ssoUserOid: d.ssoProfile.ssoUserOid
+          },
+          update: {}
+        });
+      }
+
+      return profile;
     });
   }
 

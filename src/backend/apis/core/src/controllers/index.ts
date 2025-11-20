@@ -63,7 +63,9 @@ import { sessionController } from './instance/session';
 import { sessionConnectionController } from './instance/sessionConnection';
 import { sessionEventController } from './instance/sessionEvent';
 import { sessionMessageController } from './instance/sessionMessage';
+import { ssoProfileController } from './instance/ssoProfile';
 import { ssoTenantController } from './instance/ssoTenant';
+import { ssoUserController } from './instance/ssoUser';
 import { instanceManagementController } from './management/instance';
 import { organizationManagementController } from './management/organization';
 import { organizationInviteManagementController } from './management/organizationInvite';
@@ -135,6 +137,8 @@ export let pulsarController = Controller.create<any>(
     teamManagementController,
 
     ssoTenantController,
+    ssoUserController,
+    ssoProfileController,
 
     portalController,
     portalConsumerGroupController,
@@ -237,6 +241,8 @@ export let dashboardController = Controller.create<any>(
     teamManagementController,
 
     ssoTenantController,
+    ssoUserController,
+    ssoProfileController,
 
     portalController,
     portalConsumerGroupController,

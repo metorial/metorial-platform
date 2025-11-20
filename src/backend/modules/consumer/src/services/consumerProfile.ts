@@ -1,14 +1,24 @@
-import { ConsumerProfile, ConsumerSurface, db, SsoUser } from '@metorial/db';
+import {
+  ConsumerProfile,
+  ConsumerProfileSsoUser,
+  ConsumerSurface,
+  db,
+  SsoUser
+} from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
 import { Service } from '@metorial/service';
 import { Paginator } from '../../../../../packages/server/pagination/src';
 
 let include = {
   consumer: true,
-  ssoUser: true,
   groups: {
     include: {
       group: true
+    }
+  },
+  ssoUsers: {
+    include: {
+      ssoUser: true
     }
   }
 };
@@ -39,7 +49,10 @@ class consumerProfileServiceImpl {
     );
   }
 
-  async assignToGroups(d: { consumerProfile: ConsumerProfile; groupIds: string[] }) {
+  async assignToGroups<T extends ConsumerProfile>(d: {
+    consumerProfile: T;
+    groupIds: string[];
+  }) {
     let groups = await db.consumerGroup.findMany({
       where: {
         id: { in: d.groupIds },
@@ -47,18 +60,21 @@ class consumerProfileServiceImpl {
       }
     });
 
-    return await db.consumerProfile.update({
-      where: { oid: d.consumerProfile.oid },
-      data: {
-        groups: {
-          connect: groups.map(g => ({ oid: g.oid }))
-        }
-      },
-      include
+    await db.consumerProfileGroup.createMany({
+      data: groups.map(g => ({
+        profileOid: d.consumerProfile.oid,
+        groupOid: g.oid
+      })),
+      skipDuplicates: true
     });
+
+    return d.consumerProfile;
   }
 
-  async removeFromGroups(d: { consumerProfile: ConsumerProfile; groupIds: string[] }) {
+  async removeFromGroups<T extends ConsumerProfile>(d: {
+    consumerProfile: T;
+    groupIds: string[];
+  }) {
     let groups = await db.consumerGroup.findMany({
       where: {
         id: { in: d.groupIds },
@@ -66,23 +82,26 @@ class consumerProfileServiceImpl {
       }
     });
 
-    return await db.consumerProfile.update({
-      where: { oid: d.consumerProfile.oid },
-      data: {
-        groups: {
-          disconnect: groups.map(g => ({ oid: g.oid }))
-        }
-      },
-      include
+    await db.consumerProfileGroup.deleteMany({
+      where: {
+        profileOid: d.consumerProfile.oid,
+        groupOid: { in: groups.map(g => g.oid) }
+      }
     });
+
+    return d.consumerProfile;
   }
 
   async getGroupsForProfile(d: {
     consumerProfile: ConsumerProfile & {
-      ssoUser: SsoUser | null;
+      ssoUsers: (ConsumerProfileSsoUser & {
+        ssoUser: SsoUser;
+      })[];
     };
   }) {
-    return db.consumerGroup.findMany({
+    let ssoGroupIds = d.consumerProfile.ssoUsers.flatMap(u => u.ssoUser.allGroups);
+
+    let groups = await db.consumerGroup.findMany({
       where: {
         surfaceOid: d.consumerProfile.surfaceOid,
 
@@ -94,13 +113,41 @@ class consumerProfileServiceImpl {
           { profiles: { some: { profileOid: d.consumerProfile.oid } } },
 
           // SSO Group membership
-          d.consumerProfile.ssoUser
+          ssoGroupIds.length
             ? {
-                ssoGroupIds: { hasSome: d.consumerProfile.ssoUser.allGroups }
+                ssoGroupIds: { hasSome: ssoGroupIds }
               }
             : undefined!
         ].filter(Boolean)
+      },
+      include: {
+        profiles: {
+          where: {
+            profileOid: d.consumerProfile.oid
+          }
+        }
       }
+    });
+
+    return groups.map(g => {
+      if (g.isDefault) {
+        return {
+          ...g,
+          assignedVia: 'default' as const
+        };
+      }
+
+      if (ssoGroupIds.some(id => g.ssoGroupIds.includes(id))) {
+        return {
+          ...g,
+          assignedVia: 'sso' as const
+        };
+      }
+
+      return {
+        ...g,
+        assignedVia: 'manual' as const
+      };
     });
   }
 }

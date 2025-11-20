@@ -174,7 +174,8 @@ export let authController = publicApp.controller({
       let session = await consumerAuthService.authenticateWithSsoComplete({
         context: ctx.context,
         surface: portal.surface,
-        ssoUser: ssoAuth.user
+        ssoUser: ssoAuth.user,
+        ssoProfile: ssoAuth.profile
       });
 
       let token = await consumerAuthService.getConsumerSessionToken({

@@ -49,7 +49,10 @@ export let portalConsumerProfileController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, consumerProfile =>
-          consumerProfilePresenter.present({ consumerProfile })
+          consumerProfilePresenter.present({
+            consumerProfile,
+            assignedConsumerGroups: undefined
+          })
         );
       }),
 
@@ -72,8 +75,13 @@ export let portalConsumerProfileController = Controller.create(
       .use(hasFlags(['paid-portals']))
       .output(consumerProfilePresenter)
       .do(async ctx => {
-        return consumerProfilePresenter.present({
+        let assignedConsumerGroups = await consumerProfileService.getGroupsForProfile({
           consumerProfile: ctx.consumerProfile
+        });
+
+        return consumerProfilePresenter.present({
+          consumerProfile: ctx.consumerProfile,
+          assignedConsumerGroups
         });
       }),
 
@@ -107,14 +115,18 @@ export let portalConsumerProfileController = Controller.create(
           groupIds: ctx.body.group_ids
         });
 
-        return consumerProfilePresenter.present({ consumerProfile });
+        let assignedConsumerGroups = await consumerProfileService.getGroupsForProfile({
+          consumerProfile: ctx.consumerProfile
+        });
+
+        return consumerProfilePresenter.present({ consumerProfile, assignedConsumerGroups });
       }),
 
-    removeFromGroups: consumerProfileGroup
+    unassignGroups: consumerProfileGroup
       .post(
         instancePath(
-          'portals/:portalId/consumer-profile/:consumerProfileId/remove-from-group',
-          'portals.consumerProfiles.removeFromGroups'
+          'portals/:portalId/consumer-profile/:consumerProfileId/unassign-groups',
+          'portals.consumerProfiles.unassignGroups'
         ),
         {
           name: 'Remove Portal Consumer Profile from Group',
@@ -140,7 +152,11 @@ export let portalConsumerProfileController = Controller.create(
           groupIds: ctx.body.group_ids
         });
 
-        return consumerProfilePresenter.present({ consumerProfile });
+        let assignedConsumerGroups = await consumerProfileService.getGroupsForProfile({
+          consumerProfile: ctx.consumerProfile
+        });
+
+        return consumerProfilePresenter.present({ consumerProfile, assignedConsumerGroups });
       })
   }
 );

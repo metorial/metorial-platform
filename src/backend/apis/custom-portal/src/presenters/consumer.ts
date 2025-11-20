@@ -1,7 +1,19 @@
-import { Consumer, ConsumerProfile, SsoUser } from '@metorial/db';
+import {
+  Consumer,
+  ConsumerProfile,
+  ConsumerProfileSsoUser,
+  SsoUser,
+  SsoUserProfile
+} from '@metorial/db';
 
 export let consumerProfilePresenter = (
-  profile: ConsumerProfile & { consumer: Consumer; ssoUser: SsoUser | null }
+  profile: ConsumerProfile & {
+    consumer: Consumer;
+    ssoUsers: (ConsumerProfileSsoUser & {
+      ssoProfile: SsoUserProfile;
+      ssoUser: SsoUser;
+    })[];
+  }
 ) => ({
   object: 'portal#consumer.profile',
 
@@ -25,18 +37,37 @@ export let consumerProfilePresenter = (
     updatedAt: profile.consumer.updatedAt
   },
 
-  ssoUser: profile.ssoUser
-    ? {
-        object: 'portal#sso.user',
+  ssoProfiles: profile.ssoUsers.map(ssoUserLink => ({
+    object: 'portal#sso.user.profile',
 
-        id: profile.ssoUser.id,
+    id: ssoUserLink.ssoProfile.id,
 
-        email: profile.ssoUser.email,
-        firstName: profile.ssoUser.firstName,
-        lastName: profile.ssoUser.lastName,
+    email: ssoUserLink.ssoProfile.email,
+    firstName: ssoUserLink.ssoProfile.firstName,
+    lastName: ssoUserLink.ssoProfile.lastName,
 
-        createdAt: profile.ssoUser.createdAt,
-        updatedAt: profile.ssoUser.updatedAt
-      }
-    : null
+    groups: ssoUserLink.ssoProfile.groups,
+    roles: ssoUserLink.ssoProfile.roles,
+
+    sub: ssoUserLink.ssoProfile.sub,
+    uid: ssoUserLink.ssoProfile.uid,
+
+    ssoConnectionId: ssoUserLink.ssoProfile.ssoConnectionId,
+
+    createdAt: ssoUserLink.ssoProfile.createdAt,
+    updatedAt: ssoUserLink.ssoProfile.updatedAt,
+
+    ssoUser: {
+      object: 'portal#sso.user',
+
+      id: ssoUserLink.ssoUser.id,
+
+      email: ssoUserLink.ssoUser.email,
+      roles: ssoUserLink.ssoUser.allGroups,
+      groups: ssoUserLink.ssoUser.allRoles,
+
+      createdAt: ssoUserLink.ssoUser.createdAt,
+      updatedAt: ssoUserLink.ssoUser.updatedAt
+    }
+  }))
 });

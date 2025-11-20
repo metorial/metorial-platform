@@ -715,21 +715,30 @@ export let ssoTenantSetupType = PresentableType.create<{
 export let ssoUserType = PresentableType.create<{
   ssoUser: SsoUser & {
     profiles: SsoUserProfile[];
+    ssoTenant: SsoTenant;
   };
 }>()('sso.user');
 
 export let ssoUserProfileType = PresentableType.create<{
-  ssoUserProfile: SsoUserProfile;
+  ssoUserProfile: SsoUserProfile & {
+    ssoUser: SsoUser & {
+      ssoTenant: SsoTenant;
+    };
+  };
 }>()('sso.user_profile');
 
 export let consumerProfileType = PresentableType.create<{
   consumerProfile: ConsumerProfile & {
     consumer: Consumer;
-    ssoUser: SsoUser | null;
     groups: (ConsumerProfileGroup & {
       group: ConsumerGroup;
     })[];
   };
+  assignedConsumerGroups:
+    | (ConsumerGroup & {
+        assignedVia: 'default' | 'manual' | 'sso';
+      })[]
+    | undefined;
 }>()('consumer.profile');
 
 export let consumerSessionType = PresentableType.create<{

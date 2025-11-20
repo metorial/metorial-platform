@@ -1,5 +1,5 @@
 import { ServiceError, unauthorizedError } from '@metorial/error';
-import { consumerAuthService } from '@metorial/module-consumer';
+import { consumerAuthService, consumerProfileService } from '@metorial/module-consumer';
 import { Path } from '@metorial/rest';
 import { apiGroup } from './apiGroup';
 
@@ -33,10 +33,15 @@ export let consumerGroup = apiGroup.use(async ctx => {
     organization
   });
 
+  let consumerGroups = await consumerProfileService.getGroupsForProfile({
+    consumerProfile: res.consumerProfile
+  });
+
   return {
     actor,
     instance,
     organization,
+    consumerGroups,
     consumerSurface: res.surface,
     consumerSession: res.session,
     consumerProfile: res.consumerProfile

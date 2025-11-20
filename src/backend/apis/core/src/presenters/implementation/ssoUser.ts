@@ -1,6 +1,7 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { ssoUserType } from '../types';
+import { v1SsoTenantPresenter } from './ssoTenant';
 import { v1SsoUserProfilePresenter } from './ssoUserProfile';
 
 export let v1SsoUserPresenter = Presenter.create(ssoUserType)
@@ -10,18 +11,24 @@ export let v1SsoUserPresenter = Presenter.create(ssoUserType)
     id: ssoUser.id,
 
     sso_user_id: ssoUser.ssoUserId,
-    sso_tenant_id: ssoUser.ssoUserId,
 
     email: ssoUser.email,
     first_name: ssoUser.firstName,
     last_name: ssoUser.lastName,
+
+    sso_tenant: await v1SsoTenantPresenter
+      .present({ ssoTenant: ssoUser.ssoTenant }, opts)
+      .run(),
 
     profiles: await Promise.all(
       ssoUser.profiles.map(profile =>
         v1SsoUserProfilePresenter
           .present(
             {
-              ssoUserProfile: profile
+              ssoUserProfile: {
+                ...profile,
+                ssoUser
+              }
             },
             opts
           )
@@ -44,10 +51,7 @@ export let v1SsoUserPresenter = Presenter.create(ssoUserType)
         description: 'The unique identifier of the sso tenant'
       }),
 
-      sso_tenant_id: v.string({
-        name: 'sso_tenant_id',
-        description: 'The SSO User ID provided by the SSO provider'
-      }),
+      sso_tenant: v1SsoTenantPresenter.schema,
 
       sso_user_id: v.string({
         name: 'sso_user_id',

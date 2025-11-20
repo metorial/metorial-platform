@@ -32,17 +32,33 @@ model ConsumerProfile {
   consumerOid BigInt
   consumer    Consumer @relation(fields: [consumerOid], references: [oid])
 
-  ssoUserOid BigInt?
-  ssoUser    SsoUser? @relation(fields: [ssoUserOid], references: [oid])
-
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   consumerSessions ConsumerSession[]
   magicMcpTokens   MagicMcpToken[]
   groups           ConsumerProfileGroup[]
+  ssoUsers         ConsumerProfileSsoUser[]
 
   @@unique([email, surfaceOid])
+}
+
+model ConsumerProfileSsoUser {
+  oid BigInt @id @default(autoincrement())
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid])
+
+  ssoUserOid BigInt
+  ssoUser    SsoUser @relation(fields: [ssoUserOid], references: [oid])
+
+  ssoProfileOid BigInt
+  ssoProfile    SsoUserProfile @relation(fields: [ssoProfileOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@unique([consumerProfileOid, ssoUserOid])
+  @@unique([consumerProfileOid, ssoProfileOid])
 }
 
 model ConsumerProfileGroup {
@@ -55,4 +71,6 @@ model ConsumerProfileGroup {
   group    ConsumerGroup @relation(fields: [groupOid], references: [oid])
 
   createdAt DateTime @default(now())
+
+  @@unique([profileOid, groupOid])
 }
