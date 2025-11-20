@@ -35,6 +35,21 @@ class ssoAuthServiceImpl {
     let allGroups = [...new Set([...(currentUser?.allGroups || []), ...res.profile.groups])];
     let allRoles = [...new Set([...(currentUser?.allRoles || []), ...res.profile.roles])];
 
+    let missingGroupsFromTenant = allGroups.filter(g => !tenant.availableGroups.includes(g));
+    let missingRolesFromTenant = allRoles.filter(r => !tenant.availableRoles.includes(r));
+
+    if (missingGroupsFromTenant.length || missingRolesFromTenant.length) {
+      await db.ssoTenant.updateMany({
+        where: { oid: tenant.oid },
+        data: {
+          availableGroups: [
+            ...new Set([...tenant.availableGroups, ...missingGroupsFromTenant])
+          ],
+          availableRoles: [...new Set([...tenant.availableRoles, ...missingRolesFromTenant])]
+        }
+      });
+    }
+
     let ssoUserData = {
       ssoTenantOid: tenant.oid,
       ssoUserId: res.user.id,

@@ -20,7 +20,7 @@ export let PortalSettingsOverviewPage = () => {
             <PortalForm portalId={portal.data.id} />
           </Box>
 
-          <Spacer height={25} />
+          <Spacer height={15} />
 
           <Box title="Delete Portal" description="Permanently delete this portal.">
             <Button
