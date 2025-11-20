@@ -150,7 +150,7 @@ export let PortalSettingsAuthPage = () => {
             </Field>
           </FormBox>
 
-          <Spacer size={25} />
+          <Spacer size={15} />
 
           <Box
             title="Email Code Authentication"
@@ -170,7 +170,7 @@ export let PortalSettingsAuthPage = () => {
             />
           </Box>
 
-          <Spacer size={25} />
+          <Spacer size={15} />
 
           <Box
             title="SSO Authentication"

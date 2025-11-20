@@ -1,26 +1,14 @@
 import { ServiceError, unauthorizedError } from '@metorial/error';
-import { consumerAuthService, consumerProfileService } from '@metorial/module-consumer';
 import { Path } from '@metorial/rest';
-import { apiGroup } from './apiGroup';
+import { instanceGroup } from './instanceGroup';
 
-export let consumerGroup = apiGroup.use(async ctx => {
-  if (ctx.auth.type != 'machine' || ctx.auth.restrictions.type != 'instance') {
-    throw new ServiceError(
-      unauthorizedError({
-        message: 'Invalid authentication type for consumer group'
-      })
-    );
-  }
-
-  let instance = ctx.auth.restrictions.instance;
-  let organization = ctx.auth.restrictions.organization;
-  let actor = ctx.auth.restrictions.actor;
-
-  let consumerSessionClientSecret =
-    ctx.query['consumer_session_client_secret'] ??
-    ctx.headers['metorial-consumer-session-client-secret'];
-
-  if (!consumerSessionClientSecret) {
+export let consumerGroup = instanceGroup.use(async ctx => {
+  if (
+    !ctx.consumerGroups ||
+    !ctx.consumerProfile ||
+    !ctx.consumerSession ||
+    !ctx.consumerSurface
+  ) {
     throw new ServiceError(
       unauthorizedError({
         message: 'Missing consumer session client secret'
@@ -28,23 +16,11 @@ export let consumerGroup = apiGroup.use(async ctx => {
     );
   }
 
-  let res = await consumerAuthService.authenticateWithConsumerToken({
-    token: consumerSessionClientSecret,
-    organization
-  });
-
-  let consumerGroups = await consumerProfileService.getGroupsForProfile({
-    consumerProfile: res.consumerProfile
-  });
-
   return {
-    actor,
-    instance,
-    organization,
-    consumerGroups,
-    consumerSurface: res.surface,
-    consumerSession: res.session,
-    consumerProfile: res.consumerProfile
+    consumerGroups: ctx.consumerGroups,
+    consumerSurface: ctx.consumerSurface,
+    consumerSession: ctx.consumerSession,
+    consumerProfile: ctx.consumerProfile
   };
 });
 

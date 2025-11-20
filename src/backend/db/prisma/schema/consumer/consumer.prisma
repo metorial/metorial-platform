@@ -26,6 +26,9 @@ model ConsumerProfile {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid])
 
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
   surfaceOid BigInt
   surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid])
 

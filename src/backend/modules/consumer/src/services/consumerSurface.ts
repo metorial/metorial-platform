@@ -201,23 +201,23 @@ class consumerSurfaceServiceImpl {
     return consumerSurface;
   }
 
-  async getConsumerSurfaceById(d: { organization: Organization; consumerSurfaceId: string }) {
+  async getConsumerSurfaceById(d: { instance: Instance; consumerSurfaceId: string }) {
     let consumerSurface = await db.consumerSurface.findFirst({
-      where: { id: d.consumerSurfaceId, organizationOid: d.organization.oid },
+      where: { id: d.consumerSurfaceId, instanceOid: d.instance.oid },
       include
     });
     if (!consumerSurface) throw new ServiceError(notFoundError('consumer.surface'));
     return consumerSurface;
   }
 
-  async listConsumerSurfaces(d: { organization: Organization }) {
+  async listConsumerSurfaces(d: { instance: Instance }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.consumerSurface.findMany({
             ...opts,
             where: {
-              organizationOid: d.organization.oid,
+              instanceOid: d.instance.oid,
               status: 'active'
             },
             include

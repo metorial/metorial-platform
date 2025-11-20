@@ -420,6 +420,7 @@ class consumerAuthServiceImpl {
 
           surfaceOid: d.surface.oid,
           consumerOid: consumer.oid,
+          instanceOid: d.surface.instanceOid,
           organizationOid: d.surface.organizationOid
         },
         update: {

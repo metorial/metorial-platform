@@ -65,7 +65,7 @@ export let PortalUserPage = () => {
 
               <Box title="SSO Profiles" description="SSO profiles linked to this user">
                 <Table
-                  headers={['Info', 'ID', 'SSO Tenant', 'Created']}
+                  headers={['Info', 'ID', 'SSO Tenant', 'Groups', 'Created']}
                   data={profiles.data.items.map(profile => ({
                     data: [
                       <Flex gap={3} direction="column">
@@ -78,6 +78,9 @@ export let PortalUserPage = () => {
                       </Flex>,
                       <ID id={profile.id} />,
                       profile.ssoTenant.name,
+                      profile.groups.length
+                        ? profile.groups.map(g => g).join(', ')
+                        : 'No Groups',
                       <RenderDate date={profile.createdAt} />
                     ]
                   }))}
@@ -211,18 +214,25 @@ export let PortalUserPage = () => {
                   }[group.assignedVia],
                   <ID id={group.group.id} />,
 
-                  <Button
-                    size="1"
-                    variant="outline"
-                    disabled={group.assignedVia != 'manual'}
-                    onClick={async () => {
-                      await unassignGroups.mutate({
-                        groupIds: [group.group.id]
-                      });
-                    }}
-                  >
-                    Unassign
-                  </Button>
+                  <Flex justify="end" style={{ width: '100%' }}>
+                    <Button
+                      size="1"
+                      variant="outline"
+                      disabled={group.assignedVia != 'manual'}
+                      title={
+                        group.assignedVia != 'manual'
+                          ? `Group is assigned automatically and can't be unassigned`
+                          : 'Unassign group from user'
+                      }
+                      onClick={async () => {
+                        await unassignGroups.mutate({
+                          groupIds: [group.group.id]
+                        });
+                      }}
+                    >
+                      Unassign
+                    </Button>
+                  </Flex>
                 ]
               }))}
             />

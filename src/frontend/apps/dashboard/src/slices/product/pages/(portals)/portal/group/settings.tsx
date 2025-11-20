@@ -72,7 +72,7 @@ export let PortalGroupSettingsPage = () => {
           />
           <form.RenderError field="ssoGroupIds" />
 
-          <Spacer height={25} />
+          <Spacer height={15} />
 
           <Button
             type="submit"
@@ -85,7 +85,7 @@ export let PortalGroupSettingsPage = () => {
         </form>
       </Box>
 
-      <Spacer height={25} />
+      <Spacer height={15} />
 
       <Box
         title="Delete Group"

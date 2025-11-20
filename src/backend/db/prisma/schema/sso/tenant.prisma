@@ -7,6 +7,9 @@ model SsoTenant {
   ssoTenantId       String @unique
   ssoTenantClientId String @unique
 
+  availableGroups String[]
+  availableRoles  String[]
+
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid])
 
