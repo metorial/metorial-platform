@@ -48,12 +48,12 @@ export let portalProfileLoader = createLoader({
         sdk.portals.consumerProfiles.assignGroups(instanceId, portalId, profileId, i)
       ),
 
-    removeFromGroups: (
+    unassignGroups: (
       i: DashboardInstancePortalsConsumerProfilesAssignGroupsBody,
       { input: { instanceId, portalId, profileId } }
     ) =>
       withAuth(sdk =>
-        sdk.portals.consumerProfiles.removeFromGroups(instanceId, portalId, profileId, i)
+        sdk.portals.consumerProfiles.unassignGroups(instanceId, portalId, profileId, i)
       )
   }
 });
@@ -70,6 +70,6 @@ export let usePortalConsumerProfile = (
   return {
     ...data,
     useAssignGroupsMutator: data.useMutator('assignGroups'),
-    useRemoveFromGroupsMutator: data.useMutator('removeFromGroups')
+    useUnassignGroupsMutator: data.useMutator('unassignGroups')
   };
 };

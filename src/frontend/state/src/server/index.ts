@@ -43,4 +43,6 @@ export * from './loaders/sessionEvents';
 export * from './loaders/sessionMessages';
 export * from './loaders/sessions';
 export * from './loaders/sessionServerSessions';
+export * from './loaders/ssoProfile';
 export * from './loaders/ssoTenant';
+export * from './loaders/ssoUser';
