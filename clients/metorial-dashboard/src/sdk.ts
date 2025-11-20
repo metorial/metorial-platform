@@ -23,6 +23,7 @@ import {
   MetorialDashboardInstanceMagicMcpSessionsEndpoint,
   MetorialDashboardInstanceMagicMcpTokensEndpoint,
   MetorialDashboardInstancePortalsConsumerAccessEndpoint,
+  MetorialDashboardInstancePortalsConsumerAuthFactorsEndpoint,
   MetorialDashboardInstancePortalsConsumerGroupsEndpoint,
   MetorialDashboardInstancePortalsConsumerProfilesEndpoint,
   MetorialDashboardInstancePortalsEndpoint,
@@ -223,7 +224,10 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   portals: Object.assign(new MetorialDashboardInstancePortalsEndpoint(manager), {
     consumerProfiles: new MetorialDashboardInstancePortalsConsumerProfilesEndpoint(manager),
     consumerGroups: new MetorialDashboardInstancePortalsConsumerGroupsEndpoint(manager),
-    consumerAccess: new MetorialDashboardInstancePortalsConsumerAccessEndpoint(manager)
+    consumerAccess: new MetorialDashboardInstancePortalsConsumerAccessEndpoint(manager),
+    consumerAuthFactors: new MetorialDashboardInstancePortalsConsumerAuthFactorsEndpoint(
+      manager
+    )
   }),
 
   ssoTenants: new MetorialDashboardInstanceSsoTenantsEndpoint(manager)

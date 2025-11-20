@@ -9,11 +9,15 @@ import {
   mapDashboardInstanceSsoTenantsGetOutput,
   mapDashboardInstanceSsoTenantsListOutput,
   mapDashboardInstanceSsoTenantsListQuery,
+  mapDashboardInstanceSsoTenantsSetupBody,
+  mapDashboardInstanceSsoTenantsSetupOutput,
   type DashboardInstanceSsoTenantsCreateBody,
   type DashboardInstanceSsoTenantsCreateOutput,
   type DashboardInstanceSsoTenantsGetOutput,
   type DashboardInstanceSsoTenantsListOutput,
-  type DashboardInstanceSsoTenantsListQuery
+  type DashboardInstanceSsoTenantsListQuery,
+  type DashboardInstanceSsoTenantsSetupBody,
+  type DashboardInstanceSsoTenantsSetupOutput
 } from '../resources';
 
 /**
@@ -125,6 +129,36 @@ export class MetorialSsoTenantsEndpoint {
 
     return this._post(request).transform(
       mapDashboardInstanceSsoTenantsCreateOutput
+    );
+  }
+
+  /**
+   * @name Setup SSO Tenant
+   * @description Creates a new sso tenant setup for the tenant.
+   *
+   * @param `ssoTenantId` - string
+   * @param `body` - DashboardInstanceSsoTenantsSetupBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSsoTenantsSetupOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  setup(
+    ssoTenantId: string,
+    body: DashboardInstanceSsoTenantsSetupBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSsoTenantsSetupOutput> {
+    let path = `sso-tenants/${ssoTenantId}/setup`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceSsoTenantsSetupBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceSsoTenantsSetupOutput
     );
   }
 }

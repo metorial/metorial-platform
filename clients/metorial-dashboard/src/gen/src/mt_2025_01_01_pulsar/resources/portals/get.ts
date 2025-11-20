@@ -7,6 +7,7 @@ export type PortalsGetOutput = {
   name: string;
   slug: string;
   description: string | null;
+  auth: { object: 'portal.auth'; sessionExpiryTimeInSeconds: number };
   urls: { type: 'default'; url: string }[];
   brand: { image: string; name: string };
   createdAt: Date;
@@ -20,6 +21,16 @@ export let mapPortalsGetOutput = mtMap.object<PortalsGetOutput>({
   name: mtMap.objectField('name', mtMap.passthrough()),
   slug: mtMap.objectField('slug', mtMap.passthrough()),
   description: mtMap.objectField('description', mtMap.passthrough()),
+  auth: mtMap.objectField(
+    'auth',
+    mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
+      sessionExpiryTimeInSeconds: mtMap.objectField(
+        'session_expiry_time_in_seconds',
+        mtMap.passthrough()
+      )
+    })
+  ),
   urls: mtMap.objectField(
     'urls',
     mtMap.array(
