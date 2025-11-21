@@ -5,7 +5,8 @@ import {
   ConsumerSurface,
   db,
   ID,
-  MagicMcpGroup
+  MagicMcpGroup,
+  withTransaction
 } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
 import { Service } from '@metorial/service';
@@ -88,24 +89,42 @@ class consumerAccessServiceImpl {
       magicMcpGroup: MagicMcpGroup;
     };
   }) {
-    return await db.consumerAccess.upsert({
-      where: {
-        consumerGroupOid_magicMcpGroupOid: {
+    return await withTransaction(async db => {
+      let id = await ID.generateId('consumerAccess');
+      let access = await db.consumerAccess.upsert({
+        where: {
+          consumerGroupOid_magicMcpGroupOid: {
+            consumerGroupOid: d.consumerGroup.oid,
+            magicMcpGroupOid: d.access.magicMcpGroup.oid
+          }
+        },
+        create: {
+          id,
+          surfaceOid: d.consumerSurface.oid,
           consumerGroupOid: d.consumerGroup.oid,
-          magicMcpGroupOid: d.access.magicMcpGroup.oid
-        }
-      },
-      create: {
-        id: await ID.generateId('consumerAccess'),
-        surfaceOid: d.consumerSurface.oid,
-        consumerGroupOid: d.consumerGroup.oid,
 
-        type: d.access.type,
-        magicMcpGroupOid:
-          d.access.type === 'magic_mcp_group' ? d.access.magicMcpGroup.oid : undefined
-      },
-      update: {},
-      include
+          type: d.access.type,
+          magicMcpGroupOid:
+            d.access.type === 'magic_mcp_group' ? d.access.magicMcpGroup.oid : undefined
+        },
+        update: {},
+        include
+      });
+
+      // Make sure we're the creators
+      if (access.id == id) {
+        if (d.access.type === 'magic_mcp_group') {
+          await db.accessTagEntity.create({
+            data: {
+              accessTagOid: d.consumerGroup.accessTagOid,
+              level: 'read',
+              magicMcpGroupOid: d.access.magicMcpGroup.oid
+            }
+          });
+        }
+      }
+
+      return access;
     });
   }
 

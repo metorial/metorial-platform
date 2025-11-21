@@ -1,5 +1,6 @@
-import { ConsumerProfile, db, Instance } from '@metorial/db';
+import { db, Instance } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
+import { AccessTagSelectorList, accessTagService } from '@metorial/module-access';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 
@@ -16,13 +17,20 @@ class MagicMcpSessionImpl {
   async getMagicMcpSessionById(d: {
     instance: Instance;
     magicMcpSessionId: string;
-    consumerProfile?: ConsumerProfile;
+    accessTags?: AccessTagSelectorList;
   }) {
     let magicMcpSession = await db.magicMcpSession.findFirst({
       where: {
         id: d.magicMcpSessionId,
         instanceOid: d.instance.oid,
-        token: d.consumerProfile ? { consumerProfileOid: d.consumerProfile?.oid } : undefined
+        token: d.accessTags
+          ? {
+              accessTags: await accessTagService.getAccessTagFilter({
+                tags: d.accessTags,
+                level: 'read'
+              })
+            }
+          : undefined
       },
       include
     });
@@ -34,7 +42,7 @@ class MagicMcpSessionImpl {
   async listMagicMcpSessions(d: {
     instance: Instance;
     magicMcpServerId?: string[];
-    consumerProfile?: ConsumerProfile;
+    accessTags?: AccessTagSelectorList;
   }) {
     let servers = d.magicMcpServerId?.length
       ? await db.magicMcpServer.findMany({
@@ -53,8 +61,15 @@ class MagicMcpSessionImpl {
               AND: [
                 servers ? { magicMcpServerOid: { in: servers.map(s => s.oid) } } : undefined!,
 
-                d.consumerProfile
-                  ? { token: { consumerProfileOid: d.consumerProfile?.oid } }
+                d.accessTags
+                  ? {
+                      token: {
+                        accessTags: await accessTagService.getAccessTagFilter({
+                          tags: d.accessTags,
+                          level: 'read'
+                        })
+                      }
+                    }
                   : undefined!
               ].filter(Boolean)
             },

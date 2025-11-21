@@ -1,7 +1,6 @@
 import { Context } from '@metorial/context';
 import {
   ConsumerProfile,
-  ConsumerProfileGroup,
   db,
   ID,
   Instance,
@@ -16,6 +15,7 @@ import {
 } from '@metorial/db';
 import { notFoundError, preconditionFailedError, ServiceError } from '@metorial/error';
 import { generateCode } from '@metorial/id';
+import { AccessTagSelectorList, accessTagService } from '@metorial/module-access';
 import { searchService } from '@metorial/module-search';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -38,8 +38,34 @@ let include = {
 };
 
 class MagicMcpServerImpl {
+  async privateGetAccessTagFilterForReadAccess(d: { accessTags?: AccessTagSelectorList }) {
+    return {
+      OR: [
+        {
+          accessTags: await accessTagService.getAccessTagFilter({
+            tags: d.accessTags,
+            level: 'read'
+          })
+        },
+
+        {
+          groups: {
+            some: {
+              magicMcpGroup: {
+                accessTags: await accessTagService.getAccessTagFilter({
+                  tags: d.accessTags,
+                  level: 'read'
+                })
+              }
+            }
+          }
+        }
+      ]
+    };
+  }
+
   async getMagicMcpServerById(d: {
-    consumerProfile?: ConsumerProfile & { groups: ConsumerProfileGroup[] };
+    accessTags?: AccessTagSelectorList;
     instance: Instance;
     magicMcpServerId: string;
   }) {
@@ -47,30 +73,22 @@ class MagicMcpServerImpl {
       where: {
         instanceOid: d.instance.oid,
 
-        groups: d.consumerProfile
-          ? {
-              some: {
-                magicMcpGroup: {
-                  consumerAccesses: {
-                    some: {
-                      consumerGroupOid: {
-                        in: d.consumerProfile.groups.map(g => g.groupOid)
-                      }
-                    }
-                  }
+        AND: [
+          {
+            OR: [
+              { id: d.magicMcpServerId },
+              {
+                aliases: {
+                  some: { slug: d.magicMcpServerId }
                 }
               }
-            }
-          : undefined,
+            ]
+          },
 
-        OR: [
-          { id: d.magicMcpServerId },
-          {
-            aliases: {
-              some: { slug: d.magicMcpServerId }
-            }
-          }
-        ]
+          d.accessTags
+            ? await this.privateGetAccessTagFilterForReadAccess({ accessTags: d.accessTags })
+            : undefined!
+        ].filter(Boolean)
       },
       include
     });
@@ -119,6 +137,10 @@ class MagicMcpServerImpl {
     instance: Instance;
     context: Context;
 
+    consumer?: {
+      profile: ConsumerProfile;
+    };
+
     serverDeployment: ServerDeployment;
 
     input: {
@@ -146,7 +168,15 @@ class MagicMcpServerImpl {
           metadata: d.input.metadata || {},
           aliases: {
             create: { slug }
-          }
+          },
+
+          consumerProfileOid: d.consumer?.profile.oid,
+          accessTags: d.consumer
+            ? await accessTagService.linkAccessTagToEntity({
+                tags: d.consumer.profile.accessTagOid,
+                level: 'read_write'
+              })
+            : undefined
         },
         include
       });
@@ -159,7 +189,27 @@ class MagicMcpServerImpl {
     });
   }
 
-  async archiveMagicMcpServer(d: { server: MagicMcpServer }) {
+  async checkWriteAccess(d: { server: MagicMcpServer; accessTags?: AccessTagSelectorList }) {
+    await accessTagService.checkResourceAccess({
+      tags: d.accessTags,
+      level: 'read_write',
+      checker: async filter =>
+        await db.magicMcpServer.findFirst({
+          where: {
+            oid: d.server.oid,
+            accessTags: filter
+          },
+          select: { oid: true }
+        })
+    });
+  }
+
+  async archiveMagicMcpServer(d: {
+    server: MagicMcpServer;
+    accessTags?: AccessTagSelectorList;
+  }) {
+    await this.checkWriteAccess({ server: d.server, accessTags: d.accessTags });
+
     if (d.server.status === 'archived') {
       throw new ServiceError(
         preconditionFailedError({
@@ -177,6 +227,7 @@ class MagicMcpServerImpl {
 
   async updateMagicMcpServer(d: {
     server: MagicMcpServer & { aliases: MagicMcpServerAlias[] };
+    accessTags?: AccessTagSelectorList;
     input: {
       name?: string | null;
       description?: string | null;
@@ -185,6 +236,8 @@ class MagicMcpServerImpl {
       defaultOauthSession?: ServerOAuthSession;
     };
   }) {
+    await this.checkWriteAccess({ server: d.server, accessTags: d.accessTags });
+
     if (d.server.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
@@ -233,7 +286,7 @@ class MagicMcpServerImpl {
     search?: string;
     instance: Instance;
     status?: MagicMcpServerStatus[];
-    consumerProfile?: ConsumerProfile & { groups: ConsumerProfileGroup[] };
+    accessTags?: AccessTagSelectorList;
   }) {
     let search = d.search
       ? await searchService.search<{ id: string }>({
@@ -296,24 +349,6 @@ class MagicMcpServerImpl {
                 ? { status: { in: d.status } }
                 : { status: { not: 'archived' as const } },
 
-              d.consumerProfile
-                ? {
-                    groups: {
-                      some: {
-                        magicMcpGroup: {
-                          consumerAccesses: {
-                            some: {
-                              consumerGroupOid: {
-                                in: d.consumerProfile.groups.map(g => g.groupOid)
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                : undefined!,
-
               groups
                 ? {
                     groups: {
@@ -362,6 +397,12 @@ class MagicMcpServerImpl {
                       }
                     }
                   }
+                : undefined!,
+
+              d.accessTags
+                ? await this.privateGetAccessTagFilterForReadAccess({
+                    accessTags: d.accessTags
+                  })
                 : undefined!
             ].filter(Boolean),
 

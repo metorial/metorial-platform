@@ -12,6 +12,7 @@ import {
 } from '@metorial/db';
 import { badRequestError, ServiceError, unauthorizedError } from '@metorial/error';
 import { generateCode, generatePlainId } from '@metorial/id';
+import { accessTagService } from '@metorial/module-access';
 import { Service } from '@metorial/service';
 import { Tokens } from '@metorial/tokens';
 import { addMinutes, addSeconds } from 'date-fns';
@@ -426,8 +427,8 @@ class consumerAuthServiceImpl {
         });
         return profile;
       } else {
-        let accessTag = await db.accessTag.create({
-          data: { instanceOid: d.surface.instanceOid }
+        let accessTag = await accessTagService.createAccessTag({
+          instanceOid: d.surface.instanceOid
         });
         let personalConsumerGroup = await db.consumerGroup.create({
           data: {

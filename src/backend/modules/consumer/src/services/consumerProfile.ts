@@ -106,6 +106,9 @@ class consumerProfileServiceImpl {
         surfaceOid: d.consumerProfile.surfaceOid,
 
         OR: [
+          // User group
+          { oid: d.consumerProfile.personalConsumerGroupOid },
+
           // Default
           { isDefault: true },
 
@@ -130,6 +133,13 @@ class consumerProfileServiceImpl {
     });
 
     return groups.map(g => {
+      if (d.consumerProfile.personalConsumerGroupOid === g.oid) {
+        return {
+          ...g,
+          assignedVia: 'user' as const
+        };
+      }
+
       if (g.isDefault) {
         return {
           ...g,

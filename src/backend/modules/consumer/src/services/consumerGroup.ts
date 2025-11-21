@@ -1,6 +1,7 @@
 import { ConsumerGroup, ConsumerSurface, db, ID, withTransaction } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
 import { badRequestError } from '@metorial/error/src/defaultErrors';
+import { accessTagService } from '@metorial/module-access';
 import { Service } from '@metorial/service';
 import { Paginator } from '../../../../../packages/server/pagination/src';
 
@@ -17,10 +18,8 @@ class consumerGroupServiceImpl {
     consumerSurface: ConsumerSurface;
   }) {
     return withTransaction(async db => {
-      let accessTag = await db.accessTag.create({
-        data: {
-          instanceOid: d.consumerSurface.instanceOid
-        }
+      let accessTag = await accessTagService.createAccessTag({
+        instanceOid: d.consumerSurface.instanceOid
       });
 
       return await db.consumerGroup.create({

@@ -1,7 +1,5 @@
 import { Context } from '@metorial/context';
 import {
-  ConsumerProfile,
-  ConsumerProfileGroup,
   db,
   ID,
   Instance,
@@ -13,6 +11,7 @@ import {
 } from '@metorial/db';
 import { notFoundError, preconditionFailedError, ServiceError } from '@metorial/error';
 import { generateCode } from '@metorial/id';
+import { AccessTagSelectorList, accessTagService } from '@metorial/module-access';
 import { searchService } from '@metorial/module-search';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -23,20 +22,19 @@ let include = {};
 
 class MagicMcpGroupImpl {
   async getMagicMcpGroupById(d: {
-    consumerProfile?: ConsumerProfile & { groups: ConsumerProfileGroup[] };
     instance: Instance;
     magicMcpGroupId: string;
+    accessTags?: AccessTagSelectorList;
   }) {
     let magicMcpGroup = await db.magicMcpGroup.findFirst({
       where: {
         instanceOid: d.instance.oid,
         id: d.magicMcpGroupId,
 
-        consumerAccesses: d.consumerProfile
-          ? {
-              some: { consumerGroupOid: { in: d.consumerProfile.groups.map(g => g.groupOid) } }
-            }
-          : undefined
+        accessTags: await accessTagService.getAccessTagFilter({
+          tags: d.accessTags,
+          level: 'read'
+        })
       },
       include
     });
@@ -135,7 +133,7 @@ class MagicMcpGroupImpl {
     search?: string;
     instance: Instance;
     status?: MagicMcpGroupStatus[];
-    consumerProfile?: ConsumerProfile & { groups: ConsumerProfileGroup[] };
+    accessTags?: AccessTagSelectorList;
   }) {
     let search = d.search
       ? await searchService.search<{ id: string }>({
@@ -157,13 +155,10 @@ class MagicMcpGroupImpl {
           where: {
             instanceOid: d.instance.oid,
 
-            consumerAccesses: d.consumerProfile
-              ? {
-                  some: {
-                    consumerGroupOid: { in: d.consumerProfile.groups.map(g => g.groupOid) }
-                  }
-                }
-              : undefined,
+            accessTags: await accessTagService.getAccessTagFilter({
+              tags: d.accessTags,
+              level: 'read'
+            }),
 
             AND: [
               d.status
@@ -238,7 +233,7 @@ class MagicMcpGroupImpl {
   async findManyGroupsById(d: {
     groupIds: string[];
     instance: Instance;
-    consumerProfile: ConsumerProfile & { groups: ConsumerProfileGroup[] };
+    accessTags?: AccessTagSelectorList;
   }) {
     if (d.groupIds.length === 0) return [];
 
@@ -249,11 +244,10 @@ class MagicMcpGroupImpl {
         id: { in: d.groupIds },
         instanceOid: d.instance.oid,
 
-        consumerAccesses: d.consumerProfile
-          ? {
-              some: { consumerGroupOid: { in: d.consumerProfile.groups.map(g => g.groupOid) } }
-            }
-          : undefined
+        accessTags: await accessTagService.getAccessTagFilter({
+          tags: d.accessTags,
+          level: 'read'
+        })
       },
       include
     });
