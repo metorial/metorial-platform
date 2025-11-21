@@ -32,6 +32,7 @@ export * from './loaders/repos';
 export * from './loaders/serverCapabilities';
 export * from './loaders/serverConfigVaults';
 export * from './loaders/serverDeployments';
+export * from './loaders/serverDeploymentTemplates';
 export * from './loaders/serverImplementations';
 export * from './loaders/serverRunErrorGroups';
 export * from './loaders/serverRunErrors';
