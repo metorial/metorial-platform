@@ -4,17 +4,11 @@ enum MagicMcpGroupStatus {
   deleted
 }
 
-enum MagicMcpGroupType {
-  default
-}
-
 model MagicMcpGroup {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   status MagicMcpGroupStatus
-
-  // TODO: add portal user access
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])

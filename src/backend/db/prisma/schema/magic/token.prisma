@@ -36,4 +36,5 @@ model MagicMcpToken {
 
   magicMcpSessions MagicMcpSession[]
   groups           MagicMcpGroupToken[]
+  accessTags       AccessTagEntity[]
 }

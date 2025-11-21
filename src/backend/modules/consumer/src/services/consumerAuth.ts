@@ -406,28 +406,66 @@ class consumerAuthServiceImpl {
         }
       });
 
-      let profile = await db.consumerProfile.upsert({
+      let profile = await db.consumerProfile.findUnique({
         where: {
           email_surfaceOid: {
             email: d.email,
             surfaceOid: d.surface.oid
           }
-        },
-        create: {
-          id: await ID.generateId('consumerProfile'),
-          email: d.email,
-          name: d.name,
-
-          surfaceOid: d.surface.oid,
-          consumerOid: consumer.oid,
-          instanceOid: d.surface.instanceOid,
-          organizationOid: d.surface.organizationOid
-        },
-        update: {
-          email: d.email,
-          name: d.overrideName ? d.name : undefined
         }
       });
+      if (profile) {
+        profile = await db.consumerProfile.update({
+          where: {
+            oid: profile.oid
+          },
+          data: {
+            email: d.email,
+            name: d.overrideName ? d.name : undefined
+          }
+        });
+        return profile;
+      } else {
+        let accessTag = await db.accessTag.create({
+          data: { instanceOid: d.surface.instanceOid }
+        });
+        let personalConsumerGroup = await db.consumerGroup.create({
+          data: {
+            id: await ID.generateId('consumerGroup'),
+            name: `Personal Group for ${d.email}`,
+            status: 'active',
+            type: 'user_access',
+            surfaceOid: d.surface.oid,
+            accessTagOid: accessTag.oid
+          }
+        });
+
+        profile = await db.consumerProfile.upsert({
+          where: {
+            email_surfaceOid: {
+              email: d.email,
+              surfaceOid: d.surface.oid
+            }
+          },
+          create: {
+            id: await ID.generateId('consumerProfile'),
+            email: d.email,
+            name: d.name,
+
+            accessTagOid: accessTag.oid,
+
+            surfaceOid: d.surface.oid,
+            consumerOid: consumer.oid,
+            instanceOid: d.surface.instanceOid,
+            organizationOid: d.surface.organizationOid,
+            personalConsumerGroupOid: personalConsumerGroup.oid
+          },
+          update: {
+            email: d.email,
+            name: d.overrideName ? d.name : undefined
+          }
+        });
+      }
 
       if (d.ssoProfile) {
         await db.consumerProfileSsoUser.upsert({

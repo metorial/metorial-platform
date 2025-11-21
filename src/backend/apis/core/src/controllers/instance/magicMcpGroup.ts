@@ -32,7 +32,14 @@ export let magicMcpGroupController = Controller.create(
         name: 'List magic MCP group',
         description: 'List all magic MCP group'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.server.deployment:read',
+            'consumer#instance.magic_mcp:read'
+          ]
+        })
+      )
       .outputList(magicMcpGroupPresenter)
       .query(
         'default',
@@ -68,7 +75,14 @@ export let magicMcpGroupController = Controller.create(
         name: 'Get magic MCP group',
         description: 'Get the information of a specific magic MCP group'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.server.deployment:read',
+            'consumer#instance.magic_mcp:read'
+          ]
+        })
+      )
       .output(magicMcpGroupPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
@@ -80,7 +94,11 @@ export let magicMcpGroupController = Controller.create(
         name: 'Create magic MCP group',
         description: 'Create a new magic MCP group'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.server.deployment:write']
+        })
+      )
       .body(
         'default',
         v.object({
@@ -116,7 +134,11 @@ export let magicMcpGroupController = Controller.create(
         name: 'Delete magic MCP group',
         description: 'Delete a specific magic MCP group'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.server.deployment:write']
+        })
+      )
       .output(magicMcpGroupPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
@@ -132,7 +154,11 @@ export let magicMcpGroupController = Controller.create(
         name: 'Update magic MCP group',
         description: 'Update the information of a specific magic MCP group'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.server.deployment:write']
+        })
+      )
       .body(
         'default',
         v.object({
@@ -171,7 +197,11 @@ export let magicMcpGroupController = Controller.create(
           description: 'Add magic MCP servers to a specific magic MCP group'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.server.deployment:write']
+        })
+      )
       .body(
         'default',
         v.object({
@@ -202,7 +232,11 @@ export let magicMcpGroupController = Controller.create(
           description: 'Remove magic MCP servers from a specific magic MCP group'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.server.deployment:write']
+        })
+      )
       .body(
         'default',
         v.object({

@@ -41,9 +41,9 @@ let autoCreateLock = createLock({
 
 class MagicMcpTokenImpl {
   async getMagicMcpTokenById(d: {
-    consumerProfile?: ConsumerProfile;
     instance: Instance;
     magicMcpTokenId: string;
+    accessTags: bigint[];
   }) {
     let magicMcpToken = await db.magicMcpToken.findFirst({
       where: {
@@ -85,7 +85,7 @@ class MagicMcpTokenImpl {
     if (d.token.consumerProfileOid) {
       let consumerProfile = await db.consumerProfile.findFirstOrThrow({
         where: { oid: d.token.consumerProfileOid },
-        include: { ssoUser: true }
+        include: { ssoUsers: { include: { ssoUser: true } } }
       });
 
       let groups = await consumerProfileService.getGroupsForProfile({

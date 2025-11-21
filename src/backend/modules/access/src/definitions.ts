@@ -200,6 +200,15 @@ export let instancePublishableTokenScopes: Scope[] = [
   'instance.server_listing:read' as const,
   'instance.portal:read' as const,
   'instance.portal.access:read' as const,
+  'instance.server:read' as const
+];
+
+export let instancePublishableTokenWithConsumerScopes: Scope[] = [
+  'organization.instance:read' as const,
+
+  'instance.server_listing:read' as const,
+  'instance.portal:read' as const,
+  'instance.portal.access:read' as const,
   'instance.server:read' as const,
 
   ...consumerScopes

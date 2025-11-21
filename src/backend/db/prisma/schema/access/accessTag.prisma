@@ -1,0 +1,30 @@
+model AccessTag {
+  oid BigInt @id @default(autoincrement())
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  consumerProfiles  ConsumerProfile[]
+  accessTagEntities AccessTagEntity[]
+  consumerGroups    ConsumerGroup[]
+}
+
+enum AccessTagAccessLevel {
+  read
+  read_write
+}
+
+model AccessTagEntity {
+  oid BigInt @id @default(autoincrement())
+
+  level AccessTagAccessLevel
+
+  accessTagOid BigInt
+  accessTag    AccessTag @relation(fields: [accessTagOid], references: [oid], onDelete: Cascade)
+
+  magicMcpToken    MagicMcpToken? @relation(fields: [magicMcpTokenOid], references: [oid])
+  magicMcpTokenOid BigInt?
+
+  magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid])
+  magicMcpServerOid BigInt?
+}

@@ -19,6 +19,7 @@ import { userAuthService } from '@metorial/module-user';
 import { Service } from '@metorial/service';
 import {
   instancePublishableTokenScopes,
+  instancePublishableTokenWithConsumerScopes,
   instanceSecretTokenScopes,
   orgManagementTokenScopes,
   Scope,
@@ -147,7 +148,9 @@ class AuthenticationService {
         machineAccess,
         orgScopes:
           machineAccess.type == 'instance_publishable'
-            ? instancePublishableTokenScopes
+            ? consumerRes
+              ? instancePublishableTokenWithConsumerScopes
+              : instancePublishableTokenScopes
             : instanceSecretTokenScopes,
         restrictions: {
           type: 'instance',

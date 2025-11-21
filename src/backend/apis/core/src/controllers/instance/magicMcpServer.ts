@@ -55,7 +55,14 @@ export let magicMcpServerController = Controller.create(
         name: 'List magic MCP server',
         description: 'List all magic MCP server'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.server.deployment:read',
+            'consumer#instance.magic_mcp:read'
+          ]
+        })
+      )
       .outputList(magicMcpServerPresenter)
       .query(
         'default',
@@ -106,7 +113,14 @@ export let magicMcpServerController = Controller.create(
         name: 'Get magic MCP server',
         description: 'Get the information of a specific magic MCP server'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.server.deployment:read',
+            'consumer#instance.magic_mcp:read'
+          ]
+        })
+      )
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
@@ -118,7 +132,14 @@ export let magicMcpServerController = Controller.create(
         name: 'Create magic MCP server',
         description: 'Create a new magic MCP server'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.server.deployment:write',
+            'consumer#instance.magic_mcp:read'
+          ]
+        })
+      )
       .body('default', createServerDeploymentSchema)
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
@@ -157,7 +178,14 @@ export let magicMcpServerController = Controller.create(
         name: 'Delete magic MCP server',
         description: 'Delete a specific magic MCP server'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.server.deployment:write',
+            'consumer#instance.magic_mcp:read'
+          ]
+        })
+      )
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
@@ -173,7 +201,14 @@ export let magicMcpServerController = Controller.create(
         name: 'Update magic MCP server',
         description: 'Update the information of a specific magic MCP server'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.server.deployment:write',
+            'consumer#instance.magic_mcp:read'
+          ]
+        })
+      )
       .body(
         'default',
         v.object({

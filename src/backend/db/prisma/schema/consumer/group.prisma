@@ -3,11 +3,17 @@ enum ConsumerGroupStatus {
   inactive
 }
 
+enum ConsumerGroupType {
+  default
+  user_access
+}
+
 model ConsumerGroup {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   status ConsumerGroupStatus
+  type   ConsumerGroupType   @default(default)
 
   isDefault   Boolean  @default(false)
   ssoGroupIds String[]
@@ -18,9 +24,13 @@ model ConsumerGroup {
   surfaceOid BigInt
   surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid])
 
+  accessTagOid BigInt
+  accessTag    AccessTag @relation(fields: [accessTagOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   profiles         ConsumerProfileGroup[]
   consumerAccesses ConsumerAccess[]
+  consumerProfiles ConsumerProfile[]
 }

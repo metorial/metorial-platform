@@ -16,17 +16,26 @@ class consumerGroupServiceImpl {
     };
     consumerSurface: ConsumerSurface;
   }) {
-    return await db.consumerGroup.create({
-      data: {
-        id: await ID.generateId('consumerGroup'),
-        status: 'active',
-        name: d.input.name,
-        description: d.input.description,
-        surfaceOid: d.consumerSurface.oid,
-        ssoGroupIds: d.input.ssoGroupIds || [],
-        isDefault: !!d.input.isDefault
-      },
-      include
+    return withTransaction(async db => {
+      let accessTag = await db.accessTag.create({
+        data: {
+          instanceOid: d.consumerSurface.instanceOid
+        }
+      });
+
+      return await db.consumerGroup.create({
+        data: {
+          id: await ID.generateId('consumerGroup'),
+          status: 'active',
+          name: d.input.name,
+          description: d.input.description,
+          surfaceOid: d.consumerSurface.oid,
+          accessTagOid: accessTag.oid,
+          ssoGroupIds: d.input.ssoGroupIds || [],
+          isDefault: !!d.input.isDefault
+        },
+        include
+      });
     });
   }
 
@@ -89,6 +98,7 @@ class consumerGroupServiceImpl {
             where: {
               surfaceOid: d.consumerSurface.oid,
               status: 'active',
+              type: 'default',
 
               ...(consumerProfiles
                 ? {

@@ -67,4 +67,5 @@ model Instance {
   portals                  Portal[]
   consumerSurfaces         ConsumerSurface[]
   consumerProfiles         ConsumerProfile[]
+  accessTags               AccessTag[]
 }
