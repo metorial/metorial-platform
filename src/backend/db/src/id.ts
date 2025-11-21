@@ -49,6 +49,7 @@ export let ID = createIdGenerator({
   serverImplementation: idType.sorted('svi'),
   serverDeployment: idType.sorted('svd'),
   serverDeploymentConfig: idType.sorted('svdc'),
+  serverDeploymentTemplate: idType.sorted('svdt'),
 
   serverRunner: idType.sorted('sru'),
 
