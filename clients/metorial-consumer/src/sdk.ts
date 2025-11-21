@@ -15,6 +15,7 @@ import {
   MetorialConsumerSessionEndpoint,
   MetorialServersCapabilitiesEndpoint,
   MetorialServersEndpoint,
+  MetorialServersListingsReadmeEndpoint,
   MetorialServersVariantsEndpoint,
   MetorialServersVersionsEndpoint
 } from './gen/src/mt_2025_01_01_pulsar';
@@ -78,6 +79,8 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
       collections: new MetorialServersListingsCollectionsEndpoint(manager),
       categories: new MetorialServersListingsCategoriesEndpoint(manager)
     }),
+
+    readme: new MetorialServersListingsReadmeEndpoint(manager),
 
     variants: new MetorialServersVariantsEndpoint(manager),
     versions: new MetorialServersVersionsEndpoint(manager),

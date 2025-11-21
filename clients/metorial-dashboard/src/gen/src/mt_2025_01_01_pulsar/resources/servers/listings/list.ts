@@ -276,6 +276,7 @@ export type ServersListingsListQuery = {
   categoryId?: string[] | string | undefined;
   profileId?: string[] | string | undefined;
   instanceId?: string | undefined;
+  orderByRank?: boolean | undefined;
 };
 
 export let mapServersListingsListQuery = mtMap.union([
@@ -318,7 +319,8 @@ export let mapServersListingsListQuery = mtMap.union([
           )
         ])
       ),
-      instanceId: mtMap.objectField('instance_id', mtMap.passthrough())
+      instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
+      orderByRank: mtMap.objectField('order_by_rank', mtMap.passthrough())
     })
   )
 ]);

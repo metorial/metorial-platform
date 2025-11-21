@@ -136,6 +136,7 @@ export * from './servers_implementations';
 export * from './servers_listings';
 export * from './servers_listings_categories';
 export * from './servers_listings_collections';
+export * from './servers_listings_readme';
 export * from './servers_variants';
 export * from './servers_versions';
 export * from './sessions';

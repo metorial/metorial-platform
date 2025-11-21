@@ -19,6 +19,10 @@ export type MagicMcpSessionsGetOutput = {
     totalProductiveClientMessageCount: number;
     totalProductiveServerMessageCount: number;
   };
+  client: {
+    object: 'session.client#preview';
+    info: { name: string; version: string };
+  } | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -58,6 +62,19 @@ export let mapMagicMcpSessionsGetOutput =
         totalProductiveServerMessageCount: mtMap.objectField(
           'total_productive_server_message_count',
           mtMap.passthrough()
+        )
+      })
+    ),
+    client: mtMap.objectField(
+      'client',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        info: mtMap.objectField(
+          'info',
+          mtMap.object({
+            name: mtMap.objectField('name', mtMap.passthrough()),
+            version: mtMap.objectField('version', mtMap.passthrough())
+          })
         )
       })
     ),

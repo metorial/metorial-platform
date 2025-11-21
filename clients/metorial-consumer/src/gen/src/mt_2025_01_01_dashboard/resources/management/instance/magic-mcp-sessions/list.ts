@@ -1,7 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type ManagementInstanceMagicMcpSessionsListOutput = {
-  items: ({
+  items: {
     object: 'magic_mcp.session';
     id: string;
     sessionId: string;
@@ -20,14 +20,13 @@ export type ManagementInstanceMagicMcpSessionsListOutput = {
       totalProductiveClientMessageCount: number;
       totalProductiveServerMessageCount: number;
     };
-    createdAt: Date;
-    updatedAt: Date;
-  } & {
     client: {
       object: 'session.client#preview';
       info: { name: string; version: string };
     } | null;
-  })[];
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
@@ -36,67 +35,62 @@ export let mapManagementInstanceMagicMcpSessionsListOutput =
     items: mtMap.objectField(
       'items',
       mtMap.array(
-        mtMap.union([
-          mtMap.unionOption(
-            'object',
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
+          connectionStatus: mtMap.objectField(
+            'connection_status',
+            mtMap.passthrough()
+          ),
+          magicMcpServer: mtMap.objectField(
+            'magic_mcp_server',
             mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
-              sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-              connectionStatus: mtMap.objectField(
-                'connection_status',
+              status: mtMap.objectField('status', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
                 mtMap.passthrough()
               ),
-              magicMcpServer: mtMap.objectField(
-                'magic_mcp_server',
-                mtMap.object({
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  status: mtMap.objectField('status', mtMap.passthrough()),
-                  name: mtMap.objectField('name', mtMap.passthrough()),
-                  description: mtMap.objectField(
-                    'description',
-                    mtMap.passthrough()
-                  ),
-                  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                  createdAt: mtMap.objectField('created_at', mtMap.date()),
-                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                })
-              ),
-              usage: mtMap.objectField(
-                'usage',
-                mtMap.object({
-                  totalProductiveMessageCount: mtMap.objectField(
-                    'total_productive_message_count',
-                    mtMap.passthrough()
-                  ),
-                  totalProductiveClientMessageCount: mtMap.objectField(
-                    'total_productive_client_message_count',
-                    mtMap.passthrough()
-                  ),
-                  totalProductiveServerMessageCount: mtMap.objectField(
-                    'total_productive_server_message_count',
-                    mtMap.passthrough()
-                  )
-                })
-              ),
+              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-              client: mtMap.objectField(
-                'client',
+              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+            })
+          ),
+          usage: mtMap.objectField(
+            'usage',
+            mtMap.object({
+              totalProductiveMessageCount: mtMap.objectField(
+                'total_productive_message_count',
+                mtMap.passthrough()
+              ),
+              totalProductiveClientMessageCount: mtMap.objectField(
+                'total_productive_client_message_count',
+                mtMap.passthrough()
+              ),
+              totalProductiveServerMessageCount: mtMap.objectField(
+                'total_productive_server_message_count',
+                mtMap.passthrough()
+              )
+            })
+          ),
+          client: mtMap.objectField(
+            'client',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              info: mtMap.objectField(
+                'info',
                 mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  info: mtMap.objectField(
-                    'info',
-                    mtMap.object({
-                      name: mtMap.objectField('name', mtMap.passthrough()),
-                      version: mtMap.objectField('version', mtMap.passthrough())
-                    })
-                  )
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  version: mtMap.objectField('version', mtMap.passthrough())
                 })
               )
             })
-          )
-        ])
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
       )
     ),
     pagination: mtMap.objectField(

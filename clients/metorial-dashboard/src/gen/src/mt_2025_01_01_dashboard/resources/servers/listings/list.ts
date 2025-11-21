@@ -88,7 +88,6 @@ export type ServersListingsListOutput = {
   } & {
     fork: { status: 'disabled' } | { status: 'enabled'; templateId: string };
     oauthExplainer: string | null;
-    readmeHtml: string | null;
   })[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -316,8 +315,7 @@ export let mapServersListingsListOutput =
               oauthExplainer: mtMap.objectField(
                 'oauth_explainer',
                 mtMap.passthrough()
-              ),
-              readmeHtml: mtMap.objectField('readme_html', mtMap.passthrough())
+              )
             })
           )
         ])
