@@ -72,7 +72,8 @@ import {
 } from './implementation/serverImplementation';
 import {
   dashboardServerListingPresenter,
-  v1ServerListingPresenter
+  v1ServerListingPresenter,
+  v1ServerListingReadmePresenter
 } from './implementation/serverListing';
 import { v1ServerOauthSessionPresenter } from './implementation/serverOauthSession';
 import { v1ServerRunPresenter } from './implementation/serverRun';
@@ -260,6 +261,11 @@ export let serverVersionPresenter = declarePresenter(serverVersionType, {
 export let serverListingPresenter = declarePresenter(serverListingType, {
   mt_2025_01_01_pulsar: v1ServerListingPresenter,
   mt_2025_01_01_dashboard: dashboardServerListingPresenter
+});
+
+export let serverListingReadmePresenter = declarePresenter(serverListingType, {
+  mt_2025_01_01_pulsar: v1ServerListingReadmePresenter,
+  mt_2025_01_01_dashboard: v1ServerListingReadmePresenter
 });
 
 export let serverListingCategoryPresenter = declarePresenter(serverListingCategoryType, {

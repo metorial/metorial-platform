@@ -384,33 +384,12 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
   )
   .build();
 
-export let dashboardServerListingPresenter = Presenter.create(serverListingType)
+export let v1ServerListingReadmePresenter = Presenter.create(serverListingType)
   .presenter(async ({ serverListing, readme }, opts) => {
-    let v1 = await v1ServerListingPresenter
-      .present(
-        {
-          serverListing,
-          readme
-        },
-        opts
-      )
-      .run();
-
     let repository = serverListing.server.importedServer?.repository;
 
     return {
-      ...v1,
-
-      oauth_explainer: serverListing.oauthExplainer,
-
-      fork: serverListing.server.customServer?.isForkable
-        ? {
-            status: 'enabled',
-            template_id: serverListing.server.customServer.forkTemplateManagedServer?.id!
-          }
-        : {
-            status: 'disabled'
-          },
+      object: 'server_listing.readme',
 
       readme_html: readme
         ? await markdownService.renderMarkdown({
@@ -425,6 +404,86 @@ export let dashboardServerListingPresenter = Presenter.create(serverListingType)
             // rootPath: serverListing.server.importedServer?.subdirectory ?? undefined
           })
         : null
+    };
+  })
+  .schema(
+    v.object({
+      object: v.literal('server_listing.readme'),
+
+      readme_html: v.nullable(
+        v.string({
+          name: 'readme_html',
+          description: 'HTML-rendered version of the server listing README'
+        })
+      )
+    })
+  )
+  .build();
+
+export let v1ServerListingWithReadmePresenter = Presenter.create(serverListingType)
+  .presenter(async ({ serverListing, readme }, opts) => {
+    let v1 = await v1ServerListingPresenter.present({ serverListing, readme }, opts).run();
+
+    let repository = serverListing.server.importedServer?.repository;
+
+    return {
+      ...v1,
+
+      readme_html: readme
+        ? await markdownService.renderMarkdown({
+            markdown: readme,
+            id: serverListing.id,
+            imageRoot: repository
+              ? `https://raw.githubusercontent.com/${repository.identifier.replace('github.com/', '')}/refs/heads/${repository.defaultBranch ?? 'main'}`
+              : 'https://metorial.com',
+            linkRoot: repository
+              ? `https://github.com/${repository.identifier.replace('github.com/', '')}/blob/${repository.defaultBranch ?? 'main'}`
+              : 'https://metorial.com'
+            // rootPath: serverListing.server.importedServer?.subdirectory ?? undefined
+          })
+        : null
+    };
+  })
+  .schema(
+    v.intersection([
+      v1ServerListingPresenter.schema,
+      v.object({
+        readme_html: v.nullable(
+          v.string({
+            name: 'readme_html',
+            description: 'HTML-rendered version of the server listing README'
+          })
+        )
+      })
+    ]) as any
+  )
+  .build();
+
+export let dashboardServerListingPresenter = Presenter.create(serverListingType)
+  .presenter(async ({ serverListing, readme }, opts) => {
+    let v1 = await v1ServerListingWithReadmePresenter
+      .present(
+        {
+          serverListing,
+          readme
+        },
+        opts
+      )
+      .run();
+
+    return {
+      ...v1,
+
+      oauth_explainer: serverListing.oauthExplainer,
+
+      fork: serverListing.server.customServer?.isForkable
+        ? {
+            status: 'enabled',
+            template_id: serverListing.server.customServer.forkTemplateManagedServer?.id!
+          }
+        : {
+            status: 'disabled'
+          }
     };
   })
   .schema(
@@ -455,13 +514,6 @@ export let dashboardServerListingPresenter = Presenter.create(serverListingType)
           v.string({
             name: 'oauth_explainer',
             description: 'Explainer text for OAuth setup, if applicable'
-          })
-        ),
-
-        readme_html: v.nullable(
-          v.string({
-            name: 'readme_html',
-            description: 'HTML-rendered version of the server listing README'
           })
         )
       })

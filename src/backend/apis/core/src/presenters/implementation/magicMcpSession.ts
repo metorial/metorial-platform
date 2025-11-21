@@ -22,6 +22,13 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
         updated_at: magicMcpSession.magicMcpServer.updatedAt
       },
 
+      client: magicMcpSession.session.serverSessions[0]
+        ? {
+            object: 'session.client#preview',
+            info: magicMcpSession.session.serverSessions[0].clientInfo
+          }
+        : null,
+
       connection_status: magicMcpSession.session.connectionStatus,
 
       usage: {
@@ -113,6 +120,22 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
         }
       ),
 
+      client: v.nullable(
+        v.object({
+          object: v.literal('session.client#preview'),
+          info: v.object({
+            name: v.string({
+              name: 'name',
+              description: 'Name of the client'
+            }),
+            version: v.string({
+              name: 'version',
+              description: 'Version of the client'
+            })
+          })
+        })
+      ),
+
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when the session was created'
@@ -130,35 +153,8 @@ export let v1DashboardMagicMcpSessionPresenter = Presenter.create(magicMcpSessio
     let inner = await v1MagicMcpSessionPresenter.present({ magicMcpSession }, opts).run({});
 
     return {
-      ...inner,
-      client: magicMcpSession.session.serverSessions[0]
-        ? {
-            object: 'session.client#preview',
-            info: magicMcpSession.session.serverSessions[0].clientInfo
-          }
-        : null
+      ...inner
     };
   })
-  .schema(
-    v.intersection([
-      v1MagicMcpSessionPresenter.schema,
-      v.object({
-        client: v.nullable(
-          v.object({
-            object: v.literal('session.client#preview'),
-            info: v.object({
-              name: v.string({
-                name: 'name',
-                description: 'Name of the client'
-              }),
-              version: v.string({
-                name: 'version',
-                description: 'Version of the client'
-              })
-            })
-          })
-        )
-      })
-    ]) as any
-  )
+  .schema(v1MagicMcpSessionPresenter.schema)
   .build();

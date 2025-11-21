@@ -6,7 +6,7 @@ import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { apiGroup } from '../../middleware/apiGroup';
 import { checkAccess } from '../../middleware/checkAccess';
-import { serverListingPresenter } from '../../presenters';
+import { serverListingPresenter, serverListingReadmePresenter } from '../../presenters';
 
 export let serverListingGroup = apiGroup.use(async ctx => {
   if (!ctx.params.serverListingId) throw new Error('serverListingId is required');
@@ -52,7 +52,8 @@ export let serverListingController = Controller.create(
             collection_id: v.optional(v.union([v.array(v.string()), v.string()])),
             category_id: v.optional(v.union([v.array(v.string()), v.string()])),
             profile_id: v.optional(v.union([v.array(v.string()), v.string()])),
-            instance_id: v.optional(v.string())
+            instance_id: v.optional(v.string()),
+            order_by_rank: v.optional(v.boolean())
           })
         ),
         i => i
@@ -121,6 +122,27 @@ export let serverListingController = Controller.create(
       )
       .do(async ctx => {
         return serverListingPresenter.present({
+          serverListing: ctx.serverListing,
+          readme: ctx.serverListing.readme
+        });
+      }),
+
+    readme: serverListingGroup
+      .get(Path('server-listings/:serverListingId/readme', 'servers.listings.readme.get'), {
+        name: 'Get server listing readme',
+        description: 'Returns metadata and readme content for a specific server listing.',
+        hideInDocs: true
+      })
+      .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
+      .output(serverListingReadmePresenter)
+      .query(
+        'default',
+        v.object({
+          instance_id: v.optional(v.string())
+        })
+      )
+      .do(async ctx => {
+        return serverListingReadmePresenter.present({
           serverListing: ctx.serverListing,
           readme: ctx.serverListing.readme
         });
