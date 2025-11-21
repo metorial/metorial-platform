@@ -10,6 +10,9 @@ export type ManagementInstanceCustomServersVersionsCreateOutput = {
   serverVersion: {
     object: 'server.server_version';
     id: string;
+    oauth:
+      | { enabled: 'false' }
+      | { enabled: 'true'; credentialProvider: 'manual' | 'auto_registration' };
     identifier: string;
     serverId: string;
     serverVariantId: string;
@@ -73,6 +76,21 @@ export let mapManagementInstanceCustomServersVersionsCreateOutput =
       mtMap.object({
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
+        oauth: mtMap.objectField(
+          'oauth',
+          mtMap.union([
+            mtMap.unionOption(
+              'object',
+              mtMap.object({
+                enabled: mtMap.objectField('enabled', mtMap.passthrough()),
+                credentialProvider: mtMap.objectField(
+                  'credential_provider',
+                  mtMap.passthrough()
+                )
+              })
+            )
+          ])
+        ),
         identifier: mtMap.objectField('identifier', mtMap.passthrough()),
         serverId: mtMap.objectField('server_id', mtMap.passthrough()),
         serverVariantId: mtMap.objectField(

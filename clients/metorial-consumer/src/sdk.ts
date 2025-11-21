@@ -6,13 +6,13 @@ import {
   MetorialServersListingsEndpoint
 } from './gen/src/mt_2025_01_01_dashboard';
 import {
-  MetorialConsumerMagicMcpGroupsEndpoint,
-  MetorialConsumerMagicMcpServersEndpoint,
-  MetorialConsumerMagicMcpSessionsEndpoint,
-  MetorialConsumerMagicMcpTokensEndpoint,
   MetorialConsumerProfileEndpoint,
   MetorialConsumerProfileGroupsEndpoint,
   MetorialConsumerSessionEndpoint,
+  MetorialMagicMcpGroupsEndpoint,
+  MetorialMagicMcpServersEndpoint,
+  MetorialMagicMcpSessionsEndpoint,
+  MetorialMagicMcpTokensEndpoint,
   MetorialServersCapabilitiesEndpoint,
   MetorialServersEndpoint,
   MetorialServersListingsReadmeEndpoint,
@@ -68,10 +68,10 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
   session: new MetorialConsumerSessionEndpoint(manager),
 
   magicMcp: {
-    groups: new MetorialConsumerMagicMcpGroupsEndpoint(manager),
-    servers: new MetorialConsumerMagicMcpServersEndpoint(manager),
-    sessions: new MetorialConsumerMagicMcpSessionsEndpoint(manager),
-    tokens: new MetorialConsumerMagicMcpTokensEndpoint(manager)
+    groups: new MetorialMagicMcpGroupsEndpoint(manager),
+    servers: new MetorialMagicMcpServersEndpoint(manager),
+    sessions: new MetorialMagicMcpSessionsEndpoint(manager),
+    tokens: new MetorialMagicMcpTokensEndpoint(manager)
   },
 
   servers: Object.assign(new MetorialServersEndpoint(manager), {
