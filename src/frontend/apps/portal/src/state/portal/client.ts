@@ -121,6 +121,15 @@ export let usePortal = () => {
   };
 };
 
+export let useInstance = () => {
+  let boot = useBootWithAuth();
+
+  return {
+    ...boot,
+    data: boot.data?.instance
+  };
+};
+
 export let getPortalInfo = async () => await bootPortalState.fetchAndReturn({});
 
 export let withTokens = <R>(

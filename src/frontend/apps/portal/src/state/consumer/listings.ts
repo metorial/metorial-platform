@@ -1,6 +1,7 @@
-import { ServersListingsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { ServersListingsListQuery } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../lib/usePaginator';
+import { useInstance } from '../portal/client';
 import { withSdk } from './client';
 
 export let serverListingsLoader = createLoader({
@@ -30,12 +31,31 @@ export let serverListingLoader = createLoader({
   mutators: {}
 });
 
-export let useServerListing = (
-  instanceId: string | null | undefined,
-  serverListingId: string | null | undefined
-) => {
+export let useServerListing = (serverListingId: string | null | undefined) => {
+  let instance = useInstance();
   let data = serverListingLoader.use(
-    serverListingId && instanceId ? { instanceId, serverListingId } : null
+    serverListingId && instance.data ? { instanceId: instance.data.id, serverListingId } : null
+  );
+
+  return data;
+};
+
+export let serverListingReadmeLoader = createLoader({
+  name: 'serverListingReadme',
+  parents: [],
+  fetch: (i: { serverListingId: string; instanceId: string }) =>
+    withSdk(sdk =>
+      sdk.servers.readme.get(i.serverListingId, {
+        instanceId: i.instanceId
+      })
+    ),
+  mutators: {}
+});
+
+export let useServerListingReadme = (serverListingId: string | null | undefined) => {
+  let instance = useInstance();
+  let data = serverListingReadmeLoader.use(
+    serverListingId && instance.data ? { instanceId: instance.data.id, serverListingId } : null
   );
 
   return data;
