@@ -128,7 +128,9 @@ class SearchService {
 
         let record = (await indexRecords)[index];
 
-        await db.searchIndexEntry.createMany({
+        console.log('Indexing documents into searchIndexRecord', docs);
+
+        await db.searchIndexRecord.createMany({
           skipDuplicates: true,
           data: docs.map(doc => ({
             indexOid: record.oid,
@@ -205,11 +207,13 @@ class SearchService {
           return { hits: result.hits };
         }
 
+        console.log('Searching fallback in searchIndexRecord for', query);
+
         let record = (await indexRecords)[index];
-        let entries = await db.searchIndexEntry.findMany({
+        let entries = await db.searchIndexRecord.findMany({
           where: {
             indexOid: record.oid,
-            content: { contains: query }
+            content: { contains: query, mode: 'insensitive' }
           },
           take: options?.limit
         });
