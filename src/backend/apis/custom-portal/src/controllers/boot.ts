@@ -7,6 +7,7 @@ import { publicApp } from '../middleware/public';
 import { authSessionPresenter } from '../presenters/authSession';
 import { consumerProfilePresenter } from '../presenters/consumer';
 import { consumerSurfacePresenter } from '../presenters/consumerSurface';
+import { instancePresenter } from '../presenters/instance';
 import { portalPresenter } from '../presenters/portal';
 
 export let bootController = publicApp.controller({
@@ -34,6 +35,7 @@ export let bootController = publicApp.controller({
         portalUrl: urlRes.portalUrl,
         portal: await portalPresenter(portal),
         surface: await consumerSurfacePresenter(portal.surface),
+        instance: await instancePresenter(portal.instance),
         publishableApiKey,
         flags: {}
       };

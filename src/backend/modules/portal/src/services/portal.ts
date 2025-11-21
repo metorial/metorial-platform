@@ -47,7 +47,10 @@ class portalServiceImpl {
         OR: [{ id: d.portalId }, { slug: d.portalId }],
         status: 'active'
       },
-      include
+      include: {
+        ...include,
+        instance: true
+      }
     });
     if (!portal) throw new ServiceError(notFoundError('portal'));
     return portal;
