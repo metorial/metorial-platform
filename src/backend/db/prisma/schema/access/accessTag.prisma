@@ -27,4 +27,7 @@ model AccessTagEntity {
 
   magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid])
   magicMcpServerOid BigInt?
+
+  magicMcpGroup    MagicMcpGroup? @relation(fields: [magicMcpGroupOid], references: [oid])
+  magicMcpGroupOid BigInt?
 }

@@ -15,6 +15,9 @@ model MagicMcpServer {
   defaultServerOauthSessionOid BigInt?
   defaultServerOauthSession    ServerOAuthSession? @relation(fields: [defaultServerOauthSessionOid], references: [oid])
 
+  consumerProfileOid BigInt?
+  consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid])
+
   name        String?
   description String?
 

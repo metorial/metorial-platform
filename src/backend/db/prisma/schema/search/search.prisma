@@ -3,11 +3,11 @@ model SearchIndex {
   identifier String   @unique
   createdAt  DateTime @default(now())
 
-  searchIndexEntries SearchIndexEntry[]
+  record SearchIndexRecord[]
 }
 
-model SearchIndexEntry {
-  oid Int @id @default(autoincrement())
+model SearchIndexRecord {
+  oid BigInt @id @default(autoincrement())
 
   indexOid Int
   index    SearchIndex @relation(fields: [indexOid], references: [oid])

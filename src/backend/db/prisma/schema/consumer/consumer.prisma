@@ -48,6 +48,7 @@ model ConsumerProfile {
   magicMcpTokens   MagicMcpToken[]
   groups           ConsumerProfileGroup[]
   ssoUsers         ConsumerProfileSsoUser[]
+  magicMcpServers  MagicMcpServer[]
 
   @@unique([email, surfaceOid])
 }

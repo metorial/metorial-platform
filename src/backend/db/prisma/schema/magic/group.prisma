@@ -26,6 +26,7 @@ model MagicMcpGroup {
   servers          MagicMcpGroupServer[]
   tokens           MagicMcpGroupToken[]
   consumerAccesses ConsumerAccess[]
+  accessTags       AccessTagEntity[]
 }
 
 model MagicMcpGroupServer {
