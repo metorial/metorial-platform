@@ -3,6 +3,8 @@ import { v } from '@metorial/validation';
 import { consumerAccessType } from '../types';
 import { v1ConsumerGroupPresenter } from './consumerGroup';
 import { v1MagicMcpGroupPresenter } from './magicMcpGroup';
+import { v1ServerDeploymentTemplatePresenter } from './serverDeploymentTemplate';
+import { v1ServerDeploymentTemplatePreview } from './serverDeploymentTemplatePreview';
 
 export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
   .presenter(async ({ consumerAccess }, opts) => ({
@@ -10,12 +12,19 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
 
     id: consumerAccess.id,
 
-    access: {
-      type: consumerAccess.type,
-      magic_mcp_group: await v1MagicMcpGroupPresenter
-        .present({ magicMcpGroup: consumerAccess.magicMcpGroup! }, opts)
-        .run({})
-    },
+    access: consumerAccess.magicMcpGroup
+      ? {
+          type: 'magic_mcp_group',
+          magic_mcp_group: await v1MagicMcpGroupPresenter
+            .present({ magicMcpGroup: consumerAccess.magicMcpGroup! }, opts)
+            .run({})
+        }
+      : {
+          type: 'server_deployment_template',
+          server_deployment_template: v1ServerDeploymentTemplatePreview(
+            consumerAccess.serverDeploymentTemplate!
+          )
+        },
 
     consumer_group: await v1ConsumerGroupPresenter
       .present({ consumerGroup: consumerAccess.consumerGroup }, opts)
@@ -36,20 +45,36 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
         description: 'The unique identifier of the consumer access'
       }),
 
-      access: v.object(
-        {
-          type: v.enumOf(['magic_mcp_group'], {
-            name: 'type',
-            description: 'The type of access granted'
-          }),
+      access: v.union([
+        v.object(
+          {
+            type: v.enumOf(['magic_mcp_group'], {
+              name: 'type',
+              description: 'The type of access granted'
+            }),
 
-          magic_mcp_group: v1MagicMcpGroupPresenter.schema
-        },
-        {
-          name: 'access',
-          description: 'Details about the access granted to the consumer'
-        }
-      ),
+            magic_mcp_group: v1MagicMcpGroupPresenter.schema
+          },
+          {
+            name: 'access',
+            description: 'Details about the access granted to the consumer'
+          }
+        ),
+        v.object(
+          {
+            type: v.enumOf(['server_deployment_template'], {
+              name: 'type',
+              description: 'The type of access granted'
+            }),
+
+            server_deployment_template: v1ServerDeploymentTemplatePresenter.schema
+          },
+          {
+            name: 'access',
+            description: 'Details about the access granted to the consumer'
+          }
+        )
+      ]),
 
       consumer_group: v1ConsumerGroupPresenter.schema,
 

@@ -9,7 +9,8 @@ export let instanceGroup = apiGroup.use(async ctx => {
     consumerGroups: undefined,
     consumerSurface: undefined,
     consumerSession: undefined,
-    consumerProfile: undefined
+    consumerProfile: undefined,
+    accessTags: undefined
   };
 
   if (ctx.auth.type == 'machine' && ctx.auth.restrictions.type == 'instance') {
@@ -44,7 +45,11 @@ export let instanceGroup = apiGroup.use(async ctx => {
         consumerGroups,
         consumerSurface: res.surface,
         consumerSession: res.session,
-        consumerProfile: res.consumerProfile
+        consumerProfile: res.consumerProfile,
+        accessTags: [
+          res.consumerProfile.accessTagOid,
+          ...consumerGroups.map(g => g.accessTagOid)
+        ]
       };
     }
 

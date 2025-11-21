@@ -74,6 +74,7 @@ import {
   ServerConfigVault,
   ServerDeployment,
   ServerDeploymentConfig,
+  ServerDeploymentTemplate,
   ServerImplementation,
   ServerListing,
   ServerListingCategory,
@@ -281,6 +282,17 @@ export let serverDeploymentType = PresentableType.create<{
     accessLimiter: AccessLimiter | null;
   };
 }>()('server.server_deployment');
+
+export let serverDeploymentTemplateType = PresentableType.create<{
+  serverDeploymentTemplate: ServerDeploymentTemplate & {
+    server: Server & {
+      importedServer: ImportedServer | null;
+      variants: (ServerVariant & {
+        currentVersion: (ServerVersion & { schema: ServerConfigSchema }) | null;
+      })[];
+    };
+  };
+}>()('server.server_deployment.template');
 
 export let serverDeploymentPreviewType = PresentableType.create<{
   serverDeployment: ServerDeployment & {
@@ -663,6 +675,7 @@ export let consumerAccessType = PresentableType.create<{
   consumerAccess: ConsumerAccess & {
     consumerGroup: ConsumerGroup;
     magicMcpGroup: MagicMcpGroup | null;
+    serverDeploymentTemplate: (ServerDeploymentTemplate & { server: Server }) | null;
   };
 }>()('consumer.access');
 
@@ -736,7 +749,7 @@ export let consumerProfileType = PresentableType.create<{
   };
   assignedConsumerGroups:
     | (ConsumerGroup & {
-        assignedVia: 'default' | 'manual' | 'sso';
+        assignedVia: 'default' | 'manual' | 'sso' | 'user';
       })[]
     | undefined;
 }>()('consumer.profile');

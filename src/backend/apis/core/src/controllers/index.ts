@@ -1,8 +1,4 @@
 import { Controller } from '@metorial/rest';
-import { consumerMagicMcpGroupController } from './consumer/magicMcpGroup';
-import { consumerMagicMcpServerController } from './consumer/magicMcpServer';
-import { consumerMagicMcpSessionController } from './consumer/magicMcpSession';
-import { consumerMagicMcpTokenController } from './consumer/magicMcpToken';
 import { consumerSessionController } from './consumer/session';
 import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
@@ -48,6 +44,7 @@ import { serverController } from './instance/server';
 import { serverCapabilitiesController } from './instance/serverCapabilities';
 import { serverConfigVaultController } from './instance/serverConfigVault';
 import { serverDeploymentController } from './instance/serverDeployment';
+import { serverDeploymentTemplateController } from './instance/serverDeploymentTemplate';
 import { serverImplementationController } from './instance/serverImplementation';
 import { serverListingController } from './instance/serverListing';
 import { serverListingCategoryController } from './instance/serverListingCategory';
@@ -97,6 +94,7 @@ export let pulsarController = Controller.create<any>(
 
     serverImplementationController,
     serverDeploymentController,
+    serverDeploymentTemplateController,
 
     sessionController,
     sessionEventController,
@@ -146,11 +144,11 @@ export let pulsarController = Controller.create<any>(
     portalConsumerProfileController,
     portalConsumerAuthFactorController,
 
-    consumerSessionController,
-    consumerMagicMcpGroupController,
-    consumerMagicMcpServerController,
-    consumerMagicMcpSessionController,
-    consumerMagicMcpTokenController
+    consumerSessionController
+    // consumerMagicMcpGroupController,
+    // consumerMagicMcpServerController,
+    // consumerMagicMcpSessionController,
+    // consumerMagicMcpTokenController
   }
 );
 
@@ -187,6 +185,7 @@ export let dashboardController = Controller.create<any>(
 
     serverImplementationController,
     serverDeploymentController,
+    serverDeploymentTemplateController,
 
     sessionController,
     sessionEventController,

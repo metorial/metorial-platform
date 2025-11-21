@@ -70,7 +70,7 @@ export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
 
             group: v1ConsumerGroupPresenter.schema,
 
-            assigned_via: v.enumOf(['default', 'manual', 'sso'], {
+            assigned_via: v.enumOf(['default', 'manual', 'sso', 'user'], {
               name: 'assigned_via',
               description:
                 'Indicates how the consumer profile was assigned to this group: default, manual, or sso'
