@@ -4,8 +4,8 @@ export type ManagementInstanceServersVersionsGetOutput = {
   object: 'server.server_version';
   id: string;
   oauth:
-    | { enabled: 'false' }
-    | { enabled: 'true'; credentialProvider: 'manual' | 'auto_registration' };
+    | { status: 'disabled' }
+    | { status: 'enabled'; credentialProvider: 'manual' | 'auto_registration' };
   identifier: string;
   serverId: string;
   serverVariantId: string;
@@ -36,7 +36,7 @@ export let mapManagementInstanceServersVersionsGetOutput =
         mtMap.unionOption(
           'object',
           mtMap.object({
-            enabled: mtMap.objectField('enabled', mtMap.passthrough()),
+            status: mtMap.objectField('status', mtMap.passthrough()),
             credentialProvider: mtMap.objectField(
               'credential_provider',
               mtMap.passthrough()
