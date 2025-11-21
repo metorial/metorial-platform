@@ -4,9 +4,9 @@ import { Button, CenteredSpinner, Flex, Input, Or, Spacer } from '@metorial/ui';
 import { Fragment, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { CodeInput } from '../components/codeInput';
-import { useAuth } from '../state/portal/auth';
-import { useBoot } from '../state/portal/client';
+import { CodeInput } from '../../components/codeInput';
+import { useAuth } from '../../state/portal/auth';
+import { useBoot } from '../../state/portal/client';
 
 let Wrapper = styled.div`
   min-height: 100dvh;

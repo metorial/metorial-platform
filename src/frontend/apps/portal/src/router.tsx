@@ -1,9 +1,14 @@
 import { ModalRoot, Toaster } from '@metorial/ui';
 import { useEffect, useMemo } from 'react';
 import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
+import { HomePage } from './pages/(auth)';
+import { ServersPage } from './pages/(auth)/(servers)/(list)/servers';
+import { ServerPage } from './pages/(auth)/(servers)/server';
+import { ServerLayout } from './pages/(auth)/(servers)/server/_layout';
+import { ServerServerDeploymentsPage } from './pages/(auth)/(servers)/server/deployments';
+import { LoginPage } from './pages/(unauthenticated)/login';
 import { RouterErrorPage } from './pages/_error/routerError';
 import { Layout } from './pages/_layout';
-import { LoginPage } from './pages/login';
 import { useBoot } from './state/portal/client';
 
 export let App = () => {
@@ -52,7 +57,19 @@ export let App = () => {
               {
                 path: '',
                 element: <Layout />,
-                children: [{ path: '', element: <h1>Hello</h1> }]
+                children: [
+                  { path: '', element: <HomePage /> },
+
+                  { path: 'servers', element: <ServersPage /> },
+                  {
+                    path: 'server/:serverId',
+                    element: <ServerLayout />,
+                    children: [
+                      { path: '', element: <ServerPage /> },
+                      { path: 'deployments', element: <ServerServerDeploymentsPage /> }
+                    ]
+                  }
+                ]
               }
             ]
           }
