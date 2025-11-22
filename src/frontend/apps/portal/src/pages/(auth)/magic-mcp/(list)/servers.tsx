@@ -1,17 +1,36 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { PageHeader } from '@metorial/layout';
-import { Input, Spacer } from '@metorial/ui';
+import { ContentLayout, PageHeader } from '@metorial/layout';
+import { Input, LinkTabs, Spacer } from '@metorial/ui';
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useDebounced } from '../../../../hooks/useDebounced';
 import { MagicMcpServersGrid } from '../../../../scenes/magicMcp/serversGrid';
+import { usePaths } from '../../../../state/portal/path';
 
 export let MagicMcpServerPage = () => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 300);
 
+  let pathname = useLocation().pathname;
+  let Paths = usePaths();
+
   return (
-    <>
+    <ContentLayout>
       <PageHeader title="Magic MCP Servers" description="Manage your Magic MCP servers." />
+
+      <LinkTabs
+        current={pathname}
+        links={[
+          {
+            label: 'Deployments',
+            to: Paths.magicMcpServers()
+          },
+          {
+            label: 'Connections',
+            to: Paths.magicMcpSessions()
+          }
+        ]}
+      />
 
       {renderWithLoader({})(({}) => (
         <>
@@ -28,6 +47,6 @@ export let MagicMcpServerPage = () => {
           <MagicMcpServersGrid search={searchDebounced} />
         </>
       ))}
-    </>
+    </ContentLayout>
   );
 };

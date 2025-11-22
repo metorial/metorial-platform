@@ -12,8 +12,11 @@ export let serverListingsLoader = createLoader({
 });
 
 export let useServerListings = (input: ServersListingsListQuery | null | undefined) => {
+  let instance = useInstance();
   let data = usePaginator(pagination =>
-    serverListingsLoader.use(input ? { ...pagination, ...input } : null)
+    serverListingsLoader.use(
+      input && instance.data ? { ...pagination, ...input, instanceId: instance.data.id } : null
+    )
   );
 
   return data;

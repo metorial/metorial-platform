@@ -1,12 +1,12 @@
 import {
-  ConsumerMagicMcpServersGetOutput,
-  ConsumerMagicMcpTokensGetOutput
+  MagicMcpServersGetOutput,
+  MagicMcpTokensGetOutput
 } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { slugify } from '@metorial/slugify';
 
 export let getCursorConnection = (
-  server: ConsumerMagicMcpServersGetOutput,
-  token: ConsumerMagicMcpTokensGetOutput
+  server: MagicMcpServersGetOutput,
+  token: MagicMcpTokensGetOutput
 ) => {
   let last = slugify(server.name ?? 'Unknown Server');
 
@@ -39,8 +39,8 @@ export let getCursorConnection = (
 };
 
 export let getClaudeCodeConnection = (
-  server: ConsumerMagicMcpServersGetOutput,
-  token: ConsumerMagicMcpTokensGetOutput
+  server: MagicMcpServersGetOutput,
+  token: MagicMcpTokensGetOutput
 ) => {
   let last = slugify(server.name ?? 'Unknown Server');
 
@@ -58,8 +58,8 @@ export let getClaudeCodeConnection = (
 };
 
 export let getGeminiCliConnection = (
-  server: ConsumerMagicMcpServersGetOutput,
-  token: ConsumerMagicMcpTokensGetOutput
+  server: MagicMcpServersGetOutput,
+  token: MagicMcpTokensGetOutput
 ) => {
   let last = slugify(server.name ?? 'Unknown Server');
 
@@ -90,8 +90,8 @@ export let getGeminiCliConnection = (
 };
 
 export let getVisualStudioConnection = (
-  server: ConsumerMagicMcpServersGetOutput,
-  token: ConsumerMagicMcpTokensGetOutput
+  server: MagicMcpServersGetOutput,
+  token: MagicMcpTokensGetOutput
 ) => {
   let last = slugify(server.name ?? 'Unknown Server');
 
@@ -121,8 +121,8 @@ export let getVisualStudioConnection = (
 };
 
 export let getWindsurfConnection = (
-  server: ConsumerMagicMcpServersGetOutput,
-  token: ConsumerMagicMcpTokensGetOutput
+  server: MagicMcpServersGetOutput,
+  token: MagicMcpTokensGetOutput
 ) => {
   let last = slugify(server.name ?? 'Unknown Server');
 

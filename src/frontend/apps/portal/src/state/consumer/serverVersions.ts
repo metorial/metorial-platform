@@ -1,4 +1,4 @@
-import { DashboardInstanceServersVersionsListQuery } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
+import { ServersVersionsListQuery } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../lib/usePaginator';
 import { withSdk } from './client';
@@ -6,14 +6,14 @@ import { withSdk } from './client';
 export let serverVersionsLoader = createLoader({
   name: 'serverVersions',
   parents: [],
-  fetch: (i: { serverId: string } & DashboardInstanceServersVersionsListQuery) =>
+  fetch: (i: { serverId: string } & ServersVersionsListQuery) =>
     withSdk(sdk => sdk.servers.versions.list(i.serverId, i)),
   mutators: {}
 });
 
 export let useServerVersions = (
   serverId: string | null | undefined,
-  query?: DashboardInstanceServersVersionsListQuery
+  query?: ServersVersionsListQuery
 ) => {
   let data = usePaginator(pagination =>
     serverVersionsLoader.use(serverId ? { serverId, ...pagination, ...query } : null)

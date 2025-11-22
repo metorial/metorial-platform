@@ -39,6 +39,12 @@
       ],
       "cache": false
     },
+    "generate:client:consumer": {
+      "dependsOn": [
+        "^generate:client:consumer"
+      ],
+      "cache": false
+    },
     "frontend:build": {
       "dependsOn": [
         "^frontend:build"

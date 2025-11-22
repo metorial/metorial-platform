@@ -72,18 +72,18 @@ export let backendEnv: Env = [
     defaultValue: `http://localhost:4041`
   },
 
-  {
-    key: 'OPENSEARCH_HOST',
-    defaultValue: `http://localhost:9200`
-  },
-  {
-    key: 'OPENSEARCH_USERNAME',
-    defaultValue: `admin`
-  },
-  {
-    key: 'OPENSEARCH_PASSWORD',
-    defaultValue: `admin`
-  },
+  // {
+  //   key: 'OPENSEARCH_HOST',
+  //   defaultValue: `http://localhost:9200`
+  // },
+  // {
+  //   key: 'OPENSEARCH_USERNAME',
+  //   defaultValue: `admin`
+  // },
+  // {
+  //   key: 'OPENSEARCH_PASSWORD',
+  //   defaultValue: `admin`
+  // },
 
   { key: 'DENO_RUNNER_ADDRESS', defaultValue: `http://localhost:52000` },
 

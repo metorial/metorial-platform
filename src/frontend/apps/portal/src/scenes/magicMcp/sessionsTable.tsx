@@ -1,6 +1,6 @@
 import {
-  ConsumerMagicMcpSessionsGetOutput,
-  ConsumerMagicMcpSessionsListQuery
+  MagicMcpSessionsGetOutput,
+  MagicMcpSessionsListQuery
 } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Badge, RenderDate, Text, theme } from '@metorial/ui';
@@ -11,7 +11,7 @@ import { usePaths } from '../../state/portal/path';
 export let MagicMcpSessionConnectionStatusBadge = ({
   session
 }: {
-  session: ConsumerMagicMcpSessionsGetOutput;
+  session: MagicMcpSessionsGetOutput;
 }) => {
   return (
     <Badge
@@ -30,7 +30,7 @@ export let MagicMcpSessionConnectionStatusBadge = ({
   );
 };
 
-export let MagicMcpSessionsTable = (filter: ConsumerMagicMcpSessionsListQuery) => {
+export let MagicMcpSessionsTable = (filter: MagicMcpSessionsListQuery) => {
   let Paths = usePaths();
   let sessions = useMagicMcpSessions({
     ...filter,

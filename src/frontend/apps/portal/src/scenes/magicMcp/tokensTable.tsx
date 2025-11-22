@@ -1,6 +1,6 @@
 import {
-  ConsumerMagicMcpTokensGetOutput,
-  ConsumerMagicMcpTokensListQuery
+  MagicMcpTokensGetOutput,
+  MagicMcpTokensListQuery
 } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
 import {
@@ -26,7 +26,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { useCreateMagicMcpToken, useMagicMcpTokens } from '../../state/consumer/magicMcpToken';
 
-export let MagicMcpTokensTable = (filter: ConsumerMagicMcpTokensListQuery) => {
+export let MagicMcpTokensTable = (filter: MagicMcpTokensListQuery) => {
   let tokens = useMagicMcpTokens({
     ...filter,
     order: filter.order ?? 'asc'
@@ -235,7 +235,7 @@ let Action = styled('div')`
   flex-shrink: 0;
 `;
 
-export let MagicMcpTokenSecret = ({ token }: { token: ConsumerMagicMcpTokensGetOutput }) => {
+export let MagicMcpTokenSecret = ({ token }: { token: MagicMcpTokensGetOutput }) => {
   let secret = token.secret;
   let copy = useCopy(secret!);
   let [isRevealed, setIsRevealed] = useState(false);

@@ -1,21 +1,18 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { PageHeader } from '@metorial/layout';
-import { useCurrentInstance } from '@metorial/state';
+import { ContentLayout, PageHeader } from '@metorial/layout';
 import { MagicMcpTokensTable } from '../../../../scenes/magicMcp/tokensTable';
 
 export let MagicMcpTokensPage = () => {
-  let instance = useCurrentInstance();
-
   return (
-    <>
+    <ContentLayout>
       <PageHeader
         title="Magic MCP Tokens"
         description="Magic MCP tokens allow secure access to your Magic MCP servers."
       />
 
-      {renderWithLoader({ instance })(({ instance }) => (
+      {renderWithLoader({})(({}) => (
         <MagicMcpTokensTable />
       ))}
-    </>
+    </ContentLayout>
   );
 };

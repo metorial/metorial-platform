@@ -1,4 +1,4 @@
-import { ConsumerMagicMcpServersListQuery } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
+import { MagicMcpServersListQuery } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { Avatar, RenderDate, Text } from '@metorial/ui';
 import { ItemGrid, Table } from '@metorial/ui-product';
@@ -24,7 +24,7 @@ let Alias = styled.div`
   font-weight: 500;
 `;
 
-export let MagicMcpServersGrid = (filter: ConsumerMagicMcpServersListQuery) => {
+export let MagicMcpServersGrid = (filter: MagicMcpServersListQuery) => {
   let servers = useMagicMcpServers({
     ...filter,
     order: filter.order ?? 'desc'
@@ -87,7 +87,7 @@ export let MagicMcpServersGrid = (filter: ConsumerMagicMcpServersListQuery) => {
   ));
 };
 
-export let MagicMcpServersTable = (filter: ConsumerMagicMcpServersListQuery) => {
+export let MagicMcpServersTable = (filter: MagicMcpServersListQuery) => {
   let Paths = usePaths();
   let servers = useMagicMcpServers({
     ...filter,

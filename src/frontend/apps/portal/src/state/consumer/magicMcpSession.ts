@@ -1,4 +1,4 @@
-import { ConsumerMagicMcpSessionsListQuery } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
+import { MagicMcpSessionsListQuery } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../lib/usePaginator';
 import { withSdk } from './client';
@@ -6,12 +6,11 @@ import { withSdk } from './client';
 export let magicMcpSessionsLoader = createLoader({
   name: 'magicMcpSessions',
   parents: [],
-  fetch: (i: ConsumerMagicMcpSessionsListQuery) =>
-    withSdk(sdk => sdk.magicMcp.sessions.list(i)),
+  fetch: (i: MagicMcpSessionsListQuery) => withSdk(sdk => sdk.magicMcp.sessions.list(i)),
   mutators: {}
 });
 
-export let useMagicMcpSessions = (query?: ConsumerMagicMcpSessionsListQuery) => {
+export let useMagicMcpSessions = (query?: MagicMcpSessionsListQuery) => {
   let data = usePaginator(pagination =>
     magicMcpSessionsLoader.use({ ...pagination, ...query })
   );

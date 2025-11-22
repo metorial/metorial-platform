@@ -62,13 +62,13 @@ export let Layout = () => {
               {
                 icon: <RiFlowChart />,
                 label: 'Deployments',
-                to: Paths.magicMcpServer(),
+                to: Paths.magicMcpServers(),
                 getProps: i => ({ isActive: checkPath(i, { exact: true }) }),
 
                 children: [
                   {
                     label: 'Deployments',
-                    to: Paths.magicMcpServer(),
+                    to: Paths.magicMcpServers(),
                     getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                   },
                   {
