@@ -163,6 +163,7 @@ export type ManagementInstanceSessionsCreateBody = {
               } | null;
             }
           | undefined;
+        serverDeploymentTemplateId?: string | undefined;
       } & ({ config: Record<string, any> } | { serverConfigVaultId: string })) &
         (
           | {
@@ -229,6 +230,10 @@ export let mapManagementInstanceSessionsCreateBody =
                     })
                   )
                 })
+              ),
+              serverDeploymentTemplateId: mtMap.objectField(
+                'server_deployment_template_id',
+                mtMap.passthrough()
               ),
               config: mtMap.objectField('config', mtMap.passthrough()),
               serverConfigVaultId: mtMap.objectField(
