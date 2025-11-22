@@ -66,6 +66,7 @@ import { v1ServerListingCollectionPresenter } from './implementation/serverColle
 import { v1ServerConfigVaultPresenter } from './implementation/serverConfigVault';
 import { v1ServerDeploymentPresenter } from './implementation/serverDeployment';
 import { v1ServerDeploymentConfigPresenter } from './implementation/serverDeploymentConfig';
+import { v1ServerDeploymentTemplatePresenter } from './implementation/serverDeploymentTemplate';
 import {
   dashboardServerImplementationPresenter,
   v1ServerImplementationPresenter
@@ -150,6 +151,7 @@ import {
   serverCapabilitiesType,
   serverConfigVaultType,
   serverDeploymentConfigType,
+  serverDeploymentTemplateType,
   serverDeploymentType,
   serverImplementationType,
   serverListingCategoryType,
@@ -286,6 +288,11 @@ export let serverImplementationPresenter = declarePresenter(serverImplementation
 export let serverDeploymentPresenter = declarePresenter(serverDeploymentType, {
   mt_2025_01_01_pulsar: v1ServerDeploymentPresenter,
   mt_2025_01_01_dashboard: v1ServerDeploymentPresenter
+});
+
+export let serverDeploymentTemplatePresenter = declarePresenter(serverDeploymentTemplateType, {
+  mt_2025_01_01_pulsar: v1ServerDeploymentTemplatePresenter,
+  mt_2025_01_01_dashboard: v1ServerDeploymentTemplatePresenter
 });
 
 export let serverDeploymentConfigPresenter = declarePresenter(serverDeploymentConfigType, {

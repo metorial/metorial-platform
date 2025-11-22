@@ -93,7 +93,7 @@ export let PortalUserPage = () => {
 
           <Box
             title="Groups"
-            description="Groups assigned to this user"
+            description="Groups control the resources this user has access to."
             rightActions={
               <Button
                 size="2"
@@ -209,6 +209,11 @@ export let PortalUserPage = () => {
                     sso: (
                       <Badge size="1" color="purple">
                         SSO
+                      </Badge>
+                    ),
+                    user: (
+                      <Badge size="1" color="gray">
+                        Personal Group
                       </Badge>
                     )
                   }[group.assignedVia],

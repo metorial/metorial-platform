@@ -30,4 +30,7 @@ model AccessTagEntity {
 
   magicMcpGroup    MagicMcpGroup? @relation(fields: [magicMcpGroupOid], references: [oid])
   magicMcpGroupOid BigInt?
+
+  serverDeploymentTemplate    ServerDeploymentTemplate? @relation(fields: [serverDeploymentTemplateOid], references: [oid])
+  serverDeploymentTemplateOid BigInt?
 }

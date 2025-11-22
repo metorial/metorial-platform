@@ -39,6 +39,7 @@ import {
   MetorialDashboardInstanceServerRunsEndpoint,
   MetorialDashboardInstanceServersCapabilitiesEndpoint,
   MetorialDashboardInstanceServersDeploymentsEndpoint,
+  MetorialDashboardInstanceServersDeploymentsTemplatesEndpoint,
   MetorialDashboardInstanceServersEndpoint,
   MetorialDashboardInstanceServersImplementationsEndpoint,
   MetorialDashboardInstanceServersVariantsEndpoint,
@@ -145,7 +146,12 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     variants: new MetorialDashboardInstanceServersVariantsEndpoint(manager),
     versions: new MetorialDashboardInstanceServersVersionsEndpoint(manager),
 
-    deployments: new MetorialDashboardInstanceServersDeploymentsEndpoint(manager),
+    deployments: Object.assign(
+      new MetorialDashboardInstanceServersDeploymentsEndpoint(manager),
+      {
+        templates: new MetorialDashboardInstanceServersDeploymentsTemplatesEndpoint(manager)
+      }
+    ),
     implementations: new MetorialDashboardInstanceServersImplementationsEndpoint(manager),
 
     errors: Object.assign(new MetorialDashboardInstanceServerRunErrorsEndpoint(manager), {

@@ -30,10 +30,10 @@ export let serverCapabilitiesController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            server_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())])),
             server_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())])),
             server_version_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
             server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )

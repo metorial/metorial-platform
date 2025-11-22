@@ -1,5 +1,6 @@
 import { consumerAccessService, consumerGroupService } from '@metorial/module-consumer';
 import { magicMcpGroupService } from '@metorial/module-magic';
+import { serverDeploymentTemplateService } from '@metorial/module-server-deployment';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -45,8 +46,14 @@ export let portalConsumerAccessController = Controller.create(
           v.object({
             consumer_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
             magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_deployment_template_id: v.optional(
+              v.union([v.string(), v.array(v.string())])
+            ),
             type: v.optional(
-              v.union([v.enumOf(['magic_mcp_group']), v.array(v.enumOf(['magic_mcp_group']))])
+              v.union([
+                v.enumOf(['magic_mcp_group', 'server_deployment_template']),
+                v.array(v.enumOf(['magic_mcp_group', 'server_deployment_template']))
+              ])
             )
           })
         )
@@ -57,6 +64,9 @@ export let portalConsumerAccessController = Controller.create(
 
           magicMcpGroupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
           consumerGroupIds: normalizeArrayParam(ctx.query.consumer_group_id),
+          serverDeploymentTemplateIds: normalizeArrayParam(
+            ctx.query.server_deployment_template_id
+          ),
           types: normalizeArrayParam(ctx.query.type)
         });
 
@@ -110,19 +120,20 @@ export let portalConsumerAccessController = Controller.create(
         v.object({
           consumer_group_id: v.string(),
 
-          access: v.object({
-            type: v.literal('magic_mcp_group'),
-            magic_mcp_group_id: v.string()
-          })
+          access: v.union([
+            v.object({
+              type: v.literal('magic_mcp_group'),
+              magic_mcp_group_id: v.string()
+            }),
+            v.object({
+              type: v.literal('server_deployment_template'),
+              server_deployment_template_id: v.string()
+            })
+          ])
         })
       )
       .output(consumerAccessPresenter)
       .do(async ctx => {
-        let magicMcpGroup = await magicMcpGroupService.getMagicMcpGroupById({
-          instance: ctx.instance,
-          magicMcpGroupId: ctx.body.access.magic_mcp_group_id
-        });
-
         let consumerGroup = await consumerGroupService.getConsumerGroupById({
           consumerSurface: ctx.portal.surface,
           consumerGroupId: ctx.body.consumer_group_id
@@ -131,10 +142,23 @@ export let portalConsumerAccessController = Controller.create(
         let consumerAccess = await consumerAccessService.createConsumerAccess({
           consumerSurface: ctx.portal.surface,
           consumerGroup,
-          access: {
-            type: 'magic_mcp_group',
-            magicMcpGroup
-          }
+          access:
+            ctx.body.access.type === 'server_deployment_template'
+              ? {
+                  type: 'server_deployment_template',
+                  serverDeploymentTemplate:
+                    await serverDeploymentTemplateService.getServerDeploymentTemplateById({
+                      instance: ctx.instance,
+                      serverDeploymentTemplateId: ctx.body.access.server_deployment_template_id
+                    })
+                }
+              : {
+                  type: 'magic_mcp_group',
+                  magicMcpGroup: await magicMcpGroupService.getMagicMcpGroupById({
+                    instance: ctx.instance,
+                    magicMcpGroupId: ctx.body.access.magic_mcp_group_id
+                  })
+                }
         });
 
         return consumerAccessPresenter.present({ consumerAccess });

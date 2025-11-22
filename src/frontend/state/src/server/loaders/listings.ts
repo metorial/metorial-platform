@@ -1,6 +1,7 @@
 import { ServersListingsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
+import { useCurrentInstance } from '../../organization';
 import { withAuth } from '../../user';
 
 export let serverListingsLoader = createLoader({
@@ -11,8 +12,11 @@ export let serverListingsLoader = createLoader({
 });
 
 export let useServerListings = (input: ServersListingsListQuery | null | undefined) => {
+  let instance = useCurrentInstance();
   let data = usePaginator(pagination =>
-    serverListingsLoader.use(input ? { ...pagination, ...input } : null)
+    serverListingsLoader.use(
+      input ? { ...pagination, ...input, instanceId: instance.data?.id } : null
+    )
   );
 
   return data;

@@ -1,8 +1,9 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, usePortal } from '@metorial/state';
 import { Button, confirm, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PortalForm } from '../../../../scenes/portals/form';
 
 export let PortalSettingsOverviewPage = () => {
@@ -11,6 +12,7 @@ export let PortalSettingsOverviewPage = () => {
   let portal = usePortal(instance.data?.id, params.portalId!);
 
   let deleteMutator = portal.useDeleteMutator();
+  let navigate = useNavigate();
 
   return (
     <>
@@ -30,7 +32,15 @@ export let PortalSettingsOverviewPage = () => {
                   description:
                     'Are you sure you want to delete this portal? This action cannot be undone.',
                   async onConfirm() {
-                    await deleteMutator.mutate({});
+                    let [res] = await deleteMutator.mutate({});
+                    if (res)
+                      navigate(
+                        Paths.instance.portals(
+                          instance.data?.organization,
+                          instance.data?.project,
+                          instance.data
+                        )
+                      );
                   }
                 })
               }

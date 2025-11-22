@@ -171,6 +171,16 @@ export let initializeRemoteQueueProcessor = initializeRemoteQueue.process(async 
             ]
           }
         ]);
+
+        if (
+          await providerOauthDiscoveryService.supportsAutoRegistration({
+            config: autoDiscoveryRes.config
+          })
+        ) {
+          data.serverVersionData.oauthCredentialProvider = 'auto_registration';
+        } else {
+          data.serverVersionData.oauthCredentialProvider = 'manual';
+        }
       } else {
         await db.remoteServerInstance.updateMany({
           where: { id: remote.id },

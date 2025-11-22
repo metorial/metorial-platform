@@ -131,6 +131,7 @@ export type MagicMcpServersCreateBody = ({
   access?:
     | { ipAllowlist: { ipWhitelist: string[]; ipBlacklist: string[] } | null }
     | undefined;
+  serverDeploymentTemplateId?: string | undefined;
 } & ({ config: Record<string, any> } | { serverConfigVaultId: string })) &
   (
     | {
@@ -177,6 +178,10 @@ export let mapMagicMcpServersCreateBody = mtMap.union([
             })
           )
         })
+      ),
+      serverDeploymentTemplateId: mtMap.objectField(
+        'server_deployment_template_id',
+        mtMap.passthrough()
       ),
       config: mtMap.objectField('config', mtMap.passthrough()),
       serverConfigVaultId: mtMap.objectField(

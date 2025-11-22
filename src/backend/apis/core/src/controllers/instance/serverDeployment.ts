@@ -8,6 +8,7 @@ import {
 } from '@metorial/db';
 import {
   serverDeploymentService,
+  serverDeploymentTemplateService,
   serverImplementationService
 } from '@metorial/module-server-deployment';
 import { Paginator } from '@metorial/pagination';
@@ -83,7 +84,8 @@ export let createServerDeploymentSchema = v.intersection([
       description: v.optional(v.string()),
       metadata: v.optional(v.record(v.any())),
       oauth_config: createServerDeploymentOAuthConfigSchema,
-      access: createServerDeploymentAccessSchema
+      access: createServerDeploymentAccessSchema,
+      server_deployment_template_id: v.optional(v.string())
     }),
     createServerDeploymentConfigSchema
   ]),
@@ -123,6 +125,14 @@ export let createServerDeployment = async (
                 : await ensureDefaultServerImplementation(data, ctx)
           };
 
+    let template =
+      'server_deployment_template_id' in data && data.server_deployment_template_id
+        ? await serverDeploymentTemplateService.getServerDeploymentTemplateById({
+            instance: ctx.instance,
+            serverDeploymentTemplateId: data.server_deployment_template_id
+          })
+        : undefined;
+
     let serverDeployment = await serverDeploymentService.createServerDeployment({
       organization: ctx.organization,
       performedBy: ctx.actor,
@@ -135,12 +145,19 @@ export let createServerDeployment = async (
         name: data.name?.trim() || undefined,
         description: data.description?.trim() || undefined,
         metadata: data.metadata,
+
         oauthConfig: data.oauth_config
           ? {
               clientId: data.oauth_config.client_id,
               clientSecret: data.oauth_config.client_secret
             }
-          : undefined,
+          : template?.oauthConfigClientId
+            ? {
+                clientId: template.oauthConfigClientId,
+                clientSecret: template.oauthConfigClientSecret!
+              }
+            : undefined,
+
         config:
           'config' in data
             ? {
@@ -151,6 +168,7 @@ export let createServerDeployment = async (
                 type: 'vault',
                 serverConfigVaultId: data.server_config_vault_id
               },
+
         accessLimiter: data.access
           ? {
               ipAllowlist: data.access.ip_allowlist

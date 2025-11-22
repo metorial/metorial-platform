@@ -1,4 +1,5 @@
 import { createLoader } from '@metorial/data-hooks';
+import { mutation } from '../../lib/mutation';
 import { withAuth } from '../../user';
 
 export let serverLoader = createLoader({
@@ -17,3 +18,6 @@ export let useServer = (
 
   return data;
 };
+
+export let getServer = async (instanceId: string, serverId: string) =>
+  mutation(() => withAuth(sdk => sdk.servers.get(instanceId, serverId)));

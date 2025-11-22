@@ -181,9 +181,7 @@ export let showPortalFormModal = () =>
           instanceId: instance.data!.id
         });
 
-        if (res) {
-          close();
-        }
+        if (res) setTimeout(() => close(), 500);
       },
       schema: yup =>
         yup.object().shape({
@@ -214,7 +212,12 @@ export let showPortalFormModal = () =>
             <Button size="1" variant="soft" onClick={close} type="button">
               Cancel
             </Button>
-            <Button size="1" type="submit">
+            <Button
+              size="1"
+              type="submit"
+              loading={mutator.isLoading}
+              success={mutator.isSuccess}
+            >
               Create
             </Button>
           </Dialog.Actions>

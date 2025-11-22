@@ -15,6 +15,16 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
 
     get_launch_params: serverVersion.getLaunchParams,
 
+    oauth:
+      serverVersion.oauthCredentialProvider == 'none'
+        ? {
+            status: 'disabled' as const
+          }
+        : {
+            status: 'enabled' as const,
+            credential_provider: serverVersion.oauthCredentialProvider
+          },
+
     source: {
       type: serverVersion.sourceType,
       docker: serverVersion.dockerImage
@@ -47,6 +57,26 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
         name: 'id',
         description: 'The unique identifier of the server version'
       }),
+
+      oauth: v.union(
+        [
+          v.object({
+            status: v.literal('disabled')
+          }),
+          v.object({
+            status: v.literal('enabled'),
+            credential_provider: v.enumOf(['manual', 'auto_registration'], {
+              name: 'credential_provider',
+              description:
+                'The method used to provide OAuth credentials for this server version'
+            })
+          })
+        ],
+        {
+          name: 'oauth',
+          description: 'OAuth configuration for the server version'
+        }
+      ),
 
       identifier: v.string({
         name: 'identifier',
