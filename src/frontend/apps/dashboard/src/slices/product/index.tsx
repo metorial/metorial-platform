@@ -379,6 +379,9 @@ let PortalUsersPage = dynamicPage(() =>
 let PortalUserPage = dynamicPage(() =>
   import('./pages/(portals)/portal/user').then(c => c.PortalUserPage)
 );
+let PortalServerRequestsPage = dynamicPage(() =>
+  import('./pages/(portals)/portal/server-requests').then(c => c.PortalServerRequestsPage)
+);
 
 let ProductWrapper = () => {
   let instance = useCurrentInstance();
@@ -948,6 +951,11 @@ export let productInnerSlice = createSlice([
             path: 'groups',
             element: <PortalGroupsPage />
           },
+          {
+            path: 'server-requests',
+            element: <PortalServerRequestsPage />
+          },
+
           {
             path: 'settings',
             element: <PortalSettingsLayout />,

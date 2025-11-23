@@ -83,6 +83,10 @@ export let PortalLayout = () => {
                 label: 'Groups',
                 to: Paths.instance.portal(...pathParams, 'groups')
               },
+              {
+                label: 'Server Requests',
+                to: Paths.instance.portal(...pathParams, 'server-requests')
+              },
 
               {
                 label: 'Settings',

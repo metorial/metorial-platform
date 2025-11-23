@@ -22,6 +22,7 @@ import {
 import { Box, ID, Table } from '@metorial/ui-product';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { PortalGroupAccess } from '../../../scenes/portals/groupAccess';
 
 export let PortalUserPage = () => {
   let instance = useCurrentInstance();
@@ -36,6 +37,8 @@ export let PortalUserPage = () => {
 
   let assignGroups = user.useAssignGroupsMutator();
   let unassignGroups = user.useUnassignGroupsMutator();
+
+  let personalGroup = user.data?.groups?.find(g => g.assignedVia === 'user');
 
   return (
     <>
@@ -248,6 +251,13 @@ export let PortalUserPage = () => {
               </Text>
             )}
           </Box>
+
+          {personalGroup && (
+            <>
+              <Spacer height={20} />
+              <PortalGroupAccess portalId={portal.data.id} groupId={personalGroup.group.id} />
+            </>
+          )}
         </>
       ))}
     </>

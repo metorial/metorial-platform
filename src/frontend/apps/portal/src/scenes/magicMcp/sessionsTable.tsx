@@ -53,8 +53,7 @@ export let MagicMcpSessionsTable = (filter: MagicMcpSessionsListQuery) => {
               )}
             </Text>,
             <RenderDate date={session.createdAt} />
-          ],
-          href: Paths.magicMcpSession(session.sessionId)
+          ]
         }))}
       />
 

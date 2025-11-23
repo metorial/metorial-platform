@@ -4,6 +4,7 @@ import {
   DashboardInstanceServersDeploymentsTemplatesUpdateBody
 } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
+import { mutation } from '../../lib/mutation';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -20,6 +21,11 @@ export let useCreateServerDeploymentTemplate =
     (i: DashboardInstanceServersDeploymentsTemplatesCreateBody & { instanceId: string }) =>
       withAuth(sdk => sdk.servers.deployments.templates.create(i.instanceId, i))
   );
+
+export let createServerDeploymentTemplate = (
+  i: DashboardInstanceServersDeploymentsTemplatesCreateBody & { instanceId: string }
+) =>
+  mutation(() => withAuth(sdk => sdk.servers.deployments.templates.create(i.instanceId, i)));
 
 export let useUpdateServerDeploymentTemplate =
   serverDeploymentTemplatesLoader.createExternalMutator(
