@@ -23,6 +23,9 @@ model ServerOAuthSession {
   connectionOid BigInt
   connection    ProviderOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
 
+  consumerProfileOid BigInt?
+  consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid])
+
   redirectUri String?
   metadata    Json?
 
@@ -32,4 +35,5 @@ model ServerOAuthSession {
 
   sessionServerDeployments SessionServerDeployment[]
   magicMcpServers          MagicMcpServer[]
+  accessTags               AccessTagEntity[]
 }

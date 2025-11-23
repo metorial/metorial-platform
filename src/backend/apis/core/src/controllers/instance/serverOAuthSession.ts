@@ -1,5 +1,5 @@
 import { ProviderOAuthConnectionAuthToken } from '@metorial/db';
-import { badRequestError, ServiceError } from '@metorial/error';
+import { badRequestError, forbiddenError, ServiceError } from '@metorial/error';
 import {
   providerOauthConnectionService,
   providerOauthTakeInService
@@ -9,6 +9,7 @@ import { serverOAuthSessionService } from '@metorial/module-session';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -19,7 +20,9 @@ export let oauthSessionGroup = instanceGroup.use(async ctx => {
 
   let oauthSession = await serverOAuthSessionService.getServerOAuthSessionById({
     serverOAuthSessionId: ctx.params.oauthSessionId,
-    instance: ctx.instance
+    instance: ctx.instance,
+
+    accessTags: ctx.accessTags
   });
 
   return { oauthSession };
@@ -37,13 +40,33 @@ export let serverOauthSessionController = Controller.create(
         name: 'List provider OAuth sessions',
         description: 'List all provider OAuth sessions'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider_oauth.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.provider_oauth.session:read',
+            'consumer#instance.oauth_session:read'
+          ]
+        })
+      )
       .outputList(serverOAuthSessionPresenter)
-      .query('default', Paginator.validate(v.object({})))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            session_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            oauth_connection_id: v.optional(v.union([v.string(), v.array(v.string())]))
+          })
+        )
+      )
       .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
         let paginator = await serverOAuthSessionService.listServerOAuthSessions({
-          instance: ctx.instance
+          instance: ctx.instance,
+
+          accessTags: ctx.accessTags,
+
+          sessionIds: normalizeArrayParam(ctx.query.session_id),
+          oauthConnectionIds: normalizeArrayParam(ctx.query.oauth_connection_id)
         });
 
         let list = await paginator.run(ctx.query);
@@ -58,7 +81,14 @@ export let serverOauthSessionController = Controller.create(
         name: 'Create provider OAuth session',
         description: 'Create a new provider OAuth session'
       })
-      .use(checkAccess({ possibleScopes: ['instance.provider_oauth.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.provider_oauth.session:write',
+            'consumer#instance.oauth_session:write'
+          ]
+        })
+      )
       .body(
         'default',
         v.intersection([
@@ -92,6 +122,12 @@ export let serverOauthSessionController = Controller.create(
         if ('connection_id' in ctx.body) {
           connectionId = ctx.body.connection_id;
         } else if ('token_import_id' in ctx.body) {
+          if (ctx.consumerProfile) {
+            throw new ServiceError(
+              forbiddenError({ message: 'Consumers cannot import OAuth tokens' })
+            );
+          }
+
           let takeIn = await providerOauthTakeInService.getTakeIn({
             instance: ctx.instance,
             takeInId: ctx.body.token_import_id
@@ -127,6 +163,7 @@ export let serverOauthSessionController = Controller.create(
           instance: ctx.instance,
           connection,
           existingToken,
+          consumer: ctx.consumerProfile ? { profile: ctx.consumerProfile } : undefined,
           input: {
             metadata: ctx.body.metadata,
             redirectUri: ctx.body.redirect_uri
@@ -144,7 +181,14 @@ export let serverOauthSessionController = Controller.create(
           description: 'Get information for a specific provider OAuth session'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider_oauth.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.provider_oauth.session:read',
+            'consumer#instance.oauth_session:read'
+          ]
+        })
+      )
       .output(serverOAuthSessionPresenter)
       .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
@@ -164,7 +208,11 @@ export let serverOauthSessionController = Controller.create(
           description: 'Delete a provider OAuth session'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.provider_oauth.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.provider_oauth.session:write']
+        })
+      )
       .output(serverOAuthSessionPresenter)
       .use(hasFlags(['metorial-gateway-enabled']))
       .do(async ctx => {
