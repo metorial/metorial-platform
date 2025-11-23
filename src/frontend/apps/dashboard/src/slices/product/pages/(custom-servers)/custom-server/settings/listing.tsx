@@ -84,163 +84,156 @@ export let CustomServerListingPage = () => {
         />
       </Box>
 
-      {customServer.data.publicationStatus == 'public' && (
-        <>
-          <Box
-            title="Open Server Listing"
-            description="View this custom server listing in the Metorial catalog."
-          >
-            <Link
-              to={Paths.instance.server(
-                instance.data?.organization,
-                instance.data?.project,
-                instance.data,
-                customServer.data.server.id
-              )}
-            >
-              <Button as="span" size="2" variant="outline">
-                Open Listing
-              </Button>
-            </Link>
-          </Box>
+      <Box
+        title="Open Server Listing"
+        description="View this custom server listing in the Metorial catalog."
+      >
+        <Link
+          to={Paths.instance.server(
+            instance.data?.organization,
+            instance.data?.project,
+            instance.data,
+            customServer.data.server.id
+          )}
+        >
+          <Button as="span" size="2" variant="outline">
+            Open Listing
+          </Button>
+        </Link>
+      </Box>
 
-          <Box
-            title="Enable forking"
-            description="Let other users fork this custom server to their own Metorial instance."
-          >
-            <Switch
-              label="Enable forking"
-              disabled={
-                statusUpdate.isLoading ||
-                generalUpdate.isLoading ||
-                readmeUpdate.isLoading ||
-                forkUpdate.isLoading
-              }
-              checked={customServer.data?.fork.status == 'enabled'}
-              onCheckedChange={async checked => {
-                if (checked) {
-                  confirm({
-                    title: 'Are you sure you want to enable forking for this custom server?',
-                    description:
-                      'This will let other users fork this custom server to their own Metorial instance. This might expose sensitive information, so make sure you understand the implications.',
-                    onConfirm: async () => {
-                      await forkUpdate.mutate({
-                        isForkable: true
-                      });
-                    }
-                  });
-                } else {
+      <Box
+        title="Enable forking"
+        description="Let other users fork this custom server to their own Metorial instance."
+      >
+        <Switch
+          label="Enable forking"
+          disabled={
+            statusUpdate.isLoading ||
+            generalUpdate.isLoading ||
+            readmeUpdate.isLoading ||
+            forkUpdate.isLoading
+          }
+          checked={customServer.data?.fork.status == 'enabled'}
+          onCheckedChange={async checked => {
+            if (checked) {
+              confirm({
+                title: 'Are you sure you want to enable forking for this custom server?',
+                description:
+                  'This will let other users fork this custom server to their own Metorial instance. This might expose sensitive information, so make sure you understand the implications.',
+                onConfirm: async () => {
                   await forkUpdate.mutate({
-                    isForkable: false
+                    isForkable: true
                   });
                 }
+              });
+            } else {
+              await forkUpdate.mutate({
+                isForkable: false
+              });
+            }
+          }}
+        />
+      </Box>
+
+      <FormBox
+        title="Listing"
+        description="Update how this server is listed in the Metorial catalog."
+        schema={yup =>
+          yup.object({
+            name: yup.string().optional(),
+            description: yup.string().optional()
+          })
+        }
+        initialValues={{
+          name: listing.data?.name ?? customServer.data?.name ?? '',
+          description: listing.data?.description ?? customServer.data?.description ?? ''
+        }}
+        mutators={[generalUpdate]}
+        onSubmit={async values => {
+          if (!instance.data) return;
+
+          await generalUpdate.mutate({
+            name: values.name,
+            description: values.description
+          });
+        }}
+      >
+        <Field field="name">
+          {({ getFieldProps }) => <Input {...getFieldProps()} label="Name" />}
+        </Field>
+
+        <Field field="description">
+          {({ getFieldProps }) => <Input {...getFieldProps()} label="Description" />}
+        </Field>
+      </FormBox>
+
+      <FormBox
+        title="Readme"
+        description="Update the readme for this custom server listing."
+        schema={yup =>
+          yup.object({
+            readme: yup.string().optional()
+          })
+        }
+        initialValues={{
+          readme: listing.data?.readme ?? ''
+        }}
+        mutators={[readmeUpdate]}
+        onSubmit={async values => {
+          if (!instance.data) return;
+
+          await readmeUpdate.mutate({
+            readme: values.readme
+          });
+        }}
+      >
+        <Field field="readme">
+          {({ value, setValue }) => (
+            <TextEditor
+              content={value}
+              onChange={content => {
+                setValue(content);
               }}
+              placeholder="Write a readme for this custom server..."
             />
-          </Box>
-
-          <FormBox
-            title="Listing"
-            description="Update how this server is listed in the Metorial catalog."
-            schema={yup =>
-              yup.object({
-                name: yup.string().optional(),
-                description: yup.string().optional()
-              })
-            }
-            initialValues={{
-              name: listing.data?.name ?? customServer.data?.name ?? '',
-              description: listing.data?.description ?? customServer.data?.description ?? ''
-            }}
-            mutators={[generalUpdate]}
-            onSubmit={async values => {
-              if (!instance.data) return;
-
-              await generalUpdate.mutate({
-                status: 'public',
-                name: values.name,
-                description: values.description
-              });
-            }}
-          >
-            <Field field="name">
-              {({ getFieldProps }) => <Input {...getFieldProps()} label="Name" />}
-            </Field>
-
-            <Field field="description">
-              {({ getFieldProps }) => <Input {...getFieldProps()} label="Description" />}
-            </Field>
-          </FormBox>
-
-          <FormBox
-            title="Readme"
-            description="Update the readme for this custom server listing."
-            schema={yup =>
-              yup.object({
-                readme: yup.string().optional()
-              })
-            }
-            initialValues={{
-              readme: listing.data?.readme ?? ''
-            }}
-            mutators={[readmeUpdate]}
-            onSubmit={async values => {
-              if (!instance.data) return;
-
-              await readmeUpdate.mutate({
-                status: 'public',
-                readme: values.readme
-              });
-            }}
-          >
-            <Field field="readme">
-              {({ value, setValue }) => (
-                <TextEditor
-                  content={value}
-                  onChange={content => {
-                    setValue(content);
-                  }}
-                  placeholder="Write a readme for this custom server..."
-                />
-              )}
-            </Field>
-          </FormBox>
-
-          {implementation?.providerOauth && (
-            <FormBox
-              title="OAuth Explainer"
-              description="Explain how to set up OAuth for this custom server."
-              schema={yup =>
-                yup.object({
-                  oauthExplainer: yup.string().optional()
-                })
-              }
-              initialValues={{
-                oauthExplainer: listing.data?.oauthExplainer ?? ''
-              }}
-              mutators={[readmeUpdate]}
-              onSubmit={async values => {
-                if (!instance.data) return;
-
-                await readmeUpdate.mutate({
-                  status: 'public',
-                  oauthExplainer: values.oauthExplainer
-                });
-              }}
-            >
-              <Field field="oauthExplainer">
-                {({ value, setValue }) => (
-                  <TextEditor
-                    content={value}
-                    onChange={content => {
-                      setValue(content);
-                    }}
-                    placeholder={`Explain how to set up OAuth for this custom server...`}
-                  />
-                )}
-              </Field>
-            </FormBox>
           )}
-        </>
+        </Field>
+      </FormBox>
+
+      {implementation?.providerOauth && (
+        <FormBox
+          title="OAuth Explainer"
+          description="Explain how to set up OAuth for this custom server."
+          schema={yup =>
+            yup.object({
+              oauthExplainer: yup.string().optional()
+            })
+          }
+          initialValues={{
+            oauthExplainer: listing.data?.oauthExplainer ?? ''
+          }}
+          mutators={[readmeUpdate]}
+          onSubmit={async values => {
+            if (!instance.data) return;
+
+            await readmeUpdate.mutate({
+              oauthExplainer: values.oauthExplainer
+            });
+          }}
+        >
+          <Field field="oauthExplainer">
+            {({ value, setValue }) => (
+              <TextEditor
+                content={value}
+                onChange={content => {
+                  setValue(content);
+                }}
+                placeholder={`Explain how to set up OAuth for this custom server...`}
+              />
+            )}
+          </Field>
+        </FormBox>
       )}
     </FormPage>
   ));

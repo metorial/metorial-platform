@@ -214,26 +214,20 @@ export let mapCustomServersListingUpdateOutput =
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
 
-export type CustomServersListingUpdateBody =
-  | {
-      status: 'public';
-      name?: string | undefined;
-      description?: string | undefined;
-      readme?: string | undefined;
-      oauthExplainer?: string | null | undefined;
-    }
-  | { status: 'private' };
+export type CustomServersListingUpdateBody = {
+  status?: 'public' | 'private' | undefined;
+  name?: string | undefined;
+  description?: string | undefined;
+  readme?: string | undefined;
+  oauthExplainer?: string | null | undefined;
+};
 
-export let mapCustomServersListingUpdateBody = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      status: mtMap.objectField('status', mtMap.passthrough()),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      description: mtMap.objectField('description', mtMap.passthrough()),
-      readme: mtMap.objectField('readme', mtMap.passthrough()),
-      oauthExplainer: mtMap.objectField('oauth_explainer', mtMap.passthrough())
-    })
-  )
-]);
+export let mapCustomServersListingUpdateBody =
+  mtMap.object<CustomServersListingUpdateBody>({
+    status: mtMap.objectField('status', mtMap.passthrough()),
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    readme: mtMap.objectField('readme', mtMap.passthrough()),
+    oauthExplainer: mtMap.objectField('oauth_explainer', mtMap.passthrough())
+  });
 

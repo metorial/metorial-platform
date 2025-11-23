@@ -128,19 +128,29 @@ class SearchService {
 
         let record = (await indexRecords)[index];
 
-        console.log('Indexing documents into searchIndexRecord', docs);
-
-        await db.searchIndexRecord.createMany({
-          skipDuplicates: true,
-          data: docs.map(doc => ({
-            indexOid: record.oid,
-            documentId: doc[options.primaryKey],
+        for (let doc of docs) {
+          let rec = {
             content: Object.values(doc)
               .filter(v => typeof v === 'string')
               .join(' '),
             fields: doc
-          }))
-        });
+          };
+
+          await db.searchIndexRecord.upsert({
+            where: {
+              documentId_indexOid: {
+                indexOid: record.oid,
+                documentId: doc[options.primaryKey]
+              }
+            },
+            create: {
+              indexOid: record.oid,
+              documentId: doc[options.primaryKey],
+              ...rec
+            },
+            update: rec
+          });
+        }
       },
 
       search: async (

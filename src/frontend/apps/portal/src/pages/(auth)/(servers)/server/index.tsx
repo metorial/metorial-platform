@@ -15,12 +15,13 @@ export let ServerPage = () => {
   return renderWithLoader({ server, listing, readme })(({ server, listing, readme }) => (
     <>
       {!server.data?.variants.length && (
-        <Callout color="orange">
-          <span>This server isn't supported by Metorial yet.</span>
-        </Callout>
+        <>
+          <Callout color="orange">
+            <span>This server isn't supported by Metorial yet.</span>
+          </Callout>
+          <Spacer height={15} />
+        </>
       )}
-
-      <Spacer height={15} />
 
       <Attributes
         attributes={[

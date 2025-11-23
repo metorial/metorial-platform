@@ -18,5 +18,5 @@ model SearchIndexRecord {
 
   createdAt DateTime @default(now())
 
-  @@unique([documentId])
+  @@unique([documentId, indexOid])
 }

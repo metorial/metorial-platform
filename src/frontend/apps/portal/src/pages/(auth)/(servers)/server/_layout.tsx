@@ -19,8 +19,8 @@ export let ServerLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title={server.data?.name ?? '...'}
-        description={server.data?.description ?? undefined}
+        title={listing.data?.name ?? '...'}
+        description={listing.data?.description ?? undefined}
         top={
           (listing.data?.isVerified ||
             listing.data?.isOfficial ||
