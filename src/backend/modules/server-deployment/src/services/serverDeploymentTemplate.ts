@@ -1,5 +1,6 @@
 import { db, ID, Instance, Server, ServerDeploymentTemplate } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
+import { AccessTagSelectorList, accessTagService } from '@metorial/module-access';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 
@@ -22,14 +23,32 @@ let include = {
 };
 
 class serverDeploymentTemplateServiceImpl {
-  async listServerDeploymentTemplates(d: { instance: Instance }) {
+  async listServerDeploymentTemplates(d: {
+    instance: Instance;
+    accessTags?: AccessTagSelectorList;
+    serverIds?: string[];
+  }) {
+    let servers = d.serverIds
+      ? await db.server.findMany({
+          where: { id: { in: d.serverIds } },
+          select: { oid: true }
+        })
+      : undefined;
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.serverDeploymentTemplate.findMany({
             ...opts,
             where: {
-              instanceOid: d.instance.oid
+              instanceOid: d.instance.oid,
+
+              accessTags: await accessTagService.getAccessTagFilter({
+                tags: d.accessTags,
+                level: 'read'
+              }),
+
+              serverOid: servers ? { in: servers.map(s => s.oid) } : undefined
             },
             include
           })
@@ -40,11 +59,17 @@ class serverDeploymentTemplateServiceImpl {
   async getServerDeploymentTemplateById(d: {
     instance: Instance;
     serverDeploymentTemplateId: string;
+    accessTags?: AccessTagSelectorList;
   }) {
     let serverDeploymentTemplate = await db.serverDeploymentTemplate.findFirst({
       where: {
         id: d.serverDeploymentTemplateId,
-        instanceOid: d.instance.oid
+        instanceOid: d.instance.oid,
+
+        accessTags: await accessTagService.getAccessTagFilter({
+          tags: d.accessTags,
+          level: 'read'
+        })
       },
       include
     });

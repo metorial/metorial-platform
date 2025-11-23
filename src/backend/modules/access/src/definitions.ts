@@ -67,7 +67,12 @@ export let instanceScopes = [
 
 export let consumerScopes = [
   'consumer#instance.magic_mcp:read' as const,
-  'consumer#instance.magic_mcp:write' as const
+  'consumer#instance.magic_mcp:write' as const,
+
+  'consumer#instance.server_template:read' as const,
+
+  'consumer#instance.oauth_session:read' as const,
+  'consumer#instance.oauth_session:write' as const
 ] satisfies readonly `consumer#instance.${string}`[];
 
 let coreScopesRaw = [

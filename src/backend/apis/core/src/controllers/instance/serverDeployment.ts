@@ -1,11 +1,13 @@
 import { Context } from '@metorial/context';
 import {
+  ConsumerProfile,
   Instance,
   Organization,
   OrganizationActor,
   ServerDeploymentStatus,
   withTransaction
 } from '@metorial/db';
+import { forbiddenError, ServiceError } from '@metorial/error';
 import {
   serverDeploymentService,
   serverDeploymentTemplateService,
@@ -99,6 +101,10 @@ export let createServerDeployment = async (
     organization: Organization;
     actor: OrganizationActor;
     context: Context;
+    consumer?: {
+      profile: ConsumerProfile;
+      accessTags: bigint[];
+    };
   },
   opts?: {
     type: 'persistent' | 'ephemeral';
@@ -106,6 +112,60 @@ export let createServerDeployment = async (
   }
 ) => {
   return withTransaction(async db => {
+    if (ctx.consumer) {
+      if (
+        ('server_implementation' in data && data.server_implementation) ||
+        ('server_implementation_id' in data && data.server_implementation_id)
+      ) {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'Consumers cannot specify server implementations directly'
+          })
+        );
+      }
+
+      if ('oauth_config' in data && data.oauth_config) {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'Consumers cannot specify OAuth configuration directly'
+          })
+        );
+      }
+
+      if ('server_config_vault_id' in data && data.server_config_vault_id) {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'Consumers cannot specify vault-based configuration directly'
+          })
+        );
+      }
+
+      if ('access' in data && data.access) {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'Consumers cannot specify access limiters directly'
+          })
+        );
+      }
+    }
+
+    let template =
+      'server_deployment_template_id' in data && data.server_deployment_template_id
+        ? await serverDeploymentTemplateService.getServerDeploymentTemplateById({
+            instance: ctx.instance,
+            serverDeploymentTemplateId: data.server_deployment_template_id,
+            accessTags: ctx.consumer?.accessTags
+          })
+        : undefined;
+
+    if (ctx.consumer && !template) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Consumers can only create server deployments from templates'
+        })
+      );
+    }
+
     let serverImplementation =
       'server_implementation_id' in data
         ? {
@@ -124,14 +184,6 @@ export let createServerDeployment = async (
                   })
                 : await ensureDefaultServerImplementation(data, ctx)
           };
-
-    let template =
-      'server_deployment_template_id' in data && data.server_deployment_template_id
-        ? await serverDeploymentTemplateService.getServerDeploymentTemplateById({
-            instance: ctx.instance,
-            serverDeploymentTemplateId: data.server_deployment_template_id
-          })
-        : undefined;
 
     let serverDeployment = await serverDeploymentService.createServerDeployment({
       organization: ctx.organization,

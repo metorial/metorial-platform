@@ -46,7 +46,8 @@ class MagicMcpSessionImpl {
   }) {
     let servers = d.magicMcpServerId?.length
       ? await db.magicMcpServer.findMany({
-          where: { id: { in: d.magicMcpServerId }, instanceOid: d.instance.oid }
+          where: { id: { in: d.magicMcpServerId }, instanceOid: d.instance.oid },
+          select: { oid: true }
         })
       : undefined;
 

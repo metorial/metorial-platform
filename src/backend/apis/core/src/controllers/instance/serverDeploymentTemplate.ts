@@ -3,6 +3,7 @@ import { serverDeploymentTemplateService } from '@metorial/module-server-deploym
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { serverDeploymentTemplatePresenter } from '../../presenters';
@@ -14,7 +15,8 @@ export let serverDeploymentTemplateGroup = instanceGroup.use(async ctx => {
   let serverDeploymentTemplate =
     await serverDeploymentTemplateService.getServerDeploymentTemplateById({
       serverDeploymentTemplateId: ctx.params.serverDeploymentTemplateId,
-      instance: ctx.instance
+      instance: ctx.instance,
+      accessTags: ctx.accessTags
     });
 
   return { serverDeploymentTemplate };
@@ -32,12 +34,29 @@ export let serverDeploymentTemplateController = Controller.create(
         name: 'List server runs',
         description: 'List all server runs'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.server.deployment:read',
+            'consumer#instance.server_template:read'
+          ]
+        })
+      )
       .outputList(serverDeploymentTemplatePresenter)
-      .query('default', Paginator.validate())
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            server_id: v.optional(v.union([v.string(), v.array(v.string())]))
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await serverDeploymentTemplateService.listServerDeploymentTemplates({
-          instance: ctx.instance
+          instance: ctx.instance,
+          accessTags: ctx.accessTags,
+
+          serverIds: normalizeArrayParam(ctx.query.server_id)
         });
 
         let list = await paginator.run(ctx.query);
@@ -58,7 +77,14 @@ export let serverDeploymentTemplateController = Controller.create(
           description: 'Get the information of a specific server run'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.server.deployment:read',
+            'consumer#instance.server_template:read'
+          ]
+        })
+      )
       .output(serverDeploymentTemplatePresenter)
       .do(async ctx => {
         return serverDeploymentTemplatePresenter.present({

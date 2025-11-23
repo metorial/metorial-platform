@@ -142,6 +142,15 @@ class AuthenticationService {
           })
         : null;
 
+      if (consumerRes && machineAccess.type != 'instance_publishable') {
+        throw new ServiceError(
+          unauthorizedError({
+            message:
+              'Consumer session tokens can only be used with instance publishable machine access tokens'
+          })
+        );
+      }
+
       return {
         type: 'machine',
         apiKey: res.apiKey,

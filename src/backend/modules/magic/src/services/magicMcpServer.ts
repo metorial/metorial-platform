@@ -303,37 +303,44 @@ class MagicMcpServerImpl {
 
     let servers = d.serverIds?.length
       ? await db.server.findMany({
-          where: { id: { in: d.serverIds } }
+          where: { id: { in: d.serverIds } },
+          select: { oid: true }
         })
       : undefined;
     let serverVariants = d.serverVariantIds?.length
       ? await db.serverVariant.findMany({
-          where: { id: { in: d.serverVariantIds } }
+          where: { id: { in: d.serverVariantIds } },
+          select: { oid: true }
         })
       : undefined;
     let serverImplementations = d.serverImplementationIds?.length
       ? await db.serverImplementation.findMany({
-          where: { id: { in: d.serverImplementationIds } }
+          where: { id: { in: d.serverImplementationIds } },
+          select: { oid: true }
         })
       : undefined;
     let sessions = d.sessionIds?.length
       ? await db.session.findMany({
-          where: { id: { in: d.sessionIds } }
+          where: { id: { in: d.sessionIds } },
+          select: { oid: true }
         })
       : undefined;
     let groups = d.groupIds?.length
       ? await db.magicMcpGroup.findMany({
-          where: { id: { in: d.groupIds } }
+          where: { id: { in: d.groupIds } },
+          select: { oid: true }
         })
       : undefined;
     let consumerGroups = d.consumerGroupIds?.length
       ? await db.consumerGroup.findMany({
-          where: { id: { in: d.consumerGroupIds } }
+          where: { id: { in: d.consumerGroupIds } },
+          select: { oid: true }
         })
       : undefined;
     let portals = d.portalIds?.length
       ? await db.portal.findMany({
-          where: { id: { in: d.portalIds } }
+          where: { id: { in: d.portalIds } },
+          select: { oid: true }
         })
       : undefined;
 

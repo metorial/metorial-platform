@@ -137,8 +137,8 @@ export let magicMcpServerController = Controller.create(
       .use(
         checkAccess({
           possibleScopes: [
-            'instance.server.deployment:write'
-            // 'consumer#instance.magic_mcp:write'
+            'instance.server.deployment:write',
+            'consumer#instance.magic_mcp:write'
           ]
         })
       )
@@ -153,7 +153,11 @@ export let magicMcpServerController = Controller.create(
               instance: ctx.instance,
               organization: ctx.organization,
               actor: ctx.actor,
-              context: ctx.context
+              context: ctx.context,
+
+              consumer: ctx.consumerProfile
+                ? { profile: ctx.consumerProfile, accessTags: ctx.accessTags! }
+                : undefined
             },
             { type: 'ephemeral', parent: 'magic_mcp_server' }
           );

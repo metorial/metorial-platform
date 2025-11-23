@@ -173,11 +173,31 @@ class consumerAccessServiceImpl {
   }
 
   async deleteConsumerAccess(d: { groupAccess: ConsumerAccess }) {
-    return await db.consumerAccess.delete({
-      where: {
-        oid: d.groupAccess.oid
-      },
-      include
+    return await withTransaction(async db => {
+      let access = await db.consumerAccess.delete({
+        where: {
+          oid: d.groupAccess.oid
+        },
+        include
+      });
+
+      if (d.groupAccess.type == 'magic_mcp_group') {
+        await db.accessTagEntity.deleteMany({
+          where: {
+            accessTagOid: access.consumerGroup.accessTagOid,
+            magicMcpGroupOid: d.groupAccess.magicMcpGroupOid!
+          }
+        });
+      }
+
+      if (d.groupAccess.type == 'server_deployment_template') {
+        await db.accessTagEntity.deleteMany({
+          where: {
+            accessTagOid: access.consumerGroup.accessTagOid,
+            serverDeploymentTemplateOid: d.groupAccess.serverDeploymentTemplateOid!
+          }
+        });
+      }
     });
   }
 }

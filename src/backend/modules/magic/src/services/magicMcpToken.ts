@@ -199,7 +199,8 @@ class MagicMcpTokenImpl {
   }) {
     let groups = d.groupIds?.length
       ? await db.magicMcpGroup.findMany({
-          where: { id: { in: d.groupIds } }
+          where: { id: { in: d.groupIds } },
+          select: { oid: true }
         })
       : undefined;
 

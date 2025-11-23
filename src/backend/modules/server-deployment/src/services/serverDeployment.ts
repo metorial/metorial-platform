@@ -721,22 +721,26 @@ class ServerDeploymentServiceImpl {
 
     let servers = d.serverIds?.length
       ? await db.server.findMany({
-          where: { id: { in: d.serverIds } }
+          where: { id: { in: d.serverIds } },
+          select: { oid: true }
         })
       : undefined;
     let serverVariants = d.serverVariantIds?.length
       ? await db.serverVariant.findMany({
-          where: { id: { in: d.serverVariantIds } }
+          where: { id: { in: d.serverVariantIds } },
+          select: { oid: true }
         })
       : undefined;
     let serverImplementations = d.serverImplementationIds?.length
       ? await db.serverImplementation.findMany({
-          where: { id: { in: d.serverImplementationIds } }
+          where: { id: { in: d.serverImplementationIds } },
+          select: { oid: true }
         })
       : undefined;
     let sessions = d.sessionIds?.length
       ? await db.session.findMany({
-          where: { id: { in: d.sessionIds } }
+          where: { id: { in: d.sessionIds } },
+          select: { oid: true }
         })
       : undefined;
 

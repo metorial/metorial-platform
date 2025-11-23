@@ -44,11 +44,12 @@ model ConsumerProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  consumerSessions ConsumerSession[]
-  magicMcpTokens   MagicMcpToken[]
-  groups           ConsumerProfileGroup[]
-  ssoUsers         ConsumerProfileSsoUser[]
-  magicMcpServers  MagicMcpServer[]
+  consumerSessions    ConsumerSession[]
+  magicMcpTokens      MagicMcpToken[]
+  groups              ConsumerProfileGroup[]
+  ssoUsers            ConsumerProfileSsoUser[]
+  magicMcpServers     MagicMcpServer[]
+  serverOAuthSessions ServerOAuthSession[]
 
   @@unique([email, surfaceOid])
 }
