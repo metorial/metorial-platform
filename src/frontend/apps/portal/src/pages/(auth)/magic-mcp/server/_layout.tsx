@@ -1,7 +1,8 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { ContentLayout, PageHeader } from '@metorial/layout';
-import { Button, LinkTabs } from '@metorial/ui';
-import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { ContentLayout } from '@metorial/layout/src/components/content';
+import { PageHeader } from '@metorial/layout/src/components/header';
+import { LinkTabs } from '@metorial/ui';
+import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { useMagicMcpServer } from '../../../../state/consumer/magicMcpServer';
 import { usePaths } from '../../../../state/portal/path';
 
@@ -27,19 +28,6 @@ export let MagicMcpServerLayout = () => {
             href: Paths.magicMcpServer(server.data?.id ?? magicMcpServerId)
           }
         ]}
-        actions={
-          <>
-            <Link
-              to={Paths.explorer({
-                server_deployment_id: server.data?.serverDeployments[0]?.id
-              })}
-            >
-              <Button as="span" size="2">
-                Open Explorer
-              </Button>
-            </Link>
-          </>
-        }
       />
 
       {renderWithLoader({ server })(({ server }) => (

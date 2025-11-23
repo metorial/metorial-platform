@@ -10,9 +10,9 @@ import {
   theme,
   useCopy
 } from '@metorial/ui';
-import { Box, ID, SideBox } from '@metorial/ui-product';
+import { Box, ID } from '@metorial/ui-product';
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useMagicMcpServer } from '../../../../state/consumer/magicMcpServer';
 import { useMagicMcpTokens } from '../../../../state/consumer/magicMcpToken';
@@ -90,26 +90,6 @@ export let MagicMcpServerOverviewPage = () => {
 
       <Spacer height={15} />
 
-      <SideBox
-        title="Test your Magic MCP server"
-        description="Use the Metorial Explorer to test your Magic MCP server."
-      >
-        <Link
-          to={Paths.explorer(
-            instance.data?.organization,
-            instance.data?.project,
-            instance.data,
-            { server_deployment_id: server.data.serverDeployments[0]?.id }
-          )}
-        >
-          <Button as="span" size="2">
-            Open Explorer
-          </Button>
-        </Link>
-      </SideBox>
-
-      <Spacer height={15} />
-
       <Box
         title={`Connect to ${server.data.name}`}
         description="Use this Magic MCP endpoint to connect to your server."
@@ -175,17 +155,6 @@ export let MagicMcpServerOverviewPage = () => {
           </>
         )}
       </Box>
-
-      <Spacer height={15} />
-
-      {serverDeployment && (
-        <UsageScene
-          title="Usage"
-          description="See how this Magic MCP server is being used in your project."
-          entities={[{ type: 'server_deployment', id: serverDeployment.id }]}
-          entityNames={{ [serverDeployment.id]: serverDeployment.name! }}
-        />
-      )}
     </>
   ));
 };
