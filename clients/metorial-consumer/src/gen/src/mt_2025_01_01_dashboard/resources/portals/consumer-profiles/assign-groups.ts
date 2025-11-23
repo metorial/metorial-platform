@@ -20,7 +20,7 @@ export type PortalsConsumerProfilesAssignGroupsOutput = {
           createdAt: Date;
           updatedAt: Date;
         };
-        assignedVia: 'default' | 'manual' | 'sso';
+        assignedVia: 'default' | 'manual' | 'sso' | 'user';
       }[]
     | null;
   consumerId: string;

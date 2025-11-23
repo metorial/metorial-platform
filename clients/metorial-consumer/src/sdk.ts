@@ -13,7 +13,9 @@ import {
   MetorialMagicMcpServersEndpoint,
   MetorialMagicMcpSessionsEndpoint,
   MetorialMagicMcpTokensEndpoint,
+  MetorialProviderOauthSessionsEndpoint,
   MetorialServersCapabilitiesEndpoint,
+  MetorialServersDeploymentsTemplatesEndpoint,
   MetorialServersEndpoint,
   MetorialServersListingsReadmeEndpoint,
   MetorialServersVariantsEndpoint,
@@ -74,6 +76,8 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
     tokens: new MetorialMagicMcpTokensEndpoint(manager)
   },
 
+  oauthSessions: new MetorialProviderOauthSessionsEndpoint(manager),
+
   servers: Object.assign(new MetorialServersEndpoint(manager), {
     listings: Object.assign(new MetorialServersListingsEndpoint(manager), {
       collections: new MetorialServersListingsCollectionsEndpoint(manager),
@@ -85,7 +89,9 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
     variants: new MetorialServersVariantsEndpoint(manager),
     versions: new MetorialServersVersionsEndpoint(manager),
 
-    capabilities: new MetorialServersCapabilitiesEndpoint(manager)
+    capabilities: new MetorialServersCapabilitiesEndpoint(manager),
+
+    templates: new MetorialServersDeploymentsTemplatesEndpoint(manager)
   })
 }));
 
