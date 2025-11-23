@@ -4,6 +4,7 @@ import {
   MagicMcpServersUpdateBody
 } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { createLoader } from '@metorial/data-hooks';
+import { mutation } from '@metorial/state/src/lib/mutation';
 import { usePaginator } from '../lib/usePaginator';
 import { withSdk } from './client';
 
@@ -20,6 +21,13 @@ export let useCreateMagicMcpServer = magicMcpServersLoader.createExternalMutator
     disableToast: true
   }
 );
+
+export let createMagicMcpServer = (i: MagicMcpServersCreateBody) =>
+  mutation(() => withSdk(sdk => sdk.magicMcp.servers.create(i)));
+
+export let updateMagicMcpServer = (
+  i: MagicMcpServersUpdateBody & { magicMcpServerId: string }
+) => mutation(() => withSdk(sdk => sdk.magicMcp.servers.update(i.magicMcpServerId, i)));
 
 export let useMagicMcpServers = (query?: MagicMcpServersListQuery) => {
   let data = usePaginator(pagination =>

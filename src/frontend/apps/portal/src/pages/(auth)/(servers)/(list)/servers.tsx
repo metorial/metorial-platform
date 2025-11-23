@@ -1,4 +1,5 @@
-import { ContentLayout, PageHeader } from '@metorial/layout';
+import { ContentLayout } from '@metorial/layout/src/components/content';
+import { PageHeader } from '@metorial/layout/src/components/header';
 import { Input, Spacer } from '@metorial/ui';
 import { useState } from 'react';
 import { useDebounced } from '../../../../hooks/useDebounced';

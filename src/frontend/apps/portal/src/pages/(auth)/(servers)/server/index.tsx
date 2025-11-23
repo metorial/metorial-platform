@@ -1,8 +1,8 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { ReadmeHtml } from '@metorial/markdown';
-import { Attributes, Button, Callout, Spacer } from '@metorial/ui';
-import { ID, SideBox } from '@metorial/ui-product';
-import { Link, useParams } from 'react-router-dom';
+import { Attributes, Callout, Spacer } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
+import { useParams } from 'react-router-dom';
 import { useServerListing, useServerListingReadme } from '../../../../state/consumer/listings';
 import { useServer } from '../../../../state/consumer/servers';
 import { usePaths } from '../../../../state/portal/path';
@@ -16,21 +16,10 @@ export let ServerPage = () => {
 
   return renderWithLoader({ server, listing, readme })(({ server, listing, readme }) => (
     <>
-      {!server.data?.variants.length ? (
+      {!server.data?.variants.length && (
         <Callout color="orange">
           <span>This server isn't supported by Metorial yet.</span>
         </Callout>
-      ) : (
-        <SideBox
-          title="Test this server"
-          description="Use the Metorial Explorer to test this server. Reach out to your administrator for more information."
-        >
-          <Link to={Paths.explorer({ server_id: server.data?.id })}>
-            <Button as="span" size="2">
-              Open Explorer
-            </Button>
-          </Link>
-        </SideBox>
       )}
 
       <Spacer height={15} />

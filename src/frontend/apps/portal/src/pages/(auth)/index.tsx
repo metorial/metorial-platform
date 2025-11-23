@@ -1,5 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { ContentLayout, PageHeader } from '@metorial/layout';
+import { ContentLayout } from '@metorial/layout/src/components/content';
+import { PageHeader } from '@metorial/layout/src/components/header';
 import { Button, Spacer } from '@metorial/ui';
 import { SideBox } from '@metorial/ui-product';
 import { Link } from 'react-router-dom';

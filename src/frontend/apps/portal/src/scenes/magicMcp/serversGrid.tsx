@@ -43,8 +43,10 @@ export let MagicMcpServersGrid = (filter: MagicMcpServersListQuery) => {
               entity={{ id: server.id, hasUsage: true }}
               title={server.name ?? 'Unknown Server'}
               description={
-                server.description?.slice(0, 100) +
-                (server.description && server.description.length > 100 ? '...' : '')
+                server.description
+                  ? server.description?.slice(0, 100) +
+                    (server.description && server.description.length > 100 ? '...' : '')
+                  : undefined
               }
               height={250}
               icon={

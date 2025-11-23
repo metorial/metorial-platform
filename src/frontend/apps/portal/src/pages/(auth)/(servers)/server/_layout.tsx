@@ -1,5 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { ContentLayout, PageHeader } from '@metorial/layout';
+import { ContentLayout } from '@metorial/layout/src/components/content';
+import { PageHeader } from '@metorial/layout/src/components/header';
 import { Badge, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { DeployServerButton } from '../../../../scenes/servers/deploy';
