@@ -5,6 +5,7 @@ import { v } from '@metorial/validation';
 import { getSessionCookieName, portalWithAuthApp } from '../middleware/portal';
 import { publicApp } from '../middleware/public';
 import { authSessionPresenter } from '../presenters/authSession';
+import { collectionPresenter } from '../presenters/collectionPresenter';
 import { consumerProfilePresenter } from '../presenters/consumer';
 import { consumerSurfacePresenter } from '../presenters/consumerSurface';
 import { instancePresenter } from '../presenters/instance';
@@ -36,6 +37,9 @@ export let bootController = publicApp.controller({
         portal: await portalPresenter(portal),
         surface: await consumerSurfacePresenter(portal.surface),
         instance: await instancePresenter(portal.instance),
+        featuredCollection: portal.featuredServersCollection
+          ? await collectionPresenter(portal.featuredServersCollection)
+          : undefined,
         publishableApiKey,
         flags: {}
       };

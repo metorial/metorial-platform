@@ -26,6 +26,9 @@ model Portal {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])
 
+  featuredServersCollectionOid BigInt?
+  featuredServersCollection    ServerListingCollection? @relation(fields: [featuredServersCollectionOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }

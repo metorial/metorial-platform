@@ -1,4 +1,4 @@
-import { db } from '@metorial/db';
+import { db, Instance, ServerListing, ServerListingCollection } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -22,10 +22,55 @@ class ServerListingCollectionService {
       prisma(
         async opts =>
           await db.serverListingCollection.findMany({
-            ...opts
+            ...opts,
+            where: {
+              isPublic: true
+            }
           })
       )
     );
+  }
+
+  async canEditCollection(d: {
+    serverListingCollection: ServerListingCollection;
+    instance: Instance;
+  }) {
+    if (d.serverListingCollection.instanceOid) {
+      return d.serverListingCollection.instanceOid === d.instance.oid;
+    }
+
+    return false;
+  }
+
+  async addServerToCollection(d: {
+    serverListingCollection: ServerListingCollection;
+    serverListing: ServerListing;
+  }) {
+    await db.serverListing.update({
+      where: { id: d.serverListing.id },
+      data: {
+        collections: {
+          connect: { id: d.serverListingCollection.id }
+        }
+      },
+      include: {
+        collections: true
+      }
+    });
+  }
+
+  async removeServerFromCollection(d: {
+    serverListingCollection: ServerListingCollection;
+    serverListing: ServerListing;
+  }) {
+    return db.serverListing.update({
+      where: { id: d.serverListing.id },
+      data: {
+        collections: {
+          disconnect: { id: d.serverListingCollection.id }
+        }
+      }
+    });
   }
 }
 

@@ -34,6 +34,7 @@ import { portalConsumerAccessController } from './instance/portalConsumerAccess'
 import { portalConsumerGroupController } from './instance/portalConsumerGroup';
 import { portalConsumerProfileController } from './instance/portalConsumerProfile';
 import { portalConsumerServerRequestController } from './instance/portalConsumerServerRequest';
+import { portalFeaturedServersController } from './instance/portalFeaturedServers';
 import { providerOauthConnectionController } from './instance/providerOauthConnection';
 import { providerOauthConnectionAuthenticationController } from './instance/providerOauthConnectionAuthentication';
 import { providerOauthConnectionEventController } from './instance/providerOauthConnectionEvent';
@@ -252,7 +253,8 @@ export let dashboardController = Controller.create<any>(
     portalConsumerAccessController,
     portalConsumerProfileController,
     portalConsumerAuthFactorController,
-    portalConsumerServerRequestController
+    portalConsumerServerRequestController,
+    portalFeaturedServersController
   }
 );
 

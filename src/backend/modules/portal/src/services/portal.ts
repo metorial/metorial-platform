@@ -5,9 +5,11 @@ import {
   Instance,
   Organization,
   Portal,
+  ServerListingCollection,
   withTransaction
 } from '@metorial/db';
 import { badRequestError, notFoundError, ServiceError } from '@metorial/error';
+import { generateCustomId } from '@metorial/id';
 import { consumerSurfaceService } from '@metorial/module-consumer';
 import { Service } from '@metorial/service';
 import { createSlugGenerator } from '@metorial/slugify';
@@ -24,7 +26,8 @@ let include = {
       }
     }
   },
-  organization: true
+  organization: true,
+  featuredServersCollection: true
 };
 
 let getPortalSlug = createSlugGenerator(
@@ -121,6 +124,32 @@ class portalServiceImpl {
         include
       });
     });
+  }
+
+  async ensureSurfaceFeaturedServersCollection(d: {
+    portal: Portal & { featuredServersCollection: ServerListingCollection | null };
+  }) {
+    if (d.portal.featuredServersCollection) {
+      return d.portal.featuredServersCollection;
+    }
+
+    let collection = await db.serverListingCollection.create({
+      data: {
+        id: await ID.generateId('serverListingCollection'),
+        name: `${d.portal.name} Featured Servers`,
+        description: ``,
+        slug: generateCustomId('pfeat_', 20),
+        instanceOid: d.portal.instanceOid,
+        isPublic: false
+      }
+    });
+
+    await db.portal.update({
+      where: { oid: d.portal.oid },
+      data: { featuredServersCollectionOid: collection.oid }
+    });
+
+    return collection;
   }
 
   async updatePortal(d: {
