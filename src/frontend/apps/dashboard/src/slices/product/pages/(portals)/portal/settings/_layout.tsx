@@ -9,6 +9,14 @@ export let PortalSettingsLayout = () => {
   let params = useParams();
   let portal = usePortal(instance.data?.id, params.portalId!);
 
+  let base = [
+    instance.data?.organization,
+    instance.data?.project,
+    instance.data,
+    portal.data?.id,
+    'settings'
+  ] as const;
+
   return renderWithLoader({ portal })(({ portal }) => (
     <>
       <SimpleSidebarLayout
@@ -17,24 +25,15 @@ export let PortalSettingsLayout = () => {
             items: [
               {
                 title: 'Settings',
-                to: Paths.instance.portal(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data,
-                  portal.data?.id,
-                  'settings'
-                )
+                to: Paths.instance.portal(...base)
               },
               {
                 title: 'Authentication',
-                to: Paths.instance.portal(
-                  instance.data?.organization,
-                  instance.data?.project,
-                  instance.data,
-                  portal.data?.id,
-                  'settings',
-                  'authentication'
-                )
+                to: Paths.instance.portal(...base, 'authentication')
+              },
+              {
+                title: 'Featured Servers',
+                to: Paths.instance.portal(...base, 'featured-servers')
               }
             ]
           }

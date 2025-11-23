@@ -10,11 +10,13 @@ import { ServersGrid } from '../../scenes/servers/grid';
 import { useConsumer } from '../../state/consumer/consumer';
 import { useMagicMcpServers } from '../../state/consumer/magicMcpServer';
 import { useMagicMcpTokens } from '../../state/consumer/magicMcpToken';
+import { useFeaturedServerCollection } from '../../state/portal/client';
 import { usePaths } from '../../state/portal/path';
 
 export let HomePage = () => {
   let Paths = usePaths();
   let user = useConsumer();
+  let collection = useFeaturedServerCollection();
 
   let deployments = useMagicMcpServers({
     limit: 1
@@ -99,11 +101,7 @@ export let HomePage = () => {
             size="5"
           />
 
-          <ServersGrid
-            orderByRank
-            limit={6}
-            collectionId={(window as any).metorial_enterprise?.landing_collection_ids}
-          />
+          <ServersGrid orderByRank limit={6} collectionId={collection.data?.id} />
 
           <Spacer height={35} />
 

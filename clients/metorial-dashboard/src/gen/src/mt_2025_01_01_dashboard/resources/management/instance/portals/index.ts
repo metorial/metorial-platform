@@ -5,6 +5,7 @@ export * from './consumer-profiles';
 export * from './consumer-server-requests';
 export * from './create';
 export * from './delete';
+export * from './featured-servers';
 export * from './get';
 export * from './list';
 export * from './update';

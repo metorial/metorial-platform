@@ -18,6 +18,7 @@ export * from './loaders/oauthSession';
 export * from './loaders/portal';
 export * from './loaders/portalAccess';
 export * from './loaders/portalAuthFactor';
+export * from './loaders/portalFeaturedServer';
 export * from './loaders/portalGroup';
 export * from './loaders/portalProfile';
 export * from './loaders/portalServerRequest';

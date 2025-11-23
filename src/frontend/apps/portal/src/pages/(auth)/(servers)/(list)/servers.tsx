@@ -4,12 +4,13 @@ import { Input, Spacer } from '@metorial/ui';
 import { useState } from 'react';
 import { useDebounced } from '../../../../hooks/useDebounced';
 import { ServersGrid } from '../../../../scenes/servers/grid';
-import { usePortal } from '../../../../state/portal/client';
+import { useFeaturedServerCollection, usePortal } from '../../../../state/portal/client';
 
 export let ServersPage = () => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
   let portal = usePortal();
+  let collection = useFeaturedServerCollection();
 
   return (
     <ContentLayout>
@@ -32,11 +33,7 @@ export let ServersPage = () => {
         limit={50}
         orderByRank
         search={searchDebounced}
-        collectionId={
-          searchDebounced
-            ? undefined
-            : (window as any).metorial_enterprise?.landing_collection_ids
-        }
+        collectionId={searchDebounced ? undefined : collection.data?.id}
       />
     </ContentLayout>
   );

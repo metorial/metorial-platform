@@ -382,6 +382,11 @@ let PortalUserPage = dynamicPage(() =>
 let PortalServerRequestsPage = dynamicPage(() =>
   import('./pages/(portals)/portal/server-requests').then(c => c.PortalServerRequestsPage)
 );
+let PortalFeaturedServersPage = dynamicPage(() =>
+  import('./pages/(portals)/portal/settings/featured-servers').then(
+    c => c.PortalFeaturedServersPage
+  )
+);
 
 let ProductWrapper = () => {
   let instance = useCurrentInstance();
@@ -968,6 +973,10 @@ export let productInnerSlice = createSlice([
               {
                 path: 'authentication',
                 element: <PortalSettingsAuthPage />
+              },
+              {
+                path: 'featured-servers',
+                element: <PortalFeaturedServersPage />
               }
             ]
           },

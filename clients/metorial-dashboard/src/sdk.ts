@@ -28,6 +28,7 @@ import {
   MetorialDashboardInstancePortalsConsumerProfilesEndpoint,
   MetorialDashboardInstancePortalsConsumerServerRequestsEndpoint,
   MetorialDashboardInstancePortalsEndpoint,
+  MetorialDashboardInstancePortalsFeaturedServersEndpoint,
   MetorialDashboardInstanceProviderOauthConnectionsAuthenticationsEndpoint,
   MetorialDashboardInstanceProviderOauthConnectionsEndpoint,
   MetorialDashboardInstanceProviderOauthConnectionsEventsEndpoint,
@@ -239,7 +240,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     ),
     consumerServerRequests: new MetorialDashboardInstancePortalsConsumerServerRequestsEndpoint(
       manager
-    )
+    ),
+    featuredServers: new MetorialDashboardInstancePortalsFeaturedServersEndpoint(manager)
   }),
 
   ssoTenants: Object.assign(new MetorialDashboardInstanceSsoTenantsEndpoint(manager), {

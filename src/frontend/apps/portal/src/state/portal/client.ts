@@ -130,6 +130,15 @@ export let useInstance = () => {
   };
 };
 
+export let useFeaturedServerCollection = () => {
+  let boot = useBootWithAuth();
+
+  return {
+    ...boot,
+    data: boot.data?.featuredCollection
+  };
+};
+
 export let getPortalInfo = async () => await bootPortalState.fetchAndReturn({});
 
 export let withTokens = <R>(

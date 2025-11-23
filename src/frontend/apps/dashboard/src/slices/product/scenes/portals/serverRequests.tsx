@@ -70,7 +70,7 @@ export let PortalConsumerServerRequestsTable = (
 
       {requests.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No consumer server requests found.
+          No server requests found.
         </Text>
       )}
     </>
