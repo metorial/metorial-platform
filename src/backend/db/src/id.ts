@@ -146,6 +146,7 @@ export let ID = createIdGenerator({
   consumerSurfaceMagicMcpGroupAccess: idType.sorted('csmg'),
   consumerGroup: idType.sorted('cog'),
   consumerAccess: idType.sorted('coa'),
+  consumerServerRequest: idType.sorted('csr'),
 
   portal: idType.sorted('ptl')
 });

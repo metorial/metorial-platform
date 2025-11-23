@@ -63,8 +63,8 @@ export let consumerProfilePresenter = (
       id: ssoUserLink.ssoUser.id,
 
       email: ssoUserLink.ssoUser.email,
-      roles: ssoUserLink.ssoUser.allGroups,
-      groups: ssoUserLink.ssoUser.allRoles,
+      roles: ssoUserLink.ssoUser.allRoles,
+      groups: ssoUserLink.ssoUser.allGroups,
 
       createdAt: ssoUserLink.ssoUser.createdAt,
       updatedAt: ssoUserLink.ssoUser.updatedAt

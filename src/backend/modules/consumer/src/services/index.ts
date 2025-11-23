@@ -4,4 +4,5 @@ export * from './consumerAuth';
 export * from './consumerAuthFactor';
 export * from './consumerGroup';
 export * from './consumerProfile';
+export * from './consumerServerRequest';
 export * from './consumerSurface';

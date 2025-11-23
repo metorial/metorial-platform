@@ -1,13 +1,10 @@
 import { createFetchWithRetry } from '@metorial/fetch';
 import { MetorialKeyPrefix, sdkBuilder } from './builder';
-import {
-  MetorialServersListingsCategoriesEndpoint,
-  MetorialServersListingsCollectionsEndpoint,
-  MetorialServersListingsEndpoint
-} from './gen/src/mt_2025_01_01_dashboard';
+
 import {
   MetorialConsumerProfileEndpoint,
   MetorialConsumerProfileGroupsEndpoint,
+  MetorialConsumerServerRequestsEndpoint,
   MetorialConsumerSessionEndpoint,
   MetorialMagicMcpGroupsEndpoint,
   MetorialMagicMcpServersEndpoint,
@@ -17,6 +14,9 @@ import {
   MetorialServersCapabilitiesEndpoint,
   MetorialServersDeploymentsTemplatesEndpoint,
   MetorialServersEndpoint,
+  MetorialServersListingsCategoriesEndpoint,
+  MetorialServersListingsCollectionsEndpoint,
+  MetorialServersListingsEndpoint,
   MetorialServersListingsReadmeEndpoint,
   MetorialServersVariantsEndpoint,
   MetorialServersVersionsEndpoint
@@ -91,7 +91,9 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
 
     capabilities: new MetorialServersCapabilitiesEndpoint(manager),
 
-    templates: new MetorialServersDeploymentsTemplatesEndpoint(manager)
+    templates: new MetorialServersDeploymentsTemplatesEndpoint(manager),
+
+    serverRequests: new MetorialConsumerServerRequestsEndpoint(manager)
   })
 }));
 

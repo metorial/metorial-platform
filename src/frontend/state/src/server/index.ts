@@ -20,6 +20,7 @@ export * from './loaders/portalAccess';
 export * from './loaders/portalAuthFactor';
 export * from './loaders/portalGroup';
 export * from './loaders/portalProfile';
+export * from './loaders/portalServerRequest';
 export * from './loaders/profile';
 export * from './loaders/providerConnectionAuthentications';
 export * from './loaders/providerConnectionAutoDiscovery';

@@ -26,6 +26,7 @@ import {
   MetorialDashboardInstancePortalsConsumerAuthFactorsEndpoint,
   MetorialDashboardInstancePortalsConsumerGroupsEndpoint,
   MetorialDashboardInstancePortalsConsumerProfilesEndpoint,
+  MetorialDashboardInstancePortalsConsumerServerRequestsEndpoint,
   MetorialDashboardInstancePortalsEndpoint,
   MetorialDashboardInstanceProviderOauthConnectionsAuthenticationsEndpoint,
   MetorialDashboardInstanceProviderOauthConnectionsEndpoint,
@@ -234,6 +235,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     consumerGroups: new MetorialDashboardInstancePortalsConsumerGroupsEndpoint(manager),
     consumerAccess: new MetorialDashboardInstancePortalsConsumerAccessEndpoint(manager),
     consumerAuthFactors: new MetorialDashboardInstancePortalsConsumerAuthFactorsEndpoint(
+      manager
+    ),
+    consumerServerRequests: new MetorialDashboardInstancePortalsConsumerServerRequestsEndpoint(
       manager
     )
   }),

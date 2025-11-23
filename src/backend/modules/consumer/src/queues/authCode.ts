@@ -1,11 +1,11 @@
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
-import { sendAuthCodeEmail } from '../email/invite';
+import { sendAuthCodeEmail } from '../email/code';
 
 export let authCodeQueue = createQueue<{
   codeId: string;
 }>({
-  name: 'cmr/authCode'
+  name: 'cmr/athcd'
 });
 
 export let authCodeQueueProcessor = authCodeQueue.process(async data => {

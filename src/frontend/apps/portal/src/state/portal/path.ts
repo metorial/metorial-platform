@@ -41,8 +41,6 @@ export let usePaths = () => {
           InstancePaths('magic-mcp-servers', ...subPages),
         magicMcpSessions: (...subPages: SubPages) =>
           InstancePaths('magic-mcp-sessions', ...subPages),
-        magicMcpSession: (...subPages: SubPages) =>
-          InstancePaths('magic-mcp-session', ...subPages),
 
         explorer: (...subPages: SubPages) => InstancePaths('explorer', ...subPages)
       }

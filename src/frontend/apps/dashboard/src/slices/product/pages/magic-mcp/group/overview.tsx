@@ -135,7 +135,7 @@ export let MagicMcpGroupOverviewPage = () => {
                                       hideLabel
                                     />
                                   }
-                                  title={server.name}
+                                  title={server.name ?? 'Untitled Server'}
                                   description={server.description}
                                 />
                               </Entity.Content>

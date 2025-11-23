@@ -17,6 +17,7 @@ import {
   ConsumerGroup,
   ConsumerProfile,
   ConsumerProfileGroup,
+  ConsumerServerRequest,
   ConsumerSession,
   ConsumerSurface,
   ConsumerSurfaceAuthFactor,
@@ -677,6 +678,13 @@ export let consumerAccessType = PresentableType.create<{
     serverDeploymentTemplate: (ServerDeploymentTemplate & { server: Server }) | null;
   };
 }>()('consumer.access');
+
+export let consumerServerRequestType = PresentableType.create<{
+  consumerServerRequest: ConsumerServerRequest & {
+    server: Server;
+    consumerProfile: ConsumerProfile;
+  };
+}>()('consumer.server_request');
 
 export let serverConfigVaultType = PresentableType.create<{
   serverConfigVault: ServerConfigVault & {

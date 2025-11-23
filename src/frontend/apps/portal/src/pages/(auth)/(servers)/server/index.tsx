@@ -5,14 +5,12 @@ import { ID } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 import { useServerListing, useServerListingReadme } from '../../../../state/consumer/listings';
 import { useServer } from '../../../../state/consumer/servers';
-import { usePaths } from '../../../../state/portal/path';
 
 export let ServerPage = () => {
   let { serverId } = useParams();
   let server = useServer(serverId);
   let listing = useServerListing(serverId);
   let readme = useServerListingReadme(serverId);
-  let Paths = usePaths();
 
   return renderWithLoader({ server, listing, readme })(({ server, listing, readme }) => (
     <>

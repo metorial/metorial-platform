@@ -1,4 +1,5 @@
 import { Controller } from '@metorial/rest';
+import { consumerServerController } from './consumer/server';
 import { consumerSessionController } from './consumer/session';
 import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
@@ -32,6 +33,7 @@ import { portalConsumerAuthFactorController } from './instance/portalAuthFactors
 import { portalConsumerAccessController } from './instance/portalConsumerAccess';
 import { portalConsumerGroupController } from './instance/portalConsumerGroup';
 import { portalConsumerProfileController } from './instance/portalConsumerProfile';
+import { portalConsumerServerRequestController } from './instance/portalConsumerServerRequest';
 import { providerOauthConnectionController } from './instance/providerOauthConnection';
 import { providerOauthConnectionAuthenticationController } from './instance/providerOauthConnectionAuthentication';
 import { providerOauthConnectionEventController } from './instance/providerOauthConnectionEvent';
@@ -144,7 +146,9 @@ export let pulsarController = Controller.create<any>(
     portalConsumerProfileController,
     portalConsumerAuthFactorController,
 
-    consumerSessionController
+    consumerSessionController,
+    consumerServerController
+
     // consumerMagicMcpGroupController,
     // consumerMagicMcpServerController,
     // consumerMagicMcpSessionController,
@@ -247,7 +251,8 @@ export let dashboardController = Controller.create<any>(
     portalConsumerGroupController,
     portalConsumerAccessController,
     portalConsumerProfileController,
-    portalConsumerAuthFactorController
+    portalConsumerAuthFactorController,
+    portalConsumerServerRequestController
   }
 );
 

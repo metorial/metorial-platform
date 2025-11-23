@@ -4,6 +4,7 @@ export * from './callbacks_events';
 export * from './callbacks_notifications';
 export * from './consumer_profile';
 export * from './consumer_profile_groups';
+export * from './consumer_server-requests';
 export * from './consumer_session';
 export * from './custom-servers';
 export * from './custom-servers_deployments';

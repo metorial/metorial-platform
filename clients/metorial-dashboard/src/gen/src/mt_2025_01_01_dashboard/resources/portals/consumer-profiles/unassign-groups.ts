@@ -24,8 +24,8 @@ export type PortalsConsumerProfilesUnassignGroupsOutput = {
       }[]
     | null;
   consumerId: string;
-  ssoUserId: string | null;
   createdAt: Date;
+  updatedAt: Date;
 };
 
 export let mapPortalsConsumerProfilesUnassignGroupsOutput =
@@ -65,8 +65,8 @@ export let mapPortalsConsumerProfilesUnassignGroupsOutput =
       )
     ),
     consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
-    ssoUserId: mtMap.objectField('sso_user_id', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
+    updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
 
 export type PortalsConsumerProfilesUnassignGroupsBody = { groupIds: string[] };

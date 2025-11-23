@@ -31,7 +31,8 @@ export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
 
     consumer_id: consumerProfile.consumer.id,
 
-    created_at: consumerProfile.createdAt
+    created_at: consumerProfile.createdAt,
+    updated_at: consumerProfile.updatedAt
   }))
   .schema(
     v.object({
@@ -89,17 +90,14 @@ export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
         description: 'The unique identifier of the consumer associated with this profile'
       }),
 
-      sso_user_id: v.nullable(
-        v.string({
-          name: 'sso_user_id',
-          description:
-            'The unique identifier of the SSO user associated with this profile, or null if not linked'
-        })
-      ),
-
       created_at: v.date({
         name: 'created_at',
         description: 'The ISO 8601 timestamp when the consumer profile was created'
+      }),
+
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'The ISO 8601 timestamp when the consumer profile was last updated'
       })
     })
   )
