@@ -9,6 +9,7 @@ import { v1ConsumerAccessPresenter } from './implementation/consumerAccess';
 import { v1ConsumerAuthFactorPresenter } from './implementation/consumerAuthFactor';
 import { v1ConsumerGroupPresenter } from './implementation/consumerGroup';
 import { v1ConsumerProfilePresenter } from './implementation/consumerProfile';
+import { v1ConsumerServerRequestPresenter } from './implementation/consumerServerRequest';
 import { v1ConsumerSessionPresenter } from './implementation/consumerSession';
 import {
   dashboardCustomServerPresenter,
@@ -110,6 +111,7 @@ import {
   consumerAuthFactorType,
   consumerGroupType,
   consumerProfileType,
+  consumerServerRequestType,
   consumerSessionType,
   customServerCodeEditorTokenType,
   customServerDeploymentType,
@@ -594,4 +596,9 @@ export let consumerProfilePresenter = declarePresenter(consumerProfileType, {
 export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
   mt_2025_01_01_pulsar: v1ConsumerSessionPresenter,
   mt_2025_01_01_dashboard: v1ConsumerSessionPresenter
+});
+
+export let consumerServerRequestPresenter = declarePresenter(consumerServerRequestType, {
+  mt_2025_01_01_pulsar: v1ConsumerServerRequestPresenter,
+  mt_2025_01_01_dashboard: v1ConsumerServerRequestPresenter
 });
