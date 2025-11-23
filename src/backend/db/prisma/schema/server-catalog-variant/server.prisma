@@ -39,6 +39,7 @@ model Server {
   implementations           ServerImplementation[]
   instanceServers           InstanceServer[]
   serverDeploymentTemplates ServerDeploymentTemplate[]
+  consumerServerRequests    ConsumerServerRequest[]
 
   @@index([type])
 }
