@@ -238,20 +238,38 @@ export type ManagementInstanceServersDeploymentsTemplatesCreateBody = {
   name: string;
   description?: string | undefined;
   serverId: string;
-  oauth?: { clientId: string; clientSecret: string } | undefined;
-};
+} & (
+  | {
+      oauth?: { clientId: string; clientSecret: string } | undefined;
+      config?: Record<string, any> | undefined;
+    }
+  | { magicMcpServerId: string }
+);
 
 export let mapManagementInstanceServersDeploymentsTemplatesCreateBody =
-  mtMap.object<ManagementInstanceServersDeploymentsTemplatesCreateBody>({
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    serverId: mtMap.objectField('server_id', mtMap.passthrough()),
-    oauth: mtMap.objectField(
-      'oauth',
+  mtMap.union([
+    mtMap.unionOption(
+      'object',
       mtMap.object({
-        clientId: mtMap.objectField('client_id', mtMap.passthrough()),
-        clientSecret: mtMap.objectField('client_secret', mtMap.passthrough())
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        serverId: mtMap.objectField('server_id', mtMap.passthrough()),
+        oauth: mtMap.objectField(
+          'oauth',
+          mtMap.object({
+            clientId: mtMap.objectField('client_id', mtMap.passthrough()),
+            clientSecret: mtMap.objectField(
+              'client_secret',
+              mtMap.passthrough()
+            )
+          })
+        ),
+        config: mtMap.objectField('config', mtMap.passthrough()),
+        magicMcpServerId: mtMap.objectField(
+          'magic_mcp_server_id',
+          mtMap.passthrough()
+        )
       })
     )
-  });
+  ]);
 

@@ -308,7 +308,7 @@ export type ServersDeploymentsTemplatesListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & { serverId?: string | string[] | undefined };
 
 export let mapServersDeploymentsTemplatesListQuery = mtMap.union([
   mtMap.unionOption(
@@ -318,7 +318,17 @@ export let mapServersDeploymentsTemplatesListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      serverId: mtMap.objectField(
+        'server_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
     })
   )
 ]);

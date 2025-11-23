@@ -68,7 +68,12 @@ export type ManagementInstanceSecretsListQuery = {
   type?:
     | 'server_deployment_config'
     | 'server_config_vault'
-    | ('server_deployment_config' | 'server_config_vault')[]
+    | 'server_deployment_template_config'
+    | (
+        | 'server_deployment_config'
+        | 'server_config_vault'
+        | 'server_deployment_template_config'
+      )[]
     | undefined;
   status?: 'active' | 'deleted' | ('active' | 'deleted')[] | undefined;
 };

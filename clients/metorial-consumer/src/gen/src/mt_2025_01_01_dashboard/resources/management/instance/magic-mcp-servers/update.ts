@@ -29,6 +29,18 @@ export type ManagementInstanceMagicMcpServersUpdateOutput = {
   }[];
   name: string;
   description: string | null;
+  oauthConfiguration:
+    | { status: 'disabled' | 'not_configured' }
+    | {
+        status: 'configured';
+        defaultOauthSession: {
+          object: 'server.oauth_session#preview';
+          id: string;
+          metadata: Record<string, any>;
+          createdAt: Date;
+          updatedAt: Date;
+        };
+      };
   metadata: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
@@ -37,7 +49,6 @@ export type ManagementInstanceMagicMcpServersUpdateOutput = {
   defaultOauthSession: {
     object: 'server.oauth_session#preview';
     id: string;
-    status: 'active' | 'archived' | 'deleted';
     metadata: Record<string, any>;
     createdAt: Date;
     updatedAt: Date;
@@ -101,6 +112,27 @@ export let mapManagementInstanceMagicMcpServersUpdateOutput = mtMap.union([
       ),
       name: mtMap.objectField('name', mtMap.passthrough()),
       description: mtMap.objectField('description', mtMap.passthrough()),
+      oauthConfiguration: mtMap.objectField(
+        'oauth_configuration',
+        mtMap.union([
+          mtMap.unionOption(
+            'object',
+            mtMap.object({
+              status: mtMap.objectField('status', mtMap.passthrough()),
+              defaultOauthSession: mtMap.objectField(
+                'default_oauth_session',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
+              )
+            })
+          )
+        ])
+      ),
       metadata: mtMap.objectField('metadata', mtMap.passthrough()),
       createdAt: mtMap.objectField('created_at', mtMap.date()),
       updatedAt: mtMap.objectField('updated_at', mtMap.date()),
@@ -113,7 +145,6 @@ export let mapManagementInstanceMagicMcpServersUpdateOutput = mtMap.union([
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())

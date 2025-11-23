@@ -30,6 +30,18 @@ export type DashboardInstanceMagicMcpServersListOutput = {
     }[];
     name: string;
     description: string | null;
+    oauthConfiguration:
+      | { status: 'disabled' | 'not_configured' }
+      | {
+          status: 'configured';
+          defaultOauthSession: {
+            object: 'server.oauth_session#preview';
+            id: string;
+            metadata: Record<string, any>;
+            createdAt: Date;
+            updatedAt: Date;
+          };
+        };
     metadata: Record<string, any>;
     createdAt: Date;
     updatedAt: Date;
@@ -99,6 +111,30 @@ export let mapDashboardInstanceMagicMcpServersListOutput =
           ),
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
+          oauthConfiguration: mtMap.objectField(
+            'oauth_configuration',
+            mtMap.union([
+              mtMap.unionOption(
+                'object',
+                mtMap.object({
+                  status: mtMap.objectField('status', mtMap.passthrough()),
+                  defaultOauthSession: mtMap.objectField(
+                    'default_oauth_session',
+                    mtMap.object({
+                      object: mtMap.objectField('object', mtMap.passthrough()),
+                      id: mtMap.objectField('id', mtMap.passthrough()),
+                      metadata: mtMap.objectField(
+                        'metadata',
+                        mtMap.passthrough()
+                      ),
+                      createdAt: mtMap.objectField('created_at', mtMap.date()),
+                      updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                    })
+                  )
+                })
+              )
+            ])
+          ),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
@@ -135,8 +171,6 @@ export type DashboardInstanceMagicMcpServersListQuery = {
   serverImplementationId?: string | string[] | undefined;
   sessionId?: string | string[] | undefined;
   magicMcpGroupId?: string | string[] | undefined;
-  consumerGroupId?: string | string[] | undefined;
-  portalId?: string | string[] | undefined;
   search?: string | undefined;
 };
 
@@ -195,26 +229,6 @@ export let mapDashboardInstanceMagicMcpServersListQuery = mtMap.union([
       ),
       magicMcpGroupId: mtMap.objectField(
         'magic_mcp_group_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      consumerGroupId: mtMap.objectField(
-        'consumer_group_id',
-        mtMap.union([
-          mtMap.unionOption('string', mtMap.passthrough()),
-          mtMap.unionOption(
-            'array',
-            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
-          )
-        ])
-      ),
-      portalId: mtMap.objectField(
-        'portal_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(
