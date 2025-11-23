@@ -359,7 +359,7 @@ export let SearchMenu = ({
               value={`${server.name} ${server.vendor?.name} ${server.slug}`}
               onSelect={() => {
                 setOpen(false);
-                navigate(Paths.server(server.id));
+                navigate(Paths.server(server.server.id));
               }}
             >
               <img src={server?.imageUrl} alt={server.name} width={24} height={24} />

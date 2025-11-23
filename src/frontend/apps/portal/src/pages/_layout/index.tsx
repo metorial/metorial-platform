@@ -1,12 +1,5 @@
 import { AppLayout } from '@metorial/layout/src/applicationLayout/appLayout';
-import {
-  RiFlowChart,
-  RiHome6Line,
-  RiServerLine,
-  RiSettings2Line,
-  RiShieldKeyholeLine,
-  RiSurveyLine
-} from '@remixicon/react';
+import { RiFlowChart, RiHome6Line, RiServerLine, RiShieldKeyholeLine } from '@remixicon/react';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useBootWithAuth } from '../../state/portal/client';
@@ -77,13 +70,6 @@ export let Layout = () => {
                     getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                   }
                 ]
-              },
-
-              {
-                icon: <RiSurveyLine />,
-                label: 'Explorer',
-                to: Paths.explorer(),
-                getProps: i => ({ isActive: checkPath(i, { exact: true }) })
               }
             ]
           },
@@ -92,13 +78,6 @@ export let Layout = () => {
             label: 'Management',
             collapsible: true,
             items: [
-              {
-                icon: <RiSettings2Line />,
-                label: 'Settings',
-                to: Paths.settings(),
-                getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-              },
-
               {
                 icon: <RiShieldKeyholeLine />,
                 label: 'Tokens',
