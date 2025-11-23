@@ -56,7 +56,8 @@ class consumerProfileServiceImpl {
     let groups = await db.consumerGroup.findMany({
       where: {
         id: { in: d.groupIds },
-        surfaceOid: d.consumerProfile.surfaceOid
+        surfaceOid: d.consumerProfile.surfaceOid,
+        type: 'default'
       }
     });
 
