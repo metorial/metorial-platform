@@ -1,7 +1,8 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { ContentLayout, PageHeader } from '@metorial/layout';
-import { Badge, Button, LinkTabs } from '@metorial/ui';
-import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { Badge, LinkTabs } from '@metorial/ui';
+import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { DeployServerButton } from '../../../../scenes/servers/deploy';
 import { useServerListing } from '../../../../state/consumer/listings';
 import { useServer } from '../../../../state/consumer/servers';
 import { usePaths } from '../../../../state/portal/path';
@@ -43,22 +44,7 @@ export let ServerLayout = () => {
         ]}
         actions={
           <>
-            <Link
-              to={Paths.explorer({
-                server_id: server.data?.id
-              })}
-            >
-              <Button as="span" size="2" variant="outline">
-                Open Explorer
-              </Button>
-            </Link>
-
-            {/* <DeployServerButton
-              disabled={!server.data?.variants.length}
-              serverId={server.data?.id!}
-            >
-              Deploy Server
-            </DeployServerButton> */}
+            <DeployServerButton serverId={server.data?.id!} />
           </>
         }
       />
