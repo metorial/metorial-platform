@@ -14,7 +14,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { notFoundError, preconditionFailedError, ServiceError } from '@metorial/error';
-import { generateCode } from '@metorial/id';
+import { generateCode, generatePlainId } from '@metorial/id';
 import { AccessTagSelectorList, accessTagService } from '@metorial/module-access';
 import { searchService } from '@metorial/module-search';
 import { Paginator } from '@metorial/pagination';
@@ -40,27 +40,10 @@ let include = {
 class MagicMcpServerImpl {
   async privateGetAccessTagFilterForReadAccess(d: { accessTags?: AccessTagSelectorList }) {
     return {
-      OR: [
-        {
-          accessTags: await accessTagService.getAccessTagFilter({
-            tags: d.accessTags,
-            level: 'read'
-          })
-        },
-
-        {
-          groups: {
-            some: {
-              magicMcpGroup: {
-                accessTags: await accessTagService.getAccessTagFilter({
-                  tags: d.accessTags,
-                  level: 'read'
-                })
-              }
-            }
-          }
-        }
-      ]
+      accessTags: await accessTagService.getAccessTagFilter({
+        tags: d.accessTags,
+        level: 'read'
+      })
     };
   }
 
@@ -147,9 +130,12 @@ class MagicMcpServerImpl {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      defaultOauthSession?: ServerOAuthSession;
     };
   }) {
-    let slug = await slugify(`${d.input.name}-${generateCode(5)}`);
+    let slug = d.input.name
+      ? await slugify(`${d.input.name}-${generateCode(5)}`)
+      : generatePlainId(12);
 
     return withTransaction(async db => {
       let server = await db.magicMcpServer.create({
@@ -169,6 +155,8 @@ class MagicMcpServerImpl {
           aliases: {
             create: { slug }
           },
+
+          defaultServerOauthSessionOid: d.input.defaultOauthSession?.oid,
 
           consumerProfileOid: d.consumer?.profile.oid,
           accessTags: d.consumer
@@ -281,8 +269,6 @@ class MagicMcpServerImpl {
     serverIds?: string[];
     sessionIds?: string[];
     groupIds?: string[];
-    consumerGroupIds?: string[];
-    portalIds?: string[];
     search?: string;
     instance: Instance;
     status?: MagicMcpServerStatus[];
@@ -331,18 +317,6 @@ class MagicMcpServerImpl {
           select: { oid: true }
         })
       : undefined;
-    let consumerGroups = d.consumerGroupIds?.length
-      ? await db.consumerGroup.findMany({
-          where: { id: { in: d.consumerGroupIds } },
-          select: { oid: true }
-        })
-      : undefined;
-    let portals = d.portalIds?.length
-      ? await db.portal.findMany({
-          where: { id: { in: d.portalIds } },
-          select: { oid: true }
-        })
-      : undefined;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -361,46 +335,6 @@ class MagicMcpServerImpl {
                     groups: {
                       some: {
                         magicMcpGroupOid: { in: groups.map(g => g.oid) }
-                      }
-                    }
-                  }
-                : undefined!,
-
-              consumerGroups
-                ? {
-                    groups: {
-                      some: {
-                        magicMcpGroup: {
-                          consumerAccesses: {
-                            some: {
-                              consumerGroupOid: { in: consumerGroups.map(g => g.oid) }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                : undefined!,
-
-              portals
-                ? {
-                    groups: {
-                      some: {
-                        magicMcpGroup: {
-                          consumerAccesses: {
-                            some: {
-                              consumerGroup: {
-                                surface: {
-                                  portals: {
-                                    some: {
-                                      oid: { in: portals.map(p => p.oid) }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
                       }
                     }
                   }

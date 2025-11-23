@@ -1,6 +1,16 @@
-import { db, ID, Instance, Server, ServerDeploymentTemplate } from '@metorial/db';
+import {
+  db,
+  ID,
+  Instance,
+  MagicMcpServer,
+  Organization,
+  OrganizationActor,
+  Server,
+  ServerDeploymentTemplate
+} from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
 import { AccessTagSelectorList, accessTagService } from '@metorial/module-access';
+import { secretService } from '@metorial/module-secret';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 
@@ -83,16 +93,86 @@ class serverDeploymentTemplateServiceImpl {
 
   async createServerDeploymentTemplate(d: {
     instance: Instance;
+    organization: Organization;
+    performedBy: OrganizationActor;
     server: Server;
     input: {
       name: string;
       description?: string;
-      oauth?: {
-        clientId: string;
-        clientSecret: string;
-      };
+
+      from:
+        | {
+            type: 'config';
+            oauth?: {
+              clientId: string;
+              clientSecret: string;
+            };
+            config?: Record<string, any>;
+          }
+        | {
+            type: 'magic_mcp_server';
+            magicMcpServer: MagicMcpServer;
+          };
     };
   }) {
+    let config: Record<string, any> | undefined;
+    let oauthData:
+      | { clientId: string | undefined; clientSecret: string | undefined }
+      | undefined;
+
+    if (d.input.from.type === 'config') {
+      config = d.input.from.config;
+      oauthData = d.input.from.oauth;
+    } else if (d.input.from.type === 'magic_mcp_server') {
+      let magicMcpServer = await db.magicMcpServer.findFirst({
+        where: {
+          oid: d.input.from.magicMcpServer.oid,
+          instanceOid: d.instance.oid
+        },
+        include: {
+          serverDeployment: {
+            include: {
+              serverDeployment: {
+                include: {
+                  config: true,
+                  oauthConnection: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      let secret = await secretService.DANGEROUSLY_readSecretValue({
+        secretId: magicMcpServer?.serverDeployment?.serverDeployment.config?.configSecretOid!,
+        instance: d.instance,
+        performedBy: d.performedBy,
+        type: 'server_deployment_config'
+      });
+
+      config = secret.data;
+
+      let oauthConfig = magicMcpServer?.serverDeployment?.serverDeployment.oauthConnection;
+      if (oauthConfig) {
+        oauthData = {
+          clientId: oauthConfig.clientId ?? undefined,
+          clientSecret: oauthConfig.clientSecret ?? undefined
+        };
+      }
+    }
+
+    let configSecret = config
+      ? await secretService.createSecret({
+          instance: d.instance,
+          organization: d.organization,
+          performedBy: d.performedBy,
+          input: {
+            type: 'server_deployment_template_config',
+            secretData: config
+          }
+        })
+      : undefined;
+
     return await db.serverDeploymentTemplate.create({
       data: {
         id: await ID.generateId('serverDeploymentTemplate'),
@@ -102,8 +182,10 @@ class serverDeploymentTemplateServiceImpl {
         serverOid: d.server.oid,
         instanceOid: d.instance.oid,
 
-        oauthConfigClientId: d.input.oauth?.clientId,
-        oauthConfigClientSecret: d.input.oauth?.clientSecret
+        oauthConfigClientId: oauthData?.clientId,
+        oauthConfigClientSecret: oauthData?.clientSecret,
+
+        configSecretOid: configSecret?.oid
       },
       include
     });

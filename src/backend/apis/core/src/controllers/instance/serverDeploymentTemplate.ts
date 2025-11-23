@@ -1,4 +1,5 @@
 import { serverService } from '@metorial/module-catalog';
+import { magicMcpServerService } from '@metorial/module-magic';
 import { serverDeploymentTemplateService } from '@metorial/module-server-deployment';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -103,17 +104,28 @@ export let serverDeploymentTemplateController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
       .body(
         'default',
-        v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          server_id: v.string(),
-          oauth: v.optional(
+        v.intersection([
+          v.object({
+            name: v.string(),
+            description: v.optional(v.string()),
+            server_id: v.string()
+          }),
+
+          v.union([
             v.object({
-              client_id: v.string(),
-              client_secret: v.string()
+              oauth: v.optional(
+                v.object({
+                  client_id: v.string(),
+                  client_secret: v.string()
+                })
+              ),
+              config: v.optional(v.record(v.any()))
+            }),
+            v.object({
+              magic_mcp_server_id: v.string()
             })
-          )
-        })
+          ])
+        ])
       )
       .output(serverDeploymentTemplatePresenter)
       .do(async ctx => {
@@ -126,16 +138,31 @@ export let serverDeploymentTemplateController = Controller.create(
           await serverDeploymentTemplateService.createServerDeploymentTemplate({
             server,
             instance: ctx.instance,
+            organization: ctx.organization,
+            performedBy: ctx.actor,
             input: {
               name: ctx.body.name,
               description: ctx.body.description,
 
-              oauth: ctx.body.oauth
-                ? {
-                    clientId: ctx.body.oauth.client_id,
-                    clientSecret: ctx.body.oauth.client_secret
-                  }
-                : undefined
+              from:
+                'magic_mcp_server_id' in ctx.body
+                  ? {
+                      type: 'magic_mcp_server',
+                      magicMcpServer: await magicMcpServerService.getMagicMcpServerById({
+                        instance: ctx.instance,
+                        magicMcpServerId: ctx.body.magic_mcp_server_id
+                      })
+                    }
+                  : {
+                      type: 'config',
+                      oauth: ctx.body.oauth
+                        ? {
+                            clientId: ctx.body.oauth.client_id,
+                            clientSecret: ctx.body.oauth.client_secret
+                          }
+                        : undefined,
+                      config: ctx.body.config
+                    }
             }
           });
 

@@ -674,7 +674,6 @@ export let consumerGroupType = PresentableType.create<{
 export let consumerAccessType = PresentableType.create<{
   consumerAccess: ConsumerAccess & {
     consumerGroup: ConsumerGroup;
-    magicMcpGroup: MagicMcpGroup | null;
     serverDeploymentTemplate: (ServerDeploymentTemplate & { server: Server }) | null;
   };
 }>()('consumer.access');

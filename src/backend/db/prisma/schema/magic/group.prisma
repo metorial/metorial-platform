@@ -23,10 +23,9 @@ model MagicMcpGroup {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  servers          MagicMcpGroupServer[]
-  tokens           MagicMcpGroupToken[]
-  consumerAccesses ConsumerAccess[]
-  accessTags       AccessTagEntity[]
+  servers    MagicMcpGroupServer[]
+  tokens     MagicMcpGroupToken[]
+  accessTags AccessTagEntity[]
 }
 
 model MagicMcpGroupServer {

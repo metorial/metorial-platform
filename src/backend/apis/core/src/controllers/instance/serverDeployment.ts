@@ -7,7 +7,7 @@ import {
   ServerDeploymentStatus,
   withTransaction
 } from '@metorial/db';
-import { forbiddenError, ServiceError } from '@metorial/error';
+import { badRequestError, forbiddenError, ServiceError } from '@metorial/error';
 import {
   serverDeploymentService,
   serverDeploymentTemplateService,
@@ -185,6 +185,14 @@ export let createServerDeployment = async (
                 : await ensureDefaultServerImplementation(data, ctx)
           };
 
+    if (template && template.serverOid != serverImplementation.instance.serverOid) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Server deployment template does not match the server implementation'
+        })
+      );
+    }
+
     let serverDeployment = await serverDeploymentService.createServerDeployment({
       organization: ctx.organization,
       performedBy: ctx.actor,
@@ -193,6 +201,8 @@ export let createServerDeployment = async (
       type: opts?.type ?? 'persistent',
       context: ctx.context,
       parent: opts?.parent,
+      template,
+
       input: {
         name: data.name?.trim() || undefined,
         description: data.description?.trim() || undefined,
@@ -203,12 +213,7 @@ export let createServerDeployment = async (
               clientId: data.oauth_config.client_id,
               clientSecret: data.oauth_config.client_secret
             }
-          : template?.oauthConfigClientId
-            ? {
-                clientId: template.oauthConfigClientId,
-                clientSecret: template.oauthConfigClientSecret!
-              }
-            : undefined,
+          : undefined,
 
         config:
           'config' in data

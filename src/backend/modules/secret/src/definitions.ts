@@ -9,6 +9,11 @@ export let secretTypes = {
   server_config_vault: ensureSecretType(() => ({
     slug: 'server_config_vault',
     name: 'Server Config Vault'
+  })),
+
+  server_deployment_template_config: ensureSecretType(() => ({
+    slug: 'server_deployment_template_config',
+    name: 'Server Deployment Template Config'
   }))
 };
 

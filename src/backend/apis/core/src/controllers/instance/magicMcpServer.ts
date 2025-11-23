@@ -81,8 +81,6 @@ export let magicMcpServerController = Controller.create(
             server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())])),
             session_id: v.optional(v.union([v.string(), v.array(v.string())])),
             magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            consumer_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            portal_id: v.optional(v.union([v.string(), v.array(v.string())])),
             search: v.optional(v.string())
           })
         )
@@ -97,8 +95,6 @@ export let magicMcpServerController = Controller.create(
           serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_id),
           sessionIds: normalizeArrayParam(ctx.query.session_id),
           groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
-          consumerGroupIds: normalizeArrayParam(ctx.query.consumer_group_id),
-          portalIds: normalizeArrayParam(ctx.query.portal_id),
           search: ctx.query.search,
           accessTags: ctx.accessTags
         });
@@ -142,7 +138,20 @@ export let magicMcpServerController = Controller.create(
           ]
         })
       )
-      .body('default', createServerDeploymentSchema)
+      .body(
+        'default',
+        v.intersection([
+          createServerDeploymentSchema,
+          v.object({
+            default_oauth_session_id: v.optional(
+              v.string({
+                description:
+                  'The ID of the default OAuth session to use for server deployments created by this magic MCP server'
+              })
+            )
+          })
+        ])
+      )
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
@@ -162,6 +171,14 @@ export let magicMcpServerController = Controller.create(
             { type: 'ephemeral', parent: 'magic_mcp_server' }
           );
 
+          let defaultOauthSession = ctx.body.default_oauth_session_id
+            ? await serverOAuthSessionService.getServerOAuthSessionById({
+                instance: ctx.instance,
+                serverOAuthSessionId: ctx.body.default_oauth_session_id,
+                accessTags: ctx.accessTags
+              })
+            : undefined;
+
           let magicMcpServer = await magicMcpServerService.createMagicMcpServer({
             organization: ctx.organization,
             performedBy: ctx.actor,
@@ -171,7 +188,8 @@ export let magicMcpServerController = Controller.create(
             input: {
               name: ctx.body.name,
               description: ctx.body.description,
-              metadata: ctx.body.metadata
+              metadata: ctx.body.metadata,
+              defaultOauthSession
             },
             consumer: ctx.consumerProfile ? { profile: ctx.consumerProfile } : undefined
           });
@@ -243,22 +261,6 @@ export let magicMcpServerController = Controller.create(
           )
         })
       )
-      .body(
-        'mt_2025_01_01_pulsar',
-        v.object({
-          name: v.optional(v.string({ description: 'The name of the magic MCP server' })),
-          description: v.optional(
-            v.string({ description: 'The description of the magic MCP server' })
-          ),
-          metadata: v.optional(
-            v.record(v.any(), { description: 'The metadata of the magic MCP server' })
-          ),
-          aliases: v.optional(
-            v.array(v.string({ description: 'The alias (slug) of the magic MCP server' }))
-          )
-        }),
-        i => i
-      )
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
@@ -270,7 +272,8 @@ export let magicMcpServerController = Controller.create(
         let defaultOauthSession = ctx.body.default_oauth_session_id
           ? await serverOAuthSessionService.getServerOAuthSessionById({
               instance: ctx.instance,
-              serverOAuthSessionId: ctx.body.default_oauth_session_id
+              serverOAuthSessionId: ctx.body.default_oauth_session_id,
+              accessTags: ctx.accessTags
             })
           : undefined;
 

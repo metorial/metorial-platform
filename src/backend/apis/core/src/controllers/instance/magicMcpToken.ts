@@ -223,7 +223,7 @@ export let magicMcpTokenController = Controller.create(
       )
       .use(
         checkAccess({
-          possibleScopes: ['instance.session:write', 'consumer#instance.magic_mcp:write']
+          possibleScopes: ['instance.session:write']
         })
       )
       .body(
@@ -244,8 +244,7 @@ export let magicMcpTokenController = Controller.create(
 
         let magicMcpToken = await magicMcpTokenService.addGroupsToToken({
           token: ctx.magicMcpToken,
-          groupIds: ctx.body.magic_mcp_group_ids,
-          consumerProfile: ctx.consumerProfile
+          groupIds: ctx.body.magic_mcp_group_ids
         });
 
         return magicMcpTokenPresenter.present({ magicMcpToken });
@@ -264,7 +263,7 @@ export let magicMcpTokenController = Controller.create(
       )
       .use(
         checkAccess({
-          possibleScopes: ['instance.session:write', 'consumer#instance.magic_mcp:write']
+          possibleScopes: ['instance.session:write']
         })
       )
       .body(
