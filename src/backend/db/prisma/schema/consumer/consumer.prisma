@@ -1,0 +1,88 @@
+model Consumer {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name  String
+  email String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  profiles ConsumerProfile[]
+
+  @@unique([email, organizationOid])
+}
+
+model ConsumerProfile {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name  String
+  email String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  surfaceOid BigInt
+  surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid])
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid])
+
+  accessTagOid BigInt
+  accessTag    AccessTag @relation(fields: [accessTagOid], references: [oid])
+
+  personalConsumerGroupOid BigInt
+  personalConsumerGroup    ConsumerGroup @relation(fields: [personalConsumerGroupOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  consumerSessions       ConsumerSession[]
+  magicMcpTokens         MagicMcpToken[]
+  groups                 ConsumerProfileGroup[]
+  ssoUsers               ConsumerProfileSsoUser[]
+  magicMcpServers        MagicMcpServer[]
+  serverOAuthSessions    ServerOAuthSession[]
+  consumerServerRequests ConsumerServerRequest[]
+
+  @@unique([email, surfaceOid])
+}
+
+model ConsumerProfileSsoUser {
+  oid BigInt @id @default(autoincrement())
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid])
+
+  ssoUserOid BigInt
+  ssoUser    SsoUser @relation(fields: [ssoUserOid], references: [oid])
+
+  ssoProfileOid BigInt
+  ssoProfile    SsoUserProfile @relation(fields: [ssoProfileOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@unique([consumerProfileOid, ssoUserOid])
+  @@unique([consumerProfileOid, ssoProfileOid])
+}
+
+model ConsumerProfileGroup {
+  oid BigInt @id @default(autoincrement())
+
+  profileOid BigInt
+  profile    ConsumerProfile @relation(fields: [profileOid], references: [oid])
+
+  groupOid BigInt
+  group    ConsumerGroup @relation(fields: [groupOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@unique([profileOid, groupOid])
+}

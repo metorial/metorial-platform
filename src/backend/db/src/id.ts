@@ -49,6 +49,7 @@ export let ID = createIdGenerator({
   serverImplementation: idType.sorted('svi'),
   serverDeployment: idType.sorted('svd'),
   serverDeploymentConfig: idType.sorted('svdc'),
+  serverDeploymentTemplate: idType.sorted('svdt'),
 
   serverRunner: idType.sorted('sru'),
 
@@ -135,5 +136,17 @@ export let ID = createIdGenerator({
   teamMember: idType.sorted('tmm'),
 
   ssoTenant: idType.sorted('ssot'),
-  ssoUser: idType.sorted('ssou')
+  ssoUser: idType.sorted('ssou'),
+
+  consumerSurface: idType.sorted('csf'),
+  consumer: idType.sorted('con'),
+  consumerProfile: idType.sorted('cop'),
+  consumerSurfaceAuthFactor: idType.sorted('csaf'),
+  consumerAuthCode: idType.sorted('cac'),
+  consumerSurfaceMagicMcpGroupAccess: idType.sorted('csmg'),
+  consumerGroup: idType.sorted('cog'),
+  consumerAccess: idType.sorted('coa'),
+  consumerServerRequest: idType.sorted('csr'),
+
+  portal: idType.sorted('ptl')
 });

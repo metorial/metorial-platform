@@ -12,6 +12,15 @@ import {
   CallbackNotificationAttempt,
   CallbackSchedule,
   CodeBucketTemplate,
+  Consumer,
+  ConsumerAccess,
+  ConsumerGroup,
+  ConsumerProfile,
+  ConsumerProfileGroup,
+  ConsumerServerRequest,
+  ConsumerSession,
+  ConsumerSurface,
+  ConsumerSurfaceAuthFactor,
   CustomServer,
   CustomServerDeployment,
   CustomServerDeploymentStep,
@@ -39,6 +48,7 @@ import {
   OrganizationActor,
   OrganizationInvite,
   OrganizationMember,
+  Portal,
   Profile,
   Project,
   ProviderOAuthAutoRegistration,
@@ -65,6 +75,7 @@ import {
   ServerConfigVault,
   ServerDeployment,
   ServerDeploymentConfig,
+  ServerDeploymentTemplate,
   ServerImplementation,
   ServerListing,
   ServerListingCategory,
@@ -80,6 +91,9 @@ import {
   SessionConnection,
   SessionEvent,
   SessionMessage,
+  SsoTenant,
+  SsoUser,
+  SsoUserProfile,
   Team,
   TeamMember,
   TeamProject,
@@ -269,6 +283,17 @@ export let serverDeploymentType = PresentableType.create<{
     accessLimiter: AccessLimiter | null;
   };
 }>()('server.server_deployment');
+
+export let serverDeploymentTemplateType = PresentableType.create<{
+  serverDeploymentTemplate: ServerDeploymentTemplate & {
+    server: Server & {
+      importedServer: ImportedServer | null;
+      variants: (ServerVariant & {
+        currentVersion: (ServerVersion & { schema: ServerConfigSchema }) | null;
+      })[];
+    };
+  };
+}>()('server.server_deployment.template');
 
 export let serverDeploymentPreviewType = PresentableType.create<{
   serverDeployment: ServerDeployment & {
@@ -632,6 +657,35 @@ export let callbackNotificationType = PresentableType.create<{
   };
 }>()('callback.notification');
 
+export let portalType = PresentableType.create<{
+  portal: Portal & {
+    surface: ConsumerSurface;
+  };
+  portalUrl: string;
+}>()('portal');
+
+export let consumerAuthFactorType = PresentableType.create<{
+  consumerAuthFactor: ConsumerSurfaceAuthFactor;
+}>()('consumer.auth_factor');
+
+export let consumerGroupType = PresentableType.create<{
+  consumerGroup: ConsumerGroup;
+}>()('consumer.group');
+
+export let consumerAccessType = PresentableType.create<{
+  consumerAccess: ConsumerAccess & {
+    consumerGroup: ConsumerGroup;
+    serverDeploymentTemplate: (ServerDeploymentTemplate & { server: Server }) | null;
+  };
+}>()('consumer.access');
+
+export let consumerServerRequestType = PresentableType.create<{
+  consumerServerRequest: ConsumerServerRequest & {
+    server: Server;
+    consumerProfile: ConsumerProfile;
+  };
+}>()('consumer.server_request');
+
 export let serverConfigVaultType = PresentableType.create<{
   serverConfigVault: ServerConfigVault & {
     secret: Secret;
@@ -659,3 +713,54 @@ export let teamRoleType = PresentableType.create<{
 export let teamRolePermissionsType = PresentableType.create<{
   permissions: string[];
 }>()('management.team.role_permissions');
+
+export let ssoTenantType = PresentableType.create<{
+  ssoTenant: SsoTenant;
+}>()('sso.tenant');
+
+export let ssoTenantSetupType = PresentableType.create<{
+  ssoTenantSetup: {
+    id: string;
+    status: 'pending' | 'completed';
+    tenantId: string;
+    connectionId: string | null | undefined;
+    clientSecret: string;
+    redirectUri: string;
+    url: string;
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+  };
+}>()('sso.tenant.setup');
+
+export let ssoUserType = PresentableType.create<{
+  ssoUser: SsoUser & {
+    profiles: SsoUserProfile[];
+    ssoTenant: SsoTenant;
+  };
+}>()('sso.user');
+
+export let ssoUserProfileType = PresentableType.create<{
+  ssoUserProfile: SsoUserProfile & {
+    ssoUser: SsoUser & {
+      ssoTenant: SsoTenant;
+    };
+  };
+}>()('sso.user_profile');
+
+export let consumerProfileType = PresentableType.create<{
+  consumerProfile: ConsumerProfile & {
+    consumer: Consumer;
+    groups: (ConsumerProfileGroup & {
+      group: ConsumerGroup;
+    })[];
+  };
+  assignedConsumerGroups:
+    | (ConsumerGroup & {
+        assignedVia: 'default' | 'manual' | 'sso' | 'user';
+      })[]
+    | undefined;
+}>()('consumer.profile');
+
+export let consumerSessionType = PresentableType.create<{
+  consumerSession: ConsumerSession;
+}>()('consumer.session');

@@ -5,11 +5,19 @@ enum CustomServerVersionStatus {
   deployment_failed
 }
 
+enum CustomServerVersionOAuthCredentialProvider {
+  none
+  manual
+  auto_registration
+}
+
 model CustomServerVersion {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   status CustomServerVersionStatus
+
+  oauthCredentialProvider CustomServerVersionOAuthCredentialProvider @default(none)
 
   versionIndex Int
   versionHash  String

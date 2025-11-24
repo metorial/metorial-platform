@@ -5,6 +5,12 @@ import { v1CallbackPresenter } from './implementation/callback';
 import { v1CallbackDestinationPresenter } from './implementation/callbackDestination';
 import { v1CallbackEventPresenter } from './implementation/callbackEvent';
 import { v1CallbackNotificationPresenter } from './implementation/callbackNotification';
+import { v1ConsumerAccessPresenter } from './implementation/consumerAccess';
+import { v1ConsumerAuthFactorPresenter } from './implementation/consumerAuthFactor';
+import { v1ConsumerGroupPresenter } from './implementation/consumerGroup';
+import { v1ConsumerProfilePresenter } from './implementation/consumerProfile';
+import { v1ConsumerServerRequestPresenter } from './implementation/consumerServerRequest';
+import { v1ConsumerSessionPresenter } from './implementation/consumerSession';
 import {
   dashboardCustomServerPresenter,
   v1CustomServerPresenter
@@ -35,6 +41,7 @@ import { v1OrganizationPresenter } from './implementation/organization';
 import { v1OrganizationActorPresenter } from './implementation/organizationActor';
 import { v1OrganizationInvitePresenter } from './implementation/organizationInvite';
 import { v1OrganizationMemberPresenter } from './implementation/organizationMember';
+import { v1PortalPresenter } from './implementation/portal';
 import { v1ProfilePresenter } from './implementation/profile';
 import { v1ProjectPresenter } from './implementation/project';
 import { v1ProviderOauthConnectionPresenter } from './implementation/providerOauthConnection';
@@ -60,13 +67,15 @@ import { v1ServerListingCollectionPresenter } from './implementation/serverColle
 import { v1ServerConfigVaultPresenter } from './implementation/serverConfigVault';
 import { v1ServerDeploymentPresenter } from './implementation/serverDeployment';
 import { v1ServerDeploymentConfigPresenter } from './implementation/serverDeploymentConfig';
+import { v1ServerDeploymentTemplatePresenter } from './implementation/serverDeploymentTemplate';
 import {
   dashboardServerImplementationPresenter,
   v1ServerImplementationPresenter
 } from './implementation/serverImplementation';
 import {
   dashboardServerListingPresenter,
-  v1ServerListingPresenter
+  v1ServerListingPresenter,
+  v1ServerListingReadmePresenter
 } from './implementation/serverListing';
 import { v1ServerOauthSessionPresenter } from './implementation/serverOauthSession';
 import { v1ServerRunPresenter } from './implementation/serverRun';
@@ -82,6 +91,10 @@ import {
   dashboardSessionMessagePresenter,
   v1SessionMessagePresenter
 } from './implementation/sessionMessage';
+import { v1SsoTenantPresenter } from './implementation/ssoTenant';
+import { v1SsoTenantSetupPresenter } from './implementation/ssoTenantSetup';
+import { v1SsoUserPresenter } from './implementation/ssoUser';
+import { v1SsoUserProfilePresenter } from './implementation/ssoUserProfile';
 import { v1TeamPresenter } from './implementation/team';
 import { v1TeamRolePresenter } from './implementation/teamRole';
 import { v1TeamRolePermissionsPresenter } from './implementation/teamRolePermissons';
@@ -94,6 +107,12 @@ import {
   callbackEventType,
   callbackNotificationType,
   callbackType,
+  consumerAccessType,
+  consumerAuthFactorType,
+  consumerGroupType,
+  consumerProfileType,
+  consumerServerRequestType,
+  consumerSessionType,
   customServerCodeEditorTokenType,
   customServerDeploymentType,
   customServerEventType,
@@ -112,6 +131,7 @@ import {
   organizationInviteType,
   organizationMemberType,
   organizationType,
+  portalType,
   profileType,
   projectType,
   providerOauthConnectionAuthenticationType,
@@ -133,6 +153,7 @@ import {
   serverCapabilitiesType,
   serverConfigVaultType,
   serverDeploymentConfigType,
+  serverDeploymentTemplateType,
   serverDeploymentType,
   serverImplementationType,
   serverListingCategoryType,
@@ -150,6 +171,10 @@ import {
   sessionEventType,
   sessionMessageType,
   sessionType,
+  ssoTenantSetupType,
+  ssoTenantType,
+  ssoUserProfileType,
+  ssoUserType,
   teamRolePermissionsType,
   teamRoleType,
   teamType,
@@ -242,6 +267,11 @@ export let serverListingPresenter = declarePresenter(serverListingType, {
   mt_2025_01_01_dashboard: dashboardServerListingPresenter
 });
 
+export let serverListingReadmePresenter = declarePresenter(serverListingType, {
+  mt_2025_01_01_pulsar: v1ServerListingReadmePresenter,
+  mt_2025_01_01_dashboard: v1ServerListingReadmePresenter
+});
+
 export let serverListingCategoryPresenter = declarePresenter(serverListingCategoryType, {
   mt_2025_01_01_pulsar: v1ServerListingCategoryPresenter,
   mt_2025_01_01_dashboard: v1ServerListingCategoryPresenter
@@ -260,6 +290,11 @@ export let serverImplementationPresenter = declarePresenter(serverImplementation
 export let serverDeploymentPresenter = declarePresenter(serverDeploymentType, {
   mt_2025_01_01_pulsar: v1ServerDeploymentPresenter,
   mt_2025_01_01_dashboard: v1ServerDeploymentPresenter
+});
+
+export let serverDeploymentTemplatePresenter = declarePresenter(serverDeploymentTemplateType, {
+  mt_2025_01_01_pulsar: v1ServerDeploymentTemplatePresenter,
+  mt_2025_01_01_dashboard: v1ServerDeploymentTemplatePresenter
 });
 
 export let serverDeploymentConfigPresenter = declarePresenter(serverDeploymentConfigType, {
@@ -511,4 +546,59 @@ export let teamRolePresenter = declarePresenter(teamRoleType, {
 export let teamRolePermissionsPresenter = declarePresenter(teamRolePermissionsType, {
   mt_2025_01_01_pulsar: v1TeamRolePermissionsPresenter,
   mt_2025_01_01_dashboard: v1TeamRolePermissionsPresenter
+});
+
+export let ssoTenantPresenter = declarePresenter(ssoTenantType, {
+  mt_2025_01_01_pulsar: v1SsoTenantPresenter,
+  mt_2025_01_01_dashboard: v1SsoTenantPresenter
+});
+
+export let ssoTenantSetupPresenter = declarePresenter(ssoTenantSetupType, {
+  mt_2025_01_01_pulsar: v1SsoTenantSetupPresenter,
+  mt_2025_01_01_dashboard: v1SsoTenantSetupPresenter
+});
+
+export let ssoUserPresenter = declarePresenter(ssoUserType, {
+  mt_2025_01_01_pulsar: v1SsoUserPresenter,
+  mt_2025_01_01_dashboard: v1SsoUserPresenter
+});
+
+export let ssoUserProfilePresenter = declarePresenter(ssoUserProfileType, {
+  mt_2025_01_01_pulsar: v1SsoUserProfilePresenter,
+  mt_2025_01_01_dashboard: v1SsoUserProfilePresenter
+});
+
+export let portalPresenter = declarePresenter(portalType, {
+  mt_2025_01_01_pulsar: v1PortalPresenter,
+  mt_2025_01_01_dashboard: v1PortalPresenter
+});
+
+export let consumerGroupPresenter = declarePresenter(consumerGroupType, {
+  mt_2025_01_01_pulsar: v1ConsumerGroupPresenter,
+  mt_2025_01_01_dashboard: v1ConsumerGroupPresenter
+});
+
+export let consumerAuthFactorPresenter = declarePresenter(consumerAuthFactorType, {
+  mt_2025_01_01_pulsar: v1ConsumerAuthFactorPresenter,
+  mt_2025_01_01_dashboard: v1ConsumerAuthFactorPresenter
+});
+
+export let consumerAccessPresenter = declarePresenter(consumerAccessType, {
+  mt_2025_01_01_pulsar: v1ConsumerAccessPresenter,
+  mt_2025_01_01_dashboard: v1ConsumerAccessPresenter
+});
+
+export let consumerProfilePresenter = declarePresenter(consumerProfileType, {
+  mt_2025_01_01_pulsar: v1ConsumerProfilePresenter,
+  mt_2025_01_01_dashboard: v1ConsumerProfilePresenter
+});
+
+export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
+  mt_2025_01_01_pulsar: v1ConsumerSessionPresenter,
+  mt_2025_01_01_dashboard: v1ConsumerSessionPresenter
+});
+
+export let consumerServerRequestPresenter = declarePresenter(consumerServerRequestType, {
+  mt_2025_01_01_pulsar: v1ConsumerServerRequestPresenter,
+  mt_2025_01_01_dashboard: v1ConsumerServerRequestPresenter
 });

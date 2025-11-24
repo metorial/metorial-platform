@@ -32,6 +32,28 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         }
       })),
 
+      oauth_configuration: !magicMcpServer.serverDeployment?.serverDeployment
+        .oauthConnectionOid
+        ? {
+            status: 'disabled'
+          }
+        : !magicMcpServer.defaultServerOauthSession
+          ? {
+              status: 'not_configured'
+            }
+          : {
+              status: 'configured',
+              default_oauth_session: magicMcpServer.defaultServerOauthSession
+                ? {
+                    object: 'server.oauth_session#preview',
+                    id: magicMcpServer.defaultServerOauthSession.id,
+                    metadata: magicMcpServer.defaultServerOauthSession.metadata,
+                    created_at: magicMcpServer.defaultServerOauthSession.createdAt,
+                    updated_at: magicMcpServer.defaultServerOauthSession.updatedAt
+                  }
+                : null
+            },
+
       name: magicMcpServer.name,
       description: magicMcpServer.description,
       metadata: magicMcpServer.metadata,
@@ -107,6 +129,38 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         })
       ),
 
+      oauth_configuration: v.union([
+        v.object({
+          status: v.enumOf(['disabled', 'not_configured'], {
+            name: 'status',
+            description:
+              'The OAuth configuration status of the magic MCP server when OAuth is not set up'
+          })
+        }),
+        v.object({
+          status: v.literal('configured'),
+          default_oauth_session: v.object({
+            object: v.literal('server.oauth_session#preview'),
+            id: v.string({
+              name: 'id',
+              description: 'The unique identifier of the OAuth session'
+            }),
+            metadata: v.record(v.any(), {
+              name: 'metadata',
+              description: 'Additional metadata related to the OAuth session'
+            }),
+            created_at: v.date({
+              name: 'created_at',
+              description: 'Timestamp when the OAuth session was created'
+            }),
+            updated_at: v.date({
+              name: 'updated_at',
+              description: 'Timestamp when the OAuth session was last updated'
+            })
+          })
+        })
+      ]),
+
       metadata: v.record(v.any(), {
         name: 'metadata',
         description: 'Additional metadata related to the magic MCP server'
@@ -140,7 +194,6 @@ export let v1DashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerT
         ? {
             object: 'server.oauth_session#preview',
             id: magicMcpServer.defaultServerOauthSession.id,
-            status: magicMcpServer.defaultServerOauthSession.status,
             metadata: magicMcpServer.defaultServerOauthSession.metadata,
             created_at: magicMcpServer.defaultServerOauthSession.createdAt,
             updated_at: magicMcpServer.defaultServerOauthSession.updatedAt
@@ -164,10 +217,6 @@ export let v1DashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerT
             id: v.string({
               name: 'id',
               description: 'The unique identifier of the OAuth session'
-            }),
-            status: v.enumOf(['active', 'archived', 'deleted'], {
-              name: 'status',
-              description: 'The status of the OAuth session'
             }),
             metadata: v.record(v.any(), {
               name: 'metadata',

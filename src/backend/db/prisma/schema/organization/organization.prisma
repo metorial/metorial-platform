@@ -53,4 +53,8 @@ model Organization {
   team                    Team[]
   teamRole                TeamRole[]
   ssoTenants              SsoTenant[]
+  consumers               Consumer[]
+  consumerProfiles        ConsumerProfile[]
+  consumerSurfaces        ConsumerSurface[]
+  portals                 Portal[]
 }

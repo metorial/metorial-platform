@@ -18,6 +18,17 @@ vi.mock('@metorial/module-machine-access', () => ({
   }
 }));
 
+vi.mock('@metorial/module-consumer', () => ({
+  consumerAuthService: {
+    authenticateWithConsumerToken: vi.fn(),
+    createSession: vi.fn(),
+    validateSession: vi.fn()
+  },
+  consumerSurfaceService: {
+    getSurface: vi.fn()
+  }
+}));
+
 import { userAuthService } from '@metorial/module-user';
 import { machineAccessAuthService } from '@metorial/module-machine-access';
 

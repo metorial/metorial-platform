@@ -255,6 +255,7 @@ describe('flagService', () => {
       const firstProvider = async (): Promise<Flags> => ({
         ...defaultFlags,
         'test-flag': true,
+        'magic-mcp-enabled': false,
       });
 
       const secondProvider = async (): Promise<Flags> => ({

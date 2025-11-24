@@ -57,6 +57,12 @@ vi.mock('@metorial/service', () => ({
   }
 }));
 
+vi.mock('@metorial/module-access', () => ({
+  accessTagService: {
+    getAccessTagFilter: vi.fn(() => Promise.resolve(undefined))
+  }
+}));
+
 describe('serverOAuthSessionService', () => {
   let db: any;
 

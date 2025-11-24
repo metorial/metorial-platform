@@ -15,6 +15,9 @@ model MagicMcpServer {
   defaultServerOauthSessionOid BigInt?
   defaultServerOauthSession    ServerOAuthSession? @relation(fields: [defaultServerOauthSessionOid], references: [oid])
 
+  consumerProfileOid BigInt?
+  consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid])
+
   name        String?
   description String?
 
@@ -24,11 +27,11 @@ model MagicMcpServer {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  aliases  MagicMcpServerAlias[]
-  sessions MagicMcpSession[]
-
   serverDeployment MagicMcpServerDeployment?
+  aliases          MagicMcpServerAlias[]
+  sessions         MagicMcpSession[]
   groups           MagicMcpGroupServer[]
+  accessTags       AccessTagEntity[]
 }
 
 model MagicMcpServerDeployment {

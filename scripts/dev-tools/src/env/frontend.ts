@@ -83,6 +83,10 @@ export let frontendEnv: Env = [
     isEnterprise: true
   },
   {
+    key: 'VITE_CUSTOM_PORTAL_API_URL',
+    defaultValue: 'http://localhost:4315'
+  },
+  {
     key: 'VITE_MARKETPLACE_API_URL',
     defaultValue: `http://${HOSTNAME}:4312`,
     isEnterprise: true

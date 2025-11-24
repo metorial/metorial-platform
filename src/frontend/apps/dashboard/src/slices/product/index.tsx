@@ -340,6 +340,53 @@ let ServerDeploymentCapabilitiesPage = dynamicPage(() =>
     c => c.ServerDeploymentCapabilitiesPage
   )
 );
+let PortalsListLayout = dynamicPage(() =>
+  import('./pages/(portals)/(list)/_layout').then(c => c.PortalsListLayout)
+);
+let PortalsPage = dynamicPage(() =>
+  import('./pages/(portals)/(list)/portals').then(c => c.PortalsPage)
+);
+let PortalLayout = dynamicPage(() =>
+  import('./pages/(portals)/portal/_layout').then(c => c.PortalLayout)
+);
+let PortalGroupSettingsPage = dynamicPage(() =>
+  import('./pages/(portals)/portal/group/settings').then(c => c.PortalGroupSettingsPage)
+);
+let PortalGroupOverviewPage = dynamicPage(() =>
+  import('./pages/(portals)/portal/group/index').then(c => c.PortalGroupOverviewPage)
+);
+let PortalGroupLayout = dynamicPage(() =>
+  import('./pages/(portals)/portal/group/_layout').then(c => c.PortalGroupLayout)
+);
+let PortalSettingsLayout = dynamicPage(() =>
+  import('./pages/(portals)/portal/settings/_layout').then(c => c.PortalSettingsLayout)
+);
+let PortalSettingsOverviewPage = dynamicPage(() =>
+  import('./pages/(portals)/portal/settings/index').then(c => c.PortalSettingsOverviewPage)
+);
+let PortalSettingsAuthPage = dynamicPage(() =>
+  import('./pages/(portals)/portal/settings/auth').then(c => c.PortalSettingsAuthPage)
+);
+let PortalGroupsPage = dynamicPage(() =>
+  import('./pages/(portals)/portal/groups').then(c => c.PortalGroupsPage)
+);
+let PortalOverviewPage = dynamicPage(() =>
+  import('./pages/(portals)/portal/index').then(c => c.PortalOverviewPage)
+);
+let PortalUsersPage = dynamicPage(() =>
+  import('./pages/(portals)/portal/users').then(c => c.PortalUsersPage)
+);
+let PortalUserPage = dynamicPage(() =>
+  import('./pages/(portals)/portal/user').then(c => c.PortalUserPage)
+);
+let PortalServerRequestsPage = dynamicPage(() =>
+  import('./pages/(portals)/portal/server-requests').then(c => c.PortalServerRequestsPage)
+);
+let PortalFeaturedServersPage = dynamicPage(() =>
+  import('./pages/(portals)/portal/settings/featured-servers').then(
+    c => c.PortalFeaturedServersPage
+  )
+);
 
 let ProductWrapper = () => {
   let instance = useCurrentInstance();
@@ -872,6 +919,82 @@ export let productInnerSlice = createSlice([
           {
             path: 'servers',
             element: <CommunityServersPage />
+          }
+        ]
+      },
+
+      {
+        path: 'portals',
+        element: <PortalsListLayout />,
+
+        children: [
+          {
+            path: '',
+            element: <PortalsPage />
+          }
+        ]
+      },
+
+      {
+        path: 'portal/:portalId',
+        element: <PortalLayout />,
+
+        children: [
+          {
+            path: '',
+            element: <PortalOverviewPage />
+          },
+          {
+            path: 'users',
+            element: <PortalUsersPage />
+          },
+          {
+            path: 'user/:userId',
+            element: <PortalUserPage />
+          },
+          {
+            path: 'groups',
+            element: <PortalGroupsPage />
+          },
+          {
+            path: 'server-requests',
+            element: <PortalServerRequestsPage />
+          },
+
+          {
+            path: 'settings',
+            element: <PortalSettingsLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <PortalSettingsOverviewPage />
+              },
+              {
+                path: 'authentication',
+                element: <PortalSettingsAuthPage />
+              },
+              {
+                path: 'featured-servers',
+                element: <PortalFeaturedServersPage />
+              }
+            ]
+          },
+
+          {
+            path: 'group/:groupId',
+            element: <PortalGroupLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <PortalGroupOverviewPage />
+              },
+              {
+                path: 'settings',
+                element: <PortalGroupSettingsPage />
+              }
+            ]
           }
         ]
       }

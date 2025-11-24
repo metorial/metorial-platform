@@ -13,7 +13,8 @@ export let magicMcpSessionGroup = instanceGroup.use(async ctx => {
 
   let magicMcpSession = await magicMcpSessionService.getMagicMcpSessionById({
     magicMcpSessionId: ctx.params.magicMcpSessionId,
-    instance: ctx.instance
+    instance: ctx.instance,
+    accessTags: ctx.accessTags
   });
 
   return { magicMcpSession };
@@ -31,7 +32,11 @@ export let magicMcpSessionController = Controller.create(
         name: 'List magic MCP session',
         description: 'List all magic MCP session'
       })
-      .use(checkAccess({ possibleScopes: ['instance.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.session:read', 'consumer#instance.magic_mcp:read']
+        })
+      )
       .outputList(magicMcpSessionPresenter)
       .query(
         'default',
@@ -45,7 +50,8 @@ export let magicMcpSessionController = Controller.create(
       .do(async ctx => {
         let paginator = await magicMcpSessionService.listMagicMcpSessions({
           instance: ctx.instance,
-          magicMcpServerId: normalizeArrayParam(ctx.query.magic_mcp_server_id) as any
+          magicMcpServerId: normalizeArrayParam(ctx.query.magic_mcp_server_id) as any,
+          accessTags: ctx.accessTags
         });
 
         let list = await paginator.run(ctx.query);
@@ -60,7 +66,11 @@ export let magicMcpSessionController = Controller.create(
         name: 'Get magic MCP session',
         description: 'Get the information of a specific magic MCP session'
       })
-      .use(checkAccess({ possibleScopes: ['instance.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.session:read', 'consumer#instance.magic_mcp:read']
+        })
+      )
       .output(magicMcpSessionPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {

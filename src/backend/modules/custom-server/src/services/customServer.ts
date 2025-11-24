@@ -453,55 +453,54 @@ class customServerServiceImpl {
     organization: Organization;
     instance: Instance;
     performedBy: OrganizationActor;
-    input:
-      | {
-          isPublic: true;
-          name?: string;
-          description?: string;
-          readme?: string;
-          oauthExplainer?: string | null;
-        }
-      | {
-          isPublic: false;
-        };
+    input: {
+      isPublic?: boolean;
+      name?: string;
+      description?: string;
+      readme?: string;
+      oauthExplainer?: string | null;
+    };
   }) {
     if (d.server.status != 'active') {
       throw new ServiceError(
         badRequestError({
-          message: 'Cannot update inactive server version'
+          message: 'Cannot update inactive server'
         })
       );
     }
 
-    if (!d.input.isPublic) {
-      if (d.server.isPublic) {
-        await withTransaction(async db => {
-          await db.server.update({
-            where: { oid: d.server.serverOid },
-            data: { isPublic: false }
+    let listing = await db.serverListing.findFirstOrThrow({
+      where: { serverOid: d.server.serverOid }
+    });
+    if (listing.status != 'active') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot update listing that is not active'
+        })
+      );
+    }
+
+    if (typeof d.input.isPublic == 'boolean') {
+      if (!d.input.isPublic) {
+        if (d.server.isPublic) {
+          await withTransaction(async db => {
+            await db.server.update({
+              where: { oid: d.server.serverOid },
+              data: { isPublic: false }
+            });
+
+            await db.customServer.update({
+              where: { oid: d.server.oid },
+              data: { isPublic: false }
+            });
+
+            await db.serverListing.update({
+              where: { serverOid: d.server.serverOid },
+              data: { isPublic: false, isCustomized: false, readme: null }
+            });
           });
-
-          await db.customServer.update({
-            where: { oid: d.server.oid },
-            data: { isPublic: false }
-          });
-
-          await db.serverListing.update({
-            where: { serverOid: d.server.serverOid },
-            data: { isPublic: false, isCustomized: false, readme: null }
-          });
-        });
-
-        await serverListingService.setServerListing({
-          server: d.server.server,
-          instance: d.instance,
-          organization: d.organization
-        });
-      }
-    } else {
-      let input = d.input;
-
-      await withTransaction(async db => {
+        }
+      } else {
         if (!d.server.isPublic) {
           await db.server.update({
             where: { oid: d.server.serverOid },
@@ -518,30 +517,19 @@ class customServerServiceImpl {
             data: { isPublic: true, isCustomized: true }
           });
         }
-
-        let listing = await db.serverListing.findFirstOrThrow({
-          where: { serverOid: d.server.serverOid }
-        });
-        if (listing.status != 'active') {
-          throw new ServiceError(
-            badRequestError({
-              message: 'Cannot update listing that is not active'
-            })
-          );
-        }
-
-        await serverListingService.updateServerListing({
-          serverListing: listing,
-          performedBy: d.performedBy,
-          input: {
-            name: input.name,
-            description: input.description,
-            readme: input.readme,
-            oauthExplainer: input.oauthExplainer
-          }
-        });
-      });
+      }
     }
+
+    await serverListingService.updateServerListing({
+      serverListing: listing,
+      performedBy: d.performedBy,
+      input: {
+        name: d.input.name,
+        description: d.input.description,
+        readme: d.input.readme,
+        oauthExplainer: d.input.oauthExplainer
+      }
+    });
 
     return await serverListingService.getServerListingById({
       instance: d.instance,

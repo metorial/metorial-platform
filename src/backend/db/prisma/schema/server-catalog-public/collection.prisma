@@ -6,10 +6,16 @@ model ServerListingCollection {
   slug        String @unique
   description String
 
-  listings ServerListing[]
+  isPublic Boolean @default(true)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  listings ServerListing[]
+  portals  Portal[]
 }
 
 model ServerListingCategory {
@@ -20,8 +26,8 @@ model ServerListingCategory {
   slug        String @unique
   description String
 
-  listings ServerListing[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  listings ServerListing[]
 }

@@ -23,7 +23,8 @@ export let magicMcpServerGroup = instanceGroup.use(async ctx => {
 
   let magicMcpServer = await magicMcpServerService.getMagicMcpServerById({
     magicMcpServerId: ctx.params.magicMcpServerId,
-    instance: ctx.instance
+    instance: ctx.instance,
+    accessTags: ctx.accessTags
   });
 
   return { magicMcpServer };
@@ -55,7 +56,14 @@ export let magicMcpServerController = Controller.create(
         name: 'List magic MCP server',
         description: 'List all magic MCP server'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.server.deployment:read',
+            'consumer#instance.magic_mcp:read'
+          ]
+        })
+      )
       .outputList(magicMcpServerPresenter)
       .query(
         'default',
@@ -87,7 +95,8 @@ export let magicMcpServerController = Controller.create(
           serverImplementationIds: normalizeArrayParam(ctx.query.server_implementation_id),
           sessionIds: normalizeArrayParam(ctx.query.session_id),
           groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
-          search: ctx.query.search
+          search: ctx.query.search,
+          accessTags: ctx.accessTags
         });
 
         let list = await paginator.run(ctx.query);
@@ -102,7 +111,14 @@ export let magicMcpServerController = Controller.create(
         name: 'Get magic MCP server',
         description: 'Get the information of a specific magic MCP server'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.server.deployment:read',
+            'consumer#instance.magic_mcp:read'
+          ]
+        })
+      )
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
@@ -114,8 +130,28 @@ export let magicMcpServerController = Controller.create(
         name: 'Create magic MCP server',
         description: 'Create a new magic MCP server'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
-      .body('default', createServerDeploymentSchema)
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.server.deployment:write',
+            'consumer#instance.magic_mcp:write'
+          ]
+        })
+      )
+      .body(
+        'default',
+        v.intersection([
+          createServerDeploymentSchema,
+          v.object({
+            default_oauth_session_id: v.optional(
+              v.string({
+                description:
+                  'The ID of the default OAuth session to use for server deployments created by this magic MCP server'
+              })
+            )
+          })
+        ])
+      )
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
@@ -126,10 +162,22 @@ export let magicMcpServerController = Controller.create(
               instance: ctx.instance,
               organization: ctx.organization,
               actor: ctx.actor,
-              context: ctx.context
+              context: ctx.context,
+
+              consumer: ctx.consumerProfile
+                ? { profile: ctx.consumerProfile, accessTags: ctx.accessTags! }
+                : undefined
             },
             { type: 'ephemeral', parent: 'magic_mcp_server' }
           );
+
+          let defaultOauthSession = ctx.body.default_oauth_session_id
+            ? await serverOAuthSessionService.getServerOAuthSessionById({
+                instance: ctx.instance,
+                serverOAuthSessionId: ctx.body.default_oauth_session_id,
+                accessTags: ctx.accessTags
+              })
+            : undefined;
 
           let magicMcpServer = await magicMcpServerService.createMagicMcpServer({
             organization: ctx.organization,
@@ -140,8 +188,10 @@ export let magicMcpServerController = Controller.create(
             input: {
               name: ctx.body.name,
               description: ctx.body.description,
-              metadata: ctx.body.metadata
-            }
+              metadata: ctx.body.metadata,
+              defaultOauthSession
+            },
+            consumer: ctx.consumerProfile ? { profile: ctx.consumerProfile } : undefined
           });
 
           return magicMcpServerPresenter.present({ magicMcpServer });
@@ -153,11 +203,24 @@ export let magicMcpServerController = Controller.create(
         name: 'Delete magic MCP server',
         description: 'Delete a specific magic MCP server'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.server.deployment:write',
+            'consumer#instance.magic_mcp:write'
+          ]
+        })
+      )
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
+        await magicMcpServerService.checkWriteAccess({
+          server: ctx.magicMcpServer,
+          accessTags: ctx.accessTags
+        });
+
         let magicMcpServer = await magicMcpServerService.archiveMagicMcpServer({
+          accessTags: ctx.accessTags,
           server: ctx.magicMcpServer
         });
 
@@ -169,7 +232,14 @@ export let magicMcpServerController = Controller.create(
         name: 'Update magic MCP server',
         description: 'Update the information of a specific magic MCP server'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server.deployment:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.server.deployment:write',
+            'consumer#instance.magic_mcp:write'
+          ]
+        })
+      )
       .body(
         'default',
         v.object({
@@ -191,34 +261,25 @@ export let magicMcpServerController = Controller.create(
           )
         })
       )
-      .body(
-        'mt_2025_01_01_pulsar',
-        v.object({
-          name: v.optional(v.string({ description: 'The name of the magic MCP server' })),
-          description: v.optional(
-            v.string({ description: 'The description of the magic MCP server' })
-          ),
-          metadata: v.optional(
-            v.record(v.any(), { description: 'The metadata of the magic MCP server' })
-          ),
-          aliases: v.optional(
-            v.array(v.string({ description: 'The alias (slug) of the magic MCP server' }))
-          )
-        }),
-        i => i
-      )
       .output(magicMcpServerPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
+        await magicMcpServerService.checkWriteAccess({
+          server: ctx.magicMcpServer,
+          accessTags: ctx.accessTags
+        });
+
         let defaultOauthSession = ctx.body.default_oauth_session_id
           ? await serverOAuthSessionService.getServerOAuthSessionById({
               instance: ctx.instance,
-              serverOAuthSessionId: ctx.body.default_oauth_session_id
+              serverOAuthSessionId: ctx.body.default_oauth_session_id,
+              accessTags: ctx.accessTags
             })
           : undefined;
 
         let magicMcpServer = await magicMcpServerService.updateMagicMcpServer({
           server: ctx.magicMcpServer,
+          accessTags: ctx.accessTags,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,

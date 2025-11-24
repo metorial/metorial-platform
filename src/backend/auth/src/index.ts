@@ -55,12 +55,17 @@ export let authenticate = async (req: Request, url: URL) => {
     );
   }
 
+  let consumerSessionClientSecret =
+    req.headers.get('metorial-consumer-session-client-secret') ??
+    url.searchParams.get('consumer_session_client_secret');
+
   let auth = await authenticationService.authenticate(
     bearerToken
       ? {
           type: 'api_key',
           apiKey: bearerToken,
-          context
+          context,
+          consumerSessionClientSecret
         }
       : {
           type: 'user_session',

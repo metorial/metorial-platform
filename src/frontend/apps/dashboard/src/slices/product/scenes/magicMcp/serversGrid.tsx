@@ -110,8 +110,10 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
               entity={{ id: server.id, hasUsage: true }}
               title={server.name ?? 'Unknown Server'}
               description={
-                server.description?.slice(0, 100) +
-                (server.description && server.description.length > 100 ? '...' : '')
+                server.description
+                  ? server.description?.slice(0, 100) +
+                    (server.description && server.description.length > 100 ? '...' : '')
+                  : undefined
               }
               height={250}
               icon={
@@ -188,7 +190,7 @@ export let MagicMcpServersTable = (filter: DashboardInstanceMagicMcpServersListQ
   return renderWithPagination(servers)(servers => (
     <>
       <Table
-        headers={['Name', 'Created']}
+        headers={['Info', 'Created']}
         data={servers.data.items.map(server => ({
           data: [
             <div>

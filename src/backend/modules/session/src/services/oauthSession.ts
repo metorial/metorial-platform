@@ -1,4 +1,5 @@
 import {
+  ConsumerProfile,
   db,
   ID,
   Instance,
@@ -10,6 +11,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { notFoundError, preconditionFailedError, ServiceError } from '@metorial/error';
+import { AccessTagSelectorList, accessTagService } from '@metorial/module-access';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 
@@ -24,11 +26,20 @@ let include = {
 };
 
 class ServerOAuthSessionImpl {
-  async getServerOAuthSessionById(d: { instance: Instance; serverOAuthSessionId: string }) {
+  async getServerOAuthSessionById(d: {
+    instance: Instance;
+    serverOAuthSessionId: string;
+    accessTags?: AccessTagSelectorList;
+  }) {
     let serverOAuthSession = await db.serverOAuthSession.findFirst({
       where: {
         id: d.serverOAuthSessionId,
-        instanceOid: d.instance.oid
+        instanceOid: d.instance.oid,
+
+        accessTags: await accessTagService.getAccessTagFilter({
+          tags: d.accessTags,
+          level: 'read'
+        })
       },
       include
     });
@@ -85,6 +96,7 @@ class ServerOAuthSessionImpl {
     instance: Instance;
     connection: ProviderOAuthConnection;
     existingToken?: ProviderOAuthConnectionAuthToken;
+    consumer?: { profile: ConsumerProfile };
     input: {
       metadata?: Record<string, string>;
       redirectUri?: string;
@@ -108,7 +120,15 @@ class ServerOAuthSessionImpl {
           connectionOid: d.connection.oid,
           metadata: d.input.metadata,
           redirectUri: d.input.redirectUri,
-          tokenReferenceOid: ref?.oid
+          tokenReferenceOid: ref?.oid,
+
+          consumerProfileOid: d.consumer?.profile.oid,
+          accessTags: d.consumer
+            ? await accessTagService.linkAccessTagToEntity({
+                tags: d.consumer.profile.accessTagOid,
+                level: 'read_write'
+              })
+            : undefined
         },
         include
       });
@@ -158,6 +178,7 @@ class ServerOAuthSessionImpl {
     status?: ServerOAuthSessionStatus[];
     sessionIds?: string[];
     oauthConnectionIds?: string[];
+    accessTags?: AccessTagSelectorList;
   }) {
     let oauthConnections = d.oauthConnectionIds?.length
       ? await db.providerOAuthConnection.findMany({
@@ -177,6 +198,11 @@ class ServerOAuthSessionImpl {
             ...opts,
             where: {
               instanceOid: d.instance.oid,
+
+              accessTags: await accessTagService.getAccessTagFilter({
+                tags: d.accessTags,
+                level: 'read'
+              }),
 
               AND: [
                 d.status

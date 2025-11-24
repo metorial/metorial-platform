@@ -3,10 +3,17 @@ enum MagicMcpTokenStatus {
   deleted
 }
 
+enum MagicMcpTokenType {
+  default
+  consumer
+}
+
 model MagicMcpToken {
-  oid    BigInt              @id @default(autoincrement())
-  id     String              @unique
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
   status MagicMcpTokenStatus
+  type   MagicMcpTokenType   @default(default)
 
   isGroupLocked Boolean @default(false)
 
@@ -20,10 +27,14 @@ model MagicMcpToken {
 
   metadata Json
 
+  consumerProfileOid BigInt?
+  consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid])
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   magicMcpSessions MagicMcpSession[]
   groups           MagicMcpGroupToken[]
+  accessTags       AccessTagEntity[]
 }

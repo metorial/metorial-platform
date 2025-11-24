@@ -12,6 +12,20 @@ export let backendEnv: Env = [
   { key: 'EMAIL_FROM_NAME' },
 
   {
+    key: 'CONSUMER_TOKEN_SECRET',
+    defaultValue: 'consumer-token-secret'
+  },
+  {
+    key: 'CONSUMER_SESSION_SECRET',
+    defaultValue: 'consumer-token-secret'
+  },
+
+  {
+    key: 'PORTAL_HOST_TEMPLATE',
+    defaultValue: 'http://localhost:4304/{portalId}'
+  },
+
+  {
     key: 'DATABASE_URL',
     defaultValue: `postgres://postgres:postgres@localhost:35432/${DB_PREFIX}`
   },
@@ -58,18 +72,18 @@ export let backendEnv: Env = [
     defaultValue: `http://localhost:4041`
   },
 
-  {
-    key: 'OPENSEARCH_HOST',
-    defaultValue: `http://localhost:9200`
-  },
-  {
-    key: 'OPENSEARCH_USERNAME',
-    defaultValue: `admin`
-  },
-  {
-    key: 'OPENSEARCH_PASSWORD',
-    defaultValue: `admin`
-  },
+  // {
+  //   key: 'OPENSEARCH_HOST',
+  //   defaultValue: `http://localhost:9200`
+  // },
+  // {
+  //   key: 'OPENSEARCH_USERNAME',
+  //   defaultValue: `admin`
+  // },
+  // {
+  //   key: 'OPENSEARCH_PASSWORD',
+  //   defaultValue: `admin`
+  // },
 
   { key: 'DENO_RUNNER_ADDRESS', defaultValue: `http://localhost:52000` },
 

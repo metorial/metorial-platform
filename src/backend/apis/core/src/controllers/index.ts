@@ -1,4 +1,6 @@
 import { Controller } from '@metorial/rest';
+import { consumerServerController } from './consumer/server';
+import { consumerSessionController } from './consumer/session';
 import { dashboardApiKeyController } from './dashboard/apiKey';
 import { dashboardBootController } from './dashboard/boot';
 import { dashboardManagedServerTemplateController } from './dashboard/managedServerTemplate';
@@ -26,6 +28,13 @@ import { magicMcpGroupController } from './instance/magicMcpGroup';
 import { magicMcpServerController } from './instance/magicMcpServer';
 import { magicMcpSessionController } from './instance/magicMcpSession';
 import { magicMcpTokenController } from './instance/magicMcpToken';
+import { portalController } from './instance/portal';
+import { portalConsumerAuthFactorController } from './instance/portalAuthFactors';
+import { portalConsumerAccessController } from './instance/portalConsumerAccess';
+import { portalConsumerGroupController } from './instance/portalConsumerGroup';
+import { portalConsumerProfileController } from './instance/portalConsumerProfile';
+import { portalConsumerServerRequestController } from './instance/portalConsumerServerRequest';
+import { portalFeaturedServersController } from './instance/portalFeaturedServers';
 import { providerOauthConnectionController } from './instance/providerOauthConnection';
 import { providerOauthConnectionAuthenticationController } from './instance/providerOauthConnectionAuthentication';
 import { providerOauthConnectionEventController } from './instance/providerOauthConnectionEvent';
@@ -38,6 +47,7 @@ import { serverController } from './instance/server';
 import { serverCapabilitiesController } from './instance/serverCapabilities';
 import { serverConfigVaultController } from './instance/serverConfigVault';
 import { serverDeploymentController } from './instance/serverDeployment';
+import { serverDeploymentTemplateController } from './instance/serverDeploymentTemplate';
 import { serverImplementationController } from './instance/serverImplementation';
 import { serverListingController } from './instance/serverListing';
 import { serverListingCategoryController } from './instance/serverListingCategory';
@@ -53,6 +63,9 @@ import { sessionController } from './instance/session';
 import { sessionConnectionController } from './instance/sessionConnection';
 import { sessionEventController } from './instance/sessionEvent';
 import { sessionMessageController } from './instance/sessionMessage';
+import { ssoProfileController } from './instance/ssoProfile';
+import { ssoTenantController } from './instance/ssoTenant';
+import { ssoUserController } from './instance/ssoUser';
 import { instanceManagementController } from './management/instance';
 import { organizationManagementController } from './management/organization';
 import { organizationInviteManagementController } from './management/organizationInvite';
@@ -78,9 +91,13 @@ export let pulsarController = Controller.create<any>(
     serverController,
     serverVariantController,
     serverVersionController,
+    serverListingController,
+    serverListingCategoryController,
+    serverListingCollectionController,
 
     serverImplementationController,
     serverDeploymentController,
+    serverDeploymentTemplateController,
 
     sessionController,
     sessionEventController,
@@ -118,7 +135,25 @@ export let pulsarController = Controller.create<any>(
     serverConfigVaultController,
     teamRolePermissionsManagementController,
     teamRoleManagementController,
-    teamManagementController
+    teamManagementController,
+
+    ssoTenantController,
+    ssoUserController,
+    ssoProfileController,
+
+    portalController,
+    portalConsumerGroupController,
+    portalConsumerAccessController,
+    portalConsumerProfileController,
+    portalConsumerAuthFactorController,
+
+    consumerSessionController,
+    consumerServerController
+
+    // consumerMagicMcpGroupController,
+    // consumerMagicMcpServerController,
+    // consumerMagicMcpSessionController,
+    // consumerMagicMcpTokenController
   }
 );
 
@@ -155,6 +190,7 @@ export let dashboardController = Controller.create<any>(
 
     serverImplementationController,
     serverDeploymentController,
+    serverDeploymentTemplateController,
 
     sessionController,
     sessionEventController,
@@ -206,7 +242,19 @@ export let dashboardController = Controller.create<any>(
     serverConfigVaultController,
     teamRolePermissionsManagementController,
     teamRoleManagementController,
-    teamManagementController
+    teamManagementController,
+
+    ssoTenantController,
+    ssoUserController,
+    ssoProfileController,
+
+    portalController,
+    portalConsumerGroupController,
+    portalConsumerAccessController,
+    portalConsumerProfileController,
+    portalConsumerAuthFactorController,
+    portalConsumerServerRequestController,
+    portalFeaturedServersController
   }
 );
 

@@ -87,7 +87,6 @@ export type DashboardInstanceCustomServersListingUpdateOutput = {
 } & {
   fork: { status: 'disabled' } | { status: 'enabled'; templateId: string };
   oauthExplainer: string | null;
-  readmeHtml: string | null;
 };
 
 export let mapDashboardInstanceCustomServersListingUpdateOutput = mtMap.union([
@@ -233,32 +232,25 @@ export let mapDashboardInstanceCustomServersListingUpdateOutput = mtMap.union([
           )
         ])
       ),
-      oauthExplainer: mtMap.objectField('oauth_explainer', mtMap.passthrough()),
-      readmeHtml: mtMap.objectField('readme_html', mtMap.passthrough())
-    })
-  )
-]);
-
-export type DashboardInstanceCustomServersListingUpdateBody =
-  | {
-      status: 'public';
-      name?: string | undefined;
-      description?: string | undefined;
-      readme?: string | undefined;
-      oauthExplainer?: string | null | undefined;
-    }
-  | { status: 'private' };
-
-export let mapDashboardInstanceCustomServersListingUpdateBody = mtMap.union([
-  mtMap.unionOption(
-    'object',
-    mtMap.object({
-      status: mtMap.objectField('status', mtMap.passthrough()),
-      name: mtMap.objectField('name', mtMap.passthrough()),
-      description: mtMap.objectField('description', mtMap.passthrough()),
-      readme: mtMap.objectField('readme', mtMap.passthrough()),
       oauthExplainer: mtMap.objectField('oauth_explainer', mtMap.passthrough())
     })
   )
 ]);
+
+export type DashboardInstanceCustomServersListingUpdateBody = {
+  status?: 'public' | 'private' | undefined;
+  name?: string | undefined;
+  description?: string | undefined;
+  readme?: string | undefined;
+  oauthExplainer?: string | null | undefined;
+};
+
+export let mapDashboardInstanceCustomServersListingUpdateBody =
+  mtMap.object<DashboardInstanceCustomServersListingUpdateBody>({
+    status: mtMap.objectField('status', mtMap.passthrough()),
+    name: mtMap.objectField('name', mtMap.passthrough()),
+    description: mtMap.objectField('description', mtMap.passthrough()),
+    readme: mtMap.objectField('readme', mtMap.passthrough()),
+    oauthExplainer: mtMap.objectField('oauth_explainer', mtMap.passthrough())
+  });
 

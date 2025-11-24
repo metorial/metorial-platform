@@ -1,13 +1,16 @@
 import { Context } from '@metorial/context';
 import {
+  ConsumerProfile,
   Instance,
   Organization,
   OrganizationActor,
   ServerDeploymentStatus,
   withTransaction
 } from '@metorial/db';
+import { badRequestError, forbiddenError, ServiceError } from '@metorial/error';
 import {
   serverDeploymentService,
+  serverDeploymentTemplateService,
   serverImplementationService
 } from '@metorial/module-server-deployment';
 import { Paginator } from '@metorial/pagination';
@@ -83,7 +86,8 @@ export let createServerDeploymentSchema = v.intersection([
       description: v.optional(v.string()),
       metadata: v.optional(v.record(v.any())),
       oauth_config: createServerDeploymentOAuthConfigSchema,
-      access: createServerDeploymentAccessSchema
+      access: createServerDeploymentAccessSchema,
+      server_deployment_template_id: v.optional(v.string())
     }),
     createServerDeploymentConfigSchema
   ]),
@@ -97,6 +101,10 @@ export let createServerDeployment = async (
     organization: Organization;
     actor: OrganizationActor;
     context: Context;
+    consumer?: {
+      profile: ConsumerProfile;
+      accessTags: bigint[];
+    };
   },
   opts?: {
     type: 'persistent' | 'ephemeral';
@@ -104,6 +112,60 @@ export let createServerDeployment = async (
   }
 ) => {
   return withTransaction(async db => {
+    if (ctx.consumer) {
+      if (
+        ('server_implementation' in data && data.server_implementation) ||
+        ('server_implementation_id' in data && data.server_implementation_id)
+      ) {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'Consumers cannot specify server implementations directly'
+          })
+        );
+      }
+
+      if ('oauth_config' in data && data.oauth_config) {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'Consumers cannot specify OAuth configuration directly'
+          })
+        );
+      }
+
+      if ('server_config_vault_id' in data && data.server_config_vault_id) {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'Consumers cannot specify vault-based configuration directly'
+          })
+        );
+      }
+
+      if ('access' in data && data.access) {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'Consumers cannot specify access limiters directly'
+          })
+        );
+      }
+    }
+
+    let template =
+      'server_deployment_template_id' in data && data.server_deployment_template_id
+        ? await serverDeploymentTemplateService.getServerDeploymentTemplateById({
+            instance: ctx.instance,
+            serverDeploymentTemplateId: data.server_deployment_template_id,
+            accessTags: ctx.consumer?.accessTags
+          })
+        : undefined;
+
+    if (ctx.consumer && !template) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Consumers can only create server deployments from templates'
+        })
+      );
+    }
+
     let serverImplementation =
       'server_implementation_id' in data
         ? {
@@ -123,6 +185,14 @@ export let createServerDeployment = async (
                 : await ensureDefaultServerImplementation(data, ctx)
           };
 
+    if (template && template.serverOid != serverImplementation.instance.serverOid) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Server deployment template does not match the server implementation'
+        })
+      );
+    }
+
     let serverDeployment = await serverDeploymentService.createServerDeployment({
       organization: ctx.organization,
       performedBy: ctx.actor,
@@ -131,16 +201,20 @@ export let createServerDeployment = async (
       type: opts?.type ?? 'persistent',
       context: ctx.context,
       parent: opts?.parent,
+      template,
+
       input: {
         name: data.name?.trim() || undefined,
         description: data.description?.trim() || undefined,
         metadata: data.metadata,
+
         oauthConfig: data.oauth_config
           ? {
               clientId: data.oauth_config.client_id,
               clientSecret: data.oauth_config.client_secret
             }
           : undefined,
+
         config:
           'config' in data
             ? {
@@ -151,6 +225,7 @@ export let createServerDeployment = async (
                 type: 'vault',
                 serverConfigVaultId: data.server_config_vault_id
               },
+
         accessLimiter: data.access
           ? {
               ipAllowlist: data.access.ip_allowlist

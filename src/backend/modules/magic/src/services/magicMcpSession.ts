@@ -1,5 +1,6 @@
 import { db, Instance } from '@metorial/db';
 import { notFoundError, ServiceError } from '@metorial/error';
+import { AccessTagSelectorList, accessTagService } from '@metorial/module-access';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 
@@ -13,11 +14,23 @@ let include = {
 };
 
 class MagicMcpSessionImpl {
-  async getMagicMcpSessionById(d: { instance: Instance; magicMcpSessionId: string }) {
+  async getMagicMcpSessionById(d: {
+    instance: Instance;
+    magicMcpSessionId: string;
+    accessTags?: AccessTagSelectorList;
+  }) {
     let magicMcpSession = await db.magicMcpSession.findFirst({
       where: {
         id: d.magicMcpSessionId,
-        instanceOid: d.instance.oid
+        instanceOid: d.instance.oid,
+        token: d.accessTags
+          ? {
+              accessTags: await accessTagService.getAccessTagFilter({
+                tags: d.accessTags,
+                level: 'read'
+              })
+            }
+          : undefined
       },
       include
     });
@@ -26,22 +39,15 @@ class MagicMcpSessionImpl {
     return magicMcpSession;
   }
 
-  async getManyMagicMcpSessions(d: { magicMcpSessionId: string[]; instance: Instance }) {
-    if (d.magicMcpSessionId.length === 0) return [];
-
-    return await db.magicMcpSession.findMany({
-      where: {
-        id: { in: d.magicMcpSessionId },
-        instanceOid: d.instance.oid
-      },
-      include
-    });
-  }
-
-  async listMagicMcpSessions(d: { instance: Instance; magicMcpServerId?: string[] }) {
+  async listMagicMcpSessions(d: {
+    instance: Instance;
+    magicMcpServerId?: string[];
+    accessTags?: AccessTagSelectorList;
+  }) {
     let servers = d.magicMcpServerId?.length
       ? await db.magicMcpServer.findMany({
-          where: { id: { in: d.magicMcpServerId }, instanceOid: d.instance.oid }
+          where: { id: { in: d.magicMcpServerId }, instanceOid: d.instance.oid },
+          select: { oid: true }
         })
       : undefined;
 
@@ -54,13 +60,36 @@ class MagicMcpSessionImpl {
               instanceOid: d.instance.oid,
 
               AND: [
-                servers ? { magicMcpServerOid: { in: servers.map(s => s.oid) } } : undefined!
+                servers ? { magicMcpServerOid: { in: servers.map(s => s.oid) } } : undefined!,
+
+                d.accessTags
+                  ? {
+                      token: {
+                        accessTags: await accessTagService.getAccessTagFilter({
+                          tags: d.accessTags,
+                          level: 'read'
+                        })
+                      }
+                    }
+                  : undefined!
               ].filter(Boolean)
             },
             include
           })
       )
     );
+  }
+
+  async getManyMagicMcpSessions(d: { magicMcpSessionId: string[]; instance: Instance }) {
+    if (d.magicMcpSessionId.length === 0) return [];
+
+    return await db.magicMcpSession.findMany({
+      where: {
+        id: { in: d.magicMcpSessionId },
+        instanceOid: d.instance.oid
+      },
+      include
+    });
   }
 }
 

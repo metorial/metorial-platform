@@ -229,6 +229,36 @@ vi.mock('@metorial/usage', () => ({
   }
 }));
 
+vi.mock('@metorial/module-callbacks', () => ({
+  callbackService: {
+    internalCreateCallbackForServerDeployment: vi.fn()
+  }
+}));
+
+vi.mock('@metorial/module-protect', () => ({
+  accessLimiterService: {
+    createAccessLimiter: vi.fn(),
+    checkAccessLimiter: vi.fn()
+  }
+}));
+
+vi.mock('@metorial/module-access', () => ({
+  accessTagService: {
+    getAccessTags: vi.fn(),
+    createAccessTag: vi.fn()
+  }
+}));
+
+vi.mock('@metorial/module-consumer', () => ({
+  consumerAuthService: {
+    createSession: vi.fn(),
+    validateSession: vi.fn()
+  },
+  consumerSurfaceService: {
+    getSurface: vi.fn()
+  }
+}));
+
 beforeEach(() => {
   vi.clearAllMocks();
 });

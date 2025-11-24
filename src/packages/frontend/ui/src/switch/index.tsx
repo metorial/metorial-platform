@@ -91,7 +91,15 @@ export let Switch = ({
           <Thumb />
         </Root>
 
-        <div onClick={e => root.current?.click()}>
+        <div
+          onClick={e => root.current?.click()}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            gap: '4px'
+          }}
+        >
           {hideLabel ? (
             <VisuallyHidden>
               <label htmlFor={id}>{label}</label>

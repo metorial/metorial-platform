@@ -25,6 +25,7 @@ vi.mock('@metorial/db', () => ({
     }
   },
   withTransaction: (fn: any) => fn(db),
+  addAfterTransactionHook: vi.fn(),
   ID: { generateId: vi.fn().mockResolvedValue('mock-id') }
 }));
 vi.mock('@metorial/service', () => ({

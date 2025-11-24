@@ -1,0 +1,27 @@
+enum ConsumerServerRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+model ConsumerServerRequest {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status ConsumerServerRequestStatus @default(pending)
+
+  consumerSurfaceOid BigInt
+  consumerSurface    ConsumerSurface @relation(fields: [consumerSurfaceOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid])
+
+  requestReason String
+  rejectReason  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

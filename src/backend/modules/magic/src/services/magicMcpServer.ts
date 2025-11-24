@@ -1,5 +1,6 @@
 import { Context } from '@metorial/context';
 import {
+  ConsumerProfile,
   db,
   ID,
   Instance,
@@ -13,7 +14,8 @@ import {
   withTransaction
 } from '@metorial/db';
 import { notFoundError, preconditionFailedError, ServiceError } from '@metorial/error';
-import { generateCode } from '@metorial/id';
+import { generateCode, generatePlainId } from '@metorial/id';
+import { AccessTagSelectorList, accessTagService } from '@metorial/module-access';
 import { searchService } from '@metorial/module-search';
 import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
@@ -36,19 +38,40 @@ let include = {
 };
 
 class MagicMcpServerImpl {
-  async getMagicMcpServerById(d: { instance: Instance; magicMcpServerId: string }) {
+  async privateGetAccessTagFilterForReadAccess(d: { accessTags?: AccessTagSelectorList }) {
+    return {
+      accessTags: await accessTagService.getAccessTagFilter({
+        tags: d.accessTags,
+        level: 'read'
+      })
+    };
+  }
+
+  async getMagicMcpServerById(d: {
+    accessTags?: AccessTagSelectorList;
+    instance: Instance;
+    magicMcpServerId: string;
+  }) {
     let magicMcpServer = await db.magicMcpServer.findFirst({
       where: {
         instanceOid: d.instance.oid,
 
-        OR: [
-          { id: d.magicMcpServerId },
+        AND: [
           {
-            aliases: {
-              some: { slug: d.magicMcpServerId }
-            }
-          }
-        ]
+            OR: [
+              { id: d.magicMcpServerId },
+              {
+                aliases: {
+                  some: { slug: d.magicMcpServerId }
+                }
+              }
+            ]
+          },
+
+          d.accessTags
+            ? await this.privateGetAccessTagFilterForReadAccess({ accessTags: d.accessTags })
+            : undefined!
+        ].filter(Boolean)
       },
       include
     });
@@ -97,15 +120,22 @@ class MagicMcpServerImpl {
     instance: Instance;
     context: Context;
 
+    consumer?: {
+      profile: ConsumerProfile;
+    };
+
     serverDeployment: ServerDeployment;
 
     input: {
       name?: string;
       description?: string;
       metadata?: Record<string, any>;
+      defaultOauthSession?: ServerOAuthSession;
     };
   }) {
-    let slug = await slugify(`${d.input.name}-${generateCode(5)}`);
+    let slug = d.input.name
+      ? await slugify(`${d.input.name}-${generateCode(5)}`)
+      : generatePlainId(12);
 
     return withTransaction(async db => {
       let server = await db.magicMcpServer.create({
@@ -124,7 +154,17 @@ class MagicMcpServerImpl {
           metadata: d.input.metadata || {},
           aliases: {
             create: { slug }
-          }
+          },
+
+          defaultServerOauthSessionOid: d.input.defaultOauthSession?.oid,
+
+          consumerProfileOid: d.consumer?.profile.oid,
+          accessTags: d.consumer
+            ? await accessTagService.linkAccessTagToEntity({
+                tags: d.consumer.profile.accessTagOid,
+                level: 'read_write'
+              })
+            : undefined
         },
         include
       });
@@ -137,7 +177,27 @@ class MagicMcpServerImpl {
     });
   }
 
-  async archiveMagicMcpServer(d: { server: MagicMcpServer }) {
+  async checkWriteAccess(d: { server: MagicMcpServer; accessTags?: AccessTagSelectorList }) {
+    await accessTagService.checkResourceAccess({
+      tags: d.accessTags,
+      level: 'read_write',
+      checker: async filter =>
+        await db.magicMcpServer.findFirst({
+          where: {
+            oid: d.server.oid,
+            accessTags: filter
+          },
+          select: { oid: true }
+        })
+    });
+  }
+
+  async archiveMagicMcpServer(d: {
+    server: MagicMcpServer;
+    accessTags?: AccessTagSelectorList;
+  }) {
+    await this.checkWriteAccess({ server: d.server, accessTags: d.accessTags });
+
     if (d.server.status === 'archived') {
       throw new ServiceError(
         preconditionFailedError({
@@ -155,6 +215,7 @@ class MagicMcpServerImpl {
 
   async updateMagicMcpServer(d: {
     server: MagicMcpServer & { aliases: MagicMcpServerAlias[] };
+    accessTags?: AccessTagSelectorList;
     input: {
       name?: string | null;
       description?: string | null;
@@ -163,6 +224,8 @@ class MagicMcpServerImpl {
       defaultOauthSession?: ServerOAuthSession;
     };
   }) {
+    await this.checkWriteAccess({ server: d.server, accessTags: d.accessTags });
+
     if (d.server.status != 'active') {
       throw new ServiceError(
         preconditionFailedError({
@@ -209,6 +272,7 @@ class MagicMcpServerImpl {
     search?: string;
     instance: Instance;
     status?: MagicMcpServerStatus[];
+    accessTags?: AccessTagSelectorList;
   }) {
     let search = d.search
       ? await searchService.search<{ id: string }>({
@@ -225,27 +289,32 @@ class MagicMcpServerImpl {
 
     let servers = d.serverIds?.length
       ? await db.server.findMany({
-          where: { id: { in: d.serverIds } }
+          where: { id: { in: d.serverIds } },
+          select: { oid: true }
         })
       : undefined;
     let serverVariants = d.serverVariantIds?.length
       ? await db.serverVariant.findMany({
-          where: { id: { in: d.serverVariantIds } }
+          where: { id: { in: d.serverVariantIds } },
+          select: { oid: true }
         })
       : undefined;
     let serverImplementations = d.serverImplementationIds?.length
       ? await db.serverImplementation.findMany({
-          where: { id: { in: d.serverImplementationIds } }
+          where: { id: { in: d.serverImplementationIds } },
+          select: { oid: true }
         })
       : undefined;
     let sessions = d.sessionIds?.length
       ? await db.session.findMany({
-          where: { id: { in: d.sessionIds } }
+          where: { id: { in: d.sessionIds } },
+          select: { oid: true }
         })
       : undefined;
     let groups = d.groupIds?.length
       ? await db.magicMcpGroup.findMany({
-          where: { id: { in: d.groupIds } }
+          where: { id: { in: d.groupIds } },
+          select: { oid: true }
         })
       : undefined;
 
@@ -259,16 +328,24 @@ class MagicMcpServerImpl {
             AND: [
               d.status
                 ? { status: { in: d.status } }
-                : { status: { not: 'archived' as const } }
-            ].filter(Boolean),
+                : { status: { not: 'archived' as const } },
 
-            groups: groups
-              ? {
-                  some: {
-                    magicMcpGroupOid: { in: groups.map(g => g.oid) }
+              groups
+                ? {
+                    groups: {
+                      some: {
+                        magicMcpGroupOid: { in: groups.map(g => g.oid) }
+                      }
+                    }
                   }
-                }
-              : undefined,
+                : undefined!,
+
+              d.accessTags
+                ? await this.privateGetAccessTagFilterForReadAccess({
+                    accessTags: d.accessTags
+                  })
+                : undefined!
+            ].filter(Boolean),
 
             serverDeployment: {
               serverDeployment: {

@@ -20,16 +20,20 @@ export let serverCapabilitiesController = Controller.create(
         description:
           'Returns a list of server capabilities, filterable by server attributes such as deployment, variant, or version.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.server_listing:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.server_listing:read', 'instance.server:read']
+        })
+      )
       .output(serverCapabilitiesPresenter)
       .query(
         'default',
         Paginator.validate(
           v.object({
-            server_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())])),
             server_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())])),
             server_version_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            server_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
             server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )

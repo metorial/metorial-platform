@@ -26,12 +26,38 @@ class ssoAuthServiceImpl {
       where: { ssoTenantId: res.tenant.id }
     });
 
+    let currentUser = await db.ssoUser.findUnique({
+      where: {
+        ssoUserId: res.user.id,
+        ssoTenantOid: tenant.oid
+      }
+    });
+    let allGroups = [...new Set([...(currentUser?.allGroups || []), ...res.profile.groups])];
+    let allRoles = [...new Set([...(currentUser?.allRoles || []), ...res.profile.roles])];
+
+    let missingGroupsFromTenant = allGroups.filter(g => !tenant.availableGroups.includes(g));
+    let missingRolesFromTenant = allRoles.filter(r => !tenant.availableRoles.includes(r));
+
+    if (missingGroupsFromTenant.length || missingRolesFromTenant.length) {
+      await db.ssoTenant.updateMany({
+        where: { oid: tenant.oid },
+        data: {
+          availableGroups: [
+            ...new Set([...tenant.availableGroups, ...missingGroupsFromTenant])
+          ],
+          availableRoles: [...new Set([...tenant.availableRoles, ...missingRolesFromTenant])]
+        }
+      });
+    }
+
     let ssoUserData = {
       ssoTenantOid: tenant.oid,
       ssoUserId: res.user.id,
       email: res.user.email,
       firstName: res.user.firstName,
-      lastName: res.user.lastName
+      lastName: res.user.lastName,
+      allGroups,
+      allRoles
     };
     let user = await db.ssoUser.upsert({
       where: {
@@ -71,7 +97,8 @@ class ssoAuthServiceImpl {
     return {
       tenant,
       user,
-      profile
+      profile,
+      state: res.auth.state
     };
   }
 }

@@ -128,17 +128,29 @@ class SearchService {
 
         let record = (await indexRecords)[index];
 
-        await db.searchIndexEntry.createMany({
-          skipDuplicates: true,
-          data: docs.map(doc => ({
-            indexOid: record.oid,
-            documentId: doc[options.primaryKey],
+        for (let doc of docs) {
+          let rec = {
             content: Object.values(doc)
               .filter(v => typeof v === 'string')
               .join(' '),
             fields: doc
-          }))
-        });
+          };
+
+          await db.searchIndexRecord.upsert({
+            where: {
+              documentId_indexOid: {
+                indexOid: record.oid,
+                documentId: doc[options.primaryKey]
+              }
+            },
+            create: {
+              indexOid: record.oid,
+              documentId: doc[options.primaryKey],
+              ...rec
+            },
+            update: rec
+          });
+        }
       },
 
       search: async (
@@ -205,11 +217,13 @@ class SearchService {
           return { hits: result.hits };
         }
 
+        console.log('Searching fallback in searchIndexRecord for', query);
+
         let record = (await indexRecords)[index];
-        let entries = await db.searchIndexEntry.findMany({
+        let entries = await db.searchIndexRecord.findMany({
           where: {
             indexOid: record.oid,
-            content: { contains: query }
+            content: { contains: query, mode: 'insensitive' }
           },
           take: options?.limit
         });

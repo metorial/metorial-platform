@@ -45,6 +45,7 @@ class connectionServiceImpl {
     return await Connection.create({
       tenantId: d.tenant._id,
 
+      internalId: con.clientID,
       internalClientId: con.clientID,
       internalClientSecret: con.clientSecret,
 

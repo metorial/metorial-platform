@@ -12,6 +12,7 @@ import {
   ServerDeployment,
   ServerDeploymentConfig,
   ServerDeploymentStatus,
+  ServerDeploymentTemplate,
   ServerImplementation,
   ServerVariant,
   withTransaction
@@ -173,6 +174,8 @@ class ServerDeploymentServiceImpl {
     instance: Instance;
     context: Context;
 
+    template?: ServerDeploymentTemplate;
+
     serverImplementation: {
       instance: ServerImplementation & { serverVariant: ServerVariant; server: Server };
       isNewEphemeral: boolean;
@@ -190,6 +193,10 @@ class ServerDeploymentServiceImpl {
         | {
             type: 'vault';
             serverConfigVaultId: string;
+          }
+        | {
+            type: 'server_deployment_template';
+            template: ServerDeploymentTemplate;
           };
       oauthConfig?: {
         clientId: string;
@@ -307,7 +314,16 @@ class ServerDeploymentServiceImpl {
           d.input.oauthConfig ||
           oauthConfig.discoverStatus == 'manual'
         ) {
-          if (!d.input.oauthConfig) {
+          let oauthConfigData = oauthConfig.config;
+
+          if (!oauthConfigData && d.template?.oauthConfigClientId) {
+            oauthConfigData = {
+              clientId: d.template.oauthConfigClientId!,
+              clientSecret: d.template.oauthConfigClientSecret!
+            };
+          }
+
+          if (!oauthConfigData) {
             throw new ServiceError(
               badRequestError({
                 message: 'OAuth configuration is required for this server deployment'
@@ -335,24 +351,24 @@ class ServerDeploymentServiceImpl {
                         type: 'json',
                         config: oauthConfig.config,
                         scopes: oauthConfig.scopes,
-                        clientId: d.input.oauthConfig.clientId,
-                        clientSecret: d.input.oauthConfig.clientSecret
+                        clientId: oauthConfigData.clientId,
+                        clientSecret: oauthConfigData.clientSecret
                       }
                     : oauthConfig.type == 'managed_server_http'
                       ? {
                           type: 'managed_server_http',
                           httpEndpoint: oauthConfig.httpEndpoint!,
                           hasRemoteOauthForm: oauthConfig.hasRemoteOauthForm!,
-                          clientId: d.input.oauthConfig.clientId,
-                          clientSecret: d.input.oauthConfig.clientSecret,
+                          clientId: oauthConfigData.clientId,
+                          clientSecret: oauthConfigData.clientSecret,
                           lambdaServerInstanceOid:
                             oauthConfig.lambdaServerInstanceForManagedServerOid!
                         }
                       : {
                           type: 'managed_server_lambda',
                           hasRemoteOauthForm: oauthConfig.hasRemoteOauthForm!,
-                          clientId: d.input.oauthConfig.clientId,
-                          clientSecret: d.input.oauthConfig.clientSecret,
+                          clientId: oauthConfigData.clientId,
+                          clientSecret: oauthConfigData.clientSecret,
                           lambdaServerInstanceOid:
                             oauthConfig.lambdaServerInstanceForManagedServerOid!
                         }
@@ -394,7 +410,24 @@ class ServerDeploymentServiceImpl {
       let configValue: any;
       if (d.input.config.type == 'direct') {
         configValue = d.input.config.config;
-      } else {
+      } else if (d.input.config.type == 'server_deployment_template') {
+        if (!d.input.config.template.configSecretOid) {
+          throw new ServiceError(
+            badRequestError({
+              message:
+                'Server deployment template does not have a config, the server deployment config must be specified manually'
+            })
+          );
+        }
+
+        let configSecret = await secretService.DANGEROUSLY_readSecretValue({
+          secretId: d.input.config.template.configSecretOid,
+          performedBy: d.performedBy,
+          instance: d.instance,
+          type: 'server_deployment_template_config'
+        });
+        configValue = configSecret.data;
+      } else if (d.input.config.type == 'vault') {
         let vault = await db.serverConfigVault.findFirst({
           where: {
             id: d.input.config.serverConfigVaultId,
@@ -416,6 +449,8 @@ class ServerDeploymentServiceImpl {
           type: 'server_config_vault'
         });
         configValue = configSecret.data;
+      } else {
+        throw new Error('WTF - Unhandled server deployment config input type');
       }
 
       let { schema, data } = await this.checkServerDeploymentConfig({
@@ -721,22 +756,26 @@ class ServerDeploymentServiceImpl {
 
     let servers = d.serverIds?.length
       ? await db.server.findMany({
-          where: { id: { in: d.serverIds } }
+          where: { id: { in: d.serverIds } },
+          select: { oid: true }
         })
       : undefined;
     let serverVariants = d.serverVariantIds?.length
       ? await db.serverVariant.findMany({
-          where: { id: { in: d.serverVariantIds } }
+          where: { id: { in: d.serverVariantIds } },
+          select: { oid: true }
         })
       : undefined;
     let serverImplementations = d.serverImplementationIds?.length
       ? await db.serverImplementation.findMany({
-          where: { id: { in: d.serverImplementationIds } }
+          where: { id: { in: d.serverImplementationIds } },
+          select: { oid: true }
         })
       : undefined;
     let sessions = d.sessionIds?.length
       ? await db.session.findMany({
-          where: { id: { in: d.sessionIds } }
+          where: { id: { in: d.sessionIds } },
+          select: { oid: true }
         })
       : undefined;
 

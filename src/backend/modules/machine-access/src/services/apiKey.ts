@@ -2,7 +2,9 @@ import { UnifiedApiKey } from '@metorial/api-keys';
 import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
 import {
+  addAfterTransactionHook,
   ApiKey,
+  ApiKeyKind,
   db,
   ID,
   Instance,
@@ -33,10 +35,18 @@ export type ListApiKeysFilter =
 
 class ApiKeyService {
   private async ensureApiKeyActive(apiKey: ApiKey) {
-    if (apiKey.status !== 'active') {
+    if (apiKey.status != 'active') {
       throw new ServiceError(
         forbiddenError({
           message: 'Cannot perform this action on a deleted api key'
+        })
+      );
+    }
+
+    if (apiKey.kind == 'system_internal') {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Cannot perform this action on an internal system api key'
         })
       );
     }
@@ -50,6 +60,7 @@ class ApiKeyService {
         expiresAt?: Date;
       };
       context: Context;
+      kind?: ApiKeyKind;
     } & (
       | {
           type: 'organization_management_token';
@@ -109,6 +120,7 @@ class ApiKeyService {
         data: {
           id: await ID.generateId('apiKey'),
           status: 'active',
+          kind: d.kind ?? 'user_created',
           type: d.type,
           name: d.input.name,
           description: d.input.description,
@@ -148,11 +160,13 @@ class ApiKeyService {
       };
     });
 
-    await Fabric.fire('machine_access.api_key.created:after', {
-      ...d,
-      apiKey: res.apiKey,
-      machineAccess: res.apiKey.machineAccess
-    });
+    addAfterTransactionHook(() =>
+      Fabric.fire('machine_access.api_key.created:after', {
+        ...d,
+        apiKey: res.apiKey,
+        machineAccess: res.apiKey.machineAccess
+      })
+    );
 
     return res;
   }
@@ -422,6 +436,7 @@ class ApiKeyService {
     let apiKey = await db.apiKey.findFirst({
       where: {
         id: d.apiKeyId,
+        kind: 'user_created',
 
         machineAccess: {
           organizationOid: d.organization.oid
@@ -447,6 +462,7 @@ class ApiKeyService {
     let apiKey = await db.apiKey.findFirst({
       where: {
         id: d.apiKeyId,
+        kind: 'user_created',
 
         machineAccess: {
           OR: [
@@ -502,6 +518,7 @@ class ApiKeyService {
             ...opts,
             where: {
               status: 'active',
+              kind: 'user_created',
 
               ...(d.filter.type == 'organization_management_token'
                 ? {

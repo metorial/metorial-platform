@@ -241,10 +241,15 @@ export let denoDeployMainQueueProcessor = denoDeployMainQueue.process(async data
     await withTransaction(async db => {
       await deploymentStep.addLog(['Creating server version...']);
 
+      let currentLambda = await db.lambdaServerInstance.findFirstOrThrow({
+        where: { id: lambda.id }
+      });
+
       let serverVersion = await db.serverVersion.create({
         data: {
           ...data.serverVersionData,
-          lambdaOid: lambda.oid
+          lambdaOid: lambda.oid,
+          oauthCredentialProvider: currentLambda.providerOAuthConfigOid ? 'manual' : 'none'
         }
       });
 
@@ -252,7 +257,8 @@ export let denoDeployMainQueueProcessor = denoDeployMainQueue.process(async data
         where: { id: customServerVersion.id },
         data: {
           status: 'available',
-          serverVersionOid: serverVersion.oid
+          serverVersionOid: serverVersion.oid,
+          oauthCredentialProvider: serverVersion.oauthCredentialProvider
         },
         include: {
           serverVersion: true

@@ -679,7 +679,8 @@ export let lambdaDeployFinalizerQueueProcessor = lambdaDeployFinalizerQueue.proc
         let serverVersion = await db.serverVersion.create({
           data: {
             ...data.serverVersionData,
-            lambdaOid: lambda.oid
+            lambdaOid: lambda.oid,
+            oauthCredentialProvider: lambda.providerOAuthConfigOid ? 'manual' : 'none'
           }
         });
 
@@ -687,7 +688,8 @@ export let lambdaDeployFinalizerQueueProcessor = lambdaDeployFinalizerQueue.proc
           where: { id: customServerVersion.id },
           data: {
             status: 'available',
-            serverVersionOid: serverVersion.oid
+            serverVersionOid: serverVersion.oid,
+            oauthCredentialProvider: serverVersion.oauthCredentialProvider
           },
           include: {
             serverVersion: true

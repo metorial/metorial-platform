@@ -14,7 +14,8 @@ export let magicMcpTokenGroup = instanceGroup.use(async ctx => {
 
   let magicMcpToken = await magicMcpTokenService.getMagicMcpTokenById({
     magicMcpTokenId: ctx.params.magicMcpTokenId,
-    instance: ctx.instance
+    instance: ctx.instance,
+    accessTags: ctx.accessTags
   });
 
   return { magicMcpToken };
@@ -32,7 +33,11 @@ export let magicMcpTokenController = Controller.create(
         name: 'List magic MCP token',
         description: 'List all magic MCP token'
       })
-      .use(checkAccess({ possibleScopes: ['instance.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.session:read', 'consumer#instance.magic_mcp:read']
+        })
+      )
       .outputList(magicMcpTokenPresenter)
       .query(
         'default',
@@ -52,8 +57,10 @@ export let magicMcpTokenController = Controller.create(
       .do(async ctx => {
         let paginator = await magicMcpTokenService.listMagicMcpTokens({
           instance: ctx.instance,
+          accessTags: ctx.accessTags,
           groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
-          status: normalizeArrayParam(ctx.query.status) as any
+          status: normalizeArrayParam(ctx.query.status) as any,
+          consumer: ctx.consumerProfile ? { profile: ctx.consumerProfile } : undefined
         });
 
         let list = await paginator.run(ctx.query);
@@ -68,7 +75,11 @@ export let magicMcpTokenController = Controller.create(
         name: 'Get magic MCP token',
         description: 'Get the information of a specific magic MCP token'
       })
-      .use(checkAccess({ possibleScopes: ['instance.session:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.session:read', 'consumer#instance.magic_mcp:read']
+        })
+      )
       .output(magicMcpTokenPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
@@ -80,7 +91,11 @@ export let magicMcpTokenController = Controller.create(
         name: 'Create magic MCP token',
         description: 'Create a new magic MCP token'
       })
-      .use(checkAccess({ possibleScopes: ['instance.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.session:write', 'consumer#instance.magic_mcp:write']
+        })
+      )
       .body(
         'default',
         v.object({
@@ -104,7 +119,8 @@ export let magicMcpTokenController = Controller.create(
         let groups = ctx.body.group_ids?.length
           ? await magicMcpGroupService.findManyGroupsById({
               groupIds: ctx.body.group_ids,
-              instance: ctx.instance
+              instance: ctx.instance,
+              accessTags: ctx.accessTags
             })
           : undefined;
 
@@ -118,7 +134,8 @@ export let magicMcpTokenController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata
-          }
+          },
+          consumer: ctx.consumerProfile ? { profile: ctx.consumerProfile } : undefined
         });
 
         return magicMcpTokenPresenter.present({ magicMcpToken });
@@ -129,12 +146,22 @@ export let magicMcpTokenController = Controller.create(
         name: 'Delete magic MCP token',
         description: 'Delete a specific magic MCP token'
       })
-      .use(checkAccess({ possibleScopes: ['instance.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.session:write', 'consumer#instance.magic_mcp:write']
+        })
+      )
       .output(magicMcpTokenPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
+        await magicMcpTokenService.checkWriteAccess({
+          token: ctx.magicMcpToken,
+          accessTags: ctx.accessTags
+        });
+
         let magicMcpToken = await magicMcpTokenService.deleteMagicMcpToken({
-          token: ctx.magicMcpToken
+          token: ctx.magicMcpToken,
+          accessTags: ctx.accessTags
         });
 
         return magicMcpTokenPresenter.present({ magicMcpToken });
@@ -145,7 +172,11 @@ export let magicMcpTokenController = Controller.create(
         name: 'Update magic MCP token',
         description: 'Update the information of a specific magic MCP token'
       })
-      .use(checkAccess({ possibleScopes: ['instance.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.session:write', 'consumer#instance.magic_mcp:write']
+        })
+      )
       .body(
         'default',
         v.object({
@@ -161,8 +192,14 @@ export let magicMcpTokenController = Controller.create(
       .output(magicMcpTokenPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
+        await magicMcpTokenService.checkWriteAccess({
+          token: ctx.magicMcpToken,
+          accessTags: ctx.accessTags
+        });
+
         let magicMcpToken = await magicMcpTokenService.updateMagicMcpToken({
           token: ctx.magicMcpToken,
+          accessTags: ctx.accessTags,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -184,7 +221,11 @@ export let magicMcpTokenController = Controller.create(
           description: 'Add magic MCP groups to a specific magic MCP token'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.session:write']
+        })
+      )
       .body(
         'default',
         v.object({
@@ -196,6 +237,11 @@ export let magicMcpTokenController = Controller.create(
       .output(magicMcpTokenPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
+        await magicMcpTokenService.checkWriteAccess({
+          token: ctx.magicMcpToken,
+          accessTags: ctx.accessTags
+        });
+
         let magicMcpToken = await magicMcpTokenService.addGroupsToToken({
           token: ctx.magicMcpToken,
           groupIds: ctx.body.magic_mcp_group_ids
@@ -215,7 +261,11 @@ export let magicMcpTokenController = Controller.create(
           description: 'Remove magic MCP groups from a specific magic MCP token'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.session:write'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.session:write']
+        })
+      )
       .body(
         'default',
         v.object({
@@ -227,6 +277,11 @@ export let magicMcpTokenController = Controller.create(
       .output(magicMcpTokenPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
+        await magicMcpTokenService.checkWriteAccess({
+          token: ctx.magicMcpToken,
+          accessTags: ctx.accessTags
+        });
+
         let magicMcpToken = await magicMcpTokenService.removeGroupsFromToken({
           token: ctx.magicMcpToken,
           groupIds: ctx.body.magic_mcp_group_ids

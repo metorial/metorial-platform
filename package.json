@@ -6,6 +6,7 @@
     "generate:client": "turbo run generate:client && turbo run build",
     "client:generate": "bun run generate:client",
     "client:generate:dashboard": "turbo run generate:client:dashboard",
+    "client:generate:consumer": "turbo run generate:client:consumer",
     "dev": "turbo run --concurrency 99 dev",
     "test": "turbo run --concurrency=1 --ui=stream test",
     "prisma:generate": "turbo run --ui=stream prisma:generate",
@@ -27,6 +28,7 @@
   "workspaces": [
     "_clients/metorial-node/*/*",
     "clients/metorial-dashboard",
+    "clients/metorial-consumer",
     "scripts/*",
     "vendor-placeholder/*",
     "src/*",

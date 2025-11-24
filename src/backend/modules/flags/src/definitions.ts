@@ -18,6 +18,8 @@ export type Flags = {
   'paid-advanced-roles': boolean;
   'paid-audit-logs': boolean;
   'paid-magic-mcp-groups': boolean;
+  'paid-sso-tenants': boolean;
+  'paid-portals': boolean;
 };
 
 export let defaultFlags: Flags = {
@@ -28,7 +30,7 @@ export let defaultFlags: Flags = {
   'provider-oauth-enabled': true,
   'managed-servers-enabled': true,
   'community-profiles-enabled': true,
-  'magic-mcp-enabled': false,
+  'magic-mcp-enabled': true,
   'callbacks-enabled': true,
 
   'paid-oauth-takeout': true,
@@ -37,7 +39,9 @@ export let defaultFlags: Flags = {
   'paid-advanced-security': true,
   'paid-advanced-roles': true,
   'paid-audit-logs': true,
-  'paid-magic-mcp-groups': true
+  'paid-magic-mcp-groups': true,
+  'paid-sso-tenants': true,
+  'paid-portals': true
 };
 
 export type FlagProviderParams = {

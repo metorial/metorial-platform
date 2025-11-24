@@ -349,18 +349,13 @@ export let customServerController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.custom_server:write'] }))
       .body(
         'default',
-        v.union([
-          v.object({
-            status: v.literal('public'),
-            name: v.optional(v.string()),
-            description: v.optional(v.string()),
-            readme: v.optional(v.string()),
-            oauth_explainer: v.optional(v.nullable(v.string()))
-          }),
-          v.object({
-            status: v.literal('private')
-          })
-        ])
+        v.object({
+          status: v.optional(v.enumOf(['public', 'private'])),
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
+          readme: v.optional(v.string()),
+          oauth_explainer: v.optional(v.nullable(v.string()))
+        })
       )
       .output(serverListingPresenter)
       .use(hasFlags(['metorial-gateway-enabled', 'paid-custom-servers']))
@@ -370,18 +365,13 @@ export let customServerController = Controller.create(
           organization: ctx.organization,
           performedBy: ctx.actor,
           instance: ctx.instance,
-          input:
-            ctx.body.status == 'private'
-              ? {
-                  isPublic: false
-                }
-              : {
-                  isPublic: true,
-                  name: ctx.body.name,
-                  description: ctx.body.description,
-                  readme: ctx.body.readme,
-                  oauthExplainer: ctx.body.oauth_explainer
-                }
+          input: {
+            isPublic: ctx.body.status ? ctx.body.status == 'public' : undefined,
+            name: ctx.body.name,
+            description: ctx.body.description,
+            readme: ctx.body.readme,
+            oauthExplainer: ctx.body.oauth_explainer
+          }
         });
 
         return serverListingPresenter.present({

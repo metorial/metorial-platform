@@ -840,7 +840,8 @@ describe('ServerImplementationService', () => {
       });
 
       expect(db.serverVariant.findMany).toHaveBeenCalledWith({
-        where: { id: { in: ['variant-1'] } }
+        where: { id: { in: ['variant-1'] } },
+        select: { oid: true }
       });
     });
 
@@ -857,7 +858,8 @@ describe('ServerImplementationService', () => {
       });
 
       expect(db.server.findMany).toHaveBeenCalledWith({
-        where: { id: { in: ['server-1'] } }
+        where: { id: { in: ['server-1'] } },
+        select: { oid: true }
       });
     });
 
