@@ -20,6 +20,7 @@ export type Flags = {
   'paid-magic-mcp-groups': boolean;
   'paid-sso-tenants': boolean;
   'paid-portals': boolean;
+  'paid-custom-docker-servers': boolean;
 };
 
 export let defaultFlags: Flags = {
@@ -41,7 +42,8 @@ export let defaultFlags: Flags = {
   'paid-audit-logs': true,
   'paid-magic-mcp-groups': true,
   'paid-sso-tenants': true,
-  'paid-portals': true
+  'paid-portals': true,
+  'paid-custom-docker-servers': true
 };
 
 export type FlagProviderParams = {

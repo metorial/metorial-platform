@@ -79,6 +79,12 @@ class customServerServiceImpl {
             repo: ScmRepo;
             path: string;
           };
+        }
+      | {
+          type: 'docker';
+          implementation: {
+            dockerImage: string;
+          };
         };
 
     isEphemeral: boolean;
@@ -187,6 +193,12 @@ class customServerServiceImpl {
             ? {
                 remoteServerProtocol: d.serverInstance.implementation.protocol,
                 remoteUrl: d.serverInstance.implementation.remoteUrl
+              }
+            : {}),
+
+          ...(d.serverInstance.type == 'docker'
+            ? {
+                dockerImage: d.serverInstance.implementation.dockerImage
               }
             : {}),
 

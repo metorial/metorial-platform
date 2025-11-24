@@ -25,6 +25,7 @@ import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { createShortIdGenerator } from '@metorial/slugify';
 import { validateJsonSchema } from '../lib/jsonSchema';
+import { initializeDockerQueue } from '../queues/initializeDocker';
 import { initializeLambdaQueue } from '../queues/initializeLambda';
 import { initializeRemoteQueue } from '../queues/initializeRemote';
 import { syncCurrentDraftBucketToRepoQueue } from '../queues/syncCurrentDraftBucketToRepo';
@@ -48,6 +49,11 @@ let include = {
     }
   },
   lambdaServerInstance: {
+    include: {
+      providerOAuthConfig: true
+    }
+  },
+  dockerServerInstance: {
     include: {
       providerOAuthConfig: true
     }
@@ -87,12 +93,22 @@ let defaultManagedConfigSchema = {
 };
 
 let defaultManagedLaunchParams = `(config, ctx) => ({
-  args: {
-    // Get access to oauth token (if oauth is configured)
-    token: config.oauthToken,
+  command: 'npm',
+  args: ['run', 'start'],
+  env: {}
+});`;
 
-    ...config
-  }
+let defaultDockerConfigSchema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  $id: 'https://schema.metorial.com/remote-server-config.json',
+  title: 'Docker Server Config',
+  type: 'object',
+  properties: {},
+  required: []
+};
+
+let defaultDockerLaunchParams = `(config, ctx) => ({
+  
 });`;
 
 class CustomServerVersionServiceImpl {
@@ -141,6 +157,22 @@ class CustomServerVersionServiceImpl {
             encoding: 'utf-8' | 'base64';
             path: string;
           }[];
+        }
+      | {
+          type: 'docker';
+          implementation: {
+            dockerImage?: string;
+            dockerTag?: string;
+
+            oAuthConfig?: {
+              config: any;
+              scopes: string[];
+            } | null;
+          };
+          config?: {
+            schema?: any;
+            getLaunchParams?: string;
+          };
         };
 
     isEphemeralUpdate?: boolean;
@@ -186,6 +218,9 @@ class CustomServerVersionServiceImpl {
                   lambdaServerInstance: {
                     include: { providerOAuthConfig: true }
                   },
+                  dockerServerInstance: {
+                    include: { providerOAuthConfig: true }
+                  },
                   serverVersion: {
                     include: { schema: true }
                   }
@@ -229,7 +264,7 @@ class CustomServerVersionServiceImpl {
               remoteServerProtocol: d.serverInstance.implementation.protocol,
               remoteUrl: d.serverInstance.implementation.remoteUrl
             };
-          } else {
+          } else if (d.serverInstance.type == 'managed') {
             getLaunchParams =
               d.serverInstance.config?.getLaunchParams ??
               currentVersion?.serverVersion?.getLaunchParams ??
@@ -283,6 +318,50 @@ class CustomServerVersionServiceImpl {
                 })
               );
             }
+          } else if (d.serverInstance.type == 'docker') {
+            if (d.serverInstance.implementation.dockerImage) {
+              let imageParts = d.serverInstance.implementation.dockerImage.split(':');
+              if (imageParts.length > 2) {
+                throw new ServiceError(
+                  badRequestError({
+                    message: 'Invalid docker image format'
+                  })
+                );
+              }
+
+              d.serverInstance.implementation.dockerImage = imageParts[0];
+              if (imageParts[1]) {
+                d.serverInstance.implementation.dockerTag = imageParts[1];
+              }
+            } else if (currentVersion?.serverVersion?.dockerImage) {
+              d.serverInstance.implementation.dockerImage =
+                currentVersion.serverVersion.dockerImage;
+            } else {
+              throw new ServiceError(
+                badRequestError({
+                  message: 'Docker image is required for docker server instances'
+                })
+              );
+            }
+
+            if (!d.serverInstance.implementation.dockerTag) {
+              d.serverInstance.implementation.dockerTag = 'latest';
+            }
+
+            getLaunchParams =
+              d.serverInstance.config?.getLaunchParams ??
+              currentVersion?.serverVersion?.getLaunchParams ??
+              defaultDockerLaunchParams;
+            configSchema =
+              d.serverInstance.config?.schema ??
+              currentVersion?.serverVersion?.schema.schema ??
+              defaultDockerConfigSchema;
+            serverVersionParams = {
+              dockerImage: d.serverInstance.implementation.dockerImage,
+              dockerTag: d.serverInstance.implementation.dockerTag
+            };
+          } else {
+            throw new Error('WTF - invalid instance type');
           }
 
           let { maxVersionIndex } = await db.customServer.update({
@@ -315,7 +394,7 @@ class CustomServerVersionServiceImpl {
             identifier: versionHash,
             serverVariantOid: server.serverVariantOid,
             serverOid: server.serverOid,
-            sourceType: d.serverInstance.type == 'remote' ? 'remote' : 'managed',
+            sourceType: d.serverInstance.type,
             schemaOid: schema.oid,
             getLaunchParams,
             ...(serverVersionParams as any)
@@ -478,6 +557,43 @@ class CustomServerVersionServiceImpl {
 
             await initializeLambdaQueue.add(
               { lambdaId: lambdaServerInstance.id, serverVersionData },
+              { delay: 1000 }
+            );
+          } else if (d.serverInstance.type == 'docker') {
+            let docker = await db.dockerServerInstance.create({
+              data: {
+                id: await ID.generateId('dockerServerInstance'),
+                instanceOid: d.instance.oid,
+
+                dockerImage: d.serverInstance.implementation.dockerImage!,
+                dockerTag: d.serverInstance.implementation.dockerTag ?? 'latest',
+
+                providerOAuthConfigOid: oauthConfig?.oid
+              }
+            });
+
+            let deployment = await db.customServerDeployment.create({
+              data: {
+                id: await ID.generateId('customServerDeployment'),
+
+                status: 'queued',
+                trigger: 'manual',
+
+                customServerOid: server.oid,
+                creatorActorOid: d.performedBy.oid
+              }
+            });
+
+            await db.customServerVersion.updateMany({
+              where: { id: customServerVersion.id },
+              data: {
+                dockerServerInstanceOid: docker.oid,
+                deploymentOid: deployment.oid
+              }
+            });
+
+            await initializeDockerQueue.add(
+              { dockerId: docker.id, serverVersionData },
               { delay: 1000 }
             );
           } else {

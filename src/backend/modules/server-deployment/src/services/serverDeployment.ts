@@ -263,7 +263,8 @@ class ServerDeploymentServiceImpl {
                   include: {
                     callbackTemplate: true
                   }
-                }
+                },
+                dockerServerInstance: true
               }
             }
           }
@@ -272,7 +273,8 @@ class ServerDeploymentServiceImpl {
 
     let serverInstance =
       currentVersion?.customServerVersion?.remoteServerInstance ??
-      currentVersion?.customServerVersion?.lambdaServerInstance;
+      currentVersion?.customServerVersion?.lambdaServerInstance ??
+      currentVersion?.customServerVersion?.dockerServerInstance;
 
     if (d.serverImplementation.instance.server.type == 'custom' && !serverInstance) {
       throw new ServiceError(

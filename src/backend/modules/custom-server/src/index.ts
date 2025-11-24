@@ -10,6 +10,7 @@ import {
 import { denoDeployMainQueueProcessor } from './deployment/deno/queues/main';
 import { checkRemoteQueueProcessor } from './queues/checkRemote';
 import { indexCustomServerQueueProcessor } from './queues/indexServer';
+import { initializeDockerQueueProcessor } from './queues/initializeDocker';
 import { initializeLambdaQueueProcessor } from './queues/initializeLambda';
 import { initializeRemoteQueueProcessor } from './queues/initializeRemote';
 import { syncCurrentDraftBucketToRepoQueueProcessor } from './queues/syncCurrentDraftBucketToRepo';
@@ -29,5 +30,6 @@ export let customServerQueueProcessor = combineQueueProcessors([
   syncCurrentDraftBucketToRepoQueueProcessor,
   lambdaDeployDiscoveryQueueProcessor,
   lambdaDeployFinalizerQueueProcessor,
-  indexCustomServerQueueProcessor
+  indexCustomServerQueueProcessor,
+  initializeDockerQueueProcessor
 ]);
