@@ -41,6 +41,7 @@ model ProviderOAuthConfig {
   serverImplementations           ServerImplementation[]
   serverDeployments               ServerDeployment[]
   providerOAuthRegistrationErrors ProviderOAuthRegistrationError[]
+  dockerServerInstances           DockerServerInstance[]
 
   @@unique([instanceOid, type, configHash])
 }

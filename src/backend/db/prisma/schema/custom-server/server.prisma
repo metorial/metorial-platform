@@ -1,6 +1,7 @@
 enum CustomServerType {
   remote
   managed
+  docker
 }
 
 enum CustomServerStatus {

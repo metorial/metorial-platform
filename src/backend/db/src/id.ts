@@ -97,6 +97,7 @@ export let ID = createIdGenerator({
   lambdaServerInstance: idType.sorted('lsi'),
   managedServerTemplate: idType.sorted('mst'),
   remoteServerInstance: idType.sorted('rsi'),
+  dockerServerInstance: idType.sorted('dsi'),
 
   codeBucket: idType.sorted('cbu'),
   codeBucketTemplate: idType.sorted('cbt'),

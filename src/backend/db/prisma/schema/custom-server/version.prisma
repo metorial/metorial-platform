@@ -42,6 +42,9 @@ model CustomServerVersion {
   lambdaServerInstanceOid BigInt?               @unique
   lambdaServerInstance    LambdaServerInstance? @relation(fields: [lambdaServerInstanceOid], references: [oid])
 
+  dockerServerInstanceOid BigInt?               @unique
+  dockerServerInstance    DockerServerInstance? @relation(fields: [dockerServerInstanceOid], references: [oid])
+
   pushOid BigInt?      @unique
   push    ScmRepoPush? @relation(fields: [pushOid], references: [oid], onDelete: SetNull)
 

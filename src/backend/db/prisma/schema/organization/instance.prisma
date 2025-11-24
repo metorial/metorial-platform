@@ -70,4 +70,5 @@ model Instance {
   accessTags                AccessTag[]
   serverDeploymentTemplates ServerDeploymentTemplate[]
   serverListingCollections  ServerListingCollection[]
+  dockerServerInstances     DockerServerInstance[]
 }

@@ -21,9 +21,6 @@ model RemoteServerInstance {
 
   status RemoteServerStatus @default(pending)
 
-  name        String?
-  description String?
-
   remoteUrl      String
   remoteProtocol RemoteServerProtocol @default(sse)
 
