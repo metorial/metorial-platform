@@ -17,6 +17,7 @@ ENV METORIAL_ENV=production
 WORKDIR /app
 
 COPY /clients/metorial-dashboard ./clients/metorial-dashboard
+COPY /clients/metorial-consumer ./clients/metorial-consumer
 COPY /src/backend ./src/backend
 COPY /src/packages ./src/packages
 COPY /src/mcp-engine ./src/mcp-engine
