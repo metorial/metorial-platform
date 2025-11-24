@@ -217,6 +217,36 @@ vi.mock('../src/queues/search', () => ({
   indexServerDeployments: vi.fn()
 }));
 
+vi.mock('@metorial/module-callbacks', () => ({
+  callbackService: {
+    internalCreateCallbackForServerDeployment: vi.fn()
+  }
+}));
+
+vi.mock('@metorial/module-protect', () => ({
+  accessLimiterService: {
+    createAccessLimiter: vi.fn(),
+    checkAccessLimiter: vi.fn()
+  }
+}));
+
+vi.mock('@metorial/module-access', () => ({
+  accessTagService: {
+    getAccessTags: vi.fn(),
+    createAccessTag: vi.fn()
+  }
+}));
+
+vi.mock('@metorial/module-consumer', () => ({
+  consumerAuthService: {
+    createSession: vi.fn(),
+    validateSession: vi.fn()
+  },
+  consumerSurfaceService: {
+    getSurface: vi.fn()
+  }
+}));
+
 describe('ServerDeploymentService', () => {
   let mockInstance: any;
   let mockOrganization: any;
@@ -977,7 +1007,8 @@ describe('ServerDeploymentService', () => {
       });
 
       expect(db.serverVariant.findMany).toHaveBeenCalledWith({
-        where: { id: { in: ['variant-1'] } }
+        where: { id: { in: ['variant-1'] } },
+        select: { oid: true }
       });
     });
 
@@ -994,7 +1025,8 @@ describe('ServerDeploymentService', () => {
       });
 
       expect(db.server.findMany).toHaveBeenCalledWith({
-        where: { id: { in: ['server-1'] } }
+        where: { id: { in: ['server-1'] } },
+        select: { oid: true }
       });
     });
 

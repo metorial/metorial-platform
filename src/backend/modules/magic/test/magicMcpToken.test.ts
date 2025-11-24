@@ -1,3 +1,7 @@
+// Set environment variable before any imports
+process.env.REDIS_URL = 'redis://localhost:6379';
+process.env.CONSUMER_TOKEN_SECRET = 'test-secret-token-for-testing';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ServiceError, notFoundError, preconditionFailedError, unauthorizedError } from '@metorial/error';
 import { magicMcpTokenService } from '../src/services/magicMcpToken';
@@ -52,6 +56,39 @@ vi.mock('@metorial/module-organization', () => ({
 vi.mock('@metorial/pagination', () => ({
   Paginator: {
     create: vi.fn(fn => fn({ prisma: (cb: any) => cb({}) }))
+  }
+}));
+
+vi.mock('@metorial/module-email', () => ({
+  emailService: {
+    sendEmail: vi.fn()
+  },
+  emailQueueProcessor: {},
+  EmailClient: vi.fn(() => ({
+    send: vi.fn(),
+    sendBulk: vi.fn(),
+    createTemplate: vi.fn((config) => ({ render: vi.fn(), send: vi.fn() }))
+  })),
+  createTemplate: vi.fn()
+}));
+
+vi.mock('@metorial/redis', () => ({
+  createRedisConnection: vi.fn(() => ({
+    on: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn()
+  })),
+  parseRedisUrl: vi.fn(() => ({ host: 'localhost', port: 6379 }))
+}));
+
+vi.mock('@metorial/cron', () => ({
+  createCron: vi.fn(() => ({ name: 'test-cron' }))
+}));
+
+vi.mock('@metorial/module-consumer', () => ({
+  consumerTokenService: {
+    createConsumerToken: vi.fn(),
+    getConsumerTokenBySecret: vi.fn()
   }
 }));
 
@@ -415,7 +452,7 @@ describe('magicMcpTokenService', () => {
       const mockToken = { id: 'mcp_tkn_1', status: 'active' } as any;
       const now = new Date();
 
-      vi.mocked(db.magicMcpToken.update).mockImplementation(async (args: any) => {
+      (vi.mocked(db.magicMcpToken.update) as any).mockImplementation(async (args: any) => {
         expect(args.data.deletedAt).toBeInstanceOf(Date);
         expect(args.data.deletedAt.getTime()).toBeGreaterThanOrEqual(now.getTime());
         return { id: 'mcp_tkn_1', status: 'deleted', deletedAt: args.data.deletedAt } as any;
@@ -480,7 +517,7 @@ describe('magicMcpTokenService', () => {
         metadata: { key: 'value' }
       } as any;
 
-      vi.mocked(db.magicMcpToken.update).mockImplementation(async (args: any) => {
+      (vi.mocked(db.magicMcpToken.update) as any).mockImplementation(async (args: any) => {
         expect(args.data.name).toBe('Original Name');
         expect(args.data.description).toBe('Original Description');
         expect(args.data.metadata).toEqual({ key: 'value' });
@@ -502,7 +539,7 @@ describe('magicMcpTokenService', () => {
         metadata: { key: 'value' }
       } as any;
 
-      vi.mocked(db.magicMcpToken.update).mockImplementation(async (args: any) => {
+      (vi.mocked(db.magicMcpToken.update) as any).mockImplementation(async (args: any) => {
         expect(args.data.name).toBeNull();
         expect(args.data.description).toBeNull();
         expect(args.data.metadata).toBeNull();
@@ -527,7 +564,7 @@ describe('magicMcpTokenService', () => {
         metadata: { old: 'data' }
       } as any;
 
-      vi.mocked(db.magicMcpToken.update).mockImplementation(async (args: any) => {
+      (vi.mocked(db.magicMcpToken.update) as any).mockImplementation(async (args: any) => {
         expect(args.data.metadata).toEqual({ new: 'data' });
         return { ...mockToken, metadata: { new: 'data' } };
       });
@@ -763,7 +800,7 @@ describe('magicMcpTokenService', () => {
         secret: 'met_mcp_original_secret'
       } as any;
 
-      vi.mocked(db.magicMcpToken.update).mockImplementation(async (args: any) => {
+      (vi.mocked(db.magicMcpToken.update) as any).mockImplementation(async (args: any) => {
         // Secret should not be in update data
         expect(args.data).not.toHaveProperty('secret');
         return { ...mockToken, name: 'Updated Token' };

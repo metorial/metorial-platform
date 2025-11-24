@@ -197,22 +197,22 @@ class ServerListingService {
 
     orderByRank?: boolean;
   }) {
-    let collections = d.collectionIds
+    let collections = d.collectionIds && d.collectionIds.length > 0
       ? await db.serverListingCollection.findMany({
           where: { OR: [{ id: { in: d.collectionIds } }, { slug: { in: d.collectionIds } }] }
         })
       : undefined;
-    let categories = d.categoryIds
+    let categories = d.categoryIds && d.categoryIds.length > 0
       ? await db.serverListingCategory.findMany({
           where: { OR: [{ id: { in: d.categoryIds } }, { slug: { in: d.categoryIds } }] }
         })
       : undefined;
-    let profiles = d.profileIds
+    let profiles = d.profileIds && d.profileIds.length > 0
       ? await db.profile.findMany({
           where: { OR: [{ id: { in: d.profileIds } }, { slug: { in: d.profileIds } }] }
         })
       : undefined;
-    let providers = d.providerIds
+    let providers = d.providerIds && d.providerIds.length > 0
       ? await db.serverVariantProvider.findMany({
           where: { OR: [{ id: { in: d.providerIds } }, { identifier: { in: d.providerIds } }] }
         })

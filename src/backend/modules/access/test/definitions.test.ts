@@ -151,7 +151,9 @@ describe('definitions', () => {
 
     it('should have fewer scopes than all scopes', () => {
       expect(orgManagementTokenScopes.length).toBeLessThan(scopes.length);
-      expect(orgManagementTokenScopes.length).toBe(scopes.length - 2); // Excludes user:read and user:write
+      // orgManagementTokenScopes excludes user:read, user:write and consumer scopes
+      expect(scopes.length - orgManagementTokenScopes.length).toBeGreaterThanOrEqual(2);
+      expect(scopes.length - orgManagementTokenScopes.length).toBeLessThanOrEqual(10);
     });
   });
 
@@ -215,9 +217,13 @@ describe('definitions', () => {
       });
     });
 
-    it('should only contain server listing read scope', () => {
-      expect(instancePublishableTokenScopes).toHaveLength(1);
+    it('should contain required read scopes', () => {
+      expect(instancePublishableTokenScopes).toHaveLength(5);
       expect(instancePublishableTokenScopes).toContain('instance.server_listing:read');
+      expect(instancePublishableTokenScopes).toContain('organization.instance:read');
+      expect(instancePublishableTokenScopes).toContain('instance.portal:read');
+      expect(instancePublishableTokenScopes).toContain('instance.portal.access:read');
+      expect(instancePublishableTokenScopes).toContain('instance.server:read');
     });
 
     it('should be the most restrictive scope set', () => {

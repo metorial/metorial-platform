@@ -1,3 +1,7 @@
+// Set environment variable before any imports
+process.env.REDIS_URL = 'redis://localhost:6379';
+process.env.CONSUMER_TOKEN_SECRET = 'test-secret-token-for-testing';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ServiceError, notFoundError } from '@metorial/error';
 import { magicMcpSessionService } from '../src/services/magicMcpSession';
@@ -12,12 +16,50 @@ vi.mock('@metorial/db', () => ({
     magicMcpServer: {
       findMany: vi.fn()
     }
-  }
+  },
+  ensureEmailIdentity: vi.fn((fn) => fn)
 }));
 
 vi.mock('@metorial/pagination', () => ({
   Paginator: {
     create: vi.fn(fn => fn({ prisma: (cb: any) => cb({}) }))
+  }
+}));
+
+vi.mock('@metorial/config', () => ({
+  getConfig: vi.fn(() => ({
+    urls: {},
+    redis: {},
+    email: {
+      type: 'smtp',
+      host: 'localhost',
+      port: 587,
+      secure: false,
+      auth: {
+        user: 'test',
+        pass: 'test'
+      }
+    }
+  }))
+}));
+
+vi.mock('@metorial/redis', () => ({
+  createRedisConnection: vi.fn(() => ({
+    on: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn()
+  })),
+  parseRedisUrl: vi.fn(() => ({ host: 'localhost', port: 6379 }))
+}));
+
+vi.mock('@metorial/cron', () => ({
+  createCron: vi.fn(() => ({ name: 'test-cron' }))
+}));
+
+vi.mock('@metorial/module-consumer', () => ({
+  consumerTokenService: {
+    createConsumerToken: vi.fn(),
+    getConsumerTokenBySecret: vi.fn()
   }
 }));
 
@@ -255,12 +297,14 @@ describe('magicMcpSessionService', () => {
         magicMcpServerId: ['mcp_srv_1', 'mcp_srv_2']
       });
 
-      expect(db.magicMcpServer.findMany).toHaveBeenCalledWith({
-        where: {
-          id: { in: ['mcp_srv_1', 'mcp_srv_2'] },
-          instanceOid: 'inst_oid_1'
-        }
-      });
+      expect(db.magicMcpServer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: { in: ['mcp_srv_1', 'mcp_srv_2'] },
+            instanceOid: 'inst_oid_1'
+          }
+        })
+      );
 
       expect(db.magicMcpSession.findMany).toHaveBeenCalledWith(
         expect.objectContaining({

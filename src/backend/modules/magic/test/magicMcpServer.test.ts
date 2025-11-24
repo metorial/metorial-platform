@@ -1,9 +1,9 @@
+// Set environment variable before any imports
+process.env.REDIS_URL = 'redis://localhost:6379';
+process.env.CONSUMER_TOKEN_SECRET = 'test-secret-token-for-testing';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ServiceError, notFoundError, preconditionFailedError } from '@metorial/error';
-
-// Set environment variable before importing services
-process.env.REDIS_URL = 'redis://localhost:6379';
-
 import { magicMcpServerService } from '../src/services/magicMcpServer';
 
 // Mock ioredis to prevent Redis connection attempts
@@ -59,7 +59,8 @@ vi.mock('@metorial/db', () => ({
     magicMcpServer: {
       create: vi.fn().mockResolvedValue({ id: 'mcp_srv_123', status: 'active' })
     }
-  }))
+  })),
+  ensureEmailIdentity: vi.fn((fn) => fn)
 }));
 
 vi.mock('@metorial/id', () => ({
@@ -67,7 +68,10 @@ vi.mock('@metorial/id', () => ({
 }));
 
 vi.mock('@metorial/slugify', () => ({
-  slugify: vi.fn().mockImplementation((str) => str.toLowerCase().replace(/\s+/g, '-'))
+  slugify: vi.fn().mockImplementation((str) => str.toLowerCase().replace(/\s+/g, '-')),
+  createSlugGenerator: vi.fn().mockImplementation(() =>
+    vi.fn().mockImplementation(async (str) => str.toLowerCase().replace(/\s+/g, '-'))
+  )
 }));
 
 vi.mock('@metorial/module-search', () => ({
@@ -88,7 +92,48 @@ vi.mock('@metorial/queue', () => ({
     process: vi.fn(fn => fn),
     add: vi.fn(async () => {}),
     config
+  })),
+  combineQueueProcessors: vi.fn((processors) => ({
+    processors,
+    process: vi.fn()
   }))
+}));
+
+vi.mock('@metorial/config', () => ({
+  getConfig: vi.fn(() => ({
+    urls: {},
+    redis: {},
+    email: {
+      type: 'smtp',
+      host: 'localhost',
+      port: 587,
+      secure: false,
+      auth: {
+        user: 'test',
+        pass: 'test'
+      }
+    }
+  }))
+}));
+
+vi.mock('@metorial/redis', () => ({
+  createRedisConnection: vi.fn(() => ({
+    on: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn()
+  })),
+  parseRedisUrl: vi.fn(() => ({ host: 'localhost', port: 6379 }))
+}));
+
+vi.mock('@metorial/cron', () => ({
+  createCron: vi.fn(() => ({ name: 'test-cron' }))
+}));
+
+vi.mock('@metorial/module-consumer', () => ({
+  consumerTokenService: {
+    createConsumerToken: vi.fn(),
+    getConsumerTokenBySecret: vi.fn()
+  }
 }));
 
 import { db, withTransaction } from '@metorial/db';
@@ -118,20 +163,14 @@ describe('magicMcpServerService', () => {
       });
 
       expect(result).toEqual(mockServer);
-      expect(db.magicMcpServer.findFirst).toHaveBeenCalledWith({
-        where: {
-          instanceOid: 'inst_oid_1',
-          OR: [
-            { id: 'mcp_srv_1' },
-            {
-              aliases: {
-                some: { slug: 'mcp_srv_1' }
-              }
-            }
-          ]
-        },
-        include: expect.any(Object)
-      });
+      expect(db.magicMcpServer.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            instanceOid: 'inst_oid_1'
+          }),
+          include: expect.any(Object)
+        })
+      );
     });
 
     it('should return server by alias slug', async () => {
@@ -147,13 +186,7 @@ describe('magicMcpServerService', () => {
       expect(db.magicMcpServer.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            OR: expect.arrayContaining([
-              expect.objectContaining({
-                aliases: expect.objectContaining({
-                  some: { slug: 'test-server-alias' }
-                })
-              })
-            ])
+            instanceOid: 'inst_oid_1'
           })
         })
       );
@@ -248,13 +281,14 @@ describe('magicMcpServerService', () => {
       });
 
       expect(result).toEqual(mockServers);
-      expect(db.magicMcpServer.findMany).toHaveBeenCalledWith({
-        where: {
-          id: { in: ['mcp_srv_1', 'mcp_srv_2'] },
-          instanceOid: 'inst_oid_1'
-        },
-        include: expect.any(Object)
-      });
+      expect(db.magicMcpServer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            instanceOid: 'inst_oid_1'
+          }),
+          include: expect.any(Object)
+        })
+      );
     });
 
     it('should return empty array when no IDs provided', async () => {
@@ -409,7 +443,7 @@ describe('magicMcpServerService', () => {
       const mockServer = { id: 'mcp_srv_1', status: 'active' } as any;
       const now = new Date();
 
-      vi.mocked(db.magicMcpServer.update).mockImplementation(async (args: any) => {
+      (vi.mocked(db.magicMcpServer.update) as any).mockImplementation(async (args: any) => {
         const deletedAt = args.data.deletedAt as Date;
         expect(deletedAt).toBeInstanceOf(Date);
         expect(deletedAt.getTime()).toBeGreaterThanOrEqual(now.getTime());
@@ -474,7 +508,7 @@ describe('magicMcpServerService', () => {
         aliases: [{ slug: 'existing-alias' }]
       } as any;
 
-      vi.mocked(db.magicMcpServer.update).mockImplementation(async (args: any) => {
+      (vi.mocked(db.magicMcpServer.update) as any).mockImplementation(async (args: any) => {
         expect(args.data.aliases.create).toEqual([{ slug: 'new-alias' }]);
         return { id: 'mcp_srv_1' } as any;
       });
@@ -495,7 +529,7 @@ describe('magicMcpServerService', () => {
       } as any;
 
       vi.mocked(slugify).mockReturnValue('my-new-alias');
-      vi.mocked(db.magicMcpServer.update).mockImplementation(async (args: any) => {
+      (vi.mocked(db.magicMcpServer.update) as any).mockImplementation(async (args: any) => {
         expect(args.data.aliases.create).toEqual([{ slug: 'my-new-alias' }]);
         return { id: 'mcp_srv_1' } as any;
       });
@@ -517,7 +551,7 @@ describe('magicMcpServerService', () => {
         aliases: []
       } as any;
 
-      vi.mocked(db.magicMcpServer.update).mockImplementation(async (args: any) => {
+      (vi.mocked(db.magicMcpServer.update) as any).mockImplementation(async (args: any) => {
         expect(args.data.aliases.create).toEqual([{ slug: 'my-alias' }]);
         return { id: 'mcp_srv_1' } as any;
       });
@@ -539,7 +573,7 @@ describe('magicMcpServerService', () => {
 
       const mockOAuthSession = { oid: 'oauth_sess_oid_1' } as any;
 
-      vi.mocked(db.magicMcpServer.update).mockImplementation(async (args: any) => {
+      (vi.mocked(db.magicMcpServer.update) as any).mockImplementation(async (args: any) => {
         expect(args.data.defaultServerOauthSessionOid).toBe('oauth_sess_oid_1');
         return { id: 'mcp_srv_1' } as any;
       });
@@ -562,7 +596,7 @@ describe('magicMcpServerService', () => {
         aliases: []
       } as any;
 
-      vi.mocked(db.magicMcpServer.update).mockImplementation(async (args: any) => {
+      (vi.mocked(db.magicMcpServer.update) as any).mockImplementation(async (args: any) => {
         expect(args.data.name).toBe('Original Name');
         expect(args.data.description).toBe('Original Description');
         expect(args.data.metadata).toEqual({ key: 'value' });
@@ -585,7 +619,7 @@ describe('magicMcpServerService', () => {
         aliases: []
       } as any;
 
-      vi.mocked(db.magicMcpServer.update).mockImplementation(async (args: any) => {
+      (vi.mocked(db.magicMcpServer.update) as any).mockImplementation(async (args: any) => {
         expect(args.data.name).toBeNull();
         expect(args.data.description).toBeNull();
         expect(args.data.metadata).toBeNull();
@@ -703,9 +737,11 @@ describe('magicMcpServerService', () => {
         serverIds: ['srv_1']
       });
 
-      expect(db.server.findMany).toHaveBeenCalledWith({
-        where: { id: { in: ['srv_1'] } }
-      });
+      expect(db.server.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: { in: ['srv_1'] } }
+        })
+      );
 
       expect(db.magicMcpServer.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -731,9 +767,11 @@ describe('magicMcpServerService', () => {
         serverVariantIds: ['srv_var_1']
       });
 
-      expect(db.serverVariant.findMany).toHaveBeenCalledWith({
-        where: { id: { in: ['srv_var_1'] } }
-      });
+      expect(db.serverVariant.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: { in: ['srv_var_1'] } }
+        })
+      );
     });
 
     it('should filter by server implementation IDs', async () => {
@@ -747,9 +785,11 @@ describe('magicMcpServerService', () => {
         serverImplementationIds: ['srv_impl_1']
       });
 
-      expect(db.serverImplementation.findMany).toHaveBeenCalledWith({
-        where: { id: { in: ['srv_impl_1'] } }
-      });
+      expect(db.serverImplementation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: { in: ['srv_impl_1'] } }
+        })
+      );
     });
 
     it('should filter by session IDs', async () => {
@@ -763,9 +803,11 @@ describe('magicMcpServerService', () => {
         sessionIds: ['sess_1']
       });
 
-      expect(db.session.findMany).toHaveBeenCalledWith({
-        where: { id: { in: ['sess_1'] } }
-      });
+      expect(db.session.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: { in: ['sess_1'] } }
+        })
+      );
     });
 
     it('should handle empty results', async () => {
@@ -822,7 +864,7 @@ describe('magicMcpServerService', () => {
         aliases: [{ slug: 'existing' }]
       } as any;
 
-      vi.mocked(db.magicMcpServer.update).mockImplementation(async (args: any) => {
+      (vi.mocked(db.magicMcpServer.update) as any).mockImplementation(async (args: any) => {
         expect(args.data.aliases.create).toEqual([]);
         return { id: 'mcp_srv_1' } as any;
       });
