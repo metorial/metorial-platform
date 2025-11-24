@@ -26,6 +26,7 @@ import {
 import { Box } from '@metorial/ui-product';
 import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { switcher } from '../../../../lib/switcher';
 import { FormBox } from '../form/box';
 import { Field } from '../form/field';
 import { Form } from '../form/form';
@@ -206,30 +207,38 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
                   let [res] = await createVersionMutatorSchema.mutate({
                     instanceId: instance.data.id,
                     customServerId: p.customServer.id,
-                    implementation:
-                      p.customServer.type == 'managed'
-                        ? {
-                            type: 'managed',
-                            config: {
-                              schema: values.schema,
-                              getLaunchParams: values.getLaunchParams
-                            }
-                          }
-                        : {
-                            type: 'remote',
-                            config: {
-                              schema: values.schema,
-                              getLaunchParams: values.getLaunchParams
-                            },
-                            remoteServer: {
-                              remoteUrl:
-                                editingVersion.current?.serverInstance.remoteServer
-                                  ?.remoteUrl!,
-                              remoteProtocol:
-                                editingVersion.current?.serverInstance.remoteServer
-                                  ?.remoteProtocol!
-                            }
-                          }
+                    implementation: switcher({
+                      managed: () => ({
+                        type: 'managed' as const,
+                        config: {
+                          schema: values.schema,
+                          getLaunchParams: values.getLaunchParams
+                        }
+                      }),
+
+                      remote: () => ({
+                        type: 'remote' as const,
+                        config: {
+                          schema: values.schema,
+                          getLaunchParams: values.getLaunchParams
+                        },
+                        remoteServer: {
+                          remoteUrl:
+                            editingVersion.current?.serverInstance.remoteServer?.remoteUrl!,
+                          remoteProtocol:
+                            editingVersion.current?.serverInstance.remoteServer
+                              ?.remoteProtocol!
+                        }
+                      }),
+
+                      docker: () => ({
+                        type: 'docker' as const,
+                        config: {
+                          schema: values.schema,
+                          getLaunchParams: values.getLaunchParams
+                        }
+                      })
+                    })(customServer.data.type)
                   });
 
                   if (res) {

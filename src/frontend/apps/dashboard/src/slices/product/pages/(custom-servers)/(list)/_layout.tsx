@@ -5,7 +5,7 @@ import {
   useCurrentProject,
   useDashboardFlags
 } from '@metorial/state';
-import { Button } from '@metorial/ui';
+import { Button, Menu } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
 import { showCustomServerRemoteFormModal } from '../../../scenes/customServer/modal';
 import { showProviderConnectionFormModal } from '../../../scenes/providerConnection/modal';
@@ -49,20 +49,45 @@ export let ManagedServersListLayout = () => {
         title="Managed Servers"
         description="Build custom MCP servers powered by Metorial. Deploy them on your own infrastructure or use our managed servers."
         actions={
-          !!(
-            flags.data?.flags['managed-servers-enabled'] &&
-            flags.data?.flags['paid-custom-servers']
-          ) && (
-            <Button
-              onClick={() =>
+          !!flags.data?.flags['paid-custom-docker-servers'] ? (
+            <Menu
+              label="Create Managed Server"
+              items={[
+                {
+                  id: 'docker',
+                  label: 'Docker Server',
+                  description: 'Deploy a custom Docker image as an MCP server on Metorial'
+                },
+                {
+                  id: 'managed',
+                  label: 'Managed Server',
+                  description: 'Connect a GitHub repo and deploy to Metorial automatically'
+                }
+              ]}
+              onItemClick={id => {
                 showCustomServerRemoteFormModal({
-                  type: 'managed'
-                })
-              }
-              size="2"
+                  type: id as 'docker' | 'managed'
+                });
+              }}
             >
-              Create Managed Server
-            </Button>
+              <Button size="2">Create Managed Server</Button>
+            </Menu>
+          ) : (
+            !!(
+              flags.data?.flags['managed-servers-enabled'] &&
+              flags.data?.flags['paid-custom-servers']
+            ) && (
+              <Button
+                onClick={() =>
+                  showCustomServerRemoteFormModal({
+                    type: 'managed'
+                  })
+                }
+                size="2"
+              >
+                Create Managed Server
+              </Button>
+            )
           )
         }
       />

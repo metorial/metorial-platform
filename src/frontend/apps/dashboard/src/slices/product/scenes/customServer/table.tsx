@@ -60,7 +60,8 @@ export let CustomServersTable = (
                 </Text>,
                 {
                   remote: <Badge color="purple">Remote</Badge>,
-                  managed: <Badge color="blue">Managed</Badge>
+                  managed: <Badge color="blue">Managed</Badge>,
+                  docker: <Badge color="orange">Docker</Badge>
                 }[customServer.type] ?? customServer.type,
                 ...(filter.type == 'remote'
                   ? [

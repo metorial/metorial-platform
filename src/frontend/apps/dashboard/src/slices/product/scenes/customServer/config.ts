@@ -131,3 +131,18 @@ export let defaultServerConfigManaged = {
   }
 });`
 };
+
+export let getDefaultServerConfigDocker = {
+  schema: {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    description: '',
+    properties: {},
+    required: []
+  },
+  getLaunchParams: `(config, ctx) => ({
+  command: 'npm',
+  args: ['run', 'start'],
+  env: {}
+});`
+};
