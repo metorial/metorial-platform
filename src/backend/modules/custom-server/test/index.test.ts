@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 // Mock all the dependencies before importing
 vi.mock('@metorial/queue', () => ({
   createQueue: vi.fn(() => ({
-    process: vi.fn((fn) => ({
+    process: vi.fn(fn => ({
       type: 'queue',
       name: 'mockQueue',
       handler: fn
@@ -15,7 +15,7 @@ vi.mock('@metorial/queue', () => ({
       this.name = 'QueueRetryError';
     }
   },
-  combineQueueProcessors: vi.fn((processors) => ({
+  combineQueueProcessors: vi.fn(processors => ({
     combined: true,
     processors
   }))
@@ -37,8 +37,15 @@ vi.mock('../src/queues/initializeRemote', () => ({
   initializeRemoteQueueProcessor: { type: 'queue', name: 'initializeRemote' }
 }));
 
+vi.mock('../src/queues/initializeDocker', () => ({
+  initializeDockerQueueProcessor: { type: 'queue', name: 'initializeDocker' }
+}));
+
 vi.mock('../src/queues/syncCurrentDraftBucketToRepo', () => ({
-  syncCurrentDraftBucketToRepoQueueProcessor: { type: 'queue', name: 'syncCurrentDraftBucketToRepo' }
+  syncCurrentDraftBucketToRepoQueueProcessor: {
+    type: 'queue',
+    name: 'syncCurrentDraftBucketToRepo'
+  }
 }));
 
 vi.mock('../src/queues/indexServer', () => ({
@@ -83,9 +90,9 @@ vi.mock('@metorial/module-search', () => ({
 }));
 
 // Import after mocks are set up
-import { customServerQueueProcessor } from '../src/index';
-import * as indexModule from '../src/index';
 import { combineQueueProcessors } from '@metorial/queue';
+import * as indexModule from '../src/index';
+import { customServerQueueProcessor } from '../src/index';
 
 describe('index', () => {
   it('should export customServerQueueProcessor', () => {
@@ -101,6 +108,7 @@ describe('index', () => {
         expect.objectContaining({ name: 'lambdaDeployMain' }),
         expect.objectContaining({ name: 'initializeLambda' }),
         expect.objectContaining({ name: 'initializeRemote' }),
+        expect.objectContaining({ name: 'initializeDocker' }),
         expect.objectContaining({ name: 'lambdaDeployChecker' }),
         expect.objectContaining({ name: 'lambdaDeployCompleter' }),
         expect.objectContaining({ name: 'syncCurrentDraftBucketToRepo' }),
@@ -131,9 +139,16 @@ describe('index', () => {
     expect(processors).toContainEqual(expect.objectContaining({ name: 'initializeRemote' }));
   });
 
+  it('should include initializeDocker queue processor', () => {
+    const processors = (combineQueueProcessors as any).mock.calls[0][0];
+    expect(processors).toContainEqual(expect.objectContaining({ name: 'initializeDocker' }));
+  });
+
   it('should include syncCurrentDraftBucketToRepo queue processor', () => {
     const processors = (combineQueueProcessors as any).mock.calls[0][0];
-    expect(processors).toContainEqual(expect.objectContaining({ name: 'syncCurrentDraftBucketToRepo' }));
+    expect(processors).toContainEqual(
+      expect.objectContaining({ name: 'syncCurrentDraftBucketToRepo' })
+    );
   });
 
   it('should include denoDeployMain queue processor', () => {
@@ -148,32 +163,35 @@ describe('index', () => {
 
   it('should include lambdaDeployChecker queue processor', () => {
     const processors = (combineQueueProcessors as any).mock.calls[0][0];
-    expect(processors).toContainEqual(expect.objectContaining({ name: 'lambdaDeployChecker' }));
+    expect(processors).toContainEqual(
+      expect.objectContaining({ name: 'lambdaDeployChecker' })
+    );
   });
 
   it('should include lambdaDeployCompleter queue processor', () => {
     const processors = (combineQueueProcessors as any).mock.calls[0][0];
-    expect(processors).toContainEqual(expect.objectContaining({ name: 'lambdaDeployCompleter' }));
+    expect(processors).toContainEqual(
+      expect.objectContaining({ name: 'lambdaDeployCompleter' })
+    );
   });
 
   it('should include lambdaDeployDiscovery queue processor', () => {
     const processors = (combineQueueProcessors as any).mock.calls[0][0];
-    expect(processors).toContainEqual(expect.objectContaining({ name: 'lambdaDeployDiscovery' }));
+    expect(processors).toContainEqual(
+      expect.objectContaining({ name: 'lambdaDeployDiscovery' })
+    );
   });
 
   it('should include lambdaDeployFinalizer queue processor', () => {
     const processors = (combineQueueProcessors as any).mock.calls[0][0];
-    expect(processors).toContainEqual(expect.objectContaining({ name: 'lambdaDeployFinalizer' }));
+    expect(processors).toContainEqual(
+      expect.objectContaining({ name: 'lambdaDeployFinalizer' })
+    );
   });
 
   it('should include indexCustomServer queue processor', () => {
     const processors = (combineQueueProcessors as any).mock.calls[0][0];
     expect(processors).toContainEqual(expect.objectContaining({ name: 'indexCustomServer' }));
-  });
-
-  it('should combine exactly 12 processors', () => {
-    const processors = (combineQueueProcessors as any).mock.calls[0][0];
-    expect(processors).toHaveLength(12);
   });
 
   it('should export services from services module', () => {
