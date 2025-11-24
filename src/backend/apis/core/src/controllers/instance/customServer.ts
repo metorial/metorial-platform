@@ -11,6 +11,7 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { normalizePath } from '../../lib/normalizePath';
+import { switcher } from '../../lib/switcher';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
@@ -27,7 +28,7 @@ export let customServerGroup = instanceGroup.use(async ctx => {
   return { customServer };
 });
 
-let customServerTypeEnum = v.enumOf(['remote', 'managed']);
+let customServerTypeEnum = v.enumOf(['remote', 'managed', 'docker']);
 
 export let customServerController = Controller.create(
   {
@@ -95,6 +96,7 @@ export let customServerController = Controller.create(
                 })
               )
             }),
+
             v.object({
               type: v.literal('managed'),
 
@@ -109,6 +111,21 @@ export let customServerController = Controller.create(
                   )
                 })
               ),
+
+              config: v.optional(
+                v.object({
+                  schema: v.optional(v.any()),
+                  getLaunchParams: v.optional(v.string())
+                })
+              )
+            }),
+
+            v.object({
+              type: v.literal('docker'),
+
+              docker_server: v.object({
+                docker_image: v.string()
+              }),
 
               config: v.optional(
                 v.object({
@@ -157,6 +174,21 @@ export let customServerController = Controller.create(
                   getLaunchParams: v.optional(v.string())
                 })
               )
+            }),
+
+            v.object({
+              type: v.literal('docker'),
+
+              docker_server: v.object({
+                docker_image: v.string()
+              }),
+
+              config: v.optional(
+                v.object({
+                  schema: v.optional(v.any()),
+                  getLaunchParams: v.optional(v.string())
+                })
+              )
             })
           ])
         }),
@@ -173,6 +205,14 @@ export let customServerController = Controller.create(
           throw new ServiceError(
             forbiddenError({
               message: 'You are not entitled to create managed servers'
+            })
+          );
+        }
+
+        if (ctx.body.implementation.type == 'docker' && !flags['paid-custom-docker-servers']) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You are not entitled to create custom docker servers'
             })
           );
         }
@@ -204,37 +244,58 @@ export let customServerController = Controller.create(
           },
           isEphemeral: false,
           performedBy: ctx.actor,
-          serverInstance:
-            ctx.body.implementation.type === 'managed'
-              ? {
-                  type: 'managed',
-                  implementation: {
-                    template
-                  },
-                  config: {
-                    schema: ctx.body.implementation.config?.schema,
-                    getLaunchParams: ctx.body.implementation.config?.getLaunchParams
-                  },
-                  repository: repository
-                    ? {
-                        repo: repository,
-                        path: normalizePath(
-                          ctx.body.implementation.managed_server!.repository!.path
-                        )
-                      }
-                    : undefined
-                }
-              : {
-                  type: 'remote',
-                  implementation: {
-                    remoteUrl: ctx.body.implementation.remote_server.remote_url,
-                    protocol: ctx.body.implementation.remote_server.remote_protocol ?? 'sse'
-                  },
-                  config: {
-                    schema: ctx.body.implementation.config?.schema,
-                    getLaunchParams: ctx.body.implementation.config?.getLaunchParams
+          serverInstance: switcher({
+            remote: () =>
+              ctx.body.implementation.type == 'remote'
+                ? {
+                    type: 'remote' as const,
+                    implementation: {
+                      remoteUrl: ctx.body.implementation.remote_server.remote_url,
+                      protocol: ctx.body.implementation.remote_server.remote_protocol ?? 'sse'
+                    },
+                    config: {
+                      schema: ctx.body.implementation.config?.schema,
+                      getLaunchParams: ctx.body.implementation.config?.getLaunchParams
+                    }
                   }
-                }
+                : undefined!,
+
+            managed: () =>
+              ctx.body.implementation.type == 'managed'
+                ? {
+                    type: 'managed' as const,
+                    implementation: {
+                      template
+                    },
+                    config: {
+                      schema: ctx.body.implementation.config?.schema,
+                      getLaunchParams: ctx.body.implementation.config?.getLaunchParams
+                    },
+                    repository: repository
+                      ? {
+                          repo: repository,
+                          path: normalizePath(
+                            ctx.body.implementation.managed_server!.repository!.path
+                          )
+                        }
+                      : undefined
+                  }
+                : undefined!,
+
+            docker: () =>
+              ctx.body.implementation.type == 'docker'
+                ? {
+                    type: 'docker' as const,
+                    implementation: {
+                      dockerImage: ctx.body.implementation.docker_server.docker_image
+                    },
+                    config: {
+                      schema: ctx.body.implementation.config?.schema,
+                      getLaunchParams: ctx.body.implementation.config?.getLaunchParams
+                    }
+                  }
+                : undefined!
+          })(ctx.body.implementation.type)
         });
 
         return customServerPresenter.present({ customServer });

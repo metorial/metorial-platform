@@ -22,6 +22,7 @@ import {
   dashboardCustomServerVersionPresenter,
   v1CustomServerVersionPresenter
 } from './implementation/customServerVersion';
+import { v1DockerServerPresenter } from './implementation/dockerServer';
 import { v1FilePresenter } from './implementation/file';
 import { v1FileLinkPresenter } from './implementation/fileLink';
 import { v1InstancePresenter } from './implementation/instance';
@@ -118,6 +119,7 @@ import {
   customServerEventType,
   customServerType,
   customServerVersionType,
+  dockerServerType,
   fileLinkType,
   fileType,
   instanceType,
@@ -250,6 +252,11 @@ export let secretPresenter = declarePresenter(secretType, {
 export let serverPresenter = declarePresenter(serverType, {
   mt_2025_01_01_pulsar: v1ServerPresenter,
   mt_2025_01_01_dashboard: v1ServerPresenter
+});
+
+export let dockerServerPresenter = declarePresenter(dockerServerType, {
+  mt_2025_01_01_pulsar: v1DockerServerPresenter,
+  mt_2025_01_01_dashboard: v1DockerServerPresenter
 });
 
 export let serverVariantPresenter = declarePresenter(serverVariantType, {

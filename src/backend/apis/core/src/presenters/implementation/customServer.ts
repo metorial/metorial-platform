@@ -18,7 +18,8 @@ export let v1CustomServerPresenter = Presenter.create(customServerType)
 
     type: {
       remote: 'remote',
-      managed: 'managed'
+      managed: 'managed',
+      docker: 'docker'
     }[customServer.type],
 
     publication_status: customServer.isPublic ? 'public' : 'private',

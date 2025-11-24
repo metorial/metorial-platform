@@ -26,6 +26,7 @@ import {
   CustomServerDeploymentStep,
   CustomServerEvent,
   CustomServerVersion,
+  DockerServerInstance,
   File,
   FileLink,
   FilePurpose,
@@ -509,6 +510,12 @@ export let managedServerType = PresentableType.create<{
   };
 }>()('custom_server.managed_server');
 
+export let dockerServerType = PresentableType.create<{
+  dockerServerInstance: DockerServerInstance & {
+    providerOAuthConfig: ProviderOAuthConfig | null;
+  };
+}>()('custom_server.docker_server');
+
 export let customServerType = PresentableType.create<{
   customServer: CustomServer & {
     server: Server;
@@ -536,6 +543,11 @@ export let customServerVersionType = PresentableType.create<{
       | null;
     lambdaServerInstance:
       | (LambdaServerInstance & {
+          providerOAuthConfig: ProviderOAuthConfig | null;
+        })
+      | null;
+    dockerServerInstance:
+      | (DockerServerInstance & {
           providerOAuthConfig: ProviderOAuthConfig | null;
         })
       | null;

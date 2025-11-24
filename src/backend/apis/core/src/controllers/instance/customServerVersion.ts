@@ -4,6 +4,7 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizePath } from '../../lib/normalizePath';
+import { switcher } from '../../lib/switcher';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
@@ -85,6 +86,7 @@ export let customServerVersionController = Controller.create(
                 })
               )
             }),
+
             v.object({
               type: v.literal('managed'),
 
@@ -115,6 +117,24 @@ export let customServerVersionController = Controller.create(
                       })
                     )
                   )
+                })
+              ),
+
+              config: v.optional(
+                v.object({
+                  schema: v.optional(v.any()),
+                  getLaunchParams: v.optional(v.string())
+                })
+              )
+            }),
+
+            v.object({
+              type: v.literal('docker'),
+
+              docker_server: v.optional(
+                v.object({
+                  docker_image: v.string(),
+                  docker_tag: v.optional(v.string())
                 })
               ),
 
@@ -156,6 +176,25 @@ export let customServerVersionController = Controller.create(
                 })
               )
             }),
+
+            v.object({
+              type: v.literal('docker'),
+
+              docker_server: v.optional(
+                v.object({
+                  docker_image: v.string(),
+                  docker_tag: v.optional(v.string())
+                })
+              ),
+
+              config: v.optional(
+                v.object({
+                  schema: v.optional(v.any()),
+                  getLaunchParams: v.optional(v.string())
+                })
+              )
+            }),
+
             v.object({
               type: v.literal('managed'),
 
@@ -201,48 +240,70 @@ export let customServerVersionController = Controller.create(
           instance: ctx.instance,
           server: ctx.customServer,
           performedBy: ctx.actor,
-          serverInstance:
-            ctx.body.implementation.type === 'managed'
-              ? {
-                  type: 'managed',
-                  implementation: {
-                    oAuthConfig: ctx.body.implementation.managed_server?.oauth_config
-                  },
-                  config: {
-                    schema: ctx.body.implementation.config?.schema,
-                    getLaunchParams: ctx.body.implementation.config?.getLaunchParams
-                  },
-                  files: ctx.body.implementation.managed_server?.files,
-                  repository: ctx.body.implementation.managed_server?.repository
-                    ? {
-                        repo: await scmRepoService.getScmRepoById({
-                          organization: ctx.organization,
-                          scmRepoId:
-                            ctx.body.implementation.managed_server.repository.repository_id
-                        }),
-                        path: normalizePath(
-                          ctx.body.implementation.managed_server.repository.path
-                        )
-                      }
-                    : undefined
-                }
-              : {
-                  type: 'remote',
-                  implementation: {
-                    remoteUrl: ctx.body.implementation.remote_server.remote_url,
-                    protocol: ctx.body.implementation.remote_server.remote_protocol,
-                    oAuthConfig: ctx.body.implementation.remote_server.oauth_config
+          serverInstance: await switcher({
+            managed: async () =>
+              ctx.body.implementation.type === 'managed'
+                ? {
+                    type: 'managed' as const,
+                    implementation: {
+                      oAuthConfig: ctx.body.implementation.managed_server?.oauth_config
+                    },
+                    config: {
+                      schema: ctx.body.implementation.config?.schema,
+                      getLaunchParams: ctx.body.implementation.config?.getLaunchParams
+                    },
+                    files: ctx.body.implementation.managed_server?.files,
+                    repository: ctx.body.implementation.managed_server?.repository
                       ? {
-                          config: ctx.body.implementation.remote_server.oauth_config.config,
-                          scopes: ctx.body.implementation.remote_server.oauth_config.scopes
+                          repo: await scmRepoService.getScmRepoById({
+                            organization: ctx.organization,
+                            scmRepoId:
+                              ctx.body.implementation.managed_server.repository.repository_id
+                          }),
+                          path: normalizePath(
+                            ctx.body.implementation.managed_server.repository.path
+                          )
                         }
                       : undefined
-                  },
-                  config: {
-                    schema: ctx.body.implementation.config?.schema,
-                    getLaunchParams: ctx.body.implementation.config?.getLaunchParams
                   }
-                }
+                : undefined!,
+
+            remote: () =>
+              ctx.body.implementation.type === 'remote'
+                ? {
+                    type: 'remote' as const,
+                    implementation: {
+                      remoteUrl: ctx.body.implementation.remote_server.remote_url,
+                      protocol: ctx.body.implementation.remote_server.remote_protocol,
+                      oAuthConfig: ctx.body.implementation.remote_server.oauth_config
+                        ? {
+                            config: ctx.body.implementation.remote_server.oauth_config.config,
+                            scopes: ctx.body.implementation.remote_server.oauth_config.scopes
+                          }
+                        : undefined
+                    },
+                    config: {
+                      schema: ctx.body.implementation.config?.schema,
+                      getLaunchParams: ctx.body.implementation.config?.getLaunchParams
+                    }
+                  }
+                : undefined!,
+
+            docker: () =>
+              ctx.body.implementation.type === 'docker'
+                ? {
+                    type: 'docker' as const,
+                    implementation: {
+                      dockerImage: ctx.body.implementation.docker_server?.docker_image,
+                      dockerTag: ctx.body.implementation.docker_server?.docker_tag ?? 'latest'
+                    },
+                    config: {
+                      schema: ctx.body.implementation.config?.schema,
+                      getLaunchParams: ctx.body.implementation.config?.getLaunchParams
+                    }
+                  }
+                : undefined!
+          })(ctx.body.implementation.type)
         });
 
         return customServerVersionPresenter.present({ customServerVersion });
