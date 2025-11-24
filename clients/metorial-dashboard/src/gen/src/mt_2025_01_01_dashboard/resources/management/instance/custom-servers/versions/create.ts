@@ -59,6 +59,16 @@ export type ManagementInstanceCustomServersVersionsCreateOutput = {
       createdAt: Date;
       updatedAt: Date;
     } | null;
+    dockerServer: {
+      object: 'custom_server.docker_server';
+      id: string;
+      providerOauth:
+        | { type: 'custom' }
+        | { type: 'json'; config: Record<string, any>; scopes: string[] }
+        | null;
+      createdAt: Date;
+      updatedAt: Date;
+    } | null;
   };
   customServerId: string;
   deploymentId: string | null;
@@ -226,6 +236,34 @@ export let mapManagementInstanceCustomServersVersionsCreateOutput = mtMap.union(
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
               })
+            ),
+            dockerServer: mtMap.objectField(
+              'docker_server',
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                providerOauth: mtMap.objectField(
+                  'provider_oauth',
+                  mtMap.union([
+                    mtMap.unionOption(
+                      'object',
+                      mtMap.object({
+                        type: mtMap.objectField('type', mtMap.passthrough()),
+                        config: mtMap.objectField(
+                          'config',
+                          mtMap.passthrough()
+                        ),
+                        scopes: mtMap.objectField(
+                          'scopes',
+                          mtMap.array(mtMap.passthrough())
+                        )
+                      })
+                    )
+                  ])
+                ),
+                createdAt: mtMap.objectField('created_at', mtMap.date()),
+                updatedAt: mtMap.objectField('updated_at', mtMap.date())
+              })
             )
           })
         ),
@@ -288,6 +326,13 @@ export type ManagementInstanceCustomServersVersionsCreateBody = {
                 | undefined;
             }
           | undefined;
+        config?:
+          | { schema?: any | undefined; getLaunchParams?: string | undefined }
+          | undefined;
+      }
+    | {
+        type: 'docker';
+        dockerServer: { dockerImage: string; dockerTag?: string | undefined };
         config?:
           | { schema?: any | undefined; getLaunchParams?: string | undefined }
           | undefined;
@@ -369,6 +414,16 @@ export let mapManagementInstanceCustomServersVersionsCreateBody =
                     })
                   )
                 )
+              })
+            ),
+            dockerServer: mtMap.objectField(
+              'docker_server',
+              mtMap.object({
+                dockerImage: mtMap.objectField(
+                  'docker_image',
+                  mtMap.passthrough()
+                ),
+                dockerTag: mtMap.objectField('docker_tag', mtMap.passthrough())
               })
             )
           })
