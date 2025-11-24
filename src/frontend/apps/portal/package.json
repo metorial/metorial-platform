@@ -11,13 +11,11 @@
     "deploy": "bun run frontend:build && bun run deploy:only"
   },
   "dependencies": {
-    "@metorial-enterprise/federation-core-api": "^1.0.0",
     "@marsidev/react-turnstile": "^1.1.0",
     "@metorial/chart": "^1.0.0",
     "@metorial/data-hooks": "^1.0.0",
     "@metorial/error": "^1.0.0",
     "@metorial/pages": "^1.0.0",
-    "@metorial-enterprise/rpc": "^1.0.0",
     "@metorial/storage": "^1.0.0",
     "@metorial/ui": "^1.0.0",
     "@radix-ui/react-context-menu": "^2.2.2",
