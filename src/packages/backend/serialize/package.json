@@ -9,7 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "superjson": "^2.2.1"
+    "superjson": "^2.2.5"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
