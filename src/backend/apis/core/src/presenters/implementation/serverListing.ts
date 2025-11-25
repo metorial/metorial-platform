@@ -471,10 +471,26 @@ export let dashboardServerListingPresenter = Presenter.create(serverListingType)
       )
       .run();
 
+    let repository = serverListing.server.importedServer?.repository;
+
     return {
       ...v1,
 
       oauth_explainer: serverListing.oauthExplainer,
+
+      readme_html: readme
+        ? await markdownService.renderMarkdown({
+            markdown: readme,
+            id: serverListing.id,
+            imageRoot: repository
+              ? `https://raw.githubusercontent.com/${repository.identifier.replace('github.com/', '')}/refs/heads/${repository.defaultBranch ?? 'main'}`
+              : 'https://metorial.com',
+            linkRoot: repository
+              ? `https://github.com/${repository.identifier.replace('github.com/', '')}/blob/${repository.defaultBranch ?? 'main'}`
+              : 'https://metorial.com'
+            // rootPath: serverListing.server.importedServer?.subdirectory ?? undefined
+          })
+        : null,
 
       fork: serverListing.server.customServer?.isForkable
         ? {

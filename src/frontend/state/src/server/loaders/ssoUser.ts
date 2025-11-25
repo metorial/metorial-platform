@@ -9,21 +9,17 @@ export let ssoTenantUsersLoader = createLoader({
   fetch: (
     i: {
       instanceId: string;
-      tenantId: string;
     } & DashboardInstanceSsoTenantsUsersListQuery
-  ) => withAuth(sdk => sdk.ssoTenants.users.list(i.instanceId, i.tenantId, i)),
+  ) => withAuth(sdk => sdk.ssoTenants.users.list(i.instanceId, i)),
   mutators: {}
 });
 
 export let useSsoTenantUsers = (
   instanceId: string | null | undefined,
-  tenantId: string | null | undefined,
   query?: DashboardInstanceSsoTenantsUsersListQuery
 ) => {
   let data = usePaginator(pagination =>
-    ssoTenantUsersLoader.use(
-      instanceId && tenantId ? { instanceId, tenantId, ...pagination, ...query } : null
-    )
+    ssoTenantUsersLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
   );
 
   return {
@@ -34,19 +30,16 @@ export let useSsoTenantUsers = (
 export let ssoTenantUserLoader = createLoader({
   name: 'ssoTenantUser',
   parents: [ssoTenantUsersLoader],
-  fetch: (i: { instanceId: string; tenantId: string; userId: string }) =>
-    withAuth(sdk => sdk.ssoTenants.users.get(i.instanceId, i.tenantId, i.userId)),
+  fetch: (i: { instanceId: string; userId: string }) =>
+    withAuth(sdk => sdk.ssoTenants.users.get(i.instanceId, i.userId)),
   mutators: {}
 });
 
 export let useSsoTenantUser = (
   instanceId: string | null | undefined,
-  tenantId: string | null | undefined,
   userId: string | null | undefined
 ) => {
-  let data = ssoTenantUserLoader.use(
-    instanceId && userId && tenantId ? { instanceId, tenantId, userId } : null
-  );
+  let data = ssoTenantUserLoader.use(instanceId && userId ? { instanceId, userId } : null);
 
   return {
     ...data

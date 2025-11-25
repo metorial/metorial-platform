@@ -9,7 +9,6 @@ import {
 import { Attributes, Button, RenderDate, Spacer } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
-import { MagicMcpServersTable } from '../../../scenes/magicMcp/serversGrid';
 import { PortalConsumerProfilesTable } from '../../../scenes/portals/usersTable';
 
 export let PortalOverviewPage = () => {
@@ -64,16 +63,7 @@ export let PortalOverviewPage = () => {
               </Link>
             }
           >
-            <PortalConsumerProfilesTable portalId={portal.data?.id} limit={8} />
-          </Box>
-
-          <Spacer height={15} />
-
-          <Box
-            title="Magic MCP Servers"
-            description="These MCP servers can be used with this portal."
-          >
-            <MagicMcpServersTable portalId={portal.data?.id} limit={8} />
+            <PortalConsumerProfilesTable portalId={portal.data?.id} limit={50} />
           </Box>
         </>
       ))}
