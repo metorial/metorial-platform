@@ -526,6 +526,13 @@ export let dashboardServerListingPresenter = Presenter.create(serverListingType)
           })
         ]),
 
+        readme_html: v.nullable(
+          v.string({
+            name: 'readme_html',
+            description: 'HTML-rendered version of the server listing README'
+          })
+        ),
+
         oauth_explainer: v.nullable(
           v.string({
             name: 'oauth_explainer',

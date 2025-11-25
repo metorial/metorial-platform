@@ -87,6 +87,7 @@ export type PortalsFeaturedServersListOutput = {
     updatedAt: Date;
   } & {
     fork: { status: 'disabled' } | { status: 'enabled'; templateId: string };
+    readmeHtml: string | null;
     oauthExplainer: string | null;
   })[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
@@ -312,6 +313,7 @@ export let mapPortalsFeaturedServersListOutput =
                   )
                 ])
               ),
+              readmeHtml: mtMap.objectField('readme_html', mtMap.passthrough()),
               oauthExplainer: mtMap.objectField(
                 'oauth_explainer',
                 mtMap.passthrough()
