@@ -2,6 +2,8 @@ import { getConfig } from '@metorial/config';
 import { createRedisClient } from '@metorial/redis';
 import { getSentry } from '@metorial/sentry';
 import { LRUCache } from 'lru-cache';
+
+// @ts-ignore
 import SuperJson from 'superjson';
 
 let Sentry = getSentry();
