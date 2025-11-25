@@ -332,7 +332,9 @@ export type ManagementInstanceCustomServersVersionsCreateBody = {
       }
     | {
         type: 'docker';
-        dockerServer: { dockerImage: string; dockerTag?: string | undefined };
+        dockerServer?:
+          | { dockerImage: string; dockerTag?: string | undefined }
+          | undefined;
         config?:
           | { schema?: any | undefined; getLaunchParams?: string | undefined }
           | undefined;

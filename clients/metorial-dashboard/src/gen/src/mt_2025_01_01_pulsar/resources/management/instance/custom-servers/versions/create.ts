@@ -263,6 +263,15 @@ export type ManagementInstanceCustomServersVersionsCreateBody = {
           | undefined;
       }
     | {
+        type: 'docker';
+        dockerServer?:
+          | { dockerImage: string; dockerTag?: string | undefined }
+          | undefined;
+        config?:
+          | { schema?: any | undefined; getLaunchParams?: string | undefined }
+          | undefined;
+      }
+    | {
         type: 'managed';
         managedServer?:
           | {
@@ -275,13 +284,6 @@ export type ManagementInstanceCustomServersVersionsCreateBody = {
                 | undefined;
             }
           | undefined;
-        config?:
-          | { schema?: any | undefined; getLaunchParams?: string | undefined }
-          | undefined;
-      }
-    | {
-        type: 'docker';
-        dockerServer: { dockerImage: string; dockerTag?: string | undefined };
         config?:
           | { schema?: any | undefined; getLaunchParams?: string | undefined }
           | undefined;
@@ -327,6 +329,16 @@ export let mapManagementInstanceCustomServersVersionsCreateBody =
                 )
               })
             ),
+            dockerServer: mtMap.objectField(
+              'docker_server',
+              mtMap.object({
+                dockerImage: mtMap.objectField(
+                  'docker_image',
+                  mtMap.passthrough()
+                ),
+                dockerTag: mtMap.objectField('docker_tag', mtMap.passthrough())
+              })
+            ),
             managedServer: mtMap.objectField(
               'managed_server',
               mtMap.object({
@@ -353,16 +365,6 @@ export let mapManagementInstanceCustomServersVersionsCreateBody =
                     })
                   )
                 )
-              })
-            ),
-            dockerServer: mtMap.objectField(
-              'docker_server',
-              mtMap.object({
-                dockerImage: mtMap.objectField(
-                  'docker_image',
-                  mtMap.passthrough()
-                ),
-                dockerTag: mtMap.objectField('docker_tag', mtMap.passthrough())
               })
             )
           })
