@@ -9,8 +9,10 @@ import { generateSnowflakeId } from '@metorial/id';
 import { getSentry } from '@metorial/sentry';
 import amqp, { Channel, Message } from 'amqplib';
 import { Job } from 'bullmq';
-import SuperJson from 'superjson';
 import { IQueue } from '../types';
+
+// @ts-ignore
+import SuperJson from 'superjson';
 
 let Sentry = getSentry();
 let log = (...any: any[]) => console.log('[RABBITMQ QUEUE MANAGER]:', ...any);

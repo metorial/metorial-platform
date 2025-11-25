@@ -1,3 +1,4 @@
+// @ts-ignore
 import SuperJSON from 'superjson';
 
 export let serialize = {

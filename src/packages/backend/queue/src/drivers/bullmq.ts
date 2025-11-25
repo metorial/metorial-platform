@@ -19,9 +19,11 @@ import {
   Worker,
   WorkerOptions
 } from 'bullmq';
-import SuperJson from 'superjson';
 import { QueueRetryError } from '../lib/queueRetryError';
 import { IQueue } from '../types';
+
+// @ts-ignore
+import SuperJson from 'superjson';
 
 let Sentry = getSentry();
 

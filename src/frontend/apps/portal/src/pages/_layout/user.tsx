@@ -1,7 +1,6 @@
 import { fadeInDown, fadeOutUp } from '@metorial/layout/src/applicationLayout/animations';
 import { Avatar, Button, Spacer, theme } from '@metorial/ui';
 import * as Popover from '@radix-ui/react-popover';
-import { Link } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { useConsumer } from '../../state/consumer/consumer';
 import { usePaths } from '../../state/portal/path';
@@ -99,12 +98,6 @@ export let UserMenu = () => {
           </Header>
 
           <Actions>
-            <Link to={Paths.settings()}>
-              <Button size="2" fullWidth variant="solid" as="span">
-                Account
-              </Button>
-            </Link>
-
             <Button
               size="2"
               fullWidth
