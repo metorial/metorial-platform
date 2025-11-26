@@ -183,7 +183,10 @@ let ServerDeploymentFormInternal = (
             ...p.for
           });
 
-          if (err?.message.includes('OAuth configuration is required')) {
+          if (
+            err?.message.includes('OAuth configuration is required') ||
+            err?.message.includes('Client ID is required')
+          ) {
             showModal(({ dialogProps, close }) => {
               let form = useForm({
                 initialValues: {
