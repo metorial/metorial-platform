@@ -77,14 +77,24 @@ export let lambdaDeployMainQueueProcessor = lambdaDeployMainQueue.process(async 
   let s3Key = `mtrl-csrv-out-${lambda.id}.zip`;
 
   try {
+    console.log('Preparing resources for managed server deployments...');
+
     let executionRoleName = getResourceName('execution-role');
     let taskRoleName = getResourceName('task-role');
 
+    console.log('Ensuring S3 bucket...');
+
     await ensureS3Bucket(s3Bucket);
+
+    console.log('Ensuring ECS cluster and log group...');
 
     await ensureCluster(clusterName);
 
+    console.log('Ensuring log group...');
+
     await ensureLogGroup(logGroupName);
+
+    console.log('Ensuring IAM roles...');
 
     executionRole = await ensureRole(
       executionRoleName,
@@ -103,6 +113,8 @@ export let lambdaDeployMainQueueProcessor = lambdaDeployMainQueue.process(async 
         'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
       ]
     );
+
+    console.log('Ensuring task role...');
 
     taskRole = await ensureRole(
       taskRoleName,
@@ -124,14 +136,18 @@ export let lambdaDeployMainQueueProcessor = lambdaDeployMainQueue.process(async 
             {
               Effect: 'Allow',
               Action: ['s3:PutObject', 's3:PutObjectTagging'],
-              Resource: `arn:aws:s3:::${s3Bucket}/${s3Key}*`
+              Resource: `arn:aws:s3:::${s3Bucket}/*`
             }
           ]
         }
       }
     );
 
+    console.log('Ensuring VPC...');
+
     vpcResources = await ensureVpc(vpc);
+
+    console.log('Preparing code package...');
 
     let zipUrl = await codeBucketService.getBucketFilesAsZip({
       codeBucket: lambda.immutableCodeBucket

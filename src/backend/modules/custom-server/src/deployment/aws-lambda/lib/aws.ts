@@ -42,6 +42,6 @@ if (env.aws.AWS_ACCOUNT_ID && !env.aws.AWS_ACCOUNT_ID) {
 
 export let getResourceName = (name: string) => {
   let prefix = env.aws.LAMBDA_DEPLOY_RESOURCE_PREFIX;
-  let inner = `metorial-csrv1-${name}`;
-  return prefix ? `${prefix}-${inner}` : inner;
+  let inner = `csrv1-${name}`;
+  return prefix ? `metorial-${prefix}-${inner}` : inner;
 };
