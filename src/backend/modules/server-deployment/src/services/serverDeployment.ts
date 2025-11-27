@@ -316,16 +316,15 @@ class ServerDeploymentServiceImpl {
           d.input.oauthConfig ||
           oauthConfig.discoverStatus == 'manual'
         ) {
-          let oauthConfigData = oauthConfig.config;
-
-          if (!oauthConfigData && d.template?.oauthConfigClientId) {
-            oauthConfigData = {
+          let oauthVars = d.input.oauthConfig;
+          if (!oauthVars && d.template?.oauthConfigClientId) {
+            oauthVars = {
               clientId: d.template.oauthConfigClientId!,
               clientSecret: d.template.oauthConfigClientSecret!
             };
           }
 
-          if (!oauthConfigData) {
+          if (!oauthVars) {
             throw new ServiceError(
               badRequestError({
                 message: 'OAuth configuration is required for this server deployment'
@@ -353,26 +352,23 @@ class ServerDeploymentServiceImpl {
                         type: 'json',
                         config: oauthConfig.config,
                         scopes: oauthConfig.scopes,
-                        clientId: oauthConfigData.clientId,
-                        clientSecret: oauthConfigData.clientSecret
+                        ...oauthVars
                       }
                     : oauthConfig.type == 'managed_server_http'
                       ? {
                           type: 'managed_server_http',
                           httpEndpoint: oauthConfig.httpEndpoint!,
                           hasRemoteOauthForm: oauthConfig.hasRemoteOauthForm!,
-                          clientId: oauthConfigData.clientId,
-                          clientSecret: oauthConfigData.clientSecret,
                           lambdaServerInstanceOid:
-                            oauthConfig.lambdaServerInstanceForManagedServerOid!
+                            oauthConfig.lambdaServerInstanceForManagedServerOid!,
+                          ...oauthVars
                         }
                       : {
                           type: 'managed_server_lambda',
                           hasRemoteOauthForm: oauthConfig.hasRemoteOauthForm!,
-                          clientId: oauthConfigData.clientId,
-                          clientSecret: oauthConfigData.clientSecret,
                           lambdaServerInstanceOid:
-                            oauthConfig.lambdaServerInstanceForManagedServerOid!
+                            oauthConfig.lambdaServerInstanceForManagedServerOid!,
+                          ...oauthVars
                         }
               }
             }
