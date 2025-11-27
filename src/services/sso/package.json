@@ -25,6 +25,7 @@
     "@metorial/logging": "1.0.0",
     "@metorial/queue": "1.0.0",
     "@vercel/ncc": "^0.38.4",
+    "jose": "^6.1.2",
     "mongoose": "^8.19.3"
   },
   "devDependencies": {
