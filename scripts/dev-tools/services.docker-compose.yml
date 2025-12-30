@@ -38,7 +38,7 @@ services:
   #   restart: unless-stopped
 
   postgres-db1:
-    image: postgres:latest
+    image: postgres:17
     ports:
       - '35432:5432'
     volumes:
