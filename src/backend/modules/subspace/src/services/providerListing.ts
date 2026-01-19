@@ -4,5 +4,5 @@ import { subspace } from '../subspace';
 export let subspaceProviderListingService = createSubspaceService(
   subspace.providerListing,
   ['get', 'list'],
-  {}
+  () => ({})
 );

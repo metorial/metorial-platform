@@ -7,13 +7,15 @@ export type Tail<T extends any[]> = T extends [any, ...infer U] ? U : [];
 export let createSubspaceService = <SubspaceController extends {}, Overrides extends {}>(
   controller: SubspaceController,
   methods: (keyof SubspaceController)[],
-  overrides: Overrides
+  overrides: (subspace: SubspaceController) => Overrides
 ) => {
   let methodsObj: any = {
-    ...overrides
+    ...overrides(controller)
   };
 
   for (let methodName of methods) {
+    if (methodsObj[methodName]) continue;
+
     methodsObj[methodName] = async (...args: any[]) => {
       let tenant = await getTenantForSubspace(args[0].instance);
 
@@ -28,7 +30,9 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
   }
 
   let methodsTyped = methodsObj as {
-    [K in keyof SubspaceController]: SubspaceController[K] extends (...args: any[]) => any
+    [K in Exclude<keyof SubspaceController, keyof Overrides>]: SubspaceController[K] extends (
+      ...args: any[]
+    ) => any
       ? (
           arg0: { instance: Instance } & Omit<
             Parameters<SubspaceController[K]>[0],

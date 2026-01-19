@@ -4,5 +4,5 @@ import { subspace } from '../subspace';
 export let subspaceProviderOAuthSetupService = createSubspaceService(
   subspace.providerOAuthSetup,
   ['get', 'list', 'create', 'update'],
-  {}
+  () => ({})
 );

@@ -4,5 +4,5 @@ import { subspace } from '../subspace';
 export let subspaceSessionErrorGroupService = createSubspaceService(
   subspace.sessionErrorGroup,
   ['get', 'list'],
-  {}
+  () => ({})
 );

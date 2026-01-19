@@ -4,5 +4,5 @@ import { subspace } from '../subspace';
 export let subspaceSessionParticipantService = createSubspaceService(
   subspace.sessionParticipant,
   ['get', 'list'],
-  {}
+  () => ({})
 );
