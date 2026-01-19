@@ -26,6 +26,7 @@ import { serverDeploymentQueueProcessor } from '@metorial/module-server-deployme
 import { serverRunnerQueueProcessor } from '@metorial/module-server-runner';
 import { sessionQueueProcessor } from '@metorial/module-session';
 import { ssoQueueProcessor } from '@metorial/module-sso';
+import { subspaceQueueProcessor } from '@metorial/module-subspace';
 import { usageQueueProcessor } from '@metorial/module-usage';
 import { userQueueProcessor } from '@metorial/module-user';
 
@@ -55,5 +56,6 @@ export let worker = runQueueProcessors([
   protectQueueProcessor,
   ssoQueueProcessor,
   consumerQueueProcessor,
-  portalQueueProcessor
+  portalQueueProcessor,
+  subspaceQueueProcessor
 ]);
