@@ -1,57 +1,47 @@
-import { subspace } from './subspace';
+import { Instance } from '@metorial/db';
+import { Service } from '@metorial/service';
+import { getTenantForSubspace } from '../subspace';
 
-export let normalizeArrayParam = <T>(param: T | T[] | undefined): T[] | undefined => {
-  let items = (Array.isArray(param) ? param : [param!]).filter(Boolean);
-  if (!items.length) return undefined;
-  return items;
-};
+export type Tail<T extends any[]> = T extends [any, ...infer U] ? U : [];
 
-type ListFilters = {
-  [key: string]: string | string[] | boolean | undefined;
-};
-
-type NormalizedFilters = {
-  [key: string]: string[] | boolean | undefined;
-};
-
-export let normalizeFilters = (filters: ListFilters) => {
-  let result: NormalizedFilters = {};
-  for (let [key, value] of Object.entries(filters)) {
-    if (typeof value === 'boolean') {
-      result[key] = value;
-    } else {
-      result[key] = normalizeArrayParam(value);
-    }
-  }
-  return result;
-};
-
-type CrudMethod = 'get' | 'list' | 'create' | 'update' | 'delete';
-
-type ControllerWithMethods<TMethods extends readonly CrudMethod[]> = {
-  [K in TMethods[number]]: (...args: any[]) => any;
-};
-
-export let createSubspaceService = <
-  TController extends ControllerWithMethods<TMethods>,
-  TMethods extends readonly CrudMethod[]
->(
-  controller: TController,
-  methods: TMethods,
-  extra?: (client: typeof subspace) => Record<string, any>
+export let createSubspaceService = <SubspaceController extends {}, Overrides extends {}>(
+  controller: SubspaceController,
+  methods: (keyof SubspaceController)[],
+  overrides: (subspace: SubspaceController) => Overrides
 ) => {
-  let service: Record<string, any> = {};
+  let methodsObj: any = {
+    ...overrides(controller)
+  };
 
-  for (let method of methods) {
-    if (method in controller) {
-      service[method] = (controller[method] as Function).bind(controller);
-    }
+  for (let methodName of methods) {
+    if (methodsObj[methodName]) continue;
+
+    methodsObj[methodName] = async (...args: any[]) => {
+      let tenant = await getTenantForSubspace(args[0].instance);
+
+      return (controller as any)[methodName](
+        {
+          ...args[0],
+          tenantId: tenant.id
+        },
+        ...args.slice(1)
+      );
+    };
   }
 
-  if (extra) {
-    Object.assign(service, extra(subspace));
-  }
+  let methodsTyped = methodsObj as {
+    [K in Exclude<keyof SubspaceController, keyof Overrides>]: SubspaceController[K] extends (
+      ...args: any[]
+    ) => any
+      ? (
+          arg0: { instance: Instance } & Omit<
+            Parameters<SubspaceController[K]>[0],
+            'tenantId'
+          >,
+          ...args: Tail<Parameters<SubspaceController[K]>>
+        ) => ReturnType<SubspaceController[K]>
+      : never;
+  } & Overrides;
 
-  return service as Pick<TController, TMethods[number]> &
-    (typeof extra extends undefined ? {} : ReturnType<NonNullable<typeof extra>>);
+  return Service.create('subspace', () => methodsTyped).build();
 };

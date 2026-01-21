@@ -223,5 +223,8 @@ export let backendEnv: Env = [
   { key: 'SUPPORT_ENABLED', isEnterprise: true, defaultValue: 'true' },
   { key: 'CHROME_SIDEBAR_DOCS_ENABLED', isEnterprise: true, defaultValue: 'true' },
   { key: 'CHROME_ONBOARDING_ENABLED', isEnterprise: true, defaultValue: 'true' },
-  { key: 'CHROME_SIDEBAR_CHANGELOG_ENABLED', isEnterprise: true, defaultValue: 'true' }
+  { key: 'CHROME_SIDEBAR_CHANGELOG_ENABLED', isEnterprise: true, defaultValue: 'true' },
+
+  { key: 'SUBSPACE_SOLUTION', defaultValue: 'metorial-dev' },
+  { key: 'SUBSPACE_URL', defaultValue: 'http://localhost:52070' }
 ];

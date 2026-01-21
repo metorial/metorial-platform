@@ -1,7 +1,8 @@
 import { createSubspaceService } from '../lib/subspaceService';
-import { subspace } from '../lib/subspace';
+import { subspace } from '../subspace';
 
 export let subspacePublisherService = createSubspaceService(
-  subspace.providerPublisher,
-  ['get', 'list'] as const
+  subspace.publisher,
+  ['get', 'list'],
+  () => ({})
 );
