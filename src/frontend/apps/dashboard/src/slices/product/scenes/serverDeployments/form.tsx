@@ -213,7 +213,7 @@ let ServerDeploymentFormInternal = (
                   <Dialog.Title>OAuth Configuration Required</Dialog.Title>
 
                   <Dialog.Description>
-                    Please provide an OAuth Client ID and Client Secret to proceed with the
+                    Please provide an OAuth Client ID and Client Secret to proceed with the{' '}
                     {nameLowerCase}.
                   </Dialog.Description>
 
