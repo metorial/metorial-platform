@@ -9,9 +9,9 @@ export let array = <Validator extends ValidationType<any>>(
   items: validator,
   name: opts?.name,
   description: opts?.description,
-  examples: Array.isArray(validator.examples)
-    ? validator.examples.map(v => [v, v])
-    : undefined,
+  examples: opts?.examples ?? (Array.isArray(validator.examples)
+    ? validator.examples.map(v => [v])
+    : undefined),
   validate: value => {
     if (!Array.isArray(value)) {
       return error([

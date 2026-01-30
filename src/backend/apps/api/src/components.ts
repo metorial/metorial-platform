@@ -11,7 +11,6 @@ import { apiMux } from '@metorial/api-mux';
 import { providerOauthApp } from '@metorial/api-oauth';
 import { portalApp } from '@metorial/api-portal';
 import { startPrivateApiServer } from '@metorial/api-private';
-import { providerApp } from '@metorial/api-provider';
 import { startRunnerGateway } from '@metorial/api-runner-gateway';
 import { authenticate } from '@metorial/auth';
 import { initLogger } from '@metorial/logging';
@@ -25,7 +24,6 @@ let privateApiPort = parseInt(process.env.PRIVATE_API_PORT || '4314');
 let marketplaceApiPort = parseInt(process.env.MARKETPLACE_API_PORT || '4312');
 let integrationsApiPort = parseInt(process.env.INTEGRATIONS_API_PORT || '4316');
 let callbacksApiPort = parseInt(process.env.CALLBACKS_API_PORT || '4317');
-let providerApiPort = parseInt(process.env.PROVIDER_API_PORT || '4318');
 
 let server = apiMux(
   [
@@ -74,11 +72,6 @@ Bun.serve({
 Bun.serve({
   port: callbacksApiPort,
   fetch: callbacksApp.fetch
-});
-
-Bun.serve({
-  port: providerApiPort,
-  fetch: providerApp.fetch
 });
 
 console.log(`Listening on port ${apiPort}`);

@@ -3,6 +3,6 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderListingGroupService = createSubspaceService(
   subspace.providerListingGroup,
-  ['get', 'list', 'create', 'update'],
+  ['get', 'list', 'create', 'update', 'addListing', 'removeListing'],
   () => ({})
 );

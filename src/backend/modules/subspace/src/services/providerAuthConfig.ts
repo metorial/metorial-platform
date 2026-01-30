@@ -3,6 +3,6 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderAuthConfigService = createSubspaceService(
   subspace.providerAuthConfig,
-  ['get', 'list', 'update', 'create'],
+  ['get', 'list', 'update', 'create', 'delete'],
   () => ({})
 );

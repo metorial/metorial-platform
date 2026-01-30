@@ -26,6 +26,7 @@ export type EndpointDescriptor = {
   description: string;
 
   hideInDocs?: boolean;
+  deprecated?: boolean;
 };
 
 export type GetHandlerContext<
@@ -212,7 +213,7 @@ export class Handler<
     | (({ apiVersion }: { apiVersion: string }) => {
         name: any;
         object: IntrospectedType;
-      })
+      } | null)
     | undefined;
 
   constructor(
@@ -311,12 +312,16 @@ export class Handler<
       introspect: ({ apiVersion }: { apiVersion: string }) => {
         name: any;
         object: IntrospectedType;
-      };
+      } | null;
     },
     mode: 'list' | 'get' = 'get'
   ) {
     this.introspectResponse = i => {
       let res = presenter.introspect(i);
+
+      if (!res) {
+        return null;
+      }
 
       if (mode === 'list') {
         return {
@@ -367,7 +372,7 @@ export class Handler<
     introspect: ({ apiVersion }: { apiVersion: string }) => {
       name: any;
       object: IntrospectedType;
-    };
+    } | null;
   }) {
     return this.output(presenter, 'list');
   }

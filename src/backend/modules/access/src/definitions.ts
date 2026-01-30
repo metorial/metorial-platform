@@ -68,7 +68,19 @@ export let instanceScopes = [
   'instance.portal.server_requests:write' as const,
 
   'instance.portal.featured_servers:read' as const,
-  'instance.portal.featured_servers:write' as const
+  'instance.portal.featured_servers:write' as const,
+
+  'instance.provider:read' as const,
+  'instance.provider:write' as const,
+
+  'instance.provider.deployment:read' as const,
+  'instance.provider.deployment:write' as const,
+
+  'instance.provider.auth:read' as const,
+  'instance.provider.auth:write' as const,
+
+  'instance.provider.session:read' as const,
+  'instance.provider.session:write' as const
 ] satisfies readonly `instance.${string}`[];
 
 export let consumerScopes = [
@@ -208,7 +220,19 @@ export let instanceSecretTokenScopes: Scope[] = [
   'instance.portal.server_requests:write' as const,
 
   'instance.portal.featured_servers:read' as const,
-  'instance.portal.featured_servers:write' as const
+  'instance.portal.featured_servers:write' as const,
+
+  'instance.provider:read' as const,
+  'instance.provider:write' as const,
+
+  'instance.provider.deployment:read' as const,
+  'instance.provider.deployment:write' as const,
+
+  'instance.provider.auth:read' as const,
+  'instance.provider.auth:write' as const,
+
+  'instance.provider.session:read' as const,
+  'instance.provider.session:write' as const
 ];
 
 export let instancePublishableTokenScopes: Scope[] = [
