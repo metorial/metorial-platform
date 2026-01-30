@@ -1,0 +1,17 @@
+model SubspaceReferenceAuthImport {
+  oid BigInt @id @default(autoincrement())
+  id  String // Subspace-generated ID
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  providerId           String?
+  providerDeploymentId String?
+  providerAuthConfigId String?
+
+  subspaceCreatedAt DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+
+  @@unique([instanceOid, id])
+}
