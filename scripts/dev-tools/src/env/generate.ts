@@ -46,7 +46,10 @@ export let getEnvRecord = ({
       if (entry.isRequired) {
         throw new Error(`Missing required environment variable: ${entry.key}`);
       }
-      value = entry.defaultValue;
+      value =
+        type === 'enterprise' && entry.enterpriseDefaultValue
+          ? entry.enterpriseDefaultValue
+          : entry.defaultValue;
     }
 
     if (value) {

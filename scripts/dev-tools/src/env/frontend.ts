@@ -17,15 +17,18 @@ export let frontendEnv: Env = [
   },
   {
     key: 'VITE_MCP_API_URL',
-    defaultValue: `http://${HOSTNAME}:4311`
+    defaultValue: `http://${HOSTNAME}:4311`,
+    enterpriseDefaultValue: `http://${HOSTNAME}:4411`
   },
   {
     key: 'VITE_CORE_API_URL',
-    defaultValue: `http://${HOSTNAME}:4310`
+    defaultValue: `http://${HOSTNAME}:4310`,
+    enterpriseDefaultValue: `http://${HOSTNAME}:4410`
   },
   {
     key: 'VITE_PRIVATE_API_URL',
-    defaultValue: `http://${HOSTNAME}:4314`
+    defaultValue: `http://${HOSTNAME}:4314`,
+    enterpriseDefaultValue: `http://${HOSTNAME}:4414`
   },
   {
     key: 'VITE_CODE_EDITOR_URL',
@@ -84,11 +87,13 @@ export let frontendEnv: Env = [
   },
   {
     key: 'VITE_CUSTOM_PORTAL_API_URL',
-    defaultValue: 'http://localhost:4315'
+    defaultValue: 'http://localhost:4315',
+    enterpriseDefaultValue: 'http://localhost:4415'
   },
   {
     key: 'VITE_MARKETPLACE_API_URL',
     defaultValue: `http://${HOSTNAME}:4312`,
+    enterpriseDefaultValue: `http://${HOSTNAME}:4412`,
     isEnterprise: true
   },
 
@@ -136,6 +141,7 @@ export let frontendEnv: Env = [
   {
     key: 'VITE_PUBLIC_API_URL',
     defaultValue: `http://${HOSTNAME}:4310`,
+    enterpriseDefaultValue: `http://${HOSTNAME}:4410`,
     isEnterprise: true
   }
 ];

@@ -141,18 +141,42 @@ export let backendEnv: Env = [
     defaultValue: 'mongodb://mongo:mongo@localhost:32707/?authSource=admin'
   },
 
-  { key: 'API_URL', defaultValue: `http://${HOSTNAME}:4310` },
+  {
+    key: 'API_URL',
+    defaultValue: `http://${HOSTNAME}:4310`,
+    enterpriseDefaultValue: `http://${HOSTNAME}:4410`
+  },
   { key: 'APP_URL', defaultValue: `http://${HOSTNAME}:4300` },
   { key: 'ID_API_HOST', defaultValue: `http://${HOSTNAME}:4321`, isEnterprise: true },
   { key: 'BILLING_API_URL', defaultValue: `http://${HOSTNAME}:4320`, isEnterprise: true },
-  { key: 'MCP_URL', defaultValue: `http://${HOSTNAME}:4311` },
-  { key: 'PROVIDER_OAUTH_URL', defaultValue: `http://${HOSTNAME}:4313` },
+  {
+    key: 'MCP_URL',
+    defaultValue: `http://${HOSTNAME}:4311`,
+    enterpriseDefaultValue: `http://${HOSTNAME}:4411`
+  },
+  {
+    key: 'PROVIDER_OAUTH_URL',
+    defaultValue: `http://${HOSTNAME}:4313`,
+    enterpriseDefaultValue: `http://${HOSTNAME}:4413`
+  },
   { key: 'AUTH_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4301`, isEnterprise: true },
   { key: 'TEAM_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4303`, isEnterprise: true },
   { key: 'DASHBOARD_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300` },
-  { key: 'PORTALS_URL', defaultValue: `http://${HOSTNAME}:4315` },
-  { key: 'INTEGRATIONS_API_URL', defaultValue: `http://${HOSTNAME}:4316` },
-  { key: 'CALLBACKS_URL', defaultValue: `http://${HOSTNAME}:4317` },
+  {
+    key: 'PORTALS_URL',
+    defaultValue: `http://${HOSTNAME}:4315`,
+    enterpriseDefaultValue: `http://${HOSTNAME}:4415`
+  },
+  {
+    key: 'INTEGRATIONS_API_URL',
+    defaultValue: `http://${HOSTNAME}:4316`,
+    enterpriseDefaultValue: `http://${HOSTNAME}:4416`
+  },
+  {
+    key: 'CALLBACKS_URL',
+    defaultValue: `http://${HOSTNAME}:4317`,
+    enterpriseDefaultValue: `http://${HOSTNAME}:4417`
+  },
 
   { key: 'COOKIE_DOMAIN', defaultValue: `${HOSTNAME}`, isEnterprise: true },
 
@@ -226,5 +250,5 @@ export let backendEnv: Env = [
   { key: 'CHROME_SIDEBAR_CHANGELOG_ENABLED', isEnterprise: true, defaultValue: 'true' },
 
   { key: 'SUBSPACE_SOLUTION', defaultValue: 'metorial-dev' },
-  { key: 'SUBSPACE_URL', defaultValue: 'http://localhost:52070' }
+  { key: 'SUBSPACE_URL', defaultValue: 'http://localhost:52070/subspace-controller' }
 ];
