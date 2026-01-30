@@ -21,7 +21,7 @@ export let v1MagicMcpGroupPresenter = Presenter.create(magicMcpGroupType)
   })
   .schema(
     v.object({
-      object: v.literal('magic_mcp.group'),
+      object: v.literal('magic_mcp.group', { description: "String representing the object's type" }),
 
       id: v.string({
         name: 'id',

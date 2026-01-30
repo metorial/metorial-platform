@@ -24,7 +24,7 @@ export let providerOauthTakeoutController = Controller.create(
   {
     name: 'OAuth Token Export',
     description: 'Manage provider OAuth token export information',
-    hideInDocs: true
+    deprecated: true
   },
   {
     list: instanceGroup

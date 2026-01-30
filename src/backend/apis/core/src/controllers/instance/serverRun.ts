@@ -41,13 +41,25 @@ export let serverRunController = Controller.create(
               v.union([
                 v.enumOf(Object.keys(ServerRunStatus) as any),
                 v.array(v.enumOf(Object.keys(ServerRunStatus) as any))
-              ])
+              ]),
+              { description: 'Filter by run status' }
             ),
-
-            server_session_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            session_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_session_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server session ID(s)' }
+            ),
+            server_implementation_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server implementation ID(s)' }
+            ),
+            server_deployment_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server deployment ID(s)' }
+            ),
+            session_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by session ID(s)' }
+            )
           })
         )
       )

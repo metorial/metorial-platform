@@ -64,7 +64,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
   })
   .schema(
     v.object({
-      object: v.literal('magic_mcp.server'),
+      object: v.literal('magic_mcp.server', { description: "String representing the object's type" }),
 
       id: v.string({
         name: 'id',
@@ -140,7 +140,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         v.object({
           status: v.literal('configured'),
           default_oauth_session: v.object({
-            object: v.literal('server.oauth_session#preview'),
+            object: v.literal('server.oauth_session#preview', { description: "String representing the object's type" }),
             id: v.string({
               name: 'id',
               description: 'The unique identifier of the OAuth session'
@@ -213,7 +213,7 @@ export let v1DashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerT
 
         default_oauth_session: v.nullable(
           v.object({
-            object: v.literal('server.oauth_session#preview'),
+            object: v.literal('server.oauth_session#preview', { description: "String representing the object's type" }),
             id: v.string({
               name: 'id',
               description: 'The unique identifier of the OAuth session'

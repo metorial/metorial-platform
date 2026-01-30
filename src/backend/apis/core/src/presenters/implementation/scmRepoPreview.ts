@@ -24,7 +24,7 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
   }))
   .schema(
     v.object({
-      object: v.literal('integrations.scm.repo#preview'),
+      object: v.literal('integrations.scm.repo#preview', { description: "String representing the object's type" }),
 
       items: v.array(
         v.object({

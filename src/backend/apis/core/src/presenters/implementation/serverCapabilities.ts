@@ -54,11 +54,11 @@ export let v1ServerCapabilitiesPresenter = Presenter.create(serverCapabilitiesTy
   }))
   .schema(
     v.object({
-      object: v.literal('server.capabilities'),
+      object: v.literal('server.capabilities', { description: "String representing the object's type" }),
 
       mcp_servers: v.array(
         v.object({
-          object: v.literal('server.capabilities.mcp_server'),
+          object: v.literal('server.capabilities.mcp_server', { description: "String representing the object's type" }),
 
           id: v.string({
             name: 'id',

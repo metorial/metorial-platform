@@ -24,7 +24,8 @@ export let magicMcpSessionController = Controller.create(
   {
     name: 'Magic MCP Session',
     description:
-      'Magic MCP sessions are created when a user connects to a magic MCP session using a valid magic MCP token.'
+      'Magic MCP sessions are created when a user connects to a magic MCP session using a valid magic MCP token.',
+    deprecated: true
   },
   {
     list: instanceGroup

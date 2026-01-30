@@ -14,6 +14,19 @@ export let v1SessionPresenter = Presenter.create(sessionType)
       status: session.status,
       connection_status: session.connectionStatus,
 
+      usage: {
+        total_productive_message_count:
+          session.totalProductiveClientMessageCount +
+          session.totalProductiveServerMessageCount,
+        total_productive_client_message_count: session.totalProductiveClientMessageCount,
+        total_productive_server_message_count: session.totalProductiveServerMessageCount
+      },
+
+      metadata: session.metadata ?? {},
+
+      created_at: session.createdAt,
+      updated_at: session.updatedAt,
+
       client_secret: {
         object: 'client_secret',
 
@@ -33,8 +46,6 @@ export let v1SessionPresenter = Presenter.create(sessionType)
 
           metadata: deployment.server.metadata ?? {},
 
-          server: v1ServerPreview(deployment.server),
-
           oauth_session_id: oauthSession?.id ?? null,
 
           connection_urls: {
@@ -44,27 +55,16 @@ export let v1SessionPresenter = Presenter.create(sessionType)
           },
 
           created_at: deployment.createdAt,
-          updated_at: deployment.updatedAt
+          updated_at: deployment.updatedAt,
+
+          server: v1ServerPreview(deployment.server)
         })
-      ),
-
-      usage: {
-        total_productive_message_count:
-          session.totalProductiveClientMessageCount +
-          session.totalProductiveServerMessageCount,
-        total_productive_client_message_count: session.totalProductiveClientMessageCount,
-        total_productive_server_message_count: session.totalProductiveServerMessageCount
-      },
-
-      metadata: session.metadata ?? {},
-
-      created_at: session.createdAt,
-      updated_at: session.updatedAt
+      )
     };
   })
   .schema(
     v.object({
-      object: v.literal('session'),
+      object: v.literal('session', { description: "String representing the object's type" }),
 
       id: v.string({
         name: 'id',
@@ -80,107 +80,6 @@ export let v1SessionPresenter = Presenter.create(sessionType)
         name: 'connection_status',
         description: 'The connection state of the session'
       }),
-
-      client_secret: v.object(
-        {
-          object: v.literal('client_secret'),
-
-          type: v.enumOf(['session'], {
-            name: 'type',
-            description: 'The type of client secret'
-          }),
-          id: v.string({
-            name: 'id',
-            description: 'The unique identifier of the client secret'
-          }),
-          secret: v.string({
-            name: 'secret',
-            description: 'The secret token for the session client'
-          }),
-          expires_at: v.date({
-            name: 'expires_at',
-            description: 'Expiration date of the client secret'
-          })
-        },
-        {
-          name: 'client_secret',
-          description: 'Client secret object associated with this session'
-        }
-      ),
-
-      server_deployments: v.array(
-        v.object({
-          object: v.literal('session.server_deployment#preview'),
-
-          id: v.string({
-            name: 'id',
-            description: 'The unique identifier of the server deployment preview'
-          }),
-
-          name: v.nullable(
-            v.string({
-              name: 'name',
-              description: 'The name of the server deployment preview, if available'
-            })
-          ),
-
-          oauth_session_id: v.nullable(
-            v.string({
-              name: 'oauth_session_id',
-              description: 'The associated OAuth session ID, if available'
-            })
-          ),
-
-          description: v.nullable(
-            v.string({
-              name: 'description',
-              description: 'A description of the server deployment preview, if available'
-            })
-          ),
-
-          metadata: v.record(v.any(), {
-            name: 'metadata',
-            description: 'Additional metadata related to the server deployment preview'
-          }),
-
-          created_at: v.date({
-            name: 'created_at',
-            description: 'Timestamp when the server deployment preview was created'
-          }),
-
-          updated_at: v.date({
-            name: 'updated_at',
-            description: 'Timestamp when the server deployment preview was last updated'
-          }),
-
-          server: v1ServerPreview.schema,
-
-          connection_urls: v.object(
-            {
-              sse: v.string({
-                name: 'sse',
-                description: 'URL for Server-Sent Events connection'
-              }),
-              streamable_http: v.string({
-                name: 'streamable_http',
-                description: 'URL for Streamable HTTP connection'
-              })
-              // websocket: v.string({
-              //   name: 'websocket',
-              //   description: 'URL for WebSocket connection'
-              // })
-            },
-            {
-              name: 'url',
-              description: 'Connection URLs for the server deployment'
-            }
-          )
-        }),
-        {
-          name: 'server_deployments',
-          description: 'List of server deployments related to this session'
-        }
-      ),
 
       usage: v.object(
         {
@@ -210,12 +109,119 @@ export let v1SessionPresenter = Presenter.create(sessionType)
 
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the session was created'
+        description: 'Timestamp when the session was created',
+        examples: [new Date('2024-01-15T09:30:00Z')]
       }),
+
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when the session was last updated'
-      })
+        description: 'Timestamp when the session was last updated',
+        examples: [new Date('2024-01-15T09:30:00Z')]
+      }),
+
+      client_secret: v.object(
+        {
+          object: v.literal('client_secret', { description: "String representing the object's type" }),
+
+          type: v.enumOf(['session'], {
+            name: 'type',
+            description: 'The type of client secret'
+          }),
+          id: v.string({
+            name: 'id',
+            description: 'The unique identifier of the client secret'
+          }),
+          secret: v.string({
+            name: 'secret',
+            description: 'The secret token for the session client'
+          }),
+          expires_at: v.date({
+            name: 'expires_at',
+            description: 'Expiration date of the client secret',
+            examples: [new Date('2024-01-15T09:30:00Z')]
+          })
+        },
+        {
+          name: 'client_secret',
+          description: 'Client secret object associated with this session'
+        }
+      ),
+
+      server_deployments: v.array(
+        v.object({
+          object: v.literal('session.server_deployment#preview', { description: "String representing the object's type" }),
+
+          id: v.string({
+            name: 'id',
+            description: 'The unique identifier of the server deployment preview'
+          }),
+
+          name: v.nullable(
+            v.string({
+              name: 'name',
+              description: 'The name of the server deployment preview, if available'
+            })
+          ),
+
+          description: v.nullable(
+            v.string({
+              name: 'description',
+              description: 'A description of the server deployment preview, if available'
+            })
+          ),
+
+          metadata: v.record(v.any(), {
+            name: 'metadata',
+            description: 'Additional metadata related to the server deployment preview'
+          }),
+
+          oauth_session_id: v.nullable(
+            v.string({
+              name: 'oauth_session_id',
+              description: 'The associated OAuth session ID, if available'
+            })
+          ),
+
+          connection_urls: v.object(
+            {
+              sse: v.string({
+                name: 'sse',
+                description: 'URL for Server-Sent Events connection'
+              }),
+              streamable_http: v.string({
+                name: 'streamable_http',
+                description: 'URL for Streamable HTTP connection'
+              })
+              // websocket: v.string({
+              //   name: 'websocket',
+              //   description: 'URL for WebSocket connection'
+              // })
+            },
+            {
+              name: 'url',
+              description: 'Connection URLs for the server deployment'
+            }
+          ),
+
+          created_at: v.date({
+            name: 'created_at',
+            description: 'Timestamp when the server deployment preview was created',
+            examples: [new Date('2024-01-15T09:30:00Z')]
+          }),
+
+          updated_at: v.date({
+            name: 'updated_at',
+            description: 'Timestamp when the server deployment preview was last updated',
+            examples: [new Date('2024-01-15T09:30:00Z')]
+          }),
+
+          server: v1ServerPreview.schema
+        }),
+        {
+          name: 'server_deployments',
+          description: 'List of server deployments related to this session'
+        }
+      )
     })
   )
   .build();
@@ -240,7 +246,7 @@ export let v1DashboardSessionPresenter = Presenter.create(sessionType)
       v.object({
         client: v.nullable(
           v.object({
-            object: v.literal('session.client#preview'),
+            object: v.literal('session.client#preview', { description: "String representing the object's type" }),
             info: v.object({
               name: v.string({
                 name: 'name',

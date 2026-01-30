@@ -16,6 +16,9 @@ export let v1SsoUserPresenter = Presenter.create(ssoUserType)
     first_name: ssoUser.firstName,
     last_name: ssoUser.lastName,
 
+    created_at: ssoUser.createdAt,
+    updated_at: ssoUser.updatedAt,
+
     sso_tenant: await v1SsoTenantPresenter
       .present({ ssoTenant: ssoUser.ssoTenant }, opts)
       .run(),
@@ -34,10 +37,7 @@ export let v1SsoUserPresenter = Presenter.create(ssoUserType)
           )
           .run()
       )
-    ),
-
-    created_at: ssoUser.createdAt,
-    updated_at: ssoUser.updatedAt
+    )
   }))
   .schema(
     v.object({
@@ -50,8 +50,6 @@ export let v1SsoUserPresenter = Presenter.create(ssoUserType)
         name: 'id',
         description: 'The unique identifier of the sso tenant'
       }),
-
-      sso_tenant: v1SsoTenantPresenter.schema,
 
       sso_user_id: v.string({
         name: 'sso_user_id',
@@ -73,19 +71,23 @@ export let v1SsoUserPresenter = Presenter.create(ssoUserType)
         description: 'The last name of the SSO user'
       }),
 
-      profiles: v.array(v1SsoUserProfilePresenter.schema, {
-        name: 'profiles',
-        description: 'List of SSO user profiles associated with this user'
-      }),
-
       created_at: v.date({
         name: 'created_at',
-        description: 'The ISO 8601 timestamp when the sso user was created'
+        description: 'The ISO 8601 timestamp when the sso user was created',
+        examples: [new Date('2024-01-15T09:30:00Z')]
       }),
 
       updated_at: v.date({
         name: 'updated_at',
-        description: 'The ISO 8601 timestamp when the sso user was last updated'
+        description: 'The ISO 8601 timestamp when the sso user was last updated',
+        examples: [new Date('2024-01-15T09:30:00Z')]
+      }),
+
+      sso_tenant: v1SsoTenantPresenter.schema,
+
+      profiles: v.array(v1SsoUserProfilePresenter.schema, {
+        name: 'profiles',
+        description: 'List of SSO user profiles associated with this user'
       })
     })
   )

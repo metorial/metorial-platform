@@ -13,7 +13,7 @@ export let v1TeamRolePermissionsPresenter = Presenter.create(teamRolePermissions
   }))
   .schema(
     v.object({
-      object: v.literal('management.team.role_permissions'),
+      object: v.literal('management.team.role_permissions', { description: "String representing the object's type" }),
 
       permissions: v.array(
         v.object({

@@ -45,12 +45,25 @@ export let sessionController = Controller.create(
               v.union([
                 v.enumOf(Object.keys(SessionStatus) as any),
                 v.array(v.enumOf(Object.keys(SessionStatus) as any))
-              ])
+              ]),
+              { description: 'Filter by session status' }
             ),
-            server_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server ID(s)' }
+            ),
+            server_variant_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server variant ID(s)' }
+            ),
+            server_implementation_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server implementation ID(s)' }
+            ),
+            server_deployment_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server deployment ID(s)' }
+            )
           })
         )
       )
@@ -95,25 +108,25 @@ export let sessionController = Controller.create(
                 createServerDeploymentSchema,
                 v.union([
                   v.object({
-                    oauth_session_id: v.string()
+                    oauth_session_id: v.string({ examples: ['oas_5eFgHjKlMnPqRsTu'] })
                   }),
                   v.object({
-                    token_import_id: v.string()
+                    token_import_id: v.string({ examples: ['tim_6fGhJkLmNpQrStUv'] })
                   }),
                   v.object({})
                 ])
               ]),
-              v.string(),
+              v.string({ description: 'Existing server deployment ID', examples: ['sde_7gGhJkLmNpQrStUv'] }),
               v.intersection([
                 v.object({
-                  server_deployment_id: v.string()
+                  server_deployment_id: v.string({ examples: ['sde_7gGhJkLmNpQrStUv'] })
                 }),
                 v.union([
                   v.object({
-                    oauth_session_id: v.string()
+                    oauth_session_id: v.string({ examples: ['oas_5eFgHjKlMnPqRsTu'] })
                   }),
                   v.object({
-                    token_import_id: v.string()
+                    token_import_id: v.string({ examples: ['tim_6fGhJkLmNpQrStUv'] })
                   }),
                   v.object({})
                 ])

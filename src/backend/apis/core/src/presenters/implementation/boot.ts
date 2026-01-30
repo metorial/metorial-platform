@@ -42,7 +42,7 @@ export let v1BootPresenter = Presenter.create(bootType)
   }))
   .schema(
     v.object({
-      object: v.literal('metorial.boot'),
+      object: v.literal('metorial.boot', { description: "String representing the object's type" }),
 
       user: v1UserPresenter.schema,
       organizations: v.array(

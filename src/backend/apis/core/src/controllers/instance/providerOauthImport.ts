@@ -28,7 +28,7 @@ export let providerOauthTakeInController = Controller.create(
   {
     name: 'OAuth Token Import',
     description: 'Manage provider OAuth import information',
-    hideInDocs: true
+    deprecated: true
   },
   {
     list: instanceGroup

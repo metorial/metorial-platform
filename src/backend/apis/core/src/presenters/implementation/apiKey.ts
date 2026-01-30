@@ -41,9 +41,9 @@ export let v1ApiKeyPresenter = Presenter.create(apiKeyType)
   }))
   .schema(
     v.object({
-      object: v.literal('machine_access.api_key'),
+      object: v.literal('machine_access.api_key', { description: "String representing the object's type" }),
 
-      id: v.string({ name: 'id', description: `The apiKey's unique identifier` }),
+      id: v.string({ name: 'id', description: `The apiKey's unique identifier`, examples: ['apk_4fGhJkLmNpQrStUv'] }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
         description: `The apiKey's status`
@@ -74,13 +74,13 @@ export let v1ApiKeyPresenter = Presenter.create(apiKeyType)
       name: v.string({
         name: 'name',
         description: `The apiKey's name`,
-        examples: ['My API Key']
+        examples: ['Production API Key']
       }),
       description: v.nullable(
         v.string({
           name: 'description',
           description: `The apiKey's description`,
-          examples: ['This is my API key']
+          examples: ['API key for production server access']
         })
       ),
       machine_access: v1MachineAccessPresenter.schema,
@@ -145,9 +145,9 @@ export let dashboardApiKeyPresenter = Presenter.create(apiKeyType)
   }))
   .schema(
     v.object({
-      object: v.literal('machine_access.api_key'),
+      object: v.literal('machine_access.api_key', { description: "String representing the object's type" }),
 
-      id: v.string({ name: 'id', description: `The apiKey's unique identifier` }),
+      id: v.string({ name: 'id', description: `The apiKey's unique identifier`, examples: ['apk_4fGhJkLmNpQrStUv'] }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
         description: `The apiKey's status`
@@ -183,13 +183,13 @@ export let dashboardApiKeyPresenter = Presenter.create(apiKeyType)
       name: v.string({
         name: 'name',
         description: `The apiKey's name`,
-        examples: ['My API Key']
+        examples: ['Production API Key']
       }),
       description: v.nullable(
         v.string({
           name: 'description',
           description: `The apiKey's description`,
-          examples: ['This is my API key']
+          examples: ['API key for production server access']
         })
       ),
       machine_access: v1MachineAccessPresenter.schema,

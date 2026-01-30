@@ -19,7 +19,7 @@ export let v1ServerDeploymentPreview = Object.assign(
   }),
   {
     schema: v.object({
-      object: v.literal('server.server_deployment#preview'),
+      object: v.literal('server.server_deployment#preview', { description: "String representing the object's type" }),
 
       id: v.string({
         name: 'id',

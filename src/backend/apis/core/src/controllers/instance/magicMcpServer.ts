@@ -48,7 +48,8 @@ export let magicMcpServerController = Controller.create(
   {
     name: 'Magic MCP Server',
     description:
-      'Before you can connect to an MCP server, you need to create a magic MCP server.'
+      'Before you can connect to an MCP server, you need to create a magic MCP server.',
+    deprecated: true
   },
   {
     list: instanceGroup
@@ -73,15 +74,33 @@ export let magicMcpServerController = Controller.create(
               v.union([
                 v.enumOf(Object.keys(MagicMcpServerStatus) as any),
                 v.array(v.enumOf(Object.keys(MagicMcpServerStatus) as any))
-              ])
+              ]),
+              { description: 'Filter by server status' }
             ),
-
-            server_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            session_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            search: v.optional(v.string())
+            server_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server ID(s)' }
+            ),
+            server_variant_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server variant ID(s)' }
+            ),
+            server_implementation_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server implementation ID(s)' }
+            ),
+            session_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by session ID(s)' }
+            ),
+            magic_mcp_group_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by magic MCP group ID(s)' }
+            ),
+            search: v.optional(
+              v.string(),
+              { description: 'Search servers by name' }
+            )
           })
         )
       )

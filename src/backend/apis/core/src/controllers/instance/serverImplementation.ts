@@ -29,17 +29,17 @@ export let serverImplementationGroup = instanceGroup.use(async ctx => {
 
 export let createServerImplementationSchema = v.intersection([
   v.object({
-    name: v.optional(v.string()),
-    description: v.optional(v.string()),
-    metadata: v.optional(v.record(v.any())),
-    get_launch_params: v.optional(v.string())
+    name: v.optional(v.string({ examples: ['Custom GitHub Server'] })),
+    description: v.optional(v.string({ examples: ['Custom GitHub MCP server implementation'] })),
+    metadata: v.optional(v.record(v.any(), { examples: [{ owner: 'platform-team', version: '1.0.0' }] })),
+    get_launch_params: v.optional(v.string({ examples: ['return { repository: "my-org/my-repo" }'] }))
   }),
   v.union([
     v.object({
-      server_id: v.string()
+      server_id: v.string({ examples: ['srv_8fGhJkLmNpQrStUv'] })
     }),
     v.object({
-      server_variant_id: v.string()
+      server_variant_id: v.string({ examples: ['svr_9hJkLmNpQrStUvWx'] })
     })
   ])
 ]);
@@ -139,11 +139,21 @@ export let serverImplementationController = Controller.create(
               v.union([
                 v.enumOf(Object.keys(ServerImplementationStatus) as any),
                 v.array(v.enumOf(Object.keys(ServerImplementationStatus) as any))
-              ])
+              ]),
+              { description: 'Filter by implementation status' }
             ),
-            server_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            search: v.optional(v.string())
+            server_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server ID(s)' }
+            ),
+            server_variant_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server variant ID(s)' }
+            ),
+            search: v.optional(
+              v.string(),
+              { description: 'Search implementations by name' }
+            )
           })
         )
       )

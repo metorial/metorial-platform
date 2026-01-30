@@ -8,15 +8,18 @@ export let v1ServerPresenter = Presenter.create(serverType)
     object: 'server',
 
     id: server.id,
+    status: server.status,
+    name: server.importedServer?.name ?? server.name ?? 'Unknown',
+    description: server.importedServer?.description ?? server.description,
     type: {
       imported: 'public' as const,
       custom: server.isPublic ? ('public' as const) : ('custom' as const)
     }[server.type],
 
-    status: server.status,
+    metadata: server.metadata ?? {},
 
-    name: server.importedServer?.name ?? server.name ?? 'Unknown',
-    description: server.importedServer?.description ?? server.description,
+    created_at: server.createdAt,
+    updated_at: server.updatedAt,
 
     variants: await Promise.all(
       server.variants.map(variant =>
@@ -32,25 +35,15 @@ export let v1ServerPresenter = Presenter.create(serverType)
           )
           .run()
       )
-    ),
-
-    metadata: server.metadata ?? {},
-
-    created_at: server.createdAt,
-    updated_at: server.updatedAt
+    )
   }))
   .schema(
     v.object({
-      object: v.literal('server'),
+      object: v.literal('server', { description: "String representing the object's type" }),
 
       id: v.string({
         name: 'id',
         description: 'The unique identifier for the server'
-      }),
-
-      type: v.enumOf(['public', 'custom'], {
-        name: 'type',
-        description: 'The visibility type of the server; currently only "public" is supported'
       }),
 
       status: v.enumOf(['active', 'inactive'], {
@@ -70,16 +63,9 @@ export let v1ServerPresenter = Presenter.create(serverType)
         })
       ),
 
-      imported_server_id: v.nullable(
-        v.string({
-          name: 'imported_server_id',
-          description: 'ID of the server this one was imported from, if applicable'
-        })
-      ),
-
-      variants: v.array(v1ServerVariantPresenter.schema, {
-        name: 'variants',
-        description: 'A list of available variants for this server'
+      type: v.enumOf(['public', 'custom'], {
+        name: 'type',
+        description: 'The visibility type of the server; currently only "public" is supported'
       }),
 
       metadata: v.record(v.any(), {
@@ -95,6 +81,11 @@ export let v1ServerPresenter = Presenter.create(serverType)
       updated_at: v.date({
         name: 'updated_at',
         description: 'Timestamp when the server was last updated'
+      }),
+
+      variants: v.array(v1ServerVariantPresenter.schema, {
+        name: 'variants',
+        description: 'A list of available variants for this server'
       })
     })
   )

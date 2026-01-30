@@ -22,7 +22,7 @@ export let remoteServerController = Controller.create(
   {
     name: 'Remote Server',
     description: 'Manager remote servers',
-    hideInDocs: true
+    deprecated: true
   },
   {
     list: instanceGroup

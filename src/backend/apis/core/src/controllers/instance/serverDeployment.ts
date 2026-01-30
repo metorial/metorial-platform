@@ -39,10 +39,10 @@ export let serverDeploymentGroup = instanceGroup.use(async ctx => {
 
 export let createServerDeploymentConfigSchema = v.union([
   v.object({
-    config: v.record(v.any())
+    config: v.record(v.any(), { examples: [{ api_key: 'sk-xxx', base_url: 'https://api.example.com' }] })
   }),
   v.object({
-    server_config_vault_id: v.string()
+    server_config_vault_id: v.string({ examples: ['scv_2bCdEfGhJkLmNpQr'] })
   })
 ]);
 
@@ -51,13 +51,13 @@ export let createServerDeploymentImplementationSchema = v.union([
     server_implementation: createServerImplementationSchema
   }),
   v.object({
-    server_implementation_id: v.string()
+    server_implementation_id: v.string({ examples: ['sim_3cDeFgHjKlMnPqRs'] })
   }),
   v.object({
-    server_variant_id: v.string()
+    server_variant_id: v.string({ examples: ['svr_9hJkLmNpQrStUvWx'] })
   }),
   v.object({
-    server_id: v.string()
+    server_id: v.string({ examples: ['srv_8fGhJkLmNpQrStUv'] })
   })
 ]);
 
@@ -82,12 +82,12 @@ export let createServerDeploymentOAuthConfigSchema = v.optional(
 export let createServerDeploymentSchema = v.intersection([
   v.intersection([
     v.object({
-      name: v.optional(v.string()),
-      description: v.optional(v.string()),
-      metadata: v.optional(v.record(v.any())),
+      name: v.optional(v.string({ examples: ['Production MCP Server'] })),
+      description: v.optional(v.string({ examples: ['Main production MCP server deployment'] })),
+      metadata: v.optional(v.record(v.any(), { examples: [{ team: 'platform', environment: 'production' }] })),
       oauth_config: createServerDeploymentOAuthConfigSchema,
       access: createServerDeploymentAccessSchema,
-      server_deployment_template_id: v.optional(v.string())
+      server_deployment_template_id: v.optional(v.string({ examples: ['sdt_4dEfGhJkLmNpQrSt'] }))
     }),
     createServerDeploymentConfigSchema
   ]),
@@ -266,13 +266,29 @@ export let serverDeploymentController = Controller.create(
               v.union([
                 v.enumOf(Object.keys(ServerDeploymentStatus) as any),
                 v.array(v.enumOf(Object.keys(ServerDeploymentStatus) as any))
-              ])
+              ]),
+              { description: 'Filter by deployment status' }
             ),
-            server_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            session_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            search: v.optional(v.string())
+            server_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server ID(s)' }
+            ),
+            server_variant_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server variant ID(s)' }
+            ),
+            server_implementation_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server implementation ID(s)' }
+            ),
+            session_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by session ID(s)' }
+            ),
+            search: v.optional(
+              v.string(),
+              { description: 'Search deployments by name' }
+            )
           })
         )
       )

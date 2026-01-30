@@ -15,6 +15,11 @@ export let v1OrganizationMemberPresenter = Presenter.create(organizationMemberTy
     organization_id: organizationMember.organization.id,
     actor_id: organizationMember.actor.id,
 
+    last_active_at: organizationMember.lastActiveAt,
+    created_at: organizationMember.createdAt,
+    updated_at: organizationMember.updatedAt,
+    deleted_at: organizationMember.deletedAt,
+
     actor: await v1OrganizationActorPresenter
       .present(
         {
@@ -25,55 +30,64 @@ export let v1OrganizationMemberPresenter = Presenter.create(organizationMemberTy
         },
         opts
       )
-      .run(),
-
-    last_active_at: organizationMember.lastActiveAt,
-    deleted_at: organizationMember.deletedAt,
-    created_at: organizationMember.createdAt,
-    updated_at: organizationMember.updatedAt
+      .run()
   }))
   .schema(
     v.object({
-      object: v.literal('organization.member'),
+      object: v.literal('organization.member', { description: "String representing the object's type" }),
 
       id: v.string({ name: 'id', description: `The organization member's unique identifier` }),
+
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
         description: `The organization member's status`
       }),
+
       role: v.enumOf(['member', 'admin'], {
         name: 'role',
         description: `The organization member's role`
       }),
+
       user_id: v.string({
         name: 'user_id',
         description: `The organization member's user ID`
       }),
+
       organization_id: v.string({
         name: 'organization_id',
         description: `The organization member's organization ID`
       }),
+
       actor_id: v.string({
         name: 'actor_id',
         description: `The organization member's actor ID`
       }),
-      actor: v1OrganizationActorPresenter.schema,
+
       last_active_at: v.date({
         name: 'last_active_at',
-        description: `The organization member's last active date`
+        description: `The organization member's last active date`,
+        examples: [new Date('2024-01-15T09:30:00Z')]
       }),
-      deleted_at: v.date({
-        name: 'deleted_at',
-        description: `The organization member's deletion date`
-      }),
+
       created_at: v.date({
         name: 'created_at',
-        description: `The organization member's creation date`
+        description: `The organization member's creation date`,
+        examples: [new Date('2024-01-15T09:30:00Z')]
       }),
+
       updated_at: v.date({
         name: 'updated_at',
-        description: `The organization member's last update date`
-      })
+        description: `The organization member's last update date`,
+        examples: [new Date('2024-01-15T09:30:00Z')]
+      }),
+
+      deleted_at: v.date({
+        name: 'deleted_at',
+        description: `The organization member's deletion date`,
+        examples: [new Date('2024-01-15T09:30:00Z')]
+      }),
+
+      actor: v1OrganizationActorPresenter.schema
     })
   )
   .build();

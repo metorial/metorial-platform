@@ -37,8 +37,14 @@ export let sessionMessageController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            server_run_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_session_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_run_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server run ID(s)' }
+            ),
+            server_session_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server session ID(s)' }
+            )
           })
         )
       )

@@ -52,7 +52,7 @@ export let v1TeamPresenter = Presenter.create(teamType)
   }))
   .schema(
     v.object({
-      object: v.literal('management.team'),
+      object: v.literal('management.team', { description: "String representing the object's type" }),
 
       id: v.string({ name: 'id', description: `The team's unique identifier` }),
 

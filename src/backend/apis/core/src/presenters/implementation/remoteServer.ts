@@ -28,7 +28,7 @@ export let v1RemoteServerPresenter = Presenter.create(remoteServerType)
   }))
   .schema(
     v.object({
-      object: v.literal('custom_server.remote_server'),
+      object: v.literal('custom_server.remote_server', { description: "String representing the object's type" }),
 
       id: v.string({ name: 'id', description: `The remote server's unique identifier` }),
 

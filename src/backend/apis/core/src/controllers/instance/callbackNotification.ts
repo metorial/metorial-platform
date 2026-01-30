@@ -39,9 +39,18 @@ export let callbackNotificationController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            callback_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            event_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            destination_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            callback_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by callback ID(s)' }
+            ),
+            event_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by event ID(s)' }
+            ),
+            destination_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by destination ID(s)' }
+            )
           })
         )
       )

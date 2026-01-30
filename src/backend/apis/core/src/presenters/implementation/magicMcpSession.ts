@@ -47,7 +47,7 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
   })
   .schema(
     v.object({
-      object: v.literal('magic_mcp.session'),
+      object: v.literal('magic_mcp.session', { description: "String representing the object's type" }),
 
       id: v.string({
         name: 'id',
@@ -122,7 +122,7 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
 
       client: v.nullable(
         v.object({
-          object: v.literal('session.client#preview'),
+          object: v.literal('session.client#preview', { description: "String representing the object's type" }),
           info: v.object({
             name: v.string({
               name: 'name',

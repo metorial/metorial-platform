@@ -11,9 +11,9 @@ import { customServerGroup } from './customServer';
 
 export let customServerDeploymentController = Controller.create(
   {
-    name: 'Custom Server',
+    name: 'Custom Server Deployment',
     description: 'Manager custom server deployments',
-    hideInDocs: true
+    deprecated: true
   },
   {
     list: customServerGroup

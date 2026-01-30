@@ -776,3 +776,500 @@ export let consumerProfileType = PresentableType.create<{
 export let consumerSessionType = PresentableType.create<{
   consumerSession: ConsumerSession;
 }>()('consumer.session');
+
+// ==========================================
+// Provider API Entity Interfaces
+// ==========================================
+
+export interface SubspacePublisher {
+  id: string;
+  name: string;
+  description: string | null;
+  slug?: string;
+  identifier?: string;
+  source: Record<string, unknown> | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceVersion {
+  id: string;
+  tag?: string | null;
+  identifier?: string | null;
+  isCurrent?: boolean;
+  createdAt: Date | null;
+  updatedAt: Date;
+}
+
+export interface SubspaceProvider {
+  id: string;
+  name?: string | null;
+  description?: string | null;
+  slug?: string | null;
+  tag?: string | null;
+  identifier?: string | null;
+  entry?: { name?: string | null; description?: string | null };
+  publisher: SubspacePublisher;
+  currentVersion?: SubspaceVersion | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  slug?: string;
+  identifier?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceCollection {
+  id: string;
+  name: string;
+  description: string | null;
+  slug?: string;
+  identifier?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceGroup {
+  id: string;
+  name: string;
+  description: string | null;
+  slug?: string;
+  identifier?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceProviderListing {
+  id: string;
+  isPublic?: boolean;
+  isCustomized?: boolean;
+  isMetorial?: boolean;
+  isVerified?: boolean;
+  isOfficial?: boolean;
+  name: string;
+  description: string | null;
+  slug?: string;
+  identifier?: string;
+  image?: Record<string, unknown> | null;
+  source?: Record<string, unknown> | null;
+  readme?: string | null;
+  skills?: string[];
+  rank?: number;
+  deploymentsCount?: number;
+  providerSessionsCount?: number;
+  providerMessagesCount?: number;
+  provider?: { id: string };
+  categories?: SubspaceCategory[];
+  collections?: SubspaceCollection[];
+  groups?: SubspaceGroup[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceAuthMethodScope {
+  id: string;
+  scope: string;
+  name?: string;
+  title?: string;
+  description: string | null;
+}
+
+export interface SubspaceTool {
+  id: string;
+  name: string;
+  description: string | null;
+  inputSchema?: Record<string, unknown> | null;
+  inputJsonSchema?: Record<string, unknown> | null;
+  outputSchema?: Record<string, unknown> | null;
+  outputJsonSchema?: Record<string, unknown> | null;
+  providerId: string;
+  providerSpecificationId?: string;
+  specificationId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceAuthMethod {
+  id: string;
+  type: string;
+  name: string;
+  description: string | null;
+  inputSchema?: Record<string, unknown> | null;
+  inputJsonSchema?: Record<string, unknown> | null;
+  scopes?: SubspaceAuthMethodScope[] | null;
+  providerId: string;
+  providerSpecificationId?: string;
+  specificationId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceSpecification {
+  id: string;
+  name: string;
+  description: string | null;
+  configSchema?: Record<string, unknown> | null;
+  configJsonSchema?: Record<string, unknown> | null;
+  tools?: SubspaceTool[];
+  authMethods?: SubspaceAuthMethod[];
+  providerId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceConfig {
+  id: string;
+  isEphemeral?: boolean;
+  isDefault?: boolean;
+  name: string | null;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  providerId: string;
+  providerDeploymentId?: string | null;
+  deploymentId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceDeployment {
+  id: string;
+  isEphemeral?: boolean;
+  isDefault?: boolean;
+  name: string | null;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  providerId: string;
+  lockedVersion?: SubspaceVersion | null;
+  defaultConfig?: SubspaceConfig | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceConfigVault {
+  id: string;
+  name: string | null;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  providerId: string;
+  providerDeploymentId?: string | null;
+  deploymentId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceAuthConfig {
+  id: string;
+  isEphemeral?: boolean;
+  type?: string;
+  status?: string;
+  name: string | null;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  providerId: string;
+  providerDeploymentId?: string | null;
+  deploymentId?: string | null;
+  providerAuthMethodId?: string;
+  authMethodId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceAuthCredentials {
+  id: string;
+  type?: string;
+  name: string | null;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  providerId: string;
+  clientId?: string | null;
+  scopes?: SubspaceAuthMethodScope[] | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceSetupSession {
+  id: string;
+  type?: string;
+  status?: string;
+  name: string | null;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  providerId: string;
+  providerDeploymentId?: string | null;
+  deploymentId?: string | null;
+  providerAuthMethodId?: string;
+  authMethodId?: string;
+  uiMode?: string | null;
+  redirectUrl?: string | null;
+  setupUrl?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  expiresAt?: Date | null;
+}
+
+export interface SubspaceAuthImport {
+  id: string;
+  note: string;
+  metadata: Record<string, unknown> | null;
+  providerId?: string | null;
+  providerDeploymentId?: string | null;
+  deploymentId?: string | null;
+  providerAuthConfigId?: string | null;
+  authConfigId?: string | null;
+  providerAuthMethodId?: string | null;
+  authMethodId?: string | null;
+  createdAt: Date;
+}
+
+export interface SubspaceAuthExport {
+  id: string;
+  note: string;
+  metadata: Record<string, unknown> | null;
+  providerAuthConfigId?: string;
+  authConfigId?: string;
+  value?: Record<string, unknown>;
+  createdAt: Date;
+}
+
+// ==========================================
+// Provider API Specific Types (v2)
+// ==========================================
+
+// Publisher type
+export let publisherType = PresentableType.create<{ publisher: SubspacePublisher }>()('publisher');
+
+// Version type
+export let versionType = PresentableType.create<{ version: SubspaceVersion }>()('version');
+
+// Provider type
+export let providerType = PresentableType.create<{ provider: SubspaceProvider }>()('provider');
+
+// Category type
+export let categoryType = PresentableType.create<{ category: SubspaceCategory }>()('category');
+
+// Collection type
+export let collectionType = PresentableType.create<{ collection: SubspaceCollection }>()('collection');
+
+// Group type
+export let groupType = PresentableType.create<{ group: SubspaceGroup }>()('group');
+
+// Provider Listing type
+export let providerListingType = PresentableType.create<{
+  providerListing: SubspaceProviderListing;
+}>()('providerListing');
+
+// Tool type
+export let toolType = PresentableType.create<{ tool: SubspaceTool }>()('tool');
+
+// Auth Method type
+export let authMethodType = PresentableType.create<{ authMethod: SubspaceAuthMethod }>()('authMethod');
+
+// Specification type
+export let specificationType = PresentableType.create<{
+  specification: SubspaceSpecification;
+}>()('specification');
+
+// Deployment Preview type (for nested use)
+export let deploymentPreviewType = PresentableType.create<{
+  deployment: SubspaceDeployment;
+}>()('deploymentPreview');
+
+// Config Preview type (for nested use)
+export let configPreviewType = PresentableType.create<{
+  config: SubspaceConfig;
+}>()('configPreview');
+
+// Deployment type
+export let deploymentType = PresentableType.create<{ deployment: SubspaceDeployment }>()('deployment');
+
+// Config Vault type
+export let configVaultType = PresentableType.create<{ configVault: SubspaceConfigVault }>()('configVault');
+
+// Config type
+export let configType = PresentableType.create<{ config: SubspaceConfig }>()('config');
+
+// Auth Config type
+export let authConfigType = PresentableType.create<{ authConfig: SubspaceAuthConfig }>()('authConfig');
+
+// Auth Credentials type
+export let authCredentialsType = PresentableType.create<{
+  authCredentials: SubspaceAuthCredentials;
+}>()('authCredentials');
+
+// Setup Session type
+export let setupSessionType = PresentableType.create<{ setupSession: SubspaceSetupSession }>()('setupSession');
+
+// Auth Import type
+export let authImportType = PresentableType.create<{ authImport: SubspaceAuthImport }>()('authImport');
+
+// Auth Export type
+export let authExportType = PresentableType.create<{ authExport: SubspaceAuthExport }>()('authExport');
+
+// ==========================================
+// Session Template & Session-Nested Entity Interfaces
+// ==========================================
+
+export interface SubspaceSessionTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceSessionTemplateProvider {
+  id: string;
+  name: string | null;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  sessionTemplateId: string;
+  providerId: string;
+  providerDeploymentId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceSessionProvider {
+  id: string;
+  name: string | null;
+  description: string | null;
+  status: string | null;
+  metadata: Record<string, unknown> | null;
+  sessionId: string;
+  providerId: string;
+  providerDeploymentId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceSessionParticipant {
+  id: string;
+  type: string | null;
+  name: string | null;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  sessionId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceSessionError {
+  id: string;
+  type: string | null;
+  name: string | null;
+  message: string | null;
+  stack: string | null;
+  metadata: Record<string, unknown> | null;
+  sessionId: string;
+  sessionErrorGroupId: string | null;
+  providerRunId: string | null;
+  createdAt: Date;
+}
+
+export interface SubspaceSessionErrorGroup {
+  id: string;
+  type: string | null;
+  name: string | null;
+  message: string | null;
+  count: number;
+  metadata: Record<string, unknown> | null;
+  sessionId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubspaceProviderRun {
+  id: string;
+  status: string | null;
+  name: string | null;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  sessionId: string;
+  sessionProviderId: string | null;
+  providerId: string | null;
+  providerDeploymentId: string | null;
+  providerVersionId: string | null;
+  startedAt: Date | null;
+  completedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ==========================================
+// Session Template & Session-Nested PresentableTypes
+// ==========================================
+
+// Session Template type
+export let sessionTemplateType = PresentableType.create<{
+  sessionTemplate: SubspaceSessionTemplate;
+}>()('sessionTemplate');
+
+// Session Template Provider type
+export let sessionTemplateProviderType = PresentableType.create<{
+  sessionTemplateProvider: SubspaceSessionTemplateProvider;
+}>()('sessionTemplateProvider');
+
+// Session Provider type
+export let sessionProviderType = PresentableType.create<{
+  sessionProvider: SubspaceSessionProvider;
+}>()('sessionProvider');
+
+// Session Participant type
+export let sessionParticipantType = PresentableType.create<{
+  sessionParticipant: SubspaceSessionParticipant;
+}>()('sessionParticipant');
+
+// Session Error type
+export let sessionErrorType = PresentableType.create<{
+  sessionError: SubspaceSessionError;
+}>()('sessionError');
+
+// Session Error Group type
+export let sessionErrorGroupType = PresentableType.create<{
+  sessionErrorGroup: SubspaceSessionErrorGroup;
+}>()('sessionErrorGroup');
+
+// Provider Run type
+export let providerRunType = PresentableType.create<{
+  providerRun: SubspaceProviderRun;
+}>()('providerRun');
+
+// ==========================================
+// Provider Session (Magnetar) Interface & Type
+// ==========================================
+
+export interface SubspaceSessionProviderDeployment {
+  id: string;
+  name: string | null;
+  providerId: string;
+  providerDeploymentId: string | null;
+}
+
+export interface SubspaceSession {
+  id: string;
+  name: string | null;
+  description: string | null;
+  status: string | null;
+  connectionStatus: string | null;
+  metadata: Record<string, unknown> | null;
+  providerDeployments?: SubspaceSessionProviderDeployment[];
+  clientSecret?: {
+    id: string;
+    secret: string;
+    expiresAt: Date;
+  } | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Provider Session type (for Magnetar API)
+export let providerSessionType = PresentableType.create<{
+  session: SubspaceSession;
+}>()('providerSession');

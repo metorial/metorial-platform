@@ -36,11 +36,26 @@ export let serverRunErrorController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            server_session_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_run_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            server_run_error_group_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            server_session_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server session ID(s)' }
+            ),
+            server_implementation_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server implementation ID(s)' }
+            ),
+            server_deployment_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server deployment ID(s)' }
+            ),
+            server_run_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by server run ID(s)' }
+            ),
+            server_run_error_group_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by error group ID(s)' }
+            )
           })
         )
       )

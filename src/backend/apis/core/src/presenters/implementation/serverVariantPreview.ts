@@ -29,7 +29,7 @@ export let v1ServerVariantPreview = Object.assign(
   }),
   {
     schema: v.object({
-      object: v.literal('server.server_variant#preview'),
+      object: v.literal('server.server_variant#preview', { description: "String representing the object's type" }),
 
       id: v.string({
         name: 'id',

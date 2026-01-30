@@ -25,9 +25,9 @@ export let v1SecretPresenter = Presenter.create(secretType)
   }))
   .schema(
     v.object({
-      object: v.literal('secret'),
+      object: v.literal('secret', { description: "String representing the object's type" }),
 
-      id: v.string({ name: 'id', description: `The secret's unique identifier` }),
+      id: v.string({ name: 'id', description: `The secret's unique identifier`, examples: ['sec_2pQrStUvWxYzAbCd'] }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
         description: `The secret's status`
@@ -45,25 +45,27 @@ export let v1SecretPresenter = Presenter.create(secretType)
       description: v.string({
         name: 'description',
         description: `The secret's description`,
-        examples: ['This is a secret']
+        examples: ['Production database connection string']
       }),
       metadata: v.record(v.any(), {
         name: 'metadata',
         description: `The secret's metadata`,
-        examples: [{ key: 'value' }, { key: 'value', key2: 'value2' }]
+        examples: [{ environment: 'production' }, { service: 'api', region: 'us-east-1' }]
       }),
       organization_id: v.string({
         name: 'organization_id',
-        description: `The secret's organization identifier`
+        description: `The secret's organization identifier`,
+        examples: ['org_7hNkPqRsTuVwXyZa']
       }),
       instance_id: v.string({
         name: 'instance_id',
-        description: `The secret's instance identifier`
+        description: `The secret's instance identifier`,
+        examples: ['ins_9sTuVwXyZaBcDeFg']
       }),
       fingerprint: v.string({
         name: 'fingerprint',
         description: `The secret's fingerprint`,
-        examples: ['1234567890abcdef']
+        examples: ['sha256:a3b8c2d9e4f5']
       }),
       last_used_at: v.nullable(
         v.date({

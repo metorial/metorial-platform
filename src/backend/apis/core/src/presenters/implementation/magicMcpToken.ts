@@ -29,7 +29,7 @@ export let v1MagicMcpTokenPresenter = Presenter.create(magicMcpTokenType)
   })
   .schema(
     v.object({
-      object: v.literal('magic_mcp.token'),
+      object: v.literal('magic_mcp.token', { description: "String representing the object's type" }),
 
       id: v.string({
         name: 'id',

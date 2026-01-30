@@ -21,7 +21,7 @@ export let v1ServerDeploymentTemplatePresenter = Presenter.create(serverDeployme
   }))
   .schema(
     v.object({
-      object: v.literal('server.server_deployment.template'),
+      object: v.literal('server.server_deployment.template', { description: "String representing the object's type" }),
 
       id: v.string({
         name: 'id',

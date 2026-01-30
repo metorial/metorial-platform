@@ -28,7 +28,7 @@ export let v1ServerOauthSessionPresenter = Presenter.create(serverOauthSessionTy
   }))
   .schema(
     v.object({
-      object: v.literal('provider_oauth.session'),
+      object: v.literal('provider_oauth.session', { description: "String representing the object's type" }),
 
       id: v.string({
         name: 'id',
@@ -49,7 +49,7 @@ export let v1ServerOauthSessionPresenter = Presenter.create(serverOauthSessionTy
 
       metadata: v.record(v.any(), {
         name: 'metadata',
-        description: 'A key-value map of additional metadata for the session'
+        description: 'Custom key-value pairs for storing additional information'
       }),
 
       redirect_uri: v.nullable(

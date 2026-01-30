@@ -7,7 +7,7 @@ export let instanceController = Controller.create(
   {
     name: 'Instance',
     description:
-      'Instances are independent environments within Metorial, each with its own configuration and data. Each instance is a port of a Metorial project. You can for example create production, staging, and development instances for your project.'
+      'An instance is an isolated environment within a Metorial project. Instances are created via the dashboard (since API keys are scoped to instances). Common setups include production, staging, and development instances.'
   },
   {
     get: instanceGroup

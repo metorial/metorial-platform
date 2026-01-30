@@ -9,9 +9,9 @@ import { customServerGroup } from './customServer';
 
 export let customServerCodeController = Controller.create(
   {
-    name: 'Custom Server code',
-    description: 'Manager custom server deployments',
-    hideInDocs: true
+    name: 'Custom Server Code',
+    description: 'Manager custom server code',
+    deprecated: true
   },
   {
     getCodeEditorToken: customServerGroup

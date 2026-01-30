@@ -17,17 +17,18 @@ export let v1FileLinkPresenter = Presenter.create(fileLinkType)
   }))
   .schema(
     v.object({
-      object: v.literal('file.file_link'),
+      object: v.literal('file.file_link', { description: "String representing the object's type" }),
 
-      id: v.string({ name: 'id', description: `The links's unique identifier` }),
+      id: v.string({ name: 'id', description: `The links's unique identifier`, examples: ['flk_5mNpQrStUvWxYzAb'] }),
       file_id: v.string({
         name: 'file_id',
-        description: `The file's unique identifier`
+        description: `The file's unique identifier`,
+        examples: ['fil_9jKlMnPqRsTuVwXy']
       }),
       url: v.string({
         name: 'url',
         description: `The file's public URL`,
-        examples: ['https://files.metorial.com/files/retrieve/1234567890/abcdefg']
+        examples: ['https://files.metorial.com/files/retrieve/flk_5mNpQrStUvWxYzAb/a8f3k2m9']
       }),
       created_at: v.date({ name: 'created_at', description: `The links's creation date` }),
       expires_at: v.nullable(

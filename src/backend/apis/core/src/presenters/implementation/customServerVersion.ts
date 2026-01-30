@@ -70,7 +70,7 @@ export let v1CustomServerVersionPresenter = Presenter.create(customServerVersion
   }))
   .schema(
     v.object({
-      object: v.literal('custom_server.version'),
+      object: v.literal('custom_server.version', { description: "String representing the object's type" }),
 
       id: v.string({
         name: 'id',
@@ -167,7 +167,7 @@ export let dashboardCustomServerVersionPresenter = Presenter.create(customServer
 
         push: v.nullable(
           v.object({
-            object: v.literal('custom_server.version.push'),
+            object: v.literal('custom_server.version.push', { description: "String representing the object's type" }),
 
             id: v.string({
               name: 'id',

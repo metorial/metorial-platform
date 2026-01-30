@@ -32,7 +32,7 @@ export let serverOauthSessionController = Controller.create(
   {
     name: 'OAuth Session',
     description: 'Manage provider OAuth session information',
-    hideInDocs: true
+    deprecated: true
   },
   {
     list: instanceGroup
@@ -53,8 +53,14 @@ export let serverOauthSessionController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            session_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            oauth_connection_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            session_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by session ID(s)' }
+            ),
+            oauth_connection_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by OAuth connection ID(s)' }
+            )
           })
         )
       )

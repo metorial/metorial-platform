@@ -117,7 +117,7 @@ export let v1ServerListingPresenter = Presenter.create(serverListingType)
   })
   .schema(
     v.object({
-      object: v.literal('server_listing'),
+      object: v.literal('server_listing', { description: "String representing the object's type" }),
 
       id: v.string({
         name: 'id',
@@ -408,7 +408,7 @@ export let v1ServerListingReadmePresenter = Presenter.create(serverListingType)
   })
   .schema(
     v.object({
-      object: v.literal('server_listing.readme'),
+      object: v.literal('server_listing.readme', { description: "String representing the object's type" }),
 
       readme_html: v.nullable(
         v.string({

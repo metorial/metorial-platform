@@ -11,9 +11,9 @@ import { customServerGroup } from './customServer';
 
 export let customServerEventController = Controller.create(
   {
-    name: 'Custom Server',
+    name: 'Custom Server Event',
     description: 'Manager custom server events',
-    hideInDocs: true
+    deprecated: true
   },
   {
     list: customServerGroup

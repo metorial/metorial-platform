@@ -17,7 +17,7 @@ export let v1ServerListingCategoryPresenter = Presenter.create(serverListingCate
   }))
   .schema(
     v.object({
-      object: v.literal('server_listing.category'),
+      object: v.literal('server_listing.category', { description: "String representing the object's type" }),
 
       id: v.string({
         name: 'id',

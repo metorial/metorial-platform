@@ -16,23 +16,25 @@ export let v1ProjectPresenter = Presenter.create(projectType)
   }))
   .schema(
     v.object({
-      object: v.literal('organization.project'),
+      object: v.literal('organization.project', { description: "String representing the object's type" }),
 
-      id: v.string({ name: 'id', description: `The project's unique identifier` }),
+      id: v.string({ name: 'id', description: `The project's unique identifier`, examples: ['prj_3bCdEfGhJkLmNpQr'] }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
         description: `The project's status`
       }),
-      slug: v.string({ name: 'slug', description: `The project's slug` }),
-      name: v.string({ name: 'name', description: `The project's name` }),
+      slug: v.string({ name: 'slug', description: `The project's slug`, examples: ['api-integration'] }),
+      name: v.string({ name: 'name', description: `The project's name`, examples: ['API Integration'] }),
       organization_id: v.string({
         name: 'organization_id',
-        description: `The organization's unique identifier`
+        description: `The organization's unique identifier`,
+        examples: ['org_7hNkPqRsTuVwXyZa']
       }),
-      created_at: v.date({ name: 'created_at', description: `The project's creation date` }),
+      created_at: v.date({ name: 'created_at', description: `The project's creation date`, examples: ['2026-01-29T12:35:22.304Z'] }),
       updated_at: v.date({
         name: 'updated_at',
-        description: `The project's last update date`
+        description: `The project's last update date`,
+        examples: ['2026-01-29T12:35:22.304Z']
       })
     })
   )
