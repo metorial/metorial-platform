@@ -158,7 +158,7 @@ export let mapApiKeysGetOutput = mtMap.object<ApiKeysGetOutput>({
         'instance',
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
+          id: mtMap.objectField('instance_id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           slug: mtMap.objectField('slug', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
