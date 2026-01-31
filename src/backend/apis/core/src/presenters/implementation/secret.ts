@@ -27,7 +27,11 @@ export let v1SecretPresenter = Presenter.create(secretType)
     v.object({
       object: v.literal('secret', { description: "String representing the object's type" }),
 
-      id: v.string({ name: 'id', description: `The secret's unique identifier`, examples: ['sec_2pQrStUvWxYzAbCd'] }),
+      id: v.string({
+        name: 'id',
+        description: `The secret's unique identifier`,
+        examples: ['sec_2pQrStUvWxYzAbCd']
+      }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
         description: `The secret's status`

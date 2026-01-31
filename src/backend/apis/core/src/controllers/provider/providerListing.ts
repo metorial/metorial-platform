@@ -6,11 +6,11 @@ import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerInstanceGroup, providerPath } from '../../middleware/providerGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerListingPresenter } from '../../presenters';
 import { SubspaceProviderListing } from '../../presenters/types';
 
-export let providerListingGroup = providerInstanceGroup.use(async ctx => {
+export let providerListingGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerListingId) {
     throw new ServiceError(
       badRequestError({
@@ -34,8 +34,8 @@ export let providerListingController = Controller.create(
     description: 'A listing is a provider enriched with marketplace metadata.'
   },
   {
-    list: providerInstanceGroup
-      .get(providerPath('provider-listings', 'providerListings.list'), {
+    list: instanceGroup
+      .get(instancePath('provider-listings', 'providerListings.list'), {
         name: 'List provider listings',
         description: 'Returns a paginated list of provider listings.'
       })
@@ -109,7 +109,7 @@ export let providerListingController = Controller.create(
       }),
 
     get: providerListingGroup
-      .get(providerPath('provider-listings/:providerListingId', 'providerListings.get'), {
+      .get(instancePath('provider-listings/:providerListingId', 'providerListings.get'), {
         name: 'Get provider listing',
         description: 'Retrieves a specific provider listing by ID.'
       })

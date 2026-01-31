@@ -51,7 +51,9 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
   }))
   .schema(
     v.object({
-      object: v.literal('server.server_version', { description: "String representing the object's type" }),
+      object: v.literal('server.server_version', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',

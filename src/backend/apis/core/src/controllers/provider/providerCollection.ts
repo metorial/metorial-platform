@@ -5,11 +5,11 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerInstanceGroup, providerPath } from '../../middleware/providerGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerCollectionPresenter } from '../../presenters';
 import { SubspaceCollection } from '../../presenters/types';
 
-export let providerCollectionGroup = providerInstanceGroup.use(async ctx => {
+export let providerCollectionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerCollectionId) {
     throw new ServiceError(
       badRequestError({
@@ -34,8 +34,8 @@ export let providerCollectionController = Controller.create(
       "A collection is a curated set of providers like 'Featured', 'Most Popular', or 'New Arrivals'."
   },
   {
-    list: providerInstanceGroup
-      .get(providerPath('provider-collections', 'providerCollections.list'), {
+    list: instanceGroup
+      .get(instancePath('provider-collections', 'providerCollections.list'), {
         name: 'List provider collections',
         description: 'Returns a paginated list of provider collections.'
       })
@@ -57,7 +57,7 @@ export let providerCollectionController = Controller.create(
 
     get: providerCollectionGroup
       .get(
-        providerPath('provider-collections/:providerCollectionId', 'providerCollections.get'),
+        instancePath('provider-collections/:providerCollectionId', 'providerCollections.get'),
         {
           name: 'Get provider collection',
           description: 'Retrieves a specific provider collection by ID.'

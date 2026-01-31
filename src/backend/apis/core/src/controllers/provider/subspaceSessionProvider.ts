@@ -1,12 +1,18 @@
+import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceSessionProviderService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
+import {
+  authConfigValidator,
+  configValidator,
+  deploymentValidator
+} from '../../lib/providerValidators';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
+import { instancePath } from '../../middleware/instanceGroup';
 import { sessionProviderPresenter } from '../../presenters';
 import { SubspaceSessionProvider } from '../../presenters/types';
 import { subspaceSessionGroup } from './subspaceSession';
@@ -37,7 +43,7 @@ export let subspaceSessionProviderController = Controller.create(
   },
   {
     list: subspaceSessionGroup
-      .get(providerPath('sessions/:sessionId/providers', 'sessions.providers.list'), {
+      .get(instancePath('sessions/:sessionId/providers', 'sessions.providers.list'), {
         name: 'List session providers',
         description: 'Returns a paginated list of providers connected to a session.'
       })
@@ -48,10 +54,9 @@ export let subspaceSessionProviderController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            provider_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by provider ID(s)' }
-            ),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            }),
             status: v.optional(v.string(), { description: 'Filter by provider status' })
           })
         )
@@ -67,15 +72,23 @@ export let subspaceSessionProviderController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, sessionProvider =>
-          sessionProviderPresenter.present({ sessionProvider: sessionProvider as SubspaceSessionProvider })
+          sessionProviderPresenter.present({
+            sessionProvider: sessionProvider as SubspaceSessionProvider
+          })
         );
       }),
 
     get: subspaceSessionProviderGroup
-      .get(providerPath('sessions/:sessionId/providers/:sessionProviderId', 'sessions.providers.get'), {
-        name: 'Get session provider',
-        description: 'Retrieves a specific provider connected to a session.'
-      })
+      .get(
+        instancePath(
+          'sessions/:sessionId/providers/:sessionProviderId',
+          'sessions.providers.get'
+        ),
+        {
+          name: 'Get session provider',
+          description: 'Retrieves a specific provider connected to a session.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(sessionProviderPresenter)
@@ -84,7 +97,7 @@ export let subspaceSessionProviderController = Controller.create(
       }),
 
     create: subspaceSessionGroup
-      .post(providerPath('sessions/:sessionId/providers', 'sessions.providers.create'), {
+      .post(instancePath('sessions/:sessionId/providers', 'sessions.providers.create'), {
         name: 'Create session provider',
         description: 'Adds a new provider to an active session.'
       })
@@ -95,9 +108,13 @@ export let subspaceSessionProviderController = Controller.create(
         v.object({
           name: v.optional(v.string({ examples: ['GitHub Provider'] })),
           description: v.optional(v.string({ examples: ['GitHub integration'] })),
-          metadata: v.optional(v.record(v.any(), { examples: [{ version: '1.0' }] }), { description: 'Custom key-value pairs' }),
-          providerId: v.string({ examples: ['pro_5gHjKlMnPqRsTuVw'], description: 'The provider to add' }),
-          providerDeploymentId: v.optional(v.string({ examples: ['pde_1aBcDeFgHjKlMnPq'] }), { description: 'Specific deployment to use' })
+          metadata: v.optional(v.record(v.any(), { examples: [{ version: '1.0' }] }), {
+            description: 'Custom key-value pairs'
+          }),
+          provider_deployment: deploymentValidator,
+          provider_config: v.optional(configValidator),
+          provider_auth_config: v.optional(authConfigValidator),
+          tool_filters: v.optional(v.object({ tool_keys: v.optional(v.array(v.string())) }))
         })
       )
       .output(sessionProviderPresenter)
@@ -108,18 +125,30 @@ export let subspaceSessionProviderController = Controller.create(
           name: ctx.body.name,
           description: ctx.body.description,
           metadata: ctx.body.metadata,
-          providerId: ctx.body.providerId,
-          providerDeploymentId: ctx.body.providerDeploymentId
+          providerDeployment: convertKeysToCamelCase(ctx.body.provider_deployment),
+          providerConfig: convertKeysToCamelCase(ctx.body.provider_config),
+          providerAuthConfig: convertKeysToCamelCase(ctx.body.provider_auth_config),
+          toolFilters: ctx.body.tool_filters
+            ? { toolKeys: ctx.body.tool_filters.tool_keys }
+            : undefined
         });
 
-        return sessionProviderPresenter.present({ sessionProvider: sessionProvider as SubspaceSessionProvider });
+        return sessionProviderPresenter.present({
+          sessionProvider: sessionProvider as SubspaceSessionProvider
+        });
       }),
 
     update: subspaceSessionProviderGroup
-      .patch(providerPath('sessions/:sessionId/providers/:sessionProviderId', 'sessions.providers.update'), {
-        name: 'Update session provider',
-        description: 'Updates a provider connected to a session.'
-      })
+      .patch(
+        instancePath(
+          'sessions/:sessionId/providers/:sessionProviderId',
+          'sessions.providers.update'
+        ),
+        {
+          name: 'Update session provider',
+          description: 'Updates a provider connected to a session.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .body(
@@ -127,7 +156,9 @@ export let subspaceSessionProviderController = Controller.create(
         v.object({
           name: v.optional(v.string({ examples: ['Updated Provider Name'] })),
           description: v.optional(v.string({ examples: ['Updated description'] })),
-          metadata: v.optional(v.record(v.any(), { examples: [{ version: '2.0' }] }), { description: 'Custom key-value pairs' })
+          metadata: v.optional(v.record(v.any(), { examples: [{ version: '2.0' }] }), {
+            description: 'Custom key-value pairs'
+          })
         })
       )
       .output(sessionProviderPresenter)
@@ -140,14 +171,22 @@ export let subspaceSessionProviderController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return sessionProviderPresenter.present({ sessionProvider: sessionProvider as SubspaceSessionProvider });
+        return sessionProviderPresenter.present({
+          sessionProvider: sessionProvider as SubspaceSessionProvider
+        });
       }),
 
     delete: subspaceSessionProviderGroup
-      .delete(providerPath('sessions/:sessionId/providers/:sessionProviderId', 'sessions.providers.delete'), {
-        name: 'Delete session provider',
-        description: 'Removes a provider from a session.'
-      })
+      .delete(
+        instancePath(
+          'sessions/:sessionId/providers/:sessionProviderId',
+          'sessions.providers.delete'
+        ),
+        {
+          name: 'Delete session provider',
+          description: 'Removes a provider from a session.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(sessionProviderPresenter)

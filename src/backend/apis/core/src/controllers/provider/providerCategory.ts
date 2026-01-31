@@ -5,11 +5,11 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerInstanceGroup, providerPath } from '../../middleware/providerGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerCategoryPresenter } from '../../presenters';
 import { SubspaceCategory } from '../../presenters/types';
 
-export let providerCategoryGroup = providerInstanceGroup.use(async ctx => {
+export let providerCategoryGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerCategoryId) {
     throw new ServiceError(
       badRequestError({
@@ -33,8 +33,8 @@ export let providerCategoryController = Controller.create(
     description: "A category groups providers by function like 'Developer Tools' or 'ERPs'."
   },
   {
-    list: providerInstanceGroup
-      .get(providerPath('provider-categories', 'providerCategories.list'), {
+    list: instanceGroup
+      .get(instancePath('provider-categories', 'providerCategories.list'), {
         name: 'List provider categories',
         description: 'Returns a paginated list of provider categories.'
       })
@@ -55,7 +55,7 @@ export let providerCategoryController = Controller.create(
       }),
 
     get: providerCategoryGroup
-      .get(providerPath('provider-categories/:providerCategoryId', 'providerCategories.get'), {
+      .get(instancePath('provider-categories/:providerCategoryId', 'providerCategories.get'), {
         name: 'Get provider category',
         description: 'Retrieves a specific provider category by ID.'
       })

@@ -50,7 +50,9 @@ export let v1ServerSessionPreview = Object.assign(
   }),
   {
     schema: v.object({
-      object: v.literal('session.server_session#preview', { description: "String representing the object's type" }),
+      object: v.literal('session.server_session#preview', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',
@@ -79,7 +81,9 @@ export let v1ServerSessionPreview = Object.assign(
           client: v.nullable(
             v.object(
               {
-                object: v.literal('session.server_session.client', { description: "String representing the object's type" }),
+                object: v.literal('session.server_session.client', {
+                  description: "String representing the object's type"
+                }),
 
                 name: v.string({
                   name: 'name',
@@ -106,7 +110,9 @@ export let v1ServerSessionPreview = Object.assign(
           server: v.nullable(
             v.object(
               {
-                object: v.literal('session.server_session.server', { description: "String representing the object's type" }),
+                object: v.literal('session.server_session.server', {
+                  description: "String representing the object's type"
+                }),
 
                 name: v.string({
                   name: 'name',

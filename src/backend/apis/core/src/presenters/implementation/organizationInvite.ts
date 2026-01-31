@@ -57,9 +57,15 @@ export let v1OrganizationInvitePresenter = Presenter.create(organizationInviteTy
   }))
   .schema(
     v.object({
-      object: v.literal('organization.invite', { description: "String representing the object's type" }),
+      object: v.literal('organization.invite', {
+        description: "String representing the object's type"
+      }),
 
-      id: v.string({ name: 'id', description: `The organization invite's unique identifier`, examples: ['oinv_4dEfGhJkLmNpQrSt'] }),
+      id: v.string({
+        name: 'id',
+        description: `The organization invite's unique identifier`,
+        examples: ['oinv_4dEfGhJkLmNpQrSt']
+      }),
 
       status: v.enumOf(['pending', 'accepted', 'rejected', 'expired', 'deleted'], {
         name: 'status',
@@ -83,7 +89,9 @@ export let v1OrganizationInvitePresenter = Presenter.create(organizationInviteTy
       }),
 
       invite_link: v.object({
-        object: v.literal('organization.invite.link', { description: "String representing the object's type" }),
+        object: v.literal('organization.invite.link', {
+          description: "String representing the object's type"
+        }),
         id: v.string({
           name: 'id',
           description: `The invite link's unique identifier`

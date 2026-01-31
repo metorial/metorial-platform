@@ -17,15 +17,29 @@ export let v1OrganizationPresenter = Presenter.create(organizationType)
   }))
   .schema(
     v.object({
-      object: v.literal('organization', { description: "String representing the object's type" }),
+      object: v.literal('organization', {
+        description: "String representing the object's type"
+      }),
 
-      id: v.string({ name: 'id', description: `The organization's unique identifier`, examples: ['org_7hNkPqRsTuVwXyZa'] }),
+      id: v.string({
+        name: 'id',
+        description: `The organization's unique identifier`,
+        examples: ['org_7hNkPqRsTuVwXyZa']
+      }),
       type: v.enumOf(['default'], {
         name: 'type',
         description: `The organization's type`
       }),
-      slug: v.string({ name: 'slug', description: `The organization's slug`, examples: ['acme-corp'] }),
-      name: v.string({ name: 'name', description: `The organization's name`, examples: ['Acme Corporation'] }),
+      slug: v.string({
+        name: 'slug',
+        description: `The organization's slug`,
+        examples: ['acme-corp']
+      }),
+      name: v.string({
+        name: 'name',
+        description: `The organization's name`,
+        examples: ['Acme Corporation']
+      }),
       image_url: v.string({
         name: 'image_url',
         description: `The organization's image URL`,

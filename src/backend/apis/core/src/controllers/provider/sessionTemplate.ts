@@ -1,15 +1,21 @@
+import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceSessionTemplateService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
+import {
+  authConfigValidator,
+  configValidator,
+  deploymentValidator
+} from '../../lib/providerValidators';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerInstanceGroup, providerPath } from '../../middleware/providerGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionTemplatePresenter } from '../../presenters';
 import { SubspaceSessionTemplate } from '../../presenters/types';
 
-export let sessionTemplateGroup = providerInstanceGroup.use(async ctx => {
+export let sessionTemplateGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionTemplateId) {
     throw new ServiceError(
       badRequestError({
@@ -34,8 +40,8 @@ export let sessionTemplateController = Controller.create(
       'Session templates define reusable configurations for sessions, including which providers to include. Templates can be used to quickly create new sessions with consistent settings.'
   },
   {
-    list: providerInstanceGroup
-      .get(providerPath('session-templates', 'sessionTemplates.list'), {
+    list: instanceGroup
+      .get(instancePath('session-templates', 'sessionTemplates.list'), {
         name: 'List session templates',
         description: 'Returns a paginated list of session templates.'
       })
@@ -51,12 +57,14 @@ export let sessionTemplateController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, sessionTemplate =>
-          sessionTemplatePresenter.present({ sessionTemplate: sessionTemplate as SubspaceSessionTemplate })
+          sessionTemplatePresenter.present({
+            sessionTemplate: sessionTemplate as SubspaceSessionTemplate
+          })
         );
       }),
 
     get: sessionTemplateGroup
-      .get(providerPath('session-templates/:sessionTemplateId', 'sessionTemplates.get'), {
+      .get(instancePath('session-templates/:sessionTemplateId', 'sessionTemplates.get'), {
         name: 'Get session template',
         description: 'Retrieves a specific session template by ID.'
       })
@@ -67,8 +75,8 @@ export let sessionTemplateController = Controller.create(
         return sessionTemplatePresenter.present({ sessionTemplate: ctx.sessionTemplate });
       }),
 
-    create: providerInstanceGroup
-      .post(providerPath('session-templates', 'sessionTemplates.create'), {
+    create: instanceGroup
+      .post(instancePath('session-templates', 'sessionTemplates.create'), {
         name: 'Create session template',
         description: 'Creates a new session template.'
       })
@@ -78,8 +86,26 @@ export let sessionTemplateController = Controller.create(
         'default',
         v.object({
           name: v.string({ examples: ['Production Template'] }),
-          description: v.optional(v.string({ examples: ['Template for production sessions'] })),
-          metadata: v.optional(v.record(v.any(), { examples: [{ environment: 'production' }] }), { description: 'Custom key-value pairs for storing additional information' })
+          description: v.optional(
+            v.string({ examples: ['Template for production sessions'] })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), { examples: [{ environment: 'production' }] }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          ),
+          providers: v.optional(
+            v.array(
+              v.object({
+                provider_deployment: deploymentValidator,
+                provider_config: v.optional(configValidator),
+                provider_auth_config: v.optional(authConfigValidator),
+                tool_filters: v.optional(
+                  v.object({ tool_keys: v.optional(v.array(v.string())) })
+                )
+              })
+            ),
+            { description: 'Optional list of providers to include in the template' }
+          )
         })
       )
       .output(sessionTemplatePresenter)
@@ -88,14 +114,22 @@ export let sessionTemplateController = Controller.create(
           instance: ctx.instance,
           name: ctx.body.name,
           description: ctx.body.description,
-          metadata: ctx.body.metadata
+          metadata: ctx.body.metadata,
+          providers: ctx.body.providers?.map(p => ({
+            providerDeployment: convertKeysToCamelCase(p.provider_deployment),
+            providerConfig: convertKeysToCamelCase(p.provider_config),
+            providerAuthConfig: convertKeysToCamelCase(p.provider_auth_config),
+            toolFilters: p.tool_filters ? { toolKeys: p.tool_filters.tool_keys } : undefined
+          }))
         });
 
-        return sessionTemplatePresenter.present({ sessionTemplate: sessionTemplate as SubspaceSessionTemplate });
+        return sessionTemplatePresenter.present({
+          sessionTemplate: sessionTemplate as SubspaceSessionTemplate
+        });
       }),
 
     update: sessionTemplateGroup
-      .patch(providerPath('session-templates/:sessionTemplateId', 'sessionTemplates.update'), {
+      .patch(instancePath('session-templates/:sessionTemplateId', 'sessionTemplates.update'), {
         name: 'Update session template',
         description: 'Updates a specific session template.'
       })
@@ -106,7 +140,9 @@ export let sessionTemplateController = Controller.create(
         v.object({
           name: v.optional(v.string({ examples: ['Updated Template Name'] })),
           description: v.optional(v.string({ examples: ['Updated description'] })),
-          metadata: v.optional(v.record(v.any(), { examples: [{ environment: 'staging' }] }), { description: 'Custom key-value pairs for storing additional information' })
+          metadata: v.optional(v.record(v.any(), { examples: [{ environment: 'staging' }] }), {
+            description: 'Custom key-value pairs for storing additional information'
+          })
         })
       )
       .output(sessionTemplatePresenter)
@@ -119,7 +155,9 @@ export let sessionTemplateController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return sessionTemplatePresenter.present({ sessionTemplate: sessionTemplate as SubspaceSessionTemplate });
+        return sessionTemplatePresenter.present({
+          sessionTemplate: sessionTemplate as SubspaceSessionTemplate
+        });
       })
   }
 );

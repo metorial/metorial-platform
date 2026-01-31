@@ -4,7 +4,7 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
+import { instancePath } from '../../middleware/instanceGroup';
 import { providerSpecificationPresenter } from '../../presenters';
 import { SubspaceSpecification } from '../../presenters/types';
 import { providerGroup } from './provider';
@@ -35,10 +35,13 @@ export let providerSpecificationController = Controller.create(
   },
   {
     list: providerGroup
-      .get(providerPath('providers/:providerId/specifications', 'providers.specifications.list'), {
-        name: 'List provider specifications',
-        description: 'Returns a paginated list of provider specifications.'
-      })
+      .get(
+        instancePath('providers/:providerId/specifications', 'providers.specifications.list'),
+        {
+          name: 'List provider specifications',
+          description: 'Returns a paginated list of provider specifications.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .outputList(providerSpecificationPresenter)
@@ -60,7 +63,7 @@ export let providerSpecificationController = Controller.create(
 
     get: providerSpecificationGroup
       .get(
-        providerPath(
+        instancePath(
           'providers/:providerId/specifications/:providerSpecificationId',
           'providers.specifications.get'
         ),

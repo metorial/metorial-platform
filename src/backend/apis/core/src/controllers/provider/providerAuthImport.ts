@@ -6,9 +6,9 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
-import { providerAuthImportPresenter } from '../../presenters';
-import { SubspaceAuthImport } from '../../presenters/types';
+import { instancePath } from '../../middleware/instanceGroup';
+import { providerAuthImportPresenter, authImportSchemaPresenter } from '../../presenters';
+import { SubspaceAuthImport, SubspaceAuthImportSchema } from '../../presenters/types';
 import { providerAuthConfigGroup } from './providerAuthConfig';
 
 export let providerAuthImportGroup = providerAuthConfigGroup.use(async ctx => {
@@ -41,10 +41,16 @@ export let providerAuthImportController = Controller.create(
   },
   {
     list: providerAuthConfigGroup
-      .get(providerPath('provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/imports', 'providerDeployments.authConfigs.imports.list'), {
-        name: 'List provider auth imports',
-        description: 'Returns a paginated list of provider auth imports.'
-      })
+      .get(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/imports',
+          'providerDeployments.authConfigs.imports.list'
+        ),
+        {
+          name: 'List provider auth imports',
+          description: 'Returns a paginated list of provider auth imports.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .outputList(providerAuthImportPresenter)
@@ -66,7 +72,10 @@ export let providerAuthImportController = Controller.create(
 
     get: providerAuthImportGroup
       .get(
-        providerPath('provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/imports/:providerAuthImportId', 'providerDeployments.authConfigs.imports.get'),
+        instancePath(
+          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/imports/:providerAuthImportId',
+          'providerDeployments.authConfigs.imports.get'
+        ),
         {
           name: 'Get provider auth import',
           description: 'Retrieves a specific provider auth import by ID.'
@@ -80,10 +89,16 @@ export let providerAuthImportController = Controller.create(
       }),
 
     create: providerAuthConfigGroup
-      .post(providerPath('provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/imports', 'providerDeployments.authConfigs.imports.create'), {
-        name: 'Create provider auth import',
-        description: 'Imports authentication credentials for a provider.'
-      })
+      .post(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/imports',
+          'providerDeployments.authConfigs.imports.create'
+        ),
+        {
+          name: 'Create provider auth import',
+          description: 'Imports authentication credentials for a provider.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .body(
@@ -96,7 +111,9 @@ export let providerAuthImportController = Controller.create(
           metadata: v.optional(v.record(v.any()), {
             description: 'Custom key-value pairs for storing additional information'
           }),
-          providerAuthMethodId: v.optional(v.string({ examples: ['pam_3cDeFgHjKlMnPqRs'] }), { description: 'The authentication method used by these credentials' }),
+          providerAuthMethodId: v.optional(v.string({ examples: ['pam_3cDeFgHjKlMnPqRs'] }), {
+            description: 'The authentication method used by these credentials'
+          }),
           value: v.record(v.any(), {
             description: 'The credential data to import',
             examples: [
@@ -140,6 +157,31 @@ export let providerAuthImportController = Controller.create(
 
         return providerAuthImportPresenter.present({
           authImport: authImport as SubspaceAuthImport
+        });
+      }),
+
+    getSchema: providerAuthConfigGroup
+      .get(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/imports/schema',
+          'providerDeployments.authConfigs.imports.getSchema'
+        ),
+        {
+          name: 'Get auth import schema',
+          description: 'Retrieves the JSON Schema for importing authentication credentials.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .use(hasFlags(['paid-provider-api']))
+      .output(authImportSchemaPresenter)
+      .do(async ctx => {
+        let schema = await subspaceProviderAuthImportService.getSchema({
+          instance: ctx.instance,
+          providerAuthConfigId: ctx.authConfig.id
+        });
+
+        return authImportSchemaPresenter.present({
+          schema: schema as SubspaceAuthImportSchema
         });
       })
   }

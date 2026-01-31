@@ -31,9 +31,15 @@ export let v1OrganizationActorPresenter = Presenter.create(organizationActorType
   }))
   .schema(
     v.object({
-      object: v.literal('organization.actor', { description: "String representing the object's type" }),
+      object: v.literal('organization.actor', {
+        description: "String representing the object's type"
+      }),
 
-      id: v.string({ name: 'id', description: `The organization member's unique identifier`, examples: ['omem_5fGhJkLmNpQrStUv'] }),
+      id: v.string({
+        name: 'id',
+        description: `The organization member's unique identifier`,
+        examples: ['omem_5fGhJkLmNpQrStUv']
+      }),
       type: v.enumOf(['member', 'machine_access'], {
         name: 'type',
         description: `The organization member's type`

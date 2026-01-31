@@ -4,7 +4,7 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
+import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthMethodPresenter } from '../../presenters';
 import { SubspaceAuthMethod } from '../../presenters/types';
 import { providerGroup } from './provider';
@@ -35,7 +35,7 @@ export let providerAuthMethodController = Controller.create(
   },
   {
     list: providerGroup
-      .get(providerPath('providers/:providerId/auth-methods', 'providers.authMethods.list'), {
+      .get(instancePath('providers/:providerId/auth-methods', 'providers.authMethods.list'), {
         name: 'List provider auth methods',
         description: 'Returns a paginated list of provider auth methods.'
       })
@@ -58,7 +58,10 @@ export let providerAuthMethodController = Controller.create(
 
     get: providerAuthMethodGroup
       .get(
-        providerPath('providers/:providerId/auth-methods/:providerAuthMethodId', 'providers.authMethods.get'),
+        instancePath(
+          'providers/:providerId/auth-methods/:providerAuthMethodId',
+          'providers.authMethods.get'
+        ),
         {
           name: 'Get provider auth method',
           description: 'Retrieves a specific provider auth method by ID.'

@@ -6,7 +6,7 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
+import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthExportPresenter } from '../../presenters';
 import { SubspaceAuthExport } from '../../presenters/types';
 import { providerAuthConfigGroup } from './providerAuthConfig';
@@ -41,10 +41,16 @@ export let providerAuthExportController = Controller.create(
   },
   {
     list: providerAuthConfigGroup
-      .get(providerPath('provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/exports', 'providerDeployments.authConfigs.exports.list'), {
-        name: 'List provider auth exports',
-        description: 'Returns a paginated list of provider auth exports.'
-      })
+      .get(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/exports',
+          'providerDeployments.authConfigs.exports.list'
+        ),
+        {
+          name: 'List provider auth exports',
+          description: 'Returns a paginated list of provider auth exports.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .outputList(providerAuthExportPresenter)
@@ -64,10 +70,16 @@ export let providerAuthExportController = Controller.create(
       }),
 
     get: providerAuthExportGroup
-      .get(providerPath('provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/exports/:providerAuthExportId', 'providerDeployments.authConfigs.exports.get'), {
-        name: 'Get provider auth export',
-        description: 'Retrieves a specific provider auth export by ID.'
-      })
+      .get(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/exports/:providerAuthExportId',
+          'providerDeployments.authConfigs.exports.get'
+        ),
+        {
+          name: 'Get provider auth export',
+          description: 'Retrieves a specific provider auth export by ID.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(providerAuthExportPresenter)
@@ -76,17 +88,25 @@ export let providerAuthExportController = Controller.create(
       }),
 
     create: providerAuthConfigGroup
-      .post(providerPath('provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/exports', 'providerDeployments.authConfigs.exports.create'), {
-        name: 'Create provider auth export',
-        description: 'Exports authentication credentials from a provider.'
-      })
+      .post(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId/exports',
+          'providerDeployments.authConfigs.exports.create'
+        ),
+        {
+          name: 'Create provider auth export',
+          description: 'Exports authentication credentials from a provider.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
           note: v.string(),
-          metadata: v.optional(v.record(v.any()), { description: 'Custom key-value pairs for storing additional information' })
+          metadata: v.optional(v.record(v.any()), {
+            description: 'Custom key-value pairs for storing additional information'
+          })
         })
       )
       .output(providerAuthExportPresenter)
@@ -111,7 +131,9 @@ export let providerAuthExportController = Controller.create(
           })
           .catch(err => console.error('Failed to store subspace reference:', err));
 
-        return providerAuthExportPresenter.present({ authExport: authExport as SubspaceAuthExport });
+        return providerAuthExportPresenter.present({
+          authExport: authExport as SubspaceAuthExport
+        });
       })
   }
 );

@@ -34,7 +34,9 @@ export let v1ServerRunPresenter = Presenter.create(serverRunType)
   }))
   .schema(
     v.object({
-      object: v.literal('server.server_run', { description: "String representing the object's type" }),
+      object: v.literal('server.server_run', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',

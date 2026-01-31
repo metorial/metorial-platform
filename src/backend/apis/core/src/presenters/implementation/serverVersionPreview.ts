@@ -31,7 +31,9 @@ export let v1ServerVersionPreview = Object.assign(
   }),
   {
     schema: v.object({
-      object: v.literal('server.server_version#preview', { description: "String representing the object's type" }),
+      object: v.literal('server.server_version#preview', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',

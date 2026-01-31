@@ -34,7 +34,9 @@ export let v1OrganizationMemberPresenter = Presenter.create(organizationMemberTy
   }))
   .schema(
     v.object({
-      object: v.literal('organization.member', { description: "String representing the object's type" }),
+      object: v.literal('organization.member', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({ name: 'id', description: `The organization member's unique identifier` }),
 

@@ -16,21 +16,59 @@ export let v1AuthImportPresenter = Presenter.create(authImportType)
   }))
   .schema(
     v.object({
-      object: v.literal('provider.auth_import', { description: "String representing the object's type" }),
-      id: v.string({ name: 'id', description: 'Unique auth import identifier', examples: ['paci_1vWxYzAbCdEfGhJk'] }),
-      note: v.string({ name: 'note', description: 'Note explaining the import', examples: ['Imported from previous environment'] }),
-      metadata: v.nullable(v.record(v.any(), { name: 'metadata', description: 'Custom key-value pairs for storing additional information', examples: [{ imported_from: 'legacy-system', migration_date: '2025-09-01' }] })),
-      provider_id: v.nullable(v.string({ name: 'provider_id', description: 'Provider ID', examples: ['pro_5gHjKlMnPqRsTuVw'] })),
+      object: v.literal('provider.auth_import', {
+        description: "String representing the object's type"
+      }),
+      id: v.string({
+        name: 'id',
+        description: 'Unique auth import identifier',
+        examples: ['paci_1vWxYzAbCdEfGhJk']
+      }),
+      note: v.string({
+        name: 'note',
+        description: 'Note explaining the import',
+        examples: ['Imported from previous environment']
+      }),
+      metadata: v.nullable(
+        v.record(v.any(), {
+          name: 'metadata',
+          description: 'Custom key-value pairs for storing additional information',
+          examples: [{ imported_from: 'legacy-system', migration_date: '2025-09-01' }]
+        })
+      ),
+      provider_id: v.nullable(
+        v.string({
+          name: 'provider_id',
+          description: 'Provider ID',
+          examples: ['pro_5gHjKlMnPqRsTuVw']
+        })
+      ),
       provider_deployment_id: v.nullable(
-        v.string({ name: 'provider_deployment_id', description: 'Deployment ID', examples: ['pde_1aBcDeFgHjKlMnPq'] })
+        v.string({
+          name: 'provider_deployment_id',
+          description: 'Deployment ID',
+          examples: ['pde_1aBcDeFgHjKlMnPq']
+        })
       ),
       provider_auth_config_id: v.nullable(
-        v.string({ name: 'provider_auth_config_id', description: 'Auth config ID', examples: ['pac_8pQrStUvWxYzAbCd'] })
+        v.string({
+          name: 'provider_auth_config_id',
+          description: 'Auth config ID',
+          examples: ['pac_8pQrStUvWxYzAbCd']
+        })
       ),
       provider_auth_method_id: v.nullable(
-        v.string({ name: 'provider_auth_method_id', description: 'Auth method ID', examples: ['pam_2mNpQrStUvWxYzAb'] })
+        v.string({
+          name: 'provider_auth_method_id',
+          description: 'Auth method ID',
+          examples: ['pam_2mNpQrStUvWxYzAb']
+        })
       ),
-      created_at: v.date({ name: 'created_at', description: 'Timestamp when created', examples: [new Date('2025-09-15T10:30:00Z')] })
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when created',
+        examples: [new Date('2025-09-15T10:30:00Z')]
+      })
     })
   )
   .build();

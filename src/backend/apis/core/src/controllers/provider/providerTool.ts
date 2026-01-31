@@ -5,7 +5,7 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
+import { instancePath } from '../../middleware/instanceGroup';
 import { providerToolPresenter } from '../../presenters';
 import { SubspaceTool } from '../../presenters/types';
 import { providerGroup } from './provider';
@@ -36,7 +36,7 @@ export let providerToolController = Controller.create(
   },
   {
     list: providerGroup
-      .get(providerPath('providers/:providerId/tools', 'providers.tools.list'), {
+      .get(instancePath('providers/:providerId/tools', 'providers.tools.list'), {
         name: 'List provider tools',
         description:
           'Returns a paginated list of provider tools. By default returns tools from the latest version. Use optional filters to get tools for a specific version.'
@@ -67,10 +67,13 @@ export let providerToolController = Controller.create(
       }),
 
     get: providerToolGroup
-      .get(providerPath('providers/:providerId/tools/:providerToolId', 'providers.tools.get'), {
-        name: 'Get provider tool',
-        description: 'Retrieves a specific provider tool by ID.'
-      })
+      .get(
+        instancePath('providers/:providerId/tools/:providerToolId', 'providers.tools.get'),
+        {
+          name: 'Get provider tool',
+          description: 'Retrieves a specific provider tool by ID.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(providerToolPresenter)

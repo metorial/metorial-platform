@@ -6,11 +6,11 @@ import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerInstanceGroup, providerPath } from '../../middleware/providerGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerPresenter } from '../../presenters';
 import { SubspaceProvider } from '../../presenters/types';
 
-export let providerGroup = providerInstanceGroup.use(async ctx => {
+export let providerGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerId) {
     throw new ServiceError(
       badRequestError({
@@ -35,8 +35,8 @@ export let providerController = Controller.create(
       'A provider is a read-only template for an MCP server integration (like GitHub or Slack). To use a provider, create a deployment from it.'
   },
   {
-    list: providerInstanceGroup
-      .get(providerPath('providers', 'providers.list'), {
+    list: instanceGroup
+      .get(instancePath('providers', 'providers.list'), {
         name: 'List providers',
         description: 'Returns a paginated list of providers.'
       })
@@ -47,10 +47,9 @@ export let providerController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            publisher_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by publisher ID(s)' }
-            )
+            publisher_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by publisher ID(s)'
+            })
           })
         )
       )
@@ -68,7 +67,7 @@ export let providerController = Controller.create(
       }),
 
     get: providerGroup
-      .get(providerPath('providers/:providerId', 'providers.get'), {
+      .get(instancePath('providers/:providerId', 'providers.get'), {
         name: 'Get provider',
         description: 'Retrieves a specific provider by ID.'
       })
@@ -77,6 +76,40 @@ export let providerController = Controller.create(
       .output(providerPresenter)
       .do(async ctx => {
         return providerPresenter.present({ provider: ctx.provider });
+      }),
+
+    update: providerGroup
+      .patch(instancePath('providers/:providerId', 'providers.update'), {
+        name: 'Update provider',
+        description: 'Updates a provider.'
+      })
+      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .use(hasFlags(['paid-provider-api']))
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string({ examples: ['Updated GitHub'] })),
+          description: v.optional(v.string({ examples: ['Updated GitHub MCP server'] })),
+          slug: v.optional(v.string({ examples: ['updated-github'] })),
+          image: v.optional(v.string({ examples: ['https://example.com/updated-image.png'] })),
+          skills: v.optional(v.array(v.string()), {
+            description: 'List of skill tags for this provider'
+          })
+        })
+      )
+      .output(providerPresenter)
+      .do(async ctx => {
+        let provider = await subspaceProviderService.update({
+          instance: ctx.instance,
+          providerId: ctx.provider.id,
+          name: ctx.body.name,
+          description: ctx.body.description,
+          slug: ctx.body.slug,
+          image: ctx.body.image,
+          skills: ctx.body.skills
+        });
+
+        return providerPresenter.present({ provider: provider as SubspaceProvider });
       })
   }
 );

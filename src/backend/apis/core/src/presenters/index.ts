@@ -131,7 +131,13 @@ import {
   v1SessionParticipantPresenter,
   v1SessionErrorPresenter,
   v1SessionErrorGroupPresenter,
-  v1ProviderRunPresenter
+  v1ProviderRunPresenter,
+  v1SubspaceSessionMessagePresenter,
+  v1SubspaceSessionConnectionPresenter,
+  v1SubspaceSessionEventPresenter,
+  v1ProviderRunLogsPresenter,
+  v1ConfigSchemaPresenter,
+  v1AuthImportSchemaPresenter
 } from './implementation/provider';
 
 import {
@@ -245,7 +251,14 @@ import {
   sessionErrorGroupType,
   providerRunType,
   // Provider Session type (Magnetar)
-  providerSessionType
+  providerSessionType,
+  // Provider API session-nested types (Magnetar)
+  subspaceSessionMessageType,
+  subspaceSessionConnectionType,
+  subspaceSessionEventType,
+  providerRunLogsType,
+  configSchemaType,
+  authImportSchemaType
 } from './types';
 
 // =============================================================================
@@ -1055,4 +1068,50 @@ export let providerSessionPresenter = declarePresenter(providerSessionType, {
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
   mt_2026_02_01_magnetar: v1ProviderSessionPresenter,
   mt_2026_02_01_dashboard: v1ProviderSessionPresenter
+});
+
+// Provider API session-nested presenters (Magnetar only)
+export let subspaceSessionMessagePresenter = declarePresenter(subspaceSessionMessageType, {
+  mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+  mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+  mt_2026_02_01_magnetar: v1SubspaceSessionMessagePresenter,
+  mt_2026_02_01_dashboard: v1SubspaceSessionMessagePresenter
+});
+
+export let subspaceSessionConnectionPresenter = declarePresenter(
+  subspaceSessionConnectionType,
+  {
+    mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+    mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+    mt_2026_02_01_magnetar: v1SubspaceSessionConnectionPresenter,
+    mt_2026_02_01_dashboard: v1SubspaceSessionConnectionPresenter
+  }
+);
+
+export let subspaceSessionEventPresenter = declarePresenter(subspaceSessionEventType, {
+  mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+  mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+  mt_2026_02_01_magnetar: v1SubspaceSessionEventPresenter,
+  mt_2026_02_01_dashboard: v1SubspaceSessionEventPresenter
+});
+
+export let providerRunLogsPresenter = declarePresenter(providerRunLogsType, {
+  mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+  mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+  mt_2026_02_01_magnetar: v1ProviderRunLogsPresenter,
+  mt_2026_02_01_dashboard: v1ProviderRunLogsPresenter
+});
+
+export let configSchemaPresenter = declarePresenter(configSchemaType, {
+  mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+  mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+  mt_2026_02_01_magnetar: v1ConfigSchemaPresenter,
+  mt_2026_02_01_dashboard: v1ConfigSchemaPresenter
+});
+
+export let authImportSchemaPresenter = declarePresenter(authImportSchemaType, {
+  mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+  mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+  mt_2026_02_01_magnetar: v1AuthImportSchemaPresenter,
+  mt_2026_02_01_dashboard: v1AuthImportSchemaPresenter
 });

@@ -5,7 +5,7 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
+import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionErrorGroupPresenter } from '../../presenters';
 import { SubspaceSessionErrorGroup } from '../../presenters/types';
 import { subspaceSessionGroup } from './subspaceSession';
@@ -36,7 +36,7 @@ export let subspaceSessionErrorGroupController = Controller.create(
   },
   {
     list: subspaceSessionGroup
-      .get(providerPath('sessions/:sessionId/error-groups', 'sessions.errorGroups.list'), {
+      .get(instancePath('sessions/:sessionId/error-groups', 'sessions.errorGroups.list'), {
         name: 'List session error groups',
         description: 'Returns a paginated list of error groups for a session.'
       })
@@ -60,20 +60,30 @@ export let subspaceSessionErrorGroupController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, sessionErrorGroup =>
-          subspaceSessionErrorGroupPresenter.present({ sessionErrorGroup: sessionErrorGroup as SubspaceSessionErrorGroup })
+          subspaceSessionErrorGroupPresenter.present({
+            sessionErrorGroup: sessionErrorGroup as SubspaceSessionErrorGroup
+          })
         );
       }),
 
     get: subspaceSessionErrorGroupGroup
-      .get(providerPath('sessions/:sessionId/error-groups/:sessionErrorGroupId', 'sessions.errorGroups.get'), {
-        name: 'Get session error group',
-        description: 'Retrieves a specific error group for a session.'
-      })
+      .get(
+        instancePath(
+          'sessions/:sessionId/error-groups/:sessionErrorGroupId',
+          'sessions.errorGroups.get'
+        ),
+        {
+          name: 'Get session error group',
+          description: 'Retrieves a specific error group for a session.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(subspaceSessionErrorGroupPresenter)
       .do(async ctx => {
-        return subspaceSessionErrorGroupPresenter.present({ sessionErrorGroup: ctx.sessionErrorGroup });
+        return subspaceSessionErrorGroupPresenter.present({
+          sessionErrorGroup: ctx.sessionErrorGroup
+        });
       })
   }
 );

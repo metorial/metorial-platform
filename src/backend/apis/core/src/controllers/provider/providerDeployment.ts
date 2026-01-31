@@ -1,3 +1,4 @@
+import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceReferenceDeploymentService } from '@metorial/module-subspace-reference';
 import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
@@ -7,11 +8,11 @@ import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerInstanceGroup, providerPath } from '../../middleware/providerGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerDeploymentPresenter } from '../../presenters';
 import { SubspaceDeployment } from '../../presenters/types';
 
-export let providerDeploymentGroup = providerInstanceGroup.use(async ctx => {
+export let providerDeploymentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerDeploymentId) {
     throw new ServiceError(
       badRequestError({
@@ -36,8 +37,8 @@ export let providerDeploymentController = Controller.create(
       'A deployment is a running instance of a provider, pinned to a specific version. Deployments support custom configuration values and user authentication.'
   },
   {
-    list: providerInstanceGroup
-      .get(providerPath('provider-deployments', 'providerDeployments.list'), {
+    list: instanceGroup
+      .get(instancePath('provider-deployments', 'providerDeployments.list'), {
         name: 'List provider deployments',
         description: 'Returns a paginated list of provider deployments.'
       })
@@ -48,14 +49,12 @@ export let providerDeploymentController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            provider_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by provider ID(s)' }
-            ),
-            provider_version_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by version ID(s)' }
-            ),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            }),
+            provider_version_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by version ID(s)'
+            }),
             status: v.optional(v.string(), { description: 'Filter by deployment status' })
           })
         )
@@ -76,10 +75,13 @@ export let providerDeploymentController = Controller.create(
       }),
 
     get: providerDeploymentGroup
-      .get(providerPath('provider-deployments/:providerDeploymentId', 'providerDeployments.get'), {
-        name: 'Get provider deployment',
-        description: 'Retrieves a specific provider deployment by ID.'
-      })
+      .get(
+        instancePath('provider-deployments/:providerDeploymentId', 'providerDeployments.get'),
+        {
+          name: 'Get provider deployment',
+          description: 'Retrieves a specific provider deployment by ID.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(providerDeploymentPresenter)
@@ -87,8 +89,8 @@ export let providerDeploymentController = Controller.create(
         return providerDeploymentPresenter.present({ deployment: ctx.deployment });
       }),
 
-    create: providerInstanceGroup
-      .post(providerPath('provider-deployments', 'providerDeployments.create'), {
+    create: instanceGroup
+      .post(instancePath('provider-deployments', 'providerDeployments.create'), {
         name: 'Create provider deployment',
         description: 'Creates a new provider deployment.'
       })
@@ -98,46 +100,82 @@ export let providerDeploymentController = Controller.create(
         'default',
         v.object({
           name: v.string({ examples: ['Production Deployment'] }),
-          description: v.optional(v.string({ examples: ['Main production environment configuration'] })),
-          metadata: v.optional(v.record(v.any(), { examples: [{ team: 'platform', environment: 'production' }] }), { description: 'Custom key-value pairs for storing additional information' }),
-          provider_id: v.string({ examples: ['pro_5gHjKlMnPqRsTuVw'], description: 'The provider to deploy' }),
-          locked_provider_version_id: v.optional(v.string({ examples: ['prv_4dEfGhJkLmNpQrSt'] }), { description: 'Pin this deployment to a specific provider version' }),
+          description: v.optional(
+            v.string({ examples: ['Main production environment configuration'] })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), { examples: [{ team: 'platform', environment: 'production' }] }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          ),
+          provider_id: v.string({
+            examples: ['pro_5gHjKlMnPqRsTuVw'],
+            description: 'The provider to deploy'
+          }),
+          locked_provider_version_id: v.optional(
+            v.string({ examples: ['prv_4dEfGhJkLmNpQrSt'] }),
+            { description: 'Pin this deployment to a specific provider version' }
+          ),
           config: v.optional(
-            v.union([
-              v.object({
-                type: v.literal('inline'),
-                data: v.record(v.any(), { description: 'Provider-specific configuration values', examples: [{ api_key: 'sk-xxx' }] })
-              }, { name: 'Inline data', description: 'Provide configuration values directly (creates ephemeral config)' }),
-              v.object({
-                type: v.literal('config'),
-                provider_config_id: v.string({ description: 'Existing provider config ID', examples: ['pcf_7dEfGhJkLmNpQrSt'] })
-              }, { name: 'Existing config', description: 'Reference an existing provider config by ID' }),
-              v.object({
-                type: v.literal('vault'),
-                provider_config_vault_id: v.string({ description: 'Provider config vault ID', examples: ['pcvt_3bCdEfGhJkLmNpQr'] })
-              }, { name: 'From vault', description: 'Create an ephemeral config from a vault template' })
-            ], { description: 'Deployment configuration. If omitted, defaults to no configuration.' })
+            v.union(
+              [
+                v.object(
+                  {
+                    type: v.literal('reference'),
+                    provider_config_id: v.string({
+                      description: 'Existing provider config ID',
+                      examples: ['pcf_7dEfGhJkLmNpQrSt']
+                    })
+                  },
+                  { name: 'reference', description: 'Reference an existing provider config' }
+                ),
+                v.object(
+                  {
+                    type: v.literal('new'),
+                    name: v.optional(v.string({ examples: ['Default Config'] })),
+                    config: v.union([
+                      v.object(
+                        {
+                          type: v.literal('new'),
+                          data: v.record(v.any(), {
+                            description: 'Provider-specific configuration values',
+                            examples: [{ api_key: 'sk-xxx' }]
+                          })
+                        },
+                        { name: 'new', description: 'Provide configuration data directly' }
+                      ),
+                      v.object(
+                        {
+                          type: v.literal('vault'),
+                          provider_config_vault_id: v.string({
+                            description: 'Provider config vault ID',
+                            examples: ['pcvt_3bCdEfGhJkLmNpQr']
+                          })
+                        },
+                        { name: 'vault', description: 'Use a config vault template' }
+                      )
+                    ])
+                  },
+                  { name: 'new', description: 'Create a new ephemeral provider config' }
+                ),
+                v.string({ description: 'Shorthand: config ID' })
+              ],
+              {
+                description:
+                  'Deployment configuration. If omitted, defaults to no configuration.'
+              }
+            )
           )
         })
       )
       .output(providerDeploymentPresenter)
       .do(async ctx => {
-        let config = ctx.body.config;
-        let transformedConfig = config
-          ? config.type === 'config'
-            ? { type: 'config' as const, providerConfigId: config.provider_config_id }
-            : config.type === 'vault'
-              ? { type: 'vault' as const, providerConfigVaultId: config.provider_config_vault_id }
-              : config
-          : { type: 'none' as const };
-
         let deployment = await subspaceProviderDeploymentService.create({
           instance: ctx.instance,
           providerId: ctx.body.provider_id,
           name: ctx.body.name,
           description: ctx.body.description,
           lockedProviderVersionId: ctx.body.locked_provider_version_id,
-          config: transformedConfig,
+          config: convertKeysToCamelCase(ctx.body.config),
           metadata: ctx.body.metadata
         });
 
@@ -154,22 +192,35 @@ export let providerDeploymentController = Controller.create(
           })
           .catch(err => console.error('Failed to store subspace reference:', err));
 
-        return providerDeploymentPresenter.present({ deployment: deployment as SubspaceDeployment });
+        return providerDeploymentPresenter.present({
+          deployment: deployment as SubspaceDeployment
+        });
       }),
 
     update: providerDeploymentGroup
-      .patch(providerPath('provider-deployments/:providerDeploymentId', 'providerDeployments.update'), {
-        name: 'Update provider deployment',
-        description: 'Updates a specific provider deployment.'
-      })
+      .patch(
+        instancePath(
+          'provider-deployments/:providerDeploymentId',
+          'providerDeployments.update'
+        ),
+        {
+          name: 'Update provider deployment',
+          description: 'Updates a specific provider deployment.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
           name: v.optional(v.string({ examples: ['Updated Deployment Name'] })),
-          description: v.optional(v.string({ examples: ['Updated description for this deployment'] })),
-          metadata: v.optional(v.record(v.any(), { examples: [{ team: 'platform', environment: 'staging' }] }), { description: 'Custom key-value pairs for storing additional information' })
+          description: v.optional(
+            v.string({ examples: ['Updated description for this deployment'] })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), { examples: [{ team: 'platform', environment: 'staging' }] }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          )
         })
       )
       .output(providerDeploymentPresenter)
@@ -182,14 +233,22 @@ export let providerDeploymentController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerDeploymentPresenter.present({ deployment: deployment as SubspaceDeployment });
+        return providerDeploymentPresenter.present({
+          deployment: deployment as SubspaceDeployment
+        });
       }),
 
     delete: providerDeploymentGroup
-      .delete(providerPath('provider-deployments/:providerDeploymentId', 'providerDeployments.delete'), {
-        name: 'Delete provider deployment',
-        description: 'Permanently deletes a provider deployment.'
-      })
+      .delete(
+        instancePath(
+          'provider-deployments/:providerDeploymentId',
+          'providerDeployments.delete'
+        ),
+        {
+          name: 'Delete provider deployment',
+          description: 'Permanently deletes a provider deployment.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(providerDeploymentPresenter)
@@ -206,7 +265,9 @@ export let providerDeploymentController = Controller.create(
           })
           .catch(err => console.error('Failed to remove subspace reference:', err));
 
-        return providerDeploymentPresenter.present({ deployment: deployment as SubspaceDeployment });
+        return providerDeploymentPresenter.present({
+          deployment: deployment as SubspaceDeployment
+        });
       })
   }
 );

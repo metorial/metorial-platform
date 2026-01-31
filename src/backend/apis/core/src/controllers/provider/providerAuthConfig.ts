@@ -7,7 +7,7 @@ import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
+import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthConfigPresenter } from '../../presenters';
 import { SubspaceAuthConfig } from '../../presenters/types';
 import { providerDeploymentGroup } from './providerDeployment';
@@ -38,10 +38,16 @@ export let providerAuthConfigController = Controller.create(
   },
   {
     list: providerDeploymentGroup
-      .get(providerPath('provider-deployments/:providerDeploymentId/auth-configs', 'providerDeployments.authConfigs.list'), {
-        name: 'List provider auth configs',
-        description: 'Returns a paginated list of provider auth configs.'
-      })
+      .get(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/auth-configs',
+          'providerDeployments.authConfigs.list'
+        ),
+        {
+          name: 'List provider auth configs',
+          description: 'Returns a paginated list of provider auth configs.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .outputList(providerAuthConfigPresenter)
@@ -49,10 +55,9 @@ export let providerAuthConfigController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            provider_auth_method_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by auth method ID(s)' }
-            ),
+            provider_auth_method_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by auth method ID(s)'
+            }),
             provider_auth_credentials_id: v.optional(
               v.union([v.string(), v.array(v.string())]),
               { description: 'Filter by auth credentials ID(s)' }
@@ -66,7 +71,9 @@ export let providerAuthConfigController = Controller.create(
           providerIds: [ctx.deployment.providerId],
           providerDeploymentIds: [ctx.deployment.id],
           providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id),
-          providerAuthCredentialsIds: normalizeArrayParam(ctx.query.provider_auth_credentials_id)
+          providerAuthCredentialsIds: normalizeArrayParam(
+            ctx.query.provider_auth_credentials_id
+          )
         });
 
         let list = await paginator.run(ctx.query);
@@ -77,10 +84,16 @@ export let providerAuthConfigController = Controller.create(
       }),
 
     get: providerAuthConfigGroup
-      .get(providerPath('provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId', 'providerDeployments.authConfigs.get'), {
-        name: 'Get provider auth config',
-        description: 'Retrieves a specific provider auth config by ID.'
-      })
+      .get(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId',
+          'providerDeployments.authConfigs.get'
+        ),
+        {
+          name: 'Get provider auth config',
+          description: 'Retrieves a specific provider auth config by ID.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(providerAuthConfigPresenter)
@@ -89,29 +102,60 @@ export let providerAuthConfigController = Controller.create(
       }),
 
     create: providerDeploymentGroup
-      .post(providerPath('provider-deployments/:providerDeploymentId/auth-configs', 'providerDeployments.authConfigs.create'), {
-        name: 'Create provider auth config',
-        description: 'Creates a new provider auth config.'
-      })
+      .post(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/auth-configs',
+          'providerDeployments.authConfigs.create'
+        ),
+        {
+          name: 'Create provider auth config',
+          description: 'Creates a new provider auth config.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
           name: v.string({ examples: ['GitHub OAuth Token'] }),
-          description: v.optional(v.string({ examples: ['OAuth token for GitHub API access'] })),
-          metadata: v.optional(v.record(v.any(), { examples: [{ connected_by: 'alex@company.com', purpose: 'ci-pipeline' }] }), { description: 'Custom key-value pairs for storing additional information' }),
-          provider_auth_method_id: v.string({ examples: ['pam_2mNpQrStUvWxYzAb'], description: 'The authentication method this config uses (e.g., OAuth, API key)' }),
-          credentials: v.union([
-            v.object({
-              type: v.literal('inline'),
-              data: v.record(v.any(), { description: 'Authentication credentials', examples: [{ client_id: 'xxx', client_secret: 'xxx' }] })
-            }, { name: 'Inline credentials', description: 'Provide credentials directly' }),
-            v.object({
-              type: v.literal('existing'),
-              provider_auth_credentials_id: v.string({ description: 'Existing credentials ID', examples: ['par_4sTuVwXyZaBcDeFg'] })
-            }, { name: 'Existing credentials', description: 'Reference existing credentials by ID' })
-          ], { description: 'Authentication credentials source' })
+          description: v.optional(
+            v.string({ examples: ['OAuth token for GitHub API access'] })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              examples: [{ connected_by: 'alex@company.com', purpose: 'ci-pipeline' }]
+            }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          ),
+          provider_auth_method_id: v.string({
+            examples: ['pam_2mNpQrStUvWxYzAb'],
+            description: 'The authentication method this config uses (e.g., OAuth, API key)'
+          }),
+          credentials: v.union(
+            [
+              v.object(
+                {
+                  type: v.literal('reference'),
+                  provider_auth_credentials_id: v.string({
+                    description: 'Existing credentials ID',
+                    examples: ['par_4sTuVwXyZaBcDeFg']
+                  })
+                },
+                { name: 'reference', description: 'Reference existing credentials by ID' }
+              ),
+              v.object(
+                {
+                  type: v.literal('new'),
+                  data: v.record(v.any(), {
+                    description: 'Authentication credentials',
+                    examples: [{ client_id: 'xxx', client_secret: 'xxx' }]
+                  })
+                },
+                { name: 'new', description: 'Provide credentials directly' }
+              )
+            ],
+            { description: 'Authentication credentials source' }
+          )
         })
       )
       .output(providerAuthConfigPresenter)
@@ -123,7 +167,7 @@ export let providerAuthConfigController = Controller.create(
           providerAuthMethodId: ctx.body.provider_auth_method_id,
           name: ctx.body.name,
           description: ctx.body.description,
-          config: ctx.body.credentials.type === 'inline' ? ctx.body.credentials.data : {},
+          config: ctx.body.credentials.type === 'new' ? ctx.body.credentials.data : {},
           ip: ctx.context.ip,
           ua: ctx.context.ua ?? '',
           metadata: ctx.body.metadata
@@ -144,22 +188,37 @@ export let providerAuthConfigController = Controller.create(
           })
           .catch(err => console.error('Failed to store subspace reference:', err));
 
-        return providerAuthConfigPresenter.present({ authConfig: authConfig as SubspaceAuthConfig });
+        return providerAuthConfigPresenter.present({
+          authConfig: authConfig as SubspaceAuthConfig
+        });
       }),
 
     update: providerAuthConfigGroup
-      .patch(providerPath('provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId', 'providerDeployments.authConfigs.update'), {
-        name: 'Update provider auth config',
-        description: 'Updates a specific provider auth config.'
-      })
+      .patch(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId',
+          'providerDeployments.authConfigs.update'
+        ),
+        {
+          name: 'Update provider auth config',
+          description: 'Updates a specific provider auth config.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
           name: v.optional(v.string({ examples: ['Updated Auth Config Name'] })),
-          description: v.optional(v.string({ examples: ['Updated description for auth configuration'] })),
-          metadata: v.optional(v.record(v.any(), { examples: [{ connected_by: 'alex@company.com', purpose: 'production' }] }), { description: 'Custom key-value pairs for storing additional information' })
+          description: v.optional(
+            v.string({ examples: ['Updated description for auth configuration'] })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              examples: [{ connected_by: 'alex@company.com', purpose: 'production' }]
+            }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          )
         })
       )
       .output(providerAuthConfigPresenter)
@@ -174,14 +233,22 @@ export let providerAuthConfigController = Controller.create(
           ua: ctx.context.ua ?? ''
         });
 
-        return providerAuthConfigPresenter.present({ authConfig: authConfig as SubspaceAuthConfig });
+        return providerAuthConfigPresenter.present({
+          authConfig: authConfig as SubspaceAuthConfig
+        });
       }),
 
     delete: providerAuthConfigGroup
-      .delete(providerPath('provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId', 'providerDeployments.authConfigs.delete'), {
-        name: 'Delete provider auth config',
-        description: 'Permanently deletes a provider auth config.'
-      })
+      .delete(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId',
+          'providerDeployments.authConfigs.delete'
+        ),
+        {
+          name: 'Delete provider auth config',
+          description: 'Permanently deletes a provider auth config.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(providerAuthConfigPresenter)

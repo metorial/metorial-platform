@@ -71,7 +71,9 @@ export let v1MachineAccessPresenter = Presenter.create(machineAccessType)
   }))
   .schema(
     v.object({
-      object: v.literal('machine_access', { description: "String representing the object's type" }),
+      object: v.literal('machine_access', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({ name: 'id', description: `The machineAccess's unique identifier` }),
 

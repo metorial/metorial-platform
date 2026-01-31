@@ -22,7 +22,9 @@ export let v1SetupSessionPresenter = Presenter.create(setupSessionType)
   }))
   .schema(
     v.object({
-      object: v.literal('provider.setup_session', { description: "String representing the object's type" }),
+      object: v.literal('provider.setup_session', {
+        description: "String representing the object's type"
+      }),
       id: v.string({
         name: 'id',
         description: 'Unique setup session identifier',
@@ -52,7 +54,12 @@ export let v1SetupSessionPresenter = Presenter.create(setupSessionType)
         v.record(v.any(), {
           name: 'metadata',
           description: 'Custom key-value pairs for storing additional information',
-          examples: [{ redirect_uri: 'https://app.example.com/callback', requested_scopes: ['repo', 'user'] }]
+          examples: [
+            {
+              redirect_uri: 'https://app.example.com/callback',
+              requested_scopes: ['repo', 'user']
+            }
+          ]
         })
       ),
       provider_id: v.string({

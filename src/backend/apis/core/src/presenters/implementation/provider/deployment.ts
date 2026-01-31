@@ -4,13 +4,43 @@ import { deploymentType, deploymentPreviewType } from '../../types';
 import { v1VersionPresenter } from './version';
 
 let deploymentConfigPreviewSchema = v.object({
-  id: v.string({ name: 'id', description: 'Deployment config identifier', examples: ['pcf_7dEfGhJkLmNpQrSt'] }),
-  name: v.nullable(v.string({ name: 'name', description: 'Display name', examples: ['Default Config'] })),
-  description: v.nullable(v.string({ name: 'description', description: 'Description', examples: ['Default configuration settings'] })),
-  metadata: v.nullable(v.record(v.any(), { name: 'metadata', description: 'Custom key-value pairs for storing additional information', examples: [{ notes: 'Primary config' }] })),
-  provider_id: v.string({ name: 'provider_id', description: 'Provider ID', examples: ['pro_5gHjKlMnPqRsTuVw'] }),
-  created_at: v.date({ name: 'created_at', description: 'Timestamp when created', examples: [new Date('2025-09-15T10:30:00Z')] }),
-  updated_at: v.date({ name: 'updated_at', description: 'Timestamp when last updated', examples: [new Date('2026-01-10T14:45:00Z')] })
+  id: v.string({
+    name: 'id',
+    description: 'Deployment config identifier',
+    examples: ['pcf_7dEfGhJkLmNpQrSt']
+  }),
+  name: v.nullable(
+    v.string({ name: 'name', description: 'Display name', examples: ['Default Config'] })
+  ),
+  description: v.nullable(
+    v.string({
+      name: 'description',
+      description: 'Description',
+      examples: ['Default configuration settings']
+    })
+  ),
+  metadata: v.nullable(
+    v.record(v.any(), {
+      name: 'metadata',
+      description: 'Custom key-value pairs for storing additional information',
+      examples: [{ notes: 'Primary config' }]
+    })
+  ),
+  provider_id: v.string({
+    name: 'provider_id',
+    description: 'Provider ID',
+    examples: ['pro_5gHjKlMnPqRsTuVw']
+  }),
+  created_at: v.date({
+    name: 'created_at',
+    description: 'Timestamp when created',
+    examples: [new Date('2025-09-15T10:30:00Z')]
+  }),
+  updated_at: v.date({
+    name: 'updated_at',
+    description: 'Timestamp when last updated',
+    examples: [new Date('2026-01-10T14:45:00Z')]
+  })
 });
 
 export let v1DeploymentPreviewPresenter = Presenter.create(deploymentPreviewType)
@@ -22,10 +52,22 @@ export let v1DeploymentPreviewPresenter = Presenter.create(deploymentPreviewType
   }))
   .schema(
     v.object({
-      object: v.literal('provider.deployment', { description: "String representing the object's type" }),
-      id: v.string({ name: 'id', description: 'Deployment ID', examples: ['pde_1aBcDeFgHjKlMnPq'] }),
-      name: v.nullable(v.string({ name: 'name', description: 'Deployment name', examples: ['Production'] })),
-      provider_id: v.string({ name: 'provider_id', description: 'Provider ID', examples: ['pro_5gHjKlMnPqRsTuVw'] })
+      object: v.literal('provider.deployment', {
+        description: "String representing the object's type"
+      }),
+      id: v.string({
+        name: 'id',
+        description: 'Deployment ID',
+        examples: ['pde_1aBcDeFgHjKlMnPq']
+      }),
+      name: v.nullable(
+        v.string({ name: 'name', description: 'Deployment name', examples: ['Production'] })
+      ),
+      provider_id: v.string({
+        name: 'provider_id',
+        description: 'Provider ID',
+        examples: ['pro_5gHjKlMnPqRsTuVw']
+      })
     })
   )
   .build();
@@ -57,16 +99,48 @@ export let v1DeploymentPresenter = Presenter.create(deploymentType)
   }))
   .schema(
     v.object({
-      object: v.literal('provider.deployment', { description: "String representing the object's type" }),
-      id: v.string({ name: 'id', description: 'Unique deployment identifier', examples: ['pde_1aBcDeFgHjKlMnPq'] }),
-      name: v.nullable(v.string({ name: 'name', description: 'Display name', examples: ['Production'] })),
-      description: v.nullable(v.string({ name: 'description', description: 'Description', examples: ['Production deployment'] })),
-      metadata: v.nullable(v.record(v.any(), { name: 'metadata', description: 'Custom key-value pairs for storing additional information', examples: [{ notes: 'Main deployment' }] })),
-      provider_id: v.string({ name: 'provider_id', description: 'Provider ID', examples: ['pro_5gHjKlMnPqRsTuVw'] }),
+      object: v.literal('provider.deployment', {
+        description: "String representing the object's type"
+      }),
+      id: v.string({
+        name: 'id',
+        description: 'Unique deployment identifier',
+        examples: ['pde_1aBcDeFgHjKlMnPq']
+      }),
+      name: v.nullable(
+        v.string({ name: 'name', description: 'Display name', examples: ['Production'] })
+      ),
+      description: v.nullable(
+        v.string({
+          name: 'description',
+          description: 'Description',
+          examples: ['Production deployment']
+        })
+      ),
+      metadata: v.nullable(
+        v.record(v.any(), {
+          name: 'metadata',
+          description: 'Custom key-value pairs for storing additional information',
+          examples: [{ notes: 'Main deployment' }]
+        })
+      ),
+      provider_id: v.string({
+        name: 'provider_id',
+        description: 'Provider ID',
+        examples: ['pro_5gHjKlMnPqRsTuVw']
+      }),
       locked_version: v.nullable(v1VersionPresenter.schema),
       default_config: v.nullable(deploymentConfigPreviewSchema),
-      created_at: v.date({ name: 'created_at', description: 'Timestamp when created', examples: [new Date('2025-09-15T10:30:00Z')] }),
-      updated_at: v.date({ name: 'updated_at', description: 'Timestamp when last updated', examples: [new Date('2026-01-10T14:45:00Z')] })
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when created',
+        examples: [new Date('2025-09-15T10:30:00Z')]
+      }),
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when last updated',
+        examples: [new Date('2026-01-10T14:45:00Z')]
+      })
     })
   )
   .build();

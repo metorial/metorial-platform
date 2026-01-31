@@ -41,9 +41,15 @@ export let v1ApiKeyPresenter = Presenter.create(apiKeyType)
   }))
   .schema(
     v.object({
-      object: v.literal('machine_access.api_key', { description: "String representing the object's type" }),
+      object: v.literal('machine_access.api_key', {
+        description: "String representing the object's type"
+      }),
 
-      id: v.string({ name: 'id', description: `The apiKey's unique identifier`, examples: ['apk_4fGhJkLmNpQrStUv'] }),
+      id: v.string({
+        name: 'id',
+        description: `The apiKey's unique identifier`,
+        examples: ['apk_4fGhJkLmNpQrStUv']
+      }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
         description: `The apiKey's status`
@@ -145,9 +151,15 @@ export let dashboardApiKeyPresenter = Presenter.create(apiKeyType)
   }))
   .schema(
     v.object({
-      object: v.literal('machine_access.api_key', { description: "String representing the object's type" }),
+      object: v.literal('machine_access.api_key', {
+        description: "String representing the object's type"
+      }),
 
-      id: v.string({ name: 'id', description: `The apiKey's unique identifier`, examples: ['apk_4fGhJkLmNpQrStUv'] }),
+      id: v.string({
+        name: 'id',
+        description: `The apiKey's unique identifier`,
+        examples: ['apk_4fGhJkLmNpQrStUv']
+      }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
         description: `The apiKey's status`

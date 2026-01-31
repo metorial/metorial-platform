@@ -11,11 +11,23 @@ export let v1ConfigPreviewPresenter = Presenter.create(configPreviewType)
   }))
   .schema(
     v.object({
-      object: v.literal('provider.config', { description: "String representing the object's type" }),
-      id: v.string({ name: 'id', description: 'Config ID', examples: ['pcf_7dEfGhJkLmNpQrSt'] }),
-      name: v.nullable(v.string({ name: 'name', description: 'Config name', examples: ['Production Config'] })),
+      object: v.literal('provider.config', {
+        description: "String representing the object's type"
+      }),
+      id: v.string({
+        name: 'id',
+        description: 'Config ID',
+        examples: ['pcf_7dEfGhJkLmNpQrSt']
+      }),
+      name: v.nullable(
+        v.string({ name: 'name', description: 'Config name', examples: ['Production Config'] })
+      ),
       provider_deployment_id: v.nullable(
-        v.string({ name: 'provider_deployment_id', description: 'Deployment ID', examples: ['pde_1aBcDeFgHjKlMnPq'] })
+        v.string({
+          name: 'provider_deployment_id',
+          description: 'Deployment ID',
+          examples: ['pde_1aBcDeFgHjKlMnPq']
+        })
       )
     })
   )
@@ -35,17 +47,57 @@ export let v1ConfigPresenter = Presenter.create(configType)
   }))
   .schema(
     v.object({
-      object: v.literal('provider.config', { description: "String representing the object's type" }),
-      id: v.string({ name: 'id', description: 'Unique config identifier', examples: ['pcf_7dEfGhJkLmNpQrSt'] }),
-      name: v.nullable(v.string({ name: 'name', description: 'Display name', examples: ['Production Config'] })),
-      description: v.nullable(v.string({ name: 'description', description: 'Description', examples: ['Configuration for production environment'] })),
-      metadata: v.nullable(v.record(v.any(), { name: 'metadata', description: 'Custom key-value pairs for storing additional information', examples: [{ label: 'primary', notes: 'Default production config' }] })),
-      provider_id: v.string({ name: 'provider_id', description: 'Provider ID', examples: ['pro_5gHjKlMnPqRsTuVw'] }),
-      provider_deployment_id: v.nullable(
-        v.string({ name: 'provider_deployment_id', description: 'Deployment ID', examples: ['pde_1aBcDeFgHjKlMnPq'] })
+      object: v.literal('provider.config', {
+        description: "String representing the object's type"
+      }),
+      id: v.string({
+        name: 'id',
+        description: 'Unique config identifier',
+        examples: ['pcf_7dEfGhJkLmNpQrSt']
+      }),
+      name: v.nullable(
+        v.string({
+          name: 'name',
+          description: 'Display name',
+          examples: ['Production Config']
+        })
       ),
-      created_at: v.date({ name: 'created_at', description: 'Timestamp when created', examples: [new Date('2025-09-15T10:30:00Z')] }),
-      updated_at: v.date({ name: 'updated_at', description: 'Timestamp when last updated', examples: [new Date('2026-01-10T14:45:00Z')] })
+      description: v.nullable(
+        v.string({
+          name: 'description',
+          description: 'Description',
+          examples: ['Configuration for production environment']
+        })
+      ),
+      metadata: v.nullable(
+        v.record(v.any(), {
+          name: 'metadata',
+          description: 'Custom key-value pairs for storing additional information',
+          examples: [{ label: 'primary', notes: 'Default production config' }]
+        })
+      ),
+      provider_id: v.string({
+        name: 'provider_id',
+        description: 'Provider ID',
+        examples: ['pro_5gHjKlMnPqRsTuVw']
+      }),
+      provider_deployment_id: v.nullable(
+        v.string({
+          name: 'provider_deployment_id',
+          description: 'Deployment ID',
+          examples: ['pde_1aBcDeFgHjKlMnPq']
+        })
+      ),
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when created',
+        examples: [new Date('2025-09-15T10:30:00Z')]
+      }),
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when last updated',
+        examples: [new Date('2026-01-10T14:45:00Z')]
+      })
     })
   )
   .build();

@@ -121,7 +121,9 @@ export let v1SessionPresenter = Presenter.create(sessionType)
 
       client_secret: v.object(
         {
-          object: v.literal('client_secret', { description: "String representing the object's type" }),
+          object: v.literal('client_secret', {
+            description: "String representing the object's type"
+          }),
 
           type: v.enumOf(['session'], {
             name: 'type',
@@ -149,7 +151,9 @@ export let v1SessionPresenter = Presenter.create(sessionType)
 
       server_deployments: v.array(
         v.object({
-          object: v.literal('session.server_deployment#preview', { description: "String representing the object's type" }),
+          object: v.literal('session.server_deployment#preview', {
+            description: "String representing the object's type"
+          }),
 
           id: v.string({
             name: 'id',
@@ -246,7 +250,9 @@ export let v1DashboardSessionPresenter = Presenter.create(sessionType)
       v.object({
         client: v.nullable(
           v.object({
-            object: v.literal('session.client#preview', { description: "String representing the object's type" }),
+            object: v.literal('session.client#preview', {
+              description: "String representing the object's type"
+            }),
             info: v.object({
               name: v.string({
                 name: 'name',

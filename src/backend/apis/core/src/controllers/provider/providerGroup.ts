@@ -6,11 +6,11 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerInstanceGroup, providerPath } from '../../middleware/providerGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerGroupPresenter } from '../../presenters';
 import { SubspaceGroup } from '../../presenters/types';
 
-export let providerGroupGroup = providerInstanceGroup.use(async ctx => {
+export let providerGroupGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerGroupId) {
     throw new ServiceError(
       badRequestError({
@@ -35,8 +35,8 @@ export let providerGroupController = Controller.create(
       "A group is a user-defined custom folder for organizing providers in your instance like 'Sales Tools' or 'Engineering'."
   },
   {
-    list: providerInstanceGroup
-      .get(providerPath('provider-groups', 'providerGroups.list'), {
+    list: instanceGroup
+      .get(instancePath('provider-groups', 'providerGroups.list'), {
         name: 'List provider groups',
         description: 'Returns a paginated list of provider groups.'
       })
@@ -57,7 +57,7 @@ export let providerGroupController = Controller.create(
       }),
 
     get: providerGroupGroup
-      .get(providerPath('provider-groups/:providerGroupId', 'providerGroups.get'), {
+      .get(instancePath('provider-groups/:providerGroupId', 'providerGroups.get'), {
         name: 'Get provider group',
         description: 'Retrieves a specific provider group by ID.'
       })
@@ -68,8 +68,8 @@ export let providerGroupController = Controller.create(
         return providerGroupPresenter.present({ group: ctx.group });
       }),
 
-    create: providerInstanceGroup
-      .post(providerPath('provider-groups', 'providerGroups.create'), {
+    create: instanceGroup
+      .post(instancePath('provider-groups', 'providerGroups.create'), {
         name: 'Create provider group',
         description: 'Creates a new custom provider group.'
       })
@@ -81,8 +81,7 @@ export let providerGroupController = Controller.create(
           name: v.string({ examples: ['Sales Integrations'] }),
           description: v.optional(
             v.string({ examples: ['CRM and sales pipeline integrations'] })
-          ),
-          slug: v.string({ examples: ['sales-integrations'] })
+          )
         })
       )
       .output(providerGroupPresenter)
@@ -90,8 +89,7 @@ export let providerGroupController = Controller.create(
         let group = await subspaceProviderListingGroupService.create({
           instance: ctx.instance,
           name: ctx.body.name,
-          description: ctx.body.description,
-          slug: ctx.body.slug
+          description: ctx.body.description
         });
 
         await subspaceReferenceGroupService
@@ -110,7 +108,7 @@ export let providerGroupController = Controller.create(
       }),
 
     update: providerGroupGroup
-      .patch(providerPath('provider-groups/:providerGroupId', 'providerGroups.update'), {
+      .patch(instancePath('provider-groups/:providerGroupId', 'providerGroups.update'), {
         name: 'Update provider group',
         description: 'Updates an existing provider group.'
       })
@@ -120,8 +118,9 @@ export let providerGroupController = Controller.create(
         'default',
         v.object({
           name: v.optional(v.string({ examples: ['Engineering Tools'] })),
-          description: v.optional(v.string({ examples: ['Developer and DevOps integrations'] })),
-          slug: v.optional(v.string({ examples: ['engineering-tools'] }))
+          description: v.optional(
+            v.string({ examples: ['Developer and DevOps integrations'] })
+          )
         })
       )
       .output(providerGroupPresenter)
@@ -130,18 +129,20 @@ export let providerGroupController = Controller.create(
           instance: ctx.instance,
           providerListingGroupId: ctx.group.id,
           name: ctx.body.name,
-          description: ctx.body.description,
-          slug: ctx.body.slug
+          description: ctx.body.description
         });
 
         return providerGroupPresenter.present({ group: group as SubspaceGroup });
       }),
 
     addListing: providerGroupGroup
-      .post(providerPath('provider-groups/:providerGroupId/listings', 'providerGroups.addListing'), {
-        name: 'Add listing to group',
-        description: 'Adds a provider listing to a group.'
-      })
+      .post(
+        instancePath('provider-groups/:providerGroupId/listings', 'providerGroups.addListing'),
+        {
+          name: 'Add listing to group',
+          description: 'Adds a provider listing to a group.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .body(
@@ -163,7 +164,7 @@ export let providerGroupController = Controller.create(
 
     removeListing: providerGroupGroup
       .delete(
-        providerPath(
+        instancePath(
           'provider-groups/:providerGroupId/listings/:providerListingId',
           'providerGroups.removeListing'
         ),

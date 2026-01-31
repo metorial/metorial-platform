@@ -13,7 +13,9 @@ export let v1ManagedServerTemplatePresenter = Presenter.create(managedServerTemp
   }))
   .schema(
     v.object({
-      object: v.literal('managed_server.template', { description: "String representing the object's type" }),
+      object: v.literal('managed_server.template', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',

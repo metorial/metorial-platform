@@ -4,7 +4,7 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
+import { instancePath } from '../../middleware/instanceGroup';
 import { providerVersionPresenter } from '../../presenters';
 import { SubspaceVersion } from '../../presenters/types';
 import { providerGroup } from './provider';
@@ -35,7 +35,7 @@ export let providerVersionController = Controller.create(
   },
   {
     list: providerGroup
-      .get(providerPath('providers/:providerId/versions', 'providers.versions.list'), {
+      .get(instancePath('providers/:providerId/versions', 'providers.versions.list'), {
         name: 'List provider versions',
         description: 'Returns a paginated list of provider versions.'
       })
@@ -57,10 +57,16 @@ export let providerVersionController = Controller.create(
       }),
 
     get: providerVersionGroup
-      .get(providerPath('providers/:providerId/versions/:providerVersionId', 'providers.versions.get'), {
-        name: 'Get provider version',
-        description: 'Retrieves a specific provider version by ID.'
-      })
+      .get(
+        instancePath(
+          'providers/:providerId/versions/:providerVersionId',
+          'providers.versions.get'
+        ),
+        {
+          name: 'Get provider version',
+          description: 'Retrieves a specific provider version by ID.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(providerVersionPresenter)

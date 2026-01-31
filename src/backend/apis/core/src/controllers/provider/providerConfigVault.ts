@@ -6,7 +6,7 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
+import { instancePath } from '../../middleware/instanceGroup';
 import { providerConfigVaultPresenter } from '../../presenters';
 import { SubspaceConfigVault } from '../../presenters/types';
 import { providerDeploymentGroup } from './providerDeployment';
@@ -37,10 +37,16 @@ export let providerConfigVaultController = Controller.create(
   },
   {
     list: providerDeploymentGroup
-      .get(providerPath('provider-deployments/:providerDeploymentId/config-vaults', 'providerDeployments.configVaults.list'), {
-        name: 'List provider config vaults',
-        description: 'Returns a paginated list of provider config vaults.'
-      })
+      .get(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/config-vaults',
+          'providerDeployments.configVaults.list'
+        ),
+        {
+          name: 'List provider config vaults',
+          description: 'Returns a paginated list of provider config vaults.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .outputList(providerConfigVaultPresenter)
@@ -55,15 +61,23 @@ export let providerConfigVaultController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, configVault =>
-          providerConfigVaultPresenter.present({ configVault: configVault as SubspaceConfigVault })
+          providerConfigVaultPresenter.present({
+            configVault: configVault as SubspaceConfigVault
+          })
         );
       }),
 
     get: providerConfigVaultGroup
-      .get(providerPath('provider-deployments/:providerDeploymentId/config-vaults/:providerConfigVaultId', 'providerDeployments.configVaults.get'), {
-        name: 'Get provider config vault',
-        description: 'Retrieves a specific provider config vault by ID.'
-      })
+      .get(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/config-vaults/:providerConfigVaultId',
+          'providerDeployments.configVaults.get'
+        ),
+        {
+          name: 'Get provider config vault',
+          description: 'Retrieves a specific provider config vault by ID.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(providerConfigVaultPresenter)
@@ -72,19 +86,33 @@ export let providerConfigVaultController = Controller.create(
       }),
 
     create: providerDeploymentGroup
-      .post(providerPath('provider-deployments/:providerDeploymentId/config-vaults', 'providerDeployments.configVaults.create'), {
-        name: 'Create provider config vault',
-        description: 'Creates a new provider config vault.'
-      })
+      .post(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/config-vaults',
+          'providerDeployments.configVaults.create'
+        ),
+        {
+          name: 'Create provider config vault',
+          description: 'Creates a new provider config vault.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
           name: v.string({ examples: ['Production Secrets'] }),
-          description: v.optional(v.string({ examples: ['Secure storage for production credentials'] })),
-          metadata: v.optional(v.record(v.any(), { examples: [{ owner: 'platform-team', sensitivity: 'high' }] }), { description: 'Custom key-value pairs for storing additional information' }),
-          data: v.record(v.any(), { description: 'Secure configuration values to store in the vault', examples: [{ api_key: 'sk-xxx', base_url: 'https://api.example.com' }] })
+          description: v.optional(
+            v.string({ examples: ['Secure storage for production credentials'] })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), { examples: [{ owner: 'platform-team', sensitivity: 'high' }] }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          ),
+          data: v.record(v.any(), {
+            description: 'Secure configuration values to store in the vault',
+            examples: [{ api_key: 'sk-xxx', base_url: 'https://api.example.com' }]
+          })
         })
       )
       .output(providerConfigVaultPresenter)
@@ -116,14 +144,22 @@ export let providerConfigVaultController = Controller.create(
           })
           .catch(err => console.error('Failed to store subspace reference:', err));
 
-        return providerConfigVaultPresenter.present({ configVault: configVault as SubspaceConfigVault });
+        return providerConfigVaultPresenter.present({
+          configVault: configVault as SubspaceConfigVault
+        });
       }),
 
     update: providerConfigVaultGroup
-      .patch(providerPath('provider-deployments/:providerDeploymentId/config-vaults/:providerConfigVaultId', 'providerDeployments.configVaults.update'), {
-        name: 'Update provider config vault',
-        description: 'Updates a specific provider config vault.'
-      })
+      .patch(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/config-vaults/:providerConfigVaultId',
+          'providerDeployments.configVaults.update'
+        ),
+        {
+          name: 'Update provider config vault',
+          description: 'Updates a specific provider config vault.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .body(
@@ -131,7 +167,12 @@ export let providerConfigVaultController = Controller.create(
         v.object({
           name: v.optional(v.string({ examples: ['Updated Vault Name'] })),
           description: v.optional(v.string({ examples: ['Updated vault description'] })),
-          metadata: v.optional(v.record(v.any(), { examples: [{ owner: 'platform-team', sensitivity: 'critical' }] }), { description: 'Custom key-value pairs for storing additional information' })
+          metadata: v.optional(
+            v.record(v.any(), {
+              examples: [{ owner: 'platform-team', sensitivity: 'critical' }]
+            }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          )
         })
       )
       .output(providerConfigVaultPresenter)
@@ -144,14 +185,22 @@ export let providerConfigVaultController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerConfigVaultPresenter.present({ configVault: configVault as SubspaceConfigVault });
+        return providerConfigVaultPresenter.present({
+          configVault: configVault as SubspaceConfigVault
+        });
       }),
 
     delete: providerConfigVaultGroup
-      .delete(providerPath('provider-deployments/:providerDeploymentId/config-vaults/:providerConfigVaultId', 'providerDeployments.configVaults.delete'), {
-        name: 'Delete provider config vault',
-        description: 'Permanently deletes a provider config vault.'
-      })
+      .delete(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/config-vaults/:providerConfigVaultId',
+          'providerDeployments.configVaults.delete'
+        ),
+        {
+          name: 'Delete provider config vault',
+          description: 'Permanently deletes a provider config vault.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(providerConfigVaultPresenter)

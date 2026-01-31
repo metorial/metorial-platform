@@ -25,3 +25,6 @@ export * from './subspaceSessionParticipant';
 export * from './subspaceSessionError';
 export * from './subspaceSessionErrorGroup';
 export * from './subspaceProviderRun';
+export * from './subspaceSessionMessage';
+export * from './subspaceSessionConnection';
+export * from './subspaceSessionEvent';

@@ -49,7 +49,9 @@ export let v1ServerVariantPresenter = Presenter.create(serverVariantType)
   }))
   .schema(
     v.object({
-      object: v.literal('server.server_variant', { description: "String representing the object's type" }),
+      object: v.literal('server.server_variant', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',

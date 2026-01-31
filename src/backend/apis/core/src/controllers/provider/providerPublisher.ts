@@ -5,11 +5,11 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerInstanceGroup, providerPath } from '../../middleware/providerGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { publisherPresenter } from '../../presenters';
 import { SubspacePublisher } from '../../presenters/types';
 
-export let providerPublisherGroup = providerInstanceGroup.use(async ctx => {
+export let providerPublisherGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.publisherId) {
     throw new ServiceError(
       badRequestError({
@@ -34,8 +34,8 @@ export let providerPublisherController = Controller.create(
       'A publisher is the organization or individual who created and maintains a provider.'
   },
   {
-    list: providerInstanceGroup
-      .get(providerPath('publishers', 'publishers.list'), {
+    list: instanceGroup
+      .get(instancePath('publishers', 'publishers.list'), {
         name: 'List publishers',
         description: 'Returns a paginated list of publishers.'
       })
@@ -56,7 +56,7 @@ export let providerPublisherController = Controller.create(
       }),
 
     get: providerPublisherGroup
-      .get(providerPath('publishers/:publisherId', 'publishers.get'), {
+      .get(instancePath('publishers/:publisherId', 'publishers.get'), {
         name: 'Get publisher',
         description: 'Retrieves a specific publisher by ID.'
       })

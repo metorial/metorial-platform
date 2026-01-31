@@ -6,7 +6,7 @@ import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
+import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionErrorPresenter } from '../../presenters';
 import { SubspaceSessionError } from '../../presenters/types';
 import { subspaceSessionGroup } from './subspaceSession';
@@ -37,7 +37,7 @@ export let subspaceSessionErrorController = Controller.create(
   },
   {
     list: subspaceSessionGroup
-      .get(providerPath('sessions/:sessionId/errors', 'sessions.errors.list'), {
+      .get(instancePath('sessions/:sessionId/errors', 'sessions.errors.list'), {
         name: 'List session errors',
         description: 'Returns a paginated list of errors that occurred in a session.'
       })
@@ -49,14 +49,12 @@ export let subspaceSessionErrorController = Controller.create(
         Paginator.validate(
           v.object({
             type: v.optional(v.string(), { description: 'Filter by error type' }),
-            session_error_group_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by error group ID(s)' }
-            ),
-            provider_run_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by provider run ID(s)' }
-            )
+            session_error_group_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by error group ID(s)'
+            }),
+            provider_run_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider run ID(s)'
+            })
           })
         )
       )
@@ -71,12 +69,14 @@ export let subspaceSessionErrorController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, sessionError =>
-          subspaceSessionErrorPresenter.present({ sessionError: sessionError as SubspaceSessionError })
+          subspaceSessionErrorPresenter.present({
+            sessionError: sessionError as SubspaceSessionError
+          })
         );
       }),
 
     get: subspaceSessionErrorGroup
-      .get(providerPath('sessions/:sessionId/errors/:sessionErrorId', 'sessions.errors.get'), {
+      .get(instancePath('sessions/:sessionId/errors/:sessionErrorId', 'sessions.errors.get'), {
         name: 'Get session error',
         description: 'Retrieves a specific error that occurred in a session.'
       })

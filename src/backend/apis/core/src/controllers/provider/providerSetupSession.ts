@@ -7,7 +7,7 @@ import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
+import { instancePath } from '../../middleware/instanceGroup';
 import { providerSetupSessionPresenter } from '../../presenters';
 import { SubspaceSetupSession } from '../../presenters/types';
 import { providerDeploymentGroup } from './providerDeployment';
@@ -34,14 +34,20 @@ export let providerSetupSessionController = Controller.create(
   {
     name: 'Provider Setup Sessions',
     description:
-      'A setup session tracks an in-progress OAuth flow, storing state during the redirect. On success, it creates an auth config with the user\'s access token.'
+      "A setup session tracks an in-progress OAuth flow, storing state during the redirect. On success, it creates an auth config with the user's access token."
   },
   {
     list: providerDeploymentGroup
-      .get(providerPath('provider-deployments/:providerDeploymentId/setup-sessions', 'providerDeployments.setupSessions.list'), {
-        name: 'List provider setup sessions',
-        description: 'Returns a paginated list of provider setup sessions.'
-      })
+      .get(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/setup-sessions',
+          'providerDeployments.setupSessions.list'
+        ),
+        {
+          name: 'List provider setup sessions',
+          description: 'Returns a paginated list of provider setup sessions.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .outputList(providerSetupSessionPresenter)
@@ -49,10 +55,9 @@ export let providerSetupSessionController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            provider_auth_method_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by auth method ID(s)' }
-            ),
+            provider_auth_method_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by auth method ID(s)'
+            }),
             status: v.optional(v.string(), { description: 'Filter by session status' })
           })
         )
@@ -68,15 +73,23 @@ export let providerSetupSessionController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, setupSession =>
-          providerSetupSessionPresenter.present({ setupSession: setupSession as SubspaceSetupSession })
+          providerSetupSessionPresenter.present({
+            setupSession: setupSession as SubspaceSetupSession
+          })
         );
       }),
 
     get: providerSetupSessionGroup
-      .get(providerPath('provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId', 'providerDeployments.setupSessions.get'), {
-        name: 'Get provider setup session',
-        description: 'Retrieves a specific provider setup session by ID.'
-      })
+      .get(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
+          'providerDeployments.setupSessions.get'
+        ),
+        {
+          name: 'Get provider setup session',
+          description: 'Retrieves a specific provider setup session by ID.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(providerSetupSessionPresenter)
@@ -85,10 +98,16 @@ export let providerSetupSessionController = Controller.create(
       }),
 
     create: providerDeploymentGroup
-      .post(providerPath('provider-deployments/:providerDeploymentId/setup-sessions', 'providerDeployments.setupSessions.create'), {
-        name: 'Create provider setup session',
-        description: 'Creates a new provider setup session for OAuth authentication.'
-      })
+      .post(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/setup-sessions',
+          'providerDeployments.setupSessions.create'
+        ),
+        {
+          name: 'Create provider setup session',
+          description: 'Creates a new provider setup session for OAuth authentication.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .body(
@@ -96,9 +115,19 @@ export let providerSetupSessionController = Controller.create(
         v.object({
           name: v.optional(v.string({ examples: ['GitHub OAuth Setup'] })),
           description: v.optional(v.string({ examples: ['Connect your GitHub account'] })),
-          metadata: v.optional(v.record(v.any(), { examples: [{ redirect_uri: 'https://app.example.com/callback' }] }), { description: 'Custom key-value pairs for storing additional information' }),
-          providerAuthMethodId: v.string({ examples: ['pam_2mNpQrStUvWxYzAb'], description: 'The authentication method to use (e.g., OAuth flow)' }),
-          redirectUrl: v.optional(v.string({ examples: ['https://app.example.com/oauth/callback'] }))
+          metadata: v.optional(
+            v.record(v.any(), {
+              examples: [{ redirect_uri: 'https://app.example.com/callback' }]
+            }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          ),
+          providerAuthMethodId: v.string({
+            examples: ['pam_2mNpQrStUvWxYzAb'],
+            description: 'The authentication method to use (e.g., OAuth flow)'
+          }),
+          redirectUrl: v.optional(
+            v.string({ examples: ['https://app.example.com/oauth/callback'] })
+          )
         })
       )
       .output(providerSetupSessionPresenter)
@@ -132,22 +161,37 @@ export let providerSetupSessionController = Controller.create(
           })
           .catch(err => console.error('Failed to store subspace reference:', err));
 
-        return providerSetupSessionPresenter.present({ setupSession: setupSession as SubspaceSetupSession });
+        return providerSetupSessionPresenter.present({
+          setupSession: setupSession as SubspaceSetupSession
+        });
       }),
 
     update: providerSetupSessionGroup
-      .patch(providerPath('provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId', 'providerDeployments.setupSessions.update'), {
-        name: 'Update provider setup session',
-        description: 'Updates a specific provider setup session.'
-      })
+      .patch(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
+          'providerDeployments.setupSessions.update'
+        ),
+        {
+          name: 'Update provider setup session',
+          description: 'Updates a specific provider setup session.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
           name: v.optional(v.string({ examples: ['Updated Setup Session'] })),
-          description: v.optional(v.string({ examples: ['Updated setup session description'] })),
-          metadata: v.optional(v.record(v.any(), { examples: [{ redirect_uri: 'https://app.example.com/new-callback' }] }), { description: 'Custom key-value pairs for storing additional information' })
+          description: v.optional(
+            v.string({ examples: ['Updated setup session description'] })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              examples: [{ redirect_uri: 'https://app.example.com/new-callback' }]
+            }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          )
         })
       )
       .output(providerSetupSessionPresenter)
@@ -160,14 +204,22 @@ export let providerSetupSessionController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerSetupSessionPresenter.present({ setupSession: setupSession as SubspaceSetupSession });
+        return providerSetupSessionPresenter.present({
+          setupSession: setupSession as SubspaceSetupSession
+        });
       }),
 
     delete: providerSetupSessionGroup
-      .delete(providerPath('provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId', 'providerDeployments.setupSessions.delete'), {
-        name: 'Delete provider setup session',
-        description: 'Deletes a provider setup session.'
-      })
+      .delete(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
+          'providerDeployments.setupSessions.delete'
+        ),
+        {
+          name: 'Delete provider setup session',
+          description: 'Deletes a provider setup session.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(providerSetupSessionPresenter)

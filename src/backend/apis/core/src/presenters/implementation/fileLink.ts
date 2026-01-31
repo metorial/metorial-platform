@@ -17,9 +17,15 @@ export let v1FileLinkPresenter = Presenter.create(fileLinkType)
   }))
   .schema(
     v.object({
-      object: v.literal('file.file_link', { description: "String representing the object's type" }),
+      object: v.literal('file.file_link', {
+        description: "String representing the object's type"
+      }),
 
-      id: v.string({ name: 'id', description: `The links's unique identifier`, examples: ['flk_5mNpQrStUvWxYzAb'] }),
+      id: v.string({
+        name: 'id',
+        description: `The links's unique identifier`,
+        examples: ['flk_5mNpQrStUvWxYzAb']
+      }),
       file_id: v.string({
         name: 'file_id',
         description: `The file's unique identifier`,

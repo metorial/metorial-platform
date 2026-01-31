@@ -15,7 +15,9 @@ export let v1ScmAccountPreviewPresenter = Presenter.create(scmAccountPreviewType
   }))
   .schema(
     v.object({
-      object: v.literal('integrations.scm.account#preview', { description: "String representing the object's type" }),
+      object: v.literal('integrations.scm.account#preview', {
+        description: "String representing the object's type"
+      }),
 
       items: v.array(
         v.object({

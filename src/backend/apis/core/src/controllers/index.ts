@@ -39,7 +39,10 @@ import {
   subspaceSessionParticipantController,
   subspaceSessionErrorController,
   subspaceSessionErrorGroupController,
-  subspaceProviderRunController
+  subspaceProviderRunController,
+  subspaceSessionMessageController,
+  subspaceSessionConnectionController,
+  subspaceSessionEventController
 } from './provider';
 import { callbackController } from './instance/callback';
 import { callbackDestinationController } from './instance/callbackDestination';
@@ -331,11 +334,16 @@ export let magnetarController = Controller.create<any>(
     providerAuthExportController,
 
     providerSessionController,
+    sessionTemplateController,
+    sessionTemplateProviderController,
     subspaceSessionProviderController,
     subspaceSessionParticipantController,
     subspaceSessionErrorController,
     subspaceSessionErrorGroupController,
     subspaceProviderRunController,
+    subspaceSessionMessageController,
+    subspaceSessionConnectionController,
+    subspaceSessionEventController,
 
     portalController,
     portalConsumerGroupController,
@@ -460,6 +468,9 @@ export let magnetarDashboardController = Controller.create<any>(
     subspaceSessionErrorController,
     subspaceSessionErrorGroupController,
     subspaceProviderRunController,
+    subspaceSessionMessageController,
+    subspaceSessionConnectionController,
+    subspaceSessionEventController,
 
     // Deprecated controllers (shown in docs with deprecated badge)
     providerOauthConnectionController,

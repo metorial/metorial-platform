@@ -23,6 +23,7 @@ export * from './session';
 export * from './sessionConnection';
 export * from './sessionError';
 export * from './sessionErrorGroup';
+export * from './sessionEvent';
 export * from './sessionMessage';
 export * from './sessionParticipant';
 export * from './sessionProvider';

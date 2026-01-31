@@ -41,7 +41,9 @@ export let v1CustomServerPresenter = Presenter.create(customServerType)
   }))
   .schema(
     v.object({
-      object: v.literal('custom_server', { description: "String representing the object's type" }),
+      object: v.literal('custom_server', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({ name: 'id', description: 'The unique identifier for the custom server' }),
 
@@ -166,7 +168,9 @@ export let dashboardCustomServerPresenter = Presenter.create(customServerType)
 
         repository: v.nullable(
           v.object({
-            object: v.literal('scm.repo', { description: "String representing the object's type" }),
+            object: v.literal('scm.repo', {
+              description: "String representing the object's type"
+            }),
 
             id: v.string({
               name: 'id',

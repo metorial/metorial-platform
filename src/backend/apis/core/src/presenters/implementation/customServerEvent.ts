@@ -22,7 +22,9 @@ export let v1CustomServerEventPresenter = Presenter.create(customServerEventType
   }))
   .schema(
     v.object({
-      object: v.literal('custom_server.event', { description: "String representing the object's type" }),
+      object: v.literal('custom_server.event', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',

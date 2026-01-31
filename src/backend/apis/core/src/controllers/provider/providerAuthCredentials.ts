@@ -7,7 +7,7 @@ import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
+import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthCredentialsPresenter } from '../../presenters';
 import { SubspaceAuthCredentials } from '../../presenters/types';
 import { providerDeploymentGroup } from './providerDeployment';
@@ -38,10 +38,16 @@ export let providerAuthCredentialsController = Controller.create(
   },
   {
     list: providerDeploymentGroup
-      .get(providerPath('provider-deployments/:providerDeploymentId/auth-credentials', 'providerDeployments.authCredentials.list'), {
-        name: 'List provider auth credentials',
-        description: 'Returns a paginated list of provider auth credentials.'
-      })
+      .get(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/auth-credentials',
+          'providerDeployments.authCredentials.list'
+        ),
+        {
+          name: 'List provider auth credentials',
+          description: 'Returns a paginated list of provider auth credentials.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .outputList(providerAuthCredentialsPresenter)
@@ -73,7 +79,7 @@ export let providerAuthCredentialsController = Controller.create(
 
     get: providerAuthCredentialsGroup
       .get(
-        providerPath(
+        instancePath(
           'provider-deployments/:providerDeploymentId/auth-credentials/:providerAuthCredentialsId',
           'providerDeployments.authCredentials.get'
         ),
@@ -92,10 +98,16 @@ export let providerAuthCredentialsController = Controller.create(
       }),
 
     create: providerDeploymentGroup
-      .post(providerPath('provider-deployments/:providerDeploymentId/auth-credentials', 'providerDeployments.authCredentials.create'), {
-        name: 'Create provider auth credentials',
-        description: 'Creates new provider auth credentials.'
-      })
+      .post(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/auth-credentials',
+          'providerDeployments.authCredentials.create'
+        ),
+        {
+          name: 'Create provider auth credentials',
+          description: 'Creates new provider auth credentials.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .body(
@@ -159,7 +171,7 @@ export let providerAuthCredentialsController = Controller.create(
 
     update: providerAuthCredentialsGroup
       .patch(
-        providerPath(
+        instancePath(
           'provider-deployments/:providerDeploymentId/auth-credentials/:providerAuthCredentialsId',
           'providerDeployments.authCredentials.update'
         ),
@@ -197,7 +209,7 @@ export let providerAuthCredentialsController = Controller.create(
 
     delete: providerAuthCredentialsGroup
       .delete(
-        providerPath(
+        instancePath(
           'provider-deployments/:providerDeploymentId/auth-credentials/:providerAuthCredentialsId',
           'providerDeployments.authCredentials.delete'
         ),

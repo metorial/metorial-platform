@@ -5,7 +5,7 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
+import { instancePath } from '../../middleware/instanceGroup';
 import { sessionParticipantPresenter } from '../../presenters';
 import { SubspaceSessionParticipant } from '../../presenters/types';
 import { subspaceSessionGroup } from './subspaceSession';
@@ -36,7 +36,7 @@ export let subspaceSessionParticipantController = Controller.create(
   },
   {
     list: subspaceSessionGroup
-      .get(providerPath('sessions/:sessionId/participants', 'sessions.participants.list'), {
+      .get(instancePath('sessions/:sessionId/participants', 'sessions.participants.list'), {
         name: 'List session participants',
         description: 'Returns a paginated list of participants in a session.'
       })
@@ -60,20 +60,30 @@ export let subspaceSessionParticipantController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, sessionParticipant =>
-          sessionParticipantPresenter.present({ sessionParticipant: sessionParticipant as SubspaceSessionParticipant })
+          sessionParticipantPresenter.present({
+            sessionParticipant: sessionParticipant as SubspaceSessionParticipant
+          })
         );
       }),
 
     get: subspaceSessionParticipantGroup
-      .get(providerPath('sessions/:sessionId/participants/:sessionParticipantId', 'sessions.participants.get'), {
-        name: 'Get session participant',
-        description: 'Retrieves a specific participant in a session.'
-      })
+      .get(
+        instancePath(
+          'sessions/:sessionId/participants/:sessionParticipantId',
+          'sessions.participants.get'
+        ),
+        {
+          name: 'Get session participant',
+          description: 'Retrieves a specific participant in a session.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(sessionParticipantPresenter)
       .do(async ctx => {
-        return sessionParticipantPresenter.present({ sessionParticipant: ctx.sessionParticipant });
+        return sessionParticipantPresenter.present({
+          sessionParticipant: ctx.sessionParticipant
+        });
       })
   }
 );

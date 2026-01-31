@@ -14,7 +14,9 @@ export let v1CustomServerCodeEditorTokenPresenter = Presenter.create(
   }))
   .schema(
     v.object({
-      object: v.literal('custom_server.code_editor_token', { description: "String representing the object's type" }),
+      object: v.literal('custom_server.code_editor_token', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         description: 'ID of the code bucket',

@@ -1,3 +1,4 @@
+import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceReferenceConfigService } from '@metorial/module-subspace-reference';
 import { subspaceProviderConfigService } from '@metorial/module-subspace';
@@ -6,9 +7,9 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
-import { providerConfigPresenter } from '../../presenters';
-import { SubspaceConfig } from '../../presenters/types';
+import { instancePath } from '../../middleware/instanceGroup';
+import { providerConfigPresenter, configSchemaPresenter } from '../../presenters';
+import { SubspaceConfig, SubspaceConfigSchema } from '../../presenters/types';
 import { providerDeploymentGroup } from './providerDeployment';
 
 export let providerConfigGroup = providerDeploymentGroup.use(async ctx => {
@@ -37,10 +38,16 @@ export let providerConfigController = Controller.create(
   },
   {
     list: providerDeploymentGroup
-      .get(providerPath('provider-deployments/:providerDeploymentId/configs', 'providerDeployments.configs.list'), {
-        name: 'List provider configs',
-        description: 'Returns a paginated list of provider configs.'
-      })
+      .get(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/configs',
+          'providerDeployments.configs.list'
+        ),
+        {
+          name: 'List provider configs',
+          description: 'Returns a paginated list of provider configs.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .outputList(providerConfigPresenter)
@@ -60,10 +67,16 @@ export let providerConfigController = Controller.create(
       }),
 
     get: providerConfigGroup
-      .get(providerPath('provider-deployments/:providerDeploymentId/configs/:providerConfigId', 'providerDeployments.configs.get'), {
-        name: 'Get provider config',
-        description: 'Retrieves a specific provider config by ID.'
-      })
+      .get(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/configs/:providerConfigId',
+          'providerDeployments.configs.get'
+        ),
+        {
+          name: 'Get provider config',
+          description: 'Retrieves a specific provider config by ID.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(providerConfigPresenter)
@@ -72,10 +85,16 @@ export let providerConfigController = Controller.create(
       }),
 
     create: providerDeploymentGroup
-      .post(providerPath('provider-deployments/:providerDeploymentId/configs', 'providerDeployments.configs.create'), {
-        name: 'Create provider config',
-        description: 'Creates a new provider config.'
-      })
+      .post(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/configs',
+          'providerDeployments.configs.create'
+        ),
+        {
+          name: 'Create provider config',
+          description: 'Creates a new provider config.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .body(
@@ -95,13 +114,13 @@ export let providerConfigController = Controller.create(
             [
               v.object(
                 {
-                  type: v.literal('inline'),
+                  type: v.literal('new'),
                   data: v.record(v.any(), {
                     description: 'Provider-specific configuration values',
                     examples: [{ api_key: 'sk-xxx', base_url: 'https://api.example.com' }]
                   })
                 },
-                { name: 'Inline config', description: 'Provide configuration values directly' }
+                { name: 'new', description: 'Provide configuration values directly' }
               ),
               v.object(
                 {
@@ -111,7 +130,7 @@ export let providerConfigController = Controller.create(
                     examples: ['pcvt_3bCdEfGhJkLmNpQr']
                   })
                 },
-                { name: 'From vault', description: 'Create config from a vault template' }
+                { name: 'vault', description: 'Create config from a vault template' }
               )
             ],
             { description: 'Configuration data source' }
@@ -120,11 +139,11 @@ export let providerConfigController = Controller.create(
       )
       .output(providerConfigPresenter)
       .do(async ctx => {
-        let bodyConfig = ctx.body.config;
+        let converted = convertKeysToCamelCase(ctx.body.config);
         let transformedConfig =
-          bodyConfig.type === 'vault'
-            ? { type: 'vault' as const, providerConfigVaultId: bodyConfig.provider_config_vault_id }
-            : bodyConfig;
+          converted.type === 'new'
+            ? { type: 'inline' as const, data: converted.data }
+            : converted;
 
         let config = await subspaceProviderConfigService.create({
           instance: ctx.instance,
@@ -154,10 +173,16 @@ export let providerConfigController = Controller.create(
       }),
 
     update: providerConfigGroup
-      .patch(providerPath('provider-deployments/:providerDeploymentId/configs/:providerConfigId', 'providerDeployments.configs.update'), {
-        name: 'Update provider config',
-        description: 'Updates a specific provider config.'
-      })
+      .patch(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/configs/:providerConfigId',
+          'providerDeployments.configs.update'
+        ),
+        {
+          name: 'Update provider config',
+          description: 'Updates a specific provider config.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .body(
@@ -184,10 +209,16 @@ export let providerConfigController = Controller.create(
       }),
 
     delete: providerConfigGroup
-      .delete(providerPath('provider-deployments/:providerDeploymentId/configs/:providerConfigId', 'providerDeployments.configs.delete'), {
-        name: 'Delete provider config',
-        description: 'Permanently deletes a provider config.'
-      })
+      .delete(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/configs/:providerConfigId',
+          'providerDeployments.configs.delete'
+        ),
+        {
+          name: 'Delete provider config',
+          description: 'Permanently deletes a provider config.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(providerConfigPresenter)
@@ -205,6 +236,30 @@ export let providerConfigController = Controller.create(
           .catch(err => console.error('Failed to remove subspace reference:', err));
 
         return providerConfigPresenter.present({ config: ctx.config });
+      }),
+
+    getConfigSchema: providerDeploymentGroup
+      .get(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/config-schema',
+          'providerDeployments.configs.getConfigSchema'
+        ),
+        {
+          name: 'Get config schema',
+          description:
+            'Retrieves the JSON Schema for configuration of this provider deployment.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
+      .use(hasFlags(['paid-provider-api']))
+      .output(configSchemaPresenter)
+      .do(async ctx => {
+        let schema = await subspaceProviderConfigService.getConfigSchema({
+          instance: ctx.instance,
+          providerDeploymentId: ctx.deployment.id
+        });
+
+        return configSchemaPresenter.present({ schema: schema as SubspaceConfigSchema });
       })
   }
 );

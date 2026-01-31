@@ -36,7 +36,9 @@ export let v1SessionMessagePresenter = Presenter.create(sessionMessageType)
   }))
   .schema(
     v.object({
-      object: v.literal('session.message', { description: "String representing the object's type" }),
+      object: v.literal('session.message', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',
@@ -53,7 +55,9 @@ export let v1SessionMessagePresenter = Presenter.create(sessionMessageType)
 
       sender: v.object(
         {
-          object: v.literal('session.message.sender', { description: "String representing the object's type" }),
+          object: v.literal('session.message.sender', {
+            description: "String representing the object's type"
+          }),
 
           type: v.enumOf(['client', 'server'], {
             name: 'type',
@@ -73,7 +77,9 @@ export let v1SessionMessagePresenter = Presenter.create(sessionMessageType)
 
       mcp_message: v.object(
         {
-          object: v.literal('session.message.mcp_message', { description: "String representing the object's type" }),
+          object: v.literal('session.message.mcp_message', {
+            description: "String representing the object's type"
+          }),
 
           id: v.string({
             name: 'id',
@@ -150,7 +156,9 @@ export let dashboardSessionMessagePresenter = Presenter.create(sessionMessageTyp
   }))
   .schema(
     v.object({
-      object: v.literal('session.message', { description: "String representing the object's type" }),
+      object: v.literal('session.message', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string(),
       type: v.enumOf([
@@ -164,14 +172,18 @@ export let dashboardSessionMessagePresenter = Presenter.create(sessionMessageTyp
       ]),
 
       sender: v.object({
-        object: v.literal('session.message.sender', { description: "String representing the object's type" }),
+        object: v.literal('session.message.sender', {
+          description: "String representing the object's type"
+        }),
 
         type: v.enumOf(['client', 'server']),
         id: v.string()
       }),
 
       mcp_message: v.object({
-        object: v.literal('session.message.mcp_message', { description: "String representing the object's type" }),
+        object: v.literal('session.message.mcp_message', {
+          description: "String representing the object's type"
+        }),
 
         id: v.string(),
         original_id: v.nullable(v.string()),

@@ -57,7 +57,9 @@ export let v1ProviderOauthConnectionPresenter = Presenter.create(providerOauthCo
   }))
   .schema(
     v.object({
-      object: v.literal('provider_oauth.connection', { description: "String representing the object's type" }),
+      object: v.literal('provider_oauth.connection', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',

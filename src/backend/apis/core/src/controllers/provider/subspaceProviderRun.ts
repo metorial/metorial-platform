@@ -6,9 +6,9 @@ import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { hasFlags } from '../../middleware/hasFlags';
-import { providerPath } from '../../middleware/providerGroup';
-import { subspaceProviderRunPresenter } from '../../presenters';
-import { SubspaceProviderRun } from '../../presenters/types';
+import { instancePath } from '../../middleware/instanceGroup';
+import { subspaceProviderRunPresenter, providerRunLogsPresenter } from '../../presenters';
+import { SubspaceProviderRun, SubspaceProviderRunLogs } from '../../presenters/types';
 import { subspaceSessionGroup } from './subspaceSession';
 
 export let subspaceProviderRunGroup = subspaceSessionGroup.use(async ctx => {
@@ -37,7 +37,7 @@ export let subspaceProviderRunController = Controller.create(
   },
   {
     list: subspaceSessionGroup
-      .get(providerPath('sessions/:sessionId/provider-runs', 'sessions.providerRuns.list'), {
+      .get(instancePath('sessions/:sessionId/provider-runs', 'sessions.providerRuns.list'), {
         name: 'List provider runs',
         description: 'Returns a paginated list of provider runs for a session.'
       })
@@ -49,14 +49,12 @@ export let subspaceProviderRunController = Controller.create(
         Paginator.validate(
           v.object({
             status: v.optional(v.string(), { description: 'Filter by run status' }),
-            provider_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by provider ID(s)' }
-            ),
-            session_provider_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by session provider ID(s)' }
-            )
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            }),
+            session_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session provider ID(s)'
+            })
           })
         )
       )
@@ -72,20 +70,51 @@ export let subspaceProviderRunController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, providerRun =>
-          subspaceProviderRunPresenter.present({ providerRun: providerRun as SubspaceProviderRun })
+          subspaceProviderRunPresenter.present({
+            providerRun: providerRun as SubspaceProviderRun
+          })
         );
       }),
 
     get: subspaceProviderRunGroup
-      .get(providerPath('sessions/:sessionId/provider-runs/:providerRunId', 'sessions.providerRuns.get'), {
-        name: 'Get provider run',
-        description: 'Retrieves a specific provider run for a session.'
-      })
+      .get(
+        instancePath(
+          'sessions/:sessionId/provider-runs/:providerRunId',
+          'sessions.providerRuns.get'
+        ),
+        {
+          name: 'Get provider run',
+          description: 'Retrieves a specific provider run for a session.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .use(hasFlags(['paid-provider-api']))
       .output(subspaceProviderRunPresenter)
       .do(async ctx => {
         return subspaceProviderRunPresenter.present({ providerRun: ctx.providerRun });
+      }),
+
+    getLogs: subspaceProviderRunGroup
+      .get(
+        instancePath(
+          'sessions/:sessionId/provider-runs/:providerRunId/logs',
+          'sessions.providerRuns.getLogs'
+        ),
+        {
+          name: 'Get provider run logs',
+          description: 'Retrieves the logs for a specific provider run.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(hasFlags(['paid-provider-api']))
+      .output(providerRunLogsPresenter)
+      .do(async ctx => {
+        let logs = await subspaceProviderRunService.getLogs({
+          instance: ctx.instance,
+          providerRunId: ctx.providerRun.id
+        });
+
+        return providerRunLogsPresenter.present({ logs: logs as SubspaceProviderRunLogs });
       })
   }
 );

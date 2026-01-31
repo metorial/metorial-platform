@@ -27,7 +27,11 @@ export let v1FilePresenter = Presenter.create(fileType)
     v.object({
       object: v.literal('file', { description: "String representing the object's type" }),
 
-      id: v.string({ name: 'id', description: `The files's unique identifier`, examples: ['fil_9jKlMnPqRsTuVwXy'] }),
+      id: v.string({
+        name: 'id',
+        description: `The files's unique identifier`,
+        examples: ['fil_9jKlMnPqRsTuVwXy']
+      }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
         description: `The files's status`
