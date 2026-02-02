@@ -27,6 +27,9 @@ model Organization {
   /// [EntityImage]
   image Json
 
+  subspaceTenantId         String?
+  subspaceTenantIdentifier String?
+
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
