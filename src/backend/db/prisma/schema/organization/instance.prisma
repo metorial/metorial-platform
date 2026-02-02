@@ -29,6 +29,9 @@ model Instance {
   subspaceTenantId         String?
   subspaceTenantIdentifier String?
 
+  subspaceEnvironmentId         String?
+  subspaceEnvironmentIdentifier String?
+
   createdAt DateTime  @default(now())
   deletedAt DateTime?
   updatedAt DateTime  @default(now()) @updatedAt

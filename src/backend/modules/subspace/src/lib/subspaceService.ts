@@ -1,6 +1,6 @@
-import { Instance } from '@metorial/db';
+import type { Instance, Organization, OrganizationActor } from '@metorial/db';
 import { Service } from '@metorial/service';
-import { getTenantForSubspace } from '../subspace';
+import { getActorForSubspace, getTenantForSubspace } from '../subspace';
 
 export type Tail<T extends any[]> = T extends [any, ...infer U] ? U : [];
 
@@ -17,12 +17,28 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
     if (methodsObj[methodName]) continue;
 
     methodsObj[methodName] = async (...args: any[]) => {
-      let tenant = await getTenantForSubspace(args[0].instance);
+      let firstArg = args[0] as {
+        instance: Instance;
+        organization: Organization;
+        organizationActor?: OrganizationActor;
+      };
+
+      let { tenant, environment } = await getTenantForSubspace(
+        firstArg.organization,
+        firstArg.instance
+      );
+
+      let actor = await (firstArg.organizationActor
+        ? getActorForSubspace(tenant, firstArg.organizationActor)
+        : undefined);
 
       return (controller as any)[methodName](
         {
           ...args[0],
-          tenantId: tenant.id
+
+          actorId: actor?.id,
+          tenantId: tenant.id,
+          environmentId: environment.id
         },
         ...args.slice(1)
       );
@@ -34,10 +50,13 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
       ...args: any[]
     ) => any
       ? (
-          arg0: { instance: Instance } & Omit<
+          arg0: { instance: Instance; organization: Organization } & Omit<
             Parameters<SubspaceController[K]>[0],
-            'tenantId'
-          >,
+            'tenantId' | 'environmentId'
+          > &
+            (Parameters<SubspaceController[K]>[0] extends { actorId: any }
+              ? { organizationActor: OrganizationActor }
+              : {}),
           ...args: Tail<Parameters<SubspaceController[K]>>
         ) => ReturnType<SubspaceController[K]>
       : never;
