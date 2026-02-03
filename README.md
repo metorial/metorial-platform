@@ -15,6 +15,8 @@ Connect any AI model to thousands of APIs, data sources, and tools with a single
 > ➡️ **[Get Started (for free)](https://metorial.com)**
 
 ## Introduction
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fmetorial%2Fmetorial-platform.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fmetorial%2Fmetorial-platform?ref=badge_shield)
+
 
 The Metorial Platform is an open source integration platform that makes it easy for developers to connect their AI applications to external data sources, APIs, and tools.
 It's built to scale to tens or hundreds of thousands of concurrent MCP connections, making it ready for enterprise-grade applications.
@@ -98,3 +100,6 @@ Metorial is licensed under the [FSL-1.1](LICENSE) license.
 <div align="center">
   <sub>Built with ❤️ by <a href="https://metorial.com">Metorial</a></sub>
 </div>
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fmetorial%2Fmetorial-platform.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fmetorial%2Fmetorial-platform?ref=badge_large)
