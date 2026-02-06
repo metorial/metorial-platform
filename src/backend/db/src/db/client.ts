@@ -1,3 +1,4 @@
+import { Snowflake } from '@lowerdeck/snowflake';
 import type {
   ClientCapabilities,
   JSONRPCMessage,
@@ -8,7 +9,6 @@ import type {
 } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import type { JSONSchema4, JSONSchema6, JSONSchema7 } from 'json-schema';
-import { Worker as SnowflakeId } from 'snowflake-uuid';
 import { PrismaClient } from '../../prisma/generated';
 import { EntityImage as ImportedEntityImage } from '../lib';
 export * from '../../prisma/generated';
@@ -22,11 +22,13 @@ let workerId = (() => {
   return array[0] & workerIdMask;
 })();
 
-let generator = new SnowflakeId(workerId, 0, {
+let generator = new Snowflake({
+  workerId,
+  datacenterId: 0,
   workerIdBits: workerIdBits,
   datacenterIdBits: 0,
   sequenceBits: 9,
-  epoch: new Date('2025-06-01T00:00:00Z').getTime()
+  epoch: new Date('2025-06-01T00:00:00Z')
 });
 
 let getSecureRandomInt = (max: number) => {
