@@ -1413,8 +1413,128 @@
         "vitest": "^3.1.2",
       },
     },
-    "src/mcp-engine": {
+    "src/legacy/code-bucket": {
+      "name": "@metorial/code-bucket-service-generated",
+      "version": "1.0.0",
+      "dependencies": {
+        "@grpc/grpc-js": "^1.13.4",
+        "long": "^5.3.2",
+        "nice-grpc": "^2.1.12",
+        "protobufjs": "^7.5.3",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "grpc-tools": "^1.13.0",
+        "grpc_tools_node_protoc_ts": "^5.3.3",
+        "ts-proto": "^2.7.5",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/legacy/deno-runner": {
+      "name": "@metorial/deno-runner-service-generated",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/legacy/listener": {
+      "name": "@metorial/listener-service-generated",
+      "version": "1.0.0",
+      "dependencies": {
+        "@grpc/grpc-js": "^1.13.4",
+        "long": "^5.3.2",
+        "nice-grpc": "^2.1.12",
+        "protobufjs": "^7.5.3",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "grpc-tools": "^1.13.0",
+        "grpc_tools_node_protoc_ts": "^5.3.3",
+        "ts-proto": "^2.7.5",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/legacy/log": {
+      "name": "@metorial/logs-service-generated",
+      "version": "1.0.0",
+      "dependencies": {
+        "@grpc/grpc-js": "^1.13.4",
+        "long": "^5.3.2",
+        "nice-grpc": "^2.1.12",
+        "protobufjs": "^7.5.3",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "grpc-tools": "^1.13.0",
+        "grpc_tools_node_protoc_ts": "^5.3.3",
+        "ts-proto": "^2.7.5",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/legacy/mcp-engine": {
       "name": "@metorial/mcp-engine-generated",
+      "version": "1.0.0",
+      "dependencies": {
+        "@grpc/grpc-js": "^1.13.4",
+        "long": "^5.3.2",
+        "nice-grpc": "^2.1.12",
+        "protobufjs": "^7.5.3",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "grpc-tools": "^1.13.0",
+        "grpc_tools_node_protoc_ts": "^5.3.3",
+        "ts-proto": "^2.7.5",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/legacy/python-runner": {
+      "name": "@metorial/python-runner-service-generated",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/legacy/runner": {
+      "name": "@metorial/runner",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/debug": "^1.0.0",
+        "@metorial/delay": "1.0.0",
+        "@metorial/id": "1.0.0",
+        "@metorial/interconnect": "1.0.0",
+        "@metorial/interconnect-websocket-client": "1.0.0",
+        "@metorial/mcp-utils": "1.0.0",
+        "@metorial/programmable-promise": "1.0.0",
+        "@metorial/validation": "1.0.0",
+        "@metorial/websocket": "1.0.0",
+        "dockerode": "^4.0.6",
+        "mitt": "^3.0.1",
+        "sade": "^1.8.1",
+        "zod": "^3.24.4",
+      },
+      "devDependencies": {
+        "@types/dockerode": "^3.3.38",
+        "tsup": "^7.1.0",
+        "typescript": "^5.1.6",
+      },
+    },
+    "src/legacy/usage": {
+      "name": "@metorial/usage-service-generated",
       "version": "1.0.0",
       "dependencies": {
         "@grpc/grpc-js": "^1.13.4",
@@ -2443,107 +2563,6 @@
         "vitest": "^3.1.2",
       },
     },
-    "src/runner": {
-      "name": "@metorial/runner",
-      "version": "1.0.0",
-      "dependencies": {
-        "@metorial/debug": "^1.0.0",
-        "@metorial/delay": "1.0.0",
-        "@metorial/id": "1.0.0",
-        "@metorial/interconnect": "1.0.0",
-        "@metorial/interconnect-websocket-client": "1.0.0",
-        "@metorial/mcp-utils": "1.0.0",
-        "@metorial/programmable-promise": "1.0.0",
-        "@metorial/validation": "1.0.0",
-        "@metorial/websocket": "1.0.0",
-        "dockerode": "^4.0.6",
-        "mitt": "^3.0.1",
-        "sade": "^1.8.1",
-        "zod": "^3.24.4",
-      },
-      "devDependencies": {
-        "@types/dockerode": "^3.3.38",
-        "tsup": "^7.1.0",
-        "typescript": "^5.1.6",
-      },
-    },
-    "src/services/code-bucket": {
-      "name": "@metorial/code-bucket-service-generated",
-      "version": "1.0.0",
-      "dependencies": {
-        "@grpc/grpc-js": "^1.13.4",
-        "long": "^5.3.2",
-        "nice-grpc": "^2.1.12",
-        "protobufjs": "^7.5.3",
-      },
-      "devDependencies": {
-        "@types/bun": "latest",
-        "grpc-tools": "^1.13.0",
-        "grpc_tools_node_protoc_ts": "^5.3.3",
-        "ts-proto": "^2.7.5",
-      },
-      "peerDependencies": {
-        "typescript": "^5",
-      },
-    },
-    "src/services/deno-runner": {
-      "name": "@metorial/deno-runner-service-generated",
-      "version": "1.0.0",
-      "devDependencies": {
-        "@types/bun": "latest",
-      },
-      "peerDependencies": {
-        "typescript": "^5",
-      },
-    },
-    "src/services/listener": {
-      "name": "@metorial/listener-service-generated",
-      "version": "1.0.0",
-      "dependencies": {
-        "@grpc/grpc-js": "^1.13.4",
-        "long": "^5.3.2",
-        "nice-grpc": "^2.1.12",
-        "protobufjs": "^7.5.3",
-      },
-      "devDependencies": {
-        "@types/bun": "latest",
-        "grpc-tools": "^1.13.0",
-        "grpc_tools_node_protoc_ts": "^5.3.3",
-        "ts-proto": "^2.7.5",
-      },
-      "peerDependencies": {
-        "typescript": "^5",
-      },
-    },
-    "src/services/log": {
-      "name": "@metorial/logs-service-generated",
-      "version": "1.0.0",
-      "dependencies": {
-        "@grpc/grpc-js": "^1.13.4",
-        "long": "^5.3.2",
-        "nice-grpc": "^2.1.12",
-        "protobufjs": "^7.5.3",
-      },
-      "devDependencies": {
-        "@types/bun": "latest",
-        "grpc-tools": "^1.13.0",
-        "grpc_tools_node_protoc_ts": "^5.3.3",
-        "ts-proto": "^2.7.5",
-      },
-      "peerDependencies": {
-        "typescript": "^5",
-      },
-    },
-    "src/services/python-runner": {
-      "name": "@metorial/python-runner-service-generated",
-      "version": "1.0.0",
-      "devDependencies": {
-        "@types/bun": "latest",
-      },
-      "peerDependencies": {
-        "typescript": "^5",
-      },
-    },
     "src/services/sso": {
       "name": "@metorial/services-sso",
       "version": "1.0.0",
@@ -2567,25 +2586,6 @@
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
-      },
-    },
-    "src/services/usage": {
-      "name": "@metorial/usage-service-generated",
-      "version": "1.0.0",
-      "dependencies": {
-        "@grpc/grpc-js": "^1.13.4",
-        "long": "^5.3.2",
-        "nice-grpc": "^2.1.12",
-        "protobufjs": "^7.5.3",
-      },
-      "devDependencies": {
-        "@types/bun": "latest",
-        "grpc-tools": "^1.13.0",
-        "grpc_tools_node_protoc_ts": "^5.3.3",
-        "ts-proto": "^2.7.5",
-      },
-      "peerDependencies": {
-        "typescript": "^5",
       },
     },
     "vendor-placeholder/mcp-inspector": {
@@ -3250,7 +3250,7 @@
 
     "@metorial/code": ["@metorial/code@workspace:src/packages/frontend/code"],
 
-    "@metorial/code-bucket-service-generated": ["@metorial/code-bucket-service-generated@workspace:src/services/code-bucket"],
+    "@metorial/code-bucket-service-generated": ["@metorial/code-bucket-service-generated@workspace:src/legacy/code-bucket"],
 
     "@metorial/code-editor": ["@metorial/code-editor@workspace:src/packages/frontend/code-editor"],
 
@@ -3274,7 +3274,7 @@
 
     "@metorial/delay": ["@metorial/delay@workspace:src/packages/shared/delay"],
 
-    "@metorial/deno-runner-service-generated": ["@metorial/deno-runner-service-generated@workspace:src/services/deno-runner"],
+    "@metorial/deno-runner-service-generated": ["@metorial/deno-runner-service-generated@workspace:src/legacy/deno-runner"],
 
     "@metorial/dynamic-component": ["@metorial/dynamic-component@workspace:src/packages/frontend/dynamic-component"],
 
@@ -3324,19 +3324,19 @@
 
     "@metorial/layout": ["@metorial/layout@workspace:src/frontend/layout"],
 
-    "@metorial/listener-service-generated": ["@metorial/listener-service-generated@workspace:src/services/listener"],
+    "@metorial/listener-service-generated": ["@metorial/listener-service-generated@workspace:src/legacy/listener"],
 
     "@metorial/lock": ["@metorial/lock@workspace:src/packages/backend/lock"],
 
     "@metorial/logging": ["@metorial/logging@workspace:src/packages/backend/logging"],
 
-    "@metorial/logs-service-generated": ["@metorial/logs-service-generated@workspace:src/services/log"],
+    "@metorial/logs-service-generated": ["@metorial/logs-service-generated@workspace:src/legacy/log"],
 
     "@metorial/markdown": ["@metorial/markdown@workspace:src/packages/frontend/markdown"],
 
     "@metorial/marketplace": ["@metorial/marketplace@workspace:src/frontend/apps/marketplace"],
 
-    "@metorial/mcp-engine-generated": ["@metorial/mcp-engine-generated@workspace:src/mcp-engine"],
+    "@metorial/mcp-engine-generated": ["@metorial/mcp-engine-generated@workspace:src/legacy/mcp-engine"],
 
     "@metorial/mcp-utils": ["@metorial/mcp-utils@workspace:src/packages/mcp/mcp-utils"],
 
@@ -3422,7 +3422,7 @@
 
     "@metorial/proxy": ["@metorial/proxy@workspace:src/packages/shared/proxy"],
 
-    "@metorial/python-runner-service-generated": ["@metorial/python-runner-service-generated@workspace:src/services/python-runner"],
+    "@metorial/python-runner-service-generated": ["@metorial/python-runner-service-generated@workspace:src/legacy/python-runner"],
 
     "@metorial/queue": ["@metorial/queue@workspace:src/packages/backend/queue"],
 
@@ -3438,7 +3438,7 @@
 
     "@metorial/rpc": ["@metorial/rpc@workspace:src/packages/backend/rpc"],
 
-    "@metorial/runner": ["@metorial/runner@workspace:src/runner"],
+    "@metorial/runner": ["@metorial/runner@workspace:src/legacy/runner"],
 
     "@metorial/sentry": ["@metorial/sentry@workspace:src/packages/shared/sentry"],
 
@@ -3474,7 +3474,7 @@
 
     "@metorial/unique": ["@metorial/unique@workspace:src/packages/shared/unique"],
 
-    "@metorial/usage-service-generated": ["@metorial/usage-service-generated@workspace:src/services/usage"],
+    "@metorial/usage-service-generated": ["@metorial/usage-service-generated@workspace:src/legacy/usage"],
 
     "@metorial/util-async-iterator": ["@metorial/util-async-iterator@1.0.0", "", {}, "sha512-Q7R+eB6E/eMirxowFvFi+EXnkFOn6EWr1SBwsMLCknu5qIZ/Kgm3yiqyaaisHm1vl7zki5+gIxYST9LxPjdrTA=="],
 
