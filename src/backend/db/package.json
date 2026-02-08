@@ -11,6 +11,7 @@
     "prisma:generate": "./prisma-generate.sh"
   },
   "dependencies": {
+    "@lowerdeck/snowflake": "^1.0.2",
     "@metorial/execution-context": "^1.0.0",
     "@metorial/id": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.11.4",
@@ -21,8 +22,7 @@
     "lru-cache": "^11.1.0",
     "p-queue": "^8.1.0",
     "prisma": "6.19.0",
-    "prisma-json-types-generator": "^3.2.2",
-    "snowflake-uuid": "^1.0.0"
+    "prisma-json-types-generator": "^3.2.2"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
