@@ -72,6 +72,15 @@ export let backendEnv: Env = [
     defaultValue: `http://localhost:4041`
   },
 
+  {
+    key: 'SUBSPACE_SOLUTION',
+    defaultValue: 'metorial-enterprise'
+  },
+  {
+    key: 'SUBSPACE_URL',
+    defaultValue: 'http://localhost:52070/subspace-controller'
+  },
+
   // {
   //   key: 'OPENSEARCH_HOST',
   //   defaultValue: `http://localhost:9200`
