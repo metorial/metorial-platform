@@ -1,7 +1,6 @@
-import {
-  DashboardInstanceProviderOauthConnectionsGetOutput,
-  DashboardInstanceProviderOauthConnectionsProfilesListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+// Types removed in Provider API migration
+type ProviderConnectionData = { id: string; name: string | null; [key: string]: unknown };
+type ProviderConnectionProfilesListQuery = Record<string, unknown>;
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderConnectionProfiles } from '@metorial/state';
@@ -9,8 +8,8 @@ import { RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
 export let ProviderConnectionProfilesTable = (
-  filter: DashboardInstanceProviderOauthConnectionsProfilesListQuery & {
-    providerConnection: DashboardInstanceProviderOauthConnectionsGetOutput | undefined | null;
+  filter: ProviderConnectionProfilesListQuery & {
+    providerConnection: ProviderConnectionData | undefined | null;
   }
 ) => {
   let instance = useCurrentInstance();
@@ -27,7 +26,7 @@ export let ProviderConnectionProfilesTable = (
     <>
       <Table
         headers={['Info', 'Last Used', 'Created']}
-        data={profiles.data.items.map(profile => ({
+        data={profiles.data.items.map((profile: { id: string; name: string | null; email: string | null; lastUsedAt: Date | null; createdAt: Date }) => ({
           data: [
             <Text size="2" weight="strong">
               {profile.name ?? <span style={{ color: theme.colors.gray600 }}>Untitled</span>}
@@ -38,7 +37,7 @@ export let ProviderConnectionProfilesTable = (
                 </Text>
               )}
             </Text>,
-            <RenderDate date={profile.lastUsedAt} />,
+            profile.lastUsedAt ? <RenderDate date={profile.lastUsedAt} /> : 'Never',
             <RenderDate date={profile.createdAt} />
           ],
           href: Paths.instance.providerConnection(

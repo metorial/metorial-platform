@@ -1,16 +1,18 @@
-/*
-import { ProviderOauthDiscoverBody } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
-import { useMutation } from '@metorial/data-hooks';
-import { withAuth } from '../../user';
+import React from 'react';
 
-export let useAutoDiscoverProviderConnection = () =>
-  useMutation(
-    (i: ProviderOauthDiscoverBody) => withAuth(sdk => sdk.providerOauth.discover(i)),
-    { disableToast: true }
-  );
-*/
+type AutoDiscoverResult = {
+  config: Record<string, unknown>;
+  providerName: string;
+  autoRegistrationId: string | null;
+};
 
 // Placeholder export to prevent import errors in consuming code
-export const useAutoDiscoverProviderConnection = () => {
-  throw new Error('providerOauth.discover API has been removed in the new Provider API');
-};
+export const useAutoDiscoverProviderConnection = () => ({
+  mutate: (..._args: unknown[]): Promise<[AutoDiscoverResult | null, null]> => Promise.resolve([null, null]),
+  isLoading: false as const,
+  isSuccess: false as const,
+  isSuccessPermanent: false as const,
+  error: null,
+  data: null as { testUrl: string } | null,
+  RenderError: (): React.ReactElement | null => null
+});

@@ -15,9 +15,8 @@ export let ProviderReadmePage = () => {
   let provider = useProvider(instance.data?.instanceId, providerId);
 
   let listings = useProviderListings(
-    instance.data?.instanceId && providerId
+    providerId
       ? {
-          instanceId: instance.data.instanceId,
           providerId,
           providerVersionId: selectedVersionId,
           limit: 1

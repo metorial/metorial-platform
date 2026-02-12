@@ -1,4 +1,4 @@
-import { SessionsEventsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceSessionsEventsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { RenderDate } from '@metorial/ui';
 import Ansi from 'ansi-to-react';
 import styled from 'styled-components';
@@ -43,9 +43,14 @@ let Pre = styled.pre`
   }
 `;
 
-export let Logs = ({ event }: { event: SessionsEventsGetOutput }) => {
-  let lines = event.logLines ?? [];
-  if (lines.length === 0) return null;
+interface LogLine {
+  line: string;
+  type?: string;
+}
+
+export let Logs = ({ event }: { event: DashboardInstanceSessionsEventsGetOutput }) => {
+  let logLines = (event.data?.logLines ?? event.data?.lines ?? []) as LogLine[];
+  if (logLines.length === 0) return null;
 
   return (
     <Wrapper>
@@ -57,7 +62,7 @@ export let Logs = ({ event }: { event: SessionsEventsGetOutput }) => {
 
       <Main>
         <Pre>
-          <Ansi>{lines.map(l => l.line).join('\n')}</Ansi>
+          <Ansi>{logLines.map(l => l.line).join('\n')}</Ansi>
 
           {/* {event.logLines.map((line, i) => (
               <Fragment key={i}>

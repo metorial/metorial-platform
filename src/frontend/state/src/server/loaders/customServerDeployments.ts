@@ -1,8 +1,4 @@
-// NOTE: The customServers.deployments endpoint has been removed in the new Provider API (2026-02-01).
-// These loaders are commented out until alternative endpoints are available.
-
-/*
-import { DashboardInstanceCustomServersDeploymentsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceCustomProvidersDeploymentsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import useInterval from 'use-interval';
 import { usePaginator } from '../../lib/usePaginator';
@@ -15,15 +11,15 @@ export let customServerDeploymentsLoader = createLoader({
     i: {
       instanceId: string;
       customServerId: string;
-    } & DashboardInstanceCustomServersDeploymentsListQuery
-  ) => withAuth(sdk => sdk.customServers.deployments.list(i.instanceId, i.customServerId, i)),
+    } & DashboardInstanceCustomProvidersDeploymentsListQuery
+  ) => withAuth(sdk => sdk.customProviders.deployments.list(i.instanceId, i.customServerId, i)),
   mutators: {}
 });
 
 export let useCustomServerDeployments = (
   instanceId: string | null | undefined,
   customServerId: string | null | undefined,
-  query?: DashboardInstanceCustomServersDeploymentsListQuery
+  query?: DashboardInstanceCustomProvidersDeploymentsListQuery
 ) => {
   let data = usePaginator(pagination =>
     customServerDeploymentsLoader.use(
@@ -35,7 +31,7 @@ export let useCustomServerDeployments = (
 
   useInterval(() => {
     let hasDeploying = data.data?.items.some(
-      i => i.status == 'deploying' || i.status == 'queued'
+      (i: { status: string | null }) => i.status == 'deploying' || i.status == 'queued'
     );
     if (!hasDeploying) return;
 
@@ -54,7 +50,7 @@ export let customServerDeploymentLoader = createLoader({
     customServerDeploymentId: string;
   }) =>
     withAuth(sdk =>
-      sdk.customServers.deployments.get(
+      sdk.customProviders.deployments.get(
         i.instanceId,
         i.customServerId,
         i.customServerDeploymentId
@@ -84,15 +80,4 @@ export let useCustomServerDeployment = (
   return {
     ...data
   };
-};
-*/
-
-// Placeholder exports to prevent import errors in consuming code
-export const customServerDeploymentsLoader = null;
-export const useCustomServerDeployments = () => {
-  throw new Error('customServers.deployments API has been removed in the new Provider API');
-};
-export const customServerDeploymentLoader = null;
-export const useCustomServerDeployment = () => {
-  throw new Error('customServers.deployments API has been removed in the new Provider API');
 };

@@ -98,10 +98,13 @@ export let ServerSession = ({
   }, [inView]);
 
   let instance = useCurrentInstance();
-  let serverRuns = useProviderRuns(canFetch ? instance.data?.instanceId : undefined, {
-    serverSessionId: [serverSession.id],
-    limit: 100
-  });
+  let serverRuns = useProviderRuns(
+    canFetch ? instance.data?.instanceId : undefined,
+    canFetch ? serverSession.session.id : undefined,
+    {
+      limit: 100
+    }
+  );
 
   let eventItems = useEvents(canFetch ? serverSession.session.id : undefined, {
     serverSessionId: [serverSession.id],
@@ -124,7 +127,7 @@ export let ServerSession = ({
         <Header>
           <span>
             {serverSession.serverDeployment?.name ??
-              (serverSession as any).server?.name ??
+              serverSession.server?.name ??
               'Unknown'}
           </span>
           <span>
@@ -165,7 +168,7 @@ export let ServerSession = ({
                 {
                   component: (
                     <Entry
-                      title={`Provider ${serverRun.serverDeployment?.name ?? (serverRun as any).server?.name ?? 'Unknown'} started`}
+                      title={`Provider ${serverRun.name ?? serverRun.providerId ?? 'Unknown'} started`}
                       icon={<RiServerLine />}
                       time={serverRun.startedAt ?? serverRun.createdAt}
                     />
@@ -173,15 +176,15 @@ export let ServerSession = ({
                   time: serverRun.startedAt ?? serverRun.createdAt
                 },
 
-                serverRun.stoppedAt && {
+                serverRun.completedAt && {
                   component: (
                     <Entry
-                      title={`Provider ${serverRun.serverDeployment?.name ?? (serverRun as any).server?.name ?? 'Unknown'} stopped`}
+                      title={`Provider ${serverRun.name ?? serverRun.providerId ?? 'Unknown'} stopped`}
                       icon={<RiServerLine />}
-                      time={serverRun.stoppedAt}
+                      time={serverRun.completedAt}
                     />
                   ),
-                  time: serverRun.stoppedAt
+                  time: serverRun.completedAt
                 }
               ]),
 

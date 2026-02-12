@@ -1,5 +1,6 @@
 import { CodeEditor } from '@metorial/code-editor';
-import { ProviderOauthConnectionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+// Type removed in Provider API migration
+type ProviderOauthConnectionsGetOutput = { id: string; name: string | null; config: { type: string; scopes?: string[]; config?: unknown }; [key: string]: unknown };
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -176,14 +177,14 @@ export let ProviderConnectionCreateForm = (p: {
 
         if (p.onCreate) {
           p.close?.();
-          p.onCreate(res);
+          p.onCreate(res as ProviderOauthConnectionsGetOutput);
         } else {
           navigate(
             Paths.instance.providerConnection(
               instance.data.organization,
               instance.data.project,
               instance.data,
-              res.id
+              (res as { id: string }).id
             )
           );
         }
@@ -382,7 +383,7 @@ export let ProviderConnectionCreateForm = (p: {
 
                     <Input
                       label="Client ID"
-                      description={`Create a new OAuth application for ${selectedTemplate.provider.name} to get your Client ID and Client Secret.`}
+                      description={`Create a new OAuth application for ${selectedTemplate.provider?.name ?? 'the provider'} to get your Client ID and Client Secret.`}
                       {...form.getFieldProps('clientId')}
                       autoFocus
                     />
@@ -411,10 +412,10 @@ export let ProviderConnectionCreateForm = (p: {
                       }}
                     >
                       <SortableCheckList
-                        items={selectedTemplate.scopes.map(scope => ({
-                          id: scope.id,
-                          label: scope.identifier,
-                          isChecked: form.values.scopes.includes(scope.id)
+                        items={selectedTemplate.scopes.map((scope: string) => ({
+                          id: scope,
+                          label: scope,
+                          isChecked: form.values.scopes.includes(scope)
                         }))}
                         onChange={items => {
                           form.setFieldValue(
@@ -425,18 +426,18 @@ export let ProviderConnectionCreateForm = (p: {
                       />
                     </div>
 
-                    {selectedTemplate.variables.map(v => (
-                      <Fragment key={v.id}>
+                    {selectedTemplate.variables.map((v: { key: string; label: string; description: string | null }) => (
+                      <Fragment key={v.key}>
                         <Spacer size={15} />
 
                         <Input
                           label={v.label}
-                          description={v.description}
-                          value={templateData?.[v.id] || ''}
+                          description={v.description ?? undefined}
+                          value={templateData?.[v.key] || ''}
                           onChange={e => {
-                            setTemplateData(v => ({
-                              ...v,
-                              [v.id]: e.target.value
+                            setTemplateData(prev => ({
+                              ...prev,
+                              [v.key]: e.target.value
                             }));
                           }}
                         />
@@ -457,8 +458,8 @@ export let ProviderConnectionCreateForm = (p: {
                             data: templateData
                           });
                           if (res) {
-                            form.setFieldValue('config', JSON.stringify(res.config, null, 2));
-                            form.setFieldValue('name', selectedTemplate.provider.name);
+                            form.setFieldValue('config', JSON.stringify((res as { config: Record<string, unknown> }).config, null, 2));
+                            form.setFieldValue('name', selectedTemplate.provider?.name ?? '');
                             setCurrentStep(2);
                           }
                         }}

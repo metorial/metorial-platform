@@ -1,4 +1,5 @@
-import { ProviderOauthConnectionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+// Type removed in Provider API migration
+type ProviderOauthConnectionsGetOutput = { id: string; name: string | null; config: { type: string; scopes?: string[]; config?: unknown }; [key: string]: unknown };
 import { Dialog, showModal } from '@metorial/ui';
 import { useState } from 'react';
 import { ProviderConnectionCreateForm } from './createForm';

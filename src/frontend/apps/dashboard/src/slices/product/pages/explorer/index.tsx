@@ -133,7 +133,7 @@ export let ExplorerPage = () => {
 
   let deploymentsFilter = useMemo(
     () => ({
-      providerId: selectedProvider ? [selectedProvider.id] : undefined
+      providerId: selectedProvider ? selectedProvider.id : undefined
     }),
     [selectedProvider]
   );
@@ -165,7 +165,7 @@ export let ExplorerPage = () => {
       instanceId: instance.data.instanceId,
       name: deploymentName.trim(),
       description: deploymentDescription.trim() || undefined,
-      provider_id: selectedProvider.id
+      providerId: selectedProvider.id
     });
 
     setIsCreating(false);
@@ -317,7 +317,7 @@ export let ExplorerPage = () => {
                           />
 
                           {createError && (
-                            <Text size="2" color="red">
+                            <Text size="2" color="red500">
                               {createError}
                             </Text>
                           )}

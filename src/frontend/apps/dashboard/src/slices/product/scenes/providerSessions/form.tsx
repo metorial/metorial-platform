@@ -32,9 +32,9 @@ export let ProviderSessionForm = (
 
       if (deploymentId) {
         providers.push({
-          provider_deployment: {
+          providerDeployment: {
             type: 'reference' as const,
-            provider_deployment_id: deploymentId
+            providerDeploymentId: deploymentId
           }
         });
       }

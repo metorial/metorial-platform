@@ -13,11 +13,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDebounced } from '../../../../../hooks/useDebounced';
 import { showProviderSetupSessionModal } from '../../../scenes/providerDeployments/setupSessionModal';
 
+type DeploymentPreview = {
+  id: string;
+  name: string | null;
+  providerId: string;
+  provider?: { name: string } | null;
+  lockedVersion?: { version: string } | null;
+};
+
 type CredentialOverviewRow = {
   key: string;
-  deployment: any;
+  deployment: DeploymentPreview;
   name: string | null;
-  createdAt: string | null;
+  createdAt: Date | string | null;
 };
 
 let mapWithConcurrency = async <I, O>(
@@ -170,7 +178,7 @@ export let ProviderAuthCredentialsOverviewPage = () => {
       )}
 
       {error && (
-        <Text size="2" color="red">
+        <Text size="2" color="red500">
           {error}
         </Text>
       )}

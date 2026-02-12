@@ -14,16 +14,12 @@ export let CommunityServersPage = () => {
       ></PageHeader>
 
       <ServersTable
-        onlyFromOrganization
-        isPublic
-        instanceId={instance.data?.instanceId}
         getUrl={listing =>
-          Paths.instance.customServer(
+          Paths.instance.provider(
             instance.data?.organization,
             instance.data?.project,
             instance.data,
-            listing.server.id,
-            'listing'
+            listing.id
           )
         }
       />

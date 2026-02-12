@@ -1,13 +1,13 @@
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ServersImplementationsListQuery } from '@metorial/generated/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceServersImplementationsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { useCurrentInstance, useServerImplementations } from '@metorial/state';
 import { Input, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { useState } from 'react';
 import { useDebounced } from '../../../../hooks/useDebounced';
 
-export let ServerImplementationsTable = (filter: ServersImplementationsListQuery) => {
+export let ServerImplementationsTable = (filter: DashboardInstanceServersImplementationsListQuery) => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
 
@@ -48,7 +48,7 @@ export let ServerImplementationsTable = (filter: ServersImplementationsListQuery
                   )}
                 </Text>,
                 <Text size="2" weight="strong">
-                  {(implementation as any).server?.name ?? implementation.name ?? 'Unknown'}
+                  {implementation.server?.name ?? implementation.name ?? 'Unknown'}
                 </Text>,
                 <RenderDate date={implementation.createdAt} />
               ],

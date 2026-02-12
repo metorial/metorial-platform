@@ -1,5 +1,5 @@
 import { CodeEditor } from '@metorial/code-editor';
-import { CustomServersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -36,17 +36,14 @@ import { parseConfig } from '../providerConnection/config';
 import { showProviderConnectionFormModal } from '../providerConnection/modal';
 import { defaultServerConfigManaged, defaultServerConfigRemote } from './config';
 
-export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput }) => {
+export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutput }) => {
   let instance = useCurrentInstance();
   let customServer = useCustomServer(instance.data?.instanceId, p.customServer?.id);
 
-  let defaultServerConfig =
-    (customServer.data ?? p.customServer)?.type === 'remote'
-      ? defaultServerConfigRemote
-      : defaultServerConfigManaged;
+  let defaultServerConfig = defaultServerConfigManaged;
 
   let updateMutator = customServer.useUpdateMutator();
-  let deleteMutator = customServer.useDeleteMutator();
+  let deleteMutator = customServer.useUpdateMutator();
 
   let createVersionMutatorSchema = useCreateCustomServerVersion();
   let createVersionMutatorOauth = useCreateCustomServerVersion();
@@ -54,7 +51,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
   let currentVersion = useCustomServerVersion(
     instance.data?.instanceId,
     p.customServer?.id,
-    customServer.data?.currentVersionId ?? 'current'
+    customServer.data?.provider?.currentVersion?.id ?? 'current'
   );
   let newVersionList = useCustomServerVersions(instance.data?.instanceId, p.customServer?.id, {
     order: 'desc',
@@ -69,9 +66,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
 
   let navigate = useNavigate();
 
-  let providerOauth =
-    editingVersion.current?.serverInstance.remoteServer?.providerOauth ??
-    editingVersion.current?.serverInstance.managedServer?.providerOauth;
+  let providerOauth = null as { type: string; config?: unknown; scopes?: string[] } | null;
 
   return (
     <FormPage>
@@ -113,7 +108,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
         </Field>
       </FormBox>
 
-      {customServer.data?.type == 'remote' && currentVersion.data && (
+      {currentVersion.data && (
         <FormBox
           title="Remote Provider Configuration"
           description="Set up how Metorial connects to the remote provider."
@@ -124,8 +119,8 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
             })
           }
           initialValues={{
-            remoteUri: currentVersion.data.serverInstance.remoteServer?.remoteUrl,
-            remoteProtocol: currentVersion.data.serverInstance.remoteServer?.remoteProtocol
+            remoteUri: '',
+            remoteProtocol: 'sse'
           }}
           mutators={[updateMutator]}
           onSubmit={async values => {
@@ -134,12 +129,10 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
             let [res] = await createVersionMutatorSchema.mutate({
               instanceId: instance.data.instanceId,
               customServerId: p.customServer.id,
-              implementation: {
+              from: {
                 type: 'remote',
-                remoteServer: {
-                  remoteUrl: values.remoteUri,
-                  remoteProtocol: values.remoteProtocol
-                }
+                remoteUrl: values.remoteUri ?? '',
+                protocol: (values.remoteProtocol ?? 'sse') as 'sse' | 'streamable_http'
               }
             });
 
@@ -187,12 +180,8 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
                 }
                 updateInitialValues
                 initialValues={{
-                  schema:
-                    editingVersion.current?.serverVersion?.schema ??
-                    defaultServerConfig.schema,
-                  getLaunchParams:
-                    editingVersion.current?.serverVersion?.getLaunchParams ||
-                    defaultServerConfig.getLaunchParams
+                  schema: defaultServerConfig.schema,
+                  getLaunchParams: defaultServerConfig.getLaunchParams
                 }}
                 mutators={[createVersionMutatorSchema]}
                 gap={0}
@@ -207,46 +196,23 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
                   let [res] = await createVersionMutatorSchema.mutate({
                     instanceId: instance.data.instanceId,
                     customServerId: p.customServer.id,
-                    implementation: switcher({
-                      managed: () => ({
-                        type: 'managed' as const,
-                        config: {
-                          schema: values.schema,
-                          getLaunchParams: values.getLaunchParams
-                        }
-                      }),
-
-                      remote: () => ({
-                        type: 'remote' as const,
-                        config: {
-                          schema: values.schema,
-                          getLaunchParams: values.getLaunchParams
-                        },
-                        remoteServer: {
-                          remoteUrl:
-                            editingVersion.current?.serverInstance.remoteServer?.remoteUrl!,
-                          remoteProtocol:
-                            editingVersion.current?.serverInstance.remoteServer
-                              ?.remoteProtocol!
-                        }
-                      }),
-
-                      docker: () => ({
-                        type: 'docker' as const,
-                        config: {
-                          schema: values.schema,
-                          getLaunchParams: values.getLaunchParams
-                        }
-                      })
-                    })(customServer.data.type)
+                    from: {
+                      type: 'function',
+                      files: [],
+                      env: {},
+                      runtime: { identifier: 'nodejs' as const, version: '22.x' as const }
+                    },
+                    config: {
+                      schema: values.schema,
+                      transformer: values.getLaunchParams
+                    }
                   });
 
                   if (res) {
                     editingVersion.current = {
                       ...editingVersion.current,
-                      ...res,
-                      serverVersion: res.serverVersion ?? editingVersion.current?.serverVersion
-                    } as any;
+                      ...res
+                    } as typeof editingVersion.current;
 
                     toast.success('An updated version is currently being deployed.');
                   }
@@ -257,10 +223,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
                     {({ value, setValue }) => (
                       <SchemaEditor
                         title={customServer.data?.name || 'Custom Provider Schema'}
-                        value={
-                          (editingVersion.current?.serverVersion?.schema ??
-                            defaultServerConfig.schema) as any
-                        }
+                        value={(value ?? defaultServerConfig.schema) as Record<string, unknown>}
                         onChange={v => setValue(v)}
                       />
                     )}
@@ -345,40 +308,26 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
           let [res] = await createVersionMutatorOauth.mutate({
             instanceId: instance.data.instanceId,
             customServerId: p.customServer.id,
-            implementation:
-              p.customServer.type == 'managed'
-                ? {
-                    type: 'managed',
-                    managedServer: {
-                      oauthConfig: values.enabled ? { scopes, config } : undefined
-                    }
-                  }
-                : {
-                    type: 'remote',
-                    remoteServer: {
-                      remoteUrl:
-                        editingVersion.current?.serverInstance.remoteServer?.remoteUrl ?? '',
-                      oauthConfig: values.enabled ? { scopes, config } : undefined,
-                      remoteProtocol:
-                        editingVersion.current?.serverInstance.remoteServer?.remoteProtocol!
-                    }
-                  }
+            from: {
+              type: 'function',
+              files: [],
+              env: {},
+              runtime: { identifier: 'nodejs' as const, version: '22.x' as const }
+            }
           });
 
           if (res) {
             editingVersion.current = {
               ...editingVersion.current,
-              ...res,
-              serverVersion: res.serverVersion ?? editingVersion.current?.serverVersion
-            } as any;
+              ...res
+            } as typeof editingVersion.current;
 
             toast.success('An updated version is currently being deployed.');
           }
         }}
       >
         {(form: any) =>
-          editingVersion.current?.serverInstance.managedServer?.providerOauth?.type ==
-          'custom' ? (
+          providerOauth?.type == 'custom' ? (
             <Callout color="blue">
               This provider uses a custom OAuth service defined in the provider's code.
             </Callout>
@@ -471,7 +420,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomServersGetOutput 
                 if (res) {
                   toast.success('Custom provider deleted successfully.');
                   navigate(
-                    p.customServer?.type == 'remote'
+                    p.customServer?.status == 'active'
                       ? Paths.instance.externalServers(
                           instance.data?.organization,
                           instance.data?.project,

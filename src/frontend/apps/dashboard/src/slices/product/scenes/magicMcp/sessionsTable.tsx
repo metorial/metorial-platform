@@ -1,7 +1,16 @@
-import {
-  DashboardInstanceMagicMcpSessionsListQuery,
-  MagicMcpSessionsGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+// Types removed in Provider API migration
+type MagicMcpSessionData = {
+  id: string;
+  name: string | null;
+  status: string | null;
+  connectionStatus: string | null;
+  magicMcpServer: { id: string; name: string | null } | null;
+  client: { name: string | null; version: string | null } | null;
+  sessionId: string | null;
+  createdAt: Date;
+};
+type MagicMcpSessionsListQuery = Record<string, unknown>;
+
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useMagicMcpSessions } from '@metorial/state';
@@ -11,30 +20,30 @@ import { Table } from '@metorial/ui-product';
 export let SessionConnectionStatusBadge = ({
   session
 }: {
-  session: MagicMcpSessionsGetOutput;
+  session: MagicMcpSessionData;
 }) => {
   return (
     <Badge
       color={
-        {
+        ({
           connected: 'blue' as const,
           disconnected: 'gray' as const
-        }[session.connectionStatus]
+        } as Record<string, 'blue' | 'gray'>)[session.connectionStatus ?? '']
       }
     >
-      {{
+      {({
         connected: 'Connected',
         disconnected: 'Disconnected'
-      }[session.connectionStatus] ?? session.connectionStatus}
+      } as Record<string, string>)[session.connectionStatus ?? ''] ?? session.connectionStatus}
     </Badge>
   );
 };
 
-export let MagicSessionsTable = (filter: DashboardInstanceMagicMcpSessionsListQuery) => {
+export let MagicSessionsTable = (filter: MagicMcpSessionsListQuery) => {
   let instance = useCurrentInstance();
   let sessions = useMagicMcpSessions(instance.data?.instanceId, {
     ...filter,
-    order: filter.order ?? 'desc'
+    order: (filter as { order?: string }).order ?? 'desc'
   });
 
   return renderWithPagination(sessions)(sessions => (
@@ -45,10 +54,10 @@ export let MagicSessionsTable = (filter: DashboardInstanceMagicMcpSessionsListQu
           data: [
             <SessionConnectionStatusBadge session={session} />,
             <Text size="2" weight="strong">
-              {session.magicMcpServer.name ?? 'Unknown Server'}
+              {session.magicMcpServer?.name ?? 'Unknown Server'}
             </Text>,
             <Text size="2">
-              {session.client?.info?.name ?? (
+              {session.client?.name ?? (
                 <span style={{ color: theme.colors.gray600 }}>Unknown Client</span>
               )}
             </Text>,
@@ -58,7 +67,7 @@ export let MagicSessionsTable = (filter: DashboardInstanceMagicMcpSessionsListQu
             instance.data?.organization,
             instance.data?.project,
             instance.data,
-            session.sessionId
+            session.sessionId ?? session.id
           )
         }))}
       />

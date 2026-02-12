@@ -26,40 +26,17 @@ export let CustomServerOverviewPage = () => {
             content: customServer.data.name
           },
           {
-            label: 'Type',
-            content: {
-              remote: 'Remote Server',
-              managed: 'Managed Server'
-            }[customServer.data.type]
+            label: 'Status',
+            content: customServer.data.status ?? 'Unknown'
           },
           {
-            label: 'Server ID',
-            content: <ID id={customServer.data.server.id} />
+            label: 'Provider ID',
+            content: customServer.data.provider ? <ID id={customServer.data.provider.id} /> : 'N/A'
           },
-
-          ...(customServer.data.repository
-            ? [
-                {
-                  label: 'Repository',
-                  content: (
-                    <a
-                      href={customServer.data.repository.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'unset' }}
-                    >
-                      {customServer.data.repository.owner}/{customServer.data.repository.name}
-                      <RiExternalLinkLine size={18} />
-                    </a>
-                  )
-                }
-              ]
-            : [
-                {
-                  label: 'Created At',
-                  content: <RenderDate date={customServer.data.createdAt!} />
-                }
-              ])
+          {
+            label: 'Created At',
+            content: <RenderDate date={customServer.data.createdAt!} />
+          }
         ]}
       />
 
@@ -78,7 +55,7 @@ export let CustomServerOverviewPage = () => {
                 instance.data?.organization,
                 instance.data?.project,
                 instance.data,
-                { server_id: customServer.data.server.id }
+                { server_id: customServer.data.provider?.id ?? customServer.data.id }
               )
             );
           }}
@@ -92,8 +69,8 @@ export let CustomServerOverviewPage = () => {
       <UsageScene
         title="Usage"
         description="See how often this custom server is used."
-        entities={[{ type: 'server', id: customServer.data.server.id }]}
-        entityNames={{ [customServer.data.server.id]: customServer.data.name! }}
+        entities={[{ type: 'server', id: customServer.data.provider?.id ?? customServer.data.id }]}
+        entityNames={{ [customServer.data.provider?.id ?? customServer.data.id]: customServer.data.name! }}
       />
 
       <Spacer height={15} />

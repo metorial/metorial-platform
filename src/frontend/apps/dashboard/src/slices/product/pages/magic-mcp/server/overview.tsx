@@ -47,12 +47,12 @@ export let MagicMcpServerOverviewPage = () => {
   let token = tokens.data?.items?.[0];
   let secret = token?.secret;
 
-  let url = server.data?.endpoints[0]?.urls.streamableHttp;
+  let url = server.data?.endpoints[0]?.url;
   if (url && secret) {
     url += `?key=${secret}`;
   }
 
-  let cleanUrl = server.data?.endpoints[0]?.urls.streamableHttp;
+  let cleanUrl = server.data?.endpoints[0]?.url;
   if (url && secret) {
     let keyParts = secret.split('_');
     let secretPart = keyParts.pop()!;

@@ -10,6 +10,6 @@ export let MagicMcpServerRunsPage = () => {
   let deployment = useMagicMcpServer(instance.data?.instanceId, magicMcpServerId);
 
   return renderWithLoader({ deployment })(({ deployment }) => (
-    <ServerRunsTable serverDeploymentId={[deployment.data.serverDeployments[0]?.id]} />
+    <ServerRunsTable providerId={deployment.data.serverDeployments[0]?.providerId} />
   ));
 };

@@ -11,7 +11,7 @@ export let SessionServerRunsPage = () => {
 
   return renderWithLoader({ session })(({ session }) => (
     <>
-      <ServerRunsTable sessionId={[session.data.id]} />
+      <ServerRunsTable sessionId={session.data.id} />
     </>
   ));
 };

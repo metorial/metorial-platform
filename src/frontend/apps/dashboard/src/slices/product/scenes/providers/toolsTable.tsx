@@ -24,7 +24,7 @@ export let ProviderToolsTable = ({
               {tool.name ?? <span style={{ color: theme.colors.gray600 }}>Unnamed</span>}
             </Text>,
             <Text size="2" style={{ fontFamily: 'monospace' }}>
-              {tool.key}
+              {tool.name}
             </Text>,
             <Text size="2" color="gray600">
               {tool.description?.slice(0, 80)}

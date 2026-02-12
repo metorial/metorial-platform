@@ -1,85 +1,42 @@
-/*
-import { DashboardInstanceProviderOauthConnectionsProfilesListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
-import { createLoader } from '@metorial/data-hooks';
-import { usePaginator } from '../../lib/usePaginator';
-import { withAuth } from '../../user';
-
-export let providerConnectionProfilesLoader = createLoader({
-  name: 'providerConnectionProfiles',
-  parents: [],
-  fetch: (
-    i: {
-      instanceId: string;
-      providerConnectionId: string;
-    } & DashboardInstanceProviderOauthConnectionsProfilesListQuery
-  ) =>
-    withAuth(sdk =>
-      sdk.providerOauth.connections.profiles.list(i.instanceId, i.providerConnectionId, i)
-    ),
-  mutators: {}
-});
-
-export let useProviderConnectionProfiles = (
-  instanceId: string | null | undefined,
-  providerConnectionId: string | null | undefined,
-  query?: DashboardInstanceProviderOauthConnectionsProfilesListQuery
-) => {
-  let data = usePaginator(pagination =>
-    providerConnectionProfilesLoader.use(
-      instanceId && providerConnectionId
-        ? { instanceId, providerConnectionId, ...pagination, ...query }
-        : null
-    )
-  );
-
-  return data;
+type ProviderConnectionProfileData = {
+  object: string;
+  id: string;
+  name: string | null;
+  email: string | null;
+  sub: string | null;
+  lastUsedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
-
-export let providerConnectionProfileLoader = createLoader({
-  name: 'providerConnectionProfile',
-  parents: [providerConnectionProfilesLoader],
-  fetch: (i: {
-    instanceId: string;
-    providerConnectionId: string;
-    providerConnectionProfileId: string;
-  }) =>
-    withAuth(sdk =>
-      sdk.providerOauth.connections.profiles.get(
-        i.instanceId,
-        i.providerConnectionId,
-        i.providerConnectionProfileId
-      )
-    ),
-  mutators: {}
-});
-
-export let useProviderConnectionProfile = (
-  instanceId: string | null | undefined,
-  providerConnectionId: string | null | undefined,
-  providerConnectionProfileId: string | null | undefined
-) => {
-  let data = providerConnectionProfileLoader.use(
-    instanceId && providerConnectionId && providerConnectionProfileId
-      ? { instanceId, providerConnectionId, providerConnectionProfileId }
-      : null
-  );
-
-  return {
-    ...data
-  };
-};
-*/
 
 // Placeholder exports to prevent import errors in consuming code
 export const providerConnectionProfilesLoader = null;
-export const useProviderConnectionProfiles = () => {
-  throw new Error(
-    'providerOauth.connections.profiles API has been removed in the new Provider API'
-  );
-};
+
+export const useProviderConnectionProfiles = (
+  _instanceId?: string | null,
+  _providerConnectionId?: string | null,
+  _query?: Record<string, unknown>
+) => ({
+  data: null as {
+    items: ProviderConnectionProfileData[];
+    pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  } | null,
+  isLoading: false,
+  error: null,
+  next: () => {},
+  previous: () => {},
+  refetch: () => {}
+});
+
 export const providerConnectionProfileLoader = null;
-export const useProviderConnectionProfile = () => {
-  throw new Error(
-    'providerOauth.connections.profiles API has been removed in the new Provider API'
-  );
-};
+
+export const useProviderConnectionProfile = (
+  _instanceId?: string | null,
+  _providerConnectionId?: string | null,
+  _providerConnectionProfileId?: string | null
+) => ({
+  data: null as ProviderConnectionProfileData | null,
+  isLoading: false,
+  error: null,
+  refetch: () => {}
+});

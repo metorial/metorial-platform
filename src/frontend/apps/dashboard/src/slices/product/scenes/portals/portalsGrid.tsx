@@ -178,7 +178,7 @@ export let showPortalFormModal = () =>
         let [res] = await mutator.mutate({
           name: values.name,
           description: values.description,
-          instanceId: instance.data!.id
+          instanceId: instance.data!.instanceId
         });
 
         if (res) setTimeout(() => close(), 500);

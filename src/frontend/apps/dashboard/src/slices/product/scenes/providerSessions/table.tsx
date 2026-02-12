@@ -17,8 +17,7 @@ export let ProviderSessionsTable = ({
 }) => {
   let instance = useCurrentInstance();
   let sessions = useSessions(instanceId, {
-    provider_id: providerId,
-    provider_deployment_id: providerDeploymentId,
+    providerId: providerId,
     status
   });
 
@@ -42,7 +41,7 @@ export let ProviderSessionsTable = ({
               )}
             </Text>,
             <Text size="2">{session.status}</Text>,
-            <Text size="2">{session.providers?.length ?? 0} providers</Text>,
+            <Text size="2">{session.providerDeployments?.length ?? 0} providers</Text>,
             <RenderDate date={session.createdAt} />
           ],
           href: Paths.instance.providerSession(

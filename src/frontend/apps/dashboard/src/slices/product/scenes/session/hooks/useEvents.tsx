@@ -35,24 +35,24 @@ export let useEvents = (
       error: events.error || messages.error,
       data: [
         ...(messages.data?.items ?? []).map((message, i) => ({
-          component: <Message message={message} aggregatedMessages={aggregatedMessages} />,
+          component: <Message message={message as Parameters<typeof Message>[0]['message']} aggregatedMessages={aggregatedMessages} />,
           time: message.createdAt
         })),
 
         ...(events.data?.items ?? []).map((event, i) => {
-          if (event.type == 'server_logs') {
+          if (event.type === 'server_logs') {
             return {
               component: <Logs event={event} />,
               time: event.createdAt
             };
           }
 
-          if (event.type == 'server_run_error') {
+          if (event.type === 'server_run_error') {
             return {
               component: (
                 <Entry
                   icon={<RiErrorWarningLine />}
-                  title={`${event.serverRunError?.code} - ${event.serverRunError?.message}`}
+                  title={`${event.name ?? 'Error'} - ${event.message ?? 'Unknown error'}`}
                   time={event.createdAt}
                   variant="error"
                 />

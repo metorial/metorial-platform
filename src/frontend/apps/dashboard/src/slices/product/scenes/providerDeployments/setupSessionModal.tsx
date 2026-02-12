@@ -177,9 +177,9 @@ let ConfigureAuthContent = ({
               }
             }}
             items={[
-              ...(authCredentials.data?.items ?? []).map((cred: AuthCredential) => ({
+              ...(authCredentials.data?.items ?? []).map((cred) => ({
                 id: cred.id,
-                label: cred.name || cred.clientId || cred.id
+                label: cred.name || cred.id
               })),
               { type: 'separator' as const },
               { id: '__create_new__', label: '+ Create new credentials' }
@@ -239,7 +239,7 @@ let ConfigureAuthContent = ({
               )}
 
               {error && (
-                <Text size="2" color="red">
+                <Text size="2" color="red500">
                   {error}
                 </Text>
               )}
@@ -368,7 +368,7 @@ let ConfigureAuthContent = ({
         )}
 
         {error && (
-          <Text size="2" color="red">
+          <Text size="2" color="red500">
             {error}
           </Text>
         )}

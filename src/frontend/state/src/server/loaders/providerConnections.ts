@@ -1,102 +1,63 @@
-/*
-import {
-  DashboardInstanceProviderOauthConnectionsCreateBody,
-  DashboardInstanceProviderOauthConnectionsListQuery,
-  DashboardInstanceProviderOauthConnectionsUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
-import { createLoader } from '@metorial/data-hooks';
-import { usePaginator } from '../../lib/usePaginator';
-import { withAuth } from '../../user';
-import { withAuthPrivate } from '../../user/auth/withAuth';
+import React from 'react';
 
-export let providerConnectionsLoader = createLoader({
-  name: 'providerConnections',
-  parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceProviderOauthConnectionsListQuery) =>
-    withAuth(sdk => sdk.providerOauth.connections.list(i.instanceId, i)),
-  mutators: {}
-});
-
-export let useCreateProviderConnection = providerConnectionsLoader.createExternalMutator(
-  (i: DashboardInstanceProviderOauthConnectionsCreateBody & { instanceId: string }) =>
-    withAuth(sdk => sdk.providerOauth.connections.create(i.instanceId, i))
-);
-
-export let useProviderConnections = (
-  instanceId: string | null | undefined,
-  query?: DashboardInstanceProviderOauthConnectionsListQuery
-) => {
-  let data = usePaginator(pagination =>
-    providerConnectionsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
-  );
-
-  return data;
+type ProviderConnectionData = {
+  object: string;
+  id: string;
+  name: string | null;
+  description: string | null;
+  status: string | null;
+  clientId: string | null;
+  config: { type: string; scopes?: string[]; config?: unknown };
+  provider: {
+    id: string;
+    name: string;
+    slug: string;
+    url?: string;
+  } | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
-export let providerConnectionLoader = createLoader({
-  name: 'providerConnection',
-  parents: [providerConnectionsLoader],
-  fetch: (i: { instanceId: string; providerConnectionId: string }) =>
-    withAuth(sdk => sdk.providerOauth.connections.get(i.instanceId, i.providerConnectionId)),
-  mutators: {
-    update: (
-      i: DashboardInstanceProviderOauthConnectionsUpdateBody,
-      { input: { instanceId, providerConnectionId } }
-    ) =>
-      withAuth(sdk =>
-        sdk.providerOauth.connections.update(instanceId, providerConnectionId, i)
-      ),
-
-    delete: (_, { input: { instanceId, providerConnectionId } }) =>
-      withAuth(sdk => sdk.providerOauth.connections.delete(instanceId, providerConnectionId)),
-
-    test: (i: { redirectUri: string }, { input: { instanceId, providerConnectionId } }) =>
-      withAuthPrivate({ instanceId }, sdk =>
-        sdk
-          .query({
-            getProviderOauthConnectionTestSession: {
-              __args: {
-                instanceId,
-                connectionId: providerConnectionId,
-                redirectUri: i.redirectUri
-              },
-              __scalar: true,
-              connection: {
-                __scalar: true
-              }
-            }
-          })
-          .then(c => c.getProviderOauthConnectionTestSession)
-      )
-  }
+let stubMutator = () => ({
+  mutate: (..._args: unknown[]): Promise<[null, null]> => Promise.resolve([null, null]),
+  isLoading: false as const,
+  isSuccess: false as const,
+  error: null,
+  RenderError: (): React.ReactElement | null => null
 });
-
-export let useProviderConnection = (
-  instanceId: string | null | undefined,
-  providerConnectionId: string | null | undefined
-) => {
-  let data = providerConnectionLoader.use(
-    instanceId && providerConnectionId ? { instanceId, providerConnectionId } : null
-  );
-
-  return {
-    ...data,
-    useUpdateMutator: data.useMutator('update'),
-    useDeleteMutator: data.useMutator('delete'),
-    useTestMutator: data.useMutator('test')
-  };
-};
-*/
 
 // Placeholder exports to prevent import errors in consuming code
 export const providerConnectionsLoader = null;
-export const useCreateProviderConnection = () => {
-  throw new Error('providerOauth.connections API has been removed in the new Provider API');
-};
-export const useProviderConnections = () => {
-  throw new Error('providerOauth.connections API has been removed in the new Provider API');
-};
+
+export const useCreateProviderConnection = () => stubMutator();
+
+export const useProviderConnections = (
+  _instanceId?: string | null,
+  _query?: Record<string, unknown>
+) => ({
+  data: null as {
+    items: ProviderConnectionData[];
+    pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  } | null,
+  isLoading: false,
+  error: null,
+  next: () => {},
+  previous: () => {},
+  refetch: () => {}
+});
+
 export const providerConnectionLoader = null;
-export const useProviderConnection = () => {
-  throw new Error('providerOauth.connections API has been removed in the new Provider API');
-};
+
+export const useProviderConnection = (
+  _instanceId?: string | null,
+  _providerConnectionId?: string | null
+) => ({
+  data: null as ProviderConnectionData | null,
+  isLoading: false,
+  error: null,
+  refetch: () => {},
+  useUpdateMutator: stubMutator,
+  useDeleteMutator: stubMutator,
+  useTestMutator: stubMutator,
+  useMutator: (_name: string) => stubMutator
+});

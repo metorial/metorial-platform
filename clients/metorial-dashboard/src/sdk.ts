@@ -84,7 +84,12 @@ import {
   MetorialDashboardInstanceProviderListingsEndpoint,
   MetorialDashboardInstanceProviderRunsEndpoint,
   MetorialDashboardInstanceSessionErrorsEndpoint,
-  MetorialDashboardInstanceSessionErrorGroupsEndpoint
+  MetorialDashboardInstanceSessionErrorGroupsEndpoint,
+  MetorialDashboardInstanceCustomProvidersEndpoint,
+  MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
+  MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint,
+  MetorialDashboardInstanceCustomProvidersCommitsEndpoint,
+  MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint
 } from './gen/src/mt_2026_02_01_dashboard';
 
 let fetchWithRetry = createFetchWithRetry();
@@ -226,6 +231,16 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   customServers: {
     listing: new MetorialDashboardInstanceCustomServersListingEndpoint(manager)
   },
+
+  customProviders: Object.assign(
+    new MetorialDashboardInstanceCustomProvidersEndpoint(manager),
+    {
+      versions: new MetorialDashboardInstanceCustomProvidersVersionsEndpoint(manager),
+      deployments: new MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint(manager),
+      commits: new MetorialDashboardInstanceCustomProvidersCommitsEndpoint(manager),
+      environments: new MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint(manager)
+    }
+  ),
 
   // Legacy server endpoints (no Provider API equivalent)
   servers: {

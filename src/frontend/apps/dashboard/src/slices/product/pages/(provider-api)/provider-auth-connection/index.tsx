@@ -48,20 +48,12 @@ export let ProviderAuthConnectionOverviewPage = () => {
             content: formatType(authConfig.data.type)
           },
           {
-            label: 'Status',
-            content: authConfig.data.status ?? '—'
-          },
-          {
             label: 'Provider',
             content: deployment.data?.provider?.name ?? deployment.data?.providerId ?? '—'
           },
           {
             label: 'Deployment',
             content: deployment.data?.name ?? '—'
-          },
-          {
-            label: 'Ephemeral',
-            content: authConfig.data.isEphemeral ? 'Yes' : 'No'
           },
           {
             label: 'Created',

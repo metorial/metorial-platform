@@ -73,8 +73,8 @@ export let SessionEvents = ({ session }: { session: SessionsGetOutput | null }) 
             time: session.createdAt
           },
 
-          ...(session.serverDeployments ?? session.providerDeployments ?? []).map(
-            (dep: any) => ({
+          ...(session.providerDeployments ?? []).map(
+            dep => ({
               component: (
                 <Entry
                   icon={<RiCornerUpRightDoubleLine />}

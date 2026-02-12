@@ -155,10 +155,8 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
                   if (!defaultServerDeployment) return;
 
                   let [templateRes] = await createTemplateMutator.mutate({
-                    name: server.name,
-                    magicMcpServerId: server.id,
-                    instanceId: instance.data!.id,
-                    serverId: defaultServerDeployment.server.id
+                    name: server.name ?? 'Untitled',
+                    instanceId: instance.data!.instanceId
                   });
                   if (!templateRes) return;
 
@@ -284,8 +282,8 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
                               }),
                             onSubmit: async values => {
                               let [res] = await update.mutate({
-                                serverDeploymentTemplateId: template.id,
-                                instanceId: instance.data!.id,
+                                sessionTemplateId: template.id,
+                                instanceId: instance.data!.instanceId,
                                 name: values.name,
                                 description: values.description
                               });
@@ -477,9 +475,9 @@ export let linkServerDeploymentTemplate = (p: {
 
               try {
                 await createSessionTemplateForConsumerSurface({
-                  instanceId: instance.data!.id,
-                  serverId: listing.server.id,
-                  listing,
+                  instanceId: instance.data!.instanceId,
+                  serverId: listing.id,
+                  listing: listing as unknown as ServersListingsGetOutput,
                   addAccess: p.addAccess
                 });
                 close();
@@ -521,19 +519,16 @@ export let createSessionTemplateForConsumerSurface = async ({
   ) => {
     let [template] = await createSessionTemplate({
       name: provider.name,
-      serverId: provider.id,
-      instanceId: instanceId,
-      oauth: client
+      instanceId: instanceId
     });
     if (!template) return;
 
-    let ok = await addAccess(template);
+    let ok = await addAccess(template as unknown as DashboardInstanceServersDeploymentsTemplatesCreateOutput);
     if (ok) close();
   };
 
   if (
-    provider.currentVersion?.oauth.status == 'enabled' &&
-    provider.currentVersion?.oauth.credentialProvider == 'manual'
+    false /* OAuth status checking removed in Provider API migration */
   ) {
     showModal(({ dialogProps, close }) => {
       let form = useForm({

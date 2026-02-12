@@ -37,7 +37,7 @@ export let ProviderConnectionOverviewPage = () => {
           },
           {
             label: 'Provider',
-            content: providerConnection.data.provider.name
+            content: providerConnection.data.provider?.name ?? 'Unknown'
           },
           {
             label: 'ID',
@@ -73,10 +73,10 @@ export let ProviderConnectionOverviewPage = () => {
               redirectUri: redirectUri.toString()
             });
             if (res) {
-              window.location.href = res.testUrl;
+              window.location.href = (res as { testUrl: string }).testUrl;
             }
           }}
-          loading={test.isLoading || test.isSuccessPermanent}
+          loading={test.isLoading || test.isSuccess}
         >
           Test Connection
         </Button>
@@ -103,7 +103,7 @@ export let ProviderConnectionOverviewPage = () => {
                   {
                     errors: 'Error',
                     config_auto_updated: 'Config Auto Updated'
-                  }[events.type]
+                  }[events.type as string]
                 }
               </Text>,
               <Text size="2" weight="strong">

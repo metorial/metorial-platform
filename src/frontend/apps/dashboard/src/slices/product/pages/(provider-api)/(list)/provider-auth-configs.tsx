@@ -122,7 +122,7 @@ export let ProviderAuthConfigsOverviewPage = () => {
       )}
 
       {error && (
-        <Text size="2" color="red">
+        <Text size="2" color="red500">
           {error}
         </Text>
       )}

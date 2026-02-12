@@ -11,7 +11,7 @@ export let SessionDeploymentsPage = () => {
 
   return renderWithLoader({ session })(({ session }) => (
     <>
-      <ServerDeploymentsListItems deployments={session.data?.serverDeployments ?? []} />
+      <ServerDeploymentsListItems deployments={(session.data?.providerDeployments ?? []) as unknown as Parameters<typeof ServerDeploymentsListItems>[0]['deployments']} />
     </>
   ));
 };

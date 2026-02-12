@@ -1,7 +1,7 @@
 import { joinPaths } from '@metorial/join-paths';
 import { getConfig } from '.';
 
-export type EntityParam = { id: string; slug: string } | null | undefined;
+export type EntityParam = { slug: string } | null | undefined;
 export type SubPages = (string | null | undefined | object)[];
 
 let InstancePaths = Object.assign(

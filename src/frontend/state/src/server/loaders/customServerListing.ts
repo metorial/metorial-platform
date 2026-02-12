@@ -1,4 +1,3 @@
-/*
 import { DashboardInstanceCustomServersListingUpdateBody } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { withAuth } from '../../user';
@@ -12,7 +11,7 @@ export let customServerListingLoader = createLoader({
   mutators: {
     update: (
       i: DashboardInstanceCustomServersListingUpdateBody,
-      { input: { instanceId, customServerId } }
+      { input: { instanceId, customServerId } }: { input: { instanceId: string; customServerId: string } }
     ) => withAuth(sdk => sdk.customServers.listing.update(instanceId, customServerId, i))
   }
 });
@@ -29,11 +28,4 @@ export let useCustomServerListing = (
     ...data,
     useUpdateMutator: data.useMutator('update')
   };
-};
-*/
-
-// Placeholder exports to prevent import errors in consuming code
-export const customServerListingLoader = null;
-export const useCustomServerListing = () => {
-  throw new Error('customServers.listing API depends on removed customServers API');
 };

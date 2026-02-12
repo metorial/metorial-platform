@@ -206,7 +206,7 @@ export let MagicMcpGroupOverviewPage = () => {
                       disabled={removeServersMutator.isLoading}
                       loading={
                         removeServersMutator.isLoading &&
-                        removeServersMutator.input?.magicMcpServerIds?.includes(server.id)
+                        (removeServersMutator.input as Record<string, unknown> | null)?.magicMcpServerIds && ((removeServersMutator.input as Record<string, unknown>).magicMcpServerIds as string[])?.includes(server.id)
                       }
                       onClick={async () => {
                         let [res] = await removeServersMutator.mutate({

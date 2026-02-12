@@ -33,10 +33,9 @@ export let ProviderAuthConfigsTable = ({
               )}
             </Text>,
             <Text size="2">
-              {config.providerAuthMethod?.name ?? config.providerAuthMethodId}
+              {config.providerAuthMethodId}
             </Text>,
             <Text size="2">{formatType(config.type)}</Text>,
-            <Text size="2">{config.isEphemeral ? 'Yes' : 'No'}</Text>,
             <RenderDate date={config.createdAt} />
           ]
         }))}

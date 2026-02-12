@@ -60,7 +60,8 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
 
   // Group messages by connectionId (mapped to serverSessionId)
   let messagesByConnection = useMemo(() => {
-    let map = new Map<string, typeof messages.data.items>();
+    let items = messages.data?.items ?? [];
+    let map = new Map<string, typeof items>();
     for (let msg of messages.data?.items ?? []) {
       let connId = msg.serverSessionId ?? '__ungrouped';
       let list = map.get(connId);
@@ -75,11 +76,12 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
 
   // Group events by connection (using raw connectionId from event data)
   let eventsByConnection = useMemo(() => {
-    let map = new Map<string, any[]>();
-    for (let evt of events.data?.items ?? []) {
-      let raw = evt as any;
+    let eventItems = events.data?.items ?? [];
+    let map = new Map<string, typeof eventItems>();
+    for (let evt of eventItems) {
+      let raw = evt as Record<string, unknown>;
       // Events have connection info in the raw data
-      let connId = raw.connectionId ?? raw.connection?.id ?? '__ungrouped';
+      let connId = (raw.connectionId as string) ?? ((raw.connection as Record<string, unknown>)?.id as string) ?? '__ungrouped';
       let list = map.get(connId);
       if (!list) {
         list = [];
@@ -94,7 +96,7 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
   let buildMessageItems = (connId: string) => {
     let connMessages = messagesByConnection.get(connId) ?? [];
     return connMessages.map(msg => ({
-      component: <Message message={msg} aggregatedMessages={aggregatedMessages} />,
+      component: <Message message={msg as Parameters<typeof Message>[0]['message']} aggregatedMessages={aggregatedMessages} />,
       time: msg.createdAt
     }));
   };
@@ -104,8 +106,7 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
     let connEvents = eventsByConnection.get(connId) ?? [];
     let items: { component: React.ReactNode; time: Date }[] = [];
     for (let evt of connEvents) {
-      let raw = evt as any;
-      let type = raw.type as string;
+      let type = evt.type as string;
 
       if (type === 'provider_run_started') {
         items.push({
@@ -150,7 +151,7 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
   };
 
   // Get provider name from session deployments
-  let providers = session.providerDeployments ?? (session as any).serverDeployments ?? [];
+  let providers = session.providerDeployments ?? [];
   let providerName = providers[0]?.name ?? undefined;
 
   let isLoading = connections.isLoading || messages.isLoading || events.isLoading;
@@ -204,7 +205,7 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
             time: session.createdAt
           },
 
-          ...providers.map((dep: any) => ({
+          ...providers.map(dep => ({
             component: (
               <Entry
                 icon={<RiCornerUpRightDoubleLine />}

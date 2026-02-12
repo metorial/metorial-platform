@@ -13,6 +13,6 @@ export let ProviderConnectionSettingsPage = () => {
   );
 
   return renderWithLoader({ providerConnection })(({ providerConnection }) => (
-    <ProviderConnectionUpdateForm providerConnection={providerConnection.data} />
+    <ProviderConnectionUpdateForm providerConnection={providerConnection.data as Parameters<typeof ProviderConnectionUpdateForm>[0]['providerConnection']} />
   ));
 };

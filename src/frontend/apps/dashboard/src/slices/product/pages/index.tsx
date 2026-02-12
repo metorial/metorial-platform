@@ -17,7 +17,7 @@ export let ProjectHomePage = () => {
 
   let boot = useBoot();
   let otherInstancesFromThisProject = boot.data?.instances.filter(
-    i => i.project.id == instance.data?.project.id && i.id != instance.data?.instanceId
+    i => i.project.id == instance.data?.project.id && i.instanceId != instance.data?.instanceId
   );
   let otherProductionInstance = otherInstancesFromThisProject?.find(
     i => i.type == 'production'
@@ -26,9 +26,7 @@ export let ProjectHomePage = () => {
     i => i.type == 'development'
   );
 
-  let deployments = useProviderDeployments(instance.data?.instanceId, {
-    limit: 1
-  });
+  let deployments = useProviderDeployments(instance.data?.instanceId);
   let hasDeployments = !!deployments.data?.items.length;
 
   let apiKeys = useApiKeysWithAutoInit(
@@ -218,9 +216,10 @@ export let ProjectHomePage = () => {
           />
 
           <ServersGrid
-            orderByRank
             limit={6}
-            collectionId={(window as any).metorial_enterprise?.landing_collection_ids}
+            providerCollectionId={
+              (window as unknown as { metorial_enterprise?: { landing_collection_ids?: string | string[] } }).metorial_enterprise?.landing_collection_ids
+            }
           />
 
           <Spacer height={35} />

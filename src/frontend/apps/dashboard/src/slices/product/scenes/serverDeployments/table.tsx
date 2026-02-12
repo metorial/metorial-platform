@@ -21,7 +21,9 @@ export let ServerDeploymentsTable = (
 
   let instance = useCurrentInstance();
   let deployments = useProviderDeployments(instance.data?.instanceId, {
-    ...filter,
+    providerId: typeof filter.providerId === 'string' ? filter.providerId : Array.isArray(filter.providerId) ? filter.providerId[0] : undefined,
+    providerVersionId: typeof filter.providerVersionId === 'string' ? filter.providerVersionId : Array.isArray(filter.providerVersionId) ? filter.providerVersionId[0] : undefined,
+    status: filter.status,
     search: searchDebounced.length ? searchDebounced : undefined
   });
 
@@ -86,12 +88,16 @@ export let ServerDeploymentsList = (
   }
 ) => {
   let instance = useCurrentInstance();
-  let deployments = useProviderDeployments(instance.data?.instanceId, filter);
+  let deployments = useProviderDeployments(instance.data?.instanceId, {
+    providerId: typeof filter.providerId === 'string' ? filter.providerId : undefined,
+    status: filter.status,
+    search: filter.search
+  });
 
   return renderWithPagination(deployments)(deployments => (
     <ServerDeploymentsListItems
-      deployments={deployments.data.items}
-      onDeploymentClick={filter.onDeploymentClick as any}
+      deployments={deployments.data.items as unknown as ServerDeployment[]}
+      onDeploymentClick={filter.onDeploymentClick as unknown as ((deployment: ServerDeployment) => void) | undefined}
     />
   ));
 };

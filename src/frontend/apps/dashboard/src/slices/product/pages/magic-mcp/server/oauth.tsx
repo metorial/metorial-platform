@@ -24,7 +24,7 @@ export let MagicMcpServerOauthPage = () => {
   );
   let oauthConnection = useProviderConnection(
     instance.data?.instanceId,
-    deployment.data?.oauthConnection?.id
+    (deployment.data as Record<string, unknown>)?.oauthConnection as string | undefined
   );
 
   return renderWithLoader({ deployment, oauthConnection })(
@@ -33,7 +33,7 @@ export let MagicMcpServerOauthPage = () => {
         <FormPage>
           <MagicMcpServerOauthCallout noSpacer />
 
-          <ProviderConnectionUpdateForm providerConnection={oauthConnection.data} hideDelete />
+          <ProviderConnectionUpdateForm providerConnection={oauthConnection.data as Parameters<typeof ProviderConnectionUpdateForm>[0]['providerConnection']} hideDelete />
         </FormPage>
       </>
     )
@@ -51,7 +51,7 @@ export let MagicMcpServerOauthCallout = ({ noSpacer }: { noSpacer?: boolean }) =
     magicMcpServer.data?.serverDeployments[0]?.id
   );
 
-  if (!deployment.data?.oauthConnection) return;
+  if (!(deployment.data as Record<string, unknown>)?.oauthConnection) return;
 
   return (
     <>

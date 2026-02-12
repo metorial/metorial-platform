@@ -26,8 +26,8 @@ export let ServerRunStatusBadge = ({ run }: { run: ProviderRun | { status: strin
     succeeded: 'Succeeded'
   };
   return (
-    <Badge color={statusColorMap[run.status] ?? 'gray'}>
-      {statusLabelMap[run.status] ?? run.status}
+    <Badge color={statusColorMap[run.status ?? ''] ?? 'gray'}>
+      {statusLabelMap[run.status ?? ''] ?? run.status}
     </Badge>
   );
 };

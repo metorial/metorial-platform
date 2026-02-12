@@ -43,7 +43,7 @@ export let ProviderDeploymentForm = (
         instanceId: instance.data.instanceId,
         name,
         description: description || undefined,
-        provider_id: providerId,
+        providerId: providerId,
         ...(props.type === 'create' && props.lockedProviderVersionId
           ? { locked_provider_version_id: props.lockedProviderVersionId }
           : {})

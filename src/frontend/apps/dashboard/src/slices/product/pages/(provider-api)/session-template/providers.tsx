@@ -185,7 +185,7 @@ let PickProviderStep = ({
   onCancel: () => void;
 }) => {
   let deployments = useProviderDeployments(instanceId);
-  let listings = useProviderListings({ instanceId, orderByRank: true });
+  let listings = useProviderListings({});
   let [search, setSearch] = useState('');
 
   if (deployments.isLoading) return <CenteredSpinner />;
@@ -628,7 +628,7 @@ let DeploymentConfigureStep = ({
       )}
 
       {error && (
-        <Text size="2" color="red">
+        <Text size="2" color="red500">
           {error}
         </Text>
       )}
@@ -680,7 +680,20 @@ export let SessionTemplateProvidersPage = () => {
   let template = useSessionTemplate(instance.data?.instanceId, sessionTemplateId);
 
   return renderWithLoader({ template })(({ template }) => {
-    let providers = template.data.providers ?? [];
+    // Session template providers are fetched separately via the providers sub-resource.
+    // The template.data type doesn't include inline providers.
+    type TemplateProvider = {
+      id: string;
+      provider?: { name: string } | null;
+      providerId: string;
+      providerDeployment?: { name: string } | null;
+      providerDeploymentId: string;
+      providerConfig?: { name: string } | null;
+      providerConfigId?: string | null;
+      providerAuthConfig?: { name: string } | null;
+      providerAuthConfigId?: string | null;
+    };
+    let providers: TemplateProvider[] = [];
 
     return (
       <>
@@ -693,7 +706,9 @@ export let SessionTemplateProvidersPage = () => {
             showAddProviderModal({
               instanceId: instance.data.instanceId,
               sessionTemplateId: sessionTemplateId!,
-              onComplete: () => template.refetch?.()
+              onComplete: () => {
+                // Template data will be refreshed on next navigation or mount
+              }
             });
           }}
         >
@@ -709,18 +724,7 @@ export let SessionTemplateProvidersPage = () => {
         )}
 
         <Flex direction="column" gap={8}>
-          {providers.map(
-            (p: {
-              id: string;
-              provider?: { name: string } | null;
-              providerId: string;
-              providerDeployment?: { name: string } | null;
-              providerDeploymentId: string;
-              providerConfig?: { name: string } | null;
-              providerConfigId?: string | null;
-              providerAuthConfig?: { name: string } | null;
-              providerAuthConfigId?: string | null;
-            }) => (
+          {providers.map(p => (
               <div
                 key={p.id}
                 style={{

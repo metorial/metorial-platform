@@ -1,6 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useRevealedApiKey, useSessionTemplate } from '@metorial/state';
-import { Attributes, Badge, Flex, RenderDate, Spacer, Text, theme } from '@metorial/ui';
+import { Attributes, RenderDate, Spacer, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import dedent from 'dedent';
 import { useEffect, useState } from 'react';
@@ -25,7 +25,7 @@ export let SessionTemplateOverviewPage = () => {
   );
 
   let secretApiKey = apiKeys.data?.find(
-    (a: { type: string; status: string; revealInfo?: { forever?: boolean; until?: Date } }) =>
+    (a: { type: string; status: string; revealInfo?: { forever?: boolean; until?: Date } | null }) =>
       a.type === 'instance_access_token_secret' &&
       ((a.status == 'active' && a.revealInfo?.forever) ||
         (a.revealInfo?.until && a.revealInfo?.until > new Date()))
@@ -41,7 +41,6 @@ export let SessionTemplateOverviewPage = () => {
   if (key.value) apiKeySecret = key.value;
 
   return renderWithLoader({ template })(({ template }) => {
-    let providers = template.data.providers ?? [];
     let templateId = template.data.id;
 
     let apiKeyReplacement = {
@@ -223,10 +222,6 @@ export let SessionTemplateOverviewPage = () => {
               content: <ID id={template.data.id} />
             },
             {
-              label: 'Providers',
-              content: `${providers.length} provider${providers.length !== 1 ? 's' : ''}`
-            },
-            {
               label: 'Created',
               content: <RenderDate date={template.data.createdAt!} />
             }
@@ -234,59 +229,6 @@ export let SessionTemplateOverviewPage = () => {
         />
 
         <Spacer height={20} />
-
-        {providers.length > 0 && (
-          <>
-            <Text size="3" weight="strong" style={{ display: 'block', marginBottom: 10 }}>
-              Providers
-            </Text>
-
-            <Flex direction="column" gap={6}>
-              {providers.map(
-                (p: {
-                  id: string;
-                  provider?: { name: string } | null;
-                  providerId: string;
-                  providerDeployment?: { name: string } | null;
-                  providerDeploymentId: string;
-                  providerConfig?: { name: string } | null;
-                  providerConfigId?: string | null;
-                  providerAuthConfig?: { name: string } | null;
-                  providerAuthConfigId?: string | null;
-                }) => (
-                  <div
-                    key={p.id}
-                    style={{
-                      border: `1px solid ${theme.colors.gray300}`,
-                      borderRadius: 8,
-                      padding: '12px 16px'
-                    }}
-                  >
-                    <Flex gap={8} style={{ alignItems: 'center' }}>
-                      <Text size="2" weight="strong">
-                        {p.provider?.name ?? p.providerId}
-                      </Text>
-                      <Badge color="gray" size="1">
-                        {p.providerDeployment?.name ?? p.providerDeploymentId}
-                      </Badge>
-                    </Flex>
-
-                    <Flex gap={12} style={{ marginTop: 6 }}>
-                      <Text size="1" color="gray600">
-                        Config: {p.providerConfig?.name ?? p.providerConfigId ?? 'None'}
-                      </Text>
-                      <Text size="1" color="gray600">
-                        Auth: {p.providerAuthConfig?.name ?? p.providerAuthConfigId ?? 'None'}
-                      </Text>
-                    </Flex>
-                  </div>
-                )
-              )}
-            </Flex>
-
-            <Spacer height={20} />
-          </>
-        )}
 
         <Instructions
           variants={[

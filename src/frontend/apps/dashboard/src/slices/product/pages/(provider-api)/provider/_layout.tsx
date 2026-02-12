@@ -110,9 +110,8 @@ export let ProviderLayout = () => {
 
   // Fetch listing metadata for the selected provider version.
   let listings = useProviderListings(
-    instance.data?.instanceId && providerId
+    providerId
       ? {
-          instanceId: instance.data.instanceId,
           providerId,
           providerVersionId: effectiveVersionId,
           limit: 1

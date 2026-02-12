@@ -19,7 +19,7 @@ export let ProvidersPage = () => {
 
       <Spacer size={15} />
 
-      <ServersGrid search={searchDebounced} orderByRank />
+      <ServersGrid search={searchDebounced} />
     </>
   );
 };

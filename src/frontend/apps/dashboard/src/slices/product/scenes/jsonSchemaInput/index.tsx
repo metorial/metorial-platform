@@ -39,7 +39,7 @@ let NestedWrapper = styled.div`
   padding: 12px 16px 16px 16px;
   border: 1px solid ${theme.colors.gray300};
   border-radius: 8px;
-  background: ${theme.colors.gray50};
+  background: ${theme.colors.gray100};
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -208,7 +208,6 @@ let RenderField = ({
         <FieldWrapper>
           <AccordionSingle
             title={label}
-            description={property.description}
             defaultOpen={depth === 0}
           >
             {nestedContent}
@@ -244,7 +243,7 @@ let RenderField = ({
           description={property.description}
           value={value[key] ?? []}
           onChange={v => updateField(key, v)}
-          placeholder={property.items.examples?.[0]?.toString() ?? 'Enter a value'}
+          placeholder={Array.isArray((property.items as Record<string, unknown>)?.examples) ? String(((property.items as Record<string, unknown>).examples as unknown[])[0] ?? 'Enter a value') : 'Enter a value'}
         />
       </FieldWrapper>
     );

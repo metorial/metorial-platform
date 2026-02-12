@@ -1,7 +1,8 @@
+import React from 'react';
 import {
-  DashboardInstanceCustomServersDeploymentsGetOutput,
-  DashboardInstanceCustomServersGetOutput,
-  DashboardInstanceCustomServersVersionsGetOutput
+  DashboardInstanceCustomProvidersDeploymentsGetOutput,
+  DashboardInstanceCustomProvidersGetOutput,
+  DashboardInstanceCustomProvidersVersionsGetOutput
 } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
@@ -29,21 +30,21 @@ import { CustomServerEventsTable } from './events';
 export let CustomServerVersionStatus = ({
   version
 }: {
-  version: DashboardInstanceCustomServersVersionsGetOutput;
+  version: DashboardInstanceCustomProvidersVersionsGetOutput;
 }) =>
   ({
     current: <Badge color="blue">Current</Badge>,
     available: <Badge color="gray">Available</Badge>,
     deploying: <Badge color="orange">Deploying</Badge>,
     deployment_failed: <Badge color="red">Deployment Failed</Badge>
-  })[version.status] ?? version.status;
+  } as Record<string, React.ReactElement>)[version.status ?? ''] ?? version.status;
 
 export let CustomServerVersion = ({
   versionId,
   customServer
 }: {
   versionId: string;
-  customServer: DashboardInstanceCustomServersGetOutput | undefined | null;
+  customServer: DashboardInstanceCustomProvidersGetOutput | undefined | null;
 }) => {
   let instance = useCurrentInstance();
   let version = useCustomServerVersion(
@@ -54,43 +55,43 @@ export let CustomServerVersion = ({
   let deployment = useCustomServerDeployment(
     instance.data?.instanceId,
     customServer?.id,
-    version.data?.deploymentId
+    version.data?.deployment?.id
   );
 
   return renderWithLoader({ version, deployment })(({ version, deployment }) => (
     <>
       <Attributes
         attributes={[
-          { label: 'Version', content: <ID id={String(version.data.versionIndex)} /> },
+          { label: 'Version', content: <ID id={String(version.data.index ?? '')} /> },
           { label: 'Version ID', content: <ID id={version.data.id} /> },
           {
-            label: 'Server Version ID',
-            content: version.data.serverVersion?.id ? (
-              <ID id={version.data.serverVersion?.id} />
+            label: 'Provider ID',
+            content: version.data.providerId ? (
+              <ID id={version.data.providerId} />
             ) : (
               <span style={{ color: theme.colors.gray600 }}>N/A</span>
             )
           },
           { label: 'Status', content: <CustomServerVersionStatus version={version.data} /> },
-          { label: 'Created By', content: deployment.data.creatorActor.email },
+          { label: 'Created By', content: deployment.data.actor?.name ?? 'Unknown' },
           { label: 'Created', content: <RenderDate date={version.data.createdAt} /> }
         ]}
       />
 
       <Spacer height={15} />
 
-      {version.data.push && (
+      {deployment.data.commit && (
         <>
           <Attributes
             itemWidth="400px"
             attributes={[
               {
                 label: 'Commit',
-                content: version.data.push.commitMessage
+                content: deployment.data.commit.message ?? 'N/A'
               },
               {
-                label: 'Author',
-                content: `${version.data.push.authorName} (${version.data.push.authorEmail})`
+                label: 'Type',
+                content: deployment.data.commit.type ?? 'N/A'
               }
             ]}
           />
@@ -104,12 +105,6 @@ export let CustomServerVersion = ({
           title="Deployment Details"
           description="Details about the deployment of this version."
         />
-
-        {deployment.data.steps
-          .sort((a, b) => a.index - b.index)
-          .map(step => (
-            <StepDetails key={step.id} step={step} />
-          ))}
       </Group.Wrapper>
 
       {(version.data.status == 'current' || version.data.status == 'available') && (
@@ -119,7 +114,7 @@ export let CustomServerVersion = ({
           <Box title="Events" description="Important events related to this server version.">
             <CustomServerEventsTable
               customServer={customServer}
-              filters={{ versionId, limit: 15, order: 'desc' }}
+              filters={{ limit: 15, order: 'desc' }}
             />
           </Box>
         </>
@@ -130,7 +125,13 @@ export let CustomServerVersion = ({
   ));
 };
 
-type Step = DashboardInstanceCustomServersDeploymentsGetOutput['steps'][number];
+type Step = {
+  id: string;
+  type: string;
+  status: string;
+  index: number;
+  logs: { type: string; line: string; timestamp: Date }[];
+};
 
 let StepWrapper = styled.div`
   padding: 15px;
@@ -247,7 +248,7 @@ let StepDetails = ({ step }: { step: Step }) => {
               }}
             >
               {
-                {
+                ({
                   started: 'Deployment Started',
                   remote_server_connection_test: 'Remote Server Connection Test',
                   remote_oauth_auto_discovery: 'Remote OAuth Auto Discovery',
@@ -257,7 +258,7 @@ let StepDetails = ({ step }: { step: Step }) => {
                   lambda_deploy_publish: 'Publishing Managed Deployment',
                   lambda_deploy_build: 'Building Managed Deployment',
                   discovering: 'Discovering Server Capabilities'
-                }[step.type]
+                } as Record<string, string>)[step.type] ?? step.type
               }
             </StepHeaderTitle>
 

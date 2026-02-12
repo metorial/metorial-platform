@@ -35,11 +35,11 @@ export let useApiKeysWithAutoInit = (filter: ApiKeysFilter | undefined | null) =
         });
     }
   }, [
-    (filter as any)?.instanceId,
+    filter?.type === 'instance_access_token' ? filter.instanceId : undefined,
     apiKeys.error,
     apiKeys.isLoading,
     apiKeys.data?.length,
-    currentInstance.data?.id
+    currentInstance.data?.instanceId
   ]);
 
   return {

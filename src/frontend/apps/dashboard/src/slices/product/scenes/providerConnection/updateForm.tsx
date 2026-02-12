@@ -1,5 +1,6 @@
 import { CodeEditor } from '@metorial/code-editor';
-import { ProviderOauthConnectionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+// Type removed in Provider API migration
+type ProviderOauthConnectionsGetOutput = { id: string; name: string | null; description: string | null; status: string | null; clientId?: string; config: { type: string; scopes?: string[]; config?: unknown } };
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderConnection } from '@metorial/state';
 import {

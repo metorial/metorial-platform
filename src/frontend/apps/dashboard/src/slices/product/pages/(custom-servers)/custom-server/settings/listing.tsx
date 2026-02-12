@@ -26,7 +26,7 @@ export let CustomServerListingPage = () => {
   let version = useCustomServerVersion(
     instance.data?.instanceId,
     customServer.data?.id,
-    customServer.data?.currentVersionId
+    customServer.data?.provider?.currentVersion?.id
   );
 
   let statusUpdate = listing.useUpdateMutator();
@@ -36,12 +36,11 @@ export let CustomServerListingPage = () => {
 
   let [isPublic, setIsPublic] = useState(false);
   useEffect(
-    () => setIsPublic(customServer.data?.publicationStatus == 'public'),
-    [customServer.data?.publicationStatus]
+    () => setIsPublic(customServer.data?.status == 'active'),
+    [customServer.data?.status]
   );
 
-  let implementation =
-    version.data?.serverInstance.managedServer ?? version.data?.serverInstance.remoteServer;
+  let implementation = version.data;
 
   let flags = useDashboardFlags();
   if (!flags.data?.flags['community-profiles-enabled']) return;
@@ -93,7 +92,7 @@ export let CustomServerListingPage = () => {
             instance.data?.organization,
             instance.data?.project,
             instance.data,
-            customServer.data.server.id
+            customServer.data.provider?.id ?? customServer.data.id
           )}
         >
           <Button as="span" size="2" variant="outline">
@@ -114,7 +113,7 @@ export let CustomServerListingPage = () => {
             readmeUpdate.isLoading ||
             forkUpdate.isLoading
           }
-          checked={customServer.data?.fork.status == 'enabled'}
+          checked={false}
           onCheckedChange={async checked => {
             if (checked) {
               confirm({
@@ -123,13 +122,13 @@ export let CustomServerListingPage = () => {
                   'This will let other users fork this custom server to their own Metorial instance. This might expose sensitive information, so make sure you understand the implications.',
                 onConfirm: async () => {
                   await forkUpdate.mutate({
-                    isForkable: true
+                    metadata: { isForkable: true }
                   });
                 }
               });
             } else {
               await forkUpdate.mutate({
-                isForkable: false
+                metadata: { isForkable: false }
               });
             }
           }}
@@ -201,7 +200,7 @@ export let CustomServerListingPage = () => {
         </Field>
       </FormBox>
 
-      {implementation?.providerOauth && (
+      {false && (
         <FormBox
           title="OAuth Explainer"
           description="Explain how to set up OAuth for this custom server."

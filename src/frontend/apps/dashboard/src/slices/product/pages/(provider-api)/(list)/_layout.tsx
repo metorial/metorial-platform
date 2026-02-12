@@ -346,9 +346,9 @@ let DeploymentPickerForProvider = ({
                   <Text size="2" weight="strong">
                     {dep.name ?? 'Unnamed Deployment'}
                   </Text>
-                  {(dep as any).lockedVersion ? (
+                  {dep.lockedVersion ? (
                     <Badge color="purple" size="1">
-                      {(dep as any).lockedVersion.version}
+                      {dep.lockedVersion.version}
                     </Badge>
                   ) : (
                     <Badge color="gray" size="1">

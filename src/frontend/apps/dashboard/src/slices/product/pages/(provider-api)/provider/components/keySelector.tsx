@@ -29,7 +29,7 @@ export let KeySelector = ({
     instance.data
       ? {
           type: 'instance_access_token',
-          instanceId: instance.data.id
+          instanceId: instance.data.instanceId
         }
       : undefined
   );
@@ -48,7 +48,7 @@ export let KeySelector = ({
         if (!apiKey) {
           let [res] = await create.mutate({
             type: 'instance_access_token_secret',
-            instanceId: instance.data?.id ?? '',
+            instanceId: instance.data?.instanceId ?? '',
             name
           });
           if (!res) return;

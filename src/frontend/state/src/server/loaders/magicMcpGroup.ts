@@ -1,118 +1,67 @@
-/*
-import {
-  DashboardInstanceMagicMcpGroupsCreateBody,
-  DashboardInstanceMagicMcpGroupsListQuery,
-  DashboardInstanceMagicMcpGroupsUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
-import { createLoader } from '@metorial/data-hooks';
-import { usePaginator } from '../../lib/usePaginator';
-import { withAuth } from '../../user';
+import React from 'react';
 
-export let magicMcpGroupsLoader = createLoader({
-  name: 'magicMcpGroups',
-  parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceMagicMcpGroupsListQuery) =>
-    withAuth(sdk => sdk.magicMcp.groups.list(i.instanceId, i)),
-  mutators: {
-    update: (
-      i: DashboardInstanceMagicMcpGroupsUpdateBody & {
-        magicMcpGroupId: string;
-      },
-      { input: { instanceId } }
-    ) => withAuth(sdk => sdk.magicMcp.groups.update(instanceId, i.magicMcpGroupId, i)),
-
-    delete: (i: { magicMcpGroupId: string }, { input: { instanceId } }) =>
-      withAuth(sdk => sdk.magicMcp.groups.delete(instanceId, i.magicMcpGroupId))
-  }
+let stubMutator = () => ({
+  mutate: (..._args: unknown[]): Promise<[null, null]> => Promise.resolve([null, null]),
+  input: null as Record<string, unknown> | null,
+  isLoading: false as const,
+  isSuccess: false as const,
+  error: null,
+  RenderError: (): React.ReactElement | null => null
 });
 
-export let useCreateMagicMcpGroup = magicMcpGroupsLoader.createExternalMutator(
-  (i: DashboardInstanceMagicMcpGroupsCreateBody & { instanceId: string }) =>
-    withAuth(sdk => sdk.magicMcp.groups.create(i.instanceId, i)),
-  {
-    disableToast: true
-  }
-);
+export let magicMcpGroupsLoader = null;
+
+export let useCreateMagicMcpGroup = stubMutator;
+
+type MagicMcpGroupData = {
+  id: string;
+  name: string | null;
+  description: string | null;
+  slug: string | null;
+  status: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  serverDeployments: unknown[];
+  endpoints: unknown[];
+  needsDefaultOauthSession: boolean;
+};
 
 export let useMagicMcpGroups = (
-  instanceId: string | null | undefined,
-  query?: DashboardInstanceMagicMcpGroupsListQuery
-) => {
-  let data = usePaginator(pagination =>
-    magicMcpGroupsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
-  );
-
-  return {
-    ...data,
-    createMutator: useCreateMagicMcpGroup,
-    revokeMutator: data.useMutator('delete'),
-    updateMutator: data.useMutator('update')
-  };
-};
-
-export let magicMcpGroupLoader = createLoader({
-  name: 'magicMcpGroup',
-  parents: [magicMcpGroupsLoader],
-  fetch: (i: { instanceId: string; magicMcpGroupId: string }) =>
-    withAuth(sdk => sdk.magicMcp.groups.get(i.instanceId, i.magicMcpGroupId)),
-  mutators: {
-    update: (
-      i: DashboardInstanceMagicMcpGroupsUpdateBody,
-      { input: { instanceId, magicMcpGroupId } }
-    ) => withAuth(sdk => sdk.magicMcp.groups.update(instanceId, magicMcpGroupId, i)),
-
-    delete: (_, { input: { instanceId, magicMcpGroupId } }) =>
-      withAuth(sdk => sdk.magicMcp.groups.delete(instanceId, magicMcpGroupId)),
-
-    addServers: (
-      i: { magicMcpServerIds: string[] },
-      { input: { instanceId, magicMcpGroupId } }
-    ) =>
-      withAuth(sdk =>
-        sdk.magicMcp.groups.addServers(instanceId, magicMcpGroupId, {
-          magicMcpServerIds: i.magicMcpServerIds
-        })
-      ),
-
-    removeServers: (
-      i: { magicMcpServerIds: string[] },
-      { input: { instanceId, magicMcpGroupId } }
-    ) =>
-      withAuth(sdk =>
-        sdk.magicMcp.groups.removeServers(instanceId, magicMcpGroupId, {
-          magicMcpServerIds: i.magicMcpServerIds
-        })
-      )
-  }
+  _instanceId?: string | null,
+  _query?: Record<string, unknown>
+) => ({
+  data: null as { items: MagicMcpGroupData[]; pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean } } | null,
+  isLoading: false,
+  error: null,
+  next: () => {},
+  previous: () => {},
+  refetch: () => {},
+  createMutator: stubMutator,
+  revokeMutator: stubMutator,
+  updateMutator: stubMutator
 });
 
+export let magicMcpGroupLoader = null;
+
 export let useMagicMcpGroup = (
-  instanceId: string | null | undefined,
-  magicMcpGroupId: string | null | undefined
-) => {
-  let data = magicMcpGroupLoader.use(
-    instanceId && magicMcpGroupId ? { instanceId, magicMcpGroupId } : null
-  );
-
-  return {
-    ...data,
-    useUpdateMutator: data.useMutator('update'),
-    useDeleteMutator: data.useMutator('delete'),
-    useAddServersMutator: data.useMutator('addServers'),
-    useRemoveServersMutator: data.useMutator('removeServers')
-  };
-};
-*/
-
-// Placeholder exports to prevent import errors in consuming code
-export const magicMcpGroupsLoader = null;
-export const useCreateMagicMcpGroup = () => {
-  throw new Error('magicMcp API has been removed in the new Provider API');
-};
-export const useMagicMcpGroups = () => {
-  throw new Error('magicMcp API has been removed in the new Provider API');
-};
-export const magicMcpGroupLoader = null;
-export const useMagicMcpGroup = () => {
-  throw new Error('magicMcp API has been removed in the new Provider API');
-};
+  _instanceId?: string | null,
+  _magicMcpGroupId?: string | null
+) => ({
+  data: null as (Record<string, unknown> & {
+    id?: string;
+    name?: string;
+    slug?: string;
+    description?: string;
+    createdAt?: Date;
+    serverDeployments?: unknown[];
+    endpoints?: unknown[];
+    needsDefaultOauthSession?: boolean;
+  }) | null,
+  isLoading: false,
+  error: null,
+  refetch: () => {},
+  useUpdateMutator: stubMutator,
+  useDeleteMutator: stubMutator,
+  useAddServersMutator: stubMutator,
+  useRemoveServersMutator: stubMutator
+});

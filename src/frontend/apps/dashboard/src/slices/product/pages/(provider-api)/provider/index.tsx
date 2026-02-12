@@ -29,9 +29,8 @@ export let ProviderOverviewPage = () => {
 
   // Fetch the listing for rich metadata (skills, readme, etc.)
   let listings = useProviderListings(
-    instance.data?.instanceId && providerId
+    providerId
       ? {
-          instanceId: instance.data.instanceId,
           providerId,
           providerVersionId: selectedVersionId,
           limit: 1
@@ -50,7 +49,7 @@ export let ProviderOverviewPage = () => {
   );
 
   let secretApiKey = apiKeys.data?.find(
-    (a: { type: string; status: string; revealInfo?: { forever?: boolean; until?: Date } }) =>
+    (a: { type: string; status: string; revealInfo?: { forever?: boolean; until?: Date } | null }) =>
       a.type === 'instance_access_token_secret' &&
       ((a.status == 'active' && a.revealInfo?.forever) ||
         (a.revealInfo?.until && a.revealInfo?.until > new Date()))
@@ -67,8 +66,7 @@ export let ProviderOverviewPage = () => {
 
   let deployments = useProviderDeployments(instance.data?.instanceId, {
     providerId: provider.data?.id,
-    providerVersionId: selectedVersionId,
-    limit: 1
+    providerVersionId: selectedVersionId
   });
   let [providerDeployment, setProviderDeployment] = useState(() => deployments.data?.items[0]);
   useEffect(() => {
@@ -99,7 +97,6 @@ export let ProviderOverviewPage = () => {
               object: 'provider.deployment',
               id: providerDeployment.id,
               name: providerDeployment.name,
-              status: providerDeployment.status,
               createdAt: providerDeployment.createdAt,
               updatedAt: providerDeployment.updatedAt
             },
@@ -131,7 +128,7 @@ export let ProviderOverviewPage = () => {
                   }
                 : {}),
               onCreate: (res: { id: string }) =>
-                setProviderDeployment(res as typeof providerDeployment)
+                setProviderDeployment(res as unknown as NonNullable<typeof providerDeployment>)
             })
           }
         >

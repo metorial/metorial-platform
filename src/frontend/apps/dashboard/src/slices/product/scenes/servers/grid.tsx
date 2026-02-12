@@ -79,7 +79,7 @@ export let ServersGrid = (filter: DashboardInstanceProviderListingsListQuery) =>
                     instance.data?.organization,
                     instance.data?.project,
                     instance.data,
-                    provider.providerId
+                    provider.providerId ?? undefined
                   )
                 )
               }

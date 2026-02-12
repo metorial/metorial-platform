@@ -1,8 +1,7 @@
-/*
 import {
-  DashboardInstanceCustomServersCreateBody,
-  DashboardInstanceCustomServersListQuery,
-  DashboardInstanceCustomServersUpdateBody
+  DashboardInstanceCustomProvidersCreateBody,
+  DashboardInstanceCustomProvidersListQuery,
+  DashboardInstanceCustomProvidersUpdateBody
 } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
@@ -11,19 +10,19 @@ import { withAuth } from '../../user';
 export let customServersLoader = createLoader({
   name: 'customServers',
   parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceCustomServersListQuery) =>
-    withAuth(sdk => sdk.customServers.list(i.instanceId, i)),
+  fetch: (i: { instanceId: string } & DashboardInstanceCustomProvidersListQuery) =>
+    withAuth(sdk => sdk.customProviders.list(i.instanceId, i)),
   mutators: {}
 });
 
 export let useCreateCustomServer = customServersLoader.createExternalMutator(
-  (i: DashboardInstanceCustomServersCreateBody & { instanceId: string }) =>
-    withAuth(sdk => sdk.customServers.create(i.instanceId, i))
+  (i: DashboardInstanceCustomProvidersCreateBody & { instanceId: string }) =>
+    withAuth(sdk => sdk.customProviders.create(i.instanceId, i))
 );
 
 export let useCustomServers = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceCustomServersListQuery
+  query?: DashboardInstanceCustomProvidersListQuery
 ) => {
   let data = usePaginator(pagination =>
     customServersLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
@@ -36,15 +35,12 @@ export let customServerLoader = createLoader({
   name: 'customServer',
   parents: [customServersLoader],
   fetch: (i: { instanceId: string; customServerId: string }) =>
-    withAuth(sdk => sdk.customServers.get(i.instanceId, i.customServerId)),
+    withAuth(sdk => sdk.customProviders.get(i.instanceId, i.customServerId)),
   mutators: {
     update: (
-      i: DashboardInstanceCustomServersUpdateBody,
-      { input: { instanceId, customServerId } }
-    ) => withAuth(sdk => sdk.customServers.update(instanceId, customServerId, i)),
-
-    delete: (_, { input: { instanceId, customServerId } }) =>
-      withAuth(sdk => sdk.customServers.delete(instanceId, customServerId))
+      i: DashboardInstanceCustomProvidersUpdateBody,
+      { input: { instanceId, customServerId } }: { input: { instanceId: string; customServerId: string } }
+    ) => withAuth(sdk => sdk.customProviders.update(instanceId, customServerId, i))
   }
 });
 
@@ -58,21 +54,6 @@ export let useCustomServer = (
 
   return {
     ...data,
-    useUpdateMutator: data.useMutator('update'),
-    useDeleteMutator: data.useMutator('delete')
+    useUpdateMutator: data.useMutator('update')
   };
-};
-*/
-
-// Placeholder exports to prevent import errors in consuming code
-export const customServersLoader = null;
-export const useCreateCustomServer = () => {
-  throw new Error('customServers API has been removed in the new Provider API');
-};
-export const useCustomServers = () => {
-  throw new Error('customServers API has been removed in the new Provider API');
-};
-export const customServerLoader = null;
-export const useCustomServer = () => {
-  throw new Error('customServers API has been removed in the new Provider API');
 };

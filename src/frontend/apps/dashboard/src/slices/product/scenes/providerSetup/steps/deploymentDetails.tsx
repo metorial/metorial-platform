@@ -30,7 +30,7 @@ export let DeploymentDetailsStep = ({ instanceId }: { instanceId: string }) => {
       instanceId,
       name: name.trim(),
       description: description.trim() || undefined,
-      provider_id: state.providerId
+      providerId: state.providerId
     });
 
     if (err) {
@@ -83,7 +83,7 @@ export let DeploymentDetailsStep = ({ instanceId }: { instanceId: string }) => {
       />
 
       {error && (
-        <Text size="2" color="red">
+        <Text size="2" color="red500">
           {error}
         </Text>
       )}

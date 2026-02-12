@@ -23,7 +23,7 @@ export let SessionTemplatesTable = ({ instanceId }: { instanceId: string }) => {
                 </Text>
               )}
             </Text>,
-            <Text size="2">{template.providers?.length ?? 0} providers</Text>,
+            <Text size="2">Session Template</Text>,
             <RenderDate date={template.createdAt} />
           ],
           href: Paths.instance.sessionTemplate(

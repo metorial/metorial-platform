@@ -1,54 +1,41 @@
-/*
-import { DashboardInstanceMagicMcpSessionsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
-import { createLoader } from '@metorial/data-hooks';
-import { usePaginator } from '../../lib/usePaginator';
-import { withAuth } from '../../user';
+type MagicMcpSessionData = {
+  id: string;
+  name: string | null;
+  description: string | null;
+  status: string | null;
+  connectionStatus: string | null;
+  magicMcpServer: { id: string; name: string | null } | null;
+  client: { name: string | null; version: string | null } | null;
+  sessionId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
-export let magicMcpSessionsLoader = createLoader({
-  name: 'magicMcpSessions',
-  parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceMagicMcpSessionsListQuery) =>
-    withAuth(sdk => sdk.magicMcp.sessions.list(i.instanceId, i)),
-  mutators: {}
-});
+export let magicMcpSessionsLoader = null;
 
 export let useMagicMcpSessions = (
-  instanceId: string | null | undefined,
-  query?: DashboardInstanceMagicMcpSessionsListQuery
-) => {
-  let data = usePaginator(pagination =>
-    magicMcpSessionsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
-  );
-
-  return data;
-};
-
-export let magicMcpSessionLoader = createLoader({
-  name: 'magicMcpSession',
-  parents: [magicMcpSessionsLoader],
-  fetch: (i: { instanceId: string; magicMcpSessionId: string }) =>
-    withAuth(sdk => sdk.magicMcp.sessions.get(i.instanceId, i.magicMcpSessionId)),
-  mutators: {}
+  _instanceId?: string | null,
+  _query?: Record<string, unknown>
+) => ({
+  data: null as {
+    items: MagicMcpSessionData[];
+    pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  } | null,
+  isLoading: false,
+  error: null,
+  next: () => {},
+  previous: () => {},
+  refetch: () => {}
 });
 
+export let magicMcpSessionLoader = null;
+
 export let useMagicMcpSession = (
-  instanceId: string | null | undefined,
-  magicMcpSessionId: string | null | undefined
-) => {
-  let data = magicMcpSessionLoader.use(
-    instanceId && magicMcpSessionId ? { instanceId, magicMcpSessionId } : null
-  );
-
-  return data;
-};
-*/
-
-// Placeholder exports to prevent import errors in consuming code
-export const magicMcpSessionsLoader = null;
-export const useMagicMcpSessions = () => {
-  throw new Error('magicMcp API has been removed in the new Provider API');
-};
-export const magicMcpSessionLoader = null;
-export const useMagicMcpSession = () => {
-  throw new Error('magicMcp API has been removed in the new Provider API');
-};
+  _instanceId?: string | null,
+  _magicMcpSessionId?: string | null
+) => ({
+  data: null as MagicMcpSessionData | null,
+  isLoading: false,
+  error: null,
+  refetch: () => {}
+});

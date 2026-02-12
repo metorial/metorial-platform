@@ -12,13 +12,20 @@ import { Table } from '@metorial/ui-product';
 import { useEffect, useMemo, useState } from 'react';
 import { useDebounced } from '../../../../../hooks/useDebounced';
 
+type DeploymentPreview = {
+  id: string;
+  name: string | null;
+  providerId: string;
+  provider?: { name: string } | null;
+  lockedVersion?: { version: string } | null;
+};
+
 type ConfigOverviewRow = {
   key: string;
-  deployment: any;
+  deployment: DeploymentPreview;
   configName: string;
   description: string | null;
-  isEphemeral: boolean;
-  createdAt: string | null;
+  createdAt: Date | string | null;
 };
 
 let mapWithConcurrency = async <I, O>(
@@ -122,7 +129,6 @@ export let ProviderConfigsOverviewPage = () => {
               deployment: item.deployment,
               configName: config.name ?? 'Unnamed',
               description: config.description ?? null,
-              isEphemeral: config.isEphemeral ?? false,
               createdAt: config.createdAt ?? null
             });
           }
@@ -170,7 +176,7 @@ export let ProviderConfigsOverviewPage = () => {
       )}
 
       {error && (
-        <Text size="2" color="red">
+        <Text size="2" color="red500">
           {error}
         </Text>
       )}

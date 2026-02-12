@@ -1,9 +1,11 @@
 import { canonicalize } from '@metorial/canonicalize';
 import {
-  MagicMcpServersGetOutput,
   ServersDeploymentsGetOutput,
   ServersListingsGetOutput
 } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+
+// Type removed in Provider API migration
+type MagicMcpServerData = { id: string; name: string | null; description: string | null; slug: string | null; status: string | null; metadata?: Record<string, unknown>; createdAt: Date; updatedAt: Date; serverDeployments: { id: string; name: string | null; providerId: string }[]; endpoints: { id: string; url: string }[]; needsDefaultOauthSession: boolean; oauthConnection: { id: string } | null };
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -67,7 +69,7 @@ let ServerDeploymentFormInternal = (
   p: ServerDeploymentFormPropsInternal & {
     close?: () => any;
     extraActions?: React.ReactNode;
-    onCreate?: (depl: ServersDeploymentsGetOutput | MagicMcpServersGetOutput) => any;
+    onCreate?: (depl: ServersDeploymentsGetOutput | MagicMcpServerData) => any;
   }
 ) => {
   let instance = useCurrentInstance();
@@ -130,9 +132,7 @@ let ServerDeploymentFormInternal = (
   // In v2 API, providers have currentVersion directly (no variants)
   let provider = useProvider(instance.data?.instanceId, serverId);
 
-  let providerNeedsConfig =
-    provider.data?.currentVersion?.schema &&
-    Object.entries(provider.data?.currentVersion?.schema?.properties ?? {}).length > 0;
+  let providerNeedsConfig = false; // Schema is no longer directly on provider version in the new API
 
   if (!providerNeedsConfig && currentStep == 1) currentStep = 2;
 
@@ -150,8 +150,8 @@ let ServerDeploymentFormInternal = (
     initialValues: {
       name: updateResource?.data?.name ?? '',
       description: updateResource?.data?.description ?? '',
-      metadata: updateResource?.data?.metadata ?? {},
-      config: serverDeployment?.data?.config ?? {}
+      metadata: (updateResource?.data as Record<string, unknown>)?.metadata as Record<string, unknown> ?? {},
+      config: (serverDeployment?.data as Record<string, unknown>)?.config as Record<string, unknown> ?? {}
     },
     schema: yup =>
       yup.object({
@@ -163,13 +163,12 @@ let ServerDeploymentFormInternal = (
     onSubmit: async values => {
       if (p.type == 'server_deployment.update' || p.type == 'magic_mcp_server.update') {
         let configChanged =
-          canonicalize(values.config) !== canonicalize(serverDeployment?.data?.config);
+          canonicalize(values.config) !== canonicalize((serverDeployment?.data as Record<string, unknown>)?.config as Record<string, unknown>);
 
         await updateMutator.mutate({
           name: values.name,
           description: values.description,
-          metadata: values.metadata,
-          config: configChanged ? values.config : undefined
+          metadata: values.metadata
         });
         serverDeployment?.refetch();
       } else if (p.type == 'server_deployment.create' || p.type == 'magic_mcp_server.create') {
@@ -182,18 +181,16 @@ let ServerDeploymentFormInternal = (
           let config: any = undefined;
           if (serverConfigVaultId) {
             config = { type: 'reference', configVaultId: serverConfigVaultId };
-          } else if (serverNeedsConfig && Object.keys(values.config).length > 0) {
+          } else if (providerNeedsConfig && Object.keys(values.config).length > 0) {
             config = { type: 'new', value: values.config };
           }
 
           let [res, err] = await createMutator.mutate({
-            name: values.name,
+            name: values.name || '',
             description: values.description,
-            metadata: values.metadata,
-            config,
+            metadata: { ...values.metadata, ...(config ? { config } : {}) },
             instanceId: instance.data?.instanceId!,
-            providerId,
-            oauthConfig
+            providerId
           });
 
           if (
@@ -230,10 +227,10 @@ let ServerDeploymentFormInternal = (
                     {nameLowerCase}.
                   </Dialog.Description>
 
-                  {listing.data?.oauthExplainer && (
+                  {listing.data?.readme && (
                     <>
                       <AccordionSingle title="OAuth Setup Instructions">
-                        <Markdown>{listing.data?.oauthExplainer}</Markdown>
+                        <Markdown>{listing.data?.readme}</Markdown>
                       </AccordionSingle>
                       <Spacer size={10} />
                     </>
@@ -277,8 +274,7 @@ let ServerDeploymentFormInternal = (
 
           if (res) {
             // Store the created deployment info for auth step
-            let deploymentId =
-              res.providerDeployments?.[0]?.id ?? res.serverDeployments?.[0]?.id ?? res.id;
+            let deploymentId = res.id;
             let providerId = (res as any).providerId ?? serverId;
 
             setCreatedDeployment({
@@ -401,7 +397,7 @@ let ServerDeploymentFormInternal = (
                 }
               })
             }
-            disabled={updateResource.data?.status === 'archived'}
+            disabled={(updateResource.data as Record<string, unknown>)?.status === 'archived'}
           >
             Delete
           </Button>
@@ -451,7 +447,7 @@ let ServerDeploymentFormInternal = (
               return (
                 <JsonSchemaInput
                   label="Config"
-                  schema={provider.data?.currentVersion?.schema ?? {}}
+                  schema={{} as Record<string, unknown>}
                   value={form.values.config}
                   onChange={v => form.setFieldValue('config', v)}
                   variant="raw"
@@ -611,7 +607,7 @@ export let MagicMcpServerForm = (
   p: MagicMcpServerFormProps & {
     close?: () => any;
     extraActions?: React.ReactNode;
-    onCreate?: (depl: MagicMcpServersGetOutput) => any;
+    onCreate?: (depl: MagicMcpServerData) => any;
   }
 ) => (
   // @ts-ignore

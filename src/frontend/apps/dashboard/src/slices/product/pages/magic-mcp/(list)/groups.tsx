@@ -22,7 +22,7 @@ export let MagicMcpGroupsPage = () => {
 
       <Spacer height={15} />
 
-      <MagicGroupsTable search={searchDebounced} />
+      <MagicGroupsTable />
     </>
   ));
 };

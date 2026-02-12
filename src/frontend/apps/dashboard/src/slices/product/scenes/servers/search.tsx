@@ -1,5 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceProviderListingsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { useProviderListings } from '@metorial/state';
 import {
   Avatar,
@@ -42,7 +42,7 @@ export let ServerSearch = ({
   onSelect,
   stickyTop
 }: {
-  onSelect?: (server: ServersListingsGetOutput) => void;
+  onSelect?: (server: DashboardInstanceProviderListingsGetOutput) => void;
   stickyTop?: number;
 }) => {
   let [search, setSearch] = useState('');
@@ -52,14 +52,12 @@ export let ServerSearch = ({
       ? null
       : {
           search: searchDebounced,
-          limit: 10,
-          orderByRank: true
+          limit: 10
         }
   );
 
   let allServers = useProviderListings({
-    limit: 30,
-    orderByRank: true
+    limit: 30
   });
 
   return (
@@ -85,7 +83,7 @@ export let ServerSearch = ({
               items={allServers.data.items.map(server => ({
                 id: server.id,
                 label: server.name ?? 'Unnamed',
-                onSelect: () => onSelect?.(server as any)
+                onSelect: () => onSelect?.(server)
               }))}
             />
           ))}
@@ -104,7 +102,7 @@ export let ServerSearch = ({
             {server.data?.items.map(server => (
               <ItemButton
                 key={server.id}
-                onClick={() => onSelect?.(server as any)}
+                onClick={() => onSelect?.(server)}
                 type="button"
               >
                 <Entity.Wrapper>
@@ -119,16 +117,12 @@ export let ServerSearch = ({
 
                         <Avatar entity={server} />
                       }
-                      title={[
-                        server.vendor?.name,
-                        server.profile?.isMetorial ? undefined : server.profile?.name,
-                        server.name
-                      ]
-                        .filter(Boolean)
-                        .join(' / ')}
+                      title={server.name}
                       description={
-                        server.description.substring(0, 100) +
-                        (server.description.length > 100 ? '...' : '')
+                        server.description
+                          ? server.description.substring(0, 100) +
+                            (server.description.length > 100 ? '...' : '')
+                          : undefined
                       }
                     />
                   </Entity.Content>
@@ -172,7 +166,7 @@ export let ServerSearchField = ({
 }: {
   value?: { id: string; name: string };
   label?: string;
-  onChange?: (server: ServersListingsGetOutput) => void;
+  onChange?: (server: DashboardInstanceProviderListingsGetOutput) => void;
   size?: ButtonSize;
 }) => {
   let sizeStyles = getButtonSize(size);

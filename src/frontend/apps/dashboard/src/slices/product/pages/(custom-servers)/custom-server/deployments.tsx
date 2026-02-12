@@ -11,7 +11,7 @@ export let CustomServerDeploymentsPage = () => {
 
   return renderWithLoader({ customServer })(({ customServer }) => (
     <>
-      <ServerDeploymentsTable order="desc" serverId={customServer.data.server.id} />
+      <ServerDeploymentsTable order="desc" providerId={customServer.data.provider?.id} />
     </>
   ));
 };

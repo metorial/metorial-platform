@@ -8,14 +8,13 @@ type AuthMethod = {
   type: 'oauth' | 'token' | 'custom';
   name: string;
   description: string | null;
-  input_schema: Record<string, any> | null;
+  inputSchema: Record<string, unknown> | null;
   scopes: { id: string; scope: string; name: string; description: string | null }[] | null;
 };
 
 type AuthCredential = {
   id: string;
   name: string | null;
-  clientId: string | null;
 };
 
 export type AuthPanelProps = {

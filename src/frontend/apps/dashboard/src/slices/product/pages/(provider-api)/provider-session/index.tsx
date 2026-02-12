@@ -36,28 +36,17 @@ export let ProviderSessionOverviewPage = () => {
 
       <Spacer height={15} />
 
-      {session.data.connectionUrls && (
+      {session.data.connectionUrl && (
         <SideBox
-          title="Connection URLs"
-          description="Use these URLs to connect to this session."
+          title="Connection URL"
+          description="Use this URL to connect to this session."
         >
-          {session.data.connectionUrls.sse && (
-            <div>
-              <strong>SSE:</strong>{' '}
-              <code style={{ fontSize: '12px', wordBreak: 'break-all' }}>
-                {session.data.connectionUrls.sse}
-              </code>
-            </div>
-          )}
-          <Spacer size={5} />
-          {session.data.connectionUrls.streamableHttp && (
-            <div>
-              <strong>Streamable HTTP:</strong>{' '}
-              <code style={{ fontSize: '12px', wordBreak: 'break-all' }}>
-                {session.data.connectionUrls.streamableHttp}
-              </code>
-            </div>
-          )}
+          <div>
+            <strong>URL:</strong>{' '}
+            <code style={{ fontSize: '12px', wordBreak: 'break-all' }}>
+              {session.data.connectionUrl}
+            </code>
+          </div>
         </SideBox>
       )}
     </>

@@ -1,5 +1,5 @@
 import { CodeEditor } from '@metorial/code-editor';
-import { CustomServersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -28,7 +28,7 @@ let Form = styled.form`
 
 export let CustomServerDockerCreateForm = (p: {
   close?: () => any;
-  onCreate?: (out: CustomServersGetOutput) => any;
+  onCreate?: (out: CustomProvidersGetOutput) => any;
 }) => {
   let instance = useCurrentInstance();
   let createCustomServer = useCreateCustomServer();
@@ -61,15 +61,9 @@ export let CustomServerDockerCreateForm = (p: {
         instanceId: instance.data.instanceId,
         name: values.name,
         description: values.description,
-        implementation: {
-          type: 'docker',
-          dockerServer: {
-            dockerImage: values.dockerImage
-          },
-          config: {
-            ...getDefaultServerConfigDocker,
-            getLaunchParams: values.getLaunchParams
-          }
+        from: {
+          type: 'container',
+          imageRef: values.dockerImage
         }
       });
 

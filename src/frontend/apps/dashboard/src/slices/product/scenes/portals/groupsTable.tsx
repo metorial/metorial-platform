@@ -79,7 +79,7 @@ export let showConsumerGroupFormModal = (d: { portalId: string }) =>
         let [res] = await mutator.mutate({
           name: values.name,
           description: values.description,
-          instanceId: instance.data!.id,
+          instanceId: instance.data!.instanceId,
           portalId: d.portalId
         });
 

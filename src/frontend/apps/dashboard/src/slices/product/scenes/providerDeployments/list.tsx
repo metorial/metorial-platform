@@ -41,8 +41,8 @@ export let ProviderDeploymentsList = ({
   let deployments = useProviderDeployments(instance.data?.instanceId, {
     providerId: providerId
       ? Array.isArray(providerId)
-        ? providerId
-        : [providerId]
+        ? providerId[0]
+        : providerId
       : undefined
   });
 
@@ -98,7 +98,7 @@ export let ProviderDeploymentsList = ({
             return (
               <ItemButton
                 key={deployment.id}
-                onClick={() => onDeploymentClick?.(deployment)}
+                onClick={() => onDeploymentClick?.(deployment as unknown as ProviderDeployment)}
                 type="button"
               >
                 {inner}

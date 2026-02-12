@@ -41,10 +41,6 @@ export let ProviderConfigOverviewPage = () => {
             content: deployment.data?.name ?? '—'
           },
           {
-            label: 'Ephemeral',
-            content: config.data.isEphemeral ? 'Yes' : 'No'
-          },
-          {
             label: 'Created',
             content: config.data.createdAt ? <RenderDate date={config.data.createdAt} /> : '—'
           },

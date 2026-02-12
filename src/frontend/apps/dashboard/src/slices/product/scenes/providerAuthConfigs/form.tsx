@@ -231,7 +231,7 @@ export let ProviderAuthConfigForm = (
       {submitError && (
         <>
           <Spacer size={8} />
-          <Text size="2" color="red">
+          <Text size="2" color="red500">
             {submitError}
           </Text>
         </>

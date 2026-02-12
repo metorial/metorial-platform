@@ -92,7 +92,7 @@ export let MagicMcpServerLayout = () => {
                 label: 'Errors',
                 to: Paths.instance.magicMcp.server(...serverPathParams, 'errors')
               },
-              ...(serverDeployment.data.oauthConnection
+              ...((serverDeployment.data as Record<string, unknown>).oauthConnection
                 ? [
                     {
                       label: 'OAuth Configuration',
