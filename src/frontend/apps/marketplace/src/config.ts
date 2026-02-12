@@ -19,10 +19,10 @@ setConfig({
 
   environment: metorialEnvironment as any,
 
-  enterprise: {
-    organizationFrontendUrl: teamFrontendUrl,
-    accountFrontendUrl: accountFrontendUrl
-  },
+  // enterprise: {
+  //   organizationFrontendUrl: teamFrontendUrl,
+  //   accountFrontendUrl: accountFrontendUrl
+  // },
 
   microFrontends: {},
 
