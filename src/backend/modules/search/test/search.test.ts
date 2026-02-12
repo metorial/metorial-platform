@@ -145,12 +145,9 @@ describe('SearchService', () => {
     });
 
     it('should work with different index types', async () => {
-      const indexTypes: Array<'server_listing' | 'server_implementation' | 'server_deployment' | 'magic_mcp_server'> = [
-        'server_listing',
-        'server_implementation',
-        'server_deployment',
-        'magic_mcp_server'
-      ];
+      const indexTypes: Array<
+        'server_listing' | 'server_implementation' | 'server_deployment' | 'magic_mcp_server'
+      > = ['server_listing', 'server_implementation', 'server_deployment', 'magic_mcp_server'];
 
       for (const indexType of indexTypes) {
         await searchService.indexDocument({
@@ -413,12 +410,9 @@ describe('SearchService', () => {
     });
 
     it('should work with different index types', async () => {
-      const indexTypes: Array<'server_listing' | 'server_implementation' | 'server_deployment' | 'magic_mcp_server'> = [
-        'server_listing',
-        'server_implementation',
-        'server_deployment',
-        'magic_mcp_server'
-      ];
+      const indexTypes: Array<
+        'server_listing' | 'server_implementation' | 'server_deployment' | 'magic_mcp_server'
+      > = ['server_listing', 'server_implementation', 'server_deployment', 'magic_mcp_server'];
 
       for (const indexType of indexTypes) {
         mockMeiliSearchIndex.search.mockResolvedValueOnce({ hits: [] });

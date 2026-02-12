@@ -27,10 +27,7 @@ export let ProviderDeploymentSettingsPage = () => {
 
   return renderWithLoader({ deployment })(({ deployment }) => (
     <>
-      <Box
-        title="Deployment Settings"
-        description="Modify the settings of this deployment."
-      >
+      <Box title="Deployment Settings" description="Modify the settings of this deployment.">
         <Input
           label="Name"
           value={name || deployment.data.name || ''}
@@ -80,7 +77,8 @@ export let ProviderDeploymentSettingsPage = () => {
                 <Dialog.Wrapper {...dialogProps} width={450}>
                   <Dialog.Title>Delete Deployment</Dialog.Title>
                   <Dialog.Description>
-                    Are you sure you want to delete this deployment? This action cannot be undone.
+                    Are you sure you want to delete this deployment? This action cannot be
+                    undone.
                   </Dialog.Description>
 
                   <Spacer size={20} />

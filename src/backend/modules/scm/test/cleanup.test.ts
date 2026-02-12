@@ -42,7 +42,9 @@ describe('cleanup cron job', () => {
     const now = new Date('2024-01-15T00:00:00Z');
     vi.setSystemTime(now);
 
-    vi.mocked(db.scmRepoWebhookReceivedEvent.deleteMany).mockResolvedValue({ count: 10 } as any);
+    vi.mocked(db.scmRepoWebhookReceivedEvent.deleteMany).mockResolvedValue({
+      count: 10
+    } as any);
 
     await (cleanupCron as any).handler();
 
@@ -61,7 +63,9 @@ describe('cleanup cron job', () => {
     const now = new Date('2024-01-15T00:00:00Z');
     vi.setSystemTime(now);
 
-    vi.mocked(db.scmRepoWebhookReceivedEvent.deleteMany).mockResolvedValue({ count: 0 } as any);
+    vi.mocked(db.scmRepoWebhookReceivedEvent.deleteMany).mockResolvedValue({
+      count: 0
+    } as any);
 
     await (cleanupCron as any).handler();
 
@@ -72,7 +76,9 @@ describe('cleanup cron job', () => {
     const now = new Date('2024-02-29T12:30:45Z'); // Leap year
     vi.setSystemTime(now);
 
-    vi.mocked(db.scmRepoWebhookReceivedEvent.deleteMany).mockResolvedValue({ count: 5 } as any);
+    vi.mocked(db.scmRepoWebhookReceivedEvent.deleteMany).mockResolvedValue({
+      count: 5
+    } as any);
 
     await (cleanupCron as any).handler();
 
@@ -104,7 +110,9 @@ describe('cleanup cron job', () => {
     const now = new Date('2024-06-15T00:00:00Z');
     vi.setSystemTime(now);
 
-    vi.mocked(db.scmRepoWebhookReceivedEvent.deleteMany).mockResolvedValue({ count: 15 } as any);
+    vi.mocked(db.scmRepoWebhookReceivedEvent.deleteMany).mockResolvedValue({
+      count: 15
+    } as any);
 
     await (cleanupCron as any).handler();
 
@@ -130,7 +138,9 @@ describe('cleanup cron job', () => {
     const now = new Date('2024-03-01T00:00:00Z');
     vi.setSystemTime(now);
 
-    vi.mocked(db.scmRepoWebhookReceivedEvent.deleteMany).mockResolvedValue({ count: 42 } as any);
+    vi.mocked(db.scmRepoWebhookReceivedEvent.deleteMany).mockResolvedValue({
+      count: 42
+    } as any);
 
     await (cleanupCron as any).handler();
 
@@ -165,7 +175,9 @@ describe('cleanup cron job', () => {
     const now = new Date('2024-01-31T00:00:00Z');
     vi.setSystemTime(now);
 
-    vi.mocked(db.scmRepoWebhookReceivedEvent.deleteMany).mockResolvedValue({ count: 3 } as any);
+    vi.mocked(db.scmRepoWebhookReceivedEvent.deleteMany).mockResolvedValue({
+      count: 3
+    } as any);
 
     await (cleanupCron as any).handler();
 

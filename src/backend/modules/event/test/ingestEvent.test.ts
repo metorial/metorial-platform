@@ -871,7 +871,7 @@ describe('IngestEventService', () => {
         ];
 
         expect(validEventKeys).toHaveLength(10);
-        validEventKeys.forEach((key) => {
+        validEventKeys.forEach(key => {
           expect(typeof key).toBe('string');
         });
       });

@@ -11,8 +11,10 @@ export let providerConfigsLoader = createLoader({
   name: 'providerConfigs',
   parents: [],
   fetch: (
-    i: { instanceId: string; providerDeploymentId: string } &
-      DashboardInstanceProviderDeploymentsConfigsListQuery
+    i: {
+      instanceId: string;
+      providerDeploymentId: string;
+    } & DashboardInstanceProviderDeploymentsConfigsListQuery
   ) =>
     withAuth(sdk =>
       sdk.providerDeployments.configs.list(i.instanceId, i.providerDeploymentId, i)
@@ -52,11 +54,7 @@ export let useProviderConfigs = (
 export let providerConfigLoader = createLoader({
   name: 'providerConfig',
   parents: [providerConfigsLoader],
-  fetch: (i: {
-    instanceId: string;
-    providerDeploymentId: string;
-    providerConfigId: string;
-  }) =>
+  fetch: (i: { instanceId: string; providerDeploymentId: string; providerConfigId: string }) =>
     withAuth(sdk =>
       sdk.providerDeployments.configs.get(
         i.instanceId,

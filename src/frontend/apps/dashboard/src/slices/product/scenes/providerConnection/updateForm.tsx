@@ -25,7 +25,10 @@ export let ProviderConnectionUpdateForm = (p: {
   hideDelete?: boolean;
 }) => {
   let instance = useCurrentInstance();
-  let providerConnection = useProviderConnection(instance.data?.instanceId, p.providerConnection?.id);
+  let providerConnection = useProviderConnection(
+    instance.data?.instanceId,
+    p.providerConnection?.id
+  );
 
   let updateMutator = providerConnection.useUpdateMutator();
   let deleteMutator = providerConnection.useDeleteMutator();

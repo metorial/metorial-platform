@@ -73,16 +73,18 @@ export let SessionEvents = ({ session }: { session: SessionsGetOutput | null }) 
             time: session.createdAt
           },
 
-          ...(session.serverDeployments ?? session.providerDeployments ?? []).map((dep: any) => ({
-            component: (
-              <Entry
-                icon={<RiCornerUpRightDoubleLine />}
-                title={`Provider ${dep.name ?? dep.providerId ?? 'Unknown'} connected`}
-                time={session.createdAt}
-              />
-            ),
-            time: session.createdAt
-          })),
+          ...(session.serverDeployments ?? session.providerDeployments ?? []).map(
+            (dep: any) => ({
+              component: (
+                <Entry
+                  icon={<RiCornerUpRightDoubleLine />}
+                  title={`Provider ${dep.name ?? dep.providerId ?? 'Unknown'} connected`}
+                  time={session.createdAt}
+                />
+              ),
+              time: session.createdAt
+            })
+          ),
 
           ...serverSessionItems.map((serverSession, i) => ({
             component: <ServerSession serverSession={serverSession} />,

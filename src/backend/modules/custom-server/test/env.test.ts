@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock the @metorial/env module
 vi.mock('@metorial/env', () => ({
-  createValidatedEnv: vi.fn((config) => {
+  createValidatedEnv: vi.fn(config => {
     // Return a mock env object that validates the structure
     const result: any = {};
     for (const [key, value] of Object.entries(config)) {
@@ -15,7 +15,7 @@ vi.mock('@metorial/env', () => ({
 // Mock the @metorial/validation module
 vi.mock('@metorial/validation', () => ({
   v: {
-    optional: vi.fn((validator) => ({ optional: true, validator })),
+    optional: vi.fn(validator => ({ optional: true, validator })),
     string: vi.fn(() => ({ type: 'string' }))
   }
 }));

@@ -15,7 +15,7 @@ vi.mock('@metorial/db', () => ({
     }
   },
   ID: {
-    generateId: vi.fn((type) => Promise.resolve(`${type}_test_id_${Date.now()}`))
+    generateId: vi.fn(type => Promise.resolve(`${type}_test_id_${Date.now()}`))
   }
 }));
 
@@ -26,10 +26,10 @@ vi.mock('@metorial/module-usage', () => ({
 }));
 
 vi.mock('@metorial/queue', () => ({
-  createQueue: vi.fn((config) => ({
+  createQueue: vi.fn(config => ({
     name: config.name,
     add: vi.fn(),
-    process: vi.fn((handler) => ({
+    process: vi.fn(handler => ({
       handler,
       processQueue: handler
     }))

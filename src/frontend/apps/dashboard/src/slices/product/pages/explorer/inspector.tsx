@@ -67,7 +67,11 @@ let Status = styled(motion.div)`
   font-weight: 500;
 `;
 
-export let InspectorFrame = ({ providerDeployment }: { providerDeployment: { id: string } }) => {
+export let InspectorFrame = ({
+  providerDeployment
+}: {
+  providerDeployment: { id: string };
+}) => {
   let instance = useCurrentInstance();
   let session = useSessionForDeployment(instance.data?.instanceId, providerDeployment.id);
 

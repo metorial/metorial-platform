@@ -7,7 +7,10 @@ export let providerAuthMethodsLoader = createLoader({
   name: 'providerAuthMethods',
   parents: [],
   fetch: (
-    i: { instanceId: string; providerId: string } & DashboardInstanceProvidersAuthMethodsListQuery
+    i: {
+      instanceId: string;
+      providerId: string;
+    } & DashboardInstanceProvidersAuthMethodsListQuery
   ) => withAuth(sdk => sdk.providers.authMethods.list(i.instanceId, i.providerId, i)),
   mutators: {}
 });

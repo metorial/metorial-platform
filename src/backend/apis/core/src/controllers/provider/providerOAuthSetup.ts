@@ -108,10 +108,9 @@ export let providerOAuthSetupController = Controller.create(
               examples: ['OAuth setup for development']
             })
           ),
-          metadata: v.optional(
-            v.record(v.any(), { examples: [{ user_id: 'usr_123' }] }),
-            { description: 'Custom key-value pairs for storing additional information' }
-          ),
+          metadata: v.optional(v.record(v.any(), { examples: [{ user_id: 'usr_123' }] }), {
+            description: 'Custom key-value pairs for storing additional information'
+          }),
           redirect_url: v.optional(
             v.string({
               description: 'URL to redirect to after OAuth completion',
@@ -179,10 +178,9 @@ export let providerOAuthSetupController = Controller.create(
         v.object({
           name: v.optional(v.string({ examples: ['Updated Setup Name'] })),
           description: v.optional(v.string({ examples: ['Updated description'] })),
-          metadata: v.optional(
-            v.record(v.any(), { examples: [{ updated: true }] }),
-            { description: 'Custom key-value pairs for storing additional information' }
-          )
+          metadata: v.optional(v.record(v.any(), { examples: [{ updated: true }] }), {
+            description: 'Custom key-value pairs for storing additional information'
+          })
         })
       )
       .output(subspaceProviderOAuthSetupPresenter)

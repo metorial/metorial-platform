@@ -161,7 +161,9 @@ describe('fileService', () => {
     });
 
     it('filters by active status', async () => {
-      (db.file.findMany as any).mockResolvedValue([{ id: 'file_1', status: 'active', purpose: {} }]);
+      (db.file.findMany as any).mockResolvedValue([
+        { id: 'file_1', status: 'active', purpose: {} }
+      ]);
       await fileService.listFiles({ owner: { type: 'user', user } });
       expect(db.file.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -187,7 +189,11 @@ describe('fileService', () => {
     });
 
     it('creates file with optional title', async () => {
-      (db.file.create as any).mockResolvedValue({ id: 'file_123', title: 'My File', purpose: {} });
+      (db.file.create as any).mockResolvedValue({
+        id: 'file_123',
+        title: 'My File',
+        purpose: {}
+      });
       const result = await fileService.createFile({
         owner: { type: 'user', user },
         storeId: 'store_1',

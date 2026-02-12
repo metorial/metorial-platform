@@ -21,7 +21,7 @@ export let ProviderSessionForm = (
   let [name, setName] = useState('');
   let [description, setDescription] = useState('');
   let [deploymentId, setDeploymentId] = useState(
-    props.type === 'create' ? props.providerDeploymentId ?? '' : ''
+    props.type === 'create' ? (props.providerDeploymentId ?? '') : ''
   );
 
   let handleSubmit = async () => {
@@ -32,7 +32,10 @@ export let ProviderSessionForm = (
 
       if (deploymentId) {
         providers.push({
-          provider_deployment: { type: 'reference' as const, provider_deployment_id: deploymentId }
+          provider_deployment: {
+            type: 'reference' as const,
+            provider_deployment_id: deploymentId
+          }
         });
       }
 
@@ -63,11 +66,7 @@ export let ProviderSessionForm = (
 
   return (
     <>
-      <Input
-        label="Name (optional)"
-        value={name}
-        onChange={e => setName(e.target.value)}
-      />
+      <Input label="Name (optional)" value={name} onChange={e => setName(e.target.value)} />
 
       <Spacer size={10} />
 

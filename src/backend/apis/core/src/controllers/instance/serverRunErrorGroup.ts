@@ -36,10 +36,9 @@ export let serverRunErrorGroupController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            server_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by server ID(s)' }
-            )
+            server_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by server ID(s)'
+            })
           })
         )
       )

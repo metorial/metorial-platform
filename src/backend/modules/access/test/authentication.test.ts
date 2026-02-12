@@ -2,7 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Context } from '@metorial/context';
 import { ServiceError, unauthorizedError } from '@metorial/error';
 import { authenticationService } from '../src/services/authentication';
-import { scopes, instancePublishableTokenScopes, instanceSecretTokenScopes, orgManagementTokenScopes } from '../src/definitions';
+import {
+  scopes,
+  instancePublishableTokenScopes,
+  instanceSecretTokenScopes,
+  orgManagementTokenScopes
+} from '../src/definitions';
 
 // Mock external dependencies
 vi.mock('@metorial/module-user', () => ({
@@ -82,9 +87,11 @@ describe('AuthenticationService', () => {
       };
       let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
 
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: mockApiKey
-      } as any);
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
 
       let result = await authenticationService.authenticate({
         type: 'api_key',
@@ -93,10 +100,12 @@ describe('AuthenticationService', () => {
       });
 
       expect(result.type).toBe('machine');
-      expect(machineAccessAuthService.authenticateWithMachineAccessToken).toHaveBeenCalledWith({
-        token: 'pk_test_123',
-        context: mockContext
-      });
+      expect(machineAccessAuthService.authenticateWithMachineAccessToken).toHaveBeenCalledWith(
+        {
+          token: 'pk_test_123',
+          context: mockContext
+        }
+      );
     });
 
     it('should throw error for invalid authentication type', async () => {
@@ -242,9 +251,11 @@ describe('AuthenticationService', () => {
       };
       let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
 
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: mockApiKey
-      } as any);
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
 
       let result = await authenticationService.authenticate({
         type: 'api_key',
@@ -283,9 +294,11 @@ describe('AuthenticationService', () => {
       };
       let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
 
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: mockApiKey
-      } as any);
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
 
       let result = await authenticationService.authenticate({
         type: 'api_key',
@@ -310,9 +323,11 @@ describe('AuthenticationService', () => {
       };
       let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
 
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: mockApiKey
-      } as any);
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
 
       await expect(
         authenticationService.authenticate({
@@ -335,9 +350,11 @@ describe('AuthenticationService', () => {
       };
       let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
 
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: mockApiKey
-      } as any);
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
 
       let result = await authenticationService.authenticate({
         type: 'api_key',
@@ -366,9 +383,11 @@ describe('AuthenticationService', () => {
       };
       let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
 
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: mockApiKey
-      } as any);
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
 
       await expect(
         authenticationService.authenticate({
@@ -389,9 +408,11 @@ describe('AuthenticationService', () => {
       };
       let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
 
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: mockApiKey
-      } as any);
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
 
       let result = await authenticationService.authenticate({
         type: 'api_key',
@@ -415,9 +436,11 @@ describe('AuthenticationService', () => {
       };
       let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
 
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: mockApiKey
-      } as any);
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
 
       await expect(
         authenticationService.authenticate({
@@ -436,9 +459,11 @@ describe('AuthenticationService', () => {
       };
       let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
 
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: mockApiKey
-      } as any);
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
 
       await expect(
         authenticationService.authenticate({
@@ -527,9 +552,11 @@ describe('AuthenticationService', () => {
       };
       let mockApiKey = { id: 'key-1', machineAccess: mockMachineAccess };
 
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: mockApiKey
-      } as any);
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: mockApiKey
+        } as any
+      );
 
       await expect(
         authenticationService.authenticate({
@@ -544,17 +571,19 @@ describe('AuthenticationService', () => {
   describe('scope verification', () => {
     it('should assign correct scopes for each token type', async () => {
       // Test instance_publishable
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: {
-          id: 'key-1',
-          machineAccess: {
-            type: 'instance_publishable',
-            organization: { id: 'org-1' },
-            actor: { id: 'actor-1' },
-            instance: { id: 'inst-1', slug: 'inst', project: { id: 'proj-1' } }
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: {
+            id: 'key-1',
+            machineAccess: {
+              type: 'instance_publishable',
+              organization: { id: 'org-1' },
+              actor: { id: 'actor-1' },
+              instance: { id: 'inst-1', slug: 'inst', project: { id: 'proj-1' } }
+            }
           }
-        }
-      } as any);
+        } as any
+      );
 
       let result1 = await authenticationService.authenticate({
         type: 'api_key',
@@ -568,17 +597,19 @@ describe('AuthenticationService', () => {
       }
 
       // Test instance_secret
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: {
-          id: 'key-2',
-          machineAccess: {
-            type: 'instance_secret',
-            organization: { id: 'org-1' },
-            actor: { id: 'actor-1' },
-            instance: { id: 'inst-1', slug: 'inst', project: { id: 'proj-1' } }
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: {
+            id: 'key-2',
+            machineAccess: {
+              type: 'instance_secret',
+              organization: { id: 'org-1' },
+              actor: { id: 'actor-1' },
+              instance: { id: 'inst-1', slug: 'inst', project: { id: 'proj-1' } }
+            }
           }
-        }
-      } as any);
+        } as any
+      );
 
       let result2 = await authenticationService.authenticate({
         type: 'api_key',
@@ -591,16 +622,18 @@ describe('AuthenticationService', () => {
       }
 
       // Test organization_management
-      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue({
-        apiKey: {
-          id: 'key-3',
-          machineAccess: {
-            type: 'organization_management',
-            organization: { id: 'org-1' },
-            actor: { id: 'actor-1' }
+      vi.mocked(machineAccessAuthService.authenticateWithMachineAccessToken).mockResolvedValue(
+        {
+          apiKey: {
+            id: 'key-3',
+            machineAccess: {
+              type: 'organization_management',
+              organization: { id: 'org-1' },
+              actor: { id: 'actor-1' }
+            }
           }
-        }
-      } as any);
+        } as any
+      );
 
       let result3 = await authenticationService.authenticate({
         type: 'api_key',

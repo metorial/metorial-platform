@@ -12,7 +12,7 @@ vi.mock('@metorial/db', () => ({
     }
   },
   ID: {
-    generateId: vi.fn((type) => Promise.resolve(`${type}_test_id_${Date.now()}`))
+    generateId: vi.fn(type => Promise.resolve(`${type}_test_id_${Date.now()}`))
   }
 }));
 
@@ -29,7 +29,7 @@ vi.mock('@metorial/module-event', () => ({
 }));
 
 vi.mock('@metorial/error', () => ({
-  notFoundError: vi.fn((msg) => ({ code: 'not_found', message: msg })),
+  notFoundError: vi.fn(msg => ({ code: 'not_found', message: msg })),
   ServiceError: class ServiceError extends Error {
     constructor(public error: any) {
       super(error.message);
@@ -39,7 +39,7 @@ vi.mock('@metorial/error', () => ({
 
 vi.mock('@metorial/pagination', () => ({
   Paginator: {
-    create: vi.fn((fn) => ({
+    create: vi.fn(fn => ({
       prisma: fn,
       __isPaginator: true
     }))

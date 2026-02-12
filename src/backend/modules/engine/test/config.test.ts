@@ -331,7 +331,10 @@ describe('getSessionConfig', () => {
     } as any;
 
     const mockInstance = { oid: 'instance-oid' } as Instance;
-    const mockSession = { oid: 'session-oid', sessionOid: 'parent-session-oid' } as ServerSession;
+    const mockSession = {
+      oid: 'session-oid',
+      sessionOid: 'parent-session-oid'
+    } as ServerSession;
 
     const mockSessionDeployment = {
       oid: 'session-deployment-oid',
@@ -397,7 +400,10 @@ describe('getSessionConfig', () => {
     } as any;
 
     const mockInstance = { oid: 'instance-oid' } as Instance;
-    const mockSession = { oid: 'session-oid', sessionOid: 'parent-session-oid' } as ServerSession;
+    const mockSession = {
+      oid: 'session-oid',
+      sessionOid: 'parent-session-oid'
+    } as ServerSession;
 
     const mockSessionDeployment = {
       oid: 'session-deployment-oid',

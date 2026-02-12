@@ -5,10 +5,10 @@
 // source: mcp.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
-import Long from "long";
+import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
+import Long from 'long';
 
-export const protobufPackage = "broker.mcp";
+export const protobufPackage = 'broker.mcp';
 
 export enum McpMessageType {
   request = 0,
@@ -16,28 +16,28 @@ export enum McpMessageType {
   notification = 2,
   error = 3,
   unknown = 4,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function mcpMessageTypeFromJSON(object: any): McpMessageType {
   switch (object) {
     case 0:
-    case "request":
+    case 'request':
       return McpMessageType.request;
     case 1:
-    case "response":
+    case 'response':
       return McpMessageType.response;
     case 2:
-    case "notification":
+    case 'notification':
       return McpMessageType.notification;
     case 3:
-    case "error":
+    case 'error':
       return McpMessageType.error;
     case 4:
-    case "unknown":
+    case 'unknown':
       return McpMessageType.unknown;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return McpMessageType.UNRECOGNIZED;
   }
@@ -46,18 +46,18 @@ export function mcpMessageTypeFromJSON(object: any): McpMessageType {
 export function mcpMessageTypeToJSON(object: McpMessageType): string {
   switch (object) {
     case McpMessageType.request:
-      return "request";
+      return 'request';
     case McpMessageType.response:
-      return "response";
+      return 'response';
     case McpMessageType.notification:
-      return "notification";
+      return 'notification';
     case McpMessageType.error:
-      return "error";
+      return 'error';
     case McpMessageType.unknown:
-      return "unknown";
+      return 'unknown';
     case McpMessageType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -78,34 +78,34 @@ export enum McpError_McpErrorCode {
   timeout = 4,
   launch_params_error = 5,
   execution_error = 6,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function mcpError_McpErrorCodeFromJSON(object: any): McpError_McpErrorCode {
   switch (object) {
     case 0:
-    case "failed_to_start":
+    case 'failed_to_start':
       return McpError_McpErrorCode.failed_to_start;
     case 1:
-    case "failed_to_stop":
+    case 'failed_to_stop':
       return McpError_McpErrorCode.failed_to_stop;
     case 2:
-    case "invalid_mcp_message":
+    case 'invalid_mcp_message':
       return McpError_McpErrorCode.invalid_mcp_message;
     case 3:
-    case "unknown_error":
+    case 'unknown_error':
       return McpError_McpErrorCode.unknown_error;
     case 4:
-    case "timeout":
+    case 'timeout':
       return McpError_McpErrorCode.timeout;
     case 5:
-    case "launch_params_error":
+    case 'launch_params_error':
       return McpError_McpErrorCode.launch_params_error;
     case 6:
-    case "execution_error":
+    case 'execution_error':
       return McpError_McpErrorCode.execution_error;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return McpError_McpErrorCode.UNRECOGNIZED;
   }
@@ -114,22 +114,22 @@ export function mcpError_McpErrorCodeFromJSON(object: any): McpError_McpErrorCod
 export function mcpError_McpErrorCodeToJSON(object: McpError_McpErrorCode): string {
   switch (object) {
     case McpError_McpErrorCode.failed_to_start:
-      return "failed_to_start";
+      return 'failed_to_start';
     case McpError_McpErrorCode.failed_to_stop:
-      return "failed_to_stop";
+      return 'failed_to_stop';
     case McpError_McpErrorCode.invalid_mcp_message:
-      return "invalid_mcp_message";
+      return 'invalid_mcp_message';
     case McpError_McpErrorCode.unknown_error:
-      return "unknown_error";
+      return 'unknown_error';
     case McpError_McpErrorCode.timeout:
-      return "timeout";
+      return 'timeout';
     case McpError_McpErrorCode.launch_params_error:
-      return "launch_params_error";
+      return 'launch_params_error';
     case McpError_McpErrorCode.execution_error:
-      return "execution_error";
+      return 'execution_error';
     case McpError_McpErrorCode.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -150,22 +150,22 @@ export enum McpOutput_McpOutputType {
   stderr = 1,
   /** remote - Output from a remote source */
   remote = 2,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function mcpOutput_McpOutputTypeFromJSON(object: any): McpOutput_McpOutputType {
   switch (object) {
     case 0:
-    case "stdout":
+    case 'stdout':
       return McpOutput_McpOutputType.stdout;
     case 1:
-    case "stderr":
+    case 'stderr':
       return McpOutput_McpOutputType.stderr;
     case 2:
-    case "remote":
+    case 'remote':
       return McpOutput_McpOutputType.remote;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return McpOutput_McpOutputType.UNRECOGNIZED;
   }
@@ -174,14 +174,14 @@ export function mcpOutput_McpOutputTypeFromJSON(object: any): McpOutput_McpOutpu
 export function mcpOutput_McpOutputTypeToJSON(object: McpOutput_McpOutputType): string {
   switch (object) {
     case McpOutput_McpOutputType.stdout:
-      return "stdout";
+      return 'stdout';
     case McpOutput_McpOutputType.stderr:
-      return "stderr";
+      return 'stderr';
     case McpOutput_McpOutputType.remote:
-      return "remote";
+      return 'remote';
     case McpOutput_McpOutputType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -210,33 +210,37 @@ export interface McpParticipant {
 export enum McpParticipant_ParticipantType {
   server = 0,
   client = 1,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
-export function mcpParticipant_ParticipantTypeFromJSON(object: any): McpParticipant_ParticipantType {
+export function mcpParticipant_ParticipantTypeFromJSON(
+  object: any
+): McpParticipant_ParticipantType {
   switch (object) {
     case 0:
-    case "server":
+    case 'server':
       return McpParticipant_ParticipantType.server;
     case 1:
-    case "client":
+    case 'client':
       return McpParticipant_ParticipantType.client;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return McpParticipant_ParticipantType.UNRECOGNIZED;
   }
 }
 
-export function mcpParticipant_ParticipantTypeToJSON(object: McpParticipant_ParticipantType): string {
+export function mcpParticipant_ParticipantTypeToJSON(
+  object: McpParticipant_ParticipantType
+): string {
   switch (object) {
     case McpParticipant_ParticipantType.server:
-      return "server";
+      return 'server';
     case McpParticipant_ParticipantType.client:
-      return "client";
+      return 'client';
     case McpParticipant_ParticipantType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -270,21 +274,24 @@ export interface McpResourceTemplate {
 }
 
 function createBaseMcpError(): McpError {
-  return { errorMessage: "", errorCode: 0, metadata: {}, uuid: "" };
+  return { errorMessage: '', errorCode: 0, metadata: {}, uuid: '' };
 }
 
 export const McpError: MessageFns<McpError> = {
   encode(message: McpError, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.errorMessage !== "") {
+    if (message.errorMessage !== '') {
       writer.uint32(10).string(message.errorMessage);
     }
     if (message.errorCode !== 0) {
       writer.uint32(16).int32(message.errorCode);
     }
     Object.entries(message.metadata).forEach(([key, value]) => {
-      McpError_MetadataEntry.encode({ key: key as any, value }, writer.uint32(26).fork()).join();
+      McpError_MetadataEntry.encode(
+        { key: key as any, value },
+        writer.uint32(26).fork()
+      ).join();
     });
-    if (message.uuid !== "") {
+    if (message.uuid !== '') {
       writer.uint32(34).string(message.uuid);
     }
     return writer;
@@ -343,21 +350,24 @@ export const McpError: MessageFns<McpError> = {
 
   fromJSON(object: any): McpError {
     return {
-      errorMessage: isSet(object.errorMessage) ? globalThis.String(object.errorMessage) : "",
+      errorMessage: isSet(object.errorMessage) ? globalThis.String(object.errorMessage) : '',
       errorCode: isSet(object.errorCode) ? mcpError_McpErrorCodeFromJSON(object.errorCode) : 0,
       metadata: isObject(object.metadata)
-        ? Object.entries(object.metadata).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-          acc[key] = String(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.metadata).reduce<{ [key: string]: string }>(
+            (acc, [key, value]) => {
+              acc[key] = String(value);
+              return acc;
+            },
+            {}
+          )
         : {},
-      uuid: isSet(object.uuid) ? globalThis.String(object.uuid) : "",
+      uuid: isSet(object.uuid) ? globalThis.String(object.uuid) : ''
     };
   },
 
   toJSON(message: McpError): unknown {
     const obj: any = {};
-    if (message.errorMessage !== "") {
+    if (message.errorMessage !== '') {
       obj.errorMessage = message.errorMessage;
     }
     if (message.errorCode !== 0) {
@@ -372,7 +382,7 @@ export const McpError: MessageFns<McpError> = {
         });
       }
     }
-    if (message.uuid !== "") {
+    if (message.uuid !== '') {
       obj.uuid = message.uuid;
     }
     return obj;
@@ -383,29 +393,35 @@ export const McpError: MessageFns<McpError> = {
   },
   fromPartial(object: DeepPartial<McpError>): McpError {
     const message = createBaseMcpError();
-    message.errorMessage = object.errorMessage ?? "";
+    message.errorMessage = object.errorMessage ?? '';
     message.errorCode = object.errorCode ?? 0;
-    message.metadata = Object.entries(object.metadata ?? {}).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = globalThis.String(value);
-      }
-      return acc;
-    }, {});
-    message.uuid = object.uuid ?? "";
+    message.metadata = Object.entries(object.metadata ?? {}).reduce<{ [key: string]: string }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = globalThis.String(value);
+        }
+        return acc;
+      },
+      {}
+    );
+    message.uuid = object.uuid ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseMcpError_MetadataEntry(): McpError_MetadataEntry {
-  return { key: "", value: "" };
+  return { key: '', value: '' };
 }
 
 export const McpError_MetadataEntry: MessageFns<McpError_MetadataEntry> = {
-  encode(message: McpError_MetadataEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.key !== "") {
+  encode(
+    message: McpError_MetadataEntry,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
-    if (message.value !== "") {
+    if (message.value !== '') {
       writer.uint32(18).string(message.value);
     }
     return writer;
@@ -445,17 +461,17 @@ export const McpError_MetadataEntry: MessageFns<McpError_MetadataEntry> = {
 
   fromJSON(object: any): McpError_MetadataEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
-      value: isSet(object.value) ? globalThis.String(object.value) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
+      value: isSet(object.value) ? globalThis.String(object.value) : ''
     };
   },
 
   toJSON(message: McpError_MetadataEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
-    if (message.value !== "") {
+    if (message.value !== '') {
       obj.value = message.value;
     }
     return obj;
@@ -466,14 +482,14 @@ export const McpError_MetadataEntry: MessageFns<McpError_MetadataEntry> = {
   },
   fromPartial(object: DeepPartial<McpError_MetadataEntry>): McpError_MetadataEntry {
     const message = createBaseMcpError_MetadataEntry();
-    message.key = object.key ?? "";
-    message.value = object.value ?? "";
+    message.key = object.key ?? '';
+    message.value = object.value ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseMcpOutput(): McpOutput {
-  return { outputType: 0, lines: [], uuid: "" };
+  return { outputType: 0, lines: [], uuid: '' };
 }
 
 export const McpOutput: MessageFns<McpOutput> = {
@@ -484,7 +500,7 @@ export const McpOutput: MessageFns<McpOutput> = {
     for (const v of message.lines) {
       writer.uint32(18).string(v!);
     }
-    if (message.uuid !== "") {
+    if (message.uuid !== '') {
       writer.uint32(26).string(message.uuid);
     }
     return writer;
@@ -532,9 +548,13 @@ export const McpOutput: MessageFns<McpOutput> = {
 
   fromJSON(object: any): McpOutput {
     return {
-      outputType: isSet(object.outputType) ? mcpOutput_McpOutputTypeFromJSON(object.outputType) : 0,
-      lines: globalThis.Array.isArray(object?.lines) ? object.lines.map((e: any) => globalThis.String(e)) : [],
-      uuid: isSet(object.uuid) ? globalThis.String(object.uuid) : "",
+      outputType: isSet(object.outputType)
+        ? mcpOutput_McpOutputTypeFromJSON(object.outputType)
+        : 0,
+      lines: globalThis.Array.isArray(object?.lines)
+        ? object.lines.map((e: any) => globalThis.String(e))
+        : [],
+      uuid: isSet(object.uuid) ? globalThis.String(object.uuid) : ''
     };
   },
 
@@ -546,7 +566,7 @@ export const McpOutput: MessageFns<McpOutput> = {
     if (message.lines?.length) {
       obj.lines = message.lines;
     }
-    if (message.uuid !== "") {
+    if (message.uuid !== '') {
       obj.uuid = message.uuid;
     }
     return obj;
@@ -558,22 +578,22 @@ export const McpOutput: MessageFns<McpOutput> = {
   fromPartial(object: DeepPartial<McpOutput>): McpOutput {
     const message = createBaseMcpOutput();
     message.outputType = object.outputType ?? 0;
-    message.lines = object.lines?.map((e) => e) || [];
-    message.uuid = object.uuid ?? "";
+    message.lines = object.lines?.map(e => e) || [];
+    message.uuid = object.uuid ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseMcpMessageRaw(): McpMessageRaw {
-  return { message: "", uuid: "" };
+  return { message: '', uuid: '' };
 }
 
 export const McpMessageRaw: MessageFns<McpMessageRaw> = {
   encode(message: McpMessageRaw, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.message !== "") {
+    if (message.message !== '') {
       writer.uint32(10).string(message.message);
     }
-    if (message.uuid !== "") {
+    if (message.uuid !== '') {
       writer.uint32(18).string(message.uuid);
     }
     return writer;
@@ -613,17 +633,17 @@ export const McpMessageRaw: MessageFns<McpMessageRaw> = {
 
   fromJSON(object: any): McpMessageRaw {
     return {
-      message: isSet(object.message) ? globalThis.String(object.message) : "",
-      uuid: isSet(object.uuid) ? globalThis.String(object.uuid) : "",
+      message: isSet(object.message) ? globalThis.String(object.message) : '',
+      uuid: isSet(object.uuid) ? globalThis.String(object.uuid) : ''
     };
   },
 
   toJSON(message: McpMessageRaw): unknown {
     const obj: any = {};
-    if (message.message !== "") {
+    if (message.message !== '') {
       obj.message = message.message;
     }
-    if (message.uuid !== "") {
+    if (message.uuid !== '') {
       obj.uuid = message.uuid;
     }
     return obj;
@@ -634,14 +654,14 @@ export const McpMessageRaw: MessageFns<McpMessageRaw> = {
   },
   fromPartial(object: DeepPartial<McpMessageRaw>): McpMessageRaw {
     const message = createBaseMcpMessageRaw();
-    message.message = object.message ?? "";
-    message.uuid = object.uuid ?? "";
+    message.message = object.message ?? '';
+    message.uuid = object.uuid ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseMcpMessage(): McpMessage {
-  return { mcpMessage: undefined, messageType: 0, idString: "", idJson: "", method: "" };
+  return { mcpMessage: undefined, messageType: 0, idString: '', idJson: '', method: '' };
 }
 
 export const McpMessage: MessageFns<McpMessage> = {
@@ -652,13 +672,13 @@ export const McpMessage: MessageFns<McpMessage> = {
     if (message.messageType !== 0) {
       writer.uint32(16).int32(message.messageType);
     }
-    if (message.idString !== "") {
+    if (message.idString !== '') {
       writer.uint32(26).string(message.idString);
     }
-    if (message.idJson !== "") {
+    if (message.idJson !== '') {
       writer.uint32(34).string(message.idJson);
     }
-    if (message.method !== "") {
+    if (message.method !== '') {
       writer.uint32(42).string(message.method);
     }
     return writer;
@@ -722,11 +742,13 @@ export const McpMessage: MessageFns<McpMessage> = {
 
   fromJSON(object: any): McpMessage {
     return {
-      mcpMessage: isSet(object.mcpMessage) ? McpMessageRaw.fromJSON(object.mcpMessage) : undefined,
+      mcpMessage: isSet(object.mcpMessage)
+        ? McpMessageRaw.fromJSON(object.mcpMessage)
+        : undefined,
       messageType: isSet(object.messageType) ? mcpMessageTypeFromJSON(object.messageType) : 0,
-      idString: isSet(object.idString) ? globalThis.String(object.idString) : "",
-      idJson: isSet(object.idJson) ? globalThis.String(object.idJson) : "",
-      method: isSet(object.method) ? globalThis.String(object.method) : "",
+      idString: isSet(object.idString) ? globalThis.String(object.idString) : '',
+      idJson: isSet(object.idJson) ? globalThis.String(object.idJson) : '',
+      method: isSet(object.method) ? globalThis.String(object.method) : ''
     };
   },
 
@@ -738,13 +760,13 @@ export const McpMessage: MessageFns<McpMessage> = {
     if (message.messageType !== 0) {
       obj.messageType = mcpMessageTypeToJSON(message.messageType);
     }
-    if (message.idString !== "") {
+    if (message.idString !== '') {
       obj.idString = message.idString;
     }
-    if (message.idJson !== "") {
+    if (message.idJson !== '') {
       obj.idJson = message.idJson;
     }
-    if (message.method !== "") {
+    if (message.method !== '') {
       obj.method = message.method;
     }
     return obj;
@@ -755,19 +777,20 @@ export const McpMessage: MessageFns<McpMessage> = {
   },
   fromPartial(object: DeepPartial<McpMessage>): McpMessage {
     const message = createBaseMcpMessage();
-    message.mcpMessage = (object.mcpMessage !== undefined && object.mcpMessage !== null)
-      ? McpMessageRaw.fromPartial(object.mcpMessage)
-      : undefined;
+    message.mcpMessage =
+      object.mcpMessage !== undefined && object.mcpMessage !== null
+        ? McpMessageRaw.fromPartial(object.mcpMessage)
+        : undefined;
     message.messageType = object.messageType ?? 0;
-    message.idString = object.idString ?? "";
-    message.idJson = object.idJson ?? "";
-    message.method = object.method ?? "";
+    message.idString = object.idString ?? '';
+    message.idJson = object.idJson ?? '';
+    message.method = object.method ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseMcpParticipant(): McpParticipant {
-  return { type: 0, participantJson: "" };
+  return { type: 0, participantJson: '' };
 }
 
 export const McpParticipant: MessageFns<McpParticipant> = {
@@ -775,7 +798,7 @@ export const McpParticipant: MessageFns<McpParticipant> = {
     if (message.type !== 0) {
       writer.uint32(8).int32(message.type);
     }
-    if (message.participantJson !== "") {
+    if (message.participantJson !== '') {
       writer.uint32(18).string(message.participantJson);
     }
     return writer;
@@ -816,7 +839,9 @@ export const McpParticipant: MessageFns<McpParticipant> = {
   fromJSON(object: any): McpParticipant {
     return {
       type: isSet(object.type) ? mcpParticipant_ParticipantTypeFromJSON(object.type) : 0,
-      participantJson: isSet(object.participantJson) ? globalThis.String(object.participantJson) : "",
+      participantJson: isSet(object.participantJson)
+        ? globalThis.String(object.participantJson)
+        : ''
     };
   },
 
@@ -825,7 +850,7 @@ export const McpParticipant: MessageFns<McpParticipant> = {
     if (message.type !== 0) {
       obj.type = mcpParticipant_ParticipantTypeToJSON(message.type);
     }
-    if (message.participantJson !== "") {
+    if (message.participantJson !== '') {
       obj.participantJson = message.participantJson;
     }
     return obj;
@@ -837,18 +862,18 @@ export const McpParticipant: MessageFns<McpParticipant> = {
   fromPartial(object: DeepPartial<McpParticipant>): McpParticipant {
     const message = createBaseMcpParticipant();
     message.type = object.type ?? 0;
-    message.participantJson = object.participantJson ?? "";
+    message.participantJson = object.participantJson ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseMcpConfig(): McpConfig {
-  return { mcpVersion: "" };
+  return { mcpVersion: '' };
 }
 
 export const McpConfig: MessageFns<McpConfig> = {
   encode(message: McpConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.mcpVersion !== "") {
+    if (message.mcpVersion !== '') {
       writer.uint32(10).string(message.mcpVersion);
     }
     return writer;
@@ -879,12 +904,14 @@ export const McpConfig: MessageFns<McpConfig> = {
   },
 
   fromJSON(object: any): McpConfig {
-    return { mcpVersion: isSet(object.mcpVersion) ? globalThis.String(object.mcpVersion) : "" };
+    return {
+      mcpVersion: isSet(object.mcpVersion) ? globalThis.String(object.mcpVersion) : ''
+    };
   },
 
   toJSON(message: McpConfig): unknown {
     const obj: any = {};
-    if (message.mcpVersion !== "") {
+    if (message.mcpVersion !== '') {
       obj.mcpVersion = message.mcpVersion;
     }
     return obj;
@@ -895,24 +922,24 @@ export const McpConfig: MessageFns<McpConfig> = {
   },
   fromPartial(object: DeepPartial<McpConfig>): McpConfig {
     const message = createBaseMcpConfig();
-    message.mcpVersion = object.mcpVersion ?? "";
+    message.mcpVersion = object.mcpVersion ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseMcpTool(): McpTool {
-  return { name: "", description: undefined, json: "" };
+  return { name: '', description: undefined, json: '' };
 }
 
 export const McpTool: MessageFns<McpTool> = {
   encode(message: McpTool, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.name !== "") {
+    if (message.name !== '') {
       writer.uint32(10).string(message.name);
     }
     if (message.description !== undefined) {
       writer.uint32(18).string(message.description);
     }
-    if (message.json !== "") {
+    if (message.json !== '') {
       writer.uint32(26).string(message.json);
     }
     return writer;
@@ -960,21 +987,23 @@ export const McpTool: MessageFns<McpTool> = {
 
   fromJSON(object: any): McpTool {
     return {
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
-      json: isSet(object.json) ? globalThis.String(object.json) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      description: isSet(object.description)
+        ? globalThis.String(object.description)
+        : undefined,
+      json: isSet(object.json) ? globalThis.String(object.json) : ''
     };
   },
 
   toJSON(message: McpTool): unknown {
     const obj: any = {};
-    if (message.name !== "") {
+    if (message.name !== '') {
       obj.name = message.name;
     }
     if (message.description !== undefined) {
       obj.description = message.description;
     }
-    if (message.json !== "") {
+    if (message.json !== '') {
       obj.json = message.json;
     }
     return obj;
@@ -985,26 +1014,26 @@ export const McpTool: MessageFns<McpTool> = {
   },
   fromPartial(object: DeepPartial<McpTool>): McpTool {
     const message = createBaseMcpTool();
-    message.name = object.name ?? "";
+    message.name = object.name ?? '';
     message.description = object.description ?? undefined;
-    message.json = object.json ?? "";
+    message.json = object.json ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseMcpPrompt(): McpPrompt {
-  return { name: "", description: undefined, json: "" };
+  return { name: '', description: undefined, json: '' };
 }
 
 export const McpPrompt: MessageFns<McpPrompt> = {
   encode(message: McpPrompt, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.name !== "") {
+    if (message.name !== '') {
       writer.uint32(10).string(message.name);
     }
     if (message.description !== undefined) {
       writer.uint32(18).string(message.description);
     }
-    if (message.json !== "") {
+    if (message.json !== '') {
       writer.uint32(26).string(message.json);
     }
     return writer;
@@ -1052,21 +1081,23 @@ export const McpPrompt: MessageFns<McpPrompt> = {
 
   fromJSON(object: any): McpPrompt {
     return {
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
-      json: isSet(object.json) ? globalThis.String(object.json) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      description: isSet(object.description)
+        ? globalThis.String(object.description)
+        : undefined,
+      json: isSet(object.json) ? globalThis.String(object.json) : ''
     };
   },
 
   toJSON(message: McpPrompt): unknown {
     const obj: any = {};
-    if (message.name !== "") {
+    if (message.name !== '') {
       obj.name = message.name;
     }
     if (message.description !== undefined) {
       obj.description = message.description;
     }
-    if (message.json !== "") {
+    if (message.json !== '') {
       obj.json = message.json;
     }
     return obj;
@@ -1077,26 +1108,26 @@ export const McpPrompt: MessageFns<McpPrompt> = {
   },
   fromPartial(object: DeepPartial<McpPrompt>): McpPrompt {
     const message = createBaseMcpPrompt();
-    message.name = object.name ?? "";
+    message.name = object.name ?? '';
     message.description = object.description ?? undefined;
-    message.json = object.json ?? "";
+    message.json = object.json ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseMcpResource(): McpResource {
-  return { name: "", description: undefined, json: "" };
+  return { name: '', description: undefined, json: '' };
 }
 
 export const McpResource: MessageFns<McpResource> = {
   encode(message: McpResource, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.name !== "") {
+    if (message.name !== '') {
       writer.uint32(10).string(message.name);
     }
     if (message.description !== undefined) {
       writer.uint32(18).string(message.description);
     }
-    if (message.json !== "") {
+    if (message.json !== '') {
       writer.uint32(26).string(message.json);
     }
     return writer;
@@ -1144,21 +1175,23 @@ export const McpResource: MessageFns<McpResource> = {
 
   fromJSON(object: any): McpResource {
     return {
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
-      json: isSet(object.json) ? globalThis.String(object.json) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      description: isSet(object.description)
+        ? globalThis.String(object.description)
+        : undefined,
+      json: isSet(object.json) ? globalThis.String(object.json) : ''
     };
   },
 
   toJSON(message: McpResource): unknown {
     const obj: any = {};
-    if (message.name !== "") {
+    if (message.name !== '') {
       obj.name = message.name;
     }
     if (message.description !== undefined) {
       obj.description = message.description;
     }
-    if (message.json !== "") {
+    if (message.json !== '') {
       obj.json = message.json;
     }
     return obj;
@@ -1169,29 +1202,32 @@ export const McpResource: MessageFns<McpResource> = {
   },
   fromPartial(object: DeepPartial<McpResource>): McpResource {
     const message = createBaseMcpResource();
-    message.name = object.name ?? "";
+    message.name = object.name ?? '';
     message.description = object.description ?? undefined;
-    message.json = object.json ?? "";
+    message.json = object.json ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseMcpResourceTemplate(): McpResourceTemplate {
-  return { name: "", description: undefined, uriTemplate: "", json: "" };
+  return { name: '', description: undefined, uriTemplate: '', json: '' };
 }
 
 export const McpResourceTemplate: MessageFns<McpResourceTemplate> = {
-  encode(message: McpResourceTemplate, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.name !== "") {
+  encode(
+    message: McpResourceTemplate,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.name !== '') {
       writer.uint32(10).string(message.name);
     }
     if (message.description !== undefined) {
       writer.uint32(18).string(message.description);
     }
-    if (message.uriTemplate !== "") {
+    if (message.uriTemplate !== '') {
       writer.uint32(26).string(message.uriTemplate);
     }
-    if (message.json !== "") {
+    if (message.json !== '') {
       writer.uint32(34).string(message.json);
     }
     return writer;
@@ -1247,25 +1283,27 @@ export const McpResourceTemplate: MessageFns<McpResourceTemplate> = {
 
   fromJSON(object: any): McpResourceTemplate {
     return {
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
-      uriTemplate: isSet(object.uriTemplate) ? globalThis.String(object.uriTemplate) : "",
-      json: isSet(object.json) ? globalThis.String(object.json) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      description: isSet(object.description)
+        ? globalThis.String(object.description)
+        : undefined,
+      uriTemplate: isSet(object.uriTemplate) ? globalThis.String(object.uriTemplate) : '',
+      json: isSet(object.json) ? globalThis.String(object.json) : ''
     };
   },
 
   toJSON(message: McpResourceTemplate): unknown {
     const obj: any = {};
-    if (message.name !== "") {
+    if (message.name !== '') {
       obj.name = message.name;
     }
     if (message.description !== undefined) {
       obj.description = message.description;
     }
-    if (message.uriTemplate !== "") {
+    if (message.uriTemplate !== '') {
       obj.uriTemplate = message.uriTemplate;
     }
-    if (message.json !== "") {
+    if (message.json !== '') {
       obj.json = message.json;
     }
     return obj;
@@ -1276,24 +1314,30 @@ export const McpResourceTemplate: MessageFns<McpResourceTemplate> = {
   },
   fromPartial(object: DeepPartial<McpResourceTemplate>): McpResourceTemplate {
     const message = createBaseMcpResourceTemplate();
-    message.name = object.name ?? "";
+    message.name = object.name ?? '';
     message.description = object.description ?? undefined;
-    message.uriTemplate = object.uriTemplate ?? "";
-    message.json = object.json ?? "";
+    message.uriTemplate = object.uriTemplate ?? '';
+    message.json = object.json ?? '';
     return message;
-  },
+  }
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends {}
+          ? { [K in keyof T]?: DeepPartial<T[K]> }
+          : Partial<T>;
 
 function isObject(value: any): boolean {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function isSet(value: any): boolean {

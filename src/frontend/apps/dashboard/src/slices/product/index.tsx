@@ -55,9 +55,7 @@ let ProviderDeploymentsRedirectPage = dynamicPage(() =>
   )
 );
 let SessionTemplatesRedirectPage = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/redirects').then(
-    c => c.SessionTemplatesRedirectPage
-  )
+  import('./pages/(provider-api)/(list)/redirects').then(c => c.SessionTemplatesRedirectPage)
 );
 let ProviderLayout = dynamicPage(() =>
   import('./pages/(provider-api)/provider/_layout').then(c => c.ProviderLayout)
@@ -106,7 +104,9 @@ let ProviderConfigLayout = dynamicPage(() =>
   import('./pages/(provider-api)/provider-config/_layout').then(c => c.ProviderConfigLayout)
 );
 let ProviderConfigOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-config/index').then(c => c.ProviderConfigOverviewPage)
+  import('./pages/(provider-api)/provider-config/index').then(
+    c => c.ProviderConfigOverviewPage
+  )
 );
 let ProviderConfigSettingsPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-config/settings').then(
@@ -162,9 +162,7 @@ let ProviderSessionSettingsPage = dynamicPage(() =>
   )
 );
 let ProviderSessionLogsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-session/logs').then(
-    c => c.ProviderSessionLogsPage
-  )
+  import('./pages/(provider-api)/provider-session/logs').then(c => c.ProviderSessionLogsPage)
 );
 let SessionTemplateLayout = dynamicPage(() =>
   import('./pages/(provider-api)/session-template/_layout').then(c => c.SessionTemplateLayout)

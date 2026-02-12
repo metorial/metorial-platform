@@ -28,7 +28,11 @@ export let PortalUserPage = () => {
   let instance = useCurrentInstance();
   let params = useParams();
   let portal = usePortal(instance.data?.instanceId, params.portalId!);
-  let user = usePortalConsumerProfile(instance.data?.instanceId, params.portalId!, params.userId!);
+  let user = usePortalConsumerProfile(
+    instance.data?.instanceId,
+    params.portalId!,
+    params.userId!
+  );
   let userOuter = user;
   let profiles = useSsoTenantProfiles(instance.data?.instanceId, {
     consumerProfileId: params.userId!,
@@ -103,7 +107,10 @@ export let PortalUserPage = () => {
                 onClick={() =>
                   showModal(({ dialogProps, close }) => {
                     let [selected, setSelected] = useState<string[]>([]);
-                    let groups = usePortalConsumerGroups(instance.data?.instanceId, portal.data?.id!);
+                    let groups = usePortalConsumerGroups(
+                      instance.data?.instanceId,
+                      portal.data?.id!
+                    );
 
                     return (
                       <Panel.Wrapper {...dialogProps}>

@@ -21,7 +21,7 @@ vi.mock('@metorial/db', () => ({
 
 vi.mock('@metorial/pagination', () => ({
   Paginator: {
-    create: vi.fn((fn) => {
+    create: vi.fn(fn => {
       return {
         paginate: async () => {
           const result = await fn({ prisma: (cb: any) => cb({}) });
@@ -33,8 +33,8 @@ vi.mock('@metorial/pagination', () => ({
 }));
 
 vi.mock('jsonata', () => ({
-  default: vi.fn((expr) => ({
-    evaluate: vi.fn((data) => {
+  default: vi.fn(expr => ({
+    evaluate: vi.fn(data => {
       // Simple mock evaluation - just return parsed JSON if expr is valid JSON
       try {
         return JSON.parse(expr);
@@ -96,9 +96,7 @@ describe('oauthTemplate service', () => {
           authorization_endpoint: 'https://github.com/login/oauth/authorize',
           token_endpoint: 'https://github.com/login/oauth/access_token'
         }),
-        scopes: [
-          { identifier: 'repo', description: 'Access repositories' }
-        ],
+        scopes: [{ identifier: 'repo', description: 'Access repositories' }],
         variables: []
       });
 
@@ -172,9 +170,7 @@ describe('oauthTemplate service', () => {
         imageUrl: 'https://example.com/custom.png',
         configJsonata: JSON.stringify({}),
         scopes: [],
-        variables: [
-          { type: 'string', key: 'domain', label: 'Domain', isRequired: true }
-        ]
+        variables: [{ type: 'string', key: 'domain', label: 'Domain', isRequired: true }]
       });
 
       expect(result.variables).toHaveLength(1);
@@ -215,7 +211,9 @@ describe('oauthTemplate service', () => {
 
   describe('getTemplateById', () => {
     it('should return template by ID', async () => {
-      vi.mocked(db.providerOAuthConnectionTemplate.findUnique).mockResolvedValueOnce(mockTemplate);
+      vi.mocked(db.providerOAuthConnectionTemplate.findUnique).mockResolvedValueOnce(
+        mockTemplate
+      );
 
       const result = await providerOauthTemplateService.getTemplateById({
         templateId: 'template-1'
@@ -241,7 +239,9 @@ describe('oauthTemplate service', () => {
 
   describe('listTemplates', () => {
     it('should list all templates when no profile IDs provided', async () => {
-      vi.mocked(db.providerOAuthConnectionTemplate.findMany).mockResolvedValueOnce([mockTemplate]);
+      vi.mocked(db.providerOAuthConnectionTemplate.findMany).mockResolvedValueOnce([
+        mockTemplate
+      ]);
 
       const paginator = await providerOauthTemplateService.listTemplates({});
       // Paginator returns an object, test that it's created
@@ -253,7 +253,9 @@ describe('oauthTemplate service', () => {
         { oid: 1n, id: 'profile-1' } as any,
         { oid: 2n, id: 'profile-2' } as any
       ]);
-      vi.mocked(db.providerOAuthConnectionTemplate.findMany).mockResolvedValueOnce([mockTemplate]);
+      vi.mocked(db.providerOAuthConnectionTemplate.findMany).mockResolvedValueOnce([
+        mockTemplate
+      ]);
 
       const paginator = await providerOauthTemplateService.listTemplates({
         profileIds: ['profile-1', 'profile-2']

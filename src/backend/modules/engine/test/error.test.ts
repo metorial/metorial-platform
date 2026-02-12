@@ -90,9 +90,7 @@ describe('createServerError', () => {
     });
 
     // Verify hash was generated with correct parameters
-    expect(Hash.sha256).toHaveBeenCalledWith(
-      JSON.stringify(['failed_to_start', 'impl-oid'])
-    );
+    expect(Hash.sha256).toHaveBeenCalledWith(JSON.stringify(['failed_to_start', 'impl-oid']));
 
     // Verify error group was created
     expect(db.serverRunErrorGroup.upsert).toHaveBeenCalledWith({

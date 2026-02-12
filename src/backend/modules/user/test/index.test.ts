@@ -2,15 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock all dependencies before importing
 vi.mock('@metorial/queue', () => ({
-  combineQueueProcessors: vi.fn((processors) => ({
+  combineQueueProcessors: vi.fn(processors => ({
     type: 'combined',
     processors
   })),
-  createQueue: vi.fn((config) => ({
+  createQueue: vi.fn(config => ({
     name: config.name,
     add: vi.fn(),
     addMany: vi.fn(),
-    process: vi.fn((handler) => ({
+    process: vi.fn(handler => ({
       type: 'processor',
       handler
     }))
@@ -124,7 +124,9 @@ describe('user module exports', () => {
   });
 
   it('should export syncUserUpdateSingleQueueProcessor', async () => {
-    const { syncUserUpdateSingleQueueProcessor } = await import('../src/queues/syncUserUpdate');
+    const { syncUserUpdateSingleQueueProcessor } = await import(
+      '../src/queues/syncUserUpdate'
+    );
     expect(syncUserUpdateSingleQueueProcessor).toBeDefined();
   });
 
@@ -144,10 +146,7 @@ describe('user module exports', () => {
     await import('../src/index');
 
     expect(combineQueueProcessors).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.anything(),
-        expect.anything()
-      ])
+      expect.arrayContaining([expect.anything(), expect.anything()])
     );
   });
 });

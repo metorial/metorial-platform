@@ -11,8 +11,8 @@ vi.mock('@metorial/db', () => ({
 }));
 
 vi.mock('@metorial/queue', () => ({
-  createQueue: vi.fn((config) => ({
-    process: vi.fn((processor) => {
+  createQueue: vi.fn(config => ({
+    process: vi.fn(processor => {
       // Store the processor for testing
       (global as any).__testQueueProcessor = processor;
       return { processorFn: processor };

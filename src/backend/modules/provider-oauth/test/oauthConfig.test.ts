@@ -18,10 +18,10 @@ vi.mock('@metorial/db', () => ({
 
 vi.mock('@metorial/hash', () => ({
   Hash: {
-    sha256: vi.fn(async (str) => {
+    sha256: vi.fn(async str => {
       let hash = 0;
       for (let i = 0; i < str.length; i++) {
-        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash = (hash << 5) - hash + str.charCodeAt(i);
         hash = hash & hash;
       }
       return `hash-${Math.abs(hash).toString(16)}`;
@@ -36,7 +36,7 @@ vi.mock('../src/queue/configAutoDiscovery', () => ({
 }));
 
 vi.mock('@metorial/canonicalize', () => ({
-  canonicalize: vi.fn((obj) => JSON.stringify(obj))
+  canonicalize: vi.fn(obj => JSON.stringify(obj))
 }));
 
 import { providerOauthConfigService } from '../src/services/oauthConfig';

@@ -53,14 +53,12 @@ export let serverOauthSessionController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            session_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by session ID(s)' }
-            ),
-            oauth_connection_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by OAuth connection ID(s)' }
-            )
+            session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session ID(s)'
+            }),
+            oauth_connection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by OAuth connection ID(s)'
+            })
           })
         )
       )

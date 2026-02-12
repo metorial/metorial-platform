@@ -6,7 +6,18 @@ import {
   useCurrentProject,
   useProviderDeployments
 } from '@metorial/state';
-import { Badge, Button, Dialog, Input, LinkTabs, RenderDate, showModal, Spacer, Text, theme } from '@metorial/ui';
+import {
+  Badge,
+  Button,
+  Dialog,
+  Input,
+  LinkTabs,
+  RenderDate,
+  showModal,
+  Spacer,
+  Text,
+  theme
+} from '@metorial/ui';
 import { useMemo, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
@@ -239,7 +250,9 @@ let DeploymentCard = styled.button`
   text-align: left;
   width: 100%;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 
   &:hover {
     border-color: ${theme.colors.gray500};
@@ -497,7 +510,10 @@ export let ProviderDeploymentsListLayout = () => {
 
   let deploymentsPath = Paths.instance.providerDeployments(...pathParams);
   let configsPath = Paths.instance.providerDeployments(...pathParams, 'configs');
-  let authCredentialsPath = Paths.instance.providerDeployments(...pathParams, 'auth-credentials');
+  let authCredentialsPath = Paths.instance.providerDeployments(
+    ...pathParams,
+    'auth-credentials'
+  );
   let authConfigsPath = Paths.instance.providerDeployments(...pathParams, 'auth-configs');
 
   let activeTab = useMemo(() => {
@@ -655,27 +671,15 @@ export let ProviderSessionsListLayout = () => {
         links={[
           {
             label: 'Sessions',
-            to: Paths.instance.providerSessions(
-              organization.data,
-              project.data,
-              instance.data
-            )
+            to: Paths.instance.providerSessions(organization.data, project.data, instance.data)
           },
           {
             label: 'Provider Runs',
-            to: Paths.instance.providerRuns(
-              organization.data,
-              project.data,
-              instance.data
-            )
+            to: Paths.instance.providerRuns(organization.data, project.data, instance.data)
           },
           {
             label: 'Errors',
-            to: Paths.instance.providerErrors(
-              organization.data,
-              project.data,
-              instance.data
-            )
+            to: Paths.instance.providerErrors(organization.data, project.data, instance.data)
           }
         ]}
       />

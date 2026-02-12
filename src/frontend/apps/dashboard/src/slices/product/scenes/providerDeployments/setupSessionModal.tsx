@@ -27,9 +27,7 @@ type AuthMethod = {
   name: string;
   description: string | null;
   inputSchema: Record<string, unknown> | null;
-  scopes:
-    | { id: string; scope: string; name: string; description: string | null }[]
-    | null;
+  scopes: { id: string; scope: string; name: string; description: string | null }[] | null;
 };
 
 type AuthCredential = {
@@ -155,7 +153,12 @@ let ConfigureAuthContent = ({
       return (
         <Flex direction="column" gap={12}>
           {methods.length > 1 && (
-            <Button variant="outline" size="1" onClick={resetToMethodStep} style={{ alignSelf: 'flex-start' }}>
+            <Button
+              variant="outline"
+              size="1"
+              onClick={resetToMethodStep}
+              style={{ alignSelf: 'flex-start' }}
+            >
               Back
             </Button>
           )}
@@ -183,19 +186,21 @@ let ConfigureAuthContent = ({
             ]}
           />
 
-          {selectedCredentialsId && selectedCredentialsId !== '__create_new__' && !isCreatingCredentials && (
-            <>
-              <Spacer size={15} />
-              <Dialog.Actions>
-                <Button variant="outline" onClick={onCancel}>
-                  Cancel
-                </Button>
-                <Button onClick={() => onComplete({ id: selectedCredentialsId })}>
-                  Done
-                </Button>
-              </Dialog.Actions>
-            </>
-          )}
+          {selectedCredentialsId &&
+            selectedCredentialsId !== '__create_new__' &&
+            !isCreatingCredentials && (
+              <>
+                <Spacer size={15} />
+                <Dialog.Actions>
+                  <Button variant="outline" onClick={onCancel}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => onComplete({ id: selectedCredentialsId })}>
+                    Done
+                  </Button>
+                </Dialog.Actions>
+              </>
+            )}
 
           {(isCreatingCredentials || !authCredentials.data?.items?.length) && (
             <>
@@ -228,7 +233,8 @@ let ConfigureAuthContent = ({
 
               {selectedMethod.scopes && selectedMethod.scopes.length > 0 && (
                 <Text size="1" color="gray600">
-                  {selectedMethod.scopes.length} scopes will be requested: {selectedMethod.scopes.map(s => s.scope.split('/').pop()).join(', ')}
+                  {selectedMethod.scopes.length} scopes will be requested:{' '}
+                  {selectedMethod.scopes.map(s => s.scope.split('/').pop()).join(', ')}
                 </Text>
               )}
 
@@ -373,11 +379,7 @@ let ConfigureAuthContent = ({
           <Button variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            loading={createAuthConfig.isPending}
-            disabled={!name}
-          >
+          <Button onClick={handleSubmit} loading={createAuthConfig.isPending} disabled={!name}>
             Save
           </Button>
         </Dialog.Actions>
@@ -409,10 +411,7 @@ let ConfigureAuthContent = ({
         <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button
-          disabled={!selectedMethodId}
-          onClick={() => setStep('credentials')}
-        >
+        <Button disabled={!selectedMethodId} onClick={() => setStep('credentials')}>
           Next
         </Button>
       </Dialog.Actions>

@@ -8,9 +8,7 @@ export let showProviderSessionFormModal = (
 ) =>
   showModal(({ dialogProps, close }) => (
     <Dialog.Wrapper {...dialogProps} width={650}>
-      <Dialog.Title>
-        {p.type == 'update' ? 'Update Session' : 'Create Session'}
-      </Dialog.Title>
+      <Dialog.Title>{p.type == 'update' ? 'Update Session' : 'Create Session'}</Dialog.Title>
 
       <Dialog.Description>
         {p.type == 'update'

@@ -4,10 +4,7 @@ import { useCurrentInstance, useAllSessionErrorGroups } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
-export let ServerErrorGroupsTable = (filter?: {
-  sessionId?: string;
-  type?: string;
-}) => {
+export let ServerErrorGroupsTable = (filter?: { sessionId?: string; type?: string }) => {
   let instance = useCurrentInstance();
   let errors = useAllSessionErrorGroups(instance.data?.instanceId, {
     sessionId: filter?.sessionId,
@@ -29,7 +26,8 @@ export let ServerErrorGroupsTable = (filter?: {
               {error.name ?? '—'}
             </Text>,
             <Text size="2">
-              {error.message?.slice(0, 80)}{error.message && error.message.length > 80 ? '...' : ''}
+              {error.message?.slice(0, 80)}
+              {error.message && error.message.length > 80 ? '...' : ''}
             </Text>,
             <Text size="2">{error.count ?? '—'}</Text>,
             <RenderDate date={error.createdAt} />

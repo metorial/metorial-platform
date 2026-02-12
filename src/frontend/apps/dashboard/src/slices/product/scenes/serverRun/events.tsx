@@ -2,10 +2,7 @@ import { ServerRunsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026
 import { useCurrentInstance, useProvider, useSessionErrors } from '@metorial/state';
 import { Button, Callout, Spacer, theme } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
-import {
-  RiArrowDownLine,
-  RiServerLine
-} from '@remixicon/react';
+import { RiArrowDownLine, RiServerLine } from '@remixicon/react';
 import { useState } from 'react';
 import styled from 'styled-components';
 import { Entry } from '../session/components/entry';
@@ -79,7 +76,8 @@ export let ServerRunEvents = ({ serverRun }: { serverRun: ServerRunsGetOutput })
   let instance = useCurrentInstance();
   let [isCollapsed, setIsCollapsed] = useState(true);
 
-  let sessionId = (serverRun as any)?.sessionId ?? (serverRun as any)?.serverSession?.sessionId;
+  let sessionId =
+    (serverRun as any)?.sessionId ?? (serverRun as any)?.serverSession?.sessionId;
 
   let errors = useSessionErrors(serverRun ? instance.data?.instanceId : null, {
     serverRunId: serverRun?.id,
@@ -93,32 +91,25 @@ export let ServerRunEvents = ({ serverRun }: { serverRun: ServerRunsGetOutput })
 
   let providerId = (serverRun as any)?.providerId ?? serverRun?.serverDeployment?.server?.id;
   let provider = useProvider(instance.data?.instanceId, providerId);
-  let providerName = provider.data?.name ?? serverRun?.serverDeployment?.name ?? (serverRun as any)?.server?.name ?? providerId ?? 'Unknown';
+  let providerName =
+    provider.data?.name ??
+    serverRun?.serverDeployment?.name ??
+    (serverRun as any)?.server?.name ??
+    providerId ??
+    'Unknown';
   let startTime = (serverRun as any)?.startedAt ?? serverRun?.createdAt;
   let endTime = (serverRun as any)?.completedAt ?? (serverRun as any)?.stoppedAt;
 
   let allItems = [
     {
-      component: (
-        <Entry
-          title="Provider started"
-          icon={<RiServerLine />}
-          time={startTime}
-        />
-      ),
+      component: <Entry title="Provider started" icon={<RiServerLine />} time={startTime} />,
       time: startTime
     },
 
     ...eventItems.data,
 
     endTime && {
-      component: (
-        <Entry
-          title="Provider stopped"
-          icon={<RiServerLine />}
-          time={endTime}
-        />
-      ),
+      component: <Entry title="Provider stopped" icon={<RiServerLine />} time={endTime} />,
       time: endTime
     }
   ];
@@ -130,7 +121,8 @@ export let ServerRunEvents = ({ serverRun }: { serverRun: ServerRunsGetOutput })
       {error && (
         <>
           <Callout color="red">
-            Provider run failed with error: {error.message} ({(error as any).code ?? (error as any).type})
+            Provider run failed with error: {error.message} (
+            {(error as any).code ?? (error as any).type})
           </Callout>
           <Spacer height={20} />
         </>

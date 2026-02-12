@@ -11,7 +11,7 @@ vi.mock('@metorial/db', () => ({
 }));
 
 vi.mock('@metorial/queue', () => ({
-  createQueue: vi.fn((config) => ({
+  createQueue: vi.fn(config => ({
     process: (fn: any) => fn,
     add: vi.fn()
   }))
@@ -131,9 +131,7 @@ describe('cloneBucket queue processor', () => {
 
     vi.mocked(db.codeBucket.findFirstOrThrow).mockResolvedValue(mockBucket as any);
     vi.mocked(codeBucketService.waitForCodeBucketReady).mockResolvedValue(undefined);
-    vi.mocked(codeWorkspaceClient.cloneBucket).mockRejectedValue(
-      new Error('Clone failed')
-    );
+    vi.mocked(codeWorkspaceClient.cloneBucket).mockRejectedValue(new Error('Clone failed'));
 
     await expect(
       processor({
@@ -169,15 +167,15 @@ describe('cloneBucket queue processor', () => {
 
     // Verify waitForCodeBucketReady was called before cloneBucket
     expect(codeBucketService.waitForCodeBucketReady).toHaveBeenCalled();
-    const waitCallOrder = vi.mocked(codeBucketService.waitForCodeBucketReady).mock.invocationCallOrder[0];
-    const cloneCallOrder = vi.mocked(codeWorkspaceClient.cloneBucket).mock.invocationCallOrder[0];
+    const waitCallOrder = vi.mocked(codeBucketService.waitForCodeBucketReady).mock
+      .invocationCallOrder[0];
+    const cloneCallOrder = vi.mocked(codeWorkspaceClient.cloneBucket).mock
+      .invocationCallOrder[0];
     expect(waitCallOrder).toBeLessThan(cloneCallOrder);
   });
 
   it('should handle bucket not found error', async () => {
-    vi.mocked(db.codeBucket.findFirstOrThrow).mockRejectedValue(
-      new Error('Bucket not found')
-    );
+    vi.mocked(db.codeBucket.findFirstOrThrow).mockRejectedValue(new Error('Bucket not found'));
 
     await expect(
       processor({
@@ -212,7 +210,8 @@ describe('cloneBucket queue processor', () => {
     // Verify status was updated after clone
     expect(db.codeBucket.updateMany).toHaveBeenCalled();
     const updateCallOrder = vi.mocked(db.codeBucket.updateMany).mock.invocationCallOrder[0];
-    const cloneCallOrder = vi.mocked(codeWorkspaceClient.cloneBucket).mock.invocationCallOrder[0];
+    const cloneCallOrder = vi.mocked(codeWorkspaceClient.cloneBucket).mock
+      .invocationCallOrder[0];
     expect(updateCallOrder).toBeGreaterThan(cloneCallOrder);
 
     expect(db.codeBucket.updateMany).toHaveBeenCalledWith({

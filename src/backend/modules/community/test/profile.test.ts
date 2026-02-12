@@ -24,7 +24,9 @@ vi.mock('@metorial/db', () => ({
 }));
 
 vi.mock('@metorial/slugify', () => ({
-  createSlugGenerator: vi.fn(() => vi.fn(async ({ input }: { input: string }) => `${input}-slug`))
+  createSlugGenerator: vi.fn(() =>
+    vi.fn(async ({ input }: { input: string }) => `${input}-slug`)
+  )
 }));
 
 vi.mock('@metorial/service', () => ({
@@ -101,7 +103,11 @@ describe('ProfileService', () => {
     });
 
     it('should create new user profile if not found', async () => {
-      const mockUser = { oid: 'user-oid-789', name: 'Jane Smith', image: 'http://example.com/avatar.jpg' };
+      const mockUser = {
+        oid: 'user-oid-789',
+        name: 'Jane Smith',
+        image: 'http://example.com/avatar.jpg'
+      };
       const newProfile = {
         oid: 'new-profile-oid',
         id: 'profile_abc123',
@@ -395,7 +401,11 @@ describe('ProfileService', () => {
 
   describe('syncProfile', () => {
     it('should sync non-customized user profile name', async () => {
-      const mockUser = { oid: 'user-oid-123', name: 'Updated User Name', image: 'new-image.jpg' };
+      const mockUser = {
+        oid: 'user-oid-123',
+        name: 'Updated User Name',
+        image: 'new-image.jpg'
+      };
       const mockProfile = {
         oid: 'profile-oid-123',
         userOid: 'user-oid-123',

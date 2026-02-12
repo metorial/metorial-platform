@@ -121,10 +121,14 @@ export let dashboardApiKeyController = Controller.create(
         Paginator.validate(
           v.union([
             v.object({
-              type: v.literal('organization_management_token', { description: 'List organization management tokens' })
+              type: v.literal('organization_management_token', {
+                description: 'List organization management tokens'
+              })
             }),
             v.object({
-              type: v.literal('instance_access_token', { description: 'List instance access tokens' }),
+              type: v.literal('instance_access_token', {
+                description: 'List instance access tokens'
+              }),
               instance_id: v.string({ description: 'Instance ID for the access token' })
             })
           ])

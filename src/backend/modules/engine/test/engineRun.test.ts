@@ -1,11 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createEngineRun } from '../src/run/data/engineRun';
-import type {
-  ServerSession,
-  Instance,
-  Organization,
-  ServerVersion
-} from '@metorial/db';
+import type { ServerSession, Instance, Organization, ServerVersion } from '@metorial/db';
 import { EngineRunStatus } from '@metorial/mcp-engine-generated';
 import type { EngineSessionRun } from '@metorial/mcp-engine-generated';
 

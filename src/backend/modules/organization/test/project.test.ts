@@ -14,12 +14,14 @@ vi.mock('@metorial/db', () => ({
   ID: {
     generateId: vi.fn()
   },
-  withTransaction: vi.fn((callback) => callback({
-    project: {
-      create: vi.fn(),
-      update: vi.fn()
-    }
-  }))
+  withTransaction: vi.fn(callback =>
+    callback({
+      project: {
+        create: vi.fn(),
+        update: vi.fn()
+      }
+    })
+  )
 }));
 
 vi.mock('@metorial/fabric', () => ({
@@ -30,7 +32,7 @@ vi.mock('@metorial/fabric', () => ({
 
 vi.mock('@metorial/pagination', () => ({
   Paginator: {
-    create: vi.fn((fn) => fn)
+    create: vi.fn(fn => fn)
   }
 }));
 
@@ -77,7 +79,7 @@ describe('ProjectService', () => {
       };
 
       vi.mocked(ID.generateId).mockResolvedValue('proj-1');
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           project: {
             create: vi.fn().mockResolvedValue(mockProject)
@@ -98,10 +100,16 @@ describe('ProjectService', () => {
 
       expect(result).toEqual(mockProject);
       expect(ID.generateId).toHaveBeenCalledWith('project');
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.project.created:before', expect.any(Object));
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.project.created:after', expect.objectContaining({
-        project: mockProject
-      }));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.project.created:before',
+        expect.any(Object)
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.project.created:after',
+        expect.objectContaining({
+          project: mockProject
+        })
+      );
       expect(instanceService.createInstance).toHaveBeenCalledWith({
         project: mockProject,
         organization: mockOrg,
@@ -118,7 +126,7 @@ describe('ProjectService', () => {
       let mockProject = { id: 'proj-1', slug: 'test-slug' };
 
       vi.mocked(ID.generateId).mockResolvedValue('proj-1');
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           project: {
             create: vi.fn().mockResolvedValue(mockProject)
@@ -154,7 +162,7 @@ describe('ProjectService', () => {
         name: 'New Name'
       };
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           project: {
             update: vi.fn().mockResolvedValue(updatedProject)
@@ -174,8 +182,14 @@ describe('ProjectService', () => {
       });
 
       expect(result.name).toBe('New Name');
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.project.updated:before', expect.any(Object));
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.project.updated:after', expect.any(Object));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.project.updated:before',
+        expect.any(Object)
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.project.updated:after',
+        expect.any(Object)
+      );
     });
 
     it('should throw forbidden error for deleted project', async () => {
@@ -206,7 +220,7 @@ describe('ProjectService', () => {
         name: 'Original Name'
       };
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           project: {
             update: vi.fn().mockResolvedValue(mockProject)
@@ -409,7 +423,7 @@ describe('ProjectService', () => {
       let mockProject = { id: 'proj-1', oid: 1 };
 
       vi.mocked(ID.generateId).mockResolvedValue('proj-1');
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           project: {
             create: vi.fn().mockResolvedValue(mockProject)

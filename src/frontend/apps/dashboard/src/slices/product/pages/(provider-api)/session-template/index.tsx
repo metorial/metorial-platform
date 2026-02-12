@@ -114,7 +114,8 @@ export let SessionTemplateOverviewPage = () => {
       },
       {
         title: 'Use the session',
-        description: 'Once created, use the session to interact with the configured providers.',
+        description:
+          'Once created, use the session to interact with the configured providers.',
         type: 'code' as const,
         code: dedent`
           // List available tools in the session
@@ -180,7 +181,8 @@ export let SessionTemplateOverviewPage = () => {
       },
       {
         title: 'Use the session',
-        description: 'Once created, use the session to interact with the configured providers.',
+        description:
+          'Once created, use the session to interact with the configured providers.',
         type: 'code' as const,
         code: dedent`
           # List available tools in the session

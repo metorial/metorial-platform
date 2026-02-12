@@ -116,7 +116,9 @@ export let customProviderController = Controller.create(
       .do(async ctx => {
         let paginator = await customProviderService.list({
           instance: ctx.instance,
-          status: normalizeArrayParam(ctx.query.status) as ('active' | 'archived')[] | undefined,
+          status: normalizeArrayParam(ctx.query.status) as
+            | ('active' | 'archived')[]
+            | undefined,
           type: normalizeArrayParam(ctx.query.type) as
             | ('container' | 'function' | 'remote')[]
             | undefined,
@@ -193,10 +195,9 @@ export let customProviderController = Controller.create(
         v.object({
           name: v.optional(v.string({ examples: ['Updated Provider Name'] })),
           description: v.optional(v.string({ examples: ['Updated description'] })),
-          metadata: v.optional(
-            v.record(v.any(), { examples: [{ environment: 'staging' }] }),
-            { description: 'Custom key-value pairs for storing additional information' }
-          )
+          metadata: v.optional(v.record(v.any(), { examples: [{ environment: 'staging' }] }), {
+            description: 'Custom key-value pairs for storing additional information'
+          })
         })
       )
       .output(subspaceCustomProviderPresenter)

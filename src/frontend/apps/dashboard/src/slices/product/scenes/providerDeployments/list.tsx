@@ -39,7 +39,11 @@ export let ProviderDeploymentsList = ({
 }) => {
   let instance = useCurrentInstance();
   let deployments = useProviderDeployments(instance.data?.instanceId, {
-    providerId: providerId ? (Array.isArray(providerId) ? providerId : [providerId]) : undefined
+    providerId: providerId
+      ? Array.isArray(providerId)
+        ? providerId
+        : [providerId]
+      : undefined
   });
 
   return renderWithPagination(deployments)(deployments => {

@@ -1,16 +1,6 @@
 import { renderWithPagination } from '@metorial/data-hooks';
-import {
-  useCurrentInstance,
-  useProviderAuthMethods
-} from '@metorial/state';
-import {
-  AccordionSingle,
-  Badge,
-  Flex,
-  Spacer,
-  Text,
-  theme
-} from '@metorial/ui';
+import { useCurrentInstance, useProviderAuthMethods } from '@metorial/state';
+import { AccordionSingle, Badge, Flex, Spacer, Text, theme } from '@metorial/ui';
 import { useParams } from 'react-router-dom';
 import { useProviderVersionContext } from './_layout';
 
@@ -100,9 +90,13 @@ let PropertyRow = ({
           {typeLabel}
         </Badge>
         {isRequired ? (
-          <Badge color="red" size="1">Required</Badge>
+          <Badge color="red" size="1">
+            Required
+          </Badge>
         ) : (
-          <Badge color="gray" size="1">Optional</Badge>
+          <Badge color="gray" size="1">
+            Optional
+          </Badge>
         )}
         {prop.default !== undefined && (
           <Text size="1" color="gray600">
@@ -124,13 +118,7 @@ let PropertyRow = ({
   );
 };
 
-let ScopeRow = ({
-  scope,
-  showBorder = true
-}: {
-  scope: Scope;
-  showBorder?: boolean;
-}) => {
+let ScopeRow = ({ scope, showBorder = true }: { scope: Scope; showBorder?: boolean }) => {
   let { primary, secondary } = getScopeDisplay(scope);
 
   return (
@@ -220,77 +208,95 @@ export let ProviderAuthMethodsPage = () => {
 
         <Flex direction="column" gap={4}>
           {authMethodsToRender.map(
-          (method: {
-            id: string;
-            type: 'oauth' | 'token' | 'custom';
-            name: string;
-            description: string | null;
-            inputSchema: Record<string, unknown> | null;
-            scopes: Scope[] | null;
-          }) => {
-            let hasSchemaFields =
-              method.inputSchema &&
-              (method.inputSchema as JsonSchema).properties &&
-              Object.keys((method.inputSchema as JsonSchema).properties!).length > 0;
+            (method: {
+              id: string;
+              type: 'oauth' | 'token' | 'custom';
+              name: string;
+              description: string | null;
+              inputSchema: Record<string, unknown> | null;
+              scopes: Scope[] | null;
+            }) => {
+              let hasSchemaFields =
+                method.inputSchema &&
+                (method.inputSchema as JsonSchema).properties &&
+                Object.keys((method.inputSchema as JsonSchema).properties!).length > 0;
 
-            return (
-              <AccordionSingle
-                key={method.id}
-                title={
-                  <Flex gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                    <Badge
-                      color={method.type === 'oauth' ? 'blue' : method.type === 'token' ? 'green' : 'gray'}
-                      size="1"
-                    >
-                      {getAuthTypeBadgeLabel(method.type)}
-                    </Badge>
-                    <Text size="2" weight="strong">
-                      {method.name}
-                    </Text>
-                    {method.type === 'oauth' && (
-                      <Badge color="gray" size="1">
-                        {method.scopes?.length ?? 0} Scopes
+              return (
+                <AccordionSingle
+                  key={method.id}
+                  title={
+                    <Flex gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                      <Badge
+                        color={
+                          method.type === 'oauth'
+                            ? 'blue'
+                            : method.type === 'token'
+                              ? 'green'
+                              : 'gray'
+                        }
+                        size="1"
+                      >
+                        {getAuthTypeBadgeLabel(method.type)}
                       </Badge>
+                      <Text size="2" weight="strong">
+                        {method.name}
+                      </Text>
+                      {method.type === 'oauth' && (
+                        <Badge color="gray" size="1">
+                          {method.scopes?.length ?? 0} Scopes
+                        </Badge>
+                      )}
+                    </Flex>
+                  }
+                >
+                  <Flex direction="column" gap={12} style={{ padding: '4px 0' }}>
+                    {method.description && (
+                      <Text
+                        size="1"
+                        color="gray600"
+                        style={{ display: 'block', marginTop: 4 }}
+                      >
+                        {method.description}
+                      </Text>
+                    )}
+
+                    {method.type === 'oauth' && method.scopes && method.scopes.length > 0 && (
+                      <div>
+                        <Text
+                          size="2"
+                          weight="strong"
+                          style={{ display: 'block', marginBottom: 16 }}
+                        >
+                          Requested Scopes
+                        </Text>
+                        <Flex direction="column">
+                          {method.scopes.map((scope: Scope, index: number) => (
+                            <ScopeRow
+                              key={scope.id}
+                              scope={scope}
+                              showBorder={index < method.scopes!.length - 1}
+                            />
+                          ))}
+                        </Flex>
+                      </div>
+                    )}
+
+                    {hasSchemaFields && (
+                      <>
+                        <Text
+                          size="2"
+                          weight="strong"
+                          style={{ display: 'block', marginBottom: 4 }}
+                        >
+                          Required Fields
+                        </Text>
+                        <SchemaFields schema={method.inputSchema} />
+                      </>
                     )}
                   </Flex>
-                }
-              >
-                <Flex direction="column" gap={12} style={{ padding: '4px 0' }}>
-                {method.description && (
-                  <Text size="1" color="gray600" style={{ display: 'block', marginTop: 4 }}>
-                    {method.description}
-                  </Text>
-                )}
-
-                {method.type === 'oauth' && method.scopes && method.scopes.length > 0 && (
-                  <div>
-                    <Text size="2" weight="strong" style={{ display: 'block', marginBottom: 16 }}>
-                      Requested Scopes
-                    </Text>
-                    <Flex direction="column">
-                      {method.scopes.map((scope: Scope, index: number) => (
-                        <ScopeRow
-                          key={scope.id}
-                          scope={scope}
-                          showBorder={index < method.scopes!.length - 1}
-                        />
-                      ))}
-                    </Flex>
-                  </div>
-                )}
-
-                {hasSchemaFields && (
-                  <>
-                    <Text size="2" weight="strong" style={{ display: 'block', marginBottom: 4 }}>
-                      Required Fields
-                    </Text>
-                    <SchemaFields schema={method.inputSchema} />
-                  </>
-                )}
-                </Flex>
-              </AccordionSingle>
-            );
-          }
+                </AccordionSingle>
+              );
+            }
           )}
         </Flex>
       </>

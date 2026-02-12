@@ -1,10 +1,6 @@
 import { Button, theme } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
-import {
-  RiArrowDownLine,
-  RiRadarLine,
-  RiSendPlane2Line
-} from '@remixicon/react';
+import { RiArrowDownLine, RiRadarLine, RiSendPlane2Line } from '@remixicon/react';
 import { useState } from 'react';
 import styled from 'styled-components';
 import { Entry } from './entry';
@@ -107,11 +103,7 @@ export let ProviderConnection = ({
   let allItems = [
     {
       component: (
-        <Entry
-          icon={<RiRadarLine />}
-          title="Client connected"
-          time={connection.createdAt}
-        />
+        <Entry icon={<RiRadarLine />} title="Client connected" time={connection.createdAt} />
       ),
       time: connection.createdAt
     },

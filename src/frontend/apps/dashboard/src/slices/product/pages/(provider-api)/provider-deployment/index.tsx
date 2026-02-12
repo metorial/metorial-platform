@@ -94,7 +94,6 @@ export let ProviderDeploymentOverviewPage = () => {
         instanceId={instance.data!.instanceId}
         providerDeploymentId={deployment.data.id}
       />
-
     </>
   ));
 };

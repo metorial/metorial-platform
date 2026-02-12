@@ -70,7 +70,10 @@ export let ProviderLayout = () => {
 
     if (versionStorageKey && typeof window !== 'undefined') {
       let storedVersionId = window.sessionStorage.getItem(versionStorageKey);
-      if (storedVersionId && (allVersions.length === 0 || allVersions.some(v => v.id === storedVersionId))) {
+      if (
+        storedVersionId &&
+        (allVersions.length === 0 || allVersions.some(v => v.id === storedVersionId))
+      ) {
         setSelectedVersionId(storedVersionId);
         return;
       }
@@ -83,7 +86,11 @@ export let ProviderLayout = () => {
 
   // Keep persisted selection in sync and reset invalid selections.
   useEffect(() => {
-    if (selectedVersionId && allVersions.length > 0 && !allVersions.some(v => v.id === selectedVersionId)) {
+    if (
+      selectedVersionId &&
+      allVersions.length > 0 &&
+      !allVersions.some(v => v.id === selectedVersionId)
+    ) {
       setSelectedVersionId(currentVersionId);
       return;
     }
@@ -119,24 +126,28 @@ export let ProviderLayout = () => {
   };
 
   // Sort: current version first, then by date descending
-  let sortedVersions = useMemo(() =>
-    [...allVersions].sort((a, b) => {
-      if (a.id === currentVersionId) return -1;
-      if (b.id === currentVersionId) return 1;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    }),
+  let sortedVersions = useMemo(
+    () =>
+      [...allVersions].sort((a, b) => {
+        if (a.id === currentVersionId) return -1;
+        if (b.id === currentVersionId) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }),
     [allVersions, currentVersionId]
   );
 
-  let versionContext = useMemo<ProviderVersionContextValue>(() => ({
-    selectedVersionId: effectiveVersionId,
-    setSelectedVersionId,
-    currentVersionId,
-    selectedVersion,
-    allVersions: sortedVersions,
-    isDefaultVersion,
-    resetToDefault
-  }), [effectiveVersionId, currentVersionId, selectedVersion, sortedVersions, isDefaultVersion]);
+  let versionContext = useMemo<ProviderVersionContextValue>(
+    () => ({
+      selectedVersionId: effectiveVersionId,
+      setSelectedVersionId,
+      currentVersionId,
+      selectedVersion,
+      allVersions: sortedVersions,
+      isDefaultVersion,
+      resetToDefault
+    }),
+    [effectiveVersionId, currentVersionId, selectedVersion, sortedVersions, isDefaultVersion]
+  );
 
   let providerPathParams = [
     organization.data,
@@ -152,10 +163,10 @@ export let ProviderLayout = () => {
           title={listing?.name ?? provider.data?.name ?? '...'}
           description={listing?.description ?? provider.data?.description ?? undefined}
           top={
-            (listing?.flags?.isVerified ||
-              listing?.flags?.isOfficial ||
-              listing?.flags?.isMetorial ||
-              (selectedVersion && !isDefaultVersion)) ? (
+            listing?.flags?.isVerified ||
+            listing?.flags?.isOfficial ||
+            listing?.flags?.isMetorial ||
+            (selectedVersion && !isDefaultVersion) ? (
               <Flex gap={8} style={{ alignItems: 'center', marginTop: 6 }}>
                 {listing?.flags?.isVerified && <Badge color="blue">Verified</Badge>}
                 {(listing?.flags?.isOfficial || listing?.flags?.isMetorial) && (
@@ -164,11 +175,7 @@ export let ProviderLayout = () => {
                 {selectedVersion && !isDefaultVersion && (
                   <>
                     <Badge color="purple">{selectedVersion.version}</Badge>
-                    <Button
-                      size="1"
-                      variant="ghost"
-                      onClick={resetToDefault}
-                    >
+                    <Button size="1" variant="ghost" onClick={resetToDefault}>
                       Back to default version
                     </Button>
                   </>

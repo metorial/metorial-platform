@@ -5,7 +5,7 @@
 // source: rpc.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -16,28 +16,28 @@ import {
   makeGenericClientConstructor,
   type Metadata,
   type ServiceError,
-  type UntypedServiceImplementation,
-} from "@grpc/grpc-js";
-import Long from "long";
+  type UntypedServiceImplementation
+} from '@grpc/grpc-js';
+import Long from 'long';
 
-export const protobufPackage = "rpc.rpc";
+export const protobufPackage = 'rpc.rpc';
 
 export enum ListPaginationOrder {
   list_cursor_order_asc = 0,
   list_cursor_order_desc = 1,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function listPaginationOrderFromJSON(object: any): ListPaginationOrder {
   switch (object) {
     case 0:
-    case "list_cursor_order_asc":
+    case 'list_cursor_order_asc':
       return ListPaginationOrder.list_cursor_order_asc;
     case 1:
-    case "list_cursor_order_desc":
+    case 'list_cursor_order_desc':
       return ListPaginationOrder.list_cursor_order_desc;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return ListPaginationOrder.UNRECOGNIZED;
   }
@@ -46,12 +46,12 @@ export function listPaginationOrderFromJSON(object: any): ListPaginationOrder {
 export function listPaginationOrderToJSON(object: ListPaginationOrder): string {
   switch (object) {
     case ListPaginationOrder.list_cursor_order_asc:
-      return "list_cursor_order_asc";
+      return 'list_cursor_order_asc';
     case ListPaginationOrder.list_cursor_order_desc:
-      return "list_cursor_order_desc";
+      return 'list_cursor_order_desc';
     case ListPaginationOrder.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -87,8 +87,7 @@ export interface IngestLogRequest {
   timestamp: Long;
 }
 
-export interface IngestLogResponse {
-}
+export interface IngestLogResponse {}
 
 export interface ListLogsRequest {
   entityType: string;
@@ -115,15 +114,15 @@ export interface GetLogResponse {
 }
 
 function createBaseListPagination(): ListPagination {
-  return { afterId: "", beforeId: "", limit: 0, order: 0 };
+  return { afterId: '', beforeId: '', limit: 0, order: 0 };
 }
 
 export const ListPagination: MessageFns<ListPagination> = {
   encode(message: ListPagination, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.afterId !== "") {
+    if (message.afterId !== '') {
       writer.uint32(10).string(message.afterId);
     }
-    if (message.beforeId !== "") {
+    if (message.beforeId !== '') {
       writer.uint32(18).string(message.beforeId);
     }
     if (message.limit !== 0) {
@@ -185,19 +184,19 @@ export const ListPagination: MessageFns<ListPagination> = {
 
   fromJSON(object: any): ListPagination {
     return {
-      afterId: isSet(object.afterId) ? globalThis.String(object.afterId) : "",
-      beforeId: isSet(object.beforeId) ? globalThis.String(object.beforeId) : "",
+      afterId: isSet(object.afterId) ? globalThis.String(object.afterId) : '',
+      beforeId: isSet(object.beforeId) ? globalThis.String(object.beforeId) : '',
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
-      order: isSet(object.order) ? listPaginationOrderFromJSON(object.order) : 0,
+      order: isSet(object.order) ? listPaginationOrderFromJSON(object.order) : 0
     };
   },
 
   toJSON(message: ListPagination): unknown {
     const obj: any = {};
-    if (message.afterId !== "") {
+    if (message.afterId !== '') {
       obj.afterId = message.afterId;
     }
-    if (message.beforeId !== "") {
+    if (message.beforeId !== '') {
       obj.beforeId = message.beforeId;
     }
     if (message.limit !== 0) {
@@ -214,33 +213,40 @@ export const ListPagination: MessageFns<ListPagination> = {
   },
   fromPartial(object: DeepPartial<ListPagination>): ListPagination {
     const message = createBaseListPagination();
-    message.afterId = object.afterId ?? "";
-    message.beforeId = object.beforeId ?? "";
+    message.afterId = object.afterId ?? '';
+    message.beforeId = object.beforeId ?? '';
     message.limit = object.limit ?? 0;
     message.order = object.order ?? 0;
     return message;
-  },
+  }
 };
 
 function createBaseLogEntry(): LogEntry {
-  return { entityId: "", entityType: "", instanceId: "", payloadJson: "", fieldsJson: "", timestamp: Long.UZERO };
+  return {
+    entityId: '',
+    entityType: '',
+    instanceId: '',
+    payloadJson: '',
+    fieldsJson: '',
+    timestamp: Long.UZERO
+  };
 }
 
 export const LogEntry: MessageFns<LogEntry> = {
   encode(message: LogEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.entityId !== "") {
+    if (message.entityId !== '') {
       writer.uint32(10).string(message.entityId);
     }
-    if (message.entityType !== "") {
+    if (message.entityType !== '') {
       writer.uint32(18).string(message.entityType);
     }
-    if (message.instanceId !== "") {
+    if (message.instanceId !== '') {
       writer.uint32(26).string(message.instanceId);
     }
-    if (message.payloadJson !== "") {
+    if (message.payloadJson !== '') {
       writer.uint32(42).string(message.payloadJson);
     }
-    if (message.fieldsJson !== "") {
+    if (message.fieldsJson !== '') {
       writer.uint32(58).string(message.fieldsJson);
     }
     if (!message.timestamp.equals(Long.UZERO)) {
@@ -315,30 +321,30 @@ export const LogEntry: MessageFns<LogEntry> = {
 
   fromJSON(object: any): LogEntry {
     return {
-      entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : "",
-      entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : "",
-      instanceId: isSet(object.instanceId) ? globalThis.String(object.instanceId) : "",
-      payloadJson: isSet(object.payloadJson) ? globalThis.String(object.payloadJson) : "",
-      fieldsJson: isSet(object.fieldsJson) ? globalThis.String(object.fieldsJson) : "",
-      timestamp: isSet(object.timestamp) ? Long.fromValue(object.timestamp) : Long.UZERO,
+      entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : '',
+      entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : '',
+      instanceId: isSet(object.instanceId) ? globalThis.String(object.instanceId) : '',
+      payloadJson: isSet(object.payloadJson) ? globalThis.String(object.payloadJson) : '',
+      fieldsJson: isSet(object.fieldsJson) ? globalThis.String(object.fieldsJson) : '',
+      timestamp: isSet(object.timestamp) ? Long.fromValue(object.timestamp) : Long.UZERO
     };
   },
 
   toJSON(message: LogEntry): unknown {
     const obj: any = {};
-    if (message.entityId !== "") {
+    if (message.entityId !== '') {
       obj.entityId = message.entityId;
     }
-    if (message.entityType !== "") {
+    if (message.entityType !== '') {
       obj.entityType = message.entityType;
     }
-    if (message.instanceId !== "") {
+    if (message.instanceId !== '') {
       obj.instanceId = message.instanceId;
     }
-    if (message.payloadJson !== "") {
+    if (message.payloadJson !== '') {
       obj.payloadJson = message.payloadJson;
     }
-    if (message.fieldsJson !== "") {
+    if (message.fieldsJson !== '') {
       obj.fieldsJson = message.fieldsJson;
     }
     if (!message.timestamp.equals(Long.UZERO)) {
@@ -352,34 +358,41 @@ export const LogEntry: MessageFns<LogEntry> = {
   },
   fromPartial(object: DeepPartial<LogEntry>): LogEntry {
     const message = createBaseLogEntry();
-    message.entityId = object.entityId ?? "";
-    message.entityType = object.entityType ?? "";
-    message.instanceId = object.instanceId ?? "";
-    message.payloadJson = object.payloadJson ?? "";
-    message.fieldsJson = object.fieldsJson ?? "";
-    message.timestamp = (object.timestamp !== undefined && object.timestamp !== null)
-      ? Long.fromValue(object.timestamp)
-      : Long.UZERO;
+    message.entityId = object.entityId ?? '';
+    message.entityType = object.entityType ?? '';
+    message.instanceId = object.instanceId ?? '';
+    message.payloadJson = object.payloadJson ?? '';
+    message.fieldsJson = object.fieldsJson ?? '';
+    message.timestamp =
+      object.timestamp !== undefined && object.timestamp !== null
+        ? Long.fromValue(object.timestamp)
+        : Long.UZERO;
     return message;
-  },
+  }
 };
 
 function createBaseLogEntryLight(): LogEntryLight {
-  return { entityId: "", entityType: "", instanceId: "", fieldsJson: "", timestamp: Long.UZERO };
+  return {
+    entityId: '',
+    entityType: '',
+    instanceId: '',
+    fieldsJson: '',
+    timestamp: Long.UZERO
+  };
 }
 
 export const LogEntryLight: MessageFns<LogEntryLight> = {
   encode(message: LogEntryLight, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.entityId !== "") {
+    if (message.entityId !== '') {
       writer.uint32(10).string(message.entityId);
     }
-    if (message.entityType !== "") {
+    if (message.entityType !== '') {
       writer.uint32(18).string(message.entityType);
     }
-    if (message.instanceId !== "") {
+    if (message.instanceId !== '') {
       writer.uint32(26).string(message.instanceId);
     }
-    if (message.fieldsJson !== "") {
+    if (message.fieldsJson !== '') {
       writer.uint32(34).string(message.fieldsJson);
     }
     if (!message.timestamp.equals(Long.UZERO)) {
@@ -446,26 +459,26 @@ export const LogEntryLight: MessageFns<LogEntryLight> = {
 
   fromJSON(object: any): LogEntryLight {
     return {
-      entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : "",
-      entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : "",
-      instanceId: isSet(object.instanceId) ? globalThis.String(object.instanceId) : "",
-      fieldsJson: isSet(object.fieldsJson) ? globalThis.String(object.fieldsJson) : "",
-      timestamp: isSet(object.timestamp) ? Long.fromValue(object.timestamp) : Long.UZERO,
+      entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : '',
+      entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : '',
+      instanceId: isSet(object.instanceId) ? globalThis.String(object.instanceId) : '',
+      fieldsJson: isSet(object.fieldsJson) ? globalThis.String(object.fieldsJson) : '',
+      timestamp: isSet(object.timestamp) ? Long.fromValue(object.timestamp) : Long.UZERO
     };
   },
 
   toJSON(message: LogEntryLight): unknown {
     const obj: any = {};
-    if (message.entityId !== "") {
+    if (message.entityId !== '') {
       obj.entityId = message.entityId;
     }
-    if (message.entityType !== "") {
+    if (message.entityType !== '') {
       obj.entityType = message.entityType;
     }
-    if (message.instanceId !== "") {
+    if (message.instanceId !== '') {
       obj.instanceId = message.instanceId;
     }
-    if (message.fieldsJson !== "") {
+    if (message.fieldsJson !== '') {
       obj.fieldsJson = message.fieldsJson;
     }
     if (!message.timestamp.equals(Long.UZERO)) {
@@ -479,33 +492,40 @@ export const LogEntryLight: MessageFns<LogEntryLight> = {
   },
   fromPartial(object: DeepPartial<LogEntryLight>): LogEntryLight {
     const message = createBaseLogEntryLight();
-    message.entityId = object.entityId ?? "";
-    message.entityType = object.entityType ?? "";
-    message.instanceId = object.instanceId ?? "";
-    message.fieldsJson = object.fieldsJson ?? "";
-    message.timestamp = (object.timestamp !== undefined && object.timestamp !== null)
-      ? Long.fromValue(object.timestamp)
-      : Long.UZERO;
+    message.entityId = object.entityId ?? '';
+    message.entityType = object.entityType ?? '';
+    message.instanceId = object.instanceId ?? '';
+    message.fieldsJson = object.fieldsJson ?? '';
+    message.timestamp =
+      object.timestamp !== undefined && object.timestamp !== null
+        ? Long.fromValue(object.timestamp)
+        : Long.UZERO;
     return message;
-  },
+  }
 };
 
 function createBaseIngestLogRequest(): IngestLogRequest {
-  return { entityId: "", entityType: "", instanceId: "", payloadJson: "", timestamp: Long.UZERO };
+  return {
+    entityId: '',
+    entityType: '',
+    instanceId: '',
+    payloadJson: '',
+    timestamp: Long.UZERO
+  };
 }
 
 export const IngestLogRequest: MessageFns<IngestLogRequest> = {
   encode(message: IngestLogRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.entityId !== "") {
+    if (message.entityId !== '') {
       writer.uint32(10).string(message.entityId);
     }
-    if (message.entityType !== "") {
+    if (message.entityType !== '') {
       writer.uint32(18).string(message.entityType);
     }
-    if (message.instanceId !== "") {
+    if (message.instanceId !== '') {
       writer.uint32(26).string(message.instanceId);
     }
-    if (message.payloadJson !== "") {
+    if (message.payloadJson !== '') {
       writer.uint32(34).string(message.payloadJson);
     }
     if (!message.timestamp.equals(Long.UZERO)) {
@@ -572,26 +592,26 @@ export const IngestLogRequest: MessageFns<IngestLogRequest> = {
 
   fromJSON(object: any): IngestLogRequest {
     return {
-      entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : "",
-      entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : "",
-      instanceId: isSet(object.instanceId) ? globalThis.String(object.instanceId) : "",
-      payloadJson: isSet(object.payloadJson) ? globalThis.String(object.payloadJson) : "",
-      timestamp: isSet(object.timestamp) ? Long.fromValue(object.timestamp) : Long.UZERO,
+      entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : '',
+      entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : '',
+      instanceId: isSet(object.instanceId) ? globalThis.String(object.instanceId) : '',
+      payloadJson: isSet(object.payloadJson) ? globalThis.String(object.payloadJson) : '',
+      timestamp: isSet(object.timestamp) ? Long.fromValue(object.timestamp) : Long.UZERO
     };
   },
 
   toJSON(message: IngestLogRequest): unknown {
     const obj: any = {};
-    if (message.entityId !== "") {
+    if (message.entityId !== '') {
       obj.entityId = message.entityId;
     }
-    if (message.entityType !== "") {
+    if (message.entityType !== '') {
       obj.entityType = message.entityType;
     }
-    if (message.instanceId !== "") {
+    if (message.instanceId !== '') {
       obj.instanceId = message.instanceId;
     }
-    if (message.payloadJson !== "") {
+    if (message.payloadJson !== '') {
       obj.payloadJson = message.payloadJson;
     }
     if (!message.timestamp.equals(Long.UZERO)) {
@@ -605,15 +625,16 @@ export const IngestLogRequest: MessageFns<IngestLogRequest> = {
   },
   fromPartial(object: DeepPartial<IngestLogRequest>): IngestLogRequest {
     const message = createBaseIngestLogRequest();
-    message.entityId = object.entityId ?? "";
-    message.entityType = object.entityType ?? "";
-    message.instanceId = object.instanceId ?? "";
-    message.payloadJson = object.payloadJson ?? "";
-    message.timestamp = (object.timestamp !== undefined && object.timestamp !== null)
-      ? Long.fromValue(object.timestamp)
-      : Long.UZERO;
+    message.entityId = object.entityId ?? '';
+    message.entityType = object.entityType ?? '';
+    message.instanceId = object.instanceId ?? '';
+    message.payloadJson = object.payloadJson ?? '';
+    message.timestamp =
+      object.timestamp !== undefined && object.timestamp !== null
+        ? Long.fromValue(object.timestamp)
+        : Long.UZERO;
     return message;
-  },
+  }
 };
 
 function createBaseIngestLogResponse(): IngestLogResponse {
@@ -656,24 +677,24 @@ export const IngestLogResponse: MessageFns<IngestLogResponse> = {
   fromPartial(_: DeepPartial<IngestLogResponse>): IngestLogResponse {
     const message = createBaseIngestLogResponse();
     return message;
-  },
+  }
 };
 
 function createBaseListLogsRequest(): ListLogsRequest {
   return {
-    entityType: "",
+    entityType: '',
     entityIds: [],
     instanceIds: [],
     pagination: undefined,
     filterJson: undefined,
     minTimestamp: undefined,
-    maxTimestamp: undefined,
+    maxTimestamp: undefined
   };
 }
 
 export const ListLogsRequest: MessageFns<ListLogsRequest> = {
   encode(message: ListLogsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.entityType !== "") {
+    if (message.entityType !== '') {
       writer.uint32(18).string(message.entityType);
     }
     for (const v of message.entityIds) {
@@ -771,23 +792,29 @@ export const ListLogsRequest: MessageFns<ListLogsRequest> = {
 
   fromJSON(object: any): ListLogsRequest {
     return {
-      entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : "",
+      entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : '',
       entityIds: globalThis.Array.isArray(object?.entityIds)
         ? object.entityIds.map((e: any) => globalThis.String(e))
         : [],
       instanceIds: globalThis.Array.isArray(object?.instanceIds)
         ? object.instanceIds.map((e: any) => globalThis.String(e))
         : [],
-      pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
+      pagination: isSet(object.pagination)
+        ? ListPagination.fromJSON(object.pagination)
+        : undefined,
       filterJson: isSet(object.filterJson) ? globalThis.String(object.filterJson) : undefined,
-      minTimestamp: isSet(object.minTimestamp) ? Long.fromValue(object.minTimestamp) : undefined,
-      maxTimestamp: isSet(object.maxTimestamp) ? Long.fromValue(object.maxTimestamp) : undefined,
+      minTimestamp: isSet(object.minTimestamp)
+        ? Long.fromValue(object.minTimestamp)
+        : undefined,
+      maxTimestamp: isSet(object.maxTimestamp)
+        ? Long.fromValue(object.maxTimestamp)
+        : undefined
     };
   },
 
   toJSON(message: ListLogsRequest): unknown {
     const obj: any = {};
-    if (message.entityType !== "") {
+    if (message.entityType !== '') {
       obj.entityType = message.entityType;
     }
     if (message.entityIds?.length) {
@@ -816,21 +843,24 @@ export const ListLogsRequest: MessageFns<ListLogsRequest> = {
   },
   fromPartial(object: DeepPartial<ListLogsRequest>): ListLogsRequest {
     const message = createBaseListLogsRequest();
-    message.entityType = object.entityType ?? "";
-    message.entityIds = object.entityIds?.map((e) => e) || [];
-    message.instanceIds = object.instanceIds?.map((e) => e) || [];
-    message.pagination = (object.pagination !== undefined && object.pagination !== null)
-      ? ListPagination.fromPartial(object.pagination)
-      : undefined;
+    message.entityType = object.entityType ?? '';
+    message.entityIds = object.entityIds?.map(e => e) || [];
+    message.instanceIds = object.instanceIds?.map(e => e) || [];
+    message.pagination =
+      object.pagination !== undefined && object.pagination !== null
+        ? ListPagination.fromPartial(object.pagination)
+        : undefined;
     message.filterJson = object.filterJson ?? undefined;
-    message.minTimestamp = (object.minTimestamp !== undefined && object.minTimestamp !== null)
-      ? Long.fromValue(object.minTimestamp)
-      : undefined;
-    message.maxTimestamp = (object.maxTimestamp !== undefined && object.maxTimestamp !== null)
-      ? Long.fromValue(object.maxTimestamp)
-      : undefined;
+    message.minTimestamp =
+      object.minTimestamp !== undefined && object.minTimestamp !== null
+        ? Long.fromValue(object.minTimestamp)
+        : undefined;
+    message.maxTimestamp =
+      object.maxTimestamp !== undefined && object.maxTimestamp !== null
+        ? Long.fromValue(object.maxTimestamp)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseListLogsResponse(): ListLogsResponse {
@@ -871,14 +901,16 @@ export const ListLogsResponse: MessageFns<ListLogsResponse> = {
 
   fromJSON(object: any): ListLogsResponse {
     return {
-      logs: globalThis.Array.isArray(object?.logs) ? object.logs.map((e: any) => LogEntryLight.fromJSON(e)) : [],
+      logs: globalThis.Array.isArray(object?.logs)
+        ? object.logs.map((e: any) => LogEntryLight.fromJSON(e))
+        : []
     };
   },
 
   toJSON(message: ListLogsResponse): unknown {
     const obj: any = {};
     if (message.logs?.length) {
-      obj.logs = message.logs.map((e) => LogEntryLight.toJSON(e));
+      obj.logs = message.logs.map(e => LogEntryLight.toJSON(e));
     }
     return obj;
   },
@@ -888,21 +920,21 @@ export const ListLogsResponse: MessageFns<ListLogsResponse> = {
   },
   fromPartial(object: DeepPartial<ListLogsResponse>): ListLogsResponse {
     const message = createBaseListLogsResponse();
-    message.logs = object.logs?.map((e) => LogEntryLight.fromPartial(e)) || [];
+    message.logs = object.logs?.map(e => LogEntryLight.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseGetLogRequest(): GetLogRequest {
-  return { entityId: "", entityType: "", instanceId: undefined };
+  return { entityId: '', entityType: '', instanceId: undefined };
 }
 
 export const GetLogRequest: MessageFns<GetLogRequest> = {
   encode(message: GetLogRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.entityId !== "") {
+    if (message.entityId !== '') {
       writer.uint32(10).string(message.entityId);
     }
-    if (message.entityType !== "") {
+    if (message.entityType !== '') {
       writer.uint32(18).string(message.entityType);
     }
     if (message.instanceId !== undefined) {
@@ -953,18 +985,18 @@ export const GetLogRequest: MessageFns<GetLogRequest> = {
 
   fromJSON(object: any): GetLogRequest {
     return {
-      entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : "",
-      entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : "",
-      instanceId: isSet(object.instanceId) ? globalThis.String(object.instanceId) : undefined,
+      entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : '',
+      entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : '',
+      instanceId: isSet(object.instanceId) ? globalThis.String(object.instanceId) : undefined
     };
   },
 
   toJSON(message: GetLogRequest): unknown {
     const obj: any = {};
-    if (message.entityId !== "") {
+    if (message.entityId !== '') {
       obj.entityId = message.entityId;
     }
-    if (message.entityType !== "") {
+    if (message.entityType !== '') {
       obj.entityType = message.entityType;
     }
     if (message.instanceId !== undefined) {
@@ -978,11 +1010,11 @@ export const GetLogRequest: MessageFns<GetLogRequest> = {
   },
   fromPartial(object: DeepPartial<GetLogRequest>): GetLogRequest {
     const message = createBaseGetLogRequest();
-    message.entityId = object.entityId ?? "";
-    message.entityType = object.entityType ?? "";
+    message.entityId = object.entityId ?? '';
+    message.entityType = object.entityType ?? '';
     message.instanceId = object.instanceId ?? undefined;
     return message;
-  },
+  }
 };
 
 function createBaseGetLogResponse(): GetLogResponse {
@@ -1038,40 +1070,49 @@ export const GetLogResponse: MessageFns<GetLogResponse> = {
   },
   fromPartial(object: DeepPartial<GetLogResponse>): GetLogResponse {
     const message = createBaseGetLogResponse();
-    message.log = (object.log !== undefined && object.log !== null) ? LogEntry.fromPartial(object.log) : undefined;
+    message.log =
+      object.log !== undefined && object.log !== null
+        ? LogEntry.fromPartial(object.log)
+        : undefined;
     return message;
-  },
+  }
 };
 
 export type LogServiceService = typeof LogServiceService;
 export const LogServiceService = {
   ingestLog: {
-    path: "/rpc.rpc.LogService/IngestLog",
+    path: '/rpc.rpc.LogService/IngestLog',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: IngestLogRequest): Buffer => Buffer.from(IngestLogRequest.encode(value).finish()),
+    requestSerialize: (value: IngestLogRequest): Buffer =>
+      Buffer.from(IngestLogRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): IngestLogRequest => IngestLogRequest.decode(value),
-    responseSerialize: (value: IngestLogResponse): Buffer => Buffer.from(IngestLogResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): IngestLogResponse => IngestLogResponse.decode(value),
+    responseSerialize: (value: IngestLogResponse): Buffer =>
+      Buffer.from(IngestLogResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): IngestLogResponse => IngestLogResponse.decode(value)
   },
   listLogs: {
-    path: "/rpc.rpc.LogService/ListLogs",
+    path: '/rpc.rpc.LogService/ListLogs',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: ListLogsRequest): Buffer => Buffer.from(ListLogsRequest.encode(value).finish()),
+    requestSerialize: (value: ListLogsRequest): Buffer =>
+      Buffer.from(ListLogsRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ListLogsRequest => ListLogsRequest.decode(value),
-    responseSerialize: (value: ListLogsResponse): Buffer => Buffer.from(ListLogsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListLogsResponse => ListLogsResponse.decode(value),
+    responseSerialize: (value: ListLogsResponse): Buffer =>
+      Buffer.from(ListLogsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListLogsResponse => ListLogsResponse.decode(value)
   },
   getLog: {
-    path: "/rpc.rpc.LogService/GetLog",
+    path: '/rpc.rpc.LogService/GetLog',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: GetLogRequest): Buffer => Buffer.from(GetLogRequest.encode(value).finish()),
+    requestSerialize: (value: GetLogRequest): Buffer =>
+      Buffer.from(GetLogRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetLogRequest => GetLogRequest.decode(value),
-    responseSerialize: (value: GetLogResponse): Buffer => Buffer.from(GetLogResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetLogResponse => GetLogResponse.decode(value),
-  },
+    responseSerialize: (value: GetLogResponse): Buffer =>
+      Buffer.from(GetLogResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetLogResponse => GetLogResponse.decode(value)
+  }
 } as const;
 
 export interface LogServiceServer extends UntypedServiceImplementation {
@@ -1083,64 +1124,77 @@ export interface LogServiceServer extends UntypedServiceImplementation {
 export interface LogServiceClient extends Client {
   ingestLog(
     request: IngestLogRequest,
-    callback: (error: ServiceError | null, response: IngestLogResponse) => void,
+    callback: (error: ServiceError | null, response: IngestLogResponse) => void
   ): ClientUnaryCall;
   ingestLog(
     request: IngestLogRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: IngestLogResponse) => void,
+    callback: (error: ServiceError | null, response: IngestLogResponse) => void
   ): ClientUnaryCall;
   ingestLog(
     request: IngestLogRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: IngestLogResponse) => void,
+    callback: (error: ServiceError | null, response: IngestLogResponse) => void
   ): ClientUnaryCall;
   listLogs(
     request: ListLogsRequest,
-    callback: (error: ServiceError | null, response: ListLogsResponse) => void,
+    callback: (error: ServiceError | null, response: ListLogsResponse) => void
   ): ClientUnaryCall;
   listLogs(
     request: ListLogsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListLogsResponse) => void,
+    callback: (error: ServiceError | null, response: ListLogsResponse) => void
   ): ClientUnaryCall;
   listLogs(
     request: ListLogsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListLogsResponse) => void,
+    callback: (error: ServiceError | null, response: ListLogsResponse) => void
   ): ClientUnaryCall;
   getLog(
     request: GetLogRequest,
-    callback: (error: ServiceError | null, response: GetLogResponse) => void,
+    callback: (error: ServiceError | null, response: GetLogResponse) => void
   ): ClientUnaryCall;
   getLog(
     request: GetLogRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetLogResponse) => void,
+    callback: (error: ServiceError | null, response: GetLogResponse) => void
   ): ClientUnaryCall;
   getLog(
     request: GetLogRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetLogResponse) => void,
+    callback: (error: ServiceError | null, response: GetLogResponse) => void
   ): ClientUnaryCall;
 }
 
-export const LogServiceClient = makeGenericClientConstructor(LogServiceService, "rpc.rpc.LogService") as unknown as {
-  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): LogServiceClient;
+export const LogServiceClient = makeGenericClientConstructor(
+  LogServiceService,
+  'rpc.rpc.LogService'
+) as unknown as {
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): LogServiceClient;
   service: typeof LogServiceService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends {}
+          ? { [K in keyof T]?: DeepPartial<T[K]> }
+          : Partial<T>;
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;

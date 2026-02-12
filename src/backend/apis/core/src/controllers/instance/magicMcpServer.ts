@@ -77,30 +77,22 @@ export let magicMcpServerController = Controller.create(
               ]),
               { description: 'Filter by server status' }
             ),
-            server_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by server ID(s)' }
-            ),
-            server_variant_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by server variant ID(s)' }
-            ),
-            server_implementation_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by server implementation ID(s)' }
-            ),
-            session_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by session ID(s)' }
-            ),
-            magic_mcp_group_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by magic MCP group ID(s)' }
-            ),
-            search: v.optional(
-              v.string(),
-              { description: 'Search servers by name' }
-            )
+            server_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by server ID(s)'
+            }),
+            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by server variant ID(s)'
+            }),
+            server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by server implementation ID(s)'
+            }),
+            session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session ID(s)'
+            }),
+            magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by magic MCP group ID(s)'
+            }),
+            search: v.optional(v.string(), { description: 'Search servers by name' })
           })
         )
       )

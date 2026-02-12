@@ -33,12 +33,7 @@ export let ProviderSetupWizard = ({
     {
       title: 'Authentication',
       subtitle: 'Configure auth settings',
-      render: () => (
-        <AuthSetupStep
-          instanceId={instanceId}
-          onComplete={onComplete}
-        />
-      )
+      render: () => <AuthSetupStep instanceId={instanceId} onComplete={onComplete} />
     }
   ];
 

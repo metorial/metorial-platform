@@ -76,10 +76,7 @@ export let ProviderAuthCredentialLayout = () => {
               },
               {
                 label: 'Settings',
-                to: Paths.instance.providerAuthCredential(
-                  ...credentialPathParams,
-                  'settings'
-                )
+                to: Paths.instance.providerAuthCredential(...credentialPathParams, 'settings')
               }
             ]}
           />

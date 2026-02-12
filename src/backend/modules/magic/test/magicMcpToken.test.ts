@@ -3,7 +3,12 @@ process.env.REDIS_URL = 'redis://localhost:6379';
 process.env.CONSUMER_TOKEN_SECRET = 'test-secret-token-for-testing';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ServiceError, notFoundError, preconditionFailedError, unauthorizedError } from '@metorial/error';
+import {
+  ServiceError,
+  notFoundError,
+  preconditionFailedError,
+  unauthorizedError
+} from '@metorial/error';
 import { magicMcpTokenService } from '../src/services/magicMcpToken';
 
 // Mock external dependencies
@@ -67,7 +72,7 @@ vi.mock('@metorial/module-email', () => ({
   EmailClient: vi.fn(() => ({
     send: vi.fn(),
     sendBulk: vi.fn(),
-    createTemplate: vi.fn((config) => ({ render: vi.fn(), send: vi.fn() }))
+    createTemplate: vi.fn(config => ({ render: vi.fn(), send: vi.fn() }))
   })),
   createTemplate: vi.fn()
 }));
@@ -621,10 +626,7 @@ describe('magicMcpTokenService', () => {
       expect(db.magicMcpToken.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            OR: [
-              { deletedAt: null },
-              { deletedAt: { gt: expect.any(Date) } }
-            ]
+            OR: [{ deletedAt: null }, { deletedAt: { gt: expect.any(Date) } }]
           })
         })
       );
@@ -641,7 +643,9 @@ describe('magicMcpTokenService', () => {
       vi.mocked(db.organization.findFirstOrThrow).mockResolvedValue(mockOrganization as any);
 
       // System actor
-      vi.mocked(organizationActorService.getSystemActor).mockResolvedValue({ id: 'system_actor' } as any);
+      vi.mocked(organizationActorService.getSystemActor).mockResolvedValue({
+        id: 'system_actor'
+      } as any);
 
       // Create token
       vi.mocked(db.magicMcpToken.create).mockResolvedValue({
@@ -667,9 +671,7 @@ describe('magicMcpTokenService', () => {
     });
 
     it('should not auto-create token when active tokens exist', async () => {
-      const mockTokens = [
-        { id: 'mcp_tkn_1', name: 'Existing Token', status: 'active' }
-      ];
+      const mockTokens = [{ id: 'mcp_tkn_1', name: 'Existing Token', status: 'active' }];
 
       vi.mocked(db.magicMcpToken.findMany).mockResolvedValue(mockTokens as any);
 

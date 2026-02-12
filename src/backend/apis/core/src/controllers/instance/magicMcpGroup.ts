@@ -54,10 +54,7 @@ export let magicMcpGroupController = Controller.create(
               ]),
               { description: 'Filter by group status' }
             ),
-            search: v.optional(
-              v.string(),
-              { description: 'Search groups by name' }
-            )
+            search: v.optional(v.string(), { description: 'Search groups by name' })
           })
         )
       )

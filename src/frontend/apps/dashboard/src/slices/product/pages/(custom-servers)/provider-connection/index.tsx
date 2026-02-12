@@ -14,7 +14,10 @@ export let ProviderConnectionOverviewPage = () => {
   let instance = useCurrentInstance();
 
   let { providerConnectionId } = useParams();
-  let providerConnection = useProviderConnection(instance.data?.instanceId, providerConnectionId);
+  let providerConnection = useProviderConnection(
+    instance.data?.instanceId,
+    providerConnectionId
+  );
 
   let events = useProviderConnectionEvents(
     instance.data?.instanceId,

@@ -30,8 +30,12 @@ export let useAllProviderRuns = (
 export let providerRunsLoader = createLoader({
   name: 'providerRuns',
   parents: [],
-  fetch: (i: { instanceId: string; sessionId: string } & DashboardInstanceSessionsProviderRunsListQuery) =>
-    withAuth(sdk => sdk.sessions.providerRuns.list(i.instanceId, i.sessionId, i)),
+  fetch: (
+    i: {
+      instanceId: string;
+      sessionId: string;
+    } & DashboardInstanceSessionsProviderRunsListQuery
+  ) => withAuth(sdk => sdk.sessions.providerRuns.list(i.instanceId, i.sessionId, i)),
   mutators: {}
 });
 
@@ -41,7 +45,9 @@ export let useProviderRuns = (
   query?: DashboardInstanceSessionsProviderRunsListQuery
 ) => {
   let data = usePaginator(pagination =>
-    providerRunsLoader.use(instanceId && sessionId ? { instanceId, sessionId, ...pagination, ...query } : null)
+    providerRunsLoader.use(
+      instanceId && sessionId ? { instanceId, sessionId, ...pagination, ...query } : null
+    )
   );
 
   return data;

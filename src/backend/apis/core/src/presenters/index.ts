@@ -1143,12 +1143,15 @@ export let subspaceCustomProviderPresenter = declarePresenter(customProviderType
   mt_2026_02_01_dashboard: v1CustomProviderPresenter
 });
 
-export let subspaceCustomProviderVersionPresenter = declarePresenter(customProviderVersionType, {
-  mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
-  mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1CustomProviderVersionPresenter,
-  mt_2026_02_01_dashboard: v1CustomProviderVersionPresenter
-});
+export let subspaceCustomProviderVersionPresenter = declarePresenter(
+  customProviderVersionType,
+  {
+    mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+    mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+    mt_2026_02_01_magnetar: v1CustomProviderVersionPresenter,
+    mt_2026_02_01_dashboard: v1CustomProviderVersionPresenter
+  }
+);
 
 export let subspaceCustomProviderDeploymentPresenter = declarePresenter(
   customProviderDeploymentType,

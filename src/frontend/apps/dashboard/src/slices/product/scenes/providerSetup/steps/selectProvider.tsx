@@ -98,7 +98,9 @@ export let SelectProviderStep = ({ instanceId }: { instanceId: string }) => {
             <ProviderCard
               key={provider.id}
               type="button"
-              onClick={() => handleSelect(provider.id, provider.name ?? provider.slug ?? 'Provider')}
+              onClick={() =>
+                handleSelect(provider.id, provider.name ?? provider.slug ?? 'Provider')
+              }
               data-selected={selectedId === provider.id}
             >
               <ProviderIcon>

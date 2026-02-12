@@ -34,10 +34,9 @@ export let SessionTemplatesRedirectPage = () => {
   useEffect(() => {
     if (!instance.data) return;
 
-    navigate(
-      Paths.instance.sessionTemplates(organization.data, project.data, instance.data),
-      { replace: true }
-    );
+    navigate(Paths.instance.sessionTemplates(organization.data, project.data, instance.data), {
+      replace: true
+    });
   }, [instance.data, organization.data, project.data, navigate]);
 
   return null;

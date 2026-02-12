@@ -16,7 +16,11 @@ export let useEvents = (
 ) => {
   let instance = useCurrentInstance();
 
-  let events = useSessionEvents(sessionId ? instance.data?.instanceId : undefined, sessionId, opts);
+  let events = useSessionEvents(
+    sessionId ? instance.data?.instanceId : undefined,
+    sessionId,
+    opts
+  );
   let messages = useSessionMessages(
     sessionId ? instance.data?.instanceId : undefined,
     sessionId,

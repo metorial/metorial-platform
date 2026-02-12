@@ -30,7 +30,6 @@ export let ProjectPageLayout = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
 
-
   let checkPath = (
     i: { pathname: string; to: string },
     opts?: { exact?: boolean; exclude?: string[] }

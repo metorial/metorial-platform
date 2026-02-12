@@ -1,9 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import {
-  useCurrentInstance,
-  useProviderConfig,
-  useProviderDeployment
-} from '@metorial/state';
+import { useCurrentInstance, useProviderConfig, useProviderDeployment } from '@metorial/state';
 import { Attributes, RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
@@ -50,19 +46,11 @@ export let ProviderConfigOverviewPage = () => {
           },
           {
             label: 'Created',
-            content: config.data.createdAt ? (
-              <RenderDate date={config.data.createdAt} />
-            ) : (
-              '—'
-            )
+            content: config.data.createdAt ? <RenderDate date={config.data.createdAt} /> : '—'
           },
           {
             label: 'Updated',
-            content: config.data.updatedAt ? (
-              <RenderDate date={config.data.updatedAt} />
-            ) : (
-              '—'
-            )
+            content: config.data.updatedAt ? <RenderDate date={config.data.updatedAt} /> : '—'
           }
         ]}
       />

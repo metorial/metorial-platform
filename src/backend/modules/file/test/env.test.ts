@@ -32,9 +32,9 @@ describe('env', () => {
 
   it('USAGE_MONGO_URL is optional', () => {
     // Optional means it can be undefined
-    expect(env.db.USAGE_MONGO_URL === undefined || typeof env.db.USAGE_MONGO_URL === 'string').toBe(
-      true
-    );
+    expect(
+      env.db.USAGE_MONGO_URL === undefined || typeof env.db.USAGE_MONGO_URL === 'string'
+    ).toBe(true);
   });
 
   it('env.db structure is correct', () => {

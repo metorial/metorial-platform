@@ -10,11 +10,13 @@ export let wrapHtmlError =
     } catch (err) {
       if (isServiceError(err)) {
         c.status(err.data.status);
-        return c.html(errorHtml({
-          title: 'Authentication Error',
-          message: 'Metorial could not authenticate you.',
-          details: err.data.message
-        }));
+        return c.html(
+          errorHtml({
+            title: 'Authentication Error',
+            message: 'Metorial could not authenticate you.',
+            details: err.data.message
+          })
+        );
       }
 
       throw err; // Re-throw if it's not a ServiceError

@@ -67,8 +67,5 @@ export let useUpdateSessionTemplate = sessionTemplatesLoader.createExternalMutat
       instanceId: string;
       sessionTemplateId: string;
     }
-  ) =>
-    withAuth(sdk =>
-      sdk.sessionTemplates.update(i.instanceId, i.sessionTemplateId, i)
-    )
+  ) => withAuth(sdk => sdk.sessionTemplates.update(i.instanceId, i.sessionTemplateId, i))
 );

@@ -130,7 +130,8 @@ export let ProviderOverviewPage = () => {
                     lockedProviderVersionLabel: selectedVersion?.version
                   }
                 : {}),
-              onCreate: (res: { id: string }) => setProviderDeployment(res as typeof providerDeployment)
+              onCreate: (res: { id: string }) =>
+                setProviderDeployment(res as typeof providerDeployment)
             })
           }
         >

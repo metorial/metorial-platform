@@ -95,13 +95,17 @@ let ServerDeploymentFormInternal = (
 
   let listing = useProviderListing(
     instance.data?.instanceId,
-    (serverDeployment.data as any)?.server?.id ?? (serverDeployment.data as any)?.providerId ?? p.for?.serverId
+    (serverDeployment.data as any)?.server?.id ??
+      (serverDeployment.data as any)?.providerId ??
+      p.for?.serverId
   );
 
   let updateMutator = updateResource?.useUpdateMutator();
   let deleteMutator = updateResource?.useDeleteMutator();
   let createMutator =
-    p.type == 'magic_mcp_server.create' ? useCreateMagicMcpServer() : useCreateProviderDeployment();
+    p.type == 'magic_mcp_server.create'
+      ? useCreateMagicMcpServer()
+      : useCreateProviderDeployment();
 
   let [currentStep, setCurrentStep] = useState(0);
   let [createdDeployment, setCreatedDeployment] = useState<{
@@ -118,7 +122,8 @@ let ServerDeploymentFormInternal = (
   let serverId =
     p.type == 'server_deployment.create' || p.type == 'magic_mcp_server.create'
       ? (p.for?.serverId ?? searchServer?.server.id)
-      : ((serverDeployment?.data as any)?.server?.id ?? (serverDeployment?.data as any)?.providerId);
+      : ((serverDeployment?.data as any)?.server?.id ??
+        (serverDeployment?.data as any)?.providerId);
 
   if (serverId && currentStep == 0) currentStep = 1;
 
@@ -272,7 +277,8 @@ let ServerDeploymentFormInternal = (
 
           if (res) {
             // Store the created deployment info for auth step
-            let deploymentId = res.providerDeployments?.[0]?.id ?? res.serverDeployments?.[0]?.id ?? res.id;
+            let deploymentId =
+              res.providerDeployments?.[0]?.id ?? res.serverDeployments?.[0]?.id ?? res.id;
             let providerId = (res as any).providerId ?? serverId;
 
             setCreatedDeployment({
@@ -300,7 +306,8 @@ let ServerDeploymentFormInternal = (
   }, [serverConfigVaultId, currentStep]);
 
   if (
-    provider.data && !provider.data.currentVersion &&
+    provider.data &&
+    !provider.data.currentVersion &&
     (p.type == 'server_deployment.create' || p.type == 'magic_mcp_server.create')
   ) {
     return <Callout color="orange">This server cannot yet be deployed on Metorial.</Callout>;

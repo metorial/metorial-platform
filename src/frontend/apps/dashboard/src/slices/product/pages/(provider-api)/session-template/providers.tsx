@@ -33,7 +33,12 @@ type Deployment = {
   id: string;
   name: string | null;
   providerId: string;
-  provider?: { id: string; name: string; slug?: string | null; imageUrl?: string | null } | null;
+  provider?: {
+    id: string;
+    name: string;
+    slug?: string | null;
+    imageUrl?: string | null;
+  } | null;
 };
 
 let AddProviderModalContent = ({
@@ -64,17 +69,27 @@ let AddProviderModalContent = ({
     setSaving(true);
     setError(null);
     try {
-        await withAuth(sdk =>
-          sdk.sessionTemplates.providers.create(instanceId, sessionTemplateId, {
+      await withAuth(sdk =>
+        sdk.sessionTemplates.providers.create(instanceId, sessionTemplateId, {
           providerDeployment: {
             type: 'reference' as const,
             providerDeploymentId: selectedDeploymentId
           },
           ...(selectedConfigId
-            ? { providerConfig: { type: 'reference' as const, providerConfigId: selectedConfigId } }
+            ? {
+                providerConfig: {
+                  type: 'reference' as const,
+                  providerConfigId: selectedConfigId
+                }
+              }
             : {}),
           ...(selectedAuthConfigId
-            ? { providerAuthConfig: { type: 'reference' as const, providerAuthConfigId: selectedAuthConfigId } }
+            ? {
+                providerAuthConfig: {
+                  type: 'reference' as const,
+                  providerAuthConfigId: selectedAuthConfigId
+                }
+              }
             : {}),
           ...(toolFilterMode === 'select' && selectedToolKeys.length > 0
             ? { toolFilters: { toolKeys: selectedToolKeys } }
@@ -189,7 +204,10 @@ let PickProviderStep = ({
   }
 
   // Deduplicate by provider
-  let providers: Record<string, { name: string; imageUrl: string | null; deploymentCount: number }> = {};
+  let providers: Record<
+    string,
+    { name: string; imageUrl: string | null; deploymentCount: number }
+  > = {};
   for (let d of items) {
     if (!providers[d.providerId]) {
       let info = listingLookup[d.providerId];
@@ -207,9 +225,7 @@ let PickProviderStep = ({
   // Filter by search
   let needle = search.toLowerCase().trim();
   if (needle) {
-    providerList = providerList.filter(([, p]) =>
-      p.name.toLowerCase().includes(needle)
-    );
+    providerList = providerList.filter(([, p]) => p.name.toLowerCase().includes(needle));
   }
 
   if (Object.keys(providers).length === 0) {
@@ -219,7 +235,9 @@ let PickProviderStep = ({
           No providers with deployments found. Create a deployment first.
         </Text>
         <Dialog.Actions>
-          <Button variant="outline" onClick={onCancel}>Close</Button>
+          <Button variant="outline" onClick={onCancel}>
+            Close
+          </Button>
         </Dialog.Actions>
       </Flex>
     );
@@ -281,19 +299,21 @@ let PickProviderStep = ({
                 style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0 }}
               />
             ) : (
-              <div style={{
-                width: 28,
-                height: 28,
-                borderRadius: 6,
-                background: theme.colors.gray200,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 13,
-                fontWeight: 600,
-                color: theme.colors.gray600,
-                flexShrink: 0
-              }}>
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  background: theme.colors.gray200,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: theme.colors.gray600,
+                  flexShrink: 0
+                }}
+              >
                 {provider.name.charAt(0).toUpperCase()}
               </div>
             )}
@@ -343,8 +363,12 @@ let PickDeploymentStep = ({
           No deployments found for <strong>{providerName}</strong>. Create a deployment first.
         </Text>
         <Dialog.Actions>
-          <Button variant="outline" onClick={onBack}>Back</Button>
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>
+          <Button variant="outline" onClick={onBack}>
+            Back
+          </Button>
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
         </Dialog.Actions>
       </Flex>
     );
@@ -362,71 +386,88 @@ let PickDeploymentStep = ({
       </Text>
 
       <Flex direction="column" gap={6}>
-        {items.map((d: Deployment & {
-          description?: string | null;
-          lockedVersion?: { version: string; status: string } | null;
-          createdAt?: Date;
-          status?: string;
-        }) => {
-          let isSelected = selectedDeploymentId === d.id;
+        {items.map(
+          (
+            d: Deployment & {
+              description?: string | null;
+              lockedVersion?: { version: string; status: string } | null;
+              createdAt?: Date;
+              status?: string;
+            }
+          ) => {
+            let isSelected = selectedDeploymentId === d.id;
 
-          return (
-            <label
-              key={d.id}
-              style={{
-                display: 'flex',
-                gap: 12,
-                padding: '12px 14px',
-                cursor: 'pointer',
-                border: `1px solid ${isSelected ? '#3b82f6' : theme.colors.gray300}`,
-                borderRadius: 8,
-                background: isSelected ? 'rgba(59, 130, 246, 0.04)' : undefined
-              }}
-            >
-              <input
-                type="radio"
-                name="deployment"
-                checked={isSelected}
-                onChange={() => onSelect(d.id)}
-                style={{ accentColor: '#3b82f6', marginTop: 2 }}
-              />
+            return (
+              <label
+                key={d.id}
+                style={{
+                  display: 'flex',
+                  gap: 12,
+                  padding: '12px 14px',
+                  cursor: 'pointer',
+                  border: `1px solid ${isSelected ? '#3b82f6' : theme.colors.gray300}`,
+                  borderRadius: 8,
+                  background: isSelected ? 'rgba(59, 130, 246, 0.04)' : undefined
+                }}
+              >
+                <input
+                  type="radio"
+                  name="deployment"
+                  checked={isSelected}
+                  onChange={() => onSelect(d.id)}
+                  style={{ accentColor: '#3b82f6', marginTop: 2 }}
+                />
 
-              <Flex direction="column" gap={2} style={{ flex: 1 }}>
-                <Flex gap={8} style={{ alignItems: 'center' }}>
-                  <Text size="2" weight="strong">{d.name ?? 'Unnamed deployment'}</Text>
-                  {d.status && (
-                    <Badge color={d.status === 'active' ? 'green' : 'gray'} size="1">
-                      {d.status}
-                    </Badge>
-                  )}
-                </Flex>
+                <Flex direction="column" gap={2} style={{ flex: 1 }}>
+                  <Flex gap={8} style={{ alignItems: 'center' }}>
+                    <Text size="2" weight="strong">
+                      {d.name ?? 'Unnamed deployment'}
+                    </Text>
+                    {d.status && (
+                      <Badge color={d.status === 'active' ? 'green' : 'gray'} size="1">
+                        {d.status}
+                      </Badge>
+                    )}
+                  </Flex>
 
-                {d.description && (
-                  <Text size="1" color="gray600">
-                    {d.description.length > 80 ? d.description.slice(0, 80) + '…' : d.description}
-                  </Text>
-                )}
-
-                <Flex gap={10} style={{ marginTop: 2 }}>
-                  {d.lockedVersion && (
+                  {d.description && (
                     <Text size="1" color="gray600">
-                      Version: <span style={{ fontFamily: 'monospace' }}>{d.lockedVersion.version}</span>
+                      {d.description.length > 80
+                        ? d.description.slice(0, 80) + '…'
+                        : d.description}
                     </Text>
                   )}
-                  <Text size="1" color="gray600" style={{ fontFamily: 'monospace' }}>
-                    {d.id.slice(0, 20)}…
-                  </Text>
+
+                  <Flex gap={10} style={{ marginTop: 2 }}>
+                    {d.lockedVersion && (
+                      <Text size="1" color="gray600">
+                        Version:{' '}
+                        <span style={{ fontFamily: 'monospace' }}>
+                          {d.lockedVersion.version}
+                        </span>
+                      </Text>
+                    )}
+                    <Text size="1" color="gray600" style={{ fontFamily: 'monospace' }}>
+                      {d.id.slice(0, 20)}…
+                    </Text>
+                  </Flex>
                 </Flex>
-              </Flex>
-            </label>
-          );
-        })}
+              </label>
+            );
+          }
+        )}
       </Flex>
 
       <Dialog.Actions>
-        <Button variant="outline" onClick={onBack}>Back</Button>
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button disabled={!selectedDeploymentId} onClick={onNext}>Next</Button>
+        <Button variant="outline" onClick={onBack}>
+          Back
+        </Button>
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button disabled={!selectedDeploymentId} onClick={onNext}>
+          Next
+        </Button>
       </Dialog.Actions>
     </Flex>
   );
@@ -476,8 +517,15 @@ let DeploymentConfigureStep = ({
   let tools = useProviderTools(instanceId, providerId);
 
   let configItems = (configs.data?.items ?? []) as Array<{ id: string; name: string | null }>;
-  let authConfigItems = (authConfigs.data?.items ?? []) as Array<{ id: string; name: string | null }>;
-  let toolItems = (tools.data?.items ?? []) as Array<{ id: string; name: string; key?: string }>;
+  let authConfigItems = (authConfigs.data?.items ?? []) as Array<{
+    id: string;
+    name: string | null;
+  }>;
+  let toolItems = (tools.data?.items ?? []) as Array<{
+    id: string;
+    name: string;
+    key?: string;
+  }>;
 
   if (configs.isLoading || authConfigs.isLoading || tools.isLoading) {
     return <CenteredSpinner />;
@@ -512,7 +560,9 @@ let DeploymentConfigureStep = ({
           </Text>
 
           <Flex direction="column" gap={6}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <label
+              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+            >
               <input
                 type="radio"
                 checked={toolFilterMode === 'all'}
@@ -524,7 +574,9 @@ let DeploymentConfigureStep = ({
               <Text size="2">All tools ({toolItems.length})</Text>
             </label>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <label
+              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+            >
               <input
                 type="radio"
                 checked={toolFilterMode === 'select'}
@@ -547,7 +599,12 @@ let DeploymentConfigureStep = ({
                 {toolItems.map(tool => (
                   <label
                     key={tool.id}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      cursor: 'pointer'
+                    }}
                   >
                     <input
                       type="checkbox"
@@ -652,48 +709,50 @@ export let SessionTemplateProvidersPage = () => {
         )}
 
         <Flex direction="column" gap={8}>
-          {providers.map((p: {
-            id: string;
-            provider?: { name: string } | null;
-            providerId: string;
-            providerDeployment?: { name: string } | null;
-            providerDeploymentId: string;
-            providerConfig?: { name: string } | null;
-            providerConfigId?: string | null;
-            providerAuthConfig?: { name: string } | null;
-            providerAuthConfigId?: string | null;
-          }) => (
-            <div
-              key={p.id}
-              style={{
-                border: `1px solid ${theme.colors.gray300}`,
-                borderRadius: 8,
-                padding: '14px 16px'
-              }}
-            >
-              <Flex style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <Flex gap={8} style={{ alignItems: 'center' }}>
-                  <Text size="2" weight="strong">
-                    {p.provider?.name ?? p.providerId}
-                  </Text>
-                  <Badge color="gray" size="1">
-                    {p.providerDeployment?.name ?? p.providerDeploymentId}
-                  </Badge>
+          {providers.map(
+            (p: {
+              id: string;
+              provider?: { name: string } | null;
+              providerId: string;
+              providerDeployment?: { name: string } | null;
+              providerDeploymentId: string;
+              providerConfig?: { name: string } | null;
+              providerConfigId?: string | null;
+              providerAuthConfig?: { name: string } | null;
+              providerAuthConfigId?: string | null;
+            }) => (
+              <div
+                key={p.id}
+                style={{
+                  border: `1px solid ${theme.colors.gray300}`,
+                  borderRadius: 8,
+                  padding: '14px 16px'
+                }}
+              >
+                <Flex style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Flex gap={8} style={{ alignItems: 'center' }}>
+                    <Text size="2" weight="strong">
+                      {p.provider?.name ?? p.providerId}
+                    </Text>
+                    <Badge color="gray" size="1">
+                      {p.providerDeployment?.name ?? p.providerDeploymentId}
+                    </Badge>
+                  </Flex>
+
+                  <ID id={p.id} />
                 </Flex>
 
-                <ID id={p.id} />
-              </Flex>
-
-              <Flex gap={16} style={{ marginTop: 6 }}>
-                <Text size="1" color="gray600">
-                  Config: {p.providerConfig?.name ?? p.providerConfigId ?? 'None'}
-                </Text>
-                <Text size="1" color="gray600">
-                  Auth: {p.providerAuthConfig?.name ?? p.providerAuthConfigId ?? 'None'}
-                </Text>
-              </Flex>
-            </div>
-          ))}
+                <Flex gap={16} style={{ marginTop: 6 }}>
+                  <Text size="1" color="gray600">
+                    Config: {p.providerConfig?.name ?? p.providerConfigId ?? 'None'}
+                  </Text>
+                  <Text size="1" color="gray600">
+                    Auth: {p.providerAuthConfig?.name ?? p.providerAuthConfigId ?? 'None'}
+                  </Text>
+                </Flex>
+              </div>
+            )
+          )}
         </Flex>
       </>
     );

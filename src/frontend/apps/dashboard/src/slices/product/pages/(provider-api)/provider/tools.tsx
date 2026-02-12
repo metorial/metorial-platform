@@ -97,9 +97,13 @@ let PropertyRow = ({
           {typeLabel}
         </Badge>
         {isRequired ? (
-          <Badge color="red" size="1">Required</Badge>
+          <Badge color="red" size="1">
+            Required
+          </Badge>
         ) : (
-          <Badge color="gray" size="1">Optional</Badge>
+          <Badge color="gray" size="1">
+            Optional
+          </Badge>
         )}
         {prop.default !== undefined && (
           <Text size="1" color="gray600">

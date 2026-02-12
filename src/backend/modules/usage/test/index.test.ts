@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@metorial/queue', () => ({
-  combineQueueProcessors: vi.fn((processors) => processors)
+  combineQueueProcessors: vi.fn(processors => processors)
 }));
 
 vi.mock('@metorial/delay', () => ({

@@ -71,14 +71,10 @@ export let subspaceSessionErrorGroupController = Controller.create(
 
     getOne: instanceGroup
       .get(
-        instancePath(
-          'session-error-groups/:sessionErrorGroupId',
-          'sessionErrorGroups.get'
-        ),
+        instancePath('session-error-groups/:sessionErrorGroupId', 'sessionErrorGroups.get'),
         {
           name: 'Get session error group',
-          description:
-            'Retrieves a specific error group by ID across all sessions.'
+          description: 'Retrieves a specific error group by ID across all sessions.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
@@ -88,8 +84,7 @@ export let subspaceSessionErrorGroupController = Controller.create(
           throw new ServiceError(
             badRequestError({
               message: 'sessionErrorGroupId is required',
-              description:
-                'The sessionErrorGroupId path parameter is required.'
+              description: 'The sessionErrorGroupId path parameter is required.'
             })
           );
         }

@@ -48,22 +48,18 @@ export let sessionController = Controller.create(
               ]),
               { description: 'Filter by session status' }
             ),
-            server_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by server ID(s)' }
-            ),
-            server_variant_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by server variant ID(s)' }
-            ),
-            server_implementation_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by server implementation ID(s)' }
-            ),
-            server_deployment_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by server deployment ID(s)' }
-            )
+            server_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by server ID(s)'
+            }),
+            server_variant_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by server variant ID(s)'
+            }),
+            server_implementation_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by server implementation ID(s)'
+            }),
+            server_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by server deployment ID(s)'
+            })
           })
         )
       )
@@ -116,7 +112,10 @@ export let sessionController = Controller.create(
                   v.object({})
                 ])
               ]),
-              v.string({ description: 'Existing server deployment ID', examples: ['sde_7gGhJkLmNpQrStUv'] }),
+              v.string({
+                description: 'Existing server deployment ID',
+                examples: ['sde_7gGhJkLmNpQrStUv']
+              }),
               v.intersection([
                 v.object({
                   server_deployment_id: v.string({ examples: ['sde_7gGhJkLmNpQrStUv'] })

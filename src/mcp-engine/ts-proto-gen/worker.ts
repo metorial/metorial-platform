@@ -5,7 +5,7 @@
 // source: worker.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -18,32 +18,32 @@ import {
   makeGenericClientConstructor,
   type Metadata,
   type ServiceError,
-  type UntypedServiceImplementation,
-} from "@grpc/grpc-js";
-import Long from "long";
+  type UntypedServiceImplementation
+} from '@grpc/grpc-js';
+import Long from 'long';
 
-export const protobufPackage = "broker.worker";
+export const protobufPackage = 'broker.worker';
 
 export enum WorkerType {
   mcp_runner = 0,
   mcp_remote = 1,
   launcher = 10,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function workerTypeFromJSON(object: any): WorkerType {
   switch (object) {
     case 0:
-    case "mcp_runner":
+    case 'mcp_runner':
       return WorkerType.mcp_runner;
     case 1:
-    case "mcp_remote":
+    case 'mcp_remote':
       return WorkerType.mcp_remote;
     case 10:
-    case "launcher":
+    case 'launcher':
       return WorkerType.launcher;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return WorkerType.UNRECOGNIZED;
   }
@@ -52,33 +52,33 @@ export function workerTypeFromJSON(object: any): WorkerType {
 export function workerTypeToJSON(object: WorkerType): string {
   switch (object) {
     case WorkerType.mcp_runner:
-      return "mcp_runner";
+      return 'mcp_runner';
     case WorkerType.mcp_remote:
-      return "mcp_remote";
+      return 'mcp_remote';
     case WorkerType.launcher:
-      return "launcher";
+      return 'launcher';
     case WorkerType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
 export enum WorkerStatus {
   healthy = 0,
   unhealthy = 1,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function workerStatusFromJSON(object: any): WorkerStatus {
   switch (object) {
     case 0:
-    case "healthy":
+    case 'healthy':
       return WorkerStatus.healthy;
     case 1:
-    case "unhealthy":
+    case 'unhealthy':
       return WorkerStatus.unhealthy;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return WorkerStatus.UNRECOGNIZED;
   }
@@ -87,31 +87,31 @@ export function workerStatusFromJSON(object: any): WorkerStatus {
 export function workerStatusToJSON(object: WorkerStatus): string {
   switch (object) {
     case WorkerStatus.healthy:
-      return "healthy";
+      return 'healthy';
     case WorkerStatus.unhealthy:
-      return "unhealthy";
+      return 'unhealthy';
     case WorkerStatus.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
 export enum WorkerAcceptingJobs {
   accepting = 0,
   not_accepting = 1,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function workerAcceptingJobsFromJSON(object: any): WorkerAcceptingJobs {
   switch (object) {
     case 0:
-    case "accepting":
+    case 'accepting':
       return WorkerAcceptingJobs.accepting;
     case 1:
-    case "not_accepting":
+    case 'not_accepting':
       return WorkerAcceptingJobs.not_accepting;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return WorkerAcceptingJobs.UNRECOGNIZED;
   }
@@ -120,17 +120,16 @@ export function workerAcceptingJobsFromJSON(object: any): WorkerAcceptingJobs {
 export function workerAcceptingJobsToJSON(object: WorkerAcceptingJobs): string {
   switch (object) {
     case WorkerAcceptingJobs.accepting:
-      return "accepting";
+      return 'accepting';
     case WorkerAcceptingJobs.not_accepting:
-      return "not_accepting";
+      return 'not_accepting';
     case WorkerAcceptingJobs.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
-export interface WorkerInfoRequest {
-}
+export interface WorkerInfoRequest {}
 
 export interface WorkerInfoResponse {
   workerId: string;
@@ -140,8 +139,7 @@ export interface WorkerInfoResponse {
   workerType: WorkerType;
 }
 
-export interface WorkerHealthRequest {
-}
+export interface WorkerHealthRequest {}
 
 function createBaseWorkerInfoRequest(): WorkerInfoRequest {
   return {};
@@ -183,16 +181,19 @@ export const WorkerInfoRequest: MessageFns<WorkerInfoRequest> = {
   fromPartial(_: DeepPartial<WorkerInfoRequest>): WorkerInfoRequest {
     const message = createBaseWorkerInfoRequest();
     return message;
-  },
+  }
 };
 
 function createBaseWorkerInfoResponse(): WorkerInfoResponse {
-  return { workerId: "", startTime: Long.ZERO, acceptingJobs: 0, status: 0, workerType: 0 };
+  return { workerId: '', startTime: Long.ZERO, acceptingJobs: 0, status: 0, workerType: 0 };
 }
 
 export const WorkerInfoResponse: MessageFns<WorkerInfoResponse> = {
-  encode(message: WorkerInfoResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.workerId !== "") {
+  encode(
+    message: WorkerInfoResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.workerId !== '') {
       writer.uint32(10).string(message.workerId);
     }
     if (!message.startTime.equals(Long.ZERO)) {
@@ -268,17 +269,19 @@ export const WorkerInfoResponse: MessageFns<WorkerInfoResponse> = {
 
   fromJSON(object: any): WorkerInfoResponse {
     return {
-      workerId: isSet(object.workerId) ? globalThis.String(object.workerId) : "",
+      workerId: isSet(object.workerId) ? globalThis.String(object.workerId) : '',
       startTime: isSet(object.startTime) ? Long.fromValue(object.startTime) : Long.ZERO,
-      acceptingJobs: isSet(object.acceptingJobs) ? workerAcceptingJobsFromJSON(object.acceptingJobs) : 0,
+      acceptingJobs: isSet(object.acceptingJobs)
+        ? workerAcceptingJobsFromJSON(object.acceptingJobs)
+        : 0,
       status: isSet(object.status) ? workerStatusFromJSON(object.status) : 0,
-      workerType: isSet(object.workerType) ? workerTypeFromJSON(object.workerType) : 0,
+      workerType: isSet(object.workerType) ? workerTypeFromJSON(object.workerType) : 0
     };
   },
 
   toJSON(message: WorkerInfoResponse): unknown {
     const obj: any = {};
-    if (message.workerId !== "") {
+    if (message.workerId !== '') {
       obj.workerId = message.workerId;
     }
     if (!message.startTime.equals(Long.ZERO)) {
@@ -301,15 +304,16 @@ export const WorkerInfoResponse: MessageFns<WorkerInfoResponse> = {
   },
   fromPartial(object: DeepPartial<WorkerInfoResponse>): WorkerInfoResponse {
     const message = createBaseWorkerInfoResponse();
-    message.workerId = object.workerId ?? "";
-    message.startTime = (object.startTime !== undefined && object.startTime !== null)
-      ? Long.fromValue(object.startTime)
-      : Long.ZERO;
+    message.workerId = object.workerId ?? '';
+    message.startTime =
+      object.startTime !== undefined && object.startTime !== null
+        ? Long.fromValue(object.startTime)
+        : Long.ZERO;
     message.acceptingJobs = object.acceptingJobs ?? 0;
     message.status = object.status ?? 0;
     message.workerType = object.workerType ?? 0;
     return message;
-  },
+  }
 };
 
 function createBaseWorkerHealthRequest(): WorkerHealthRequest {
@@ -352,29 +356,36 @@ export const WorkerHealthRequest: MessageFns<WorkerHealthRequest> = {
   fromPartial(_: DeepPartial<WorkerHealthRequest>): WorkerHealthRequest {
     const message = createBaseWorkerHealthRequest();
     return message;
-  },
+  }
 };
 
 export type WorkerService = typeof WorkerService;
 export const WorkerService = {
   getWorkerInfo: {
-    path: "/broker.worker.Worker/GetWorkerInfo",
+    path: '/broker.worker.Worker/GetWorkerInfo',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: WorkerInfoRequest): Buffer => Buffer.from(WorkerInfoRequest.encode(value).finish()),
+    requestSerialize: (value: WorkerInfoRequest): Buffer =>
+      Buffer.from(WorkerInfoRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): WorkerInfoRequest => WorkerInfoRequest.decode(value),
-    responseSerialize: (value: WorkerInfoResponse): Buffer => Buffer.from(WorkerInfoResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): WorkerInfoResponse => WorkerInfoResponse.decode(value),
+    responseSerialize: (value: WorkerInfoResponse): Buffer =>
+      Buffer.from(WorkerInfoResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): WorkerInfoResponse =>
+      WorkerInfoResponse.decode(value)
   },
   streamWorkerHealth: {
-    path: "/broker.worker.Worker/StreamWorkerHealth",
+    path: '/broker.worker.Worker/StreamWorkerHealth',
     requestStream: false,
     responseStream: true,
-    requestSerialize: (value: WorkerHealthRequest): Buffer => Buffer.from(WorkerHealthRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): WorkerHealthRequest => WorkerHealthRequest.decode(value),
-    responseSerialize: (value: WorkerInfoResponse): Buffer => Buffer.from(WorkerInfoResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): WorkerInfoResponse => WorkerInfoResponse.decode(value),
-  },
+    requestSerialize: (value: WorkerHealthRequest): Buffer =>
+      Buffer.from(WorkerHealthRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): WorkerHealthRequest =>
+      WorkerHealthRequest.decode(value),
+    responseSerialize: (value: WorkerInfoResponse): Buffer =>
+      Buffer.from(WorkerInfoResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): WorkerInfoResponse =>
+      WorkerInfoResponse.decode(value)
+  }
 } as const;
 
 export interface WorkerServer extends UntypedServiceImplementation {
@@ -385,43 +396,56 @@ export interface WorkerServer extends UntypedServiceImplementation {
 export interface WorkerClient extends Client {
   getWorkerInfo(
     request: WorkerInfoRequest,
-    callback: (error: ServiceError | null, response: WorkerInfoResponse) => void,
+    callback: (error: ServiceError | null, response: WorkerInfoResponse) => void
   ): ClientUnaryCall;
   getWorkerInfo(
     request: WorkerInfoRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: WorkerInfoResponse) => void,
+    callback: (error: ServiceError | null, response: WorkerInfoResponse) => void
   ): ClientUnaryCall;
   getWorkerInfo(
     request: WorkerInfoRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: WorkerInfoResponse) => void,
+    callback: (error: ServiceError | null, response: WorkerInfoResponse) => void
   ): ClientUnaryCall;
   streamWorkerHealth(
     request: WorkerHealthRequest,
-    options?: Partial<CallOptions>,
+    options?: Partial<CallOptions>
   ): ClientReadableStream<WorkerInfoResponse>;
   streamWorkerHealth(
     request: WorkerHealthRequest,
     metadata?: Metadata,
-    options?: Partial<CallOptions>,
+    options?: Partial<CallOptions>
   ): ClientReadableStream<WorkerInfoResponse>;
 }
 
-export const WorkerClient = makeGenericClientConstructor(WorkerService, "broker.worker.Worker") as unknown as {
-  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): WorkerClient;
+export const WorkerClient = makeGenericClientConstructor(
+  WorkerService,
+  'broker.worker.Worker'
+) as unknown as {
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): WorkerClient;
   service: typeof WorkerService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends {}
+          ? { [K in keyof T]?: DeepPartial<T[K]> }
+          : Partial<T>;
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;

@@ -82,12 +82,12 @@ export let ProviderConfigForm = (
 
           <Spacer size={10} />
 
-        <JsonSchemaInput
-          schema={configSchema.data!.schema as JSONSchema7}
-          value={configData}
-          onChange={setConfigData}
-          label="Configuration"
-        />
+          <JsonSchemaInput
+            schema={configSchema.data!.schema as JSONSchema7}
+            value={configData}
+            onChange={setConfigData}
+            label="Configuration"
+          />
         </>
       ) : (
         <Text size="2" color="gray600">
@@ -104,7 +104,11 @@ export let ProviderConfigForm = (
             <Button variant="outline" onClick={props.close}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} loading={createMutation.isPending} disabled={!name || !hasSchema}>
+            <Button
+              onClick={handleSubmit}
+              loading={createMutation.isPending}
+              disabled={!name || !hasSchema}
+            >
               {props.type === 'create' ? 'Create' : 'Update'}
             </Button>
           </>

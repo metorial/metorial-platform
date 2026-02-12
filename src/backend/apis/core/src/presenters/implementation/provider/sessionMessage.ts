@@ -5,7 +5,8 @@ import { subspaceSessionMessageType } from '../../types';
 export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionMessageType)
   .presenter(async ({ sessionMessage }) => {
     let method =
-      (sessionMessage.input as Record<string, unknown> | null)?.method as string | null ?? null;
+      ((sessionMessage.input as Record<string, unknown> | null)?.method as string | null) ??
+      null;
 
     let payload =
       sessionMessage.source === 'provider'
@@ -31,7 +32,10 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionM
         payload: payload ?? {}
       },
       session_id: sessionMessage.sessionId,
-      server_session_id: sessionMessage.connectionId ?? sessionMessage.sessionProviderId ?? sessionMessage.sessionId,
+      server_session_id:
+        sessionMessage.connectionId ??
+        sessionMessage.sessionProviderId ??
+        sessionMessage.sessionId,
       created_at: sessionMessage.createdAt
     };
   })

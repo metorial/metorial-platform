@@ -46,9 +46,7 @@ export let ProviderSessionProvidersPage = () => {
             >
               <Entity.Wrapper>
                 <Entity.Content>
-                  <Entity.Field
-                    title={dep.name ?? 'Unnamed'}
-                  />
+                  <Entity.Field title={dep.name ?? 'Unnamed'} />
 
                   <Entity.Field
                     title={<Text size="2">{dep.name ?? dep.providerId}</Text>}

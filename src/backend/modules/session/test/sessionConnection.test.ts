@@ -22,7 +22,7 @@ vi.mock('@metorial/error', () => ({
 
 vi.mock('@metorial/pagination', () => ({
   Paginator: {
-    create: vi.fn((fn) => ({
+    create: vi.fn(fn => ({
       prisma: fn,
       __isPaginator: true
     }))

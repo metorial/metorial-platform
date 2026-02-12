@@ -86,9 +86,7 @@ export let ProviderAuthConnectionsOverviewPage = () => {
         setRows(nextRows);
       } catch (e: any) {
         if (!isCanceled) {
-          setError(
-            e?.data?.message || e?.message || 'Failed to load auth connections.'
-          );
+          setError(e?.data?.message || e?.message || 'Failed to load auth connections.');
           setRows([]);
         }
       } finally {

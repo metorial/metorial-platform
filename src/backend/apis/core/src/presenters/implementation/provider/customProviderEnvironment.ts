@@ -2,7 +2,9 @@ import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { customProviderEnvironmentType } from '../../types';
 
-export let v1CustomProviderEnvironmentPresenter = Presenter.create(customProviderEnvironmentType)
+export let v1CustomProviderEnvironmentPresenter = Presenter.create(
+  customProviderEnvironmentType
+)
   .presenter(async ({ customProviderEnvironment }) => ({
     object: 'custom_provider.environment' as const,
     id: customProviderEnvironment.id,

@@ -21,7 +21,9 @@ export let v1SetupSessionPresenter = Presenter.create(setupSessionType)
     updated_at: setupSession.updatedAt,
     expires_at: setupSession.expiresAt ?? null,
     auth_config: setupSession.authConfig
-      ? await v1AuthConfigPresenter.present({ authConfig: setupSession.authConfig }, opts).run()
+      ? await v1AuthConfigPresenter
+          .present({ authConfig: setupSession.authConfig }, opts)
+          .run()
       : null
   }))
   .schema(

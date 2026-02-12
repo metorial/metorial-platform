@@ -67,8 +67,12 @@ describe('joinPath', () => {
   });
 
   it('should handle multiple path segments', () => {
-    expect(joinPath('https://example.com', 'path/to/file')).toBe('https://example.com/path/to/file');
-    expect(joinPath('https://example.com/base', 'path/to/file')).toBe('https://example.com/base/path/to/file');
+    expect(joinPath('https://example.com', 'path/to/file')).toBe(
+      'https://example.com/path/to/file'
+    );
+    expect(joinPath('https://example.com/base', 'path/to/file')).toBe(
+      'https://example.com/base/path/to/file'
+    );
   });
 
   it('should handle parent directory references (..)', () => {
@@ -83,22 +87,32 @@ describe('joinPath', () => {
   });
 
   it('should preserve query strings and hashes', () => {
-    expect(joinPath('https://example.com?query=1', 'path')).toBe('https://example.com/path?query=1');
+    expect(joinPath('https://example.com?query=1', 'path')).toBe(
+      'https://example.com/path?query=1'
+    );
     expect(joinPath('https://example.com#hash', 'path')).toBe('https://example.com/path#hash');
-    expect(joinPath('https://example.com?query=1#hash', 'path')).toBe('https://example.com/path?query=1#hash');
+    expect(joinPath('https://example.com?query=1#hash', 'path')).toBe(
+      'https://example.com/path?query=1#hash'
+    );
   });
 
   it('should handle leading slashes', () => {
     expect(joinPath('https://example.com', '/path')).toBe('https://example.com/path');
-    expect(joinPath('https://example.com/base', '/path')).toBe('https://example.com/base/path');
+    expect(joinPath('https://example.com/base', '/path')).toBe(
+      'https://example.com/base/path'
+    );
   });
 
   it('should handle empty path segments', () => {
-    expect(joinPath('https://example.com', 'path//to///file')).toBe('https://example.com/path/to/file');
+    expect(joinPath('https://example.com', 'path//to///file')).toBe(
+      'https://example.com/path/to/file'
+    );
   });
 
   it('should handle complex path navigation', () => {
-    expect(joinPath('https://example.com/a/b/c', '../d/./e/../f')).toBe('https://example.com/a/b/d/f');
+    expect(joinPath('https://example.com/a/b/c', '../d/./e/../f')).toBe(
+      'https://example.com/a/b/d/f'
+    );
   });
 });
 
@@ -110,36 +124,56 @@ describe('joinUrls', () => {
 
   it('should join base URL with multiple paths', () => {
     expect(joinUrls('https://example.com', 'a', 'b', 'c')).toBe('https://example.com/a/b/c');
-    expect(joinUrls('https://example.com/base', 'path1', 'path2')).toBe('https://example.com/base/path1/path2');
+    expect(joinUrls('https://example.com/base', 'path1', 'path2')).toBe(
+      'https://example.com/base/path1/path2'
+    );
   });
 
   it('should replace with absolute URLs in the chain', () => {
-    expect(joinUrls('https://example.com', 'path', 'https://newsite.com')).toBe('https://newsite.com');
-    expect(joinUrls('https://example.com', 'https://newsite.com', 'path')).toBe('https://newsite.com/path');
+    expect(joinUrls('https://example.com', 'path', 'https://newsite.com')).toBe(
+      'https://newsite.com'
+    );
+    expect(joinUrls('https://example.com', 'https://newsite.com', 'path')).toBe(
+      'https://newsite.com/path'
+    );
   });
 
   it('should append fragments', () => {
-    expect(joinUrls('https://example.com/path', '#anchor')).toBe('https://example.com/path#anchor');
-    expect(joinUrls('https://example.com', 'path', '#anchor')).toBe('https://example.com/path#anchor');
+    expect(joinUrls('https://example.com/path', '#anchor')).toBe(
+      'https://example.com/path#anchor'
+    );
+    expect(joinUrls('https://example.com', 'path', '#anchor')).toBe(
+      'https://example.com/path#anchor'
+    );
   });
 
   it('should skip undefined and empty paths', () => {
-    expect(joinUrls('https://example.com', undefined, 'path', undefined)).toBe('https://example.com/path');
+    expect(joinUrls('https://example.com', undefined, 'path', undefined)).toBe(
+      'https://example.com/path'
+    );
     expect(joinUrls('https://example.com', '', 'path')).toBe('https://example.com/path');
   });
 
   it('should handle complex scenarios', () => {
-    expect(joinUrls('https://example.com', 'a/b', '../c', 'd')).toBe('https://example.com/a/c/d');
-    expect(joinUrls('https://example.com/base', undefined, 'path', '#section')).toBe('https://example.com/base/path#section');
+    expect(joinUrls('https://example.com', 'a/b', '../c', 'd')).toBe(
+      'https://example.com/a/c/d'
+    );
+    expect(joinUrls('https://example.com/base', undefined, 'path', '#section')).toBe(
+      'https://example.com/base/path#section'
+    );
   });
 
   it('should handle parent directory navigation', () => {
     expect(joinUrls('https://example.com/a/b', '..', 'c')).toBe('https://example.com/a/c');
-    expect(joinUrls('https://example.com/a/b/c', '../..', 'd')).toBe('https://example.com/a/d');
+    expect(joinUrls('https://example.com/a/b/c', '../..', 'd')).toBe(
+      'https://example.com/a/d'
+    );
   });
 
   it('should preserve query strings', () => {
-    expect(joinUrls('https://example.com?query=1', 'path')).toBe('https://example.com/path?query=1');
+    expect(joinUrls('https://example.com?query=1', 'path')).toBe(
+      'https://example.com/path?query=1'
+    );
   });
 
   it('should handle only base URL', () => {
@@ -148,11 +182,15 @@ describe('joinUrls', () => {
   });
 
   it('should handle mixed absolute and relative URLs', () => {
-    expect(joinUrls('https://example.com', 'path1', 'https://other.com', 'path2')).toBe('https://other.com/path2');
+    expect(joinUrls('https://example.com', 'path1', 'https://other.com', 'path2')).toBe(
+      'https://other.com/path2'
+    );
   });
 
   it('should handle edge cases with fragments and absolute URLs', () => {
     // Fragment is appended first, then 'more' is added as a path segment
-    expect(joinUrls('https://example.com', 'path', '#anchor', 'more')).toBe('https://example.com/path/more#anchor');
+    expect(joinUrls('https://example.com', 'path', '#anchor', 'more')).toBe(
+      'https://example.com/path/more#anchor'
+    );
   });
 });

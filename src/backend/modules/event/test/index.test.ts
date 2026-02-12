@@ -185,8 +185,9 @@ describe('Event Module Exports', () => {
     });
 
     it('should handle destructured imports', async () => {
-      const { ingestEventService: service1, eventQueueProcessor: processor1 } =
-        await import('../src/index');
+      const { ingestEventService: service1, eventQueueProcessor: processor1 } = await import(
+        '../src/index'
+      );
 
       expect(service1).toBeDefined();
       expect(processor1).toBeDefined();
@@ -261,7 +262,7 @@ describe('Event Module Exports', () => {
       const exports = Object.keys(mainModule);
 
       // All exports should be intentional public API
-      exports.forEach((exportName) => {
+      exports.forEach(exportName => {
         expect(exportName).not.toMatch(/^_/); // No leading underscore (private convention)
         expect(exportName).not.toMatch(/test/i); // No test-related exports
         expect(exportName).not.toMatch(/mock/i); // No mock-related exports

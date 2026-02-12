@@ -32,9 +32,7 @@ export let ProviderDeploymentsTable = ({
         data={deployments.data.items.map(deployment => ({
           data: [
             <Text size="2" weight="strong">
-              {deployment.name ?? (
-                <span style={{ color: theme.colors.gray600 }}>Unnamed</span>
-              )}
+              {deployment.name ?? <span style={{ color: theme.colors.gray600 }}>Unnamed</span>}
             </Text>,
             <Text size="2">{deployment.provider?.name ?? deployment.providerId}</Text>,
             deployment.lockedVersion ? (

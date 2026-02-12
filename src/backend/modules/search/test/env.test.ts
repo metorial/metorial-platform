@@ -16,7 +16,9 @@ describe('env', () => {
     });
 
     it('should allow undefined values for optional fields', () => {
-      expect([undefined, '', 'string']).toContainEqual(typeof env.meiliSearch.MEILISEARCH_HOST);
+      expect([undefined, '', 'string']).toContainEqual(
+        typeof env.meiliSearch.MEILISEARCH_HOST
+      );
       expect([undefined, '', 'string']).toContainEqual(
         typeof env.meiliSearch.MEILISEARCH_API_KEY
       );
@@ -53,13 +55,21 @@ describe('env', () => {
 
     it('should allow undefined values for optional fields', () => {
       expect([undefined, '', 'string']).toContainEqual(typeof env.openSearch.OPENSEARCH_HOST);
-      expect([undefined, '', 'string']).toContainEqual(typeof env.openSearch.OPENSEARCH_USERNAME);
-      expect([undefined, '', 'string']).toContainEqual(typeof env.openSearch.OPENSEARCH_PASSWORD);
+      expect([undefined, '', 'string']).toContainEqual(
+        typeof env.openSearch.OPENSEARCH_USERNAME
+      );
+      expect([undefined, '', 'string']).toContainEqual(
+        typeof env.openSearch.OPENSEARCH_PASSWORD
+      );
       expect([undefined, '', 'string']).toContainEqual(
         typeof env.openSearch.OPENSEARCH_INDEX_PREFIX
       );
-      expect([undefined, '', 'string']).toContainEqual(typeof env.openSearch.OPENSEARCH_PROTOCOL);
-      expect([undefined, '', 'string']).toContainEqual(typeof env.openSearch.OPENSEARCH_AWS_MODE);
+      expect([undefined, '', 'string']).toContainEqual(
+        typeof env.openSearch.OPENSEARCH_PROTOCOL
+      );
+      expect([undefined, '', 'string']).toContainEqual(
+        typeof env.openSearch.OPENSEARCH_AWS_MODE
+      );
     });
   });
 
@@ -79,7 +89,9 @@ describe('env', () => {
     it('should allow undefined values for optional fields', () => {
       expect([undefined, '', 'string']).toContainEqual(typeof env.algolia.ALGOLIA_APP_ID);
       expect([undefined, '', 'string']).toContainEqual(typeof env.algolia.ALGOLIA_ADMIN_KEY);
-      expect([undefined, '', 'string']).toContainEqual(typeof env.algolia.ALGOLIA_INDEX_PREFIX);
+      expect([undefined, '', 'string']).toContainEqual(
+        typeof env.algolia.ALGOLIA_INDEX_PREFIX
+      );
     });
   });
 

@@ -19,9 +19,7 @@ export let ProviderAuthMethodsTable = ({
         data={authMethods.data.items.map(method => ({
           data: [
             <Text size="2" weight="strong">
-              {method.name ?? (
-                <span style={{ color: theme.colors.gray600 }}>Unnamed</span>
-              )}
+              {method.name ?? <span style={{ color: theme.colors.gray600 }}>Unnamed</span>}
             </Text>,
             <Text size="2">{method.type}</Text>,
             <Text size="2" color="gray600">

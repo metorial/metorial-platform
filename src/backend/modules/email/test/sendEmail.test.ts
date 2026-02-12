@@ -10,8 +10,8 @@ vi.mock('@metorial/db', () => ({
 }));
 
 vi.mock('@metorial/queue', () => ({
-  createQueue: vi.fn((opts) => ({
-    process: vi.fn((handler) => handler),
+  createQueue: vi.fn(opts => ({
+    process: vi.fn(handler => handler),
     add: vi.fn(),
     addMany: vi.fn()
   })),
@@ -144,7 +144,7 @@ describe('sendEmailQueueProcessor', () => {
     await sendEmailQueueProcessor({ emailId: 'email-bulk' });
 
     expect(sendEmailSingleQueue.addMany).toHaveBeenCalledWith(
-      destinations.map((d) => ({ destinationId: d.id }))
+      destinations.map(d => ({ destinationId: d.id }))
     );
     expect(sendEmailSingleQueue.addMany.mock.calls[0][0]).toHaveLength(1000);
   });

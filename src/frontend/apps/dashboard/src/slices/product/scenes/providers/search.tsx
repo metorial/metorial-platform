@@ -240,7 +240,9 @@ export let ProviderSearchField = ({
       <Popover.Root
         trigger={
           <FieldWrapper style={sizeStyles} ref={ref as any}>
-            {value?.name ?? <span style={{ color: theme.colors.gray700 }}>Select provider</span>}
+            {value?.name ?? (
+              <span style={{ color: theme.colors.gray700 }}>Select provider</span>
+            )}
           </FieldWrapper>
         }
         open={isOpen}

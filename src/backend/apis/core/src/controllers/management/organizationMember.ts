@@ -28,10 +28,9 @@ export let organizationMemberManagementController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            team_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by team ID(s)' }
-            )
+            team_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by team ID(s)'
+            })
           })
         )
       )

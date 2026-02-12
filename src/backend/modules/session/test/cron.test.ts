@@ -36,16 +36,16 @@ vi.mock('@metorial/debug', () => ({
 }));
 
 vi.mock('@metorial/queue', () => ({
-  createQueue: vi.fn((config) => ({
+  createQueue: vi.fn(config => ({
     name: config.name,
     add: vi.fn(),
     addMany: vi.fn(),
-    process: vi.fn((handler) => ({
+    process: vi.fn(handler => ({
       handler,
       processQueue: handler
     }))
   })),
-  combineQueueProcessors: vi.fn((processors) => ({
+  combineQueueProcessors: vi.fn(processors => ({
     processors,
     combined: true
   }))
@@ -132,7 +132,7 @@ describe('checkSessionsProcessors', () => {
         });
 
         const queueCalls = createQueue.mock.calls;
-        const queueInstance = queueCalls.find((call) => call[0].name === 'ses/con/stop')?.[0];
+        const queueInstance = queueCalls.find(call => call[0].name === 'ses/con/stop')?.[0];
         expect(queueInstance).toBeDefined();
       }
     });

@@ -2,12 +2,8 @@ import { Badge, Button, Flex, RenderDate, Spacer, Text, theme } from '@metorial/
 import { useProviderVersionContext } from './_layout';
 
 export let ProviderVersionsPage = () => {
-  let {
-    selectedVersionId,
-    setSelectedVersionId,
-    currentVersionId,
-    allVersions,
-  } = useProviderVersionContext();
+  let { selectedVersionId, setSelectedVersionId, currentVersionId, allVersions } =
+    useProviderVersionContext();
 
   let hasVersions = allVersions.length > 0;
 
@@ -49,11 +45,17 @@ export let ProviderVersionsPage = () => {
               >
                 <Flex direction="column" gap={4}>
                   <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                    <Text size="2" weight="strong">{version.version}</Text>
+                    <Text size="2" weight="strong">
+                      {version.version}
+                    </Text>
                     <Badge color={version.status === 'released' ? 'green' : 'gray'} size="1">
                       {version.status}
                     </Badge>
-                    {isCurrent && <Badge color="blue" size="1">default</Badge>}
+                    {isCurrent && (
+                      <Badge color="blue" size="1">
+                        default
+                      </Badge>
+                    )}
                   </Flex>
                   <Text size="1" color="gray600">
                     Created <RenderDate date={version.createdAt} />

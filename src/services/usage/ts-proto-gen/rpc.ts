@@ -5,7 +5,7 @@
 // source: rpc.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -16,32 +16,32 @@ import {
   makeGenericClientConstructor,
   type Metadata,
   type ServiceError,
-  type UntypedServiceImplementation,
-} from "@grpc/grpc-js";
-import Long from "long";
+  type UntypedServiceImplementation
+} from '@grpc/grpc-js';
+import Long from 'long';
 
-export const protobufPackage = "rpc.rpc";
+export const protobufPackage = 'rpc.rpc';
 
 export enum OwnerType {
   owner_type_unspecified = 0,
   owner_type_instance = 1,
   owner_type_organization = 2,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function ownerTypeFromJSON(object: any): OwnerType {
   switch (object) {
     case 0:
-    case "owner_type_unspecified":
+    case 'owner_type_unspecified':
       return OwnerType.owner_type_unspecified;
     case 1:
-    case "owner_type_instance":
+    case 'owner_type_instance':
       return OwnerType.owner_type_instance;
     case 2:
-    case "owner_type_organization":
+    case 'owner_type_organization':
       return OwnerType.owner_type_organization;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return OwnerType.UNRECOGNIZED;
   }
@@ -50,14 +50,14 @@ export function ownerTypeFromJSON(object: any): OwnerType {
 export function ownerTypeToJSON(object: OwnerType): string {
   switch (object) {
     case OwnerType.owner_type_unspecified:
-      return "owner_type_unspecified";
+      return 'owner_type_unspecified';
     case OwnerType.owner_type_instance:
-      return "owner_type_instance";
+      return 'owner_type_instance';
     case OwnerType.owner_type_organization:
-      return "owner_type_organization";
+      return 'owner_type_organization';
     case OwnerType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -66,25 +66,25 @@ export enum IntervalUnit {
   interval_unit_minute = 1,
   interval_unit_hour = 2,
   interval_unit_day = 3,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function intervalUnitFromJSON(object: any): IntervalUnit {
   switch (object) {
     case 0:
-    case "interval_unit_unspecified":
+    case 'interval_unit_unspecified':
       return IntervalUnit.interval_unit_unspecified;
     case 1:
-    case "interval_unit_minute":
+    case 'interval_unit_minute':
       return IntervalUnit.interval_unit_minute;
     case 2:
-    case "interval_unit_hour":
+    case 'interval_unit_hour':
       return IntervalUnit.interval_unit_hour;
     case 3:
-    case "interval_unit_day":
+    case 'interval_unit_day':
       return IntervalUnit.interval_unit_day;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return IntervalUnit.UNRECOGNIZED;
   }
@@ -93,16 +93,16 @@ export function intervalUnitFromJSON(object: any): IntervalUnit {
 export function intervalUnitToJSON(object: IntervalUnit): string {
   switch (object) {
     case IntervalUnit.interval_unit_unspecified:
-      return "interval_unit_unspecified";
+      return 'interval_unit_unspecified';
     case IntervalUnit.interval_unit_minute:
-      return "interval_unit_minute";
+      return 'interval_unit_minute';
     case IntervalUnit.interval_unit_hour:
-      return "interval_unit_hour";
+      return 'interval_unit_hour';
     case IntervalUnit.interval_unit_day:
-      return "interval_unit_day";
+      return 'interval_unit_day';
     case IntervalUnit.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -133,8 +133,7 @@ export interface IngestUsageRecordRequest {
   ts: Long;
 }
 
-export interface IngestUsageRecordResponse {
-}
+export interface IngestUsageRecordResponse {}
 
 export interface GetUsageTimelineRequest {
   owners: Owner[];
@@ -168,12 +167,12 @@ export interface GetUsageTimelineResponse {
 }
 
 function createBaseOwner(): Owner {
-  return { id: "", type: 0 };
+  return { id: '', type: 0 };
 }
 
 export const Owner: MessageFns<Owner> = {
   encode(message: Owner, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
+    if (message.id !== '') {
       writer.uint32(10).string(message.id);
     }
     if (message.type !== 0) {
@@ -216,14 +215,14 @@ export const Owner: MessageFns<Owner> = {
 
   fromJSON(object: any): Owner {
     return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      type: isSet(object.type) ? ownerTypeFromJSON(object.type) : 0,
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      type: isSet(object.type) ? ownerTypeFromJSON(object.type) : 0
     };
   },
 
   toJSON(message: Owner): unknown {
     const obj: any = {};
-    if (message.id !== "") {
+    if (message.id !== '') {
       obj.id = message.id;
     }
     if (message.type !== 0) {
@@ -237,22 +236,22 @@ export const Owner: MessageFns<Owner> = {
   },
   fromPartial(object: DeepPartial<Owner>): Owner {
     const message = createBaseOwner();
-    message.id = object.id ?? "";
+    message.id = object.id ?? '';
     message.type = object.type ?? 0;
     return message;
-  },
+  }
 };
 
 function createBaseEntity(): Entity {
-  return { id: "", type: "" };
+  return { id: '', type: '' };
 }
 
 export const Entity: MessageFns<Entity> = {
   encode(message: Entity, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
+    if (message.id !== '') {
       writer.uint32(10).string(message.id);
     }
-    if (message.type !== "") {
+    if (message.type !== '') {
       writer.uint32(18).string(message.type);
     }
     return writer;
@@ -292,17 +291,17 @@ export const Entity: MessageFns<Entity> = {
 
   fromJSON(object: any): Entity {
     return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      type: isSet(object.type) ? globalThis.String(object.type) : "",
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      type: isSet(object.type) ? globalThis.String(object.type) : ''
     };
   },
 
   toJSON(message: Entity): unknown {
     const obj: any = {};
-    if (message.id !== "") {
+    if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.type !== "") {
+    if (message.type !== '') {
       obj.type = message.type;
     }
     return obj;
@@ -313,10 +312,10 @@ export const Entity: MessageFns<Entity> = {
   },
   fromPartial(object: DeepPartial<Entity>): Entity {
     const message = createBaseEntity();
-    message.id = object.id ?? "";
-    message.type = object.type ?? "";
+    message.id = object.id ?? '';
+    message.type = object.type ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseInterval(): Interval {
@@ -369,7 +368,7 @@ export const Interval: MessageFns<Interval> = {
   fromJSON(object: any): Interval {
     return {
       unit: isSet(object.unit) ? intervalUnitFromJSON(object.unit) : 0,
-      count: isSet(object.count) ? globalThis.Number(object.count) : 0,
+      count: isSet(object.count) ? globalThis.Number(object.count) : 0
     };
   },
 
@@ -392,11 +391,11 @@ export const Interval: MessageFns<Interval> = {
     message.unit = object.unit ?? 0;
     message.count = object.count ?? 0;
     return message;
-  },
+  }
 };
 
 function createBaseIngestUsageRecord(): IngestUsageRecord {
-  return { owner: undefined, entity: undefined, eventType: "", count: Long.ZERO };
+  return { owner: undefined, entity: undefined, eventType: '', count: Long.ZERO };
 }
 
 export const IngestUsageRecord: MessageFns<IngestUsageRecord> = {
@@ -407,7 +406,7 @@ export const IngestUsageRecord: MessageFns<IngestUsageRecord> = {
     if (message.entity !== undefined) {
       Entity.encode(message.entity, writer.uint32(18).fork()).join();
     }
-    if (message.eventType !== "") {
+    if (message.eventType !== '') {
       writer.uint32(26).string(message.eventType);
     }
     if (!message.count.equals(Long.ZERO)) {
@@ -468,8 +467,8 @@ export const IngestUsageRecord: MessageFns<IngestUsageRecord> = {
     return {
       owner: isSet(object.owner) ? Owner.fromJSON(object.owner) : undefined,
       entity: isSet(object.entity) ? Entity.fromJSON(object.entity) : undefined,
-      eventType: isSet(object.eventType) ? globalThis.String(object.eventType) : "",
-      count: isSet(object.count) ? Long.fromValue(object.count) : Long.ZERO,
+      eventType: isSet(object.eventType) ? globalThis.String(object.eventType) : '',
+      count: isSet(object.count) ? Long.fromValue(object.count) : Long.ZERO
     };
   },
 
@@ -481,7 +480,7 @@ export const IngestUsageRecord: MessageFns<IngestUsageRecord> = {
     if (message.entity !== undefined) {
       obj.entity = Entity.toJSON(message.entity);
     }
-    if (message.eventType !== "") {
+    if (message.eventType !== '') {
       obj.eventType = message.eventType;
     }
     if (!message.count.equals(Long.ZERO)) {
@@ -495,14 +494,21 @@ export const IngestUsageRecord: MessageFns<IngestUsageRecord> = {
   },
   fromPartial(object: DeepPartial<IngestUsageRecord>): IngestUsageRecord {
     const message = createBaseIngestUsageRecord();
-    message.owner = (object.owner !== undefined && object.owner !== null) ? Owner.fromPartial(object.owner) : undefined;
-    message.entity = (object.entity !== undefined && object.entity !== null)
-      ? Entity.fromPartial(object.entity)
-      : undefined;
-    message.eventType = object.eventType ?? "";
-    message.count = (object.count !== undefined && object.count !== null) ? Long.fromValue(object.count) : Long.ZERO;
+    message.owner =
+      object.owner !== undefined && object.owner !== null
+        ? Owner.fromPartial(object.owner)
+        : undefined;
+    message.entity =
+      object.entity !== undefined && object.entity !== null
+        ? Entity.fromPartial(object.entity)
+        : undefined;
+    message.eventType = object.eventType ?? '';
+    message.count =
+      object.count !== undefined && object.count !== null
+        ? Long.fromValue(object.count)
+        : Long.ZERO;
     return message;
-  },
+  }
 };
 
 function createBaseIngestUsageRecordRequest(): IngestUsageRecordRequest {
@@ -510,7 +516,10 @@ function createBaseIngestUsageRecordRequest(): IngestUsageRecordRequest {
 }
 
 export const IngestUsageRecordRequest: MessageFns<IngestUsageRecordRequest> = {
-  encode(message: IngestUsageRecordRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: IngestUsageRecordRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.records) {
       IngestUsageRecord.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -557,14 +566,14 @@ export const IngestUsageRecordRequest: MessageFns<IngestUsageRecordRequest> = {
       records: globalThis.Array.isArray(object?.records)
         ? object.records.map((e: any) => IngestUsageRecord.fromJSON(e))
         : [],
-      ts: isSet(object.ts) ? Long.fromValue(object.ts) : Long.ZERO,
+      ts: isSet(object.ts) ? Long.fromValue(object.ts) : Long.ZERO
     };
   },
 
   toJSON(message: IngestUsageRecordRequest): unknown {
     const obj: any = {};
     if (message.records?.length) {
-      obj.records = message.records.map((e) => IngestUsageRecord.toJSON(e));
+      obj.records = message.records.map(e => IngestUsageRecord.toJSON(e));
     }
     if (!message.ts.equals(Long.ZERO)) {
       obj.ts = (message.ts || Long.ZERO).toString();
@@ -577,10 +586,11 @@ export const IngestUsageRecordRequest: MessageFns<IngestUsageRecordRequest> = {
   },
   fromPartial(object: DeepPartial<IngestUsageRecordRequest>): IngestUsageRecordRequest {
     const message = createBaseIngestUsageRecordRequest();
-    message.records = object.records?.map((e) => IngestUsageRecord.fromPartial(e)) || [];
-    message.ts = (object.ts !== undefined && object.ts !== null) ? Long.fromValue(object.ts) : Long.ZERO;
+    message.records = object.records?.map(e => IngestUsageRecord.fromPartial(e)) || [];
+    message.ts =
+      object.ts !== undefined && object.ts !== null ? Long.fromValue(object.ts) : Long.ZERO;
     return message;
-  },
+  }
 };
 
 function createBaseIngestUsageRecordResponse(): IngestUsageRecordResponse {
@@ -588,7 +598,10 @@ function createBaseIngestUsageRecordResponse(): IngestUsageRecordResponse {
 }
 
 export const IngestUsageRecordResponse: MessageFns<IngestUsageRecordResponse> = {
-  encode(_: IngestUsageRecordResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    _: IngestUsageRecordResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     return writer;
   },
 
@@ -623,7 +636,7 @@ export const IngestUsageRecordResponse: MessageFns<IngestUsageRecordResponse> = 
   fromPartial(_: DeepPartial<IngestUsageRecordResponse>): IngestUsageRecordResponse {
     const message = createBaseIngestUsageRecordResponse();
     return message;
-  },
+  }
 };
 
 function createBaseGetUsageTimelineRequest(): GetUsageTimelineRequest {
@@ -634,12 +647,15 @@ function createBaseGetUsageTimelineRequest(): GetUsageTimelineRequest {
     eventTypes: [],
     from: Long.ZERO,
     to: Long.ZERO,
-    interval: undefined,
+    interval: undefined
   };
 }
 
 export const GetUsageTimelineRequest: MessageFns<GetUsageTimelineRequest> = {
-  encode(message: GetUsageTimelineRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: GetUsageTimelineRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.owners) {
       Owner.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -738,7 +754,9 @@ export const GetUsageTimelineRequest: MessageFns<GetUsageTimelineRequest> = {
 
   fromJSON(object: any): GetUsageTimelineRequest {
     return {
-      owners: globalThis.Array.isArray(object?.owners) ? object.owners.map((e: any) => Owner.fromJSON(e)) : [],
+      owners: globalThis.Array.isArray(object?.owners)
+        ? object.owners.map((e: any) => Owner.fromJSON(e))
+        : [],
       entityIds: globalThis.Array.isArray(object?.entityIds)
         ? object.entityIds.map((e: any) => globalThis.String(e))
         : [],
@@ -750,14 +768,14 @@ export const GetUsageTimelineRequest: MessageFns<GetUsageTimelineRequest> = {
         : [],
       from: isSet(object.from) ? Long.fromValue(object.from) : Long.ZERO,
       to: isSet(object.to) ? Long.fromValue(object.to) : Long.ZERO,
-      interval: isSet(object.interval) ? Interval.fromJSON(object.interval) : undefined,
+      interval: isSet(object.interval) ? Interval.fromJSON(object.interval) : undefined
     };
   },
 
   toJSON(message: GetUsageTimelineRequest): unknown {
     const obj: any = {};
     if (message.owners?.length) {
-      obj.owners = message.owners.map((e) => Owner.toJSON(e));
+      obj.owners = message.owners.map(e => Owner.toJSON(e));
     }
     if (message.entityIds?.length) {
       obj.entityIds = message.entityIds;
@@ -785,17 +803,22 @@ export const GetUsageTimelineRequest: MessageFns<GetUsageTimelineRequest> = {
   },
   fromPartial(object: DeepPartial<GetUsageTimelineRequest>): GetUsageTimelineRequest {
     const message = createBaseGetUsageTimelineRequest();
-    message.owners = object.owners?.map((e) => Owner.fromPartial(e)) || [];
-    message.entityIds = object.entityIds?.map((e) => e) || [];
-    message.entityTypes = object.entityTypes?.map((e) => e) || [];
-    message.eventTypes = object.eventTypes?.map((e) => e) || [];
-    message.from = (object.from !== undefined && object.from !== null) ? Long.fromValue(object.from) : Long.ZERO;
-    message.to = (object.to !== undefined && object.to !== null) ? Long.fromValue(object.to) : Long.ZERO;
-    message.interval = (object.interval !== undefined && object.interval !== null)
-      ? Interval.fromPartial(object.interval)
-      : undefined;
+    message.owners = object.owners?.map(e => Owner.fromPartial(e)) || [];
+    message.entityIds = object.entityIds?.map(e => e) || [];
+    message.entityTypes = object.entityTypes?.map(e => e) || [];
+    message.eventTypes = object.eventTypes?.map(e => e) || [];
+    message.from =
+      object.from !== undefined && object.from !== null
+        ? Long.fromValue(object.from)
+        : Long.ZERO;
+    message.to =
+      object.to !== undefined && object.to !== null ? Long.fromValue(object.to) : Long.ZERO;
+    message.interval =
+      object.interval !== undefined && object.interval !== null
+        ? Interval.fromPartial(object.interval)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseTimelineEntry(): TimelineEntry {
@@ -848,7 +871,7 @@ export const TimelineEntry: MessageFns<TimelineEntry> = {
   fromJSON(object: any): TimelineEntry {
     return {
       ts: isSet(object.ts) ? Long.fromValue(object.ts) : Long.ZERO,
-      count: isSet(object.count) ? Long.fromValue(object.count) : Long.ZERO,
+      count: isSet(object.count) ? Long.fromValue(object.count) : Long.ZERO
     };
   },
 
@@ -868,25 +891,29 @@ export const TimelineEntry: MessageFns<TimelineEntry> = {
   },
   fromPartial(object: DeepPartial<TimelineEntry>): TimelineEntry {
     const message = createBaseTimelineEntry();
-    message.ts = (object.ts !== undefined && object.ts !== null) ? Long.fromValue(object.ts) : Long.ZERO;
-    message.count = (object.count !== undefined && object.count !== null) ? Long.fromValue(object.count) : Long.ZERO;
+    message.ts =
+      object.ts !== undefined && object.ts !== null ? Long.fromValue(object.ts) : Long.ZERO;
+    message.count =
+      object.count !== undefined && object.count !== null
+        ? Long.fromValue(object.count)
+        : Long.ZERO;
     return message;
-  },
+  }
 };
 
 function createBaseTimelineSeries(): TimelineSeries {
-  return { entityId: "", entityType: "", ownerId: "", entries: [] };
+  return { entityId: '', entityType: '', ownerId: '', entries: [] };
 }
 
 export const TimelineSeries: MessageFns<TimelineSeries> = {
   encode(message: TimelineSeries, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.entityId !== "") {
+    if (message.entityId !== '') {
       writer.uint32(10).string(message.entityId);
     }
-    if (message.entityType !== "") {
+    if (message.entityType !== '') {
       writer.uint32(18).string(message.entityType);
     }
-    if (message.ownerId !== "") {
+    if (message.ownerId !== '') {
       writer.uint32(26).string(message.ownerId);
     }
     for (const v of message.entries) {
@@ -945,28 +972,28 @@ export const TimelineSeries: MessageFns<TimelineSeries> = {
 
   fromJSON(object: any): TimelineSeries {
     return {
-      entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : "",
-      entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : "",
-      ownerId: isSet(object.ownerId) ? globalThis.String(object.ownerId) : "",
+      entityId: isSet(object.entityId) ? globalThis.String(object.entityId) : '',
+      entityType: isSet(object.entityType) ? globalThis.String(object.entityType) : '',
+      ownerId: isSet(object.ownerId) ? globalThis.String(object.ownerId) : '',
       entries: globalThis.Array.isArray(object?.entries)
         ? object.entries.map((e: any) => TimelineEntry.fromJSON(e))
-        : [],
+        : []
     };
   },
 
   toJSON(message: TimelineSeries): unknown {
     const obj: any = {};
-    if (message.entityId !== "") {
+    if (message.entityId !== '') {
       obj.entityId = message.entityId;
     }
-    if (message.entityType !== "") {
+    if (message.entityType !== '') {
       obj.entityType = message.entityType;
     }
-    if (message.ownerId !== "") {
+    if (message.ownerId !== '') {
       obj.ownerId = message.ownerId;
     }
     if (message.entries?.length) {
-      obj.entries = message.entries.map((e) => TimelineEntry.toJSON(e));
+      obj.entries = message.entries.map(e => TimelineEntry.toJSON(e));
     }
     return obj;
   },
@@ -976,21 +1003,21 @@ export const TimelineSeries: MessageFns<TimelineSeries> = {
   },
   fromPartial(object: DeepPartial<TimelineSeries>): TimelineSeries {
     const message = createBaseTimelineSeries();
-    message.entityId = object.entityId ?? "";
-    message.entityType = object.entityType ?? "";
-    message.ownerId = object.ownerId ?? "";
-    message.entries = object.entries?.map((e) => TimelineEntry.fromPartial(e)) || [];
+    message.entityId = object.entityId ?? '';
+    message.entityType = object.entityType ?? '';
+    message.ownerId = object.ownerId ?? '';
+    message.entries = object.entries?.map(e => TimelineEntry.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseTimelineEvent(): TimelineEvent {
-  return { eventType: "", series: [] };
+  return { eventType: '', series: [] };
 }
 
 export const TimelineEvent: MessageFns<TimelineEvent> = {
   encode(message: TimelineEvent, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.eventType !== "") {
+    if (message.eventType !== '') {
       writer.uint32(10).string(message.eventType);
     }
     for (const v of message.series) {
@@ -1033,18 +1060,20 @@ export const TimelineEvent: MessageFns<TimelineEvent> = {
 
   fromJSON(object: any): TimelineEvent {
     return {
-      eventType: isSet(object.eventType) ? globalThis.String(object.eventType) : "",
-      series: globalThis.Array.isArray(object?.series) ? object.series.map((e: any) => TimelineSeries.fromJSON(e)) : [],
+      eventType: isSet(object.eventType) ? globalThis.String(object.eventType) : '',
+      series: globalThis.Array.isArray(object?.series)
+        ? object.series.map((e: any) => TimelineSeries.fromJSON(e))
+        : []
     };
   },
 
   toJSON(message: TimelineEvent): unknown {
     const obj: any = {};
-    if (message.eventType !== "") {
+    if (message.eventType !== '') {
       obj.eventType = message.eventType;
     }
     if (message.series?.length) {
-      obj.series = message.series.map((e) => TimelineSeries.toJSON(e));
+      obj.series = message.series.map(e => TimelineSeries.toJSON(e));
     }
     return obj;
   },
@@ -1054,10 +1083,10 @@ export const TimelineEvent: MessageFns<TimelineEvent> = {
   },
   fromPartial(object: DeepPartial<TimelineEvent>): TimelineEvent {
     const message = createBaseTimelineEvent();
-    message.eventType = object.eventType ?? "";
-    message.series = object.series?.map((e) => TimelineSeries.fromPartial(e)) || [];
+    message.eventType = object.eventType ?? '';
+    message.series = object.series?.map(e => TimelineSeries.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseGetUsageTimelineResponse(): GetUsageTimelineResponse {
@@ -1065,7 +1094,10 @@ function createBaseGetUsageTimelineResponse(): GetUsageTimelineResponse {
 }
 
 export const GetUsageTimelineResponse: MessageFns<GetUsageTimelineResponse> = {
-  encode(message: GetUsageTimelineResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: GetUsageTimelineResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.events) {
       TimelineEvent.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -1098,14 +1130,16 @@ export const GetUsageTimelineResponse: MessageFns<GetUsageTimelineResponse> = {
 
   fromJSON(object: any): GetUsageTimelineResponse {
     return {
-      events: globalThis.Array.isArray(object?.events) ? object.events.map((e: any) => TimelineEvent.fromJSON(e)) : [],
+      events: globalThis.Array.isArray(object?.events)
+        ? object.events.map((e: any) => TimelineEvent.fromJSON(e))
+        : []
     };
   },
 
   toJSON(message: GetUsageTimelineResponse): unknown {
     const obj: any = {};
     if (message.events?.length) {
-      obj.events = message.events.map((e) => TimelineEvent.toJSON(e));
+      obj.events = message.events.map(e => TimelineEvent.toJSON(e));
     }
     return obj;
   },
@@ -1115,35 +1149,39 @@ export const GetUsageTimelineResponse: MessageFns<GetUsageTimelineResponse> = {
   },
   fromPartial(object: DeepPartial<GetUsageTimelineResponse>): GetUsageTimelineResponse {
     const message = createBaseGetUsageTimelineResponse();
-    message.events = object.events?.map((e) => TimelineEvent.fromPartial(e)) || [];
+    message.events = object.events?.map(e => TimelineEvent.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 export type UsageServiceService = typeof UsageServiceService;
 export const UsageServiceService = {
   ingestUsageRecord: {
-    path: "/rpc.rpc.UsageService/IngestUsageRecord",
+    path: '/rpc.rpc.UsageService/IngestUsageRecord',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: IngestUsageRecordRequest): Buffer =>
       Buffer.from(IngestUsageRecordRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): IngestUsageRecordRequest => IngestUsageRecordRequest.decode(value),
+    requestDeserialize: (value: Buffer): IngestUsageRecordRequest =>
+      IngestUsageRecordRequest.decode(value),
     responseSerialize: (value: IngestUsageRecordResponse): Buffer =>
       Buffer.from(IngestUsageRecordResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): IngestUsageRecordResponse => IngestUsageRecordResponse.decode(value),
+    responseDeserialize: (value: Buffer): IngestUsageRecordResponse =>
+      IngestUsageRecordResponse.decode(value)
   },
   getUsageTimeline: {
-    path: "/rpc.rpc.UsageService/GetUsageTimeline",
+    path: '/rpc.rpc.UsageService/GetUsageTimeline',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: GetUsageTimelineRequest): Buffer =>
       Buffer.from(GetUsageTimelineRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetUsageTimelineRequest => GetUsageTimelineRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetUsageTimelineRequest =>
+      GetUsageTimelineRequest.decode(value),
     responseSerialize: (value: GetUsageTimelineResponse): Buffer =>
       Buffer.from(GetUsageTimelineResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetUsageTimelineResponse => GetUsageTimelineResponse.decode(value),
-  },
+    responseDeserialize: (value: Buffer): GetUsageTimelineResponse =>
+      GetUsageTimelineResponse.decode(value)
+  }
 } as const;
 
 export interface UsageServiceServer extends UntypedServiceImplementation {
@@ -1154,52 +1192,62 @@ export interface UsageServiceServer extends UntypedServiceImplementation {
 export interface UsageServiceClient extends Client {
   ingestUsageRecord(
     request: IngestUsageRecordRequest,
-    callback: (error: ServiceError | null, response: IngestUsageRecordResponse) => void,
+    callback: (error: ServiceError | null, response: IngestUsageRecordResponse) => void
   ): ClientUnaryCall;
   ingestUsageRecord(
     request: IngestUsageRecordRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: IngestUsageRecordResponse) => void,
+    callback: (error: ServiceError | null, response: IngestUsageRecordResponse) => void
   ): ClientUnaryCall;
   ingestUsageRecord(
     request: IngestUsageRecordRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: IngestUsageRecordResponse) => void,
+    callback: (error: ServiceError | null, response: IngestUsageRecordResponse) => void
   ): ClientUnaryCall;
   getUsageTimeline(
     request: GetUsageTimelineRequest,
-    callback: (error: ServiceError | null, response: GetUsageTimelineResponse) => void,
+    callback: (error: ServiceError | null, response: GetUsageTimelineResponse) => void
   ): ClientUnaryCall;
   getUsageTimeline(
     request: GetUsageTimelineRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetUsageTimelineResponse) => void,
+    callback: (error: ServiceError | null, response: GetUsageTimelineResponse) => void
   ): ClientUnaryCall;
   getUsageTimeline(
     request: GetUsageTimelineRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetUsageTimelineResponse) => void,
+    callback: (error: ServiceError | null, response: GetUsageTimelineResponse) => void
   ): ClientUnaryCall;
 }
 
 export const UsageServiceClient = makeGenericClientConstructor(
   UsageServiceService,
-  "rpc.rpc.UsageService",
+  'rpc.rpc.UsageService'
 ) as unknown as {
-  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): UsageServiceClient;
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): UsageServiceClient;
   service: typeof UsageServiceService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends {}
+          ? { [K in keyof T]?: DeepPartial<T[K]> }
+          : Partial<T>;
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;

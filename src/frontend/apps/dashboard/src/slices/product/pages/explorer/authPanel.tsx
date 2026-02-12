@@ -46,7 +46,9 @@ export let AuthPanel = ({
 
   return (
     <Wrapper>
-      <Text size="4" weight="strong">Authentication Required</Text>
+      <Text size="4" weight="strong">
+        Authentication Required
+      </Text>
       <Spacer size={5} />
       <Text size="2" color="gray700">
         {provider.name ?? 'This provider'} requires authentication to connect.

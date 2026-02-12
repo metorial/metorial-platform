@@ -51,16 +51,19 @@ vi.mock('@metorial/db', () => ({
     }
   },
   ID: {
-    generateId: vi.fn()
+    generateId: vi
+      .fn()
       .mockResolvedValueOnce('mcp_srv_123')
       .mockResolvedValueOnce('mcp_srv_dep_123')
   },
-  withTransaction: vi.fn(async (fn) => fn({
-    magicMcpServer: {
-      create: vi.fn().mockResolvedValue({ id: 'mcp_srv_123', status: 'active' })
-    }
-  })),
-  ensureEmailIdentity: vi.fn((fn) => fn)
+  withTransaction: vi.fn(async fn =>
+    fn({
+      magicMcpServer: {
+        create: vi.fn().mockResolvedValue({ id: 'mcp_srv_123', status: 'active' })
+      }
+    })
+  ),
+  ensureEmailIdentity: vi.fn(fn => fn)
 }));
 
 vi.mock('@metorial/id', () => ({
@@ -68,10 +71,12 @@ vi.mock('@metorial/id', () => ({
 }));
 
 vi.mock('@metorial/slugify', () => ({
-  slugify: vi.fn().mockImplementation((str) => str.toLowerCase().replace(/\s+/g, '-')),
-  createSlugGenerator: vi.fn().mockImplementation(() =>
-    vi.fn().mockImplementation(async (str) => str.toLowerCase().replace(/\s+/g, '-'))
-  )
+  slugify: vi.fn().mockImplementation(str => str.toLowerCase().replace(/\s+/g, '-')),
+  createSlugGenerator: vi
+    .fn()
+    .mockImplementation(() =>
+      vi.fn().mockImplementation(async str => str.toLowerCase().replace(/\s+/g, '-'))
+    )
 }));
 
 vi.mock('@metorial/module-search', () => ({
@@ -93,7 +98,7 @@ vi.mock('@metorial/queue', () => ({
     add: vi.fn(async () => {}),
     config
   })),
-  combineQueueProcessors: vi.fn((processors) => ({
+  combineQueueProcessors: vi.fn(processors => ({
     processors,
     process: vi.fn()
   }))
@@ -330,7 +335,7 @@ describe('magicMcpServerService', () => {
 
       vi.mocked(generateCode).mockReturnValue('abc12');
       vi.mocked(slugify).mockReturnValue('test-server-abc12');
-      vi.mocked(withTransaction).mockImplementation(async (fn) => {
+      vi.mocked(withTransaction).mockImplementation(async fn => {
         const mockDb = {
           magicMcpServer: {
             create: vi.fn().mockResolvedValue(mockCreatedServer)
@@ -359,7 +364,7 @@ describe('magicMcpServerService', () => {
     it('should create server with empty metadata when not provided', async () => {
       const mockCreatedServer = { id: 'mcp_srv_123', metadata: {} };
 
-      vi.mocked(withTransaction).mockImplementation(async (fn) => {
+      vi.mocked(withTransaction).mockImplementation(async fn => {
         const mockDb = {
           magicMcpServer: {
             create: vi.fn().mockImplementation((args: any) => {
@@ -384,7 +389,7 @@ describe('magicMcpServerService', () => {
     it('should create server deployment association', async () => {
       const mockCreatedServer = { id: 'mcp_srv_123' };
 
-      vi.mocked(withTransaction).mockImplementation(async (fn) => {
+      vi.mocked(withTransaction).mockImplementation(async fn => {
         const mockDb = {
           magicMcpServer: {
             create: vi.fn().mockImplementation((args: any) => {
@@ -413,7 +418,11 @@ describe('magicMcpServerService', () => {
   describe('archiveMagicMcpServer', () => {
     it('should archive an active server', async () => {
       const mockServer = { id: 'mcp_srv_1', status: 'active' } as any;
-      const mockArchivedServer = { id: 'mcp_srv_1', status: 'archived', deletedAt: expect.any(Date) };
+      const mockArchivedServer = {
+        id: 'mcp_srv_1',
+        status: 'archived',
+        deletedAt: expect.any(Date)
+      };
 
       vi.mocked(db.magicMcpServer.update).mockResolvedValue(mockArchivedServer as any);
 
@@ -664,9 +673,7 @@ describe('magicMcpServerService', () => {
       expect(db.magicMcpServer.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            AND: expect.arrayContaining([
-              { status: { in: ['active'] } }
-            ])
+            AND: expect.arrayContaining([{ status: { in: ['active'] } }])
           })
         })
       );
@@ -682,19 +689,14 @@ describe('magicMcpServerService', () => {
       expect(db.magicMcpServer.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            AND: expect.arrayContaining([
-              { status: { not: 'archived' } }
-            ])
+            AND: expect.arrayContaining([{ status: { not: 'archived' } }])
           })
         })
       );
     });
 
     it('should filter by search query', async () => {
-      const mockSearchResults = [
-        { id: 'mcp_srv_1' },
-        { id: 'mcp_srv_2' }
-      ];
+      const mockSearchResults = [{ id: 'mcp_srv_1' }, { id: 'mcp_srv_2' }];
 
       vi.mocked(searchService.search).mockResolvedValue(mockSearchResults as any);
       vi.mocked(db.magicMcpServer.findMany).mockResolvedValue([]);
@@ -777,7 +779,9 @@ describe('magicMcpServerService', () => {
     it('should filter by server implementation IDs', async () => {
       const mockImplementations = [{ oid: 'srv_impl_oid_1' }];
 
-      vi.mocked(db.serverImplementation.findMany).mockResolvedValue(mockImplementations as any);
+      vi.mocked(db.serverImplementation.findMany).mockResolvedValue(
+        mockImplementations as any
+      );
       vi.mocked(db.magicMcpServer.findMany).mockResolvedValue([]);
 
       await magicMcpServerService.listMagicMcpServers({
@@ -836,7 +840,7 @@ describe('magicMcpServerService', () => {
     it('should handle server with special characters in name', async () => {
       vi.mocked(slugify).mockReturnValue('special-chars-server-abc12');
 
-      vi.mocked(withTransaction).mockImplementation(async (fn) => {
+      vi.mocked(withTransaction).mockImplementation(async fn => {
         const mockDb = {
           magicMcpServer: {
             create: vi.fn().mockResolvedValue({ id: 'mcp_srv_123' })

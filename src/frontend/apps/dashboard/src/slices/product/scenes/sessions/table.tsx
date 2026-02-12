@@ -39,8 +39,9 @@ export let SessionsTable = (filter: SessionsListQuery) => {
           data: [
             <SessionConnectionStatusBadge session={session} />,
             <Text size="2" weight="strong">
-              {session.providerDeployments?.map(s => s.name ?? s.providerId ?? 'Unknown').join(', ') ||
-                'No deployments'}
+              {session.providerDeployments
+                ?.map(s => s.name ?? s.providerId ?? 'Unknown')
+                .join(', ') || 'No deployments'}
             </Text>,
             <Text size="2">
               {session.client?.info?.name ?? (

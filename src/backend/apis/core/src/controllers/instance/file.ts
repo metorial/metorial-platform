@@ -39,14 +39,12 @@ export let fileController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            purpose: v.optional(
-              v.enumOf(purposeSlugs as any),
-              { description: 'Filter by file purpose' }
-            ),
-            organization_id: v.optional(
-              v.string(),
-              { description: 'Filter by organization ID' }
-            )
+            purpose: v.optional(v.enumOf(purposeSlugs as any), {
+              description: 'Filter by file purpose'
+            }),
+            organization_id: v.optional(v.string(), {
+              description: 'Filter by organization ID'
+            })
           })
         )
       )

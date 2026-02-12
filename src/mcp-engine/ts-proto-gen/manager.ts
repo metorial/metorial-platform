@@ -5,7 +5,7 @@
 // source: manager.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -18,10 +18,10 @@ import {
   makeGenericClientConstructor,
   type Metadata,
   type ServiceError,
-  type UntypedServiceImplementation,
-} from "@grpc/grpc-js";
-import Long from "long";
-import { LauncherConfig } from "./launcher";
+  type UntypedServiceImplementation
+} from '@grpc/grpc-js';
+import Long from 'long';
+import { LauncherConfig } from './launcher';
 import {
   McpConfig,
   McpError,
@@ -35,12 +35,17 @@ import {
   McpPrompt,
   McpResource,
   McpResourceTemplate,
-  McpTool,
-} from "./mcp";
-import { RunConfigLambda, RunConfigLambdaServer, RunConfigRemote, RunConfigRemoteServer } from "./remote";
-import { RunConfig, RunConfigContainer } from "./runner";
+  McpTool
+} from './mcp';
+import {
+  RunConfigLambda,
+  RunConfigLambdaServer,
+  RunConfigRemote,
+  RunConfigRemoteServer
+} from './remote';
+import { RunConfig, RunConfigContainer } from './runner';
 
-export const protobufPackage = "broker.manager";
+export const protobufPackage = 'broker.manager';
 
 export enum EngineSessionStatus {
   session_status_active = 0,
@@ -48,28 +53,28 @@ export enum EngineSessionStatus {
   session_status_expired = 2,
   session_status_error = 3,
   session_status_unknown = 4,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function engineSessionStatusFromJSON(object: any): EngineSessionStatus {
   switch (object) {
     case 0:
-    case "session_status_active":
+    case 'session_status_active':
       return EngineSessionStatus.session_status_active;
     case 1:
-    case "session_status_closed":
+    case 'session_status_closed':
       return EngineSessionStatus.session_status_closed;
     case 2:
-    case "session_status_expired":
+    case 'session_status_expired':
       return EngineSessionStatus.session_status_expired;
     case 3:
-    case "session_status_error":
+    case 'session_status_error':
       return EngineSessionStatus.session_status_error;
     case 4:
-    case "session_status_unknown":
+    case 'session_status_unknown':
       return EngineSessionStatus.session_status_unknown;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return EngineSessionStatus.UNRECOGNIZED;
   }
@@ -78,18 +83,18 @@ export function engineSessionStatusFromJSON(object: any): EngineSessionStatus {
 export function engineSessionStatusToJSON(object: EngineSessionStatus): string {
   switch (object) {
     case EngineSessionStatus.session_status_active:
-      return "session_status_active";
+      return 'session_status_active';
     case EngineSessionStatus.session_status_closed:
-      return "session_status_closed";
+      return 'session_status_closed';
     case EngineSessionStatus.session_status_expired:
-      return "session_status_expired";
+      return 'session_status_expired';
     case EngineSessionStatus.session_status_error:
-      return "session_status_error";
+      return 'session_status_error';
     case EngineSessionStatus.session_status_unknown:
-      return "session_status_unknown";
+      return 'session_status_unknown';
     case EngineSessionStatus.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -98,25 +103,25 @@ export enum EngineSessionType {
   session_type_container = 1,
   session_type_remote = 2,
   session_type_lambda = 3,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function engineSessionTypeFromJSON(object: any): EngineSessionType {
   switch (object) {
     case 0:
-    case "session_type_unknown":
+    case 'session_type_unknown':
       return EngineSessionType.session_type_unknown;
     case 1:
-    case "session_type_container":
+    case 'session_type_container':
       return EngineSessionType.session_type_container;
     case 2:
-    case "session_type_remote":
+    case 'session_type_remote':
       return EngineSessionType.session_type_remote;
     case 3:
-    case "session_type_lambda":
+    case 'session_type_lambda':
       return EngineSessionType.session_type_lambda;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return EngineSessionType.UNRECOGNIZED;
   }
@@ -125,16 +130,16 @@ export function engineSessionTypeFromJSON(object: any): EngineSessionType {
 export function engineSessionTypeToJSON(object: EngineSessionType): string {
   switch (object) {
     case EngineSessionType.session_type_unknown:
-      return "session_type_unknown";
+      return 'session_type_unknown';
     case EngineSessionType.session_type_container:
-      return "session_type_container";
+      return 'session_type_container';
     case EngineSessionType.session_type_remote:
-      return "session_type_remote";
+      return 'session_type_remote';
     case EngineSessionType.session_type_lambda:
-      return "session_type_lambda";
+      return 'session_type_lambda';
     case EngineSessionType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -144,28 +149,28 @@ export enum EngineRunStatus {
   run_status_expired = 2,
   run_status_error = 3,
   run_status_unknown = 4,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function engineRunStatusFromJSON(object: any): EngineRunStatus {
   switch (object) {
     case 0:
-    case "run_status_active":
+    case 'run_status_active':
       return EngineRunStatus.run_status_active;
     case 1:
-    case "run_status_closed":
+    case 'run_status_closed':
       return EngineRunStatus.run_status_closed;
     case 2:
-    case "run_status_expired":
+    case 'run_status_expired':
       return EngineRunStatus.run_status_expired;
     case 3:
-    case "run_status_error":
+    case 'run_status_error':
       return EngineRunStatus.run_status_error;
     case 4:
-    case "run_status_unknown":
+    case 'run_status_unknown':
       return EngineRunStatus.run_status_unknown;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return EngineRunStatus.UNRECOGNIZED;
   }
@@ -174,18 +179,18 @@ export function engineRunStatusFromJSON(object: any): EngineRunStatus {
 export function engineRunStatusToJSON(object: EngineRunStatus): string {
   switch (object) {
     case EngineRunStatus.run_status_active:
-      return "run_status_active";
+      return 'run_status_active';
     case EngineRunStatus.run_status_closed:
-      return "run_status_closed";
+      return 'run_status_closed';
     case EngineRunStatus.run_status_expired:
-      return "run_status_expired";
+      return 'run_status_expired';
     case EngineRunStatus.run_status_error:
-      return "run_status_error";
+      return 'run_status_error';
     case EngineRunStatus.run_status_unknown:
-      return "run_status_unknown";
+      return 'run_status_unknown';
     case EngineRunStatus.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -194,25 +199,25 @@ export enum EngineRunType {
   run_type_container = 1,
   run_type_remote = 2,
   run_type_lambda = 3,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function engineRunTypeFromJSON(object: any): EngineRunType {
   switch (object) {
     case 0:
-    case "run_type_unknown":
+    case 'run_type_unknown':
       return EngineRunType.run_type_unknown;
     case 1:
-    case "run_type_container":
+    case 'run_type_container':
       return EngineRunType.run_type_container;
     case 2:
-    case "run_type_remote":
+    case 'run_type_remote':
       return EngineRunType.run_type_remote;
     case 3:
-    case "run_type_lambda":
+    case 'run_type_lambda':
       return EngineRunType.run_type_lambda;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return EngineRunType.UNRECOGNIZED;
   }
@@ -221,16 +226,16 @@ export function engineRunTypeFromJSON(object: any): EngineRunType {
 export function engineRunTypeToJSON(object: EngineRunType): string {
   switch (object) {
     case EngineRunType.run_type_unknown:
-      return "run_type_unknown";
+      return 'run_type_unknown';
     case EngineRunType.run_type_container:
-      return "run_type_container";
+      return 'run_type_container';
     case EngineRunType.run_type_remote:
-      return "run_type_remote";
+      return 'run_type_remote';
     case EngineRunType.run_type_lambda:
-      return "run_type_lambda";
+      return 'run_type_lambda';
     case EngineRunType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -241,31 +246,31 @@ export enum EngineSessionEventType {
   session_event_type_unknown = 3,
   session_event_type_launcher_run_success = 4,
   session_event_type_launcher_run_error = 5,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function engineSessionEventTypeFromJSON(object: any): EngineSessionEventType {
   switch (object) {
     case 0:
-    case "session_event_type_output":
+    case 'session_event_type_output':
       return EngineSessionEventType.session_event_type_output;
     case 1:
-    case "session_event_type_error":
+    case 'session_event_type_error':
       return EngineSessionEventType.session_event_type_error;
     case 2:
-    case "session_event_type_log":
+    case 'session_event_type_log':
       return EngineSessionEventType.session_event_type_log;
     case 3:
-    case "session_event_type_unknown":
+    case 'session_event_type_unknown':
       return EngineSessionEventType.session_event_type_unknown;
     case 4:
-    case "session_event_type_launcher_run_success":
+    case 'session_event_type_launcher_run_success':
       return EngineSessionEventType.session_event_type_launcher_run_success;
     case 5:
-    case "session_event_type_launcher_run_error":
+    case 'session_event_type_launcher_run_error':
       return EngineSessionEventType.session_event_type_launcher_run_error;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return EngineSessionEventType.UNRECOGNIZED;
   }
@@ -274,20 +279,20 @@ export function engineSessionEventTypeFromJSON(object: any): EngineSessionEventT
 export function engineSessionEventTypeToJSON(object: EngineSessionEventType): string {
   switch (object) {
     case EngineSessionEventType.session_event_type_output:
-      return "session_event_type_output";
+      return 'session_event_type_output';
     case EngineSessionEventType.session_event_type_error:
-      return "session_event_type_error";
+      return 'session_event_type_error';
     case EngineSessionEventType.session_event_type_log:
-      return "session_event_type_log";
+      return 'session_event_type_log';
     case EngineSessionEventType.session_event_type_unknown:
-      return "session_event_type_unknown";
+      return 'session_event_type_unknown';
     case EngineSessionEventType.session_event_type_launcher_run_success:
-      return "session_event_type_launcher_run_success";
+      return 'session_event_type_launcher_run_success';
     case EngineSessionEventType.session_event_type_launcher_run_error:
-      return "session_event_type_launcher_run_error";
+      return 'session_event_type_launcher_run_error';
     case EngineSessionEventType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -295,22 +300,22 @@ export enum SessionMessageSender {
   session_message_sender_unknown = 0,
   session_message_sender_client = 1,
   session_message_sender_server = 2,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function sessionMessageSenderFromJSON(object: any): SessionMessageSender {
   switch (object) {
     case 0:
-    case "session_message_sender_unknown":
+    case 'session_message_sender_unknown':
       return SessionMessageSender.session_message_sender_unknown;
     case 1:
-    case "session_message_sender_client":
+    case 'session_message_sender_client':
       return SessionMessageSender.session_message_sender_client;
     case 2:
-    case "session_message_sender_server":
+    case 'session_message_sender_server':
       return SessionMessageSender.session_message_sender_server;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return SessionMessageSender.UNRECOGNIZED;
   }
@@ -319,33 +324,33 @@ export function sessionMessageSenderFromJSON(object: any): SessionMessageSender 
 export function sessionMessageSenderToJSON(object: SessionMessageSender): string {
   switch (object) {
     case SessionMessageSender.session_message_sender_unknown:
-      return "session_message_sender_unknown";
+      return 'session_message_sender_unknown';
     case SessionMessageSender.session_message_sender_client:
-      return "session_message_sender_client";
+      return 'session_message_sender_client';
     case SessionMessageSender.session_message_sender_server:
-      return "session_message_sender_server";
+      return 'session_message_sender_server';
     case SessionMessageSender.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
 export enum EngineServerStatus {
   session_status_discovered = 0,
   session_status_not_discovered = 1,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function engineServerStatusFromJSON(object: any): EngineServerStatus {
   switch (object) {
     case 0:
-    case "session_status_discovered":
+    case 'session_status_discovered':
       return EngineServerStatus.session_status_discovered;
     case 1:
-    case "session_status_not_discovered":
+    case 'session_status_not_discovered':
       return EngineServerStatus.session_status_not_discovered;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return EngineServerStatus.UNRECOGNIZED;
   }
@@ -354,31 +359,31 @@ export function engineServerStatusFromJSON(object: any): EngineServerStatus {
 export function engineServerStatusToJSON(object: EngineServerStatus): string {
   switch (object) {
     case EngineServerStatus.session_status_discovered:
-      return "session_status_discovered";
+      return 'session_status_discovered';
     case EngineServerStatus.session_status_not_discovered:
-      return "session_status_not_discovered";
+      return 'session_status_not_discovered';
     case EngineServerStatus.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
 export enum ListPaginationOrder {
   list_cursor_order_asc = 0,
   list_cursor_order_desc = 1,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function listPaginationOrderFromJSON(object: any): ListPaginationOrder {
   switch (object) {
     case 0:
-    case "list_cursor_order_asc":
+    case 'list_cursor_order_asc':
       return ListPaginationOrder.list_cursor_order_asc;
     case 1:
-    case "list_cursor_order_desc":
+    case 'list_cursor_order_desc':
       return ListPaginationOrder.list_cursor_order_desc;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return ListPaginationOrder.UNRECOGNIZED;
   }
@@ -387,17 +392,16 @@ export function listPaginationOrderFromJSON(object: any): ListPaginationOrder {
 export function listPaginationOrderToJSON(object: ListPaginationOrder): string {
   switch (object) {
     case ListPaginationOrder.list_cursor_order_asc:
-      return "list_cursor_order_asc";
+      return 'list_cursor_order_asc';
     case ListPaginationOrder.list_cursor_order_desc:
-      return "list_cursor_order_desc";
+      return 'list_cursor_order_desc';
     case ListPaginationOrder.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
-export interface ListManagersRequest {
-}
+export interface ListManagersRequest {}
 
 export interface ListManagersResponse {
   managers: Manager[];
@@ -430,9 +434,7 @@ export interface StatefulServerInfo {
 export interface CreateSessionRequest {
   sessionId: string;
   config: SessionConfig | undefined;
-  mcpClient:
-    | McpParticipant
-    | undefined;
+  mcpClient: McpParticipant | undefined;
   /** Optional, Additional metadata for the session */
   metadata: { [key: string]: string };
 }
@@ -467,9 +469,7 @@ export interface ServerConfig {
 }
 
 export interface SessionConfig {
-  serverConfig:
-    | ServerConfig
-    | undefined;
+  serverConfig: ServerConfig | undefined;
   /** Optional, MCP specific configuration */
   mcpConfig: McpConfig | undefined;
   statefulServerInfo?: StatefulServerInfo | undefined;
@@ -535,8 +535,7 @@ export interface GetServerInfoRequest {
   sessionId: string;
 }
 
-export interface ListWorkersRequest {
-}
+export interface ListWorkersRequest {}
 
 export interface ListWorkersResponse {
   workers: WorkerInfo[];
@@ -553,8 +552,7 @@ export interface DiscardSessionRequest {
   sessionId: string;
 }
 
-export interface DiscardSessionResponse {
-}
+export interface DiscardSessionResponse {}
 
 export interface EngineSession {
   id: string;
@@ -615,9 +613,7 @@ export interface EngineSessionEvent {
   type: EngineSessionEventType;
   run: EngineSessionRun | undefined;
   session: EngineSession | undefined;
-  error:
-    | EngineSessionError
-    | undefined;
+  error: EngineSessionError | undefined;
   /** repeated string lines = 10; */
   metadata: { [key: string]: string };
   mcpOutput: McpOutput | undefined;
@@ -870,7 +866,7 @@ export const ListManagersRequest: MessageFns<ListManagersRequest> = {
   fromPartial(_: DeepPartial<ListManagersRequest>): ListManagersRequest {
     const message = createBaseListManagersRequest();
     return message;
-  },
+  }
 };
 
 function createBaseListManagersResponse(): ListManagersResponse {
@@ -878,7 +874,10 @@ function createBaseListManagersResponse(): ListManagersResponse {
 }
 
 export const ListManagersResponse: MessageFns<ListManagersResponse> = {
-  encode(message: ListManagersResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListManagersResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.managers) {
       Manager.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -911,14 +910,16 @@ export const ListManagersResponse: MessageFns<ListManagersResponse> = {
 
   fromJSON(object: any): ListManagersResponse {
     return {
-      managers: globalThis.Array.isArray(object?.managers) ? object.managers.map((e: any) => Manager.fromJSON(e)) : [],
+      managers: globalThis.Array.isArray(object?.managers)
+        ? object.managers.map((e: any) => Manager.fromJSON(e))
+        : []
     };
   },
 
   toJSON(message: ListManagersResponse): unknown {
     const obj: any = {};
     if (message.managers?.length) {
-      obj.managers = message.managers.map((e) => Manager.toJSON(e));
+      obj.managers = message.managers.map(e => Manager.toJSON(e));
     }
     return obj;
   },
@@ -928,21 +929,21 @@ export const ListManagersResponse: MessageFns<ListManagersResponse> = {
   },
   fromPartial(object: DeepPartial<ListManagersResponse>): ListManagersResponse {
     const message = createBaseListManagersResponse();
-    message.managers = object.managers?.map((e) => Manager.fromPartial(e)) || [];
+    message.managers = object.managers?.map(e => Manager.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseManager(): Manager {
-  return { id: "", address: "" };
+  return { id: '', address: '' };
 }
 
 export const Manager: MessageFns<Manager> = {
   encode(message: Manager, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
+    if (message.id !== '') {
       writer.uint32(10).string(message.id);
     }
-    if (message.address !== "") {
+    if (message.address !== '') {
       writer.uint32(18).string(message.address);
     }
     return writer;
@@ -982,17 +983,17 @@ export const Manager: MessageFns<Manager> = {
 
   fromJSON(object: any): Manager {
     return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      address: isSet(object.address) ? globalThis.String(object.address) : "",
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      address: isSet(object.address) ? globalThis.String(object.address) : ''
     };
   },
 
   toJSON(message: Manager): unknown {
     const obj: any = {};
-    if (message.id !== "") {
+    if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.address !== "") {
+    if (message.address !== '') {
       obj.address = message.address;
     }
     return obj;
@@ -1003,19 +1004,22 @@ export const Manager: MessageFns<Manager> = {
   },
   fromPartial(object: DeepPartial<Manager>): Manager {
     const message = createBaseManager();
-    message.id = object.id ?? "";
-    message.address = object.address ?? "";
+    message.id = object.id ?? '';
+    message.address = object.address ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseCheckActiveSessionRequest(): CheckActiveSessionRequest {
-  return { sessionId: "" };
+  return { sessionId: '' };
 }
 
 export const CheckActiveSessionRequest: MessageFns<CheckActiveSessionRequest> = {
-  encode(message: CheckActiveSessionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+  encode(
+    message: CheckActiveSessionRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     return writer;
@@ -1046,12 +1050,12 @@ export const CheckActiveSessionRequest: MessageFns<CheckActiveSessionRequest> = 
   },
 
   fromJSON(object: any): CheckActiveSessionRequest {
-    return { sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "" };
+    return { sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '' };
   },
 
   toJSON(message: CheckActiveSessionRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     return obj;
@@ -1062,21 +1066,24 @@ export const CheckActiveSessionRequest: MessageFns<CheckActiveSessionRequest> = 
   },
   fromPartial(object: DeepPartial<CheckActiveSessionRequest>): CheckActiveSessionRequest {
     const message = createBaseCheckActiveSessionRequest();
-    message.sessionId = object.sessionId ?? "";
+    message.sessionId = object.sessionId ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseCheckActiveSessionResponse(): CheckActiveSessionResponse {
-  return { isActive: false, sessionId: "", session: undefined };
+  return { isActive: false, sessionId: '', session: undefined };
 }
 
 export const CheckActiveSessionResponse: MessageFns<CheckActiveSessionResponse> = {
-  encode(message: CheckActiveSessionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: CheckActiveSessionResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.isActive !== false) {
       writer.uint32(8).bool(message.isActive);
     }
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       writer.uint32(18).string(message.sessionId);
     }
     if (message.session !== undefined) {
@@ -1128,8 +1135,8 @@ export const CheckActiveSessionResponse: MessageFns<CheckActiveSessionResponse> 
   fromJSON(object: any): CheckActiveSessionResponse {
     return {
       isActive: isSet(object.isActive) ? globalThis.Boolean(object.isActive) : false,
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
-      session: isSet(object.session) ? EngineSession.fromJSON(object.session) : undefined,
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
+      session: isSet(object.session) ? EngineSession.fromJSON(object.session) : undefined
     };
   },
 
@@ -1138,7 +1145,7 @@ export const CheckActiveSessionResponse: MessageFns<CheckActiveSessionResponse> 
     if (message.isActive !== false) {
       obj.isActive = message.isActive;
     }
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     if (message.session !== undefined) {
@@ -1153,43 +1160,47 @@ export const CheckActiveSessionResponse: MessageFns<CheckActiveSessionResponse> 
   fromPartial(object: DeepPartial<CheckActiveSessionResponse>): CheckActiveSessionResponse {
     const message = createBaseCheckActiveSessionResponse();
     message.isActive = object.isActive ?? false;
-    message.sessionId = object.sessionId ?? "";
-    message.session = (object.session !== undefined && object.session !== null)
-      ? EngineSession.fromPartial(object.session)
-      : undefined;
+    message.sessionId = object.sessionId ?? '';
+    message.session =
+      object.session !== undefined && object.session !== null
+        ? EngineSession.fromPartial(object.session)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseStatefulServerInfo(): StatefulServerInfo {
   return {
-    capabilitiesJson: "",
-    serverInfoJson: "",
-    instructionsJson: "",
-    toolsJson: "",
-    promptsJson: "",
-    resourceTemplatesJson: "",
+    capabilitiesJson: '',
+    serverInfoJson: '',
+    instructionsJson: '',
+    toolsJson: '',
+    promptsJson: '',
+    resourceTemplatesJson: ''
   };
 }
 
 export const StatefulServerInfo: MessageFns<StatefulServerInfo> = {
-  encode(message: StatefulServerInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.capabilitiesJson !== "") {
+  encode(
+    message: StatefulServerInfo,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.capabilitiesJson !== '') {
       writer.uint32(10).string(message.capabilitiesJson);
     }
-    if (message.serverInfoJson !== "") {
+    if (message.serverInfoJson !== '') {
       writer.uint32(18).string(message.serverInfoJson);
     }
-    if (message.instructionsJson !== "") {
+    if (message.instructionsJson !== '') {
       writer.uint32(26).string(message.instructionsJson);
     }
-    if (message.toolsJson !== "") {
+    if (message.toolsJson !== '') {
       writer.uint32(34).string(message.toolsJson);
     }
-    if (message.promptsJson !== "") {
+    if (message.promptsJson !== '') {
       writer.uint32(42).string(message.promptsJson);
     }
-    if (message.resourceTemplatesJson !== "") {
+    if (message.resourceTemplatesJson !== '') {
       writer.uint32(50).string(message.resourceTemplatesJson);
     }
     return writer;
@@ -1261,33 +1272,41 @@ export const StatefulServerInfo: MessageFns<StatefulServerInfo> = {
 
   fromJSON(object: any): StatefulServerInfo {
     return {
-      capabilitiesJson: isSet(object.capabilitiesJson) ? globalThis.String(object.capabilitiesJson) : "",
-      serverInfoJson: isSet(object.serverInfoJson) ? globalThis.String(object.serverInfoJson) : "",
-      instructionsJson: isSet(object.instructionsJson) ? globalThis.String(object.instructionsJson) : "",
-      toolsJson: isSet(object.toolsJson) ? globalThis.String(object.toolsJson) : "",
-      promptsJson: isSet(object.promptsJson) ? globalThis.String(object.promptsJson) : "",
-      resourceTemplatesJson: isSet(object.resourceTemplatesJson) ? globalThis.String(object.resourceTemplatesJson) : "",
+      capabilitiesJson: isSet(object.capabilitiesJson)
+        ? globalThis.String(object.capabilitiesJson)
+        : '',
+      serverInfoJson: isSet(object.serverInfoJson)
+        ? globalThis.String(object.serverInfoJson)
+        : '',
+      instructionsJson: isSet(object.instructionsJson)
+        ? globalThis.String(object.instructionsJson)
+        : '',
+      toolsJson: isSet(object.toolsJson) ? globalThis.String(object.toolsJson) : '',
+      promptsJson: isSet(object.promptsJson) ? globalThis.String(object.promptsJson) : '',
+      resourceTemplatesJson: isSet(object.resourceTemplatesJson)
+        ? globalThis.String(object.resourceTemplatesJson)
+        : ''
     };
   },
 
   toJSON(message: StatefulServerInfo): unknown {
     const obj: any = {};
-    if (message.capabilitiesJson !== "") {
+    if (message.capabilitiesJson !== '') {
       obj.capabilitiesJson = message.capabilitiesJson;
     }
-    if (message.serverInfoJson !== "") {
+    if (message.serverInfoJson !== '') {
       obj.serverInfoJson = message.serverInfoJson;
     }
-    if (message.instructionsJson !== "") {
+    if (message.instructionsJson !== '') {
       obj.instructionsJson = message.instructionsJson;
     }
-    if (message.toolsJson !== "") {
+    if (message.toolsJson !== '') {
       obj.toolsJson = message.toolsJson;
     }
-    if (message.promptsJson !== "") {
+    if (message.promptsJson !== '') {
       obj.promptsJson = message.promptsJson;
     }
-    if (message.resourceTemplatesJson !== "") {
+    if (message.resourceTemplatesJson !== '') {
       obj.resourceTemplatesJson = message.resourceTemplatesJson;
     }
     return obj;
@@ -1298,23 +1317,26 @@ export const StatefulServerInfo: MessageFns<StatefulServerInfo> = {
   },
   fromPartial(object: DeepPartial<StatefulServerInfo>): StatefulServerInfo {
     const message = createBaseStatefulServerInfo();
-    message.capabilitiesJson = object.capabilitiesJson ?? "";
-    message.serverInfoJson = object.serverInfoJson ?? "";
-    message.instructionsJson = object.instructionsJson ?? "";
-    message.toolsJson = object.toolsJson ?? "";
-    message.promptsJson = object.promptsJson ?? "";
-    message.resourceTemplatesJson = object.resourceTemplatesJson ?? "";
+    message.capabilitiesJson = object.capabilitiesJson ?? '';
+    message.serverInfoJson = object.serverInfoJson ?? '';
+    message.instructionsJson = object.instructionsJson ?? '';
+    message.toolsJson = object.toolsJson ?? '';
+    message.promptsJson = object.promptsJson ?? '';
+    message.resourceTemplatesJson = object.resourceTemplatesJson ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseCreateSessionRequest(): CreateSessionRequest {
-  return { sessionId: "", config: undefined, mcpClient: undefined, metadata: {} };
+  return { sessionId: '', config: undefined, mcpClient: undefined, metadata: {} };
 }
 
 export const CreateSessionRequest: MessageFns<CreateSessionRequest> = {
-  encode(message: CreateSessionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+  encode(
+    message: CreateSessionRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     if (message.config !== undefined) {
@@ -1324,7 +1346,10 @@ export const CreateSessionRequest: MessageFns<CreateSessionRequest> = {
       McpParticipant.encode(message.mcpClient, writer.uint32(34).fork()).join();
     }
     Object.entries(message.metadata).forEach(([key, value]) => {
-      CreateSessionRequest_MetadataEntry.encode({ key: key as any, value }, writer.uint32(42).fork()).join();
+      CreateSessionRequest_MetadataEntry.encode(
+        { key: key as any, value },
+        writer.uint32(42).fork()
+      ).join();
     });
     return writer;
   },
@@ -1382,21 +1407,26 @@ export const CreateSessionRequest: MessageFns<CreateSessionRequest> = {
 
   fromJSON(object: any): CreateSessionRequest {
     return {
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
       config: isSet(object.config) ? SessionConfig.fromJSON(object.config) : undefined,
-      mcpClient: isSet(object.mcpClient) ? McpParticipant.fromJSON(object.mcpClient) : undefined,
+      mcpClient: isSet(object.mcpClient)
+        ? McpParticipant.fromJSON(object.mcpClient)
+        : undefined,
       metadata: isObject(object.metadata)
-        ? Object.entries(object.metadata).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-          acc[key] = String(value);
-          return acc;
-        }, {})
-        : {},
+        ? Object.entries(object.metadata).reduce<{ [key: string]: string }>(
+            (acc, [key, value]) => {
+              acc[key] = String(value);
+              return acc;
+            },
+            {}
+          )
+        : {}
     };
   },
 
   toJSON(message: CreateSessionRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     if (message.config !== undefined) {
@@ -1422,105 +1452,124 @@ export const CreateSessionRequest: MessageFns<CreateSessionRequest> = {
   },
   fromPartial(object: DeepPartial<CreateSessionRequest>): CreateSessionRequest {
     const message = createBaseCreateSessionRequest();
-    message.sessionId = object.sessionId ?? "";
-    message.config = (object.config !== undefined && object.config !== null)
-      ? SessionConfig.fromPartial(object.config)
-      : undefined;
-    message.mcpClient = (object.mcpClient !== undefined && object.mcpClient !== null)
-      ? McpParticipant.fromPartial(object.mcpClient)
-      : undefined;
-    message.metadata = Object.entries(object.metadata ?? {}).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = globalThis.String(value);
-      }
-      return acc;
-    }, {});
+    message.sessionId = object.sessionId ?? '';
+    message.config =
+      object.config !== undefined && object.config !== null
+        ? SessionConfig.fromPartial(object.config)
+        : undefined;
+    message.mcpClient =
+      object.mcpClient !== undefined && object.mcpClient !== null
+        ? McpParticipant.fromPartial(object.mcpClient)
+        : undefined;
+    message.metadata = Object.entries(object.metadata ?? {}).reduce<{ [key: string]: string }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = globalThis.String(value);
+        }
+        return acc;
+      },
+      {}
+    );
     return message;
-  },
+  }
 };
 
 function createBaseCreateSessionRequest_MetadataEntry(): CreateSessionRequest_MetadataEntry {
-  return { key: "", value: "" };
+  return { key: '', value: '' };
 }
 
-export const CreateSessionRequest_MetadataEntry: MessageFns<CreateSessionRequest_MetadataEntry> = {
-  encode(message: CreateSessionRequest_MetadataEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.key !== "") {
-      writer.uint32(10).string(message.key);
-    }
-    if (message.value !== "") {
-      writer.uint32(18).string(message.value);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): CreateSessionRequest_MetadataEntry {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCreateSessionRequest_MetadataEntry();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.key = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.value = reader.string();
-          continue;
-        }
+export const CreateSessionRequest_MetadataEntry: MessageFns<CreateSessionRequest_MetadataEntry> =
+  {
+    encode(
+      message: CreateSessionRequest_MetadataEntry,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.key !== '') {
+        writer.uint32(10).string(message.key);
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (message.value !== '') {
+        writer.uint32(18).string(message.value);
       }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+      return writer;
+    },
 
-  fromJSON(object: any): CreateSessionRequest_MetadataEntry {
-    return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
-      value: isSet(object.value) ? globalThis.String(object.value) : "",
-    };
-  },
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): CreateSessionRequest_MetadataEntry {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseCreateSessionRequest_MetadataEntry();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
 
-  toJSON(message: CreateSessionRequest_MetadataEntry): unknown {
-    const obj: any = {};
-    if (message.key !== "") {
-      obj.key = message.key;
-    }
-    if (message.value !== "") {
-      obj.value = message.value;
-    }
-    return obj;
-  },
+            message.key = reader.string();
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
 
-  create(base?: DeepPartial<CreateSessionRequest_MetadataEntry>): CreateSessionRequest_MetadataEntry {
-    return CreateSessionRequest_MetadataEntry.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<CreateSessionRequest_MetadataEntry>): CreateSessionRequest_MetadataEntry {
-    const message = createBaseCreateSessionRequest_MetadataEntry();
-    message.key = object.key ?? "";
-    message.value = object.value ?? "";
-    return message;
-  },
-};
+            message.value = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): CreateSessionRequest_MetadataEntry {
+      return {
+        key: isSet(object.key) ? globalThis.String(object.key) : '',
+        value: isSet(object.value) ? globalThis.String(object.value) : ''
+      };
+    },
+
+    toJSON(message: CreateSessionRequest_MetadataEntry): unknown {
+      const obj: any = {};
+      if (message.key !== '') {
+        obj.key = message.key;
+      }
+      if (message.value !== '') {
+        obj.value = message.value;
+      }
+      return obj;
+    },
+
+    create(
+      base?: DeepPartial<CreateSessionRequest_MetadataEntry>
+    ): CreateSessionRequest_MetadataEntry {
+      return CreateSessionRequest_MetadataEntry.fromPartial(base ?? {});
+    },
+    fromPartial(
+      object: DeepPartial<CreateSessionRequest_MetadataEntry>
+    ): CreateSessionRequest_MetadataEntry {
+      const message = createBaseCreateSessionRequest_MetadataEntry();
+      message.key = object.key ?? '';
+      message.value = object.value ?? '';
+      return message;
+    }
+  };
 
 function createBaseContainerRunConfigWithLauncher(): ContainerRunConfigWithLauncher {
   return { container: undefined, launcher: undefined };
 }
 
 export const ContainerRunConfigWithLauncher: MessageFns<ContainerRunConfigWithLauncher> = {
-  encode(message: ContainerRunConfigWithLauncher, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ContainerRunConfigWithLauncher,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.container !== undefined) {
       RunConfigContainer.encode(message.container, writer.uint32(10).fork()).join();
     }
@@ -1564,8 +1613,10 @@ export const ContainerRunConfigWithLauncher: MessageFns<ContainerRunConfigWithLa
 
   fromJSON(object: any): ContainerRunConfigWithLauncher {
     return {
-      container: isSet(object.container) ? RunConfigContainer.fromJSON(object.container) : undefined,
-      launcher: isSet(object.launcher) ? LauncherConfig.fromJSON(object.launcher) : undefined,
+      container: isSet(object.container)
+        ? RunConfigContainer.fromJSON(object.container)
+        : undefined,
+      launcher: isSet(object.launcher) ? LauncherConfig.fromJSON(object.launcher) : undefined
     };
   },
 
@@ -1583,16 +1634,20 @@ export const ContainerRunConfigWithLauncher: MessageFns<ContainerRunConfigWithLa
   create(base?: DeepPartial<ContainerRunConfigWithLauncher>): ContainerRunConfigWithLauncher {
     return ContainerRunConfigWithLauncher.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<ContainerRunConfigWithLauncher>): ContainerRunConfigWithLauncher {
+  fromPartial(
+    object: DeepPartial<ContainerRunConfigWithLauncher>
+  ): ContainerRunConfigWithLauncher {
     const message = createBaseContainerRunConfigWithLauncher();
-    message.container = (object.container !== undefined && object.container !== null)
-      ? RunConfigContainer.fromPartial(object.container)
-      : undefined;
-    message.launcher = (object.launcher !== undefined && object.launcher !== null)
-      ? LauncherConfig.fromPartial(object.launcher)
-      : undefined;
+    message.container =
+      object.container !== undefined && object.container !== null
+        ? RunConfigContainer.fromPartial(object.container)
+        : undefined;
+    message.launcher =
+      object.launcher !== undefined && object.launcher !== null
+        ? LauncherConfig.fromPartial(object.launcher)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRemoteRunConfigWithLauncher(): RemoteRunConfigWithLauncher {
@@ -1600,7 +1655,10 @@ function createBaseRemoteRunConfigWithLauncher(): RemoteRunConfigWithLauncher {
 }
 
 export const RemoteRunConfigWithLauncher: MessageFns<RemoteRunConfigWithLauncher> = {
-  encode(message: RemoteRunConfigWithLauncher, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: RemoteRunConfigWithLauncher,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.server !== undefined) {
       RunConfigRemoteServer.encode(message.server, writer.uint32(10).fork()).join();
     }
@@ -1645,7 +1703,7 @@ export const RemoteRunConfigWithLauncher: MessageFns<RemoteRunConfigWithLauncher
   fromJSON(object: any): RemoteRunConfigWithLauncher {
     return {
       server: isSet(object.server) ? RunConfigRemoteServer.fromJSON(object.server) : undefined,
-      launcher: isSet(object.launcher) ? LauncherConfig.fromJSON(object.launcher) : undefined,
+      launcher: isSet(object.launcher) ? LauncherConfig.fromJSON(object.launcher) : undefined
     };
   },
 
@@ -1665,14 +1723,16 @@ export const RemoteRunConfigWithLauncher: MessageFns<RemoteRunConfigWithLauncher
   },
   fromPartial(object: DeepPartial<RemoteRunConfigWithLauncher>): RemoteRunConfigWithLauncher {
     const message = createBaseRemoteRunConfigWithLauncher();
-    message.server = (object.server !== undefined && object.server !== null)
-      ? RunConfigRemoteServer.fromPartial(object.server)
-      : undefined;
-    message.launcher = (object.launcher !== undefined && object.launcher !== null)
-      ? LauncherConfig.fromPartial(object.launcher)
-      : undefined;
+    message.server =
+      object.server !== undefined && object.server !== null
+        ? RunConfigRemoteServer.fromPartial(object.server)
+        : undefined;
+    message.launcher =
+      object.launcher !== undefined && object.launcher !== null
+        ? LauncherConfig.fromPartial(object.launcher)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseLambdaRunConfigWithLauncher(): LambdaRunConfigWithLauncher {
@@ -1680,7 +1740,10 @@ function createBaseLambdaRunConfigWithLauncher(): LambdaRunConfigWithLauncher {
 }
 
 export const LambdaRunConfigWithLauncher: MessageFns<LambdaRunConfigWithLauncher> = {
-  encode(message: LambdaRunConfigWithLauncher, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: LambdaRunConfigWithLauncher,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.server !== undefined) {
       RunConfigLambdaServer.encode(message.server, writer.uint32(10).fork()).join();
     }
@@ -1725,7 +1788,7 @@ export const LambdaRunConfigWithLauncher: MessageFns<LambdaRunConfigWithLauncher
   fromJSON(object: any): LambdaRunConfigWithLauncher {
     return {
       server: isSet(object.server) ? RunConfigLambdaServer.fromJSON(object.server) : undefined,
-      launcher: isSet(object.launcher) ? LauncherConfig.fromJSON(object.launcher) : undefined,
+      launcher: isSet(object.launcher) ? LauncherConfig.fromJSON(object.launcher) : undefined
     };
   },
 
@@ -1745,14 +1808,16 @@ export const LambdaRunConfigWithLauncher: MessageFns<LambdaRunConfigWithLauncher
   },
   fromPartial(object: DeepPartial<LambdaRunConfigWithLauncher>): LambdaRunConfigWithLauncher {
     const message = createBaseLambdaRunConfigWithLauncher();
-    message.server = (object.server !== undefined && object.server !== null)
-      ? RunConfigLambdaServer.fromPartial(object.server)
-      : undefined;
-    message.launcher = (object.launcher !== undefined && object.launcher !== null)
-      ? LauncherConfig.fromPartial(object.launcher)
-      : undefined;
+    message.server =
+      object.server !== undefined && object.server !== null
+        ? RunConfigLambdaServer.fromPartial(object.server)
+        : undefined;
+    message.launcher =
+      object.launcher !== undefined && object.launcher !== null
+        ? LauncherConfig.fromPartial(object.launcher)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseServerConfig(): ServerConfig {
@@ -1762,29 +1827,47 @@ function createBaseServerConfig(): ServerConfig {
     remoteRunConfigWithLauncher: undefined,
     remoteRunConfigWithServer: undefined,
     lambdaRunConfigWithLauncher: undefined,
-    lambdaRunConfigWithServer: undefined,
+    lambdaRunConfigWithServer: undefined
   };
 }
 
 export const ServerConfig: MessageFns<ServerConfig> = {
   encode(message: ServerConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.containerRunConfigWithLauncher !== undefined) {
-      ContainerRunConfigWithLauncher.encode(message.containerRunConfigWithLauncher, writer.uint32(10).fork()).join();
+      ContainerRunConfigWithLauncher.encode(
+        message.containerRunConfigWithLauncher,
+        writer.uint32(10).fork()
+      ).join();
     }
     if (message.containerRunConfigWithContainerArguments !== undefined) {
-      RunConfig.encode(message.containerRunConfigWithContainerArguments, writer.uint32(18).fork()).join();
+      RunConfig.encode(
+        message.containerRunConfigWithContainerArguments,
+        writer.uint32(18).fork()
+      ).join();
     }
     if (message.remoteRunConfigWithLauncher !== undefined) {
-      RemoteRunConfigWithLauncher.encode(message.remoteRunConfigWithLauncher, writer.uint32(26).fork()).join();
+      RemoteRunConfigWithLauncher.encode(
+        message.remoteRunConfigWithLauncher,
+        writer.uint32(26).fork()
+      ).join();
     }
     if (message.remoteRunConfigWithServer !== undefined) {
-      RunConfigRemote.encode(message.remoteRunConfigWithServer, writer.uint32(34).fork()).join();
+      RunConfigRemote.encode(
+        message.remoteRunConfigWithServer,
+        writer.uint32(34).fork()
+      ).join();
     }
     if (message.lambdaRunConfigWithLauncher !== undefined) {
-      LambdaRunConfigWithLauncher.encode(message.lambdaRunConfigWithLauncher, writer.uint32(42).fork()).join();
+      LambdaRunConfigWithLauncher.encode(
+        message.lambdaRunConfigWithLauncher,
+        writer.uint32(42).fork()
+      ).join();
     }
     if (message.lambdaRunConfigWithServer !== undefined) {
-      RunConfigLambda.encode(message.lambdaRunConfigWithServer, writer.uint32(50).fork()).join();
+      RunConfigLambda.encode(
+        message.lambdaRunConfigWithServer,
+        writer.uint32(50).fork()
+      ).join();
     }
     return writer;
   },
@@ -1801,7 +1884,10 @@ export const ServerConfig: MessageFns<ServerConfig> = {
             break;
           }
 
-          message.containerRunConfigWithLauncher = ContainerRunConfigWithLauncher.decode(reader, reader.uint32());
+          message.containerRunConfigWithLauncher = ContainerRunConfigWithLauncher.decode(
+            reader,
+            reader.uint32()
+          );
           continue;
         }
         case 2: {
@@ -1809,7 +1895,10 @@ export const ServerConfig: MessageFns<ServerConfig> = {
             break;
           }
 
-          message.containerRunConfigWithContainerArguments = RunConfig.decode(reader, reader.uint32());
+          message.containerRunConfigWithContainerArguments = RunConfig.decode(
+            reader,
+            reader.uint32()
+          );
           continue;
         }
         case 3: {
@@ -1817,7 +1906,10 @@ export const ServerConfig: MessageFns<ServerConfig> = {
             break;
           }
 
-          message.remoteRunConfigWithLauncher = RemoteRunConfigWithLauncher.decode(reader, reader.uint32());
+          message.remoteRunConfigWithLauncher = RemoteRunConfigWithLauncher.decode(
+            reader,
+            reader.uint32()
+          );
           continue;
         }
         case 4: {
@@ -1833,7 +1925,10 @@ export const ServerConfig: MessageFns<ServerConfig> = {
             break;
           }
 
-          message.lambdaRunConfigWithLauncher = LambdaRunConfigWithLauncher.decode(reader, reader.uint32());
+          message.lambdaRunConfigWithLauncher = LambdaRunConfigWithLauncher.decode(
+            reader,
+            reader.uint32()
+          );
           continue;
         }
         case 6: {
@@ -1858,7 +1953,9 @@ export const ServerConfig: MessageFns<ServerConfig> = {
       containerRunConfigWithLauncher: isSet(object.containerRunConfigWithLauncher)
         ? ContainerRunConfigWithLauncher.fromJSON(object.containerRunConfigWithLauncher)
         : undefined,
-      containerRunConfigWithContainerArguments: isSet(object.containerRunConfigWithContainerArguments)
+      containerRunConfigWithContainerArguments: isSet(
+        object.containerRunConfigWithContainerArguments
+      )
         ? RunConfig.fromJSON(object.containerRunConfigWithContainerArguments)
         : undefined,
       remoteRunConfigWithLauncher: isSet(object.remoteRunConfigWithLauncher)
@@ -1872,7 +1969,7 @@ export const ServerConfig: MessageFns<ServerConfig> = {
         : undefined,
       lambdaRunConfigWithServer: isSet(object.lambdaRunConfigWithServer)
         ? RunConfigLambda.fromJSON(object.lambdaRunConfigWithServer)
-        : undefined,
+        : undefined
     };
   },
 
@@ -1880,23 +1977,33 @@ export const ServerConfig: MessageFns<ServerConfig> = {
     const obj: any = {};
     if (message.containerRunConfigWithLauncher !== undefined) {
       obj.containerRunConfigWithLauncher = ContainerRunConfigWithLauncher.toJSON(
-        message.containerRunConfigWithLauncher,
+        message.containerRunConfigWithLauncher
       );
     }
     if (message.containerRunConfigWithContainerArguments !== undefined) {
-      obj.containerRunConfigWithContainerArguments = RunConfig.toJSON(message.containerRunConfigWithContainerArguments);
+      obj.containerRunConfigWithContainerArguments = RunConfig.toJSON(
+        message.containerRunConfigWithContainerArguments
+      );
     }
     if (message.remoteRunConfigWithLauncher !== undefined) {
-      obj.remoteRunConfigWithLauncher = RemoteRunConfigWithLauncher.toJSON(message.remoteRunConfigWithLauncher);
+      obj.remoteRunConfigWithLauncher = RemoteRunConfigWithLauncher.toJSON(
+        message.remoteRunConfigWithLauncher
+      );
     }
     if (message.remoteRunConfigWithServer !== undefined) {
-      obj.remoteRunConfigWithServer = RunConfigRemote.toJSON(message.remoteRunConfigWithServer);
+      obj.remoteRunConfigWithServer = RunConfigRemote.toJSON(
+        message.remoteRunConfigWithServer
+      );
     }
     if (message.lambdaRunConfigWithLauncher !== undefined) {
-      obj.lambdaRunConfigWithLauncher = LambdaRunConfigWithLauncher.toJSON(message.lambdaRunConfigWithLauncher);
+      obj.lambdaRunConfigWithLauncher = LambdaRunConfigWithLauncher.toJSON(
+        message.lambdaRunConfigWithLauncher
+      );
     }
     if (message.lambdaRunConfigWithServer !== undefined) {
-      obj.lambdaRunConfigWithServer = RunConfigLambda.toJSON(message.lambdaRunConfigWithServer);
+      obj.lambdaRunConfigWithServer = RunConfigLambda.toJSON(
+        message.lambdaRunConfigWithServer
+      );
     }
     return obj;
   },
@@ -1907,32 +2014,37 @@ export const ServerConfig: MessageFns<ServerConfig> = {
   fromPartial(object: DeepPartial<ServerConfig>): ServerConfig {
     const message = createBaseServerConfig();
     message.containerRunConfigWithLauncher =
-      (object.containerRunConfigWithLauncher !== undefined && object.containerRunConfigWithLauncher !== null)
+      object.containerRunConfigWithLauncher !== undefined &&
+      object.containerRunConfigWithLauncher !== null
         ? ContainerRunConfigWithLauncher.fromPartial(object.containerRunConfigWithLauncher)
         : undefined;
     message.containerRunConfigWithContainerArguments =
-      (object.containerRunConfigWithContainerArguments !== undefined &&
-          object.containerRunConfigWithContainerArguments !== null)
+      object.containerRunConfigWithContainerArguments !== undefined &&
+      object.containerRunConfigWithContainerArguments !== null
         ? RunConfig.fromPartial(object.containerRunConfigWithContainerArguments)
         : undefined;
     message.remoteRunConfigWithLauncher =
-      (object.remoteRunConfigWithLauncher !== undefined && object.remoteRunConfigWithLauncher !== null)
+      object.remoteRunConfigWithLauncher !== undefined &&
+      object.remoteRunConfigWithLauncher !== null
         ? RemoteRunConfigWithLauncher.fromPartial(object.remoteRunConfigWithLauncher)
         : undefined;
     message.remoteRunConfigWithServer =
-      (object.remoteRunConfigWithServer !== undefined && object.remoteRunConfigWithServer !== null)
+      object.remoteRunConfigWithServer !== undefined &&
+      object.remoteRunConfigWithServer !== null
         ? RunConfigRemote.fromPartial(object.remoteRunConfigWithServer)
         : undefined;
     message.lambdaRunConfigWithLauncher =
-      (object.lambdaRunConfigWithLauncher !== undefined && object.lambdaRunConfigWithLauncher !== null)
+      object.lambdaRunConfigWithLauncher !== undefined &&
+      object.lambdaRunConfigWithLauncher !== null
         ? LambdaRunConfigWithLauncher.fromPartial(object.lambdaRunConfigWithLauncher)
         : undefined;
     message.lambdaRunConfigWithServer =
-      (object.lambdaRunConfigWithServer !== undefined && object.lambdaRunConfigWithServer !== null)
+      object.lambdaRunConfigWithServer !== undefined &&
+      object.lambdaRunConfigWithServer !== null
         ? RunConfigLambda.fromPartial(object.lambdaRunConfigWithServer)
         : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseSessionConfig(): SessionConfig {
@@ -1995,11 +2107,13 @@ export const SessionConfig: MessageFns<SessionConfig> = {
 
   fromJSON(object: any): SessionConfig {
     return {
-      serverConfig: isSet(object.serverConfig) ? ServerConfig.fromJSON(object.serverConfig) : undefined,
+      serverConfig: isSet(object.serverConfig)
+        ? ServerConfig.fromJSON(object.serverConfig)
+        : undefined,
       mcpConfig: isSet(object.mcpConfig) ? McpConfig.fromJSON(object.mcpConfig) : undefined,
       statefulServerInfo: isSet(object.statefulServerInfo)
         ? StatefulServerInfo.fromJSON(object.statefulServerInfo)
-        : undefined,
+        : undefined
     };
   },
 
@@ -2022,26 +2136,32 @@ export const SessionConfig: MessageFns<SessionConfig> = {
   },
   fromPartial(object: DeepPartial<SessionConfig>): SessionConfig {
     const message = createBaseSessionConfig();
-    message.serverConfig = (object.serverConfig !== undefined && object.serverConfig !== null)
-      ? ServerConfig.fromPartial(object.serverConfig)
-      : undefined;
-    message.mcpConfig = (object.mcpConfig !== undefined && object.mcpConfig !== null)
-      ? McpConfig.fromPartial(object.mcpConfig)
-      : undefined;
-    message.statefulServerInfo = (object.statefulServerInfo !== undefined && object.statefulServerInfo !== null)
-      ? StatefulServerInfo.fromPartial(object.statefulServerInfo)
-      : undefined;
+    message.serverConfig =
+      object.serverConfig !== undefined && object.serverConfig !== null
+        ? ServerConfig.fromPartial(object.serverConfig)
+        : undefined;
+    message.mcpConfig =
+      object.mcpConfig !== undefined && object.mcpConfig !== null
+        ? McpConfig.fromPartial(object.mcpConfig)
+        : undefined;
+    message.statefulServerInfo =
+      object.statefulServerInfo !== undefined && object.statefulServerInfo !== null
+        ? StatefulServerInfo.fromPartial(object.statefulServerInfo)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseCreateSessionResponse(): CreateSessionResponse {
-  return { sessionId: "", session: undefined };
+  return { sessionId: '', session: undefined };
 }
 
 export const CreateSessionResponse: MessageFns<CreateSessionResponse> = {
-  encode(message: CreateSessionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+  encode(
+    message: CreateSessionResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     if (message.session !== undefined) {
@@ -2084,14 +2204,14 @@ export const CreateSessionResponse: MessageFns<CreateSessionResponse> = {
 
   fromJSON(object: any): CreateSessionResponse {
     return {
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
-      session: isSet(object.session) ? EngineSession.fromJSON(object.session) : undefined,
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
+      session: isSet(object.session) ? EngineSession.fromJSON(object.session) : undefined
     };
   },
 
   toJSON(message: CreateSessionResponse): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     if (message.session !== undefined) {
@@ -2105,12 +2225,13 @@ export const CreateSessionResponse: MessageFns<CreateSessionResponse> = {
   },
   fromPartial(object: DeepPartial<CreateSessionResponse>): CreateSessionResponse {
     const message = createBaseCreateSessionResponse();
-    message.sessionId = object.sessionId ?? "";
-    message.session = (object.session !== undefined && object.session !== null)
-      ? EngineSession.fromPartial(object.session)
-      : undefined;
+    message.sessionId = object.sessionId ?? '';
+    message.session =
+      object.session !== undefined && object.session !== null
+        ? EngineSession.fromPartial(object.session)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseDiscoverRequest(): DiscoverRequest {
@@ -2150,7 +2271,11 @@ export const DiscoverRequest: MessageFns<DiscoverRequest> = {
   },
 
   fromJSON(object: any): DiscoverRequest {
-    return { serverConfig: isSet(object.serverConfig) ? ServerConfig.fromJSON(object.serverConfig) : undefined };
+    return {
+      serverConfig: isSet(object.serverConfig)
+        ? ServerConfig.fromJSON(object.serverConfig)
+        : undefined
+    };
   },
 
   toJSON(message: DiscoverRequest): unknown {
@@ -2166,20 +2291,24 @@ export const DiscoverRequest: MessageFns<DiscoverRequest> = {
   },
   fromPartial(object: DeepPartial<DiscoverRequest>): DiscoverRequest {
     const message = createBaseDiscoverRequest();
-    message.serverConfig = (object.serverConfig !== undefined && object.serverConfig !== null)
-      ? ServerConfig.fromPartial(object.serverConfig)
-      : undefined;
+    message.serverConfig =
+      object.serverConfig !== undefined && object.serverConfig !== null
+        ? ServerConfig.fromPartial(object.serverConfig)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseSendMcpMessageRequest(): SendMcpMessageRequest {
-  return { sessionId: "", mcpMessages: [], includeResponses: false };
+  return { sessionId: '', mcpMessages: [], includeResponses: false };
 }
 
 export const SendMcpMessageRequest: MessageFns<SendMcpMessageRequest> = {
-  encode(message: SendMcpMessageRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+  encode(
+    message: SendMcpMessageRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     for (const v of message.mcpMessages) {
@@ -2233,21 +2362,23 @@ export const SendMcpMessageRequest: MessageFns<SendMcpMessageRequest> = {
 
   fromJSON(object: any): SendMcpMessageRequest {
     return {
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
       mcpMessages: globalThis.Array.isArray(object?.mcpMessages)
         ? object.mcpMessages.map((e: any) => McpMessageRaw.fromJSON(e))
         : [],
-      includeResponses: isSet(object.includeResponses) ? globalThis.Boolean(object.includeResponses) : false,
+      includeResponses: isSet(object.includeResponses)
+        ? globalThis.Boolean(object.includeResponses)
+        : false
     };
   },
 
   toJSON(message: SendMcpMessageRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     if (message.mcpMessages?.length) {
-      obj.mcpMessages = message.mcpMessages.map((e) => McpMessageRaw.toJSON(e));
+      obj.mcpMessages = message.mcpMessages.map(e => McpMessageRaw.toJSON(e));
     }
     if (message.includeResponses !== false) {
       obj.includeResponses = message.includeResponses;
@@ -2260,20 +2391,23 @@ export const SendMcpMessageRequest: MessageFns<SendMcpMessageRequest> = {
   },
   fromPartial(object: DeepPartial<SendMcpMessageRequest>): SendMcpMessageRequest {
     const message = createBaseSendMcpMessageRequest();
-    message.sessionId = object.sessionId ?? "";
-    message.mcpMessages = object.mcpMessages?.map((e) => McpMessageRaw.fromPartial(e)) || [];
+    message.sessionId = object.sessionId ?? '';
+    message.mcpMessages = object.mcpMessages?.map(e => McpMessageRaw.fromPartial(e)) || [];
     message.includeResponses = object.includeResponses ?? false;
     return message;
-  },
+  }
 };
 
 function createBaseStreamMcpMessagesRequest(): StreamMcpMessagesRequest {
-  return { sessionId: "", onlyMessageTypes: [], onlyIds: [], replayAfterUuid: undefined };
+  return { sessionId: '', onlyMessageTypes: [], onlyIds: [], replayAfterUuid: undefined };
 }
 
 export const StreamMcpMessagesRequest: MessageFns<StreamMcpMessagesRequest> = {
-  encode(message: StreamMcpMessagesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+  encode(
+    message: StreamMcpMessagesRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     writer.uint32(18).fork();
@@ -2350,22 +2484,26 @@ export const StreamMcpMessagesRequest: MessageFns<StreamMcpMessagesRequest> = {
 
   fromJSON(object: any): StreamMcpMessagesRequest {
     return {
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
       onlyMessageTypes: globalThis.Array.isArray(object?.onlyMessageTypes)
         ? object.onlyMessageTypes.map((e: any) => mcpMessageTypeFromJSON(e))
         : [],
-      onlyIds: globalThis.Array.isArray(object?.onlyIds) ? object.onlyIds.map((e: any) => globalThis.String(e)) : [],
-      replayAfterUuid: isSet(object.replayAfterUuid) ? globalThis.String(object.replayAfterUuid) : undefined,
+      onlyIds: globalThis.Array.isArray(object?.onlyIds)
+        ? object.onlyIds.map((e: any) => globalThis.String(e))
+        : [],
+      replayAfterUuid: isSet(object.replayAfterUuid)
+        ? globalThis.String(object.replayAfterUuid)
+        : undefined
     };
   },
 
   toJSON(message: StreamMcpMessagesRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     if (message.onlyMessageTypes?.length) {
-      obj.onlyMessageTypes = message.onlyMessageTypes.map((e) => mcpMessageTypeToJSON(e));
+      obj.onlyMessageTypes = message.onlyMessageTypes.map(e => mcpMessageTypeToJSON(e));
     }
     if (message.onlyIds?.length) {
       obj.onlyIds = message.onlyIds;
@@ -2381,12 +2519,12 @@ export const StreamMcpMessagesRequest: MessageFns<StreamMcpMessagesRequest> = {
   },
   fromPartial(object: DeepPartial<StreamMcpMessagesRequest>): StreamMcpMessagesRequest {
     const message = createBaseStreamMcpMessagesRequest();
-    message.sessionId = object.sessionId ?? "";
-    message.onlyMessageTypes = object.onlyMessageTypes?.map((e) => e) || [];
-    message.onlyIds = object.onlyIds?.map((e) => e) || [];
+    message.sessionId = object.sessionId ?? '';
+    message.onlyMessageTypes = object.onlyMessageTypes?.map(e => e) || [];
+    message.onlyIds = object.onlyIds?.map(e => e) || [];
     message.replayAfterUuid = object.replayAfterUuid ?? undefined;
     return message;
-  },
+  }
 };
 
 function createBaseSessionEventInfoRun(): SessionEventInfoRun {
@@ -2394,7 +2532,10 @@ function createBaseSessionEventInfoRun(): SessionEventInfoRun {
 }
 
 export const SessionEventInfoRun: MessageFns<SessionEventInfoRun> = {
-  encode(message: SessionEventInfoRun, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: SessionEventInfoRun,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.run !== undefined) {
       EngineSessionRun.encode(message.run, writer.uint32(10).fork()).join();
     }
@@ -2442,11 +2583,12 @@ export const SessionEventInfoRun: MessageFns<SessionEventInfoRun> = {
   },
   fromPartial(object: DeepPartial<SessionEventInfoRun>): SessionEventInfoRun {
     const message = createBaseSessionEventInfoRun();
-    message.run = (object.run !== undefined && object.run !== null)
-      ? EngineSessionRun.fromPartial(object.run)
-      : undefined;
+    message.run =
+      object.run !== undefined && object.run !== null
+        ? EngineSessionRun.fromPartial(object.run)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseSessionEventInfoSession(): SessionEventInfoSession {
@@ -2454,7 +2596,10 @@ function createBaseSessionEventInfoSession(): SessionEventInfoSession {
 }
 
 export const SessionEventInfoSession: MessageFns<SessionEventInfoSession> = {
-  encode(message: SessionEventInfoSession, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: SessionEventInfoSession,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.session !== undefined) {
       EngineSession.encode(message.session, writer.uint32(10).fork()).join();
     }
@@ -2486,7 +2631,9 @@ export const SessionEventInfoSession: MessageFns<SessionEventInfoSession> = {
   },
 
   fromJSON(object: any): SessionEventInfoSession {
-    return { session: isSet(object.session) ? EngineSession.fromJSON(object.session) : undefined };
+    return {
+      session: isSet(object.session) ? EngineSession.fromJSON(object.session) : undefined
+    };
   },
 
   toJSON(message: SessionEventInfoSession): unknown {
@@ -2502,11 +2649,12 @@ export const SessionEventInfoSession: MessageFns<SessionEventInfoSession> = {
   },
   fromPartial(object: DeepPartial<SessionEventInfoSession>): SessionEventInfoSession {
     const message = createBaseSessionEventInfoSession();
-    message.session = (object.session !== undefined && object.session !== null)
-      ? EngineSession.fromPartial(object.session)
-      : undefined;
+    message.session =
+      object.session !== undefined && object.session !== null
+        ? EngineSession.fromPartial(object.session)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseSessionEventStartRun(): SessionEventStartRun {
@@ -2514,7 +2662,10 @@ function createBaseSessionEventStartRun(): SessionEventStartRun {
 }
 
 export const SessionEventStartRun: MessageFns<SessionEventStartRun> = {
-  encode(message: SessionEventStartRun, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: SessionEventStartRun,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.run !== undefined) {
       EngineSessionRun.encode(message.run, writer.uint32(10).fork()).join();
     }
@@ -2562,11 +2713,12 @@ export const SessionEventStartRun: MessageFns<SessionEventStartRun> = {
   },
   fromPartial(object: DeepPartial<SessionEventStartRun>): SessionEventStartRun {
     const message = createBaseSessionEventStartRun();
-    message.run = (object.run !== undefined && object.run !== null)
-      ? EngineSessionRun.fromPartial(object.run)
-      : undefined;
+    message.run =
+      object.run !== undefined && object.run !== null
+        ? EngineSessionRun.fromPartial(object.run)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseSessionEventStopRun(): SessionEventStopRun {
@@ -2574,7 +2726,10 @@ function createBaseSessionEventStopRun(): SessionEventStopRun {
 }
 
 export const SessionEventStopRun: MessageFns<SessionEventStopRun> = {
-  encode(message: SessionEventStopRun, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: SessionEventStopRun,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.run !== undefined) {
       EngineSessionRun.encode(message.run, writer.uint32(10).fork()).join();
     }
@@ -2622,15 +2777,21 @@ export const SessionEventStopRun: MessageFns<SessionEventStopRun> = {
   },
   fromPartial(object: DeepPartial<SessionEventStopRun>): SessionEventStopRun {
     const message = createBaseSessionEventStopRun();
-    message.run = (object.run !== undefined && object.run !== null)
-      ? EngineSessionRun.fromPartial(object.run)
-      : undefined;
+    message.run =
+      object.run !== undefined && object.run !== null
+        ? EngineSessionRun.fromPartial(object.run)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseSessionEvent(): SessionEvent {
-  return { startRun: undefined, stopRun: undefined, infoRun: undefined, infoSession: undefined };
+  return {
+    startRun: undefined,
+    stopRun: undefined,
+    infoRun: undefined,
+    infoSession: undefined
+  };
 }
 
 export const SessionEvent: MessageFns<SessionEvent> = {
@@ -2700,10 +2861,18 @@ export const SessionEvent: MessageFns<SessionEvent> = {
 
   fromJSON(object: any): SessionEvent {
     return {
-      startRun: isSet(object.startRun) ? SessionEventStartRun.fromJSON(object.startRun) : undefined,
-      stopRun: isSet(object.stopRun) ? SessionEventStopRun.fromJSON(object.stopRun) : undefined,
-      infoRun: isSet(object.infoRun) ? SessionEventInfoRun.fromJSON(object.infoRun) : undefined,
-      infoSession: isSet(object.infoSession) ? SessionEventInfoSession.fromJSON(object.infoSession) : undefined,
+      startRun: isSet(object.startRun)
+        ? SessionEventStartRun.fromJSON(object.startRun)
+        : undefined,
+      stopRun: isSet(object.stopRun)
+        ? SessionEventStopRun.fromJSON(object.stopRun)
+        : undefined,
+      infoRun: isSet(object.infoRun)
+        ? SessionEventInfoRun.fromJSON(object.infoRun)
+        : undefined,
+      infoSession: isSet(object.infoSession)
+        ? SessionEventInfoSession.fromJSON(object.infoSession)
+        : undefined
     };
   },
 
@@ -2729,28 +2898,41 @@ export const SessionEvent: MessageFns<SessionEvent> = {
   },
   fromPartial(object: DeepPartial<SessionEvent>): SessionEvent {
     const message = createBaseSessionEvent();
-    message.startRun = (object.startRun !== undefined && object.startRun !== null)
-      ? SessionEventStartRun.fromPartial(object.startRun)
-      : undefined;
-    message.stopRun = (object.stopRun !== undefined && object.stopRun !== null)
-      ? SessionEventStopRun.fromPartial(object.stopRun)
-      : undefined;
-    message.infoRun = (object.infoRun !== undefined && object.infoRun !== null)
-      ? SessionEventInfoRun.fromPartial(object.infoRun)
-      : undefined;
-    message.infoSession = (object.infoSession !== undefined && object.infoSession !== null)
-      ? SessionEventInfoSession.fromPartial(object.infoSession)
-      : undefined;
+    message.startRun =
+      object.startRun !== undefined && object.startRun !== null
+        ? SessionEventStartRun.fromPartial(object.startRun)
+        : undefined;
+    message.stopRun =
+      object.stopRun !== undefined && object.stopRun !== null
+        ? SessionEventStopRun.fromPartial(object.stopRun)
+        : undefined;
+    message.infoRun =
+      object.infoRun !== undefined && object.infoRun !== null
+        ? SessionEventInfoRun.fromPartial(object.infoRun)
+        : undefined;
+    message.infoSession =
+      object.infoSession !== undefined && object.infoSession !== null
+        ? SessionEventInfoSession.fromPartial(object.infoSession)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseMcpConnectionStreamResponse(): McpConnectionStreamResponse {
-  return { mcpMessage: undefined, mcpError: undefined, mcpOutput: undefined, sessionEvent: undefined, isReplay: false };
+  return {
+    mcpMessage: undefined,
+    mcpError: undefined,
+    mcpOutput: undefined,
+    sessionEvent: undefined,
+    isReplay: false
+  };
 }
 
 export const McpConnectionStreamResponse: MessageFns<McpConnectionStreamResponse> = {
-  encode(message: McpConnectionStreamResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: McpConnectionStreamResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.mcpMessage !== undefined) {
       McpMessage.encode(message.mcpMessage, writer.uint32(10).fork()).join();
     }
@@ -2827,11 +3009,15 @@ export const McpConnectionStreamResponse: MessageFns<McpConnectionStreamResponse
 
   fromJSON(object: any): McpConnectionStreamResponse {
     return {
-      mcpMessage: isSet(object.mcpMessage) ? McpMessage.fromJSON(object.mcpMessage) : undefined,
+      mcpMessage: isSet(object.mcpMessage)
+        ? McpMessage.fromJSON(object.mcpMessage)
+        : undefined,
       mcpError: isSet(object.mcpError) ? McpError.fromJSON(object.mcpError) : undefined,
       mcpOutput: isSet(object.mcpOutput) ? McpOutput.fromJSON(object.mcpOutput) : undefined,
-      sessionEvent: isSet(object.sessionEvent) ? SessionEvent.fromJSON(object.sessionEvent) : undefined,
-      isReplay: isSet(object.isReplay) ? globalThis.Boolean(object.isReplay) : false,
+      sessionEvent: isSet(object.sessionEvent)
+        ? SessionEvent.fromJSON(object.sessionEvent)
+        : undefined,
+      isReplay: isSet(object.isReplay) ? globalThis.Boolean(object.isReplay) : false
     };
   },
 
@@ -2860,30 +3046,37 @@ export const McpConnectionStreamResponse: MessageFns<McpConnectionStreamResponse
   },
   fromPartial(object: DeepPartial<McpConnectionStreamResponse>): McpConnectionStreamResponse {
     const message = createBaseMcpConnectionStreamResponse();
-    message.mcpMessage = (object.mcpMessage !== undefined && object.mcpMessage !== null)
-      ? McpMessage.fromPartial(object.mcpMessage)
-      : undefined;
-    message.mcpError = (object.mcpError !== undefined && object.mcpError !== null)
-      ? McpError.fromPartial(object.mcpError)
-      : undefined;
-    message.mcpOutput = (object.mcpOutput !== undefined && object.mcpOutput !== null)
-      ? McpOutput.fromPartial(object.mcpOutput)
-      : undefined;
-    message.sessionEvent = (object.sessionEvent !== undefined && object.sessionEvent !== null)
-      ? SessionEvent.fromPartial(object.sessionEvent)
-      : undefined;
+    message.mcpMessage =
+      object.mcpMessage !== undefined && object.mcpMessage !== null
+        ? McpMessage.fromPartial(object.mcpMessage)
+        : undefined;
+    message.mcpError =
+      object.mcpError !== undefined && object.mcpError !== null
+        ? McpError.fromPartial(object.mcpError)
+        : undefined;
+    message.mcpOutput =
+      object.mcpOutput !== undefined && object.mcpOutput !== null
+        ? McpOutput.fromPartial(object.mcpOutput)
+        : undefined;
+    message.sessionEvent =
+      object.sessionEvent !== undefined && object.sessionEvent !== null
+        ? SessionEvent.fromPartial(object.sessionEvent)
+        : undefined;
     message.isReplay = object.isReplay ?? false;
     return message;
-  },
+  }
 };
 
 function createBaseGetServerInfoRequest(): GetServerInfoRequest {
-  return { sessionId: "" };
+  return { sessionId: '' };
 }
 
 export const GetServerInfoRequest: MessageFns<GetServerInfoRequest> = {
-  encode(message: GetServerInfoRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+  encode(
+    message: GetServerInfoRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     return writer;
@@ -2914,12 +3107,12 @@ export const GetServerInfoRequest: MessageFns<GetServerInfoRequest> = {
   },
 
   fromJSON(object: any): GetServerInfoRequest {
-    return { sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "" };
+    return { sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '' };
   },
 
   toJSON(message: GetServerInfoRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     return obj;
@@ -2930,9 +3123,9 @@ export const GetServerInfoRequest: MessageFns<GetServerInfoRequest> = {
   },
   fromPartial(object: DeepPartial<GetServerInfoRequest>): GetServerInfoRequest {
     const message = createBaseGetServerInfoRequest();
-    message.sessionId = object.sessionId ?? "";
+    message.sessionId = object.sessionId ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseListWorkersRequest(): ListWorkersRequest {
@@ -2975,7 +3168,7 @@ export const ListWorkersRequest: MessageFns<ListWorkersRequest> = {
   fromPartial(_: DeepPartial<ListWorkersRequest>): ListWorkersRequest {
     const message = createBaseListWorkersRequest();
     return message;
-  },
+  }
 };
 
 function createBaseListWorkersResponse(): ListWorkersResponse {
@@ -2983,7 +3176,10 @@ function createBaseListWorkersResponse(): ListWorkersResponse {
 }
 
 export const ListWorkersResponse: MessageFns<ListWorkersResponse> = {
-  encode(message: ListWorkersResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListWorkersResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.workers) {
       WorkerInfo.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -3016,14 +3212,16 @@ export const ListWorkersResponse: MessageFns<ListWorkersResponse> = {
 
   fromJSON(object: any): ListWorkersResponse {
     return {
-      workers: globalThis.Array.isArray(object?.workers) ? object.workers.map((e: any) => WorkerInfo.fromJSON(e)) : [],
+      workers: globalThis.Array.isArray(object?.workers)
+        ? object.workers.map((e: any) => WorkerInfo.fromJSON(e))
+        : []
     };
   },
 
   toJSON(message: ListWorkersResponse): unknown {
     const obj: any = {};
     if (message.workers?.length) {
-      obj.workers = message.workers.map((e) => WorkerInfo.toJSON(e));
+      obj.workers = message.workers.map(e => WorkerInfo.toJSON(e));
     }
     return obj;
   },
@@ -3033,21 +3231,21 @@ export const ListWorkersResponse: MessageFns<ListWorkersResponse> = {
   },
   fromPartial(object: DeepPartial<ListWorkersResponse>): ListWorkersResponse {
     const message = createBaseListWorkersResponse();
-    message.workers = object.workers?.map((e) => WorkerInfo.fromPartial(e)) || [];
+    message.workers = object.workers?.map(e => WorkerInfo.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseWorkerInfo(): WorkerInfo {
-  return { workerId: "", address: "", acceptingRuns: false, healthy: false };
+  return { workerId: '', address: '', acceptingRuns: false, healthy: false };
 }
 
 export const WorkerInfo: MessageFns<WorkerInfo> = {
   encode(message: WorkerInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.workerId !== "") {
+    if (message.workerId !== '') {
       writer.uint32(10).string(message.workerId);
     }
-    if (message.address !== "") {
+    if (message.address !== '') {
       writer.uint32(18).string(message.address);
     }
     if (message.acceptingRuns !== false) {
@@ -3109,19 +3307,21 @@ export const WorkerInfo: MessageFns<WorkerInfo> = {
 
   fromJSON(object: any): WorkerInfo {
     return {
-      workerId: isSet(object.workerId) ? globalThis.String(object.workerId) : "",
-      address: isSet(object.address) ? globalThis.String(object.address) : "",
-      acceptingRuns: isSet(object.acceptingRuns) ? globalThis.Boolean(object.acceptingRuns) : false,
-      healthy: isSet(object.healthy) ? globalThis.Boolean(object.healthy) : false,
+      workerId: isSet(object.workerId) ? globalThis.String(object.workerId) : '',
+      address: isSet(object.address) ? globalThis.String(object.address) : '',
+      acceptingRuns: isSet(object.acceptingRuns)
+        ? globalThis.Boolean(object.acceptingRuns)
+        : false,
+      healthy: isSet(object.healthy) ? globalThis.Boolean(object.healthy) : false
     };
   },
 
   toJSON(message: WorkerInfo): unknown {
     const obj: any = {};
-    if (message.workerId !== "") {
+    if (message.workerId !== '') {
       obj.workerId = message.workerId;
     }
-    if (message.address !== "") {
+    if (message.address !== '') {
       obj.address = message.address;
     }
     if (message.acceptingRuns !== false) {
@@ -3138,21 +3338,24 @@ export const WorkerInfo: MessageFns<WorkerInfo> = {
   },
   fromPartial(object: DeepPartial<WorkerInfo>): WorkerInfo {
     const message = createBaseWorkerInfo();
-    message.workerId = object.workerId ?? "";
-    message.address = object.address ?? "";
+    message.workerId = object.workerId ?? '';
+    message.address = object.address ?? '';
     message.acceptingRuns = object.acceptingRuns ?? false;
     message.healthy = object.healthy ?? false;
     return message;
-  },
+  }
 };
 
 function createBaseDiscardSessionRequest(): DiscardSessionRequest {
-  return { sessionId: "" };
+  return { sessionId: '' };
 }
 
 export const DiscardSessionRequest: MessageFns<DiscardSessionRequest> = {
-  encode(message: DiscardSessionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+  encode(
+    message: DiscardSessionRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     return writer;
@@ -3183,12 +3386,12 @@ export const DiscardSessionRequest: MessageFns<DiscardSessionRequest> = {
   },
 
   fromJSON(object: any): DiscardSessionRequest {
-    return { sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "" };
+    return { sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '' };
   },
 
   toJSON(message: DiscardSessionRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     return obj;
@@ -3199,9 +3402,9 @@ export const DiscardSessionRequest: MessageFns<DiscardSessionRequest> = {
   },
   fromPartial(object: DeepPartial<DiscardSessionRequest>): DiscardSessionRequest {
     const message = createBaseDiscardSessionRequest();
-    message.sessionId = object.sessionId ?? "";
+    message.sessionId = object.sessionId ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseDiscardSessionResponse(): DiscardSessionResponse {
@@ -3244,13 +3447,13 @@ export const DiscardSessionResponse: MessageFns<DiscardSessionResponse> = {
   fromPartial(_: DeepPartial<DiscardSessionResponse>): DiscardSessionResponse {
     const message = createBaseDiscardSessionResponse();
     return message;
-  },
+  }
 };
 
 function createBaseEngineSession(): EngineSession {
   return {
-    id: "",
-    externalId: "",
+    id: '',
+    externalId: '',
     type: 0,
     status: 0,
     hasError: false,
@@ -3262,16 +3465,16 @@ function createBaseEngineSession(): EngineSession {
     startedAt: Long.ZERO,
     endedAt: Long.ZERO,
     lastPingAt: Long.ZERO,
-    mcpConfig: undefined,
+    mcpConfig: undefined
   };
 }
 
 export const EngineSession: MessageFns<EngineSession> = {
   encode(message: EngineSession, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
+    if (message.id !== '') {
       writer.uint32(10).string(message.id);
     }
-    if (message.externalId !== "") {
+    if (message.externalId !== '') {
       writer.uint32(18).string(message.externalId);
     }
     if (message.type !== 0) {
@@ -3443,29 +3646,33 @@ export const EngineSession: MessageFns<EngineSession> = {
 
   fromJSON(object: any): EngineSession {
     return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : "",
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : '',
       type: isSet(object.type) ? engineSessionTypeFromJSON(object.type) : 0,
       status: isSet(object.status) ? engineSessionStatusFromJSON(object.status) : 0,
       hasError: isSet(object.hasError) ? globalThis.Boolean(object.hasError) : false,
-      mcpClient: isSet(object.mcpClient) ? McpParticipant.fromJSON(object.mcpClient) : undefined,
-      mcpServer: isSet(object.mcpServer) ? McpParticipant.fromJSON(object.mcpServer) : undefined,
+      mcpClient: isSet(object.mcpClient)
+        ? McpParticipant.fromJSON(object.mcpClient)
+        : undefined,
+      mcpServer: isSet(object.mcpServer)
+        ? McpParticipant.fromJSON(object.mcpServer)
+        : undefined,
       server: isSet(object.server) ? EngineServer.fromJSON(object.server) : undefined,
       createdAt: isSet(object.createdAt) ? Long.fromValue(object.createdAt) : Long.ZERO,
       updatedAt: isSet(object.updatedAt) ? Long.fromValue(object.updatedAt) : Long.ZERO,
       startedAt: isSet(object.startedAt) ? Long.fromValue(object.startedAt) : Long.ZERO,
       endedAt: isSet(object.endedAt) ? Long.fromValue(object.endedAt) : Long.ZERO,
       lastPingAt: isSet(object.lastPingAt) ? Long.fromValue(object.lastPingAt) : Long.ZERO,
-      mcpConfig: isSet(object.mcpConfig) ? McpConfig.fromJSON(object.mcpConfig) : undefined,
+      mcpConfig: isSet(object.mcpConfig) ? McpConfig.fromJSON(object.mcpConfig) : undefined
     };
   },
 
   toJSON(message: EngineSession): unknown {
     const obj: any = {};
-    if (message.id !== "") {
+    if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.externalId !== "") {
+    if (message.externalId !== '') {
       obj.externalId = message.externalId;
     }
     if (message.type !== 0) {
@@ -3512,65 +3719,74 @@ export const EngineSession: MessageFns<EngineSession> = {
   },
   fromPartial(object: DeepPartial<EngineSession>): EngineSession {
     const message = createBaseEngineSession();
-    message.id = object.id ?? "";
-    message.externalId = object.externalId ?? "";
+    message.id = object.id ?? '';
+    message.externalId = object.externalId ?? '';
     message.type = object.type ?? 0;
     message.status = object.status ?? 0;
     message.hasError = object.hasError ?? false;
-    message.mcpClient = (object.mcpClient !== undefined && object.mcpClient !== null)
-      ? McpParticipant.fromPartial(object.mcpClient)
-      : undefined;
-    message.mcpServer = (object.mcpServer !== undefined && object.mcpServer !== null)
-      ? McpParticipant.fromPartial(object.mcpServer)
-      : undefined;
-    message.server = (object.server !== undefined && object.server !== null)
-      ? EngineServer.fromPartial(object.server)
-      : undefined;
-    message.createdAt = (object.createdAt !== undefined && object.createdAt !== null)
-      ? Long.fromValue(object.createdAt)
-      : Long.ZERO;
-    message.updatedAt = (object.updatedAt !== undefined && object.updatedAt !== null)
-      ? Long.fromValue(object.updatedAt)
-      : Long.ZERO;
-    message.startedAt = (object.startedAt !== undefined && object.startedAt !== null)
-      ? Long.fromValue(object.startedAt)
-      : Long.ZERO;
-    message.endedAt = (object.endedAt !== undefined && object.endedAt !== null)
-      ? Long.fromValue(object.endedAt)
-      : Long.ZERO;
-    message.lastPingAt = (object.lastPingAt !== undefined && object.lastPingAt !== null)
-      ? Long.fromValue(object.lastPingAt)
-      : Long.ZERO;
-    message.mcpConfig = (object.mcpConfig !== undefined && object.mcpConfig !== null)
-      ? McpConfig.fromPartial(object.mcpConfig)
-      : undefined;
+    message.mcpClient =
+      object.mcpClient !== undefined && object.mcpClient !== null
+        ? McpParticipant.fromPartial(object.mcpClient)
+        : undefined;
+    message.mcpServer =
+      object.mcpServer !== undefined && object.mcpServer !== null
+        ? McpParticipant.fromPartial(object.mcpServer)
+        : undefined;
+    message.server =
+      object.server !== undefined && object.server !== null
+        ? EngineServer.fromPartial(object.server)
+        : undefined;
+    message.createdAt =
+      object.createdAt !== undefined && object.createdAt !== null
+        ? Long.fromValue(object.createdAt)
+        : Long.ZERO;
+    message.updatedAt =
+      object.updatedAt !== undefined && object.updatedAt !== null
+        ? Long.fromValue(object.updatedAt)
+        : Long.ZERO;
+    message.startedAt =
+      object.startedAt !== undefined && object.startedAt !== null
+        ? Long.fromValue(object.startedAt)
+        : Long.ZERO;
+    message.endedAt =
+      object.endedAt !== undefined && object.endedAt !== null
+        ? Long.fromValue(object.endedAt)
+        : Long.ZERO;
+    message.lastPingAt =
+      object.lastPingAt !== undefined && object.lastPingAt !== null
+        ? Long.fromValue(object.lastPingAt)
+        : Long.ZERO;
+    message.mcpConfig =
+      object.mcpConfig !== undefined && object.mcpConfig !== null
+        ? McpConfig.fromPartial(object.mcpConfig)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseEngineSessionRun(): EngineSessionRun {
   return {
-    id: "",
-    sessionId: "",
+    id: '',
+    sessionId: '',
     type: 0,
     status: 0,
     hasError: false,
-    workerId: "",
+    workerId: '',
     createdAt: Long.ZERO,
     updatedAt: Long.ZERO,
     startedAt: Long.ZERO,
     endedAt: Long.ZERO,
     lastPingAt: Long.ZERO,
-    session: undefined,
+    session: undefined
   };
 }
 
 export const EngineSessionRun: MessageFns<EngineSessionRun> = {
   encode(message: EngineSessionRun, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
+    if (message.id !== '') {
       writer.uint32(10).string(message.id);
     }
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       writer.uint32(18).string(message.sessionId);
     }
     if (message.type !== 0) {
@@ -3582,7 +3798,7 @@ export const EngineSessionRun: MessageFns<EngineSessionRun> = {
     if (message.hasError !== false) {
       writer.uint32(40).bool(message.hasError);
     }
-    if (message.workerId !== "") {
+    if (message.workerId !== '') {
       writer.uint32(50).string(message.workerId);
     }
     if (!message.createdAt.equals(Long.ZERO)) {
@@ -3720,27 +3936,27 @@ export const EngineSessionRun: MessageFns<EngineSessionRun> = {
 
   fromJSON(object: any): EngineSessionRun {
     return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
       type: isSet(object.type) ? engineRunTypeFromJSON(object.type) : 0,
       status: isSet(object.status) ? engineRunStatusFromJSON(object.status) : 0,
       hasError: isSet(object.hasError) ? globalThis.Boolean(object.hasError) : false,
-      workerId: isSet(object.workerId) ? globalThis.String(object.workerId) : "",
+      workerId: isSet(object.workerId) ? globalThis.String(object.workerId) : '',
       createdAt: isSet(object.createdAt) ? Long.fromValue(object.createdAt) : Long.ZERO,
       updatedAt: isSet(object.updatedAt) ? Long.fromValue(object.updatedAt) : Long.ZERO,
       startedAt: isSet(object.startedAt) ? Long.fromValue(object.startedAt) : Long.ZERO,
       endedAt: isSet(object.endedAt) ? Long.fromValue(object.endedAt) : Long.ZERO,
       lastPingAt: isSet(object.lastPingAt) ? Long.fromValue(object.lastPingAt) : Long.ZERO,
-      session: isSet(object.session) ? EngineSession.fromJSON(object.session) : undefined,
+      session: isSet(object.session) ? EngineSession.fromJSON(object.session) : undefined
     };
   },
 
   toJSON(message: EngineSessionRun): unknown {
     const obj: any = {};
-    if (message.id !== "") {
+    if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     if (message.type !== 0) {
@@ -3752,7 +3968,7 @@ export const EngineSessionRun: MessageFns<EngineSessionRun> = {
     if (message.hasError !== false) {
       obj.hasError = message.hasError;
     }
-    if (message.workerId !== "") {
+    if (message.workerId !== '') {
       obj.workerId = message.workerId;
     }
     if (!message.createdAt.equals(Long.ZERO)) {
@@ -3781,58 +3997,67 @@ export const EngineSessionRun: MessageFns<EngineSessionRun> = {
   },
   fromPartial(object: DeepPartial<EngineSessionRun>): EngineSessionRun {
     const message = createBaseEngineSessionRun();
-    message.id = object.id ?? "";
-    message.sessionId = object.sessionId ?? "";
+    message.id = object.id ?? '';
+    message.sessionId = object.sessionId ?? '';
     message.type = object.type ?? 0;
     message.status = object.status ?? 0;
     message.hasError = object.hasError ?? false;
-    message.workerId = object.workerId ?? "";
-    message.createdAt = (object.createdAt !== undefined && object.createdAt !== null)
-      ? Long.fromValue(object.createdAt)
-      : Long.ZERO;
-    message.updatedAt = (object.updatedAt !== undefined && object.updatedAt !== null)
-      ? Long.fromValue(object.updatedAt)
-      : Long.ZERO;
-    message.startedAt = (object.startedAt !== undefined && object.startedAt !== null)
-      ? Long.fromValue(object.startedAt)
-      : Long.ZERO;
-    message.endedAt = (object.endedAt !== undefined && object.endedAt !== null)
-      ? Long.fromValue(object.endedAt)
-      : Long.ZERO;
-    message.lastPingAt = (object.lastPingAt !== undefined && object.lastPingAt !== null)
-      ? Long.fromValue(object.lastPingAt)
-      : Long.ZERO;
-    message.session = (object.session !== undefined && object.session !== null)
-      ? EngineSession.fromPartial(object.session)
-      : undefined;
+    message.workerId = object.workerId ?? '';
+    message.createdAt =
+      object.createdAt !== undefined && object.createdAt !== null
+        ? Long.fromValue(object.createdAt)
+        : Long.ZERO;
+    message.updatedAt =
+      object.updatedAt !== undefined && object.updatedAt !== null
+        ? Long.fromValue(object.updatedAt)
+        : Long.ZERO;
+    message.startedAt =
+      object.startedAt !== undefined && object.startedAt !== null
+        ? Long.fromValue(object.startedAt)
+        : Long.ZERO;
+    message.endedAt =
+      object.endedAt !== undefined && object.endedAt !== null
+        ? Long.fromValue(object.endedAt)
+        : Long.ZERO;
+    message.lastPingAt =
+      object.lastPingAt !== undefined && object.lastPingAt !== null
+        ? Long.fromValue(object.lastPingAt)
+        : Long.ZERO;
+    message.session =
+      object.session !== undefined && object.session !== null
+        ? EngineSession.fromPartial(object.session)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseEngineSessionError(): EngineSessionError {
   return {
-    id: "",
-    sessionId: "",
-    runId: "",
+    id: '',
+    sessionId: '',
+    runId: '',
     run: undefined,
     session: undefined,
-    errorCode: "",
-    errorMessage: "",
+    errorCode: '',
+    errorMessage: '',
     mcpError: undefined,
     metadata: {},
-    createdAt: Long.ZERO,
+    createdAt: Long.ZERO
   };
 }
 
 export const EngineSessionError: MessageFns<EngineSessionError> = {
-  encode(message: EngineSessionError, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
+  encode(
+    message: EngineSessionError,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.id !== '') {
       writer.uint32(10).string(message.id);
     }
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       writer.uint32(18).string(message.sessionId);
     }
-    if (message.runId !== "") {
+    if (message.runId !== '') {
       writer.uint32(26).string(message.runId);
     }
     if (message.run !== undefined) {
@@ -3841,17 +4066,20 @@ export const EngineSessionError: MessageFns<EngineSessionError> = {
     if (message.session !== undefined) {
       EngineSession.encode(message.session, writer.uint32(82).fork()).join();
     }
-    if (message.errorCode !== "") {
+    if (message.errorCode !== '') {
       writer.uint32(42).string(message.errorCode);
     }
-    if (message.errorMessage !== "") {
+    if (message.errorMessage !== '') {
       writer.uint32(50).string(message.errorMessage);
     }
     if (message.mcpError !== undefined) {
       McpError.encode(message.mcpError, writer.uint32(58).fork()).join();
     }
     Object.entries(message.metadata).forEach(([key, value]) => {
-      EngineSessionError_MetadataEntry.encode({ key: key as any, value }, writer.uint32(66).fork()).join();
+      EngineSessionError_MetadataEntry.encode(
+        { key: key as any, value },
+        writer.uint32(66).fork()
+      ).join();
     });
     if (!message.createdAt.equals(Long.ZERO)) {
       writer.uint32(72).int64(message.createdAt.toString());
@@ -3960,33 +4188,36 @@ export const EngineSessionError: MessageFns<EngineSessionError> = {
 
   fromJSON(object: any): EngineSessionError {
     return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
-      runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
+      runId: isSet(object.runId) ? globalThis.String(object.runId) : '',
       run: isSet(object.run) ? EngineSessionRun.fromJSON(object.run) : undefined,
       session: isSet(object.session) ? EngineSession.fromJSON(object.session) : undefined,
-      errorCode: isSet(object.errorCode) ? globalThis.String(object.errorCode) : "",
-      errorMessage: isSet(object.errorMessage) ? globalThis.String(object.errorMessage) : "",
+      errorCode: isSet(object.errorCode) ? globalThis.String(object.errorCode) : '',
+      errorMessage: isSet(object.errorMessage) ? globalThis.String(object.errorMessage) : '',
       mcpError: isSet(object.mcpError) ? McpError.fromJSON(object.mcpError) : undefined,
       metadata: isObject(object.metadata)
-        ? Object.entries(object.metadata).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-          acc[key] = String(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.metadata).reduce<{ [key: string]: string }>(
+            (acc, [key, value]) => {
+              acc[key] = String(value);
+              return acc;
+            },
+            {}
+          )
         : {},
-      createdAt: isSet(object.createdAt) ? Long.fromValue(object.createdAt) : Long.ZERO,
+      createdAt: isSet(object.createdAt) ? Long.fromValue(object.createdAt) : Long.ZERO
     };
   },
 
   toJSON(message: EngineSessionError): unknown {
     const obj: any = {};
-    if (message.id !== "") {
+    if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
-    if (message.runId !== "") {
+    if (message.runId !== '') {
       obj.runId = message.runId;
     }
     if (message.run !== undefined) {
@@ -3995,10 +4226,10 @@ export const EngineSessionError: MessageFns<EngineSessionError> = {
     if (message.session !== undefined) {
       obj.session = EngineSession.toJSON(message.session);
     }
-    if (message.errorCode !== "") {
+    if (message.errorCode !== '') {
       obj.errorCode = message.errorCode;
     }
-    if (message.errorMessage !== "") {
+    if (message.errorMessage !== '') {
       obj.errorMessage = message.errorMessage;
     }
     if (message.mcpError !== undefined) {
@@ -4024,43 +4255,53 @@ export const EngineSessionError: MessageFns<EngineSessionError> = {
   },
   fromPartial(object: DeepPartial<EngineSessionError>): EngineSessionError {
     const message = createBaseEngineSessionError();
-    message.id = object.id ?? "";
-    message.sessionId = object.sessionId ?? "";
-    message.runId = object.runId ?? "";
-    message.run = (object.run !== undefined && object.run !== null)
-      ? EngineSessionRun.fromPartial(object.run)
-      : undefined;
-    message.session = (object.session !== undefined && object.session !== null)
-      ? EngineSession.fromPartial(object.session)
-      : undefined;
-    message.errorCode = object.errorCode ?? "";
-    message.errorMessage = object.errorMessage ?? "";
-    message.mcpError = (object.mcpError !== undefined && object.mcpError !== null)
-      ? McpError.fromPartial(object.mcpError)
-      : undefined;
-    message.metadata = Object.entries(object.metadata ?? {}).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = globalThis.String(value);
-      }
-      return acc;
-    }, {});
-    message.createdAt = (object.createdAt !== undefined && object.createdAt !== null)
-      ? Long.fromValue(object.createdAt)
-      : Long.ZERO;
+    message.id = object.id ?? '';
+    message.sessionId = object.sessionId ?? '';
+    message.runId = object.runId ?? '';
+    message.run =
+      object.run !== undefined && object.run !== null
+        ? EngineSessionRun.fromPartial(object.run)
+        : undefined;
+    message.session =
+      object.session !== undefined && object.session !== null
+        ? EngineSession.fromPartial(object.session)
+        : undefined;
+    message.errorCode = object.errorCode ?? '';
+    message.errorMessage = object.errorMessage ?? '';
+    message.mcpError =
+      object.mcpError !== undefined && object.mcpError !== null
+        ? McpError.fromPartial(object.mcpError)
+        : undefined;
+    message.metadata = Object.entries(object.metadata ?? {}).reduce<{ [key: string]: string }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = globalThis.String(value);
+        }
+        return acc;
+      },
+      {}
+    );
+    message.createdAt =
+      object.createdAt !== undefined && object.createdAt !== null
+        ? Long.fromValue(object.createdAt)
+        : Long.ZERO;
     return message;
-  },
+  }
 };
 
 function createBaseEngineSessionError_MetadataEntry(): EngineSessionError_MetadataEntry {
-  return { key: "", value: "" };
+  return { key: '', value: '' };
 }
 
 export const EngineSessionError_MetadataEntry: MessageFns<EngineSessionError_MetadataEntry> = {
-  encode(message: EngineSessionError_MetadataEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.key !== "") {
+  encode(
+    message: EngineSessionError_MetadataEntry,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
-    if (message.value !== "") {
+    if (message.value !== '') {
       writer.uint32(18).string(message.value);
     }
     return writer;
@@ -4100,61 +4341,68 @@ export const EngineSessionError_MetadataEntry: MessageFns<EngineSessionError_Met
 
   fromJSON(object: any): EngineSessionError_MetadataEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
-      value: isSet(object.value) ? globalThis.String(object.value) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
+      value: isSet(object.value) ? globalThis.String(object.value) : ''
     };
   },
 
   toJSON(message: EngineSessionError_MetadataEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
-    if (message.value !== "") {
+    if (message.value !== '') {
       obj.value = message.value;
     }
     return obj;
   },
 
-  create(base?: DeepPartial<EngineSessionError_MetadataEntry>): EngineSessionError_MetadataEntry {
+  create(
+    base?: DeepPartial<EngineSessionError_MetadataEntry>
+  ): EngineSessionError_MetadataEntry {
     return EngineSessionError_MetadataEntry.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<EngineSessionError_MetadataEntry>): EngineSessionError_MetadataEntry {
+  fromPartial(
+    object: DeepPartial<EngineSessionError_MetadataEntry>
+  ): EngineSessionError_MetadataEntry {
     const message = createBaseEngineSessionError_MetadataEntry();
-    message.key = object.key ?? "";
-    message.value = object.value ?? "";
+    message.key = object.key ?? '';
+    message.value = object.value ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseEngineSessionEvent(): EngineSessionEvent {
   return {
-    id: "",
-    sessionId: "",
-    runId: "",
-    errorId: "",
+    id: '',
+    sessionId: '',
+    runId: '',
+    errorId: '',
     type: 0,
     run: undefined,
     session: undefined,
     error: undefined,
     metadata: {},
     mcpOutput: undefined,
-    createdAt: Long.ZERO,
+    createdAt: Long.ZERO
   };
 }
 
 export const EngineSessionEvent: MessageFns<EngineSessionEvent> = {
-  encode(message: EngineSessionEvent, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
+  encode(
+    message: EngineSessionEvent,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.id !== '') {
       writer.uint32(10).string(message.id);
     }
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       writer.uint32(18).string(message.sessionId);
     }
-    if (message.runId !== "") {
+    if (message.runId !== '') {
       writer.uint32(26).string(message.runId);
     }
-    if (message.errorId !== "") {
+    if (message.errorId !== '') {
       writer.uint32(34).string(message.errorId);
     }
     if (message.type !== 0) {
@@ -4170,7 +4418,10 @@ export const EngineSessionEvent: MessageFns<EngineSessionEvent> = {
       EngineSessionError.encode(message.error, writer.uint32(66).fork()).join();
     }
     Object.entries(message.metadata).forEach(([key, value]) => {
-      EngineSessionEvent_MetadataEntry.encode({ key: key as any, value }, writer.uint32(90).fork()).join();
+      EngineSessionEvent_MetadataEntry.encode(
+        { key: key as any, value },
+        writer.uint32(90).fork()
+      ).join();
     });
     if (message.mcpOutput !== undefined) {
       McpOutput.encode(message.mcpOutput, writer.uint32(82).fork()).join();
@@ -4290,37 +4541,40 @@ export const EngineSessionEvent: MessageFns<EngineSessionEvent> = {
 
   fromJSON(object: any): EngineSessionEvent {
     return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
-      runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
-      errorId: isSet(object.errorId) ? globalThis.String(object.errorId) : "",
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
+      runId: isSet(object.runId) ? globalThis.String(object.runId) : '',
+      errorId: isSet(object.errorId) ? globalThis.String(object.errorId) : '',
       type: isSet(object.type) ? engineSessionEventTypeFromJSON(object.type) : 0,
       run: isSet(object.run) ? EngineSessionRun.fromJSON(object.run) : undefined,
       session: isSet(object.session) ? EngineSession.fromJSON(object.session) : undefined,
       error: isSet(object.error) ? EngineSessionError.fromJSON(object.error) : undefined,
       metadata: isObject(object.metadata)
-        ? Object.entries(object.metadata).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-          acc[key] = String(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.metadata).reduce<{ [key: string]: string }>(
+            (acc, [key, value]) => {
+              acc[key] = String(value);
+              return acc;
+            },
+            {}
+          )
         : {},
       mcpOutput: isSet(object.mcpOutput) ? McpOutput.fromJSON(object.mcpOutput) : undefined,
-      createdAt: isSet(object.createdAt) ? Long.fromValue(object.createdAt) : Long.ZERO,
+      createdAt: isSet(object.createdAt) ? Long.fromValue(object.createdAt) : Long.ZERO
     };
   },
 
   toJSON(message: EngineSessionEvent): unknown {
     const obj: any = {};
-    if (message.id !== "") {
+    if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
-    if (message.runId !== "") {
+    if (message.runId !== '') {
       obj.runId = message.runId;
     }
-    if (message.errorId !== "") {
+    if (message.errorId !== '') {
       obj.errorId = message.errorId;
     }
     if (message.type !== 0) {
@@ -4358,46 +4612,57 @@ export const EngineSessionEvent: MessageFns<EngineSessionEvent> = {
   },
   fromPartial(object: DeepPartial<EngineSessionEvent>): EngineSessionEvent {
     const message = createBaseEngineSessionEvent();
-    message.id = object.id ?? "";
-    message.sessionId = object.sessionId ?? "";
-    message.runId = object.runId ?? "";
-    message.errorId = object.errorId ?? "";
+    message.id = object.id ?? '';
+    message.sessionId = object.sessionId ?? '';
+    message.runId = object.runId ?? '';
+    message.errorId = object.errorId ?? '';
     message.type = object.type ?? 0;
-    message.run = (object.run !== undefined && object.run !== null)
-      ? EngineSessionRun.fromPartial(object.run)
-      : undefined;
-    message.session = (object.session !== undefined && object.session !== null)
-      ? EngineSession.fromPartial(object.session)
-      : undefined;
-    message.error = (object.error !== undefined && object.error !== null)
-      ? EngineSessionError.fromPartial(object.error)
-      : undefined;
-    message.metadata = Object.entries(object.metadata ?? {}).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = globalThis.String(value);
-      }
-      return acc;
-    }, {});
-    message.mcpOutput = (object.mcpOutput !== undefined && object.mcpOutput !== null)
-      ? McpOutput.fromPartial(object.mcpOutput)
-      : undefined;
-    message.createdAt = (object.createdAt !== undefined && object.createdAt !== null)
-      ? Long.fromValue(object.createdAt)
-      : Long.ZERO;
+    message.run =
+      object.run !== undefined && object.run !== null
+        ? EngineSessionRun.fromPartial(object.run)
+        : undefined;
+    message.session =
+      object.session !== undefined && object.session !== null
+        ? EngineSession.fromPartial(object.session)
+        : undefined;
+    message.error =
+      object.error !== undefined && object.error !== null
+        ? EngineSessionError.fromPartial(object.error)
+        : undefined;
+    message.metadata = Object.entries(object.metadata ?? {}).reduce<{ [key: string]: string }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = globalThis.String(value);
+        }
+        return acc;
+      },
+      {}
+    );
+    message.mcpOutput =
+      object.mcpOutput !== undefined && object.mcpOutput !== null
+        ? McpOutput.fromPartial(object.mcpOutput)
+        : undefined;
+    message.createdAt =
+      object.createdAt !== undefined && object.createdAt !== null
+        ? Long.fromValue(object.createdAt)
+        : Long.ZERO;
     return message;
-  },
+  }
 };
 
 function createBaseEngineSessionEvent_MetadataEntry(): EngineSessionEvent_MetadataEntry {
-  return { key: "", value: "" };
+  return { key: '', value: '' };
 }
 
 export const EngineSessionEvent_MetadataEntry: MessageFns<EngineSessionEvent_MetadataEntry> = {
-  encode(message: EngineSessionEvent_MetadataEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.key !== "") {
+  encode(
+    message: EngineSessionEvent_MetadataEntry,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
-    if (message.value !== "") {
+    if (message.value !== '') {
       writer.uint32(18).string(message.value);
     }
     return writer;
@@ -4437,51 +4702,58 @@ export const EngineSessionEvent_MetadataEntry: MessageFns<EngineSessionEvent_Met
 
   fromJSON(object: any): EngineSessionEvent_MetadataEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
-      value: isSet(object.value) ? globalThis.String(object.value) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
+      value: isSet(object.value) ? globalThis.String(object.value) : ''
     };
   },
 
   toJSON(message: EngineSessionEvent_MetadataEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
-    if (message.value !== "") {
+    if (message.value !== '') {
       obj.value = message.value;
     }
     return obj;
   },
 
-  create(base?: DeepPartial<EngineSessionEvent_MetadataEntry>): EngineSessionEvent_MetadataEntry {
+  create(
+    base?: DeepPartial<EngineSessionEvent_MetadataEntry>
+  ): EngineSessionEvent_MetadataEntry {
     return EngineSessionEvent_MetadataEntry.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<EngineSessionEvent_MetadataEntry>): EngineSessionEvent_MetadataEntry {
+  fromPartial(
+    object: DeepPartial<EngineSessionEvent_MetadataEntry>
+  ): EngineSessionEvent_MetadataEntry {
     const message = createBaseEngineSessionEvent_MetadataEntry();
-    message.key = object.key ?? "";
-    message.value = object.value ?? "";
+    message.key = object.key ?? '';
+    message.value = object.value ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseEngineSessionMessage(): EngineSessionMessage {
   return {
-    id: "",
+    id: '',
     index: 0,
     sender: 0,
-    sessionId: "",
-    runId: "",
+    sessionId: '',
+    runId: '',
     run: undefined,
     session: undefined,
     mcpMessage: undefined,
     metadata: {},
-    createdAt: Long.ZERO,
+    createdAt: Long.ZERO
   };
 }
 
 export const EngineSessionMessage: MessageFns<EngineSessionMessage> = {
-  encode(message: EngineSessionMessage, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
+  encode(
+    message: EngineSessionMessage,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.id !== '') {
       writer.uint32(10).string(message.id);
     }
     if (message.index !== 0) {
@@ -4490,10 +4762,10 @@ export const EngineSessionMessage: MessageFns<EngineSessionMessage> = {
     if (message.sender !== 0) {
       writer.uint32(24).int32(message.sender);
     }
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       writer.uint32(34).string(message.sessionId);
     }
-    if (message.runId !== "") {
+    if (message.runId !== '') {
       writer.uint32(42).string(message.runId);
     }
     if (message.run !== undefined) {
@@ -4506,7 +4778,10 @@ export const EngineSessionMessage: MessageFns<EngineSessionMessage> = {
       McpMessage.encode(message.mcpMessage, writer.uint32(66).fork()).join();
     }
     Object.entries(message.metadata).forEach(([key, value]) => {
-      EngineSessionMessage_MetadataEntry.encode({ key: key as any, value }, writer.uint32(74).fork()).join();
+      EngineSessionMessage_MetadataEntry.encode(
+        { key: key as any, value },
+        writer.uint32(74).fork()
+      ).join();
     });
     if (!message.createdAt.equals(Long.ZERO)) {
       writer.uint32(80).int64(message.createdAt.toString());
@@ -4615,27 +4890,32 @@ export const EngineSessionMessage: MessageFns<EngineSessionMessage> = {
 
   fromJSON(object: any): EngineSessionMessage {
     return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
       index: isSet(object.index) ? globalThis.Number(object.index) : 0,
       sender: isSet(object.sender) ? sessionMessageSenderFromJSON(object.sender) : 0,
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
-      runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
+      runId: isSet(object.runId) ? globalThis.String(object.runId) : '',
       run: isSet(object.run) ? EngineSessionRun.fromJSON(object.run) : undefined,
       session: isSet(object.session) ? EngineSession.fromJSON(object.session) : undefined,
-      mcpMessage: isSet(object.mcpMessage) ? McpMessage.fromJSON(object.mcpMessage) : undefined,
+      mcpMessage: isSet(object.mcpMessage)
+        ? McpMessage.fromJSON(object.mcpMessage)
+        : undefined,
       metadata: isObject(object.metadata)
-        ? Object.entries(object.metadata).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-          acc[key] = String(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.metadata).reduce<{ [key: string]: string }>(
+            (acc, [key, value]) => {
+              acc[key] = String(value);
+              return acc;
+            },
+            {}
+          )
         : {},
-      createdAt: isSet(object.createdAt) ? Long.fromValue(object.createdAt) : Long.ZERO,
+      createdAt: isSet(object.createdAt) ? Long.fromValue(object.createdAt) : Long.ZERO
     };
   },
 
   toJSON(message: EngineSessionMessage): unknown {
     const obj: any = {};
-    if (message.id !== "") {
+    if (message.id !== '') {
       obj.id = message.id;
     }
     if (message.index !== 0) {
@@ -4644,10 +4924,10 @@ export const EngineSessionMessage: MessageFns<EngineSessionMessage> = {
     if (message.sender !== 0) {
       obj.sender = sessionMessageSenderToJSON(message.sender);
     }
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
-    if (message.runId !== "") {
+    if (message.runId !== '') {
       obj.runId = message.runId;
     }
     if (message.run !== undefined) {
@@ -4679,113 +4959,131 @@ export const EngineSessionMessage: MessageFns<EngineSessionMessage> = {
   },
   fromPartial(object: DeepPartial<EngineSessionMessage>): EngineSessionMessage {
     const message = createBaseEngineSessionMessage();
-    message.id = object.id ?? "";
+    message.id = object.id ?? '';
     message.index = object.index ?? 0;
     message.sender = object.sender ?? 0;
-    message.sessionId = object.sessionId ?? "";
-    message.runId = object.runId ?? "";
-    message.run = (object.run !== undefined && object.run !== null)
-      ? EngineSessionRun.fromPartial(object.run)
-      : undefined;
-    message.session = (object.session !== undefined && object.session !== null)
-      ? EngineSession.fromPartial(object.session)
-      : undefined;
-    message.mcpMessage = (object.mcpMessage !== undefined && object.mcpMessage !== null)
-      ? McpMessage.fromPartial(object.mcpMessage)
-      : undefined;
-    message.metadata = Object.entries(object.metadata ?? {}).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = globalThis.String(value);
-      }
-      return acc;
-    }, {});
-    message.createdAt = (object.createdAt !== undefined && object.createdAt !== null)
-      ? Long.fromValue(object.createdAt)
-      : Long.ZERO;
+    message.sessionId = object.sessionId ?? '';
+    message.runId = object.runId ?? '';
+    message.run =
+      object.run !== undefined && object.run !== null
+        ? EngineSessionRun.fromPartial(object.run)
+        : undefined;
+    message.session =
+      object.session !== undefined && object.session !== null
+        ? EngineSession.fromPartial(object.session)
+        : undefined;
+    message.mcpMessage =
+      object.mcpMessage !== undefined && object.mcpMessage !== null
+        ? McpMessage.fromPartial(object.mcpMessage)
+        : undefined;
+    message.metadata = Object.entries(object.metadata ?? {}).reduce<{ [key: string]: string }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = globalThis.String(value);
+        }
+        return acc;
+      },
+      {}
+    );
+    message.createdAt =
+      object.createdAt !== undefined && object.createdAt !== null
+        ? Long.fromValue(object.createdAt)
+        : Long.ZERO;
     return message;
-  },
+  }
 };
 
 function createBaseEngineSessionMessage_MetadataEntry(): EngineSessionMessage_MetadataEntry {
-  return { key: "", value: "" };
+  return { key: '', value: '' };
 }
 
-export const EngineSessionMessage_MetadataEntry: MessageFns<EngineSessionMessage_MetadataEntry> = {
-  encode(message: EngineSessionMessage_MetadataEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.key !== "") {
-      writer.uint32(10).string(message.key);
-    }
-    if (message.value !== "") {
-      writer.uint32(18).string(message.value);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): EngineSessionMessage_MetadataEntry {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEngineSessionMessage_MetadataEntry();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.key = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.value = reader.string();
-          continue;
-        }
+export const EngineSessionMessage_MetadataEntry: MessageFns<EngineSessionMessage_MetadataEntry> =
+  {
+    encode(
+      message: EngineSessionMessage_MetadataEntry,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.key !== '') {
+        writer.uint32(10).string(message.key);
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (message.value !== '') {
+        writer.uint32(18).string(message.value);
       }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+      return writer;
+    },
 
-  fromJSON(object: any): EngineSessionMessage_MetadataEntry {
-    return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
-      value: isSet(object.value) ? globalThis.String(object.value) : "",
-    };
-  },
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): EngineSessionMessage_MetadataEntry {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseEngineSessionMessage_MetadataEntry();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
 
-  toJSON(message: EngineSessionMessage_MetadataEntry): unknown {
-    const obj: any = {};
-    if (message.key !== "") {
-      obj.key = message.key;
-    }
-    if (message.value !== "") {
-      obj.value = message.value;
-    }
-    return obj;
-  },
+            message.key = reader.string();
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
 
-  create(base?: DeepPartial<EngineSessionMessage_MetadataEntry>): EngineSessionMessage_MetadataEntry {
-    return EngineSessionMessage_MetadataEntry.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<EngineSessionMessage_MetadataEntry>): EngineSessionMessage_MetadataEntry {
-    const message = createBaseEngineSessionMessage_MetadataEntry();
-    message.key = object.key ?? "";
-    message.value = object.value ?? "";
-    return message;
-  },
-};
+            message.value = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): EngineSessionMessage_MetadataEntry {
+      return {
+        key: isSet(object.key) ? globalThis.String(object.key) : '',
+        value: isSet(object.value) ? globalThis.String(object.value) : ''
+      };
+    },
+
+    toJSON(message: EngineSessionMessage_MetadataEntry): unknown {
+      const obj: any = {};
+      if (message.key !== '') {
+        obj.key = message.key;
+      }
+      if (message.value !== '') {
+        obj.value = message.value;
+      }
+      return obj;
+    },
+
+    create(
+      base?: DeepPartial<EngineSessionMessage_MetadataEntry>
+    ): EngineSessionMessage_MetadataEntry {
+      return EngineSessionMessage_MetadataEntry.fromPartial(base ?? {});
+    },
+    fromPartial(
+      object: DeepPartial<EngineSessionMessage_MetadataEntry>
+    ): EngineSessionMessage_MetadataEntry {
+      const message = createBaseEngineSessionMessage_MetadataEntry();
+      message.key = object.key ?? '';
+      message.value = object.value ?? '';
+      return message;
+    }
+  };
 
 function createBaseEngineServer(): EngineServer {
   return {
-    id: "",
-    identifier: "",
+    id: '',
+    identifier: '',
     type: 0,
     status: 0,
     mcpServer: undefined,
@@ -4796,16 +5094,16 @@ function createBaseEngineServer(): EngineServer {
     metadata: {},
     createdAt: Long.ZERO,
     updatedAt: Long.ZERO,
-    lastDiscoveryAt: undefined,
+    lastDiscoveryAt: undefined
   };
 }
 
 export const EngineServer: MessageFns<EngineServer> = {
   encode(message: EngineServer, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
+    if (message.id !== '') {
       writer.uint32(10).string(message.id);
     }
-    if (message.identifier !== "") {
+    if (message.identifier !== '') {
       writer.uint32(18).string(message.identifier);
     }
     if (message.type !== 0) {
@@ -4830,7 +5128,10 @@ export const EngineServer: MessageFns<EngineServer> = {
       McpResourceTemplate.encode(v!, writer.uint32(74).fork()).join();
     }
     Object.entries(message.metadata).forEach(([key, value]) => {
-      EngineServer_MetadataEntry.encode({ key: key as any, value }, writer.uint32(82).fork()).join();
+      EngineServer_MetadataEntry.encode(
+        { key: key as any, value },
+        writer.uint32(82).fork()
+      ).join();
     });
     if (!message.createdAt.equals(Long.ZERO)) {
       writer.uint32(88).int64(message.createdAt.toString());
@@ -4969,13 +5270,19 @@ export const EngineServer: MessageFns<EngineServer> = {
 
   fromJSON(object: any): EngineServer {
     return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      identifier: isSet(object.identifier) ? globalThis.String(object.identifier) : "",
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      identifier: isSet(object.identifier) ? globalThis.String(object.identifier) : '',
       type: isSet(object.type) ? engineSessionTypeFromJSON(object.type) : 0,
       status: isSet(object.status) ? engineServerStatusFromJSON(object.status) : 0,
-      mcpServer: isSet(object.mcpServer) ? McpParticipant.fromJSON(object.mcpServer) : undefined,
-      tools: globalThis.Array.isArray(object?.tools) ? object.tools.map((e: any) => McpTool.fromJSON(e)) : [],
-      prompts: globalThis.Array.isArray(object?.prompts) ? object.prompts.map((e: any) => McpPrompt.fromJSON(e)) : [],
+      mcpServer: isSet(object.mcpServer)
+        ? McpParticipant.fromJSON(object.mcpServer)
+        : undefined,
+      tools: globalThis.Array.isArray(object?.tools)
+        ? object.tools.map((e: any) => McpTool.fromJSON(e))
+        : [],
+      prompts: globalThis.Array.isArray(object?.prompts)
+        ? object.prompts.map((e: any) => McpPrompt.fromJSON(e))
+        : [],
       resources: globalThis.Array.isArray(object?.resources)
         ? object.resources.map((e: any) => McpResource.fromJSON(e))
         : [],
@@ -4983,23 +5290,28 @@ export const EngineServer: MessageFns<EngineServer> = {
         ? object.resourceTemplates.map((e: any) => McpResourceTemplate.fromJSON(e))
         : [],
       metadata: isObject(object.metadata)
-        ? Object.entries(object.metadata).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-          acc[key] = String(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.metadata).reduce<{ [key: string]: string }>(
+            (acc, [key, value]) => {
+              acc[key] = String(value);
+              return acc;
+            },
+            {}
+          )
         : {},
       createdAt: isSet(object.createdAt) ? Long.fromValue(object.createdAt) : Long.ZERO,
       updatedAt: isSet(object.updatedAt) ? Long.fromValue(object.updatedAt) : Long.ZERO,
-      lastDiscoveryAt: isSet(object.lastDiscoveryAt) ? Long.fromValue(object.lastDiscoveryAt) : undefined,
+      lastDiscoveryAt: isSet(object.lastDiscoveryAt)
+        ? Long.fromValue(object.lastDiscoveryAt)
+        : undefined
     };
   },
 
   toJSON(message: EngineServer): unknown {
     const obj: any = {};
-    if (message.id !== "") {
+    if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.identifier !== "") {
+    if (message.identifier !== '') {
       obj.identifier = message.identifier;
     }
     if (message.type !== 0) {
@@ -5012,16 +5324,18 @@ export const EngineServer: MessageFns<EngineServer> = {
       obj.mcpServer = McpParticipant.toJSON(message.mcpServer);
     }
     if (message.tools?.length) {
-      obj.tools = message.tools.map((e) => McpTool.toJSON(e));
+      obj.tools = message.tools.map(e => McpTool.toJSON(e));
     }
     if (message.prompts?.length) {
-      obj.prompts = message.prompts.map((e) => McpPrompt.toJSON(e));
+      obj.prompts = message.prompts.map(e => McpPrompt.toJSON(e));
     }
     if (message.resources?.length) {
-      obj.resources = message.resources.map((e) => McpResource.toJSON(e));
+      obj.resources = message.resources.map(e => McpResource.toJSON(e));
     }
     if (message.resourceTemplates?.length) {
-      obj.resourceTemplates = message.resourceTemplates.map((e) => McpResourceTemplate.toJSON(e));
+      obj.resourceTemplates = message.resourceTemplates.map(e =>
+        McpResourceTemplate.toJSON(e)
+      );
     }
     if (message.metadata) {
       const entries = Object.entries(message.metadata);
@@ -5049,46 +5363,57 @@ export const EngineServer: MessageFns<EngineServer> = {
   },
   fromPartial(object: DeepPartial<EngineServer>): EngineServer {
     const message = createBaseEngineServer();
-    message.id = object.id ?? "";
-    message.identifier = object.identifier ?? "";
+    message.id = object.id ?? '';
+    message.identifier = object.identifier ?? '';
     message.type = object.type ?? 0;
     message.status = object.status ?? 0;
-    message.mcpServer = (object.mcpServer !== undefined && object.mcpServer !== null)
-      ? McpParticipant.fromPartial(object.mcpServer)
-      : undefined;
-    message.tools = object.tools?.map((e) => McpTool.fromPartial(e)) || [];
-    message.prompts = object.prompts?.map((e) => McpPrompt.fromPartial(e)) || [];
-    message.resources = object.resources?.map((e) => McpResource.fromPartial(e)) || [];
-    message.resourceTemplates = object.resourceTemplates?.map((e) => McpResourceTemplate.fromPartial(e)) || [];
-    message.metadata = Object.entries(object.metadata ?? {}).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = globalThis.String(value);
-      }
-      return acc;
-    }, {});
-    message.createdAt = (object.createdAt !== undefined && object.createdAt !== null)
-      ? Long.fromValue(object.createdAt)
-      : Long.ZERO;
-    message.updatedAt = (object.updatedAt !== undefined && object.updatedAt !== null)
-      ? Long.fromValue(object.updatedAt)
-      : Long.ZERO;
-    message.lastDiscoveryAt = (object.lastDiscoveryAt !== undefined && object.lastDiscoveryAt !== null)
-      ? Long.fromValue(object.lastDiscoveryAt)
-      : undefined;
+    message.mcpServer =
+      object.mcpServer !== undefined && object.mcpServer !== null
+        ? McpParticipant.fromPartial(object.mcpServer)
+        : undefined;
+    message.tools = object.tools?.map(e => McpTool.fromPartial(e)) || [];
+    message.prompts = object.prompts?.map(e => McpPrompt.fromPartial(e)) || [];
+    message.resources = object.resources?.map(e => McpResource.fromPartial(e)) || [];
+    message.resourceTemplates =
+      object.resourceTemplates?.map(e => McpResourceTemplate.fromPartial(e)) || [];
+    message.metadata = Object.entries(object.metadata ?? {}).reduce<{ [key: string]: string }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = globalThis.String(value);
+        }
+        return acc;
+      },
+      {}
+    );
+    message.createdAt =
+      object.createdAt !== undefined && object.createdAt !== null
+        ? Long.fromValue(object.createdAt)
+        : Long.ZERO;
+    message.updatedAt =
+      object.updatedAt !== undefined && object.updatedAt !== null
+        ? Long.fromValue(object.updatedAt)
+        : Long.ZERO;
+    message.lastDiscoveryAt =
+      object.lastDiscoveryAt !== undefined && object.lastDiscoveryAt !== null
+        ? Long.fromValue(object.lastDiscoveryAt)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseEngineServer_MetadataEntry(): EngineServer_MetadataEntry {
-  return { key: "", value: "" };
+  return { key: '', value: '' };
 }
 
 export const EngineServer_MetadataEntry: MessageFns<EngineServer_MetadataEntry> = {
-  encode(message: EngineServer_MetadataEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.key !== "") {
+  encode(
+    message: EngineServer_MetadataEntry,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
-    if (message.value !== "") {
+    if (message.value !== '') {
       writer.uint32(18).string(message.value);
     }
     return writer;
@@ -5128,17 +5453,17 @@ export const EngineServer_MetadataEntry: MessageFns<EngineServer_MetadataEntry> 
 
   fromJSON(object: any): EngineServer_MetadataEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
-      value: isSet(object.value) ? globalThis.String(object.value) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
+      value: isSet(object.value) ? globalThis.String(object.value) : ''
     };
   },
 
   toJSON(message: EngineServer_MetadataEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
-    if (message.value !== "") {
+    if (message.value !== '') {
       obj.value = message.value;
     }
     return obj;
@@ -5149,22 +5474,22 @@ export const EngineServer_MetadataEntry: MessageFns<EngineServer_MetadataEntry> 
   },
   fromPartial(object: DeepPartial<EngineServer_MetadataEntry>): EngineServer_MetadataEntry {
     const message = createBaseEngineServer_MetadataEntry();
-    message.key = object.key ?? "";
-    message.value = object.value ?? "";
+    message.key = object.key ?? '';
+    message.value = object.value ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseListPagination(): ListPagination {
-  return { afterId: "", beforeId: "", limit: 0, order: 0 };
+  return { afterId: '', beforeId: '', limit: 0, order: 0 };
 }
 
 export const ListPagination: MessageFns<ListPagination> = {
   encode(message: ListPagination, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.afterId !== "") {
+    if (message.afterId !== '') {
       writer.uint32(10).string(message.afterId);
     }
-    if (message.beforeId !== "") {
+    if (message.beforeId !== '') {
       writer.uint32(18).string(message.beforeId);
     }
     if (message.limit !== 0) {
@@ -5226,19 +5551,19 @@ export const ListPagination: MessageFns<ListPagination> = {
 
   fromJSON(object: any): ListPagination {
     return {
-      afterId: isSet(object.afterId) ? globalThis.String(object.afterId) : "",
-      beforeId: isSet(object.beforeId) ? globalThis.String(object.beforeId) : "",
+      afterId: isSet(object.afterId) ? globalThis.String(object.afterId) : '',
+      beforeId: isSet(object.beforeId) ? globalThis.String(object.beforeId) : '',
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
-      order: isSet(object.order) ? listPaginationOrderFromJSON(object.order) : 0,
+      order: isSet(object.order) ? listPaginationOrderFromJSON(object.order) : 0
     };
   },
 
   toJSON(message: ListPagination): unknown {
     const obj: any = {};
-    if (message.afterId !== "") {
+    if (message.afterId !== '') {
       obj.afterId = message.afterId;
     }
-    if (message.beforeId !== "") {
+    if (message.beforeId !== '') {
       obj.beforeId = message.beforeId;
     }
     if (message.limit !== 0) {
@@ -5255,21 +5580,24 @@ export const ListPagination: MessageFns<ListPagination> = {
   },
   fromPartial(object: DeepPartial<ListPagination>): ListPagination {
     const message = createBaseListPagination();
-    message.afterId = object.afterId ?? "";
-    message.beforeId = object.beforeId ?? "";
+    message.afterId = object.afterId ?? '';
+    message.beforeId = object.beforeId ?? '';
     message.limit = object.limit ?? 0;
     message.order = object.order ?? 0;
     return message;
-  },
+  }
 };
 
 function createBaseListSessionsRequest(): ListSessionsRequest {
-  return { externalId: "", pagination: undefined };
+  return { externalId: '', pagination: undefined };
 }
 
 export const ListSessionsRequest: MessageFns<ListSessionsRequest> = {
-  encode(message: ListSessionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.externalId !== "") {
+  encode(
+    message: ListSessionsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.externalId !== '') {
       writer.uint32(10).string(message.externalId);
     }
     if (message.pagination !== undefined) {
@@ -5312,14 +5640,16 @@ export const ListSessionsRequest: MessageFns<ListSessionsRequest> = {
 
   fromJSON(object: any): ListSessionsRequest {
     return {
-      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : "",
-      pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
+      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : '',
+      pagination: isSet(object.pagination)
+        ? ListPagination.fromJSON(object.pagination)
+        : undefined
     };
   },
 
   toJSON(message: ListSessionsRequest): unknown {
     const obj: any = {};
-    if (message.externalId !== "") {
+    if (message.externalId !== '') {
       obj.externalId = message.externalId;
     }
     if (message.pagination !== undefined) {
@@ -5333,12 +5663,13 @@ export const ListSessionsRequest: MessageFns<ListSessionsRequest> = {
   },
   fromPartial(object: DeepPartial<ListSessionsRequest>): ListSessionsRequest {
     const message = createBaseListSessionsRequest();
-    message.externalId = object.externalId ?? "";
-    message.pagination = (object.pagination !== undefined && object.pagination !== null)
-      ? ListPagination.fromPartial(object.pagination)
-      : undefined;
+    message.externalId = object.externalId ?? '';
+    message.pagination =
+      object.pagination !== undefined && object.pagination !== null
+        ? ListPagination.fromPartial(object.pagination)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseListSessionsResponse(): ListSessionsResponse {
@@ -5346,7 +5677,10 @@ function createBaseListSessionsResponse(): ListSessionsResponse {
 }
 
 export const ListSessionsResponse: MessageFns<ListSessionsResponse> = {
-  encode(message: ListSessionsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListSessionsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.sessions) {
       EngineSession.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -5381,14 +5715,14 @@ export const ListSessionsResponse: MessageFns<ListSessionsResponse> = {
     return {
       sessions: globalThis.Array.isArray(object?.sessions)
         ? object.sessions.map((e: any) => EngineSession.fromJSON(e))
-        : [],
+        : []
     };
   },
 
   toJSON(message: ListSessionsResponse): unknown {
     const obj: any = {};
     if (message.sessions?.length) {
-      obj.sessions = message.sessions.map((e) => EngineSession.toJSON(e));
+      obj.sessions = message.sessions.map(e => EngineSession.toJSON(e));
     }
     return obj;
   },
@@ -5398,18 +5732,18 @@ export const ListSessionsResponse: MessageFns<ListSessionsResponse> = {
   },
   fromPartial(object: DeepPartial<ListSessionsResponse>): ListSessionsResponse {
     const message = createBaseListSessionsResponse();
-    message.sessions = object.sessions?.map((e) => EngineSession.fromPartial(e)) || [];
+    message.sessions = object.sessions?.map(e => EngineSession.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseGetSessionRequest(): GetSessionRequest {
-  return { sessionId: "" };
+  return { sessionId: '' };
 }
 
 export const GetSessionRequest: MessageFns<GetSessionRequest> = {
   encode(message: GetSessionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     return writer;
@@ -5440,12 +5774,12 @@ export const GetSessionRequest: MessageFns<GetSessionRequest> = {
   },
 
   fromJSON(object: any): GetSessionRequest {
-    return { sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "" };
+    return { sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '' };
   },
 
   toJSON(message: GetSessionRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     return obj;
@@ -5456,9 +5790,9 @@ export const GetSessionRequest: MessageFns<GetSessionRequest> = {
   },
   fromPartial(object: DeepPartial<GetSessionRequest>): GetSessionRequest {
     const message = createBaseGetSessionRequest();
-    message.sessionId = object.sessionId ?? "";
+    message.sessionId = object.sessionId ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseGetSessionResponse(): GetSessionResponse {
@@ -5466,7 +5800,10 @@ function createBaseGetSessionResponse(): GetSessionResponse {
 }
 
 export const GetSessionResponse: MessageFns<GetSessionResponse> = {
-  encode(message: GetSessionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: GetSessionResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.session !== undefined) {
       EngineSession.encode(message.session, writer.uint32(10).fork()).join();
     }
@@ -5498,7 +5835,9 @@ export const GetSessionResponse: MessageFns<GetSessionResponse> = {
   },
 
   fromJSON(object: any): GetSessionResponse {
-    return { session: isSet(object.session) ? EngineSession.fromJSON(object.session) : undefined };
+    return {
+      session: isSet(object.session) ? EngineSession.fromJSON(object.session) : undefined
+    };
   },
 
   toJSON(message: GetSessionResponse): unknown {
@@ -5514,20 +5853,21 @@ export const GetSessionResponse: MessageFns<GetSessionResponse> = {
   },
   fromPartial(object: DeepPartial<GetSessionResponse>): GetSessionResponse {
     const message = createBaseGetSessionResponse();
-    message.session = (object.session !== undefined && object.session !== null)
-      ? EngineSession.fromPartial(object.session)
-      : undefined;
+    message.session =
+      object.session !== undefined && object.session !== null
+        ? EngineSession.fromPartial(object.session)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseListRunsRequest(): ListRunsRequest {
-  return { sessionId: "", pagination: undefined, after: undefined };
+  return { sessionId: '', pagination: undefined, after: undefined };
 }
 
 export const ListRunsRequest: MessageFns<ListRunsRequest> = {
   encode(message: ListRunsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     if (message.pagination !== undefined) {
@@ -5581,15 +5921,17 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
 
   fromJSON(object: any): ListRunsRequest {
     return {
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
-      pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
+      pagination: isSet(object.pagination)
+        ? ListPagination.fromJSON(object.pagination)
+        : undefined,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined
     };
   },
 
   toJSON(message: ListRunsRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     if (message.pagination !== undefined) {
@@ -5606,13 +5948,17 @@ export const ListRunsRequest: MessageFns<ListRunsRequest> = {
   },
   fromPartial(object: DeepPartial<ListRunsRequest>): ListRunsRequest {
     const message = createBaseListRunsRequest();
-    message.sessionId = object.sessionId ?? "";
-    message.pagination = (object.pagination !== undefined && object.pagination !== null)
-      ? ListPagination.fromPartial(object.pagination)
-      : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
+    message.sessionId = object.sessionId ?? '';
+    message.pagination =
+      object.pagination !== undefined && object.pagination !== null
+        ? ListPagination.fromPartial(object.pagination)
+        : undefined;
+    message.after =
+      object.after !== undefined && object.after !== null
+        ? Long.fromValue(object.after)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseListRunsResponse(): ListRunsResponse {
@@ -5653,14 +5999,16 @@ export const ListRunsResponse: MessageFns<ListRunsResponse> = {
 
   fromJSON(object: any): ListRunsResponse {
     return {
-      runs: globalThis.Array.isArray(object?.runs) ? object.runs.map((e: any) => EngineSessionRun.fromJSON(e)) : [],
+      runs: globalThis.Array.isArray(object?.runs)
+        ? object.runs.map((e: any) => EngineSessionRun.fromJSON(e))
+        : []
     };
   },
 
   toJSON(message: ListRunsResponse): unknown {
     const obj: any = {};
     if (message.runs?.length) {
-      obj.runs = message.runs.map((e) => EngineSessionRun.toJSON(e));
+      obj.runs = message.runs.map(e => EngineSessionRun.toJSON(e));
     }
     return obj;
   },
@@ -5670,18 +6018,18 @@ export const ListRunsResponse: MessageFns<ListRunsResponse> = {
   },
   fromPartial(object: DeepPartial<ListRunsResponse>): ListRunsResponse {
     const message = createBaseListRunsResponse();
-    message.runs = object.runs?.map((e) => EngineSessionRun.fromPartial(e)) || [];
+    message.runs = object.runs?.map(e => EngineSessionRun.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseGetRunRequest(): GetRunRequest {
-  return { runId: "" };
+  return { runId: '' };
 }
 
 export const GetRunRequest: MessageFns<GetRunRequest> = {
   encode(message: GetRunRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.runId !== "") {
+    if (message.runId !== '') {
       writer.uint32(10).string(message.runId);
     }
     return writer;
@@ -5712,12 +6060,12 @@ export const GetRunRequest: MessageFns<GetRunRequest> = {
   },
 
   fromJSON(object: any): GetRunRequest {
-    return { runId: isSet(object.runId) ? globalThis.String(object.runId) : "" };
+    return { runId: isSet(object.runId) ? globalThis.String(object.runId) : '' };
   },
 
   toJSON(message: GetRunRequest): unknown {
     const obj: any = {};
-    if (message.runId !== "") {
+    if (message.runId !== '') {
       obj.runId = message.runId;
     }
     return obj;
@@ -5728,9 +6076,9 @@ export const GetRunRequest: MessageFns<GetRunRequest> = {
   },
   fromPartial(object: DeepPartial<GetRunRequest>): GetRunRequest {
     const message = createBaseGetRunRequest();
-    message.runId = object.runId ?? "";
+    message.runId = object.runId ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseGetRunResponse(): GetRunResponse {
@@ -5786,20 +6134,21 @@ export const GetRunResponse: MessageFns<GetRunResponse> = {
   },
   fromPartial(object: DeepPartial<GetRunResponse>): GetRunResponse {
     const message = createBaseGetRunResponse();
-    message.run = (object.run !== undefined && object.run !== null)
-      ? EngineSessionRun.fromPartial(object.run)
-      : undefined;
+    message.run =
+      object.run !== undefined && object.run !== null
+        ? EngineSessionRun.fromPartial(object.run)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseGetErrorRequest(): GetErrorRequest {
-  return { errorId: "" };
+  return { errorId: '' };
 }
 
 export const GetErrorRequest: MessageFns<GetErrorRequest> = {
   encode(message: GetErrorRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.errorId !== "") {
+    if (message.errorId !== '') {
       writer.uint32(18).string(message.errorId);
     }
     return writer;
@@ -5830,12 +6179,12 @@ export const GetErrorRequest: MessageFns<GetErrorRequest> = {
   },
 
   fromJSON(object: any): GetErrorRequest {
-    return { errorId: isSet(object.errorId) ? globalThis.String(object.errorId) : "" };
+    return { errorId: isSet(object.errorId) ? globalThis.String(object.errorId) : '' };
   },
 
   toJSON(message: GetErrorRequest): unknown {
     const obj: any = {};
-    if (message.errorId !== "") {
+    if (message.errorId !== '') {
       obj.errorId = message.errorId;
     }
     return obj;
@@ -5846,9 +6195,9 @@ export const GetErrorRequest: MessageFns<GetErrorRequest> = {
   },
   fromPartial(object: DeepPartial<GetErrorRequest>): GetErrorRequest {
     const message = createBaseGetErrorRequest();
-    message.errorId = object.errorId ?? "";
+    message.errorId = object.errorId ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseGetErrorResponse(): GetErrorResponse {
@@ -5888,7 +6237,9 @@ export const GetErrorResponse: MessageFns<GetErrorResponse> = {
   },
 
   fromJSON(object: any): GetErrorResponse {
-    return { error: isSet(object.error) ? EngineSessionError.fromJSON(object.error) : undefined };
+    return {
+      error: isSet(object.error) ? EngineSessionError.fromJSON(object.error) : undefined
+    };
   },
 
   toJSON(message: GetErrorResponse): unknown {
@@ -5904,20 +6255,21 @@ export const GetErrorResponse: MessageFns<GetErrorResponse> = {
   },
   fromPartial(object: DeepPartial<GetErrorResponse>): GetErrorResponse {
     const message = createBaseGetErrorResponse();
-    message.error = (object.error !== undefined && object.error !== null)
-      ? EngineSessionError.fromPartial(object.error)
-      : undefined;
+    message.error =
+      object.error !== undefined && object.error !== null
+        ? EngineSessionError.fromPartial(object.error)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseGetEventRequest(): GetEventRequest {
-  return { eventId: "" };
+  return { eventId: '' };
 }
 
 export const GetEventRequest: MessageFns<GetEventRequest> = {
   encode(message: GetEventRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.eventId !== "") {
+    if (message.eventId !== '') {
       writer.uint32(10).string(message.eventId);
     }
     return writer;
@@ -5948,12 +6300,12 @@ export const GetEventRequest: MessageFns<GetEventRequest> = {
   },
 
   fromJSON(object: any): GetEventRequest {
-    return { eventId: isSet(object.eventId) ? globalThis.String(object.eventId) : "" };
+    return { eventId: isSet(object.eventId) ? globalThis.String(object.eventId) : '' };
   },
 
   toJSON(message: GetEventRequest): unknown {
     const obj: any = {};
-    if (message.eventId !== "") {
+    if (message.eventId !== '') {
       obj.eventId = message.eventId;
     }
     return obj;
@@ -5964,9 +6316,9 @@ export const GetEventRequest: MessageFns<GetEventRequest> = {
   },
   fromPartial(object: DeepPartial<GetEventRequest>): GetEventRequest {
     const message = createBaseGetEventRequest();
-    message.eventId = object.eventId ?? "";
+    message.eventId = object.eventId ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseGetEventResponse(): GetEventResponse {
@@ -6006,7 +6358,9 @@ export const GetEventResponse: MessageFns<GetEventResponse> = {
   },
 
   fromJSON(object: any): GetEventResponse {
-    return { event: isSet(object.event) ? EngineSessionEvent.fromJSON(object.event) : undefined };
+    return {
+      event: isSet(object.event) ? EngineSessionEvent.fromJSON(object.event) : undefined
+    };
   },
 
   toJSON(message: GetEventResponse): unknown {
@@ -6022,20 +6376,21 @@ export const GetEventResponse: MessageFns<GetEventResponse> = {
   },
   fromPartial(object: DeepPartial<GetEventResponse>): GetEventResponse {
     const message = createBaseGetEventResponse();
-    message.event = (object.event !== undefined && object.event !== null)
-      ? EngineSessionEvent.fromPartial(object.event)
-      : undefined;
+    message.event =
+      object.event !== undefined && object.event !== null
+        ? EngineSessionEvent.fromPartial(object.event)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseGetMessageRequest(): GetMessageRequest {
-  return { messageId: "" };
+  return { messageId: '' };
 }
 
 export const GetMessageRequest: MessageFns<GetMessageRequest> = {
   encode(message: GetMessageRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.messageId !== "") {
+    if (message.messageId !== '') {
       writer.uint32(10).string(message.messageId);
     }
     return writer;
@@ -6066,12 +6421,12 @@ export const GetMessageRequest: MessageFns<GetMessageRequest> = {
   },
 
   fromJSON(object: any): GetMessageRequest {
-    return { messageId: isSet(object.messageId) ? globalThis.String(object.messageId) : "" };
+    return { messageId: isSet(object.messageId) ? globalThis.String(object.messageId) : '' };
   },
 
   toJSON(message: GetMessageRequest): unknown {
     const obj: any = {};
-    if (message.messageId !== "") {
+    if (message.messageId !== '') {
       obj.messageId = message.messageId;
     }
     return obj;
@@ -6082,9 +6437,9 @@ export const GetMessageRequest: MessageFns<GetMessageRequest> = {
   },
   fromPartial(object: DeepPartial<GetMessageRequest>): GetMessageRequest {
     const message = createBaseGetMessageRequest();
-    message.messageId = object.messageId ?? "";
+    message.messageId = object.messageId ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseGetMessageResponse(): GetMessageResponse {
@@ -6092,7 +6447,10 @@ function createBaseGetMessageResponse(): GetMessageResponse {
 }
 
 export const GetMessageResponse: MessageFns<GetMessageResponse> = {
-  encode(message: GetMessageResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: GetMessageResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.message !== undefined) {
       EngineSessionMessage.encode(message.message, writer.uint32(10).fork()).join();
     }
@@ -6124,7 +6482,11 @@ export const GetMessageResponse: MessageFns<GetMessageResponse> = {
   },
 
   fromJSON(object: any): GetMessageResponse {
-    return { message: isSet(object.message) ? EngineSessionMessage.fromJSON(object.message) : undefined };
+    return {
+      message: isSet(object.message)
+        ? EngineSessionMessage.fromJSON(object.message)
+        : undefined
+    };
   },
 
   toJSON(message: GetMessageResponse): unknown {
@@ -6140,20 +6502,24 @@ export const GetMessageResponse: MessageFns<GetMessageResponse> = {
   },
   fromPartial(object: DeepPartial<GetMessageResponse>): GetMessageResponse {
     const message = createBaseGetMessageResponse();
-    message.message = (object.message !== undefined && object.message !== null)
-      ? EngineSessionMessage.fromPartial(object.message)
-      : undefined;
+    message.message =
+      object.message !== undefined && object.message !== null
+        ? EngineSessionMessage.fromPartial(object.message)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseListRunErrorsRequest(): ListRunErrorsRequest {
-  return { runId: "", pagination: undefined, after: undefined };
+  return { runId: '', pagination: undefined, after: undefined };
 }
 
 export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
-  encode(message: ListRunErrorsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.runId !== "") {
+  encode(
+    message: ListRunErrorsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.runId !== '') {
       writer.uint32(10).string(message.runId);
     }
     if (message.pagination !== undefined) {
@@ -6207,15 +6573,17 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
 
   fromJSON(object: any): ListRunErrorsRequest {
     return {
-      runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
-      pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
+      runId: isSet(object.runId) ? globalThis.String(object.runId) : '',
+      pagination: isSet(object.pagination)
+        ? ListPagination.fromJSON(object.pagination)
+        : undefined,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined
     };
   },
 
   toJSON(message: ListRunErrorsRequest): unknown {
     const obj: any = {};
-    if (message.runId !== "") {
+    if (message.runId !== '') {
       obj.runId = message.runId;
     }
     if (message.pagination !== undefined) {
@@ -6232,13 +6600,17 @@ export const ListRunErrorsRequest: MessageFns<ListRunErrorsRequest> = {
   },
   fromPartial(object: DeepPartial<ListRunErrorsRequest>): ListRunErrorsRequest {
     const message = createBaseListRunErrorsRequest();
-    message.runId = object.runId ?? "";
-    message.pagination = (object.pagination !== undefined && object.pagination !== null)
-      ? ListPagination.fromPartial(object.pagination)
-      : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
+    message.runId = object.runId ?? '';
+    message.pagination =
+      object.pagination !== undefined && object.pagination !== null
+        ? ListPagination.fromPartial(object.pagination)
+        : undefined;
+    message.after =
+      object.after !== undefined && object.after !== null
+        ? Long.fromValue(object.after)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseListRunErrorsResponse(): ListRunErrorsResponse {
@@ -6246,7 +6618,10 @@ function createBaseListRunErrorsResponse(): ListRunErrorsResponse {
 }
 
 export const ListRunErrorsResponse: MessageFns<ListRunErrorsResponse> = {
-  encode(message: ListRunErrorsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListRunErrorsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.errors) {
       EngineSessionError.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -6281,14 +6656,14 @@ export const ListRunErrorsResponse: MessageFns<ListRunErrorsResponse> = {
     return {
       errors: globalThis.Array.isArray(object?.errors)
         ? object.errors.map((e: any) => EngineSessionError.fromJSON(e))
-        : [],
+        : []
     };
   },
 
   toJSON(message: ListRunErrorsResponse): unknown {
     const obj: any = {};
     if (message.errors?.length) {
-      obj.errors = message.errors.map((e) => EngineSessionError.toJSON(e));
+      obj.errors = message.errors.map(e => EngineSessionError.toJSON(e));
     }
     return obj;
   },
@@ -6298,18 +6673,21 @@ export const ListRunErrorsResponse: MessageFns<ListRunErrorsResponse> = {
   },
   fromPartial(object: DeepPartial<ListRunErrorsResponse>): ListRunErrorsResponse {
     const message = createBaseListRunErrorsResponse();
-    message.errors = object.errors?.map((e) => EngineSessionError.fromPartial(e)) || [];
+    message.errors = object.errors?.map(e => EngineSessionError.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseListRunEventsRequest(): ListRunEventsRequest {
-  return { runId: "", pagination: undefined, after: undefined };
+  return { runId: '', pagination: undefined, after: undefined };
 }
 
 export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
-  encode(message: ListRunEventsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.runId !== "") {
+  encode(
+    message: ListRunEventsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.runId !== '') {
       writer.uint32(10).string(message.runId);
     }
     if (message.pagination !== undefined) {
@@ -6363,15 +6741,17 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
 
   fromJSON(object: any): ListRunEventsRequest {
     return {
-      runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
-      pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
+      runId: isSet(object.runId) ? globalThis.String(object.runId) : '',
+      pagination: isSet(object.pagination)
+        ? ListPagination.fromJSON(object.pagination)
+        : undefined,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined
     };
   },
 
   toJSON(message: ListRunEventsRequest): unknown {
     const obj: any = {};
-    if (message.runId !== "") {
+    if (message.runId !== '') {
       obj.runId = message.runId;
     }
     if (message.pagination !== undefined) {
@@ -6388,13 +6768,17 @@ export const ListRunEventsRequest: MessageFns<ListRunEventsRequest> = {
   },
   fromPartial(object: DeepPartial<ListRunEventsRequest>): ListRunEventsRequest {
     const message = createBaseListRunEventsRequest();
-    message.runId = object.runId ?? "";
-    message.pagination = (object.pagination !== undefined && object.pagination !== null)
-      ? ListPagination.fromPartial(object.pagination)
-      : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
+    message.runId = object.runId ?? '';
+    message.pagination =
+      object.pagination !== undefined && object.pagination !== null
+        ? ListPagination.fromPartial(object.pagination)
+        : undefined;
+    message.after =
+      object.after !== undefined && object.after !== null
+        ? Long.fromValue(object.after)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseListRunEventsResponse(): ListRunEventsResponse {
@@ -6402,7 +6786,10 @@ function createBaseListRunEventsResponse(): ListRunEventsResponse {
 }
 
 export const ListRunEventsResponse: MessageFns<ListRunEventsResponse> = {
-  encode(message: ListRunEventsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListRunEventsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.events) {
       EngineSessionEvent.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -6437,14 +6824,14 @@ export const ListRunEventsResponse: MessageFns<ListRunEventsResponse> = {
     return {
       events: globalThis.Array.isArray(object?.events)
         ? object.events.map((e: any) => EngineSessionEvent.fromJSON(e))
-        : [],
+        : []
     };
   },
 
   toJSON(message: ListRunEventsResponse): unknown {
     const obj: any = {};
     if (message.events?.length) {
-      obj.events = message.events.map((e) => EngineSessionEvent.toJSON(e));
+      obj.events = message.events.map(e => EngineSessionEvent.toJSON(e));
     }
     return obj;
   },
@@ -6454,18 +6841,21 @@ export const ListRunEventsResponse: MessageFns<ListRunEventsResponse> = {
   },
   fromPartial(object: DeepPartial<ListRunEventsResponse>): ListRunEventsResponse {
     const message = createBaseListRunEventsResponse();
-    message.events = object.events?.map((e) => EngineSessionEvent.fromPartial(e)) || [];
+    message.events = object.events?.map(e => EngineSessionEvent.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseListRunMessagesRequest(): ListRunMessagesRequest {
-  return { runId: "", pagination: undefined, after: undefined };
+  return { runId: '', pagination: undefined, after: undefined };
 }
 
 export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
-  encode(message: ListRunMessagesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.runId !== "") {
+  encode(
+    message: ListRunMessagesRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.runId !== '') {
       writer.uint32(10).string(message.runId);
     }
     if (message.pagination !== undefined) {
@@ -6519,15 +6909,17 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
 
   fromJSON(object: any): ListRunMessagesRequest {
     return {
-      runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
-      pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
+      runId: isSet(object.runId) ? globalThis.String(object.runId) : '',
+      pagination: isSet(object.pagination)
+        ? ListPagination.fromJSON(object.pagination)
+        : undefined,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined
     };
   },
 
   toJSON(message: ListRunMessagesRequest): unknown {
     const obj: any = {};
-    if (message.runId !== "") {
+    if (message.runId !== '') {
       obj.runId = message.runId;
     }
     if (message.pagination !== undefined) {
@@ -6544,13 +6936,17 @@ export const ListRunMessagesRequest: MessageFns<ListRunMessagesRequest> = {
   },
   fromPartial(object: DeepPartial<ListRunMessagesRequest>): ListRunMessagesRequest {
     const message = createBaseListRunMessagesRequest();
-    message.runId = object.runId ?? "";
-    message.pagination = (object.pagination !== undefined && object.pagination !== null)
-      ? ListPagination.fromPartial(object.pagination)
-      : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
+    message.runId = object.runId ?? '';
+    message.pagination =
+      object.pagination !== undefined && object.pagination !== null
+        ? ListPagination.fromPartial(object.pagination)
+        : undefined;
+    message.after =
+      object.after !== undefined && object.after !== null
+        ? Long.fromValue(object.after)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseListRunMessagesResponse(): ListRunMessagesResponse {
@@ -6558,7 +6954,10 @@ function createBaseListRunMessagesResponse(): ListRunMessagesResponse {
 }
 
 export const ListRunMessagesResponse: MessageFns<ListRunMessagesResponse> = {
-  encode(message: ListRunMessagesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListRunMessagesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.messages) {
       EngineSessionMessage.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -6593,14 +6992,14 @@ export const ListRunMessagesResponse: MessageFns<ListRunMessagesResponse> = {
     return {
       messages: globalThis.Array.isArray(object?.messages)
         ? object.messages.map((e: any) => EngineSessionMessage.fromJSON(e))
-        : [],
+        : []
     };
   },
 
   toJSON(message: ListRunMessagesResponse): unknown {
     const obj: any = {};
     if (message.messages?.length) {
-      obj.messages = message.messages.map((e) => EngineSessionMessage.toJSON(e));
+      obj.messages = message.messages.map(e => EngineSessionMessage.toJSON(e));
     }
     return obj;
   },
@@ -6610,18 +7009,21 @@ export const ListRunMessagesResponse: MessageFns<ListRunMessagesResponse> = {
   },
   fromPartial(object: DeepPartial<ListRunMessagesResponse>): ListRunMessagesResponse {
     const message = createBaseListRunMessagesResponse();
-    message.messages = object.messages?.map((e) => EngineSessionMessage.fromPartial(e)) || [];
+    message.messages = object.messages?.map(e => EngineSessionMessage.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseListSessionEventsRequest(): ListSessionEventsRequest {
-  return { sessionId: "", pagination: undefined, after: undefined };
+  return { sessionId: '', pagination: undefined, after: undefined };
 }
 
 export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
-  encode(message: ListSessionEventsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+  encode(
+    message: ListSessionEventsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     if (message.pagination !== undefined) {
@@ -6675,15 +7077,17 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
 
   fromJSON(object: any): ListSessionEventsRequest {
     return {
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
-      pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
+      pagination: isSet(object.pagination)
+        ? ListPagination.fromJSON(object.pagination)
+        : undefined,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined
     };
   },
 
   toJSON(message: ListSessionEventsRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     if (message.pagination !== undefined) {
@@ -6700,13 +7104,17 @@ export const ListSessionEventsRequest: MessageFns<ListSessionEventsRequest> = {
   },
   fromPartial(object: DeepPartial<ListSessionEventsRequest>): ListSessionEventsRequest {
     const message = createBaseListSessionEventsRequest();
-    message.sessionId = object.sessionId ?? "";
-    message.pagination = (object.pagination !== undefined && object.pagination !== null)
-      ? ListPagination.fromPartial(object.pagination)
-      : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
+    message.sessionId = object.sessionId ?? '';
+    message.pagination =
+      object.pagination !== undefined && object.pagination !== null
+        ? ListPagination.fromPartial(object.pagination)
+        : undefined;
+    message.after =
+      object.after !== undefined && object.after !== null
+        ? Long.fromValue(object.after)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseListSessionEventsResponse(): ListSessionEventsResponse {
@@ -6714,7 +7122,10 @@ function createBaseListSessionEventsResponse(): ListSessionEventsResponse {
 }
 
 export const ListSessionEventsResponse: MessageFns<ListSessionEventsResponse> = {
-  encode(message: ListSessionEventsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListSessionEventsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.events) {
       EngineSessionEvent.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -6749,14 +7160,14 @@ export const ListSessionEventsResponse: MessageFns<ListSessionEventsResponse> = 
     return {
       events: globalThis.Array.isArray(object?.events)
         ? object.events.map((e: any) => EngineSessionEvent.fromJSON(e))
-        : [],
+        : []
     };
   },
 
   toJSON(message: ListSessionEventsResponse): unknown {
     const obj: any = {};
     if (message.events?.length) {
-      obj.events = message.events.map((e) => EngineSessionEvent.toJSON(e));
+      obj.events = message.events.map(e => EngineSessionEvent.toJSON(e));
     }
     return obj;
   },
@@ -6766,18 +7177,21 @@ export const ListSessionEventsResponse: MessageFns<ListSessionEventsResponse> = 
   },
   fromPartial(object: DeepPartial<ListSessionEventsResponse>): ListSessionEventsResponse {
     const message = createBaseListSessionEventsResponse();
-    message.events = object.events?.map((e) => EngineSessionEvent.fromPartial(e)) || [];
+    message.events = object.events?.map(e => EngineSessionEvent.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseListSessionErrorsRequest(): ListSessionErrorsRequest {
-  return { sessionId: "", pagination: undefined, after: undefined };
+  return { sessionId: '', pagination: undefined, after: undefined };
 }
 
 export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
-  encode(message: ListSessionErrorsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+  encode(
+    message: ListSessionErrorsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     if (message.pagination !== undefined) {
@@ -6831,15 +7245,17 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
 
   fromJSON(object: any): ListSessionErrorsRequest {
     return {
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
-      pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
+      pagination: isSet(object.pagination)
+        ? ListPagination.fromJSON(object.pagination)
+        : undefined,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined
     };
   },
 
   toJSON(message: ListSessionErrorsRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     if (message.pagination !== undefined) {
@@ -6856,13 +7272,17 @@ export const ListSessionErrorsRequest: MessageFns<ListSessionErrorsRequest> = {
   },
   fromPartial(object: DeepPartial<ListSessionErrorsRequest>): ListSessionErrorsRequest {
     const message = createBaseListSessionErrorsRequest();
-    message.sessionId = object.sessionId ?? "";
-    message.pagination = (object.pagination !== undefined && object.pagination !== null)
-      ? ListPagination.fromPartial(object.pagination)
-      : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
+    message.sessionId = object.sessionId ?? '';
+    message.pagination =
+      object.pagination !== undefined && object.pagination !== null
+        ? ListPagination.fromPartial(object.pagination)
+        : undefined;
+    message.after =
+      object.after !== undefined && object.after !== null
+        ? Long.fromValue(object.after)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseListSessionErrorsResponse(): ListSessionErrorsResponse {
@@ -6870,7 +7290,10 @@ function createBaseListSessionErrorsResponse(): ListSessionErrorsResponse {
 }
 
 export const ListSessionErrorsResponse: MessageFns<ListSessionErrorsResponse> = {
-  encode(message: ListSessionErrorsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListSessionErrorsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.errors) {
       EngineSessionError.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -6905,14 +7328,14 @@ export const ListSessionErrorsResponse: MessageFns<ListSessionErrorsResponse> = 
     return {
       errors: globalThis.Array.isArray(object?.errors)
         ? object.errors.map((e: any) => EngineSessionError.fromJSON(e))
-        : [],
+        : []
     };
   },
 
   toJSON(message: ListSessionErrorsResponse): unknown {
     const obj: any = {};
     if (message.errors?.length) {
-      obj.errors = message.errors.map((e) => EngineSessionError.toJSON(e));
+      obj.errors = message.errors.map(e => EngineSessionError.toJSON(e));
     }
     return obj;
   },
@@ -6922,18 +7345,21 @@ export const ListSessionErrorsResponse: MessageFns<ListSessionErrorsResponse> = 
   },
   fromPartial(object: DeepPartial<ListSessionErrorsResponse>): ListSessionErrorsResponse {
     const message = createBaseListSessionErrorsResponse();
-    message.errors = object.errors?.map((e) => EngineSessionError.fromPartial(e)) || [];
+    message.errors = object.errors?.map(e => EngineSessionError.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseListSessionMessagesRequest(): ListSessionMessagesRequest {
-  return { sessionId: "", pagination: undefined, after: undefined };
+  return { sessionId: '', pagination: undefined, after: undefined };
 }
 
 export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> = {
-  encode(message: ListSessionMessagesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+  encode(
+    message: ListSessionMessagesRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     if (message.pagination !== undefined) {
@@ -6987,15 +7413,17 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
 
   fromJSON(object: any): ListSessionMessagesRequest {
     return {
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
-      pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined,
-      after: isSet(object.after) ? Long.fromValue(object.after) : undefined,
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
+      pagination: isSet(object.pagination)
+        ? ListPagination.fromJSON(object.pagination)
+        : undefined,
+      after: isSet(object.after) ? Long.fromValue(object.after) : undefined
     };
   },
 
   toJSON(message: ListSessionMessagesRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     if (message.pagination !== undefined) {
@@ -7012,13 +7440,17 @@ export const ListSessionMessagesRequest: MessageFns<ListSessionMessagesRequest> 
   },
   fromPartial(object: DeepPartial<ListSessionMessagesRequest>): ListSessionMessagesRequest {
     const message = createBaseListSessionMessagesRequest();
-    message.sessionId = object.sessionId ?? "";
-    message.pagination = (object.pagination !== undefined && object.pagination !== null)
-      ? ListPagination.fromPartial(object.pagination)
-      : undefined;
-    message.after = (object.after !== undefined && object.after !== null) ? Long.fromValue(object.after) : undefined;
+    message.sessionId = object.sessionId ?? '';
+    message.pagination =
+      object.pagination !== undefined && object.pagination !== null
+        ? ListPagination.fromPartial(object.pagination)
+        : undefined;
+    message.after =
+      object.after !== undefined && object.after !== null
+        ? Long.fromValue(object.after)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseListSessionMessagesResponse(): ListSessionMessagesResponse {
@@ -7026,7 +7458,10 @@ function createBaseListSessionMessagesResponse(): ListSessionMessagesResponse {
 }
 
 export const ListSessionMessagesResponse: MessageFns<ListSessionMessagesResponse> = {
-  encode(message: ListSessionMessagesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListSessionMessagesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.messages) {
       EngineSessionMessage.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -7061,14 +7496,14 @@ export const ListSessionMessagesResponse: MessageFns<ListSessionMessagesResponse
     return {
       messages: globalThis.Array.isArray(object?.messages)
         ? object.messages.map((e: any) => EngineSessionMessage.fromJSON(e))
-        : [],
+        : []
     };
   },
 
   toJSON(message: ListSessionMessagesResponse): unknown {
     const obj: any = {};
     if (message.messages?.length) {
-      obj.messages = message.messages.map((e) => EngineSessionMessage.toJSON(e));
+      obj.messages = message.messages.map(e => EngineSessionMessage.toJSON(e));
     }
     return obj;
   },
@@ -7078,9 +7513,9 @@ export const ListSessionMessagesResponse: MessageFns<ListSessionMessagesResponse
   },
   fromPartial(object: DeepPartial<ListSessionMessagesResponse>): ListSessionMessagesResponse {
     const message = createBaseListSessionMessagesResponse();
-    message.messages = object.messages?.map((e) => EngineSessionMessage.fromPartial(e)) || [];
+    message.messages = object.messages?.map(e => EngineSessionMessage.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseListRecentlyActiveRunsRequest(): ListRecentlyActiveRunsRequest {
@@ -7088,7 +7523,10 @@ function createBaseListRecentlyActiveRunsRequest(): ListRecentlyActiveRunsReques
 }
 
 export const ListRecentlyActiveRunsRequest: MessageFns<ListRecentlyActiveRunsRequest> = {
-  encode(message: ListRecentlyActiveRunsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListRecentlyActiveRunsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (!message.since.equals(Long.ZERO)) {
       writer.uint32(8).int64(message.since.toString());
     }
@@ -7134,11 +7572,16 @@ export const ListRecentlyActiveRunsRequest: MessageFns<ListRecentlyActiveRunsReq
   create(base?: DeepPartial<ListRecentlyActiveRunsRequest>): ListRecentlyActiveRunsRequest {
     return ListRecentlyActiveRunsRequest.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<ListRecentlyActiveRunsRequest>): ListRecentlyActiveRunsRequest {
+  fromPartial(
+    object: DeepPartial<ListRecentlyActiveRunsRequest>
+  ): ListRecentlyActiveRunsRequest {
     const message = createBaseListRecentlyActiveRunsRequest();
-    message.since = (object.since !== undefined && object.since !== null) ? Long.fromValue(object.since) : Long.ZERO;
+    message.since =
+      object.since !== undefined && object.since !== null
+        ? Long.fromValue(object.since)
+        : Long.ZERO;
     return message;
-  },
+  }
 };
 
 function createBaseListRecentlyActiveRunsResponse(): ListRecentlyActiveRunsResponse {
@@ -7146,7 +7589,10 @@ function createBaseListRecentlyActiveRunsResponse(): ListRecentlyActiveRunsRespo
 }
 
 export const ListRecentlyActiveRunsResponse: MessageFns<ListRecentlyActiveRunsResponse> = {
-  encode(message: ListRecentlyActiveRunsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListRecentlyActiveRunsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.runIds) {
       writer.uint32(10).string(v!);
     }
@@ -7179,7 +7625,9 @@ export const ListRecentlyActiveRunsResponse: MessageFns<ListRecentlyActiveRunsRe
 
   fromJSON(object: any): ListRecentlyActiveRunsResponse {
     return {
-      runIds: globalThis.Array.isArray(object?.runIds) ? object.runIds.map((e: any) => globalThis.String(e)) : [],
+      runIds: globalThis.Array.isArray(object?.runIds)
+        ? object.runIds.map((e: any) => globalThis.String(e))
+        : []
     };
   },
 
@@ -7194,140 +7642,167 @@ export const ListRecentlyActiveRunsResponse: MessageFns<ListRecentlyActiveRunsRe
   create(base?: DeepPartial<ListRecentlyActiveRunsResponse>): ListRecentlyActiveRunsResponse {
     return ListRecentlyActiveRunsResponse.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<ListRecentlyActiveRunsResponse>): ListRecentlyActiveRunsResponse {
+  fromPartial(
+    object: DeepPartial<ListRecentlyActiveRunsResponse>
+  ): ListRecentlyActiveRunsResponse {
     const message = createBaseListRecentlyActiveRunsResponse();
-    message.runIds = object.runIds?.map((e) => e) || [];
+    message.runIds = object.runIds?.map(e => e) || [];
     return message;
-  },
+  }
 };
 
 function createBaseListRecentlyActiveSessionsRequest(): ListRecentlyActiveSessionsRequest {
   return { since: Long.ZERO };
 }
 
-export const ListRecentlyActiveSessionsRequest: MessageFns<ListRecentlyActiveSessionsRequest> = {
-  encode(message: ListRecentlyActiveSessionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (!message.since.equals(Long.ZERO)) {
-      writer.uint32(8).int64(message.since.toString());
-    }
-    return writer;
-  },
+export const ListRecentlyActiveSessionsRequest: MessageFns<ListRecentlyActiveSessionsRequest> =
+  {
+    encode(
+      message: ListRecentlyActiveSessionsRequest,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (!message.since.equals(Long.ZERO)) {
+        writer.uint32(8).int64(message.since.toString());
+      }
+      return writer;
+    },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ListRecentlyActiveSessionsRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseListRecentlyActiveSessionsRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): ListRecentlyActiveSessionsRequest {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseListRecentlyActiveSessionsRequest();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.since = Long.fromString(reader.int64().toString());
+            continue;
           }
-
-          message.since = Long.fromString(reader.int64().toString());
-          continue;
         }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      return message;
+    },
+
+    fromJSON(object: any): ListRecentlyActiveSessionsRequest {
+      return { since: isSet(object.since) ? Long.fromValue(object.since) : Long.ZERO };
+    },
+
+    toJSON(message: ListRecentlyActiveSessionsRequest): unknown {
+      const obj: any = {};
+      if (!message.since.equals(Long.ZERO)) {
+        obj.since = (message.since || Long.ZERO).toString();
       }
-      reader.skip(tag & 7);
+      return obj;
+    },
+
+    create(
+      base?: DeepPartial<ListRecentlyActiveSessionsRequest>
+    ): ListRecentlyActiveSessionsRequest {
+      return ListRecentlyActiveSessionsRequest.fromPartial(base ?? {});
+    },
+    fromPartial(
+      object: DeepPartial<ListRecentlyActiveSessionsRequest>
+    ): ListRecentlyActiveSessionsRequest {
+      const message = createBaseListRecentlyActiveSessionsRequest();
+      message.since =
+        object.since !== undefined && object.since !== null
+          ? Long.fromValue(object.since)
+          : Long.ZERO;
+      return message;
     }
-    return message;
-  },
-
-  fromJSON(object: any): ListRecentlyActiveSessionsRequest {
-    return { since: isSet(object.since) ? Long.fromValue(object.since) : Long.ZERO };
-  },
-
-  toJSON(message: ListRecentlyActiveSessionsRequest): unknown {
-    const obj: any = {};
-    if (!message.since.equals(Long.ZERO)) {
-      obj.since = (message.since || Long.ZERO).toString();
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<ListRecentlyActiveSessionsRequest>): ListRecentlyActiveSessionsRequest {
-    return ListRecentlyActiveSessionsRequest.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<ListRecentlyActiveSessionsRequest>): ListRecentlyActiveSessionsRequest {
-    const message = createBaseListRecentlyActiveSessionsRequest();
-    message.since = (object.since !== undefined && object.since !== null) ? Long.fromValue(object.since) : Long.ZERO;
-    return message;
-  },
-};
+  };
 
 function createBaseListRecentlyActiveSessionsResponse(): ListRecentlyActiveSessionsResponse {
   return { sessionIds: [] };
 }
 
-export const ListRecentlyActiveSessionsResponse: MessageFns<ListRecentlyActiveSessionsResponse> = {
-  encode(message: ListRecentlyActiveSessionsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.sessionIds) {
-      writer.uint32(10).string(v!);
-    }
-    return writer;
-  },
+export const ListRecentlyActiveSessionsResponse: MessageFns<ListRecentlyActiveSessionsResponse> =
+  {
+    encode(
+      message: ListRecentlyActiveSessionsResponse,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      for (const v of message.sessionIds) {
+        writer.uint32(10).string(v!);
+      }
+      return writer;
+    },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ListRecentlyActiveSessionsResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseListRecentlyActiveSessionsResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): ListRecentlyActiveSessionsResponse {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseListRecentlyActiveSessionsResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.sessionIds.push(reader.string());
+            continue;
           }
-
-          message.sessionIds.push(reader.string());
-          continue;
         }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      return message;
+    },
+
+    fromJSON(object: any): ListRecentlyActiveSessionsResponse {
+      return {
+        sessionIds: globalThis.Array.isArray(object?.sessionIds)
+          ? object.sessionIds.map((e: any) => globalThis.String(e))
+          : []
+      };
+    },
+
+    toJSON(message: ListRecentlyActiveSessionsResponse): unknown {
+      const obj: any = {};
+      if (message.sessionIds?.length) {
+        obj.sessionIds = message.sessionIds;
       }
-      reader.skip(tag & 7);
+      return obj;
+    },
+
+    create(
+      base?: DeepPartial<ListRecentlyActiveSessionsResponse>
+    ): ListRecentlyActiveSessionsResponse {
+      return ListRecentlyActiveSessionsResponse.fromPartial(base ?? {});
+    },
+    fromPartial(
+      object: DeepPartial<ListRecentlyActiveSessionsResponse>
+    ): ListRecentlyActiveSessionsResponse {
+      const message = createBaseListRecentlyActiveSessionsResponse();
+      message.sessionIds = object.sessionIds?.map(e => e) || [];
+      return message;
     }
-    return message;
-  },
-
-  fromJSON(object: any): ListRecentlyActiveSessionsResponse {
-    return {
-      sessionIds: globalThis.Array.isArray(object?.sessionIds)
-        ? object.sessionIds.map((e: any) => globalThis.String(e))
-        : [],
-    };
-  },
-
-  toJSON(message: ListRecentlyActiveSessionsResponse): unknown {
-    const obj: any = {};
-    if (message.sessionIds?.length) {
-      obj.sessionIds = message.sessionIds;
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<ListRecentlyActiveSessionsResponse>): ListRecentlyActiveSessionsResponse {
-    return ListRecentlyActiveSessionsResponse.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<ListRecentlyActiveSessionsResponse>): ListRecentlyActiveSessionsResponse {
-    const message = createBaseListRecentlyActiveSessionsResponse();
-    message.sessionIds = object.sessionIds?.map((e) => e) || [];
-    return message;
-  },
-};
+  };
 
 function createBaseGetServerRequest(): GetServerRequest {
-  return { serverId: "" };
+  return { serverId: '' };
 }
 
 export const GetServerRequest: MessageFns<GetServerRequest> = {
   encode(message: GetServerRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.serverId !== "") {
+    if (message.serverId !== '') {
       writer.uint32(10).string(message.serverId);
     }
     return writer;
@@ -7358,12 +7833,12 @@ export const GetServerRequest: MessageFns<GetServerRequest> = {
   },
 
   fromJSON(object: any): GetServerRequest {
-    return { serverId: isSet(object.serverId) ? globalThis.String(object.serverId) : "" };
+    return { serverId: isSet(object.serverId) ? globalThis.String(object.serverId) : '' };
   },
 
   toJSON(message: GetServerRequest): unknown {
     const obj: any = {};
-    if (message.serverId !== "") {
+    if (message.serverId !== '') {
       obj.serverId = message.serverId;
     }
     return obj;
@@ -7374,9 +7849,9 @@ export const GetServerRequest: MessageFns<GetServerRequest> = {
   },
   fromPartial(object: DeepPartial<GetServerRequest>): GetServerRequest {
     const message = createBaseGetServerRequest();
-    message.serverId = object.serverId ?? "";
+    message.serverId = object.serverId ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseGetServerResponse(): GetServerResponse {
@@ -7432,11 +7907,12 @@ export const GetServerResponse: MessageFns<GetServerResponse> = {
   },
   fromPartial(object: DeepPartial<GetServerResponse>): GetServerResponse {
     const message = createBaseGetServerResponse();
-    message.server = (object.server !== undefined && object.server !== null)
-      ? EngineServer.fromPartial(object.server)
-      : undefined;
+    message.server =
+      object.server !== undefined && object.server !== null
+        ? EngineServer.fromPartial(object.server)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseListServersRequest(): ListServersRequest {
@@ -7444,7 +7920,10 @@ function createBaseListServersRequest(): ListServersRequest {
 }
 
 export const ListServersRequest: MessageFns<ListServersRequest> = {
-  encode(message: ListServersRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListServersRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.pagination !== undefined) {
       ListPagination.encode(message.pagination, writer.uint32(10).fork()).join();
     }
@@ -7476,7 +7955,11 @@ export const ListServersRequest: MessageFns<ListServersRequest> = {
   },
 
   fromJSON(object: any): ListServersRequest {
-    return { pagination: isSet(object.pagination) ? ListPagination.fromJSON(object.pagination) : undefined };
+    return {
+      pagination: isSet(object.pagination)
+        ? ListPagination.fromJSON(object.pagination)
+        : undefined
+    };
   },
 
   toJSON(message: ListServersRequest): unknown {
@@ -7492,11 +7975,12 @@ export const ListServersRequest: MessageFns<ListServersRequest> = {
   },
   fromPartial(object: DeepPartial<ListServersRequest>): ListServersRequest {
     const message = createBaseListServersRequest();
-    message.pagination = (object.pagination !== undefined && object.pagination !== null)
-      ? ListPagination.fromPartial(object.pagination)
-      : undefined;
+    message.pagination =
+      object.pagination !== undefined && object.pagination !== null
+        ? ListPagination.fromPartial(object.pagination)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseListServersResponse(): ListServersResponse {
@@ -7504,7 +7988,10 @@ function createBaseListServersResponse(): ListServersResponse {
 }
 
 export const ListServersResponse: MessageFns<ListServersResponse> = {
-  encode(message: ListServersResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListServersResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.servers) {
       EngineServer.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -7539,14 +8026,14 @@ export const ListServersResponse: MessageFns<ListServersResponse> = {
     return {
       servers: globalThis.Array.isArray(object?.servers)
         ? object.servers.map((e: any) => EngineServer.fromJSON(e))
-        : [],
+        : []
     };
   },
 
   toJSON(message: ListServersResponse): unknown {
     const obj: any = {};
     if (message.servers?.length) {
-      obj.servers = message.servers.map((e) => EngineServer.toJSON(e));
+      obj.servers = message.servers.map(e => EngineServer.toJSON(e));
     }
     return obj;
   },
@@ -7556,255 +8043,312 @@ export const ListServersResponse: MessageFns<ListServersResponse> = {
   },
   fromPartial(object: DeepPartial<ListServersResponse>): ListServersResponse {
     const message = createBaseListServersResponse();
-    message.servers = object.servers?.map((e) => EngineServer.fromPartial(e)) || [];
+    message.servers = object.servers?.map(e => EngineServer.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 export type McpManagerService = typeof McpManagerService;
 export const McpManagerService = {
   checkActiveSession: {
-    path: "/broker.manager.McpManager/CheckActiveSession",
+    path: '/broker.manager.McpManager/CheckActiveSession',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: CheckActiveSessionRequest): Buffer =>
       Buffer.from(CheckActiveSessionRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CheckActiveSessionRequest => CheckActiveSessionRequest.decode(value),
+    requestDeserialize: (value: Buffer): CheckActiveSessionRequest =>
+      CheckActiveSessionRequest.decode(value),
     responseSerialize: (value: CheckActiveSessionResponse): Buffer =>
       Buffer.from(CheckActiveSessionResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CheckActiveSessionResponse => CheckActiveSessionResponse.decode(value),
+    responseDeserialize: (value: Buffer): CheckActiveSessionResponse =>
+      CheckActiveSessionResponse.decode(value)
   },
   createSession: {
-    path: "/broker.manager.McpManager/CreateSession",
+    path: '/broker.manager.McpManager/CreateSession',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: CreateSessionRequest): Buffer => Buffer.from(CreateSessionRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CreateSessionRequest => CreateSessionRequest.decode(value),
+    requestSerialize: (value: CreateSessionRequest): Buffer =>
+      Buffer.from(CreateSessionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreateSessionRequest =>
+      CreateSessionRequest.decode(value),
     responseSerialize: (value: CreateSessionResponse): Buffer =>
       Buffer.from(CreateSessionResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateSessionResponse => CreateSessionResponse.decode(value),
+    responseDeserialize: (value: Buffer): CreateSessionResponse =>
+      CreateSessionResponse.decode(value)
   },
   discoverServer: {
-    path: "/broker.manager.McpManager/DiscoverServer",
+    path: '/broker.manager.McpManager/DiscoverServer',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: DiscoverRequest): Buffer => Buffer.from(DiscoverRequest.encode(value).finish()),
+    requestSerialize: (value: DiscoverRequest): Buffer =>
+      Buffer.from(DiscoverRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): DiscoverRequest => DiscoverRequest.decode(value),
-    responseSerialize: (value: GetServerResponse): Buffer => Buffer.from(GetServerResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetServerResponse => GetServerResponse.decode(value),
+    responseSerialize: (value: GetServerResponse): Buffer =>
+      Buffer.from(GetServerResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetServerResponse => GetServerResponse.decode(value)
   },
   discardSession: {
-    path: "/broker.manager.McpManager/DiscardSession",
+    path: '/broker.manager.McpManager/DiscardSession',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: DiscardSessionRequest): Buffer =>
       Buffer.from(DiscardSessionRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): DiscardSessionRequest => DiscardSessionRequest.decode(value),
+    requestDeserialize: (value: Buffer): DiscardSessionRequest =>
+      DiscardSessionRequest.decode(value),
     responseSerialize: (value: DiscardSessionResponse): Buffer =>
       Buffer.from(DiscardSessionResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): DiscardSessionResponse => DiscardSessionResponse.decode(value),
+    responseDeserialize: (value: Buffer): DiscardSessionResponse =>
+      DiscardSessionResponse.decode(value)
   },
   sendMcpMessage: {
-    path: "/broker.manager.McpManager/SendMcpMessage",
+    path: '/broker.manager.McpManager/SendMcpMessage',
     requestStream: false,
     responseStream: true,
     requestSerialize: (value: SendMcpMessageRequest): Buffer =>
       Buffer.from(SendMcpMessageRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): SendMcpMessageRequest => SendMcpMessageRequest.decode(value),
+    requestDeserialize: (value: Buffer): SendMcpMessageRequest =>
+      SendMcpMessageRequest.decode(value),
     responseSerialize: (value: McpConnectionStreamResponse): Buffer =>
       Buffer.from(McpConnectionStreamResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): McpConnectionStreamResponse => McpConnectionStreamResponse.decode(value),
+    responseDeserialize: (value: Buffer): McpConnectionStreamResponse =>
+      McpConnectionStreamResponse.decode(value)
   },
   streamMcpMessages: {
-    path: "/broker.manager.McpManager/StreamMcpMessages",
+    path: '/broker.manager.McpManager/StreamMcpMessages',
     requestStream: false,
     responseStream: true,
     requestSerialize: (value: StreamMcpMessagesRequest): Buffer =>
       Buffer.from(StreamMcpMessagesRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): StreamMcpMessagesRequest => StreamMcpMessagesRequest.decode(value),
+    requestDeserialize: (value: Buffer): StreamMcpMessagesRequest =>
+      StreamMcpMessagesRequest.decode(value),
     responseSerialize: (value: McpConnectionStreamResponse): Buffer =>
       Buffer.from(McpConnectionStreamResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): McpConnectionStreamResponse => McpConnectionStreamResponse.decode(value),
+    responseDeserialize: (value: Buffer): McpConnectionStreamResponse =>
+      McpConnectionStreamResponse.decode(value)
   },
   getServerInfo: {
-    path: "/broker.manager.McpManager/GetServerInfo",
+    path: '/broker.manager.McpManager/GetServerInfo',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: GetServerInfoRequest): Buffer => Buffer.from(GetServerInfoRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetServerInfoRequest => GetServerInfoRequest.decode(value),
-    responseSerialize: (value: McpParticipant): Buffer => Buffer.from(McpParticipant.encode(value).finish()),
-    responseDeserialize: (value: Buffer): McpParticipant => McpParticipant.decode(value),
+    requestSerialize: (value: GetServerInfoRequest): Buffer =>
+      Buffer.from(GetServerInfoRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetServerInfoRequest =>
+      GetServerInfoRequest.decode(value),
+    responseSerialize: (value: McpParticipant): Buffer =>
+      Buffer.from(McpParticipant.encode(value).finish()),
+    responseDeserialize: (value: Buffer): McpParticipant => McpParticipant.decode(value)
   },
   listManagers: {
-    path: "/broker.manager.McpManager/ListManagers",
+    path: '/broker.manager.McpManager/ListManagers',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: ListManagersRequest): Buffer => Buffer.from(ListManagersRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListManagersRequest => ListManagersRequest.decode(value),
+    requestSerialize: (value: ListManagersRequest): Buffer =>
+      Buffer.from(ListManagersRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListManagersRequest =>
+      ListManagersRequest.decode(value),
     responseSerialize: (value: ListManagersResponse): Buffer =>
       Buffer.from(ListManagersResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListManagersResponse => ListManagersResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListManagersResponse =>
+      ListManagersResponse.decode(value)
   },
   listWorkers: {
-    path: "/broker.manager.McpManager/ListWorkers",
+    path: '/broker.manager.McpManager/ListWorkers',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: ListWorkersRequest): Buffer => Buffer.from(ListWorkersRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListWorkersRequest => ListWorkersRequest.decode(value),
-    responseSerialize: (value: ListWorkersResponse): Buffer => Buffer.from(ListWorkersResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListWorkersResponse => ListWorkersResponse.decode(value),
+    requestSerialize: (value: ListWorkersRequest): Buffer =>
+      Buffer.from(ListWorkersRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListWorkersRequest =>
+      ListWorkersRequest.decode(value),
+    responseSerialize: (value: ListWorkersResponse): Buffer =>
+      Buffer.from(ListWorkersResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListWorkersResponse =>
+      ListWorkersResponse.decode(value)
   },
   listSessions: {
-    path: "/broker.manager.McpManager/ListSessions",
+    path: '/broker.manager.McpManager/ListSessions',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: ListSessionsRequest): Buffer => Buffer.from(ListSessionsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListSessionsRequest => ListSessionsRequest.decode(value),
+    requestSerialize: (value: ListSessionsRequest): Buffer =>
+      Buffer.from(ListSessionsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListSessionsRequest =>
+      ListSessionsRequest.decode(value),
     responseSerialize: (value: ListSessionsResponse): Buffer =>
       Buffer.from(ListSessionsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListSessionsResponse => ListSessionsResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListSessionsResponse =>
+      ListSessionsResponse.decode(value)
   },
   getSession: {
-    path: "/broker.manager.McpManager/GetSession",
+    path: '/broker.manager.McpManager/GetSession',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: GetSessionRequest): Buffer => Buffer.from(GetSessionRequest.encode(value).finish()),
+    requestSerialize: (value: GetSessionRequest): Buffer =>
+      Buffer.from(GetSessionRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetSessionRequest => GetSessionRequest.decode(value),
-    responseSerialize: (value: GetSessionResponse): Buffer => Buffer.from(GetSessionResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetSessionResponse => GetSessionResponse.decode(value),
+    responseSerialize: (value: GetSessionResponse): Buffer =>
+      Buffer.from(GetSessionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetSessionResponse =>
+      GetSessionResponse.decode(value)
   },
   getSessionServer: {
-    path: "/broker.manager.McpManager/GetSessionServer",
+    path: '/broker.manager.McpManager/GetSessionServer',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: GetSessionRequest): Buffer => Buffer.from(GetSessionRequest.encode(value).finish()),
+    requestSerialize: (value: GetSessionRequest): Buffer =>
+      Buffer.from(GetSessionRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetSessionRequest => GetSessionRequest.decode(value),
-    responseSerialize: (value: GetServerResponse): Buffer => Buffer.from(GetServerResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetServerResponse => GetServerResponse.decode(value),
+    responseSerialize: (value: GetServerResponse): Buffer =>
+      Buffer.from(GetServerResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetServerResponse => GetServerResponse.decode(value)
   },
   listRuns: {
-    path: "/broker.manager.McpManager/ListRuns",
+    path: '/broker.manager.McpManager/ListRuns',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: ListRunsRequest): Buffer => Buffer.from(ListRunsRequest.encode(value).finish()),
+    requestSerialize: (value: ListRunsRequest): Buffer =>
+      Buffer.from(ListRunsRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ListRunsRequest => ListRunsRequest.decode(value),
-    responseSerialize: (value: ListRunsResponse): Buffer => Buffer.from(ListRunsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListRunsResponse => ListRunsResponse.decode(value),
+    responseSerialize: (value: ListRunsResponse): Buffer =>
+      Buffer.from(ListRunsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListRunsResponse => ListRunsResponse.decode(value)
   },
   getRun: {
-    path: "/broker.manager.McpManager/GetRun",
+    path: '/broker.manager.McpManager/GetRun',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: GetRunRequest): Buffer => Buffer.from(GetRunRequest.encode(value).finish()),
+    requestSerialize: (value: GetRunRequest): Buffer =>
+      Buffer.from(GetRunRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetRunRequest => GetRunRequest.decode(value),
-    responseSerialize: (value: GetRunResponse): Buffer => Buffer.from(GetRunResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetRunResponse => GetRunResponse.decode(value),
+    responseSerialize: (value: GetRunResponse): Buffer =>
+      Buffer.from(GetRunResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetRunResponse => GetRunResponse.decode(value)
   },
   listSessionErrors: {
-    path: "/broker.manager.McpManager/ListSessionErrors",
+    path: '/broker.manager.McpManager/ListSessionErrors',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: ListSessionErrorsRequest): Buffer =>
       Buffer.from(ListSessionErrorsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListSessionErrorsRequest => ListSessionErrorsRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListSessionErrorsRequest =>
+      ListSessionErrorsRequest.decode(value),
     responseSerialize: (value: ListSessionErrorsResponse): Buffer =>
       Buffer.from(ListSessionErrorsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListSessionErrorsResponse => ListSessionErrorsResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListSessionErrorsResponse =>
+      ListSessionErrorsResponse.decode(value)
   },
   listSessionEvents: {
-    path: "/broker.manager.McpManager/ListSessionEvents",
+    path: '/broker.manager.McpManager/ListSessionEvents',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: ListSessionEventsRequest): Buffer =>
       Buffer.from(ListSessionEventsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListSessionEventsRequest => ListSessionEventsRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListSessionEventsRequest =>
+      ListSessionEventsRequest.decode(value),
     responseSerialize: (value: ListSessionEventsResponse): Buffer =>
       Buffer.from(ListSessionEventsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListSessionEventsResponse => ListSessionEventsResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListSessionEventsResponse =>
+      ListSessionEventsResponse.decode(value)
   },
   listSessionMessages: {
-    path: "/broker.manager.McpManager/ListSessionMessages",
+    path: '/broker.manager.McpManager/ListSessionMessages',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: ListSessionMessagesRequest): Buffer =>
       Buffer.from(ListSessionMessagesRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListSessionMessagesRequest => ListSessionMessagesRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListSessionMessagesRequest =>
+      ListSessionMessagesRequest.decode(value),
     responseSerialize: (value: ListSessionMessagesResponse): Buffer =>
       Buffer.from(ListSessionMessagesResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListSessionMessagesResponse => ListSessionMessagesResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListSessionMessagesResponse =>
+      ListSessionMessagesResponse.decode(value)
   },
   listRunErrors: {
-    path: "/broker.manager.McpManager/ListRunErrors",
+    path: '/broker.manager.McpManager/ListRunErrors',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: ListRunErrorsRequest): Buffer => Buffer.from(ListRunErrorsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListRunErrorsRequest => ListRunErrorsRequest.decode(value),
+    requestSerialize: (value: ListRunErrorsRequest): Buffer =>
+      Buffer.from(ListRunErrorsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListRunErrorsRequest =>
+      ListRunErrorsRequest.decode(value),
     responseSerialize: (value: ListRunErrorsResponse): Buffer =>
       Buffer.from(ListRunErrorsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListRunErrorsResponse => ListRunErrorsResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListRunErrorsResponse =>
+      ListRunErrorsResponse.decode(value)
   },
   listRunEvents: {
-    path: "/broker.manager.McpManager/ListRunEvents",
+    path: '/broker.manager.McpManager/ListRunEvents',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: ListRunEventsRequest): Buffer => Buffer.from(ListRunEventsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListRunEventsRequest => ListRunEventsRequest.decode(value),
+    requestSerialize: (value: ListRunEventsRequest): Buffer =>
+      Buffer.from(ListRunEventsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListRunEventsRequest =>
+      ListRunEventsRequest.decode(value),
     responseSerialize: (value: ListRunEventsResponse): Buffer =>
       Buffer.from(ListRunEventsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListRunEventsResponse => ListRunEventsResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListRunEventsResponse =>
+      ListRunEventsResponse.decode(value)
   },
   listRunMessages: {
-    path: "/broker.manager.McpManager/ListRunMessages",
+    path: '/broker.manager.McpManager/ListRunMessages',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: ListRunMessagesRequest): Buffer =>
       Buffer.from(ListRunMessagesRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListRunMessagesRequest => ListRunMessagesRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListRunMessagesRequest =>
+      ListRunMessagesRequest.decode(value),
     responseSerialize: (value: ListRunMessagesResponse): Buffer =>
       Buffer.from(ListRunMessagesResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListRunMessagesResponse => ListRunMessagesResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListRunMessagesResponse =>
+      ListRunMessagesResponse.decode(value)
   },
   getError: {
-    path: "/broker.manager.McpManager/GetError",
+    path: '/broker.manager.McpManager/GetError',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: GetErrorRequest): Buffer => Buffer.from(GetErrorRequest.encode(value).finish()),
+    requestSerialize: (value: GetErrorRequest): Buffer =>
+      Buffer.from(GetErrorRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetErrorRequest => GetErrorRequest.decode(value),
-    responseSerialize: (value: GetErrorResponse): Buffer => Buffer.from(GetErrorResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetErrorResponse => GetErrorResponse.decode(value),
+    responseSerialize: (value: GetErrorResponse): Buffer =>
+      Buffer.from(GetErrorResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetErrorResponse => GetErrorResponse.decode(value)
   },
   getEvent: {
-    path: "/broker.manager.McpManager/GetEvent",
+    path: '/broker.manager.McpManager/GetEvent',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: GetEventRequest): Buffer => Buffer.from(GetEventRequest.encode(value).finish()),
+    requestSerialize: (value: GetEventRequest): Buffer =>
+      Buffer.from(GetEventRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetEventRequest => GetEventRequest.decode(value),
-    responseSerialize: (value: GetEventResponse): Buffer => Buffer.from(GetEventResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetEventResponse => GetEventResponse.decode(value),
+    responseSerialize: (value: GetEventResponse): Buffer =>
+      Buffer.from(GetEventResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetEventResponse => GetEventResponse.decode(value)
   },
   getMessage: {
-    path: "/broker.manager.McpManager/GetMessage",
+    path: '/broker.manager.McpManager/GetMessage',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: GetMessageRequest): Buffer => Buffer.from(GetMessageRequest.encode(value).finish()),
+    requestSerialize: (value: GetMessageRequest): Buffer =>
+      Buffer.from(GetMessageRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetMessageRequest => GetMessageRequest.decode(value),
-    responseSerialize: (value: GetMessageResponse): Buffer => Buffer.from(GetMessageResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetMessageResponse => GetMessageResponse.decode(value),
+    responseSerialize: (value: GetMessageResponse): Buffer =>
+      Buffer.from(GetMessageResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetMessageResponse =>
+      GetMessageResponse.decode(value)
   },
   listRecentlyActiveRuns: {
-    path: "/broker.manager.McpManager/ListRecentlyActiveRuns",
+    path: '/broker.manager.McpManager/ListRecentlyActiveRuns',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: ListRecentlyActiveRunsRequest): Buffer =>
       Buffer.from(ListRecentlyActiveRunsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListRecentlyActiveRunsRequest => ListRecentlyActiveRunsRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListRecentlyActiveRunsRequest =>
+      ListRecentlyActiveRunsRequest.decode(value),
     responseSerialize: (value: ListRecentlyActiveRunsResponse): Buffer =>
       Buffer.from(ListRecentlyActiveRunsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ListRecentlyActiveRunsResponse =>
-      ListRecentlyActiveRunsResponse.decode(value),
+      ListRecentlyActiveRunsResponse.decode(value)
   },
   listRecentlyActiveSessions: {
-    path: "/broker.manager.McpManager/ListRecentlyActiveSessions",
+    path: '/broker.manager.McpManager/ListRecentlyActiveSessions',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: ListRecentlyActiveSessionsRequest): Buffer =>
@@ -7814,26 +8358,32 @@ export const McpManagerService = {
     responseSerialize: (value: ListRecentlyActiveSessionsResponse): Buffer =>
       Buffer.from(ListRecentlyActiveSessionsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ListRecentlyActiveSessionsResponse =>
-      ListRecentlyActiveSessionsResponse.decode(value),
+      ListRecentlyActiveSessionsResponse.decode(value)
   },
   getServer: {
-    path: "/broker.manager.McpManager/GetServer",
+    path: '/broker.manager.McpManager/GetServer',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: GetServerRequest): Buffer => Buffer.from(GetServerRequest.encode(value).finish()),
+    requestSerialize: (value: GetServerRequest): Buffer =>
+      Buffer.from(GetServerRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetServerRequest => GetServerRequest.decode(value),
-    responseSerialize: (value: GetServerResponse): Buffer => Buffer.from(GetServerResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetServerResponse => GetServerResponse.decode(value),
+    responseSerialize: (value: GetServerResponse): Buffer =>
+      Buffer.from(GetServerResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetServerResponse => GetServerResponse.decode(value)
   },
   listServers: {
-    path: "/broker.manager.McpManager/ListServers",
+    path: '/broker.manager.McpManager/ListServers',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: ListServersRequest): Buffer => Buffer.from(ListServersRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListServersRequest => ListServersRequest.decode(value),
-    responseSerialize: (value: ListServersResponse): Buffer => Buffer.from(ListServersResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListServersResponse => ListServersResponse.decode(value),
-  },
+    requestSerialize: (value: ListServersRequest): Buffer =>
+      Buffer.from(ListServersRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListServersRequest =>
+      ListServersRequest.decode(value),
+    responseSerialize: (value: ListServersResponse): Buffer =>
+      Buffer.from(ListServersResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListServersResponse =>
+      ListServersResponse.decode(value)
+  }
 } as const;
 
 export interface McpManagerServer extends UntypedServiceImplementation {
@@ -7841,8 +8391,14 @@ export interface McpManagerServer extends UntypedServiceImplementation {
   createSession: handleUnaryCall<CreateSessionRequest, CreateSessionResponse>;
   discoverServer: handleUnaryCall<DiscoverRequest, GetServerResponse>;
   discardSession: handleUnaryCall<DiscardSessionRequest, DiscardSessionResponse>;
-  sendMcpMessage: handleServerStreamingCall<SendMcpMessageRequest, McpConnectionStreamResponse>;
-  streamMcpMessages: handleServerStreamingCall<StreamMcpMessagesRequest, McpConnectionStreamResponse>;
+  sendMcpMessage: handleServerStreamingCall<
+    SendMcpMessageRequest,
+    McpConnectionStreamResponse
+  >;
+  streamMcpMessages: handleServerStreamingCall<
+    StreamMcpMessagesRequest,
+    McpConnectionStreamResponse
+  >;
   getServerInfo: handleUnaryCall<GetServerInfoRequest, McpParticipant>;
   listManagers: handleUnaryCall<ListManagersRequest, ListManagersResponse>;
   listWorkers: handleUnaryCall<ListWorkersRequest, ListWorkersResponse>;
@@ -7853,15 +8409,24 @@ export interface McpManagerServer extends UntypedServiceImplementation {
   getRun: handleUnaryCall<GetRunRequest, GetRunResponse>;
   listSessionErrors: handleUnaryCall<ListSessionErrorsRequest, ListSessionErrorsResponse>;
   listSessionEvents: handleUnaryCall<ListSessionEventsRequest, ListSessionEventsResponse>;
-  listSessionMessages: handleUnaryCall<ListSessionMessagesRequest, ListSessionMessagesResponse>;
+  listSessionMessages: handleUnaryCall<
+    ListSessionMessagesRequest,
+    ListSessionMessagesResponse
+  >;
   listRunErrors: handleUnaryCall<ListRunErrorsRequest, ListRunErrorsResponse>;
   listRunEvents: handleUnaryCall<ListRunEventsRequest, ListRunEventsResponse>;
   listRunMessages: handleUnaryCall<ListRunMessagesRequest, ListRunMessagesResponse>;
   getError: handleUnaryCall<GetErrorRequest, GetErrorResponse>;
   getEvent: handleUnaryCall<GetEventRequest, GetEventResponse>;
   getMessage: handleUnaryCall<GetMessageRequest, GetMessageResponse>;
-  listRecentlyActiveRuns: handleUnaryCall<ListRecentlyActiveRunsRequest, ListRecentlyActiveRunsResponse>;
-  listRecentlyActiveSessions: handleUnaryCall<ListRecentlyActiveSessionsRequest, ListRecentlyActiveSessionsResponse>;
+  listRecentlyActiveRuns: handleUnaryCall<
+    ListRecentlyActiveRunsRequest,
+    ListRecentlyActiveRunsResponse
+  >;
+  listRecentlyActiveSessions: handleUnaryCall<
+    ListRecentlyActiveSessionsRequest,
+    ListRecentlyActiveSessionsResponse
+  >;
   getServer: handleUnaryCall<GetServerRequest, GetServerResponse>;
   listServers: handleUnaryCall<ListServersRequest, ListServersResponse>;
 }
@@ -7869,418 +8434,437 @@ export interface McpManagerServer extends UntypedServiceImplementation {
 export interface McpManagerClient extends Client {
   checkActiveSession(
     request: CheckActiveSessionRequest,
-    callback: (error: ServiceError | null, response: CheckActiveSessionResponse) => void,
+    callback: (error: ServiceError | null, response: CheckActiveSessionResponse) => void
   ): ClientUnaryCall;
   checkActiveSession(
     request: CheckActiveSessionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CheckActiveSessionResponse) => void,
+    callback: (error: ServiceError | null, response: CheckActiveSessionResponse) => void
   ): ClientUnaryCall;
   checkActiveSession(
     request: CheckActiveSessionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CheckActiveSessionResponse) => void,
+    callback: (error: ServiceError | null, response: CheckActiveSessionResponse) => void
   ): ClientUnaryCall;
   createSession(
     request: CreateSessionRequest,
-    callback: (error: ServiceError | null, response: CreateSessionResponse) => void,
+    callback: (error: ServiceError | null, response: CreateSessionResponse) => void
   ): ClientUnaryCall;
   createSession(
     request: CreateSessionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateSessionResponse) => void,
+    callback: (error: ServiceError | null, response: CreateSessionResponse) => void
   ): ClientUnaryCall;
   createSession(
     request: CreateSessionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateSessionResponse) => void,
+    callback: (error: ServiceError | null, response: CreateSessionResponse) => void
   ): ClientUnaryCall;
   discoverServer(
     request: DiscoverRequest,
-    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void
   ): ClientUnaryCall;
   discoverServer(
     request: DiscoverRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void
   ): ClientUnaryCall;
   discoverServer(
     request: DiscoverRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void
   ): ClientUnaryCall;
   discardSession(
     request: DiscardSessionRequest,
-    callback: (error: ServiceError | null, response: DiscardSessionResponse) => void,
+    callback: (error: ServiceError | null, response: DiscardSessionResponse) => void
   ): ClientUnaryCall;
   discardSession(
     request: DiscardSessionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: DiscardSessionResponse) => void,
+    callback: (error: ServiceError | null, response: DiscardSessionResponse) => void
   ): ClientUnaryCall;
   discardSession(
     request: DiscardSessionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DiscardSessionResponse) => void,
+    callback: (error: ServiceError | null, response: DiscardSessionResponse) => void
   ): ClientUnaryCall;
   sendMcpMessage(
     request: SendMcpMessageRequest,
-    options?: Partial<CallOptions>,
+    options?: Partial<CallOptions>
   ): ClientReadableStream<McpConnectionStreamResponse>;
   sendMcpMessage(
     request: SendMcpMessageRequest,
     metadata?: Metadata,
-    options?: Partial<CallOptions>,
+    options?: Partial<CallOptions>
   ): ClientReadableStream<McpConnectionStreamResponse>;
   streamMcpMessages(
     request: StreamMcpMessagesRequest,
-    options?: Partial<CallOptions>,
+    options?: Partial<CallOptions>
   ): ClientReadableStream<McpConnectionStreamResponse>;
   streamMcpMessages(
     request: StreamMcpMessagesRequest,
     metadata?: Metadata,
-    options?: Partial<CallOptions>,
+    options?: Partial<CallOptions>
   ): ClientReadableStream<McpConnectionStreamResponse>;
   getServerInfo(
     request: GetServerInfoRequest,
-    callback: (error: ServiceError | null, response: McpParticipant) => void,
+    callback: (error: ServiceError | null, response: McpParticipant) => void
   ): ClientUnaryCall;
   getServerInfo(
     request: GetServerInfoRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: McpParticipant) => void,
+    callback: (error: ServiceError | null, response: McpParticipant) => void
   ): ClientUnaryCall;
   getServerInfo(
     request: GetServerInfoRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: McpParticipant) => void,
+    callback: (error: ServiceError | null, response: McpParticipant) => void
   ): ClientUnaryCall;
   listManagers(
     request: ListManagersRequest,
-    callback: (error: ServiceError | null, response: ListManagersResponse) => void,
-  ): ClientUnaryCall;
-  listManagers(
-    request: ListManagersRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListManagersResponse) => void,
+    callback: (error: ServiceError | null, response: ListManagersResponse) => void
   ): ClientUnaryCall;
   listManagers(
     request: ListManagersRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListManagersResponse) => void
+  ): ClientUnaryCall;
+  listManagers(
+    request: ListManagersRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListManagersResponse) => void,
+    callback: (error: ServiceError | null, response: ListManagersResponse) => void
   ): ClientUnaryCall;
   listWorkers(
     request: ListWorkersRequest,
-    callback: (error: ServiceError | null, response: ListWorkersResponse) => void,
+    callback: (error: ServiceError | null, response: ListWorkersResponse) => void
   ): ClientUnaryCall;
   listWorkers(
     request: ListWorkersRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListWorkersResponse) => void,
+    callback: (error: ServiceError | null, response: ListWorkersResponse) => void
   ): ClientUnaryCall;
   listWorkers(
     request: ListWorkersRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListWorkersResponse) => void,
+    callback: (error: ServiceError | null, response: ListWorkersResponse) => void
   ): ClientUnaryCall;
   listSessions(
     request: ListSessionsRequest,
-    callback: (error: ServiceError | null, response: ListSessionsResponse) => void,
-  ): ClientUnaryCall;
-  listSessions(
-    request: ListSessionsRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListSessionsResponse) => void,
+    callback: (error: ServiceError | null, response: ListSessionsResponse) => void
   ): ClientUnaryCall;
   listSessions(
     request: ListSessionsRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListSessionsResponse) => void
+  ): ClientUnaryCall;
+  listSessions(
+    request: ListSessionsRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListSessionsResponse) => void,
+    callback: (error: ServiceError | null, response: ListSessionsResponse) => void
   ): ClientUnaryCall;
   getSession(
     request: GetSessionRequest,
-    callback: (error: ServiceError | null, response: GetSessionResponse) => void,
+    callback: (error: ServiceError | null, response: GetSessionResponse) => void
   ): ClientUnaryCall;
   getSession(
     request: GetSessionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetSessionResponse) => void,
+    callback: (error: ServiceError | null, response: GetSessionResponse) => void
   ): ClientUnaryCall;
   getSession(
     request: GetSessionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetSessionResponse) => void,
+    callback: (error: ServiceError | null, response: GetSessionResponse) => void
   ): ClientUnaryCall;
   getSessionServer(
     request: GetSessionRequest,
-    callback: (error: ServiceError | null, response: GetServerResponse) => void,
-  ): ClientUnaryCall;
-  getSessionServer(
-    request: GetSessionRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void
   ): ClientUnaryCall;
   getSessionServer(
     request: GetSessionRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void
+  ): ClientUnaryCall;
+  getSessionServer(
+    request: GetSessionRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void
   ): ClientUnaryCall;
   listRuns(
     request: ListRunsRequest,
-    callback: (error: ServiceError | null, response: ListRunsResponse) => void,
+    callback: (error: ServiceError | null, response: ListRunsResponse) => void
   ): ClientUnaryCall;
   listRuns(
     request: ListRunsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListRunsResponse) => void,
+    callback: (error: ServiceError | null, response: ListRunsResponse) => void
   ): ClientUnaryCall;
   listRuns(
     request: ListRunsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListRunsResponse) => void,
+    callback: (error: ServiceError | null, response: ListRunsResponse) => void
   ): ClientUnaryCall;
   getRun(
     request: GetRunRequest,
-    callback: (error: ServiceError | null, response: GetRunResponse) => void,
-  ): ClientUnaryCall;
-  getRun(
-    request: GetRunRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetRunResponse) => void,
+    callback: (error: ServiceError | null, response: GetRunResponse) => void
   ): ClientUnaryCall;
   getRun(
     request: GetRunRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetRunResponse) => void
+  ): ClientUnaryCall;
+  getRun(
+    request: GetRunRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetRunResponse) => void,
+    callback: (error: ServiceError | null, response: GetRunResponse) => void
   ): ClientUnaryCall;
   listSessionErrors(
     request: ListSessionErrorsRequest,
-    callback: (error: ServiceError | null, response: ListSessionErrorsResponse) => void,
+    callback: (error: ServiceError | null, response: ListSessionErrorsResponse) => void
   ): ClientUnaryCall;
   listSessionErrors(
     request: ListSessionErrorsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListSessionErrorsResponse) => void,
+    callback: (error: ServiceError | null, response: ListSessionErrorsResponse) => void
   ): ClientUnaryCall;
   listSessionErrors(
     request: ListSessionErrorsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListSessionErrorsResponse) => void,
+    callback: (error: ServiceError | null, response: ListSessionErrorsResponse) => void
   ): ClientUnaryCall;
   listSessionEvents(
     request: ListSessionEventsRequest,
-    callback: (error: ServiceError | null, response: ListSessionEventsResponse) => void,
-  ): ClientUnaryCall;
-  listSessionEvents(
-    request: ListSessionEventsRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListSessionEventsResponse) => void,
+    callback: (error: ServiceError | null, response: ListSessionEventsResponse) => void
   ): ClientUnaryCall;
   listSessionEvents(
     request: ListSessionEventsRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListSessionEventsResponse) => void
+  ): ClientUnaryCall;
+  listSessionEvents(
+    request: ListSessionEventsRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListSessionEventsResponse) => void,
+    callback: (error: ServiceError | null, response: ListSessionEventsResponse) => void
   ): ClientUnaryCall;
   listSessionMessages(
     request: ListSessionMessagesRequest,
-    callback: (error: ServiceError | null, response: ListSessionMessagesResponse) => void,
+    callback: (error: ServiceError | null, response: ListSessionMessagesResponse) => void
   ): ClientUnaryCall;
   listSessionMessages(
     request: ListSessionMessagesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListSessionMessagesResponse) => void,
+    callback: (error: ServiceError | null, response: ListSessionMessagesResponse) => void
   ): ClientUnaryCall;
   listSessionMessages(
     request: ListSessionMessagesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListSessionMessagesResponse) => void,
+    callback: (error: ServiceError | null, response: ListSessionMessagesResponse) => void
   ): ClientUnaryCall;
   listRunErrors(
     request: ListRunErrorsRequest,
-    callback: (error: ServiceError | null, response: ListRunErrorsResponse) => void,
-  ): ClientUnaryCall;
-  listRunErrors(
-    request: ListRunErrorsRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListRunErrorsResponse) => void,
+    callback: (error: ServiceError | null, response: ListRunErrorsResponse) => void
   ): ClientUnaryCall;
   listRunErrors(
     request: ListRunErrorsRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListRunErrorsResponse) => void
+  ): ClientUnaryCall;
+  listRunErrors(
+    request: ListRunErrorsRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListRunErrorsResponse) => void,
+    callback: (error: ServiceError | null, response: ListRunErrorsResponse) => void
   ): ClientUnaryCall;
   listRunEvents(
     request: ListRunEventsRequest,
-    callback: (error: ServiceError | null, response: ListRunEventsResponse) => void,
+    callback: (error: ServiceError | null, response: ListRunEventsResponse) => void
   ): ClientUnaryCall;
   listRunEvents(
     request: ListRunEventsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListRunEventsResponse) => void,
+    callback: (error: ServiceError | null, response: ListRunEventsResponse) => void
   ): ClientUnaryCall;
   listRunEvents(
     request: ListRunEventsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListRunEventsResponse) => void,
+    callback: (error: ServiceError | null, response: ListRunEventsResponse) => void
   ): ClientUnaryCall;
   listRunMessages(
     request: ListRunMessagesRequest,
-    callback: (error: ServiceError | null, response: ListRunMessagesResponse) => void,
-  ): ClientUnaryCall;
-  listRunMessages(
-    request: ListRunMessagesRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListRunMessagesResponse) => void,
+    callback: (error: ServiceError | null, response: ListRunMessagesResponse) => void
   ): ClientUnaryCall;
   listRunMessages(
     request: ListRunMessagesRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListRunMessagesResponse) => void
+  ): ClientUnaryCall;
+  listRunMessages(
+    request: ListRunMessagesRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListRunMessagesResponse) => void,
+    callback: (error: ServiceError | null, response: ListRunMessagesResponse) => void
   ): ClientUnaryCall;
   getError(
     request: GetErrorRequest,
-    callback: (error: ServiceError | null, response: GetErrorResponse) => void,
+    callback: (error: ServiceError | null, response: GetErrorResponse) => void
   ): ClientUnaryCall;
   getError(
     request: GetErrorRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetErrorResponse) => void,
+    callback: (error: ServiceError | null, response: GetErrorResponse) => void
   ): ClientUnaryCall;
   getError(
     request: GetErrorRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetErrorResponse) => void,
+    callback: (error: ServiceError | null, response: GetErrorResponse) => void
   ): ClientUnaryCall;
   getEvent(
     request: GetEventRequest,
-    callback: (error: ServiceError | null, response: GetEventResponse) => void,
-  ): ClientUnaryCall;
-  getEvent(
-    request: GetEventRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetEventResponse) => void,
+    callback: (error: ServiceError | null, response: GetEventResponse) => void
   ): ClientUnaryCall;
   getEvent(
     request: GetEventRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetEventResponse) => void
+  ): ClientUnaryCall;
+  getEvent(
+    request: GetEventRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetEventResponse) => void,
+    callback: (error: ServiceError | null, response: GetEventResponse) => void
   ): ClientUnaryCall;
   getMessage(
     request: GetMessageRequest,
-    callback: (error: ServiceError | null, response: GetMessageResponse) => void,
+    callback: (error: ServiceError | null, response: GetMessageResponse) => void
   ): ClientUnaryCall;
   getMessage(
     request: GetMessageRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetMessageResponse) => void,
+    callback: (error: ServiceError | null, response: GetMessageResponse) => void
   ): ClientUnaryCall;
   getMessage(
     request: GetMessageRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetMessageResponse) => void,
+    callback: (error: ServiceError | null, response: GetMessageResponse) => void
   ): ClientUnaryCall;
   listRecentlyActiveRuns(
     request: ListRecentlyActiveRunsRequest,
-    callback: (error: ServiceError | null, response: ListRecentlyActiveRunsResponse) => void,
-  ): ClientUnaryCall;
-  listRecentlyActiveRuns(
-    request: ListRecentlyActiveRunsRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListRecentlyActiveRunsResponse) => void,
+    callback: (error: ServiceError | null, response: ListRecentlyActiveRunsResponse) => void
   ): ClientUnaryCall;
   listRecentlyActiveRuns(
     request: ListRecentlyActiveRunsRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListRecentlyActiveRunsResponse) => void
+  ): ClientUnaryCall;
+  listRecentlyActiveRuns(
+    request: ListRecentlyActiveRunsRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListRecentlyActiveRunsResponse) => void,
+    callback: (error: ServiceError | null, response: ListRecentlyActiveRunsResponse) => void
   ): ClientUnaryCall;
   listRecentlyActiveSessions(
     request: ListRecentlyActiveSessionsRequest,
-    callback: (error: ServiceError | null, response: ListRecentlyActiveSessionsResponse) => void,
+    callback: (
+      error: ServiceError | null,
+      response: ListRecentlyActiveSessionsResponse
+    ) => void
   ): ClientUnaryCall;
   listRecentlyActiveSessions(
     request: ListRecentlyActiveSessionsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListRecentlyActiveSessionsResponse) => void,
+    callback: (
+      error: ServiceError | null,
+      response: ListRecentlyActiveSessionsResponse
+    ) => void
   ): ClientUnaryCall;
   listRecentlyActiveSessions(
     request: ListRecentlyActiveSessionsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListRecentlyActiveSessionsResponse) => void,
+    callback: (
+      error: ServiceError | null,
+      response: ListRecentlyActiveSessionsResponse
+    ) => void
   ): ClientUnaryCall;
   getServer(
     request: GetServerRequest,
-    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void
   ): ClientUnaryCall;
   getServer(
     request: GetServerRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void
   ): ClientUnaryCall;
   getServer(
     request: GetServerRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetServerResponse) => void,
+    callback: (error: ServiceError | null, response: GetServerResponse) => void
   ): ClientUnaryCall;
   listServers(
     request: ListServersRequest,
-    callback: (error: ServiceError | null, response: ListServersResponse) => void,
+    callback: (error: ServiceError | null, response: ListServersResponse) => void
   ): ClientUnaryCall;
   listServers(
     request: ListServersRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListServersResponse) => void,
+    callback: (error: ServiceError | null, response: ListServersResponse) => void
   ): ClientUnaryCall;
   listServers(
     request: ListServersRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListServersResponse) => void,
+    callback: (error: ServiceError | null, response: ListServersResponse) => void
   ): ClientUnaryCall;
 }
 
 export const McpManagerClient = makeGenericClientConstructor(
   McpManagerService,
-  "broker.manager.McpManager",
+  'broker.manager.McpManager'
 ) as unknown as {
-  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): McpManagerClient;
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): McpManagerClient;
   service: typeof McpManagerService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends {}
+          ? { [K in keyof T]?: DeepPartial<T[K]> }
+          : Partial<T>;
 
 function isObject(value: any): boolean {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function isSet(value: any): boolean {

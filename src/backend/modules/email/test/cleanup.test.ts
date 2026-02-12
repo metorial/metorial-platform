@@ -13,7 +13,7 @@ vi.mock('@metorial/db', () => ({
   }
 }));
 
-vi.mock('date-fns', async (importOriginal) => {
+vi.mock('date-fns', async importOriginal => {
   const actual = await importOriginal();
   return {
     ...(actual as any),

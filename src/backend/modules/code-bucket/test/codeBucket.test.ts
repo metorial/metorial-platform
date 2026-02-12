@@ -24,7 +24,7 @@ vi.mock('@metorial/delay', () => ({
 }));
 
 vi.mock('@metorial/error', () => ({
-  badRequestError: vi.fn((msg) => msg),
+  badRequestError: vi.fn(msg => msg),
   ServiceError: class ServiceError extends Error {
     constructor(error: any) {
       super(error.message);

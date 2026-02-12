@@ -64,9 +64,12 @@ export let customProviderDeploymentController = Controller.create(
             ids: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by deployment IDs'
             }),
-            custom_provider_version_ids: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by version IDs'
-            })
+            custom_provider_version_ids: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              {
+                description: 'Filter by version IDs'
+              }
+            )
           })
         )
       )

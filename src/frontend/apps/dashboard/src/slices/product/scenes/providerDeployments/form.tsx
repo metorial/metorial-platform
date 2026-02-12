@@ -7,7 +7,12 @@ import { ServerSearch } from '../servers/search';
 import { Stepper } from '../stepper';
 
 export type ProviderDeploymentFormProps =
-  | { type: 'create'; providerId?: string; lockedProviderVersionId?: string; lockedProviderVersionLabel?: string }
+  | {
+      type: 'create';
+      providerId?: string;
+      lockedProviderVersionId?: string;
+      lockedProviderVersionLabel?: string;
+    }
   | { type: 'update'; deploymentId: string };
 
 export let ProviderDeploymentForm = (
@@ -24,7 +29,7 @@ export let ProviderDeploymentForm = (
 
   let [step, setStep] = useState(hasProviderPreset ? 1 : 0);
   let [providerId, setProviderId] = useState(
-    props.type === 'create' ? props.providerId ?? '' : ''
+    props.type === 'create' ? (props.providerId ?? '') : ''
   );
   let [providerName, setProviderName] = useState('');
   let [name, setName] = useState('');
@@ -82,7 +87,13 @@ export let ProviderDeploymentForm = (
           <>
             <Text size="2" color="gray600">
               Pinned to version{' '}
-              <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--color-foreground)' }}>
+              <span
+                style={{
+                  fontFamily: 'monospace',
+                  fontWeight: 600,
+                  color: 'var(--color-foreground)'
+                }}
+              >
                 {props.lockedProviderVersionLabel ?? props.lockedProviderVersionId}
               </span>
             </Text>
@@ -118,7 +129,11 @@ export let ProviderDeploymentForm = (
           render: () => (
             <ServerSearch
               onSelect={server => {
-                setProviderId(server.providerId ?? (server as { server?: { id?: string } }).server?.id ?? server.id);
+                setProviderId(
+                  server.providerId ??
+                    (server as { server?: { id?: string } }).server?.id ??
+                    server.id
+                );
                 setProviderName(server.name);
                 if (!name) setName(server.name);
                 setStep(1);
@@ -140,7 +155,12 @@ export let ProviderDeploymentForm = (
                 </>
               )}
 
-              <Input label="Name" value={name} onChange={e => setName(e.target.value)} required />
+              <Input
+                label="Name"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                required
+              />
 
               <Spacer size={10} />
 

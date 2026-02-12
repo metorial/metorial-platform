@@ -62,7 +62,10 @@ export let CustomServerCodePage = () => {
   let { customServerId } = useParams();
   let customServer = useCustomServer(instance.data?.instanceId, customServerId);
 
-  let editorToken = useCustomServerCodeEditorToken(instance.data?.instanceId, customServer.data?.id);
+  let editorToken = useCustomServerCodeEditorToken(
+    instance.data?.instanceId,
+    customServer.data?.id
+  );
 
   let [isExpanded, setIsExpanded] = useState(false);
 

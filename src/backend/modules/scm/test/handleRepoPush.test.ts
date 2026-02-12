@@ -38,7 +38,7 @@ vi.mock('@metorial/queue', () => {
   return {
     QueueRetryError: class QueueRetryError extends Error {},
     createQueue: vi.fn(() => ({
-      process: vi.fn((fn) => {
+      process: vi.fn(fn => {
         return { handler: fn };
       }),
       add: vi.fn(),
@@ -188,7 +188,9 @@ describe('handleRepoPush Queue Processors', () => {
 
       vi.mocked(db.scmRepoPush.findUnique).mockResolvedValue(mockPush as any);
       vi.mocked(db.customServer.findFirst).mockResolvedValue(mockCustomServer as any);
-      vi.mocked(organizationActorService.getSystemActor).mockResolvedValue(mockSystemActor as any);
+      vi.mocked(organizationActorService.getSystemActor).mockResolvedValue(
+        mockSystemActor as any
+      );
       vi.mocked(customServerVersionService.createVersion).mockResolvedValue({} as any);
 
       await createHandleRepoPushForCustomServerQueueProcessor.handler({
@@ -297,7 +299,9 @@ describe('handleRepoPush Queue Processors', () => {
 
       vi.mocked(db.scmRepoPush.findUnique).mockResolvedValue(mockPush as any);
       vi.mocked(db.customServer.findFirst).mockResolvedValue(mockCustomServer as any);
-      vi.mocked(organizationActorService.getSystemActor).mockResolvedValue(mockSystemActor as any);
+      vi.mocked(organizationActorService.getSystemActor).mockResolvedValue(
+        mockSystemActor as any
+      );
       vi.mocked(customServerVersionService.createVersion).mockResolvedValue({
         id: 'version-1'
       } as any);

@@ -4,7 +4,7 @@ import { createTemplate, ITemplate } from '../src/templates/template';
 describe('createTemplate', () => {
   it('should return the template object as-is', () => {
     const mockTemplate: ITemplate<{ name: string }> = {
-      render: async (data) => ({
+      render: async data => ({
         subject: `Hello ${data.name}`,
         html: `<p>Hello ${data.name}</p>`,
         text: `Hello ${data.name}`
@@ -19,7 +19,7 @@ describe('createTemplate', () => {
 
   it('should preserve render function', async () => {
     const mockTemplate: ITemplate<{ count: number }> = {
-      render: async (data) => ({
+      render: async data => ({
         subject: `Count: ${data.count}`,
         html: `<p>Count: ${data.count}</p>`,
         text: `Count: ${data.count}`
@@ -57,8 +57,8 @@ describe('createTemplate', () => {
 
   it('should work with async render function', async () => {
     const mockTemplate: ITemplate<{ delay: number }> = {
-      render: async (data) => {
-        await new Promise((resolve) => setTimeout(resolve, data.delay));
+      render: async data => {
+        await new Promise(resolve => setTimeout(resolve, data.delay));
         return {
           subject: 'Async Test',
           html: '<p>Async Test</p>',
@@ -88,7 +88,7 @@ describe('createTemplate', () => {
     }
 
     const mockTemplate: ITemplate<ComplexData> = {
-      render: async (data) => ({
+      render: async data => ({
         subject: `Hello ${data.user.name}`,
         html: `<p>${data.items.join(', ')}</p>`,
         text: JSON.stringify(data.metadata)
@@ -128,7 +128,7 @@ describe('createTemplate', () => {
 
   it('should handle render function that returns promises for html and text', async () => {
     const mockTemplate: ITemplate<{ name: string }> = {
-      render: async (data) => ({
+      render: async data => ({
         subject: `Hello ${data.name}`,
         html: Promise.resolve(`<p>Hello ${data.name}</p>`),
         text: Promise.resolve(`Hello ${data.name}`)
@@ -145,7 +145,7 @@ describe('createTemplate', () => {
 
   it('should preserve template identity for type checking', () => {
     const mockTemplate: ITemplate<{ value: number }> = {
-      render: async (data) => ({
+      render: async data => ({
         subject: String(data.value),
         html: String(data.value),
         text: String(data.value)

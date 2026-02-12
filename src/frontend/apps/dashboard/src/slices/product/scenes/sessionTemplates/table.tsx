@@ -15,9 +15,7 @@ export let SessionTemplatesTable = ({ instanceId }: { instanceId: string }) => {
         data={templates.data.items.map(template => ({
           data: [
             <Text size="2" weight="strong">
-              {template.name ?? (
-                <span style={{ color: theme.colors.gray600 }}>Unnamed</span>
-              )}
+              {template.name ?? <span style={{ color: theme.colors.gray600 }}>Unnamed</span>}
               {template.description && (
                 <Text size="2" color="gray600">
                   {template.description.slice(0, 60)}

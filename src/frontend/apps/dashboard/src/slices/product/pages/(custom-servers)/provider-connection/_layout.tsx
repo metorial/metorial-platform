@@ -16,7 +16,10 @@ export let ProviderConnectionLayout = () => {
   let organization = useCurrentOrganization();
 
   let { providerConnectionId } = useParams();
-  let providerConnection = useProviderConnection(instance.data?.instanceId, providerConnectionId);
+  let providerConnection = useProviderConnection(
+    instance.data?.instanceId,
+    providerConnectionId
+  );
 
   let pathname = useLocation().pathname;
 

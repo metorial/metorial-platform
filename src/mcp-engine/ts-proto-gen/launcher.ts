@@ -5,7 +5,7 @@
 // source: launcher.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -16,11 +16,11 @@ import {
   makeGenericClientConstructor,
   type Metadata,
   type ServiceError,
-  type UntypedServiceImplementation,
-} from "@grpc/grpc-js";
-import Long from "long";
+  type UntypedServiceImplementation
+} from '@grpc/grpc-js';
+import Long from 'long';
 
-export const protobufPackage = "broker.launcher";
+export const protobufPackage = 'broker.launcher';
 
 export interface LauncherConfig {
   launcherType: LauncherConfig_LauncherType;
@@ -30,28 +30,30 @@ export interface LauncherConfig {
 
 export enum LauncherConfig_LauncherType {
   deno = 0,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function launcherConfig_LauncherTypeFromJSON(object: any): LauncherConfig_LauncherType {
   switch (object) {
     case 0:
-    case "deno":
+    case 'deno':
       return LauncherConfig_LauncherType.deno;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return LauncherConfig_LauncherType.UNRECOGNIZED;
   }
 }
 
-export function launcherConfig_LauncherTypeToJSON(object: LauncherConfig_LauncherType): string {
+export function launcherConfig_LauncherTypeToJSON(
+  object: LauncherConfig_LauncherType
+): string {
   switch (object) {
     case LauncherConfig_LauncherType.deno:
-      return "deno";
+      return 'deno';
     case LauncherConfig_LauncherType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -68,19 +70,19 @@ export interface RunLauncherResponse {
 export enum RunLauncherResponse_Type {
   error = 0,
   success = 1,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
 export function runLauncherResponse_TypeFromJSON(object: any): RunLauncherResponse_Type {
   switch (object) {
     case 0:
-    case "error":
+    case 'error':
       return RunLauncherResponse_Type.error;
     case 1:
-    case "success":
+    case 'success':
       return RunLauncherResponse_Type.success;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return RunLauncherResponse_Type.UNRECOGNIZED;
   }
@@ -89,17 +91,17 @@ export function runLauncherResponse_TypeFromJSON(object: any): RunLauncherRespon
 export function runLauncherResponse_TypeToJSON(object: RunLauncherResponse_Type): string {
   switch (object) {
     case RunLauncherResponse_Type.error:
-      return "error";
+      return 'error';
     case RunLauncherResponse_Type.success:
-      return "success";
+      return 'success';
     case RunLauncherResponse_Type.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
 function createBaseLauncherConfig(): LauncherConfig {
-  return { launcherType: 0, code: "", jsonConfig: "" };
+  return { launcherType: 0, code: '', jsonConfig: '' };
 }
 
 export const LauncherConfig: MessageFns<LauncherConfig> = {
@@ -107,10 +109,10 @@ export const LauncherConfig: MessageFns<LauncherConfig> = {
     if (message.launcherType !== 0) {
       writer.uint32(8).int32(message.launcherType);
     }
-    if (message.code !== "") {
+    if (message.code !== '') {
       writer.uint32(18).string(message.code);
     }
-    if (message.jsonConfig !== "") {
+    if (message.jsonConfig !== '') {
       writer.uint32(26).string(message.jsonConfig);
     }
     return writer;
@@ -158,9 +160,11 @@ export const LauncherConfig: MessageFns<LauncherConfig> = {
 
   fromJSON(object: any): LauncherConfig {
     return {
-      launcherType: isSet(object.launcherType) ? launcherConfig_LauncherTypeFromJSON(object.launcherType) : 0,
-      code: isSet(object.code) ? globalThis.String(object.code) : "",
-      jsonConfig: isSet(object.jsonConfig) ? globalThis.String(object.jsonConfig) : "",
+      launcherType: isSet(object.launcherType)
+        ? launcherConfig_LauncherTypeFromJSON(object.launcherType)
+        : 0,
+      code: isSet(object.code) ? globalThis.String(object.code) : '',
+      jsonConfig: isSet(object.jsonConfig) ? globalThis.String(object.jsonConfig) : ''
     };
   },
 
@@ -169,10 +173,10 @@ export const LauncherConfig: MessageFns<LauncherConfig> = {
     if (message.launcherType !== 0) {
       obj.launcherType = launcherConfig_LauncherTypeToJSON(message.launcherType);
     }
-    if (message.code !== "") {
+    if (message.code !== '') {
       obj.code = message.code;
     }
-    if (message.jsonConfig !== "") {
+    if (message.jsonConfig !== '') {
       obj.jsonConfig = message.jsonConfig;
     }
     return obj;
@@ -184,10 +188,10 @@ export const LauncherConfig: MessageFns<LauncherConfig> = {
   fromPartial(object: DeepPartial<LauncherConfig>): LauncherConfig {
     const message = createBaseLauncherConfig();
     message.launcherType = object.launcherType ?? 0;
-    message.code = object.code ?? "";
-    message.jsonConfig = object.jsonConfig ?? "";
+    message.code = object.code ?? '';
+    message.jsonConfig = object.jsonConfig ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseRunLauncherRequest(): RunLauncherRequest {
@@ -195,7 +199,10 @@ function createBaseRunLauncherRequest(): RunLauncherRequest {
 }
 
 export const RunLauncherRequest: MessageFns<RunLauncherRequest> = {
-  encode(message: RunLauncherRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: RunLauncherRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.config !== undefined) {
       LauncherConfig.encode(message.config, writer.uint32(10).fork()).join();
     }
@@ -227,7 +234,9 @@ export const RunLauncherRequest: MessageFns<RunLauncherRequest> = {
   },
 
   fromJSON(object: any): RunLauncherRequest {
-    return { config: isSet(object.config) ? LauncherConfig.fromJSON(object.config) : undefined };
+    return {
+      config: isSet(object.config) ? LauncherConfig.fromJSON(object.config) : undefined
+    };
   },
 
   toJSON(message: RunLauncherRequest): unknown {
@@ -243,26 +252,30 @@ export const RunLauncherRequest: MessageFns<RunLauncherRequest> = {
   },
   fromPartial(object: DeepPartial<RunLauncherRequest>): RunLauncherRequest {
     const message = createBaseRunLauncherRequest();
-    message.config = (object.config !== undefined && object.config !== null)
-      ? LauncherConfig.fromPartial(object.config)
-      : undefined;
+    message.config =
+      object.config !== undefined && object.config !== null
+        ? LauncherConfig.fromPartial(object.config)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunLauncherResponse(): RunLauncherResponse {
-  return { type: 0, jsonOutput: "", errorMessage: "" };
+  return { type: 0, jsonOutput: '', errorMessage: '' };
 }
 
 export const RunLauncherResponse: MessageFns<RunLauncherResponse> = {
-  encode(message: RunLauncherResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: RunLauncherResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.type !== 0) {
       writer.uint32(8).int32(message.type);
     }
-    if (message.jsonOutput !== "") {
+    if (message.jsonOutput !== '') {
       writer.uint32(18).string(message.jsonOutput);
     }
-    if (message.errorMessage !== "") {
+    if (message.errorMessage !== '') {
       writer.uint32(26).string(message.errorMessage);
     }
     return writer;
@@ -311,8 +324,8 @@ export const RunLauncherResponse: MessageFns<RunLauncherResponse> = {
   fromJSON(object: any): RunLauncherResponse {
     return {
       type: isSet(object.type) ? runLauncherResponse_TypeFromJSON(object.type) : 0,
-      jsonOutput: isSet(object.jsonOutput) ? globalThis.String(object.jsonOutput) : "",
-      errorMessage: isSet(object.errorMessage) ? globalThis.String(object.errorMessage) : "",
+      jsonOutput: isSet(object.jsonOutput) ? globalThis.String(object.jsonOutput) : '',
+      errorMessage: isSet(object.errorMessage) ? globalThis.String(object.errorMessage) : ''
     };
   },
 
@@ -321,10 +334,10 @@ export const RunLauncherResponse: MessageFns<RunLauncherResponse> = {
     if (message.type !== 0) {
       obj.type = runLauncherResponse_TypeToJSON(message.type);
     }
-    if (message.jsonOutput !== "") {
+    if (message.jsonOutput !== '') {
       obj.jsonOutput = message.jsonOutput;
     }
-    if (message.errorMessage !== "") {
+    if (message.errorMessage !== '') {
       obj.errorMessage = message.errorMessage;
     }
     return obj;
@@ -336,23 +349,27 @@ export const RunLauncherResponse: MessageFns<RunLauncherResponse> = {
   fromPartial(object: DeepPartial<RunLauncherResponse>): RunLauncherResponse {
     const message = createBaseRunLauncherResponse();
     message.type = object.type ?? 0;
-    message.jsonOutput = object.jsonOutput ?? "";
-    message.errorMessage = object.errorMessage ?? "";
+    message.jsonOutput = object.jsonOutput ?? '';
+    message.errorMessage = object.errorMessage ?? '';
     return message;
-  },
+  }
 };
 
 export type LauncherService = typeof LauncherService;
 export const LauncherService = {
   runLauncher: {
-    path: "/broker.launcher.Launcher/RunLauncher",
+    path: '/broker.launcher.Launcher/RunLauncher',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: RunLauncherRequest): Buffer => Buffer.from(RunLauncherRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): RunLauncherRequest => RunLauncherRequest.decode(value),
-    responseSerialize: (value: RunLauncherResponse): Buffer => Buffer.from(RunLauncherResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): RunLauncherResponse => RunLauncherResponse.decode(value),
-  },
+    requestSerialize: (value: RunLauncherRequest): Buffer =>
+      Buffer.from(RunLauncherRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RunLauncherRequest =>
+      RunLauncherRequest.decode(value),
+    responseSerialize: (value: RunLauncherResponse): Buffer =>
+      Buffer.from(RunLauncherResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RunLauncherResponse =>
+      RunLauncherResponse.decode(value)
+  }
 } as const;
 
 export interface LauncherServer extends UntypedServiceImplementation {
@@ -362,34 +379,47 @@ export interface LauncherServer extends UntypedServiceImplementation {
 export interface LauncherClient extends Client {
   runLauncher(
     request: RunLauncherRequest,
-    callback: (error: ServiceError | null, response: RunLauncherResponse) => void,
+    callback: (error: ServiceError | null, response: RunLauncherResponse) => void
   ): ClientUnaryCall;
   runLauncher(
     request: RunLauncherRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RunLauncherResponse) => void,
+    callback: (error: ServiceError | null, response: RunLauncherResponse) => void
   ): ClientUnaryCall;
   runLauncher(
     request: RunLauncherRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RunLauncherResponse) => void,
+    callback: (error: ServiceError | null, response: RunLauncherResponse) => void
   ): ClientUnaryCall;
 }
 
-export const LauncherClient = makeGenericClientConstructor(LauncherService, "broker.launcher.Launcher") as unknown as {
-  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): LauncherClient;
+export const LauncherClient = makeGenericClientConstructor(
+  LauncherService,
+  'broker.launcher.Launcher'
+) as unknown as {
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): LauncherClient;
   service: typeof LauncherService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends {}
+          ? { [K in keyof T]?: DeepPartial<T[K]> }
+          : Partial<T>;
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;

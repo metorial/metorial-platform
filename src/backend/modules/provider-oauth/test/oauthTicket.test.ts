@@ -4,8 +4,8 @@ import type { Instance, Organization, ProviderOAuthConnection } from '@metorial/
 // Mock dependencies
 vi.mock('@metorial/tokens', () => ({
   Tokens: vi.fn().mockImplementation(() => ({
-    sign: vi.fn(async (data) => `signed-token-${data.data.clientId}`),
-    verify: vi.fn(async (opts) => {
+    sign: vi.fn(async data => `signed-token-${data.data.clientId}`),
+    verify: vi.fn(async opts => {
       if (opts.token.startsWith('invalid')) {
         return { verified: false };
       }

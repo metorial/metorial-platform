@@ -9,9 +9,7 @@ export let showProviderConfigFormModal = (
 ) =>
   showModal(({ dialogProps, close }) => (
     <Dialog.Wrapper {...dialogProps} width={650}>
-      <Dialog.Title>
-        {p.type == 'update' ? 'Update Config' : 'Create Config'}
-      </Dialog.Title>
+      <Dialog.Title>{p.type == 'update' ? 'Update Config' : 'Create Config'}</Dialog.Title>
 
       <Dialog.Description>
         {p.type == 'update'

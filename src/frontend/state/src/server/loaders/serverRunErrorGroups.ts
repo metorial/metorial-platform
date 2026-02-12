@@ -40,7 +40,9 @@ export let useAllSessionErrorGroups = (
   query?: DashboardInstanceSessionErrorGroupsListQuery
 ) => {
   let data = usePaginator(pagination =>
-    allSessionErrorGroupsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
+    allSessionErrorGroupsLoader.use(
+      instanceId ? { instanceId, ...pagination, ...query } : null
+    )
   );
 
   return data;
@@ -51,7 +53,10 @@ export let sessionErrorGroupsLoader = createLoader({
   name: 'sessionErrorGroups',
   parents: [],
   fetch: (
-    i: { instanceId: string; sessionId: string } & DashboardInstanceSessionsErrorGroupsListQuery
+    i: {
+      instanceId: string;
+      sessionId: string;
+    } & DashboardInstanceSessionsErrorGroupsListQuery
   ) => withAuth(sdk => sdk.sessions.errorGroups.list(i.instanceId, i.sessionId, i)),
   mutators: {}
 });
@@ -74,7 +79,9 @@ export let sessionScopedErrorGroupLoader = createLoader({
   name: 'sessionScopedErrorGroup',
   parents: [],
   fetch: (i: { instanceId: string; sessionId: string; sessionErrorGroupId: string }) =>
-    withAuth(sdk => sdk.sessions.errorGroups.get(i.instanceId, i.sessionId, i.sessionErrorGroupId)),
+    withAuth(sdk =>
+      sdk.sessions.errorGroups.get(i.instanceId, i.sessionId, i.sessionErrorGroupId)
+    ),
   mutators: {}
 });
 

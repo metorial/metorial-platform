@@ -5,7 +5,7 @@
 // source: rpc.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -16,11 +16,11 @@ import {
   makeGenericClientConstructor,
   type Metadata,
   type ServiceError,
-  type UntypedServiceImplementation,
-} from "@grpc/grpc-js";
-import Long from "long";
+  type UntypedServiceImplementation
+} from '@grpc/grpc-js';
+import Long from 'long';
 
-export const protobufPackage = "rpc.rpc";
+export const protobufPackage = 'rpc.rpc';
 
 export interface SendToListenersRequest {
   payload: string;
@@ -45,18 +45,21 @@ export interface GetListenerTokenResponse {
 }
 
 function createBaseSendToListenersRequest(): SendToListenersRequest {
-  return { payload: "", id: "", listenerIdentifier: "" };
+  return { payload: '', id: '', listenerIdentifier: '' };
 }
 
 export const SendToListenersRequest: MessageFns<SendToListenersRequest> = {
-  encode(message: SendToListenersRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.payload !== "") {
+  encode(
+    message: SendToListenersRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.payload !== '') {
       writer.uint32(10).string(message.payload);
     }
-    if (message.id !== "") {
+    if (message.id !== '') {
       writer.uint32(18).string(message.id);
     }
-    if (message.listenerIdentifier !== "") {
+    if (message.listenerIdentifier !== '') {
       writer.uint32(26).string(message.listenerIdentifier);
     }
     return writer;
@@ -104,21 +107,23 @@ export const SendToListenersRequest: MessageFns<SendToListenersRequest> = {
 
   fromJSON(object: any): SendToListenersRequest {
     return {
-      payload: isSet(object.payload) ? globalThis.String(object.payload) : "",
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      listenerIdentifier: isSet(object.listenerIdentifier) ? globalThis.String(object.listenerIdentifier) : "",
+      payload: isSet(object.payload) ? globalThis.String(object.payload) : '',
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      listenerIdentifier: isSet(object.listenerIdentifier)
+        ? globalThis.String(object.listenerIdentifier)
+        : ''
     };
   },
 
   toJSON(message: SendToListenersRequest): unknown {
     const obj: any = {};
-    if (message.payload !== "") {
+    if (message.payload !== '') {
       obj.payload = message.payload;
     }
-    if (message.id !== "") {
+    if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.listenerIdentifier !== "") {
+    if (message.listenerIdentifier !== '') {
       obj.listenerIdentifier = message.listenerIdentifier;
     }
     return obj;
@@ -129,29 +134,32 @@ export const SendToListenersRequest: MessageFns<SendToListenersRequest> = {
   },
   fromPartial(object: DeepPartial<SendToListenersRequest>): SendToListenersRequest {
     const message = createBaseSendToListenersRequest();
-    message.payload = object.payload ?? "";
-    message.id = object.id ?? "";
-    message.listenerIdentifier = object.listenerIdentifier ?? "";
+    message.payload = object.payload ?? '';
+    message.id = object.id ?? '';
+    message.listenerIdentifier = object.listenerIdentifier ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseSendToListenersResponse(): SendToListenersResponse {
-  return { success: false, response: "", timestamp: Long.ZERO, error: "" };
+  return { success: false, response: '', timestamp: Long.ZERO, error: '' };
 }
 
 export const SendToListenersResponse: MessageFns<SendToListenersResponse> = {
-  encode(message: SendToListenersResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: SendToListenersResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.success !== false) {
       writer.uint32(8).bool(message.success);
     }
-    if (message.response !== "") {
+    if (message.response !== '') {
       writer.uint32(18).string(message.response);
     }
     if (!message.timestamp.equals(Long.ZERO)) {
       writer.uint32(24).int64(message.timestamp.toString());
     }
-    if (message.error !== "") {
+    if (message.error !== '') {
       writer.uint32(34).string(message.error);
     }
     return writer;
@@ -208,9 +216,9 @@ export const SendToListenersResponse: MessageFns<SendToListenersResponse> = {
   fromJSON(object: any): SendToListenersResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      response: isSet(object.response) ? globalThis.String(object.response) : "",
+      response: isSet(object.response) ? globalThis.String(object.response) : '',
       timestamp: isSet(object.timestamp) ? Long.fromValue(object.timestamp) : Long.ZERO,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
+      error: isSet(object.error) ? globalThis.String(object.error) : ''
     };
   },
 
@@ -219,13 +227,13 @@ export const SendToListenersResponse: MessageFns<SendToListenersResponse> = {
     if (message.success !== false) {
       obj.success = message.success;
     }
-    if (message.response !== "") {
+    if (message.response !== '') {
       obj.response = message.response;
     }
     if (!message.timestamp.equals(Long.ZERO)) {
       obj.timestamp = (message.timestamp || Long.ZERO).toString();
     }
-    if (message.error !== "") {
+    if (message.error !== '') {
       obj.error = message.error;
     }
     return obj;
@@ -237,22 +245,26 @@ export const SendToListenersResponse: MessageFns<SendToListenersResponse> = {
   fromPartial(object: DeepPartial<SendToListenersResponse>): SendToListenersResponse {
     const message = createBaseSendToListenersResponse();
     message.success = object.success ?? false;
-    message.response = object.response ?? "";
-    message.timestamp = (object.timestamp !== undefined && object.timestamp !== null)
-      ? Long.fromValue(object.timestamp)
-      : Long.ZERO;
-    message.error = object.error ?? "";
+    message.response = object.response ?? '';
+    message.timestamp =
+      object.timestamp !== undefined && object.timestamp !== null
+        ? Long.fromValue(object.timestamp)
+        : Long.ZERO;
+    message.error = object.error ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseGetListenerTokenRequest(): GetListenerTokenRequest {
-  return { listenerIdentifier: "", expiresInSeconds: Long.ZERO };
+  return { listenerIdentifier: '', expiresInSeconds: Long.ZERO };
 }
 
 export const GetListenerTokenRequest: MessageFns<GetListenerTokenRequest> = {
-  encode(message: GetListenerTokenRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.listenerIdentifier !== "") {
+  encode(
+    message: GetListenerTokenRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.listenerIdentifier !== '') {
       writer.uint32(10).string(message.listenerIdentifier);
     }
     if (!message.expiresInSeconds.equals(Long.ZERO)) {
@@ -295,14 +307,18 @@ export const GetListenerTokenRequest: MessageFns<GetListenerTokenRequest> = {
 
   fromJSON(object: any): GetListenerTokenRequest {
     return {
-      listenerIdentifier: isSet(object.listenerIdentifier) ? globalThis.String(object.listenerIdentifier) : "",
-      expiresInSeconds: isSet(object.expiresInSeconds) ? Long.fromValue(object.expiresInSeconds) : Long.ZERO,
+      listenerIdentifier: isSet(object.listenerIdentifier)
+        ? globalThis.String(object.listenerIdentifier)
+        : '',
+      expiresInSeconds: isSet(object.expiresInSeconds)
+        ? Long.fromValue(object.expiresInSeconds)
+        : Long.ZERO
     };
   },
 
   toJSON(message: GetListenerTokenRequest): unknown {
     const obj: any = {};
-    if (message.listenerIdentifier !== "") {
+    if (message.listenerIdentifier !== '') {
       obj.listenerIdentifier = message.listenerIdentifier;
     }
     if (!message.expiresInSeconds.equals(Long.ZERO)) {
@@ -316,21 +332,25 @@ export const GetListenerTokenRequest: MessageFns<GetListenerTokenRequest> = {
   },
   fromPartial(object: DeepPartial<GetListenerTokenRequest>): GetListenerTokenRequest {
     const message = createBaseGetListenerTokenRequest();
-    message.listenerIdentifier = object.listenerIdentifier ?? "";
-    message.expiresInSeconds = (object.expiresInSeconds !== undefined && object.expiresInSeconds !== null)
-      ? Long.fromValue(object.expiresInSeconds)
-      : Long.ZERO;
+    message.listenerIdentifier = object.listenerIdentifier ?? '';
+    message.expiresInSeconds =
+      object.expiresInSeconds !== undefined && object.expiresInSeconds !== null
+        ? Long.fromValue(object.expiresInSeconds)
+        : Long.ZERO;
     return message;
-  },
+  }
 };
 
 function createBaseGetListenerTokenResponse(): GetListenerTokenResponse {
-  return { token: "" };
+  return { token: '' };
 }
 
 export const GetListenerTokenResponse: MessageFns<GetListenerTokenResponse> = {
-  encode(message: GetListenerTokenResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.token !== "") {
+  encode(
+    message: GetListenerTokenResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.token !== '') {
       writer.uint32(10).string(message.token);
     }
     return writer;
@@ -361,12 +381,12 @@ export const GetListenerTokenResponse: MessageFns<GetListenerTokenResponse> = {
   },
 
   fromJSON(object: any): GetListenerTokenResponse {
-    return { token: isSet(object.token) ? globalThis.String(object.token) : "" };
+    return { token: isSet(object.token) ? globalThis.String(object.token) : '' };
   },
 
   toJSON(message: GetListenerTokenResponse): unknown {
     const obj: any = {};
-    if (message.token !== "") {
+    if (message.token !== '') {
       obj.token = message.token;
     }
     return obj;
@@ -377,35 +397,39 @@ export const GetListenerTokenResponse: MessageFns<GetListenerTokenResponse> = {
   },
   fromPartial(object: DeepPartial<GetListenerTokenResponse>): GetListenerTokenResponse {
     const message = createBaseGetListenerTokenResponse();
-    message.token = object.token ?? "";
+    message.token = object.token ?? '';
     return message;
-  },
+  }
 };
 
 export type ListenerConnectorService = typeof ListenerConnectorService;
 export const ListenerConnectorService = {
   sendToListeners: {
-    path: "/rpc.rpc.ListenerConnector/SendToListeners",
+    path: '/rpc.rpc.ListenerConnector/SendToListeners',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: SendToListenersRequest): Buffer =>
       Buffer.from(SendToListenersRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): SendToListenersRequest => SendToListenersRequest.decode(value),
+    requestDeserialize: (value: Buffer): SendToListenersRequest =>
+      SendToListenersRequest.decode(value),
     responseSerialize: (value: SendToListenersResponse): Buffer =>
       Buffer.from(SendToListenersResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): SendToListenersResponse => SendToListenersResponse.decode(value),
+    responseDeserialize: (value: Buffer): SendToListenersResponse =>
+      SendToListenersResponse.decode(value)
   },
   getListenerToken: {
-    path: "/rpc.rpc.ListenerConnector/GetListenerToken",
+    path: '/rpc.rpc.ListenerConnector/GetListenerToken',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: GetListenerTokenRequest): Buffer =>
       Buffer.from(GetListenerTokenRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetListenerTokenRequest => GetListenerTokenRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetListenerTokenRequest =>
+      GetListenerTokenRequest.decode(value),
     responseSerialize: (value: GetListenerTokenResponse): Buffer =>
       Buffer.from(GetListenerTokenResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetListenerTokenResponse => GetListenerTokenResponse.decode(value),
-  },
+    responseDeserialize: (value: Buffer): GetListenerTokenResponse =>
+      GetListenerTokenResponse.decode(value)
+  }
 } as const;
 
 export interface ListenerConnectorServer extends UntypedServiceImplementation {
@@ -416,52 +440,62 @@ export interface ListenerConnectorServer extends UntypedServiceImplementation {
 export interface ListenerConnectorClient extends Client {
   sendToListeners(
     request: SendToListenersRequest,
-    callback: (error: ServiceError | null, response: SendToListenersResponse) => void,
+    callback: (error: ServiceError | null, response: SendToListenersResponse) => void
   ): ClientUnaryCall;
   sendToListeners(
     request: SendToListenersRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: SendToListenersResponse) => void,
+    callback: (error: ServiceError | null, response: SendToListenersResponse) => void
   ): ClientUnaryCall;
   sendToListeners(
     request: SendToListenersRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: SendToListenersResponse) => void,
+    callback: (error: ServiceError | null, response: SendToListenersResponse) => void
   ): ClientUnaryCall;
   getListenerToken(
     request: GetListenerTokenRequest,
-    callback: (error: ServiceError | null, response: GetListenerTokenResponse) => void,
+    callback: (error: ServiceError | null, response: GetListenerTokenResponse) => void
   ): ClientUnaryCall;
   getListenerToken(
     request: GetListenerTokenRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetListenerTokenResponse) => void,
+    callback: (error: ServiceError | null, response: GetListenerTokenResponse) => void
   ): ClientUnaryCall;
   getListenerToken(
     request: GetListenerTokenRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetListenerTokenResponse) => void,
+    callback: (error: ServiceError | null, response: GetListenerTokenResponse) => void
   ): ClientUnaryCall;
 }
 
 export const ListenerConnectorClient = makeGenericClientConstructor(
   ListenerConnectorService,
-  "rpc.rpc.ListenerConnector",
+  'rpc.rpc.ListenerConnector'
 ) as unknown as {
-  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): ListenerConnectorClient;
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): ListenerConnectorClient;
   service: typeof ListenerConnectorService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends {}
+          ? { [K in keyof T]?: DeepPartial<T[K]> }
+          : Partial<T>;
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;

@@ -81,9 +81,9 @@ export let ProviderSetupSessionEmbed = ({
 
   let selectedMethod = useMemo(
     () =>
-      (authMethods.data?.items ?? []).find(
-        (m: AuthMethod) => m.id === selectedMethodId
-      ) as AuthMethod | undefined,
+      (authMethods.data?.items ?? []).find((m: AuthMethod) => m.id === selectedMethodId) as
+        | AuthMethod
+        | undefined,
     [authMethods.data?.items, selectedMethodId]
   );
 
@@ -216,7 +216,11 @@ export let ProviderSetupSessionEmbed = ({
   }, [setupSession?.id]);
 
   if (authMethods.isLoading || authCredentials.isLoading) {
-    return <Text size="2" color="gray600">Loading authentication methods...</Text>;
+    return (
+      <Text size="2" color="gray600">
+        Loading authentication methods...
+      </Text>
+    );
   }
 
   if (!authMethods.data?.items?.length) {
@@ -299,11 +303,7 @@ export let ProviderSetupSessionEmbed = ({
                 {cancelLabel}
               </Button>
             )}
-            <Button
-              type="button"
-              onClick={() => setStep(1)}
-              disabled={!selectedMethodId}
-            >
+            <Button type="button" onClick={() => setStep(1)} disabled={!selectedMethodId}>
               Continue
             </Button>
           </Flex>
@@ -325,9 +325,12 @@ export let ProviderSetupSessionEmbed = ({
       subtitle: 'OAuth app credentials',
       render: () => (
         <>
-          <Text size="2" weight="strong">OAuth Credentials (Optional)</Text>
+          <Text size="2" weight="strong">
+            OAuth Credentials (Optional)
+          </Text>
           <Text size="2" color="gray600">
-            If you have your own OAuth app, select or create credentials. Otherwise, use the default.
+            If you have your own OAuth app, select or create credentials. Otherwise, use the
+            default.
           </Text>
           <Spacer size={6} />
           <Select
@@ -344,10 +347,12 @@ export let ProviderSetupSessionEmbed = ({
               }
             }}
             items={[
-              ...(authCredentials.data?.items ?? []).map((cred: { id: string; name?: string | null; clientId?: string | null }) => ({
-                id: cred.id,
-                label: cred.name || cred.clientId || cred.id
-              })),
+              ...(authCredentials.data?.items ?? []).map(
+                (cred: { id: string; name?: string | null; clientId?: string | null }) => ({
+                  id: cred.id,
+                  label: cred.name || cred.clientId || cred.id
+                })
+              ),
               { type: 'separator' as const },
               { id: '__create_new__', label: '+ Create new credentials' }
             ]}
@@ -382,7 +387,9 @@ export let ProviderSetupSessionEmbed = ({
           {error && (
             <>
               <Spacer size={5} />
-              <Text size="2" color="red600">{error}</Text>
+              <Text size="2" color="red600">
+                {error}
+              </Text>
             </>
           )}
           <Spacer size={12} />
@@ -390,7 +397,9 @@ export let ProviderSetupSessionEmbed = ({
             <Button
               type="button"
               variant="outline"
-              onClick={() => (isCreatingCredentials ? setIsCreatingCredentials(false) : setStep(0))}
+              onClick={() =>
+                isCreatingCredentials ? setIsCreatingCredentials(false) : setStep(0)
+              }
             >
               Back
             </Button>
@@ -398,7 +407,10 @@ export let ProviderSetupSessionEmbed = ({
               type="button"
               onClick={handleCredentialsContinue}
               loading={createCredentials.isPending}
-              disabled={isCreatingCredentials && (!newCredName || !newCredClientId || !newCredClientSecret)}
+              disabled={
+                isCreatingCredentials &&
+                (!newCredName || !newCredClientId || !newCredClientSecret)
+              }
             >
               Continue
             </Button>
@@ -414,7 +426,9 @@ export let ProviderSetupSessionEmbed = ({
         if (setupSession?.url) {
           return (
             <>
-              <Text size="2" weight="strong">Complete authentication</Text>
+              <Text size="2" weight="strong">
+                Complete authentication
+              </Text>
               <Text size="2" color="gray600">
                 Finish the setup below. This window will update once authentication completes.
               </Text>
@@ -422,7 +436,12 @@ export let ProviderSetupSessionEmbed = ({
               <iframe
                 title="Provider Setup"
                 src={setupSession.url}
-                style={{ width: '100%', height: 560, borderRadius: 8, border: '1px solid var(--color-gray300)' }}
+                style={{
+                  width: '100%',
+                  height: 560,
+                  borderRadius: 8,
+                  border: '1px solid var(--color-gray300)'
+                }}
               />
               <Spacer size={8} />
               <Flex gap={8}>
@@ -444,7 +463,9 @@ export let ProviderSetupSessionEmbed = ({
               {error && (
                 <>
                   <Spacer size={5} />
-                  <Text size="2" color="red600">{error}</Text>
+                  <Text size="2" color="red600">
+                    {error}
+                  </Text>
                 </>
               )}
             </>
@@ -463,7 +484,9 @@ export let ProviderSetupSessionEmbed = ({
             {error && (
               <>
                 <Spacer size={5} />
-                <Text size="2" color="red600">{error}</Text>
+                <Text size="2" color="red600">
+                  {error}
+                </Text>
               </>
             )}
             <Spacer size={8} />
@@ -511,11 +534,5 @@ export let ProviderSetupSessionEmbed = ({
     authCredentials.data?.items
   ]);
 
-  return (
-    <Stepper
-      steps={steps}
-      currentStep={step}
-      setCurrentStep={setStep}
-    />
-  );
+  return <Stepper steps={steps} currentStep={step} setCurrentStep={setStep} />;
 };

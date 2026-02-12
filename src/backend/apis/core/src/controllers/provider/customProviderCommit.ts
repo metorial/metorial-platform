@@ -55,9 +55,12 @@ export let customProviderCommitController = Controller.create(
             ids: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by commit IDs'
             }),
-            custom_provider_version_ids: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by version IDs'
-            }),
+            custom_provider_version_ids: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              {
+                description: 'Filter by version IDs'
+              }
+            ),
             custom_provider_environment_ids: v.optional(
               v.union([v.string(), v.array(v.string())]),
               {
@@ -140,7 +143,10 @@ export let customProviderCommitController = Controller.create(
                     examples: ['cpenv_2bCdEfGhJkLmNpQr']
                   })
                 },
-                { name: 'merge', description: 'Merge a version from one environment to another' }
+                {
+                  name: 'merge',
+                  description: 'Merge a version from one environment to another'
+                }
               ),
               v.object(
                 {
@@ -154,7 +160,10 @@ export let customProviderCommitController = Controller.create(
                     examples: ['cpv_1aBcDeFgHjKlMnPq']
                   })
                 },
-                { name: 'rollback', description: 'Rollback an environment to a previous version' }
+                {
+                  name: 'rollback',
+                  description: 'Rollback an environment to a previous version'
+                }
               )
             ],
             { description: 'The commit action to perform' }

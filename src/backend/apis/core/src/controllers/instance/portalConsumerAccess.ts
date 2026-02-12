@@ -43,10 +43,9 @@ export let portalConsumerAccessController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            consumer_group_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by consumer group ID(s)' }
-            ),
+            consumer_group_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by consumer group ID(s)'
+            }),
             server_deployment_template_id: v.optional(
               v.union([v.string(), v.array(v.string())]),
               { description: 'Filter by deployment template ID(s)' }

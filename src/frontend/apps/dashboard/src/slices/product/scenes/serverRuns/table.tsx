@@ -1,6 +1,4 @@
-import {
-  DashboardInstanceProviderRunsListOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceProviderRunsListOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useAllProviderRuns, useProviders } from '@metorial/state';
@@ -66,7 +64,9 @@ export let ServerRunsTable = (filter?: {
           data: [
             <ServerRunStatusBadge run={run} />,
             <Text size="2" weight="strong">
-              {(run.providerId && providerNameMap.get(run.providerId)) ?? run.providerId ?? 'Unknown'}
+              {(run.providerId && providerNameMap.get(run.providerId)) ??
+                run.providerId ??
+                'Unknown'}
             </Text>,
             <RenderDate date={run.createdAt} />,
             <>

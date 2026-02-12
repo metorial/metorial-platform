@@ -1,6 +1,4 @@
-import {
-  DashboardInstanceSessionsGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
@@ -34,11 +32,7 @@ export let ProviderSessionLogsPage = () => {
   ));
 };
 
-let ProviderSessionLogs = ({
-  session
-}: {
-  session: DashboardInstanceSessionsGetOutput;
-}) => {
+let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetOutput }) => {
   let instance = useCurrentInstance();
   let instanceId = instance.data?.instanceId;
 
@@ -115,22 +109,39 @@ let ProviderSessionLogs = ({
 
       if (type === 'provider_run_started') {
         items.push({
-          component: <Entry icon={<RiServerLine />} title="Provider started" time={evt.createdAt} />,
+          component: (
+            <Entry icon={<RiServerLine />} title="Provider started" time={evt.createdAt} />
+          ),
           time: evt.createdAt
         });
       } else if (type === 'provider_run_stopped') {
         items.push({
-          component: <Entry icon={<RiServerLine />} title="Provider stopped" time={evt.createdAt} />,
+          component: (
+            <Entry icon={<RiServerLine />} title="Provider stopped" time={evt.createdAt} />
+          ),
           time: evt.createdAt
         });
       } else if (type === 'error_occurred') {
         items.push({
-          component: <Entry icon={<RiErrorWarningLine />} title="Error occurred" time={evt.createdAt} variant="error" />,
+          component: (
+            <Entry
+              icon={<RiErrorWarningLine />}
+              title="Error occurred"
+              time={evt.createdAt}
+              variant="error"
+            />
+          ),
           time: evt.createdAt
         });
       } else if (type === 'connection_disconnected') {
         items.push({
-          component: <Entry icon={<RiPlugLine />} title="Connection disconnected" time={evt.createdAt} />,
+          component: (
+            <Entry
+              icon={<RiPlugLine />}
+              title="Connection disconnected"
+              time={evt.createdAt}
+            />
+          ),
           time: evt.createdAt
         });
       }
@@ -204,7 +215,7 @@ let ProviderSessionLogs = ({
             time: session.createdAt
           })),
 
-          ...connectionItems.map((connection) => ({
+          ...connectionItems.map(connection => ({
             component: (
               <ProviderConnection
                 connection={connection}

@@ -146,7 +146,11 @@ export let ServerDeploymentsListItems = ({
               />
 
               <Entity.Field
-                title={<Text size="2">{(deployment as any).server?.name ?? deployment.name ?? 'N/A'}</Text>}
+                title={
+                  <Text size="2">
+                    {(deployment as any).server?.name ?? deployment.name ?? 'N/A'}
+                  </Text>
+                }
                 value={<RenderDate date={deployment.createdAt} />}
               />
             </Entity.Content>

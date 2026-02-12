@@ -5,7 +5,7 @@
 // source: runner.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -15,16 +15,15 @@ import {
   type handleBidiStreamingCall,
   makeGenericClientConstructor,
   type Metadata,
-  type UntypedServiceImplementation,
-} from "@grpc/grpc-js";
-import Long from "long";
-import { McpError, McpMessageRaw, McpOutput } from "./mcp";
-import { WorkerInfoResponse } from "./worker";
+  type UntypedServiceImplementation
+} from '@grpc/grpc-js';
+import Long from 'long';
+import { McpError, McpMessageRaw, McpOutput } from './mcp';
+import { WorkerInfoResponse } from './worker';
 
-export const protobufPackage = "broker.runner";
+export const protobufPackage = 'broker.runner';
 
-export interface RunnerInfoRequest {
-}
+export interface RunnerInfoRequest {}
 
 export interface RunnerInfoResponse {
   runnerId: string;
@@ -110,8 +109,7 @@ export interface RunRequestMcpMessage {
   message: McpMessageRaw | undefined;
 }
 
-export interface RunRequestClose {
-}
+export interface RunRequestClose {}
 
 export interface RunResponse {
   mcpMessage?: RunResponseMcpMessage | undefined;
@@ -121,8 +119,7 @@ export interface RunResponse {
   close?: RunResponseClose | undefined;
 }
 
-export interface RunResponseInit {
-}
+export interface RunResponseInit {}
 
 export interface RunResponseMcpMessage {
   message: McpMessageRaw | undefined;
@@ -136,8 +133,7 @@ export interface RunResponseOutput {
   mcpOutput: McpOutput | undefined;
 }
 
-export interface RunResponseClose {
-}
+export interface RunResponseClose {}
 
 function createBaseRunnerInfoRequest(): RunnerInfoRequest {
   return {};
@@ -179,16 +175,19 @@ export const RunnerInfoRequest: MessageFns<RunnerInfoRequest> = {
   fromPartial(_: DeepPartial<RunnerInfoRequest>): RunnerInfoRequest {
     const message = createBaseRunnerInfoRequest();
     return message;
-  },
+  }
 };
 
 function createBaseRunnerInfoResponse(): RunnerInfoResponse {
-  return { runnerId: "", activeRuns: 0, totalRuns: Long.UZERO, workerInfo: undefined };
+  return { runnerId: '', activeRuns: 0, totalRuns: Long.UZERO, workerInfo: undefined };
 }
 
 export const RunnerInfoResponse: MessageFns<RunnerInfoResponse> = {
-  encode(message: RunnerInfoResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.runnerId !== "") {
+  encode(
+    message: RunnerInfoResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.runnerId !== '') {
       writer.uint32(10).string(message.runnerId);
     }
     if (message.activeRuns !== 0) {
@@ -253,16 +252,18 @@ export const RunnerInfoResponse: MessageFns<RunnerInfoResponse> = {
 
   fromJSON(object: any): RunnerInfoResponse {
     return {
-      runnerId: isSet(object.runnerId) ? globalThis.String(object.runnerId) : "",
+      runnerId: isSet(object.runnerId) ? globalThis.String(object.runnerId) : '',
       activeRuns: isSet(object.activeRuns) ? globalThis.Number(object.activeRuns) : 0,
       totalRuns: isSet(object.totalRuns) ? Long.fromValue(object.totalRuns) : Long.UZERO,
-      workerInfo: isSet(object.workerInfo) ? WorkerInfoResponse.fromJSON(object.workerInfo) : undefined,
+      workerInfo: isSet(object.workerInfo)
+        ? WorkerInfoResponse.fromJSON(object.workerInfo)
+        : undefined
     };
   },
 
   toJSON(message: RunnerInfoResponse): unknown {
     const obj: any = {};
-    if (message.runnerId !== "") {
+    if (message.runnerId !== '') {
       obj.runnerId = message.runnerId;
     }
     if (message.activeRuns !== 0) {
@@ -282,16 +283,18 @@ export const RunnerInfoResponse: MessageFns<RunnerInfoResponse> = {
   },
   fromPartial(object: DeepPartial<RunnerInfoResponse>): RunnerInfoResponse {
     const message = createBaseRunnerInfoResponse();
-    message.runnerId = object.runnerId ?? "";
+    message.runnerId = object.runnerId ?? '';
     message.activeRuns = object.activeRuns ?? 0;
-    message.totalRuns = (object.totalRuns !== undefined && object.totalRuns !== null)
-      ? Long.fromValue(object.totalRuns)
-      : Long.UZERO;
-    message.workerInfo = (object.workerInfo !== undefined && object.workerInfo !== null)
-      ? WorkerInfoResponse.fromPartial(object.workerInfo)
-      : undefined;
+    message.totalRuns =
+      object.totalRuns !== undefined && object.totalRuns !== null
+        ? Long.fromValue(object.totalRuns)
+        : Long.UZERO;
+    message.workerInfo =
+      object.workerInfo !== undefined && object.workerInfo !== null
+        ? WorkerInfoResponse.fromPartial(object.workerInfo)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseActiveRunsResponse(): ActiveRunsResponse {
@@ -299,7 +302,10 @@ function createBaseActiveRunsResponse(): ActiveRunsResponse {
 }
 
 export const ActiveRunsResponse: MessageFns<ActiveRunsResponse> = {
-  encode(message: ActiveRunsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ActiveRunsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.runs) {
       RunInfo.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -331,13 +337,17 @@ export const ActiveRunsResponse: MessageFns<ActiveRunsResponse> = {
   },
 
   fromJSON(object: any): ActiveRunsResponse {
-    return { runs: globalThis.Array.isArray(object?.runs) ? object.runs.map((e: any) => RunInfo.fromJSON(e)) : [] };
+    return {
+      runs: globalThis.Array.isArray(object?.runs)
+        ? object.runs.map((e: any) => RunInfo.fromJSON(e))
+        : []
+    };
   },
 
   toJSON(message: ActiveRunsResponse): unknown {
     const obj: any = {};
     if (message.runs?.length) {
-      obj.runs = message.runs.map((e) => RunInfo.toJSON(e));
+      obj.runs = message.runs.map(e => RunInfo.toJSON(e));
     }
     return obj;
   },
@@ -347,27 +357,34 @@ export const ActiveRunsResponse: MessageFns<ActiveRunsResponse> = {
   },
   fromPartial(object: DeepPartial<ActiveRunsResponse>): ActiveRunsResponse {
     const message = createBaseActiveRunsResponse();
-    message.runs = object.runs?.map((e) => RunInfo.fromPartial(e)) || [];
+    message.runs = object.runs?.map(e => RunInfo.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseRunInfo(): RunInfo {
-  return { runId: "", dockerImage: "", maxMemory: "", maxCpu: "", startTime: Long.ZERO, endTime: Long.ZERO };
+  return {
+    runId: '',
+    dockerImage: '',
+    maxMemory: '',
+    maxCpu: '',
+    startTime: Long.ZERO,
+    endTime: Long.ZERO
+  };
 }
 
 export const RunInfo: MessageFns<RunInfo> = {
   encode(message: RunInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.runId !== "") {
+    if (message.runId !== '') {
       writer.uint32(10).string(message.runId);
     }
-    if (message.dockerImage !== "") {
+    if (message.dockerImage !== '') {
       writer.uint32(18).string(message.dockerImage);
     }
-    if (message.maxMemory !== "") {
+    if (message.maxMemory !== '') {
       writer.uint32(50).string(message.maxMemory);
     }
-    if (message.maxCpu !== "") {
+    if (message.maxCpu !== '') {
       writer.uint32(58).string(message.maxCpu);
     }
     if (!message.startTime.equals(Long.ZERO)) {
@@ -445,27 +462,27 @@ export const RunInfo: MessageFns<RunInfo> = {
 
   fromJSON(object: any): RunInfo {
     return {
-      runId: isSet(object.runId) ? globalThis.String(object.runId) : "",
-      dockerImage: isSet(object.dockerImage) ? globalThis.String(object.dockerImage) : "",
-      maxMemory: isSet(object.maxMemory) ? globalThis.String(object.maxMemory) : "",
-      maxCpu: isSet(object.maxCpu) ? globalThis.String(object.maxCpu) : "",
+      runId: isSet(object.runId) ? globalThis.String(object.runId) : '',
+      dockerImage: isSet(object.dockerImage) ? globalThis.String(object.dockerImage) : '',
+      maxMemory: isSet(object.maxMemory) ? globalThis.String(object.maxMemory) : '',
+      maxCpu: isSet(object.maxCpu) ? globalThis.String(object.maxCpu) : '',
       startTime: isSet(object.startTime) ? Long.fromValue(object.startTime) : Long.ZERO,
-      endTime: isSet(object.endTime) ? Long.fromValue(object.endTime) : Long.ZERO,
+      endTime: isSet(object.endTime) ? Long.fromValue(object.endTime) : Long.ZERO
     };
   },
 
   toJSON(message: RunInfo): unknown {
     const obj: any = {};
-    if (message.runId !== "") {
+    if (message.runId !== '') {
       obj.runId = message.runId;
     }
-    if (message.dockerImage !== "") {
+    if (message.dockerImage !== '') {
       obj.dockerImage = message.dockerImage;
     }
-    if (message.maxMemory !== "") {
+    if (message.maxMemory !== '') {
       obj.maxMemory = message.maxMemory;
     }
-    if (message.maxCpu !== "") {
+    if (message.maxCpu !== '') {
       obj.maxCpu = message.maxCpu;
     }
     if (!message.startTime.equals(Long.ZERO)) {
@@ -482,18 +499,20 @@ export const RunInfo: MessageFns<RunInfo> = {
   },
   fromPartial(object: DeepPartial<RunInfo>): RunInfo {
     const message = createBaseRunInfo();
-    message.runId = object.runId ?? "";
-    message.dockerImage = object.dockerImage ?? "";
-    message.maxMemory = object.maxMemory ?? "";
-    message.maxCpu = object.maxCpu ?? "";
-    message.startTime = (object.startTime !== undefined && object.startTime !== null)
-      ? Long.fromValue(object.startTime)
-      : Long.ZERO;
-    message.endTime = (object.endTime !== undefined && object.endTime !== null)
-      ? Long.fromValue(object.endTime)
-      : Long.ZERO;
+    message.runId = object.runId ?? '';
+    message.dockerImage = object.dockerImage ?? '';
+    message.maxMemory = object.maxMemory ?? '';
+    message.maxCpu = object.maxCpu ?? '';
+    message.startTime =
+      object.startTime !== undefined && object.startTime !== null
+        ? Long.fromValue(object.startTime)
+        : Long.ZERO;
+    message.endTime =
+      object.endTime !== undefined && object.endTime !== null
+        ? Long.fromValue(object.endTime)
+        : Long.ZERO;
     return message;
-  },
+  }
 };
 
 function createBaseDockerImagesResponse(): DockerImagesResponse {
@@ -501,7 +520,10 @@ function createBaseDockerImagesResponse(): DockerImagesResponse {
 }
 
 export const DockerImagesResponse: MessageFns<DockerImagesResponse> = {
-  encode(message: DockerImagesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: DockerImagesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.images) {
       DockerImageInfo.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -536,14 +558,14 @@ export const DockerImagesResponse: MessageFns<DockerImagesResponse> = {
     return {
       images: globalThis.Array.isArray(object?.images)
         ? object.images.map((e: any) => DockerImageInfo.fromJSON(e))
-        : [],
+        : []
     };
   },
 
   toJSON(message: DockerImagesResponse): unknown {
     const obj: any = {};
     if (message.images?.length) {
-      obj.images = message.images.map((e) => DockerImageInfo.toJSON(e));
+      obj.images = message.images.map(e => DockerImageInfo.toJSON(e));
     }
     return obj;
   },
@@ -553,24 +575,24 @@ export const DockerImagesResponse: MessageFns<DockerImagesResponse> = {
   },
   fromPartial(object: DeepPartial<DockerImagesResponse>): DockerImagesResponse {
     const message = createBaseDockerImagesResponse();
-    message.images = object.images?.map((e) => DockerImageInfo.fromPartial(e)) || [];
+    message.images = object.images?.map(e => DockerImageInfo.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseDockerImageInfo(): DockerImageInfo {
-  return { repository: "", tag: "", imageId: "" };
+  return { repository: '', tag: '', imageId: '' };
 }
 
 export const DockerImageInfo: MessageFns<DockerImageInfo> = {
   encode(message: DockerImageInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.repository !== "") {
+    if (message.repository !== '') {
       writer.uint32(10).string(message.repository);
     }
-    if (message.tag !== "") {
+    if (message.tag !== '') {
       writer.uint32(18).string(message.tag);
     }
-    if (message.imageId !== "") {
+    if (message.imageId !== '') {
       writer.uint32(26).string(message.imageId);
     }
     return writer;
@@ -618,21 +640,21 @@ export const DockerImageInfo: MessageFns<DockerImageInfo> = {
 
   fromJSON(object: any): DockerImageInfo {
     return {
-      repository: isSet(object.repository) ? globalThis.String(object.repository) : "",
-      tag: isSet(object.tag) ? globalThis.String(object.tag) : "",
-      imageId: isSet(object.imageId) ? globalThis.String(object.imageId) : "",
+      repository: isSet(object.repository) ? globalThis.String(object.repository) : '',
+      tag: isSet(object.tag) ? globalThis.String(object.tag) : '',
+      imageId: isSet(object.imageId) ? globalThis.String(object.imageId) : ''
     };
   },
 
   toJSON(message: DockerImageInfo): unknown {
     const obj: any = {};
-    if (message.repository !== "") {
+    if (message.repository !== '') {
       obj.repository = message.repository;
     }
-    if (message.tag !== "") {
+    if (message.tag !== '') {
       obj.tag = message.tag;
     }
-    if (message.imageId !== "") {
+    if (message.imageId !== '') {
       obj.imageId = message.imageId;
     }
     return obj;
@@ -643,11 +665,11 @@ export const DockerImageInfo: MessageFns<DockerImageInfo> = {
   },
   fromPartial(object: DeepPartial<DockerImageInfo>): DockerImageInfo {
     const message = createBaseDockerImageInfo();
-    message.repository = object.repository ?? "";
-    message.tag = object.tag ?? "";
-    message.imageId = object.imageId ?? "";
+    message.repository = object.repository ?? '';
+    message.tag = object.tag ?? '';
+    message.imageId = object.imageId ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseDockerContainersResponse(): DockerContainersResponse {
@@ -655,7 +677,10 @@ function createBaseDockerContainersResponse(): DockerContainersResponse {
 }
 
 export const DockerContainersResponse: MessageFns<DockerContainersResponse> = {
-  encode(message: DockerContainersResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: DockerContainersResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.containers) {
       DockerContainerInfo.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -690,14 +715,14 @@ export const DockerContainersResponse: MessageFns<DockerContainersResponse> = {
     return {
       containers: globalThis.Array.isArray(object?.containers)
         ? object.containers.map((e: any) => DockerContainerInfo.fromJSON(e))
-        : [],
+        : []
     };
   },
 
   toJSON(message: DockerContainersResponse): unknown {
     const obj: any = {};
     if (message.containers?.length) {
-      obj.containers = message.containers.map((e) => DockerContainerInfo.toJSON(e));
+      obj.containers = message.containers.map(e => DockerContainerInfo.toJSON(e));
     }
     return obj;
   },
@@ -707,24 +732,27 @@ export const DockerContainersResponse: MessageFns<DockerContainersResponse> = {
   },
   fromPartial(object: DeepPartial<DockerContainersResponse>): DockerContainersResponse {
     const message = createBaseDockerContainersResponse();
-    message.containers = object.containers?.map((e) => DockerContainerInfo.fromPartial(e)) || [];
+    message.containers = object.containers?.map(e => DockerContainerInfo.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseDockerContainerInfo(): DockerContainerInfo {
-  return { containerId: "", imageRepository: "", imageTag: "", exitCode: 0, running: false };
+  return { containerId: '', imageRepository: '', imageTag: '', exitCode: 0, running: false };
 }
 
 export const DockerContainerInfo: MessageFns<DockerContainerInfo> = {
-  encode(message: DockerContainerInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.containerId !== "") {
+  encode(
+    message: DockerContainerInfo,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.containerId !== '') {
       writer.uint32(10).string(message.containerId);
     }
-    if (message.imageRepository !== "") {
+    if (message.imageRepository !== '') {
       writer.uint32(18).string(message.imageRepository);
     }
-    if (message.imageTag !== "") {
+    if (message.imageTag !== '') {
       writer.uint32(42).string(message.imageTag);
     }
     if (message.exitCode !== 0) {
@@ -794,23 +822,25 @@ export const DockerContainerInfo: MessageFns<DockerContainerInfo> = {
 
   fromJSON(object: any): DockerContainerInfo {
     return {
-      containerId: isSet(object.containerId) ? globalThis.String(object.containerId) : "",
-      imageRepository: isSet(object.imageRepository) ? globalThis.String(object.imageRepository) : "",
-      imageTag: isSet(object.imageTag) ? globalThis.String(object.imageTag) : "",
+      containerId: isSet(object.containerId) ? globalThis.String(object.containerId) : '',
+      imageRepository: isSet(object.imageRepository)
+        ? globalThis.String(object.imageRepository)
+        : '',
+      imageTag: isSet(object.imageTag) ? globalThis.String(object.imageTag) : '',
       exitCode: isSet(object.exitCode) ? globalThis.Number(object.exitCode) : 0,
-      running: isSet(object.running) ? globalThis.Boolean(object.running) : false,
+      running: isSet(object.running) ? globalThis.Boolean(object.running) : false
     };
   },
 
   toJSON(message: DockerContainerInfo): unknown {
     const obj: any = {};
-    if (message.containerId !== "") {
+    if (message.containerId !== '') {
       obj.containerId = message.containerId;
     }
-    if (message.imageRepository !== "") {
+    if (message.imageRepository !== '') {
       obj.imageRepository = message.imageRepository;
     }
-    if (message.imageTag !== "") {
+    if (message.imageTag !== '') {
       obj.imageTag = message.imageTag;
     }
     if (message.exitCode !== 0) {
@@ -827,26 +857,32 @@ export const DockerContainerInfo: MessageFns<DockerContainerInfo> = {
   },
   fromPartial(object: DeepPartial<DockerContainerInfo>): DockerContainerInfo {
     const message = createBaseDockerContainerInfo();
-    message.containerId = object.containerId ?? "";
-    message.imageRepository = object.imageRepository ?? "";
-    message.imageTag = object.imageTag ?? "";
+    message.containerId = object.containerId ?? '';
+    message.imageRepository = object.imageRepository ?? '';
+    message.imageTag = object.imageTag ?? '';
     message.exitCode = object.exitCode ?? 0;
     message.running = object.running ?? false;
     return message;
-  },
+  }
 };
 
 function createBaseRunConfigContainerArguments(): RunConfigContainerArguments {
-  return { command: "", envVars: {}, args: [] };
+  return { command: '', envVars: {}, args: [] };
 }
 
 export const RunConfigContainerArguments: MessageFns<RunConfigContainerArguments> = {
-  encode(message: RunConfigContainerArguments, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.command !== "") {
+  encode(
+    message: RunConfigContainerArguments,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.command !== '') {
       writer.uint32(10).string(message.command);
     }
     Object.entries(message.envVars).forEach(([key, value]) => {
-      RunConfigContainerArguments_EnvVarsEntry.encode({ key: key as any, value }, writer.uint32(18).fork()).join();
+      RunConfigContainerArguments_EnvVarsEntry.encode(
+        { key: key as any, value },
+        writer.uint32(18).fork()
+      ).join();
     });
     for (const v of message.args) {
       writer.uint32(26).string(v!);
@@ -874,7 +910,10 @@ export const RunConfigContainerArguments: MessageFns<RunConfigContainerArguments
             break;
           }
 
-          const entry2 = RunConfigContainerArguments_EnvVarsEntry.decode(reader, reader.uint32());
+          const entry2 = RunConfigContainerArguments_EnvVarsEntry.decode(
+            reader,
+            reader.uint32()
+          );
           if (entry2.value !== undefined) {
             message.envVars[entry2.key] = entry2.value;
           }
@@ -899,20 +938,25 @@ export const RunConfigContainerArguments: MessageFns<RunConfigContainerArguments
 
   fromJSON(object: any): RunConfigContainerArguments {
     return {
-      command: isSet(object.command) ? globalThis.String(object.command) : "",
+      command: isSet(object.command) ? globalThis.String(object.command) : '',
       envVars: isObject(object.envVars)
-        ? Object.entries(object.envVars).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-          acc[key] = String(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.envVars).reduce<{ [key: string]: string }>(
+            (acc, [key, value]) => {
+              acc[key] = String(value);
+              return acc;
+            },
+            {}
+          )
         : {},
-      args: globalThis.Array.isArray(object?.args) ? object.args.map((e: any) => globalThis.String(e)) : [],
+      args: globalThis.Array.isArray(object?.args)
+        ? object.args.map((e: any) => globalThis.String(e))
+        : []
     };
   },
 
   toJSON(message: RunConfigContainerArguments): unknown {
     const obj: any = {};
-    if (message.command !== "") {
+    if (message.command !== '') {
       obj.command = message.command;
     }
     if (message.envVars) {
@@ -935,107 +979,124 @@ export const RunConfigContainerArguments: MessageFns<RunConfigContainerArguments
   },
   fromPartial(object: DeepPartial<RunConfigContainerArguments>): RunConfigContainerArguments {
     const message = createBaseRunConfigContainerArguments();
-    message.command = object.command ?? "";
-    message.envVars = Object.entries(object.envVars ?? {}).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = globalThis.String(value);
-      }
-      return acc;
-    }, {});
-    message.args = object.args?.map((e) => e) || [];
+    message.command = object.command ?? '';
+    message.envVars = Object.entries(object.envVars ?? {}).reduce<{ [key: string]: string }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = globalThis.String(value);
+        }
+        return acc;
+      },
+      {}
+    );
+    message.args = object.args?.map(e => e) || [];
     return message;
-  },
+  }
 };
 
 function createBaseRunConfigContainerArguments_EnvVarsEntry(): RunConfigContainerArguments_EnvVarsEntry {
-  return { key: "", value: "" };
+  return { key: '', value: '' };
 }
 
-export const RunConfigContainerArguments_EnvVarsEntry: MessageFns<RunConfigContainerArguments_EnvVarsEntry> = {
-  encode(message: RunConfigContainerArguments_EnvVarsEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.key !== "") {
-      writer.uint32(10).string(message.key);
-    }
-    if (message.value !== "") {
-      writer.uint32(18).string(message.value);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): RunConfigContainerArguments_EnvVarsEntry {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRunConfigContainerArguments_EnvVarsEntry();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.key = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.value = reader.string();
-          continue;
-        }
+export const RunConfigContainerArguments_EnvVarsEntry: MessageFns<RunConfigContainerArguments_EnvVarsEntry> =
+  {
+    encode(
+      message: RunConfigContainerArguments_EnvVarsEntry,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.key !== '') {
+        writer.uint32(10).string(message.key);
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (message.value !== '') {
+        writer.uint32(18).string(message.value);
       }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+      return writer;
+    },
 
-  fromJSON(object: any): RunConfigContainerArguments_EnvVarsEntry {
-    return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
-      value: isSet(object.value) ? globalThis.String(object.value) : "",
-    };
-  },
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): RunConfigContainerArguments_EnvVarsEntry {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseRunConfigContainerArguments_EnvVarsEntry();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
 
-  toJSON(message: RunConfigContainerArguments_EnvVarsEntry): unknown {
-    const obj: any = {};
-    if (message.key !== "") {
-      obj.key = message.key;
-    }
-    if (message.value !== "") {
-      obj.value = message.value;
-    }
-    return obj;
-  },
+            message.key = reader.string();
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
 
-  create(base?: DeepPartial<RunConfigContainerArguments_EnvVarsEntry>): RunConfigContainerArguments_EnvVarsEntry {
-    return RunConfigContainerArguments_EnvVarsEntry.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<RunConfigContainerArguments_EnvVarsEntry>): RunConfigContainerArguments_EnvVarsEntry {
-    const message = createBaseRunConfigContainerArguments_EnvVarsEntry();
-    message.key = object.key ?? "";
-    message.value = object.value ?? "";
-    return message;
-  },
-};
+            message.value = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): RunConfigContainerArguments_EnvVarsEntry {
+      return {
+        key: isSet(object.key) ? globalThis.String(object.key) : '',
+        value: isSet(object.value) ? globalThis.String(object.value) : ''
+      };
+    },
+
+    toJSON(message: RunConfigContainerArguments_EnvVarsEntry): unknown {
+      const obj: any = {};
+      if (message.key !== '') {
+        obj.key = message.key;
+      }
+      if (message.value !== '') {
+        obj.value = message.value;
+      }
+      return obj;
+    },
+
+    create(
+      base?: DeepPartial<RunConfigContainerArguments_EnvVarsEntry>
+    ): RunConfigContainerArguments_EnvVarsEntry {
+      return RunConfigContainerArguments_EnvVarsEntry.fromPartial(base ?? {});
+    },
+    fromPartial(
+      object: DeepPartial<RunConfigContainerArguments_EnvVarsEntry>
+    ): RunConfigContainerArguments_EnvVarsEntry {
+      const message = createBaseRunConfigContainerArguments_EnvVarsEntry();
+      message.key = object.key ?? '';
+      message.value = object.value ?? '';
+      return message;
+    }
+  };
 
 function createBaseRunConfigContainer(): RunConfigContainer {
-  return { dockerImage: "", maxMemory: "", maxCpu: "" };
+  return { dockerImage: '', maxMemory: '', maxCpu: '' };
 }
 
 export const RunConfigContainer: MessageFns<RunConfigContainer> = {
-  encode(message: RunConfigContainer, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.dockerImage !== "") {
+  encode(
+    message: RunConfigContainer,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.dockerImage !== '') {
       writer.uint32(10).string(message.dockerImage);
     }
-    if (message.maxMemory !== "") {
+    if (message.maxMemory !== '') {
       writer.uint32(18).string(message.maxMemory);
     }
-    if (message.maxCpu !== "") {
+    if (message.maxCpu !== '') {
       writer.uint32(26).string(message.maxCpu);
     }
     return writer;
@@ -1083,21 +1144,21 @@ export const RunConfigContainer: MessageFns<RunConfigContainer> = {
 
   fromJSON(object: any): RunConfigContainer {
     return {
-      dockerImage: isSet(object.dockerImage) ? globalThis.String(object.dockerImage) : "",
-      maxMemory: isSet(object.maxMemory) ? globalThis.String(object.maxMemory) : "",
-      maxCpu: isSet(object.maxCpu) ? globalThis.String(object.maxCpu) : "",
+      dockerImage: isSet(object.dockerImage) ? globalThis.String(object.dockerImage) : '',
+      maxMemory: isSet(object.maxMemory) ? globalThis.String(object.maxMemory) : '',
+      maxCpu: isSet(object.maxCpu) ? globalThis.String(object.maxCpu) : ''
     };
   },
 
   toJSON(message: RunConfigContainer): unknown {
     const obj: any = {};
-    if (message.dockerImage !== "") {
+    if (message.dockerImage !== '') {
       obj.dockerImage = message.dockerImage;
     }
-    if (message.maxMemory !== "") {
+    if (message.maxMemory !== '') {
       obj.maxMemory = message.maxMemory;
     }
-    if (message.maxCpu !== "") {
+    if (message.maxCpu !== '') {
       obj.maxCpu = message.maxCpu;
     }
     return obj;
@@ -1108,11 +1169,11 @@ export const RunConfigContainer: MessageFns<RunConfigContainer> = {
   },
   fromPartial(object: DeepPartial<RunConfigContainer>): RunConfigContainer {
     const message = createBaseRunConfigContainer();
-    message.dockerImage = object.dockerImage ?? "";
-    message.maxMemory = object.maxMemory ?? "";
-    message.maxCpu = object.maxCpu ?? "";
+    message.dockerImage = object.dockerImage ?? '';
+    message.maxMemory = object.maxMemory ?? '';
+    message.maxCpu = object.maxCpu ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseRunConfig(): RunConfig {
@@ -1164,8 +1225,12 @@ export const RunConfig: MessageFns<RunConfig> = {
 
   fromJSON(object: any): RunConfig {
     return {
-      container: isSet(object.container) ? RunConfigContainer.fromJSON(object.container) : undefined,
-      arguments: isSet(object.arguments) ? RunConfigContainerArguments.fromJSON(object.arguments) : undefined,
+      container: isSet(object.container)
+        ? RunConfigContainer.fromJSON(object.container)
+        : undefined,
+      arguments: isSet(object.arguments)
+        ? RunConfigContainerArguments.fromJSON(object.arguments)
+        : undefined
     };
   },
 
@@ -1185,14 +1250,16 @@ export const RunConfig: MessageFns<RunConfig> = {
   },
   fromPartial(object: DeepPartial<RunConfig>): RunConfig {
     const message = createBaseRunConfig();
-    message.container = (object.container !== undefined && object.container !== null)
-      ? RunConfigContainer.fromPartial(object.container)
-      : undefined;
-    message.arguments = (object.arguments !== undefined && object.arguments !== null)
-      ? RunConfigContainerArguments.fromPartial(object.arguments)
-      : undefined;
+    message.container =
+      object.container !== undefined && object.container !== null
+        ? RunConfigContainer.fromPartial(object.container)
+        : undefined;
+    message.arguments =
+      object.arguments !== undefined && object.arguments !== null
+        ? RunConfigContainerArguments.fromPartial(object.arguments)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunRequest(): RunRequest {
@@ -1256,8 +1323,10 @@ export const RunRequest: MessageFns<RunRequest> = {
   fromJSON(object: any): RunRequest {
     return {
       init: isSet(object.init) ? RunRequestInit.fromJSON(object.init) : undefined,
-      mcpMessage: isSet(object.mcpMessage) ? RunRequestMcpMessage.fromJSON(object.mcpMessage) : undefined,
-      close: isSet(object.close) ? RunRequestClose.fromJSON(object.close) : undefined,
+      mcpMessage: isSet(object.mcpMessage)
+        ? RunRequestMcpMessage.fromJSON(object.mcpMessage)
+        : undefined,
+      close: isSet(object.close) ? RunRequestClose.fromJSON(object.close) : undefined
     };
   },
 
@@ -1280,26 +1349,29 @@ export const RunRequest: MessageFns<RunRequest> = {
   },
   fromPartial(object: DeepPartial<RunRequest>): RunRequest {
     const message = createBaseRunRequest();
-    message.init = (object.init !== undefined && object.init !== null)
-      ? RunRequestInit.fromPartial(object.init)
-      : undefined;
-    message.mcpMessage = (object.mcpMessage !== undefined && object.mcpMessage !== null)
-      ? RunRequestMcpMessage.fromPartial(object.mcpMessage)
-      : undefined;
-    message.close = (object.close !== undefined && object.close !== null)
-      ? RunRequestClose.fromPartial(object.close)
-      : undefined;
+    message.init =
+      object.init !== undefined && object.init !== null
+        ? RunRequestInit.fromPartial(object.init)
+        : undefined;
+    message.mcpMessage =
+      object.mcpMessage !== undefined && object.mcpMessage !== null
+        ? RunRequestMcpMessage.fromPartial(object.mcpMessage)
+        : undefined;
+    message.close =
+      object.close !== undefined && object.close !== null
+        ? RunRequestClose.fromPartial(object.close)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunRequestInit(): RunRequestInit {
-  return { connectionId: "", runConfig: undefined };
+  return { connectionId: '', runConfig: undefined };
 }
 
 export const RunRequestInit: MessageFns<RunRequestInit> = {
   encode(message: RunRequestInit, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.connectionId !== "") {
+    if (message.connectionId !== '') {
       writer.uint32(10).string(message.connectionId);
     }
     if (message.runConfig !== undefined) {
@@ -1342,14 +1414,14 @@ export const RunRequestInit: MessageFns<RunRequestInit> = {
 
   fromJSON(object: any): RunRequestInit {
     return {
-      connectionId: isSet(object.connectionId) ? globalThis.String(object.connectionId) : "",
-      runConfig: isSet(object.runConfig) ? RunConfig.fromJSON(object.runConfig) : undefined,
+      connectionId: isSet(object.connectionId) ? globalThis.String(object.connectionId) : '',
+      runConfig: isSet(object.runConfig) ? RunConfig.fromJSON(object.runConfig) : undefined
     };
   },
 
   toJSON(message: RunRequestInit): unknown {
     const obj: any = {};
-    if (message.connectionId !== "") {
+    if (message.connectionId !== '') {
       obj.connectionId = message.connectionId;
     }
     if (message.runConfig !== undefined) {
@@ -1363,12 +1435,13 @@ export const RunRequestInit: MessageFns<RunRequestInit> = {
   },
   fromPartial(object: DeepPartial<RunRequestInit>): RunRequestInit {
     const message = createBaseRunRequestInit();
-    message.connectionId = object.connectionId ?? "";
-    message.runConfig = (object.runConfig !== undefined && object.runConfig !== null)
-      ? RunConfig.fromPartial(object.runConfig)
-      : undefined;
+    message.connectionId = object.connectionId ?? '';
+    message.runConfig =
+      object.runConfig !== undefined && object.runConfig !== null
+        ? RunConfig.fromPartial(object.runConfig)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunRequestMcpMessage(): RunRequestMcpMessage {
@@ -1376,7 +1449,10 @@ function createBaseRunRequestMcpMessage(): RunRequestMcpMessage {
 }
 
 export const RunRequestMcpMessage: MessageFns<RunRequestMcpMessage> = {
-  encode(message: RunRequestMcpMessage, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: RunRequestMcpMessage,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.message !== undefined) {
       McpMessageRaw.encode(message.message, writer.uint32(10).fork()).join();
     }
@@ -1408,7 +1484,9 @@ export const RunRequestMcpMessage: MessageFns<RunRequestMcpMessage> = {
   },
 
   fromJSON(object: any): RunRequestMcpMessage {
-    return { message: isSet(object.message) ? McpMessageRaw.fromJSON(object.message) : undefined };
+    return {
+      message: isSet(object.message) ? McpMessageRaw.fromJSON(object.message) : undefined
+    };
   },
 
   toJSON(message: RunRequestMcpMessage): unknown {
@@ -1424,11 +1502,12 @@ export const RunRequestMcpMessage: MessageFns<RunRequestMcpMessage> = {
   },
   fromPartial(object: DeepPartial<RunRequestMcpMessage>): RunRequestMcpMessage {
     const message = createBaseRunRequestMcpMessage();
-    message.message = (object.message !== undefined && object.message !== null)
-      ? McpMessageRaw.fromPartial(object.message)
-      : undefined;
+    message.message =
+      object.message !== undefined && object.message !== null
+        ? McpMessageRaw.fromPartial(object.message)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunRequestClose(): RunRequestClose {
@@ -1471,11 +1550,17 @@ export const RunRequestClose: MessageFns<RunRequestClose> = {
   fromPartial(_: DeepPartial<RunRequestClose>): RunRequestClose {
     const message = createBaseRunRequestClose();
     return message;
-  },
+  }
 };
 
 function createBaseRunResponse(): RunResponse {
-  return { mcpMessage: undefined, init: undefined, output: undefined, error: undefined, close: undefined };
+  return {
+    mcpMessage: undefined,
+    init: undefined,
+    output: undefined,
+    error: undefined,
+    close: undefined
+  };
 }
 
 export const RunResponse: MessageFns<RunResponse> = {
@@ -1556,11 +1641,13 @@ export const RunResponse: MessageFns<RunResponse> = {
 
   fromJSON(object: any): RunResponse {
     return {
-      mcpMessage: isSet(object.mcpMessage) ? RunResponseMcpMessage.fromJSON(object.mcpMessage) : undefined,
+      mcpMessage: isSet(object.mcpMessage)
+        ? RunResponseMcpMessage.fromJSON(object.mcpMessage)
+        : undefined,
       init: isSet(object.init) ? RunResponseInit.fromJSON(object.init) : undefined,
       output: isSet(object.output) ? RunResponseOutput.fromJSON(object.output) : undefined,
       error: isSet(object.error) ? RunResponseError.fromJSON(object.error) : undefined,
-      close: isSet(object.close) ? RunResponseClose.fromJSON(object.close) : undefined,
+      close: isSet(object.close) ? RunResponseClose.fromJSON(object.close) : undefined
     };
   },
 
@@ -1589,23 +1676,28 @@ export const RunResponse: MessageFns<RunResponse> = {
   },
   fromPartial(object: DeepPartial<RunResponse>): RunResponse {
     const message = createBaseRunResponse();
-    message.mcpMessage = (object.mcpMessage !== undefined && object.mcpMessage !== null)
-      ? RunResponseMcpMessage.fromPartial(object.mcpMessage)
-      : undefined;
-    message.init = (object.init !== undefined && object.init !== null)
-      ? RunResponseInit.fromPartial(object.init)
-      : undefined;
-    message.output = (object.output !== undefined && object.output !== null)
-      ? RunResponseOutput.fromPartial(object.output)
-      : undefined;
-    message.error = (object.error !== undefined && object.error !== null)
-      ? RunResponseError.fromPartial(object.error)
-      : undefined;
-    message.close = (object.close !== undefined && object.close !== null)
-      ? RunResponseClose.fromPartial(object.close)
-      : undefined;
+    message.mcpMessage =
+      object.mcpMessage !== undefined && object.mcpMessage !== null
+        ? RunResponseMcpMessage.fromPartial(object.mcpMessage)
+        : undefined;
+    message.init =
+      object.init !== undefined && object.init !== null
+        ? RunResponseInit.fromPartial(object.init)
+        : undefined;
+    message.output =
+      object.output !== undefined && object.output !== null
+        ? RunResponseOutput.fromPartial(object.output)
+        : undefined;
+    message.error =
+      object.error !== undefined && object.error !== null
+        ? RunResponseError.fromPartial(object.error)
+        : undefined;
+    message.close =
+      object.close !== undefined && object.close !== null
+        ? RunResponseClose.fromPartial(object.close)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunResponseInit(): RunResponseInit {
@@ -1648,7 +1740,7 @@ export const RunResponseInit: MessageFns<RunResponseInit> = {
   fromPartial(_: DeepPartial<RunResponseInit>): RunResponseInit {
     const message = createBaseRunResponseInit();
     return message;
-  },
+  }
 };
 
 function createBaseRunResponseMcpMessage(): RunResponseMcpMessage {
@@ -1656,7 +1748,10 @@ function createBaseRunResponseMcpMessage(): RunResponseMcpMessage {
 }
 
 export const RunResponseMcpMessage: MessageFns<RunResponseMcpMessage> = {
-  encode(message: RunResponseMcpMessage, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: RunResponseMcpMessage,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.message !== undefined) {
       McpMessageRaw.encode(message.message, writer.uint32(10).fork()).join();
     }
@@ -1688,7 +1783,9 @@ export const RunResponseMcpMessage: MessageFns<RunResponseMcpMessage> = {
   },
 
   fromJSON(object: any): RunResponseMcpMessage {
-    return { message: isSet(object.message) ? McpMessageRaw.fromJSON(object.message) : undefined };
+    return {
+      message: isSet(object.message) ? McpMessageRaw.fromJSON(object.message) : undefined
+    };
   },
 
   toJSON(message: RunResponseMcpMessage): unknown {
@@ -1704,11 +1801,12 @@ export const RunResponseMcpMessage: MessageFns<RunResponseMcpMessage> = {
   },
   fromPartial(object: DeepPartial<RunResponseMcpMessage>): RunResponseMcpMessage {
     const message = createBaseRunResponseMcpMessage();
-    message.message = (object.message !== undefined && object.message !== null)
-      ? McpMessageRaw.fromPartial(object.message)
-      : undefined;
+    message.message =
+      object.message !== undefined && object.message !== null
+        ? McpMessageRaw.fromPartial(object.message)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunResponseError(): RunResponseError {
@@ -1748,7 +1846,9 @@ export const RunResponseError: MessageFns<RunResponseError> = {
   },
 
   fromJSON(object: any): RunResponseError {
-    return { mcpError: isSet(object.mcpError) ? McpError.fromJSON(object.mcpError) : undefined };
+    return {
+      mcpError: isSet(object.mcpError) ? McpError.fromJSON(object.mcpError) : undefined
+    };
   },
 
   toJSON(message: RunResponseError): unknown {
@@ -1764,11 +1864,12 @@ export const RunResponseError: MessageFns<RunResponseError> = {
   },
   fromPartial(object: DeepPartial<RunResponseError>): RunResponseError {
     const message = createBaseRunResponseError();
-    message.mcpError = (object.mcpError !== undefined && object.mcpError !== null)
-      ? McpError.fromPartial(object.mcpError)
-      : undefined;
+    message.mcpError =
+      object.mcpError !== undefined && object.mcpError !== null
+        ? McpError.fromPartial(object.mcpError)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunResponseOutput(): RunResponseOutput {
@@ -1808,7 +1909,9 @@ export const RunResponseOutput: MessageFns<RunResponseOutput> = {
   },
 
   fromJSON(object: any): RunResponseOutput {
-    return { mcpOutput: isSet(object.mcpOutput) ? McpOutput.fromJSON(object.mcpOutput) : undefined };
+    return {
+      mcpOutput: isSet(object.mcpOutput) ? McpOutput.fromJSON(object.mcpOutput) : undefined
+    };
   },
 
   toJSON(message: RunResponseOutput): unknown {
@@ -1824,11 +1927,12 @@ export const RunResponseOutput: MessageFns<RunResponseOutput> = {
   },
   fromPartial(object: DeepPartial<RunResponseOutput>): RunResponseOutput {
     const message = createBaseRunResponseOutput();
-    message.mcpOutput = (object.mcpOutput !== undefined && object.mcpOutput !== null)
-      ? McpOutput.fromPartial(object.mcpOutput)
-      : undefined;
+    message.mcpOutput =
+      object.mcpOutput !== undefined && object.mcpOutput !== null
+        ? McpOutput.fromPartial(object.mcpOutput)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunResponseClose(): RunResponseClose {
@@ -1871,7 +1975,7 @@ export const RunResponseClose: MessageFns<RunResponseClose> = {
   fromPartial(_: DeepPartial<RunResponseClose>): RunResponseClose {
     const message = createBaseRunResponseClose();
     return message;
-  },
+  }
 };
 
 /**
@@ -1883,14 +1987,16 @@ export const RunResponseClose: MessageFns<RunResponseClose> = {
 export type McpRunnerService = typeof McpRunnerService;
 export const McpRunnerService = {
   streamMcpRun: {
-    path: "/broker.runner.McpRunner/StreamMcpRun",
+    path: '/broker.runner.McpRunner/StreamMcpRun',
     requestStream: true,
     responseStream: true,
-    requestSerialize: (value: RunRequest): Buffer => Buffer.from(RunRequest.encode(value).finish()),
+    requestSerialize: (value: RunRequest): Buffer =>
+      Buffer.from(RunRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): RunRequest => RunRequest.decode(value),
-    responseSerialize: (value: RunResponse): Buffer => Buffer.from(RunResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): RunResponse => RunResponse.decode(value),
-  },
+    responseSerialize: (value: RunResponse): Buffer =>
+      Buffer.from(RunResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RunResponse => RunResponse.decode(value)
+  }
 } as const;
 
 export interface McpRunnerServer extends UntypedServiceImplementation {
@@ -1900,25 +2006,41 @@ export interface McpRunnerServer extends UntypedServiceImplementation {
 export interface McpRunnerClient extends Client {
   streamMcpRun(): ClientDuplexStream<RunRequest, RunResponse>;
   streamMcpRun(options: Partial<CallOptions>): ClientDuplexStream<RunRequest, RunResponse>;
-  streamMcpRun(metadata: Metadata, options?: Partial<CallOptions>): ClientDuplexStream<RunRequest, RunResponse>;
+  streamMcpRun(
+    metadata: Metadata,
+    options?: Partial<CallOptions>
+  ): ClientDuplexStream<RunRequest, RunResponse>;
 }
 
-export const McpRunnerClient = makeGenericClientConstructor(McpRunnerService, "broker.runner.McpRunner") as unknown as {
-  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): McpRunnerClient;
+export const McpRunnerClient = makeGenericClientConstructor(
+  McpRunnerService,
+  'broker.runner.McpRunner'
+) as unknown as {
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): McpRunnerClient;
   service: typeof McpRunnerService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends {}
+          ? { [K in keyof T]?: DeepPartial<T[K]> }
+          : Partial<T>;
 
 function isObject(value: any): boolean {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function isSet(value: any): boolean {

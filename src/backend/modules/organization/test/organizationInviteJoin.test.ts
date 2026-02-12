@@ -18,18 +18,20 @@ vi.mock('@metorial/db', () => ({
   ID: {
     generateId: vi.fn()
   },
-  withTransaction: vi.fn((callback) => callback({
-    organizationInvite: {
-      update: vi.fn(),
-      findFirst: vi.fn()
-    },
-    organizationMember: {
-      findFirst: vi.fn()
-    },
-    organizationInviteJoin: {
-      create: vi.fn()
-    }
-  }))
+  withTransaction: vi.fn(callback =>
+    callback({
+      organizationInvite: {
+        update: vi.fn(),
+        findFirst: vi.fn()
+      },
+      organizationMember: {
+        findFirst: vi.fn()
+      },
+      organizationInviteJoin: {
+        create: vi.fn()
+      }
+    })
+  )
 }));
 
 vi.mock('@metorial/fabric', () => ({
@@ -83,7 +85,9 @@ describe('OrganizationInviteJoinService', () => {
         invitedBy: { id: 'actor-1', oid: 1, name: 'Inviter' }
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite as any
+      );
 
       let result = await organizationInviteJoinService.getOrganizationInvite({
         inviteKey: 'invite-key-123'
@@ -108,7 +112,9 @@ describe('OrganizationInviteJoinService', () => {
         invitedBy: { id: 'actor-1', oid: 1 }
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite as any
+      );
 
       let result = await organizationInviteJoinService.getOrganizationInvite({
         inviteKey: 'invite-key-123'
@@ -125,7 +131,9 @@ describe('OrganizationInviteJoinService', () => {
         key: 'invite-key-123'
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite as any
+      );
 
       await expect(
         organizationInviteJoinService.getOrganizationInvite({
@@ -142,7 +150,9 @@ describe('OrganizationInviteJoinService', () => {
         key: 'invite-key-123'
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite as any
+      );
 
       await expect(
         organizationInviteJoinService.getOrganizationInvite({
@@ -159,7 +169,9 @@ describe('OrganizationInviteJoinService', () => {
         key: 'invite-key-123'
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite as any
+      );
 
       await expect(
         organizationInviteJoinService.getOrganizationInvite({
@@ -212,10 +224,12 @@ describe('OrganizationInviteJoinService', () => {
         useCount: 1
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite
+      );
       vi.mocked(ID.generateId).mockResolvedValue('join-1');
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
             findFirst: vi.fn().mockResolvedValue(null)
@@ -229,7 +243,8 @@ describe('OrganizationInviteJoinService', () => {
             })
           },
           organizationInvite: {
-            update: vi.fn()
+            update: vi
+              .fn()
               .mockResolvedValueOnce(updatedInvite)
               .mockResolvedValueOnce(updatedInvite)
           }
@@ -237,7 +252,9 @@ describe('OrganizationInviteJoinService', () => {
         return callback(mockDb as any);
       });
 
-      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(mockMember as any);
+      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(
+        mockMember as any
+      );
 
       let result = await organizationInviteJoinService.acceptOrganizationInvite({
         user: mockUser,
@@ -255,10 +272,22 @@ describe('OrganizationInviteJoinService', () => {
         context: mockContext,
         performedBy: { type: 'actor', actor: mockInvitedBy }
       });
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.accepted:before', expect.any(Object));
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.join.created:before', expect.any(Object));
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.join.created:after', expect.any(Object));
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.accepted:after', expect.any(Object));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.accepted:before',
+        expect.any(Object)
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.join.created:before',
+        expect.any(Object)
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.join.created:after',
+        expect.any(Object)
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.accepted:after',
+        expect.any(Object)
+      );
     });
 
     it('should accept link invite and create new member', async () => {
@@ -283,10 +312,12 @@ describe('OrganizationInviteJoinService', () => {
         useCount: 1
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(linkInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        linkInvite as any
+      );
       vi.mocked(ID.generateId).mockResolvedValue('join-1');
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
             findFirst: vi.fn().mockResolvedValue(null)
@@ -306,7 +337,9 @@ describe('OrganizationInviteJoinService', () => {
         return callback(mockDb as any);
       });
 
-      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(mockMember as any);
+      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(
+        mockMember as any
+      );
 
       let result = await organizationInviteJoinService.acceptOrganizationInvite({
         user: mockUser,
@@ -330,9 +363,11 @@ describe('OrganizationInviteJoinService', () => {
         organization: mockOrg
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite
+      );
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
             findFirst: vi.fn().mockResolvedValue(existingMember)
@@ -388,10 +423,12 @@ describe('OrganizationInviteJoinService', () => {
         useCount: 1
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite
+      );
       vi.mocked(ID.generateId).mockResolvedValue('join-1');
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
             findFirst: vi.fn().mockResolvedValue(inactiveMember)
@@ -405,7 +442,8 @@ describe('OrganizationInviteJoinService', () => {
             })
           },
           organizationInvite: {
-            update: vi.fn()
+            update: vi
+              .fn()
               .mockResolvedValueOnce(updatedInvite)
               .mockResolvedValueOnce(updatedInvite)
           }
@@ -413,7 +451,9 @@ describe('OrganizationInviteJoinService', () => {
         return callback(mockDb as any);
       });
 
-      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(mockMember as any);
+      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(
+        mockMember as any
+      );
 
       let result = await organizationInviteJoinService.acceptOrganizationInvite({
         user: mockUser,
@@ -431,7 +471,9 @@ describe('OrganizationInviteJoinService', () => {
         status: 'accepted'
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(acceptedInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        acceptedInvite as any
+      );
 
       await expect(
         organizationInviteJoinService.acceptOrganizationInvite({
@@ -448,7 +490,9 @@ describe('OrganizationInviteJoinService', () => {
         status: 'expired'
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(expiredInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        expiredInvite as any
+      );
 
       await expect(
         organizationInviteJoinService.acceptOrganizationInvite({
@@ -466,14 +510,17 @@ describe('OrganizationInviteJoinService', () => {
         actor: { id: 'actor-2', oid: 2 }
       };
 
-      let updateMock = vi.fn()
+      let updateMock = vi
+        .fn()
         .mockResolvedValueOnce({ ...mockInvite, status: 'accepted', acceptedAt: new Date() })
         .mockResolvedValueOnce({ ...mockInvite, useCount: 1 });
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite
+      );
       vi.mocked(ID.generateId).mockResolvedValue('join-1');
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
             findFirst: vi.fn().mockResolvedValue(null)
@@ -491,7 +538,9 @@ describe('OrganizationInviteJoinService', () => {
         return callback(mockDb as any);
       });
 
-      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(mockMember as any);
+      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(
+        mockMember as any
+      );
 
       await organizationInviteJoinService.acceptOrganizationInvite({
         user: mockUser,
@@ -524,10 +573,12 @@ describe('OrganizationInviteJoinService', () => {
 
       let updateMock = vi.fn().mockResolvedValue({ ...linkInvite, useCount: 1 });
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(linkInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        linkInvite as any
+      );
       vi.mocked(ID.generateId).mockResolvedValue('join-1');
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
             findFirst: vi.fn().mockResolvedValue(null)
@@ -545,7 +596,9 @@ describe('OrganizationInviteJoinService', () => {
         return callback(mockDb as any);
       });
 
-      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(mockMember as any);
+      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(
+        mockMember as any
+      );
 
       await organizationInviteJoinService.acceptOrganizationInvite({
         user: mockUser,
@@ -571,14 +624,17 @@ describe('OrganizationInviteJoinService', () => {
         actor: { id: 'actor-2', oid: 2 }
       };
 
-      let updateMock = vi.fn()
+      let updateMock = vi
+        .fn()
         .mockResolvedValueOnce({ ...mockInvite, status: 'accepted', acceptedAt: new Date() })
         .mockResolvedValueOnce({ ...mockInvite, useCount: 1 });
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite
+      );
       vi.mocked(ID.generateId).mockResolvedValue('join-1');
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
             findFirst: vi.fn().mockResolvedValue(null)
@@ -596,7 +652,9 @@ describe('OrganizationInviteJoinService', () => {
         return callback(mockDb as any);
       });
 
-      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(mockMember as any);
+      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(
+        mockMember as any
+      );
 
       await organizationInviteJoinService.acceptOrganizationInvite({
         user: mockUser,
@@ -628,10 +686,12 @@ describe('OrganizationInviteJoinService', () => {
         memberOid: 1
       });
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite
+      );
       vi.mocked(ID.generateId).mockResolvedValue('join-1');
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
             findFirst: vi.fn().mockResolvedValue(null)
@@ -640,15 +700,22 @@ describe('OrganizationInviteJoinService', () => {
             create: createJoinMock
           },
           organizationInvite: {
-            update: vi.fn()
-              .mockResolvedValueOnce({ ...mockInvite, status: 'accepted', acceptedAt: new Date() })
+            update: vi
+              .fn()
+              .mockResolvedValueOnce({
+                ...mockInvite,
+                status: 'accepted',
+                acceptedAt: new Date()
+              })
               .mockResolvedValueOnce({ ...mockInvite, useCount: 1 })
           }
         };
         return callback(mockDb as any);
       });
 
-      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(mockMember as any);
+      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(
+        mockMember as any
+      );
 
       await organizationInviteJoinService.acceptOrganizationInvite({
         user: mockUser,
@@ -679,10 +746,12 @@ describe('OrganizationInviteJoinService', () => {
         actor: { id: 'actor-2', oid: 2 }
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(adminInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        adminInvite as any
+      );
       vi.mocked(ID.generateId).mockResolvedValue('join-1');
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
             findFirst: vi.fn().mockResolvedValue(null)
@@ -694,15 +763,22 @@ describe('OrganizationInviteJoinService', () => {
             })
           },
           organizationInvite: {
-            update: vi.fn()
-              .mockResolvedValueOnce({ ...adminInvite, status: 'accepted', acceptedAt: new Date() })
+            update: vi
+              .fn()
+              .mockResolvedValueOnce({
+                ...adminInvite,
+                status: 'accepted',
+                acceptedAt: new Date()
+              })
               .mockResolvedValueOnce({ ...adminInvite, useCount: 1 })
           }
         };
         return callback(mockDb as any);
       });
 
-      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(mockMember as any);
+      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(
+        mockMember as any
+      );
 
       await organizationInviteJoinService.acceptOrganizationInvite({
         user: mockUser,
@@ -752,9 +828,11 @@ describe('OrganizationInviteJoinService', () => {
         rejectedAt: new Date()
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite
+      );
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: vi.fn().mockResolvedValue(rejectedInvite)
@@ -771,18 +849,24 @@ describe('OrganizationInviteJoinService', () => {
 
       expect(result.organization).toEqual(mockOrg);
       expect(result.invite).toEqual(rejectedInvite);
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.rejected:before', expect.objectContaining({
-        user: mockUser,
-        performedBy: mockInvitedBy,
-        organization: mockOrg,
-        invite: mockInvite
-      }));
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.rejected:after', expect.objectContaining({
-        user: mockUser,
-        performedBy: mockInvitedBy,
-        organization: mockOrg,
-        invite: rejectedInvite
-      }));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.rejected:before',
+        expect.objectContaining({
+          user: mockUser,
+          performedBy: mockInvitedBy,
+          organization: mockOrg,
+          invite: mockInvite
+        })
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.rejected:after',
+        expect.objectContaining({
+          user: mockUser,
+          performedBy: mockInvitedBy,
+          organization: mockOrg,
+          invite: rejectedInvite
+        })
+      );
     });
 
     it('should update invite status to rejected for email invites', async () => {
@@ -792,9 +876,11 @@ describe('OrganizationInviteJoinService', () => {
         rejectedAt: expect.any(Date)
       });
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite
+      );
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: updateMock
@@ -831,9 +917,11 @@ describe('OrganizationInviteJoinService', () => {
 
       let updateMock = vi.fn();
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(linkInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        linkInvite as any
+      );
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: updateMock
@@ -860,9 +948,11 @@ describe('OrganizationInviteJoinService', () => {
         rejectedAt: new Date()
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(rejectedInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        rejectedInvite as any
+      );
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: vi.fn().mockResolvedValue(rejectedInvite)
@@ -886,7 +976,9 @@ describe('OrganizationInviteJoinService', () => {
         status: 'accepted'
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(acceptedInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        acceptedInvite as any
+      );
 
       await expect(
         organizationInviteJoinService.rejectOrganizationInvite({
@@ -903,7 +995,9 @@ describe('OrganizationInviteJoinService', () => {
         status: 'expired'
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(expiredInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        expiredInvite as any
+      );
 
       await expect(
         organizationInviteJoinService.rejectOrganizationInvite({
@@ -921,9 +1015,11 @@ describe('OrganizationInviteJoinService', () => {
         return Promise.resolve();
       });
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite
+      );
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: vi.fn().mockResolvedValue({
@@ -988,8 +1084,10 @@ describe('OrganizationInviteJoinService', () => {
       let error = new ServiceError(notFoundError('organization_invite', null));
       vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockRejectedValue(error);
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
-        vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockRejectedValue(error);
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockRejectedValue(
+          error
+        );
         return callback({} as any);
       });
 
@@ -1004,8 +1102,10 @@ describe('OrganizationInviteJoinService', () => {
       let error = new ServiceError(notFoundError('organization_invite', null));
       vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockRejectedValue(error);
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
-        vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockRejectedValue(error);
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockRejectedValue(
+          error
+        );
         return callback({} as any);
       });
 
@@ -1022,8 +1122,10 @@ describe('OrganizationInviteJoinService', () => {
       let error = new ServiceError(notFoundError('organization_invite', null));
       vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockRejectedValue(error);
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
-        vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockRejectedValue(error);
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockRejectedValue(
+          error
+        );
         return callback({} as any);
       });
 
@@ -1056,10 +1158,12 @@ describe('OrganizationInviteJoinService', () => {
         actor: { id: 'actor-2', oid: 2 }
       };
 
-      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(mockInvite as any);
+      vi.mocked(organizationInviteService.getOrganizationInviteByKey).mockResolvedValue(
+        mockInvite as any
+      );
       vi.mocked(ID.generateId).mockResolvedValue('join-1');
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
             findFirst: vi.fn().mockResolvedValue(null)
@@ -1068,15 +1172,22 @@ describe('OrganizationInviteJoinService', () => {
             create: vi.fn().mockResolvedValue({ id: 'join-1', oid: 1 })
           },
           organizationInvite: {
-            update: vi.fn()
-              .mockResolvedValueOnce({ ...mockInvite, status: 'accepted', acceptedAt: new Date() })
+            update: vi
+              .fn()
+              .mockResolvedValueOnce({
+                ...mockInvite,
+                status: 'accepted',
+                acceptedAt: new Date()
+              })
               .mockResolvedValueOnce({ ...mockInvite, useCount: 1 })
           }
         };
         return callback(mockDb as any);
       });
 
-      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(mockMember as any);
+      vi.mocked(organizationMemberService.createOrganizationMember).mockResolvedValue(
+        mockMember as any
+      );
 
       let result = await organizationInviteJoinService.acceptOrganizationInvite({
         user: { id: 'user-1', oid: 1 } as any,

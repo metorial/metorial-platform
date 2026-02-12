@@ -268,22 +268,15 @@ export let providerAuthConfigController = Controller.create(
 export let providerAuthConfigListController = Controller.create(
   {
     name: 'Provider Auth Configs (Provider-scoped)',
-    description:
-      'List auth configs scoped to a provider, optionally filtered by deployment.'
+    description: 'List auth configs scoped to a provider, optionally filtered by deployment.'
   },
   {
     list: instanceGroup
-      .get(
-        instancePath(
-          'providers/auth-configs',
-          'providers.authConfigs.list'
-        ),
-        {
-          name: 'List provider auth configs',
-          description:
-            'Returns a paginated list of auth configs, optionally filtered by provider and deployment IDs.'
-        }
-      )
+      .get(instancePath('providers/auth-configs', 'providers.authConfigs.list'), {
+        name: 'List provider auth configs',
+        description:
+          'Returns a paginated list of auth configs, optionally filtered by provider and deployment IDs.'
+      })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .outputList(providerAuthConfigPresenter)
       .query(
@@ -293,14 +286,12 @@ export let providerAuthConfigListController = Controller.create(
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             }),
-            provider_deployment_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by deployment ID(s)' }
-            ),
-            provider_auth_method_id: v.optional(
-              v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by auth method ID(s)' }
-            )
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by deployment ID(s)'
+            }),
+            provider_auth_method_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by auth method ID(s)'
+            })
           })
         )
       )

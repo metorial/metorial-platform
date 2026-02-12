@@ -10,7 +10,10 @@ global.Bun = {
       return this;
     }
     digest(encoding: string) {
-      return crypto.createHash('sha512').update(this.data).digest(encoding as any);
+      return crypto
+        .createHash('sha512')
+        .update(this.data)
+        .digest(encoding as any);
     }
   }
 } as any;
@@ -36,7 +39,9 @@ vi.mock('../src/store/store', () => ({
 vi.mock('../src/store/default/crypto', () => ({
   SecureEncryption: vi.fn().mockImplementation((key: string) => ({
     encrypt: vi.fn(async (data: string) => `encrypted-${data}-with-${key.substring(0, 10)}`),
-    decrypt: vi.fn(async (data: string) => data.replace(/^encrypted-/, '').replace(/-with-.*$/, ''))
+    decrypt: vi.fn(async (data: string) =>
+      data.replace(/^encrypted-/, '').replace(/-with-.*$/, '')
+    )
   }))
 }));
 

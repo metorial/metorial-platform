@@ -65,7 +65,12 @@ describe('module index', () => {
       const module = await import('../src/index');
 
       // Check that key exports are present
-      const expectedExports = ['secretQueueProcessor', 'secretService', 'SecretStores', 'SecretStoreManager'];
+      const expectedExports = [
+        'secretQueueProcessor',
+        'secretService',
+        'SecretStores',
+        'SecretStoreManager'
+      ];
 
       expectedExports.forEach(exportName => {
         expect(module).toHaveProperty(exportName);

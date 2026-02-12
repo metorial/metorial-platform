@@ -53,9 +53,7 @@ export let providerDeploymentLoader = createLoader({
       body: DashboardInstanceProviderDeploymentsUpdateBody,
       { input: { instanceId, providerDeploymentId } }
     ) =>
-      withAuth(sdk =>
-        sdk.providerDeployments.update(instanceId, providerDeploymentId, body)
-      ),
+      withAuth(sdk => sdk.providerDeployments.update(instanceId, providerDeploymentId, body)),
 
     delete: (_, { input: { instanceId, providerDeploymentId } }) =>
       withAuth(sdk => sdk.providerDeployments.delete(instanceId, providerDeploymentId))

@@ -11,8 +11,10 @@ export let providerAuthCredentialsLoader = createLoader({
   name: 'providerAuthCredentials',
   parents: [],
   fetch: (
-    i: { instanceId: string; providerDeploymentId: string } &
-      DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
+    i: {
+      instanceId: string;
+      providerDeploymentId: string;
+    } & DashboardInstanceProviderDeploymentsAuthCredentialsListQuery
   ) =>
     withAuth(sdk =>
       sdk.providerDeployments.authCredentials.list(i.instanceId, i.providerDeploymentId, i)
@@ -20,20 +22,21 @@ export let providerAuthCredentialsLoader = createLoader({
   mutators: {}
 });
 
-export let useCreateProviderAuthCredentials = providerAuthCredentialsLoader.createExternalMutator(
-  ({
-    instanceId,
-    providerDeploymentId,
-    ...body
-  }: DashboardInstanceProviderDeploymentsAuthCredentialsCreateBody & {
-    instanceId: string;
-    providerDeploymentId: string;
-  }) =>
-    withAuth(sdk =>
-      sdk.providerDeployments.authCredentials.create(instanceId, providerDeploymentId, body)
-    ),
-  { disableToast: true }
-);
+export let useCreateProviderAuthCredentials =
+  providerAuthCredentialsLoader.createExternalMutator(
+    ({
+      instanceId,
+      providerDeploymentId,
+      ...body
+    }: DashboardInstanceProviderDeploymentsAuthCredentialsCreateBody & {
+      instanceId: string;
+      providerDeploymentId: string;
+    }) =>
+      withAuth(sdk =>
+        sdk.providerDeployments.authCredentials.create(instanceId, providerDeploymentId, body)
+      ),
+    { disableToast: true }
+  );
 
 export let useProviderAuthCredentials = (
   instanceId: string | null | undefined,

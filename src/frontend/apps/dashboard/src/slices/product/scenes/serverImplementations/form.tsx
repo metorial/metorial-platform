@@ -54,7 +54,8 @@ export let ServerImplementationForm = (
     instance.data?.instanceId,
     p.type == 'create'
       ? (p.for?.serverId ?? searchServer?.server.id)
-      : ((implementation?.data as any)?.server?.id ?? (implementation?.data as any)?.providerId)
+      : ((implementation?.data as any)?.server?.id ??
+          (implementation?.data as any)?.providerId)
   );
 
   let variant = (p as any).for?.serverVariantId

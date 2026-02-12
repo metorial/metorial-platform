@@ -5,7 +5,7 @@
 // source: rpc.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -16,11 +16,11 @@ import {
   makeGenericClientConstructor,
   type Metadata,
   type ServiceError,
-  type UntypedServiceImplementation,
-} from "@grpc/grpc-js";
-import Long from "long";
+  type UntypedServiceImplementation
+} from '@grpc/grpc-js';
+import Long from 'long';
 
-export const protobufPackage = "rpc.rpc";
+export const protobufPackage = 'rpc.rpc';
 
 export interface FileInfo {
   path: string;
@@ -70,8 +70,7 @@ export interface CreateBucketFromGithubRequest {
   token: string;
 }
 
-export interface CreateBucketResponse {
-}
+export interface CreateBucketResponse {}
 
 export interface GetBucketTokenRequest {
   bucketId: string;
@@ -125,22 +124,21 @@ export interface ExportBucketToGithubRequest {
   token: string;
 }
 
-export interface ExportBucketToGithubResponse {
-}
+export interface ExportBucketToGithubResponse {}
 
 function createBaseFileInfo(): FileInfo {
-  return { path: "", size: Long.ZERO, contentType: "", modifiedAt: Long.ZERO };
+  return { path: '', size: Long.ZERO, contentType: '', modifiedAt: Long.ZERO };
 }
 
 export const FileInfo: MessageFns<FileInfo> = {
   encode(message: FileInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.path !== "") {
+    if (message.path !== '') {
       writer.uint32(10).string(message.path);
     }
     if (!message.size.equals(Long.ZERO)) {
       writer.uint32(16).int64(message.size.toString());
     }
-    if (message.contentType !== "") {
+    if (message.contentType !== '') {
       writer.uint32(26).string(message.contentType);
     }
     if (!message.modifiedAt.equals(Long.ZERO)) {
@@ -199,22 +197,22 @@ export const FileInfo: MessageFns<FileInfo> = {
 
   fromJSON(object: any): FileInfo {
     return {
-      path: isSet(object.path) ? globalThis.String(object.path) : "",
+      path: isSet(object.path) ? globalThis.String(object.path) : '',
       size: isSet(object.size) ? Long.fromValue(object.size) : Long.ZERO,
-      contentType: isSet(object.contentType) ? globalThis.String(object.contentType) : "",
-      modifiedAt: isSet(object.modifiedAt) ? Long.fromValue(object.modifiedAt) : Long.ZERO,
+      contentType: isSet(object.contentType) ? globalThis.String(object.contentType) : '',
+      modifiedAt: isSet(object.modifiedAt) ? Long.fromValue(object.modifiedAt) : Long.ZERO
     };
   },
 
   toJSON(message: FileInfo): unknown {
     const obj: any = {};
-    if (message.path !== "") {
+    if (message.path !== '') {
       obj.path = message.path;
     }
     if (!message.size.equals(Long.ZERO)) {
       obj.size = (message.size || Long.ZERO).toString();
     }
-    if (message.contentType !== "") {
+    if (message.contentType !== '') {
       obj.contentType = message.contentType;
     }
     if (!message.modifiedAt.equals(Long.ZERO)) {
@@ -228,14 +226,18 @@ export const FileInfo: MessageFns<FileInfo> = {
   },
   fromPartial(object: DeepPartial<FileInfo>): FileInfo {
     const message = createBaseFileInfo();
-    message.path = object.path ?? "";
-    message.size = (object.size !== undefined && object.size !== null) ? Long.fromValue(object.size) : Long.ZERO;
-    message.contentType = object.contentType ?? "";
-    message.modifiedAt = (object.modifiedAt !== undefined && object.modifiedAt !== null)
-      ? Long.fromValue(object.modifiedAt)
-      : Long.ZERO;
+    message.path = object.path ?? '';
+    message.size =
+      object.size !== undefined && object.size !== null
+        ? Long.fromValue(object.size)
+        : Long.ZERO;
+    message.contentType = object.contentType ?? '';
+    message.modifiedAt =
+      object.modifiedAt !== undefined && object.modifiedAt !== null
+        ? Long.fromValue(object.modifiedAt)
+        : Long.ZERO;
     return message;
-  },
+  }
 };
 
 function createBaseFileContent(): FileContent {
@@ -288,7 +290,7 @@ export const FileContent: MessageFns<FileContent> = {
   fromJSON(object: any): FileContent {
     return {
       content: isSet(object.content) ? bytesFromBase64(object.content) : new Uint8Array(0),
-      fileInfo: isSet(object.fileInfo) ? FileInfo.fromJSON(object.fileInfo) : undefined,
+      fileInfo: isSet(object.fileInfo) ? FileInfo.fromJSON(object.fileInfo) : undefined
     };
   },
 
@@ -309,23 +311,27 @@ export const FileContent: MessageFns<FileContent> = {
   fromPartial(object: DeepPartial<FileContent>): FileContent {
     const message = createBaseFileContent();
     message.content = object.content ?? new Uint8Array(0);
-    message.fileInfo = (object.fileInfo !== undefined && object.fileInfo !== null)
-      ? FileInfo.fromPartial(object.fileInfo)
-      : undefined;
+    message.fileInfo =
+      object.fileInfo !== undefined && object.fileInfo !== null
+        ? FileInfo.fromPartial(object.fileInfo)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseCloneBucketRequest(): CloneBucketRequest {
-  return { sourceBucketId: "", newBucketId: "" };
+  return { sourceBucketId: '', newBucketId: '' };
 }
 
 export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
-  encode(message: CloneBucketRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sourceBucketId !== "") {
+  encode(
+    message: CloneBucketRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sourceBucketId !== '') {
       writer.uint32(10).string(message.sourceBucketId);
     }
-    if (message.newBucketId !== "") {
+    if (message.newBucketId !== '') {
       writer.uint32(18).string(message.newBucketId);
     }
     return writer;
@@ -365,17 +371,19 @@ export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
 
   fromJSON(object: any): CloneBucketRequest {
     return {
-      sourceBucketId: isSet(object.sourceBucketId) ? globalThis.String(object.sourceBucketId) : "",
-      newBucketId: isSet(object.newBucketId) ? globalThis.String(object.newBucketId) : "",
+      sourceBucketId: isSet(object.sourceBucketId)
+        ? globalThis.String(object.sourceBucketId)
+        : '',
+      newBucketId: isSet(object.newBucketId) ? globalThis.String(object.newBucketId) : ''
     };
   },
 
   toJSON(message: CloneBucketRequest): unknown {
     const obj: any = {};
-    if (message.sourceBucketId !== "") {
+    if (message.sourceBucketId !== '') {
       obj.sourceBucketId = message.sourceBucketId;
     }
-    if (message.newBucketId !== "") {
+    if (message.newBucketId !== '') {
       obj.newBucketId = message.newBucketId;
     }
     return obj;
@@ -386,29 +394,35 @@ export const CloneBucketRequest: MessageFns<CloneBucketRequest> = {
   },
   fromPartial(object: DeepPartial<CloneBucketRequest>): CloneBucketRequest {
     const message = createBaseCloneBucketRequest();
-    message.sourceBucketId = object.sourceBucketId ?? "";
-    message.newBucketId = object.newBucketId ?? "";
+    message.sourceBucketId = object.sourceBucketId ?? '';
+    message.newBucketId = object.newBucketId ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseCreateBucketFromZipRequest(): CreateBucketFromZipRequest {
-  return { newBucketId: "", zipUrl: "", path: "", headers: {} };
+  return { newBucketId: '', zipUrl: '', path: '', headers: {} };
 }
 
 export const CreateBucketFromZipRequest: MessageFns<CreateBucketFromZipRequest> = {
-  encode(message: CreateBucketFromZipRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.newBucketId !== "") {
+  encode(
+    message: CreateBucketFromZipRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.newBucketId !== '') {
       writer.uint32(10).string(message.newBucketId);
     }
-    if (message.zipUrl !== "") {
+    if (message.zipUrl !== '') {
       writer.uint32(18).string(message.zipUrl);
     }
-    if (message.path !== "") {
+    if (message.path !== '') {
       writer.uint32(26).string(message.path);
     }
     Object.entries(message.headers).forEach(([key, value]) => {
-      CreateBucketFromZipRequest_HeadersEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).join();
+      CreateBucketFromZipRequest_HeadersEntry.encode(
+        { key: key as any, value },
+        writer.uint32(34).fork()
+      ).join();
     });
     return writer;
   },
@@ -449,7 +463,10 @@ export const CreateBucketFromZipRequest: MessageFns<CreateBucketFromZipRequest> 
             break;
           }
 
-          const entry4 = CreateBucketFromZipRequest_HeadersEntry.decode(reader, reader.uint32());
+          const entry4 = CreateBucketFromZipRequest_HeadersEntry.decode(
+            reader,
+            reader.uint32()
+          );
           if (entry4.value !== undefined) {
             message.headers[entry4.key] = entry4.value;
           }
@@ -466,27 +483,30 @@ export const CreateBucketFromZipRequest: MessageFns<CreateBucketFromZipRequest> 
 
   fromJSON(object: any): CreateBucketFromZipRequest {
     return {
-      newBucketId: isSet(object.newBucketId) ? globalThis.String(object.newBucketId) : "",
-      zipUrl: isSet(object.zipUrl) ? globalThis.String(object.zipUrl) : "",
-      path: isSet(object.path) ? globalThis.String(object.path) : "",
+      newBucketId: isSet(object.newBucketId) ? globalThis.String(object.newBucketId) : '',
+      zipUrl: isSet(object.zipUrl) ? globalThis.String(object.zipUrl) : '',
+      path: isSet(object.path) ? globalThis.String(object.path) : '',
       headers: isObject(object.headers)
-        ? Object.entries(object.headers).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-          acc[key] = String(value);
-          return acc;
-        }, {})
-        : {},
+        ? Object.entries(object.headers).reduce<{ [key: string]: string }>(
+            (acc, [key, value]) => {
+              acc[key] = String(value);
+              return acc;
+            },
+            {}
+          )
+        : {}
     };
   },
 
   toJSON(message: CreateBucketFromZipRequest): unknown {
     const obj: any = {};
-    if (message.newBucketId !== "") {
+    if (message.newBucketId !== '') {
       obj.newBucketId = message.newBucketId;
     }
-    if (message.zipUrl !== "") {
+    if (message.zipUrl !== '') {
       obj.zipUrl = message.zipUrl;
     }
-    if (message.path !== "") {
+    if (message.path !== '') {
       obj.path = message.path;
     }
     if (message.headers) {
@@ -506,102 +526,116 @@ export const CreateBucketFromZipRequest: MessageFns<CreateBucketFromZipRequest> 
   },
   fromPartial(object: DeepPartial<CreateBucketFromZipRequest>): CreateBucketFromZipRequest {
     const message = createBaseCreateBucketFromZipRequest();
-    message.newBucketId = object.newBucketId ?? "";
-    message.zipUrl = object.zipUrl ?? "";
-    message.path = object.path ?? "";
-    message.headers = Object.entries(object.headers ?? {}).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = globalThis.String(value);
-      }
-      return acc;
-    }, {});
+    message.newBucketId = object.newBucketId ?? '';
+    message.zipUrl = object.zipUrl ?? '';
+    message.path = object.path ?? '';
+    message.headers = Object.entries(object.headers ?? {}).reduce<{ [key: string]: string }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = globalThis.String(value);
+        }
+        return acc;
+      },
+      {}
+    );
     return message;
-  },
+  }
 };
 
 function createBaseCreateBucketFromZipRequest_HeadersEntry(): CreateBucketFromZipRequest_HeadersEntry {
-  return { key: "", value: "" };
+  return { key: '', value: '' };
 }
 
-export const CreateBucketFromZipRequest_HeadersEntry: MessageFns<CreateBucketFromZipRequest_HeadersEntry> = {
-  encode(message: CreateBucketFromZipRequest_HeadersEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.key !== "") {
-      writer.uint32(10).string(message.key);
-    }
-    if (message.value !== "") {
-      writer.uint32(18).string(message.value);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): CreateBucketFromZipRequest_HeadersEntry {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCreateBucketFromZipRequest_HeadersEntry();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.key = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.value = reader.string();
-          continue;
-        }
+export const CreateBucketFromZipRequest_HeadersEntry: MessageFns<CreateBucketFromZipRequest_HeadersEntry> =
+  {
+    encode(
+      message: CreateBucketFromZipRequest_HeadersEntry,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.key !== '') {
+        writer.uint32(10).string(message.key);
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (message.value !== '') {
+        writer.uint32(18).string(message.value);
       }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+      return writer;
+    },
 
-  fromJSON(object: any): CreateBucketFromZipRequest_HeadersEntry {
-    return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
-      value: isSet(object.value) ? globalThis.String(object.value) : "",
-    };
-  },
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): CreateBucketFromZipRequest_HeadersEntry {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseCreateBucketFromZipRequest_HeadersEntry();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
 
-  toJSON(message: CreateBucketFromZipRequest_HeadersEntry): unknown {
-    const obj: any = {};
-    if (message.key !== "") {
-      obj.key = message.key;
-    }
-    if (message.value !== "") {
-      obj.value = message.value;
-    }
-    return obj;
-  },
+            message.key = reader.string();
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
 
-  create(base?: DeepPartial<CreateBucketFromZipRequest_HeadersEntry>): CreateBucketFromZipRequest_HeadersEntry {
-    return CreateBucketFromZipRequest_HeadersEntry.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<CreateBucketFromZipRequest_HeadersEntry>): CreateBucketFromZipRequest_HeadersEntry {
-    const message = createBaseCreateBucketFromZipRequest_HeadersEntry();
-    message.key = object.key ?? "";
-    message.value = object.value ?? "";
-    return message;
-  },
-};
+            message.value = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): CreateBucketFromZipRequest_HeadersEntry {
+      return {
+        key: isSet(object.key) ? globalThis.String(object.key) : '',
+        value: isSet(object.value) ? globalThis.String(object.value) : ''
+      };
+    },
+
+    toJSON(message: CreateBucketFromZipRequest_HeadersEntry): unknown {
+      const obj: any = {};
+      if (message.key !== '') {
+        obj.key = message.key;
+      }
+      if (message.value !== '') {
+        obj.value = message.value;
+      }
+      return obj;
+    },
+
+    create(
+      base?: DeepPartial<CreateBucketFromZipRequest_HeadersEntry>
+    ): CreateBucketFromZipRequest_HeadersEntry {
+      return CreateBucketFromZipRequest_HeadersEntry.fromPartial(base ?? {});
+    },
+    fromPartial(
+      object: DeepPartial<CreateBucketFromZipRequest_HeadersEntry>
+    ): CreateBucketFromZipRequest_HeadersEntry {
+      const message = createBaseCreateBucketFromZipRequest_HeadersEntry();
+      message.key = object.key ?? '';
+      message.value = object.value ?? '';
+      return message;
+    }
+  };
 
 function createBaseFileContentsBase(): FileContentsBase {
-  return { path: "", content: new Uint8Array(0) };
+  return { path: '', content: new Uint8Array(0) };
 }
 
 export const FileContentsBase: MessageFns<FileContentsBase> = {
   encode(message: FileContentsBase, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.path !== "") {
+    if (message.path !== '') {
       writer.uint32(10).string(message.path);
     }
     if (message.content.length !== 0) {
@@ -644,14 +678,14 @@ export const FileContentsBase: MessageFns<FileContentsBase> = {
 
   fromJSON(object: any): FileContentsBase {
     return {
-      path: isSet(object.path) ? globalThis.String(object.path) : "",
-      content: isSet(object.content) ? bytesFromBase64(object.content) : new Uint8Array(0),
+      path: isSet(object.path) ? globalThis.String(object.path) : '',
+      content: isSet(object.content) ? bytesFromBase64(object.content) : new Uint8Array(0)
     };
   },
 
   toJSON(message: FileContentsBase): unknown {
     const obj: any = {};
-    if (message.path !== "") {
+    if (message.path !== '') {
       obj.path = message.path;
     }
     if (message.content.length !== 0) {
@@ -665,19 +699,22 @@ export const FileContentsBase: MessageFns<FileContentsBase> = {
   },
   fromPartial(object: DeepPartial<FileContentsBase>): FileContentsBase {
     const message = createBaseFileContentsBase();
-    message.path = object.path ?? "";
+    message.path = object.path ?? '';
     message.content = object.content ?? new Uint8Array(0);
     return message;
-  },
+  }
 };
 
 function createBaseCreateBucketFromContentsRequest(): CreateBucketFromContentsRequest {
-  return { newBucketId: "", contents: [] };
+  return { newBucketId: '', contents: [] };
 }
 
 export const CreateBucketFromContentsRequest: MessageFns<CreateBucketFromContentsRequest> = {
-  encode(message: CreateBucketFromContentsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.newBucketId !== "") {
+  encode(
+    message: CreateBucketFromContentsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.newBucketId !== '') {
       writer.uint32(10).string(message.newBucketId);
     }
     for (const v of message.contents) {
@@ -720,57 +757,64 @@ export const CreateBucketFromContentsRequest: MessageFns<CreateBucketFromContent
 
   fromJSON(object: any): CreateBucketFromContentsRequest {
     return {
-      newBucketId: isSet(object.newBucketId) ? globalThis.String(object.newBucketId) : "",
+      newBucketId: isSet(object.newBucketId) ? globalThis.String(object.newBucketId) : '',
       contents: globalThis.Array.isArray(object?.contents)
         ? object.contents.map((e: any) => FileContentsBase.fromJSON(e))
-        : [],
+        : []
     };
   },
 
   toJSON(message: CreateBucketFromContentsRequest): unknown {
     const obj: any = {};
-    if (message.newBucketId !== "") {
+    if (message.newBucketId !== '') {
       obj.newBucketId = message.newBucketId;
     }
     if (message.contents?.length) {
-      obj.contents = message.contents.map((e) => FileContentsBase.toJSON(e));
+      obj.contents = message.contents.map(e => FileContentsBase.toJSON(e));
     }
     return obj;
   },
 
-  create(base?: DeepPartial<CreateBucketFromContentsRequest>): CreateBucketFromContentsRequest {
+  create(
+    base?: DeepPartial<CreateBucketFromContentsRequest>
+  ): CreateBucketFromContentsRequest {
     return CreateBucketFromContentsRequest.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<CreateBucketFromContentsRequest>): CreateBucketFromContentsRequest {
+  fromPartial(
+    object: DeepPartial<CreateBucketFromContentsRequest>
+  ): CreateBucketFromContentsRequest {
     const message = createBaseCreateBucketFromContentsRequest();
-    message.newBucketId = object.newBucketId ?? "";
-    message.contents = object.contents?.map((e) => FileContentsBase.fromPartial(e)) || [];
+    message.newBucketId = object.newBucketId ?? '';
+    message.contents = object.contents?.map(e => FileContentsBase.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseCreateBucketFromGithubRequest(): CreateBucketFromGithubRequest {
-  return { newBucketId: "", owner: "", repo: "", path: "", ref: "", token: "" };
+  return { newBucketId: '', owner: '', repo: '', path: '', ref: '', token: '' };
 }
 
 export const CreateBucketFromGithubRequest: MessageFns<CreateBucketFromGithubRequest> = {
-  encode(message: CreateBucketFromGithubRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.newBucketId !== "") {
+  encode(
+    message: CreateBucketFromGithubRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.newBucketId !== '') {
       writer.uint32(10).string(message.newBucketId);
     }
-    if (message.owner !== "") {
+    if (message.owner !== '') {
       writer.uint32(18).string(message.owner);
     }
-    if (message.repo !== "") {
+    if (message.repo !== '') {
       writer.uint32(26).string(message.repo);
     }
-    if (message.path !== "") {
+    if (message.path !== '') {
       writer.uint32(34).string(message.path);
     }
-    if (message.ref !== "") {
+    if (message.ref !== '') {
       writer.uint32(42).string(message.ref);
     }
-    if (message.token !== "") {
+    if (message.token !== '') {
       writer.uint32(50).string(message.token);
     }
     return writer;
@@ -842,33 +886,33 @@ export const CreateBucketFromGithubRequest: MessageFns<CreateBucketFromGithubReq
 
   fromJSON(object: any): CreateBucketFromGithubRequest {
     return {
-      newBucketId: isSet(object.newBucketId) ? globalThis.String(object.newBucketId) : "",
-      owner: isSet(object.owner) ? globalThis.String(object.owner) : "",
-      repo: isSet(object.repo) ? globalThis.String(object.repo) : "",
-      path: isSet(object.path) ? globalThis.String(object.path) : "",
-      ref: isSet(object.ref) ? globalThis.String(object.ref) : "",
-      token: isSet(object.token) ? globalThis.String(object.token) : "",
+      newBucketId: isSet(object.newBucketId) ? globalThis.String(object.newBucketId) : '',
+      owner: isSet(object.owner) ? globalThis.String(object.owner) : '',
+      repo: isSet(object.repo) ? globalThis.String(object.repo) : '',
+      path: isSet(object.path) ? globalThis.String(object.path) : '',
+      ref: isSet(object.ref) ? globalThis.String(object.ref) : '',
+      token: isSet(object.token) ? globalThis.String(object.token) : ''
     };
   },
 
   toJSON(message: CreateBucketFromGithubRequest): unknown {
     const obj: any = {};
-    if (message.newBucketId !== "") {
+    if (message.newBucketId !== '') {
       obj.newBucketId = message.newBucketId;
     }
-    if (message.owner !== "") {
+    if (message.owner !== '') {
       obj.owner = message.owner;
     }
-    if (message.repo !== "") {
+    if (message.repo !== '') {
       obj.repo = message.repo;
     }
-    if (message.path !== "") {
+    if (message.path !== '') {
       obj.path = message.path;
     }
-    if (message.ref !== "") {
+    if (message.ref !== '') {
       obj.ref = message.ref;
     }
-    if (message.token !== "") {
+    if (message.token !== '') {
       obj.token = message.token;
     }
     return obj;
@@ -877,16 +921,18 @@ export const CreateBucketFromGithubRequest: MessageFns<CreateBucketFromGithubReq
   create(base?: DeepPartial<CreateBucketFromGithubRequest>): CreateBucketFromGithubRequest {
     return CreateBucketFromGithubRequest.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<CreateBucketFromGithubRequest>): CreateBucketFromGithubRequest {
+  fromPartial(
+    object: DeepPartial<CreateBucketFromGithubRequest>
+  ): CreateBucketFromGithubRequest {
     const message = createBaseCreateBucketFromGithubRequest();
-    message.newBucketId = object.newBucketId ?? "";
-    message.owner = object.owner ?? "";
-    message.repo = object.repo ?? "";
-    message.path = object.path ?? "";
-    message.ref = object.ref ?? "";
-    message.token = object.token ?? "";
+    message.newBucketId = object.newBucketId ?? '';
+    message.owner = object.owner ?? '';
+    message.repo = object.repo ?? '';
+    message.path = object.path ?? '';
+    message.ref = object.ref ?? '';
+    message.token = object.token ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseCreateBucketResponse(): CreateBucketResponse {
@@ -929,16 +975,19 @@ export const CreateBucketResponse: MessageFns<CreateBucketResponse> = {
   fromPartial(_: DeepPartial<CreateBucketResponse>): CreateBucketResponse {
     const message = createBaseCreateBucketResponse();
     return message;
-  },
+  }
 };
 
 function createBaseGetBucketTokenRequest(): GetBucketTokenRequest {
-  return { bucketId: "", expiresInSeconds: Long.ZERO, isReadOnly: false };
+  return { bucketId: '', expiresInSeconds: Long.ZERO, isReadOnly: false };
 }
 
 export const GetBucketTokenRequest: MessageFns<GetBucketTokenRequest> = {
-  encode(message: GetBucketTokenRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.bucketId !== "") {
+  encode(
+    message: GetBucketTokenRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.bucketId !== '') {
       writer.uint32(10).string(message.bucketId);
     }
     if (!message.expiresInSeconds.equals(Long.ZERO)) {
@@ -992,15 +1041,17 @@ export const GetBucketTokenRequest: MessageFns<GetBucketTokenRequest> = {
 
   fromJSON(object: any): GetBucketTokenRequest {
     return {
-      bucketId: isSet(object.bucketId) ? globalThis.String(object.bucketId) : "",
-      expiresInSeconds: isSet(object.expiresInSeconds) ? Long.fromValue(object.expiresInSeconds) : Long.ZERO,
-      isReadOnly: isSet(object.isReadOnly) ? globalThis.Boolean(object.isReadOnly) : false,
+      bucketId: isSet(object.bucketId) ? globalThis.String(object.bucketId) : '',
+      expiresInSeconds: isSet(object.expiresInSeconds)
+        ? Long.fromValue(object.expiresInSeconds)
+        : Long.ZERO,
+      isReadOnly: isSet(object.isReadOnly) ? globalThis.Boolean(object.isReadOnly) : false
     };
   },
 
   toJSON(message: GetBucketTokenRequest): unknown {
     const obj: any = {};
-    if (message.bucketId !== "") {
+    if (message.bucketId !== '') {
       obj.bucketId = message.bucketId;
     }
     if (!message.expiresInSeconds.equals(Long.ZERO)) {
@@ -1017,22 +1068,26 @@ export const GetBucketTokenRequest: MessageFns<GetBucketTokenRequest> = {
   },
   fromPartial(object: DeepPartial<GetBucketTokenRequest>): GetBucketTokenRequest {
     const message = createBaseGetBucketTokenRequest();
-    message.bucketId = object.bucketId ?? "";
-    message.expiresInSeconds = (object.expiresInSeconds !== undefined && object.expiresInSeconds !== null)
-      ? Long.fromValue(object.expiresInSeconds)
-      : Long.ZERO;
+    message.bucketId = object.bucketId ?? '';
+    message.expiresInSeconds =
+      object.expiresInSeconds !== undefined && object.expiresInSeconds !== null
+        ? Long.fromValue(object.expiresInSeconds)
+        : Long.ZERO;
     message.isReadOnly = object.isReadOnly ?? false;
     return message;
-  },
+  }
 };
 
 function createBaseGetBucketTokenResponse(): GetBucketTokenResponse {
-  return { token: "" };
+  return { token: '' };
 }
 
 export const GetBucketTokenResponse: MessageFns<GetBucketTokenResponse> = {
-  encode(message: GetBucketTokenResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.token !== "") {
+  encode(
+    message: GetBucketTokenResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.token !== '') {
       writer.uint32(10).string(message.token);
     }
     return writer;
@@ -1063,12 +1118,12 @@ export const GetBucketTokenResponse: MessageFns<GetBucketTokenResponse> = {
   },
 
   fromJSON(object: any): GetBucketTokenResponse {
-    return { token: isSet(object.token) ? globalThis.String(object.token) : "" };
+    return { token: isSet(object.token) ? globalThis.String(object.token) : '' };
   },
 
   toJSON(message: GetBucketTokenResponse): unknown {
     const obj: any = {};
-    if (message.token !== "") {
+    if (message.token !== '') {
       obj.token = message.token;
     }
     return obj;
@@ -1079,21 +1134,24 @@ export const GetBucketTokenResponse: MessageFns<GetBucketTokenResponse> = {
   },
   fromPartial(object: DeepPartial<GetBucketTokenResponse>): GetBucketTokenResponse {
     const message = createBaseGetBucketTokenResponse();
-    message.token = object.token ?? "";
+    message.token = object.token ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseGetBucketFileRequest(): GetBucketFileRequest {
-  return { bucketId: "", path: "" };
+  return { bucketId: '', path: '' };
 }
 
 export const GetBucketFileRequest: MessageFns<GetBucketFileRequest> = {
-  encode(message: GetBucketFileRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.bucketId !== "") {
+  encode(
+    message: GetBucketFileRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.bucketId !== '') {
       writer.uint32(10).string(message.bucketId);
     }
-    if (message.path !== "") {
+    if (message.path !== '') {
       writer.uint32(18).string(message.path);
     }
     return writer;
@@ -1133,17 +1191,17 @@ export const GetBucketFileRequest: MessageFns<GetBucketFileRequest> = {
 
   fromJSON(object: any): GetBucketFileRequest {
     return {
-      bucketId: isSet(object.bucketId) ? globalThis.String(object.bucketId) : "",
-      path: isSet(object.path) ? globalThis.String(object.path) : "",
+      bucketId: isSet(object.bucketId) ? globalThis.String(object.bucketId) : '',
+      path: isSet(object.path) ? globalThis.String(object.path) : ''
     };
   },
 
   toJSON(message: GetBucketFileRequest): unknown {
     const obj: any = {};
-    if (message.bucketId !== "") {
+    if (message.bucketId !== '') {
       obj.bucketId = message.bucketId;
     }
-    if (message.path !== "") {
+    if (message.path !== '') {
       obj.path = message.path;
     }
     return obj;
@@ -1154,10 +1212,10 @@ export const GetBucketFileRequest: MessageFns<GetBucketFileRequest> = {
   },
   fromPartial(object: DeepPartial<GetBucketFileRequest>): GetBucketFileRequest {
     const message = createBaseGetBucketFileRequest();
-    message.bucketId = object.bucketId ?? "";
-    message.path = object.path ?? "";
+    message.bucketId = object.bucketId ?? '';
+    message.path = object.path ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseGetBucketFileResponse(): GetBucketFileResponse {
@@ -1165,7 +1223,10 @@ function createBaseGetBucketFileResponse(): GetBucketFileResponse {
 }
 
 export const GetBucketFileResponse: MessageFns<GetBucketFileResponse> = {
-  encode(message: GetBucketFileResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: GetBucketFileResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.content !== undefined) {
       FileContent.encode(message.content, writer.uint32(10).fork()).join();
     }
@@ -1197,7 +1258,9 @@ export const GetBucketFileResponse: MessageFns<GetBucketFileResponse> = {
   },
 
   fromJSON(object: any): GetBucketFileResponse {
-    return { content: isSet(object.content) ? FileContent.fromJSON(object.content) : undefined };
+    return {
+      content: isSet(object.content) ? FileContent.fromJSON(object.content) : undefined
+    };
   },
 
   toJSON(message: GetBucketFileResponse): unknown {
@@ -1213,23 +1276,27 @@ export const GetBucketFileResponse: MessageFns<GetBucketFileResponse> = {
   },
   fromPartial(object: DeepPartial<GetBucketFileResponse>): GetBucketFileResponse {
     const message = createBaseGetBucketFileResponse();
-    message.content = (object.content !== undefined && object.content !== null)
-      ? FileContent.fromPartial(object.content)
-      : undefined;
+    message.content =
+      object.content !== undefined && object.content !== null
+        ? FileContent.fromPartial(object.content)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseGetBucketFilesRequest(): GetBucketFilesRequest {
-  return { bucketId: "", prefix: "" };
+  return { bucketId: '', prefix: '' };
 }
 
 export const GetBucketFilesRequest: MessageFns<GetBucketFilesRequest> = {
-  encode(message: GetBucketFilesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.bucketId !== "") {
+  encode(
+    message: GetBucketFilesRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.bucketId !== '') {
       writer.uint32(10).string(message.bucketId);
     }
-    if (message.prefix !== "") {
+    if (message.prefix !== '') {
       writer.uint32(18).string(message.prefix);
     }
     return writer;
@@ -1269,17 +1336,17 @@ export const GetBucketFilesRequest: MessageFns<GetBucketFilesRequest> = {
 
   fromJSON(object: any): GetBucketFilesRequest {
     return {
-      bucketId: isSet(object.bucketId) ? globalThis.String(object.bucketId) : "",
-      prefix: isSet(object.prefix) ? globalThis.String(object.prefix) : "",
+      bucketId: isSet(object.bucketId) ? globalThis.String(object.bucketId) : '',
+      prefix: isSet(object.prefix) ? globalThis.String(object.prefix) : ''
     };
   },
 
   toJSON(message: GetBucketFilesRequest): unknown {
     const obj: any = {};
-    if (message.bucketId !== "") {
+    if (message.bucketId !== '') {
       obj.bucketId = message.bucketId;
     }
-    if (message.prefix !== "") {
+    if (message.prefix !== '') {
       obj.prefix = message.prefix;
     }
     return obj;
@@ -1290,10 +1357,10 @@ export const GetBucketFilesRequest: MessageFns<GetBucketFilesRequest> = {
   },
   fromPartial(object: DeepPartial<GetBucketFilesRequest>): GetBucketFilesRequest {
     const message = createBaseGetBucketFilesRequest();
-    message.bucketId = object.bucketId ?? "";
-    message.prefix = object.prefix ?? "";
+    message.bucketId = object.bucketId ?? '';
+    message.prefix = object.prefix ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseGetBucketFilesResponse(): GetBucketFilesResponse {
@@ -1301,7 +1368,10 @@ function createBaseGetBucketFilesResponse(): GetBucketFilesResponse {
 }
 
 export const GetBucketFilesResponse: MessageFns<GetBucketFilesResponse> = {
-  encode(message: GetBucketFilesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: GetBucketFilesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.files) {
       FileInfo.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -1333,13 +1403,17 @@ export const GetBucketFilesResponse: MessageFns<GetBucketFilesResponse> = {
   },
 
   fromJSON(object: any): GetBucketFilesResponse {
-    return { files: globalThis.Array.isArray(object?.files) ? object.files.map((e: any) => FileInfo.fromJSON(e)) : [] };
+    return {
+      files: globalThis.Array.isArray(object?.files)
+        ? object.files.map((e: any) => FileInfo.fromJSON(e))
+        : []
+    };
   },
 
   toJSON(message: GetBucketFilesResponse): unknown {
     const obj: any = {};
     if (message.files?.length) {
-      obj.files = message.files.map((e) => FileInfo.toJSON(e));
+      obj.files = message.files.map(e => FileInfo.toJSON(e));
     }
     return obj;
   },
@@ -1349,81 +1423,97 @@ export const GetBucketFilesResponse: MessageFns<GetBucketFilesResponse> = {
   },
   fromPartial(object: DeepPartial<GetBucketFilesResponse>): GetBucketFilesResponse {
     const message = createBaseGetBucketFilesResponse();
-    message.files = object.files?.map((e) => FileInfo.fromPartial(e)) || [];
+    message.files = object.files?.map(e => FileInfo.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseGetBucketFilesWithContentResponse(): GetBucketFilesWithContentResponse {
   return { files: [] };
 }
 
-export const GetBucketFilesWithContentResponse: MessageFns<GetBucketFilesWithContentResponse> = {
-  encode(message: GetBucketFilesWithContentResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.files) {
-      FileContent.encode(v!, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
+export const GetBucketFilesWithContentResponse: MessageFns<GetBucketFilesWithContentResponse> =
+  {
+    encode(
+      message: GetBucketFilesWithContentResponse,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      for (const v of message.files) {
+        FileContent.encode(v!, writer.uint32(10).fork()).join();
+      }
+      return writer;
+    },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GetBucketFilesWithContentResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetBucketFilesWithContentResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): GetBucketFilesWithContentResponse {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseGetBucketFilesWithContentResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.files.push(FileContent.decode(reader, reader.uint32()));
+            continue;
           }
-
-          message.files.push(FileContent.decode(reader, reader.uint32()));
-          continue;
         }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      return message;
+    },
+
+    fromJSON(object: any): GetBucketFilesWithContentResponse {
+      return {
+        files: globalThis.Array.isArray(object?.files)
+          ? object.files.map((e: any) => FileContent.fromJSON(e))
+          : []
+      };
+    },
+
+    toJSON(message: GetBucketFilesWithContentResponse): unknown {
+      const obj: any = {};
+      if (message.files?.length) {
+        obj.files = message.files.map(e => FileContent.toJSON(e));
       }
-      reader.skip(tag & 7);
+      return obj;
+    },
+
+    create(
+      base?: DeepPartial<GetBucketFilesWithContentResponse>
+    ): GetBucketFilesWithContentResponse {
+      return GetBucketFilesWithContentResponse.fromPartial(base ?? {});
+    },
+    fromPartial(
+      object: DeepPartial<GetBucketFilesWithContentResponse>
+    ): GetBucketFilesWithContentResponse {
+      const message = createBaseGetBucketFilesWithContentResponse();
+      message.files = object.files?.map(e => FileContent.fromPartial(e)) || [];
+      return message;
     }
-    return message;
-  },
-
-  fromJSON(object: any): GetBucketFilesWithContentResponse {
-    return {
-      files: globalThis.Array.isArray(object?.files) ? object.files.map((e: any) => FileContent.fromJSON(e)) : [],
-    };
-  },
-
-  toJSON(message: GetBucketFilesWithContentResponse): unknown {
-    const obj: any = {};
-    if (message.files?.length) {
-      obj.files = message.files.map((e) => FileContent.toJSON(e));
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<GetBucketFilesWithContentResponse>): GetBucketFilesWithContentResponse {
-    return GetBucketFilesWithContentResponse.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<GetBucketFilesWithContentResponse>): GetBucketFilesWithContentResponse {
-    const message = createBaseGetBucketFilesWithContentResponse();
-    message.files = object.files?.map((e) => FileContent.fromPartial(e)) || [];
-    return message;
-  },
-};
+  };
 
 function createBaseGetBucketFilesAsZipRequest(): GetBucketFilesAsZipRequest {
-  return { bucketId: "", prefix: "" };
+  return { bucketId: '', prefix: '' };
 }
 
 export const GetBucketFilesAsZipRequest: MessageFns<GetBucketFilesAsZipRequest> = {
-  encode(message: GetBucketFilesAsZipRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.bucketId !== "") {
+  encode(
+    message: GetBucketFilesAsZipRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.bucketId !== '') {
       writer.uint32(10).string(message.bucketId);
     }
-    if (message.prefix !== "") {
+    if (message.prefix !== '') {
       writer.uint32(18).string(message.prefix);
     }
     return writer;
@@ -1463,17 +1553,17 @@ export const GetBucketFilesAsZipRequest: MessageFns<GetBucketFilesAsZipRequest> 
 
   fromJSON(object: any): GetBucketFilesAsZipRequest {
     return {
-      bucketId: isSet(object.bucketId) ? globalThis.String(object.bucketId) : "",
-      prefix: isSet(object.prefix) ? globalThis.String(object.prefix) : "",
+      bucketId: isSet(object.bucketId) ? globalThis.String(object.bucketId) : '',
+      prefix: isSet(object.prefix) ? globalThis.String(object.prefix) : ''
     };
   },
 
   toJSON(message: GetBucketFilesAsZipRequest): unknown {
     const obj: any = {};
-    if (message.bucketId !== "") {
+    if (message.bucketId !== '') {
       obj.bucketId = message.bucketId;
     }
-    if (message.prefix !== "") {
+    if (message.prefix !== '') {
       obj.prefix = message.prefix;
     }
     return obj;
@@ -1484,19 +1574,22 @@ export const GetBucketFilesAsZipRequest: MessageFns<GetBucketFilesAsZipRequest> 
   },
   fromPartial(object: DeepPartial<GetBucketFilesAsZipRequest>): GetBucketFilesAsZipRequest {
     const message = createBaseGetBucketFilesAsZipRequest();
-    message.bucketId = object.bucketId ?? "";
-    message.prefix = object.prefix ?? "";
+    message.bucketId = object.bucketId ?? '';
+    message.prefix = object.prefix ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseGetBucketFilesAsZipResponse(): GetBucketFilesAsZipResponse {
-  return { downloadUrl: "", expiresAt: Long.ZERO };
+  return { downloadUrl: '', expiresAt: Long.ZERO };
 }
 
 export const GetBucketFilesAsZipResponse: MessageFns<GetBucketFilesAsZipResponse> = {
-  encode(message: GetBucketFilesAsZipResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.downloadUrl !== "") {
+  encode(
+    message: GetBucketFilesAsZipResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.downloadUrl !== '') {
       writer.uint32(10).string(message.downloadUrl);
     }
     if (!message.expiresAt.equals(Long.ZERO)) {
@@ -1539,14 +1632,14 @@ export const GetBucketFilesAsZipResponse: MessageFns<GetBucketFilesAsZipResponse
 
   fromJSON(object: any): GetBucketFilesAsZipResponse {
     return {
-      downloadUrl: isSet(object.downloadUrl) ? globalThis.String(object.downloadUrl) : "",
-      expiresAt: isSet(object.expiresAt) ? Long.fromValue(object.expiresAt) : Long.ZERO,
+      downloadUrl: isSet(object.downloadUrl) ? globalThis.String(object.downloadUrl) : '',
+      expiresAt: isSet(object.expiresAt) ? Long.fromValue(object.expiresAt) : Long.ZERO
     };
   },
 
   toJSON(message: GetBucketFilesAsZipResponse): unknown {
     const obj: any = {};
-    if (message.downloadUrl !== "") {
+    if (message.downloadUrl !== '') {
       obj.downloadUrl = message.downloadUrl;
     }
     if (!message.expiresAt.equals(Long.ZERO)) {
@@ -1560,33 +1653,37 @@ export const GetBucketFilesAsZipResponse: MessageFns<GetBucketFilesAsZipResponse
   },
   fromPartial(object: DeepPartial<GetBucketFilesAsZipResponse>): GetBucketFilesAsZipResponse {
     const message = createBaseGetBucketFilesAsZipResponse();
-    message.downloadUrl = object.downloadUrl ?? "";
-    message.expiresAt = (object.expiresAt !== undefined && object.expiresAt !== null)
-      ? Long.fromValue(object.expiresAt)
-      : Long.ZERO;
+    message.downloadUrl = object.downloadUrl ?? '';
+    message.expiresAt =
+      object.expiresAt !== undefined && object.expiresAt !== null
+        ? Long.fromValue(object.expiresAt)
+        : Long.ZERO;
     return message;
-  },
+  }
 };
 
 function createBaseExportBucketToGithubRequest(): ExportBucketToGithubRequest {
-  return { bucketId: "", owner: "", repo: "", path: "", token: "" };
+  return { bucketId: '', owner: '', repo: '', path: '', token: '' };
 }
 
 export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest> = {
-  encode(message: ExportBucketToGithubRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.bucketId !== "") {
+  encode(
+    message: ExportBucketToGithubRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.bucketId !== '') {
       writer.uint32(10).string(message.bucketId);
     }
-    if (message.owner !== "") {
+    if (message.owner !== '') {
       writer.uint32(18).string(message.owner);
     }
-    if (message.repo !== "") {
+    if (message.repo !== '') {
       writer.uint32(26).string(message.repo);
     }
-    if (message.path !== "") {
+    if (message.path !== '') {
       writer.uint32(34).string(message.path);
     }
-    if (message.token !== "") {
+    if (message.token !== '') {
       writer.uint32(42).string(message.token);
     }
     return writer;
@@ -1650,29 +1747,29 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
 
   fromJSON(object: any): ExportBucketToGithubRequest {
     return {
-      bucketId: isSet(object.bucketId) ? globalThis.String(object.bucketId) : "",
-      owner: isSet(object.owner) ? globalThis.String(object.owner) : "",
-      repo: isSet(object.repo) ? globalThis.String(object.repo) : "",
-      path: isSet(object.path) ? globalThis.String(object.path) : "",
-      token: isSet(object.token) ? globalThis.String(object.token) : "",
+      bucketId: isSet(object.bucketId) ? globalThis.String(object.bucketId) : '',
+      owner: isSet(object.owner) ? globalThis.String(object.owner) : '',
+      repo: isSet(object.repo) ? globalThis.String(object.repo) : '',
+      path: isSet(object.path) ? globalThis.String(object.path) : '',
+      token: isSet(object.token) ? globalThis.String(object.token) : ''
     };
   },
 
   toJSON(message: ExportBucketToGithubRequest): unknown {
     const obj: any = {};
-    if (message.bucketId !== "") {
+    if (message.bucketId !== '') {
       obj.bucketId = message.bucketId;
     }
-    if (message.owner !== "") {
+    if (message.owner !== '') {
       obj.owner = message.owner;
     }
-    if (message.repo !== "") {
+    if (message.repo !== '') {
       obj.repo = message.repo;
     }
-    if (message.path !== "") {
+    if (message.path !== '') {
       obj.path = message.path;
     }
-    if (message.token !== "") {
+    if (message.token !== '') {
       obj.token = message.token;
     }
     return obj;
@@ -1683,13 +1780,13 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
   },
   fromPartial(object: DeepPartial<ExportBucketToGithubRequest>): ExportBucketToGithubRequest {
     const message = createBaseExportBucketToGithubRequest();
-    message.bucketId = object.bucketId ?? "";
-    message.owner = object.owner ?? "";
-    message.repo = object.repo ?? "";
-    message.path = object.path ?? "";
-    message.token = object.token ?? "";
+    message.bucketId = object.bucketId ?? '';
+    message.owner = object.owner ?? '';
+    message.repo = object.repo ?? '';
+    message.path = object.path ?? '';
+    message.token = object.token ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseExportBucketToGithubResponse(): ExportBucketToGithubResponse {
@@ -1697,7 +1794,10 @@ function createBaseExportBucketToGithubResponse(): ExportBucketToGithubResponse 
 }
 
 export const ExportBucketToGithubResponse: MessageFns<ExportBucketToGithubResponse> = {
-  encode(_: ExportBucketToGithubResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    _: ExportBucketToGithubResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     return writer;
   },
 
@@ -1732,23 +1832,26 @@ export const ExportBucketToGithubResponse: MessageFns<ExportBucketToGithubRespon
   fromPartial(_: DeepPartial<ExportBucketToGithubResponse>): ExportBucketToGithubResponse {
     const message = createBaseExportBucketToGithubResponse();
     return message;
-  },
+  }
 };
 
 export type CodeBucketService = typeof CodeBucketService;
 export const CodeBucketService = {
   cloneBucket: {
-    path: "/rpc.rpc.CodeBucket/CloneBucket",
+    path: '/rpc.rpc.CodeBucket/CloneBucket',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: CloneBucketRequest): Buffer => Buffer.from(CloneBucketRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CloneBucketRequest => CloneBucketRequest.decode(value),
+    requestSerialize: (value: CloneBucketRequest): Buffer =>
+      Buffer.from(CloneBucketRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CloneBucketRequest =>
+      CloneBucketRequest.decode(value),
     responseSerialize: (value: CreateBucketResponse): Buffer =>
       Buffer.from(CreateBucketResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateBucketResponse => CreateBucketResponse.decode(value),
+    responseDeserialize: (value: Buffer): CreateBucketResponse =>
+      CreateBucketResponse.decode(value)
   },
   createBucketFromContents: {
-    path: "/rpc.rpc.CodeBucket/CreateBucketFromContents",
+    path: '/rpc.rpc.CodeBucket/CreateBucketFromContents',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: CreateBucketFromContentsRequest): Buffer =>
@@ -1757,273 +1860,309 @@ export const CodeBucketService = {
       CreateBucketFromContentsRequest.decode(value),
     responseSerialize: (value: CreateBucketResponse): Buffer =>
       Buffer.from(CreateBucketResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateBucketResponse => CreateBucketResponse.decode(value),
+    responseDeserialize: (value: Buffer): CreateBucketResponse =>
+      CreateBucketResponse.decode(value)
   },
   createBucketFromZip: {
-    path: "/rpc.rpc.CodeBucket/CreateBucketFromZip",
+    path: '/rpc.rpc.CodeBucket/CreateBucketFromZip',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: CreateBucketFromZipRequest): Buffer =>
       Buffer.from(CreateBucketFromZipRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CreateBucketFromZipRequest => CreateBucketFromZipRequest.decode(value),
+    requestDeserialize: (value: Buffer): CreateBucketFromZipRequest =>
+      CreateBucketFromZipRequest.decode(value),
     responseSerialize: (value: CreateBucketResponse): Buffer =>
       Buffer.from(CreateBucketResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateBucketResponse => CreateBucketResponse.decode(value),
+    responseDeserialize: (value: Buffer): CreateBucketResponse =>
+      CreateBucketResponse.decode(value)
   },
   createBucketFromGithub: {
-    path: "/rpc.rpc.CodeBucket/CreateBucketFromGithub",
+    path: '/rpc.rpc.CodeBucket/CreateBucketFromGithub',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: CreateBucketFromGithubRequest): Buffer =>
       Buffer.from(CreateBucketFromGithubRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CreateBucketFromGithubRequest => CreateBucketFromGithubRequest.decode(value),
+    requestDeserialize: (value: Buffer): CreateBucketFromGithubRequest =>
+      CreateBucketFromGithubRequest.decode(value),
     responseSerialize: (value: CreateBucketResponse): Buffer =>
       Buffer.from(CreateBucketResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateBucketResponse => CreateBucketResponse.decode(value),
+    responseDeserialize: (value: Buffer): CreateBucketResponse =>
+      CreateBucketResponse.decode(value)
   },
   getBucketToken: {
-    path: "/rpc.rpc.CodeBucket/GetBucketToken",
+    path: '/rpc.rpc.CodeBucket/GetBucketToken',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: GetBucketTokenRequest): Buffer =>
       Buffer.from(GetBucketTokenRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetBucketTokenRequest => GetBucketTokenRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetBucketTokenRequest =>
+      GetBucketTokenRequest.decode(value),
     responseSerialize: (value: GetBucketTokenResponse): Buffer =>
       Buffer.from(GetBucketTokenResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetBucketTokenResponse => GetBucketTokenResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetBucketTokenResponse =>
+      GetBucketTokenResponse.decode(value)
   },
   getBucketFile: {
-    path: "/rpc.rpc.CodeBucket/GetBucketFile",
+    path: '/rpc.rpc.CodeBucket/GetBucketFile',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: GetBucketFileRequest): Buffer => Buffer.from(GetBucketFileRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetBucketFileRequest => GetBucketFileRequest.decode(value),
+    requestSerialize: (value: GetBucketFileRequest): Buffer =>
+      Buffer.from(GetBucketFileRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetBucketFileRequest =>
+      GetBucketFileRequest.decode(value),
     responseSerialize: (value: GetBucketFileResponse): Buffer =>
       Buffer.from(GetBucketFileResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetBucketFileResponse => GetBucketFileResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetBucketFileResponse =>
+      GetBucketFileResponse.decode(value)
   },
   getBucketFiles: {
-    path: "/rpc.rpc.CodeBucket/GetBucketFiles",
+    path: '/rpc.rpc.CodeBucket/GetBucketFiles',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: GetBucketFilesRequest): Buffer =>
       Buffer.from(GetBucketFilesRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetBucketFilesRequest => GetBucketFilesRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetBucketFilesRequest =>
+      GetBucketFilesRequest.decode(value),
     responseSerialize: (value: GetBucketFilesResponse): Buffer =>
       Buffer.from(GetBucketFilesResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetBucketFilesResponse => GetBucketFilesResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetBucketFilesResponse =>
+      GetBucketFilesResponse.decode(value)
   },
   getBucketFilesWithContent: {
-    path: "/rpc.rpc.CodeBucket/GetBucketFilesWithContent",
+    path: '/rpc.rpc.CodeBucket/GetBucketFilesWithContent',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: GetBucketFilesRequest): Buffer =>
       Buffer.from(GetBucketFilesRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetBucketFilesRequest => GetBucketFilesRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetBucketFilesRequest =>
+      GetBucketFilesRequest.decode(value),
     responseSerialize: (value: GetBucketFilesWithContentResponse): Buffer =>
       Buffer.from(GetBucketFilesWithContentResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetBucketFilesWithContentResponse =>
-      GetBucketFilesWithContentResponse.decode(value),
+      GetBucketFilesWithContentResponse.decode(value)
   },
   getBucketFilesAsZip: {
-    path: "/rpc.rpc.CodeBucket/GetBucketFilesAsZip",
+    path: '/rpc.rpc.CodeBucket/GetBucketFilesAsZip',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: GetBucketFilesAsZipRequest): Buffer =>
       Buffer.from(GetBucketFilesAsZipRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetBucketFilesAsZipRequest => GetBucketFilesAsZipRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetBucketFilesAsZipRequest =>
+      GetBucketFilesAsZipRequest.decode(value),
     responseSerialize: (value: GetBucketFilesAsZipResponse): Buffer =>
       Buffer.from(GetBucketFilesAsZipResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetBucketFilesAsZipResponse => GetBucketFilesAsZipResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetBucketFilesAsZipResponse =>
+      GetBucketFilesAsZipResponse.decode(value)
   },
   exportBucketToGithub: {
-    path: "/rpc.rpc.CodeBucket/ExportBucketToGithub",
+    path: '/rpc.rpc.CodeBucket/ExportBucketToGithub',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: ExportBucketToGithubRequest): Buffer =>
       Buffer.from(ExportBucketToGithubRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ExportBucketToGithubRequest => ExportBucketToGithubRequest.decode(value),
+    requestDeserialize: (value: Buffer): ExportBucketToGithubRequest =>
+      ExportBucketToGithubRequest.decode(value),
     responseSerialize: (value: ExportBucketToGithubResponse): Buffer =>
       Buffer.from(ExportBucketToGithubResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ExportBucketToGithubResponse => ExportBucketToGithubResponse.decode(value),
-  },
+    responseDeserialize: (value: Buffer): ExportBucketToGithubResponse =>
+      ExportBucketToGithubResponse.decode(value)
+  }
 } as const;
 
 export interface CodeBucketServer extends UntypedServiceImplementation {
   cloneBucket: handleUnaryCall<CloneBucketRequest, CreateBucketResponse>;
-  createBucketFromContents: handleUnaryCall<CreateBucketFromContentsRequest, CreateBucketResponse>;
+  createBucketFromContents: handleUnaryCall<
+    CreateBucketFromContentsRequest,
+    CreateBucketResponse
+  >;
   createBucketFromZip: handleUnaryCall<CreateBucketFromZipRequest, CreateBucketResponse>;
   createBucketFromGithub: handleUnaryCall<CreateBucketFromGithubRequest, CreateBucketResponse>;
   getBucketToken: handleUnaryCall<GetBucketTokenRequest, GetBucketTokenResponse>;
   getBucketFile: handleUnaryCall<GetBucketFileRequest, GetBucketFileResponse>;
   getBucketFiles: handleUnaryCall<GetBucketFilesRequest, GetBucketFilesResponse>;
-  getBucketFilesWithContent: handleUnaryCall<GetBucketFilesRequest, GetBucketFilesWithContentResponse>;
-  getBucketFilesAsZip: handleUnaryCall<GetBucketFilesAsZipRequest, GetBucketFilesAsZipResponse>;
-  exportBucketToGithub: handleUnaryCall<ExportBucketToGithubRequest, ExportBucketToGithubResponse>;
+  getBucketFilesWithContent: handleUnaryCall<
+    GetBucketFilesRequest,
+    GetBucketFilesWithContentResponse
+  >;
+  getBucketFilesAsZip: handleUnaryCall<
+    GetBucketFilesAsZipRequest,
+    GetBucketFilesAsZipResponse
+  >;
+  exportBucketToGithub: handleUnaryCall<
+    ExportBucketToGithubRequest,
+    ExportBucketToGithubResponse
+  >;
 }
 
 export interface CodeBucketClient extends Client {
   cloneBucket(
     request: CloneBucketRequest,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void
   ): ClientUnaryCall;
   cloneBucket(
     request: CloneBucketRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void
   ): ClientUnaryCall;
   cloneBucket(
     request: CloneBucketRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void
   ): ClientUnaryCall;
   createBucketFromContents(
     request: CreateBucketFromContentsRequest,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
-  ): ClientUnaryCall;
-  createBucketFromContents(
-    request: CreateBucketFromContentsRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void
   ): ClientUnaryCall;
   createBucketFromContents(
     request: CreateBucketFromContentsRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void
+  ): ClientUnaryCall;
+  createBucketFromContents(
+    request: CreateBucketFromContentsRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void
   ): ClientUnaryCall;
   createBucketFromZip(
     request: CreateBucketFromZipRequest,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void
   ): ClientUnaryCall;
   createBucketFromZip(
     request: CreateBucketFromZipRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void
   ): ClientUnaryCall;
   createBucketFromZip(
     request: CreateBucketFromZipRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void
   ): ClientUnaryCall;
   createBucketFromGithub(
     request: CreateBucketFromGithubRequest,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
-  ): ClientUnaryCall;
-  createBucketFromGithub(
-    request: CreateBucketFromGithubRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void
   ): ClientUnaryCall;
   createBucketFromGithub(
     request: CreateBucketFromGithubRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void
+  ): ClientUnaryCall;
+  createBucketFromGithub(
+    request: CreateBucketFromGithubRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateBucketResponse) => void,
+    callback: (error: ServiceError | null, response: CreateBucketResponse) => void
   ): ClientUnaryCall;
   getBucketToken(
     request: GetBucketTokenRequest,
-    callback: (error: ServiceError | null, response: GetBucketTokenResponse) => void,
+    callback: (error: ServiceError | null, response: GetBucketTokenResponse) => void
   ): ClientUnaryCall;
   getBucketToken(
     request: GetBucketTokenRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetBucketTokenResponse) => void,
+    callback: (error: ServiceError | null, response: GetBucketTokenResponse) => void
   ): ClientUnaryCall;
   getBucketToken(
     request: GetBucketTokenRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetBucketTokenResponse) => void,
+    callback: (error: ServiceError | null, response: GetBucketTokenResponse) => void
   ): ClientUnaryCall;
   getBucketFile(
     request: GetBucketFileRequest,
-    callback: (error: ServiceError | null, response: GetBucketFileResponse) => void,
-  ): ClientUnaryCall;
-  getBucketFile(
-    request: GetBucketFileRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetBucketFileResponse) => void,
+    callback: (error: ServiceError | null, response: GetBucketFileResponse) => void
   ): ClientUnaryCall;
   getBucketFile(
     request: GetBucketFileRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetBucketFileResponse) => void
+  ): ClientUnaryCall;
+  getBucketFile(
+    request: GetBucketFileRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetBucketFileResponse) => void,
+    callback: (error: ServiceError | null, response: GetBucketFileResponse) => void
   ): ClientUnaryCall;
   getBucketFiles(
     request: GetBucketFilesRequest,
-    callback: (error: ServiceError | null, response: GetBucketFilesResponse) => void,
+    callback: (error: ServiceError | null, response: GetBucketFilesResponse) => void
   ): ClientUnaryCall;
   getBucketFiles(
     request: GetBucketFilesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetBucketFilesResponse) => void,
+    callback: (error: ServiceError | null, response: GetBucketFilesResponse) => void
   ): ClientUnaryCall;
   getBucketFiles(
     request: GetBucketFilesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetBucketFilesResponse) => void,
+    callback: (error: ServiceError | null, response: GetBucketFilesResponse) => void
   ): ClientUnaryCall;
   getBucketFilesWithContent(
     request: GetBucketFilesRequest,
-    callback: (error: ServiceError | null, response: GetBucketFilesWithContentResponse) => void,
+    callback: (error: ServiceError | null, response: GetBucketFilesWithContentResponse) => void
   ): ClientUnaryCall;
   getBucketFilesWithContent(
     request: GetBucketFilesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetBucketFilesWithContentResponse) => void,
+    callback: (error: ServiceError | null, response: GetBucketFilesWithContentResponse) => void
   ): ClientUnaryCall;
   getBucketFilesWithContent(
     request: GetBucketFilesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetBucketFilesWithContentResponse) => void,
+    callback: (error: ServiceError | null, response: GetBucketFilesWithContentResponse) => void
   ): ClientUnaryCall;
   getBucketFilesAsZip(
     request: GetBucketFilesAsZipRequest,
-    callback: (error: ServiceError | null, response: GetBucketFilesAsZipResponse) => void,
+    callback: (error: ServiceError | null, response: GetBucketFilesAsZipResponse) => void
   ): ClientUnaryCall;
   getBucketFilesAsZip(
     request: GetBucketFilesAsZipRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetBucketFilesAsZipResponse) => void,
+    callback: (error: ServiceError | null, response: GetBucketFilesAsZipResponse) => void
   ): ClientUnaryCall;
   getBucketFilesAsZip(
     request: GetBucketFilesAsZipRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetBucketFilesAsZipResponse) => void,
+    callback: (error: ServiceError | null, response: GetBucketFilesAsZipResponse) => void
   ): ClientUnaryCall;
   exportBucketToGithub(
     request: ExportBucketToGithubRequest,
-    callback: (error: ServiceError | null, response: ExportBucketToGithubResponse) => void,
+    callback: (error: ServiceError | null, response: ExportBucketToGithubResponse) => void
   ): ClientUnaryCall;
   exportBucketToGithub(
     request: ExportBucketToGithubRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ExportBucketToGithubResponse) => void,
+    callback: (error: ServiceError | null, response: ExportBucketToGithubResponse) => void
   ): ClientUnaryCall;
   exportBucketToGithub(
     request: ExportBucketToGithubRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ExportBucketToGithubResponse) => void,
+    callback: (error: ServiceError | null, response: ExportBucketToGithubResponse) => void
   ): ClientUnaryCall;
 }
 
-export const CodeBucketClient = makeGenericClientConstructor(CodeBucketService, "rpc.rpc.CodeBucket") as unknown as {
-  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): CodeBucketClient;
+export const CodeBucketClient = makeGenericClientConstructor(
+  CodeBucketService,
+  'rpc.rpc.CodeBucket'
+) as unknown as {
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): CodeBucketClient;
   service: typeof CodeBucketService;
   serviceName: string;
 };
 
 function bytesFromBase64(b64: string): Uint8Array {
   if ((globalThis as any).Buffer) {
-    return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
+    return Uint8Array.from(globalThis.Buffer.from(b64, 'base64'));
   } else {
     const bin = globalThis.atob(b64);
     const arr = new Uint8Array(bin.length);
@@ -2036,26 +2175,32 @@ function bytesFromBase64(b64: string): Uint8Array {
 
 function base64FromBytes(arr: Uint8Array): string {
   if ((globalThis as any).Buffer) {
-    return globalThis.Buffer.from(arr).toString("base64");
+    return globalThis.Buffer.from(arr).toString('base64');
   } else {
     const bin: string[] = [];
-    arr.forEach((byte) => {
+    arr.forEach(byte => {
       bin.push(globalThis.String.fromCharCode(byte));
     });
-    return globalThis.btoa(bin.join(""));
+    return globalThis.btoa(bin.join(''));
   }
 }
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends {}
+          ? { [K in keyof T]?: DeepPartial<T[K]> }
+          : Partial<T>;
 
 function isObject(value: any): boolean {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function isSet(value: any): boolean {

@@ -7,7 +7,10 @@ export let ProviderConnectionSettingsPage = () => {
   let instance = useCurrentInstance();
 
   let { providerConnectionId } = useParams();
-  let providerConnection = useProviderConnection(instance.data?.instanceId, providerConnectionId);
+  let providerConnection = useProviderConnection(
+    instance.data?.instanceId,
+    providerConnectionId
+  );
 
   return renderWithLoader({ providerConnection })(({ providerConnection }) => (
     <ProviderConnectionUpdateForm providerConnection={providerConnection.data} />

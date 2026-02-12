@@ -24,9 +24,7 @@ export let ProviderAuthConfigsTable = ({
         data={authConfigs.data.items.map(config => ({
           data: [
             <Text size="2" weight="strong">
-              {config.name ?? (
-                <span style={{ color: theme.colors.gray600 }}>Unnamed</span>
-              )}
+              {config.name ?? <span style={{ color: theme.colors.gray600 }}>Unnamed</span>}
               {config.description && (
                 <Text size="2" color="gray600">
                   {config.description.slice(0, 60)}
@@ -34,7 +32,9 @@ export let ProviderAuthConfigsTable = ({
                 </Text>
               )}
             </Text>,
-            <Text size="2">{config.providerAuthMethod?.name ?? config.providerAuthMethodId}</Text>,
+            <Text size="2">
+              {config.providerAuthMethod?.name ?? config.providerAuthMethodId}
+            </Text>,
             <Text size="2">{formatType(config.type)}</Text>,
             <Text size="2">{config.isEphemeral ? 'Yes' : 'No'}</Text>,
             <RenderDate date={config.createdAt} />

@@ -11,8 +11,10 @@ export let providerAuthConfigsLoader = createLoader({
   name: 'providerAuthConfigs',
   parents: [],
   fetch: (
-    i: { instanceId: string; providerDeploymentId: string } &
-      DashboardInstanceProviderDeploymentsAuthConfigsListQuery
+    i: {
+      instanceId: string;
+      providerDeploymentId: string;
+    } & DashboardInstanceProviderDeploymentsAuthConfigsListQuery
   ) =>
     withAuth(sdk =>
       sdk.providerDeployments.authConfigs.list(i.instanceId, i.providerDeploymentId, i)

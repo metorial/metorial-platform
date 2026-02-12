@@ -91,7 +91,9 @@ describe('templates/google', () => {
 
   it('should include Calendar scopes', async () => {
     const callArgs = mockEnsureTemplate.mock.calls[0]?.[0];
-    const calendarScopes = callArgs?.scopes.filter((s: any) => s.identifier.includes('calendar'));
+    const calendarScopes = callArgs?.scopes.filter((s: any) =>
+      s.identifier.includes('calendar')
+    );
 
     expect(calendarScopes.length).toBeGreaterThan(10);
   });

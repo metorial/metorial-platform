@@ -4,7 +4,13 @@ import { useCurrentInstance, useProviders } from '@metorial/state';
 import { RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
-export let ProvidersTable = ({ instanceId, search }: { instanceId: string; search?: string }) => {
+export let ProvidersTable = ({
+  instanceId,
+  search
+}: {
+  instanceId: string;
+  search?: string;
+}) => {
   let instance = useCurrentInstance();
   let providers = useProviders(instanceId);
 
@@ -22,9 +28,7 @@ export let ProvidersTable = ({ instanceId, search }: { instanceId: string; searc
           .map(provider => ({
             data: [
               <Text size="2" weight="strong">
-                {provider.name ?? (
-                  <span style={{ color: theme.colors.gray600 }}>Unnamed</span>
-                )}
+                {provider.name ?? <span style={{ color: theme.colors.gray600 }}>Unnamed</span>}
                 {provider.description && (
                   <Text size="2" color="gray600">
                     {provider.description.slice(0, 60)}

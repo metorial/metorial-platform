@@ -55,7 +55,11 @@ export let useGetProviderSetupSession = (
     useMemo(
       () => (input: { setupSessionId: string }) =>
         withAuth(sdk =>
-          sdk.providerDeployments.setupSessions.get(instanceId!, deploymentId!, input.setupSessionId)
+          sdk.providerDeployments.setupSessions.get(
+            instanceId!,
+            deploymentId!,
+            input.setupSessionId
+          )
         ),
       [instanceId, deploymentId]
     ),
@@ -69,7 +73,11 @@ export let createProviderSetupSession = (input: {
   body: DashboardInstanceProviderDeploymentsSetupSessionsCreateBody;
 }) =>
   withAuth(sdk =>
-    sdk.providerDeployments.setupSessions.create(input.instanceId, input.deploymentId, input.body)
+    sdk.providerDeployments.setupSessions.create(
+      input.instanceId,
+      input.deploymentId,
+      input.body
+    )
   );
 
 export let getProviderSetupSession = (input: {

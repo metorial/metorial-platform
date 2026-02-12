@@ -79,7 +79,8 @@ export let SessionTemplateSettingsPage = () => {
                 <Dialog.Wrapper {...dialogProps} width={450}>
                   <Dialog.Title>Delete Template</Dialog.Title>
                   <Dialog.Description>
-                    Are you sure you want to delete this template? This action cannot be undone.
+                    Are you sure you want to delete this template? This action cannot be
+                    undone.
                   </Dialog.Description>
 
                   <Spacer size={20} />

@@ -13,7 +13,7 @@ vi.mock('@metorial/db', () => ({
 
 vi.mock('@metorial/pagination', () => ({
   Paginator: {
-    create: vi.fn((fn) => {
+    create: vi.fn(fn => {
       // Mock paginator that just returns the function result
       return fn({
         prisma: (fn: any) => fn({})

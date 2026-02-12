@@ -15,7 +15,7 @@ vi.mock('@metorial/db', () => ({
 }));
 
 vi.mock('@metorial/error', () => ({
-  notFoundError: vi.fn((msg) => ({ code: 'not_found', message: msg })),
+  notFoundError: vi.fn(msg => ({ code: 'not_found', message: msg })),
   ServiceError: class ServiceError extends Error {
     constructor(public error: any) {
       super(error.message);
@@ -25,7 +25,7 @@ vi.mock('@metorial/error', () => ({
 
 vi.mock('@metorial/pagination', () => ({
   Paginator: {
-    create: vi.fn((fn) => ({
+    create: vi.fn(fn => ({
       prisma: fn,
       __isPaginator: true
     }))

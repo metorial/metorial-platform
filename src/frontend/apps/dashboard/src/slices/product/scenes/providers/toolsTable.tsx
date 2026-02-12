@@ -21,9 +21,7 @@ export let ProviderToolsTable = ({
         data={tools.data.items.map(tool => ({
           data: [
             <Text size="2" weight="strong">
-              {tool.name ?? (
-                <span style={{ color: theme.colors.gray600 }}>Unnamed</span>
-              )}
+              {tool.name ?? <span style={{ color: theme.colors.gray600 }}>Unnamed</span>}
             </Text>,
             <Text size="2" style={{ fontFamily: 'monospace' }}>
               {tool.key}

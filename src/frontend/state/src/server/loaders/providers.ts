@@ -35,9 +35,7 @@ export let useProvider = (
   instanceId: string | null | undefined,
   providerId: string | null | undefined
 ) => {
-  let data = providerLoader.use(
-    instanceId && providerId ? { instanceId, providerId } : null
-  );
+  let data = providerLoader.use(instanceId && providerId ? { instanceId, providerId } : null);
 
   return data;
 };

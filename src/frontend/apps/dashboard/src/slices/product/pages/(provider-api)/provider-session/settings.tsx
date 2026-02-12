@@ -25,31 +25,16 @@ export let ProviderSessionSettingsPage = () => {
 
   return renderWithLoader({ session })(({ session }) => (
     <>
-      <SideBox
-        title="Session Details"
-        description="View the details of this session."
-      >
-        <Input
-          label="Name"
-          value={session.data.name || 'Unnamed Session'}
-          disabled
-        />
+      <SideBox title="Session Details" description="View the details of this session.">
+        <Input label="Name" value={session.data.name || 'Unnamed Session'} disabled />
 
         <Spacer size={10} />
 
-        <Input
-          label="Description"
-          value={session.data.description || ''}
-          disabled
-        />
+        <Input label="Description" value={session.data.description || ''} disabled />
 
         <Spacer size={10} />
 
-        <Input
-          label="Status"
-          value={session.data.status || ''}
-          disabled
-        />
+        <Input label="Status" value={session.data.status || ''} disabled />
       </SideBox>
     </>
   ));

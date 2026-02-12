@@ -76,10 +76,7 @@ export let ProviderAuthConnectionLayout = () => {
               },
               {
                 label: 'Settings',
-                to: Paths.instance.providerAuthConnection(
-                  ...connectionPathParams,
-                  'settings'
-                )
+                to: Paths.instance.providerAuthConnection(...connectionPathParams, 'settings')
               }
             ]}
           />

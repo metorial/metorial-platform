@@ -9,17 +9,19 @@ vi.mock('@metorial/db', () => ({
       findUnique: vi.fn()
     }
   },
-  withTransaction: vi.fn((cb) => cb({
-    user: {
-      findFirst: vi.fn(),
-      findUnique: vi.fn()
-    }
-  }))
+  withTransaction: vi.fn(cb =>
+    cb({
+      user: {
+        findFirst: vi.fn(),
+        findUnique: vi.fn()
+      }
+    })
+  )
 }));
 
 vi.mock('@metorial/error', () => ({
-  badRequestError: vi.fn((opts) => ({ type: 'bad_request', ...opts })),
-  unauthorizedError: vi.fn((opts) => ({ type: 'unauthorized', ...opts })),
+  badRequestError: vi.fn(opts => ({ type: 'bad_request', ...opts })),
+  unauthorizedError: vi.fn(opts => ({ type: 'unauthorized', ...opts })),
   ServiceError: class ServiceError extends Error {
     constructor(public error: any) {
       super(error.message);
@@ -45,7 +47,7 @@ vi.mock('../src/services/userSession', () => ({
 // Mock Bun.password
 global.Bun = {
   password: {
-    hash: vi.fn((pwd) => Promise.resolve(`hashed_${pwd}`)),
+    hash: vi.fn(pwd => Promise.resolve(`hashed_${pwd}`)),
     verify: vi.fn()
   }
 } as any;
@@ -106,7 +108,10 @@ describe('userAuthService', () => {
       });
 
       expect(result).toEqual(mockSession);
-      expect(global.Bun.password.verify).toHaveBeenCalledWith('password123', 'hashed_password123');
+      expect(global.Bun.password.verify).toHaveBeenCalledWith(
+        'password123',
+        'hashed_password123'
+      );
       expect(userSessionService.createUserSession).toHaveBeenCalledWith({
         user: mockUser,
         context: mockContext
@@ -294,7 +299,8 @@ describe('userAuthService', () => {
 
       // Verify createUser was called before createUserSession
       const createUserCall = userService.createUser.mock.invocationCallOrder[0];
-      const createSessionCall = userSessionService.createUserSession.mock.invocationCallOrder[0];
+      const createSessionCall =
+        userSessionService.createUserSession.mock.invocationCallOrder[0];
       expect(createUserCall).toBeLessThan(createSessionCall);
     });
   });
@@ -590,7 +596,10 @@ describe('userAuthService', () => {
         context: mockContext
       });
 
-      expect(global.Bun.password.verify).toHaveBeenCalledWith(longPassword, 'hashed_long_password');
+      expect(global.Bun.password.verify).toHaveBeenCalledWith(
+        longPassword,
+        'hashed_long_password'
+      );
     });
 
     it('should handle authentication with expired or invalid session format', async () => {

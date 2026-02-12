@@ -49,14 +49,10 @@ export let customServerController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            type: v.optional(
-              v.union([v.array(customServerTypeEnum), customServerTypeEnum]),
-              { description: 'Filter by server type (remote, managed, docker)' }
-            ),
-            search: v.optional(
-              v.string(),
-              { description: 'Search servers by name' }
-            )
+            type: v.optional(v.union([v.array(customServerTypeEnum), customServerTypeEnum]), {
+              description: 'Filter by server type (remote, managed, docker)'
+            }),
+            search: v.optional(v.string(), { description: 'Search servers by name' })
           })
         )
       )

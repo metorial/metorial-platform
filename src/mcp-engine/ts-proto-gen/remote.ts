@@ -5,7 +5,7 @@
 // source: remote.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -15,16 +15,15 @@ import {
   type handleBidiStreamingCall,
   makeGenericClientConstructor,
   type Metadata,
-  type UntypedServiceImplementation,
-} from "@grpc/grpc-js";
-import Long from "long";
-import { McpError, McpMessage, McpMessageRaw, McpOutput, McpParticipant } from "./mcp";
-import { WorkerInfoResponse } from "./worker";
+  type UntypedServiceImplementation
+} from '@grpc/grpc-js';
+import Long from 'long';
+import { McpError, McpMessage, McpMessageRaw, McpOutput, McpParticipant } from './mcp';
+import { WorkerInfoResponse } from './worker';
 
-export const protobufPackage = "broker.remote";
+export const protobufPackage = 'broker.remote';
 
-export interface RemoteInfoRequest {
-}
+export interface RemoteInfoRequest {}
 
 export interface RemoteInfoResponse {
   workerId: string;
@@ -43,33 +42,37 @@ export enum RunConfigRemoteServer_ServerProtocol {
   sse = 0,
   /** streamable_http - Streamable HTTP */
   streamable_http = 1,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
-export function runConfigRemoteServer_ServerProtocolFromJSON(object: any): RunConfigRemoteServer_ServerProtocol {
+export function runConfigRemoteServer_ServerProtocolFromJSON(
+  object: any
+): RunConfigRemoteServer_ServerProtocol {
   switch (object) {
     case 0:
-    case "sse":
+    case 'sse':
       return RunConfigRemoteServer_ServerProtocol.sse;
     case 1:
-    case "streamable_http":
+    case 'streamable_http':
       return RunConfigRemoteServer_ServerProtocol.streamable_http;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return RunConfigRemoteServer_ServerProtocol.UNRECOGNIZED;
   }
 }
 
-export function runConfigRemoteServer_ServerProtocolToJSON(object: RunConfigRemoteServer_ServerProtocol): string {
+export function runConfigRemoteServer_ServerProtocolToJSON(
+  object: RunConfigRemoteServer_ServerProtocol
+): string {
   switch (object) {
     case RunConfigRemoteServer_ServerProtocol.sse:
-      return "sse";
+      return 'sse';
     case RunConfigRemoteServer_ServerProtocol.streamable_http:
-      return "streamable_http";
+      return 'streamable_http';
     case RunConfigRemoteServer_ServerProtocol.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -102,33 +105,37 @@ export interface RunConfigLambdaServer {
 export enum RunConfigLambdaServer_Protocol {
   metorial_stellar_over_websocket_v1 = 0,
   metorial_stellar_over_aws_lambda_v1 = 1,
-  UNRECOGNIZED = -1,
+  UNRECOGNIZED = -1
 }
 
-export function runConfigLambdaServer_ProtocolFromJSON(object: any): RunConfigLambdaServer_Protocol {
+export function runConfigLambdaServer_ProtocolFromJSON(
+  object: any
+): RunConfigLambdaServer_Protocol {
   switch (object) {
     case 0:
-    case "metorial_stellar_over_websocket_v1":
+    case 'metorial_stellar_over_websocket_v1':
       return RunConfigLambdaServer_Protocol.metorial_stellar_over_websocket_v1;
     case 1:
-    case "metorial_stellar_over_aws_lambda_v1":
+    case 'metorial_stellar_over_aws_lambda_v1':
       return RunConfigLambdaServer_Protocol.metorial_stellar_over_aws_lambda_v1;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return RunConfigLambdaServer_Protocol.UNRECOGNIZED;
   }
 }
 
-export function runConfigLambdaServer_ProtocolToJSON(object: RunConfigLambdaServer_Protocol): string {
+export function runConfigLambdaServer_ProtocolToJSON(
+  object: RunConfigLambdaServer_Protocol
+): string {
   switch (object) {
     case RunConfigLambdaServer_Protocol.metorial_stellar_over_websocket_v1:
-      return "metorial_stellar_over_websocket_v1";
+      return 'metorial_stellar_over_websocket_v1';
     case RunConfigLambdaServer_Protocol.metorial_stellar_over_aws_lambda_v1:
-      return "metorial_stellar_over_aws_lambda_v1";
+      return 'metorial_stellar_over_aws_lambda_v1';
     case RunConfigLambdaServer_Protocol.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -166,8 +173,7 @@ export interface RunRequestMcpMessage {
   message: McpMessageRaw | undefined;
 }
 
-export interface RunRequestClose {
-}
+export interface RunRequestClose {}
 
 export interface RunResponse {
   mcpMessage?: RunResponseMcpMessage | undefined;
@@ -177,8 +183,7 @@ export interface RunResponse {
   close?: RunResponseClose | undefined;
 }
 
-export interface RunResponseInit {
-}
+export interface RunResponseInit {}
 
 export interface RunResponseMcpMessage {
   message: McpMessage | undefined;
@@ -192,8 +197,7 @@ export interface RunResponseOutput {
   mcpOutput: McpOutput | undefined;
 }
 
-export interface RunResponseClose {
-}
+export interface RunResponseClose {}
 
 function createBaseRemoteInfoRequest(): RemoteInfoRequest {
   return {};
@@ -235,16 +239,24 @@ export const RemoteInfoRequest: MessageFns<RemoteInfoRequest> = {
   fromPartial(_: DeepPartial<RemoteInfoRequest>): RemoteInfoRequest {
     const message = createBaseRemoteInfoRequest();
     return message;
-  },
+  }
 };
 
 function createBaseRemoteInfoResponse(): RemoteInfoResponse {
-  return { workerId: "", activeConnections: 0, totalConnections: Long.UZERO, workerInfo: undefined };
+  return {
+    workerId: '',
+    activeConnections: 0,
+    totalConnections: Long.UZERO,
+    workerInfo: undefined
+  };
 }
 
 export const RemoteInfoResponse: MessageFns<RemoteInfoResponse> = {
-  encode(message: RemoteInfoResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.workerId !== "") {
+  encode(
+    message: RemoteInfoResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.workerId !== '') {
       writer.uint32(10).string(message.workerId);
     }
     if (message.activeConnections !== 0) {
@@ -309,16 +321,22 @@ export const RemoteInfoResponse: MessageFns<RemoteInfoResponse> = {
 
   fromJSON(object: any): RemoteInfoResponse {
     return {
-      workerId: isSet(object.workerId) ? globalThis.String(object.workerId) : "",
-      activeConnections: isSet(object.activeConnections) ? globalThis.Number(object.activeConnections) : 0,
-      totalConnections: isSet(object.totalConnections) ? Long.fromValue(object.totalConnections) : Long.UZERO,
-      workerInfo: isSet(object.workerInfo) ? WorkerInfoResponse.fromJSON(object.workerInfo) : undefined,
+      workerId: isSet(object.workerId) ? globalThis.String(object.workerId) : '',
+      activeConnections: isSet(object.activeConnections)
+        ? globalThis.Number(object.activeConnections)
+        : 0,
+      totalConnections: isSet(object.totalConnections)
+        ? Long.fromValue(object.totalConnections)
+        : Long.UZERO,
+      workerInfo: isSet(object.workerInfo)
+        ? WorkerInfoResponse.fromJSON(object.workerInfo)
+        : undefined
     };
   },
 
   toJSON(message: RemoteInfoResponse): unknown {
     const obj: any = {};
-    if (message.workerId !== "") {
+    if (message.workerId !== '') {
       obj.workerId = message.workerId;
     }
     if (message.activeConnections !== 0) {
@@ -338,25 +356,30 @@ export const RemoteInfoResponse: MessageFns<RemoteInfoResponse> = {
   },
   fromPartial(object: DeepPartial<RemoteInfoResponse>): RemoteInfoResponse {
     const message = createBaseRemoteInfoResponse();
-    message.workerId = object.workerId ?? "";
+    message.workerId = object.workerId ?? '';
     message.activeConnections = object.activeConnections ?? 0;
-    message.totalConnections = (object.totalConnections !== undefined && object.totalConnections !== null)
-      ? Long.fromValue(object.totalConnections)
-      : Long.UZERO;
-    message.workerInfo = (object.workerInfo !== undefined && object.workerInfo !== null)
-      ? WorkerInfoResponse.fromPartial(object.workerInfo)
-      : undefined;
+    message.totalConnections =
+      object.totalConnections !== undefined && object.totalConnections !== null
+        ? Long.fromValue(object.totalConnections)
+        : Long.UZERO;
+    message.workerInfo =
+      object.workerInfo !== undefined && object.workerInfo !== null
+        ? WorkerInfoResponse.fromPartial(object.workerInfo)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunConfigRemoteServer(): RunConfigRemoteServer {
-  return { serverUri: "", protocol: 0 };
+  return { serverUri: '', protocol: 0 };
 }
 
 export const RunConfigRemoteServer: MessageFns<RunConfigRemoteServer> = {
-  encode(message: RunConfigRemoteServer, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.serverUri !== "") {
+  encode(
+    message: RunConfigRemoteServer,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.serverUri !== '') {
       writer.uint32(10).string(message.serverUri);
     }
     if (message.protocol !== 0) {
@@ -399,14 +422,16 @@ export const RunConfigRemoteServer: MessageFns<RunConfigRemoteServer> = {
 
   fromJSON(object: any): RunConfigRemoteServer {
     return {
-      serverUri: isSet(object.serverUri) ? globalThis.String(object.serverUri) : "",
-      protocol: isSet(object.protocol) ? runConfigRemoteServer_ServerProtocolFromJSON(object.protocol) : 0,
+      serverUri: isSet(object.serverUri) ? globalThis.String(object.serverUri) : '',
+      protocol: isSet(object.protocol)
+        ? runConfigRemoteServer_ServerProtocolFromJSON(object.protocol)
+        : 0
     };
   },
 
   toJSON(message: RunConfigRemoteServer): unknown {
     const obj: any = {};
-    if (message.serverUri !== "") {
+    if (message.serverUri !== '') {
       obj.serverUri = message.serverUri;
     }
     if (message.protocol !== 0) {
@@ -420,10 +445,10 @@ export const RunConfigRemoteServer: MessageFns<RunConfigRemoteServer> = {
   },
   fromPartial(object: DeepPartial<RunConfigRemoteServer>): RunConfigRemoteServer {
     const message = createBaseRunConfigRemoteServer();
-    message.serverUri = object.serverUri ?? "";
+    message.serverUri = object.serverUri ?? '';
     message.protocol = object.protocol ?? 0;
     return message;
-  },
+  }
 };
 
 function createBaseRunConfigRemoteArguments(): RunConfigRemoteArguments {
@@ -431,12 +456,21 @@ function createBaseRunConfigRemoteArguments(): RunConfigRemoteArguments {
 }
 
 export const RunConfigRemoteArguments: MessageFns<RunConfigRemoteArguments> = {
-  encode(message: RunConfigRemoteArguments, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: RunConfigRemoteArguments,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     Object.entries(message.headers).forEach(([key, value]) => {
-      RunConfigRemoteArguments_HeadersEntry.encode({ key: key as any, value }, writer.uint32(10).fork()).join();
+      RunConfigRemoteArguments_HeadersEntry.encode(
+        { key: key as any, value },
+        writer.uint32(10).fork()
+      ).join();
     });
     Object.entries(message.query).forEach(([key, value]) => {
-      RunConfigRemoteArguments_QueryEntry.encode({ key: key as any, value }, writer.uint32(18).fork()).join();
+      RunConfigRemoteArguments_QueryEntry.encode(
+        { key: key as any, value },
+        writer.uint32(18).fork()
+      ).join();
     });
     return writer;
   },
@@ -482,17 +516,23 @@ export const RunConfigRemoteArguments: MessageFns<RunConfigRemoteArguments> = {
   fromJSON(object: any): RunConfigRemoteArguments {
     return {
       headers: isObject(object.headers)
-        ? Object.entries(object.headers).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-          acc[key] = String(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.headers).reduce<{ [key: string]: string }>(
+            (acc, [key, value]) => {
+              acc[key] = String(value);
+              return acc;
+            },
+            {}
+          )
         : {},
       query: isObject(object.query)
-        ? Object.entries(object.query).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-          acc[key] = String(value);
-          return acc;
-        }, {})
-        : {},
+        ? Object.entries(object.query).reduce<{ [key: string]: string }>(
+            (acc, [key, value]) => {
+              acc[key] = String(value);
+              return acc;
+            },
+            {}
+          )
+        : {}
     };
   },
 
@@ -524,173 +564,201 @@ export const RunConfigRemoteArguments: MessageFns<RunConfigRemoteArguments> = {
   },
   fromPartial(object: DeepPartial<RunConfigRemoteArguments>): RunConfigRemoteArguments {
     const message = createBaseRunConfigRemoteArguments();
-    message.headers = Object.entries(object.headers ?? {}).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = globalThis.String(value);
-      }
-      return acc;
-    }, {});
-    message.query = Object.entries(object.query ?? {}).reduce<{ [key: string]: string }>((acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = globalThis.String(value);
-      }
-      return acc;
-    }, {});
+    message.headers = Object.entries(object.headers ?? {}).reduce<{ [key: string]: string }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = globalThis.String(value);
+        }
+        return acc;
+      },
+      {}
+    );
+    message.query = Object.entries(object.query ?? {}).reduce<{ [key: string]: string }>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = globalThis.String(value);
+        }
+        return acc;
+      },
+      {}
+    );
     return message;
-  },
+  }
 };
 
 function createBaseRunConfigRemoteArguments_HeadersEntry(): RunConfigRemoteArguments_HeadersEntry {
-  return { key: "", value: "" };
+  return { key: '', value: '' };
 }
 
-export const RunConfigRemoteArguments_HeadersEntry: MessageFns<RunConfigRemoteArguments_HeadersEntry> = {
-  encode(message: RunConfigRemoteArguments_HeadersEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.key !== "") {
-      writer.uint32(10).string(message.key);
-    }
-    if (message.value !== "") {
-      writer.uint32(18).string(message.value);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): RunConfigRemoteArguments_HeadersEntry {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRunConfigRemoteArguments_HeadersEntry();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.key = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.value = reader.string();
-          continue;
-        }
+export const RunConfigRemoteArguments_HeadersEntry: MessageFns<RunConfigRemoteArguments_HeadersEntry> =
+  {
+    encode(
+      message: RunConfigRemoteArguments_HeadersEntry,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.key !== '') {
+        writer.uint32(10).string(message.key);
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (message.value !== '') {
+        writer.uint32(18).string(message.value);
       }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+      return writer;
+    },
 
-  fromJSON(object: any): RunConfigRemoteArguments_HeadersEntry {
-    return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
-      value: isSet(object.value) ? globalThis.String(object.value) : "",
-    };
-  },
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): RunConfigRemoteArguments_HeadersEntry {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseRunConfigRemoteArguments_HeadersEntry();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
 
-  toJSON(message: RunConfigRemoteArguments_HeadersEntry): unknown {
-    const obj: any = {};
-    if (message.key !== "") {
-      obj.key = message.key;
-    }
-    if (message.value !== "") {
-      obj.value = message.value;
-    }
-    return obj;
-  },
+            message.key = reader.string();
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
 
-  create(base?: DeepPartial<RunConfigRemoteArguments_HeadersEntry>): RunConfigRemoteArguments_HeadersEntry {
-    return RunConfigRemoteArguments_HeadersEntry.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<RunConfigRemoteArguments_HeadersEntry>): RunConfigRemoteArguments_HeadersEntry {
-    const message = createBaseRunConfigRemoteArguments_HeadersEntry();
-    message.key = object.key ?? "";
-    message.value = object.value ?? "";
-    return message;
-  },
-};
+            message.value = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): RunConfigRemoteArguments_HeadersEntry {
+      return {
+        key: isSet(object.key) ? globalThis.String(object.key) : '',
+        value: isSet(object.value) ? globalThis.String(object.value) : ''
+      };
+    },
+
+    toJSON(message: RunConfigRemoteArguments_HeadersEntry): unknown {
+      const obj: any = {};
+      if (message.key !== '') {
+        obj.key = message.key;
+      }
+      if (message.value !== '') {
+        obj.value = message.value;
+      }
+      return obj;
+    },
+
+    create(
+      base?: DeepPartial<RunConfigRemoteArguments_HeadersEntry>
+    ): RunConfigRemoteArguments_HeadersEntry {
+      return RunConfigRemoteArguments_HeadersEntry.fromPartial(base ?? {});
+    },
+    fromPartial(
+      object: DeepPartial<RunConfigRemoteArguments_HeadersEntry>
+    ): RunConfigRemoteArguments_HeadersEntry {
+      const message = createBaseRunConfigRemoteArguments_HeadersEntry();
+      message.key = object.key ?? '';
+      message.value = object.value ?? '';
+      return message;
+    }
+  };
 
 function createBaseRunConfigRemoteArguments_QueryEntry(): RunConfigRemoteArguments_QueryEntry {
-  return { key: "", value: "" };
+  return { key: '', value: '' };
 }
 
-export const RunConfigRemoteArguments_QueryEntry: MessageFns<RunConfigRemoteArguments_QueryEntry> = {
-  encode(message: RunConfigRemoteArguments_QueryEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.key !== "") {
-      writer.uint32(10).string(message.key);
-    }
-    if (message.value !== "") {
-      writer.uint32(18).string(message.value);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): RunConfigRemoteArguments_QueryEntry {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRunConfigRemoteArguments_QueryEntry();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.key = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.value = reader.string();
-          continue;
-        }
+export const RunConfigRemoteArguments_QueryEntry: MessageFns<RunConfigRemoteArguments_QueryEntry> =
+  {
+    encode(
+      message: RunConfigRemoteArguments_QueryEntry,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.key !== '') {
+        writer.uint32(10).string(message.key);
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (message.value !== '') {
+        writer.uint32(18).string(message.value);
       }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+      return writer;
+    },
 
-  fromJSON(object: any): RunConfigRemoteArguments_QueryEntry {
-    return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
-      value: isSet(object.value) ? globalThis.String(object.value) : "",
-    };
-  },
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): RunConfigRemoteArguments_QueryEntry {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseRunConfigRemoteArguments_QueryEntry();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
 
-  toJSON(message: RunConfigRemoteArguments_QueryEntry): unknown {
-    const obj: any = {};
-    if (message.key !== "") {
-      obj.key = message.key;
-    }
-    if (message.value !== "") {
-      obj.value = message.value;
-    }
-    return obj;
-  },
+            message.key = reader.string();
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
 
-  create(base?: DeepPartial<RunConfigRemoteArguments_QueryEntry>): RunConfigRemoteArguments_QueryEntry {
-    return RunConfigRemoteArguments_QueryEntry.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<RunConfigRemoteArguments_QueryEntry>): RunConfigRemoteArguments_QueryEntry {
-    const message = createBaseRunConfigRemoteArguments_QueryEntry();
-    message.key = object.key ?? "";
-    message.value = object.value ?? "";
-    return message;
-  },
-};
+            message.value = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): RunConfigRemoteArguments_QueryEntry {
+      return {
+        key: isSet(object.key) ? globalThis.String(object.key) : '',
+        value: isSet(object.value) ? globalThis.String(object.value) : ''
+      };
+    },
+
+    toJSON(message: RunConfigRemoteArguments_QueryEntry): unknown {
+      const obj: any = {};
+      if (message.key !== '') {
+        obj.key = message.key;
+      }
+      if (message.value !== '') {
+        obj.value = message.value;
+      }
+      return obj;
+    },
+
+    create(
+      base?: DeepPartial<RunConfigRemoteArguments_QueryEntry>
+    ): RunConfigRemoteArguments_QueryEntry {
+      return RunConfigRemoteArguments_QueryEntry.fromPartial(base ?? {});
+    },
+    fromPartial(
+      object: DeepPartial<RunConfigRemoteArguments_QueryEntry>
+    ): RunConfigRemoteArguments_QueryEntry {
+      const message = createBaseRunConfigRemoteArguments_QueryEntry();
+      message.key = object.key ?? '';
+      message.value = object.value ?? '';
+      return message;
+    }
+  };
 
 function createBaseRunConfigRemote(): RunConfigRemote {
   return { server: undefined, arguments: undefined };
@@ -742,7 +810,9 @@ export const RunConfigRemote: MessageFns<RunConfigRemote> = {
   fromJSON(object: any): RunConfigRemote {
     return {
       server: isSet(object.server) ? RunConfigRemoteServer.fromJSON(object.server) : undefined,
-      arguments: isSet(object.arguments) ? RunConfigRemoteArguments.fromJSON(object.arguments) : undefined,
+      arguments: isSet(object.arguments)
+        ? RunConfigRemoteArguments.fromJSON(object.arguments)
+        : undefined
     };
   },
 
@@ -762,26 +832,31 @@ export const RunConfigRemote: MessageFns<RunConfigRemote> = {
   },
   fromPartial(object: DeepPartial<RunConfigRemote>): RunConfigRemote {
     const message = createBaseRunConfigRemote();
-    message.server = (object.server !== undefined && object.server !== null)
-      ? RunConfigRemoteServer.fromPartial(object.server)
-      : undefined;
-    message.arguments = (object.arguments !== undefined && object.arguments !== null)
-      ? RunConfigRemoteArguments.fromPartial(object.arguments)
-      : undefined;
+    message.server =
+      object.server !== undefined && object.server !== null
+        ? RunConfigRemoteServer.fromPartial(object.server)
+        : undefined;
+    message.arguments =
+      object.arguments !== undefined && object.arguments !== null
+        ? RunConfigRemoteArguments.fromPartial(object.arguments)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunConfigLambdaServer(): RunConfigLambdaServer {
-  return { protocol: 0, providerResourceAccessIdentifier: "", securityToken: undefined };
+  return { protocol: 0, providerResourceAccessIdentifier: '', securityToken: undefined };
 }
 
 export const RunConfigLambdaServer: MessageFns<RunConfigLambdaServer> = {
-  encode(message: RunConfigLambdaServer, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: RunConfigLambdaServer,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.protocol !== 0) {
       writer.uint32(8).int32(message.protocol);
     }
-    if (message.providerResourceAccessIdentifier !== "") {
+    if (message.providerResourceAccessIdentifier !== '') {
       writer.uint32(18).string(message.providerResourceAccessIdentifier);
     }
     if (message.securityToken !== undefined) {
@@ -832,11 +907,15 @@ export const RunConfigLambdaServer: MessageFns<RunConfigLambdaServer> = {
 
   fromJSON(object: any): RunConfigLambdaServer {
     return {
-      protocol: isSet(object.protocol) ? runConfigLambdaServer_ProtocolFromJSON(object.protocol) : 0,
+      protocol: isSet(object.protocol)
+        ? runConfigLambdaServer_ProtocolFromJSON(object.protocol)
+        : 0,
       providerResourceAccessIdentifier: isSet(object.providerResourceAccessIdentifier)
         ? globalThis.String(object.providerResourceAccessIdentifier)
-        : "",
-      securityToken: isSet(object.securityToken) ? globalThis.String(object.securityToken) : undefined,
+        : '',
+      securityToken: isSet(object.securityToken)
+        ? globalThis.String(object.securityToken)
+        : undefined
     };
   },
 
@@ -845,7 +924,7 @@ export const RunConfigLambdaServer: MessageFns<RunConfigLambdaServer> = {
     if (message.protocol !== 0) {
       obj.protocol = runConfigLambdaServer_ProtocolToJSON(message.protocol);
     }
-    if (message.providerResourceAccessIdentifier !== "") {
+    if (message.providerResourceAccessIdentifier !== '') {
       obj.providerResourceAccessIdentifier = message.providerResourceAccessIdentifier;
     }
     if (message.securityToken !== undefined) {
@@ -860,19 +939,22 @@ export const RunConfigLambdaServer: MessageFns<RunConfigLambdaServer> = {
   fromPartial(object: DeepPartial<RunConfigLambdaServer>): RunConfigLambdaServer {
     const message = createBaseRunConfigLambdaServer();
     message.protocol = object.protocol ?? 0;
-    message.providerResourceAccessIdentifier = object.providerResourceAccessIdentifier ?? "";
+    message.providerResourceAccessIdentifier = object.providerResourceAccessIdentifier ?? '';
     message.securityToken = object.securityToken ?? undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunConfigLambdaArguments(): RunConfigLambdaArguments {
-  return { jsonArguments: "" };
+  return { jsonArguments: '' };
 }
 
 export const RunConfigLambdaArguments: MessageFns<RunConfigLambdaArguments> = {
-  encode(message: RunConfigLambdaArguments, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.jsonArguments !== "") {
+  encode(
+    message: RunConfigLambdaArguments,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.jsonArguments !== '') {
       writer.uint32(10).string(message.jsonArguments);
     }
     return writer;
@@ -903,12 +985,14 @@ export const RunConfigLambdaArguments: MessageFns<RunConfigLambdaArguments> = {
   },
 
   fromJSON(object: any): RunConfigLambdaArguments {
-    return { jsonArguments: isSet(object.jsonArguments) ? globalThis.String(object.jsonArguments) : "" };
+    return {
+      jsonArguments: isSet(object.jsonArguments) ? globalThis.String(object.jsonArguments) : ''
+    };
   },
 
   toJSON(message: RunConfigLambdaArguments): unknown {
     const obj: any = {};
-    if (message.jsonArguments !== "") {
+    if (message.jsonArguments !== '') {
       obj.jsonArguments = message.jsonArguments;
     }
     return obj;
@@ -919,9 +1003,9 @@ export const RunConfigLambdaArguments: MessageFns<RunConfigLambdaArguments> = {
   },
   fromPartial(object: DeepPartial<RunConfigLambdaArguments>): RunConfigLambdaArguments {
     const message = createBaseRunConfigLambdaArguments();
-    message.jsonArguments = object.jsonArguments ?? "";
+    message.jsonArguments = object.jsonArguments ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseRunConfigLambdaClient(): RunConfigLambdaClient {
@@ -929,7 +1013,10 @@ function createBaseRunConfigLambdaClient(): RunConfigLambdaClient {
 }
 
 export const RunConfigLambdaClient: MessageFns<RunConfigLambdaClient> = {
-  encode(message: RunConfigLambdaClient, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: RunConfigLambdaClient,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.participant !== undefined) {
       McpParticipant.encode(message.participant, writer.uint32(10).fork()).join();
     }
@@ -961,7 +1048,11 @@ export const RunConfigLambdaClient: MessageFns<RunConfigLambdaClient> = {
   },
 
   fromJSON(object: any): RunConfigLambdaClient {
-    return { participant: isSet(object.participant) ? McpParticipant.fromJSON(object.participant) : undefined };
+    return {
+      participant: isSet(object.participant)
+        ? McpParticipant.fromJSON(object.participant)
+        : undefined
+    };
   },
 
   toJSON(message: RunConfigLambdaClient): unknown {
@@ -977,11 +1068,12 @@ export const RunConfigLambdaClient: MessageFns<RunConfigLambdaClient> = {
   },
   fromPartial(object: DeepPartial<RunConfigLambdaClient>): RunConfigLambdaClient {
     const message = createBaseRunConfigLambdaClient();
-    message.participant = (object.participant !== undefined && object.participant !== null)
-      ? McpParticipant.fromPartial(object.participant)
-      : undefined;
+    message.participant =
+      object.participant !== undefined && object.participant !== null
+        ? McpParticipant.fromPartial(object.participant)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunConfigLambda(): RunConfigLambda {
@@ -1034,7 +1126,9 @@ export const RunConfigLambda: MessageFns<RunConfigLambda> = {
   fromJSON(object: any): RunConfigLambda {
     return {
       server: isSet(object.server) ? RunConfigLambdaServer.fromJSON(object.server) : undefined,
-      arguments: isSet(object.arguments) ? RunConfigLambdaArguments.fromJSON(object.arguments) : undefined,
+      arguments: isSet(object.arguments)
+        ? RunConfigLambdaArguments.fromJSON(object.arguments)
+        : undefined
     };
   },
 
@@ -1054,14 +1148,16 @@ export const RunConfigLambda: MessageFns<RunConfigLambda> = {
   },
   fromPartial(object: DeepPartial<RunConfigLambda>): RunConfigLambda {
     const message = createBaseRunConfigLambda();
-    message.server = (object.server !== undefined && object.server !== null)
-      ? RunConfigLambdaServer.fromPartial(object.server)
-      : undefined;
-    message.arguments = (object.arguments !== undefined && object.arguments !== null)
-      ? RunConfigLambdaArguments.fromPartial(object.arguments)
-      : undefined;
+    message.server =
+      object.server !== undefined && object.server !== null
+        ? RunConfigLambdaServer.fromPartial(object.server)
+        : undefined;
+    message.arguments =
+      object.arguments !== undefined && object.arguments !== null
+        ? RunConfigLambdaArguments.fromPartial(object.arguments)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunConfig(): RunConfig {
@@ -1113,8 +1209,12 @@ export const RunConfig: MessageFns<RunConfig> = {
 
   fromJSON(object: any): RunConfig {
     return {
-      remoteRunConfig: isSet(object.remoteRunConfig) ? RunConfigRemote.fromJSON(object.remoteRunConfig) : undefined,
-      lambdaRunConfig: isSet(object.lambdaRunConfig) ? RunConfigLambda.fromJSON(object.lambdaRunConfig) : undefined,
+      remoteRunConfig: isSet(object.remoteRunConfig)
+        ? RunConfigRemote.fromJSON(object.remoteRunConfig)
+        : undefined,
+      lambdaRunConfig: isSet(object.lambdaRunConfig)
+        ? RunConfigLambda.fromJSON(object.lambdaRunConfig)
+        : undefined
     };
   },
 
@@ -1134,14 +1234,16 @@ export const RunConfig: MessageFns<RunConfig> = {
   },
   fromPartial(object: DeepPartial<RunConfig>): RunConfig {
     const message = createBaseRunConfig();
-    message.remoteRunConfig = (object.remoteRunConfig !== undefined && object.remoteRunConfig !== null)
-      ? RunConfigRemote.fromPartial(object.remoteRunConfig)
-      : undefined;
-    message.lambdaRunConfig = (object.lambdaRunConfig !== undefined && object.lambdaRunConfig !== null)
-      ? RunConfigLambda.fromPartial(object.lambdaRunConfig)
-      : undefined;
+    message.remoteRunConfig =
+      object.remoteRunConfig !== undefined && object.remoteRunConfig !== null
+        ? RunConfigRemote.fromPartial(object.remoteRunConfig)
+        : undefined;
+    message.lambdaRunConfig =
+      object.lambdaRunConfig !== undefined && object.lambdaRunConfig !== null
+        ? RunConfigLambda.fromPartial(object.lambdaRunConfig)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunRequest(): RunRequest {
@@ -1205,8 +1307,10 @@ export const RunRequest: MessageFns<RunRequest> = {
   fromJSON(object: any): RunRequest {
     return {
       init: isSet(object.init) ? RunRequestInit.fromJSON(object.init) : undefined,
-      mcpMessage: isSet(object.mcpMessage) ? RunRequestMcpMessage.fromJSON(object.mcpMessage) : undefined,
-      close: isSet(object.close) ? RunRequestClose.fromJSON(object.close) : undefined,
+      mcpMessage: isSet(object.mcpMessage)
+        ? RunRequestMcpMessage.fromJSON(object.mcpMessage)
+        : undefined,
+      close: isSet(object.close) ? RunRequestClose.fromJSON(object.close) : undefined
     };
   },
 
@@ -1229,26 +1333,29 @@ export const RunRequest: MessageFns<RunRequest> = {
   },
   fromPartial(object: DeepPartial<RunRequest>): RunRequest {
     const message = createBaseRunRequest();
-    message.init = (object.init !== undefined && object.init !== null)
-      ? RunRequestInit.fromPartial(object.init)
-      : undefined;
-    message.mcpMessage = (object.mcpMessage !== undefined && object.mcpMessage !== null)
-      ? RunRequestMcpMessage.fromPartial(object.mcpMessage)
-      : undefined;
-    message.close = (object.close !== undefined && object.close !== null)
-      ? RunRequestClose.fromPartial(object.close)
-      : undefined;
+    message.init =
+      object.init !== undefined && object.init !== null
+        ? RunRequestInit.fromPartial(object.init)
+        : undefined;
+    message.mcpMessage =
+      object.mcpMessage !== undefined && object.mcpMessage !== null
+        ? RunRequestMcpMessage.fromPartial(object.mcpMessage)
+        : undefined;
+    message.close =
+      object.close !== undefined && object.close !== null
+        ? RunRequestClose.fromPartial(object.close)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunRequestInit(): RunRequestInit {
-  return { connectionId: "", runConfig: undefined, client: undefined };
+  return { connectionId: '', runConfig: undefined, client: undefined };
 }
 
 export const RunRequestInit: MessageFns<RunRequestInit> = {
   encode(message: RunRequestInit, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.connectionId !== "") {
+    if (message.connectionId !== '') {
       writer.uint32(10).string(message.connectionId);
     }
     if (message.runConfig !== undefined) {
@@ -1302,15 +1409,15 @@ export const RunRequestInit: MessageFns<RunRequestInit> = {
 
   fromJSON(object: any): RunRequestInit {
     return {
-      connectionId: isSet(object.connectionId) ? globalThis.String(object.connectionId) : "",
+      connectionId: isSet(object.connectionId) ? globalThis.String(object.connectionId) : '',
       runConfig: isSet(object.runConfig) ? RunConfig.fromJSON(object.runConfig) : undefined,
-      client: isSet(object.client) ? RunConfigLambdaClient.fromJSON(object.client) : undefined,
+      client: isSet(object.client) ? RunConfigLambdaClient.fromJSON(object.client) : undefined
     };
   },
 
   toJSON(message: RunRequestInit): unknown {
     const obj: any = {};
-    if (message.connectionId !== "") {
+    if (message.connectionId !== '') {
       obj.connectionId = message.connectionId;
     }
     if (message.runConfig !== undefined) {
@@ -1327,15 +1434,17 @@ export const RunRequestInit: MessageFns<RunRequestInit> = {
   },
   fromPartial(object: DeepPartial<RunRequestInit>): RunRequestInit {
     const message = createBaseRunRequestInit();
-    message.connectionId = object.connectionId ?? "";
-    message.runConfig = (object.runConfig !== undefined && object.runConfig !== null)
-      ? RunConfig.fromPartial(object.runConfig)
-      : undefined;
-    message.client = (object.client !== undefined && object.client !== null)
-      ? RunConfigLambdaClient.fromPartial(object.client)
-      : undefined;
+    message.connectionId = object.connectionId ?? '';
+    message.runConfig =
+      object.runConfig !== undefined && object.runConfig !== null
+        ? RunConfig.fromPartial(object.runConfig)
+        : undefined;
+    message.client =
+      object.client !== undefined && object.client !== null
+        ? RunConfigLambdaClient.fromPartial(object.client)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunRequestMcpMessage(): RunRequestMcpMessage {
@@ -1343,7 +1452,10 @@ function createBaseRunRequestMcpMessage(): RunRequestMcpMessage {
 }
 
 export const RunRequestMcpMessage: MessageFns<RunRequestMcpMessage> = {
-  encode(message: RunRequestMcpMessage, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: RunRequestMcpMessage,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.message !== undefined) {
       McpMessageRaw.encode(message.message, writer.uint32(10).fork()).join();
     }
@@ -1375,7 +1487,9 @@ export const RunRequestMcpMessage: MessageFns<RunRequestMcpMessage> = {
   },
 
   fromJSON(object: any): RunRequestMcpMessage {
-    return { message: isSet(object.message) ? McpMessageRaw.fromJSON(object.message) : undefined };
+    return {
+      message: isSet(object.message) ? McpMessageRaw.fromJSON(object.message) : undefined
+    };
   },
 
   toJSON(message: RunRequestMcpMessage): unknown {
@@ -1391,11 +1505,12 @@ export const RunRequestMcpMessage: MessageFns<RunRequestMcpMessage> = {
   },
   fromPartial(object: DeepPartial<RunRequestMcpMessage>): RunRequestMcpMessage {
     const message = createBaseRunRequestMcpMessage();
-    message.message = (object.message !== undefined && object.message !== null)
-      ? McpMessageRaw.fromPartial(object.message)
-      : undefined;
+    message.message =
+      object.message !== undefined && object.message !== null
+        ? McpMessageRaw.fromPartial(object.message)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunRequestClose(): RunRequestClose {
@@ -1438,11 +1553,17 @@ export const RunRequestClose: MessageFns<RunRequestClose> = {
   fromPartial(_: DeepPartial<RunRequestClose>): RunRequestClose {
     const message = createBaseRunRequestClose();
     return message;
-  },
+  }
 };
 
 function createBaseRunResponse(): RunResponse {
-  return { mcpMessage: undefined, init: undefined, output: undefined, error: undefined, close: undefined };
+  return {
+    mcpMessage: undefined,
+    init: undefined,
+    output: undefined,
+    error: undefined,
+    close: undefined
+  };
 }
 
 export const RunResponse: MessageFns<RunResponse> = {
@@ -1523,11 +1644,13 @@ export const RunResponse: MessageFns<RunResponse> = {
 
   fromJSON(object: any): RunResponse {
     return {
-      mcpMessage: isSet(object.mcpMessage) ? RunResponseMcpMessage.fromJSON(object.mcpMessage) : undefined,
+      mcpMessage: isSet(object.mcpMessage)
+        ? RunResponseMcpMessage.fromJSON(object.mcpMessage)
+        : undefined,
       init: isSet(object.init) ? RunResponseInit.fromJSON(object.init) : undefined,
       output: isSet(object.output) ? RunResponseOutput.fromJSON(object.output) : undefined,
       error: isSet(object.error) ? RunResponseError.fromJSON(object.error) : undefined,
-      close: isSet(object.close) ? RunResponseClose.fromJSON(object.close) : undefined,
+      close: isSet(object.close) ? RunResponseClose.fromJSON(object.close) : undefined
     };
   },
 
@@ -1556,23 +1679,28 @@ export const RunResponse: MessageFns<RunResponse> = {
   },
   fromPartial(object: DeepPartial<RunResponse>): RunResponse {
     const message = createBaseRunResponse();
-    message.mcpMessage = (object.mcpMessage !== undefined && object.mcpMessage !== null)
-      ? RunResponseMcpMessage.fromPartial(object.mcpMessage)
-      : undefined;
-    message.init = (object.init !== undefined && object.init !== null)
-      ? RunResponseInit.fromPartial(object.init)
-      : undefined;
-    message.output = (object.output !== undefined && object.output !== null)
-      ? RunResponseOutput.fromPartial(object.output)
-      : undefined;
-    message.error = (object.error !== undefined && object.error !== null)
-      ? RunResponseError.fromPartial(object.error)
-      : undefined;
-    message.close = (object.close !== undefined && object.close !== null)
-      ? RunResponseClose.fromPartial(object.close)
-      : undefined;
+    message.mcpMessage =
+      object.mcpMessage !== undefined && object.mcpMessage !== null
+        ? RunResponseMcpMessage.fromPartial(object.mcpMessage)
+        : undefined;
+    message.init =
+      object.init !== undefined && object.init !== null
+        ? RunResponseInit.fromPartial(object.init)
+        : undefined;
+    message.output =
+      object.output !== undefined && object.output !== null
+        ? RunResponseOutput.fromPartial(object.output)
+        : undefined;
+    message.error =
+      object.error !== undefined && object.error !== null
+        ? RunResponseError.fromPartial(object.error)
+        : undefined;
+    message.close =
+      object.close !== undefined && object.close !== null
+        ? RunResponseClose.fromPartial(object.close)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunResponseInit(): RunResponseInit {
@@ -1615,7 +1743,7 @@ export const RunResponseInit: MessageFns<RunResponseInit> = {
   fromPartial(_: DeepPartial<RunResponseInit>): RunResponseInit {
     const message = createBaseRunResponseInit();
     return message;
-  },
+  }
 };
 
 function createBaseRunResponseMcpMessage(): RunResponseMcpMessage {
@@ -1623,7 +1751,10 @@ function createBaseRunResponseMcpMessage(): RunResponseMcpMessage {
 }
 
 export const RunResponseMcpMessage: MessageFns<RunResponseMcpMessage> = {
-  encode(message: RunResponseMcpMessage, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: RunResponseMcpMessage,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.message !== undefined) {
       McpMessage.encode(message.message, writer.uint32(10).fork()).join();
     }
@@ -1655,7 +1786,9 @@ export const RunResponseMcpMessage: MessageFns<RunResponseMcpMessage> = {
   },
 
   fromJSON(object: any): RunResponseMcpMessage {
-    return { message: isSet(object.message) ? McpMessage.fromJSON(object.message) : undefined };
+    return {
+      message: isSet(object.message) ? McpMessage.fromJSON(object.message) : undefined
+    };
   },
 
   toJSON(message: RunResponseMcpMessage): unknown {
@@ -1671,11 +1804,12 @@ export const RunResponseMcpMessage: MessageFns<RunResponseMcpMessage> = {
   },
   fromPartial(object: DeepPartial<RunResponseMcpMessage>): RunResponseMcpMessage {
     const message = createBaseRunResponseMcpMessage();
-    message.message = (object.message !== undefined && object.message !== null)
-      ? McpMessage.fromPartial(object.message)
-      : undefined;
+    message.message =
+      object.message !== undefined && object.message !== null
+        ? McpMessage.fromPartial(object.message)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunResponseError(): RunResponseError {
@@ -1715,7 +1849,9 @@ export const RunResponseError: MessageFns<RunResponseError> = {
   },
 
   fromJSON(object: any): RunResponseError {
-    return { mcpError: isSet(object.mcpError) ? McpError.fromJSON(object.mcpError) : undefined };
+    return {
+      mcpError: isSet(object.mcpError) ? McpError.fromJSON(object.mcpError) : undefined
+    };
   },
 
   toJSON(message: RunResponseError): unknown {
@@ -1731,11 +1867,12 @@ export const RunResponseError: MessageFns<RunResponseError> = {
   },
   fromPartial(object: DeepPartial<RunResponseError>): RunResponseError {
     const message = createBaseRunResponseError();
-    message.mcpError = (object.mcpError !== undefined && object.mcpError !== null)
-      ? McpError.fromPartial(object.mcpError)
-      : undefined;
+    message.mcpError =
+      object.mcpError !== undefined && object.mcpError !== null
+        ? McpError.fromPartial(object.mcpError)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunResponseOutput(): RunResponseOutput {
@@ -1775,7 +1912,9 @@ export const RunResponseOutput: MessageFns<RunResponseOutput> = {
   },
 
   fromJSON(object: any): RunResponseOutput {
-    return { mcpOutput: isSet(object.mcpOutput) ? McpOutput.fromJSON(object.mcpOutput) : undefined };
+    return {
+      mcpOutput: isSet(object.mcpOutput) ? McpOutput.fromJSON(object.mcpOutput) : undefined
+    };
   },
 
   toJSON(message: RunResponseOutput): unknown {
@@ -1791,11 +1930,12 @@ export const RunResponseOutput: MessageFns<RunResponseOutput> = {
   },
   fromPartial(object: DeepPartial<RunResponseOutput>): RunResponseOutput {
     const message = createBaseRunResponseOutput();
-    message.mcpOutput = (object.mcpOutput !== undefined && object.mcpOutput !== null)
-      ? McpOutput.fromPartial(object.mcpOutput)
-      : undefined;
+    message.mcpOutput =
+      object.mcpOutput !== undefined && object.mcpOutput !== null
+        ? McpOutput.fromPartial(object.mcpOutput)
+        : undefined;
     return message;
-  },
+  }
 };
 
 function createBaseRunResponseClose(): RunResponseClose {
@@ -1838,21 +1978,23 @@ export const RunResponseClose: MessageFns<RunResponseClose> = {
   fromPartial(_: DeepPartial<RunResponseClose>): RunResponseClose {
     const message = createBaseRunResponseClose();
     return message;
-  },
+  }
 };
 
 export type McpRemoteService = typeof McpRemoteService;
 export const McpRemoteService = {
   /** rpc GetRemoteInfo(RemoteInfoRequest) returns (RemoteInfoResponse); */
   streamMcpRun: {
-    path: "/broker.remote.McpRemote/StreamMcpRun",
+    path: '/broker.remote.McpRemote/StreamMcpRun',
     requestStream: true,
     responseStream: true,
-    requestSerialize: (value: RunRequest): Buffer => Buffer.from(RunRequest.encode(value).finish()),
+    requestSerialize: (value: RunRequest): Buffer =>
+      Buffer.from(RunRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): RunRequest => RunRequest.decode(value),
-    responseSerialize: (value: RunResponse): Buffer => Buffer.from(RunResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): RunResponse => RunResponse.decode(value),
-  },
+    responseSerialize: (value: RunResponse): Buffer =>
+      Buffer.from(RunResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RunResponse => RunResponse.decode(value)
+  }
 } as const;
 
 export interface McpRemoteServer extends UntypedServiceImplementation {
@@ -1864,25 +2006,41 @@ export interface McpRemoteClient extends Client {
   /** rpc GetRemoteInfo(RemoteInfoRequest) returns (RemoteInfoResponse); */
   streamMcpRun(): ClientDuplexStream<RunRequest, RunResponse>;
   streamMcpRun(options: Partial<CallOptions>): ClientDuplexStream<RunRequest, RunResponse>;
-  streamMcpRun(metadata: Metadata, options?: Partial<CallOptions>): ClientDuplexStream<RunRequest, RunResponse>;
+  streamMcpRun(
+    metadata: Metadata,
+    options?: Partial<CallOptions>
+  ): ClientDuplexStream<RunRequest, RunResponse>;
 }
 
-export const McpRemoteClient = makeGenericClientConstructor(McpRemoteService, "broker.remote.McpRemote") as unknown as {
-  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): McpRemoteClient;
+export const McpRemoteClient = makeGenericClientConstructor(
+  McpRemoteService,
+  'broker.remote.McpRemote'
+) as unknown as {
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): McpRemoteClient;
   service: typeof McpRemoteService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends {}
+          ? { [K in keyof T]?: DeepPartial<T[K]> }
+          : Partial<T>;
 
 function isObject(value: any): boolean {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function isSet(value: any): boolean {

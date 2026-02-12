@@ -17,9 +17,9 @@ vi.mock('@metorial/module-code-bucket', () => ({
 }));
 
 vi.mock('@metorial/queue', () => ({
-  createQueue: vi.fn((config) => ({
+  createQueue: vi.fn(config => ({
     name: config.name,
-    process: vi.fn((handler) => ({
+    process: vi.fn(handler => ({
       handler,
       processName: 'syncCurrentDraftBucketToRepo'
     }))
@@ -34,7 +34,10 @@ vi.mock('@metorial/queue', () => ({
 
 import { db } from '@metorial/db';
 import { codeBucketService } from '@metorial/module-code-bucket';
-import { syncCurrentDraftBucketToRepoQueue, syncCurrentDraftBucketToRepoQueueProcessor } from '../src/queues/syncCurrentDraftBucketToRepo';
+import {
+  syncCurrentDraftBucketToRepoQueue,
+  syncCurrentDraftBucketToRepoQueueProcessor
+} from '../src/queues/syncCurrentDraftBucketToRepo';
 
 describe('syncCurrentDraftBucketToRepo', () => {
   beforeEach(() => {
@@ -101,10 +104,12 @@ describe('syncCurrentDraftBucketToRepo', () => {
 
       const handler = (syncCurrentDraftBucketToRepoQueueProcessor as any).handler;
 
-      await expect(handler({
-        draftBucketOid: BigInt(1),
-        immutableBucketOid: BigInt(2)
-      })).rejects.toThrow(QueueRetryError);
+      await expect(
+        handler({
+          draftBucketOid: BigInt(1),
+          immutableBucketOid: BigInt(2)
+        })
+      ).rejects.toThrow(QueueRetryError);
 
       expect(codeBucketService.syncCodeBuckets).not.toHaveBeenCalled();
     });
@@ -118,10 +123,12 @@ describe('syncCurrentDraftBucketToRepo', () => {
 
       const handler = (syncCurrentDraftBucketToRepoQueueProcessor as any).handler;
 
-      await expect(handler({
-        draftBucketOid: BigInt(1),
-        immutableBucketOid: BigInt(2)
-      })).rejects.toThrow(QueueRetryError);
+      await expect(
+        handler({
+          draftBucketOid: BigInt(1),
+          immutableBucketOid: BigInt(2)
+        })
+      ).rejects.toThrow(QueueRetryError);
 
       expect(codeBucketService.syncCodeBuckets).not.toHaveBeenCalled();
     });
@@ -131,10 +138,12 @@ describe('syncCurrentDraftBucketToRepo', () => {
 
       const handler = (syncCurrentDraftBucketToRepoQueueProcessor as any).handler;
 
-      await expect(handler({
-        draftBucketOid: BigInt(1),
-        immutableBucketOid: BigInt(2)
-      })).rejects.toThrow(QueueRetryError);
+      await expect(
+        handler({
+          draftBucketOid: BigInt(1),
+          immutableBucketOid: BigInt(2)
+        })
+      ).rejects.toThrow(QueueRetryError);
 
       expect(codeBucketService.syncCodeBuckets).not.toHaveBeenCalled();
     });
@@ -181,8 +190,10 @@ describe('syncCurrentDraftBucketToRepo', () => {
       const largeBigInt2 = BigInt('9007199254740992');
 
       (db.codeBucket.findFirst as any).mockImplementation(({ where }: any) => {
-        if (where.oid === largeBigInt1) return Promise.resolve({ ...mockDraftBucket, oid: largeBigInt1 });
-        if (where.oid === largeBigInt2) return Promise.resolve({ ...mockImmutableBucket, oid: largeBigInt2 });
+        if (where.oid === largeBigInt1)
+          return Promise.resolve({ ...mockDraftBucket, oid: largeBigInt1 });
+        if (where.oid === largeBigInt2)
+          return Promise.resolve({ ...mockImmutableBucket, oid: largeBigInt2 });
         return Promise.resolve(null);
       });
 
@@ -203,10 +214,12 @@ describe('syncCurrentDraftBucketToRepo', () => {
 
       const handler = (syncCurrentDraftBucketToRepoQueueProcessor as any).handler;
 
-      await expect(handler({
-        draftBucketOid: BigInt(1),
-        immutableBucketOid: BigInt(2)
-      })).rejects.toThrow('Sync failed');
+      await expect(
+        handler({
+          draftBucketOid: BigInt(1),
+          immutableBucketOid: BigInt(2)
+        })
+      ).rejects.toThrow('Sync failed');
     });
 
     it('should propagate errors from database queries', async () => {
@@ -214,10 +227,12 @@ describe('syncCurrentDraftBucketToRepo', () => {
 
       const handler = (syncCurrentDraftBucketToRepoQueueProcessor as any).handler;
 
-      await expect(handler({
-        draftBucketOid: BigInt(1),
-        immutableBucketOid: BigInt(2)
-      })).rejects.toThrow('Database error');
+      await expect(
+        handler({
+          draftBucketOid: BigInt(1),
+          immutableBucketOid: BigInt(2)
+        })
+      ).rejects.toThrow('Database error');
     });
   });
 

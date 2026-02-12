@@ -5,7 +5,7 @@
 // source: workerBroker.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -16,15 +16,14 @@ import {
   makeGenericClientConstructor,
   type Metadata,
   type ServiceError,
-  type UntypedServiceImplementation,
-} from "@grpc/grpc-js";
-import Long from "long";
-import { WorkerType, workerTypeFromJSON, workerTypeToJSON } from "./worker";
+  type UntypedServiceImplementation
+} from '@grpc/grpc-js';
+import Long from 'long';
+import { WorkerType, workerTypeFromJSON, workerTypeToJSON } from './worker';
 
-export const protobufPackage = "broker.workerBroker";
+export const protobufPackage = 'broker.workerBroker';
 
-export interface ListManagersRequest {
-}
+export interface ListManagersRequest {}
 
 export interface ListManagersResponse {
   managers: Manager[];
@@ -42,11 +41,9 @@ export interface RegisterWorkerRequest {
   workerType: WorkerType;
 }
 
-export interface RegisterWorkerResponse {
-}
+export interface RegisterWorkerResponse {}
 
-export interface GetManagerInfoRequest {
-}
+export interface GetManagerInfoRequest {}
 
 export interface GetManagerInfoResponse {
   id: string;
@@ -94,7 +91,7 @@ export const ListManagersRequest: MessageFns<ListManagersRequest> = {
   fromPartial(_: DeepPartial<ListManagersRequest>): ListManagersRequest {
     const message = createBaseListManagersRequest();
     return message;
-  },
+  }
 };
 
 function createBaseListManagersResponse(): ListManagersResponse {
@@ -102,7 +99,10 @@ function createBaseListManagersResponse(): ListManagersResponse {
 }
 
 export const ListManagersResponse: MessageFns<ListManagersResponse> = {
-  encode(message: ListManagersResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListManagersResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.managers) {
       Manager.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -135,14 +135,16 @@ export const ListManagersResponse: MessageFns<ListManagersResponse> = {
 
   fromJSON(object: any): ListManagersResponse {
     return {
-      managers: globalThis.Array.isArray(object?.managers) ? object.managers.map((e: any) => Manager.fromJSON(e)) : [],
+      managers: globalThis.Array.isArray(object?.managers)
+        ? object.managers.map((e: any) => Manager.fromJSON(e))
+        : []
     };
   },
 
   toJSON(message: ListManagersResponse): unknown {
     const obj: any = {};
     if (message.managers?.length) {
-      obj.managers = message.managers.map((e) => Manager.toJSON(e));
+      obj.managers = message.managers.map(e => Manager.toJSON(e));
     }
     return obj;
   },
@@ -152,24 +154,24 @@ export const ListManagersResponse: MessageFns<ListManagersResponse> = {
   },
   fromPartial(object: DeepPartial<ListManagersResponse>): ListManagersResponse {
     const message = createBaseListManagersResponse();
-    message.managers = object.managers?.map((e) => Manager.fromPartial(e)) || [];
+    message.managers = object.managers?.map(e => Manager.fromPartial(e)) || [];
     return message;
-  },
+  }
 };
 
 function createBaseManager(): Manager {
-  return { id: "", managerAddress: "", workerBrokerAddress: "" };
+  return { id: '', managerAddress: '', workerBrokerAddress: '' };
 }
 
 export const Manager: MessageFns<Manager> = {
   encode(message: Manager, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
+    if (message.id !== '') {
       writer.uint32(10).string(message.id);
     }
-    if (message.managerAddress !== "") {
+    if (message.managerAddress !== '') {
       writer.uint32(18).string(message.managerAddress);
     }
-    if (message.workerBrokerAddress !== "") {
+    if (message.workerBrokerAddress !== '') {
       writer.uint32(26).string(message.workerBrokerAddress);
     }
     return writer;
@@ -217,21 +219,25 @@ export const Manager: MessageFns<Manager> = {
 
   fromJSON(object: any): Manager {
     return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      managerAddress: isSet(object.managerAddress) ? globalThis.String(object.managerAddress) : "",
-      workerBrokerAddress: isSet(object.workerBrokerAddress) ? globalThis.String(object.workerBrokerAddress) : "",
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      managerAddress: isSet(object.managerAddress)
+        ? globalThis.String(object.managerAddress)
+        : '',
+      workerBrokerAddress: isSet(object.workerBrokerAddress)
+        ? globalThis.String(object.workerBrokerAddress)
+        : ''
     };
   },
 
   toJSON(message: Manager): unknown {
     const obj: any = {};
-    if (message.id !== "") {
+    if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.managerAddress !== "") {
+    if (message.managerAddress !== '') {
       obj.managerAddress = message.managerAddress;
     }
-    if (message.workerBrokerAddress !== "") {
+    if (message.workerBrokerAddress !== '') {
       obj.workerBrokerAddress = message.workerBrokerAddress;
     }
     return obj;
@@ -242,23 +248,26 @@ export const Manager: MessageFns<Manager> = {
   },
   fromPartial(object: DeepPartial<Manager>): Manager {
     const message = createBaseManager();
-    message.id = object.id ?? "";
-    message.managerAddress = object.managerAddress ?? "";
-    message.workerBrokerAddress = object.workerBrokerAddress ?? "";
+    message.id = object.id ?? '';
+    message.managerAddress = object.managerAddress ?? '';
+    message.workerBrokerAddress = object.workerBrokerAddress ?? '';
     return message;
-  },
+  }
 };
 
 function createBaseRegisterWorkerRequest(): RegisterWorkerRequest {
-  return { workerId: "", address: "", workerType: 0 };
+  return { workerId: '', address: '', workerType: 0 };
 }
 
 export const RegisterWorkerRequest: MessageFns<RegisterWorkerRequest> = {
-  encode(message: RegisterWorkerRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.workerId !== "") {
+  encode(
+    message: RegisterWorkerRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.workerId !== '') {
       writer.uint32(10).string(message.workerId);
     }
-    if (message.address !== "") {
+    if (message.address !== '') {
       writer.uint32(18).string(message.address);
     }
     if (message.workerType !== 0) {
@@ -309,18 +318,18 @@ export const RegisterWorkerRequest: MessageFns<RegisterWorkerRequest> = {
 
   fromJSON(object: any): RegisterWorkerRequest {
     return {
-      workerId: isSet(object.workerId) ? globalThis.String(object.workerId) : "",
-      address: isSet(object.address) ? globalThis.String(object.address) : "",
-      workerType: isSet(object.workerType) ? workerTypeFromJSON(object.workerType) : 0,
+      workerId: isSet(object.workerId) ? globalThis.String(object.workerId) : '',
+      address: isSet(object.address) ? globalThis.String(object.address) : '',
+      workerType: isSet(object.workerType) ? workerTypeFromJSON(object.workerType) : 0
     };
   },
 
   toJSON(message: RegisterWorkerRequest): unknown {
     const obj: any = {};
-    if (message.workerId !== "") {
+    if (message.workerId !== '') {
       obj.workerId = message.workerId;
     }
-    if (message.address !== "") {
+    if (message.address !== '') {
       obj.address = message.address;
     }
     if (message.workerType !== 0) {
@@ -334,11 +343,11 @@ export const RegisterWorkerRequest: MessageFns<RegisterWorkerRequest> = {
   },
   fromPartial(object: DeepPartial<RegisterWorkerRequest>): RegisterWorkerRequest {
     const message = createBaseRegisterWorkerRequest();
-    message.workerId = object.workerId ?? "";
-    message.address = object.address ?? "";
+    message.workerId = object.workerId ?? '';
+    message.address = object.address ?? '';
     message.workerType = object.workerType ?? 0;
     return message;
-  },
+  }
 };
 
 function createBaseRegisterWorkerResponse(): RegisterWorkerResponse {
@@ -381,7 +390,7 @@ export const RegisterWorkerResponse: MessageFns<RegisterWorkerResponse> = {
   fromPartial(_: DeepPartial<RegisterWorkerResponse>): RegisterWorkerResponse {
     const message = createBaseRegisterWorkerResponse();
     return message;
-  },
+  }
 };
 
 function createBaseGetManagerInfoRequest(): GetManagerInfoRequest {
@@ -424,22 +433,25 @@ export const GetManagerInfoRequest: MessageFns<GetManagerInfoRequest> = {
   fromPartial(_: DeepPartial<GetManagerInfoRequest>): GetManagerInfoRequest {
     const message = createBaseGetManagerInfoRequest();
     return message;
-  },
+  }
 };
 
 function createBaseGetManagerInfoResponse(): GetManagerInfoResponse {
-  return { id: "", managerAddress: "", workerBrokerAddress: "" };
+  return { id: '', managerAddress: '', workerBrokerAddress: '' };
 }
 
 export const GetManagerInfoResponse: MessageFns<GetManagerInfoResponse> = {
-  encode(message: GetManagerInfoResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
+  encode(
+    message: GetManagerInfoResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.id !== '') {
       writer.uint32(10).string(message.id);
     }
-    if (message.managerAddress !== "") {
+    if (message.managerAddress !== '') {
       writer.uint32(18).string(message.managerAddress);
     }
-    if (message.workerBrokerAddress !== "") {
+    if (message.workerBrokerAddress !== '') {
       writer.uint32(26).string(message.workerBrokerAddress);
     }
     return writer;
@@ -487,21 +499,25 @@ export const GetManagerInfoResponse: MessageFns<GetManagerInfoResponse> = {
 
   fromJSON(object: any): GetManagerInfoResponse {
     return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      managerAddress: isSet(object.managerAddress) ? globalThis.String(object.managerAddress) : "",
-      workerBrokerAddress: isSet(object.workerBrokerAddress) ? globalThis.String(object.workerBrokerAddress) : "",
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      managerAddress: isSet(object.managerAddress)
+        ? globalThis.String(object.managerAddress)
+        : '',
+      workerBrokerAddress: isSet(object.workerBrokerAddress)
+        ? globalThis.String(object.workerBrokerAddress)
+        : ''
     };
   },
 
   toJSON(message: GetManagerInfoResponse): unknown {
     const obj: any = {};
-    if (message.id !== "") {
+    if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.managerAddress !== "") {
+    if (message.managerAddress !== '') {
       obj.managerAddress = message.managerAddress;
     }
-    if (message.workerBrokerAddress !== "") {
+    if (message.workerBrokerAddress !== '') {
       obj.workerBrokerAddress = message.workerBrokerAddress;
     }
     return obj;
@@ -512,47 +528,54 @@ export const GetManagerInfoResponse: MessageFns<GetManagerInfoResponse> = {
   },
   fromPartial(object: DeepPartial<GetManagerInfoResponse>): GetManagerInfoResponse {
     const message = createBaseGetManagerInfoResponse();
-    message.id = object.id ?? "";
-    message.managerAddress = object.managerAddress ?? "";
-    message.workerBrokerAddress = object.workerBrokerAddress ?? "";
+    message.id = object.id ?? '';
+    message.managerAddress = object.managerAddress ?? '';
+    message.workerBrokerAddress = object.workerBrokerAddress ?? '';
     return message;
-  },
+  }
 };
 
 export type McpWorkerBrokerService = typeof McpWorkerBrokerService;
 export const McpWorkerBrokerService = {
   listManagers: {
-    path: "/broker.workerBroker.McpWorkerBroker/ListManagers",
+    path: '/broker.workerBroker.McpWorkerBroker/ListManagers',
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: ListManagersRequest): Buffer => Buffer.from(ListManagersRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListManagersRequest => ListManagersRequest.decode(value),
+    requestSerialize: (value: ListManagersRequest): Buffer =>
+      Buffer.from(ListManagersRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListManagersRequest =>
+      ListManagersRequest.decode(value),
     responseSerialize: (value: ListManagersResponse): Buffer =>
       Buffer.from(ListManagersResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListManagersResponse => ListManagersResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListManagersResponse =>
+      ListManagersResponse.decode(value)
   },
   registerWorker: {
-    path: "/broker.workerBroker.McpWorkerBroker/RegisterWorker",
+    path: '/broker.workerBroker.McpWorkerBroker/RegisterWorker',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: RegisterWorkerRequest): Buffer =>
       Buffer.from(RegisterWorkerRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): RegisterWorkerRequest => RegisterWorkerRequest.decode(value),
+    requestDeserialize: (value: Buffer): RegisterWorkerRequest =>
+      RegisterWorkerRequest.decode(value),
     responseSerialize: (value: RegisterWorkerResponse): Buffer =>
       Buffer.from(RegisterWorkerResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): RegisterWorkerResponse => RegisterWorkerResponse.decode(value),
+    responseDeserialize: (value: Buffer): RegisterWorkerResponse =>
+      RegisterWorkerResponse.decode(value)
   },
   getManagerInfo: {
-    path: "/broker.workerBroker.McpWorkerBroker/GetManagerInfo",
+    path: '/broker.workerBroker.McpWorkerBroker/GetManagerInfo',
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: GetManagerInfoRequest): Buffer =>
       Buffer.from(GetManagerInfoRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetManagerInfoRequest => GetManagerInfoRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetManagerInfoRequest =>
+      GetManagerInfoRequest.decode(value),
     responseSerialize: (value: GetManagerInfoResponse): Buffer =>
       Buffer.from(GetManagerInfoResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetManagerInfoResponse => GetManagerInfoResponse.decode(value),
-  },
+    responseDeserialize: (value: Buffer): GetManagerInfoResponse =>
+      GetManagerInfoResponse.decode(value)
+  }
 } as const;
 
 export interface McpWorkerBrokerServer extends UntypedServiceImplementation {
@@ -564,67 +587,77 @@ export interface McpWorkerBrokerServer extends UntypedServiceImplementation {
 export interface McpWorkerBrokerClient extends Client {
   listManagers(
     request: ListManagersRequest,
-    callback: (error: ServiceError | null, response: ListManagersResponse) => void,
+    callback: (error: ServiceError | null, response: ListManagersResponse) => void
   ): ClientUnaryCall;
   listManagers(
     request: ListManagersRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListManagersResponse) => void,
+    callback: (error: ServiceError | null, response: ListManagersResponse) => void
   ): ClientUnaryCall;
   listManagers(
     request: ListManagersRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListManagersResponse) => void,
+    callback: (error: ServiceError | null, response: ListManagersResponse) => void
   ): ClientUnaryCall;
   registerWorker(
     request: RegisterWorkerRequest,
-    callback: (error: ServiceError | null, response: RegisterWorkerResponse) => void,
+    callback: (error: ServiceError | null, response: RegisterWorkerResponse) => void
   ): ClientUnaryCall;
   registerWorker(
     request: RegisterWorkerRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RegisterWorkerResponse) => void,
+    callback: (error: ServiceError | null, response: RegisterWorkerResponse) => void
   ): ClientUnaryCall;
   registerWorker(
     request: RegisterWorkerRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RegisterWorkerResponse) => void,
+    callback: (error: ServiceError | null, response: RegisterWorkerResponse) => void
   ): ClientUnaryCall;
   getManagerInfo(
     request: GetManagerInfoRequest,
-    callback: (error: ServiceError | null, response: GetManagerInfoResponse) => void,
+    callback: (error: ServiceError | null, response: GetManagerInfoResponse) => void
   ): ClientUnaryCall;
   getManagerInfo(
     request: GetManagerInfoRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetManagerInfoResponse) => void,
+    callback: (error: ServiceError | null, response: GetManagerInfoResponse) => void
   ): ClientUnaryCall;
   getManagerInfo(
     request: GetManagerInfoRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetManagerInfoResponse) => void,
+    callback: (error: ServiceError | null, response: GetManagerInfoResponse) => void
   ): ClientUnaryCall;
 }
 
 export const McpWorkerBrokerClient = makeGenericClientConstructor(
   McpWorkerBrokerService,
-  "broker.workerBroker.McpWorkerBroker",
+  'broker.workerBroker.McpWorkerBroker'
 ) as unknown as {
-  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): McpWorkerBrokerClient;
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): McpWorkerBrokerClient;
   service: typeof McpWorkerBrokerService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends Long ? string | number | Long : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends Long
+    ? string | number | Long
+    : T extends globalThis.Array<infer U>
+      ? globalThis.Array<DeepPartial<U>>
+      : T extends ReadonlyArray<infer U>
+        ? ReadonlyArray<DeepPartial<U>>
+        : T extends {}
+          ? { [K in keyof T]?: DeepPartial<T[K]> }
+          : Partial<T>;
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;

@@ -26,8 +26,7 @@ export let useAggregatedMessages = (
       let current = (map.get(msgId) ?? {}) as AggregatedMessages;
 
       current.unifiedId = msgId;
-      current.originalId =
-        current.originalId ?? String(mcpMsg.originalId ?? mcpMsg.id);
+      current.originalId = current.originalId ?? String(mcpMsg.originalId ?? mcpMsg.id);
 
       if (mcpMsg.method) {
         current.method = mcpMsg.method;

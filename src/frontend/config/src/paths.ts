@@ -383,14 +383,7 @@ let InstancePaths = Object.assign(
       project: EntityParam,
       instance: EntityParam,
       ...subPages: SubPages
-    ) =>
-      InstancePaths(
-        organization,
-        project,
-        instance,
-        'configurations',
-        ...subPages
-      ),
+    ) => InstancePaths(organization, project, instance, 'configurations', ...subPages),
     providerDeployment: (
       organization: EntityParam,
       project: EntityParam,
@@ -399,14 +392,7 @@ let InstancePaths = Object.assign(
       ...subPages: SubPages
     ) => {
       if (!id) return '#';
-      return InstancePaths(
-        organization,
-        project,
-        instance,
-        'configurations',
-        id,
-        ...subPages
-      );
+      return InstancePaths(organization, project, instance, 'configurations', id, ...subPages);
     },
 
     providerConfig: (
@@ -475,7 +461,8 @@ let InstancePaths = Object.assign(
       project: EntityParam,
       instance: EntityParam,
       ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'provider-implementations', ...subPages),
+    ) =>
+      InstancePaths(organization, project, instance, 'provider-implementations', ...subPages),
     providerImplementation: (
       organization: EntityParam,
       project: EntityParam,
@@ -588,14 +575,7 @@ let InstancePaths = Object.assign(
       project: EntityParam,
       instance: EntityParam,
       ...subPages: SubPages
-    ) =>
-      InstancePaths(
-        organization,
-        project,
-        instance,
-        'session-templates',
-        ...subPages
-      ),
+    ) => InstancePaths(organization, project, instance, 'session-templates', ...subPages),
     sessionTemplate: (
       organization: EntityParam,
       project: EntityParam,

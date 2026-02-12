@@ -31,10 +31,7 @@ export let ProviderConfigSettingsPage = () => {
 
   return renderWithLoader({ config })(({ config }) => (
     <>
-      <Box
-        title="Config Settings"
-        description="Modify the settings of this configuration."
-      >
+      <Box title="Config Settings" description="Modify the settings of this configuration.">
         <Input
           label="Name"
           value={name || config.data.name || ''}
