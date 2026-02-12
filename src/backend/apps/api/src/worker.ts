@@ -10,7 +10,6 @@ import { communityQueueProcessor } from '@metorial/module-community';
 import { consumerQueueProcessor } from '@metorial/module-consumer';
 import { customServerQueueProcessor } from '@metorial/module-custom-server';
 import { emailQueueProcessor } from '@metorial/module-email';
-import { engineQueueProcessor } from '@metorial/module-engine';
 import { eventQueueProcessor } from '@metorial/module-event';
 import { fileQueueProcessor } from '@metorial/module-file';
 import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
@@ -46,7 +45,6 @@ export let worker = runQueueProcessors([
   serverRunnerQueueProcessor,
   sessionQueueProcessor,
   providerOauthQueueProcessor,
-  engineQueueProcessor,
   customServerQueueProcessor,
   codeBucketQueueProcessor,
   communityQueueProcessor,

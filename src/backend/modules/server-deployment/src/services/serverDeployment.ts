@@ -28,7 +28,6 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { callbackService } from '@metorial/module-callbacks';
 import { serverVariantService } from '@metorial/module-catalog';
-import { engineServerDiscoveryService } from '@metorial/module-engine';
 import { ingestEventService } from '@metorial/module-event';
 import { accessLimiterService } from '@metorial/module-protect';
 import {
@@ -541,12 +540,6 @@ class ServerDeploymentServiceImpl {
     await serverDeploymentSetupQueue.add({
       serverDeploymentId: serverDeployment.id
     });
-
-    if (!serverDeployment.serverImplementation.serverVariant.lastDiscoveredAt) {
-      await engineServerDiscoveryService.discoverServerAsync({
-        serverDeployment
-      });
-    }
 
     return serverDeployment;
   }

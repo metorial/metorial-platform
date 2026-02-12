@@ -10,14 +10,7 @@ import {
 import { delay } from '@metorial/delay';
 import { badRequestError, ServiceError } from '@metorial/error';
 import { Service } from '@metorial/service';
-import Long from 'long';
-import { codeWorkspaceClient } from '../lib/codeWorkspace';
 import { normalizePath } from '../lib/normalizePath';
-import { cloneBucketQueue } from '../queue/cloneBucket';
-import { copyFromToBucketQueue } from '../queue/copyFromToBucket';
-import { exportGithubQueue } from '../queue/exportGithub';
-import { importGithubQueue } from '../queue/importGithub';
-import { importTemplateQueue } from '../queue/importTemplate';
 
 let include = {
   repository: true
@@ -43,19 +36,6 @@ class codeBucketServiceImpl {
       },
       include
     });
-
-    if (d.files && d.files.length > 0) {
-      await codeWorkspaceClient.createBucketFromContents({
-        newBucketId: codeBucket.id,
-        contents: d.files.map(f => ({
-          path: normalizePath(f.path),
-          content:
-            f.encoding === 'base64'
-              ? Buffer.from(f.data, 'base64')
-              : Buffer.from(f.data, 'utf-8')
-        }))
-      });
-    }
 
     return codeBucket;
   }
@@ -89,15 +69,6 @@ class codeBucketServiceImpl {
       include
     });
 
-    await importGithubQueue.add({
-      newBucketId: codeBucket.id,
-      owner: d.repo.externalOwner,
-      path: d.path ?? '/',
-      repo: d.repo.externalName,
-      ref: d.ref ?? d.repo.defaultBranch ?? 'main',
-      repoId: d.repo.id
-    });
-
     return codeBucket;
   }
 
@@ -123,16 +94,7 @@ class codeBucketServiceImpl {
       let providerBucket = await db.codeBucket.findFirstOrThrow({
         where: { oid: d.template.providerBucketOid }
       });
-
-      await copyFromToBucketQueue.add({
-        sourceBucketId: providerBucket.id,
-        targetBucketId: codeBucket.id
-      });
     } else {
-      await importTemplateQueue.add({
-        bucketId: codeBucket.id,
-        templateId: d.template.id
-      });
     }
 
     return codeBucket;
@@ -163,10 +125,6 @@ class codeBucketServiceImpl {
       include
     });
 
-    await cloneBucketQueue.add({
-      bucketId: codeBucket.id
-    });
-
     return codeBucket;
   }
 
@@ -178,26 +136,12 @@ class codeBucketServiceImpl {
         })
       );
     }
-
-    await exportGithubQueue.add({
-      bucketId: d.codeBucket.id,
-      repoId: d.repo.id,
-      path: d.path
-    });
   }
 
   async getCodeBucketFilesWithContent(d: { codeBucket: CodeBucket; prefix?: string }) {
     await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
 
-    let res = await codeWorkspaceClient.getBucketFilesWithContent({
-      bucketId: d.codeBucket.id,
-      prefix: d.prefix ?? ''
-    });
-
-    return res.files.map(f => ({
-      ...f.fileInfo,
-      content: f.content
-    }));
+    return [] as any;
   }
 
   async getEditorToken(d: { codeBucket: CodeBucket }) {
@@ -205,15 +149,9 @@ class codeBucketServiceImpl {
 
     let expiresInSeconds = 60 * 60 * 24 * 7;
 
-    let res = await codeWorkspaceClient.getBucketToken({
-      bucketId: d.codeBucket.id,
-      isReadOnly: d.codeBucket.isReadOnly,
-      expiresInSeconds: Long.fromNumber(expiresInSeconds)
-    });
-
     return {
       id: d.codeBucket.id,
-      token: res.token,
+      token: '',
       expiresAt: new Date(Date.now() + (expiresInSeconds - 1) * 1000)
     };
   }
@@ -223,33 +161,18 @@ class codeBucketServiceImpl {
       where: { oid: d.target.oid },
       data: { status: 'importing' }
     });
-
-    await copyFromToBucketQueue.add({
-      sourceBucketId: d.source.id,
-      targetBucketId: d.target.id
-    });
   }
 
   async getBucketFilesAsZip(d: { codeBucket: CodeBucket }) {
     await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
 
-    let res = await codeWorkspaceClient.getBucketFilesAsZip({
-      bucketId: d.codeBucket.id,
-      prefix: ''
-    });
-
-    return res;
+    return {} as any;
   }
 
   async getFile(d: { codeBucket: CodeBucket; path: string }) {
     await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
 
-    let res = await codeWorkspaceClient.getBucketFile({
-      bucketId: d.codeBucket.id,
-      path: d.path
-    });
-
-    return res.content;
+    return {} as any;
   }
 }
 
