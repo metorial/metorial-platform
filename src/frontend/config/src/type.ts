@@ -15,11 +15,6 @@ export interface FrontendConfig {
   microFrontends: {
     codeEditorUrl?: string;
   };
-
-  enterprise?: {
-    organizationFrontendUrl?: string;
-    accountFrontendUrl?: string;
-  };
 }
 
 export let defaultConfig = {
