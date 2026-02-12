@@ -1,4 +1,4 @@
-import { DashboardScmReposCreateOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardScmReposCreateOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { getConfig, Paths } from '@metorial/frontend-config';
 import {
@@ -60,9 +60,9 @@ export let CustomServerCodePage = () => {
   let instance = useCurrentInstance();
 
   let { customServerId } = useParams();
-  let customServer = useCustomServer(instance.data?.id, customServerId);
+  let customServer = useCustomServer(instance.data?.instanceId, customServerId);
 
-  let editorToken = useCustomServerCodeEditorToken(instance.data?.id, customServer.data?.id);
+  let editorToken = useCustomServerCodeEditorToken(instance.data?.instanceId, customServer.data?.id);
 
   let [isExpanded, setIsExpanded] = useState(false);
 

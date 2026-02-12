@@ -14,6 +14,7 @@ export * from './providerConfigVault';
 export * from './providerAuthConfig';
 export * from './providerAuthCredentials';
 export * from './providerSetupSession';
+export * from './providerSetupSessionDashboard';
 export * from './providerAuthImport';
 export * from './providerAuthExport';
 export * from './sessionTemplate';
@@ -28,3 +29,11 @@ export * from './subspaceProviderRun';
 export * from './subspaceSessionMessage';
 export * from './subspaceSessionConnection';
 export * from './subspaceSessionEvent';
+
+// Custom Provider controllers
+export * from './customProvider';
+export * from './customProviderVersion';
+export * from './customProviderDeployment';
+export * from './customProviderCommit';
+export * from './customProviderEnvironment';
+export * from './providerOAuthSetup';

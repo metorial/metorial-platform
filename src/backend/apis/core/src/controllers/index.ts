@@ -28,8 +28,10 @@ import {
   providerConfigController,
   providerConfigVaultController,
   providerAuthConfigController,
+  providerAuthConfigListController,
   providerAuthCredentialsController,
   providerSetupSessionController,
+  providerSetupSessionDashboardController,
   providerAuthImportController,
   providerAuthExportController,
   sessionTemplateController,
@@ -42,7 +44,14 @@ import {
   subspaceProviderRunController,
   subspaceSessionMessageController,
   subspaceSessionConnectionController,
-  subspaceSessionEventController
+  subspaceSessionEventController,
+  // Custom Provider controllers
+  customProviderController,
+  customProviderVersionController,
+  customProviderDeploymentController,
+  customProviderCommitController,
+  customProviderEnvironmentController,
+  providerOAuthSetupController
 } from './provider';
 import { callbackController } from './instance/callback';
 import { callbackDestinationController } from './instance/callbackDestination';
@@ -311,6 +320,8 @@ export let magnetarController = Controller.create<any>(
   {
     instanceController,
 
+    providerAuthConfigListController,
+
     providerPublisherController,
     providerController,
     providerCategoryController,
@@ -344,6 +355,14 @@ export let magnetarController = Controller.create<any>(
     subspaceSessionMessageController,
     subspaceSessionConnectionController,
     subspaceSessionEventController,
+
+    // Custom Provider controllers
+    customProviderController,
+    customProviderVersionController,
+    customProviderDeploymentController,
+    customProviderCommitController,
+    customProviderEnvironmentController,
+    providerOAuthSetupController,
 
     portalController,
     portalConsumerGroupController,
@@ -401,16 +420,17 @@ export let magnetarDashboardController = Controller.create<any>(
     serverDeploymentController,
     serverDeploymentTemplateController,
 
-    sessionController,
-    sessionEventController,
-    sessionMessageController,
+    providerSessionController,
+
+    // sessionEventController,
+    // sessionMessageController,
+    // sessionConnectionController,
 
     serverRunController,
     serverRunErrorController,
     serverRunErrorGroupController,
 
     serverSessionController,
-    sessionConnectionController,
 
     serverCapabilitiesController,
 
@@ -443,6 +463,8 @@ export let magnetarDashboardController = Controller.create<any>(
     portalFeaturedServersController,
 
     // Provider API controllers (NEW in magnetar)
+    providerAuthConfigListController,
+
     providerController,
     providerListingController,
     providerCategoryController,
@@ -458,7 +480,7 @@ export let magnetarDashboardController = Controller.create<any>(
     providerConfigVaultController,
     providerAuthConfigController,
     providerAuthCredentialsController,
-    providerSetupSessionController,
+    providerSetupSessionDashboardController,
     providerAuthImportController,
     providerAuthExportController,
     sessionTemplateController,
@@ -471,6 +493,14 @@ export let magnetarDashboardController = Controller.create<any>(
     subspaceSessionMessageController,
     subspaceSessionConnectionController,
     subspaceSessionEventController,
+
+    // Custom Provider controllers
+    customProviderController,
+    customProviderVersionController,
+    customProviderDeploymentController,
+    customProviderCommitController,
+    customProviderEnvironmentController,
+    providerOAuthSetupController,
 
     // Deprecated controllers (shown in docs with deprecated badge)
     providerOauthConnectionController,

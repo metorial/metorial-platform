@@ -5,7 +5,7 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useServerRunErrorGroup
+  useSessionErrorGroup
 } from '@metorial/state';
 import { LinkTabs, RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
@@ -18,7 +18,7 @@ export let ServerErrorLayout = () => {
   let organization = useCurrentOrganization();
 
   let { serverErrorId } = useParams();
-  let error = useServerRunErrorGroup(instance.data?.id, serverErrorId);
+  let error = useSessionErrorGroup(instance.data?.instanceId, serverErrorId);
 
   let pathname = useLocation().pathname;
 
@@ -36,11 +36,11 @@ export let ServerErrorLayout = () => {
         pagination={[
           {
             label: 'Errors',
-            href: Paths.instance.serverErrors(organization.data, project.data, instance.data)
+            href: Paths.instance.providerErrors(organization.data, project.data, instance.data)
           },
           {
-            label: error.data?.code,
-            href: Paths.instance.serverError(...serverPathParams)
+            label: error.data?.type ?? error.data?.name ?? 'Error',
+            href: Paths.instance.providerError(...serverPathParams)
           }
         ]}
       />
@@ -50,11 +50,11 @@ export let ServerErrorLayout = () => {
         links={[
           {
             label: 'Occurrences',
-            to: Paths.instance.serverError(...serverPathParams)
+            to: Paths.instance.providerError(...serverPathParams)
           }
           // {
           //   label: 'Affected Deployments',
-          //   to: Paths.instance.serverError(...serverPathParams, 'deployments')
+          //   to: Paths.instance.providerError(...serverPathParams, 'deployments')
           // }
         ]}
       />
@@ -67,18 +67,10 @@ export let ServerErrorLayout = () => {
             { label: 'First Seen', value: <RenderDate date={error.data.createdAt} /> },
             {
               label: 'Occurrences',
-              value: error.data.count
+              value: error.data.count ?? '—'
             },
-            { label: 'Code', value: error.data.code },
-
-            {
-              label: 'Server Name',
-              value: error.data.defaultError?.serverRun.server.name ?? 'unknown'
-            },
-            {
-              label: 'Server ID',
-              value: <ID id={error.data.defaultError?.serverRun.server.id} />
-            }
+            { label: 'Type', value: error.data.type ?? '—' },
+            { label: 'Name', value: error.data.name ?? '—' }
           ]}
         >
           <Outlet />

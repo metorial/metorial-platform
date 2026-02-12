@@ -6,7 +6,7 @@ import { PortalConsumerGroupsTable } from '../../../scenes/portals/groupsTable';
 export let PortalGroupsPage = () => {
   let instance = useCurrentInstance();
   let params = useParams();
-  let portal = usePortal(instance.data?.id, params.portalId!);
+  let portal = usePortal(instance.data?.instanceId, params.portalId!);
 
   return (
     <>

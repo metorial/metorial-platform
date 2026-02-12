@@ -5,7 +5,6 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionMessagePresenter } from '../../presenters';
 import { SubspaceSessionMessage } from '../../presenters/types';
@@ -42,7 +41,6 @@ export let subspaceSessionMessageController = Controller.create(
         description: 'Returns a paginated list of messages for a session.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(subspaceSessionMessagePresenter)
       .query(
         'default',
@@ -61,8 +59,8 @@ export let subspaceSessionMessageController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionMessageService.list({
           instance: ctx.instance,
-          sessionId: ctx.session.id,
-          type: ctx.query.type,
+          sessionIds: [ctx.session.id],
+          hierarchy: ['parent', 'child'],
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
           providerRunIds: normalizeArrayParam(ctx.query.provider_run_id)
         });
@@ -88,7 +86,6 @@ export let subspaceSessionMessageController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(subspaceSessionMessagePresenter)
       .do(async ctx => {
         return subspaceSessionMessagePresenter.present({ sessionMessage: ctx.sessionMessage });

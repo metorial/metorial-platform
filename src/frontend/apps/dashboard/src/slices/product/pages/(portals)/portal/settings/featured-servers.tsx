@@ -3,7 +3,7 @@ import {
   useCurrentInstance,
   usePortal,
   usePortalFeaturedServers,
-  useServerListings
+  useProviderListings
 } from '@metorial/state';
 import {
   Button,
@@ -24,9 +24,9 @@ import { useDebounced } from '../../../../../../hooks/useDebounced';
 export let PortalFeaturedServersPage = () => {
   let instance = useCurrentInstance();
   let params = useParams();
-  let portal = usePortal(instance.data?.id, params.portalId!);
+  let portal = usePortal(instance.data?.instanceId, params.portalId!);
 
-  let requests = usePortalFeaturedServers(instance.data?.id, portal.data?.id);
+  let requests = usePortalFeaturedServers(instance.data?.instanceId, portal.data?.id);
   let requestsOuter = requests;
 
   let removeListing = requests.removeListingMutator();
@@ -34,8 +34,8 @@ export let PortalFeaturedServersPage = () => {
   return renderWithPagination(requests)(requests => (
     <>
       <SideBox
-        title="Featured Servers"
-        description="Select which servers to feature on your portal."
+        title="Featured Providers"
+        description="Select which providers to feature on your portal."
       >
         <Button
           size="2"
@@ -47,7 +47,7 @@ export let PortalFeaturedServersPage = () => {
               let [search, setSearch] = useState('');
               let searchDebounced = useDebounced(search, 300);
 
-              let servers = useServerListings({
+              let servers = useProviderListings({
                 limit: 20,
                 search: searchDebounced
               });
@@ -55,16 +55,16 @@ export let PortalFeaturedServersPage = () => {
               return (
                 <Panel.Wrapper {...dialogProps}>
                   <Panel.Header>
-                    <Panel.Title>Add Featured Server</Panel.Title>
+                    <Panel.Title>Add Featured Provider</Panel.Title>
                     <Panel.Description>
-                      Select a server to feature on your portal.
+                      Select a provider to feature on your portal.
                     </Panel.Description>
                   </Panel.Header>
 
                   <Panel.Content>
                     <Input
-                      placeholder="Search servers..."
-                      label="Search Servers"
+                      placeholder="Search providers..."
+                      label="Search Providers"
                       hideLabel
                       value={search}
                       onChange={e => setSearch(e.target.value)}
@@ -107,7 +107,7 @@ export let PortalFeaturedServersPage = () => {
                                           }
                                         })
                                       }
-                                      label="Select Server"
+                                      label="Select Provider"
                                       hideLabel
                                     />
                                   </div>
@@ -143,7 +143,7 @@ export let PortalFeaturedServersPage = () => {
                         }
                       }}
                     >
-                      Add Featured Server
+                      Add Featured Provider
                     </Button>
                   </Panel.Content>
                 </Panel.Wrapper>
@@ -151,14 +151,14 @@ export let PortalFeaturedServersPage = () => {
             });
           }}
         >
-          Feature Server
+          Feature Provider
         </Button>
       </SideBox>
 
       <Spacer height={5} />
 
       <Table
-        headers={['Server', '']}
+        headers={['Provider', '']}
         data={requests.data.items.map(request => ({
           data: [
             request.server.name,
@@ -182,7 +182,7 @@ export let PortalFeaturedServersPage = () => {
 
       {requests.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No featured servers found.
+          No featured providers found.
         </Text>
       )}
     </>

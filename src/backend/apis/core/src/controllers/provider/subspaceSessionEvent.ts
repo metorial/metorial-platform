@@ -5,7 +5,6 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionEventPresenter } from '../../presenters';
 import { SubspaceSessionEvent } from '../../presenters/types';
@@ -42,7 +41,6 @@ export let subspaceSessionEventController = Controller.create(
         description: 'Returns a paginated list of events for a session.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(subspaceSessionEventPresenter)
       .query(
         'default',
@@ -61,8 +59,7 @@ export let subspaceSessionEventController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionEventService.list({
           instance: ctx.instance,
-          sessionId: ctx.session.id,
-          type: ctx.query.type,
+          sessionIds: [ctx.session.id],
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
           providerRunIds: normalizeArrayParam(ctx.query.provider_run_id)
         });
@@ -82,7 +79,6 @@ export let subspaceSessionEventController = Controller.create(
         description: 'Retrieves a specific event from a session.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(subspaceSessionEventPresenter)
       .do(async ctx => {
         return subspaceSessionEventPresenter.present({ sessionEvent: ctx.sessionEvent });

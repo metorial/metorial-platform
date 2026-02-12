@@ -5,7 +5,6 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerListingPresenter } from '../../presenters';
 import { SubspaceProviderListing } from '../../presenters/types';
@@ -40,7 +39,6 @@ export let providerListingController = Controller.create(
         description: 'Returns a paginated list of provider listings.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerListingPresenter)
       .query(
         'default',
@@ -48,6 +46,7 @@ export let providerListingController = Controller.create(
           v.object({
             search: v.optional(v.string()),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_version_id: v.optional(v.string()),
             provider_category_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_collection_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
@@ -69,6 +68,7 @@ export let providerListingController = Controller.create(
           instance: ctx.instance,
           search: ctx.query.search,
           providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerVersion: ctx.query.provider_version_id,
           providerCategoryIds: normalizeArrayParam(ctx.query.provider_category_id),
           providerCollectionIds: normalizeArrayParam(ctx.query.provider_collection_id),
           providerGroupIds: normalizeArrayParam(ctx.query.provider_group_id),
@@ -114,7 +114,6 @@ export let providerListingController = Controller.create(
         description: 'Retrieves a specific provider listing by ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerListingPresenter)
       .do(async ctx => {
         return providerListingPresenter.present({ providerListing: ctx.providerListing });

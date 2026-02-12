@@ -1,4 +1,5 @@
-import { CustomServersManagedServerTemplatesListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+/*
+import { CustomServersManagedServerTemplatesListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { useCurrentOrganization } from '../../organization';
@@ -53,4 +54,19 @@ export let useManagedServerTemplate = (managedServerTemplateId: string | null | 
   return {
     ...data
   };
+};
+*/
+
+// Placeholder exports to prevent import errors in consuming code
+export const managedServerTemplatesLoader = null;
+export const useManagedServerTemplates = () => {
+  throw new Error(
+    'customServers.managedServerTemplates API has been removed in the new Provider API'
+  );
+};
+export const managedServerTemplateLoader = null;
+export const useManagedServerTemplate = () => {
+  throw new Error(
+    'customServers.managedServerTemplates API has been removed in the new Provider API'
+  );
 };

@@ -1,5 +1,5 @@
 import { CodeBlock } from '@metorial/code';
-import { DashboardInstanceProviderOauthConnectionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceProviderOauthConnectionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderConnectionAuthentication } from '@metorial/state';
 import { Attributes, RenderDate, Spacer, Text, theme } from '@metorial/ui';
@@ -14,7 +14,7 @@ export let ProviderConnectionAuthentication = ({
 }) => {
   let instance = useCurrentInstance();
   let authentication = useProviderConnectionAuthentication(
-    instance.data?.id,
+    instance.data?.instanceId,
     providerConnection?.id ?? authenticationId,
     authenticationId
   );

@@ -3,23 +3,38 @@ import { v } from '@metorial/validation';
 import { subspaceSessionMessageType } from '../../types';
 
 export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionMessageType)
-  .presenter(async ({ sessionMessage }) => ({
-    object: 'session.message' as const,
-    id: sessionMessage.id,
-    type: sessionMessage.type,
-    sender: {
-      object: 'session.message.sender' as const,
-      type: sessionMessage.senderType,
-      id: sessionMessage.senderId
-    },
-    method: sessionMessage.method,
-    unified_id: sessionMessage.unifiedId,
-    payload: sessionMessage.payload,
-    session_id: sessionMessage.sessionId,
-    session_provider_id: sessionMessage.sessionProviderId,
-    provider_run_id: sessionMessage.providerRunId,
-    created_at: sessionMessage.createdAt
-  }))
+  .presenter(async ({ sessionMessage }) => {
+    let method =
+      (sessionMessage.input as Record<string, unknown> | null)?.method as string | null ?? null;
+
+    let payload =
+      sessionMessage.source === 'provider'
+        ? (sessionMessage.output ?? sessionMessage.input)
+        : (sessionMessage.input ?? sessionMessage.output);
+
+    let mcpId = sessionMessage.transport?.mcp?.id ?? sessionMessage.id;
+
+    return {
+      object: 'session.message' as const,
+      id: sessionMessage.id,
+      type: sessionMessage.type ?? sessionMessage.source ?? 'unknown',
+      sender: {
+        object: 'session.message.sender' as const,
+        type: sessionMessage.source ?? 'client',
+        id: sessionMessage.senderParticipant?.id ?? null
+      },
+      mcp_message: {
+        object: 'session.message.mcp_message' as const,
+        id: mcpId,
+        original_id: null as string | null,
+        method,
+        payload: payload ?? {}
+      },
+      session_id: sessionMessage.sessionId,
+      server_session_id: sessionMessage.connectionId ?? sessionMessage.sessionProviderId ?? sessionMessage.sessionId,
+      created_at: sessionMessage.createdAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('session.message', {
@@ -59,46 +74,51 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionM
         },
         { name: 'sender', description: 'Message sender information' }
       ),
-      method: v.nullable(
-        v.string({
-          name: 'method',
-          description: 'MCP method name',
-          examples: ['tools/list', 'tools/call']
-        })
-      ),
-      unified_id: v.nullable(
-        v.string({
-          name: 'unified_id',
-          description: 'Unified message ID for request/response correlation',
-          examples: ['msg_4dEfGhJkLmNpQrSt']
-        })
-      ),
-      payload: v.nullable(
-        v.record(v.any(), {
-          name: 'payload',
-          description: 'Message payload',
-          examples: [{ jsonrpc: '2.0', method: 'tools/list' }]
-        })
+      mcp_message: v.object(
+        {
+          object: v.literal('session.message.mcp_message', {
+            description: "String representing the object's type"
+          }),
+          id: v.string({
+            name: 'id',
+            description: 'Unified message ID for request/response correlation'
+          }),
+          original_id: v.nullable(
+            v.string({
+              name: 'original_id',
+              description: 'Original message ID from the client'
+            })
+          ),
+          method: v.nullable(
+            v.string({
+              name: 'method',
+              description: 'MCP method name',
+              examples: ['tools/list', 'tools/call']
+            })
+          ),
+          payload: v.nullable(
+            v.record(v.any(), {
+              name: 'payload',
+              description: 'Message payload',
+              examples: [{ jsonrpc: '2.0', method: 'tools/list' }]
+            })
+          )
+        },
+        {
+          name: 'mcp_message',
+          description: 'Details of the MCP message'
+        }
       ),
       session_id: v.string({
         name: 'session_id',
         description: 'Parent session ID',
         examples: ['ses_4dEfGhJkLmNpQrSt']
       }),
-      session_provider_id: v.nullable(
-        v.string({
-          name: 'session_provider_id',
-          description: 'Session provider ID',
-          examples: ['spr_3cDeFgHjKlMnPqRs']
-        })
-      ),
-      provider_run_id: v.nullable(
-        v.string({
-          name: 'provider_run_id',
-          description: 'Provider run ID',
-          examples: ['prn_8hJkLmNpQrStUvWx']
-        })
-      ),
+      server_session_id: v.string({
+        name: 'server_session_id',
+        description: 'Server session / session provider ID',
+        examples: ['spr_3cDeFgHjKlMnPqRs']
+      }),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

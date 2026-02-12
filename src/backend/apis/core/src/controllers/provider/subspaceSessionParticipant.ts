@@ -4,7 +4,6 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { sessionParticipantPresenter } from '../../presenters';
 import { SubspaceSessionParticipant } from '../../presenters/types';
@@ -41,7 +40,6 @@ export let subspaceSessionParticipantController = Controller.create(
         description: 'Returns a paginated list of participants in a session.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(sessionParticipantPresenter)
       .query(
         'default',
@@ -78,7 +76,6 @@ export let subspaceSessionParticipantController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(sessionParticipantPresenter)
       .do(async ctx => {
         return sessionParticipantPresenter.present({

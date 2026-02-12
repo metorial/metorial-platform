@@ -2,7 +2,7 @@ import {
   DashboardInstanceCustomServersDeploymentsGetOutput,
   DashboardInstanceCustomServersGetOutput,
   DashboardInstanceCustomServersVersionsGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
@@ -47,12 +47,12 @@ export let CustomServerVersion = ({
 }) => {
   let instance = useCurrentInstance();
   let version = useCustomServerVersion(
-    instance.data?.id,
+    instance.data?.instanceId,
     customServer?.id ?? versionId,
     versionId
   );
   let deployment = useCustomServerDeployment(
-    instance.data?.id,
+    instance.data?.instanceId,
     customServer?.id,
     version.data?.deploymentId
   );
@@ -61,7 +61,7 @@ export let CustomServerVersion = ({
     <>
       <Attributes
         attributes={[
-          { label: 'Version', content: <ID id={`v${version.data.versionIndex}`} /> },
+          { label: 'Version', content: <ID id={String(version.data.versionIndex)} /> },
           { label: 'Version ID', content: <ID id={version.data.id} /> },
           {
             label: 'Server Version ID',

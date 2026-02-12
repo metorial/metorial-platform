@@ -31,3 +31,12 @@ export { v1SubspaceSessionEventPresenter } from './sessionEvent';
 export { v1ProviderRunLogsPresenter } from './providerRunLogs';
 export { v1ConfigSchemaPresenter } from './configSchema';
 export { v1AuthImportSchemaPresenter } from './authImportSchema';
+export { v1CustomProviderPresenter } from './customProvider';
+export { v1CustomProviderVersionPresenter } from './customProviderVersion';
+export {
+  v1CustomProviderDeploymentPresenter,
+  v1CustomProviderDeploymentLogsPresenter
+} from './customProviderDeployment';
+export { v1CustomProviderCommitPresenter } from './customProviderCommit';
+export { v1CustomProviderEnvironmentPresenter } from './customProviderEnvironment';
+export { v1ProviderOAuthSetupPresenter } from './providerOAuthSetup';

@@ -1,7 +1,7 @@
 import {
   DashboardInstanceCustomServersEventsListQuery,
   DashboardInstanceCustomServersGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useCustomServerEvents } from '@metorial/state';
 import { RenderDate, Text } from '@metorial/ui';
@@ -15,7 +15,7 @@ export let CustomServerEventsTable = ({
   filters?: DashboardInstanceCustomServersEventsListQuery;
 }) => {
   let instance = useCurrentInstance();
-  let events = useCustomServerEvents(instance.data?.id, customServer?.id, filters);
+  let events = useCustomServerEvents(instance.data?.instanceId, customServer?.id, filters);
 
   return renderWithLoader({ events })(({ events }) => (
     <>

@@ -75,7 +75,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
             d.authenticate,
             context
           );
-          let { serverSession, sessionCreated } = await getServerSession(
+          let serverSessionResult = await getServerSession(
             sessionInfo,
             context,
             serverDeploymentId ?? null,
@@ -83,11 +83,17 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
             connectionType
           );
 
-          return await mcpConnectionHandler(c, next, sessionInfo, serverSession, {
-            connectionType,
-            upgradeWebSocket,
-            sessionCreated
-          });
+          return await mcpConnectionHandler(
+            c,
+            next,
+            sessionInfo,
+            serverSessionResult.serverSession,
+            {
+              connectionType,
+              upgradeWebSocket,
+              sessionCreated: serverSessionResult.sessionCreated
+            }
+          );
         }
       );
     })
@@ -129,7 +135,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
             context
           );
 
-          let { serverSession, sessionCreated } = await getServerSession(
+          let serverSessionResult = await getServerSession(
             sessionInfo,
             context,
             null,
@@ -137,11 +143,17 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
             connectionType
           );
 
-          return await mcpConnectionHandler(c, next, sessionInfo, serverSession, {
-            connectionType,
-            upgradeWebSocket,
-            sessionCreated
-          });
+          return await mcpConnectionHandler(
+            c,
+            next,
+            sessionInfo,
+            serverSessionResult.serverSession,
+            {
+              connectionType,
+              upgradeWebSocket,
+              sessionCreated: serverSessionResult.sessionCreated
+            }
+          );
         }
       );
     });

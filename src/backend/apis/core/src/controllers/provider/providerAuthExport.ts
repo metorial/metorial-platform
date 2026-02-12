@@ -5,7 +5,6 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthExportPresenter } from '../../presenters';
 import { SubspaceAuthExport } from '../../presenters/types';
@@ -52,7 +51,6 @@ export let providerAuthExportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerAuthExportPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -81,7 +79,6 @@ export let providerAuthExportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerAuthExportPresenter)
       .do(async ctx => {
         return providerAuthExportPresenter.present({ authExport: ctx.authExport });
@@ -99,7 +96,6 @@ export let providerAuthExportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({

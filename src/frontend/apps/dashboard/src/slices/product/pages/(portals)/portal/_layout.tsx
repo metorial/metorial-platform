@@ -17,7 +17,7 @@ export let PortalLayout = () => {
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
   let params = useParams();
-  let portal = usePortal(instance.data?.id, params.portalId!);
+  let portal = usePortal(instance.data?.instanceId, params.portalId!);
 
   let pathname = useLocation().pathname;
   if (pathname.includes('/group/')) pathname = pathname.split('/group/')[0] + '/groups';
@@ -84,7 +84,7 @@ export let PortalLayout = () => {
                 to: Paths.instance.portal(...pathParams, 'groups')
               },
               {
-                label: 'Server Requests',
+                label: 'Provider Requests',
                 to: Paths.instance.portal(...pathParams, 'server-requests')
               },
 

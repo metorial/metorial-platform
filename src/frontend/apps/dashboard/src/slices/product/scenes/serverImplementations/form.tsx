@@ -1,7 +1,7 @@
 import { CodeEditor } from '@metorial/code-editor';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
+import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2026_02_01_dashboard';
 import {
   useCreateImplementation,
   useCurrentInstance,
@@ -36,7 +36,7 @@ export let ServerImplementationForm = (
   let instance = useCurrentInstance();
   let implementation =
     p.type == 'update'
-      ? useServerImplementation(instance.data?.id, p.serverImplementationId)
+      ? useServerImplementation(instance.data?.instanceId, p.serverImplementationId)
       : null;
 
   let update = implementation?.useUpdateMutator();
@@ -51,10 +51,10 @@ export let ServerImplementationForm = (
   );
 
   let variants = useServerVariants(
-    instance.data?.id,
+    instance.data?.instanceId,
     p.type == 'create'
       ? (p.for?.serverId ?? searchServer?.server.id)
-      : implementation?.data?.server.id
+      : ((implementation?.data as any)?.server?.id ?? (implementation?.data as any)?.providerId)
   );
 
   let variant = (p as any).for?.serverVariantId
@@ -65,7 +65,7 @@ export let ServerImplementationForm = (
 
   let form = useForm({
     initialValues: {
-      name: implementation?.data?.name ?? implementation?.data?.server.name ?? '',
+      name: implementation?.data?.name ?? (implementation?.data as any)?.server?.name ?? '',
       description: implementation?.data?.description ?? '',
       metadata: implementation?.data?.metadata ?? {},
       getLaunchParams: implementation?.data?.getLaunchParams ?? ''
@@ -94,7 +94,7 @@ export let ServerImplementationForm = (
           description: values.description,
           metadata: values.metadata,
           getLaunchParams: values.getLaunchParams,
-          instanceId: instance.data?.id!,
+          instanceId: instance.data?.instanceId!,
           serverId: p.for?.serverId ?? searchServer?.server.id!,
           ...p.for
         });
@@ -192,8 +192,8 @@ export let ServerImplementationForm = (
         setCurrentStep={setCurrentStep}
         steps={[
           {
-            title: 'Server',
-            subtitle: 'Choose a server',
+            title: 'Provider',
+            subtitle: 'Choose a provider',
             render: () => {
               return (
                 <ServerSearch

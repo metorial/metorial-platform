@@ -46,21 +46,21 @@ export let ManagedServersListLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Managed Servers"
-        description="Build custom MCP servers powered by Metorial. Deploy them on your own infrastructure or use our managed servers."
+        title="Managed Providers"
+        description="Build custom MCP providers powered by Metorial. Deploy them on your own infrastructure or use our managed providers."
         actions={
           !!flags.data?.flags['paid-custom-docker-servers'] ? (
             <Menu
-              label="Create Managed Server"
+              label="Create Managed Provider"
               items={[
                 {
                   id: 'docker',
-                  label: 'Docker Server',
-                  description: 'Deploy a custom Docker image as an MCP server on Metorial'
+                  label: 'Docker Provider',
+                  description: 'Deploy a custom Docker image as an MCP provider on Metorial'
                 },
                 {
                   id: 'managed',
-                  label: 'Managed Server',
+                  label: 'Managed Provider',
                   description: 'Connect a GitHub repo and deploy to Metorial automatically'
                 }
               ]}
@@ -70,7 +70,7 @@ export let ManagedServersListLayout = () => {
                 });
               }}
             >
-              <Button size="2">Create Managed Server</Button>
+              <Button size="2">Create Managed Provider</Button>
             </Menu>
           ) : (
             !!(
@@ -85,7 +85,7 @@ export let ManagedServersListLayout = () => {
                 }
                 size="2"
               >
-                Create Managed Server
+                Create Managed Provider
               </Button>
             )
           )
@@ -109,8 +109,8 @@ export let ExternalServersListLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="External Servers"
-        description="Connect to external MCP servers using the Metorial platform."
+        title="External Providers"
+        description="Connect to external MCP providers using the Metorial platform."
         actions={
           !!flags.data?.flags['paid-custom-servers'] && (
             <Button
@@ -121,7 +121,7 @@ export let ExternalServersListLayout = () => {
               }
               size="2"
             >
-              Link Remote Server
+              Link Remote Provider
             </Button>
           )
         }

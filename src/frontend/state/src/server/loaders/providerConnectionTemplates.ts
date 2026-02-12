@@ -1,7 +1,8 @@
+/*
 import {
   ProviderOauthConnectionTemplateEvaluateBody,
   ProviderOauthConnectionTemplateListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { useCurrentOrganization } from '../../organization';
@@ -71,4 +72,24 @@ export let useProviderConnectionTemplate = (
   return {
     ...data
   };
+};
+*/
+
+// Placeholder exports to prevent import errors in consuming code
+export const providerConnectionTemplatesLoader = null;
+export const useProviderConnectionTemplates = () => {
+  throw new Error(
+    'providerOauth.connections.templates API has been removed in the new Provider API'
+  );
+};
+export const useEvaluateProviderConnectionTemplate = () => {
+  throw new Error(
+    'providerOauth.connections.templates API has been removed in the new Provider API'
+  );
+};
+export const providerConnectionTemplateLoader = null;
+export const useProviderConnectionTemplate = () => {
+  throw new Error(
+    'providerOauth.connections.templates API has been removed in the new Provider API'
+  );
 };

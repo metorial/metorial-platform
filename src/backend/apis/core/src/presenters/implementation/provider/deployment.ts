@@ -1,6 +1,7 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { deploymentType, deploymentPreviewType } from '../../types';
+import { v1ProviderPreview } from './providerPreview';
 import { v1VersionPresenter } from './version';
 
 let deploymentConfigPreviewSchema = v.object({
@@ -80,6 +81,7 @@ export let v1DeploymentPresenter = Presenter.create(deploymentType)
     description: deployment.description,
     metadata: deployment.metadata,
     provider_id: deployment.providerId,
+    provider: deployment.provider ? v1ProviderPreview(deployment.provider) : null,
     locked_version: deployment.lockedVersion
       ? await v1VersionPresenter.present({ version: deployment.lockedVersion }, opts).run()
       : null,
@@ -129,6 +131,7 @@ export let v1DeploymentPresenter = Presenter.create(deploymentType)
         description: 'Provider ID',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
+      provider: v.nullable(v1ProviderPreview.schema),
       locked_version: v.nullable(v1VersionPresenter.schema),
       default_config: v.nullable(deploymentConfigPreviewSchema),
       created_at: v.date({

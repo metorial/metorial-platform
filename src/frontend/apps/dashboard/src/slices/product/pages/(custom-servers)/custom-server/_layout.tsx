@@ -7,7 +7,7 @@ import {
   useCurrentProject,
   useCustomServer,
   useDashboardFlags,
-  useServerListing
+  useProviderListing
 } from '@metorial/state';
 import { Button, Callout, LinkTabs, Menu, Spacer } from '@metorial/ui';
 import { useEffect } from 'react';
@@ -24,7 +24,7 @@ export let CustomServerLayout = () => {
   let organization = useCurrentOrganization();
 
   let { customServerId } = useParams();
-  let customServer = useCustomServer(instance.data?.id, customServerId);
+  let customServer = useCustomServer(instance.data?.instanceId, customServerId);
 
   let navigate = useNavigate();
   useEffect(() => {
@@ -53,7 +53,7 @@ export let CustomServerLayout = () => {
         pagination={[
           {
             label:
-              customServer.data?.type == 'remote' ? 'External Servers' : 'Managed Servers',
+              customServer.data?.type == 'remote' ? 'External Providers' : 'Managed Providers',
             href:
               customServer.data?.type == 'remote'
                 ? Paths.instance.externalServers(
@@ -70,7 +70,7 @@ export let CustomServerLayout = () => {
         ]}
         actions={
           <DeployServerButton serverId={customServer.data?.server.id!}>
-            Deploy Server
+            Deploy Provider
           </DeployServerButton>
         }
       />
@@ -147,17 +147,17 @@ export let DeployServerButton = ({
 }) => {
   let flags = useDashboardFlags();
   let instance = useCurrentInstance();
-  let server = useServerListing(instance.data?.id, serverId);
+  let server = useProviderListing(instance.data?.instanceId, serverId);
 
   return !disabled &&
     (flags.data?.flags['magic-mcp-enabled'] ||
       (flags.data?.flags['managed-servers-enabled'] &&
-        server.data?.fork.status == 'enabled')) ? (
+        server.data?.fork?.status == 'enabled')) ? (
     <Menu
       items={[
         {
           id: 'server-deployment',
-          label: 'Server Deployment',
+          label: 'Provider Deployment',
           description: 'More powerful and flexible.'
         },
         ...(flags.data?.flags['magic-mcp-enabled']
@@ -170,12 +170,12 @@ export let DeployServerButton = ({
             ]
           : []),
         ...(flags.data?.flags['managed-servers-enabled'] &&
-        server.data?.fork.status == 'enabled'
+        server.data?.fork?.status == 'enabled'
           ? [
               {
                 id: 'fork-server',
-                label: 'Fork Server',
-                description: 'Create a copy of this server and edit the code.'
+                label: 'Fork Provider',
+                description: 'Create a copy of this provider and edit the code.'
               }
             ]
           : [])
@@ -191,10 +191,10 @@ export let DeployServerButton = ({
             type: 'create',
             for: { serverId }
           });
-        } else if (item === 'fork-server' && server.data?.fork.status == 'enabled') {
+        } else if (item === 'fork-server' && server.data?.fork?.status == 'enabled') {
           showCustomServerRemoteFormModal({
             type: 'managed',
-            templateId: server.data.fork.templateId
+            templateId: server.data?.fork?.templateId
           });
         }
       }}

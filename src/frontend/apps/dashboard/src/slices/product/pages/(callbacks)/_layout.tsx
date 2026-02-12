@@ -9,7 +9,7 @@ export let CallbackLayout = () => {
   let instance = useCurrentInstance();
   let { callbackId } = useParams();
   let pathname = useLocation().pathname;
-  let callback = useCallback(instance.data?.id, callbackId);
+  let callback = useCallback(instance.data?.instanceId, callbackId);
 
   let pathParams = [
     instance.data?.organization,

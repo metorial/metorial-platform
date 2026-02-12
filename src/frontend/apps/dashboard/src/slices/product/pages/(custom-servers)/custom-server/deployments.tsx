@@ -7,7 +7,7 @@ export let CustomServerDeploymentsPage = () => {
   let instance = useCurrentInstance();
 
   let { customServerId } = useParams();
-  let customServer = useCustomServer(instance.data?.id, customServerId);
+  let customServer = useCustomServer(instance.data?.instanceId, customServerId);
 
   return renderWithLoader({ customServer })(({ customServer }) => (
     <>

@@ -1,4 +1,4 @@
-import { DashboardInstanceMagicMcpServersListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceMagicMcpServersListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useMagicMcpServers } from '@metorial/state';
@@ -94,7 +94,7 @@ let EmptyState = styled.div`
 
 export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQuery) => {
   let instance = useCurrentInstance();
-  let servers = useMagicMcpServers(instance.data?.id, {
+  let servers = useMagicMcpServers(instance.data?.instanceId, {
     ...filter,
     order: filter.order ?? 'desc'
   });
@@ -182,7 +182,7 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
 
 export let MagicMcpServersTable = (filter: DashboardInstanceMagicMcpServersListQuery) => {
   let instance = useCurrentInstance();
-  let servers = useMagicMcpServers(instance.data?.id, {
+  let servers = useMagicMcpServers(instance.data?.instanceId, {
     ...filter,
     order: filter.order ?? 'desc'
   });

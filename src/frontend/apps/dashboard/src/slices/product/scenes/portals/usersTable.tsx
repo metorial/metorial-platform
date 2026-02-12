@@ -1,4 +1,4 @@
-import { DashboardInstancePortalsConsumerProfilesListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstancePortalsConsumerProfilesListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, usePortalConsumerProfiles } from '@metorial/state';
@@ -11,7 +11,7 @@ export let PortalConsumerProfilesTable = (
   }
 ) => {
   let instance = useCurrentInstance();
-  let groups = usePortalConsumerProfiles(instance.data?.id, filter.portalId, filter);
+  let groups = usePortalConsumerProfiles(instance.data?.instanceId, filter.portalId, filter);
 
   return renderWithPagination(groups)(groups => (
     <>

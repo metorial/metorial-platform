@@ -1,5 +1,5 @@
 import { CodeEditor } from '@metorial/code-editor';
-import { ProviderOauthConnectionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { ProviderOauthConnectionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderConnection } from '@metorial/state';
 import {
@@ -25,7 +25,7 @@ export let ProviderConnectionUpdateForm = (p: {
   hideDelete?: boolean;
 }) => {
   let instance = useCurrentInstance();
-  let providerConnection = useProviderConnection(instance.data?.id, p.providerConnection?.id);
+  let providerConnection = useProviderConnection(instance.data?.instanceId, p.providerConnection?.id);
 
   let updateMutator = providerConnection.useUpdateMutator();
   let deleteMutator = providerConnection.useDeleteMutator();

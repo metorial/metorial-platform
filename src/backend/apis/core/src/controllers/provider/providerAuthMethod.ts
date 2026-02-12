@@ -2,8 +2,8 @@ import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceProviderAuthMethodService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
+import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthMethodPresenter } from '../../presenters';
 import { SubspaceAuthMethod } from '../../presenters/types';
@@ -40,13 +40,19 @@ export let providerAuthMethodController = Controller.create(
         description: 'Returns a paginated list of provider auth methods.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerAuthMethodPresenter)
-      .query('default', Paginator.validate())
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            provider_version_id: v.optional(v.string())
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await subspaceProviderAuthMethodService.list({
           instance: ctx.instance,
-          providerId: ctx.provider.id
+          providerVersion: ctx.query.provider_version_id ?? ctx.provider.currentVersion!.id
         });
 
         let list = await paginator.run(ctx.query);
@@ -68,7 +74,6 @@ export let providerAuthMethodController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerAuthMethodPresenter)
       .do(async ctx => {
         return providerAuthMethodPresenter.present({ authMethod: ctx.authMethod });

@@ -10,7 +10,6 @@ import {
   deploymentValidator
 } from '../../lib/providerValidators';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { sessionTemplatePresenter } from '../../presenters';
 import { SubspaceSessionTemplate } from '../../presenters/types';
@@ -46,7 +45,6 @@ export let sessionTemplateController = Controller.create(
         description: 'Returns a paginated list of session templates.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(sessionTemplatePresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -69,7 +67,6 @@ export let sessionTemplateController = Controller.create(
         description: 'Retrieves a specific session template by ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(sessionTemplatePresenter)
       .do(async ctx => {
         return sessionTemplatePresenter.present({ sessionTemplate: ctx.sessionTemplate });
@@ -81,7 +78,6 @@ export let sessionTemplateController = Controller.create(
         description: 'Creates a new session template.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -134,7 +130,6 @@ export let sessionTemplateController = Controller.create(
         description: 'Updates a specific session template.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({

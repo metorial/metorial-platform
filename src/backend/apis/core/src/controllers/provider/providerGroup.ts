@@ -5,7 +5,6 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerGroupPresenter } from '../../presenters';
 import { SubspaceGroup } from '../../presenters/types';
@@ -41,7 +40,6 @@ export let providerGroupController = Controller.create(
         description: 'Returns a paginated list of provider groups.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerGroupPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -62,7 +60,6 @@ export let providerGroupController = Controller.create(
         description: 'Retrieves a specific provider group by ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerGroupPresenter)
       .do(async ctx => {
         return providerGroupPresenter.present({ group: ctx.group });
@@ -74,7 +71,6 @@ export let providerGroupController = Controller.create(
         description: 'Creates a new custom provider group.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -113,7 +109,6 @@ export let providerGroupController = Controller.create(
         description: 'Updates an existing provider group.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -144,7 +139,6 @@ export let providerGroupController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -174,7 +168,6 @@ export let providerGroupController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerGroupPresenter)
       .do(async ctx => {
         if (!ctx.params.providerListingId) {

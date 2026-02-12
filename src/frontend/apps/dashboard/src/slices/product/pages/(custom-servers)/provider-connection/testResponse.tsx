@@ -15,9 +15,9 @@ export let ProviderConnectionTestResponsePage = () => {
   let [search] = useSearchParams();
   let authAttemptId = search.get('metorial_auth_attempt_id');
 
-  let providerConnection = useProviderConnection(instance.data?.id, providerConnectionId);
+  let providerConnection = useProviderConnection(instance.data?.instanceId, providerConnectionId);
   let authorization = useProviderConnectionAuthentication(
-    instance.data?.id,
+    instance.data?.instanceId,
     providerConnection.data?.id ?? providerConnectionId,
     authAttemptId
   );

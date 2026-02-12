@@ -1,7 +1,7 @@
 import {
   DashboardInstanceCustomServersGetOutput,
   DashboardInstanceCustomServersVersionsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCustomServerVersions } from '@metorial/state';
@@ -15,7 +15,7 @@ export let CustomServerVersionsTable = (
   }
 ) => {
   let instance = useCurrentInstance();
-  let versions = useCustomServerVersions(instance.data?.id, filter.customServer?.id, {
+  let versions = useCustomServerVersions(instance.data?.instanceId, filter.customServer?.id, {
     ...filter,
     order: 'desc'
   });
@@ -27,7 +27,7 @@ export let CustomServerVersionsTable = (
         data={versions.data.items.map(version => ({
           data: [
             <Text size="2" weight="strong">
-              v{version.versionIndex}
+              {version.versionIndex}
             </Text>,
             <CustomServerVersionStatus version={version} />,
             <RenderDate date={version.createdAt} />

@@ -117,11 +117,11 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
         },
         { name: 'flags', description: 'Status flags for the listing' }
       ),
-      provider_id: v.string({
+      provider_id: v.nullable(v.string({
         name: 'provider_id',
         description: 'Associated provider ID',
         examples: ['pro_5gHjKlMnPqRsTuVw']
-      }),
+      })),
       categories: v.array(v1CategoryPresenter.schema, {
         name: 'categories',
         description: 'Provider categories for organization and filtering'

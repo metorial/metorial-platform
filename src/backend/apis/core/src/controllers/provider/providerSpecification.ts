@@ -3,7 +3,6 @@ import { subspaceProviderSpecificationService } from '@metorial/module-subspace'
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerSpecificationPresenter } from '../../presenters';
 import { SubspaceSpecification } from '../../presenters/types';
@@ -43,7 +42,6 @@ export let providerSpecificationController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerSpecificationPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -73,7 +71,6 @@ export let providerSpecificationController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerSpecificationPresenter)
       .do(async ctx => {
         return providerSpecificationPresenter.present({ specification: ctx.specification });

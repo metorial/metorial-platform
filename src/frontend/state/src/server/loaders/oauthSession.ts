@@ -1,5 +1,5 @@
 import { DashboardInstanceProviderOauthSessionsListQuery } from '@metorial/dashboard-sdk';
-import { DashboardInstanceProviderOauthSessionsCreateBody } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceProviderOauthSessionsCreateBody } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader, useMutation } from '@metorial/data-hooks';
 import { useMemo } from 'react';
 import { usePaginator } from '../../lib/usePaginator';

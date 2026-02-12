@@ -5,7 +5,6 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerConfigVaultPresenter } from '../../presenters';
 import { SubspaceConfigVault } from '../../presenters/types';
@@ -48,7 +47,6 @@ export let providerConfigVaultController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerConfigVaultPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -79,7 +77,6 @@ export let providerConfigVaultController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerConfigVaultPresenter)
       .do(async ctx => {
         return providerConfigVaultPresenter.present({ configVault: ctx.configVault });
@@ -97,7 +94,6 @@ export let providerConfigVaultController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -161,7 +157,6 @@ export let providerConfigVaultController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -202,7 +197,6 @@ export let providerConfigVaultController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerConfigVaultPresenter)
       .do(async ctx => {
         await subspaceProviderConfigVaultService.delete({

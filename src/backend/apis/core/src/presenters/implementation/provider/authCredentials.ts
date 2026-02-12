@@ -2,34 +2,6 @@ import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { authCredentialsType } from '../../types';
 
-let authCredentialsScopeSchema = v.object({
-  object: v.literal('provider.auth_credentials.scope', {
-    description: "String representing the object's type"
-  }),
-  id: v.string({
-    name: 'id',
-    description: 'Unique scope identifier',
-    examples: ['pars_7wXyZaBcDeFgHjKl']
-  }),
-  scope: v.string({
-    name: 'scope',
-    description: 'OAuth scope string',
-    examples: ['repo', 'user:email']
-  }),
-  name: v.string({
-    name: 'name',
-    description: 'Display name of the scope',
-    examples: ['Repository Access']
-  }),
-  description: v.nullable(
-    v.string({
-      name: 'description',
-      description: 'Scope description',
-      examples: ['Full control of private repositories']
-    })
-  )
-});
-
 export let v1AuthCredentialsPresenter = Presenter.create(authCredentialsType)
   .presenter(async ({ authCredentials }) => ({
     object: 'provider.auth_credentials' as const,
@@ -39,15 +11,6 @@ export let v1AuthCredentialsPresenter = Presenter.create(authCredentialsType)
     description: authCredentials.description,
     metadata: authCredentials.metadata,
     provider_id: authCredentials.providerId,
-    client_id: authCredentials.clientId ?? null,
-    scopes:
-      authCredentials.scopes?.map(scope => ({
-        object: 'provider.auth_credentials.scope' as const,
-        id: scope.id,
-        scope: scope.scope,
-        name: scope.title ?? scope.name,
-        description: scope.description
-      })) ?? null,
     created_at: authCredentials.createdAt,
     updated_at: authCredentials.updatedAt
   }))
@@ -84,19 +47,6 @@ export let v1AuthCredentialsPresenter = Presenter.create(authCredentialsType)
         description: 'Provider ID',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
-      client_id: v.nullable(
-        v.string({
-          name: 'client_id',
-          description: 'OAuth client ID',
-          examples: ['Iv1.abc123def456']
-        })
-      ),
-      scopes: v.nullable(
-        v.array(authCredentialsScopeSchema, {
-          name: 'scopes',
-          description: 'OAuth scopes granted to these credentials'
-        })
-      ),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

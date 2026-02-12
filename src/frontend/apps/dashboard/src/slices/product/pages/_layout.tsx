@@ -1,4 +1,5 @@
 import { Paths } from '@metorial/frontend-config';
+import type { EntityParam } from '@metorial/frontend-config';
 import { AppLayout, OssApplicationLayoutNav } from '@metorial/layout';
 import {
   lastInstanceIdStore,
@@ -8,13 +9,14 @@ import {
 import {
   RiArrowLeftRightLine,
   RiBriefcase4Line,
+  RiFileList3Line,
   RiFlowChart,
   RiFunctionLine,
   RiGroupLine,
   RiHome6Line,
   RiListCheck2,
+  RiPlugLine,
   RiRfidLine,
-  RiServerLine,
   RiSettings2Line,
   RiShieldKeyholeLine,
   RiSurveyLine,
@@ -27,6 +29,7 @@ import { Outlet } from 'react-router-dom';
 export let ProjectPageLayout = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
+
 
   let checkPath = (
     i: { pathname: string; to: string },
@@ -44,10 +47,14 @@ export let ProjectPageLayout = () => {
 
   useEffect(() => {
     if (!instance.data) return;
-    lastInstanceIdStore.set(instance.data.id);
+    lastInstanceIdStore.set(instance.data.instanceId);
   }, [instance.data]);
 
-  let params = [organization.data, instance.data?.project, instance.data] as const;
+  let params = [organization.data, instance.data?.project, instance.data] as [
+    EntityParam,
+    EntityParam,
+    EntityParam
+  ];
 
   return (
     <AppLayout
@@ -70,57 +77,68 @@ export let ProjectPageLayout = () => {
           collapsible: true,
           items: [
             {
-              icon: <RiServerLine />,
-              label: 'Servers',
-              to: Paths.instance.servers(...params),
-              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+              icon: <RiPlugLine />,
+              label: 'Providers',
+              to: Paths.instance.providers(...params),
+              getProps: i => ({ isActive: checkPath(i, { exclude: ['configurations'] }) })
             },
 
             {
               icon: <RiFlowChart />,
-              label: 'Deployments',
-              to: Paths.instance.serverDeployments(...params),
-              getProps: i => ({ isActive: checkPath(i, { exact: true }) }),
-
+              label: 'Configurations',
+              to: Paths.instance.providerDeployments(...params),
+              getProps: i => ({ isActive: checkPath(i) }),
               children: [
                 {
                   label: 'Deployments',
-                  to: Paths.instance.serverDeployments(...params),
+                  to: Paths.instance.providerDeployments(...params),
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 },
                 {
-                  label: 'Implementations',
-                  to: Paths.instance.serverImplementations(...params),
+                  label: 'Configs',
+                  to: Paths.instance.providerDeployments(...params, 'configs'),
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 },
                 {
-                  label: 'Config Vaults',
-                  to: Paths.instance.serverConfigVaults(...params),
+                  label: 'Auth Credentials',
+                  to: Paths.instance.providerDeployments(...params, 'auth-credentials'),
+                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+                },
+                {
+                  label: 'Auth Configs',
+                  to: Paths.instance.providerDeployments(...params, 'auth-configs'),
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 }
               ]
             },
 
             {
+              icon: <RiFileList3Line />,
+              label: 'Templates',
+              to: Paths.instance.sessionTemplates(...params),
+              getProps: i => ({ isActive: checkPath(i) })
+            },
+
+            {
               icon: <RiListCheck2 />,
               label: 'Logs',
-              to: Paths.instance.sessions(...params),
+              to: Paths.instance.providerSessions(...params),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) }),
 
               children: [
                 {
                   label: 'Sessions',
-                  to: Paths.instance.sessions(...params),
+                  to: Paths.instance.providerSessions(...params),
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 },
                 {
-                  label: 'Server Runs',
-                  to: Paths.instance.serverRuns(...params),
+                  label: 'Provider Runs',
+                  to: Paths.instance.providerRuns(...params),
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 },
                 {
                   label: 'Errors',
-                  to: Paths.instance.serverErrors(...params),
+                  to: Paths.instance.providerErrors(...params),
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 }
               ]
@@ -148,8 +166,8 @@ export let ProjectPageLayout = () => {
           items: [
             {
               icon: <RiUploadCloud2Line />,
-              label: 'External Servers',
-              to: Paths.instance.externalServers(...params),
+              label: 'External Providers',
+              to: Paths.instance.externalProviders(...params),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },
             {

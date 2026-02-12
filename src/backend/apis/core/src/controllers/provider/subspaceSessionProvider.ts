@@ -11,7 +11,6 @@ import {
   deploymentValidator
 } from '../../lib/providerValidators';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { sessionProviderPresenter } from '../../presenters';
 import { SubspaceSessionProvider } from '../../presenters/types';
@@ -48,7 +47,6 @@ export let subspaceSessionProviderController = Controller.create(
         description: 'Returns a paginated list of providers connected to a session.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(sessionProviderPresenter)
       .query(
         'default',
@@ -90,7 +88,6 @@ export let subspaceSessionProviderController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(sessionProviderPresenter)
       .do(async ctx => {
         return sessionProviderPresenter.present({ sessionProvider: ctx.sessionProvider });
@@ -102,7 +99,6 @@ export let subspaceSessionProviderController = Controller.create(
         description: 'Adds a new provider to an active session.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -150,7 +146,6 @@ export let subspaceSessionProviderController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -188,7 +183,6 @@ export let subspaceSessionProviderController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(sessionProviderPresenter)
       .do(async ctx => {
         await subspaceSessionProviderService.delete({

@@ -1,7 +1,7 @@
 import {
   DashboardInstanceProviderOauthConnectionsAuthenticationsListQuery,
   DashboardInstanceProviderOauthConnectionsGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderConnectionAuthentications } from '@metorial/state';
@@ -16,7 +16,7 @@ export let ProviderConnectionAuthenticationsTable = (
 ) => {
   let instance = useCurrentInstance();
   let authentications = useProviderConnectionAuthentications(
-    instance.data?.id,
+    instance.data?.instanceId,
     filter.providerConnection?.id,
     {
       ...filter,

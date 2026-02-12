@@ -6,7 +6,6 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerConfigPresenter, configSchemaPresenter } from '../../presenters';
 import { SubspaceConfig, SubspaceConfigSchema } from '../../presenters/types';
@@ -49,7 +48,6 @@ export let providerConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerConfigPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -78,7 +76,6 @@ export let providerConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerConfigPresenter)
       .do(async ctx => {
         return providerConfigPresenter.present({ config: ctx.config });
@@ -96,7 +93,6 @@ export let providerConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -184,7 +180,6 @@ export let providerConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -220,7 +215,6 @@ export let providerConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerConfigPresenter)
       .do(async ctx => {
         await subspaceProviderConfigService.delete({
@@ -251,7 +245,6 @@ export let providerConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(configSchemaPresenter)
       .do(async ctx => {
         let schema = await subspaceProviderConfigService.getConfigSchema({

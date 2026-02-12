@@ -85,6 +85,7 @@ export let useMutation = <Input, Response>(
   return {
     mutate,
     isLoading: loading,
+    isPending: loading,
     isSuccess: success,
 
     isSuccessPermanent: successPermanent,

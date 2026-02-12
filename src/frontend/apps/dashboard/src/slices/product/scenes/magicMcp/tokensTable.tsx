@@ -1,7 +1,7 @@
 import {
   DashboardInstanceMagicMcpTokensGetOutput,
   DashboardInstanceMagicMcpTokensListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
 import {
   useCreateMagicMcpToken,
@@ -32,7 +32,7 @@ import styled from 'styled-components';
 
 export let MagicTokensTable = (filter: DashboardInstanceMagicMcpTokensListQuery) => {
   let instance = useCurrentInstance();
-  let tokens = useMagicMcpTokens(instance.data?.id, {
+  let tokens = useMagicMcpTokens(instance.data?.instanceId, {
     ...filter,
     order: filter.order ?? 'asc'
   });

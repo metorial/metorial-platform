@@ -1,6 +1,6 @@
 import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceSessionService } from '@metorial/module-subspace';
+import { buildSubspaceMcpUrl, subspaceSessionService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -11,10 +11,15 @@ import {
   deploymentValidator
 } from '../../lib/providerValidators';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerSessionPresenter } from '../../presenters';
 import { SubspaceSession } from '../../presenters/types';
+
+// @tobias put here or somewhere else?
+let withConnectionUrl = (session: any, instance: any): SubspaceSession => ({
+  ...session,
+  connectionUrl: buildSubspaceMcpUrl(instance, session.id)
+});
 
 export let providerSessionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionId) {
@@ -47,7 +52,6 @@ export let providerSessionController = Controller.create(
         description: 'Returns a paginated list of sessions.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerSessionPresenter)
       .query(
         'default',
@@ -70,7 +74,9 @@ export let providerSessionController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, session =>
-          providerSessionPresenter.present({ session: session as SubspaceSession })
+          providerSessionPresenter.present({
+            session: withConnectionUrl(session, ctx.instance)
+          })
         );
       }),
 
@@ -80,10 +86,11 @@ export let providerSessionController = Controller.create(
         description: 'Retrieves a specific session by ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerSessionPresenter)
       .do(async ctx => {
-        return providerSessionPresenter.present({ session: ctx.session });
+        return providerSessionPresenter.present({
+          session: withConnectionUrl(ctx.session, ctx.instance)
+        });
       }),
 
     create: instanceGroup
@@ -92,7 +99,6 @@ export let providerSessionController = Controller.create(
         description: 'Creates a new session with provider deployments.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -114,9 +120,9 @@ export let providerSessionController = Controller.create(
       )
       .output(providerSessionPresenter)
       .do(async ctx => {
-        let session = await subspaceSessionService.create({
+        let subspaceSession = await subspaceSessionService.create({
           instance: ctx.instance,
-          name: ctx.body.name,
+          name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
           description: ctx.body.description,
           metadata: ctx.body.metadata,
           providers: ctx.body.providers.map(p => ({
@@ -128,7 +134,9 @@ export let providerSessionController = Controller.create(
           }))
         });
 
-        return providerSessionPresenter.present({ session: session as SubspaceSession });
+        return providerSessionPresenter.present({
+          session: withConnectionUrl(subspaceSession, ctx.instance)
+        });
       }),
 
     update: providerSessionGroup
@@ -137,7 +145,6 @@ export let providerSessionController = Controller.create(
         description: 'Updates a session.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -158,7 +165,9 @@ export let providerSessionController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerSessionPresenter.present({ session: session as SubspaceSession });
+        return providerSessionPresenter.present({
+          session: withConnectionUrl(session, ctx.instance)
+        });
       }),
 
     delete: providerSessionGroup
@@ -167,7 +176,6 @@ export let providerSessionController = Controller.create(
         description: 'Deletes a session.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerSessionPresenter)
       .do(async ctx => {
         let session = await subspaceSessionService.update({
@@ -176,7 +184,9 @@ export let providerSessionController = Controller.create(
           status: 'deleted'
         });
 
-        return providerSessionPresenter.present({ session: session as SubspaceSession });
+        return providerSessionPresenter.present({
+          session: withConnectionUrl(session, ctx.instance)
+        });
       })
   }
 );

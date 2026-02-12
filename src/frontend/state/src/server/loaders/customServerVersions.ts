@@ -1,7 +1,8 @@
+/*
 import {
   DashboardInstanceCustomServersVersionsCreateBody,
   DashboardInstanceCustomServersVersionsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader, useMutation } from '@metorial/data-hooks';
 import useInterval from 'use-interval';
 import { usePaginator } from '../../lib/usePaginator';
@@ -92,4 +93,21 @@ export let useCustomServerVersion = (
   return {
     ...data
   };
+};
+*/
+
+// Placeholder exports to prevent import errors in consuming code
+export const customServerVersionsLoader = null;
+export const useCreateCustomServerVersion = () => {
+  throw new Error('customServers.versions API has been removed in the new Provider API');
+};
+export const useListServerVersions = () => {
+  throw new Error('customServers.versions API has been removed in the new Provider API');
+};
+export const useCustomServerVersions = () => {
+  throw new Error('customServers.versions API has been removed in the new Provider API');
+};
+export const customServerVersionLoader = null;
+export const useCustomServerVersion = () => {
+  throw new Error('customServers.versions API has been removed in the new Provider API');
 };

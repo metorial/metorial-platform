@@ -1,5 +1,5 @@
 import { CodeEditor } from '@metorial/code-editor';
-import { ProviderOauthConnectionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { ProviderOauthConnectionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -159,7 +159,7 @@ export let ProviderConnectionCreateForm = (p: {
         scopes: values.scopes.filter(s => s && s.trim()) as string[],
         config,
         metadata: values.metadata || {},
-        instanceId: instance.data.id,
+        instanceId: instance.data.instanceId,
 
         ...(autoRegistrationId
           ? {

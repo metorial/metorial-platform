@@ -1,4 +1,4 @@
-import { DashboardInstanceMagicMcpGroupsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceMagicMcpGroupsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -23,7 +23,7 @@ import { RiMoreLine } from '@remixicon/react';
 
 export let MagicGroupsTable = (filter: DashboardInstanceMagicMcpGroupsListQuery) => {
   let instance = useCurrentInstance();
-  let groups = useMagicMcpGroups(instance.data?.id, {
+  let groups = useMagicMcpGroups(instance.data?.instanceId, {
     ...filter,
     order: filter.order ?? 'asc'
   });

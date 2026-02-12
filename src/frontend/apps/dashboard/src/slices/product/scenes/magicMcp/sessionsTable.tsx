@@ -1,7 +1,7 @@
 import {
   DashboardInstanceMagicMcpSessionsListQuery,
   MagicMcpSessionsGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useMagicMcpSessions } from '@metorial/state';
@@ -32,7 +32,7 @@ export let SessionConnectionStatusBadge = ({
 
 export let MagicSessionsTable = (filter: DashboardInstanceMagicMcpSessionsListQuery) => {
   let instance = useCurrentInstance();
-  let sessions = useMagicMcpSessions(instance.data?.id, {
+  let sessions = useMagicMcpSessions(instance.data?.instanceId, {
     ...filter,
     order: filter.order ?? 'desc'
   });

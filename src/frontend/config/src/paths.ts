@@ -344,6 +344,287 @@ let InstancePaths = Object.assign(
       ) => {
         return InstancePaths(organization, project, instance, 'magic-mcp/group', ...subPages);
       }
+    },
+
+    // Provider API (Magnetar) paths
+    providers: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'providers', ...subPages),
+    providerAuthConfigs: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) =>
+      InstancePaths(
+        organization,
+        project,
+        instance,
+        'configurations',
+        'auth-configs',
+        ...subPages
+      ),
+    provider: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'provider', id, ...subPages);
+    },
+
+    providerDeployments: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) =>
+      InstancePaths(
+        organization,
+        project,
+        instance,
+        'configurations',
+        ...subPages
+      ),
+    providerDeployment: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'configurations',
+        id,
+        ...subPages
+      );
+    },
+
+    providerConfig: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      deploymentId?: string,
+      configId?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!deploymentId || !configId) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'configurations',
+        deploymentId,
+        'config',
+        configId,
+        ...subPages
+      );
+    },
+    providerAuthCredential: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      deploymentId?: string,
+      credentialId?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!deploymentId || !credentialId) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'configurations',
+        deploymentId,
+        'auth-credential',
+        credentialId,
+        ...subPages
+      );
+    },
+    providerAuthConnection: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      deploymentId?: string,
+      authConfigId?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!deploymentId || !authConfigId) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'configurations',
+        deploymentId,
+        'auth-connection',
+        authConfigId,
+        ...subPages
+      );
+    },
+
+    providerImplementations: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'provider-implementations', ...subPages),
+    providerImplementation: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'provider-implementation',
+        id,
+        ...subPages
+      );
+    },
+
+    providerConfigVaults: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'provider-config-vaults', ...subPages),
+    providerConfigVault: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'provider-config-vault',
+        id,
+        ...subPages
+      );
+    },
+
+    providerErrors: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'provider-errors', ...subPages),
+    providerError: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'provider-error', id, ...subPages);
+    },
+
+    providerRuns: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'provider-runs', ...subPages),
+    providerRun: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'provider-run', id, ...subPages);
+    },
+
+    externalProviders: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'external-providers', ...subPages),
+
+    providerSessions: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'provider-sessions', ...subPages),
+    providerSession: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'provider-session',
+        id,
+        ...subPages
+      );
+    },
+
+    sessionTemplates: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) =>
+      InstancePaths(
+        organization,
+        project,
+        instance,
+        'session-templates',
+        ...subPages
+      ),
+    sessionTemplate: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(
+        organization,
+        project,
+        instance,
+        'session-template',
+        id,
+        ...subPages
+      );
+    },
+
+    setupProvider: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      providerId?: string
+    ) => {
+      let path = InstancePaths(organization, project, instance, 'setup-provider');
+      if (providerId) {
+        return `${path}?provider_id=${encodeURIComponent(providerId)}`;
+      }
+      return path;
     }
   }
 );

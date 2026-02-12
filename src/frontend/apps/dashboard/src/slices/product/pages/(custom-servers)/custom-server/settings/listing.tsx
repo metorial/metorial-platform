@@ -20,11 +20,11 @@ export let CustomServerListingPage = () => {
   let instance = useCurrentInstance();
 
   let { customServerId } = useParams();
-  let customServer = useCustomServer(instance.data?.id, customServerId);
+  let customServer = useCustomServer(instance.data?.instanceId, customServerId);
 
-  let listing = useCustomServerListing(instance.data?.id, customServer.data?.id);
+  let listing = useCustomServerListing(instance.data?.instanceId, customServer.data?.id);
   let version = useCustomServerVersion(
-    instance.data?.id,
+    instance.data?.instanceId,
     customServer.data?.id,
     customServer.data?.currentVersionId
   );
@@ -89,7 +89,7 @@ export let CustomServerListingPage = () => {
         description="View this custom server listing in the Metorial catalog."
       >
         <Link
-          to={Paths.instance.server(
+          to={Paths.instance.provider(
             instance.data?.organization,
             instance.data?.project,
             instance.data,

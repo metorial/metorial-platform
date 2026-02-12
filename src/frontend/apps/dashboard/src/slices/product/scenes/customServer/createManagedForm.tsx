@@ -1,4 +1,4 @@
-import { CustomServersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { CustomServersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -110,7 +110,7 @@ export let CustomServerManagedCreateForm = (p: {
         : managedServerTemplates.data?.items.find(t => t.slug == 'plain-typescript');
 
       let [customServerRes] = await createCustomServer.mutate({
-        instanceId: instance.data.id,
+        instanceId: instance.data.instanceId,
         name: values.name,
         description: values.description,
         implementation: {
@@ -134,7 +134,7 @@ export let CustomServerManagedCreateForm = (p: {
         for (let i = 0; i < 5; i++) {
           let [versionsRes] = await listServerVersions.mutate({
             limit: 1,
-            instanceId: instance.data.id,
+            instanceId: instance.data.instanceId,
             customServerId: customServerRes.id
           });
           if (versionsRes && versionsRes.items.length > 0) {

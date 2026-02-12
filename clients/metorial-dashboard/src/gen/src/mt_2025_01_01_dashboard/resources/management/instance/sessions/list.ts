@@ -6,6 +6,14 @@ export type ManagementInstanceSessionsListOutput = {
     id: string;
     status: 'active' | 'deleted';
     connectionStatus: 'connected' | 'disconnected';
+    usage: {
+      totalProductiveMessageCount: number;
+      totalProductiveClientMessageCount: number;
+      totalProductiveServerMessageCount: number;
+    };
+    metadata: Record<string, any>;
+    createdAt: Date;
+    updatedAt: Date;
     clientSecret: {
       object: 'client_secret';
       type: 'session';
@@ -17,9 +25,10 @@ export type ManagementInstanceSessionsListOutput = {
       object: 'session.server_deployment#preview';
       id: string;
       name: string | null;
-      oauthSessionId: string | null;
       description: string | null;
       metadata: Record<string, any>;
+      oauthSessionId: string | null;
+      connectionUrls: { sse: string; streamableHttp: string };
       createdAt: Date;
       updatedAt: Date;
       server: {
@@ -31,16 +40,7 @@ export type ManagementInstanceSessionsListOutput = {
         createdAt: Date;
         updatedAt: Date;
       };
-      connectionUrls: { sse: string; streamableHttp: string };
     }[];
-    usage: {
-      totalProductiveMessageCount: number;
-      totalProductiveClientMessageCount: number;
-      totalProductiveServerMessageCount: number;
-    };
-    metadata: Record<string, any>;
-    createdAt: Date;
-    updatedAt: Date;
   } & {
     client: {
       object: 'session.client#preview';
@@ -66,6 +66,26 @@ export let mapManagementInstanceSessionsListOutput =
                 'connection_status',
                 mtMap.passthrough()
               ),
+              usage: mtMap.objectField(
+                'usage',
+                mtMap.object({
+                  totalProductiveMessageCount: mtMap.objectField(
+                    'total_productive_message_count',
+                    mtMap.passthrough()
+                  ),
+                  totalProductiveClientMessageCount: mtMap.objectField(
+                    'total_productive_client_message_count',
+                    mtMap.passthrough()
+                  ),
+                  totalProductiveServerMessageCount: mtMap.objectField(
+                    'total_productive_server_message_count',
+                    mtMap.passthrough()
+                  )
+                })
+              ),
+              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
               clientSecret: mtMap.objectField(
                 'client_secret',
                 mtMap.object({
@@ -83,10 +103,6 @@ export let mapManagementInstanceSessionsListOutput =
                     object: mtMap.objectField('object', mtMap.passthrough()),
                     id: mtMap.objectField('id', mtMap.passthrough()),
                     name: mtMap.objectField('name', mtMap.passthrough()),
-                    oauthSessionId: mtMap.objectField(
-                      'oauth_session_id',
-                      mtMap.passthrough()
-                    ),
                     description: mtMap.objectField(
                       'description',
                       mtMap.passthrough()
@@ -94,6 +110,20 @@ export let mapManagementInstanceSessionsListOutput =
                     metadata: mtMap.objectField(
                       'metadata',
                       mtMap.passthrough()
+                    ),
+                    oauthSessionId: mtMap.objectField(
+                      'oauth_session_id',
+                      mtMap.passthrough()
+                    ),
+                    connectionUrls: mtMap.objectField(
+                      'connection_urls',
+                      mtMap.object({
+                        sse: mtMap.objectField('sse', mtMap.passthrough()),
+                        streamableHttp: mtMap.objectField(
+                          'streamable_http',
+                          mtMap.passthrough()
+                        )
+                      })
                     ),
                     createdAt: mtMap.objectField('created_at', mtMap.date()),
                     updatedAt: mtMap.objectField('updated_at', mtMap.date()),
@@ -117,40 +147,10 @@ export let mapManagementInstanceSessionsListOutput =
                         ),
                         updatedAt: mtMap.objectField('updated_at', mtMap.date())
                       })
-                    ),
-                    connectionUrls: mtMap.objectField(
-                      'connection_urls',
-                      mtMap.object({
-                        sse: mtMap.objectField('sse', mtMap.passthrough()),
-                        streamableHttp: mtMap.objectField(
-                          'streamable_http',
-                          mtMap.passthrough()
-                        )
-                      })
                     )
                   })
                 )
               ),
-              usage: mtMap.objectField(
-                'usage',
-                mtMap.object({
-                  totalProductiveMessageCount: mtMap.objectField(
-                    'total_productive_message_count',
-                    mtMap.passthrough()
-                  ),
-                  totalProductiveClientMessageCount: mtMap.objectField(
-                    'total_productive_client_message_count',
-                    mtMap.passthrough()
-                  ),
-                  totalProductiveServerMessageCount: mtMap.objectField(
-                    'total_productive_server_message_count',
-                    mtMap.passthrough()
-                  )
-                })
-              ),
-              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
               client: mtMap.objectField(
                 'client',
                 mtMap.object({

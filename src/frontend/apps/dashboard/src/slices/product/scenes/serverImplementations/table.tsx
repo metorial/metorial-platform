@@ -1,6 +1,6 @@
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ServersImplementationsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
+import { ServersImplementationsListQuery } from '@metorial/generated/src/mt_2026_02_01_dashboard';
 import { useCurrentInstance, useServerImplementations } from '@metorial/state';
 import { Input, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
@@ -12,7 +12,7 @@ export let ServerImplementationsTable = (filter: ServersImplementationsListQuery
   let searchDebounced = useDebounced(search, 500);
 
   let instance = useCurrentInstance();
-  let implementations = useServerImplementations(instance.data?.id, {
+  let implementations = useServerImplementations(instance.data?.instanceId, {
     ...filter,
     search: searchDebounced.length ? searchDebounced : undefined
   });
@@ -22,7 +22,7 @@ export let ServerImplementationsTable = (filter: ServersImplementationsListQuery
       <Input
         label="Search"
         hideLabel
-        placeholder="Search for servers"
+        placeholder="Search for providers"
         value={search}
         onInput={v => setSearch(v)}
       />
@@ -32,7 +32,7 @@ export let ServerImplementationsTable = (filter: ServersImplementationsListQuery
       {renderWithPagination(implementations)(implementations => (
         <>
           <Table
-            headers={['Info', 'Server', 'Created']}
+            headers={['Info', 'Provider', 'Created']}
             data={implementations.data.items.map(implementation => ({
               data: [
                 <Text size="2" weight="strong">
@@ -48,7 +48,7 @@ export let ServerImplementationsTable = (filter: ServersImplementationsListQuery
                   )}
                 </Text>,
                 <Text size="2" weight="strong">
-                  {implementation.server.name}
+                  {(implementation as any).server?.name ?? implementation.name ?? 'Unknown'}
                 </Text>,
                 <RenderDate date={implementation.createdAt} />
               ],

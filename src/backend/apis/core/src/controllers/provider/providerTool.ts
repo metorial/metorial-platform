@@ -4,7 +4,6 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerToolPresenter } from '../../presenters';
 import { SubspaceTool } from '../../presenters/types';
@@ -42,7 +41,6 @@ export let providerToolController = Controller.create(
           'Returns a paginated list of provider tools. By default returns tools from the latest version. Use optional filters to get tools for a specific version.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerToolPresenter)
       .query(
         'default',
@@ -75,7 +73,6 @@ export let providerToolController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerToolPresenter)
       .do(async ctx => {
         return providerToolPresenter.present({ tool: ctx.tool });

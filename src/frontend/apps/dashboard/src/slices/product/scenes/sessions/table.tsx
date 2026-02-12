@@ -26,7 +26,7 @@ export let SessionConnectionStatusBadge = ({ session }: { session: SessionsGetOu
 
 export let SessionsTable = (filter: SessionsListQuery) => {
   let instance = useCurrentInstance();
-  let sessions = useSessions(instance.data?.id, {
+  let sessions = useSessions(instance.data?.instanceId, {
     ...filter,
     order: filter.order ?? 'desc'
   });
@@ -39,7 +39,7 @@ export let SessionsTable = (filter: SessionsListQuery) => {
           data: [
             <SessionConnectionStatusBadge session={session} />,
             <Text size="2" weight="strong">
-              {session.serverDeployments.map(s => s.name ?? s.server.id).join(', ') ||
+              {session.providerDeployments?.map(s => s.name ?? s.providerId ?? 'Unknown').join(', ') ||
                 'No deployments'}
             </Text>,
             <Text size="2">

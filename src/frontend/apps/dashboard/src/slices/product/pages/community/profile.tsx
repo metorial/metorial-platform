@@ -14,7 +14,7 @@ export let CommunityProfilePage = () => {
     <ContentLayout>
       <PageHeader
         title="Profile"
-        description="Edit your Metorial community profile. If you publish servers, this information will be visible to other Metorial users."
+        description="Edit your Metorial community profile. If you publish providers, this information will be visible to other Metorial users."
       />
 
       {renderWithLoader({

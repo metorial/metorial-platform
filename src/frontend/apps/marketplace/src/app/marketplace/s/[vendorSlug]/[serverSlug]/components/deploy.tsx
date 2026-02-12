@@ -77,7 +77,7 @@ export let Deploy = ({ server }: { server: ServerListing }) => {
   );
 
   let instance = useMemo(
-    () => boot.data?.instances.find(i => i.id == selectedInstanceId),
+    () => boot.data?.instances.find(i => i.instanceId == selectedInstanceId),
     [selectedInstanceId, boot.data]
   );
 
@@ -89,7 +89,7 @@ export let Deploy = ({ server }: { server: ServerListing }) => {
 
     let devInstance = org.instances.find(i => i.type == 'development');
     if (!devInstance) devInstance = org.instances[0];
-    if (devInstance) setSelectedInstanceId(devInstance.id);
+    if (devInstance) setSelectedInstanceId(devInstance.instanceId);
   }, [orgsWithInstances]);
 
   let deployments = useMagicMcpServers(selectedInstanceId, {
@@ -142,7 +142,7 @@ export let Deploy = ({ server }: { server: ServerListing }) => {
                 if (!org) return;
                 let devInstance = org.instances.find(i => i.type == 'development');
                 if (!devInstance) devInstance = org.instances[0];
-                if (devInstance) setSelectedInstanceId(devInstance.id);
+                if (devInstance) setSelectedInstanceId(devInstance.instanceId);
               }}
               value={instance?.organizationId}
             />

@@ -8,8 +8,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 export let PortalGroupSettingsPage = () => {
   let instance = useCurrentInstance();
   let params = useParams();
-  let portal = usePortal(instance.data?.id, params.portalId!);
-  let group = usePortalConsumerGroup(instance.data?.id, portal.data?.id, params.groupId);
+  let portal = usePortal(instance.data?.instanceId, params.portalId!);
+  let group = usePortalConsumerGroup(instance.data?.instanceId, portal.data?.id, params.groupId);
 
   let updateMutator = group.useUpdateMutator();
   let deleteMutator = group.useDeleteMutator();

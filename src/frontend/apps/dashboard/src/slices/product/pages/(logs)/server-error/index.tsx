@@ -1,15 +1,10 @@
-import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance, useServerRunErrorGroup } from '@metorial/state';
-import { useParams } from 'react-router-dom';
-import { ServerErrorsTable } from '../../../scenes/serverErrors/errorsTable';
+import { Text } from '@metorial/ui';
 
+// TODO
 export let ServerErrorPage = () => {
-  let instance = useCurrentInstance();
-
-  let { serverErrorId } = useParams();
-  let error = useServerRunErrorGroup(instance.data?.id, serverErrorId);
-
-  return renderWithLoader({ error })(({ error }) => (
-    <ServerErrorsTable serverRunErrorGroupId={[error.data.id]} />
-  ));
+  return (
+    <Text size="2" color="gray600" align="center" style={{ marginTop: 20 }}>
+      Unable to load error occurrences.
+    </Text>
+  );
 };

@@ -6,8 +6,7 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerAuthConfigPresenter } from '../../presenters';
 import { SubspaceAuthConfig } from '../../presenters/types';
 import { providerDeploymentGroup } from './providerDeployment';
@@ -49,7 +48,6 @@ export let providerAuthConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerAuthConfigPresenter)
       .query(
         'default',
@@ -95,7 +93,6 @@ export let providerAuthConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerAuthConfigPresenter)
       .do(async ctx => {
         return providerAuthConfigPresenter.present({ authConfig: ctx.authConfig });
@@ -113,7 +110,6 @@ export let providerAuthConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -163,7 +159,7 @@ export let providerAuthConfigController = Controller.create(
         let authConfig = await subspaceProviderAuthConfigService.create({
           instance: ctx.instance,
           providerId: ctx.deployment.providerId,
-          providerDeploymentId: ctx.deployment.id,
+          providerDeployment: ctx.deployment.id,
           providerAuthMethodId: ctx.body.provider_auth_method_id,
           name: ctx.body.name,
           description: ctx.body.description,
@@ -205,7 +201,6 @@ export let providerAuthConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -250,7 +245,6 @@ export let providerAuthConfigController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerAuthConfigPresenter)
       .do(async ctx => {
         await subspaceProviderAuthConfigService.delete({
@@ -266,6 +260,63 @@ export let providerAuthConfigController = Controller.create(
           .catch(err => console.error('Failed to remove subspace reference:', err));
 
         return providerAuthConfigPresenter.present({ authConfig: ctx.authConfig });
+      })
+  }
+);
+
+// Provider-scoped auth config list (not deployment-scoped)
+export let providerAuthConfigListController = Controller.create(
+  {
+    name: 'Provider Auth Configs (Provider-scoped)',
+    description:
+      'List auth configs scoped to a provider, optionally filtered by deployment.'
+  },
+  {
+    list: instanceGroup
+      .get(
+        instancePath(
+          'providers/auth-configs',
+          'providers.authConfigs.list'
+        ),
+        {
+          name: 'List provider auth configs',
+          description:
+            'Returns a paginated list of auth configs, optionally filtered by provider and deployment IDs.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .outputList(providerAuthConfigPresenter)
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            }),
+            provider_deployment_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by deployment ID(s)' }
+            ),
+            provider_auth_method_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by auth method ID(s)' }
+            )
+          })
+        )
+      )
+      .do(async ctx => {
+        let paginator = await subspaceProviderAuthConfigService.list({
+          instance: ctx.instance,
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+          providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id)
+        });
+
+        let list = await paginator.run(ctx.query);
+
+        return Paginator.present(list, authConfig =>
+          providerAuthConfigPresenter.present({ authConfig: authConfig as SubspaceAuthConfig })
+        );
       })
   }
 );

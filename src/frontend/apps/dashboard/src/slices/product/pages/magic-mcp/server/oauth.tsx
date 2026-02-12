@@ -3,7 +3,7 @@ import {
   useCurrentInstance,
   useMagicMcpServer,
   useProviderConnection,
-  useServerDeployment
+  useProviderDeployment
 } from '@metorial/state';
 import { Button, Callout, Spacer, toast } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
@@ -16,14 +16,14 @@ export let MagicMcpServerOauthPage = () => {
   let instance = useCurrentInstance();
 
   let { magicMcpServerId } = useParams();
-  let magicMcpServer = useMagicMcpServer(instance.data?.id, magicMcpServerId);
+  let magicMcpServer = useMagicMcpServer(instance.data?.instanceId, magicMcpServerId);
   let updateMutation = magicMcpServer.useUpdateMutator();
-  let deployment = useServerDeployment(
-    instance.data?.id,
+  let deployment = useProviderDeployment(
+    instance.data?.instanceId,
     magicMcpServer.data?.serverDeployments[0]?.id
   );
   let oauthConnection = useProviderConnection(
-    instance.data?.id,
+    instance.data?.instanceId,
     deployment.data?.oauthConnection?.id
   );
 
@@ -44,10 +44,10 @@ export let MagicMcpServerOauthCallout = ({ noSpacer }: { noSpacer?: boolean }) =
   let instance = useCurrentInstance();
 
   let { magicMcpServerId } = useParams();
-  let magicMcpServer = useMagicMcpServer(instance.data?.id, magicMcpServerId);
+  let magicMcpServer = useMagicMcpServer(instance.data?.instanceId, magicMcpServerId);
   let updateMutation = magicMcpServer.useUpdateMutator();
-  let deployment = useServerDeployment(
-    instance.data?.id,
+  let deployment = useProviderDeployment(
+    instance.data?.instanceId,
     magicMcpServer.data?.serverDeployments[0]?.id
   );
 
@@ -82,8 +82,8 @@ export let MagicMcpServerOauthCallout = ({ noSpacer }: { noSpacer?: boolean }) =
           onClick={async () => {
             try {
               let oauthSessionId = await authenticateWithOauth({
-                instanceId: instance.data?.id!,
-                serverDeploymentId: deployment.data?.id!
+                instanceId: instance.data?.instanceId!,
+                providerDeploymentId: deployment.data?.id!
               });
 
               await updateMutation.mutate({

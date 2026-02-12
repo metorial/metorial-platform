@@ -2,12 +2,10 @@ import { badRequestError, ServiceError } from '@metorial/error';
 import { subspaceReferenceSetupSessionService } from '@metorial/module-subspace-reference';
 import { subspaceProviderSetupSessionService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
-import { Controller } from '@metorial/rest';
+import { Controller, Path } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
-import { instancePath } from '../../middleware/instanceGroup';
 import { providerSetupSessionPresenter } from '../../presenters';
 import { SubspaceSetupSession } from '../../presenters/types';
 import { providerDeploymentGroup } from './providerDeployment';
@@ -39,17 +37,22 @@ export let providerSetupSessionController = Controller.create(
   {
     list: providerDeploymentGroup
       .get(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/setup-sessions',
-          'providerDeployments.setupSessions.list'
-        ),
+        [
+          Path(
+            '/provider-deployments/:providerDeploymentId/setup-sessions',
+            'providerDeployments.setupSessions.list'
+          ),
+          Path(
+            '/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions',
+            'management.instance.providerDeployments.setupSessions.list'
+          )
+        ],
         {
           name: 'List provider setup sessions',
           description: 'Returns a paginated list of provider setup sessions.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerSetupSessionPresenter)
       .query(
         'default',
@@ -81,17 +84,22 @@ export let providerSetupSessionController = Controller.create(
 
     get: providerSetupSessionGroup
       .get(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
-          'providerDeployments.setupSessions.get'
-        ),
+        [
+          Path(
+            '/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
+            'providerDeployments.setupSessions.get'
+          ),
+          Path(
+            '/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
+            'management.instance.providerDeployments.setupSessions.get'
+          )
+        ],
         {
           name: 'Get provider setup session',
           description: 'Retrieves a specific provider setup session by ID.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerSetupSessionPresenter)
       .do(async ctx => {
         return providerSetupSessionPresenter.present({ setupSession: ctx.setupSession });
@@ -99,17 +107,22 @@ export let providerSetupSessionController = Controller.create(
 
     create: providerDeploymentGroup
       .post(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/setup-sessions',
-          'providerDeployments.setupSessions.create'
-        ),
+        [
+          Path(
+            '/provider-deployments/:providerDeploymentId/setup-sessions',
+            'providerDeployments.setupSessions.create'
+          ),
+          Path(
+            '/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions',
+            'management.instance.providerDeployments.setupSessions.create'
+          )
+        ],
         {
           name: 'Create provider setup session',
           description: 'Creates a new provider setup session for OAuth authentication.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -125,6 +138,12 @@ export let providerSetupSessionController = Controller.create(
             examples: ['pam_2mNpQrStUvWxYzAb'],
             description: 'The authentication method to use (e.g., OAuth flow)'
           }),
+          providerAuthCredentialsId: v.optional(
+            v.string({
+              examples: ['pac_3nOpRsTuVwXyZaBc'],
+              description: 'Optional OAuth app credentials to use instead of defaults'
+            })
+          ),
           redirectUrl: v.optional(
             v.string({ examples: ['https://app.example.com/oauth/callback'] })
           )
@@ -137,6 +156,7 @@ export let providerSetupSessionController = Controller.create(
           providerId: ctx.deployment.providerId,
           providerDeploymentId: ctx.deployment.id,
           providerAuthMethodId: ctx.body.providerAuthMethodId,
+          providerAuthCredentialsId: ctx.body.providerAuthCredentialsId,
           name: ctx.body.name ?? 'Setup Session',
           description: ctx.body.description,
           uiMode: 'metorial_elements',
@@ -168,17 +188,22 @@ export let providerSetupSessionController = Controller.create(
 
     update: providerSetupSessionGroup
       .patch(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
-          'providerDeployments.setupSessions.update'
-        ),
+        [
+          Path(
+            '/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
+            'providerDeployments.setupSessions.update'
+          ),
+          Path(
+            '/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
+            'management.instance.providerDeployments.setupSessions.update'
+          )
+        ],
         {
           name: 'Update provider setup session',
           description: 'Updates a specific provider setup session.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -211,17 +236,22 @@ export let providerSetupSessionController = Controller.create(
 
     delete: providerSetupSessionGroup
       .delete(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
-          'providerDeployments.setupSessions.delete'
-        ),
+        [
+          Path(
+            '/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
+            'providerDeployments.setupSessions.delete'
+          ),
+          Path(
+            '/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
+            'management.instance.providerDeployments.setupSessions.delete'
+          )
+        ],
         {
           name: 'Delete provider setup session',
           description: 'Deletes a provider setup session.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerSetupSessionPresenter)
       .do(async ctx => {
         await subspaceProviderSetupSessionService.delete({

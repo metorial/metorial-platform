@@ -7,6 +7,188 @@ import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { ProjectHomePage } from './pages';
 
+// Provider API pages
+let ProvidersHubLayout = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/_layout').then(c => c.ProvidersHubLayout)
+);
+let ProvidersPage = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/providers').then(c => c.ProvidersPage)
+);
+let ProviderDeploymentsListLayout = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/_layout').then(c => c.ProviderDeploymentsListLayout)
+);
+let ProviderDeploymentsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/provider-deployments').then(
+    c => c.ProviderDeploymentsPage
+  )
+);
+let ProviderAuthConfigsOverviewPage = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/provider-auth-credentials').then(
+    c => c.ProviderAuthCredentialsOverviewPage
+  )
+);
+let ProviderAuthCredentialsOverviewPage = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/provider-auth-credentials').then(
+    c => c.ProviderAuthCredentialsOverviewPage
+  )
+);
+let ProviderConfigsOverviewPage = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/provider-configs').then(
+    c => c.ProviderConfigsOverviewPage
+  )
+);
+let ProviderSessionsListLayout = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/_layout').then(c => c.ProviderSessionsListLayout)
+);
+let ProviderSessionsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/provider-sessions').then(c => c.ProviderSessionsPage)
+);
+let SessionTemplatesListLayout = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/_layout').then(c => c.SessionTemplatesListLayout)
+);
+let SessionTemplatesPage = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/session-templates').then(c => c.SessionTemplatesPage)
+);
+let ProviderDeploymentsRedirectPage = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/redirects').then(
+    c => c.ProviderDeploymentsRedirectPage
+  )
+);
+let SessionTemplatesRedirectPage = dynamicPage(() =>
+  import('./pages/(provider-api)/(list)/redirects').then(
+    c => c.SessionTemplatesRedirectPage
+  )
+);
+let ProviderLayout = dynamicPage(() =>
+  import('./pages/(provider-api)/provider/_layout').then(c => c.ProviderLayout)
+);
+let ProviderOverviewPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider/index').then(c => c.ProviderOverviewPage)
+);
+let ProviderVersionsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider/versions').then(c => c.ProviderVersionsPage)
+);
+let ProviderToolsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider/tools').then(c => c.ProviderToolsPage)
+);
+let ProviderAuthMethodsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider/auth-methods').then(c => c.ProviderAuthMethodsPage)
+);
+let ProviderReadmePage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider/readme').then(c => c.ProviderReadmePage)
+);
+let ProviderDeploymentLayout = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-deployment/_layout').then(
+    c => c.ProviderDeploymentLayout
+  )
+);
+let ProviderDeploymentOverviewPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-deployment/index').then(
+    c => c.ProviderDeploymentOverviewPage
+  )
+);
+let ProviderDeploymentConfigsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-deployment/configs').then(
+    c => c.ProviderDeploymentConfigsPage
+  )
+);
+let ProviderDeploymentAuthConfigsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-deployment/auth-configs').then(
+    c => c.ProviderDeploymentAuthConfigsPage
+  )
+);
+let ProviderDeploymentSettingsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-deployment/settings').then(
+    c => c.ProviderDeploymentSettingsPage
+  )
+);
+let ProviderConfigLayout = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-config/_layout').then(c => c.ProviderConfigLayout)
+);
+let ProviderConfigOverviewPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-config/index').then(c => c.ProviderConfigOverviewPage)
+);
+let ProviderConfigSettingsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-config/settings').then(
+    c => c.ProviderConfigSettingsPage
+  )
+);
+let ProviderAuthCredentialLayout = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-auth-credential/_layout').then(
+    c => c.ProviderAuthCredentialLayout
+  )
+);
+let ProviderAuthCredentialOverviewPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-auth-credential/index').then(
+    c => c.ProviderAuthCredentialOverviewPage
+  )
+);
+let ProviderAuthCredentialSettingsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-auth-credential/settings').then(
+    c => c.ProviderAuthCredentialSettingsPage
+  )
+);
+let ProviderAuthConnectionLayout = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-auth-configs/_layout').then(
+    c => c.ProviderAuthConnectionLayout
+  )
+);
+let ProviderAuthConnectionOverviewPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-auth-configs/index').then(
+    c => c.ProviderAuthConnectionOverviewPage
+  )
+);
+let ProviderAuthConnectionSettingsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-auth-configs/settings').then(
+    c => c.ProviderAuthConnectionSettingsPage
+  )
+);
+let ProviderSessionLayout = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-session/_layout').then(c => c.ProviderSessionLayout)
+);
+let ProviderSessionOverviewPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-session/index').then(
+    c => c.ProviderSessionOverviewPage
+  )
+);
+let ProviderSessionProvidersPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-session/providers').then(
+    c => c.ProviderSessionProvidersPage
+  )
+);
+let ProviderSessionSettingsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-session/settings').then(
+    c => c.ProviderSessionSettingsPage
+  )
+);
+let ProviderSessionLogsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-session/logs').then(
+    c => c.ProviderSessionLogsPage
+  )
+);
+let SessionTemplateLayout = dynamicPage(() =>
+  import('./pages/(provider-api)/session-template/_layout').then(c => c.SessionTemplateLayout)
+);
+let SessionTemplateOverviewPage = dynamicPage(() =>
+  import('./pages/(provider-api)/session-template/index').then(
+    c => c.SessionTemplateOverviewPage
+  )
+);
+let SessionTemplateProvidersPage = dynamicPage(() =>
+  import('./pages/(provider-api)/session-template/providers').then(
+    c => c.SessionTemplateProvidersPage
+  )
+);
+let SessionTemplateSettingsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/session-template/settings').then(
+    c => c.SessionTemplateSettingsPage
+  )
+);
+
+let SetupProviderPage = dynamicPage(() =>
+  import('./pages/setup-provider').then(c => c.SetupProviderPage)
+);
+
 let MagicMcpServerLayout = dynamicPage(() =>
   import('./pages/magic-mcp/server/_layout').then(c => c.MagicMcpServerLayout)
 );
@@ -110,12 +292,6 @@ let ManagedServersListLayout = dynamicPage(() =>
 let ExternalServersListLayout = dynamicPage(() =>
   import('./pages/(custom-servers)/(list)/_layout').then(c => c.ExternalServersListLayout)
 );
-let ServersListLayout = dynamicPage(() =>
-  import('./pages/(servers)/(list)/_layout').then(c => c.ServersListLayout)
-);
-let ServerDeploymentsListLayout = dynamicPage(() =>
-  import('./pages/(servers)/(list)/_layout').then(c => c.ServerDeploymentsListLayout)
-);
 let ExternalServersPage = dynamicPage(() =>
   import('./pages/(custom-servers)/(list)/external-servers').then(c => c.ExternalServersPage)
 );
@@ -160,84 +336,6 @@ let SessionDeploymentsPage = dynamicPage(() =>
 );
 let SessionServerRunsPage = dynamicPage(() =>
   import('./pages/(logs)/session/serverRuns').then(c => c.SessionServerRunsPage)
-);
-let ServersDeploymentsPage = dynamicPage(() =>
-  import('./pages/(servers)/(list)/server-deployments').then(c => c.ServersDeploymentsPage)
-);
-let ServersImplementationsPage = dynamicPage(() =>
-  import('./pages/(servers)/(list)/server-implementations').then(
-    c => c.ServersImplementationsPage
-  )
-);
-let ServersPage = dynamicPage(() =>
-  import('./pages/(servers)/(list)/servers').then(c => c.ServersPage)
-);
-let ServerOverviewPage = dynamicPage(() =>
-  import('./pages/(servers)/server').then(c => c.ServerOverviewPage)
-);
-let ServerDeploymentLayout = dynamicPage(() =>
-  import('./pages/(servers)/server-deployment/_layout').then(c => c.ServerDeploymentLayout)
-);
-let ServerDeploymentConfigPage = dynamicPage(() =>
-  import('./pages/(servers)/server-deployment/config').then(c => c.ServerDeploymentConfigPage)
-);
-let ServerDeploymentOauthPage = dynamicPage(() =>
-  import('./pages/(servers)/server-deployment/oauth').then(c => c.ServerDeploymentOauthPage)
-);
-let ServerDeploymentErrorsPage = dynamicPage(() =>
-  import('./pages/(servers)/server-deployment/errors').then(c => c.ServerDeploymentErrorsPage)
-);
-let ServerDeploymentOverviewPage = dynamicPage(() =>
-  import('./pages/(servers)/server-deployment/overview').then(
-    c => c.ServerDeploymentOverviewPage
-  )
-);
-let ServerDeploymentRunsPage = dynamicPage(() =>
-  import('./pages/(servers)/server-deployment/runs').then(c => c.ServerDeploymentRunsPage)
-);
-let ServerImplementationLayout = dynamicPage(() =>
-  import('./pages/(servers)/server-implementation/_layout').then(
-    c => c.ServerImplementationLayout
-  )
-);
-let ServerImplementationConfigPage = dynamicPage(() =>
-  import('./pages/(servers)/server-implementation/config').then(
-    c => c.ServerImplementationConfigPage
-  )
-);
-let ServerImplementationDeploymentsPage = dynamicPage(() =>
-  import('./pages/(servers)/server-implementation/deployments').then(
-    c => c.ServerImplementationDeploymentsPage
-  )
-);
-let ServerImplementationErrorsPage = dynamicPage(() =>
-  import('./pages/(servers)/server-implementation/errors').then(
-    c => c.ServerImplementationErrorsPage
-  )
-);
-let ServerImplementationOverviewPage = dynamicPage(() =>
-  import('./pages/(servers)/server-implementation/overview').then(
-    c => c.ServerImplementationOverviewPage
-  )
-);
-let ServerImplementationRunsPage = dynamicPage(() =>
-  import('./pages/(servers)/server-implementation/runs').then(
-    c => c.ServerImplementationRunsPage
-  )
-);
-let ServerLayout = dynamicPage(() =>
-  import('./pages/(servers)/server/_layout').then(c => c.ServerLayout)
-);
-let ServerServerDeploymentsPage = dynamicPage(() =>
-  import('./pages/(servers)/server/deployments').then(c => c.ServerServerDeploymentsPage)
-);
-let ServerServerImplementationsPage = dynamicPage(() =>
-  import('./pages/(servers)/server/implementations').then(
-    c => c.ServerServerImplementationsPage
-  )
-);
-let ServerReadmePage = dynamicPage(() =>
-  import('./pages/(servers)/server/readme').then(c => c.ServerReadmePage)
 );
 let ProjectPageLayout = dynamicPage(() =>
   import('./pages/_layout').then(c => c.ProjectPageLayout)
@@ -286,31 +384,6 @@ let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string
     (flags.data.flags as any)[flag] ? children : <NotFound />
   );
 };
-let ServerDeploymentCallbackLayout = dynamicPage(() =>
-  import('./pages/(servers)/server-deployment/callbacks/_layout').then(
-    c => c.ServerDeploymentCallbackLayout
-  )
-);
-let ServerDeploymentCallbackOverviewPage = dynamicPage(() =>
-  import('./pages/(servers)/server-deployment/callbacks/overview').then(
-    c => c.ServerDeploymentCallbackOverviewPage
-  )
-);
-let ServerDeploymentCallbackEventsPage = dynamicPage(() =>
-  import('./pages/(servers)/server-deployment/callbacks/events').then(
-    c => c.ServerDeploymentCallbackEventsPage
-  )
-);
-let ServerDeploymentCallbackDestinationsPage = dynamicPage(() =>
-  import('./pages/(servers)/server-deployment/callbacks/destinations').then(
-    c => c.ServerDeploymentCallbackDestinationsPage
-  )
-);
-let ServerDeploymentCallbackLogsPage = dynamicPage(() =>
-  import('./pages/(servers)/server-deployment/callbacks/logs').then(
-    c => c.ServerDeploymentCallbackLogsPage
-  )
-);
 let CallbacksListLayout = dynamicPage(() =>
   import('./pages/(callbacks)/(list)/_layout').then(c => c.CallbacksListLayout)
 );
@@ -331,14 +404,6 @@ let CallbackDestinationsPage = dynamicPage(() =>
 );
 let CallbackLogsPage = dynamicPage(() =>
   import('./pages/(callbacks)/logs').then(c => c.CallbackLogsPage)
-);
-let ServerConfigVaultsPage = dynamicPage(() =>
-  import('./pages/(servers)/(list)/server-config-vaults').then(c => c.ServerConfigVaultsPage)
-);
-let ServerDeploymentCapabilitiesPage = dynamicPage(() =>
-  import('./pages/(servers)/server-deployment/capabilities').then(
-    c => c.ServerDeploymentCapabilitiesPage
-  )
 );
 let PortalsListLayout = dynamicPage(() =>
   import('./pages/(portals)/(list)/_layout').then(c => c.PortalsListLayout)
@@ -393,7 +458,7 @@ let ProductWrapper = () => {
 
   useEffect(() => {
     if (!instance.data) return;
-    lastInstanceIdStore.set(instance.data.id);
+    lastInstanceIdStore.set(instance.data.instanceId);
   }, [instance.data]);
 
   return <Outlet />;
@@ -474,6 +539,10 @@ export let productInnerSlice = createSlice([
             children: [
               {
                 path: 'external-servers',
+                element: <ExternalServersPage />
+              },
+              {
+                path: 'external-providers',
                 element: <ExternalServersPage />
               }
             ]
@@ -561,158 +630,6 @@ export let productInnerSlice = createSlice([
                 element: <ProviderConnectionTestResponsePage />
               }
             ]
-          },
-
-          {
-            path: '',
-            element: <ServersListLayout />,
-
-            children: [
-              {
-                path: 'servers',
-                element: <ServersPage />
-              }
-            ]
-          },
-
-          {
-            path: '',
-            element: <ServerDeploymentsListLayout />,
-
-            children: [
-              {
-                path: 'server-deployments',
-                element: <ServersDeploymentsPage />
-              },
-              {
-                path: 'server-implementations',
-                element: <ServersImplementationsPage />
-              },
-              {
-                path: 'server-config-vaults',
-                element: <ServerConfigVaultsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'server/:serverId',
-            element: <ServerLayout />,
-
-            children: [
-              // {
-              //   element: <ServerLayoutSide />,
-              //   children: [
-              //     {
-              //       path: '',
-              //       element: <ServerOverviewPage />
-              //     }
-              //   ]
-              // },
-
-              {
-                path: '',
-                element: <ServerOverviewPage />
-              },
-
-              {
-                path: 'readme',
-                element: <ServerReadmePage />
-              },
-
-              {
-                path: 'deployments',
-                element: <ServerServerDeploymentsPage />
-              },
-              {
-                path: 'implementations',
-                element: <ServerServerImplementationsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'server-deployment/:serverDeploymentId',
-            element: <ServerDeploymentLayout />,
-
-            children: [
-              {
-                path: '',
-                element: <ServerDeploymentOverviewPage />
-              },
-              {
-                path: 'config',
-                element: <ServerDeploymentConfigPage />
-              },
-              {
-                path: 'runs',
-                element: <ServerDeploymentRunsPage />
-              },
-              {
-                path: 'errors',
-                element: <ServerDeploymentErrorsPage />
-              },
-              {
-                path: 'oauth',
-                element: <ServerDeploymentOauthPage />
-              },
-              {
-                path: 'capabilities',
-                element: <ServerDeploymentCapabilitiesPage />
-              },
-
-              {
-                path: 'callbacks',
-                element: <ServerDeploymentCallbackLayout />,
-
-                children: [
-                  {
-                    path: '',
-                    element: <ServerDeploymentCallbackOverviewPage />
-                  },
-                  {
-                    path: 'events',
-                    element: <ServerDeploymentCallbackEventsPage />
-                  },
-                  {
-                    path: 'destinations',
-                    element: <ServerDeploymentCallbackDestinationsPage />
-                  },
-                  {
-                    path: 'logs',
-                    element: <ServerDeploymentCallbackLogsPage />
-                  }
-                ]
-              }
-            ]
-          },
-
-          {
-            path: 'server-implementation/:serverImplementationId',
-            element: <ServerImplementationLayout />,
-
-            children: [
-              {
-                path: '',
-                element: <ServerImplementationOverviewPage />
-              },
-              {
-                path: 'config',
-                element: <ServerImplementationConfigPage />
-              },
-              {
-                path: 'runs',
-                element: <ServerImplementationRunsPage />
-              },
-              {
-                path: 'errors',
-                element: <ServerImplementationErrorsPage />
-              },
-              {
-                path: 'deployments',
-                element: <ServerImplementationDeploymentsPage />
-              }
-            ]
           }
         ]
       },
@@ -736,7 +653,15 @@ export let productInnerSlice = createSlice([
                 element: <ServerRunsPage />
               },
               {
+                path: 'provider-runs',
+                element: <ServerRunsPage />
+              },
+              {
                 path: 'server-errors',
+                element: <ServerErrorsPage />
+              },
+              {
+                path: 'provider-errors',
                 element: <ServerErrorsPage />
               }
             ]
@@ -755,7 +680,31 @@ export let productInnerSlice = createSlice([
           },
 
           {
+            path: 'provider-error/:serverErrorId',
+            element: <ServerErrorLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ServerErrorPage />
+              }
+            ]
+          },
+
+          {
             path: 'server-run/:serverRunId',
+            element: <ServerRunLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ServerRunPage />
+              }
+            ]
+          },
+
+          {
+            path: 'provider-run/:serverRunId',
             element: <ServerRunLayout />,
 
             children: [
@@ -902,6 +851,219 @@ export let productInnerSlice = createSlice([
       },
 
       /***************
+       * Provider API (Magnetar)
+       *************** */
+      {
+        path: 'providers',
+        element: <ProvidersHubLayout />,
+        children: [
+          {
+            path: '',
+            element: <ProvidersPage />
+          }
+        ]
+      },
+
+      {
+        path: 'configurations',
+        element: <ProviderDeploymentsListLayout />,
+        children: [
+          {
+            path: '',
+            element: <ProviderDeploymentsPage />
+          },
+          {
+            path: 'configs',
+            element: <ProviderConfigsOverviewPage />
+          },
+          {
+            path: 'auth-credentials',
+            element: <ProviderAuthCredentialsOverviewPage />
+          },
+          {
+            path: 'auth-configs',
+            element: <ProviderAuthConfigsOverviewPage />
+          }
+        ]
+      },
+
+      {
+        path: 'provider/:providerId',
+        element: <ProviderLayout />,
+        children: [
+          {
+            path: '',
+            element: <ProviderOverviewPage />
+          },
+          {
+            path: 'readme',
+            element: <ProviderReadmePage />
+          },
+          {
+            path: 'tools',
+            element: <ProviderToolsPage />
+          },
+          {
+            path: 'auth-methods',
+            element: <ProviderAuthMethodsPage />
+          },
+          {
+            path: 'versions',
+            element: <ProviderVersionsPage />
+          }
+        ]
+      },
+
+      {
+        path: 'configurations/:providerDeploymentId',
+        element: <ProviderDeploymentLayout />,
+        children: [
+          {
+            path: '',
+            element: <ProviderDeploymentOverviewPage />
+          },
+          {
+            path: 'configs',
+            element: <ProviderDeploymentConfigsPage />
+          },
+          {
+            path: 'auth-configs',
+            element: <ProviderDeploymentAuthConfigsPage />
+          },
+          {
+            path: 'settings',
+            element: <ProviderDeploymentSettingsPage />
+          }
+        ]
+      },
+      {
+        path: 'configurations/:providerDeploymentId/config/:providerConfigId',
+        element: <ProviderConfigLayout />,
+        children: [
+          {
+            path: '',
+            element: <ProviderConfigOverviewPage />
+          },
+          {
+            path: 'settings',
+            element: <ProviderConfigSettingsPage />
+          }
+        ]
+      },
+      {
+        path: 'configurations/:providerDeploymentId/auth-credential/:providerAuthCredentialsId',
+        element: <ProviderAuthCredentialLayout />,
+        children: [
+          {
+            path: '',
+            element: <ProviderAuthCredentialOverviewPage />
+          },
+          {
+            path: 'settings',
+            element: <ProviderAuthCredentialSettingsPage />
+          }
+        ]
+      },
+      {
+        path: 'configurations/:providerDeploymentId/auth-connection/:providerAuthConfigId',
+        element: <ProviderAuthConnectionLayout />,
+        children: [
+          {
+            path: '',
+            element: <ProviderAuthConnectionOverviewPage />
+          },
+          {
+            path: 'settings',
+            element: <ProviderAuthConnectionSettingsPage />
+          }
+        ]
+      },
+
+      {
+        path: 'provider-sessions',
+        element: <ProviderSessionsListLayout />,
+        children: [
+          {
+            path: '',
+            element: <ProviderSessionsPage />
+          }
+        ]
+      },
+      {
+        path: 'provider-runs',
+        element: <ProviderSessionsListLayout />,
+        children: [
+          {
+            path: '',
+            element: <ServerRunsPage />
+          }
+        ]
+      },
+      {
+        path: 'provider-errors',
+        element: <ProviderSessionsListLayout />,
+        children: [
+          {
+            path: '',
+            element: <ServerErrorsPage />
+          }
+        ]
+      },
+
+      {
+        path: 'provider-session/:sessionId',
+        element: <ProviderSessionLayout />,
+        children: [
+          {
+            path: '',
+            element: <ProviderSessionLogsPage />
+          },
+          {
+            path: 'overview',
+            element: <ProviderSessionOverviewPage />
+          },
+          {
+            path: 'providers',
+            element: <ProviderSessionProvidersPage />
+          },
+          {
+            path: 'settings',
+            element: <ProviderSessionSettingsPage />
+          }
+        ]
+      },
+
+      {
+        path: 'session-templates',
+        element: <SessionTemplatesListLayout />,
+        children: [
+          {
+            path: '',
+            element: <SessionTemplatesPage />
+          }
+        ]
+      },
+
+      {
+        path: 'session-template/:sessionTemplateId',
+        element: <SessionTemplateLayout />,
+        children: [
+          {
+            path: '',
+            element: <SessionTemplateOverviewPage />
+          },
+          {
+            path: 'providers',
+            element: <SessionTemplateProvidersPage />
+          },
+          {
+            path: 'settings',
+            element: <SessionTemplateSettingsPage />
+          }
+        ]
+      },
+
+      /***************
        * Explorer
        *************** */
       {
@@ -1006,6 +1168,10 @@ export let deploySlice = createSlice([
   {
     path: ':organizationId/:projectId/:instanceId/deploy',
     element: <DeployPage />
+  },
+  {
+    path: ':organizationId/:projectId/:instanceId/setup-provider',
+    element: <SetupProviderPage />
   }
 ]);
 

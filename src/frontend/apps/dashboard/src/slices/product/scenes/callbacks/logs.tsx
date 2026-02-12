@@ -1,5 +1,5 @@
 import { CodeBlock } from '@metorial/code';
-import { DashboardInstanceCallbacksNotificationsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceCallbacksNotificationsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import {
   useCallback,
@@ -25,7 +25,7 @@ import { RouterPanel } from '../routerPanel';
 
 export let CallbackLogsList = (p: { callbackId: string | undefined }) => {
   let instance = useCurrentInstance();
-  let callback = useCallback(instance.data?.id, p.callbackId);
+  let callback = useCallback(instance.data?.instanceId, p.callbackId);
 
   return (
     <>
@@ -61,7 +61,7 @@ export let Notifications = (
   props: DashboardInstanceCallbacksNotificationsListQuery & { details?: boolean }
 ) => {
   let instance = useCurrentInstance();
-  let notifications = useCallbackNotifications(instance.data?.id, {
+  let notifications = useCallbackNotifications(instance.data?.instanceId, {
     order: 'desc',
     ...props
   });
@@ -70,7 +70,7 @@ export let Notifications = (
   return renderWithPagination(notifications)(notifications => (
     <>
       <Table
-        headers={['Info', 'Server', 'Created']}
+        headers={['Info', 'Provider', 'Created']}
         data={notifications.data.items.map(notification => ({
           data: [
             {
@@ -110,8 +110,8 @@ let Notification = ({
   callbackId: string;
 }) => {
   let instance = useCurrentInstance();
-  let callback = useCallback(instance.data?.id, callbackId);
-  let notification = useCallbackNotification(instance.data?.id, notificationId);
+  let callback = useCallback(instance.data?.instanceId, callbackId);
+  let notification = useCallbackNotification(instance.data?.instanceId, notificationId);
 
   let formattedRequestBody = useMemo(() => {
     if (!notification.data) return '...';

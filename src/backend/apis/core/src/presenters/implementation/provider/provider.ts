@@ -11,9 +11,9 @@ export let v1ProviderPresenter = Presenter.create(providerType)
     name: provider.name ?? provider.entry?.name,
     description: provider.description ?? provider.entry?.description,
     slug: provider.slug ?? provider.tag ?? provider.identifier,
-    publisher: await v1PublisherPresenter
-      .present({ publisher: provider.publisher }, opts)
-      .run(),
+    publisher: provider.publisher
+      ? await v1PublisherPresenter.present({ publisher: provider.publisher }, opts).run()
+      : null,
     current_version: provider.currentVersion
       ? await v1VersionPresenter.present({ version: provider.currentVersion }, opts).run()
       : null,
@@ -45,7 +45,7 @@ export let v1ProviderPresenter = Presenter.create(providerType)
         description: 'URL-friendly identifier',
         examples: ['github']
       }),
-      publisher: v1PublisherPresenter.schema,
+      publisher: v.nullable(v1PublisherPresenter.schema),
       current_version: v.nullable(v1VersionPresenter.schema),
       created_at: v.date({
         name: 'created_at',

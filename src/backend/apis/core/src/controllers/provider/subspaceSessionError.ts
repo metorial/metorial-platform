@@ -5,10 +5,10 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionErrorPresenter } from '../../presenters';
 import { SubspaceSessionError } from '../../presenters/types';
+import { instanceGroup } from '../../middleware/instanceGroup';
 import { subspaceSessionGroup } from './subspaceSession';
 
 export let subspaceSessionErrorGroup = subspaceSessionGroup.use(async ctx => {
@@ -36,13 +36,53 @@ export let subspaceSessionErrorController = Controller.create(
       'Session errors track errors that occurred during a session. This read-only resource provides visibility into issues that happened during provider execution.'
   },
   {
+    listAll: instanceGroup
+      .get(instancePath('session-errors', 'sessionErrors.list'), {
+        name: 'List all session errors',
+        description: 'Returns a paginated list of errors across all sessions.'
+      })
+      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .outputList(subspaceSessionErrorPresenter)
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            type: v.optional(v.string(), { description: 'Filter by error type' }),
+            session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session ID(s)'
+            }),
+            session_error_group_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by error group ID(s)'
+            }),
+            provider_run_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider run ID(s)'
+            })
+          })
+        )
+      )
+      .do(async ctx => {
+        let paginator = await subspaceSessionErrorService.list({
+          instance: ctx.instance,
+          sessionIds: normalizeArrayParam(ctx.query.session_id),
+          sessionErrorGroupIds: normalizeArrayParam(ctx.query.session_error_group_id),
+          providerRunIds: normalizeArrayParam(ctx.query.provider_run_id)
+        });
+
+        let list = await paginator.run(ctx.query);
+
+        return Paginator.present(list, sessionError =>
+          subspaceSessionErrorPresenter.present({
+            sessionError: sessionError as SubspaceSessionError
+          })
+        );
+      }),
+
     list: subspaceSessionGroup
       .get(instancePath('sessions/:sessionId/errors', 'sessions.errors.list'), {
         name: 'List session errors',
         description: 'Returns a paginated list of errors that occurred in a session.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(subspaceSessionErrorPresenter)
       .query(
         'default',
@@ -81,7 +121,6 @@ export let subspaceSessionErrorController = Controller.create(
         description: 'Retrieves a specific error that occurred in a session.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(subspaceSessionErrorPresenter)
       .do(async ctx => {
         return subspaceSessionErrorPresenter.present({ sessionError: ctx.sessionError });

@@ -1,8 +1,9 @@
+/*
 import {
   DashboardInstanceMagicMcpGroupsCreateBody,
   DashboardInstanceMagicMcpGroupsListQuery,
   DashboardInstanceMagicMcpGroupsUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -100,4 +101,18 @@ export let useMagicMcpGroup = (
     useAddServersMutator: data.useMutator('addServers'),
     useRemoveServersMutator: data.useMutator('removeServers')
   };
+};
+*/
+
+// Placeholder exports to prevent import errors in consuming code
+export const magicMcpGroupsLoader = null;
+export const useCreateMagicMcpGroup = () => {
+  throw new Error('magicMcp API has been removed in the new Provider API');
+};
+export const useMagicMcpGroups = () => {
+  throw new Error('magicMcp API has been removed in the new Provider API');
+};
+export const magicMcpGroupLoader = null;
+export const useMagicMcpGroup = () => {
+  throw new Error('magicMcp API has been removed in the new Provider API');
 };

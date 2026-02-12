@@ -1,4 +1,5 @@
-import { DashboardInstanceProviderOauthConnectionsEventsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+/*
+import { DashboardInstanceProviderOauthConnectionsEventsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -66,4 +67,19 @@ export let useProviderConnectionEvent = (
   return {
     ...data
   };
+};
+*/
+
+// Placeholder exports to prevent import errors in consuming code
+export const providerConnectionEventsLoader = null;
+export const useProviderConnectionEvents = () => {
+  throw new Error(
+    'providerOauth.connections.events API has been removed in the new Provider API'
+  );
+};
+export const providerConnectionEventLoader = null;
+export const useProviderConnectionEvent = () => {
+  throw new Error(
+    'providerOauth.connections.events API has been removed in the new Provider API'
+  );
 };

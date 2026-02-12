@@ -1,74 +1,34 @@
-import {
-  DashboardInstanceMagicMcpServersCreateBody,
-  DashboardInstanceMagicMcpServersListQuery,
-  DashboardInstanceMagicMcpServersUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
-import { createLoader } from '@metorial/data-hooks';
-import { usePaginator } from '../../lib/usePaginator';
-import { withAuth } from '../../user';
-
-export let magicMcpServersLoader = createLoader({
-  name: 'magicMcpServers',
-  parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceMagicMcpServersListQuery) =>
-    withAuth(sdk => sdk.magicMcp.servers.list(i.instanceId, i)),
-  mutators: {}
-});
-
-export let useCreateMagicMcpServer = magicMcpServersLoader.createExternalMutator(
-  (i: DashboardInstanceMagicMcpServersCreateBody & { instanceId: string }) =>
-    withAuth(sdk => sdk.magicMcp.servers.create(i.instanceId, i)),
-  {
-    disableToast: true
-  }
-);
-
-export let useMagicMcpServers = (
-  instanceId: string | null | undefined,
-  query?: DashboardInstanceMagicMcpServersListQuery
-) => {
-  let data = usePaginator(pagination =>
-    magicMcpServersLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
-  );
-
-  return data;
-};
-
-export let magicMcpServerLoader = createLoader({
-  name: 'magicMcpServer',
-  parents: [magicMcpServersLoader],
-  fetch: (i: { instanceId: string; magicMcpServerId: string }) =>
-    withAuth(sdk => sdk.magicMcp.servers.get(i.instanceId, i.magicMcpServerId)),
-  mutators: {
-    update: (
-      i: DashboardInstanceMagicMcpServersUpdateBody,
-      { input: { instanceId, magicMcpServerId } }
-    ) => withAuth(sdk => sdk.magicMcp.servers.update(instanceId, magicMcpServerId, i)),
-
-    delete: (_, { input: { instanceId, magicMcpServerId } }) =>
-      withAuth(sdk => sdk.magicMcp.servers.delete(instanceId, magicMcpServerId))
-  }
-});
-
-export let useMagicMcpServer = (
-  instanceId: string | null | undefined,
-  magicMcpServerId: string | null | undefined
-) => {
-  let data = magicMcpServerLoader.use(
-    instanceId && magicMcpServerId ? { instanceId, magicMcpServerId } : null
-  );
-
+// TODO: Wire up MagicMcp endpoints in @metorial/dashboard-sdk when available
+export const magicMcpServersLoader = null;
+export const useCreateMagicMcpServer = (_opts?: any) => {
   return {
-    ...data,
-    useUpdateMutator: data.useMutator('update'),
-    useDeleteMutator: data.useMutator('delete')
+    mutate: () => Promise.reject(new Error('magicMcp API is not yet available in the SDK'))
   };
 };
-
-export let updateMagicMcpServer = (
-  body: DashboardInstanceMagicMcpServersUpdateBody & {
-    instanceId: string;
-    magicMcpServerId: string;
-  }
-) =>
-  withAuth(sdk => sdk.magicMcp.servers.update(body.instanceId, body.magicMcpServerId, body));
+export const useMagicMcpServers = (_instanceId?: string | null, _query?: any) => {
+  return {
+    data: { items: [] as any[], pagination: { hasMoreBefore: false, hasMoreAfter: false } },
+    isLoading: false,
+    error: null as any
+  };
+};
+export const magicMcpServerLoader = null;
+export const useMagicMcpServer = (
+  _instanceId?: string | null,
+  _magicMcpServerId?: string | null
+) => {
+  return {
+    data: null,
+    isLoading: false,
+    error: null as any,
+    useUpdateMutator: () => ({
+      mutate: () => Promise.reject(new Error('magicMcp API is not yet available'))
+    }),
+    useDeleteMutator: () => ({
+      mutate: () => Promise.reject(new Error('magicMcp API is not yet available'))
+    })
+  };
+};
+export const updateMagicMcpServer = (_body?: any) => {
+  return Promise.reject(new Error('magicMcp API is not yet available in the SDK'));
+};

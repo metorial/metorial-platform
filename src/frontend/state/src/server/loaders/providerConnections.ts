@@ -1,8 +1,9 @@
+/*
 import {
   DashboardInstanceProviderOauthConnectionsCreateBody,
   DashboardInstanceProviderOauthConnectionsListQuery,
   DashboardInstanceProviderOauthConnectionsUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -84,4 +85,18 @@ export let useProviderConnection = (
     useDeleteMutator: data.useMutator('delete'),
     useTestMutator: data.useMutator('test')
   };
+};
+*/
+
+// Placeholder exports to prevent import errors in consuming code
+export const providerConnectionsLoader = null;
+export const useCreateProviderConnection = () => {
+  throw new Error('providerOauth.connections API has been removed in the new Provider API');
+};
+export const useProviderConnections = () => {
+  throw new Error('providerOauth.connections API has been removed in the new Provider API');
+};
+export const providerConnectionLoader = null;
+export const useProviderConnection = () => {
+  throw new Error('providerOauth.connections API has been removed in the new Provider API');
 };

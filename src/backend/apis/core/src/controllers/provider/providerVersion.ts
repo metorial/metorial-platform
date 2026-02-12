@@ -3,7 +3,6 @@ import { subspaceProviderVersionService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerVersionPresenter } from '../../presenters';
 import { SubspaceVersion } from '../../presenters/types';
@@ -40,7 +39,6 @@ export let providerVersionController = Controller.create(
         description: 'Returns a paginated list of provider versions.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerVersionPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -68,7 +66,6 @@ export let providerVersionController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerVersionPresenter)
       .do(async ctx => {
         return providerVersionPresenter.present({ version: ctx.version });

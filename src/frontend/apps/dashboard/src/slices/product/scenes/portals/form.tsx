@@ -4,7 +4,7 @@ import { Button, Input, Spacer } from '@metorial/ui';
 
 export let PortalForm = ({ portalId }: { portalId: string }) => {
   let instance = useCurrentInstance();
-  let portal = usePortal(instance.data?.id, portalId);
+  let portal = usePortal(instance.data?.instanceId, portalId);
   let update = portal.useUpdateMutator();
 
   let form = useForm({

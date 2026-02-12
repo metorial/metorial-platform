@@ -1,3 +1,4 @@
+/*
 import { createLoader } from '@metorial/data-hooks';
 import { withAuth } from '../../user';
 
@@ -20,4 +21,11 @@ export let useCustomServerCodeEditorToken = (
   return {
     ...data
   };
+};
+*/
+
+// Placeholder exports to prevent import errors in consuming code
+export const customServerCodeEditorTokenLoader = null;
+export const useCustomServerCodeEditorToken = () => {
+  throw new Error('customServers.code API has been removed in the new Provider API');
 };

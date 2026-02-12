@@ -1,4 +1,4 @@
-import { DashboardInstanceCustomServersUpdateBody } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { OrganizationsProfileUpdateBody } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { withAuth } from '../../user';
 
@@ -7,7 +7,7 @@ export let profileLoader = createLoader({
   parents: [],
   fetch: (i: { organizationId: string }) => withAuth(sdk => sdk.profile.get(i.organizationId)),
   mutators: {
-    update: (i: DashboardInstanceCustomServersUpdateBody, { input: { organizationId } }) =>
+    update: (i: OrganizationsProfileUpdateBody, { input: { organizationId } }) =>
       withAuth(sdk => sdk.profile.update(organizationId, i))
   }
 });

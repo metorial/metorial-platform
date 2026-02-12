@@ -1,41 +1,67 @@
-import { DashboardInstanceServerRunErrorsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import {
+  DashboardInstanceSessionErrorsListQuery,
+  DashboardInstanceSessionsErrorsListQuery
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
-export let serverRunErrorsLoader = createLoader({
-  name: 'serverRunErrors',
+// Instance-level session errors (cross-session)
+export let allSessionErrorsLoader = createLoader({
+  name: 'allSessionErrors',
   parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceServerRunErrorsListQuery) =>
-    withAuth(sdk => sdk.servers.errors.list(i.instanceId, i)),
+  fetch: (i: { instanceId: string } & DashboardInstanceSessionErrorsListQuery) =>
+    withAuth(sdk => sdk.sessionErrors.list(i.instanceId, i)),
   mutators: {}
 });
 
-export let useServerRunErrors = (
+export let useAllSessionErrors = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceServerRunErrorsListQuery
+  query?: DashboardInstanceSessionErrorsListQuery
 ) => {
   let data = usePaginator(pagination =>
-    serverRunErrorsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
+    allSessionErrorsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
   );
 
   return data;
 };
 
-export let serverRunErrorLoader = createLoader({
-  name: 'serverRunError',
+// Session-scoped errors
+export let sessionErrorsLoader = createLoader({
+  name: 'sessionErrors',
   parents: [],
-  fetch: (i: { instanceId: string; serverRunErrorId: string }) =>
-    withAuth(sdk => sdk.servers.errors.get(i.instanceId, i.serverRunErrorId)),
+  fetch: (i: { instanceId: string; sessionId: string } & DashboardInstanceSessionsErrorsListQuery) =>
+    withAuth(sdk => sdk.sessions.errors.list(i.instanceId, i.sessionId, i)),
   mutators: {}
 });
 
-export let useServerRunError = (
+export let useSessionErrors = (
   instanceId: string | null | undefined,
-  serverRunErrorId: string | null | undefined
+  sessionId: string | null | undefined,
+  query?: DashboardInstanceSessionsErrorsListQuery
 ) => {
-  let data = serverRunErrorLoader.use(
-    instanceId && serverRunErrorId ? { instanceId, serverRunErrorId } : null
+  let data = usePaginator(pagination =>
+    sessionErrorsLoader.use(instanceId && sessionId ? { instanceId, sessionId, ...pagination, ...query } : null)
+  );
+
+  return data;
+};
+
+export let sessionErrorLoader = createLoader({
+  name: 'sessionError',
+  parents: [],
+  fetch: (i: { instanceId: string; sessionId: string; sessionErrorId: string }) =>
+    withAuth(sdk => sdk.sessions.errors.get(i.instanceId, i.sessionId, i.sessionErrorId)),
+  mutators: {}
+});
+
+export let useSessionError = (
+  instanceId: string | null | undefined,
+  sessionId: string | null | undefined,
+  sessionErrorId: string | null | undefined
+) => {
+  let data = sessionErrorLoader.use(
+    instanceId && sessionId && sessionErrorId ? { instanceId, sessionId, sessionErrorId } : null
   );
 
   return data;

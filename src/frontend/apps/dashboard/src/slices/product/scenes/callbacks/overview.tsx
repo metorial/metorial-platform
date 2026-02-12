@@ -6,7 +6,7 @@ import { UsageScene } from '../usage/usage';
 
 export let CallbackOverview = (p: { callbackId: string | undefined }) => {
   let instance = useCurrentInstance();
-  let callback = useCallback(instance.data?.id, p.callbackId);
+  let callback = useCallback(instance.data?.instanceId, p.callbackId);
 
   return renderWithLoader({ callback })(({ callback }) => (
     <>

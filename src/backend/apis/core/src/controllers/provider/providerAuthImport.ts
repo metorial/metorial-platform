@@ -5,7 +5,6 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthImportPresenter, authImportSchemaPresenter } from '../../presenters';
 import { SubspaceAuthImport, SubspaceAuthImportSchema } from '../../presenters/types';
@@ -52,7 +51,6 @@ export let providerAuthImportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerAuthImportPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -82,7 +80,6 @@ export let providerAuthImportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerAuthImportPresenter)
       .do(async ctx => {
         return providerAuthImportPresenter.present({ authImport: ctx.authImport });
@@ -100,7 +97,6 @@ export let providerAuthImportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -172,7 +168,6 @@ export let providerAuthImportController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(authImportSchemaPresenter)
       .do(async ctx => {
         let schema = await subspaceProviderAuthImportService.getSchema({

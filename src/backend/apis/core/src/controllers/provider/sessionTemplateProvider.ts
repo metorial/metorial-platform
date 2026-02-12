@@ -10,7 +10,6 @@ import {
   deploymentValidator
 } from '../../lib/providerValidators';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { sessionTemplateProviderPresenter } from '../../presenters';
 import { SubspaceSessionTemplateProvider } from '../../presenters/types';
@@ -54,7 +53,6 @@ export let sessionTemplateProviderController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(sessionTemplateProviderPresenter)
       .query(
         'default',
@@ -91,7 +89,6 @@ export let sessionTemplateProviderController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(sessionTemplateProviderPresenter)
       .do(async ctx => {
         return sessionTemplateProviderPresenter.present({
@@ -111,7 +108,6 @@ export let sessionTemplateProviderController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -157,7 +153,6 @@ export let sessionTemplateProviderController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -203,7 +198,6 @@ export let sessionTemplateProviderController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(sessionTemplateProviderPresenter)
       .do(async ctx => {
         await subspaceSessionTemplateProviderService.delete({

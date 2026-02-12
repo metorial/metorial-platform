@@ -1,4 +1,5 @@
-import { DashboardInstanceMagicMcpSessionsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+/*
+import { DashboardInstanceMagicMcpSessionsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -39,4 +40,15 @@ export let useMagicMcpSession = (
   );
 
   return data;
+};
+*/
+
+// Placeholder exports to prevent import errors in consuming code
+export const magicMcpSessionsLoader = null;
+export const useMagicMcpSessions = () => {
+  throw new Error('magicMcp API has been removed in the new Provider API');
+};
+export const magicMcpSessionLoader = null;
+export const useMagicMcpSession = () => {
+  throw new Error('magicMcp API has been removed in the new Provider API');
 };

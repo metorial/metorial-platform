@@ -137,7 +137,15 @@ import {
   v1SubspaceSessionEventPresenter,
   v1ProviderRunLogsPresenter,
   v1ConfigSchemaPresenter,
-  v1AuthImportSchemaPresenter
+  v1AuthImportSchemaPresenter,
+  // Custom Provider presenters
+  v1CustomProviderPresenter,
+  v1CustomProviderVersionPresenter,
+  v1CustomProviderDeploymentPresenter,
+  v1CustomProviderDeploymentLogsPresenter,
+  v1CustomProviderCommitPresenter,
+  v1CustomProviderEnvironmentPresenter,
+  v1ProviderOAuthSetupPresenter
 } from './implementation/provider';
 
 import {
@@ -258,7 +266,15 @@ import {
   subspaceSessionEventType,
   providerRunLogsType,
   configSchemaType,
-  authImportSchemaType
+  authImportSchemaType,
+  // Custom Provider types
+  customProviderType,
+  customProviderVersionType,
+  customProviderDeploymentType,
+  customProviderDeploymentLogsType,
+  customProviderCommitType,
+  customProviderEnvironmentType,
+  providerOAuthSetupType
 } from './types';
 
 // =============================================================================
@@ -1114,4 +1130,66 @@ export let authImportSchemaPresenter = declarePresenter(authImportSchemaType, {
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
   mt_2026_02_01_magnetar: v1AuthImportSchemaPresenter,
   mt_2026_02_01_dashboard: v1AuthImportSchemaPresenter
+});
+
+// =============================================================================
+// Custom Provider Presenters (available in magnetar only)
+// =============================================================================
+
+export let subspaceCustomProviderPresenter = declarePresenter(customProviderType, {
+  mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+  mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+  mt_2026_02_01_magnetar: v1CustomProviderPresenter,
+  mt_2026_02_01_dashboard: v1CustomProviderPresenter
+});
+
+export let subspaceCustomProviderVersionPresenter = declarePresenter(customProviderVersionType, {
+  mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+  mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+  mt_2026_02_01_magnetar: v1CustomProviderVersionPresenter,
+  mt_2026_02_01_dashboard: v1CustomProviderVersionPresenter
+});
+
+export let subspaceCustomProviderDeploymentPresenter = declarePresenter(
+  customProviderDeploymentType,
+  {
+    mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+    mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+    mt_2026_02_01_magnetar: v1CustomProviderDeploymentPresenter,
+    mt_2026_02_01_dashboard: v1CustomProviderDeploymentPresenter
+  }
+);
+
+export let subspaceCustomProviderDeploymentLogsPresenter = declarePresenter(
+  customProviderDeploymentLogsType,
+  {
+    mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+    mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+    mt_2026_02_01_magnetar: v1CustomProviderDeploymentLogsPresenter,
+    mt_2026_02_01_dashboard: v1CustomProviderDeploymentLogsPresenter
+  }
+);
+
+export let subspaceCustomProviderCommitPresenter = declarePresenter(customProviderCommitType, {
+  mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+  mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+  mt_2026_02_01_magnetar: v1CustomProviderCommitPresenter,
+  mt_2026_02_01_dashboard: v1CustomProviderCommitPresenter
+});
+
+export let subspaceCustomProviderEnvironmentPresenter = declarePresenter(
+  customProviderEnvironmentType,
+  {
+    mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+    mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+    mt_2026_02_01_magnetar: v1CustomProviderEnvironmentPresenter,
+    mt_2026_02_01_dashboard: v1CustomProviderEnvironmentPresenter
+  }
+);
+
+export let subspaceProviderOAuthSetupPresenter = declarePresenter(providerOAuthSetupType, {
+  mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+  mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+  mt_2026_02_01_magnetar: v1ProviderOAuthSetupPresenter,
+  mt_2026_02_01_dashboard: v1ProviderOAuthSetupPresenter
 });

@@ -6,7 +6,7 @@ export let SessionPage = () => {
   let instance = useCurrentInstance();
 
   let { sessionId } = useParams();
-  let session = useSession(instance.data?.id, sessionId);
+  let session = useSession(instance.data?.instanceId, sessionId);
 
   return <SessionEvents session={session.data} />;
 };

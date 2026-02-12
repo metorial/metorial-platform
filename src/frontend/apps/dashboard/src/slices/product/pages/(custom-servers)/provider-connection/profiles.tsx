@@ -10,7 +10,7 @@ export let ProviderConnectionProfilesPage = () => {
   let instance = useCurrentInstance();
 
   let { providerConnectionId } = useParams();
-  let providerConnection = useProviderConnection(instance.data?.id, providerConnectionId);
+  let providerConnection = useProviderConnection(instance.data?.instanceId, providerConnectionId);
 
   return renderWithLoader({ providerConnection })(({ providerConnection }) => (
     <>

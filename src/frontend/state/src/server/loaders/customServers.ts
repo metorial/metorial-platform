@@ -1,8 +1,9 @@
+/*
 import {
   DashboardInstanceCustomServersCreateBody,
   DashboardInstanceCustomServersListQuery,
   DashboardInstanceCustomServersUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -60,4 +61,18 @@ export let useCustomServer = (
     useUpdateMutator: data.useMutator('update'),
     useDeleteMutator: data.useMutator('delete')
   };
+};
+*/
+
+// Placeholder exports to prevent import errors in consuming code
+export const customServersLoader = null;
+export const useCreateCustomServer = () => {
+  throw new Error('customServers API has been removed in the new Provider API');
+};
+export const useCustomServers = () => {
+  throw new Error('customServers API has been removed in the new Provider API');
+};
+export const customServerLoader = null;
+export const useCustomServer = () => {
+  throw new Error('customServers API has been removed in the new Provider API');
 };

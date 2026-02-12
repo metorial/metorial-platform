@@ -3,10 +3,11 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type CallbacksEventsGetOutput = {
   object: 'callback.event';
   id: string;
-  type: string | null;
   status: 'pending' | 'succeeded' | 'retrying' | 'failed';
+  type: string | null;
   payloadIncoming: string;
   payloadOutgoing: string | null;
+  createdAt: Date;
   processingAttempts: {
     object: 'callback.event.attempt';
     id: string;
@@ -16,17 +17,17 @@ export type CallbacksEventsGetOutput = {
     errorMessage: string | null;
     createdAt: Date;
   }[];
-  createdAt: Date;
 };
 
 export let mapCallbacksEventsGetOutput = mtMap.object<CallbacksEventsGetOutput>(
   {
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
-    type: mtMap.objectField('type', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
+    type: mtMap.objectField('type', mtMap.passthrough()),
     payloadIncoming: mtMap.objectField('payload_incoming', mtMap.passthrough()),
     payloadOutgoing: mtMap.objectField('payload_outgoing', mtMap.passthrough()),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
     processingAttempts: mtMap.objectField(
       'processing_attempts',
       mtMap.array(
@@ -40,8 +41,7 @@ export let mapCallbacksEventsGetOutput = mtMap.object<CallbacksEventsGetOutput>(
           createdAt: mtMap.objectField('created_at', mtMap.date())
         })
       )
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
+    )
   }
 );
 

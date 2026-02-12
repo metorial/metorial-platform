@@ -1,4 +1,5 @@
-import { DashboardInstanceProviderOauthConnectionsAuthenticationsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+/*
+import { DashboardInstanceProviderOauthConnectionsAuthenticationsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -70,4 +71,19 @@ export let useProviderConnectionAuthentication = (
   return {
     ...data
   };
+};
+*/
+
+// Placeholder exports to prevent import errors in consuming code
+export const providerConnectionAuthenticationsLoader = null;
+export const useProviderConnectionAuthentications = () => {
+  throw new Error(
+    'providerOauth.connections.authentications API has been removed in the new Provider API'
+  );
+};
+export const providerConnectionAuthenticationLoader = null;
+export const useProviderConnectionAuthentication = () => {
+  throw new Error(
+    'providerOauth.connections.authentications API has been removed in the new Provider API'
+  );
 };

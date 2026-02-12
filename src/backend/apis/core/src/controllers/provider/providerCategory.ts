@@ -4,7 +4,6 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerCategoryPresenter } from '../../presenters';
 import { SubspaceCategory } from '../../presenters/types';
@@ -39,7 +38,6 @@ export let providerCategoryController = Controller.create(
         description: 'Returns a paginated list of provider categories.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerCategoryPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -60,7 +58,6 @@ export let providerCategoryController = Controller.create(
         description: 'Retrieves a specific provider category by ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerCategoryPresenter)
       .do(async ctx => {
         return providerCategoryPresenter.present({ category: ctx.category });

@@ -1,81 +1,40 @@
-import {
-  DashboardInstanceMagicMcpTokensCreateBody,
-  DashboardInstanceMagicMcpTokensListQuery,
-  DashboardInstanceMagicMcpTokensUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
-import { createLoader } from '@metorial/data-hooks';
-import { usePaginator } from '../../lib/usePaginator';
-import { withAuth } from '../../user';
-
-export let magicMcpTokensLoader = createLoader({
-  name: 'magicMcpTokens',
-  parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceMagicMcpTokensListQuery) =>
-    withAuth(sdk => sdk.magicMcp.tokens.list(i.instanceId, i)),
-  mutators: {
-    update: (
-      i: DashboardInstanceMagicMcpTokensUpdateBody & {
-        magicMcpTokenId: string;
-      },
-      { input: { instanceId } }
-    ) => withAuth(sdk => sdk.magicMcp.tokens.update(instanceId, i.magicMcpTokenId, i)),
-
-    delete: (i: { magicMcpTokenId: string }, { input: { instanceId } }) =>
-      withAuth(sdk => sdk.magicMcp.tokens.delete(instanceId, i.magicMcpTokenId))
-  }
-});
-
-export let useCreateMagicMcpToken = magicMcpTokensLoader.createExternalMutator(
-  (i: DashboardInstanceMagicMcpTokensCreateBody & { instanceId: string }) =>
-    withAuth(sdk => sdk.magicMcp.tokens.create(i.instanceId, i)),
-  {
-    disableToast: true
-  }
-);
-
-export let useMagicMcpTokens = (
-  instanceId: string | null | undefined,
-  query?: DashboardInstanceMagicMcpTokensListQuery
-) => {
-  let data = usePaginator(pagination =>
-    magicMcpTokensLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
-  );
-
+// TODO: Wire up MagicMcp endpoints in @metorial/dashboard-sdk when available
+export const magicMcpTokensLoader = null;
+export const useCreateMagicMcpToken = (_opts?: any) => {
   return {
-    ...data,
-    createMutator: useCreateMagicMcpToken,
-    revokeMutator: data.useMutator('delete'),
-    updateMutator: data.useMutator('update')
+    mutate: () => Promise.reject(new Error('magicMcp API is not yet available in the SDK'))
   };
 };
-
-export let magicMcpTokenLoader = createLoader({
-  name: 'magicMcpToken',
-  parents: [magicMcpTokensLoader],
-  fetch: (i: { instanceId: string; magicMcpTokenId: string }) =>
-    withAuth(sdk => sdk.magicMcp.tokens.get(i.instanceId, i.magicMcpTokenId)),
-  mutators: {
-    update: (
-      i: DashboardInstanceMagicMcpTokensUpdateBody,
-      { input: { instanceId, magicMcpTokenId } }
-    ) => withAuth(sdk => sdk.magicMcp.tokens.update(instanceId, magicMcpTokenId, i)),
-
-    delete: (_, { input: { instanceId, magicMcpTokenId } }) =>
-      withAuth(sdk => sdk.magicMcp.tokens.delete(instanceId, magicMcpTokenId))
-  }
-});
-
-export let useMagicMcpToken = (
-  instanceId: string | null | undefined,
-  magicMcpTokenId: string | null | undefined
-) => {
-  let data = magicMcpTokenLoader.use(
-    instanceId && magicMcpTokenId ? { instanceId, magicMcpTokenId } : null
-  );
-
+export const useMagicMcpTokens = (_instanceId?: string | null, _query?: any) => {
   return {
-    ...data,
-    useUpdateMutator: data.useMutator('update'),
-    useDeleteMutator: data.useMutator('delete')
+    data: { items: [] as any[], pagination: { hasMoreBefore: false, hasMoreAfter: false } },
+    isLoading: false,
+    error: null as any,
+    createMutator: {
+      mutate: () => Promise.reject(new Error('magicMcp API is not yet available'))
+    },
+    revokeMutator: () => ({
+      mutate: () => Promise.reject(new Error('magicMcp API is not yet available'))
+    }),
+    updateMutator: () => ({
+      mutate: () => Promise.reject(new Error('magicMcp API is not yet available'))
+    })
+  };
+};
+export const magicMcpTokenLoader = null;
+export const useMagicMcpToken = (
+  _instanceId?: string | null,
+  _magicMcpTokenId?: string | null
+) => {
+  return {
+    data: null,
+    isLoading: false,
+    error: null as any,
+    useUpdateMutator: () => ({
+      mutate: () => Promise.reject(new Error('magicMcp API is not yet available'))
+    }),
+    useDeleteMutator: () => ({
+      mutate: () => Promise.reject(new Error('magicMcp API is not yet available'))
+    })
   };
 };

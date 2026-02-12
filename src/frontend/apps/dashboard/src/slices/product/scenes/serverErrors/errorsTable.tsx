@@ -1,13 +1,13 @@
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { DashboardInstanceServerRunErrorsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
-import { useCurrentInstance, useServerRunErrors } from '@metorial/state';
+import { DashboardInstanceServerRunErrorsListQuery } from '@metorial/generated/src/mt_2026_02_01_dashboard';
+import { useCurrentInstance, useSessionErrors } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
 export let ServerErrorsTable = (filter: DashboardInstanceServerRunErrorsListQuery) => {
   let instance = useCurrentInstance();
-  let errors = useServerRunErrors(instance.data?.id, filter);
+  let errors = useSessionErrors(instance.data?.instanceId, filter);
 
   return renderWithPagination(errors)(errors => (
     <>
@@ -26,7 +26,7 @@ export let ServerErrorsTable = (filter: DashboardInstanceServerRunErrorsListQuer
             </Text>,
             <RenderDate date={error.createdAt} />
           ],
-          href: Paths.instance.serverRun(
+          href: Paths.instance.providerRun(
             instance.data?.organization,
             instance.data?.project,
             instance.data,
@@ -37,7 +37,7 @@ export let ServerErrorsTable = (filter: DashboardInstanceServerRunErrorsListQuer
 
       {errors.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No server errors found.
+          No provider errors found.
         </Text>
       )}
     </>

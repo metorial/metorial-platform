@@ -5,7 +5,6 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerPresenter } from '../../presenters';
 import { SubspaceProvider } from '../../presenters/types';
@@ -41,7 +40,6 @@ export let providerController = Controller.create(
         description: 'Returns a paginated list of providers.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerPresenter)
       .query(
         'default',
@@ -72,7 +70,6 @@ export let providerController = Controller.create(
         description: 'Retrieves a specific provider by ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerPresenter)
       .do(async ctx => {
         return providerPresenter.present({ provider: ctx.provider });
@@ -84,7 +81,6 @@ export let providerController = Controller.create(
         description: 'Updates a provider.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({

@@ -17,7 +17,7 @@ import {
 } from '../resources';
 
 /**
- * @name Custom Server controller
+ * @name Custom Server Version controller
  * @description Manager custom server versions
  *
  * @see https://metorial.com/api

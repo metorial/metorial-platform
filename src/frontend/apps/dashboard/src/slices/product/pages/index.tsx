@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, createInstance, PageHeader } from '@metorial/layout';
-import { useBoot, useCurrentInstance, useServerDeployments, useUser } from '@metorial/state';
+import { useBoot, useCurrentInstance, useProviderDeployments, useUser } from '@metorial/state';
 import { Button, Spacer } from '@metorial/ui';
 import { SideBox } from '@metorial/ui-product';
 import { Link } from 'react-router-dom';
@@ -17,7 +17,7 @@ export let ProjectHomePage = () => {
 
   let boot = useBoot();
   let otherInstancesFromThisProject = boot.data?.instances.filter(
-    i => i.project.id == instance.data?.project.id && i.id != instance.data?.id
+    i => i.project.id == instance.data?.project.id && i.id != instance.data?.instanceId
   );
   let otherProductionInstance = otherInstancesFromThisProject?.find(
     i => i.type == 'production'
@@ -26,7 +26,7 @@ export let ProjectHomePage = () => {
     i => i.type == 'development'
   );
 
-  let deployments = useServerDeployments(instance.data?.id, {
+  let deployments = useProviderDeployments(instance.data?.instanceId, {
     limit: 1
   });
   let hasDeployments = !!deployments.data?.items.length;
@@ -35,7 +35,7 @@ export let ProjectHomePage = () => {
     instance.data
       ? {
           type: 'instance_access_token',
-          instanceId: instance.data.id
+          instanceId: instance.data.instanceId
         }
       : undefined
   );
@@ -71,16 +71,16 @@ export let ProjectHomePage = () => {
                 description={
                   <>
                     Getting started is super easy. Let's begin by{' '}
-                    <Link to={Paths.instance.servers(...pathItems)}>
-                      deploying your first MCP server
+                    <Link to={Paths.instance.providers(...pathItems)}>
+                      deploying your first MCP provider
                     </Link>
                     .
                   </>
                 }
               >
-                <Link to={Paths.instance.servers(...pathItems)}>
+                <Link to={Paths.instance.providers(...pathItems)}>
                   <Button as="span" size="2">
-                    Deploy Server
+                    Deploy Provider
                   </Button>
                 </Link>
               </SideBox>
@@ -212,8 +212,8 @@ export let ProjectHomePage = () => {
           <Spacer height={10} />
 
           <PageHeader
-            title="Featured Servers"
-            description="Explore some of the most popular servers in the Metorial community."
+            title="Featured Providers"
+            description="Explore some of the most popular providers in the Metorial community."
             size="5"
           />
 
@@ -237,7 +237,7 @@ export let ProjectHomePage = () => {
 
       <Explainer
         title="Welcome to Metorial"
-        description="Head to the servers page to deploy your first MCP server."
+        description="Head to the providers page to deploy your first MCP provider."
         youtubeId="1QAFqyxSX5E"
         id="home"
       />

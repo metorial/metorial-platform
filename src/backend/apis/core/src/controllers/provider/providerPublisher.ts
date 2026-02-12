@@ -4,7 +4,6 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { publisherPresenter } from '../../presenters';
 import { SubspacePublisher } from '../../presenters/types';
@@ -40,7 +39,6 @@ export let providerPublisherController = Controller.create(
         description: 'Returns a paginated list of publishers.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(publisherPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -61,7 +59,6 @@ export let providerPublisherController = Controller.create(
         description: 'Retrieves a specific publisher by ID.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(publisherPresenter)
       .do(async ctx => {
         return publisherPresenter.present({ publisher: ctx.publisher });

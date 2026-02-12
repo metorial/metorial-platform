@@ -2,7 +2,7 @@ import {
   DashboardInstanceMagicMcpServersCreateOutput,
   ServersGetOutput
 } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
-import { ServersDeploymentsTemplatesGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { ServersDeploymentsTemplatesGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { useForm } from '@metorial/data-hooks';
 import { Button, Dialog, Entity, Input, Panel, showModal, Spacer } from '@metorial/ui';
 import { Fragment, useState } from 'react';
@@ -181,12 +181,12 @@ export let deployServer = async ({
   template: ServersDeploymentsTemplatesGetOutput;
   onComplete?: (magicMcpServer: DashboardInstanceMagicMcpServersCreateOutput) => void;
 }) => {
-  let variant = server.variants[0];
-  if (!variant) return;
+  let currentVersion = server.currentVersion;
+  if (!currentVersion) return;
 
   let serverNeedsConfig =
-    variant?.currentVersion?.schema &&
-    Object.entries(variant?.currentVersion?.schema?.properties ?? {}).length > 0;
+    currentVersion?.schema &&
+    Object.entries(currentVersion?.schema?.properties ?? {}).length > 0;
 
   let doDeployServer = async (config?: any) => {
     let [magicMcpServer] = await createMagicMcpServer({
@@ -226,7 +226,7 @@ export let deployServer = async ({
 
           <JsonSchemaInput
             label="Config"
-            schema={variant?.currentVersion?.schema ?? {}}
+            schema={currentVersion?.schema ?? {}}
             value={config}
             onChange={v => setConfig(v)}
             variant="raw"

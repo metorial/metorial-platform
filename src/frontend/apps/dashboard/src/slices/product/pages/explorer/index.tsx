@@ -1,17 +1,27 @@
-import { ServersListingsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance, useServerDeployments, useServerListing } from '@metorial/state';
-import { Button, Flex, Spacer, Tabs, Text, theme } from '@metorial/ui';
+import {
+  useCreateProviderDeployment,
+  useCurrentInstance,
+  useProvider,
+  useProviderDeployments
+} from '@metorial/state';
+import { Button, Flex, Input, Spacer, Tabs, Text, theme } from '@metorial/ui';
 import { RiArrowLeftLine, RiArrowRightLine, RiCloseLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { ServerDeploymentForm } from '../../scenes/serverDeployments/form';
-import { ServerDeploymentsList } from '../../scenes/serverDeployments/table';
-import { ServerSearch } from '../../scenes/servers/search';
-import { InspectorFrame } from './inspector';
 import { Explainer } from '../../../../components/explainer';
+import { ProviderDeploymentsList } from '../../scenes/providerDeployments/list';
+import { ProviderSearch } from '../../scenes/providers/search';
+import { InspectorFrame } from './inspector';
+
+type Provider = {
+  id: string;
+  name: string | null;
+  slug: string | null;
+  description: string | null;
+};
 
 let Wrapper = styled.div`
   display: flex;
@@ -72,64 +82,103 @@ let Open = styled.button`
   }
 `;
 
-let Servers = styled.div`
+let Providers = styled.div`
   padding: 20px;
+`;
+
+let CreateForm = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding-top: 15px;
 `;
 
 export let ExplorerPage = () => {
   let [open, setOpen] = useState(true);
 
-  let [serverTab, setServerTab] = useState<'create' | 'list'>('create');
-  let [serverDeploymentId, setServerDeploymentId] = useState<string | null>(null);
+  let [providerTab, setProviderTab] = useState<'create' | 'list'>('create');
+  let [providerDeploymentId, setProviderDeploymentId] = useState<string | null>(null);
 
   let instance = useCurrentInstance();
 
   let [search, setSearch] = useSearchParams();
-  let serverIdParam = search.get('server_id');
-  let serverDeploymentIdParam = search.get('server_deployment_id');
-  let serverImplementationIdParam = search.get('server_implementation_id');
+  let providerIdParam = search.get('provider_id');
+  let providerDeploymentIdParam = search.get('provider_deployment_id');
 
-  let server = useServerListing(instance.data?.id, serverIdParam);
-  let [selectedServer, _setSelectedServer] = useState<ServersListingsGetOutput | null>(null);
-  useEffect(() => _setSelectedServer(server.data), [server.data]);
+  let provider = useProvider(instance.data?.instanceId, providerIdParam ?? undefined);
+  let [selectedProvider, _setSelectedProvider] = useState<Provider | null>(null);
+  useEffect(() => {
+    if (provider.data) {
+      _setSelectedProvider(provider.data);
+    }
+  }, [provider.data]);
 
   useEffect(() => {
-    if (serverDeploymentIdParam) setServerDeploymentId(serverDeploymentIdParam);
-  }, [serverDeploymentIdParam]);
+    if (providerDeploymentIdParam) setProviderDeploymentId(providerDeploymentIdParam);
+  }, [providerDeploymentIdParam]);
 
   useEffect(() => {
-    if (serverDeploymentId) {
+    if (providerDeploymentId) {
       setOpen(false);
 
       setSearch(
         v => {
-          v.set('server_deployment_id', serverDeploymentId);
+          v.set('provider_deployment_id', providerDeploymentId);
           return v;
         },
         { replace: true }
       );
     }
-  }, [serverDeploymentId]);
+  }, [providerDeploymentId]);
 
-  let serverDeploymentsFilter = useMemo(
+  let deploymentsFilter = useMemo(
     () => ({
-      serverId: selectedServer ? [selectedServer.server.id] : undefined,
-      serverImplementationId: serverImplementationIdParam
-        ? [serverImplementationIdParam]
-        : undefined
+      providerId: selectedProvider ? [selectedProvider.id] : undefined
     }),
-    [selectedServer, serverImplementationIdParam]
+    [selectedProvider]
   );
 
-  let deployments = useServerDeployments(instance.data?.id, serverDeploymentsFilter);
+  let deployments = useProviderDeployments(instance.data?.instanceId, deploymentsFilter);
 
   useEffect(() => {
-    let deploymentsForCurrentServer = deployments.data?.items.filter(
-      d => d.server.id == (selectedServer?.server.id ?? serverIdParam)
+    let deploymentsForCurrentProvider = deployments.data?.items.filter(
+      d => d.providerId == (selectedProvider?.id ?? providerIdParam)
     );
 
-    if (!deployments.isLoading && deploymentsForCurrentServer?.length) setServerTab('list');
+    if (!deployments.isLoading && deploymentsForCurrentProvider?.length)
+      setProviderTab('list');
   }, [deployments.data, deployments.isLoading]);
+
+  let [deploymentName, setDeploymentName] = useState('');
+  let [deploymentDescription, setDeploymentDescription] = useState('');
+  let [isCreating, setIsCreating] = useState(false);
+  let [createError, setCreateError] = useState<string | null>(null);
+  let createMutation = useCreateProviderDeployment();
+
+  let handleCreateDeployment = async () => {
+    if (!instance.data || !selectedProvider || !deploymentName.trim()) return;
+
+    setIsCreating(true);
+    setCreateError(null);
+
+    let [result, err] = await createMutation.mutate({
+      instanceId: instance.data.instanceId,
+      name: deploymentName.trim(),
+      description: deploymentDescription.trim() || undefined,
+      provider_id: selectedProvider.id
+    });
+
+    setIsCreating(false);
+
+    if (err) {
+      console.error('Failed to create deployment:', err);
+      setCreateError(err.data?.message || 'Failed to create deployment');
+    } else if (result) {
+      setProviderDeploymentId(result.id);
+      setDeploymentName('');
+      setDeploymentDescription('');
+    }
+  };
 
   return (
     <Wrapper>
@@ -140,7 +189,9 @@ export let ExplorerPage = () => {
       >
         <AnimatePresence>
           <AsideInner
-            key={open ? (selectedServer ? 'select_deployment' : 'select_server') : 'closed'}
+            key={
+              open ? (selectedProvider ? 'select_deployment' : 'select_provider') : 'closed'
+            }
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -153,10 +204,10 @@ export let ExplorerPage = () => {
             )}
 
             {open && (
-              <Servers>
-                {!selectedServer && !serverIdParam && (
+              <Providers>
+                {!selectedProvider && !providerIdParam && (
                   <>
-                    {serverDeploymentId && (
+                    {providerDeploymentId && (
                       <>
                         <Button
                           iconLeft={<RiCloseLine />}
@@ -173,17 +224,17 @@ export let ExplorerPage = () => {
                     )}
 
                     <Text as="p" size="3" weight="strong" color="gray900">
-                      Select a server
+                      Select a provider
                     </Text>
 
                     <Spacer height={5} />
 
-                    <ServerSearch
-                      onSelect={server => {
-                        _setSelectedServer(server as any);
+                    <ProviderSearch
+                      onSelect={provider => {
+                        _setSelectedProvider(provider);
                         setSearch(
                           v => {
-                            v.set('server_id', server.id);
+                            v.set('provider_id', provider.id);
                             return v;
                           },
                           { replace: true }
@@ -193,14 +244,14 @@ export let ExplorerPage = () => {
                   </>
                 )}
 
-                {selectedServer &&
-                  renderWithLoader({ deployments, server })(() => (
+                {selectedProvider &&
+                  renderWithLoader({ deployments, provider })(() => (
                     <>
                       <Flex justify="space-between" align="center">
                         <Button
                           iconLeft={<RiArrowLeftLine />}
                           onClick={() => {
-                            _setSelectedServer(null);
+                            _setSelectedProvider(null);
                             setSearch(v => new URLSearchParams(), { replace: true });
                             setOpen(true);
                           }}
@@ -225,8 +276,11 @@ export let ExplorerPage = () => {
                       <Spacer height={10} />
 
                       <Text as="p" size="3" weight="strong" color="gray900">
-                        {serverTab == 'create' ? (
-                          <>Set up {selectedServer.name}</>
+                        {providerTab == 'create' ? (
+                          <>
+                            Set up{' '}
+                            {selectedProvider.name ?? selectedProvider.slug ?? 'Provider'}
+                          </>
                         ) : (
                           <>Choose a deployment</>
                         )}
@@ -239,76 +293,94 @@ export let ExplorerPage = () => {
                           { id: 'create', label: 'Create' },
                           { id: 'list', label: 'Your Deployments' }
                         ]}
-                        action={v => setServerTab(v as 'create' | 'list')}
-                        current={serverTab}
+                        action={v => setProviderTab(v as 'create' | 'list')}
+                        current={providerTab}
                       />
 
-                      {serverTab == 'create' && (
-                        <ServerDeploymentForm
-                          type="create"
-                          for={
-                            serverImplementationIdParam
-                              ? {
-                                  serverId: selectedServer.server.id,
-                                  serverImplementationId: serverImplementationIdParam
-                                }
-                              : {
-                                  serverId: selectedServer.server.id
-                                }
-                          }
-                          extraActions={
+                      {providerTab == 'create' && (
+                        <CreateForm>
+                          <Input
+                            label="Deployment Name"
+                            value={deploymentName}
+                            onChange={e => setDeploymentName(e.target.value)}
+                            placeholder="My Deployment"
+                            required
+                          />
+
+                          <Input
+                            label="Description"
+                            value={deploymentDescription}
+                            onChange={e => setDeploymentDescription(e.target.value)}
+                            placeholder="Optional description"
+                            as="textarea"
+                            minRows={2}
+                          />
+
+                          {createError && (
+                            <Text size="2" color="red">
+                              {createError}
+                            </Text>
+                          )}
+
+                          <Flex gap={10}>
                             <Button
                               type="button"
                               variant="outline"
                               size="2"
                               onClick={() => {
-                                _setSelectedServer(null);
+                                _setSelectedProvider(null);
                                 setSearch(v => new URLSearchParams(), { replace: true });
                                 setOpen(true);
                               }}
                             >
                               Back
                             </Button>
-                          }
-                          onCreate={deployment => {
-                            setServerDeploymentId(deployment.id);
-                          }}
-                        />
+                            <Button
+                              type="button"
+                              size="2"
+                              onClick={handleCreateDeployment}
+                              loading={isCreating}
+                              disabled={!deploymentName.trim()}
+                            >
+                              Create & Connect
+                            </Button>
+                          </Flex>
+                        </CreateForm>
                       )}
 
-                      {serverTab == 'list' && (
-                        <ServerDeploymentsList
-                          {...serverDeploymentsFilter}
+                      {providerTab == 'list' && (
+                        <ProviderDeploymentsList
+                          providerId={selectedProvider.id}
                           order="desc"
                           onDeploymentClick={deployment => {
                             setOpen(false);
-                            setServerDeploymentId(deployment.id);
+                            setProviderDeploymentId(deployment.id);
                           }}
                         />
                       )}
                     </>
                   ))}
-              </Servers>
+              </Providers>
             )}
           </AsideInner>
         </AnimatePresence>
       </Aside>
 
       <Main>
-        {!serverDeploymentId && (
+        {!providerDeploymentId && (
           <MainEmpty>
-            <p>Click on a server to start</p>
+            <p>Click on a provider to start</p>
           </MainEmpty>
         )}
 
-        {serverDeploymentId && (
-          <InspectorFrame serverDeployment={{ id: serverDeploymentId }} />
+        {providerDeploymentId && (
+          <InspectorFrame providerDeployment={{ id: providerDeploymentId }} />
         )}
       </Main>
 
       <Explainer
         title="Using the MCP Explorer"
-        description="Learn how to use the Explorer to explore and interact with your MCP server."
+        description="Learn how to use the Explorer to explore and interact with your MCP provider."
         youtubeId="mzGOU3LVuT0"
         id="explorer"
       />

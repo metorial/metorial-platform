@@ -7,7 +7,6 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerDeploymentPresenter } from '../../presenters';
 import { SubspaceDeployment } from '../../presenters/types';
@@ -43,12 +42,12 @@ export let providerDeploymentController = Controller.create(
         description: 'Returns a paginated list of provider deployments.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerDeploymentPresenter)
       .query(
         'default',
         Paginator.validate(
           v.object({
+            search: v.optional(v.string(), { description: 'Search by name' }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             }),
@@ -62,6 +61,7 @@ export let providerDeploymentController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceProviderDeploymentService.list({
           instance: ctx.instance,
+          search: ctx.query.search,
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
           status: ctx.query.status
@@ -83,7 +83,6 @@ export let providerDeploymentController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerDeploymentPresenter)
       .do(async ctx => {
         return providerDeploymentPresenter.present({ deployment: ctx.deployment });
@@ -95,7 +94,6 @@ export let providerDeploymentController = Controller.create(
         description: 'Creates a new provider deployment.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -209,7 +207,6 @@ export let providerDeploymentController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -250,7 +247,6 @@ export let providerDeploymentController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerDeploymentPresenter)
       .do(async ctx => {
         let deployment = await subspaceProviderDeploymentService.delete({

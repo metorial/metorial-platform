@@ -13,7 +13,7 @@ import {
 } from '../resources';
 
 /**
- * @name Custom Server controller
+ * @name Custom Server Event controller
  * @description Manager custom server events
  *
  * @see https://metorial.com/api

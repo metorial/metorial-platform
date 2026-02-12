@@ -25,9 +25,9 @@ import { Notifications } from './logs';
 
 export let CallbackEventsList = (p: { callbackId: string | undefined }) => {
   let instance = useCurrentInstance();
-  let callback = useCallback(instance.data?.id, p.callbackId);
+  let callback = useCallback(instance.data?.instanceId, p.callbackId);
 
-  let events = useCallbackEvents(instance.data?.id, {
+  let events = useCallbackEvents(instance.data?.instanceId, {
     order: 'desc',
     callbackId: callback.data?.id
   });
@@ -101,8 +101,8 @@ export let CallbackEventsList = (p: { callbackId: string | undefined }) => {
 
 let Event = ({ eventId, callbackId }: { eventId: string; callbackId: string }) => {
   let instance = useCurrentInstance();
-  let callback = useCallback(instance.data?.id, callbackId);
-  let event = useCallbackEvent(instance.data?.id, eventId);
+  let callback = useCallback(instance.data?.instanceId, callbackId);
+  let event = useCallbackEvent(instance.data?.instanceId, eventId);
 
   let payloadIncoming = useMemo(() => {
     if (!event.data) return '...';

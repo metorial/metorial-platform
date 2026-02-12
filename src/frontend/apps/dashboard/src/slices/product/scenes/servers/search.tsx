@@ -1,6 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
-import { useServerListings } from '@metorial/state';
+import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2026_02_01_dashboard';
+import { useProviderListings } from '@metorial/state';
 import {
   Avatar,
   ButtonSize,
@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { useMeasure } from 'react-use';
 import styled from 'styled-components';
 import { useDebounced } from '../../../../hooks/useDebounced';
+import { SmallItemGrid } from '../shared/smallItemGrid';
 
 let Wrapper = styled.div``;
 
@@ -37,29 +38,6 @@ let ItemButton = styled.button`
   flex-direction: column;
 `;
 
-let Popular = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-`;
-
-let PopularItem = styled.button`
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  background: none;
-  border: ${theme.colors.gray300} 1px solid;
-  border-radius: 8px;
-  text-align: left;
-  gap: 10px;
-
-  span {
-    font-size: 14px;
-    font-weight: 600;
-    color: ${theme.colors.gray800};
-  }
-`;
-
 export let ServerSearch = ({
   onSelect,
   stickyTop
@@ -69,7 +47,7 @@ export let ServerSearch = ({
 }) => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
-  let server = useServerListings(
+  let server = useProviderListings(
     !search.length
       ? null
       : {
@@ -79,7 +57,7 @@ export let ServerSearch = ({
         }
   );
 
-  let popularServers = useServerListings({
+  let allServers = useProviderListings({
     limit: 30,
     orderByRank: true
   });
@@ -90,7 +68,7 @@ export let ServerSearch = ({
         <Input
           label="Search"
           hideLabel
-          placeholder="Search for servers"
+          placeholder="Search for providers"
           value={search}
           onInput={v => setSearch(v)}
         />
@@ -99,28 +77,17 @@ export let ServerSearch = ({
       {search == '' ? (
         <>
           <Spacer size={20} />
+          <Or text="Providers" />
+          <Spacer size={10} />
 
-          <Or text="Popular" />
-
-          <Spacer size={20} />
-
-          {renderWithLoader({ popularServers })(({ popularServers }) => (
-            <Popular>
-              {popularServers.data.items
-                .filter(server => server.isOfficial)
-                .slice(0, 12)
-                .map(server => (
-                  <PopularItem
-                    key={server.id}
-                    onClick={() => onSelect?.(server as any)}
-                    type="button"
-                  >
-                    <Avatar entity={server} size={24} />
-
-                    <span>{server.name}</span>
-                  </PopularItem>
-                ))}
-            </Popular>
+          {renderWithLoader({ allServers })(({ allServers }) => (
+            <SmallItemGrid
+              items={allServers.data.items.map(server => ({
+                id: server.id,
+                label: server.name ?? 'Unnamed',
+                onSelect: () => onSelect?.(server as any)
+              }))}
+            />
           ))}
         </>
       ) : (

@@ -20,7 +20,7 @@ export let LogsListLayout = () => {
     <ContentLayout>
       <PageHeader
         title="Logs"
-        description="Check the logs of your sessions and MCP servers."
+        description="Check the logs of your sessions and MCP providers."
       />
 
       <LinkTabs
@@ -31,12 +31,12 @@ export let LogsListLayout = () => {
             to: Paths.instance.sessions(organization.data, project.data, instance.data)
           },
           {
-            label: 'Server Runs',
-            to: Paths.instance.serverRuns(organization.data, project.data, instance.data)
+            label: 'Provider Runs',
+            to: Paths.instance.providerRuns(organization.data, project.data, instance.data)
           },
           {
             label: 'Errors',
-            to: Paths.instance.serverErrors(organization.data, project.data, instance.data)
+            to: Paths.instance.providerErrors(organization.data, project.data, instance.data)
           }
         ]}
       />
@@ -45,7 +45,7 @@ export let LogsListLayout = () => {
 
       <Explainer
         title="Using the MCP Logs"
-        description="Learn how to use the logs to understand what's happening in your MCP server."
+        description="Learn how to use the logs to understand what's happening in your MCP provider."
         youtubeId="utz9yBfQ88k"
         id="logs"
       />

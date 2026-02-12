@@ -17,7 +17,7 @@ export let ProjectDeveloperPage = () => {
             }}
             filter={{
               type: 'instance_access_token',
-              instanceId: instance.data?.id
+              instanceId: instance.data?.instanceId
             }}
           />
 

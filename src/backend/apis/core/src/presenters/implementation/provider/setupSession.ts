@@ -1,9 +1,10 @@
 import { Presenter } from '@metorial/presenter';
 import { v } from '@metorial/validation';
 import { setupSessionType } from '../../types';
+import { v1AuthConfigPresenter } from './authConfig';
 
 export let v1SetupSessionPresenter = Presenter.create(setupSessionType)
-  .presenter(async ({ setupSession }) => ({
+  .presenter(async ({ setupSession }, opts) => ({
     object: 'provider.setup_session' as const,
     id: setupSession.id,
     type: setupSession.type ?? 'oauth',
@@ -15,10 +16,13 @@ export let v1SetupSessionPresenter = Presenter.create(setupSessionType)
     provider_deployment_id: setupSession.providerDeploymentId ?? setupSession.deploymentId,
     provider_auth_method_id: setupSession.providerAuthMethodId ?? setupSession.authMethodId,
     redirect_url: setupSession.redirectUrl,
-    url: setupSession.setupUrl,
+    url: setupSession.setupUrl ?? setupSession.url,
     created_at: setupSession.createdAt,
     updated_at: setupSession.updatedAt,
-    expires_at: setupSession.expiresAt ?? null
+    expires_at: setupSession.expiresAt ?? null,
+    auth_config: setupSession.authConfig
+      ? await v1AuthConfigPresenter.present({ authConfig: setupSession.authConfig }, opts).run()
+      : null
   }))
   .schema(
     v.object({
@@ -109,7 +113,8 @@ export let v1SetupSessionPresenter = Presenter.create(setupSessionType)
           description: 'Timestamp when the session expires',
           examples: [new Date('2025-09-15T11:30:00Z')]
         })
-      )
+      ),
+      auth_config: v.nullable(v1AuthConfigPresenter.schema)
     })
   )
   .build();

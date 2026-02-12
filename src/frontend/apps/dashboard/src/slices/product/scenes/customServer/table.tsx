@@ -1,4 +1,4 @@
-import { DashboardInstanceCustomServersListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceCustomServersListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCustomServers } from '@metorial/state';
@@ -14,7 +14,7 @@ export let CustomServersTable = (
   let searchDebounced = useDebounced(search, 300);
 
   let instance = useCurrentInstance();
-  let customServers = useCustomServers(instance.data?.id, {
+  let customServers = useCustomServers(instance.data?.instanceId, {
     ...filter,
     search: filter.withSearch ? searchDebounced : undefined,
     order: 'desc'
@@ -25,7 +25,7 @@ export let CustomServersTable = (
       {filter.withSearch && (
         <>
           <Input
-            label="Search Custom Servers"
+            label="Search Custom Providers"
             hideLabel
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -83,7 +83,7 @@ export let CustomServersTable = (
 
           {customServers.data.items.length == 0 && (
             <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              No custom servers found.
+              No custom providers found.
             </Text>
           )}
         </>

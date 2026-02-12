@@ -1,10 +1,10 @@
 import {
   ServersListingsGetOutput,
   ServersListingsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useServerListings } from '@metorial/state';
+import { useCurrentInstance, useProviderListings } from '@metorial/state';
 import { RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
@@ -13,7 +13,7 @@ export let ServersTable = (
     getUrl: (listing: ServersListingsGetOutput) => string;
   }
 ) => {
-  let listings = useServerListings(filter);
+  let listings = useProviderListings(filter);
   let instance = useCurrentInstance();
 
   return renderWithPagination(listings)(servers => (
@@ -36,7 +36,7 @@ export let ServersTable = (
           ],
           href: filter.getUrl
             ? filter.getUrl(listing)
-            : Paths.instance.server(
+            : Paths.instance.provider(
                 instance.data?.organization,
                 instance.data?.project,
                 instance.data,

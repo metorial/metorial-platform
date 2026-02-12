@@ -4,7 +4,6 @@ import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerCollectionPresenter } from '../../presenters';
 import { SubspaceCollection } from '../../presenters/types';
@@ -40,7 +39,6 @@ export let providerCollectionController = Controller.create(
         description: 'Returns a paginated list of provider collections.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerCollectionPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -64,7 +62,6 @@ export let providerCollectionController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerCollectionPresenter)
       .do(async ctx => {
         return providerCollectionPresenter.present({ collection: ctx.collection });

@@ -1,4 +1,8 @@
-import { DashboardInstanceCustomServersDeploymentsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+// NOTE: The customServers.deployments endpoint has been removed in the new Provider API (2026-02-01).
+// These loaders are commented out until alternative endpoints are available.
+
+/*
+import { DashboardInstanceCustomServersDeploymentsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import useInterval from 'use-interval';
 import { usePaginator } from '../../lib/usePaginator';
@@ -80,4 +84,15 @@ export let useCustomServerDeployment = (
   return {
     ...data
   };
+};
+*/
+
+// Placeholder exports to prevent import errors in consuming code
+export const customServerDeploymentsLoader = null;
+export const useCustomServerDeployments = () => {
+  throw new Error('customServers.deployments API has been removed in the new Provider API');
+};
+export const customServerDeploymentLoader = null;
+export const useCustomServerDeployment = () => {
+  throw new Error('customServers.deployments API has been removed in the new Provider API');
 };

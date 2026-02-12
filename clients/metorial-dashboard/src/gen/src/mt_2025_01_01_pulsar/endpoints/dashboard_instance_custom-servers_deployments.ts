@@ -13,7 +13,7 @@ import {
 } from '../resources';
 
 /**
- * @name Custom Server controller
+ * @name Custom Server Deployment controller
  * @description Manager custom server deployments
  *
  * @see https://metorial.com/api

@@ -17,7 +17,7 @@ export let useApiKeysWithAutoInit = (filter: ApiKeysFilter | undefined | null) =
       !apiKeys.isLoading &&
       !apiKeys.data?.length &&
       initializingRef.current !== filter.instanceId &&
-      currentInstance.data?.id == filter.instanceId &&
+      currentInstance.data?.instanceId == filter.instanceId &&
       currentInstance.data?.type == 'development'
     ) {
       setCreatingInitialApplication(true);

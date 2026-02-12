@@ -6,7 +6,6 @@ import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { hasFlags } from '../../middleware/hasFlags';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthCredentialsPresenter } from '../../presenters';
 import { SubspaceAuthCredentials } from '../../presenters/types';
@@ -49,7 +48,6 @@ export let providerAuthCredentialsController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .outputList(providerAuthCredentialsPresenter)
       .query(
         'default',
@@ -89,7 +87,6 @@ export let providerAuthCredentialsController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerAuthCredentialsPresenter)
       .do(async ctx => {
         return providerAuthCredentialsPresenter.present({
@@ -109,7 +106,6 @@ export let providerAuthCredentialsController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -181,7 +177,6 @@ export let providerAuthCredentialsController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .body(
         'default',
         v.object({
@@ -219,7 +214,6 @@ export let providerAuthCredentialsController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
-      .use(hasFlags(['paid-provider-api']))
       .output(providerAuthCredentialsPresenter)
       .do(async ctx => {
         await subspaceProviderAuthCredentialsService.delete({
