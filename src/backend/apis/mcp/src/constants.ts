@@ -1,4 +1,5 @@
 export let CONNECTION_TYPES = ['sse', 'websocket', 'streamable_http'] as const;
+export type ConnectionType = (typeof CONNECTION_TYPES)[number];
 export let CONNECTION_TYPE_ALIASES: {
   [K in (typeof CONNECTION_TYPES)[number]]: [K, ...string[]];
 } = {
@@ -26,7 +27,7 @@ export let ALL_CONNECTION_TYPES = new Set([
   ...CONNECTION_TYPES
 ]);
 
-export let toConnectionType = (input: string): (typeof CONNECTION_TYPES)[number] | null => {
+export let toConnectionType = (input: string): ConnectionType | null => {
   let type = ALIAS_TO_CONNECTION_TYPE.get(input.toLowerCase());
   if (!type) return null;
   return type;

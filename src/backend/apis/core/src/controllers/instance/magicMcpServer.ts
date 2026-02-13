@@ -65,6 +65,32 @@ type SubspaceProviderListing = Awaited<
   ReturnType<typeof subspaceProviderListingService.list>
 >['items'][number];
 
+let resolveCustomProviderVersion = async (d: {
+  instance: Instance;
+  organization: Organization;
+  customProviderId: string;
+  providerId?: string;
+  providerVersionId?: string;
+}) => {
+  let providerId = d.providerId;
+  let providerVersionId = d.providerVersionId;
+
+  for (let attempt = 0; attempt < 20 && (!providerId || !providerVersionId); attempt++) {
+    await sleep(500);
+
+    let fresh = await customProviderService.get({
+      instance: d.instance,
+      organization: d.organization,
+      customProviderId: d.customProviderId
+    });
+
+    providerId = fresh.provider?.id ?? providerId;
+    providerVersionId = fresh.provider?.currentVersion?.id ?? providerVersionId;
+  }
+
+  return { providerId, providerVersionId };
+};
+
 export let findSubspaceProviderListingForServer = async (d: {
   instance: Instance;
   organization: Organization;
@@ -213,21 +239,13 @@ let createSessionTemplateFromServer = async (d: {
       from
     });
 
-    let providerId = customProvider.provider?.id;
-    let providerVersionId = customProvider.provider?.currentVersion?.id;
-
-    for (let attempt = 0; attempt < 20 && (!providerId || !providerVersionId); attempt++) {
-      await sleep(500);
-
-      let fresh = await customProviderService.get({
-        instance: d.instance,
-        organization: d.organization,
-        customProviderId: customProvider.id
-      });
-
-      providerId = fresh.provider?.id ?? providerId;
-      providerVersionId = fresh.provider?.currentVersion?.id ?? providerVersionId;
-    }
+    let { providerId, providerVersionId } = await resolveCustomProviderVersion({
+      instance: d.instance,
+      organization: d.organization,
+      customProviderId: customProvider.id,
+      providerId: customProvider.provider?.id,
+      providerVersionId: customProvider.provider?.currentVersion?.id
+    });
 
     if (!providerId) {
       throw new ServiceError(
