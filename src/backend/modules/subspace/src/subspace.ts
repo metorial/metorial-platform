@@ -22,6 +22,17 @@ subspace.solution
   });
 
 let isSubspaceTenantOrEnvironmentMissing = (error: unknown) => {
+  type ErrorWithStatus = {
+    data?: { status?: unknown };
+    response?: { status?: unknown };
+  };
+
+  let status =
+    (error as ErrorWithStatus | undefined)?.data?.status ??
+    (error as ErrorWithStatus | undefined)?.response?.status;
+
+  if (status === 404) return true;
+
   let message =
     error instanceof Error ? error.message : typeof error === 'string' ? error : String(error);
   let normalized = message.toLowerCase();
@@ -68,7 +79,7 @@ let ensureSubspaceTenantAndEnvironment = async (
     }
   });
 
-  let updatedOrganization = await db.organization.update({
+  await db.organization.update({
     where: { oid: organization.oid },
     data: {
       subspaceTenantId: subspaceTenant.id,
@@ -76,34 +87,34 @@ let ensureSubspaceTenantAndEnvironment = async (
     }
   });
 
-  return {
-    organization: updatedOrganization,
-    instance: updatedInstance
-  };
+  return updatedInstance;
+};
+
+let hasStoredSubspaceIds = (instance: Instance) =>
+  !!instance.subspaceTenantId && !!instance.subspaceEnvironmentId;
+
+let hasValidStoredSubspaceLink = async (instance: Instance) => {
+  if (!hasStoredSubspaceIds(instance)) return false;
+
+  try {
+    await subspace.environment.get({
+      tenantId: instance.subspaceTenantId!,
+      environmentId: instance.subspaceEnvironmentId!
+    });
+
+    return true;
+  } catch (error) {
+    if (isSubspaceTenantOrEnvironmentMissing(error)) return false;
+
+    throw error;
+  }
 };
 
 export let getTenantForSubspace = async (organization: Organization, instance: Instance) => {
-  let hasSubspaceIds = !!instance.subspaceTenantId && !!instance.subspaceEnvironmentId;
+  let hasValidLink = await hasValidStoredSubspaceLink(instance);
 
-  if (!hasSubspaceIds) {
-    let synced = await ensureSubspaceTenantAndEnvironment(organization, instance);
-    organization = synced.organization;
-    instance = synced.instance;
-  } else {
-    try {
-      await subspace.environment.get({
-        tenantId: instance.subspaceTenantId!,
-        environmentId: instance.subspaceEnvironmentId!
-      });
-    } catch (error) {
-      if (!isSubspaceTenantOrEnvironmentMissing(error)) {
-        throw error;
-      }
-
-      let synced = await ensureSubspaceTenantAndEnvironment(organization, instance);
-      organization = synced.organization;
-      instance = synced.instance;
-    }
+  if (!hasValidLink) {
+    instance = await ensureSubspaceTenantAndEnvironment(organization, instance);
   }
 
   return {
@@ -138,19 +149,14 @@ export let getSubspaceConnectionUrl = () => {
     return env.subspace.SUBSPACE_URL_CONNECTION;
   }
 
-  // SUBSPACE_URL can point to the RPC controller base path (for example "/subspace-controller").
-  // The MCP connection endpoint lives at the root on a dedicated connection server.
-  let url = new URL(env.subspace.SUBSPACE_URL);
+  let controllerUrl = new URL(env.subspace.SUBSPACE_URL);
+  let path = controllerUrl.pathname.replace(/\/+$/, '');
 
-  if (url.pathname !== '/' && url.pathname !== '') {
-    if (url.pathname.startsWith('/subspace-controller') && url.port === '52070') {
-      url.port = '52072';
-    }
-
-    url.pathname = '/';
-    url.search = '';
-    url.hash = '';
+  if (path.startsWith('/subspace-controller')) {
+    throw new Error(
+      'SUBSPACE_URL_CONNECTION is required when SUBSPACE_URL points to /subspace-controller'
+    );
   }
 
-  return url.toString();
+  return controllerUrl.toString();
 };

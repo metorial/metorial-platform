@@ -80,6 +80,10 @@ export let backendEnv: Env = [
     key: 'SUBSPACE_URL',
     defaultValue: 'http://localhost:52070/subspace-controller'
   },
+  {
+    key: 'SUBSPACE_URL_CONNECTION',
+    defaultValue: 'http://localhost:52072'
+  },
 
   // {
   //   key: 'OPENSEARCH_HOST',

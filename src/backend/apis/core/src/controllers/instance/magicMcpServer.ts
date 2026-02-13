@@ -59,6 +59,74 @@ let sleep = async (ms: number) => {
   await new Promise(resolve => setTimeout(resolve, ms));
 };
 
+type CatalogServer = Awaited<ReturnType<typeof serverService.getServerById>>;
+type CatalogServerVariant = CatalogServer['variants'][number];
+type SubspaceProviderListing = Awaited<
+  ReturnType<typeof subspaceProviderListingService.list>
+>['items'][number];
+
+export let findSubspaceProviderListingForServer = async (d: {
+  instance: Instance;
+  organization: Organization;
+  server: CatalogServer;
+  variant: CatalogServerVariant;
+}) => {
+  let searchTerms = Array.from(
+    new Set(
+      [
+        d.server.importedServer?.identifier,
+        d.server.importedServer?.slug,
+        d.server.name,
+        d.variant.identifier
+      ].filter((term): term is string => !!term && term.length > 0)
+    )
+  );
+
+  let providerListings: SubspaceProviderListing[] = [];
+  let seenProviderListingIds = new Set<string>();
+
+  for (let search of searchTerms) {
+    let result = await subspaceProviderListingService.list({
+      instance: d.instance,
+      organization: d.organization,
+      search,
+      limit: 20
+    });
+
+    for (let item of result.items) {
+      if (seenProviderListingIds.has(item.id)) continue;
+      seenProviderListingIds.add(item.id);
+      providerListings.push(item);
+    }
+  }
+
+  let normalizedCandidates = new Set(
+    [
+      d.server.name,
+      d.server.importedServer?.name,
+      d.server.importedServer?.identifier,
+      d.server.importedServer?.slug,
+      d.variant.identifier
+    ]
+      .filter((value): value is string => !!value && value.length > 0)
+      .map(value => value.toLowerCase().replace(/[^a-z0-9]/g, ''))
+  );
+
+  return (
+    providerListings.find((item: SubspaceProviderListing) => {
+      let byName = item.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      let bySlug = item.slug.toLowerCase().replace(/[^a-z0-9]/g, '');
+      let byIdentifier = item.provider.identifier.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      return (
+        normalizedCandidates.has(byName) ||
+        normalizedCandidates.has(bySlug) ||
+        normalizedCandidates.has(byIdentifier)
+      );
+    }) ?? null
+  );
+};
+
 let createSessionTemplateFromServer = async (d: {
   instance: Instance;
   organization: Organization;
@@ -97,6 +165,22 @@ let createSessionTemplateFromServer = async (d: {
   }
 
   let deployment: Awaited<ReturnType<typeof subspaceProviderDeploymentService.create>>;
+
+  let bestListing = await findSubspaceProviderListingForServer({
+    instance: d.instance,
+    organization: d.organization,
+    server,
+    variant
+  });
+
+  if (!bestListing) {
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'Automatic Magic MCP setup supports only Subspace servers. The selected server is not available in Subspace provider listings. Please provide session_template_id.'
+      })
+    );
+  }
 
   if (variant.remoteUrl || variant.dockerImage) {
     let from = variant.remoteUrl
@@ -163,7 +247,8 @@ let createSessionTemplateFromServer = async (d: {
         ...(d.metadata ?? {}),
         source: 'magic_mcp_server',
         sourceServerId: server.id,
-        sourceServerVariantId: variant.id
+        sourceServerVariantId: variant.id,
+        sourceProviderListingId: bestListing.id
       },
       providerId,
       lockedProviderVersionId: providerVersionId,
@@ -173,66 +258,6 @@ let createSessionTemplateFromServer = async (d: {
       }
     });
   } else {
-    let searchTerms = [
-      server.importedServer?.identifier,
-      server.importedServer?.slug,
-      server.name
-    ].filter((term): term is string => !!term && term.length > 0);
-
-    let providerListings: Awaited<
-      ReturnType<typeof subspaceProviderListingService.list>
-    >['items'] = [];
-    let seenProviderListingIds = new Set<string>();
-
-    for (let search of searchTerms) {
-      let result = await subspaceProviderListingService.list({
-        instance: d.instance,
-        organization: d.organization,
-        search,
-        limit: 20
-      });
-
-      for (let item of result.items) {
-        if (seenProviderListingIds.has(item.id)) continue;
-        seenProviderListingIds.add(item.id);
-        providerListings.push(item);
-      }
-    }
-
-    let normalizedCandidates = new Set(
-      [
-        server.name,
-        server.importedServer?.name,
-        server.importedServer?.identifier,
-        server.importedServer?.slug,
-        variant.identifier
-      ]
-        .filter((value): value is string => !!value && value.length > 0)
-        .map(value => value.toLowerCase().replace(/[^a-z0-9]/g, ''))
-    );
-
-    let bestListing =
-      providerListings.find((item: (typeof providerListings)[number]) => {
-        let byName = item.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-        let bySlug = item.slug.toLowerCase().replace(/[^a-z0-9]/g, '');
-        let byIdentifier = item.provider.identifier.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-        return (
-          normalizedCandidates.has(byName) ||
-          normalizedCandidates.has(bySlug) ||
-          normalizedCandidates.has(byIdentifier)
-        );
-      }) ?? providerListings[0];
-
-    if (!bestListing) {
-      throw new ServiceError(
-        badRequestError({
-          message:
-            'Automatic Magic MCP setup is unavailable for this server right now. Please configure a session template manually.'
-        })
-      );
-    }
-
     deployment = await subspaceProviderDeploymentService.create({
       instance: d.instance,
       organization: d.organization,
@@ -255,7 +280,7 @@ let createSessionTemplateFromServer = async (d: {
     });
   }
 
-  if (!variant.remoteUrl && !deployment) {
+  if (!deployment) {
     throw new ServiceError(
       badRequestError({
         message: 'Failed to create a provider deployment for this server.'
@@ -359,6 +384,7 @@ export let magicMcpServerController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
+        // TODO: N+1, improve
         let hydrated = await Promise.all(
           list.items.map(server => withSessionTemplate(ctx, server))
         );
