@@ -87,20 +87,18 @@ export {
 export { RunConfigContainer, RunConfig as RunnerRunConfig } from './ts-proto-gen/runner';
 export { ListManagersRequest, ListManagersResponse } from './ts-proto-gen/workerBroker';
 
-import { ChannelCredentials, type ChannelOptions } from '@grpc/grpc-js';
-import { createChannel, createClient, type Client } from 'nice-grpc';
+import { ChannelCredentials, createChannel, createClient, type Client } from 'nice-grpc';
 import { McpManagerService } from './ts-proto-gen/manager';
 
 export let createManagerClient = (opts: {
   address: string;
   credentials?: ChannelCredentials;
-  options?: ChannelOptions;
 }) => {
   let channel = createChannel(
     opts.address,
     opts.credentials || ChannelCredentials.createInsecure(),
     {
-      ...opts.options,
+      // ...opts.options,
 
       'grpc.keepalive_time_ms': 60000, // 60s between pings (when idle)
       'grpc.keepalive_timeout_ms': 20000, // 20s to wait for ping ACK

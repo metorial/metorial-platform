@@ -223,5 +223,12 @@ export let backendEnv: Env = [
   { key: 'SUPPORT_ENABLED', isEnterprise: true, defaultValue: 'true' },
   { key: 'CHROME_SIDEBAR_DOCS_ENABLED', isEnterprise: true, defaultValue: 'true' },
   { key: 'CHROME_ONBOARDING_ENABLED', isEnterprise: true, defaultValue: 'true' },
-  { key: 'CHROME_SIDEBAR_CHANGELOG_ENABLED', isEnterprise: true, defaultValue: 'true' }
+  { key: 'CHROME_SIDEBAR_CHANGELOG_ENABLED', isEnterprise: true, defaultValue: 'true' },
+
+  {
+    key: 'HORIZON_INTERNAL_URL',
+    isEnterprise: true,
+    defaultValue: 'http://localhost:52133/metorial-horizon-internal/api'
+  },
+  { key: 'HORIZON_APP_ID', isEnterprise: true, defaultValue: `metorial-enterprise-dev` }
 ];

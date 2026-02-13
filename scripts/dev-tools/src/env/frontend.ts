@@ -137,5 +137,7 @@ export let frontendEnv: Env = [
     key: 'VITE_PUBLIC_API_URL',
     defaultValue: `http://${HOSTNAME}:4310`,
     isEnterprise: true
-  }
+  },
+
+  { key: 'VITE_HORIZON_APP_ID', isEnterprise: true, defaultValue: `metorial-enterprise-dev` }
 ];
