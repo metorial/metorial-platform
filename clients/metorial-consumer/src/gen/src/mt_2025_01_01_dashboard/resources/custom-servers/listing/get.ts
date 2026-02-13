@@ -86,6 +86,7 @@ export type CustomServersListingGetOutput = {
   updatedAt: Date;
 } & {
   fork: { status: 'disabled' } | { status: 'enabled'; templateId: string };
+  readmeHtml: string | null;
   oauthExplainer: string | null;
 };
 
@@ -232,6 +233,7 @@ export let mapCustomServersListingGetOutput = mtMap.union([
           )
         ])
       ),
+      readmeHtml: mtMap.objectField('readme_html', mtMap.passthrough()),
       oauthExplainer: mtMap.objectField('oauth_explainer', mtMap.passthrough())
     })
   )

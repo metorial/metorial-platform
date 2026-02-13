@@ -1,7 +1,6 @@
 export * from './callbacks';
 export * from './custom-servers';
 export * from './files';
-export * from './instance';
 export * from './links';
 export * from './magic-mcp-groups';
 export * from './magic-mcp-servers';
@@ -11,6 +10,7 @@ export * from './portals';
 export * from './provider-oauth';
 export * from './secrets';
 export * from './server-config-vaults';
+export * from './server-run-error-groups';
 export * from './server-run-errors';
 export * from './server-runs';
 export * from './servers';

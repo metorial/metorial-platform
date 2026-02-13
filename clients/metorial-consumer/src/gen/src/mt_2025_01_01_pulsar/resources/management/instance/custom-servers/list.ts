@@ -134,7 +134,12 @@ export type ManagementInstanceCustomServersListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  type?: ('remote' | 'managed')[] | 'remote' | 'managed' | undefined;
+  type?:
+    | ('remote' | 'managed' | 'docker')[]
+    | 'remote'
+    | 'managed'
+    | 'docker'
+    | undefined;
   search?: string | undefined;
 };
 

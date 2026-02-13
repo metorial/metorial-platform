@@ -3,12 +3,13 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type MagicMcpSessionsGetOutput = {
   object: 'magic_mcp.session';
   id: string;
-  sessionId: string;
-  connectionStatus: 'connected' | 'disconnected';
+  subspaceSessionId: string;
+  connectionStatus: string;
+  connectionCount: number;
   magicMcpServer: {
     id: string;
     status: 'active' | 'archived' | 'deleted';
-    name: string;
+    name: string | null;
     description: string | null;
     metadata: Record<string, any>;
     createdAt: Date;
@@ -19,10 +20,7 @@ export type MagicMcpSessionsGetOutput = {
     totalProductiveClientMessageCount: number;
     totalProductiveServerMessageCount: number;
   };
-  client: {
-    object: 'session.client#preview';
-    info: { name: string; version: string };
-  } | null;
+  lastActiveAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -31,11 +29,15 @@ export let mapMagicMcpSessionsGetOutput =
   mtMap.object<MagicMcpSessionsGetOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
-    sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
+    subspaceSessionId: mtMap.objectField(
+      'subspace_session_id',
+      mtMap.passthrough()
+    ),
     connectionStatus: mtMap.objectField(
       'connection_status',
       mtMap.passthrough()
     ),
+    connectionCount: mtMap.objectField('connection_count', mtMap.passthrough()),
     magicMcpServer: mtMap.objectField(
       'magic_mcp_server',
       mtMap.object({
@@ -65,19 +67,7 @@ export let mapMagicMcpSessionsGetOutput =
         )
       })
     ),
-    client: mtMap.objectField(
-      'client',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        info: mtMap.objectField(
-          'info',
-          mtMap.object({
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            version: mtMap.objectField('version', mtMap.passthrough())
-          })
-        )
-      })
-    ),
+    lastActiveAt: mtMap.objectField('last_active_at', mtMap.date()),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });

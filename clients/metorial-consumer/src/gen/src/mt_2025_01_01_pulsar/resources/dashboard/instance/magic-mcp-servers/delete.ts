@@ -4,43 +4,18 @@ export type DashboardInstanceMagicMcpServersDeleteOutput = {
   object: 'magic_mcp.server';
   id: string;
   status: 'active' | 'archived' | 'deleted';
+  sessionTemplate: {
+    id: string;
+    name: string | null;
+    description: string | null;
+  };
   endpoints: {
     id: string;
     alias: string;
     urls: { sse: string; streamableHttp: string };
   }[];
-  serverDeployments: {
-    object: 'server.server_deployment#preview';
-    id: string;
-    name: string | null;
-    description: string | null;
-    metadata: Record<string, any>;
-    createdAt: Date;
-    updatedAt: Date;
-    server: {
-      object: 'server#preview';
-      id: string;
-      name: string;
-      description: string | null;
-      type: 'public' | 'custom';
-      createdAt: Date;
-      updatedAt: Date;
-    };
-  }[];
-  name: string;
+  name: string | null;
   description: string | null;
-  oauthConfiguration:
-    | { status: 'disabled' | 'not_configured' }
-    | {
-        status: 'configured';
-        defaultOauthSession: {
-          object: 'server.oauth_session#preview';
-          id: string;
-          metadata: Record<string, any>;
-          createdAt: Date;
-          updatedAt: Date;
-        };
-      };
   metadata: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
@@ -51,6 +26,14 @@ export let mapDashboardInstanceMagicMcpServersDeleteOutput =
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
+    sessionTemplate: mtMap.objectField(
+      'session_template',
+      mtMap.object({
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough())
+      })
+    ),
     endpoints: mtMap.objectField(
       'endpoints',
       mtMap.array(
@@ -70,58 +53,8 @@ export let mapDashboardInstanceMagicMcpServersDeleteOutput =
         })
       )
     ),
-    serverDeployments: mtMap.objectField(
-      'server_deployments',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          server: mtMap.objectField(
-            'server',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          )
-        })
-      )
-    ),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
-    oauthConfiguration: mtMap.objectField(
-      'oauth_configuration',
-      mtMap.union([
-        mtMap.unionOption(
-          'object',
-          mtMap.object({
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            defaultOauthSession: mtMap.objectField(
-              'default_oauth_session',
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            )
-          })
-        )
-      ])
-    ),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())

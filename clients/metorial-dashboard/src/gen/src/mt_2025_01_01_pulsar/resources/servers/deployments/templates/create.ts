@@ -238,13 +238,10 @@ export type ServersDeploymentsTemplatesCreateBody = {
   name: string;
   description?: string | undefined;
   serverId: string;
-} & (
-  | {
-      oauth?: { clientId: string; clientSecret: string } | undefined;
-      config?: Record<string, any> | undefined;
-    }
-  | { magicMcpServerId: string }
-);
+} & {
+  oauth?: { clientId: string; clientSecret: string } | undefined;
+  config?: Record<string, any> | undefined;
+};
 
 export let mapServersDeploymentsTemplatesCreateBody = mtMap.union([
   mtMap.unionOption(
@@ -260,11 +257,7 @@ export let mapServersDeploymentsTemplatesCreateBody = mtMap.union([
           clientSecret: mtMap.objectField('client_secret', mtMap.passthrough())
         })
       ),
-      config: mtMap.objectField('config', mtMap.passthrough()),
-      magicMcpServerId: mtMap.objectField(
-        'magic_mcp_server_id',
-        mtMap.passthrough()
-      )
+      config: mtMap.objectField('config', mtMap.passthrough())
     })
   )
 ]);

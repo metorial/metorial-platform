@@ -238,13 +238,10 @@ export type DashboardInstanceServersDeploymentsTemplatesCreateBody = {
   name: string;
   description?: string | undefined;
   serverId: string;
-} & (
-  | {
-      oauth?: { clientId: string; clientSecret: string } | undefined;
-      config?: Record<string, any> | undefined;
-    }
-  | { magicMcpServerId: string }
-);
+} & {
+  oauth?: { clientId: string; clientSecret: string } | undefined;
+  config?: Record<string, any> | undefined;
+};
 
 export let mapDashboardInstanceServersDeploymentsTemplatesCreateBody =
   mtMap.union([
@@ -264,11 +261,7 @@ export let mapDashboardInstanceServersDeploymentsTemplatesCreateBody =
             )
           })
         ),
-        config: mtMap.objectField('config', mtMap.passthrough()),
-        magicMcpServerId: mtMap.objectField(
-          'magic_mcp_server_id',
-          mtMap.passthrough()
-        )
+        config: mtMap.objectField('config', mtMap.passthrough())
       })
     )
   ]);

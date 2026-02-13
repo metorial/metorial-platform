@@ -171,6 +171,13 @@ export type DashboardInstanceCustomServersCreateBody = {
         config?:
           | { schema?: any | undefined; getLaunchParams?: string | undefined }
           | undefined;
+      }
+    | {
+        type: 'docker';
+        dockerServer: { dockerImage: string };
+        config?:
+          | { schema?: any | undefined; getLaunchParams?: string | undefined }
+          | undefined;
       };
 };
 
@@ -222,6 +229,15 @@ export let mapDashboardInstanceCustomServersCreateBody =
                     ),
                     path: mtMap.objectField('path', mtMap.passthrough())
                   })
+                )
+              })
+            ),
+            dockerServer: mtMap.objectField(
+              'docker_server',
+              mtMap.object({
+                dockerImage: mtMap.objectField(
+                  'docker_image',
+                  mtMap.passthrough()
                 )
               })
             )
