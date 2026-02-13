@@ -6,7 +6,7 @@ import { serverSessionService } from '@metorial/module-session';
 import { SessionInfo } from './getSession';
 
 export let getServerSession = async (
-  d: SessionInfo,
+  d: Exclude<SessionInfo, { type: 'magic_mcp_subspace_session' }>,
   context: Context,
   deploymentId: string | null,
   serverSessionId: string | null,
@@ -56,7 +56,7 @@ export let getServerSession = async (
 };
 
 let getServerSessionDeployment = async (
-  d: SessionInfo,
+  d: Exclude<SessionInfo, { type: 'magic_mcp_subspace_session' }>,
   serverSessionOrDeploymentId: string | null
 ) => {
   if (!serverSessionOrDeploymentId) {

@@ -5,12 +5,10 @@ import {
   ID,
   Instance,
   MagicMcpServer,
-  MagicMcpServerAlias,
   MagicMcpServerStatus,
   Organization,
   OrganizationActor,
-  ServerDeployment,
-  ServerOAuthSession,
+  Prisma,
   withTransaction
 } from '@metorial/db';
 import { notFoundError, preconditionFailedError, ServiceError } from '@metorial/error';
@@ -21,21 +19,16 @@ import { Paginator } from '@metorial/pagination';
 import { Service } from '@metorial/service';
 import { slugify } from '@metorial/slugify';
 import { syncMagicMcpServerQueue } from '../queues/syncServer';
+import { magicMcpSubspaceSessionService } from './magicMcpSubspaceSession';
 
 let include = {
-  serverDeployment: {
-    include: {
-      serverDeployment: {
-        include: {
-          server: true,
-          serverImplementation: true
-        }
-      }
-    }
-  },
-  defaultServerOauthSession: true,
-  aliases: true
-};
+  aliases: true,
+  subspaceSession: true
+} satisfies Prisma.MagicMcpServerInclude;
+
+type MagicMcpServerWithRelations = Prisma.MagicMcpServerGetPayload<{
+  include: typeof include;
+}>;
 
 class MagicMcpServerImpl {
   async privateGetAccessTagFilterForReadAccess(d: { accessTags?: AccessTagSelectorList }) {
@@ -52,26 +45,28 @@ class MagicMcpServerImpl {
     instance: Instance;
     magicMcpServerId: string;
   }) {
+    let andFilters: Prisma.MagicMcpServerWhereInput[] = [
+      {
+        OR: [
+          { id: d.magicMcpServerId },
+          {
+            aliases: {
+              some: { slug: d.magicMcpServerId }
+            }
+          }
+        ]
+      }
+    ];
+    if (d.accessTags) {
+      andFilters.push(
+        await this.privateGetAccessTagFilterForReadAccess({ accessTags: d.accessTags })
+      );
+    }
+
     let magicMcpServer = await db.magicMcpServer.findFirst({
       where: {
         instanceOid: d.instance.oid,
-
-        AND: [
-          {
-            OR: [
-              { id: d.magicMcpServerId },
-              {
-                aliases: {
-                  some: { slug: d.magicMcpServerId }
-                }
-              }
-            ]
-          },
-
-          d.accessTags
-            ? await this.privateGetAccessTagFilterForReadAccess({ accessTags: d.accessTags })
-            : undefined!
-        ].filter(Boolean)
+        AND: andFilters
       },
       include
     });
@@ -124,13 +119,11 @@ class MagicMcpServerImpl {
       profile: ConsumerProfile;
     };
 
-    serverDeployment: ServerDeployment;
-
     input: {
       name?: string;
       description?: string;
-      metadata?: Record<string, any>;
-      defaultOauthSession?: ServerOAuthSession;
+      metadata?: Record<string, unknown>;
+      sessionTemplateId: string;
     };
   }) {
     let slug = d.input.name
@@ -138,34 +131,45 @@ class MagicMcpServerImpl {
       : generatePlainId(12);
 
     return withTransaction(async db => {
-      let server = await db.magicMcpServer.create({
-        data: {
-          id: await ID.generateId('magicMcpServer'),
-          status: 'active',
-          serverDeployment: {
-            create: {
-              id: await ID.generateId('magicMcpServerDeployment'),
-              serverDeploymentOid: d.serverDeployment.oid
-            }
-          },
-          instanceOid: d.instance.oid,
-          name: d.input.name,
-          description: d.input.description,
-          metadata: d.input.metadata || {},
-          aliases: {
-            create: { slug }
-          },
+      let instanceSubspace = await db.instance.findUnique({
+        where: { oid: d.instance.oid },
+        select: {
+          subspaceTenantId: true,
+          subspaceEnvironmentId: true
+        }
+      });
 
-          defaultServerOauthSessionOid: d.input.defaultOauthSession?.oid,
-
-          consumerProfileOid: d.consumer?.profile.oid,
-          accessTags: d.consumer
-            ? await accessTagService.linkAccessTagToEntity({
-                tags: d.consumer.profile.accessTagOid,
-                level: 'read_write'
-              })
-            : undefined
+      let createData: Prisma.MagicMcpServerCreateArgs['data'] = {
+        id: await ID.generateId('magicMcpServer'),
+        status: 'active',
+        subspaceSessionTemplateId: d.input.sessionTemplateId,
+        subspaceTenantId: instanceSubspace?.subspaceTenantId ?? d.instance.subspaceTenantId,
+        subspaceEnvironmentId:
+          instanceSubspace?.subspaceEnvironmentId ?? d.instance.subspaceEnvironmentId,
+        name: d.input.name,
+        description: d.input.description,
+        metadata: d.input.metadata ?? {},
+        aliases: {
+          create: { slug }
         },
+        instance: {
+          connect: { oid: d.instance.oid }
+        },
+        consumerProfile: d.consumer
+          ? {
+              connect: { oid: d.consumer.profile.oid }
+            }
+          : undefined,
+        accessTags: d.consumer
+          ? await accessTagService.linkAccessTagToEntity({
+              tags: d.consumer.profile.accessTagOid,
+              level: 'read_write'
+            })
+          : undefined
+      };
+
+      let server = await db.magicMcpServer.create({
+        data: createData,
         include
       });
 
@@ -214,14 +218,14 @@ class MagicMcpServerImpl {
   }
 
   async updateMagicMcpServer(d: {
-    server: MagicMcpServer & { aliases: MagicMcpServerAlias[] };
+    server: MagicMcpServerWithRelations;
     accessTags?: AccessTagSelectorList;
     input: {
       name?: string | null;
       description?: string | null;
-      metadata?: Record<string, any> | null;
+      metadata?: Record<string, unknown> | null;
       aliases?: string[];
-      defaultOauthSession?: ServerOAuthSession;
+      sessionTemplateId?: string;
     };
   }) {
     await this.checkWriteAccess({ server: d.server, accessTags: d.accessTags });
@@ -236,25 +240,60 @@ class MagicMcpServerImpl {
 
     let existingAliases = d.server.aliases.map(a => a.slug);
     let newAliases = (d.input.aliases ?? [])?.filter(s => !existingAliases.includes(s));
+    let nextSessionTemplateId =
+      d.input.sessionTemplateId === undefined
+        ? d.server.subspaceSessionTemplateId
+        : d.input.sessionTemplateId;
+    let isSessionTemplateChanged =
+      nextSessionTemplateId !== d.server.subspaceSessionTemplateId;
+    let previousSubspaceSession = d.server.subspaceSession;
+
+    let updateData: Prisma.MagicMcpServerUpdateArgs['data'] = {
+      name: d.input.name === undefined ? d.server.name : d.input.name,
+      description:
+        d.input.description === undefined ? d.server.description : d.input.description,
+      metadata: d.input.metadata === undefined ? d.server.metadata : d.input.metadata,
+      subspaceSessionTemplateId: nextSessionTemplateId,
+      aliases: {
+        create: newAliases.map(slug => ({
+          slug: slug.includes(' ') ? slugify(slug) : slug
+        }))
+      }
+    };
 
     let server = await db.magicMcpServer.update({
       where: { id: d.server.id },
-      data: {
-        name: d.input.name === undefined ? d.server.name : d.input.name,
-        description:
-          d.input.description === undefined ? d.server.description : d.input.description,
-        metadata: d.input.metadata === undefined ? d.server.metadata : d.input.metadata,
-
-        defaultServerOauthSessionOid: d.input.defaultOauthSession?.oid,
-
-        aliases: {
-          create: newAliases.map(slug => ({
-            slug: slug.includes(' ') ? slugify(slug) : slug
-          }))
-        }
-      },
+      data: updateData,
       include
     });
+
+    if (isSessionTemplateChanged && previousSubspaceSession) {
+      await db.magicMcpServerSubspaceSession
+        .delete({
+          where: { magicMcpServerOid: d.server.oid }
+        })
+        .catch(() => null);
+
+      let instance = await db.instance.findUnique({
+        where: { oid: d.server.instanceOid },
+        include: {
+          organization: true
+        }
+      });
+      if (instance) {
+        await magicMcpSubspaceSessionService.cleanupSessionForTemplateChange({
+          instance,
+          organization: instance.organization,
+          subspaceSessionId: previousSubspaceSession.subspaceSessionId,
+          replacementSessionTemplateId: nextSessionTemplateId
+        });
+      }
+
+      server = await db.magicMcpServer.findFirstOrThrow({
+        where: { oid: d.server.oid },
+        include
+      });
+    }
 
     await syncMagicMcpServerQueue.add({
       magicMcpServerId: server.id
@@ -264,10 +303,6 @@ class MagicMcpServerImpl {
   }
 
   async listMagicMcpServers(d: {
-    serverVariantIds?: string[];
-    serverImplementationIds?: string[];
-    serverIds?: string[];
-    sessionIds?: string[];
     groupIds?: string[];
     search?: string;
     instance: Instance;
@@ -287,30 +322,6 @@ class MagicMcpServerImpl {
         })
       : undefined;
 
-    let servers = d.serverIds?.length
-      ? await db.server.findMany({
-          where: { id: { in: d.serverIds } },
-          select: { oid: true }
-        })
-      : undefined;
-    let serverVariants = d.serverVariantIds?.length
-      ? await db.serverVariant.findMany({
-          where: { id: { in: d.serverVariantIds } },
-          select: { oid: true }
-        })
-      : undefined;
-    let serverImplementations = d.serverImplementationIds?.length
-      ? await db.serverImplementation.findMany({
-          where: { id: { in: d.serverImplementationIds } },
-          select: { oid: true }
-        })
-      : undefined;
-    let sessions = d.sessionIds?.length
-      ? await db.session.findMany({
-          where: { id: { in: d.sessionIds } },
-          select: { oid: true }
-        })
-      : undefined;
     let groups = d.groupIds?.length
       ? await db.magicMcpGroup.findMany({
           where: { id: { in: d.groupIds } },
@@ -320,53 +331,31 @@ class MagicMcpServerImpl {
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
-        let res = await await db.magicMcpServer.findMany({
+        let andFilters: Prisma.MagicMcpServerWhereInput[] = [
+          d.status ? { status: { in: d.status } } : { status: { not: 'archived' as const } }
+        ];
+        if (groups) {
+          andFilters.push({
+            groups: {
+              some: {
+                magicMcpGroupOid: { in: groups.map(g => g.oid) }
+              }
+            }
+          });
+        }
+        if (d.accessTags) {
+          andFilters.push(
+            await this.privateGetAccessTagFilterForReadAccess({
+              accessTags: d.accessTags
+            })
+          );
+        }
+
+        let res = await db.magicMcpServer.findMany({
           ...opts,
           where: {
             instanceOid: d.instance.oid,
-
-            AND: [
-              d.status
-                ? { status: { in: d.status } }
-                : { status: { not: 'archived' as const } },
-
-              groups
-                ? {
-                    groups: {
-                      some: {
-                        magicMcpGroupOid: { in: groups.map(g => g.oid) }
-                      }
-                    }
-                  }
-                : undefined!,
-
-              d.accessTags
-                ? await this.privateGetAccessTagFilterForReadAccess({
-                    accessTags: d.accessTags
-                  })
-                : undefined!
-            ].filter(Boolean),
-
-            serverDeployment: {
-              serverDeployment: {
-                serverOid: servers ? { in: servers.map(s => s.oid) } : undefined,
-                serverImplementationOid: serverImplementations
-                  ? { in: serverImplementations.map(s => s.oid) }
-                  : undefined,
-                serverImplementation: serverVariants
-                  ? { serverVariantOid: { in: serverVariants.map(s => s.oid) } }
-                  : undefined,
-
-                sessionsOldDontUse: sessions
-                  ? {
-                      some: {
-                        oid: { in: sessions.map(s => s.oid) }
-                      }
-                    }
-                  : undefined
-              }
-            },
-
+            AND: andFilters,
             id: search ? { in: search.map(s => s.id) } : undefined
           },
           include

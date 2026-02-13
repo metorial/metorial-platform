@@ -31,10 +31,15 @@ export class Service<Methods extends object> {
 
     let methods: Record<string, any> = {};
 
-    let properties = Object.getOwnPropertyNames(Object.getPrototypeOf(this.#methods));
+    let prototypeProperties = Object.getOwnPropertyNames(Object.getPrototypeOf(this.#methods));
+    let ownFunctionProperties = Object.entries(
+      Object.getOwnPropertyDescriptors(this.#methods as Record<string, any>)
+    )
+      .filter(([, descriptor]) => typeof descriptor.value === 'function')
+      .map(([key]) => key);
+    let properties = [...new Set([...prototypeProperties, ...ownFunctionProperties])];
 
-    for (let key in properties) {
-      let methodName = properties[key];
+    for (let methodName of properties) {
       if (methodName === 'constructor') continue;
 
       let method = (this.#methods as any)[methodName];

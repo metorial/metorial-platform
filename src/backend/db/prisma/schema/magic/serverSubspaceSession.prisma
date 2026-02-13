@@ -1,0 +1,16 @@
+model MagicMcpServerSubspaceSession {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  magicMcpServerOid BigInt         @unique
+  magicMcpServer    MagicMcpServer @relation(fields: [magicMcpServerOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  subspaceSessionId         String
+  subspaceSessionTemplateId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

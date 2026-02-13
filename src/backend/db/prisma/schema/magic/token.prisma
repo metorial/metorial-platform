@@ -34,7 +34,6 @@ model MagicMcpToken {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  magicMcpSessions MagicMcpSession[]
-  groups           MagicMcpGroupToken[]
-  accessTags       AccessTagEntity[]
+  groups     MagicMcpGroupToken[]
+  accessTags AccessTagEntity[]
 }

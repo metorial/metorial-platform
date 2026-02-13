@@ -108,7 +108,6 @@ export let createServerDeployment = async (
   },
   opts?: {
     type: 'persistent' | 'ephemeral';
-    parent?: 'magic_mcp_server';
   }
 ) => {
   return withTransaction(async db => {
@@ -200,7 +199,6 @@ export let createServerDeployment = async (
       serverImplementation,
       type: opts?.type ?? 'persistent',
       context: ctx.context,
-      parent: opts?.parent,
       template,
 
       input: {

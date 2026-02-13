@@ -21,7 +21,7 @@ import { SessionInfo } from './getSession';
 export let mcpConnectionHandler = async (
   c: Context,
   next: Next,
-  sessionInfo: SessionInfo,
+  sessionInfo: Exclude<SessionInfo, { type: 'magic_mcp_subspace_session' }>,
   serverSession: ServerSession & {
     serverDeployment: ServerDeployment & {
       serverVariant: ServerVariant;

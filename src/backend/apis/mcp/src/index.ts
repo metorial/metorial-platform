@@ -9,6 +9,7 @@ import { ALL_CONNECTION_TYPES, toConnectionType } from './constants';
 import { getServerSession } from './getServerSession';
 import { getSessionAndAuthenticate } from './getSession';
 import { mcpConnectionHandler } from './handler';
+import { proxyMagicMcpRequestToSubspace } from './subspaceProxy';
 
 export let startMcpServer = (d: { port: number; authenticate: Authenticator<AuthInfo> }) => {
   let { upgradeWebSocket, websocket } = createBunWebSocket<ServerWebSocket>();
@@ -24,7 +25,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       );
       c.res.headers.set(
         'Access-Control-Allow-Headers',
-        'Content-Type, Authorization, metorial-version, mcp-protocol-version'
+        'Content-Type, Authorization, metorial-version, mcp-protocol-version, mcp-session-id, last-event-id'
       );
       c.res.headers.set('Access-Control-Allow-Credentials', 'true');
       c.res.headers.set('Access-Control-Max-Age', '86400');
@@ -42,7 +43,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         serverDeploymentId &&
         ALL_CONNECTION_TYPES.has(serverDeploymentId)
       ) {
-        connectionTypeRaw = sessionId;
+        connectionTypeRaw = serverDeploymentId;
         serverDeploymentId = undefined;
       }
 
@@ -75,6 +76,10 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
             d.authenticate,
             context
           );
+          if (sessionInfo.type === 'magic_mcp_subspace_session') {
+            return await proxyMagicMcpRequestToSubspace(c, sessionInfo, connectionType);
+          }
+
           let { serverSession, sessionCreated } = await getServerSession(
             sessionInfo,
             context,
@@ -101,13 +106,6 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       let url = new URL(c.req.url);
       let req = c.req.raw;
 
-      let serverSessionId =
-        c.req.query('metorial_server_session_id') ??
-        c.req.header('mcp-session-id') ??
-        c.req.header('metorial-server-session-id');
-
-      let oauthSessionId = c.req.query('oauth_session_id');
-
       return provideExecutionContext(
         createExecutionContext({
           userAgent: context.ua ?? 'unknown',
@@ -119,29 +117,18 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
           let sessionInfo = await getSessionAndAuthenticate(
             {
               type: 'magic_mcp_server',
-              magicMcpServerId,
-              serverSessionId,
-              oauthSessionId
+              magicMcpServerId
             },
             req,
             url,
             d.authenticate,
             context
           );
+          if (sessionInfo.type !== 'magic_mcp_subspace_session') {
+            throw new Error('Magic MCP route requires Subspace-backed session info');
+          }
 
-          let { serverSession, sessionCreated } = await getServerSession(
-            sessionInfo,
-            context,
-            null,
-            serverSessionId ?? null,
-            connectionType
-          );
-
-          return await mcpConnectionHandler(c, next, sessionInfo, serverSession, {
-            connectionType,
-            upgradeWebSocket,
-            sessionCreated
-          });
+          return await proxyMagicMcpRequestToSubspace(c, sessionInfo, connectionType);
         }
       );
     });

@@ -14,16 +14,7 @@ export let syncMagicMcpServerQueueProcessor = syncMagicMcpServerQueue.process(as
       id: data.magicMcpServerId
     },
     include: {
-      instance: true,
-      serverDeployment: {
-        include: {
-          serverDeployment: {
-            include: {
-              server: true
-            }
-          }
-        }
-      }
+      instance: true
     }
   });
   if (!server) throw new QueueRetryError();
@@ -33,10 +24,8 @@ export let syncMagicMcpServerQueueProcessor = syncMagicMcpServerQueue.process(as
     document: {
       id: server.id,
       instanceId: server.instance.id,
-      name: server.name ?? server.serverDeployment?.serverDeployment.name,
-      description: server.description ?? server.serverDeployment?.serverDeployment.description,
-      serverName: server.serverDeployment?.serverDeployment.name,
-      serverDescription: server.serverDeployment?.serverDeployment.description
+      name: server.name,
+      description: server.description
     }
   });
 });

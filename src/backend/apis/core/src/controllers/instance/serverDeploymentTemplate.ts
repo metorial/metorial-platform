@@ -1,5 +1,4 @@
 import { serverService } from '@metorial/module-catalog';
-import { magicMcpServerService } from '@metorial/module-magic';
 import { serverDeploymentTemplateService } from '@metorial/module-server-deployment';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -110,21 +109,15 @@ export let serverDeploymentTemplateController = Controller.create(
             description: v.optional(v.string()),
             server_id: v.string()
           }),
-
-          v.union([
-            v.object({
-              oauth: v.optional(
-                v.object({
-                  client_id: v.string(),
-                  client_secret: v.string()
-                })
-              ),
-              config: v.optional(v.record(v.any()))
-            }),
-            v.object({
-              magic_mcp_server_id: v.string()
-            })
-          ])
+          v.object({
+            oauth: v.optional(
+              v.object({
+                client_id: v.string(),
+                client_secret: v.string()
+              })
+            ),
+            config: v.optional(v.record(v.any()))
+          })
         ])
       )
       .output(serverDeploymentTemplatePresenter)
@@ -144,25 +137,16 @@ export let serverDeploymentTemplateController = Controller.create(
               name: ctx.body.name,
               description: ctx.body.description,
 
-              from:
-                'magic_mcp_server_id' in ctx.body
+              from: {
+                type: 'config',
+                oauth: ctx.body.oauth
                   ? {
-                      type: 'magic_mcp_server',
-                      magicMcpServer: await magicMcpServerService.getMagicMcpServerById({
-                        instance: ctx.instance,
-                        magicMcpServerId: ctx.body.magic_mcp_server_id
-                      })
+                      clientId: ctx.body.oauth.client_id,
+                      clientSecret: ctx.body.oauth.client_secret
                     }
-                  : {
-                      type: 'config',
-                      oauth: ctx.body.oauth
-                        ? {
-                            clientId: ctx.body.oauth.client_id,
-                            clientSecret: ctx.body.oauth.client_secret
-                          }
-                        : undefined,
-                      config: ctx.body.config
-                    }
+                  : undefined,
+                config: ctx.body.config
+              }
             }
           });
 

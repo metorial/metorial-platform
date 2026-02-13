@@ -62,7 +62,7 @@ model Instance {
   lambdaServerInstances     LambdaServerInstance[]
   codeBuckets               CodeBucket[]
   magicMcpServers           MagicMcpServer[]
-  magicMcpSession           MagicMcpSession[]
+  magicMcpServerSubspaceSessions MagicMcpServerSubspaceSession[]
   magicMcpToken             MagicMcpToken[]
   providerOAuthTakeouts     ProviderOAuthTakeout[]
   callbacks                 Callback[]

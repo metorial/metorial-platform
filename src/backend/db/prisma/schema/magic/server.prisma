@@ -12,11 +12,12 @@ model MagicMcpServer {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid])
 
-  defaultServerOauthSessionOid BigInt?
-  defaultServerOauthSession    ServerOAuthSession? @relation(fields: [defaultServerOauthSessionOid], references: [oid])
-
   consumerProfileOid BigInt?
   consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid])
+
+  subspaceSessionTemplateId String
+  subspaceTenantId          String?
+  subspaceEnvironmentId     String?
 
   name        String?
   description String?
@@ -27,26 +28,10 @@ model MagicMcpServer {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  serverDeployment MagicMcpServerDeployment?
-  aliases          MagicMcpServerAlias[]
-  sessions         MagicMcpSession[]
-  groups           MagicMcpGroupServer[]
-  accessTags       AccessTagEntity[]
-}
-
-model MagicMcpServerDeployment {
-  oid BigInt @id @default(autoincrement())
-  id  String @unique
-
-  magicMcpServerOid BigInt         @unique // Unique for now since we don't support multiple deployments per server
-  magicMcpServer    MagicMcpServer @relation(fields: [magicMcpServerOid], references: [oid])
-
-  serverDeploymentOid BigInt
-  serverDeployment    ServerDeployment @relation(fields: [serverDeploymentOid], references: [oid])
-
-  createdAt DateTime @default(now())
-
-  @@unique([magicMcpServerOid, serverDeploymentOid])
+  aliases         MagicMcpServerAlias[]
+  subspaceSession MagicMcpServerSubspaceSession?
+  groups          MagicMcpGroupServer[]
+  accessTags      AccessTagEntity[]
 }
 
 model MagicMcpServerAlias {

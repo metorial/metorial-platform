@@ -84,11 +84,8 @@ let ServerDeploymentFormInternal = (
 
   let serverDeployment = useServerDeployment(
     instance.data?.id,
-    magicMcpServer.data
-      ? magicMcpServer.data.serverDeployments[0].id
-      : p.type == 'server_deployment.update'
-        ? p.serverDeploymentId
-        : undefined
+    magicMcpServer.data?.serverDeployments?.[0]?.id ??
+      (p.type == 'server_deployment.update' ? p.serverDeploymentId : undefined)
   );
 
   let updateResource = resource == 'magic_mcp_server' ? magicMcpServer : serverDeployment;
@@ -121,8 +118,11 @@ let ServerDeploymentFormInternal = (
   let variants = useServerVariants(instance.data?.id, serverId);
   let server = useServer(instance.data?.id, serverId);
 
-  let variant = (p as any).for?.serverVariantId
-    ? variants.data?.items.find(v => v.id == (p as any).for?.serverVariantId)
+  let selectedVariantId =
+    p.for && 'serverVariantId' in p.for ? p.for.serverVariantId : undefined;
+
+  let variant = selectedVariantId
+    ? variants.data?.items.find(v => v.id == selectedVariantId)
     : variants.data?.items[0];
 
   let serverNeedsConfig =
@@ -167,7 +167,7 @@ let ServerDeploymentFormInternal = (
           config: configChanged ? values.config : undefined
         });
         serverDeployment?.refetch();
-      } else if (p.type == 'server_deployment.create' || p.type == 'magic_mcp_server.create') {
+      } else if (p.type == 'server_deployment.create') {
         let doCreate = async (
           oauthConfig: { clientId: string; clientSecret: string } | undefined
         ) => {
@@ -304,6 +304,38 @@ let ServerDeploymentFormInternal = (
         };
 
         doCreate(undefined);
+      } else if (p.type == 'magic_mcp_server.create') {
+        let selectedServerId = p.for?.serverId ?? searchServer?.server.id;
+        if (!selectedServerId) {
+          toast.error('Please select a server first.');
+          return;
+        }
+
+        let [res] = await createMutator.mutate({
+          name: values.name,
+          description: values.description,
+          metadata: values.metadata,
+          config: values.config,
+          serverId: selectedServerId,
+          serverVariantId: selectedVariantId,
+          instanceId: instance.data?.id!
+        });
+
+        if (res) {
+          if (p.onCreate) {
+            p.onCreate(res);
+            p.close?.();
+          } else {
+            navigate(
+              Paths.instance.magicMcp.server(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                res.id
+              )
+            );
+          }
+        }
       }
     }
   });

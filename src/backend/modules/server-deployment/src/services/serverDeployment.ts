@@ -211,7 +211,6 @@ class ServerDeploymentServiceImpl {
     };
 
     type: 'ephemeral' | 'persistent';
-    parent?: 'magic_mcp_server';
   }) {
     if (
       d.serverImplementation.instance.status != 'active' &&
@@ -505,9 +504,7 @@ class ServerDeploymentServiceImpl {
           configOid: config.oid,
           instanceOid: d.instance.oid,
           callbackOid: callback?.oid,
-          accessLimiterOid: accessLimiter?.oid,
-
-          isMagicMcpSession: d.parent === 'magic_mcp_server'
+          accessLimiterOid: accessLimiter?.oid
         },
         include
       });

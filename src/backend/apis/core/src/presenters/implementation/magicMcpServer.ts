@@ -3,24 +3,39 @@ import { Presenter } from '@metorial/presenter';
 import { shadowId } from '@metorial/shadow-id';
 import { v } from '@metorial/validation';
 import { magicMcpServerType } from '../types';
-import { v1ServerDeploymentPreview } from './serverDeploymentPreview';
+
+let sessionTemplateSchema = v.object({
+  id: v.string({
+    name: 'id',
+    description: 'The unique identifier of the session template used by this magic MCP server'
+  }),
+  name: v.nullable(
+    v.string({
+      name: 'name',
+      description: 'The display name of the linked session template'
+    })
+  ),
+  description: v.nullable(
+    v.string({
+      name: 'description',
+      description: 'The description of the linked session template'
+    })
+  )
+});
 
 export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
-  .presenter(async ({ magicMcpServer }, opts) => {
+  .presenter(async ({ magicMcpServer }) => {
     return {
       object: 'magic_mcp.server',
 
       id: magicMcpServer.id,
       status: magicMcpServer.status,
 
-      server_deployments: magicMcpServer.serverDeployment
-        ? [
-            v1ServerDeploymentPreview(
-              magicMcpServer.serverDeployment.serverDeployment,
-              magicMcpServer.serverDeployment.serverDeployment.server
-            )
-          ]
-        : [],
+      session_template: magicMcpServer.sessionTemplate ?? {
+        id: magicMcpServer.subspaceSessionTemplateId,
+        name: null,
+        description: null
+      },
 
       endpoints: magicMcpServer.aliases.map(a => ({
         id: shadowId('mgsep_', [magicMcpServer.id], [a.oid]),
@@ -28,31 +43,8 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         urls: {
           sse: `${getConfig().urls.mcpUrl}/magic/${a.slug}/sse`,
           streamable_http: `${getConfig().urls.mcpUrl}/magic/${a.slug}/mcp`
-          // websocket: `${getConfig().urls.mcpUrl}/magic/${a.slug}/websocket`
         }
       })),
-
-      oauth_configuration: !magicMcpServer.serverDeployment?.serverDeployment
-        .oauthConnectionOid
-        ? {
-            status: 'disabled'
-          }
-        : !magicMcpServer.defaultServerOauthSession
-          ? {
-              status: 'not_configured'
-            }
-          : {
-              status: 'configured',
-              default_oauth_session: magicMcpServer.defaultServerOauthSession
-                ? {
-                    object: 'server.oauth_session#preview',
-                    id: magicMcpServer.defaultServerOauthSession.id,
-                    metadata: magicMcpServer.defaultServerOauthSession.metadata,
-                    created_at: magicMcpServer.defaultServerOauthSession.createdAt,
-                    updated_at: magicMcpServer.defaultServerOauthSession.updatedAt
-                  }
-                : null
-            },
 
       name: magicMcpServer.name,
       description: magicMcpServer.description,
@@ -76,6 +68,8 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         description: 'The status of the magic MCP server'
       }),
 
+      session_template: sessionTemplateSchema,
+
       endpoints: v.array(
         v.object({
           id: v.string({
@@ -96,10 +90,6 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
                 name: 'streamable_http',
                 description: 'The Streamable HTTP URL for the magic MCP server endpoint'
               })
-              // websocket: v.string({
-              //   name: 'websocket',
-              //   description: 'The WebSocket URL for the magic MCP server endpoint'
-              // })
             },
             {
               name: 'urls',
@@ -113,53 +103,18 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         }
       ),
 
-      server_deployments: v.array(v1ServerDeploymentPreview.schema, {
-        name: 'server_deployments',
-        description: 'List of server deployments associated with the magic MCP server'
-      }),
-
-      name: v.string({
-        name: 'name',
-        description: 'The name of the magic MCP server'
-      }),
+      name: v.nullable(
+        v.string({
+          name: 'name',
+          description: 'The name of the magic MCP server'
+        })
+      ),
       description: v.nullable(
         v.string({
           name: 'description',
           description: 'A description of the magic MCP server, if available'
         })
       ),
-
-      oauth_configuration: v.union([
-        v.object({
-          status: v.enumOf(['disabled', 'not_configured'], {
-            name: 'status',
-            description:
-              'The OAuth configuration status of the magic MCP server when OAuth is not set up'
-          })
-        }),
-        v.object({
-          status: v.literal('configured'),
-          default_oauth_session: v.object({
-            object: v.literal('server.oauth_session#preview'),
-            id: v.string({
-              name: 'id',
-              description: 'The unique identifier of the OAuth session'
-            }),
-            metadata: v.record(v.any(), {
-              name: 'metadata',
-              description: 'Additional metadata related to the OAuth session'
-            }),
-            created_at: v.date({
-              name: 'created_at',
-              description: 'Timestamp when the OAuth session was created'
-            }),
-            updated_at: v.date({
-              name: 'updated_at',
-              description: 'Timestamp when the OAuth session was last updated'
-            })
-          })
-        })
-      ]),
 
       metadata: v.record(v.any(), {
         name: 'metadata',
@@ -181,58 +136,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
 
 export let v1DashboardMagicMcpServerPresenter = Presenter.create(magicMcpServerType)
   .presenter(async ({ magicMcpServer }, opts) => {
-    let inner = await v1MagicMcpServerPresenter.present({ magicMcpServer }, opts).run({});
-
-    return {
-      ...inner,
-
-      needs_default_oauth_session:
-        !magicMcpServer.defaultServerOauthSession &&
-        !!magicMcpServer.serverDeployment?.serverDeployment.oauthConnectionOid,
-
-      default_oauth_session: magicMcpServer.defaultServerOauthSession
-        ? {
-            object: 'server.oauth_session#preview',
-            id: magicMcpServer.defaultServerOauthSession.id,
-            metadata: magicMcpServer.defaultServerOauthSession.metadata,
-            created_at: magicMcpServer.defaultServerOauthSession.createdAt,
-            updated_at: magicMcpServer.defaultServerOauthSession.updatedAt
-          }
-        : null
-    };
+    return await v1MagicMcpServerPresenter.present({ magicMcpServer }, opts).run({});
   })
-  .schema(
-    v.intersection([
-      v1MagicMcpServerPresenter.schema,
-      v.object({
-        needs_default_oauth_session: v.boolean({
-          name: 'needs_default_oauth_session',
-          description:
-            'Indicates whether a default OAuth session is needed for this magic MCP server'
-        }),
-
-        default_oauth_session: v.nullable(
-          v.object({
-            object: v.literal('server.oauth_session#preview'),
-            id: v.string({
-              name: 'id',
-              description: 'The unique identifier of the OAuth session'
-            }),
-            metadata: v.record(v.any(), {
-              name: 'metadata',
-              description: 'Additional metadata related to the OAuth session'
-            }),
-            created_at: v.date({
-              name: 'created_at',
-              description: 'Timestamp when the OAuth session was created'
-            }),
-            updated_at: v.date({
-              name: 'updated_at',
-              description: 'Timestamp when the OAuth session was last updated'
-            })
-          })
-        )
-      })
-    ]) as any
-  )
+  .schema(v1MagicMcpServerPresenter.schema)
   .build();

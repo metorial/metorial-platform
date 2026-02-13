@@ -103,10 +103,9 @@ export let ID = createIdGenerator({
   codeBucketTemplate: idType.sorted('cbt'),
 
   magicMcpServer: idType.sorted('mgsr'),
-  magicMcpSession: idType.sorted('mgsn'),
+  magicMcpServerSubspaceSession: idType.sorted('mgss'),
   magicMcpToken: idType.sorted('mgtk'),
   magicMcpGroup: idType.sorted('mggr'),
-  magicMcpServerDeployment: idType.sorted('mgsrd'),
 
   scmInstallation: idType.sorted('sci'),
   scmAccount: idType.sorted('sca'),

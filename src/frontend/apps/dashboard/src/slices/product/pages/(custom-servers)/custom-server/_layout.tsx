@@ -152,7 +152,7 @@ export let DeployServerButton = ({
   return !disabled &&
     (flags.data?.flags['magic-mcp-enabled'] ||
       (flags.data?.flags['managed-servers-enabled'] &&
-        server.data?.fork.status == 'enabled')) ? (
+        server.data?.fork?.status == 'enabled')) ? (
     <Menu
       items={[
         {
@@ -170,7 +170,7 @@ export let DeployServerButton = ({
             ]
           : []),
         ...(flags.data?.flags['managed-servers-enabled'] &&
-        server.data?.fork.status == 'enabled'
+        server.data?.fork?.status == 'enabled'
           ? [
               {
                 id: 'fork-server',
@@ -191,7 +191,8 @@ export let DeployServerButton = ({
             type: 'create',
             for: { serverId }
           });
-        } else if (item === 'fork-server' && server.data?.fork.status == 'enabled') {
+        } else if (item === 'fork-server' && server.data?.fork?.status == 'enabled') {
+          if (!server.data?.fork?.templateId) return;
           showCustomServerRemoteFormModal({
             type: 'managed',
             templateId: server.data.fork.templateId

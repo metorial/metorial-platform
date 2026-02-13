@@ -18,10 +18,8 @@ export let MagicMcpServerLayout = () => {
 
   let { magicMcpServerId } = useParams();
   let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
-  let serverDeployment = useServerDeployment(
-    instance.data?.id,
-    server.data?.serverDeployments[0]?.id
-  );
+  let defaultServerDeploymentId = server.data?.serverDeployments?.[0]?.id;
+  let serverDeployment = useServerDeployment(instance.data?.id, defaultServerDeploymentId);
 
   let pathname = useLocation().pathname;
 
@@ -57,21 +55,21 @@ export let MagicMcpServerLayout = () => {
           }
         ]}
         actions={
-          <>
+          defaultServerDeploymentId ? (
             <Link
               to={Paths.instance.explorer(organization.data, project.data, instance.data, {
-                server_deployment_id: server.data?.serverDeployments[0]?.id
+                server_deployment_id: defaultServerDeploymentId
               })}
             >
               <Button as="span" size="2">
                 Open Explorer
               </Button>
             </Link>
-          </>
+          ) : null
         }
       />
 
-      {renderWithLoader({ server, serverDeployment })(({ server, serverDeployment }) => (
+      {renderWithLoader({ server })(({ server }) => (
         <>
           <LinkTabs
             current={pathname}
@@ -92,7 +90,7 @@ export let MagicMcpServerLayout = () => {
                 label: 'Errors',
                 to: Paths.instance.magicMcp.server(...serverPathParams, 'errors')
               },
-              ...(serverDeployment.data.oauthConnection
+              ...(serverDeployment.data?.oauthConnection
                 ? [
                     {
                       label: 'OAuth Configuration',

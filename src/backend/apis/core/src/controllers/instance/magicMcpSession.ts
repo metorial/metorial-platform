@@ -50,7 +50,7 @@ export let magicMcpSessionController = Controller.create(
       .do(async ctx => {
         let paginator = await magicMcpSessionService.listMagicMcpSessions({
           instance: ctx.instance,
-          magicMcpServerId: normalizeArrayParam(ctx.query.magic_mcp_server_id) as any,
+          magicMcpServerId: normalizeArrayParam(ctx.query.magic_mcp_server_id),
           accessTags: ctx.accessTags
         });
 

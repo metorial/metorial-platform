@@ -509,11 +509,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                     return res;
                   } catch (e) {
                     if (isServiceError(e))
-                      return json(
-                        e.toResponse(),
-                        e.data.status,
-                        e.data.status == 401 ? {} : corsHeaders
-                      );
+                      return json(e.toResponse(), e.data.status, corsHeaders);
 
                     Sentry.captureException(e);
 

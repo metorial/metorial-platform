@@ -1,25 +1,158 @@
 import { extractToken } from '@metorial/bearer';
 import { Context } from '@metorial/context';
-import {
-  db,
-  Instance,
-  MagicMcpToken,
-  Organization,
-  OrganizationActor,
-  ServerOAuthSession
-} from '@metorial/db';
+import { db, OrganizationActor, Prisma } from '@metorial/db';
 import {
   badRequestError,
   forbiddenError,
-  notFoundError,
   ServiceError,
   unauthorizedError
 } from '@metorial/error';
 import { accessService, AuthInfo } from '@metorial/module-access';
-import { magicMcpServerService, magicMcpTokenService } from '@metorial/module-magic';
+import {
+  magicMcpServerService,
+  magicMcpSubspaceSessionService,
+  magicMcpTokenService
+} from '@metorial/module-magic';
 import { organizationActorService } from '@metorial/module-organization';
-import { serverOAuthSessionService, sessionService } from '@metorial/module-session';
+import { sessionService } from '@metorial/module-session';
+import { getSubspaceSolutionIdentifier, getTenantForSubspace } from '@metorial/module-subspace';
 import { Authenticator } from '@metorial/rest';
+
+type MagicMcpServerForRouting = Prisma.MagicMcpServerGetPayload<{
+  include: {
+    aliases: true;
+    subspaceSession: true;
+    instance: true;
+  };
+}>;
+
+type MagicMcpSubspaceMappingWithServer = Prisma.MagicMcpServerSubspaceSessionGetPayload<{
+  include: {
+    magicMcpServer: {
+      include: {
+        aliases: true;
+        subspaceSession: true;
+        instance: true;
+      };
+    };
+  };
+}>;
+
+type MagicMcpTokenWithInstance = Awaited<ReturnType<typeof magicMcpTokenService.getMagicMcpTokenBySecret>>;
+type MagicMcpRoutingInstance = MagicMcpTokenWithInstance['instance'];
+
+let resolveMagicMcpAuthContext = async (d: {
+  server: MagicMcpServerForRouting;
+  authTokenSecret: string | null;
+  request: Request;
+  url: URL;
+  authenticate: Authenticator<AuthInfo>;
+}) => {
+  let token: MagicMcpTokenWithInstance | undefined;
+  let actor: OrganizationActor | undefined;
+  let instance: MagicMcpRoutingInstance;
+
+  if (d.authTokenSecret?.startsWith('metorial_mk_')) {
+    token = await magicMcpTokenService.getMagicMcpTokenBySecret({
+      secret: d.authTokenSecret,
+      instance: d.server.instance
+    });
+
+    let ok = await magicMcpTokenService.checkMagicMcpTokenAccess({
+      token,
+      server: d.server
+    });
+    if (!ok) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Magic MCP token does not have access to this Magic MCP server.'
+        })
+      );
+    }
+
+    instance = token.instance;
+  } else {
+    let auth = await d.authenticate(d.request, d.url);
+    let instanceRes = await accessService.accessInstance({
+      authInfo: auth.auth,
+      instanceId: d.server.instance.id
+    });
+    instance = instanceRes.instance;
+    actor = instanceRes.actor;
+  }
+
+  if (!actor) {
+    actor = await organizationActorService.getSystemActor({
+      organization: instance.organization
+    });
+  }
+
+  return { instance, actor, token };
+};
+
+let resolveMagicMcpSubspaceSession = async (d: {
+  server: MagicMcpServerForRouting;
+  mapping?: Pick<
+    MagicMcpSubspaceMappingWithServer,
+    'subspaceSessionId' | 'subspaceSessionTemplateId'
+  >;
+  authTokenSecret: string | null;
+  request: Request;
+  url: URL;
+  authenticate: Authenticator<AuthInfo>;
+}) => {
+  if (d.server.status !== 'active') {
+    throw new ServiceError(
+      forbiddenError({
+        message: 'Magic MCP server is not active.'
+      })
+    );
+  }
+
+  let { instance, actor, token } = await resolveMagicMcpAuthContext({
+    server: d.server,
+    authTokenSecret: d.authTokenSecret,
+    request: d.request,
+    url: d.url,
+    authenticate: d.authenticate
+  });
+
+  let subspaceSessionTemplateId = d.server.subspaceSessionTemplateId;
+  if (!subspaceSessionTemplateId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Magic MCP server is not properly configured. Missing Subspace session template.'
+      })
+    );
+  }
+
+  let mapping =
+    d.mapping ??
+    (await magicMcpSubspaceSessionService.ensureSessionForMagicServer({
+      magicMcpServer: d.server,
+      instance,
+      organization: instance.organization,
+      organizationActor: actor
+    }));
+
+  let { tenant, environment } = await getTenantForSubspace(instance.organization, instance);
+
+  return {
+    type: 'magic_mcp_subspace_session' as const,
+    instance,
+    organization: instance.organization,
+    actor,
+    token,
+    magicMcpServer: d.server,
+    subspaceSessionId: mapping.subspaceSessionId,
+    subspaceSessionTemplateId: mapping.subspaceSessionTemplateId,
+    subspaceSolutionId: getSubspaceSolutionIdentifier(),
+    subspaceTenantId: tenant.id,
+    subspaceTenantIdentifier: tenant.identifier,
+    subspaceEnvironmentId: environment.id,
+    subspaceEnvironmentIdentifier: environment.identifier
+  };
+};
 
 export let getSessionAndAuthenticate = async (
   d:
@@ -30,15 +163,13 @@ export let getSessionAndAuthenticate = async (
     | {
         type: 'magic_mcp_server';
         magicMcpServerId: string;
-        oauthSessionId?: string;
-        serverSessionId?: string;
       },
   request: Request,
   url: URL,
   authenticate: Authenticator<AuthInfo>,
-  context: Context
+  _context: Context
 ) => {
-  let authTokenSecret = url.searchParams.get('key') ?? extractToken(request, url);
+  let authTokenSecret = (url.searchParams.get('key') ?? extractToken(request, url)) ?? null;
 
   if (d.type == 'session') {
     if (authTokenSecret?.startsWith('metorial_ek_')) {
@@ -49,7 +180,8 @@ export let getSessionAndAuthenticate = async (
         throw new ServiceError(
           unauthorizedError({
             message: 'Session ID mismatch',
-            description: `The session ID in the URL does not match the session ID the client secret is associated with.`
+            description:
+              'The session ID in the URL does not match the session ID the client secret is associated with.'
           })
         );
       }
@@ -59,6 +191,32 @@ export let getSessionAndAuthenticate = async (
         session,
         instance: session.instance
       };
+    }
+
+    let mapping = await db.magicMcpServerSubspaceSession.findFirst({
+      where: {
+        subspaceSessionId: d.sessionId
+      },
+      include: {
+        magicMcpServer: {
+          include: {
+            aliases: true,
+            subspaceSession: true,
+            instance: true
+          }
+        }
+      }
+    });
+
+    if (mapping) {
+      return await resolveMagicMcpSubspaceSession({
+        server: mapping.magicMcpServer,
+        mapping,
+        authTokenSecret,
+        request,
+        url,
+        authenticate
+      });
     }
 
     let auth = await authenticate(request, url);
@@ -86,134 +244,20 @@ export let getSessionAndAuthenticate = async (
       magicMcpServerId: d.magicMcpServerId
     });
 
-    let instance: Instance & { organization: Organization };
-    let token: MagicMcpToken | undefined = undefined;
-    let actor: OrganizationActor | undefined = undefined;
-
-    if (authTokenSecret?.startsWith('metorial_mk_')) {
-      let token = await magicMcpTokenService.getMagicMcpTokenBySecret({
-        secret: authTokenSecret,
-        instance: server.instance
-      });
-
-      let ok = await magicMcpTokenService.checkMagicMcpTokenAccess({
-        token,
-        server
-      });
-      if (!ok) {
-        throw new ServiceError(
-          forbiddenError({
-            message: 'Magic MCP token does not have access to this Magic MCP server.'
-          })
-        );
-      }
-
-      token = token;
-      instance = token.instance;
-    } else {
-      let auth = await authenticate(request, url);
-      let instanceRes = await accessService.accessInstance({
-        authInfo: auth.auth,
-        instanceId: server.instance.id
-      });
-      instance = instanceRes.instance;
-      actor = instanceRes.actor;
-    }
-
-    if (!actor) {
-      actor = await organizationActorService.getSystemActor({
-        organization: instance.organization
-      });
-    }
-
-    let serverDeployment = server.serverDeployment?.serverDeployment;
-    if (!serverDeployment) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Magic MCP server is not properly configured. No server deployment found.'
-        })
-      );
-    }
-
-    if (d.serverSessionId) {
-      let serverSession = await db.serverSession.findFirst({
-        where: { id: d.serverSessionId },
-        include: {
-          session: {
-            include: {
-              serverDeployments: {
-                include: {
-                  serverDeployment: {
-                    include: {
-                      server: true,
-                      serverVariant: true
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      });
-      if (!serverSession) throw new ServiceError(notFoundError('session.server_session'));
-
-      return {
-        type: 'magic_mcp_session' as const,
-        session: serverSession.session,
-        instance
-      };
-    } else {
-      let oauthSession: ServerOAuthSession | undefined = undefined;
-
-      if (serverDeployment.oauthConnectionOid) {
-        if (!d.oauthSessionId && !server.defaultServerOauthSession) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'OAuth session ID is required for this Magic MCP server.',
-              hint: 'You can set up OAuth in the Metorial dashboard or pass an `oauth_session_id` query parameter to the request.'
-            })
-          );
-        }
-
-        if (d.oauthSessionId) {
-          oauthSession = await serverOAuthSessionService.getServerOAuthSessionById({
-            instance,
-            serverOAuthSessionId: d.oauthSessionId
-          });
-        } else {
-          oauthSession = server.defaultServerOauthSession!;
-        }
-      }
-
-      let session = await sessionService.createSession({
-        instance,
-        organization: instance.organization,
-        performedBy: actor,
-        magicMcpToken: token,
-        ephemeralPermittedDeployments: new Set(),
-        input: {
-          connectionType: 'mcp',
-          serverDeployments: [
-            {
-              deployment: serverDeployment,
-              oauthSession
-            }
-          ]
-        }
-      });
-
-      return {
-        type: 'magic_mcp_session' as const,
-        session,
-        instance
-      };
-    }
+    return await resolveMagicMcpSubspaceSession({
+      server,
+      authTokenSecret,
+      request,
+      url,
+      authenticate
+    });
   }
 
   throw new ServiceError(
     unauthorizedError({
       message: 'Invalid authentication method',
-      description: `You must authenticate using either a session client secret or a valid Magic MCP token.`
+      description:
+        'You must authenticate using either a session client secret or a valid Magic MCP token.'
     })
   );
 };

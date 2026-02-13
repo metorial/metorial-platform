@@ -41,8 +41,7 @@ import {
   MagicMcpGroupToken,
   MagicMcpServer,
   MagicMcpServerAlias,
-  MagicMcpServerDeployment,
-  MagicMcpSession,
+  MagicMcpServerSubspaceSession,
   MagicMcpToken,
   ManagedServerTemplate,
   Organization,
@@ -585,24 +584,33 @@ export let managedServerTemplateType = PresentableType.create<{
 
 export let magicMcpServerType = PresentableType.create<{
   magicMcpServer: MagicMcpServer & {
-    serverDeployment:
-      | (MagicMcpServerDeployment & {
-          serverDeployment: ServerDeployment & {
-            server: Server;
-          };
-        })
-      | null;
     aliases: MagicMcpServerAlias[];
-    defaultServerOauthSession: ServerOAuthSession | null;
+    subspaceSession: MagicMcpServerSubspaceSession | null;
+    sessionTemplate:
+      | {
+          id: string;
+          name: string | null;
+          description: string | null;
+        }
+      | null;
   };
 }>()('magic_mcp.server');
 
 export let magicMcpSessionType = PresentableType.create<{
-  magicMcpSession: MagicMcpSession & {
-    session: Session & {
-      serverSessions: ServerSession[];
-    };
+  magicMcpSession: MagicMcpServerSubspaceSession & {
     magicMcpServer: MagicMcpServer;
+    subspaceSession: {
+      id: string;
+      connectionState: string;
+      usage: {
+        totalProductiveClientMessageCount: number;
+        totalProductiveServerMessageCount: number;
+      };
+      createdAt: Date;
+      updatedAt: Date;
+      lastActiveAt?: Date | null;
+    };
+    connectionCount: number;
   };
 }>()('magic_mcp.session');
 

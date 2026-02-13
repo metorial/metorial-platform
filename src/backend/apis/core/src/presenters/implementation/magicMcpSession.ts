@@ -3,12 +3,12 @@ import { v } from '@metorial/validation';
 import { magicMcpSessionType } from '../types';
 
 export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
-  .presenter(async ({ magicMcpSession }, opts) => {
+  .presenter(async ({ magicMcpSession }) => {
     return {
       object: 'magic_mcp.session',
 
       id: magicMcpSession.id,
-      session_id: magicMcpSession.session.id,
+      subspace_session_id: magicMcpSession.subspaceSession.id,
 
       magic_mcp_server: {
         id: magicMcpSession.magicMcpServer.id,
@@ -22,27 +22,22 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
         updated_at: magicMcpSession.magicMcpServer.updatedAt
       },
 
-      client: magicMcpSession.session.serverSessions[0]
-        ? {
-            object: 'session.client#preview',
-            info: magicMcpSession.session.serverSessions[0].clientInfo
-          }
-        : null,
-
-      connection_status: magicMcpSession.session.connectionStatus,
+      connection_status: magicMcpSession.subspaceSession.connectionState,
+      connection_count: magicMcpSession.connectionCount,
 
       usage: {
         total_productive_message_count:
-          magicMcpSession.session.totalProductiveClientMessageCount +
-          magicMcpSession.session.totalProductiveServerMessageCount,
+          magicMcpSession.subspaceSession.usage.totalProductiveClientMessageCount +
+          magicMcpSession.subspaceSession.usage.totalProductiveServerMessageCount,
         total_productive_client_message_count:
-          magicMcpSession.session.totalProductiveClientMessageCount,
+          magicMcpSession.subspaceSession.usage.totalProductiveClientMessageCount,
         total_productive_server_message_count:
-          magicMcpSession.session.totalProductiveServerMessageCount
+          magicMcpSession.subspaceSession.usage.totalProductiveServerMessageCount
       },
 
+      last_active_at: magicMcpSession.subspaceSession.lastActiveAt ?? null,
       created_at: magicMcpSession.createdAt,
-      updated_at: magicMcpSession.session.updatedAt
+      updated_at: magicMcpSession.updatedAt
     };
   })
   .schema(
@@ -51,17 +46,22 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
 
       id: v.string({
         name: 'id',
-        description: 'The unique identifier of the session'
+        description: 'The unique identifier of the session mapping'
       }),
 
-      session_id: v.string({
-        name: 'session_id',
-        description: 'The ID of the associated session'
+      subspace_session_id: v.string({
+        name: 'subspace_session_id',
+        description: 'The ID of the associated Subspace session'
       }),
 
-      connection_status: v.enumOf(['connected', 'disconnected'], {
+      connection_status: v.string({
         name: 'connection_status',
-        description: 'The connection state of the session'
+        description: 'The connection state of the Subspace session'
+      }),
+
+      connection_count: v.number({
+        name: 'connection_count',
+        description: 'Number of active/known Subspace connections for the session'
       }),
 
       magic_mcp_server: v.object({
@@ -74,10 +74,12 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
           description: 'The status of the magic MCP server'
         }),
 
-        name: v.string({
-          name: 'name',
-          description: 'The name of the magic MCP server'
-        }),
+        name: v.nullable(
+          v.string({
+            name: 'name',
+            description: 'The name of the magic MCP server'
+          })
+        ),
         description: v.nullable(
           v.string({
             name: 'description',
@@ -120,29 +122,20 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
         }
       ),
 
-      client: v.nullable(
-        v.object({
-          object: v.literal('session.client#preview'),
-          info: v.object({
-            name: v.string({
-              name: 'name',
-              description: 'Name of the client'
-            }),
-            version: v.string({
-              name: 'version',
-              description: 'Version of the client'
-            })
-          })
+      last_active_at: v.nullable(
+        v.date({
+          name: 'last_active_at',
+          description: 'Timestamp for the most recent activity on the Subspace session'
         })
       ),
 
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the session was created'
+        description: 'Timestamp when the mapping was created'
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when the session was last updated'
+        description: 'Timestamp when the mapping was last updated'
       })
     })
   )
@@ -150,11 +143,7 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
 
 export let v1DashboardMagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
   .presenter(async ({ magicMcpSession }, opts) => {
-    let inner = await v1MagicMcpSessionPresenter.present({ magicMcpSession }, opts).run({});
-
-    return {
-      ...inner
-    };
+    return await v1MagicMcpSessionPresenter.present({ magicMcpSession }, opts).run({});
   })
   .schema(v1MagicMcpSessionPresenter.schema)
   .build();

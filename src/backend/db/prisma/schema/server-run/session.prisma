@@ -49,7 +49,6 @@ model Session {
   events                      SessionEvent[]
   connections                 SessionConnection[]
   serverDeployments           SessionServerDeployment[]
-  magicMcpSessions            MagicMcpSession[]
 
   @@index([connectionStatus])
   @@index([lastClientPingAt])

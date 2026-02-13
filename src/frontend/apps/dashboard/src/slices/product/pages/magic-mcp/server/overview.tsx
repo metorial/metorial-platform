@@ -33,12 +33,23 @@ let List = styled.ol`
   }
 `;
 
+type SessionTemplatePreview = {
+  id: string;
+  name: string | null;
+  description: string | null;
+};
+
+type MagicMcpServerWithSessionTemplate = {
+  sessionTemplate?: SessionTemplatePreview | null;
+};
+
 export let MagicMcpServerOverviewPage = () => {
   let instance = useCurrentInstance();
 
   let { magicMcpServerId } = useParams();
   let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
-  let serverDeployment = server.data?.serverDeployments[0];
+  let serverDeployment = server.data?.serverDeployments?.[0];
+  let defaultServerDeploymentId = server.data?.serverDeployments?.[0]?.id;
 
   let tokens = useMagicMcpTokens(instance.data?.id, {
     status: 'active'
@@ -68,130 +79,140 @@ export let MagicMcpServerOverviewPage = () => {
 
   let copy = useCopy();
 
-  return renderWithLoader({ server })(({ server }) => (
-    <>
-      <Attributes
-        itemWidth="250px"
-        attributes={[
-          {
-            label: 'Name',
-            content: server.data.name
-          },
-          {
-            label: 'Server',
-            content: serverDeployment?.server.name ?? '...'
-          },
-          {
-            label: 'ID',
-            content: <ID id={server.data.id} />
-          },
-          {
-            label: 'Created At',
-            content: <RenderDate date={server.data.createdAt!} />
-          }
-        ]}
-      />
+  return renderWithLoader({ server })(({ server }) => {
+    let sessionTemplate = (
+      server.data as typeof server.data & MagicMcpServerWithSessionTemplate
+    ).sessionTemplate;
 
-      <MagicMcpServerOauthCallout />
+    return (
+      <>
+        <Attributes
+          itemWidth="250px"
+          attributes={[
+            {
+              label: 'Name',
+              content: server.data.name
+            },
+            {
+              label: 'Session Template',
+              content: sessionTemplate?.name ?? sessionTemplate?.id ?? '...'
+            },
+            {
+              label: 'ID',
+              content: <ID id={server.data.id} />
+            },
+            {
+              label: 'Created At',
+              content: <RenderDate date={server.data.createdAt!} />
+            }
+          ]}
+        />
 
-      <Spacer height={15} />
-
-      <SideBox
-        title="Test your Magic MCP server"
-        description="Use the Metorial Explorer to test your Magic MCP server."
-      >
-        <Link
-          to={Paths.instance.explorer(
-            instance.data?.organization,
-            instance.data?.project,
-            instance.data,
-            { server_deployment_id: server.data.serverDeployments[0]?.id }
-          )}
-        >
-          <Button as="span" size="2">
-            Open Explorer
-          </Button>
-        </Link>
-      </SideBox>
-
-      <Spacer height={15} />
-
-      <Box
-        title={`Connect to ${server.data.name}`}
-        description="Use this Magic MCP endpoint to connect to your server."
-      >
-        <Copy label="Endpoint" value={cleanUrl ?? '...'} copyValue={url ?? ''} />
+        <MagicMcpServerOauthCallout />
 
         <Spacer height={15} />
 
-        <Tabs
-          current={tabs}
-          action={setTabs as any}
-          tabs={Object.entries(connectionTypes).map(([key, value]) => ({
-            id: key,
-            label: value.name
-          }))}
-        />
-
-        {currentTabConnection && (
+        {defaultServerDeploymentId ? (
           <>
-            <List>
-              {currentTabConnection.steps.map((step, i) => (
-                <li key={i}>
-                  <p>{step.text}</p>
-
-                  {'command' in step && step.command && (
-                    <>
-                      <CodeBlock code={step.command} lineNumbers={false} />
-                      <Spacer height={5} />
-                      <Button
-                        variant="outline"
-                        size="1"
-                        onClick={() => copy.copy(step.command!)}
-                        success={copy.copied}
-                      >
-                        Copy command
-                      </Button>
-                    </>
-                  )}
-                </li>
-              ))}
-            </List>
-
-            {'config' in currentTabConnection && currentTabConnection.config && (
-              <>
-                <CodeBlock
-                  language="json"
-                  code={JSON.stringify(currentTabConnection.config, null, 2)}
-                  lineNumbers={false}
-                />
-                <Spacer height={5} />
-                <Button
-                  variant="outline"
-                  size="1"
-                  onClick={() =>
-                    copy.copy(JSON.stringify(currentTabConnection.config, null, 2))
-                  }
-                  success={copy.copied}
-                >
-                  Copy configuration
+            <SideBox
+              title="Test your Magic MCP server"
+              description="Use the Metorial Explorer to test your Magic MCP server."
+            >
+              <Link
+                to={Paths.instance.explorer(
+                  instance.data?.organization,
+                  instance.data?.project,
+                  instance.data,
+                  { server_deployment_id: defaultServerDeploymentId }
+                )}
+              >
+                <Button as="span" size="2">
+                  Open Explorer
                 </Button>
-              </>
-            )}
+              </Link>
+            </SideBox>
+
+            <Spacer height={15} />
           </>
+        ) : null}
+
+        <Box
+          title={`Connect to ${server.data.name}`}
+          description="Use this Magic MCP endpoint to connect to your server."
+        >
+          <Copy label="Endpoint" value={cleanUrl ?? '...'} copyValue={url ?? ''} />
+
+          <Spacer height={15} />
+
+          <Tabs
+            current={tabs}
+            action={setTabs as any}
+            tabs={Object.entries(connectionTypes).map(([key, value]) => ({
+              id: key,
+              label: value.name
+            }))}
+          />
+
+          {currentTabConnection && (
+            <>
+              <List>
+                {currentTabConnection.steps.map((step, i) => (
+                  <li key={i}>
+                    <p>{step.text}</p>
+
+                    {'command' in step && step.command && (
+                      <>
+                        <CodeBlock code={step.command} lineNumbers={false} />
+                        <Spacer height={5} />
+                        <Button
+                          variant="outline"
+                          size="1"
+                          onClick={() => copy.copy(step.command!)}
+                          success={copy.copied}
+                        >
+                          Copy command
+                        </Button>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </List>
+
+              {'config' in currentTabConnection && currentTabConnection.config && (
+                <>
+                  <CodeBlock
+                    language="json"
+                    code={JSON.stringify(currentTabConnection.config, null, 2)}
+                    lineNumbers={false}
+                  />
+                  <Spacer height={5} />
+                  <Button
+                    variant="outline"
+                    size="1"
+                    onClick={() =>
+                      copy.copy(JSON.stringify(currentTabConnection.config, null, 2))
+                    }
+                    success={copy.copied}
+                  >
+                    Copy configuration
+                  </Button>
+                </>
+              )}
+            </>
+          )}
+        </Box>
+
+        <Spacer height={15} />
+
+        {serverDeployment && (
+          <UsageScene
+            title="Usage"
+            description="See how this Magic MCP server is being used in your project."
+            entities={[{ type: 'server_deployment', id: serverDeployment.id }]}
+            entityNames={{ [serverDeployment.id]: serverDeployment.name! }}
+          />
         )}
-      </Box>
-
-      <Spacer height={15} />
-
-      {serverDeployment && (
-        <UsageScene
-          title="Usage"
-          description="See how this Magic MCP server is being used in your project."
-          entities={[{ type: 'server_deployment', id: serverDeployment.id }]}
-          entityNames={{ [serverDeployment.id]: serverDeployment.name! }}
-        />
-      )}
-    </>
-  ));
+      </>
+    );
+  });
 };

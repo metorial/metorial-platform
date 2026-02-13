@@ -17,27 +17,43 @@ export let MagicMcpServerOauthPage = () => {
 
   let { magicMcpServerId } = useParams();
   let magicMcpServer = useMagicMcpServer(instance.data?.id, magicMcpServerId);
-  let updateMutation = magicMcpServer.useUpdateMutator();
-  let deployment = useServerDeployment(
-    instance.data?.id,
-    magicMcpServer.data?.serverDeployments[0]?.id
-  );
+  let defaultServerDeploymentId = magicMcpServer.data?.serverDeployments?.[0]?.id;
+  let deployment = useServerDeployment(instance.data?.id, defaultServerDeploymentId);
   let oauthConnection = useProviderConnection(
     instance.data?.id,
     deployment.data?.oauthConnection?.id
   );
 
-  return renderWithLoader({ deployment, oauthConnection })(
-    ({ deployment, oauthConnection }) => (
-      <>
-        <FormPage>
-          <MagicMcpServerOauthCallout noSpacer />
+  if (!defaultServerDeploymentId) {
+    return (
+      <FormPage>
+        <Callout color="orange">
+          OAuth configuration is unavailable for this Subspace-based Magic MCP server.
+        </Callout>
+      </FormPage>
+    );
+  }
 
-          <ProviderConnectionUpdateForm providerConnection={oauthConnection.data} hideDelete />
-        </FormPage>
-      </>
-    )
-  );
+  return renderWithLoader({ deployment })(({ deployment }) => (
+    <>
+      <FormPage>
+        <MagicMcpServerOauthCallout noSpacer />
+
+        {deployment.data.oauthConnection?.id ? (
+          renderWithLoader({ oauthConnection })(({ oauthConnection }) => (
+            <ProviderConnectionUpdateForm
+              providerConnection={oauthConnection.data}
+              hideDelete
+            />
+          ))
+        ) : (
+          <Callout color="orange">
+            OAuth configuration is unavailable for this Subspace-based Magic MCP server.
+          </Callout>
+        )}
+      </FormPage>
+    </>
+  ));
 };
 
 export let MagicMcpServerOauthCallout = ({ noSpacer }: { noSpacer?: boolean }) => {
@@ -46,10 +62,8 @@ export let MagicMcpServerOauthCallout = ({ noSpacer }: { noSpacer?: boolean }) =
   let { magicMcpServerId } = useParams();
   let magicMcpServer = useMagicMcpServer(instance.data?.id, magicMcpServerId);
   let updateMutation = magicMcpServer.useUpdateMutator();
-  let deployment = useServerDeployment(
-    instance.data?.id,
-    magicMcpServer.data?.serverDeployments[0]?.id
-  );
+  let defaultServerDeploymentId = magicMcpServer.data?.serverDeployments?.[0]?.id;
+  let deployment = useServerDeployment(instance.data?.id, defaultServerDeploymentId);
 
   if (!deployment.data?.oauthConnection) return;
 

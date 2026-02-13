@@ -2,7 +2,6 @@ import {
   db,
   ID,
   Instance,
-  MagicMcpServer,
   Organization,
   OrganizationActor,
   Server,
@@ -108,10 +107,6 @@ class serverDeploymentTemplateServiceImpl {
               clientSecret: string;
             };
             config?: Record<string, any>;
-          }
-        | {
-            type: 'magic_mcp_server';
-            magicMcpServer: MagicMcpServer;
           };
     };
   }) {
@@ -123,42 +118,6 @@ class serverDeploymentTemplateServiceImpl {
     if (d.input.from.type === 'config') {
       config = d.input.from.config;
       oauthData = d.input.from.oauth;
-    } else if (d.input.from.type === 'magic_mcp_server') {
-      let magicMcpServer = await db.magicMcpServer.findFirst({
-        where: {
-          oid: d.input.from.magicMcpServer.oid,
-          instanceOid: d.instance.oid
-        },
-        include: {
-          serverDeployment: {
-            include: {
-              serverDeployment: {
-                include: {
-                  config: true,
-                  oauthConnection: true
-                }
-              }
-            }
-          }
-        }
-      });
-
-      let secret = await secretService.DANGEROUSLY_readSecretValue({
-        secretId: magicMcpServer?.serverDeployment?.serverDeployment.config?.configSecretOid!,
-        instance: d.instance,
-        performedBy: d.performedBy,
-        type: 'server_deployment_config'
-      });
-
-      config = secret.data;
-
-      let oauthConfig = magicMcpServer?.serverDeployment?.serverDeployment.oauthConnection;
-      if (oauthConfig) {
-        oauthData = {
-          clientId: oauthConfig.clientId ?? undefined,
-          clientSecret: oauthConfig.clientSecret ?? undefined
-        };
-      }
     }
 
     let configSecret = config

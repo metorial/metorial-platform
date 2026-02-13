@@ -114,7 +114,7 @@ export let CustomServerListingPage = () => {
             readmeUpdate.isLoading ||
             forkUpdate.isLoading
           }
-          checked={customServer.data?.fork.status == 'enabled'}
+          checked={customServer.data?.fork?.status == 'enabled'}
           onCheckedChange={async checked => {
             if (checked) {
               confirm({
