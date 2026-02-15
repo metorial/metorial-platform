@@ -23,7 +23,7 @@ let redirectToAuthIfNotAuthenticated = async <R>(fn: () => Promise<R>) => {
   }
 
   if ((window as any).enterpriseRedirectToAuthIfNotAuthenticated) {
-    return (window as any).enterpriseRedirectToAuthIfNotAuthenticated(fn);
+    return (window as any).enterpriseRedirectToAuthIfNotAuthenticated(fn) as Promise<R>;
   }
 
   try {
