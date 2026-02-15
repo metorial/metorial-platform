@@ -508,12 +508,27 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
 
                     return res;
                   } catch (e) {
-                    if (isServiceError(e))
-                      return json(
-                        e.toResponse(),
-                        e.data.status,
-                        e.data.status == 401 ? {} : corsHeaders
-                      );
+                    if (isServiceError(e)) {
+                      let noCors = false;
+
+                      if (e.data.status == 401) {
+                        if (process.env.METORIAL_ENV === 'production') {
+                          let origin = req.headers.get('origin');
+                          noCors = true;
+
+                          if (origin) {
+                            try {
+                              let url = new URL(origin);
+                              if (url.hostname.endsWith('.metorial.com')) {
+                                noCors = false;
+                              }
+                            } catch {}
+                          }
+                        }
+                      }
+
+                      return json(e.toResponse(), e.data.status, noCors ? {} : corsHeaders);
+                    }
 
                     Sentry.captureException(e);
 

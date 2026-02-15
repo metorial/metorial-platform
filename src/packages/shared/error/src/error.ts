@@ -67,7 +67,8 @@ export class ServiceError<InnerError extends ErrorRecord<any, any>> extends Erro
 }
 
 export let isError = (e: any): e is ServiceError<any> => {
-  return e?.__typename === 'ServiceError' || e?.__typename === 'ErrorRecord';
+  let identifier = e?.__typename ?? e?.object;
+  return identifier === 'ServiceError' || identifier === 'ErrorRecord';
 };
 
 export let isServiceError = isError;

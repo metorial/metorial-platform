@@ -31,8 +31,9 @@ export let App = () => {
     bootElement.style.pointerEvents = 'none';
     bootElement.style.transition = 'opacity 0.2s ease-in-out';
     setTimeout(() => {
+      document.body.classList.remove('loading');
       bootElement.remove();
-    }, 200);
+    }, 500);
   }, [boot.data]);
 
   let router = useMemo(() => {
