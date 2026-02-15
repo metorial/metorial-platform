@@ -230,5 +230,6 @@ export let backendEnv: Env = [
     isEnterprise: true,
     defaultValue: 'http://localhost:52133/metorial-horizon-internal/api'
   },
-  { key: 'HORIZON_APP_ID', isEnterprise: true, defaultValue: `metorial-enterprise-dev` }
+  { key: 'HORIZON_APP_ID', isEnterprise: true, defaultValue: `metorial-enterprise-dev` },
+  { key: 'HORIZON_SIGNING_SECRET', isEnterprise: true, defaultValue: 'secret' }
 ];
