@@ -264,6 +264,7 @@ export let backendEnv: Env = [
     defaultValue: 'http://localhost:52133/metorial-horizon-internal/api'
   },
   { key: 'HORIZON_APP_ID', isEnterprise: true, defaultValue: `metorial-enterprise-dev` },
+  { key: 'HORIZON_SIGNING_SECRET', isEnterprise: true, defaultValue: 'secret' },
 
   { key: 'SUBSPACE_SOLUTION', defaultValue: 'metorial-dev' },
   { key: 'SUBSPACE_URL', defaultValue: 'http://localhost:52070/subspace-controller' }
