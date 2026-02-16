@@ -5,7 +5,7 @@ export interface PresenterContext {
   apiVersion:
     | 'mt_2025_01_01_pulsar'
     | 'mt_2025_01_01_dashboard'
-    | 'mt_2026_02_01_magnetar'
+    | 'mt_2026_01_01_magnetar'
     | 'mt_2026_02_01_dashboard';
   accessType:
     | 'instance_secret'
@@ -180,10 +180,8 @@ export type PresenterOrNotAvailable<Type extends PresentableType<any, any>> =
 export let declarePresenter = <Type extends PresentableType<any, any>>(
   type: Type,
   presenters: {
-    mt_2025_01_01_pulsar?: PresenterOrNotAvailable<Type>;
     mt_2025_01_01_dashboard?: PresenterOrNotAvailable<Type>;
-    mt_2026_02_01_magnetar?: PresenterOrNotAvailable<Type>;
-    mt_2026_02_01_dashboard?: PresenterOrNotAvailable<Type>;
+    mt_2026_01_01_magnetar?: PresenterOrNotAvailable<Type>;
   }
 ) => ({
   type,

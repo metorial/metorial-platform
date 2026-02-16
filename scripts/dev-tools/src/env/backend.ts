@@ -266,5 +266,15 @@ export let backendEnv: Env = [
   },
 
   { key: 'SUBSPACE_SOLUTION', defaultValue: 'metorial-dev' },
-  { key: 'SUBSPACE_URL', defaultValue: 'http://localhost:52070/subspace-controller' }
+  { key: 'SUBSPACE_URL', defaultValue: 'http://localhost:52070/subspace-controller' },
+  {
+    key: 'SUBSPACE_CONNECTION_URL',
+    defaultValue: 'http://localhost:52072'
+  },
+
+  {
+    key: 'ADMIN_API_URL',
+    defaultValue: `http://${HOSTNAME}:4322`,
+    isEnterprise: true
+  }
 ];

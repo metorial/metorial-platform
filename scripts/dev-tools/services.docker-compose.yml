@@ -37,12 +37,12 @@ services:
   #     - MEILI_ENV=development
   #   restart: unless-stopped
 
-  postgres-db1:
+  postgres-db2:
     image: postgres:17
     ports:
       - '35432:5432'
     volumes:
-      - pg_2:/var/lib/postgresql/data
+      - pg_v2_1:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
@@ -102,5 +102,5 @@ volumes:
   mongodb_1:
   redis_1:
   meilisearch_1:
-  pg_2:
+  pg_v2_1:
   open_search_1:

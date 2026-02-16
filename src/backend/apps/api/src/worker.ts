@@ -13,7 +13,6 @@ import { organizationQueueProcessor } from '@metorial/module-organization';
 import { protectQueueProcessor } from '@metorial/module-protect';
 import { searchQueueProcessor } from '@metorial/module-search';
 import { secretQueueProcessor } from '@metorial/module-secret';
-import { ssoQueueProcessor } from '@metorial/module-sso';
 import { subspaceQueueProcessor } from '@metorial/module-subspace';
 import { usageQueueProcessor } from '@metorial/module-usage';
 import { userQueueProcessor } from '@metorial/module-user';
@@ -32,6 +31,5 @@ export let worker = runQueueProcessors([
   communityQueueProcessor,
   magicQueueProcessor,
   protectQueueProcessor,
-  ssoQueueProcessor,
   subspaceQueueProcessor
 ]);

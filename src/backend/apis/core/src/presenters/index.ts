@@ -147,399 +147,399 @@ import {
 export let apiKeyPresenter = declarePresenter(apiKeyType, {
   mt_2025_01_01_pulsar: v1ApiKeyPresenter,
   mt_2025_01_01_dashboard: dashboardApiKeyPresenter,
-  mt_2026_02_01_magnetar: v1ApiKeyPresenter,
+  mt_2026_01_01_magnetar: v1ApiKeyPresenter,
   mt_2026_02_01_dashboard: dashboardApiKeyPresenter
 });
 
 export let instancePresenter = declarePresenter(instanceType, {
   mt_2025_01_01_pulsar: v1InstancePresenter,
   mt_2025_01_01_dashboard: v1InstancePresenter,
-  mt_2026_02_01_magnetar: v1InstancePresenter,
+  mt_2026_01_01_magnetar: v1InstancePresenter,
   mt_2026_02_01_dashboard: v1InstancePresenter
 });
 
 export let machineAccessPresenter = declarePresenter(machineAccessType, {
   mt_2025_01_01_pulsar: v1MachineAccessPresenter,
   mt_2025_01_01_dashboard: v1MachineAccessPresenter,
-  mt_2026_02_01_magnetar: v1MachineAccessPresenter,
+  mt_2026_01_01_magnetar: v1MachineAccessPresenter,
   mt_2026_02_01_dashboard: v1MachineAccessPresenter
 });
 
 export let organizationActorPresenter = declarePresenter(organizationActorType, {
   mt_2025_01_01_pulsar: v1OrganizationActorPresenter,
   mt_2025_01_01_dashboard: v1OrganizationActorPresenter,
-  mt_2026_02_01_magnetar: v1OrganizationActorPresenter,
+  mt_2026_01_01_magnetar: v1OrganizationActorPresenter,
   mt_2026_02_01_dashboard: v1OrganizationActorPresenter
 });
 
 export let organizationInvitePresenter = declarePresenter(organizationInviteType, {
   mt_2025_01_01_pulsar: v1OrganizationInvitePresenter,
   mt_2025_01_01_dashboard: v1OrganizationInvitePresenter,
-  mt_2026_02_01_magnetar: v1OrganizationInvitePresenter,
+  mt_2026_01_01_magnetar: v1OrganizationInvitePresenter,
   mt_2026_02_01_dashboard: v1OrganizationInvitePresenter
 });
 
 export let organizationMemberPresenter = declarePresenter(organizationMemberType, {
   mt_2025_01_01_pulsar: v1OrganizationMemberPresenter,
   mt_2025_01_01_dashboard: v1OrganizationMemberPresenter,
-  mt_2026_02_01_magnetar: v1OrganizationMemberPresenter,
+  mt_2026_01_01_magnetar: v1OrganizationMemberPresenter,
   mt_2026_02_01_dashboard: v1OrganizationMemberPresenter
 });
 
 export let organizationPresenter = declarePresenter(organizationType, {
   mt_2025_01_01_pulsar: v1OrganizationPresenter,
   mt_2025_01_01_dashboard: v1OrganizationPresenter,
-  mt_2026_02_01_magnetar: v1OrganizationPresenter,
+  mt_2026_01_01_magnetar: v1OrganizationPresenter,
   mt_2026_02_01_dashboard: v1OrganizationPresenter
 });
 
 export let projectPresenter = declarePresenter(projectType, {
   mt_2025_01_01_pulsar: v1ProjectPresenter,
   mt_2025_01_01_dashboard: v1ProjectPresenter,
-  mt_2026_02_01_magnetar: v1ProjectPresenter,
+  mt_2026_01_01_magnetar: v1ProjectPresenter,
   mt_2026_02_01_dashboard: v1ProjectPresenter
 });
 
 export let userPresenter = declarePresenter(userType, {
   mt_2025_01_01_pulsar: v1UserPresenter,
   mt_2025_01_01_dashboard: v1UserPresenter,
-  mt_2026_02_01_magnetar: v1UserPresenter,
+  mt_2026_01_01_magnetar: v1UserPresenter,
   mt_2026_02_01_dashboard: v1UserPresenter
 });
 
 export let bootPresenter = declarePresenter(bootType, {
   mt_2025_01_01_pulsar: v1BootPresenter,
   mt_2025_01_01_dashboard: v1BootPresenter,
-  mt_2026_02_01_magnetar: v1BootPresenter,
+  mt_2026_01_01_magnetar: v1BootPresenter,
   mt_2026_02_01_dashboard: v1BootPresenter
 });
 
 export let filePresenter = declarePresenter(fileType, {
   mt_2025_01_01_pulsar: v1FilePresenter,
   mt_2025_01_01_dashboard: v1FilePresenter,
-  mt_2026_02_01_magnetar: v1FilePresenter,
+  mt_2026_01_01_magnetar: v1FilePresenter,
   mt_2026_02_01_dashboard: v1FilePresenter
 });
 
 export let fileLinkPresenter = declarePresenter(fileLinkType, {
   mt_2025_01_01_pulsar: v1FileLinkPresenter,
   mt_2025_01_01_dashboard: v1FileLinkPresenter,
-  mt_2026_02_01_magnetar: v1FileLinkPresenter,
+  mt_2026_01_01_magnetar: v1FileLinkPresenter,
   mt_2026_02_01_dashboard: v1FileLinkPresenter
 });
 
 export let secretPresenter = declarePresenter(secretType, {
   mt_2025_01_01_pulsar: v1SecretPresenter,
   mt_2025_01_01_dashboard: v1SecretPresenter,
-  mt_2026_02_01_magnetar: v1SecretPresenter,
+  mt_2026_01_01_magnetar: v1SecretPresenter,
   mt_2026_02_01_dashboard: v1SecretPresenter
 });
 
 export let usagePresenter = declarePresenter(usageType, {
   mt_2025_01_01_pulsar: v1UsagePresenter,
   mt_2025_01_01_dashboard: v1UsagePresenter,
-  mt_2026_02_01_magnetar: v1UsagePresenter,
+  mt_2026_01_01_magnetar: v1UsagePresenter,
   mt_2026_02_01_dashboard: v1UsagePresenter
 });
 
 export let profilePresenter = declarePresenter(profileType, {
   mt_2025_01_01_pulsar: v1ProfilePresenter,
   mt_2025_01_01_dashboard: v1ProfilePresenter,
-  mt_2026_02_01_magnetar: v1ProfilePresenter,
+  mt_2026_01_01_magnetar: v1ProfilePresenter,
   mt_2026_02_01_dashboard: v1ProfilePresenter
 });
 
 // export let callbackPresenter = declarePresenter(callbackType, {
 //   mt_2025_01_01_pulsar: v1CallbackPresenter,
 //   mt_2025_01_01_dashboard: v1CallbackPresenter,
-//   mt_2026_02_01_magnetar: v1CallbackPresenter,
+//   mt_2026_01_01_magnetar: v1CallbackPresenter,
 //   mt_2026_02_01_dashboard: v1CallbackPresenter
 // });
 
 // export let callbackEventPresenter = declarePresenter(callbackEventType, {
 //   mt_2025_01_01_pulsar: v1CallbackEventPresenter,
 //   mt_2025_01_01_dashboard: v1CallbackEventPresenter,
-//   mt_2026_02_01_magnetar: v1CallbackEventPresenter,
+//   mt_2026_01_01_magnetar: v1CallbackEventPresenter,
 //   mt_2026_02_01_dashboard: v1CallbackEventPresenter
 // });
 
 // export let callbackNotificationPresenter = declarePresenter(callbackNotificationType, {
 //   mt_2025_01_01_pulsar: v1CallbackNotificationPresenter,
 //   mt_2025_01_01_dashboard: v1CallbackNotificationPresenter,
-//   mt_2026_02_01_magnetar: v1CallbackNotificationPresenter,
+//   mt_2026_01_01_magnetar: v1CallbackNotificationPresenter,
 //   mt_2026_02_01_dashboard: v1CallbackNotificationPresenter
 // });
 
 // export let callbackDestinationPresenter = declarePresenter(callbackDestinationType, {
 //   mt_2025_01_01_pulsar: v1CallbackDestinationPresenter,
 //   mt_2025_01_01_dashboard: v1CallbackDestinationPresenter,
-//   mt_2026_02_01_magnetar: v1CallbackDestinationPresenter,
+//   mt_2026_01_01_magnetar: v1CallbackDestinationPresenter,
 //   mt_2026_02_01_dashboard: v1CallbackDestinationPresenter
 // });
 
 export let teamPresenter = declarePresenter(teamType, {
   mt_2025_01_01_pulsar: v1TeamPresenter,
   mt_2025_01_01_dashboard: v1TeamPresenter,
-  mt_2026_02_01_magnetar: v1TeamPresenter,
+  mt_2026_01_01_magnetar: v1TeamPresenter,
   mt_2026_02_01_dashboard: v1TeamPresenter
 });
 
 export let teamRolePresenter = declarePresenter(teamRoleType, {
   mt_2025_01_01_pulsar: v1TeamRolePresenter,
   mt_2025_01_01_dashboard: v1TeamRolePresenter,
-  mt_2026_02_01_magnetar: v1TeamRolePresenter,
+  mt_2026_01_01_magnetar: v1TeamRolePresenter,
   mt_2026_02_01_dashboard: v1TeamRolePresenter
 });
 
 export let teamRolePermissionsPresenter = declarePresenter(teamRolePermissionsType, {
   mt_2025_01_01_pulsar: v1TeamRolePermissionsPresenter,
   mt_2025_01_01_dashboard: v1TeamRolePermissionsPresenter,
-  mt_2026_02_01_magnetar: v1TeamRolePermissionsPresenter,
+  mt_2026_01_01_magnetar: v1TeamRolePermissionsPresenter,
   mt_2026_02_01_dashboard: v1TeamRolePermissionsPresenter
 });
 
 // export let ssoTenantPresenter = declarePresenter(ssoTenantType, {
 //   mt_2025_01_01_pulsar: v1SsoTenantPresenter,
 //   mt_2025_01_01_dashboard: v1SsoTenantPresenter,
-//   mt_2026_02_01_magnetar: v1SsoTenantPresenter,
+//   mt_2026_01_01_magnetar: v1SsoTenantPresenter,
 //   mt_2026_02_01_dashboard: v1SsoTenantPresenter
 // });
 
 // export let ssoTenantSetupPresenter = declarePresenter(ssoTenantSetupType, {
 //   mt_2025_01_01_pulsar: v1SsoTenantSetupPresenter,
 //   mt_2025_01_01_dashboard: v1SsoTenantSetupPresenter,
-//   mt_2026_02_01_magnetar: v1SsoTenantSetupPresenter,
+//   mt_2026_01_01_magnetar: v1SsoTenantSetupPresenter,
 //   mt_2026_02_01_dashboard: v1SsoTenantSetupPresenter
 // });
 
 // export let ssoUserPresenter = declarePresenter(ssoUserType, {
 //   mt_2025_01_01_pulsar: v1SsoUserPresenter,
 //   mt_2025_01_01_dashboard: v1SsoUserPresenter,
-//   mt_2026_02_01_magnetar: v1SsoUserPresenter,
+//   mt_2026_01_01_magnetar: v1SsoUserPresenter,
 //   mt_2026_02_01_dashboard: v1SsoUserPresenter
 // });
 
 // export let ssoUserProfilePresenter = declarePresenter(ssoUserProfileType, {
 //   mt_2025_01_01_pulsar: v1SsoUserProfilePresenter,
 //   mt_2025_01_01_dashboard: v1SsoUserProfilePresenter,
-//   mt_2026_02_01_magnetar: v1SsoUserProfilePresenter,
+//   mt_2026_01_01_magnetar: v1SsoUserProfilePresenter,
 //   mt_2026_02_01_dashboard: v1SsoUserProfilePresenter
 // });
 
 // export let portalPresenter = declarePresenter(portalType, {
 //   mt_2025_01_01_pulsar: v1PortalPresenter,
 //   mt_2025_01_01_dashboard: v1PortalPresenter,
-//   mt_2026_02_01_magnetar: v1PortalPresenter,
+//   mt_2026_01_01_magnetar: v1PortalPresenter,
 //   mt_2026_02_01_dashboard: v1PortalPresenter
 // });
 
 // export let consumerGroupPresenter = declarePresenter(consumerGroupType, {
 //   mt_2025_01_01_pulsar: v1ConsumerGroupPresenter,
 //   mt_2025_01_01_dashboard: v1ConsumerGroupPresenter,
-//   mt_2026_02_01_magnetar: v1ConsumerGroupPresenter,
+//   mt_2026_01_01_magnetar: v1ConsumerGroupPresenter,
 //   mt_2026_02_01_dashboard: v1ConsumerGroupPresenter
 // });
 
 // export let consumerAuthFactorPresenter = declarePresenter(consumerAuthFactorType, {
 //   mt_2025_01_01_pulsar: v1ConsumerAuthFactorPresenter,
 //   mt_2025_01_01_dashboard: v1ConsumerAuthFactorPresenter,
-//   mt_2026_02_01_magnetar: v1ConsumerAuthFactorPresenter,
+//   mt_2026_01_01_magnetar: v1ConsumerAuthFactorPresenter,
 //   mt_2026_02_01_dashboard: v1ConsumerAuthFactorPresenter
 // });
 
 // export let consumerAccessPresenter = declarePresenter(consumerAccessType, {
 //   mt_2025_01_01_pulsar: v1ConsumerAccessPresenter,
 //   mt_2025_01_01_dashboard: v1ConsumerAccessPresenter,
-//   mt_2026_02_01_magnetar: v1ConsumerAccessPresenter,
+//   mt_2026_01_01_magnetar: v1ConsumerAccessPresenter,
 //   mt_2026_02_01_dashboard: v1ConsumerAccessPresenter
 // });
 
 // export let consumerProfilePresenter = declarePresenter(consumerProfileType, {
 //   mt_2025_01_01_pulsar: v1ConsumerProfilePresenter,
 //   mt_2025_01_01_dashboard: v1ConsumerProfilePresenter,
-//   mt_2026_02_01_magnetar: v1ConsumerProfilePresenter,
+//   mt_2026_01_01_magnetar: v1ConsumerProfilePresenter,
 //   mt_2026_02_01_dashboard: v1ConsumerProfilePresenter
 // });
 
 // export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
 //   mt_2025_01_01_pulsar: v1ConsumerSessionPresenter,
 //   mt_2025_01_01_dashboard: v1ConsumerSessionPresenter,
-//   mt_2026_02_01_magnetar: v1ConsumerSessionPresenter,
+//   mt_2026_01_01_magnetar: v1ConsumerSessionPresenter,
 //   mt_2026_02_01_dashboard: v1ConsumerSessionPresenter
 // });
 
 // export let consumerServerRequestPresenter = declarePresenter(consumerServerRequestType, {
 //   mt_2025_01_01_pulsar: v1ConsumerServerRequestPresenter,
 //   mt_2025_01_01_dashboard: v1ConsumerServerRequestPresenter,
-//   mt_2026_02_01_magnetar: v1ConsumerServerRequestPresenter,
+//   mt_2026_01_01_magnetar: v1ConsumerServerRequestPresenter,
 //   mt_2026_02_01_dashboard: v1ConsumerServerRequestPresenter
 // });
 
 // export let magicMcpServerPresenter = declarePresenter(magicMcpServerType, {
 //   mt_2025_01_01_pulsar: v1MagicMcpServerPresenter,
 //   mt_2025_01_01_dashboard: v1DashboardMagicMcpServerPresenter,
-//   mt_2026_02_01_magnetar: PRESENTER_NOT_AVAILABLE,
+//   mt_2026_01_01_magnetar: PRESENTER_NOT_AVAILABLE,
 //   mt_2026_02_01_dashboard: PRESENTER_NOT_AVAILABLE
 // });
 
 // export let magicMcpSessionPresenter = declarePresenter(magicMcpSessionType, {
 //   mt_2025_01_01_pulsar: v1MagicMcpSessionPresenter,
 //   mt_2025_01_01_dashboard: v1DashboardMagicMcpSessionPresenter,
-//   mt_2026_02_01_magnetar: PRESENTER_NOT_AVAILABLE,
+//   mt_2026_01_01_magnetar: PRESENTER_NOT_AVAILABLE,
 //   mt_2026_02_01_dashboard: PRESENTER_NOT_AVAILABLE
 // });
 
 // export let magicMcpTokenPresenter = declarePresenter(magicMcpTokenType, {
 //   mt_2025_01_01_pulsar: v1MagicMcpTokenPresenter,
 //   mt_2025_01_01_dashboard: v1MagicMcpTokenPresenter,
-//   mt_2026_02_01_magnetar: PRESENTER_NOT_AVAILABLE,
+//   mt_2026_01_01_magnetar: PRESENTER_NOT_AVAILABLE,
 //   mt_2026_02_01_dashboard: PRESENTER_NOT_AVAILABLE
 // });
 
 // export let magicMcpGroupPresenter = declarePresenter(magicMcpGroupType, {
 //   mt_2025_01_01_pulsar: v1MagicMcpGroupPresenter,
 //   mt_2025_01_01_dashboard: v1MagicMcpGroupPresenter,
-//   mt_2026_02_01_magnetar: PRESENTER_NOT_AVAILABLE,
+//   mt_2026_01_01_magnetar: PRESENTER_NOT_AVAILABLE,
 //   mt_2026_02_01_dashboard: PRESENTER_NOT_AVAILABLE
 // });
 
 export let publisherPresenter = declarePresenter(publisherType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1PublisherPresenter,
+  mt_2026_01_01_magnetar: v1PublisherPresenter,
   mt_2026_02_01_dashboard: v1PublisherPresenter
 });
 
 export let providerVersionPresenter = declarePresenter(versionType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1VersionPresenter,
+  mt_2026_01_01_magnetar: v1VersionPresenter,
   mt_2026_02_01_dashboard: v1VersionPresenter
 });
 
 export let providerPresenter = declarePresenter(providerType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1ProviderPresenter,
+  mt_2026_01_01_magnetar: v1ProviderPresenter,
   mt_2026_02_01_dashboard: v1ProviderPresenter
 });
 
 export let providerCategoryPresenter = declarePresenter(categoryType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1CategoryPresenter,
+  mt_2026_01_01_magnetar: v1CategoryPresenter,
   mt_2026_02_01_dashboard: v1CategoryPresenter
 });
 
 export let providerCollectionPresenter = declarePresenter(collectionType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1CollectionPresenter,
+  mt_2026_01_01_magnetar: v1CollectionPresenter,
   mt_2026_02_01_dashboard: v1CollectionPresenter
 });
 
 export let providerGroupPresenter = declarePresenter(groupType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1GroupPresenter,
+  mt_2026_01_01_magnetar: v1GroupPresenter,
   mt_2026_02_01_dashboard: v1GroupPresenter
 });
 
 export let providerListingPresenter = declarePresenter(providerListingType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1ProviderListingPresenter,
+  mt_2026_01_01_magnetar: v1ProviderListingPresenter,
   mt_2026_02_01_dashboard: v1ProviderListingPresenter
 });
 
 export let providerToolPresenter = declarePresenter(toolType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1ToolPresenter,
+  mt_2026_01_01_magnetar: v1ToolPresenter,
   mt_2026_02_01_dashboard: v1ToolPresenter
 });
 
 export let providerAuthMethodPresenter = declarePresenter(authMethodType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1AuthMethodPresenter,
+  mt_2026_01_01_magnetar: v1AuthMethodPresenter,
   mt_2026_02_01_dashboard: v1AuthMethodPresenter
 });
 
 export let providerSpecificationPresenter = declarePresenter(specificationType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1SpecificationPresenter,
+  mt_2026_01_01_magnetar: v1SpecificationPresenter,
   mt_2026_02_01_dashboard: v1SpecificationPresenter
 });
 
 export let providerDeploymentPresenter = declarePresenter(deploymentType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1DeploymentPresenter,
+  mt_2026_01_01_magnetar: v1DeploymentPresenter,
   mt_2026_02_01_dashboard: v1DeploymentPresenter
 });
 
 export let providerDeploymentPreviewPresenter = declarePresenter(deploymentPreviewType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1DeploymentPreviewPresenter,
+  mt_2026_01_01_magnetar: v1DeploymentPreviewPresenter,
   mt_2026_02_01_dashboard: v1DeploymentPreviewPresenter
 });
 
 export let providerConfigPresenter = declarePresenter(configType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1ConfigPresenter,
+  mt_2026_01_01_magnetar: v1ConfigPresenter,
   mt_2026_02_01_dashboard: v1ConfigPresenter
 });
 
 export let providerConfigPreviewPresenter = declarePresenter(configPreviewType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1ConfigPreviewPresenter,
+  mt_2026_01_01_magnetar: v1ConfigPreviewPresenter,
   mt_2026_02_01_dashboard: v1ConfigPreviewPresenter
 });
 
 export let providerConfigVaultPresenter = declarePresenter(configVaultType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1ProviderConfigVaultPresenter,
+  mt_2026_01_01_magnetar: v1ProviderConfigVaultPresenter,
   mt_2026_02_01_dashboard: v1ProviderConfigVaultPresenter
 });
 
 export let providerAuthConfigPresenter = declarePresenter(authConfigType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1AuthConfigPresenter,
+  mt_2026_01_01_magnetar: v1AuthConfigPresenter,
   mt_2026_02_01_dashboard: v1AuthConfigPresenter
 });
 
 export let providerAuthCredentialsPresenter = declarePresenter(authCredentialsType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1AuthCredentialsPresenter,
+  mt_2026_01_01_magnetar: v1AuthCredentialsPresenter,
   mt_2026_02_01_dashboard: v1AuthCredentialsPresenter
 });
 
 export let providerSetupSessionPresenter = declarePresenter(setupSessionType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1SetupSessionPresenter,
+  mt_2026_01_01_magnetar: v1SetupSessionPresenter,
   mt_2026_02_01_dashboard: v1SetupSessionPresenter
 });
 
 export let providerAuthImportPresenter = declarePresenter(authImportType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1AuthImportPresenter,
+  mt_2026_01_01_magnetar: v1AuthImportPresenter,
   mt_2026_02_01_dashboard: v1AuthImportPresenter
 });
 
 export let providerAuthExportPresenter = declarePresenter(authExportType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1AuthExportPresenter,
+  mt_2026_01_01_magnetar: v1AuthExportPresenter,
   mt_2026_02_01_dashboard: v1AuthExportPresenter
 });
 
@@ -550,49 +550,49 @@ export let providerAuthExportPresenter = declarePresenter(authExportType, {
 export let sessionTemplatePresenter = declarePresenter(sessionTemplateType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1SessionTemplatePresenter,
+  mt_2026_01_01_magnetar: v1SessionTemplatePresenter,
   mt_2026_02_01_dashboard: v1SessionTemplatePresenter
 });
 
 export let sessionTemplateProviderPresenter = declarePresenter(sessionTemplateProviderType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1SessionTemplateProviderPresenter,
+  mt_2026_01_01_magnetar: v1SessionTemplateProviderPresenter,
   mt_2026_02_01_dashboard: v1SessionTemplateProviderPresenter
 });
 
 export let sessionProviderPresenter = declarePresenter(sessionProviderType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1SessionProviderPresenter,
+  mt_2026_01_01_magnetar: v1SessionProviderPresenter,
   mt_2026_02_01_dashboard: v1SessionProviderPresenter
 });
 
 export let sessionParticipantPresenter = declarePresenter(sessionParticipantType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1SessionParticipantPresenter,
+  mt_2026_01_01_magnetar: v1SessionParticipantPresenter,
   mt_2026_02_01_dashboard: v1SessionParticipantPresenter
 });
 
 export let subspaceSessionErrorPresenter = declarePresenter(sessionErrorType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1SessionErrorPresenter,
+  mt_2026_01_01_magnetar: v1SessionErrorPresenter,
   mt_2026_02_01_dashboard: v1SessionErrorPresenter
 });
 
 export let subspaceSessionErrorGroupPresenter = declarePresenter(sessionErrorGroupType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1SessionErrorGroupPresenter,
+  mt_2026_01_01_magnetar: v1SessionErrorGroupPresenter,
   mt_2026_02_01_dashboard: v1SessionErrorGroupPresenter
 });
 
 export let subspaceProviderRunPresenter = declarePresenter(providerRunType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1ProviderRunPresenter,
+  mt_2026_01_01_magnetar: v1ProviderRunPresenter,
   mt_2026_02_01_dashboard: v1ProviderRunPresenter
 });
 
@@ -600,7 +600,7 @@ export let subspaceProviderRunPresenter = declarePresenter(providerRunType, {
 export let providerSessionPresenter = declarePresenter(providerSessionType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1ProviderSessionPresenter,
+  mt_2026_01_01_magnetar: v1ProviderSessionPresenter,
   mt_2026_02_01_dashboard: v1ProviderSessionPresenter
 });
 
@@ -608,7 +608,7 @@ export let providerSessionPresenter = declarePresenter(providerSessionType, {
 export let subspaceSessionMessagePresenter = declarePresenter(subspaceSessionMessageType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1SubspaceSessionMessagePresenter,
+  mt_2026_01_01_magnetar: v1SubspaceSessionMessagePresenter,
   mt_2026_02_01_dashboard: v1SubspaceSessionMessagePresenter
 });
 
@@ -617,7 +617,7 @@ export let subspaceSessionConnectionPresenter = declarePresenter(
   {
     mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
     mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-    mt_2026_02_01_magnetar: v1SubspaceSessionConnectionPresenter,
+    mt_2026_01_01_magnetar: v1SubspaceSessionConnectionPresenter,
     mt_2026_02_01_dashboard: v1SubspaceSessionConnectionPresenter
   }
 );
@@ -625,28 +625,28 @@ export let subspaceSessionConnectionPresenter = declarePresenter(
 export let subspaceSessionEventPresenter = declarePresenter(subspaceSessionEventType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1SubspaceSessionEventPresenter,
+  mt_2026_01_01_magnetar: v1SubspaceSessionEventPresenter,
   mt_2026_02_01_dashboard: v1SubspaceSessionEventPresenter
 });
 
 export let providerRunLogsPresenter = declarePresenter(providerRunLogsType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1ProviderRunLogsPresenter,
+  mt_2026_01_01_magnetar: v1ProviderRunLogsPresenter,
   mt_2026_02_01_dashboard: v1ProviderRunLogsPresenter
 });
 
 export let configSchemaPresenter = declarePresenter(configSchemaType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1ConfigSchemaPresenter,
+  mt_2026_01_01_magnetar: v1ConfigSchemaPresenter,
   mt_2026_02_01_dashboard: v1ConfigSchemaPresenter
 });
 
 export let authImportSchemaPresenter = declarePresenter(authImportSchemaType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1AuthImportSchemaPresenter,
+  mt_2026_01_01_magnetar: v1AuthImportSchemaPresenter,
   mt_2026_02_01_dashboard: v1AuthImportSchemaPresenter
 });
 
@@ -657,7 +657,7 @@ export let authImportSchemaPresenter = declarePresenter(authImportSchemaType, {
 export let subspaceCustomProviderPresenter = declarePresenter(customProviderType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1CustomProviderPresenter,
+  mt_2026_01_01_magnetar: v1CustomProviderPresenter,
   mt_2026_02_01_dashboard: v1CustomProviderPresenter
 });
 
@@ -666,7 +666,7 @@ export let subspaceCustomProviderVersionPresenter = declarePresenter(
   {
     mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
     mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-    mt_2026_02_01_magnetar: v1CustomProviderVersionPresenter,
+    mt_2026_01_01_magnetar: v1CustomProviderVersionPresenter,
     mt_2026_02_01_dashboard: v1CustomProviderVersionPresenter
   }
 );
@@ -676,7 +676,7 @@ export let subspaceCustomProviderDeploymentPresenter = declarePresenter(
   {
     mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
     mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-    mt_2026_02_01_magnetar: v1CustomProviderDeploymentPresenter,
+    mt_2026_01_01_magnetar: v1CustomProviderDeploymentPresenter,
     mt_2026_02_01_dashboard: v1CustomProviderDeploymentPresenter
   }
 );
@@ -686,7 +686,7 @@ export let subspaceCustomProviderDeploymentLogsPresenter = declarePresenter(
   {
     mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
     mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-    mt_2026_02_01_magnetar: v1CustomProviderDeploymentLogsPresenter,
+    mt_2026_01_01_magnetar: v1CustomProviderDeploymentLogsPresenter,
     mt_2026_02_01_dashboard: v1CustomProviderDeploymentLogsPresenter
   }
 );
@@ -694,7 +694,7 @@ export let subspaceCustomProviderDeploymentLogsPresenter = declarePresenter(
 export let subspaceCustomProviderCommitPresenter = declarePresenter(customProviderCommitType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1CustomProviderCommitPresenter,
+  mt_2026_01_01_magnetar: v1CustomProviderCommitPresenter,
   mt_2026_02_01_dashboard: v1CustomProviderCommitPresenter
 });
 
@@ -703,7 +703,7 @@ export let subspaceCustomProviderEnvironmentPresenter = declarePresenter(
   {
     mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
     mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-    mt_2026_02_01_magnetar: v1CustomProviderEnvironmentPresenter,
+    mt_2026_01_01_magnetar: v1CustomProviderEnvironmentPresenter,
     mt_2026_02_01_dashboard: v1CustomProviderEnvironmentPresenter
   }
 );
@@ -711,6 +711,6 @@ export let subspaceCustomProviderEnvironmentPresenter = declarePresenter(
 export let subspaceProviderOAuthSetupPresenter = declarePresenter(providerOAuthSetupType, {
   mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
-  mt_2026_02_01_magnetar: v1ProviderOAuthSetupPresenter,
+  mt_2026_01_01_magnetar: v1ProviderOAuthSetupPresenter,
   mt_2026_02_01_dashboard: v1ProviderOAuthSetupPresenter
 });
