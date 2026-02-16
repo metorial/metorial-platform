@@ -104,3 +104,4 @@ volumes:
   meilisearch_1:
   pg_1:
   open_search_1:
+  
