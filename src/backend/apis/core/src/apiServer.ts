@@ -41,10 +41,10 @@ export let apiServer = restServer.launch({
       controller: magnetarController
     },
 
-    mt_2026_02_01_dashboard: {
+    mt_2025_01_01_dashboard: {
       displayVersion: '2026-02-01-dashboard',
-      apiVersion: 'mt_2026_02_01_dashboard',
-      alternativeIdentifiers: ['mt_2026_02_01_dashboard', '2026-02-01-dashboard'],
+      apiVersion: 'mt_2025_01_01_dashboard',
+      alternativeIdentifiers: ['mt_2025_01_01_dashboard', '2026-02-01-dashboard'],
       controller: magnetarDashboardController
     }
   },

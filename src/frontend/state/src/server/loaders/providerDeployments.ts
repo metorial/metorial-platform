@@ -2,7 +2,7 @@ import {
   DashboardInstanceProviderDeploymentsCreateBody,
   DashboardInstanceProviderDeploymentsListQuery,
   DashboardInstanceProviderDeploymentsUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -31,10 +31,7 @@ export let useProviderDeployments = (
         ? {
             instanceId,
             ...pagination,
-            providerId: opts?.providerId,
-            providerVersionId: opts?.providerVersionId,
-            status: opts?.status,
-            search: opts?.search
+            ...opts
           }
         : null
     )

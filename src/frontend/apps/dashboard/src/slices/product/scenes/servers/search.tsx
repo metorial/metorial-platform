@@ -1,5 +1,5 @@
+import { DashboardInstanceProviderListingsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { DashboardInstanceProviderListingsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { useProviderListings } from '@metorial/state';
 import {
   Avatar,
@@ -100,11 +100,7 @@ export let ServerSearch = ({
 
           <Items>
             {server.data?.items.map(server => (
-              <ItemButton
-                key={server.id}
-                onClick={() => onSelect?.(server)}
-                type="button"
-              >
+              <ItemButton key={server.id} onClick={() => onSelect?.(server)} type="button">
                 <Entity.Wrapper>
                   <Entity.Content>
                     <Entity.Field

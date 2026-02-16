@@ -1,13 +1,15 @@
+import { DashboardInstanceServersImplementationsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { DashboardInstanceServersImplementationsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { useCurrentInstance, useServerImplementations } from '@metorial/state';
 import { Input, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { useState } from 'react';
 import { useDebounced } from '../../../../hooks/useDebounced';
 
-export let ServerImplementationsTable = (filter: DashboardInstanceServersImplementationsListQuery) => {
+export let ServerImplementationsTable = (
+  filter: DashboardInstanceServersImplementationsListQuery
+) => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
 

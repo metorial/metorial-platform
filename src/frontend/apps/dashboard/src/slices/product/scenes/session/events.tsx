@@ -1,5 +1,4 @@
-import { SessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
-import { renderWithLoader } from '@metorial/data-hooks';
+import { SessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useSessionServerSessions } from '@metorial/state';
 import { Callout, Entity, Spacer } from '@metorial/ui';
 import { RiCornerUpRightDoubleLine } from '@remixicon/react';
@@ -73,18 +72,16 @@ export let SessionEvents = ({ session }: { session: SessionsGetOutput | null }) 
             time: session.createdAt
           },
 
-          ...(session.providerDeployments ?? []).map(
-            dep => ({
-              component: (
-                <Entry
-                  icon={<RiCornerUpRightDoubleLine />}
-                  title={`Provider ${dep.name ?? dep.providerId ?? 'Unknown'} connected`}
-                  time={session.createdAt}
-                />
-              ),
-              time: session.createdAt
-            })
-          ),
+          ...(session.providerDeployments ?? []).map(dep => ({
+            component: (
+              <Entry
+                icon={<RiCornerUpRightDoubleLine />}
+                title={`Provider ${dep.name ?? dep.providerId ?? 'Unknown'} connected`}
+                time={session.createdAt}
+              />
+            ),
+            time: session.createdAt
+          })),
 
           ...serverSessionItems.map((serverSession, i) => ({
             component: <ServerSession serverSession={serverSession} />,

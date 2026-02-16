@@ -1,4 +1,4 @@
-import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -25,7 +25,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Stepper } from '../stepper';
-import { defaultServerConfigManaged } from './config';
 import { ConnectGitHubButton, SelectRepo } from './selectRepo';
 
 let PageWrapper = styled.div`
@@ -77,9 +76,7 @@ export let CustomServerManagedCreateForm = (p: {
   let instance = useCurrentInstance();
   let createCustomServer = useCreateCustomServer();
   let listServerVersions = useListServerVersions();
-  let managedServerTemplates = useManagedServerTemplates(
-    { limit: 100 }
-  );
+  let managedServerTemplates = useManagedServerTemplates({ limit: 100 });
 
   let [selectedRepoId, setSelectedRepoId] = useState<string | undefined>(undefined);
 
@@ -107,7 +104,9 @@ export let CustomServerManagedCreateForm = (p: {
 
       let plainTemplate = selectedRepoId
         ? undefined
-        : managedServerTemplates.data?.items.find((t: { slug: string | null }) => t.slug == 'plain-typescript');
+        : managedServerTemplates.data?.items.find(
+            (t: { slug: string | null }) => t.slug == 'plain-typescript'
+          );
 
       let [customServerRes] = await createCustomServer.mutate({
         instanceId: instance.data.instanceId,
@@ -243,15 +242,21 @@ export let CustomServerManagedCreateForm = (p: {
                 ({ managedServerTemplates }) => (
                   <PageWrapper>
                     <Templates>
-                      {managedServerTemplates.data.items.map((template: { id: string; name: string | null; slug: string | null }) => (
-                        <TemplatesItem
-                          key={template.id}
-                          type="button"
-                          onClick={() => setTemplate(template.id)}
-                        >
-                          <span>{template.name}</span>
-                        </TemplatesItem>
-                      ))}
+                      {managedServerTemplates.data.items.map(
+                        (template: {
+                          id: string;
+                          name: string | null;
+                          slug: string | null;
+                        }) => (
+                          <TemplatesItem
+                            key={template.id}
+                            type="button"
+                            onClick={() => setTemplate(template.id)}
+                          >
+                            <span>{template.name}</span>
+                          </TemplatesItem>
+                        )
+                      )}
                     </Templates>
 
                     <Spacer size={10} />

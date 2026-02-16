@@ -1,8 +1,7 @@
 import {
   DashboardInstanceSessionsCreateBody,
-  DashboardInstanceSessionsListOutput,
   DashboardInstanceSessionsListQuery
-} from '@metorial/dashboard-sdk';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader, useMutation } from '@metorial/data-hooks';
 import { useMemo } from 'react';
 import { usePaginator } from '../../lib/usePaginator';
@@ -20,13 +19,9 @@ export let useSessions = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceSessionsListQuery
 ) => {
-  type SessionItem = DashboardInstanceSessionsListOutput['items'][number];
-
-  const data = usePaginator<ReturnType<typeof sessionsLoader.use>, SessionItem>(pagination =>
+  return usePaginator(pagination =>
     sessionsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
   );
-
-  return data;
 };
 
 export let sessionLoader = createLoader({

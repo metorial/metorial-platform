@@ -1,4 +1,4 @@
-import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
@@ -81,7 +81,10 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
     for (let evt of eventItems) {
       let raw = evt as Record<string, unknown>;
       // Events have connection info in the raw data
-      let connId = (raw.connectionId as string) ?? ((raw.connection as Record<string, unknown>)?.id as string) ?? '__ungrouped';
+      let connId =
+        (raw.connectionId as string) ??
+        ((raw.connection as Record<string, unknown>)?.id as string) ??
+        '__ungrouped';
       let list = map.get(connId);
       if (!list) {
         list = [];
@@ -96,7 +99,12 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
   let buildMessageItems = (connId: string) => {
     let connMessages = messagesByConnection.get(connId) ?? [];
     return connMessages.map(msg => ({
-      component: <Message message={msg as Parameters<typeof Message>[0]['message']} aggregatedMessages={aggregatedMessages} />,
+      component: (
+        <Message
+          message={msg as Parameters<typeof Message>[0]['message']}
+          aggregatedMessages={aggregatedMessages}
+        />
+      ),
       time: msg.createdAt
     }));
   };

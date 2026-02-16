@@ -1,4 +1,4 @@
-import { DashboardInstanceProvidersAuthMethodsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceProvidersAuthMethodsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -18,7 +18,7 @@ export let providerAuthMethodsLoader = createLoader({
 export let useProviderAuthMethods = (
   instanceId: string | null | undefined,
   providerId: string | null | undefined,
-  opts?: { providerVersionId?: string }
+  opts?: DashboardInstanceProvidersAuthMethodsListQuery
 ) => {
   let data = usePaginator(pagination =>
     providerAuthMethodsLoader.use(
@@ -27,7 +27,7 @@ export let useProviderAuthMethods = (
             instanceId,
             providerId,
             ...pagination,
-            providerVersionId: opts?.providerVersionId
+            ...opts
           }
         : null
     )

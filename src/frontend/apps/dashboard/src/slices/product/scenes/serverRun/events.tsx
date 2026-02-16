@@ -1,4 +1,4 @@
-import { ServerRunsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { ServerRunsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useProvider, useSessionErrors } from '@metorial/state';
 import { Button, Callout, Spacer, theme } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
@@ -79,7 +79,10 @@ export let ServerRunEvents = ({ serverRun }: { serverRun: ServerRunsGetOutput })
   let sessionId =
     (serverRun as any)?.sessionId ?? (serverRun as any)?.serverSession?.sessionId;
 
-  let errors = useSessionErrors(serverRun ? instance.data?.instanceId : null, serverRun?.id ?? '');
+  let errors = useSessionErrors(
+    serverRun ? instance.data?.instanceId : null,
+    serverRun?.id ?? ''
+  );
   let error = errors.data?.items[0];
 
   let eventItems = useEvents(sessionId, {

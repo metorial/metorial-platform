@@ -1,9 +1,9 @@
-import { renderWithPagination } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import {
   DashboardInstanceProviderDeploymentsGetOutput,
   DashboardInstanceProviderDeploymentsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { renderWithPagination } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderDeployments } from '@metorial/state';
 import { Entity, Input, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
@@ -21,8 +21,18 @@ export let ServerDeploymentsTable = (
 
   let instance = useCurrentInstance();
   let deployments = useProviderDeployments(instance.data?.instanceId, {
-    providerId: typeof filter.providerId === 'string' ? filter.providerId : Array.isArray(filter.providerId) ? filter.providerId[0] : undefined,
-    providerVersionId: typeof filter.providerVersionId === 'string' ? filter.providerVersionId : Array.isArray(filter.providerVersionId) ? filter.providerVersionId[0] : undefined,
+    providerId:
+      typeof filter.providerId === 'string'
+        ? filter.providerId
+        : Array.isArray(filter.providerId)
+          ? filter.providerId[0]
+          : undefined,
+    providerVersionId:
+      typeof filter.providerVersionId === 'string'
+        ? filter.providerVersionId
+        : Array.isArray(filter.providerVersionId)
+          ? filter.providerVersionId[0]
+          : undefined,
     status: filter.status,
     search: searchDebounced.length ? searchDebounced : undefined
   });
@@ -97,7 +107,11 @@ export let ServerDeploymentsList = (
   return renderWithPagination(deployments)(deployments => (
     <ServerDeploymentsListItems
       deployments={deployments.data.items as unknown as ServerDeployment[]}
-      onDeploymentClick={filter.onDeploymentClick as unknown as ((deployment: ServerDeployment) => void) | undefined}
+      onDeploymentClick={
+        filter.onDeploymentClick as unknown as
+          | ((deployment: ServerDeployment) => void)
+          | undefined
+      }
     />
   ));
 };

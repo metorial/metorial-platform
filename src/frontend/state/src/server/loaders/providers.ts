@@ -1,4 +1,4 @@
-import { DashboardInstanceProvidersListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceProvidersListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { mutation } from '../../lib/mutation';
 import { usePaginator } from '../../lib/usePaginator';

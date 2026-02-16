@@ -2,7 +2,7 @@ import {
   DashboardInstanceProviderDeploymentsAuthConfigsCreateBody,
   DashboardInstanceProviderDeploymentsAuthConfigsListQuery,
   DashboardInstanceProviderDeploymentsAuthConfigsUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -38,7 +38,7 @@ export let useCreateProviderAuthConfig = providerAuthConfigsLoader.createExterna
 export let useProviderAuthConfigs = (
   instanceId: string | null | undefined,
   providerDeploymentId: string | null | undefined,
-  opts?: { providerAuthMethodId?: string; providerAuthCredentialsId?: string }
+  opts?: DashboardInstanceProviderDeploymentsAuthConfigsListQuery
 ) => {
   let data = usePaginator(pagination =>
     providerAuthConfigsLoader.use(
@@ -46,9 +46,8 @@ export let useProviderAuthConfigs = (
         ? {
             instanceId,
             providerDeploymentId,
-            ...pagination,
-            providerAuthMethodId: opts?.providerAuthMethodId,
-            providerAuthCredentialsId: opts?.providerAuthCredentialsId
+            ...opts,
+            ...pagination
           }
         : null
     )

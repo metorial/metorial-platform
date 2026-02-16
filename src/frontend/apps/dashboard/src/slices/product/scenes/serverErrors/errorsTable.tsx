@@ -1,6 +1,6 @@
+import { DashboardInstanceSessionErrorsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { DashboardInstanceSessionErrorsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { useAllSessionErrors, useCurrentInstance } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
@@ -19,11 +19,7 @@ export let ServerErrorsTable = (filter: DashboardInstanceSessionErrorsListQuery)
             <Text size="2" weight="strong">
               {error.message ?? 'No message'}
             </Text>,
-            <Text>
-              {error.providerRunId ?? (
-                <span style={{ opacity: 0.6 }}>N/A</span>
-              )}
-            </Text>,
+            <Text>{error.providerRunId ?? <span style={{ opacity: 0.6 }}>N/A</span>}</Text>,
             <RenderDate date={error.createdAt} />
           ],
           href: error.providerRunId

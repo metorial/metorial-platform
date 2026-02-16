@@ -1,4 +1,4 @@
-import { DashboardInstanceProvidersToolsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceProvidersToolsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -15,7 +15,7 @@ export let providerToolsLoader = createLoader({
 export let useProviderTools = (
   instanceId: string | null | undefined,
   providerId: string | null | undefined,
-  opts?: { providerVersionId?: string }
+  opts?: DashboardInstanceProvidersToolsListQuery
 ) => {
   let data = usePaginator(pagination =>
     providerToolsLoader.use(
@@ -23,8 +23,8 @@ export let useProviderTools = (
         ? {
             instanceId,
             providerId,
-            ...pagination,
-            providerVersionId: opts?.providerVersionId
+            ...opts,
+            ...pagination
           }
         : null
     )

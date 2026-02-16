@@ -1,5 +1,5 @@
 import { CodeBlock } from '@metorial/code';
-import { DashboardInstanceCallbacksNotificationsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceCallbacksNotificationsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import {
   useCallback,

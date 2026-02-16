@@ -1,9 +1,7 @@
-import React from 'react';
 import {
-  DashboardInstanceCustomProvidersDeploymentsGetOutput,
   DashboardInstanceCustomProvidersGetOutput,
   DashboardInstanceCustomProvidersVersionsGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
@@ -23,7 +21,7 @@ import {
 import { Box, ID } from '@metorial/ui-product';
 import { RiArrowDownSLine } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { CustomServerEventsTable } from './events';
 
@@ -32,12 +30,14 @@ export let CustomServerVersionStatus = ({
 }: {
   version: DashboardInstanceCustomProvidersVersionsGetOutput;
 }) =>
-  ({
-    current: <Badge color="blue">Current</Badge>,
-    available: <Badge color="gray">Available</Badge>,
-    deploying: <Badge color="orange">Deploying</Badge>,
-    deployment_failed: <Badge color="red">Deployment Failed</Badge>
-  } as Record<string, React.ReactElement>)[version.status ?? ''] ?? version.status;
+  (
+    ({
+      current: <Badge color="blue">Current</Badge>,
+      available: <Badge color="gray">Available</Badge>,
+      deploying: <Badge color="orange">Deploying</Badge>,
+      deployment_failed: <Badge color="red">Deployment Failed</Badge>
+    }) as Record<string, React.ReactElement>
+  )[version.status ?? ''] ?? version.status;
 
 export let CustomServerVersion = ({
   versionId,
@@ -247,8 +247,8 @@ let StepDetails = ({ step }: { step: Step }) => {
                 color: step.status == 'failed' ? theme.colors.red700 : undefined
               }}
             >
-              {
-                ({
+              {(
+                {
                   started: 'Deployment Started',
                   remote_server_connection_test: 'Remote Server Connection Test',
                   remote_oauth_auto_discovery: 'Remote OAuth Auto Discovery',
@@ -258,8 +258,8 @@ let StepDetails = ({ step }: { step: Step }) => {
                   lambda_deploy_publish: 'Publishing Managed Deployment',
                   lambda_deploy_build: 'Building Managed Deployment',
                   discovering: 'Discovering Server Capabilities'
-                } as Record<string, string>)[step.type] ?? step.type
-              }
+                } as Record<string, string>
+              )[step.type] ?? step.type}
             </StepHeaderTitle>
 
             <AnimatePresence>

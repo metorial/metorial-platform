@@ -1,7 +1,7 @@
 import {
   DashboardOrganizationsProjectsCreateBody,
   DashboardOrganizationsProjectsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { withAuth } from '../../user';

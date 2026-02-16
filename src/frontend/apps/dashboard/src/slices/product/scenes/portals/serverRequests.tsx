@@ -1,4 +1,4 @@
-import { DashboardInstancePortalsConsumerServerRequestsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstancePortalsConsumerServerRequestsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { useCurrentInstance, usePortalServerRequests } from '@metorial/state';
 import { Button, Flex, RenderDate, Text, toast } from '@metorial/ui';

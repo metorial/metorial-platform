@@ -2,16 +2,12 @@ import { canonicalize } from '@metorial/canonicalize';
 import {
   ServersDeploymentsGetOutput,
   ServersListingsGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
-
-// Type removed in Provider API migration
-type MagicMcpServerData = { id: string; name: string | null; description: string | null; slug: string | null; status: string | null; metadata?: Record<string, unknown>; createdAt: Date; updatedAt: Date; serverDeployments: { id: string; name: string | null; providerId: string }[]; endpoints: { id: string; url: string }[]; needsDefaultOauthSession: boolean; oauthConnection: { id: string } | null };
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
-  updateMagicMcpServer,
-  useCreateProviderDeployment,
   useCreateMagicMcpServer,
+  useCreateProviderDeployment,
   useCurrentInstance,
   useMagicMcpServer,
   useProvider,
@@ -36,11 +32,26 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Markdown } from '../../../../components/markdown';
-import { authenticateWithOauth } from '../../pages/explorer/state';
 import { JsonSchemaInput } from '../jsonSchemaInput';
 import { AuthStep } from '../providerDeployments/authStep';
 import { ServerSearch } from '../servers/search';
 import { Stepper } from '../stepper';
+
+// Type removed in Provider API migration
+type MagicMcpServerData = {
+  id: string;
+  name: string | null;
+  description: string | null;
+  slug: string | null;
+  status: string | null;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+  serverDeployments: { id: string; name: string | null; providerId: string }[];
+  endpoints: { id: string; url: string }[];
+  needsDefaultOauthSession: boolean;
+  oauthConnection: { id: string } | null;
+};
 
 let Form = styled.form`
   display: flex;
@@ -150,8 +161,16 @@ let ServerDeploymentFormInternal = (
     initialValues: {
       name: updateResource?.data?.name ?? '',
       description: updateResource?.data?.description ?? '',
-      metadata: (updateResource?.data as Record<string, unknown>)?.metadata as Record<string, unknown> ?? {},
-      config: (serverDeployment?.data as Record<string, unknown>)?.config as Record<string, unknown> ?? {}
+      metadata:
+        ((updateResource?.data as Record<string, unknown>)?.metadata as Record<
+          string,
+          unknown
+        >) ?? {},
+      config:
+        ((serverDeployment?.data as Record<string, unknown>)?.config as Record<
+          string,
+          unknown
+        >) ?? {}
     },
     schema: yup =>
       yup.object({
@@ -163,7 +182,13 @@ let ServerDeploymentFormInternal = (
     onSubmit: async values => {
       if (p.type == 'server_deployment.update' || p.type == 'magic_mcp_server.update') {
         let configChanged =
-          canonicalize(values.config) !== canonicalize((serverDeployment?.data as Record<string, unknown>)?.config as Record<string, unknown>);
+          canonicalize(values.config) !==
+          canonicalize(
+            (serverDeployment?.data as Record<string, unknown>)?.config as Record<
+              string,
+              unknown
+            >
+          );
 
         await updateMutator.mutate({
           name: values.name,

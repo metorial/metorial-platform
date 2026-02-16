@@ -1,4 +1,4 @@
-import { DashboardInstanceCustomProvidersListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceCustomProvidersListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCustomServers } from '@metorial/state';
@@ -37,11 +37,7 @@ export let CustomServersTable = (
       {renderWithPagination(customServers)(customServers => (
         <>
           <Table
-            headers={[
-              'Info',
-              'Status',
-              'Created'
-            ]}
+            headers={['Info', 'Status', 'Created']}
             data={customServers.data.items.map(customServer => ({
               data: [
                 <Text size="2" weight="strong">

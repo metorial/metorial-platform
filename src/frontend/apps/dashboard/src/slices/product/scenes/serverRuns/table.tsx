@@ -1,7 +1,7 @@
-import { DashboardInstanceProviderRunsListOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceProviderRunsListOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useAllProviderRuns, useProviders } from '@metorial/state';
+import { useAllProviderRuns, useCurrentInstance, useProviders } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
