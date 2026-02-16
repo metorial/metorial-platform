@@ -16,13 +16,13 @@
     "@metorial/id": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.11.4",
     "@prisma/adapter-pg": "6.19.0",
-    "@prisma/client": "6.19.0",
+    "@prisma/client": "^7.4.0",
     "@types/json-schema": "^7.0.15",
     "json-schema": "^0.4.0",
     "lru-cache": "^11.1.0",
     "p-queue": "^8.1.0",
-    "prisma": "6.19.0",
-    "prisma-json-types-generator": "^3.2.2"
+    "prisma": "^7.4.0",
+    "prisma-json-types-generator": "^4.1.1"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
