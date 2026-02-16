@@ -1,9 +1,8 @@
 import { Context } from '@metorial/context';
 import {
   ApiKey,
-  Callback,
-  CallbackEvent,
-  EngineSession,
+  // Callback,
+  // CallbackEvent,
   Instance,
   MachineAccess,
   Organization,
@@ -12,14 +11,6 @@ import {
   OrganizationInviteJoin,
   OrganizationMember,
   Project,
-  ProviderOAuthConnection,
-  ProviderOAuthConnectionAuthAttempt,
-  ServerDeployment,
-  ServerImplementation,
-  ServerRun,
-  ServerSession,
-  Session,
-  SessionMessage,
   Team,
   TeamMember,
   TeamProject,
@@ -150,46 +141,34 @@ export interface FabricEvents {
   'machine_access.api_key.expired:after': { machineAccess: MachineAccess, apiKey: ApiKey; organization: Organization; performedBy: OrganizationActor };
   'machine_access.api_key:revealed': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
 
-  'server.server_deployment.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context, implementation: ServerImplementation };
-  'server.server_deployment.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; deployment: ServerDeployment, implementation: ServerImplementation };
-  'server.server_deployment.updated:before': { organization: Organization, instance: Instance, deployment: ServerDeployment, performedBy: OrganizationActor; context?: Context, implementation: ServerImplementation };
-  'server.server_deployment.updated:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; deployment: ServerDeployment, implementation: ServerImplementation };
-  'server.server_deployment.deleted:before': { organization: Organization, instance: Instance, deployment: ServerDeployment, performedBy: OrganizationActor; context?: Context, implementation: ServerImplementation };
-  'server.server_deployment.deleted:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; deployment: ServerDeployment, implementation: ServerImplementation };
+  // 'server.server_deployment.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context, implementation: ServerImplementation };
+  // 'server.server_deployment.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; deployment: ServerDeployment, implementation: ServerImplementation };
+  // 'server.server_deployment.updated:before': { organization: Organization, instance: Instance, deployment: ServerDeployment, performedBy: OrganizationActor; context?: Context, implementation: ServerImplementation };
+  // 'server.server_deployment.updated:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; deployment: ServerDeployment, implementation: ServerImplementation };
+  // 'server.server_deployment.deleted:before': { organization: Organization, instance: Instance, deployment: ServerDeployment, performedBy: OrganizationActor; context?: Context, implementation: ServerImplementation };
+  // 'server.server_deployment.deleted:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; deployment: ServerDeployment, implementation: ServerImplementation };
 
-  'server.server_implementation.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context };
-  'server.server_implementation.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; implementation: ServerImplementation };
-  'server.server_implementation.updated:before': { organization: Organization, instance: Instance, implementation: ServerImplementation, performedBy: OrganizationActor; context?: Context };
-  'server.server_implementation.updated:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; implementation: ServerImplementation };
-  'server.server_implementation.deleted:before': { organization: Organization, instance: Instance, implementation: ServerImplementation, performedBy: OrganizationActor; context?: Context };
-  'server.server_implementation.deleted:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; implementation: ServerImplementation };
+  // 'server.server_implementation.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context };
+  // 'server.server_implementation.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; implementation: ServerImplementation };
+  // 'server.server_implementation.updated:before': { organization: Organization, instance: Instance, implementation: ServerImplementation, performedBy: OrganizationActor; context?: Context };
+  // 'server.server_implementation.updated:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; implementation: ServerImplementation };
+  // 'server.server_implementation.deleted:before': { organization: Organization, instance: Instance, implementation: ServerImplementation, performedBy: OrganizationActor; context?: Context };
+  // 'server.server_implementation.deleted:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; implementation: ServerImplementation };
 
-  'session.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context };
-  'session.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; session: Session };
-  'session.deleted:before': { organization: Organization, instance: Instance, session: Session, performedBy: OrganizationActor; context?: Context };
-  'session.deleted:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; session: Session };
+  // 'session.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context };
+  // 'session.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; session: Session };
+  // 'session.deleted:before': { organization: Organization, instance: Instance, session: Session, performedBy: OrganizationActor; context?: Context };
+  // 'session.deleted:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; session: Session };
 
-  'server.server_run.created:before': { organization: Organization, instance: Instance };
-  'server.server_run.created:after': { organization: Organization, instance: Instance, serverRun: ServerRun };
+  // 'server.server_run.created:before': { organization: Organization, instance: Instance };
+  // 'server.server_run.created:after': { organization: Organization, instance: Instance, serverRun: ServerRun };
 
-  'session.session_message.created:before': { organization: Organization, instance: Instance, session: ServerSession, participant: {type: 'client' | 'server'} };
-  'session.session_message.created.many:after': { organization: Organization, instance: Instance, session: ServerSession, sessionMessages: SessionMessage[] };
-  'session.session_message.client_message_received': { organization: Organization, instance: Instance, session: ServerSession };
+  // 'session.session_message.created:before': { organization: Organization, instance: Instance, session: ServerSession, participant: {type: 'client' | 'server'} };
+  // 'session.session_message.created.many:after': { organization: Organization, instance: Instance, session: ServerSession, sessionMessages: SessionMessage[] };
+  // 'session.session_message.client_message_received': { organization: Organization, instance: Instance, session: ServerSession };
 
-  'server.engine_session.created:before': { organization: Organization, instance: Instance, serverSession: ServerSession };
-  'server.engine_session.created:after': { organization: Organization, instance: Instance, serverSession: ServerSession, engineSession: EngineSession };
+  // 'server.engine_session.created:before': { organization: Organization, instance: Instance, serverSession: ServerSession };
+  // 'server.engine_session.created:after': { organization: Organization, instance: Instance, serverSession: ServerSession, engineSession: EngineSession };
 
-  'provider_oauth.connection.created:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context };
-  'provider_oauth.connection.created:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; providerOauthConnection: ProviderOAuthConnection };
-  'provider_oauth.connection.updated:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; providerOauthConnection: ProviderOAuthConnection };
-  'provider_oauth.connection.updated:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; providerOauthConnection: ProviderOAuthConnection };
-  'provider_oauth.connection.archived:before': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; providerOauthConnection: ProviderOAuthConnection };
-  'provider_oauth.connection.archived:after': { organization: Organization, instance: Instance, performedBy: OrganizationActor; context?: Context; providerOauthConnection: ProviderOAuthConnection };
-
-  'provider_oauth.connection.authentication.started:before': { context?: Context; providerOauthConnection: ProviderOAuthConnection };
-  'provider_oauth.connection.authentication.started:after': { context?: Context; providerOauthConnection: ProviderOAuthConnection; authAttempt: ProviderOAuthConnectionAuthAttempt };
-  'provider_oauth.connection.authentication.completed:before': { context?: Context; providerOauthConnection: ProviderOAuthConnection; authAttempt: ProviderOAuthConnectionAuthAttempt };
-  'provider_oauth.connection.authentication.completed:after': { context?: Context; providerOauthConnection: ProviderOAuthConnection; authAttempt: ProviderOAuthConnectionAuthAttempt };
-
-  'callback.event.received': { event: CallbackEvent; callback: Callback };
+  // 'callback.event.received': { event: CallbackEvent; callback: Callback };
 }

@@ -24,6 +24,7 @@ export let subspace = createSubspaceControllerClient({
         identifier: env.subspace.SUBSPACE_SOLUTION
       });
       solutionProm.resolve(sol);
+      console.log('Created subspace solution: ', sol.id);
       return;
     } catch (err) {
       console.log('Failed to create subspace solution ... retrying', err);
