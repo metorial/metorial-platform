@@ -129,6 +129,6 @@ export type DashboardOrganizationsJoinGetQuery = { inviteKey: string };
 
 export let mapDashboardOrganizationsJoinGetQuery =
   mtMap.object<DashboardOrganizationsJoinGetQuery>({
-    inviteKey: mtMap.objectField('inviteKey', mtMap.passthrough())
+    inviteKey: mtMap.objectField('invite_key', mtMap.passthrough())
   });
 
