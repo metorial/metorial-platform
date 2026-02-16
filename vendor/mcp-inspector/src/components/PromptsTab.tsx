@@ -17,6 +17,7 @@ import ListPane from './ListPane';
 
 export type Prompt = {
   name: string;
+  title?: string;
   description?: string;
   arguments?: {
     name: string;
@@ -108,7 +109,7 @@ const PromptsTab = ({
           }}
           renderItem={prompt => (
             <>
-              <span className="flex-1">{prompt.name}</span>
+              <span className="flex-1">{prompt.title ?? prompt.name}</span>
               <span className="text-sm text-gray-500">{prompt.description}</span>
             </>
           )}
@@ -120,7 +121,7 @@ const PromptsTab = ({
         <div className="bg-card rounded-lg border border-gray-200">
           <div className="p-4 border-b border-gray-200 dark:border-gray-800">
             <h3 className="font-semibold">
-              {selectedPrompt ? selectedPrompt.name : 'Select a prompt'}
+              {selectedPrompt ? (selectedPrompt.title ?? selectedPrompt.name) : 'Select a prompt'}
             </h3>
           </div>
           <div className="p-4">

@@ -146,23 +146,16 @@ let ProviderAuthConnectionSettingsPage = dynamicPage(() =>
 let ProviderSessionLayout = dynamicPage(() =>
   import('./pages/(provider-api)/provider-session/_layout').then(c => c.ProviderSessionLayout)
 );
-let ProviderSessionOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-session/index').then(
-    c => c.ProviderSessionOverviewPage
-  )
-);
 let ProviderSessionProvidersPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-session/providers').then(
     c => c.ProviderSessionProvidersPage
   )
 );
-let ProviderSessionSettingsPage = dynamicPage(() =>
-  import('./pages/(provider-api)/provider-session/settings').then(
-    c => c.ProviderSessionSettingsPage
-  )
-);
 let ProviderSessionLogsPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-session/logs').then(c => c.ProviderSessionLogsPage)
+);
+let ProviderSessionRunsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-session/runs').then(c => c.ProviderSessionRunsPage)
 );
 let SessionTemplateLayout = dynamicPage(() =>
   import('./pages/(provider-api)/session-template/_layout').then(c => c.SessionTemplateLayout)
@@ -506,7 +499,7 @@ export let productInnerSlice = createSlice([
       },
 
       /***************
-       * Servers
+       * Custom Providers (Gateway)
        *************** */
       {
         children: [
@@ -1017,16 +1010,12 @@ export let productInnerSlice = createSlice([
             element: <ProviderSessionLogsPage />
           },
           {
-            path: 'overview',
-            element: <ProviderSessionOverviewPage />
-          },
-          {
             path: 'providers',
             element: <ProviderSessionProvidersPage />
           },
           {
-            path: 'settings',
-            element: <ProviderSessionSettingsPage />
+            path: 'runs',
+            element: <ProviderSessionRunsPage />
           }
         ]
       },

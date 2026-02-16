@@ -7,6 +7,23 @@ import { Table } from '@metorial/ui-product';
 import { useState } from 'react';
 import { useDebounced } from '../../../../hooks/useDebounced';
 
+let statusColor = (status: string | null) => {
+  switch (status) {
+    case 'active':
+      return 'green' as const;
+    case 'deploying':
+    case 'building':
+      return 'blue' as const;
+    case 'archived':
+      return 'gray' as const;
+    case 'error':
+    case 'failed':
+      return 'red' as const;
+    default:
+      return 'blue' as const;
+  }
+};
+
 export let CustomServersTable = (
   filter: DashboardInstanceCustomProvidersListQuery & { withSearch?: boolean }
 ) => {
@@ -16,6 +33,7 @@ export let CustomServersTable = (
   let instance = useCurrentInstance();
   let customServers = useCustomServers(instance.data?.instanceId, {
     ...(({ withSearch, ...rest }) => rest)(filter),
+    search: searchDebounced || undefined,
     order: 'desc'
   } as Record<string, unknown>);
 
@@ -24,8 +42,9 @@ export let CustomServersTable = (
       {filter.withSearch && (
         <>
           <Input
-            label="Search Custom Providers"
+            label="Search Providers"
             hideLabel
+            placeholder="Search providers..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -38,8 +57,9 @@ export let CustomServersTable = (
         <>
           <Table
             headers={[
-              'Info',
+              'Provider',
               'Status',
+              'Version',
               'Created'
             ]}
             data={customServers.data.items.map(customServer => ({
@@ -56,7 +76,10 @@ export let CustomServersTable = (
                     </Text>
                   )}
                 </Text>,
-                <Badge color="blue">{customServer.status ?? 'unknown'}</Badge>,
+                <Badge color={statusColor(customServer.status)}>{customServer.status ?? 'unknown'}</Badge>,
+                <Text size="2" color="gray600">
+                  {customServer.provider?.currentVersion?.version ?? '-'}
+                </Text>,
                 <RenderDate date={customServer.createdAt} />
               ],
               href: Paths.instance.customServer(
@@ -70,7 +93,7 @@ export let CustomServersTable = (
 
           {customServers.data.items.length == 0 && (
             <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              No custom providers found.
+              {searchDebounced ? 'No providers match your search.' : 'No providers found.'}
             </Text>
           )}
         </>

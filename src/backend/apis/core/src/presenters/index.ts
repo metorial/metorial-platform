@@ -132,6 +132,7 @@ import {
   v1SessionErrorPresenter,
   v1SessionErrorGroupPresenter,
   v1ProviderRunPresenter,
+  presentSubspaceSessionMessageAs,
   v1SubspaceSessionMessagePresenter,
   v1SubspaceSessionConnectionPresenter,
   v1SubspaceSessionEventPresenter,
@@ -837,8 +838,8 @@ export let customServerCodeEditorTokenTypePresenter = declarePresenter(
   {
     mt_2025_01_01_pulsar: v1CustomServerCodeEditorTokenPresenter,
     mt_2025_01_01_dashboard: v1CustomServerCodeEditorTokenPresenter,
-    mt_2026_02_01_magnetar: PRESENTER_NOT_AVAILABLE,
-    mt_2026_02_01_dashboard: PRESENTER_NOT_AVAILABLE
+    mt_2026_02_01_magnetar: v1CustomServerCodeEditorTokenPresenter,
+    mt_2026_02_01_dashboard: v1CustomServerCodeEditorTokenPresenter
   }
 );
 
@@ -1196,3 +1197,5 @@ export let subspaceProviderOAuthSetupPresenter = declarePresenter(providerOAuthS
   mt_2026_02_01_magnetar: v1ProviderOAuthSetupPresenter,
   mt_2026_02_01_dashboard: v1ProviderOAuthSetupPresenter
 });
+
+export { presentSubspaceSessionMessageAs };

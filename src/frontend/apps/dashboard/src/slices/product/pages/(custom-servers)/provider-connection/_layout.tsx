@@ -1,90 +1,57 @@
-import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject,
-  useProviderConnection
+  useCurrentProject
 } from '@metorial/state';
-import { Callout, LinkTabs, Spacer } from '@metorial/ui';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { Button, Callout, Spacer, Text } from '@metorial/ui';
+import { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 export let ProviderConnectionLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
+  let navigate = useNavigate();
 
-  let { providerConnectionId } = useParams();
-  let providerConnection = useProviderConnection(
-    instance.data?.instanceId,
-    providerConnectionId
-  );
-
-  let pathname = useLocation().pathname;
-
-  let pathParams = [
+  let authConfigsPath = Paths.instance.providerDeployments(
     organization.data,
     project.data,
     instance.data,
-    providerConnection.data?.id ?? providerConnectionId
-  ] as const;
+    'auth-configs'
+  );
 
   return (
     <ContentLayout>
       <PageHeader
-        title={providerConnection.data?.name ?? '...'}
+        title="Auth Connections"
         pagination={[
           {
-            label: 'OAuth Connections',
+            label: 'Auth Connections',
             href: Paths.instance.providerConnections(
               organization.data,
               project.data,
               instance.data
             )
-          },
-          {
-            label: providerConnection.data?.name,
-            href: Paths.instance.providerConnection(...pathParams)
           }
         ]}
       />
 
-      <LinkTabs
-        current={pathname}
-        links={[
-          {
-            label: 'Overview',
-            to: Paths.instance.providerConnection(...pathParams)
-          },
-          {
-            label: 'Logs',
-            to: Paths.instance.providerConnection(...pathParams, 'logs')
-          },
-          {
-            label: 'Profiles',
-            to: Paths.instance.providerConnection(...pathParams, 'profiles')
-          },
-          {
-            label: 'Settings',
-            to: Paths.instance.providerConnection(...pathParams, 'settings')
-          }
-        ]}
-      />
+      <Callout color="blue">
+        <Text size="2">
+          OAuth connections have been upgraded to Provider Auth Configs in the new Provider API.
+          Manage your auth configurations from the Configurations section.
+        </Text>
 
-      {providerConnection.data?.status == 'archived' && (
-        <>
-          <Callout color="orange">
-            This OAuth connection is archived, it cannot be used to authenticate anymore.
-          </Callout>
+        <Spacer height={10} />
 
-          <Spacer height={15} />
-        </>
-      )}
-
-      {renderWithLoader({ providerConnection })(({ providerConnection }) => (
-        <Outlet />
-      ))}
+        <Link to={authConfigsPath}>
+          <Button as="span" size="2">
+            Go to Auth Configs
+          </Button>
+        </Link>
+      </Callout>
     </ContentLayout>
   );
 };

@@ -25,7 +25,10 @@ export { v1SessionParticipantPresenter } from './sessionParticipant';
 export { v1SessionErrorPresenter } from './sessionError';
 export { v1SessionErrorGroupPresenter } from './sessionErrorGroup';
 export { v1ProviderRunPresenter } from './providerRun';
-export { v1SubspaceSessionMessagePresenter } from './sessionMessage';
+export {
+  presentSubspaceSessionMessageAs,
+  v1SubspaceSessionMessagePresenter
+} from './sessionMessage';
 export { v1SubspaceSessionConnectionPresenter } from './sessionConnection';
 export { v1SubspaceSessionEventPresenter } from './sessionEvent';
 export { v1ProviderRunLogsPresenter } from './providerRunLogs';

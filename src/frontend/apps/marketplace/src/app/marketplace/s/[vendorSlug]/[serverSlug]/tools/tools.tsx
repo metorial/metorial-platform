@@ -54,7 +54,7 @@ export let Tools = ({
               <Entity.Wrapper key={i}>
                 <Entity.Content>
                   <Entity.Field
-                    title={Cases.toTitleCase(tool.name)}
+                    title={tool.title ?? Cases.toTitleCase(tool.name)}
                     description={tool.description}
                   />
                 </Entity.Content>
@@ -100,7 +100,7 @@ export let Tools = ({
               <Entity.Wrapper key={i}>
                 <Entity.Content>
                   <Entity.Field
-                    title={Cases.toTitleCase(template.name)}
+                    title={template.title ?? Cases.toTitleCase(template.name)}
                     description={template.description}
                   />
                 </Entity.Content>
@@ -144,7 +144,7 @@ export let Tools = ({
               <Entity.Wrapper key={i}>
                 <Entity.Content>
                   <Entity.Field
-                    title={Cases.toTitleCase(prompt.name)}
+                    title={prompt.title ?? Cases.toTitleCase(prompt.name)}
                     description={prompt.description}
                   />
                 </Entity.Content>

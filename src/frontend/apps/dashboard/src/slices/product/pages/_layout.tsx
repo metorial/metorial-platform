@@ -171,7 +171,7 @@ export let ProjectPageLayout = () => {
             },
             {
               icon: <RiArrowLeftRightLine />,
-              label: 'OAuth Connections',
+              label: 'Auth Connections',
               to: Paths.instance.providerConnections(...params),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             }

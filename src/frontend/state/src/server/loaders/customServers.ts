@@ -4,8 +4,11 @@ import {
   DashboardInstanceCustomProvidersUpdateBody
 } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
+import useInterval from 'use-interval';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
+
+let customServerDoneStatuses = new Set(['active', 'archived']);
 
 export let customServersLoader = createLoader({
   name: 'customServers',
@@ -39,7 +42,9 @@ export let customServerLoader = createLoader({
   mutators: {
     update: (
       i: DashboardInstanceCustomProvidersUpdateBody,
-      { input: { instanceId, customServerId } }: { input: { instanceId: string; customServerId: string } }
+      {
+        input: { instanceId, customServerId }
+      }: { input: { instanceId: string; customServerId: string } }
     ) => withAuth(sdk => sdk.customProviders.update(instanceId, customServerId, i))
   }
 });
@@ -51,6 +56,14 @@ export let useCustomServer = (
   let data = customServerLoader.use(
     instanceId && customServerId ? { instanceId, customServerId } : null
   );
+
+  let isDone = data.data?.status ? customServerDoneStatuses.has(data.data.status) : true;
+  let hasProvider = !!data.data?.provider?.id;
+  useInterval(() => {
+    if ((isDone && hasProvider) || !data.data) return;
+
+    data.refetch();
+  }, 1000 * 5);
 
   return {
     ...data,

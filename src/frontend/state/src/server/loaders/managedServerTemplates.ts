@@ -7,16 +7,17 @@ type ManagedServerTemplateData = {
   updatedAt: Date;
 };
 
-// Placeholder exports to prevent import errors in consuming code
+// Managed server templates are no longer used in the Magnetar Provider API.
+// These stubs return empty data to prevent runtime errors in legacy forms.
 export const managedServerTemplatesLoader = null;
 
 export const useManagedServerTemplates = (
   _query?: Record<string, unknown>
 ) => ({
-  data: null as {
-    items: ManagedServerTemplateData[];
-    pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
-  } | null,
+  data: {
+    items: [] as ManagedServerTemplateData[],
+    pagination: { hasMoreBefore: false, hasMoreAfter: false }
+  },
   isLoading: false,
   error: null,
   next: () => {},

@@ -82,7 +82,7 @@ export let CustomServerDockerCreateForm = (p: {
           }
         }
 
-        toast.success('Server linked successfully');
+        toast.success('Provider created successfully');
 
         if (p.onCreate) {
           p.onCreate(customServerRes);
@@ -138,7 +138,7 @@ export let CustomServerDockerCreateForm = (p: {
                 <>
                   <Input
                     label="Docker Image"
-                    description="The Docker image URL for your MCP server"
+                    description="The Docker image URL for your MCP provider"
                     placeholder="e.g. ghcr.io/metorial/mcp-server:latest"
                     {...form.getFieldProps('dockerImage')}
                   />

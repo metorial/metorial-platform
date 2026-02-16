@@ -36,4 +36,5 @@ export * from './customProviderVersion';
 export * from './customProviderDeployment';
 export * from './customProviderCommit';
 export * from './customProviderEnvironment';
+export * from './customProviderCode';
 export * from './providerOAuthSetup';

@@ -60,4 +60,5 @@ export * from './loaders/providerAuthConfigs';
 export * from './loaders/providerAuthCredentials';
 export * from './loaders/providerSetupSessions';
 export * from './loaders/providerSessions';
+export * from './loaders/sessionTemplateProviders';
 export * from './loaders/sessionTemplates';

@@ -33,7 +33,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       return c.text('');
     })
     .get('/ping', c => c.text('OK'))
-    .all('/mcp/:sessionId/:serverDeploymentId?/:connectionType?', async (c, next) => {
+    .all('/mcp/:sessionId', async (c, next) => {
       let { sessionId, serverDeploymentId, connectionType: connectionTypeRaw } = c.req.param();
       let context = useRequestContext(c);
 
@@ -97,6 +97,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         }
       );
     })
+    /*
     .all('/magic/:magicMcpServerId/:connectionType', async (c, next) => {
       let { magicMcpServerId, connectionType: connectionTypeRaw } = c.req.param();
       let context = useRequestContext(c);
@@ -157,7 +158,8 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         }
       );
     });
-
+  */
+ 
   Bun.serve({
     port: d.port,
     fetch: hono.fetch,

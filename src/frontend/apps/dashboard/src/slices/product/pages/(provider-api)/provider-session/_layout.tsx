@@ -7,7 +7,6 @@ import {
   useCurrentProject,
   useSession
 } from '@metorial/state';
-import { SessionsGetOutput } from '@metorial/dashboard-sdk';
 import { LinkTabs, RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
@@ -65,16 +64,12 @@ export let ProviderSessionLayout = () => {
             to: Paths.instance.providerSession(...sessionPathParams)
           },
           {
-            label: 'Overview',
-            to: Paths.instance.providerSession(...sessionPathParams, 'overview')
-          },
-          {
             label: 'Deployments',
             to: Paths.instance.providerSession(...sessionPathParams, 'providers')
           },
           {
-            label: 'Settings',
-            to: Paths.instance.providerSession(...sessionPathParams, 'settings')
+            label: 'Provider Runs',
+            to: Paths.instance.providerSession(...sessionPathParams, 'runs')
           }
         ]}
       />
@@ -91,7 +86,9 @@ export let ProviderSessionLayout = () => {
             { label: 'Created At', value: <RenderDate date={session.data.createdAt} /> },
             {
               label: 'Messages',
-              value: session.data.usage?.totalProductiveMessageCount ?? 0
+              value:
+                (session.data.usage?.totalProductiveClientMessageCount ?? 0) +
+                (session.data.usage?.totalProductiveServerMessageCount ?? 0)
             }
           ]}
         >

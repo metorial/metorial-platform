@@ -18,7 +18,7 @@ let projectName = queryParams.get('projectName') || 'Metorial Project';
 let url = (import.meta as any).env.VITE_CODE_BUCKET_API_URL;
 
 let tokenData = decodeJwtPayload(token);
-let isReadOnly = tokenData.is_read_only;
+let isReadOnly = tokenData?.is_read_only ?? false;
 
 window.product = {
   productConfiguration: {
@@ -136,7 +136,7 @@ function decodeJwtPayload(token: string) {
 
   let parts = token.split('.');
   if (parts.length !== 3) {
-    console.error('Invalid JWT format.');
+    console.warn('Token is not a JWT format, skipping decode.');
     return null;
   }
   let base64Payload = parts[1];

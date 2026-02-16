@@ -1,18 +1,2 @@
-import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance, useProviderConnection } from '@metorial/state';
-import { useParams } from 'react-router-dom';
-import { ProviderConnectionUpdateForm } from '../../../scenes/providerConnection/updateForm';
-
-export let ProviderConnectionSettingsPage = () => {
-  let instance = useCurrentInstance();
-
-  let { providerConnectionId } = useParams();
-  let providerConnection = useProviderConnection(
-    instance.data?.instanceId,
-    providerConnectionId
-  );
-
-  return renderWithLoader({ providerConnection })(({ providerConnection }) => (
-    <ProviderConnectionUpdateForm providerConnection={providerConnection.data as Parameters<typeof ProviderConnectionUpdateForm>[0]['providerConnection']} />
-  ));
-};
+// Provider connections are now managed through the Provider API auth configs.
+export let ProviderConnectionSettingsPage = () => null;

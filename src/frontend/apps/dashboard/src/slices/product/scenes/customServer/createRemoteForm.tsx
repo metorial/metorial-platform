@@ -111,7 +111,7 @@ export let CustomServerRemoteCreateForm = (p: {
           }
         }
 
-        toast.success('Server linked successfully');
+        toast.success('Provider linked successfully');
 
         if (p.onCreate) {
           p.onCreate(customServerRes);
@@ -167,7 +167,7 @@ export let CustomServerRemoteCreateForm = (p: {
                 <TemplateWrapper>
                   <Input
                     label="Remote URL"
-                    description="Enter the MCP server URL you want to connect to."
+                    description="Enter the MCP provider URL you want to connect to."
                     placeholder="https://mcp.monday.com/sse"
                     {...form.getFieldProps('remoteUrl')}
                   />
@@ -178,7 +178,7 @@ export let CustomServerRemoteCreateForm = (p: {
                   <Select
                     value={form.values.remoteProtocol}
                     label="MCP Transport Protocol"
-                    description="Which transport protocol does your MCP server support?"
+                    description="Which transport protocol does your MCP provider support?"
                     items={[
                       { label: 'SSE (Server-Sent Events)', id: 'sse' },
                       { label: 'Streamable HTTP', id: 'streamable_http' }

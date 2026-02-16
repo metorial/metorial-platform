@@ -86,7 +86,7 @@ export let ProviderDeploymentsList = ({
                   <Entity.Field
                     title={
                       <Text size="1" color="gray500">
-                        Created <RenderDate date={deployment.createdAt} />
+                        <RenderDate date={deployment.createdAt} />
                       </Text>
                     }
                     right

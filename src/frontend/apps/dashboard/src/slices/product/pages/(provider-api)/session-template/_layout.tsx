@@ -5,10 +5,12 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useSessionTemplate
+  useSessionTemplate,
+  useSessionTemplateProviders
 } from '@metorial/state';
-import { LinkTabs } from '@metorial/ui';
+import { Button, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { showAddProviderModal } from './providers';
 
 export let SessionTemplateLayout = () => {
   let instance = useCurrentInstance();
@@ -17,6 +19,7 @@ export let SessionTemplateLayout = () => {
 
   let { sessionTemplateId } = useParams();
   let template = useSessionTemplate(instance.data?.instanceId, sessionTemplateId);
+  let providers = useSessionTemplateProviders(instance.data?.instanceId, sessionTemplateId);
 
   let pathname = useLocation().pathname;
 
@@ -51,6 +54,22 @@ export let SessionTemplateLayout = () => {
             )
           }
         ]}
+        actions={
+          instance.data ? (
+            <Button
+              size="2"
+              onClick={() =>
+                showAddProviderModal({
+                  instanceId: instance.data!.instanceId,
+                  sessionTemplateId: sessionTemplateId!,
+                  onComplete: () => providers.refetch()
+                })
+              }
+            >
+              Add Provider
+            </Button>
+          ) : undefined
+        }
       />
 
       {renderWithLoader({ template })(({ template }) => (

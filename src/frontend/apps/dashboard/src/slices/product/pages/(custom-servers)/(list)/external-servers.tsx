@@ -11,8 +11,8 @@ export let ExternalServersPage = () => {
     <>
       {!flags.data.flags['paid-custom-servers'] ? (
         <Upgrade
-          title="External MCP Servers"
-          description="Connect external MCP servers to Metorial and enjoy managed OAuth, monitoring and more."
+          title="External Providers"
+          description="Connect external MCP providers to Metorial and enjoy managed OAuth, monitoring and more."
         />
       ) : (
         <CustomServersTable type="remote" withSearch />

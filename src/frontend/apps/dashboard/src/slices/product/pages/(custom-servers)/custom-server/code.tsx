@@ -72,14 +72,21 @@ export let CustomServerCodePage = () => {
   let url = useMemo(() => {
     if (!editorToken.data) return null;
 
+    let token = editorToken.data?.token ?? '';
+
+    // If the token is already a full URL (from subspace bucket editor), use it directly
+    if (token.startsWith('http://') || token.startsWith('https://')) {
+      return token;
+    }
+
     let baseUrl = getConfig().microFrontends.codeEditorUrl;
     if (!baseUrl) return null;
 
     let url = new URL(baseUrl);
-    url.searchParams.set('token', editorToken.data?.items?.[0]?.id ?? '');
-    url.searchParams.set('id', editorToken.data?.items?.[0]?.customProviderId ?? '');
+    url.searchParams.set('token', token);
+    url.searchParams.set('id', editorToken.data?.id ?? '');
     return url.toString();
-  }, [editorToken.data?.items]);
+  }, [editorToken.data]);
 
   let createVersion = useCreateCustomServerVersion();
   let navigate = useNavigate();
@@ -141,7 +148,7 @@ export let CustomServerCodePage = () => {
         <>
           <SideBox
             title="Link Repository"
-            description="Connect a Git repository to automatically sync code changes."
+            description="Connect a Git repository to automatically sync code changes to your provider."
           >
             <Button
               as="span"
@@ -160,7 +167,7 @@ export let CustomServerCodePage = () => {
                       <Dialog.Title>Connect Repository</Dialog.Title>
                       <Dialog.Description>
                         Select a repository from your connected Git accounts to link it to this
-                        custom server.
+                        provider.
                       </Dialog.Description>
                       <SelectRepo
                         onSelect={repo => setRepo(repo)}
@@ -171,7 +178,7 @@ export let CustomServerCodePage = () => {
 
                       <Input
                         label="Path"
-                        description="The path within the repository where the server code is located."
+                        description="The path within the repository where the provider code is located."
                         placeholder="e.g. /my-server"
                         value={path}
                         onChange={e => setPath(e.target.value)}

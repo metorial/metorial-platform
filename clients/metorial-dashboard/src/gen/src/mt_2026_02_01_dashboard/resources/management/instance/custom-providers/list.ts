@@ -119,6 +119,7 @@ export type ManagementInstanceCustomProvidersListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
+  search?: string | undefined;
   status?: string | string[] | undefined;
   type?: string | string[] | undefined;
   ids?: string | string[] | undefined;
@@ -133,6 +134,7 @@ export let mapManagementInstanceCustomProvidersListQuery = mtMap.union([
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
       order: mtMap.objectField('order', mtMap.passthrough()),
+      search: mtMap.objectField('search', mtMap.passthrough()),
       status: mtMap.objectField(
         'status',
         mtMap.union([

@@ -47,6 +47,7 @@ import {
   subspaceSessionEventController,
   // Custom Provider controllers
   customProviderController,
+  customProviderCodeController,
   customProviderVersionController,
   customProviderDeploymentController,
   customProviderCommitController,
@@ -358,6 +359,7 @@ export let magnetarController = Controller.create<any>(
 
     // Custom Provider controllers
     customProviderController,
+    customProviderCodeController,
     customProviderVersionController,
     customProviderDeploymentController,
     customProviderCommitController,
@@ -496,6 +498,7 @@ export let magnetarDashboardController = Controller.create<any>(
 
     // Custom Provider controllers
     customProviderController,
+    customProviderCodeController,
     customProviderVersionController,
     customProviderDeploymentController,
     customProviderCommitController,

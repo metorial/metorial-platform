@@ -89,7 +89,8 @@ import {
   MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
   MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint,
   MetorialDashboardInstanceCustomProvidersCommitsEndpoint,
-  MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint
+  MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint,
+  MetorialDashboardInstanceCustomProvidersCodeEndpoint
 } from './gen/src/mt_2026_02_01_dashboard';
 
 let fetchWithRetry = createFetchWithRetry();
@@ -238,7 +239,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       versions: new MetorialDashboardInstanceCustomProvidersVersionsEndpoint(manager),
       deployments: new MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint(manager),
       commits: new MetorialDashboardInstanceCustomProvidersCommitsEndpoint(manager),
-      environments: new MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint(manager)
+      environments: new MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint(manager),
+      code: new MetorialDashboardInstanceCustomProvidersCodeEndpoint(manager)
     }
   ),
 

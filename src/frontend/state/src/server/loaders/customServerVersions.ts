@@ -51,9 +51,12 @@ export let useCustomServerVersions = (
     )
   );
 
+  let inProgressStatuses = ['deploying', 'queued'];
   useInterval(() => {
-    let hasDeploying = data.data?.items.some((i: { status: string | null }) => i.status == 'deploying');
-    if (!hasDeploying) return;
+    let hasInProgress = data.data?.items.some(
+      (i: { status: string | null }) => i.status && inProgressStatuses.includes(i.status)
+    );
+    if (!hasInProgress) return;
 
     data.refetch();
   }, 1000 * 5);
@@ -71,6 +74,15 @@ export let customServerVersionLoader = createLoader({
   mutators: {}
 });
 
+let versionDoneStatuses = new Set([
+  'current',
+  'available',
+  'deployment_succeeded',
+  'succeeded',
+  'failed',
+  'deployment_failed'
+]);
+
 export let useCustomServerVersion = (
   instanceId: string | null | undefined,
   customServerId: string | null | undefined,
@@ -82,12 +94,12 @@ export let useCustomServerVersion = (
       : null
   );
 
+  let isDone = data.data?.status ? versionDoneStatuses.has(data.data.status) : false;
   useInterval(() => {
-    let hasDeploying = data.data?.status == 'deploying';
-    if (!hasDeploying) return;
+    if (isDone || !data.data) return;
 
     data.refetch();
-  }, 1000);
+  }, 1000 * 3);
 
   return {
     ...data

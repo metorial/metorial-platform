@@ -7,6 +7,7 @@ export let v1ToolPresenter = Presenter.create(toolType)
     object: 'provider.tool' as const,
     id: tool.id,
     name: tool.name,
+    title: tool.title ?? null,
     description: tool.description,
     input_schema: tool.inputSchema ?? tool.inputJsonSchema,
     output_schema: tool.outputSchema ?? tool.outputJsonSchema,
@@ -27,9 +28,16 @@ export let v1ToolPresenter = Presenter.create(toolType)
       }),
       name: v.string({
         name: 'name',
-        description: 'Display name of the tool',
+        description: 'Programmatic name of the tool',
         examples: ['create_issue', 'search_code']
       }),
+      title: v.nullable(
+        v.string({
+          name: 'title',
+          description: 'Human-readable display title for the tool',
+          examples: ['Create Issue', 'Search Code']
+        })
+      ),
       description: v.nullable(
         v.string({
           name: 'description',

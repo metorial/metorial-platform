@@ -6,6 +6,7 @@ let privateApiUrl = import.meta.env.VITE_PRIVATE_API_URL ?? import.meta.env.PRIV
 let authFrontendUrl = import.meta.env.VITE_AUTH_FRONTEND_URL;
 let accountFrontendUrl = import.meta.env.VITE_ACCOUNT_FRONTEND_URL;
 let teamFrontendUrl = import.meta.env.VITE_TEAM_FRONTEND_URL;
+let codeEditorUrl = import.meta.env.VITE_CODE_EDITOR_URL;
 
 let metorialEnvironment = import.meta.env.VITE_METORIAL_ENV;
 
@@ -24,7 +25,9 @@ setConfig({
     accountFrontendUrl: accountFrontendUrl
   },
 
-  microFrontends: {},
+  microFrontends: {
+    codeEditorUrl
+  },
 
   auth: {
     authFrontendUrl: authFrontendUrl,

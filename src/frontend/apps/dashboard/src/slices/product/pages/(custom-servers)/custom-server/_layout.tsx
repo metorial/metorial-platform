@@ -6,17 +6,14 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useCustomServer,
-  useDashboardFlags,
-  useProviderListing
+  useDashboardFlags
 } from '@metorial/state';
 import { Button, Callout, LinkTabs, Menu, Spacer } from '@metorial/ui';
 import { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { showCustomServerRemoteFormModal } from '../../../scenes/customServer/modal';
-import {
-  showMagicMcpServerFormModal,
-  showServerDeploymentFormModal
-} from '../../../scenes/serverDeployments/modal';
+import { showProviderDeploymentFormModal } from '../../../scenes/providerDeployments/modal';
+import { showMagicMcpServerFormModal } from '../../../scenes/serverDeployments/modal';
 
 export let CustomServerLayout = () => {
   let instance = useCurrentInstance();
@@ -53,7 +50,9 @@ export let CustomServerLayout = () => {
         pagination={[
           {
             label:
-              'Custom Providers',
+              customServer.data?.status == 'active'
+                ? 'External Providers'
+                : 'Managed Providers',
             href:
               customServer.data?.status == 'active'
                 ? Paths.instance.externalServers(
@@ -69,7 +68,7 @@ export let CustomServerLayout = () => {
           }
         ]}
         actions={
-          <DeployServerButton serverId={customServer.data?.provider?.id!}>
+          <DeployServerButton providerId={customServer.data?.provider?.id}>
             Deploy Provider
           </DeployServerButton>
         }
@@ -122,7 +121,7 @@ export let CustomServerLayout = () => {
           {customServer.data?.status == 'archived' && (
             <>
               <Callout color="orange">
-                This custom server is archived. It cannot be used for new connections.
+                This provider is archived. It cannot be used for new connections.
               </Callout>
 
               <Spacer height={15} />
@@ -138,18 +137,17 @@ export let CustomServerLayout = () => {
 
 export let DeployServerButton = ({
   children,
-  serverId,
+  providerId,
   disabled
 }: {
   children: React.ReactNode;
-  serverId: string;
+  providerId: string | undefined;
   disabled?: boolean;
 }) => {
   let flags = useDashboardFlags();
-  let instance = useCurrentInstance();
-  let server = useProviderListing(instance.data?.instanceId, serverId);
+  let isDisabled = disabled || !providerId;
 
-  return !disabled &&
+  return !isDisabled &&
     (flags.data?.flags['magic-mcp-enabled'] ||
       (flags.data?.flags['managed-servers-enabled'] &&
         false)) ? (
@@ -182,14 +180,14 @@ export let DeployServerButton = ({
       ]}
       onItemClick={item => {
         if (item === 'server-deployment') {
-          showServerDeploymentFormModal({
+          showProviderDeploymentFormModal({
             type: 'create',
-            for: { serverId }
+            providerId
           });
         } else if (item === 'magic-mcp-server') {
           showMagicMcpServerFormModal({
             type: 'create',
-            for: { serverId }
+            for: { serverId: providerId! }
           });
         } else if (item === 'fork-server') {
           showCustomServerRemoteFormModal({
@@ -202,12 +200,12 @@ export let DeployServerButton = ({
     </Menu>
   ) : (
     <Button
-      disabled={disabled}
+      disabled={isDisabled}
       size="2"
       onClick={() =>
-        showServerDeploymentFormModal({
+        showProviderDeploymentFormModal({
           type: 'create',
-          for: { serverId }
+          providerId
         })
       }
     >

@@ -6,7 +6,7 @@ import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
-import { subspaceSessionMessagePresenter } from '../../presenters';
+import { presentSubspaceSessionMessageAs, subspaceSessionMessagePresenter } from '../../presenters';
 import { SubspaceSessionMessage } from '../../presenters/types';
 import { subspaceSessionGroup } from './subspaceSession';
 
@@ -67,11 +67,32 @@ export let subspaceSessionMessageController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, sessionMessage =>
-          subspaceSessionMessagePresenter.present({
-            sessionMessage: sessionMessage as SubspaceSessionMessage
-          })
-        );
+        let expandedItems: ReturnType<typeof presentSubspaceSessionMessageAs>[] = [];
+        for (let sessionMessage of list.items) {
+          let msg = sessionMessage as SubspaceSessionMessage;
+          let hasInput = !!msg.input;
+          let hasOutput = !!msg.output;
+          if (hasInput && hasOutput) {
+            let req = presentSubspaceSessionMessageAs(msg, 'request');
+            let res = presentSubspaceSessionMessageAs(msg, 'response');
+            if (req) expandedItems.push(req);
+            if (res) expandedItems.push(res);
+          } else if (hasInput) {
+            let req = presentSubspaceSessionMessageAs(msg, 'request');
+            if (req) expandedItems.push(req);
+          } else if (hasOutput) {
+            let res = presentSubspaceSessionMessageAs(msg, 'response');
+            if (res) expandedItems.push(res);
+          }
+        }
+
+        return {
+          items: expandedItems,
+          pagination: {
+            has_more_after: list.pagination.hasNextPage,
+            has_more_before: list.pagination.hasPreviousPage
+          }
+        };
       }),
 
     get: subspaceSessionMessageGroup

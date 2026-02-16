@@ -184,6 +184,7 @@ export let ProviderToolsPage = () => {
           (tool: {
             id: string;
             name: string;
+            title?: string | null;
             description: string | null;
             inputSchema: Record<string, unknown> | null;
             outputSchema: Record<string, unknown> | null;
@@ -196,7 +197,7 @@ export let ProviderToolsPage = () => {
                 title={
                   <Flex gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
                     <Text size="2" weight="strong">
-                      {tool.name}
+                      {tool.title ?? tool.name}
                     </Text>
                     <Badge color={modeBadge.color} size="1">
                       {modeBadge.label}

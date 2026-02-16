@@ -8,25 +8,13 @@ import {
 import { Button, Menu } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
 import { showCustomServerRemoteFormModal } from '../../../scenes/customServer/modal';
-import { showProviderConnectionFormModal } from '../../../scenes/providerConnection/modal';
 
 export let ProviderConnectionsListLayout = () => {
-  let instance = useCurrentInstance();
-  let project = useCurrentProject();
-  let organization = useCurrentOrganization();
-
-  let pathname = useLocation().pathname;
-
   return (
     <ContentLayout>
       <PageHeader
-        title="OAuth Connections"
-        description="Use OAuth to seamlessly authenticate with external providers, like Google or GitHub."
-        actions={
-          <Button onClick={() => showProviderConnectionFormModal({})} size="2">
-            Create OAuth Connection
-          </Button>
-        }
+        title="Auth Connections"
+        description="Manage OAuth and authentication connections for your providers."
       />
 
       <Outlet />
@@ -56,12 +44,12 @@ export let ManagedServersListLayout = () => {
                 {
                   id: 'docker',
                   label: 'Docker Provider',
-                  description: 'Deploy a custom Docker image as an MCP provider on Metorial'
+                  description: 'Deploy a custom Docker image as an MCP provider on Metorial.'
                 },
                 {
                   id: 'managed',
                   label: 'Managed Provider',
-                  description: 'Connect a GitHub repo and deploy to Metorial automatically'
+                  description: 'Connect a GitHub repo and deploy to Metorial automatically.'
                 }
               ]}
               onItemClick={id => {

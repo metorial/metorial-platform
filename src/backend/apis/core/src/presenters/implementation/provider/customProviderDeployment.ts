@@ -58,6 +58,68 @@ let commitSchema = v.object({
   })
 });
 
+let normalizeTimestamp = (timestamp: Date | string | number | null | undefined): Date | null => {
+  if (!timestamp) return null;
+  if (timestamp instanceof Date) return timestamp;
+  if (typeof timestamp == 'number') return new Date(timestamp);
+
+  let parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+};
+
+let flattenStepLogs = (steps: any[] | null | undefined) => {
+  if (!steps?.length) return [];
+
+  let forgeSourceSeen = new Set<string>();
+  let flattened: { type: string; line: string; timestamp: Date | null }[] = [];
+
+  for (let step of steps) {
+    let fallbackTimestamp = normalizeTimestamp(step.createdAt ?? null);
+    let source = step.source;
+
+    if (source?.provider == 'forge' && source.workflowRunId) {
+      let sourceKey = `${source.workflowRunId}:${source.workflowId ?? ''}`;
+      if (!forgeSourceSeen.has(sourceKey)) {
+        forgeSourceSeen.add(sourceKey);
+
+        flattened.push({
+          type: 'info',
+          line: `Forge Workflow Run ID: ${source.workflowRunId}`,
+          timestamp: fallbackTimestamp
+        });
+        if (source.workflowId) {
+          flattened.push({
+            type: 'info',
+            line: `Forge Workflow ID: ${source.workflowId}`,
+            timestamp: fallbackTimestamp
+          });
+        }
+        if (source.functionDeploymentId) {
+          flattened.push({
+            type: 'info',
+            line: `Function-Bay Deployment ID: ${source.functionDeploymentId}`,
+            timestamp: fallbackTimestamp
+          });
+        }
+      }
+    }
+
+    for (let log of step.logs ?? []) {
+      let line = log.line ?? log.message ?? '';
+      if (!line) continue;
+
+      flattened.push({
+        type: log.type ?? (step.status == 'failed' ? 'error' : 'info'),
+        line,
+        timestamp: normalizeTimestamp(log.timestamp) ?? fallbackTimestamp
+      });
+    }
+  }
+
+  return flattened;
+};
+
 export let v1CustomProviderDeploymentPresenter = Presenter.create(customProviderDeploymentType)
   .presenter(async ({ customProviderDeployment }) => ({
     object: 'custom_provider.deployment' as const,
@@ -145,16 +207,37 @@ export let v1CustomProviderDeploymentPresenter = Presenter.create(customProvider
   )
   .build();
 
+let presentStep = (step: any) => ({
+  id: step.id ?? null,
+  type: step.type ?? null,
+  status: step.status ?? null,
+  source: step.source
+    ? {
+        provider: step.source.provider ?? null,
+        workflow_run_id: step.source.workflowRunId ?? null,
+        workflow_id: step.source.workflowId ?? null,
+        function_deployment_id: step.source.functionDeploymentId ?? null
+      }
+    : null,
+  logs: (step.logs ?? []).map((log: any) => ({
+    type: log.type ?? 'info',
+    line: log.line ?? log.message ?? '',
+    timestamp: normalizeTimestamp(log.timestamp) ?? null
+  })),
+  created_at: normalizeTimestamp(step.createdAt) ?? null
+});
+
 export let v1CustomProviderDeploymentLogsPresenter = Presenter.create(
   customProviderDeploymentLogsType
 )
   .presenter(async ({ logs }) => ({
     object: 'custom_provider.deployment.logs' as const,
-    logs: logs.logs.map(log => ({
+    logs: (logs.logs ?? flattenStepLogs(logs.steps)).map(log => ({
       type: log.type,
       line: log.line,
       timestamp: log.timestamp ?? null
-    }))
+    })),
+    steps: (logs.steps ?? []).map(presentStep)
   }))
   .schema(
     v.object({
@@ -185,6 +268,30 @@ export let v1CustomProviderDeploymentLogsPresenter = Presenter.create(
           name: 'logs',
           description: 'Array of log entries'
         }
+      ),
+      steps: v.array(
+        v.object({
+          id: v.nullable(v.string()),
+          type: v.nullable(v.string()),
+          status: v.nullable(v.string()),
+          source: v.nullable(
+            v.object({
+              provider: v.nullable(v.string()),
+              workflow_run_id: v.nullable(v.string()),
+              workflow_id: v.nullable(v.string()),
+              function_deployment_id: v.nullable(v.string())
+            })
+          ),
+          logs: v.array(
+            v.object({
+              type: v.string(),
+              line: v.string(),
+              timestamp: v.nullable(v.date())
+            })
+          ),
+          created_at: v.nullable(v.date())
+        }),
+        { name: 'steps', description: 'Deployment steps with individual logs' }
       )
     })
   )

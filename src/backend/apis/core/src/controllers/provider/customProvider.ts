@@ -101,6 +101,9 @@ export let customProviderController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            search: v.optional(v.string(), {
+              description: 'Search by name or description'
+            }),
             status: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by status (active, archived)'
             }),
@@ -116,6 +119,7 @@ export let customProviderController = Controller.create(
       .do(async ctx => {
         let paginator = await customProviderService.list({
           instance: ctx.instance,
+          search: ctx.query.search,
           status: normalizeArrayParam(ctx.query.status) as
             | ('active' | 'archived')[]
             | undefined,
@@ -172,6 +176,7 @@ export let customProviderController = Controller.create(
       .do(async ctx => {
         let customProvider = await customProviderService.create({
           instance: ctx.instance,
+          organizationActor: ctx.actor,
           name: ctx.body.name,
           description: ctx.body.description,
           metadata: ctx.body.metadata,

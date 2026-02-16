@@ -48,11 +48,11 @@ export let CustomServerListingPage = () => {
   return renderWithLoader({ customServer, listing })(({ customServer, listing }) => (
     <FormPage>
       <Box
-        title="Publish Custom Server"
-        description="Make this custom server available for deployments."
+        title="Publish Provider"
+        description="Make this provider available for deployments."
       >
         <Switch
-          label="Publish custom server for all Metorial users to use."
+          label="Publish provider for all Metorial users to use."
           disabled={
             statusUpdate.isLoading || generalUpdate.isLoading || readmeUpdate.isLoading
           }
@@ -62,9 +62,9 @@ export let CustomServerListingPage = () => {
               setIsPublic(checked);
 
               confirm({
-                title: 'Are you sure you want to publish this custom server?',
+                title: 'Are you sure you want to publish this provider?',
                 description:
-                  'This will make the custom server available for all Metorial users to use. This might expose sensitive information, so make sure you understand the implications.',
+                  'This will make the provider available for all Metorial users to use. This might expose sensitive information, so make sure you understand the implications.',
                 onConfirm: () => {
                   statusUpdate.mutate({
                     status: 'public'
@@ -84,8 +84,8 @@ export let CustomServerListingPage = () => {
       </Box>
 
       <Box
-        title="Open Server Listing"
-        description="View this custom server listing in the Metorial catalog."
+        title="Open Provider Listing"
+        description="View this provider listing in the Metorial catalog."
       >
         <Link
           to={Paths.instance.provider(
@@ -103,7 +103,7 @@ export let CustomServerListingPage = () => {
 
       <Box
         title="Enable forking"
-        description="Let other users fork this custom server to their own Metorial instance."
+        description="Let other users fork this provider to their own Metorial instance."
       >
         <Switch
           label="Enable forking"
@@ -117,9 +117,9 @@ export let CustomServerListingPage = () => {
           onCheckedChange={async checked => {
             if (checked) {
               confirm({
-                title: 'Are you sure you want to enable forking for this custom server?',
+                title: 'Are you sure you want to enable forking for this provider?',
                 description:
-                  'This will let other users fork this custom server to their own Metorial instance. This might expose sensitive information, so make sure you understand the implications.',
+                  'This will let other users fork this provider to their own Metorial instance. This might expose sensitive information, so make sure you understand the implications.',
                 onConfirm: async () => {
                   await forkUpdate.mutate({
                     metadata: { isForkable: true }
@@ -137,7 +137,7 @@ export let CustomServerListingPage = () => {
 
       <FormBox
         title="Listing"
-        description="Update how this server is listed in the Metorial catalog."
+        description="Update how this provider is listed in the Metorial catalog."
         schema={yup =>
           yup.object({
             name: yup.string().optional(),
@@ -169,7 +169,7 @@ export let CustomServerListingPage = () => {
 
       <FormBox
         title="Readme"
-        description="Update the readme for this custom server listing."
+        description="Update the readme for this provider listing."
         schema={yup =>
           yup.object({
             readme: yup.string().optional()
@@ -194,7 +194,7 @@ export let CustomServerListingPage = () => {
               onChange={content => {
                 setValue(content);
               }}
-              placeholder="Write a readme for this custom server..."
+                placeholder="Write a readme for this provider..."
             />
           )}
         </Field>
@@ -203,7 +203,7 @@ export let CustomServerListingPage = () => {
       {false && (
         <FormBox
           title="OAuth Explainer"
-          description="Explain how to set up OAuth for this custom server."
+          description="Explain how to set up OAuth for this provider."
           schema={yup =>
             yup.object({
               oauthExplainer: yup.string().optional()
@@ -228,7 +228,7 @@ export let CustomServerListingPage = () => {
                 onChange={content => {
                   setValue(content);
                 }}
-                placeholder={`Explain how to set up OAuth for this custom server...`}
+                placeholder={`Explain how to set up OAuth for this provider...`}
               />
             )}
           </Field>

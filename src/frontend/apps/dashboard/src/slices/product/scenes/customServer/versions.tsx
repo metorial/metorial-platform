@@ -45,7 +45,7 @@ export let CustomServerVersionsTable = (
 
       {versions.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No versions found for this custom server.
+          No versions found for this provider.
         </Text>
       )}
     </>

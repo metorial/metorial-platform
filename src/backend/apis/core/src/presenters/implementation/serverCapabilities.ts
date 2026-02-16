@@ -114,8 +114,15 @@ export let v1ServerCapabilitiesPresenter = Presenter.create(serverCapabilitiesTy
 
             name: v.string({
               name: 'name',
-              description: 'Name of the tool'
+              description: 'Programmatic name of the tool'
             }),
+
+            title: v.optional(
+              v.string({
+                name: 'title',
+                description: 'Human-readable display title for the tool'
+              })
+            ),
 
             description: v.optional(
               v.string({
@@ -166,8 +173,15 @@ export let v1ServerCapabilitiesPresenter = Presenter.create(serverCapabilitiesTy
 
             name: v.string({
               name: 'name',
-              description: 'Name of the prompt'
+              description: 'Programmatic name of the prompt'
             }),
+
+            title: v.optional(
+              v.string({
+                name: 'title',
+                description: 'Human-readable display title for the prompt'
+              })
+            ),
 
             description: v.optional(
               v.string({
@@ -209,8 +223,15 @@ export let v1ServerCapabilitiesPresenter = Presenter.create(serverCapabilitiesTy
 
             name: v.string({
               name: 'name',
-              description: 'Name of the resource template'
+              description: 'Programmatic name of the resource template'
             }),
+
+            title: v.optional(
+              v.string({
+                name: 'title',
+                description: 'Human-readable display title for the resource template'
+              })
+            ),
 
             description: v.optional(
               v.string({

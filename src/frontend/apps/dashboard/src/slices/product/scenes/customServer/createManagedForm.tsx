@@ -105,9 +105,47 @@ export let CustomServerManagedCreateForm = (p: {
     onSubmit: async values => {
       if (!instance.data) return;
 
-      let plainTemplate = selectedRepoId
-        ? undefined
-        : managedServerTemplates.data?.items.find((t: { slug: string | null }) => t.slug == 'plain-typescript');
+      let starterFiles = [
+        {
+          filename: 'index.ts',
+          content: [
+            `import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";`,
+            `import { createMcpServer } from "@metorial/mcp-server";`,
+            ``,
+            `let server = new McpServer({ name: "${values.name || 'mcp-server'}", version: "1.0.0" });`,
+            `let mcpServer: any = server;`,
+            ``,
+            `mcpServer.tool(`,
+            `  "hello",`,
+            `  "Return a simple greeting.",`,
+            `  async () => ({`,
+            `    content: [{ type: "text", text: "Hello from Metorial managed provider." }]`,
+            `  })`,
+            `);`,
+            ``,
+            `export { server };`,
+            `export default createMcpServer({ server });`,
+            ``
+          ].join('\n')
+        },
+        {
+          filename: 'package.json',
+          content: `${JSON.stringify(
+            {
+              name: 'managed-provider',
+              private: true,
+              version: '1.0.0',
+              main: 'index.ts',
+              dependencies: {
+                '@metorial/mcp-server': 'latest',
+                '@modelcontextprotocol/sdk': 'latest'
+              }
+            },
+            null,
+            2
+          )}\n`
+        }
+      ];
 
       let [customServerRes] = await createCustomServer.mutate({
         instanceId: instance.data.instanceId,
@@ -115,7 +153,7 @@ export let CustomServerManagedCreateForm = (p: {
         description: values.description,
         from: {
           type: 'function',
-          files: [],
+          files: starterFiles,
           env: {},
           runtime: { identifier: 'nodejs' as const, version: '22.x' as const }
         }
@@ -136,7 +174,7 @@ export let CustomServerManagedCreateForm = (p: {
           }
         }
 
-        toast.success('Server created successfully');
+        toast.success('Provider created successfully');
 
         if (p.onCreate) {
           p.onCreate(customServerRes);
@@ -237,7 +275,7 @@ export let CustomServerManagedCreateForm = (p: {
         steps={[
           {
             title: 'Choose Template',
-            subtitle: 'Choose a template for your MCP server',
+            subtitle: 'Choose a template for your MCP provider',
             render: () => {
               return renderWithLoader({ managedServerTemplates })(
                 ({ managedServerTemplates }) => (

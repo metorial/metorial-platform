@@ -1,9 +1,5 @@
-import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance } from '@metorial/state';
-import { ProviderConnectionsTable } from '../../../scenes/providerConnection/table';
+import { ProviderAuthConnectionsOverviewPage } from '../../(provider-api)/(list)/provider-auth-connections';
 
 export let ProviderConnectionsPage = () => {
-  let instance = useCurrentInstance();
-
-  return renderWithLoader({ instance })(({ instance }) => <ProviderConnectionsTable />);
+  return <ProviderAuthConnectionsOverviewPage />;
 };

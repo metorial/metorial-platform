@@ -58,7 +58,7 @@ export let ProviderVersionsPage = () => {
                     )}
                   </Flex>
                   <Text size="1" color="gray600">
-                    Created <RenderDate date={version.createdAt} />
+                    <RenderDate date={version.createdAt} />
                   </Text>
                 </Flex>
 

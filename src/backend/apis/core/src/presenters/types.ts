@@ -879,6 +879,7 @@ export interface SubspaceAuthMethodScope {
 export interface SubspaceTool {
   id: string;
   name: string;
+  title?: string | null;
   description: string | null;
   inputSchema?: Record<string, unknown> | null;
   inputJsonSchema?: Record<string, unknown> | null;
@@ -1131,6 +1132,9 @@ export interface SubspaceSessionTemplateProvider {
   sessionTemplateId: string;
   providerId: string;
   providerDeploymentId: string | null;
+  deployment?: { id: string; name: string | null } | null;
+  config?: { id: string; name: string | null } | null;
+  authConfig?: { id: string; name: string | null } | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -1432,10 +1436,28 @@ export interface SubspaceCustomProviderVersion {
 }
 
 export interface SubspaceCustomProviderDeploymentLogs {
-  logs: Array<{
+  logs?: Array<{
     type: string;
     line: string;
     timestamp?: Date | null;
+  }>;
+  steps?: Array<{
+    id?: string;
+    type?: string;
+    status?: string;
+    source?: {
+      provider?: string;
+      workflowRunId?: string;
+      workflowId?: string;
+      functionDeploymentId?: string;
+    } | null;
+    logs?: Array<{
+      type?: string;
+      line?: string;
+      message?: string;
+      timestamp?: Date | string | number | null;
+    }>;
+    createdAt?: Date | null;
   }>;
 }
 

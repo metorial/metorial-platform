@@ -40,7 +40,7 @@ export let CustomServerEventsTable = ({
 
       {events.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No recent events for this custom server.
+          No recent events for this provider.
         </Text>
       )}
     </>
