@@ -1,0 +1,16 @@
+model SubspaceReferenceConfig {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique // Subspace-generated ID
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  providerId           String
+  providerDeploymentId String?
+  name                 String?
+  isEphemeral          Boolean @default(false)
+
+  subspaceCreatedAt DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+}

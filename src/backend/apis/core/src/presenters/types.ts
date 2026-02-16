@@ -1,100 +1,19 @@
 import {
-  AccessLimiter,
   ApiKey,
   ApiKeySecret,
-  Callback,
-  CallbackDestination,
-  CallbackDestinationCallback,
-  CallbackEvent,
-  CallbackEventProcessingAttempt,
-  CallbackHook,
-  CallbackNotification,
-  CallbackNotificationAttempt,
-  CallbackSchedule,
-  CodeBucketTemplate,
-  Consumer,
-  ConsumerAccess,
-  ConsumerGroup,
-  ConsumerProfile,
-  ConsumerProfileGroup,
-  ConsumerServerRequest,
-  ConsumerSession,
-  ConsumerSurface,
-  ConsumerSurfaceAuthFactor,
-  CustomServer,
-  CustomServerDeployment,
-  CustomServerDeploymentStep,
-  CustomServerEvent,
-  CustomServerVersion,
-  DockerServerInstance,
   File,
   FileLink,
   FilePurpose,
-  ImportedRepository,
-  ImportedServer,
-  ImportedServerVendor,
   Instance,
-  InstanceServer,
-  LambdaServerInstance,
   MachineAccess,
-  MagicMcpGroup,
-  MagicMcpGroupToken,
-  MagicMcpServer,
-  MagicMcpServerAlias,
-  MagicMcpServerDeployment,
-  MagicMcpSession,
-  MagicMcpToken,
-  ManagedServerTemplate,
   Organization,
   OrganizationActor,
   OrganizationInvite,
   OrganizationMember,
-  Portal,
   Profile,
   Project,
-  ProviderOAuthAutoRegistration,
-  ProviderOAuthConfig,
-  ProviderOAuthConnection,
-  ProviderOAuthConnectionAuthAttempt,
-  ProviderOAuthConnectionAuthToken,
-  ProviderOAuthConnectionEvent,
-  ProviderOAuthConnectionProfile,
-  ProviderOAuthConnectionTemplate,
-  ProviderOAuthDiscoveryDocument,
-  ProviderOAuthTakeIn,
-  ProviderOAuthTakeInVersion,
-  ProviderOAuthTakeout,
-  RemoteServerInstance,
-  ScmAccount,
-  ScmInstallation,
-  ScmRepo,
-  ScmRepoPush,
   Secret,
   SecretType,
-  Server,
-  ServerConfigSchema,
-  ServerConfigVault,
-  ServerDeployment,
-  ServerDeploymentConfig,
-  ServerDeploymentTemplate,
-  ServerImplementation,
-  ServerListing,
-  ServerListingCategory,
-  ServerListingCollection,
-  ServerOAuthSession,
-  ServerRun,
-  ServerRunError,
-  ServerRunErrorGroup,
-  ServerSession,
-  ServerVariant,
-  ServerVersion,
-  Session,
-  SessionConnection,
-  SessionEvent,
-  SessionMessage,
-  SsoTenant,
-  SsoUser,
-  SsoUserProfile,
   Team,
   TeamMember,
   TeamProject,
@@ -102,8 +21,6 @@ import {
   TeamRole,
   User
 } from '@metorial/db';
-import { ServerCapabilities } from '@metorial/module-catalog';
-import { ScmAccountPreview, ScmRepoPreview } from '@metorial/module-scm';
 import { PresentableType } from '@metorial/presenter';
 
 export let bootType = PresentableType.create<{
@@ -195,119 +112,6 @@ export let secretType = PresentableType.create<{
   secret: Secret & { type: SecretType; organization: Organization; instance: Instance };
 }>()('secret');
 
-export let serverType = PresentableType.create<{
-  server: Server & {
-    importedServer: ImportedServer | null;
-    variants: (ServerVariant & {
-      currentVersion: (ServerVersion & { schema: ServerConfigSchema }) | null;
-    })[];
-  };
-}>()('server');
-
-export let serverListingCategoryType = PresentableType.create<{
-  category: ServerListingCategory;
-}>()('server_listing.category');
-
-export let serverListingCollectionType = PresentableType.create<{
-  collection: ServerListingCollection;
-}>()('server_listing.collection');
-
-export let serverVariantType = PresentableType.create<{
-  serverVariant: ServerVariant & {
-    currentVersion: (ServerVersion & { schema: ServerConfigSchema }) | null;
-    server: Server;
-  };
-}>()('server.server_variant');
-
-export let serverVersionType = PresentableType.create<{
-  serverVersion: ServerVersion & {
-    server: Server;
-    serverVariant: ServerVariant;
-    schema: ServerConfigSchema;
-  };
-}>()('server.server_version');
-
-export let serverListingType = PresentableType.create<{
-  serverListing: Omit<ServerListing, 'readme'> & {
-    profile: Profile | null;
-    categories: ServerListingCategory[];
-    server: Server & {
-      importedServer:
-        | (ImportedServer & {
-            vendor: ImportedServerVendor;
-            repository: ImportedRepository | null;
-          })
-        | null;
-
-      customServer:
-        | (CustomServer & {
-            forkTemplateManagedServer: ManagedServerTemplate | null;
-          })
-        | null;
-
-      instanceServers?: (InstanceServer & { instance: Instance })[];
-    };
-  };
-  readme?: string | null;
-}>()('server_listing');
-
-export let serverImplementationType = PresentableType.create<{
-  serverImplementation: ServerImplementation & {
-    server: Server;
-    serverVariant: ServerVariant;
-  };
-}>()('server.server_implementation');
-
-export let serverDeploymentType = PresentableType.create<{
-  serverDeployment: ServerDeployment & {
-    serverImplementation: ServerImplementation & {
-      server: Server;
-      serverVariant: ServerVariant;
-    };
-    server: Server;
-    config: ServerDeploymentConfig & {
-      configSecret: Secret;
-    };
-    oauthConnection:
-      | (ProviderOAuthConnection & {
-          instance: Instance;
-          template: ProviderOAuthConnectionTemplate | null;
-          config: ProviderOAuthConfig;
-        })
-      | null;
-    callback:
-      | (Callback & {
-          hooks: CallbackHook[];
-          schedule: CallbackSchedule | null;
-        })
-      | null;
-    accessLimiter: AccessLimiter | null;
-  };
-}>()('server.server_deployment');
-
-export let serverDeploymentTemplateType = PresentableType.create<{
-  serverDeploymentTemplate: ServerDeploymentTemplate & {
-    server: Server & {
-      importedServer: ImportedServer | null;
-      variants: (ServerVariant & {
-        currentVersion: (ServerVersion & { schema: ServerConfigSchema }) | null;
-      })[];
-    };
-  };
-}>()('server.server_deployment.template');
-
-export let serverDeploymentPreviewType = PresentableType.create<{
-  serverDeployment: ServerDeployment & {
-    server: Server;
-  };
-}>()('server.server_deployment#preview');
-
-export let serverDeploymentConfigType = PresentableType.create<{
-  config: ServerDeploymentConfig & {
-    configSecret: Secret;
-  };
-}>()('server.server_deployment.config');
-
 export let usageType = PresentableType.create<{
   timeline: {
     entityId: string;
@@ -320,389 +124,120 @@ export let usageType = PresentableType.create<{
   }[];
 }>()('usage');
 
-export let sessionType = PresentableType.create<{
-  session: Session & {
-    serverDeployments: {
-      serverDeployment: ServerDeployment & {
-        server: Server;
-      };
-      oauthSession: ServerOAuthSession | null;
-    }[];
-
-    serverSessions: ServerSession[];
-  };
-}>()('session');
-
-export let serverSessionType = PresentableType.create<{
-  session: Session;
-  serverSession: ServerSession & {
-    serverDeployment: ServerDeployment & {
-      serverVariant: ServerVariant;
-      server: Server;
-    };
-    sessionConnection: SessionConnection | null;
-  };
-}>()('session.server_session');
-
-export let sessionConnectionType = PresentableType.create<{
-  session: Session;
-  sessionConnection: SessionConnection & {
-    serverSession: ServerSession & {
-      serverDeployment: ServerDeployment & {
-        serverVariant: ServerVariant;
-        server: Server;
-      };
-    };
-  };
-}>()('session.session_connection');
-
-export let sessionMessageType = PresentableType.create<{
-  session: Session;
-  sessionMessage: SessionMessage & {
-    serverSession: ServerSession;
-  };
-}>()('session.message');
-
-export let sessionEventType = PresentableType.create<{
-  session: Session;
-  sessionEvent: SessionEvent & {
-    serverRun:
-      | (ServerRun & {
-          serverVersion: ServerVersion;
-          serverDeployment: ServerDeployment & { server: Server };
-          serverSession: ServerSession;
-        })
-      | null;
-
-    serverRunError:
-      | (ServerRunError & {
-          serverRun: ServerRun & {
-            serverVersion: ServerVersion;
-            serverDeployment: ServerDeployment & { server: Server };
-            serverSession: ServerSession;
-          };
-        })
-      | null;
-  };
-}>()('session.event');
-
-export let serverRunType = PresentableType.create<{
-  serverRun: ServerRun & {
-    serverVersion: ServerVersion;
-    serverDeployment: ServerDeployment & { server: Server };
-    serverSession: ServerSession & { session: Session };
-  };
-}>()('server.server_run');
-
-export let serverRunErrorType = PresentableType.create<{
-  serverRunError: ServerRunError & {
-    serverRun: ServerRun & {
-      serverVersion: ServerVersion;
-      serverDeployment: ServerDeployment & { server: Server };
-      serverSession: ServerSession & { session: Session };
-    };
-  };
-}>()('server.server_run.error');
-
-export let serverRunErrorGroupType = PresentableType.create<{
-  serverRunErrorGroup: ServerRunErrorGroup & {
-    defaultServerRunError:
-      | (ServerRunError & {
-          serverRun: ServerRun & {
-            serverVersion: ServerVersion;
-            serverDeployment: ServerDeployment & { server: Server };
-            serverSession: ServerSession & { session: Session };
-          };
-        })
-      | null;
-  };
-}>()('server.server_run.error_group');
-
-export let serverCapabilitiesType = PresentableType.create<{
-  serverCapabilities: ServerCapabilities[];
-}>()('server.capabilities');
-
 export let profileType = PresentableType.create<{
   profile: Profile;
 }>()('profile');
 
-export let serverOauthSessionType = PresentableType.create<{
-  serverOauthSession: ServerOAuthSession & {
-    connection: ProviderOAuthConnection & {
-      instance: Instance;
-      template: ProviderOAuthConnectionTemplate | null;
-      config: ProviderOAuthConfig;
-    };
-  };
-}>()('provider_oauth.session');
+// export let magicMcpServerType = PresentableType.create<{
+//   magicMcpServer: MagicMcpServer & {
+//     serverDeployment:
+//       | (MagicMcpServerDeployment & {
+//           serverDeployment: ServerDeployment & {
+//             server: Server;
+//           };
+//         })
+//       | null;
+//     aliases: MagicMcpServerAlias[];
+//     defaultServerOauthSession: ServerOAuthSession | null;
+//   };
+// }>()('magic_mcp.server');
 
-export let providerOauthConnectionType = PresentableType.create<{
-  providerOauthConnection: ProviderOAuthConnection & {
-    instance: Instance;
-    template: ProviderOAuthConnectionTemplate | null;
-    config: ProviderOAuthConfig;
-  };
-}>()('provider_oauth.connection');
+// export let magicMcpSessionType = PresentableType.create<{
+//   magicMcpSession: MagicMcpSession & {
+//     session: Session & {
+//       serverSessions: ServerSession[];
+//     };
+//     magicMcpServer: MagicMcpServer;
+//   };
+// }>()('magic_mcp.session');
 
-export let providerOauthConnectionTemplateType = PresentableType.create<{
-  providerOauthConnectionTemplate: ProviderOAuthConnectionTemplate & {
-    profile: Profile;
-  };
-}>()('provider_oauth.connection_template');
+// export let magicMcpTokenType = PresentableType.create<{
+//   magicMcpToken: MagicMcpToken & {
+//     groups: (MagicMcpGroupToken & {
+//       magicMcpGroup: MagicMcpGroup;
+//     })[];
+//   };
+// }>()('magic_mcp.token');
 
-export let providerOauthConnectionTemplateEvaluationType = PresentableType.create<{
-  providerOauthConnectionTemplate: ProviderOAuthConnectionTemplate & {
-    profile: Profile;
-  };
-  input: Record<string, any>;
-  output: Record<string, any>;
-}>()('provider_oauth.connection_template.evaluation');
+// export let magicMcpGroupType = PresentableType.create<{
+//   magicMcpGroup: MagicMcpGroup;
+// }>()('magic_mcp.group');
 
-export let providerOauthConnectionEventType = PresentableType.create<{
-  providerOauthConnectionEvent: ProviderOAuthConnectionEvent & {
-    connection: ProviderOAuthConnection;
-  };
-}>()('provider_oauth.connection.event');
+// export let callbackType = PresentableType.create<{
+//   callback: Callback & {
+//     hooks: CallbackHook[];
+//     schedule: CallbackSchedule | null;
+//   };
+// }>()('callback');
 
-export let providerOauthConnectionProfileType = PresentableType.create<{
-  providerOauthConnectionProfile: ProviderOAuthConnectionProfile & {
-    connection: ProviderOAuthConnection;
-  };
-}>()('provider_oauth.connection.profile');
+// export let callbackEventType = PresentableType.create<{
+//   callbackEvent: CallbackEvent & {
+//     processingAttempts: CallbackEventProcessingAttempt[];
+//   };
+// }>()('callback.event');
 
-export let providerOauthConnectionAuthenticationType = PresentableType.create<{
-  providerOauthConnectionAuthAttempt: ProviderOAuthConnectionAuthAttempt & {
-    connection: ProviderOAuthConnection;
-    profile: ProviderOAuthConnectionProfile | null;
-  };
-}>()('provider_oauth.connection.authentication');
+// export let callbackDestinationType = PresentableType.create<{
+//   callbackDestination: CallbackDestination & {
+//     callbacks: (CallbackDestinationCallback & {
+//       callback: Callback;
+//     })[];
+//   };
+// }>()('callback.destination');
 
-export let providerOauthConnectionDiscoveryType = PresentableType.create<{
-  providerOauthDiscoveryDocument: ProviderOAuthDiscoveryDocument;
-  providerOauthAutoRegistration: ProviderOAuthAutoRegistration | null;
-}>()('provider_oauth.discovery');
+// export let callbackNotificationType = PresentableType.create<{
+//   callbackNotification: CallbackNotification & {
+//     destination: CallbackDestination;
+//     event: CallbackEvent;
+//     attempts: CallbackNotificationAttempt[];
+//   };
+// }>()('callback.notification');
 
-export let providerOauthTakeoutType = PresentableType.create<{
-  providerOauthTakeout: ProviderOAuthTakeout & {
-    connection: ProviderOAuthConnection;
-    token: ProviderOAuthConnectionAuthToken;
-  };
-  includeSensitiveData: boolean;
-}>()('provider_oauth.export');
+// export let portalType = PresentableType.create<{
+//   portal: Portal & {
+//     surface: ConsumerSurface;
+//   };
+//   portalUrl: string;
+// }>()('portal');
 
-export let providerOauthTakeInType = PresentableType.create<{
-  providerOauthTakeIn: ProviderOAuthTakeIn & {
-    connection: ProviderOAuthConnection;
-    token: ProviderOAuthConnectionAuthToken;
-    currentVersion: ProviderOAuthTakeInVersion | null;
-  };
-}>()('provider_oauth.import');
+// export let consumerAuthFactorType = PresentableType.create<{
+//   consumerAuthFactor: ConsumerSurfaceAuthFactor;
+// }>()('consumer.auth_factor');
 
-export let remoteServerType = PresentableType.create<{
-  remoteServerInstance: RemoteServerInstance & {
-    providerOAuthConfig: ProviderOAuthConfig | null;
-  };
-}>()('custom_server.remote_server');
+// export let consumerGroupType = PresentableType.create<{
+//   consumerGroup: ConsumerGroup;
+// }>()('consumer.group');
 
-export let managedServerType = PresentableType.create<{
-  managedServerInstance: LambdaServerInstance & {
-    providerOAuthConfig: ProviderOAuthConfig | null;
-  };
-}>()('custom_server.managed_server');
+// export let consumerAccessType = PresentableType.create<{
+//   consumerAccess: ConsumerAccess & {
+//     consumerGroup: ConsumerGroup;
+//     serverDeploymentTemplate: (ServerDeploymentTemplate & { server: Server }) | null;
+//   };
+// }>()('consumer.access');
 
-export let dockerServerType = PresentableType.create<{
-  dockerServerInstance: DockerServerInstance & {
-    providerOAuthConfig: ProviderOAuthConfig | null;
-  };
-}>()('custom_server.docker_server');
+// export let consumerServerRequestType = PresentableType.create<{
+//   consumerServerRequest: ConsumerServerRequest & {
+//     server: Server;
+//     consumerProfile: ConsumerProfile;
+//   };
+// }>()('consumer.server_request');
 
-export let customServerType = PresentableType.create<{
-  customServer: CustomServer & {
-    server: Server;
-    instance: Instance;
-    serverVariant: ServerVariant;
-    currentVersion: CustomServerVersion | null;
-    repository: ScmRepo | null;
-    forkTemplateManagedServer: ManagedServerTemplate | null;
-  };
-}>()('custom_server');
+// export let consumerProfileType = PresentableType.create<{
+//   consumerProfile: ConsumerProfile & {
+//     consumer: Consumer;
+//     groups: (ConsumerProfileGroup & {
+//       group: ConsumerGroup;
+//     })[];
+//   };
+//   assignedConsumerGroups:
+//     | (ConsumerGroup & {
+//         assignedVia: 'default' | 'manual' | 'sso' | 'user';
+//       })[]
+//     | undefined;
+// }>()('consumer.profile');
 
-export let customServerVersionType = PresentableType.create<{
-  customServerVersion: CustomServerVersion & {
-    customServer: CustomServer & {
-      server: Server;
-      serverVariant: ServerVariant;
-    };
-    serverVersion: (ServerVersion & { schema: ServerConfigSchema }) | null;
-    currentVersionForServer: CustomServer | null;
-    deployment: CustomServerDeployment | null;
-    remoteServerInstance:
-      | (RemoteServerInstance & {
-          providerOAuthConfig: ProviderOAuthConfig | null;
-        })
-      | null;
-    lambdaServerInstance:
-      | (LambdaServerInstance & {
-          providerOAuthConfig: ProviderOAuthConfig | null;
-        })
-      | null;
-    dockerServerInstance:
-      | (DockerServerInstance & {
-          providerOAuthConfig: ProviderOAuthConfig | null;
-        })
-      | null;
-    push: ScmRepoPush | null;
-  };
-}>()('custom_server.version');
-
-export let customServerEventType = PresentableType.create<{
-  customServerEvent: CustomServerEvent & {
-    customServer: CustomServer;
-    customServerVersion: CustomServerVersion | null;
-  };
-}>()('custom_server.event');
-
-export let customServerDeploymentType = PresentableType.create<{
-  customServerDeployment: CustomServerDeployment & {
-    customServer: CustomServer;
-    customServerVersion: CustomServerVersion | null;
-    steps: CustomServerDeploymentStep[];
-    creatorActor: OrganizationActor & {
-      organization: Organization;
-    };
-  };
-}>()('custom_server.event');
-
-export let customServerCodeEditorTokenType = PresentableType.create<{
-  token: string;
-  expiresAt: Date;
-  id: string;
-}>()('custom_server.code_editor_token');
-
-export let managedServerTemplateType = PresentableType.create<{
-  managedServerTemplate: ManagedServerTemplate & { bucketTemplate: CodeBucketTemplate };
-}>()('managed_server.template');
-
-export let magicMcpServerType = PresentableType.create<{
-  magicMcpServer: MagicMcpServer & {
-    serverDeployment:
-      | (MagicMcpServerDeployment & {
-          serverDeployment: ServerDeployment & {
-            server: Server;
-          };
-        })
-      | null;
-    aliases: MagicMcpServerAlias[];
-    defaultServerOauthSession: ServerOAuthSession | null;
-  };
-}>()('magic_mcp.server');
-
-export let magicMcpSessionType = PresentableType.create<{
-  magicMcpSession: MagicMcpSession & {
-    session: Session & {
-      serverSessions: ServerSession[];
-    };
-    magicMcpServer: MagicMcpServer;
-  };
-}>()('magic_mcp.session');
-
-export let magicMcpTokenType = PresentableType.create<{
-  magicMcpToken: MagicMcpToken & {
-    groups: (MagicMcpGroupToken & {
-      magicMcpGroup: MagicMcpGroup;
-    })[];
-  };
-}>()('magic_mcp.token');
-
-export let magicMcpGroupType = PresentableType.create<{
-  magicMcpGroup: MagicMcpGroup;
-}>()('magic_mcp.group');
-
-export let scmRepoPreviewType = PresentableType.create<{
-  scmRepoPreviews: ScmRepoPreview[];
-}>()('integrations.scm.repo#preview');
-
-export let scmAccountPreviewType = PresentableType.create<{
-  scmAccountPreviews: ScmAccountPreview[];
-}>()('integrations.scm.account#preview');
-
-export let scmRepoType = PresentableType.create<{
-  scmRepo: ScmRepo & {
-    account: ScmAccount;
-  };
-}>()('integrations.scm.repo');
-
-export let scmInstallType = PresentableType.create<{
-  authorizationUrl: string;
-}>()('integrations.scm.install');
-
-export let scmInstallationType = PresentableType.create<{
-  scmInstallation: ScmInstallation;
-}>()('integrations.scm.installation');
-
-export let callbackType = PresentableType.create<{
-  callback: Callback & {
-    hooks: CallbackHook[];
-    schedule: CallbackSchedule | null;
-  };
-}>()('callback');
-
-export let callbackEventType = PresentableType.create<{
-  callbackEvent: CallbackEvent & {
-    processingAttempts: CallbackEventProcessingAttempt[];
-  };
-}>()('callback.event');
-
-export let callbackDestinationType = PresentableType.create<{
-  callbackDestination: CallbackDestination & {
-    callbacks: (CallbackDestinationCallback & {
-      callback: Callback;
-    })[];
-  };
-}>()('callback.destination');
-
-export let callbackNotificationType = PresentableType.create<{
-  callbackNotification: CallbackNotification & {
-    destination: CallbackDestination;
-    event: CallbackEvent;
-    attempts: CallbackNotificationAttempt[];
-  };
-}>()('callback.notification');
-
-export let portalType = PresentableType.create<{
-  portal: Portal & {
-    surface: ConsumerSurface;
-  };
-  portalUrl: string;
-}>()('portal');
-
-export let consumerAuthFactorType = PresentableType.create<{
-  consumerAuthFactor: ConsumerSurfaceAuthFactor;
-}>()('consumer.auth_factor');
-
-export let consumerGroupType = PresentableType.create<{
-  consumerGroup: ConsumerGroup;
-}>()('consumer.group');
-
-export let consumerAccessType = PresentableType.create<{
-  consumerAccess: ConsumerAccess & {
-    consumerGroup: ConsumerGroup;
-    serverDeploymentTemplate: (ServerDeploymentTemplate & { server: Server }) | null;
-  };
-}>()('consumer.access');
-
-export let consumerServerRequestType = PresentableType.create<{
-  consumerServerRequest: ConsumerServerRequest & {
-    server: Server;
-    consumerProfile: ConsumerProfile;
-  };
-}>()('consumer.server_request');
-
-export let serverConfigVaultType = PresentableType.create<{
-  serverConfigVault: ServerConfigVault & {
-    secret: Secret;
-  };
-}>()('server_config_vault');
+// export let consumerSessionType = PresentableType.create<{
+//   consumerSession: ConsumerSession;
+// }>()('consumer.session');
 
 export let teamType = PresentableType.create<{
   team: Team & {
@@ -726,56 +261,38 @@ export let teamRolePermissionsType = PresentableType.create<{
   permissions: string[];
 }>()('management.team.role_permissions');
 
-export let ssoTenantType = PresentableType.create<{
-  ssoTenant: SsoTenant;
-}>()('sso.tenant');
+// export let ssoTenantType = PresentableType.create<{
+//   ssoTenant: SsoTenant;
+// }>()('sso.tenant');
 
-export let ssoTenantSetupType = PresentableType.create<{
-  ssoTenantSetup: {
-    id: string;
-    status: 'pending' | 'completed';
-    tenantId: string;
-    connectionId: string | null | undefined;
-    clientSecret: string;
-    redirectUri: string;
-    url: string;
-    createdAt: NativeDate;
-    updatedAt: NativeDate;
-  };
-}>()('sso.tenant.setup');
+// export let ssoTenantSetupType = PresentableType.create<{
+//   ssoTenantSetup: {
+//     id: string;
+//     status: 'pending' | 'completed';
+//     tenantId: string;
+//     connectionId: string | null | undefined;
+//     clientSecret: string;
+//     redirectUri: string;
+//     url: string;
+//     createdAt: NativeDate;
+//     updatedAt: NativeDate;
+//   };
+// }>()('sso.tenant.setup');
 
-export let ssoUserType = PresentableType.create<{
-  ssoUser: SsoUser & {
-    profiles: SsoUserProfile[];
-    ssoTenant: SsoTenant;
-  };
-}>()('sso.user');
+// export let ssoUserType = PresentableType.create<{
+//   ssoUser: SsoUser & {
+//     profiles: SsoUserProfile[];
+//     ssoTenant: SsoTenant;
+//   };
+// }>()('sso.user');
 
-export let ssoUserProfileType = PresentableType.create<{
-  ssoUserProfile: SsoUserProfile & {
-    ssoUser: SsoUser & {
-      ssoTenant: SsoTenant;
-    };
-  };
-}>()('sso.user_profile');
-
-export let consumerProfileType = PresentableType.create<{
-  consumerProfile: ConsumerProfile & {
-    consumer: Consumer;
-    groups: (ConsumerProfileGroup & {
-      group: ConsumerGroup;
-    })[];
-  };
-  assignedConsumerGroups:
-    | (ConsumerGroup & {
-        assignedVia: 'default' | 'manual' | 'sso' | 'user';
-      })[]
-    | undefined;
-}>()('consumer.profile');
-
-export let consumerSessionType = PresentableType.create<{
-  consumerSession: ConsumerSession;
-}>()('consumer.session');
+// export let ssoUserProfileType = PresentableType.create<{
+//   ssoUserProfile: SsoUserProfile & {
+//     ssoUser: SsoUser & {
+//       ssoTenant: SsoTenant;
+//     };
+//   };
+// }>()('sso.user_profile');
 
 export interface SubspacePublisher {
   id: string;

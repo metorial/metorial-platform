@@ -19,6 +19,4 @@ model AccessLimiter {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  serverDeployments ServerDeployment[]
 }

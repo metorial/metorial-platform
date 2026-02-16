@@ -1,18 +1,11 @@
 process.env.TZ = 'UTC';
 
 import { authApi } from '@metorial/api-auth';
-import { callbacksApp } from '@metorial/api-callbacks';
 import { apiServer } from '@metorial/api-core';
 import { fileApi } from '@metorial/api-files';
-import { integrationsApp } from '@metorial/api-integrations';
 import { marketplaceApp } from '@metorial/api-marketplace';
-import { startMcpServer } from '@metorial/api-mcp';
 import { apiMux } from '@metorial/api-mux';
-import { providerOauthApp } from '@metorial/api-oauth';
-import { portalApp } from '@metorial/api-portal';
 import { startPrivateApiServer } from '@metorial/api-private';
-import { startRunnerGateway } from '@metorial/api-runner-gateway';
-import { authenticate } from '@metorial/auth';
 import { initLogger } from '@metorial/logging';
 
 let apiPort = parseInt(process.env.API_PORT || '4310');
@@ -50,11 +43,6 @@ Bun.serve({
 });
 
 Bun.serve({
-  port: oauthPort,
-  fetch: providerOauthApp.fetch
-});
-
-Bun.serve({
   port: marketplaceApiPort,
   fetch: marketplaceApp.fetch
 });
@@ -62,16 +50,6 @@ Bun.serve({
 Bun.serve({
   port: portalPort,
   fetch: portalApp.fetch
-});
-
-Bun.serve({
-  port: integrationsApiPort,
-  fetch: integrationsApp.fetch
-});
-
-Bun.serve({
-  port: callbacksApiPort,
-  fetch: callbacksApp.fetch
 });
 
 console.log(`Listening on port ${apiPort}`);
@@ -82,8 +60,6 @@ if (process.env.AXIOM_TOKEN)
     dataset: 'service-logs'
   });
 
-startRunnerGateway({ port: runnerPort });
-startMcpServer({ port: mcpPort, authenticate });
 startPrivateApiServer({ port: privateApiPort });
 
 if (process.env.NODE_ENV == 'production' && process.env.METORIAL_SOURCE == 'enterprise') {

@@ -1,6 +1,8 @@
 import { generatePlainId } from '@metorial/id';
 import { decodeBase62, encodeBase62 } from './base62';
 
+export type ApiKeyVersions = 'v2';
+
 export type ApiKeyType =
   | 'user_auth_token'
   | 'organization_management_token'
@@ -9,8 +11,6 @@ export type ApiKeyType =
   | 'instance_access_token_publishable'
   | 'ephemeral_client_secret'
   | 'magic_mcp_token_secret';
-
-export type ApiKeyVersions = 'v1';
 
 let keyTypes = {
   uk: 'user_auth_token',
@@ -33,8 +33,10 @@ const METORIAL_PREFIX = 'metorial';
 
 const SECRET_KEY_LENGTH = 60;
 
+const INSTANCES = ['v2-us1', 'v2-eu1'] as const;
 type ApiKeyConfig = {
   url: string;
+  instance: (typeof INSTANCES)[number];
 };
 
 let parseApiKey = (key: string) => {
@@ -47,7 +49,7 @@ let parseApiKey = (key: string) => {
   let rest = parts.slice(2).join('_');
 
   let version = rest.slice(-2);
-  if (version != 'v1') return null;
+  if (version != 'v2') return null;
 
   let secret = rest.slice(0, SECRET_KEY_LENGTH);
   if (secret.length != SECRET_KEY_LENGTH) return null;
@@ -59,14 +61,16 @@ let parseApiKey = (key: string) => {
     let configDecoded = JSON.parse(decodeBase62(configStr));
     if (
       !Array.isArray(configDecoded) ||
-      configDecoded.length != 1 ||
-      typeof configDecoded[0] != 'string'
+      configDecoded.length != 2 ||
+      typeof configDecoded[0] != 'string' ||
+      !INSTANCES.includes(configDecoded[1])
     ) {
       return null;
     }
 
     config = {
-      url: configDecoded[0]
+      url: configDecoded[0],
+      instance: configDecoded[1] as ApiKeyConfig['instance']
     };
   } catch (e) {
     return null;
@@ -102,7 +106,7 @@ export class UnifiedApiKey {
 
     let secret = d.secret ? d.secret : generatePlainId(SECRET_KEY_LENGTH);
 
-    return new UnifiedApiKey(d.type, secret, d.config, 'v1');
+    return new UnifiedApiKey(d.type, secret, d.config, 'v2');
   }
 
   static redact(key: string | UnifiedApiKey) {
@@ -116,8 +120,8 @@ export class UnifiedApiKey {
   }
 
   toString() {
-    let config = encodeBase62(JSON.stringify([this.config.url]));
+    let config = encodeBase62(JSON.stringify([this.config.url, this.config.instance]));
 
-    return `${METORIAL_PREFIX}_${keyTypesReverse[this.type]}_${this.secret}${config}v1`;
+    return `${METORIAL_PREFIX}_${keyTypesReverse[this.type]}_${this.secret}${config}v2`;
   }
 }

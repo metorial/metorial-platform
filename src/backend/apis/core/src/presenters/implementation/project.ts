@@ -47,12 +47,12 @@ export let v1ProjectPresenter = Presenter.create(projectType)
       created_at: v.date({
         name: 'created_at',
         description: `The project's creation date`,
-        examples: ['2026-01-29T12:35:22.304Z']
+        examples: [new Date()]
       }),
       updated_at: v.date({
         name: 'updated_at',
         description: `The project's last update date`,
-        examples: ['2026-01-29T12:35:22.304Z']
+        examples: [new Date()]
       })
     })
   )

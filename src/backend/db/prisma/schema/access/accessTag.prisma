@@ -4,9 +4,9 @@ model AccessTag {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
-  consumerProfiles  ConsumerProfile[]
   accessTagEntities AccessTagEntity[]
-  consumerGroups    ConsumerGroup[]
+  // consumerProfiles  ConsumerProfile[]
+  // consumerGroups    ConsumerGroup[]
 }
 
 enum AccessTagAccessLevel {
@@ -22,18 +22,18 @@ model AccessTagEntity {
   accessTagOid BigInt
   accessTag    AccessTag @relation(fields: [accessTagOid], references: [oid], onDelete: Cascade)
 
-  magicMcpToken    MagicMcpToken? @relation(fields: [magicMcpTokenOid], references: [oid])
-  magicMcpTokenOid BigInt?
+  // magicMcpToken    MagicMcpToken? @relation(fields: [magicMcpTokenOid], references: [oid])
+  // magicMcpTokenOid BigInt?
 
-  magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid])
-  magicMcpServerOid BigInt?
+  // magicMcpServer    MagicMcpServer? @relation(fields: [magicMcpServerOid], references: [oid])
+  // magicMcpServerOid BigInt?
 
-  magicMcpGroup    MagicMcpGroup? @relation(fields: [magicMcpGroupOid], references: [oid])
-  magicMcpGroupOid BigInt?
+  // magicMcpGroup    MagicMcpGroup? @relation(fields: [magicMcpGroupOid], references: [oid])
+  // magicMcpGroupOid BigInt?
 
-  serverDeploymentTemplate    ServerDeploymentTemplate? @relation(fields: [serverDeploymentTemplateOid], references: [oid])
-  serverDeploymentTemplateOid BigInt?
+  // serverDeploymentTemplate    ServerDeploymentTemplate? @relation(fields: [serverDeploymentTemplateOid], references: [oid])
+  // serverDeploymentTemplateOid BigInt?
 
-  serverOAuthSession    ServerOAuthSession? @relation(fields: [serverOAuthSessionOid], references: [oid])
-  serverOAuthSessionOid BigInt?
+  // serverOAuthSession    ServerOAuthSession? @relation(fields: [serverOAuthSessionOid], references: [oid])
+  // serverOAuthSessionOid BigInt?
 }
