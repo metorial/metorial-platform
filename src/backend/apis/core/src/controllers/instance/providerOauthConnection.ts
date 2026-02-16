@@ -25,7 +25,7 @@ export let providerOauthConnectionController = Controller.create(
   {
     name: 'OAuth Connection',
     description: 'Manage provider OAuth connection information',
-    hideInDocs: true
+    deprecated: true
   },
   {
     list: instanceGroup
@@ -59,21 +59,35 @@ export let providerOauthConnectionController = Controller.create(
         'default',
         v.intersection([
           v.object({
-            template_id: v.optional(v.string()),
-            name: v.optional(v.string()),
-            description: v.optional(v.string()),
-            discovery_url: v.optional(v.string()),
-            config: v.record(v.any()),
-            scopes: v.array(v.string()),
-            metadata: v.optional(v.record(v.any()))
+            template_id: v.optional(v.string({ examples: ['pot_3cDeFgHjKlMnPqRs'] })),
+            name: v.optional(v.string({ examples: ['GitHub OAuth Connection'] })),
+            description: v.optional(
+              v.string({ examples: ['OAuth connection for GitHub API access'] })
+            ),
+            discovery_url: v.optional(
+              v.string({ examples: ['https://github.com/.well-known/openid-configuration'] })
+            ),
+            config: v.record(v.any(), {
+              examples: [{ authorize_url: 'https://github.com/login/oauth/authorize' }]
+            }),
+            scopes: v.array(v.string({ examples: ['repo'] }), {
+              examples: [['repo', 'read:user', 'read:org']]
+            }),
+            metadata: v.optional(
+              v.record(v.any(), {
+                examples: [{ team: 'platform', purpose: 'github-integration' }]
+              })
+            )
           }),
           v.union([
             v.object({
-              client_id: v.string(),
-              client_secret: v.string()
+              client_id: v.string({ examples: ['Iv1.abc123def456'] }),
+              client_secret: v.string({
+                examples: ['gho_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx']
+              })
             }),
             v.object({
-              auto_registration_id: v.string()
+              auto_registration_id: v.string({ examples: ['oar_4dEfGhJkLmNpQrSt'] })
             })
           ])
         ])

@@ -99,7 +99,11 @@ vi.mock('@metorial/error', () => ({
   badRequestError: vi.fn((msg: any) => ({ type: 'bad_request', ...msg })),
   conflictError: vi.fn((msg: any) => ({ type: 'conflict', ...msg })),
   forbiddenError: vi.fn((msg: any) => ({ type: 'forbidden', ...msg })),
-  notFoundError: vi.fn((type: string, id: string) => ({ type: 'not_found', resource: type, id })),
+  notFoundError: vi.fn((type: string, id: string) => ({
+    type: 'not_found',
+    resource: type,
+    id
+  })),
   ServiceError: class ServiceError extends Error {
     constructor(public error: any) {
       super(error.message);
@@ -201,7 +205,10 @@ vi.mock('../src/queues/serverDeploymentCreated', () => ({
 }));
 
 vi.mock('../src/queues/serverImplementationCreated', () => ({
-  serverImplementationCreatedQueueProcessor: { type: 'queue', name: 'serverImplementationCreated' },
+  serverImplementationCreatedQueueProcessor: {
+    type: 'queue',
+    name: 'serverImplementationCreated'
+  },
   serverImplementationCreatedQueue: {
     name: 'srd/impl/create',
     add: vi.fn(async () => {})
@@ -210,9 +217,18 @@ vi.mock('../src/queues/serverImplementationCreated', () => ({
 
 vi.mock('../src/queues/search', () => ({
   serverDeploymentIndexAllQueueProcessor: { type: 'queue', name: 'serverDeploymentIndexAll' },
-  serverDeploymentIndexSingleQueueProcessor: { type: 'queue', name: 'serverDeploymentIndexSingle' },
-  serverImplementationIndexAllQueueProcessor: { type: 'queue', name: 'serverImplementationIndexAll' },
-  serverImplementationIndexSingleQueueProcessor: { type: 'queue', name: 'serverImplementationIndexSingle' },
+  serverDeploymentIndexSingleQueueProcessor: {
+    type: 'queue',
+    name: 'serverDeploymentIndexSingle'
+  },
+  serverImplementationIndexAllQueueProcessor: {
+    type: 'queue',
+    name: 'serverImplementationIndexAll'
+  },
+  serverImplementationIndexSingleQueueProcessor: {
+    type: 'queue',
+    name: 'serverImplementationIndexSingle'
+  },
   serverIndexCron: { type: 'cron', name: 'serverIndex' },
   indexServerDeployments: vi.fn()
 }));
@@ -869,7 +885,9 @@ describe('ServerDeploymentService', () => {
       const { serverDeploymentService } = await import('../src/services/serverDeployment');
       const { withTransaction } = await import('@metorial/db');
       const { Fabric } = await import('@metorial/fabric');
-      const { serverDeploymentDeletedQueue } = await import('../src/queues/serverDeploymentDeleted');
+      const { serverDeploymentDeletedQueue } = await import(
+        '../src/queues/serverDeploymentDeleted'
+      );
 
       const mockDeployment = {
         id: 'deployment-123',

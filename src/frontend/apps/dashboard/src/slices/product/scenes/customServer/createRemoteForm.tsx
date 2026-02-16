@@ -1,4 +1,4 @@
-import { CustomServersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -56,7 +56,7 @@ let Form = styled.form`
 
 export let CustomServerRemoteCreateForm = (p: {
   close?: () => any;
-  onCreate?: (out: CustomServersGetOutput) => any;
+  onCreate?: (out: CustomProvidersGetOutput) => any;
 }) => {
   let instance = useCurrentInstance();
   let createCustomServer = useCreateCustomServer();
@@ -86,16 +86,13 @@ export let CustomServerRemoteCreateForm = (p: {
       if (!instance.data) return;
 
       let [customServerRes] = await createCustomServer.mutate({
-        instanceId: instance.data.id,
+        instanceId: instance.data.instanceId,
         name: values.name,
         description: values.description,
-        implementation: {
+        from: {
           type: 'remote',
-          remoteServer: {
-            remoteUrl: values.remoteUrl,
-            remoteProtocol: values.remoteProtocol == 'sse' ? 'sse' : 'streamable_http'
-          },
-          config: defaultServerConfigRemote
+          remoteUrl: values.remoteUrl,
+          protocol: values.remoteProtocol == 'sse' ? 'sse' : 'streamable_http'
         }
       });
 
@@ -105,7 +102,7 @@ export let CustomServerRemoteCreateForm = (p: {
         for (let i = 0; i < 5; i++) {
           let [versionsRes] = await listServerVersions.mutate({
             limit: 1,
-            instanceId: instance.data.id,
+            instanceId: instance.data.instanceId,
             customServerId: customServerRes.id
           });
           if (versionsRes && versionsRes.items.length > 0) {

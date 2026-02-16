@@ -1,4 +1,4 @@
-import { DashboardInstancePortalsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstancePortalsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCreatePortal, useCurrentInstance, usePortals } from '@metorial/state';
@@ -93,7 +93,7 @@ let EmptyState = styled.div`
 
 export let PortalsGrid = (filter: DashboardInstancePortalsListQuery) => {
   let instance = useCurrentInstance();
-  let portals = usePortals(instance.data?.id, {
+  let portals = usePortals(instance.data?.instanceId, {
     ...filter,
     order: filter.order ?? 'desc'
   });
@@ -178,7 +178,7 @@ export let showPortalFormModal = () =>
         let [res] = await mutator.mutate({
           name: values.name,
           description: values.description,
-          instanceId: instance.data!.id
+          instanceId: instance.data!.instanceId
         });
 
         if (res) setTimeout(() => close(), 500);

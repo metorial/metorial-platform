@@ -3,6 +3,6 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderRunService = createSubspaceService(
   subspace.providerRun,
-  ['get', 'list'],
+  ['get', 'list', 'getLogs'],
   () => ({})
 );

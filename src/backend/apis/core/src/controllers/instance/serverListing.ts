@@ -48,12 +48,18 @@ export let serverListingController = Controller.create(
         'mt_2025_01_01_pulsar',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
-            collection_id: v.optional(v.union([v.array(v.string()), v.string()])),
-            category_id: v.optional(v.union([v.array(v.string()), v.string()])),
-            profile_id: v.optional(v.union([v.array(v.string()), v.string()])),
-            instance_id: v.optional(v.string()),
-            order_by_rank: v.optional(v.boolean())
+            search: v.optional(v.string(), { description: 'Search servers by name' }),
+            collection_id: v.optional(v.union([v.array(v.string()), v.string()]), {
+              description: 'Filter by collection ID(s)'
+            }),
+            category_id: v.optional(v.union([v.array(v.string()), v.string()]), {
+              description: 'Filter by category ID(s)'
+            }),
+            profile_id: v.optional(v.union([v.array(v.string()), v.string()]), {
+              description: 'Filter by profile ID(s)'
+            }),
+            instance_id: v.optional(v.string(), { description: 'Filter by instance ID' }),
+            order_by_rank: v.optional(v.boolean(), { description: 'Order results by rank' })
           })
         ),
         i => i
@@ -62,14 +68,22 @@ export let serverListingController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
-            collection_id: v.optional(v.union([v.array(v.string()), v.string()])),
-            category_id: v.optional(v.union([v.array(v.string()), v.string()])),
-            profile_id: v.optional(v.union([v.array(v.string()), v.string()])),
-            instance_id: v.optional(v.string()),
-            order_by_rank: v.optional(v.boolean()),
-            is_public: v.optional(v.boolean()),
-            only_from_organization: v.optional(v.boolean())
+            search: v.optional(v.string(), { description: 'Search servers by name' }),
+            collection_id: v.optional(v.union([v.array(v.string()), v.string()]), {
+              description: 'Filter by collection ID(s)'
+            }),
+            category_id: v.optional(v.union([v.array(v.string()), v.string()]), {
+              description: 'Filter by category ID(s)'
+            }),
+            profile_id: v.optional(v.union([v.array(v.string()), v.string()]), {
+              description: 'Filter by profile ID(s)'
+            }),
+            instance_id: v.optional(v.string(), { description: 'Filter by instance ID' }),
+            order_by_rank: v.optional(v.boolean(), { description: 'Order results by rank' }),
+            is_public: v.optional(v.boolean(), { description: 'Filter by public status' }),
+            only_from_organization: v.optional(v.boolean(), {
+              description: 'Only show servers from organization'
+            })
           })
         )
       )

@@ -14,6 +14,8 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
     payload_incoming: callbackEvent.payloadIncoming,
     payload_outgoing: callbackEvent.payloadOutgoing,
 
+    created_at: callbackEvent.createdAt,
+
     processing_attempts: callbackEvent.processingAttempts
       .sort((a, b) => a.attemptIndex - b.attemptIndex)
       .map(attempt => ({
@@ -28,9 +30,7 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
         error_message: attempt.errorMessage,
 
         created_at: attempt.createdAt
-      })),
-
-    created_at: callbackEvent.createdAt
+      }))
   }))
   .schema(
     v.object({
@@ -44,17 +44,17 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
         description: 'The unique identifier of the callback event'
       }),
 
+      status: v.enumOf(['pending', 'succeeded', 'retrying', 'failed'], {
+        name: 'status',
+        description: 'The status of the callback event'
+      }),
+
       type: v.nullable(
         v.string({
           name: 'type',
           description: 'The type of the callback event'
         })
       ),
-
-      status: v.enumOf(['pending', 'succeeded', 'retrying', 'failed'], {
-        name: 'status',
-        description: 'The status of the callback event'
-      }),
 
       payload_incoming: v.string({
         name: 'payload_incoming',
@@ -67,6 +67,12 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
           description: 'The outgoing payload of the callback event'
         })
       ),
+
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the callback event was created',
+        examples: [new Date('2024-01-15T09:30:00Z')]
+      }),
 
       processing_attempts: v.array(
         v.object({
@@ -106,19 +112,15 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
 
           created_at: v.date({
             name: 'created_at',
-            description: 'Timestamp when the callback event attempt was created'
+            description: 'Timestamp when the callback event attempt was created',
+            examples: [new Date('2024-01-15T09:30:00Z')]
           })
         }),
         {
           name: 'attempts',
           description: 'List of processing attempts for the callback event'
         }
-      ),
-
-      created_at: v.date({
-        name: 'created_at',
-        description: 'Timestamp when the callback event was created'
-      })
+      )
     })
   )
   .build();

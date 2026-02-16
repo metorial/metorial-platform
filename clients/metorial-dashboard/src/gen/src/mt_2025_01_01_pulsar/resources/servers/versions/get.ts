@@ -3,17 +3,18 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type ServersVersionsGetOutput = {
   object: 'server.server_version';
   id: string;
-  oauth:
-    | { status: 'disabled' }
-    | { status: 'enabled'; credentialProvider: 'manual' | 'auto_registration' };
   identifier: string;
   serverId: string;
   serverVariantId: string;
   getLaunchParams: string;
+  oauth:
+    | { status: 'disabled' }
+    | { status: 'enabled'; credentialProvider: 'manual' | 'auto_registration' };
   source:
     | { type: 'docker'; docker: { image: string; tag: string } }
     | { type: 'remote'; remote: { domain: string } };
   schema: Record<string, any>;
+  createdAt: Date;
   server: {
     object: 'server#preview';
     id: string;
@@ -23,13 +24,22 @@ export type ServersVersionsGetOutput = {
     createdAt: Date;
     updatedAt: Date;
   };
-  createdAt: Date;
 };
 
 export let mapServersVersionsGetOutput = mtMap.object<ServersVersionsGetOutput>(
   {
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
+    identifier: mtMap.objectField('identifier', mtMap.passthrough()),
+    serverId: mtMap.objectField('server_id', mtMap.passthrough()),
+    serverVariantId: mtMap.objectField(
+      'server_variant_id',
+      mtMap.passthrough()
+    ),
+    getLaunchParams: mtMap.objectField(
+      'get_launch_params',
+      mtMap.passthrough()
+    ),
     oauth: mtMap.objectField(
       'oauth',
       mtMap.union([
@@ -44,16 +54,6 @@ export let mapServersVersionsGetOutput = mtMap.object<ServersVersionsGetOutput>(
           })
         )
       ])
-    ),
-    identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-    serverId: mtMap.objectField('server_id', mtMap.passthrough()),
-    serverVariantId: mtMap.objectField(
-      'server_variant_id',
-      mtMap.passthrough()
-    ),
-    getLaunchParams: mtMap.objectField(
-      'get_launch_params',
-      mtMap.passthrough()
     ),
     source: mtMap.objectField(
       'source',
@@ -80,6 +80,7 @@ export let mapServersVersionsGetOutput = mtMap.object<ServersVersionsGetOutput>(
       ])
     ),
     schema: mtMap.objectField('schema', mtMap.passthrough()),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
     server: mtMap.objectField(
       'server',
       mtMap.object({
@@ -91,8 +92,7 @@ export let mapServersVersionsGetOutput = mtMap.object<ServersVersionsGetOutput>(
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date())
+    )
   }
 );
 

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock queue module
 vi.mock('@metorial/queue', () => ({
-  combineQueueProcessors: vi.fn((processors) => processors)
+  combineQueueProcessors: vi.fn(processors => processors)
 }));
 
 // Mock queue processors
@@ -34,7 +34,7 @@ describe('SCM Module Exports', () => {
 
     // Redefine mock
     vi.doMock('@metorial/queue', () => ({
-      combineQueueProcessors: vi.fn((processors) => processors)
+      combineQueueProcessors: vi.fn(processors => processors)
     }));
 
     const { scmQueueProcessor } = await import('../src/index');

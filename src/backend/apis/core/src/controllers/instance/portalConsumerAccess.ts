@@ -43,15 +43,19 @@ export let portalConsumerAccessController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            consumer_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            consumer_group_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by consumer group ID(s)'
+            }),
             server_deployment_template_id: v.optional(
-              v.union([v.string(), v.array(v.string())])
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Filter by deployment template ID(s)' }
             ),
             type: v.optional(
               v.union([
                 v.enumOf(['server_deployment_template']),
                 v.array(v.enumOf(['server_deployment_template']))
-              ])
+              ]),
+              { description: 'Filter by access type' }
             )
           })
         )

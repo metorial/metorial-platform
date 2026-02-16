@@ -5,7 +5,7 @@ export let customServerCodeEditorTokenLoader = createLoader({
   name: 'customServerCodeEditorToken',
   parents: [],
   fetch: (i: { instanceId: string; customServerId: string }) =>
-    withAuth(sdk => sdk.customServers.code.getCodeEditorToken(i.instanceId, i.customServerId)),
+    withAuth(sdk => sdk.customProviders.environments.list(i.instanceId, i.customServerId)),
   mutators: {}
 });
 

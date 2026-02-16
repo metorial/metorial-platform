@@ -37,22 +37,25 @@ export let v1ProfilePresenter = Presenter.create(profileType)
   }))
   .schema(
     v.object({
-      object: v.literal('profile'),
+      object: v.literal('profile', { description: "String representing the object's type" }),
 
       id: v.string({
         name: 'id',
-        description: 'The unique identifier of the profile'
+        description: 'The unique identifier of the profile',
+        examples: ['prf_4vWxYzAbCdEfGhJk']
       }),
 
       name: v.string({
         name: 'name',
-        description: 'The display name of the profile'
+        description: 'The display name of the profile',
+        examples: ['Anthropic']
       }),
 
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'An optional short bio or summary of the profile'
+          description: 'An optional short bio or summary of the profile',
+          examples: ['Building reliable, interpretable, and steerable AI systems']
         })
       ),
 

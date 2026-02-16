@@ -4,9 +4,13 @@ export type ServerRunsListOutput = {
   items: {
     object: 'server.server_run';
     id: string;
-    type: 'hosted' | 'external';
     status: 'active' | 'failed' | 'completed';
+    type: 'hosted' | 'external';
     serverVersionId: string;
+    createdAt: Date;
+    updatedAt: Date;
+    startedAt: Date | null;
+    stoppedAt: Date | null;
     server: {
       object: 'server#preview';
       id: string;
@@ -63,10 +67,6 @@ export type ServerRunsListOutput = {
       sessionId: string;
       createdAt: Date;
     };
-    createdAt: Date;
-    updatedAt: Date;
-    startedAt: Date | null;
-    stoppedAt: Date | null;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -78,12 +78,16 @@ export let mapServerRunsListOutput = mtMap.object<ServerRunsListOutput>({
       mtMap.object({
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
         status: mtMap.objectField('status', mtMap.passthrough()),
+        type: mtMap.objectField('type', mtMap.passthrough()),
         serverVersionId: mtMap.objectField(
           'server_version_id',
           mtMap.passthrough()
         ),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+        startedAt: mtMap.objectField('started_at', mtMap.date()),
+        stoppedAt: mtMap.objectField('stopped_at', mtMap.date()),
         server: mtMap.objectField(
           'server',
           mtMap.object({
@@ -184,11 +188,7 @@ export let mapServerRunsListOutput = mtMap.object<ServerRunsListOutput>({
             sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
             createdAt: mtMap.objectField('created_at', mtMap.date())
           })
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-        startedAt: mtMap.objectField('started_at', mtMap.date()),
-        stoppedAt: mtMap.objectField('stopped_at', mtMap.date())
+        )
       })
     )
   ),

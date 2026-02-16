@@ -31,25 +31,34 @@ export let v1OrganizationActorPresenter = Presenter.create(organizationActorType
   }))
   .schema(
     v.object({
-      object: v.literal('organization.actor'),
+      object: v.literal('organization.actor', {
+        description: "String representing the object's type"
+      }),
 
-      id: v.string({ name: 'id', description: `The organization member's unique identifier` }),
+      id: v.string({
+        name: 'id',
+        description: `The organization member's unique identifier`,
+        examples: ['omem_5fGhJkLmNpQrStUv']
+      }),
       type: v.enumOf(['member', 'machine_access'], {
         name: 'type',
         description: `The organization member's type`
       }),
       organization_id: v.string({
         name: 'organization_id',
-        description: `The organization member's organization ID`
+        description: `The organization member's organization ID`,
+        examples: ['org_7hNkPqRsTuVwXyZa']
       }),
       name: v.string({
         name: 'name',
-        description: `The organization member's name`
+        description: `The organization member's name`,
+        examples: ['Alex Chen']
       }),
       email: v.nullable(
         v.string({
           name: 'email',
-          description: `The organization member's email`
+          description: `The organization member's email`,
+          examples: ['alex.chen@acme.com']
         })
       ),
       image_url: v.string({
@@ -63,19 +72,23 @@ export let v1OrganizationActorPresenter = Presenter.create(organizationActorType
           {
             id: v.string({
               name: 'id',
-              description: `The team ID`
+              description: `The team ID`,
+              examples: ['tm_3eFgHjKlMnPqRsTu']
             }),
             name: v.string({
               name: 'name',
-              description: `The team name`
+              description: `The team name`,
+              examples: ['Engineering']
             }),
             slug: v.string({
               name: 'slug',
-              description: `The team slug`
+              description: `The team slug`,
+              examples: ['engineering']
             }),
             assignment_id: v.string({
               name: 'assignment_id',
-              description: `The team assignment ID`
+              description: `The team assignment ID`,
+              examples: ['tmas_8jKlMnPqRsTuVwXy']
             }),
             created_at: v.date({
               name: 'created_at',

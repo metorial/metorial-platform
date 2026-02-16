@@ -48,10 +48,18 @@ describe('serverService', () => {
         where: {
           AND: [
             {
-              OR: [{ id: 'server_123' }, { listing: { id: 'server_123' } }, { listing: { slug: 'server_123' } }]
+              OR: [
+                { id: 'server_123' },
+                { listing: { id: 'server_123' } },
+                { listing: { slug: 'server_123' } }
+              ]
             },
             {
-              OR: [{ type: 'imported' }, { isPublic: true }, { ownerOrganizationOid: undefined }]
+              OR: [
+                { type: 'imported' },
+                { isPublic: true },
+                { ownerOrganizationOid: undefined }
+              ]
             }
           ]
         },
@@ -81,10 +89,18 @@ describe('serverService', () => {
         where: {
           AND: [
             {
-              OR: [{ id: 'listing_123' }, { listing: { id: 'listing_123' } }, { listing: { slug: 'listing_123' } }]
+              OR: [
+                { id: 'listing_123' },
+                { listing: { id: 'listing_123' } },
+                { listing: { slug: 'listing_123' } }
+              ]
             },
             {
-              OR: [{ type: 'imported' }, { isPublic: true }, { ownerOrganizationOid: undefined }]
+              OR: [
+                { type: 'imported' },
+                { isPublic: true },
+                { ownerOrganizationOid: undefined }
+              ]
             }
           ]
         },
@@ -120,7 +136,11 @@ describe('serverService', () => {
               ]
             },
             {
-              OR: [{ type: 'imported' }, { isPublic: true }, { ownerOrganizationOid: undefined }]
+              OR: [
+                { type: 'imported' },
+                { isPublic: true },
+                { ownerOrganizationOid: undefined }
+              ]
             }
           ]
         },
@@ -160,7 +180,11 @@ describe('serverService', () => {
         where: {
           AND: [
             {
-              OR: [{ id: 'server_123' }, { listing: { id: 'server_123' } }, { listing: { slug: 'server_123' } }]
+              OR: [
+                { id: 'server_123' },
+                { listing: { id: 'server_123' } },
+                { listing: { slug: 'server_123' } }
+              ]
             },
             {
               OR: [{ type: 'imported' }, { isPublic: true }, { ownerOrganizationOid: 1 }]
@@ -174,7 +198,9 @@ describe('serverService', () => {
     it('should throw ServiceError when server not found', async () => {
       vi.mocked(db.server.findFirst).mockResolvedValue(null);
 
-      await expect(serverService.getServerById({ serverId: 'nonexistent' })).rejects.toThrow(ServiceError);
+      await expect(serverService.getServerById({ serverId: 'nonexistent' })).rejects.toThrow(
+        ServiceError
+      );
     });
 
     it('should hide custom server data when organization does not match', async () => {
@@ -296,10 +322,18 @@ describe('serverService', () => {
         where: {
           AND: [
             {
-              OR: [{ id: 'server_123' }, { listing: { id: 'server_123' } }, { listing: { slug: 'server_123' } }]
+              OR: [
+                { id: 'server_123' },
+                { listing: { id: 'server_123' } },
+                { listing: { slug: 'server_123' } }
+              ]
             },
             {
-              OR: [{ type: 'imported' }, { isPublic: true }, { ownerOrganizationOid: undefined }]
+              OR: [
+                { type: 'imported' },
+                { isPublic: true },
+                { ownerOrganizationOid: undefined }
+              ]
             }
           ]
         },

@@ -1,7 +1,7 @@
 import {
-  DashboardInstanceCustomServersEventsListQuery,
-  DashboardInstanceCustomServersGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+  DashboardInstanceCustomProvidersCommitsListQuery,
+  DashboardInstanceCustomProvidersGetOutput
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useCustomServerEvents } from '@metorial/state';
 import { RenderDate, Text } from '@metorial/ui';
@@ -11,11 +11,11 @@ export let CustomServerEventsTable = ({
   customServer,
   filters
 }: {
-  customServer: DashboardInstanceCustomServersGetOutput | undefined | null;
-  filters?: DashboardInstanceCustomServersEventsListQuery;
+  customServer: DashboardInstanceCustomProvidersGetOutput | undefined | null;
+  filters?: DashboardInstanceCustomProvidersCommitsListQuery;
 }) => {
   let instance = useCurrentInstance();
-  let events = useCustomServerEvents(instance.data?.id, customServer?.id, filters);
+  let events = useCustomServerEvents(instance.data?.instanceId, customServer?.id, filters);
 
   return renderWithLoader({ events })(({ events }) => (
     <>
@@ -27,11 +27,11 @@ export let CustomServerEventsTable = ({
               {
                 {
                   remote_connection_issue: 'Remote Connection Issue'
-                }[event.type]
+                }[event.trigger as string ?? ''] ?? event.trigger
               }
             </Text>,
             <Text size="2" weight="strong">
-              {event.message}
+              {event.error?.message ?? event.status}
             </Text>,
             <RenderDate date={event.createdAt} />
           ]

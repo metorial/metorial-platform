@@ -1,4 +1,4 @@
-import { CustomServersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { Dialog, showModal } from '@metorial/ui';
 import { CustomServerDockerCreateForm } from './createDockerForm';
 import { CustomServerManagedCreateForm } from './createManagedForm';
@@ -7,7 +7,7 @@ import { CustomServerRemoteCreateForm } from './createRemoteForm';
 export let showCustomServerRemoteFormModal = (p: {
   type: 'remote' | 'managed' | 'docker';
   templateId?: string;
-  onCreate?: (deal: CustomServersGetOutput) => any;
+  onCreate?: (deal: CustomProvidersGetOutput) => any;
 }) =>
   showModal(({ dialogProps, close }) => {
     return (

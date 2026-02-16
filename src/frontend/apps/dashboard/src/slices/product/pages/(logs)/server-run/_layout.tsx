@@ -5,7 +5,7 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useServerRun
+  useProviderRun
 } from '@metorial/state';
 import { LinkTabs, RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
@@ -19,7 +19,7 @@ export let ServerRunLayout = () => {
   let organization = useCurrentOrganization();
 
   let { serverRunId } = useParams();
-  let run = useServerRun(instance.data?.id, serverRunId);
+  let run = useProviderRun(instance.data?.instanceId, serverRunId);
 
   let pathname = useLocation().pathname;
 
@@ -33,15 +33,15 @@ export let ServerRunLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Server Run"
+        title="Provider Run"
         pagination={[
           {
-            label: 'Server Runs',
-            href: Paths.instance.serverRuns(organization.data, project.data, instance.data)
+            label: 'Provider Runs',
+            href: Paths.instance.providerRuns(organization.data, project.data, instance.data)
           },
           {
             label: run.data?.id,
-            href: Paths.instance.serverRun(...serverPathParams)
+            href: Paths.instance.providerRun(...serverPathParams)
           }
         ]}
       />
@@ -51,7 +51,7 @@ export let ServerRunLayout = () => {
         links={[
           {
             label: 'Logs',
-            to: Paths.instance.serverRun(...serverPathParams)
+            to: Paths.instance.providerRun(...serverPathParams)
           }
         ]}
       />
@@ -60,36 +60,24 @@ export let ServerRunLayout = () => {
         <AttributesLayout
           variant="large"
           items={[
-            { label: 'Status', value: <ServerRunStatusBadge run={run.data} /> },
-            { label: 'Run Group ID', value: <ID id={run.data.id} /> },
+            { label: 'Status', value: <ServerRunStatusBadge run={run.data as any} /> },
+            { label: 'Run ID', value: <ID id={run.data.id} /> },
             { label: 'Created At', value: <RenderDate date={run.data.createdAt} /> },
             {
-              label: 'Start At',
-              value: run.data.startedAt ? (
-                <RenderDate date={run.data.startedAt} />
+              label: 'Completed At',
+              value: (run.data as any).completedAt ? (
+                <RenderDate date={(run.data as any).completedAt} />
               ) : (
-                <span style={{ opacity: 0.6 }}>Pending</span>
+                <span style={{ opacity: 0.6 }}>Running</span>
               )
             },
             {
-              label: 'Stopped At',
-              value: run.data.stoppedAt ? (
-                <RenderDate date={run.data.stoppedAt} />
-              ) : (
-                <span style={{ opacity: 0.6 }}>Pending</span>
-              )
-            },
-            {
-              label: 'Deployment ID',
-              value: <ID id={run.data.serverDeployment.id} />
-            },
-            {
-              label: 'Server ID',
-              value: <ID id={run.data.server.id} />
+              label: 'Provider ID',
+              value: <ID id={(run.data as any).providerId ?? '—'} />
             },
             {
               label: 'Session ID',
-              value: <ID id={run.data.serverSession.sessionId} />
+              value: <ID id={(run.data as any).sessionId ?? '—'} />
             }
           ]}
         >

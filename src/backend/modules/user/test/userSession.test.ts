@@ -11,15 +11,17 @@ vi.mock('@metorial/db', () => ({
     }
   },
   ID: {
-    generateId: vi.fn((type) => Promise.resolve(`${type}_test_id_${Date.now()}`))
+    generateId: vi.fn(type => Promise.resolve(`${type}_test_id_${Date.now()}`))
   },
-  withTransaction: vi.fn((cb) => cb({
-    userSession: {
-      create: vi.fn(),
-      delete: vi.fn(),
-      findFirst: vi.fn()
-    }
-  }))
+  withTransaction: vi.fn(cb =>
+    cb({
+      userSession: {
+        create: vi.fn(),
+        delete: vi.fn(),
+        findFirst: vi.fn()
+      }
+    })
+  )
 }));
 
 vi.mock('@metorial/fabric', () => ({
@@ -29,7 +31,12 @@ vi.mock('@metorial/fabric', () => ({
 }));
 
 vi.mock('@metorial/id', () => ({
-  generateCustomId: vi.fn((prefix, length) => `${prefix}_${Math.random().toString(36).substring(2, 2 + length)}`)
+  generateCustomId: vi.fn(
+    (prefix, length) =>
+      `${prefix}_${Math.random()
+        .toString(36)
+        .substring(2, 2 + length)}`
+  )
 }));
 
 describe('userSessionService', () => {
@@ -83,14 +90,20 @@ describe('userSessionService', () => {
       });
 
       expect(result).toEqual(mockSession);
-      expect(Fabric.fire).toHaveBeenCalledWith('user.session.created:before', expect.objectContaining({
-        user: mockUser,
-        performedBy: mockUser
-      }));
-      expect(Fabric.fire).toHaveBeenCalledWith('user.session.created:after', expect.objectContaining({
-        session: mockSession,
-        performedBy: mockUser
-      }));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'user.session.created:before',
+        expect.objectContaining({
+          user: mockUser,
+          performedBy: mockUser
+        })
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'user.session.created:after',
+        expect.objectContaining({
+          session: mockSession,
+          performedBy: mockUser
+        })
+      );
     });
 
     it('should generate custom client secret with correct prefix', async () => {
@@ -178,15 +191,21 @@ describe('userSessionService', () => {
       });
 
       expect(result).toEqual(mockSession);
-      expect(Fabric.fire).toHaveBeenCalledWith('user.session.deleted:before', expect.objectContaining({
-        user: mockUser,
-        session: mockSession,
-        performedBy: mockUser
-      }));
-      expect(Fabric.fire).toHaveBeenCalledWith('user.session.deleted:after', expect.objectContaining({
-        session: mockSession,
-        performedBy: mockUser
-      }));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'user.session.deleted:before',
+        expect.objectContaining({
+          user: mockUser,
+          session: mockSession,
+          performedBy: mockUser
+        })
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'user.session.deleted:after',
+        expect.objectContaining({
+          session: mockSession,
+          performedBy: mockUser
+        })
+      );
     });
 
     it('should delete session by oid', async () => {

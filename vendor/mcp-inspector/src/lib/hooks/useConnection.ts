@@ -248,7 +248,7 @@ export function useConnection({
     const client = new Client<Request, Notification, Result>(
       {
         name: 'Metorial Explorer',
-        version: undefined!
+        version: '1.0.0'
       },
       {
         capabilities: {

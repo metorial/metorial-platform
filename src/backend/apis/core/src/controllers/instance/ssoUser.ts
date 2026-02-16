@@ -38,8 +38,12 @@ export let ssoUserController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            profile_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            profile_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by SSO profile ID(s)'
+            }),
+            consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by consumer profile ID(s)'
+            })
           })
         )
       )

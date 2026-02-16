@@ -1,46 +1,48 @@
 import {
-  ServersListingsGetOutput,
-  ServersListingsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+  DashboardInstanceProviderListingsGetOutput,
+  DashboardInstanceProviderListingsListQuery
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useServerListings } from '@metorial/state';
+import { useCurrentInstance, useProviderListings } from '@metorial/state';
 import { RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
 export let ServersTable = (
-  filter: ServersListingsListQuery & {
-    getUrl: (listing: ServersListingsGetOutput) => string;
+  filter: DashboardInstanceProviderListingsListQuery & {
+    getUrl: (listing: DashboardInstanceProviderListingsGetOutput) => string;
   }
 ) => {
-  let listings = useServerListings(filter);
+  let listings = useProviderListings(filter);
   let instance = useCurrentInstance();
 
   return renderWithPagination(listings)(servers => (
     <>
       <Table
-        headers={['Info', 'Vendor', 'Installed']}
+        headers={['Info', 'Status', 'Created']}
         data={servers.data.items.map(listing => ({
           data: [
             <div>
               <Text size="2" weight="strong">
                 {listing.name}
               </Text>
-              <Text size="2" color="gray600">
-                {listing.description.slice(0, 60)}
-                {listing.description.length > 60 ? '...' : ''}
-              </Text>
+              {listing.description && (
+                <Text size="2" color="gray600">
+                  {listing.description.slice(0, 60)}
+                  {listing.description.length > 60 ? '...' : ''}
+                </Text>
+              )}
             </div>,
-            listing.vendor?.name ?? 'Unknown',
-            listing.installation ? <RenderDate date={listing.installation.createdAt} /> : 'N/A'
+            listing.flags.isOfficial ? 'Official' : listing.flags.isVerified ? 'Verified' : 'Community',
+            <RenderDate date={listing.createdAt} />
           ],
           href: filter.getUrl
             ? filter.getUrl(listing)
-            : Paths.instance.server(
+            : Paths.instance.provider(
                 instance.data?.organization,
                 instance.data?.project,
                 instance.data,
-                listing.server.id
+                listing.providerId ?? listing.id
               )
         }))}
       />

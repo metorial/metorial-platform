@@ -327,7 +327,12 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
       )
     );
 
-    let knowVersions = new Set(Object.keys(versions));
+    let knowVersions = new Set(
+      Object.entries(versions).flatMap(([key, { alternativeIdentifiers }]) => [
+        key,
+        ...alternativeIdentifiers
+      ])
+    );
 
     let apiServerTracer = opentelemetry.trace.getTracer('@metorial/rest/server', '1.0.0');
 

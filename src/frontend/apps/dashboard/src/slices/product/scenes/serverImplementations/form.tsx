@@ -1,7 +1,7 @@
 import { CodeEditor } from '@metorial/code-editor';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ServersListingsGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceProviderListingsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import {
   useCreateImplementation,
   useCurrentInstance,
@@ -31,12 +31,12 @@ export type ServerImplementationFormProps =
     };
 
 export let ServerImplementationForm = (
-  p: ServerImplementationFormProps & { close?: () => any }
+  p: ServerImplementationFormProps & { close?: () => void }
 ) => {
   let instance = useCurrentInstance();
   let implementation =
     p.type == 'update'
-      ? useServerImplementation(instance.data?.id, p.serverImplementationId)
+      ? useServerImplementation(instance.data?.instanceId, p.serverImplementationId)
       : null;
 
   let update = implementation?.useUpdateMutator();
@@ -46,26 +46,31 @@ export let ServerImplementationForm = (
 
   let navigate = useNavigate();
 
-  let [searchServer, setSearchServer] = useState<ServersListingsGetOutput | undefined>(
+  let [searchServer, setSearchServer] = useState<DashboardInstanceProviderListingsGetOutput | undefined>(
     undefined
   );
 
   let variants = useServerVariants(
-    instance.data?.id,
+    instance.data?.instanceId,
     p.type == 'create'
-      ? (p.for?.serverId ?? searchServer?.server.id)
-      : implementation?.data?.server.id
+      ? (p.for?.serverId ?? searchServer?.providerId)
+      : (implementation?.data?.server?.id ??
+          undefined)
   );
 
-  let variant = (p as any).for?.serverVariantId
-    ? variants.data?.items.find(v => v.id == (p as any).for?.serverVariantId)
+  let forVariantId = p.type === 'create' && p.for && 'serverVariantId' in p.for
+    ? p.for.serverVariantId
+    : undefined;
+
+  let variant = forVariantId
+    ? variants.data?.items.find(v => v.id === forVariantId)
     : variants.data?.items[0];
 
   if (currentStep == 0 && variant) currentStep = 1;
 
   let form = useForm({
     initialValues: {
-      name: implementation?.data?.name ?? implementation?.data?.server.name ?? '',
+      name: implementation?.data?.name ?? implementation?.data?.server?.name ?? '',
       description: implementation?.data?.description ?? '',
       metadata: implementation?.data?.metadata ?? {},
       getLaunchParams: implementation?.data?.getLaunchParams ?? ''
@@ -94,8 +99,8 @@ export let ServerImplementationForm = (
           description: values.description,
           metadata: values.metadata,
           getLaunchParams: values.getLaunchParams,
-          instanceId: instance.data?.id!,
-          serverId: p.for?.serverId ?? searchServer?.server.id!,
+          instanceId: instance.data?.instanceId!,
+          serverId: p.for?.serverId ?? searchServer?.providerId!,
           ...p.for
         });
 
@@ -192,8 +197,8 @@ export let ServerImplementationForm = (
         setCurrentStep={setCurrentStep}
         steps={[
           {
-            title: 'Server',
-            subtitle: 'Choose a server',
+            title: 'Provider',
+            subtitle: 'Choose a provider',
             render: () => {
               return (
                 <ServerSearch

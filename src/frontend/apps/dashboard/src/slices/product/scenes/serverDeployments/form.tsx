@@ -1,21 +1,22 @@
 import { canonicalize } from '@metorial/canonicalize';
 import {
-  MagicMcpServersGetOutput,
   ServersDeploymentsGetOutput,
   ServersListingsGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+
+// Type removed in Provider API migration
+type MagicMcpServerData = { id: string; name: string | null; description: string | null; slug: string | null; status: string | null; metadata?: Record<string, unknown>; createdAt: Date; updatedAt: Date; serverDeployments: { id: string; name: string | null; providerId: string }[]; endpoints: { id: string; url: string }[]; needsDefaultOauthSession: boolean; oauthConnection: { id: string } | null };
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   updateMagicMcpServer,
-  useCreateDeployment,
+  useCreateProviderDeployment,
   useCreateMagicMcpServer,
   useCurrentInstance,
   useMagicMcpServer,
-  useServer,
-  useServerDeployment,
-  useServerListing,
-  useServerVariants
+  useProvider,
+  useProviderDeployment,
+  useProviderListing
 } from '@metorial/state';
 import {
   AccordionSingle,
@@ -37,6 +38,7 @@ import styled from 'styled-components';
 import { Markdown } from '../../../../components/markdown';
 import { authenticateWithOauth } from '../../pages/explorer/state';
 import { JsonSchemaInput } from '../jsonSchemaInput';
+import { AuthStep } from '../providerDeployments/authStep';
 import { ServerSearch } from '../servers/search';
 import { Stepper } from '../stepper';
 
@@ -67,7 +69,7 @@ let ServerDeploymentFormInternal = (
   p: ServerDeploymentFormPropsInternal & {
     close?: () => any;
     extraActions?: React.ReactNode;
-    onCreate?: (depl: ServersDeploymentsGetOutput | MagicMcpServersGetOutput) => any;
+    onCreate?: (depl: ServersDeploymentsGetOutput | MagicMcpServerData) => any;
   }
 ) => {
   let instance = useCurrentInstance();
@@ -78,12 +80,12 @@ let ServerDeploymentFormInternal = (
       : ('server_deployment' as const);
 
   let magicMcpServer = useMagicMcpServer(
-    instance.data?.id,
+    instance.data?.instanceId,
     p.type == 'magic_mcp_server.update' ? p.magicMcpServerId : undefined
   );
 
-  let serverDeployment = useServerDeployment(
-    instance.data?.id,
+  let serverDeployment = useProviderDeployment(
+    instance.data?.instanceId,
     magicMcpServer.data
       ? magicMcpServer.data.serverDeployments[0].id
       : p.type == 'server_deployment.update'
@@ -93,17 +95,25 @@ let ServerDeploymentFormInternal = (
 
   let updateResource = resource == 'magic_mcp_server' ? magicMcpServer : serverDeployment;
 
-  let listing = useServerListing(
-    instance.data?.id,
-    serverDeployment.data?.server.id ?? p.for?.serverId
+  let listing = useProviderListing(
+    instance.data?.instanceId,
+    (serverDeployment.data as any)?.server?.id ??
+      (serverDeployment.data as any)?.providerId ??
+      p.for?.serverId
   );
 
   let updateMutator = updateResource?.useUpdateMutator();
   let deleteMutator = updateResource?.useDeleteMutator();
   let createMutator =
-    p.type == 'magic_mcp_server.create' ? useCreateMagicMcpServer() : useCreateDeployment();
+    p.type == 'magic_mcp_server.create'
+      ? useCreateMagicMcpServer()
+      : useCreateProviderDeployment();
 
   let [currentStep, setCurrentStep] = useState(0);
+  let [createdDeployment, setCreatedDeployment] = useState<{
+    id: string;
+    providerId: string;
+  } | null>(null);
 
   let navigate = useNavigate();
 
@@ -114,28 +124,23 @@ let ServerDeploymentFormInternal = (
   let serverId =
     p.type == 'server_deployment.create' || p.type == 'magic_mcp_server.create'
       ? (p.for?.serverId ?? searchServer?.server.id)
-      : serverDeployment?.data?.server.id;
+      : ((serverDeployment?.data as any)?.server?.id ??
+        (serverDeployment?.data as any)?.providerId);
 
   if (serverId && currentStep == 0) currentStep = 1;
 
-  let variants = useServerVariants(instance.data?.id, serverId);
-  let server = useServer(instance.data?.id, serverId);
+  // In v2 API, providers have currentVersion directly (no variants)
+  let provider = useProvider(instance.data?.instanceId, serverId);
 
-  let variant = (p as any).for?.serverVariantId
-    ? variants.data?.items.find(v => v.id == (p as any).for?.serverVariantId)
-    : variants.data?.items[0];
+  let providerNeedsConfig = false; // Schema is no longer directly on provider version in the new API
 
-  let serverNeedsConfig =
-    variant?.currentVersion?.schema &&
-    Object.entries(variant?.currentVersion?.schema?.properties ?? {}).length > 0;
-
-  if (!serverNeedsConfig && currentStep == 1) currentStep = 2;
+  if (!providerNeedsConfig && currentStep == 1) currentStep = 2;
 
   let isUpdate = p.type == 'server_deployment.update' || p.type == 'magic_mcp_server.update';
-  let loading = (isUpdate && updateResource.isLoading) || (serverId && variants.isLoading);
+  let loading = (isUpdate && updateResource.isLoading) || (serverId && provider.isLoading);
 
   let nameUpperCase =
-    resource == 'server_deployment' ? 'Server Deployment' : 'Magic MCP Server';
+    resource == 'server_deployment' ? 'Provider Deployment' : 'Magic MCP Provider';
   let nameLowerCase = nameUpperCase.toLowerCase();
 
   let serverConfigVaultId =
@@ -145,8 +150,8 @@ let ServerDeploymentFormInternal = (
     initialValues: {
       name: updateResource?.data?.name ?? '',
       description: updateResource?.data?.description ?? '',
-      metadata: updateResource?.data?.metadata ?? {},
-      config: serverDeployment?.data?.config ?? {}
+      metadata: (updateResource?.data as Record<string, unknown>)?.metadata as Record<string, unknown> ?? {},
+      config: (serverDeployment?.data as Record<string, unknown>)?.config as Record<string, unknown> ?? {}
     },
     schema: yup =>
       yup.object({
@@ -158,29 +163,34 @@ let ServerDeploymentFormInternal = (
     onSubmit: async values => {
       if (p.type == 'server_deployment.update' || p.type == 'magic_mcp_server.update') {
         let configChanged =
-          canonicalize(values.config) !== canonicalize(serverDeployment?.data?.config);
+          canonicalize(values.config) !== canonicalize((serverDeployment?.data as Record<string, unknown>)?.config as Record<string, unknown>);
 
         await updateMutator.mutate({
           name: values.name,
           description: values.description,
-          metadata: values.metadata,
-          config: configChanged ? values.config : undefined
+          metadata: values.metadata
         });
         serverDeployment?.refetch();
       } else if (p.type == 'server_deployment.create' || p.type == 'magic_mcp_server.create') {
         let doCreate = async (
           oauthConfig: { clientId: string; clientSecret: string } | undefined
         ) => {
+          let providerId = p.for?.serverId ?? searchServer?.server.id!;
+
+          // v2 API expects config in { type: 'reference' | 'new', ... } format
+          let config: any = undefined;
+          if (serverConfigVaultId) {
+            config = { type: 'reference', configVaultId: serverConfigVaultId };
+          } else if (providerNeedsConfig && Object.keys(values.config).length > 0) {
+            config = { type: 'new', value: values.config };
+          }
+
           let [res, err] = await createMutator.mutate({
-            name: values.name,
+            name: values.name || '',
             description: values.description,
-            metadata: values.metadata,
-            config: serverConfigVaultId ? undefined! : values.config,
-            serverConfigVaultId: serverConfigVaultId!,
-            instanceId: instance.data?.id!,
-            serverId: p.for?.serverId ?? searchServer?.server.id!,
-            oauthConfig,
-            ...p.for
+            metadata: { ...values.metadata, ...(config ? { config } : {}) },
+            instanceId: instance.data?.instanceId!,
+            providerId
           });
 
           if (
@@ -217,10 +227,10 @@ let ServerDeploymentFormInternal = (
                     {nameLowerCase}.
                   </Dialog.Description>
 
-                  {listing.data?.oauthExplainer && (
+                  {listing.data?.readme && (
                     <>
                       <AccordionSingle title="OAuth Setup Instructions">
-                        <Markdown>{listing.data?.oauthExplainer}</Markdown>
+                        <Markdown>{listing.data?.readme}</Markdown>
                       </AccordionSingle>
                       <Spacer size={10} />
                     </>
@@ -263,43 +273,17 @@ let ServerDeploymentFormInternal = (
           }
 
           if (res) {
-            if ('needsDefaultOauthSession' in res && res.needsDefaultOauthSession) {
-              try {
-                let oauthSessionId = await authenticateWithOauth({
-                  instanceId: instance.data?.id!,
-                  serverDeploymentId: res.serverDeployments[0].id
-                });
+            // Store the created deployment info for auth step
+            let deploymentId = res.id;
+            let providerId = (res as any).providerId ?? serverId;
 
-                await updateMagicMcpServer({
-                  instanceId: instance.data?.id!,
-                  magicMcpServerId: res.id,
-                  defaultOauthSessionId: oauthSessionId
-                });
-              } catch (e) {
-                toast.error('OAuth authentication failed. Please try again.');
-              }
-            }
+            setCreatedDeployment({
+              id: deploymentId,
+              providerId: providerId
+            });
 
-            if (p.onCreate) {
-              p.onCreate(res);
-              p.close?.();
-            } else {
-              navigate(
-                resource == 'magic_mcp_server'
-                  ? Paths.instance.magicMcp.server(
-                      instance.data?.organization,
-                      instance.data?.project,
-                      instance.data,
-                      res.id
-                    )
-                  : Paths.instance.serverDeployment(
-                      instance.data?.organization,
-                      instance.data?.project,
-                      instance.data,
-                      res.id
-                    )
-              );
-            }
+            // Advance to auth step
+            setCurrentStep(3);
           }
         };
 
@@ -309,16 +293,17 @@ let ServerDeploymentFormInternal = (
   });
 
   useEffect(() => {
-    if (!server.data) return;
-    form.setFieldValue('name', server.data.name);
-  }, [server.data?.id]);
+    if (!provider.data) return;
+    form.setFieldValue('name', provider.data.name);
+  }, [provider.data?.id]);
 
   useEffect(() => {
     if (serverConfigVaultId && currentStep == 1) setCurrentStep(2);
   }, [serverConfigVaultId, currentStep]);
 
   if (
-    variants.data?.items.length === 0 &&
+    provider.data &&
+    !provider.data.currentVersion &&
     (p.type == 'server_deployment.create' || p.type == 'magic_mcp_server.create')
   ) {
     return <Callout color="orange">This server cannot yet be deployed on Metorial.</Callout>;
@@ -412,7 +397,7 @@ let ServerDeploymentFormInternal = (
                 }
               })
             }
-            disabled={updateResource.data?.status === 'archived'}
+            disabled={(updateResource.data as Record<string, unknown>)?.status === 'archived'}
           >
             Delete
           </Button>
@@ -439,8 +424,8 @@ let ServerDeploymentFormInternal = (
         setCurrentStep={setCurrentStep}
         steps={[
           {
-            title: 'Server',
-            subtitle: 'Choose a server',
+            title: 'Provider',
+            subtitle: 'Choose a provider',
             render: () => {
               return (
                 <ServerSearch
@@ -454,15 +439,15 @@ let ServerDeploymentFormInternal = (
 
           {
             title: 'Configuration',
-            subtitle: 'Set up the server',
+            subtitle: 'Set up the provider',
             render: () => {
-              if (!serverNeedsConfig)
-                return <p>This server does not require any configuration.</p>;
+              if (!providerNeedsConfig)
+                return <p>This provider does not require any configuration.</p>;
 
               return (
                 <JsonSchemaInput
                   label="Config"
-                  schema={variant?.currentVersion?.schema ?? {}}
+                  schema={{} as Record<string, unknown>}
                   value={form.values.config}
                   onChange={v => form.setFieldValue('config', v)}
                   variant="raw"
@@ -487,11 +472,54 @@ let ServerDeploymentFormInternal = (
                 </>
               );
             }
+          },
+
+          {
+            title: 'Authentication',
+            subtitle: 'Configure auth',
+            render: () => {
+              if (!createdDeployment || !instance.data) {
+                return <CenteredSpinner />;
+              }
+
+              let handleAuthComplete = () => {
+                if (p.onCreate) {
+                  p.onCreate({ id: createdDeployment.id } as any);
+                  p.close?.();
+                } else {
+                  navigate(
+                    resource == 'magic_mcp_server'
+                      ? Paths.instance.magicMcp.server(
+                          instance.data?.organization,
+                          instance.data?.project,
+                          instance.data,
+                          createdDeployment.id
+                        )
+                      : Paths.instance.providerDeployment(
+                          instance.data?.organization,
+                          instance.data?.project,
+                          instance.data,
+                          createdDeployment.id
+                        )
+                  );
+                }
+              };
+
+              return (
+                <AuthStep
+                  instanceId={instance.data.instanceId}
+                  providerId={createdDeployment.providerId}
+                  deploymentId={createdDeployment.id}
+                  onComplete={handleAuthComplete}
+                  onSkip={handleAuthComplete}
+                />
+              );
+            }
           }
         ]}
       />
 
-      {currentStep > 0 && (
+      {currentStep > 0 && currentStep < 3 && (
         <div
           style={{
             display: 'flex',
@@ -579,7 +607,7 @@ export let MagicMcpServerForm = (
   p: MagicMcpServerFormProps & {
     close?: () => any;
     extraActions?: React.ReactNode;
-    onCreate?: (depl: MagicMcpServersGetOutput) => any;
+    onCreate?: (depl: MagicMcpServerData) => any;
   }
 ) => (
   // @ts-ignore

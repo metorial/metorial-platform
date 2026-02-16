@@ -1,74 +1,58 @@
-import {
-  DashboardInstanceMagicMcpServersCreateBody,
-  DashboardInstanceMagicMcpServersListQuery,
-  DashboardInstanceMagicMcpServersUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
-import { createLoader } from '@metorial/data-hooks';
-import { usePaginator } from '../../lib/usePaginator';
-import { withAuth } from '../../user';
+import React from 'react';
 
-export let magicMcpServersLoader = createLoader({
-  name: 'magicMcpServers',
-  parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceMagicMcpServersListQuery) =>
-    withAuth(sdk => sdk.magicMcp.servers.list(i.instanceId, i)),
-  mutators: {}
+type MagicMcpServerData = {
+  id: string;
+  name: string | null;
+  description: string | null;
+  slug: string | null;
+  status: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  serverDeployments: { id: string; name: string | null; providerId: string }[];
+  endpoints: { id: string; url: string }[];
+  needsDefaultOauthSession: boolean;
+  oauthConnection: { id: string } | null;
+};
+
+let stubMutator = () => ({
+  mutate: (..._args: unknown[]): Promise<[null, null]> => Promise.resolve([null, null]),
+  isLoading: false as const,
+  isSuccess: false as const,
+  error: null,
+  RenderError: (): React.ReactElement | null => null
 });
 
-export let useCreateMagicMcpServer = magicMcpServersLoader.createExternalMutator(
-  (i: DashboardInstanceMagicMcpServersCreateBody & { instanceId: string }) =>
-    withAuth(sdk => sdk.magicMcp.servers.create(i.instanceId, i)),
-  {
-    disableToast: true
-  }
-);
+export let magicMcpServersLoader = null;
+
+export let useCreateMagicMcpServer = (_opts?: Record<string, unknown>) => stubMutator();
 
 export let useMagicMcpServers = (
-  instanceId: string | null | undefined,
-  query?: DashboardInstanceMagicMcpServersListQuery
-) => {
-  let data = usePaginator(pagination =>
-    magicMcpServersLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
-  );
-
-  return data;
-};
-
-export let magicMcpServerLoader = createLoader({
-  name: 'magicMcpServer',
-  parents: [magicMcpServersLoader],
-  fetch: (i: { instanceId: string; magicMcpServerId: string }) =>
-    withAuth(sdk => sdk.magicMcp.servers.get(i.instanceId, i.magicMcpServerId)),
-  mutators: {
-    update: (
-      i: DashboardInstanceMagicMcpServersUpdateBody,
-      { input: { instanceId, magicMcpServerId } }
-    ) => withAuth(sdk => sdk.magicMcp.servers.update(instanceId, magicMcpServerId, i)),
-
-    delete: (_, { input: { instanceId, magicMcpServerId } }) =>
-      withAuth(sdk => sdk.magicMcp.servers.delete(instanceId, magicMcpServerId))
-  }
+  _instanceId?: string | null,
+  _query?: Record<string, unknown>
+) => ({
+  data: null as {
+    items: MagicMcpServerData[];
+    pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  } | null,
+  isLoading: false,
+  error: null,
+  next: () => {},
+  previous: () => {},
+  refetch: () => {}
 });
 
+export let magicMcpServerLoader = null;
+
 export let useMagicMcpServer = (
-  instanceId: string | null | undefined,
-  magicMcpServerId: string | null | undefined
-) => {
-  let data = magicMcpServerLoader.use(
-    instanceId && magicMcpServerId ? { instanceId, magicMcpServerId } : null
-  );
+  _instanceId?: string | null,
+  _magicMcpServerId?: string | null
+) => ({
+  data: null as MagicMcpServerData | null,
+  isLoading: false,
+  error: null,
+  refetch: () => {},
+  useUpdateMutator: stubMutator,
+  useDeleteMutator: stubMutator
+});
 
-  return {
-    ...data,
-    useUpdateMutator: data.useMutator('update'),
-    useDeleteMutator: data.useMutator('delete')
-  };
-};
-
-export let updateMagicMcpServer = (
-  body: DashboardInstanceMagicMcpServersUpdateBody & {
-    instanceId: string;
-    magicMcpServerId: string;
-  }
-) =>
-  withAuth(sdk => sdk.magicMcp.servers.update(body.instanceId, body.magicMcpServerId, body));
+export let updateMagicMcpServer = stubMutator;

@@ -1,10 +1,11 @@
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance } from '@metorial/state';
-import { Button, CenteredSpinner, Error, Spacer, theme } from '@metorial/ui';
+import { Button, CenteredSpinner, Error, theme } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { AuthPanel } from './authPanel';
 import { BreathingIndicator } from './breathing';
 import { useSessionForDeployment } from './state';
 
@@ -37,8 +38,10 @@ let Center = styled.div`
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   flex-direction: column;
+  padding-top: 40px;
+  overflow-y: auto;
 `;
 
 let ConnectionNav = styled.nav`
@@ -64,9 +67,13 @@ let Status = styled(motion.div)`
   font-weight: 500;
 `;
 
-export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: string } }) => {
+export let InspectorFrame = ({
+  providerDeployment
+}: {
+  providerDeployment: { id: string };
+}) => {
   let instance = useCurrentInstance();
-  let session = useSessionForDeployment(instance.data?.id, serverDeployment.id);
+  let session = useSessionForDeployment(instance.data?.instanceId, providerDeployment.id);
 
   let [isLoading, setIsLoading] = useState(true);
 
@@ -76,17 +83,14 @@ export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: str
     let url = new URL(
       (window as any).METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!
     ); // https://inspector.mcp.metorial.com
-    url.searchParams.set(
-      'sse_url',
-      new URL(
-        `/mcp/${session.data.id}/${serverDeployment.id}/sse`,
-        (window as any).METORIAL_MCP_API_URL ?? import.meta.env.VITE_MCP_API_URL
-      ).toString()
-    );
+
+    // Use the direct Subspace MCP connection URL from the session response
+    let connectionUrl = session.data.connectionUrl;
+    if (!connectionUrl) return undefined;
+
+    url.searchParams.set('sse_url', connectionUrl);
     url.searchParams.set('transport_type', 'sse');
     url.searchParams.set('direction', 'vertical');
-    if (session.data.clientSecret.secret)
-      url.searchParams.set('bearer_token', session.data.clientSecret.secret);
 
     return url.toString();
   }, [session.data]);
@@ -117,20 +121,20 @@ export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: str
 
         <ConnectionNavSection>
           <Link
-            to={Paths.instance.serverDeployment(
+            to={Paths.instance.providerDeployment(
               instance.data?.organization,
               instance.data?.project,
               instance.data,
-              serverDeployment.id
+              providerDeployment.id
             )}
           >
             <Button as="span" size="2" variant="outline">
-              Open Server Deployment
+              Open Provider Deployment
             </Button>
           </Link>
 
           <Link
-            to={Paths.instance.session(
+            to={Paths.instance.providerSession(
               instance.data?.organization,
               instance.data?.project,
               instance.data,
@@ -138,20 +142,33 @@ export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: str
             )}
           >
             <Button as="span" size="2" variant="outline">
-              Open Server Session
+              Open Session
             </Button>
           </Link>
         </ConnectionNavSection>
       </ConnectionNav>
 
       <Wrapper>
-        {session.error || session.state == 'error' ? (
+        {session.state == 'auth_required' ? (
+          <Center>
+            <AuthPanel
+              instanceId={instance.data!.instanceId}
+              deploymentId={providerDeployment.id}
+              provider={{
+                id: session.provider?.id ?? '',
+                name: session.provider?.name ?? null
+              }}
+              authMethods={session.authMethods}
+              authCredentials={session.authCredentials}
+              onAuthComplete={session.onAuthComplete}
+              refetchAuthCredentials={session.refetchAuthCredentials}
+            />
+          </Center>
+        ) : session.error || session.state == 'error' ? (
           <Center>
             <Error>{session.error?.message ?? 'Unable to create session'}</Error>
           </Center>
-        ) : session.state == 'ready' ||
-          session.state == 'loading' ||
-          session.state == 'oauth_pending' ? (
+        ) : session.state == 'ready' || session.state == 'loading' ? (
           <>
             <Iframe src={url} onLoad={() => setIsLoading(false)} key={url} />
 
@@ -163,14 +180,6 @@ export let InspectorFrame = ({ serverDeployment }: { serverDeployment: { id: str
               )}
             </AnimatePresence>
           </>
-        ) : session.state == 'oauth_error' ? (
-          <Center>
-            <Error>Please authenticate with the provider to continue.</Error>
-
-            <Spacer size={16} />
-
-            <Button onClick={() => location.reload()}>Retry OAuth Flow</Button>
-          </Center>
         ) : null}
       </Wrapper>
     </>

@@ -13,9 +13,9 @@ import { customServerGroup } from './customServer';
 
 export let customServerVersionController = Controller.create(
   {
-    name: 'Custom Server',
+    name: 'Custom Server Version',
     description: 'Manager custom server versions',
-    hideInDocs: true
+    deprecated: true
   },
   {
     list: customServerGroup

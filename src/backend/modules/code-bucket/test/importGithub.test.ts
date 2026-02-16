@@ -17,7 +17,7 @@ vi.mock('@metorial/delay', () => ({
 }));
 
 vi.mock('@metorial/queue', () => ({
-  createQueue: vi.fn((config) => ({
+  createQueue: vi.fn(config => ({
     process: (fn: any) => fn,
     add: vi.fn()
   }))
@@ -147,9 +147,7 @@ describe('importGithub queue processor', () => {
       new Error('Repository not found')
     );
 
-    await expect(processor(mockData)).rejects.toThrow(
-      'Repository not found'
-    );
+    await expect(processor(mockData)).rejects.toThrow('Repository not found');
 
     expect(codeWorkspaceClient.createBucketFromGithub).not.toHaveBeenCalled();
     expect(db.codeBucket.updateMany).not.toHaveBeenCalled();
@@ -178,7 +176,8 @@ describe('importGithub queue processor', () => {
 
     // Verify delay was called after createBucketFromGithub
     expect(delay).toHaveBeenCalled();
-    const createCallOrder = vi.mocked(codeWorkspaceClient.createBucketFromGithub).mock.invocationCallOrder[0];
+    const createCallOrder = vi.mocked(codeWorkspaceClient.createBucketFromGithub).mock
+      .invocationCallOrder[0];
     const delayCallOrder = vi.mocked(delay).mock.invocationCallOrder[0];
     expect(delayCallOrder).toBeGreaterThan(createCallOrder);
 

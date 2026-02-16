@@ -29,7 +29,9 @@ export let v1ProviderOauthTakeInPresenter = Presenter.create(providerOauthTakeIn
   }))
   .schema(
     v.object({
-      object: v.literal('provider_oauth.import'),
+      object: v.literal('provider_oauth.import', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',

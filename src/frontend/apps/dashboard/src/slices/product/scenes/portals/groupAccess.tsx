@@ -1,20 +1,20 @@
 import {
   DashboardInstanceServersDeploymentsTemplatesCreateOutput,
   ServersListingsGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
 import { delay } from '@metorial/delay';
 import {
-  createServerDeploymentTemplate,
-  getServer,
-  useCreateServerDeploymentTemplate,
+  createSessionTemplate,
+  getProvider,
+  useCreateSessionTemplate,
   useCurrentInstance,
   useMagicMcpServers,
   usePortal,
   usePortalAccesses,
   usePortalConsumerGroup,
-  useServerListings,
-  useUpdateServerDeploymentTemplate
+  useProviderListings,
+  useUpdateSessionTemplate
 } from '@metorial/state';
 import {
   AccordionSingle,
@@ -37,11 +37,11 @@ import { useDebounced } from '../../../../hooks/useDebounced';
 
 export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
   let instance = useCurrentInstance();
-  let portal = usePortal(instance.data?.id, p.portalId!);
-  let group = usePortalConsumerGroup(instance.data?.id, portal.data?.id, p.groupId);
+  let portal = usePortal(instance.data?.instanceId, p.portalId!);
+  let group = usePortalConsumerGroup(instance.data?.instanceId, portal.data?.id, p.groupId);
 
   let serverDeploymentTemplateAccess = usePortalAccesses(
-    instance.data?.id,
+    instance.data?.instanceId,
     group.data ? portal.data?.id : undefined,
     {
       consumerGroupId: group.data?.id,
@@ -58,9 +58,9 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
       let [search, setSearch] = useState('');
       let searchDebounced = useDebounced(search, 300);
 
-      let createTemplateMutator = useCreateServerDeploymentTemplate();
+      let createTemplateMutator = useCreateSessionTemplate();
 
-      let servers = useMagicMcpServers(instance.data?.id, {
+      let servers = useMagicMcpServers(instance.data?.instanceId, {
         limit: 20,
         search: searchDebounced
       });
@@ -78,8 +78,8 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
 
           <Panel.Content>
             <Input
-              placeholder="Search servers..."
-              label="Search Servers"
+              placeholder="Search providers..."
+              label="Search Providers"
               hideLabel
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -122,7 +122,7 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
                                   }
                                 })
                               }
-                              label="Select Server"
+                              label="Select Provider"
                               hideLabel
                             />
                           </div>
@@ -155,10 +155,8 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
                   if (!defaultServerDeployment) return;
 
                   let [templateRes] = await createTemplateMutator.mutate({
-                    name: server.name,
-                    magicMcpServerId: server.id,
-                    instanceId: instance.data!.id,
-                    serverId: defaultServerDeployment.server.id
+                    name: server.name ?? 'Untitled',
+                    instanceId: instance.data!.instanceId
                   });
                   if (!templateRes) return;
 
@@ -188,8 +186,8 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
   return (
     <>
       <Box
-        title="Deployable Servers"
-        description="Choose which MCP servers can be self-deployed by members of this group."
+        title="Deployable Providers"
+        description="Choose which MCP providers can be self-deployed by members of this group."
         rightActions={
           <Menu
             items={[
@@ -200,8 +198,8 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
               },
               {
                 id: 'server-deployment-template',
-                label: 'Self-Server MCP Server',
-                description: 'Let the members deploy a specific MCP server themselves'
+                label: 'Self-Hosted MCP Provider',
+                description: 'Let the members deploy a specific MCP provider themselves'
               }
             ]}
             onItemClick={id => {
@@ -227,7 +225,7 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
               }
             }}
           >
-            <Button size="2">Add Server Access</Button>
+            <Button size="2">Add Provider Access</Button>
           </Menu>
         }
       >
@@ -270,7 +268,7 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
                               ? access.access.serverDeploymentTemplate
                               : undefined!;
 
-                          let update = useUpdateServerDeploymentTemplate();
+                          let update = useUpdateSessionTemplate();
 
                           let form = useForm({
                             initialValues: {
@@ -284,8 +282,8 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
                               }),
                             onSubmit: async values => {
                               let [res] = await update.mutate({
-                                serverDeploymentTemplateId: template.id,
-                                instanceId: instance.data!.id,
+                                sessionTemplateId: template.id,
+                                instanceId: instance.data!.instanceId,
                                 name: values.name,
                                 description: values.description
                               });
@@ -362,7 +360,7 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
 
             {accesses.data.items.length == 0 && (
               <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-                This group doesn't have access to any MCP servers.
+                This group doesn't have access to any MCP providers.
               </Text>
             )}
           </>
@@ -384,7 +382,7 @@ export let linkServerDeploymentTemplate = (p: {
     let [search, setSearch] = useState('');
     let searchDebounced = useDebounced(search, 300);
 
-    let servers = useServerListings({
+    let servers = useProviderListings({
       limit: 20,
       search: searchDebounced
     });
@@ -394,16 +392,16 @@ export let linkServerDeploymentTemplate = (p: {
     return (
       <Panel.Wrapper {...dialogProps}>
         <Panel.Header>
-          <Panel.Title>Add Access to Server</Panel.Title>
+          <Panel.Title>Add Access to Provider</Panel.Title>
           <Panel.Description>
-            Add access to an MCP server for members of this consumer group.
+            Add access to an MCP provider for members of this consumer group.
           </Panel.Description>
         </Panel.Header>
 
         <Panel.Content>
           <Input
-            placeholder="Search servers..."
-            label="Search Servers"
+            placeholder="Search providers..."
+            label="Search Providers"
             hideLabel
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -446,7 +444,7 @@ export let linkServerDeploymentTemplate = (p: {
                                 }
                               })
                             }
-                            label="Select Server"
+                            label="Select Provider"
                             hideLabel
                           />
                         </div>
@@ -476,10 +474,10 @@ export let linkServerDeploymentTemplate = (p: {
               if (!listing) return;
 
               try {
-                await createServerDeploymentTemplateForConsumerSurface({
-                  instanceId: instance.data!.id,
-                  serverId: listing.server.id,
-                  listing,
+                await createSessionTemplateForConsumerSurface({
+                  instanceId: instance.data!.instanceId,
+                  serverId: listing.id,
+                  listing: listing as unknown as ServersListingsGetOutput,
                   addAccess: p.addAccess
                 });
                 close();
@@ -488,14 +486,14 @@ export let linkServerDeploymentTemplate = (p: {
               }
             }}
           >
-            Add Server
+            Add Provider
           </Button>
         </Panel.Content>
       </Panel.Wrapper>
     );
   });
 
-export let createServerDeploymentTemplateForConsumerSurface = async ({
+export let createSessionTemplateForConsumerSurface = async ({
   instanceId,
   serverId,
   addAccess,
@@ -508,8 +506,8 @@ export let createServerDeploymentTemplateForConsumerSurface = async ({
     template: DashboardInstanceServersDeploymentsTemplatesCreateOutput
   ) => Promise<boolean>;
 }) => {
-  let [server] = await getServer(instanceId, serverId);
-  if (!server) return;
+  let [provider] = await getProvider(instanceId, serverId);
+  if (!provider) return;
 
   let doCreate = async (
     client:
@@ -519,24 +517,18 @@ export let createServerDeploymentTemplateForConsumerSurface = async ({
         }
       | undefined
   ) => {
-    let [template] = await createServerDeploymentTemplate({
-      name: server.name,
-      serverId: server.id,
-      instanceId: instanceId,
-      oauth: client
+    let [template] = await createSessionTemplate({
+      name: provider.name,
+      instanceId: instanceId
     });
     if (!template) return;
 
-    let ok = await addAccess(template);
+    let ok = await addAccess(template as unknown as DashboardInstanceServersDeploymentsTemplatesCreateOutput);
     if (ok) close();
   };
 
   if (
-    server.variants.some(
-      v =>
-        v.currentVersion?.oauth.status == 'enabled' &&
-        v.currentVersion?.oauth.credentialProvider == 'manual'
-    )
+    false /* OAuth status checking removed in Provider API migration */
   ) {
     showModal(({ dialogProps, close }) => {
       let form = useForm({

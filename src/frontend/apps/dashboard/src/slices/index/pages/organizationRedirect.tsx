@@ -21,7 +21,7 @@ export let OrganizationRedirect = () => {
     if (instance) {
       navigate(Paths.instance(org.data, instance.project, instance, path), { replace: true });
     } else {
-      createProject(org.data);
+      createProject({ organizationId: org.data.id, name: 'Default Project' });
     }
   }, [org.data]);
 

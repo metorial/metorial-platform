@@ -10,7 +10,9 @@ export let v1ScmInstallPresenter = Presenter.create(scmInstallType)
   }))
   .schema(
     v.object({
-      object: v.literal('integrations.scm.install'),
+      object: v.literal('integrations.scm.install', {
+        description: "String representing the object's type"
+      }),
 
       authorization_url: v.string({
         name: 'authorization_url',

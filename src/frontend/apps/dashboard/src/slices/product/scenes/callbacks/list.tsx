@@ -6,7 +6,7 @@ import { Table } from '@metorial/ui-product';
 
 export let CallbacksList = () => {
   let instance = useCurrentInstance();
-  let callbacks = useCallbacks(instance.data?.id, {
+  let callbacks = useCallbacks(instance.data?.instanceId, {
     order: 'desc'
   });
 

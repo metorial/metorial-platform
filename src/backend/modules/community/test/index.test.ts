@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Create a mock function that we can track
-const mockCombineQueueProcessors = vi.fn((processors) => ({
+const mockCombineQueueProcessors = vi.fn(processors => ({
   type: 'combined',
   processors
 }));
@@ -34,7 +34,9 @@ vi.mock('@metorial/db', () => ({
 }));
 
 vi.mock('@metorial/slugify', () => ({
-  createSlugGenerator: vi.fn(() => vi.fn(async ({ input }: { input: string }) => `${input}-slug`))
+  createSlugGenerator: vi.fn(() =>
+    vi.fn(async ({ input }: { input: string }) => `${input}-slug`)
+  )
 }));
 
 vi.mock('@metorial/service', () => ({

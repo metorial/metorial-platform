@@ -96,27 +96,4 @@ let getServerSessionDeployment = async (
       description: `The server deployment ID "${serverSessionOrDeploymentId}" is not associated with this session. If you want to add a new deployment to the session, please use the session update API.`
     })
   );
-
-  // // Add new deployment to session
-  // let newDeployment = await serverDeploymentService.getServerDeploymentById({
-  //   instance: d.instance,
-  //   serverDeploymentId: serverSessionOrDeploymentId
-  // });
-
-  // // Update session with new deployment
-  // Object.assign(
-  //   d.session,
-  //   await sessionService.addServerDeployments({
-  //     session: d.session,
-  //     serverDeployments: [newDeployment],
-
-  //     performedBy: d.actor,
-  //     instance: d.instance,
-  //     organization: d.organization,
-
-  //     ephemeralPermittedDeployments: new Set([])
-  //   })
-  // );
-
-  // return d.session.serverDeployments.find(d => d.oid == newDeployment.oid)!;
 };

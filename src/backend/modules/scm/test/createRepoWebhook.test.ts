@@ -39,7 +39,7 @@ vi.mock('@metorial/queue', () => {
   return {
     QueueRetryError: class QueueRetryError extends Error {},
     createQueue: vi.fn(() => ({
-      process: vi.fn((fn) => {
+      process: vi.fn(fn => {
         handler = fn;
         return { handler: fn };
       }),

@@ -169,7 +169,7 @@ export let InstanceMenuLayout = ({ children }: { children: React.ReactNode }) =>
                     createInstance(project.data!);
                   } else {
                     let foundInstance = project.data?.instances.find(
-                      i => i.slug == id || i.id == id
+                      i => i.slug == id || i.instanceId == id
                     );
                     if (!foundInstance) return;
 

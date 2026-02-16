@@ -6,7 +6,7 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useMagicMcpServer,
-  useServerDeployment
+  useProviderDeployment
 } from '@metorial/state';
 import { Button, LinkTabs } from '@metorial/ui';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
@@ -17,9 +17,9 @@ export let MagicMcpServerLayout = () => {
   let organization = useCurrentOrganization();
 
   let { magicMcpServerId } = useParams();
-  let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
-  let serverDeployment = useServerDeployment(
-    instance.data?.id,
+  let server = useMagicMcpServer(instance.data?.instanceId, magicMcpServerId);
+  let serverDeployment = useProviderDeployment(
+    instance.data?.instanceId,
     server.data?.serverDeployments[0]?.id
   );
 
@@ -92,7 +92,7 @@ export let MagicMcpServerLayout = () => {
                 label: 'Errors',
                 to: Paths.instance.magicMcp.server(...serverPathParams, 'errors')
               },
-              ...(serverDeployment.data.oauthConnection
+              ...((serverDeployment.data as Record<string, unknown>).oauthConnection
                 ? [
                     {
                       label: 'OAuth Configuration',

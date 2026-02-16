@@ -1229,9 +1229,7 @@ describe('OrganizationService', () => {
         { id: 'proj-1', oid: 1, instances: [] },
         { id: 'proj-2', oid: 2, instances: [] }
       ];
-      let mockProjects2 = [
-        { id: 'proj-3', oid: 3, instances: [] }
-      ];
+      let mockProjects2 = [{ id: 'proj-3', oid: 3, instances: [] }];
 
       vi.mocked(db.organization.findMany).mockResolvedValue([mockOrg1, mockOrg2] as any);
       vi.mocked(projectService.getAllProjects)
@@ -1274,9 +1272,7 @@ describe('OrganizationService', () => {
         {
           id: 'proj-2',
           oid: 2,
-          instances: [
-            { id: 'inst-3', oid: 3 }
-          ]
+          instances: [{ id: 'inst-3', oid: 3 }]
         }
       ];
 

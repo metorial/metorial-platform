@@ -25,7 +25,9 @@ export let v1DockerServerPresenter = Presenter.create(dockerServerType)
   }))
   .schema(
     v.object({
-      object: v.literal('custom_server.docker_server'),
+      object: v.literal('custom_server.docker_server', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({ name: 'id', description: `The docker server's unique identifier` }),
 

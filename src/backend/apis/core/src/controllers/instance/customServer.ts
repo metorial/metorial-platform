@@ -34,7 +34,7 @@ export let customServerController = Controller.create(
   {
     name: 'Custom Server',
     description: 'Manager custom servers',
-    hideInDocs: true
+    deprecated: true
   },
   {
     list: instanceGroup
@@ -49,8 +49,10 @@ export let customServerController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            type: v.optional(v.union([v.array(customServerTypeEnum), customServerTypeEnum])),
-            search: v.optional(v.string())
+            type: v.optional(v.union([v.array(customServerTypeEnum), customServerTypeEnum]), {
+              description: 'Filter by server type (remote, managed, docker)'
+            }),
+            search: v.optional(v.string(), { description: 'Search servers by name' })
           })
         )
       )

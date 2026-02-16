@@ -5,7 +5,7 @@ import { OAuthConfiguration } from '../src/types';
 
 // Mock external dependencies
 vi.mock('@metorial/canonicalize', () => ({
-  canonicalize: vi.fn((obj) => JSON.stringify(obj))
+  canonicalize: vi.fn(obj => JSON.stringify(obj))
 }));
 
 vi.mock('@metorial/db', () => ({
@@ -21,11 +21,11 @@ vi.mock('@metorial/db', () => ({
 
 vi.mock('@metorial/hash', () => ({
   Hash: {
-    sha256: vi.fn(async (str) => {
+    sha256: vi.fn(async str => {
       // Simple hash simulation that produces different output for different inputs
       let hash = 0;
       for (let i = 0; i < str.length; i++) {
-        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash = (hash << 5) - hash + str.charCodeAt(i);
         hash = hash & hash;
       }
       return `hash-${Math.abs(hash).toString(16)}`;
@@ -662,10 +662,7 @@ describe('OAuthUtils', () => {
     });
 
     it('should return null when no registration endpoint', async () => {
-      const result = await OAuthUtils.registerClient(
-        { clientName: 'Test App' },
-        mockConfig
-      );
+      const result = await OAuthUtils.registerClient({ clientName: 'Test App' }, mockConfig);
 
       expect(result).toBeNull();
       expect(axios.post).not.toHaveBeenCalled();

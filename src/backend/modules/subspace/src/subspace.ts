@@ -1,6 +1,6 @@
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { createSubspaceControllerClient } from '@metorial-services/subspace-client';
-import { db, OrganizationActor, type Instance, type Organization } from '@metorial/db';
+import { db, OrganizationActor, type Instance } from '@metorial/db';
 import { delay } from '@metorial/delay';
 import { env } from './env';
 
@@ -33,20 +33,18 @@ export let subspace = createSubspaceControllerClient({
   }
 })();
 
-export let getTenantForSubspace = async (organization: Organization, instance: Instance) => {
+export let getTenantForSubspace = async (instance: Instance) => {
   if (!instance.subspaceTenantId || !instance.subspaceEnvironmentId) {
-    let orgInstances = await db.instance.findMany({
-      where: { organizationOid: organization.oid }
-    });
-
     let subspaceTenant = await subspace.tenant.upsert({
-      identifier: `mteo-${organization.id}`,
-      name: organization.name,
-      environments: orgInstances.map(i => ({
-        identifier: `mtei-${i.id}`,
-        name: i.name,
-        type: i.type
-      }))
+      identifier: `mte-${instance.id}`,
+      name: instance.name,
+      environments: [
+        {
+          identifier: `mtei-${instance.id}`,
+          name: instance.name,
+          type: instance.type
+        }
+      ]
     });
 
     let subspaceEnvironment = await subspace.environment.upsert({
@@ -61,17 +59,8 @@ export let getTenantForSubspace = async (organization: Organization, instance: I
       data: {
         subspaceTenantId: subspaceTenant.id,
         subspaceTenantIdentifier: subspaceTenant.identifier,
-
         subspaceEnvironmentId: subspaceEnvironment.id,
         subspaceEnvironmentIdentifier: subspaceEnvironment.identifier
-      }
-    });
-
-    organization = await db.organization.update({
-      where: { oid: organization.oid },
-      data: {
-        subspaceTenantId: subspaceTenant.id,
-        subspaceTenantIdentifier: subspaceTenant.identifier
       }
     });
   }
@@ -81,15 +70,16 @@ export let getTenantForSubspace = async (organization: Organization, instance: I
       id: instance.subspaceTenantId!,
       identifier: instance.subspaceTenantIdentifier!
     },
-    environment: {
-      id: instance.subspaceEnvironmentId!,
-      identifier: instance.subspaceEnvironmentIdentifier!
-    }
+    environmentId: instance.subspaceEnvironmentId!
   };
 };
 
+export let buildSubspaceMcpUrl = (instance: Instance, sessionId: string) => {
+  return `${env.subspace.SUBSPACE_CONNECTION_URL}/${env.subspace.SUBSPACE_SOLUTION}/${instance.subspaceTenantId}/sessions/${sessionId}/mcp`;
+};
+
 export let getActorForSubspace = async (
-  tenant: Awaited<ReturnType<typeof getTenantForSubspace>>['tenant'],
+  tenant: { id: string; identifier: string },
   organizationActor: OrganizationActor
 ) => {
   return await subspace.actor.upsert({

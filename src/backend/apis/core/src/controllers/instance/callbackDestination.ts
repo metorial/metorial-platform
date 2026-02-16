@@ -39,7 +39,9 @@ export let callbackDestinationController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            callback_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            callback_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by callback ID(s)'
+            })
           })
         )
       )

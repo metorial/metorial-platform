@@ -1,5 +1,15 @@
 import { CodeEditor } from '@metorial/code-editor';
-import { Checkbox, Error, Input, InputLabel, Select, theme } from '@metorial/ui';
+import {
+  AccordionSingle,
+  Checkbox,
+  Error,
+  Input,
+  InputLabel,
+  Select,
+  Text,
+  TextArrayInput,
+  theme
+} from '@metorial/ui';
 import { JSONSchema7 } from 'json-schema';
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
@@ -25,6 +35,16 @@ let FieldWrapper = styled.div`
   flex-direction: column;
 `;
 
+let NestedWrapper = styled.div`
+  padding: 12px 16px 16px 16px;
+  border: 1px solid ${theme.colors.gray300};
+  border-radius: 8px;
+  background: ${theme.colors.gray100};
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
 export let JsonSchemaInput = ({
   schema,
   value: initialValue,
@@ -32,20 +52,58 @@ export let JsonSchemaInput = ({
   label,
   variant
 }: {
-  schema: JSONSchema7;
+  schema: JSONSchema7 | null | undefined;
   value: any;
   onChange: (value: any) => any;
   label?: string;
   variant?: 'input' | 'raw';
 }) => {
+  if (!schema) {
+    return (
+      <>
+        {label && <InputLabel>{label}</InputLabel>}
+        <Text size="2" color="gray600">
+          No schema defined for this configuration.
+        </Text>
+      </>
+    );
+  }
+
   if (schema.type != 'object') return null;
 
   let properties = schema.properties ?? {};
   let required = schema.required ?? [];
 
-  let [value, setValue] = useState<any>(() => initialValue);
+  let [value, setValue] = useState<any>(() => {
+    let initial = initialValue ?? {};
+
+    Object.entries(properties).forEach(([key, property]) => {
+      if (
+        typeof property === 'object' &&
+        property.default !== undefined &&
+        initial[key] === undefined
+      ) {
+        initial[key] = property.default;
+      }
+    });
+    return initial;
+  });
+
   useEffect(() => {
-    if (initialValue != value) setValue(initialValue);
+    if (initialValue != value) {
+      let merged = initialValue ?? {};
+
+      Object.entries(properties).forEach(([key, property]) => {
+        if (
+          typeof property === 'object' &&
+          property.default !== undefined &&
+          merged[key] === undefined
+        ) {
+          merged[key] = property.default;
+        }
+      });
+      setValue(merged);
+    }
   }, [initialValue]);
 
   let updateField = (key: string, newValue: any) => {
@@ -93,17 +151,103 @@ let RenderField = ({
   property,
   isRequired,
   value,
-  updateField
+  updateField,
+  depth = 0
 }: {
   fieldKey: string;
   property: JSONSchema7;
   isRequired: boolean;
   value: any;
   updateField: (key: string, value: any) => void;
+  depth?: number;
 }) => {
   let [invalidJson, setInvalidJson] = useState(false);
 
   let label = (property.title ?? key) + (isRequired ? ' *' : '');
+
+  if (property.type === 'object' && property.properties) {
+    let nestedProperties = property.properties;
+    let nestedRequired = property.required ?? [];
+    let nestedValue = value[key] ?? {};
+
+    let updateNestedField = (nestedKey: string, newValue: any) => {
+      updateField(key, { ...nestedValue, [nestedKey]: newValue });
+    };
+
+    Object.entries(nestedProperties).forEach(([nestedKey, nestedProp]) => {
+      if (
+        typeof nestedProp === 'object' &&
+        nestedProp.default !== undefined &&
+        nestedValue[nestedKey] === undefined
+      ) {
+        nestedValue[nestedKey] = nestedProp.default;
+      }
+    });
+
+    let nestedContent = (
+      <NestedWrapper>
+        {Object.entries(nestedProperties).map(([nestedKey, nestedProp], i) => {
+          if (typeof nestedProp !== 'object') return null;
+          return (
+            <RenderField
+              key={i}
+              fieldKey={nestedKey}
+              property={nestedProp}
+              isRequired={nestedRequired.includes(nestedKey)}
+              value={nestedValue}
+              updateField={updateNestedField}
+              depth={depth + 1}
+            />
+          );
+        })}
+      </NestedWrapper>
+    );
+
+    if (depth > 0 || Object.keys(nestedProperties).length > 3) {
+      return (
+        <FieldWrapper>
+          <AccordionSingle
+            title={label}
+            defaultOpen={depth === 0}
+          >
+            {nestedContent}
+          </AccordionSingle>
+        </FieldWrapper>
+      );
+    }
+
+    return (
+      <FieldWrapper>
+        <InputLabel>{label}</InputLabel>
+        {property.description && (
+          <Text size="1" color="gray600" style={{ marginBottom: 8 }}>
+            {property.description}
+          </Text>
+        )}
+        {nestedContent}
+      </FieldWrapper>
+    );
+  }
+
+  if (
+    property.type === 'array' &&
+    property.items &&
+    typeof property.items === 'object' &&
+    !Array.isArray(property.items) &&
+    (property.items as JSONSchema7).type === 'string'
+  ) {
+    return (
+      <FieldWrapper>
+        <TextArrayInput
+          label={label}
+          description={property.description}
+          value={value[key] ?? []}
+          onChange={v => updateField(key, v)}
+          placeholder={Array.isArray((property.items as Record<string, unknown>)?.examples) ? String(((property.items as Record<string, unknown>).examples as unknown[])[0] ?? 'Enter a value') : 'Enter a value'}
+        />
+      </FieldWrapper>
+    );
+  }
 
   if (property.type == 'object' || property.type == undefined || property.type == 'array') {
     return (
@@ -112,7 +256,7 @@ let RenderField = ({
           label={label}
           description={property.description}
           height="200px"
-          value={JSON.stringify(value[key] ?? {}, null, 2)}
+          value={JSON.stringify(value[key] ?? (property.type === 'array' ? [] : {}), null, 2)}
           onChange={v => {
             try {
               updateField(key, JSON.parse(v));
@@ -138,7 +282,7 @@ let RenderField = ({
         <Checkbox
           label={label}
           description={property.description}
-          checked={value[key] ?? false}
+          checked={value[key] ?? property.default ?? false}
           onCheckedChange={v => updateField(key, v)}
         />
       </FieldWrapper>
@@ -153,7 +297,7 @@ let RenderField = ({
         <Select
           label={label}
           description={property.description}
-          value={value[key] ?? ''}
+          value={value[key] ?? property.default ?? ''}
           items={property.enum.map((v: any) => ({
             id: v,
             label: v
@@ -165,26 +309,34 @@ let RenderField = ({
     );
   }
 
+  let inputType: 'text' | 'number' | 'password' = 'text';
+  if (property.type === 'string') {
+    if ((property as any).format === 'password') {
+      inputType = 'password';
+    }
+  } else if (property.type === 'number' || property.type === 'integer') {
+    inputType = 'number';
+  }
+
   return (
     <FieldWrapper>
       <Input
         label={label}
         description={property.description}
-        type={property.type == 'string' ? 'text' : 'number'}
-        value={value[key] ?? ''}
-        autoFocus
+        type={inputType}
+        value={value[key] ?? property.default ?? ''}
         onChange={e => {
-          let value: any = String(e.target.value);
+          let val: any = String(e.target.value);
 
           if (property.type == 'number') {
-            value = parseFloat(value);
-            if (isNaN(value)) return;
+            val = parseFloat(val);
+            if (isNaN(val)) return;
           } else if (property.type == 'integer') {
-            value = parseInt(value);
-            if (isNaN(value)) return;
+            val = parseInt(val);
+            if (isNaN(val)) return;
           }
 
-          updateField(key, value);
+          updateField(key, val);
         }}
       />
     </FieldWrapper>

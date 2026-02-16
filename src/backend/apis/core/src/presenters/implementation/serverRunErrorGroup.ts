@@ -27,7 +27,9 @@ export let v1ServerRunErrorGroupPresenter = Presenter.create(serverRunErrorGroup
   }))
   .schema(
     v.object({
-      object: v.literal('server.server_run.error'),
+      object: v.literal('server.server_run.error', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',

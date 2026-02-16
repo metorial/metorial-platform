@@ -94,7 +94,11 @@ vi.mock('@metorial/error', () => ({
   badRequestError: vi.fn((msg: any) => ({ type: 'bad_request', ...msg })),
   conflictError: vi.fn((msg: any) => ({ type: 'conflict', ...msg })),
   forbiddenError: vi.fn((msg: any) => ({ type: 'forbidden', ...msg })),
-  notFoundError: vi.fn((type: string, id: string) => ({ type: 'not_found', resource: type, id })),
+  notFoundError: vi.fn((type: string, id: string) => ({
+    type: 'not_found',
+    resource: type,
+    id
+  })),
   ServiceError: class ServiceError extends Error {
     constructor(public error: any) {
       super(error.message);
@@ -187,9 +191,18 @@ vi.mock('@metorial/cron', () => ({
 // Mock queue processors
 vi.mock('../src/queues/search', () => ({
   serverDeploymentIndexAllQueueProcessor: { type: 'queue', name: 'serverDeploymentIndexAll' },
-  serverDeploymentIndexSingleQueueProcessor: { type: 'queue', name: 'serverDeploymentIndexSingle' },
-  serverImplementationIndexAllQueueProcessor: { type: 'queue', name: 'serverImplementationIndexAll' },
-  serverImplementationIndexSingleQueueProcessor: { type: 'queue', name: 'serverImplementationIndexSingle' },
+  serverDeploymentIndexSingleQueueProcessor: {
+    type: 'queue',
+    name: 'serverDeploymentIndexSingle'
+  },
+  serverImplementationIndexAllQueueProcessor: {
+    type: 'queue',
+    name: 'serverImplementationIndexAll'
+  },
+  serverImplementationIndexSingleQueueProcessor: {
+    type: 'queue',
+    name: 'serverImplementationIndexSingle'
+  },
   serverIndexCron: { type: 'cron', name: 'serverIndex' },
   indexServerDeployments: vi.fn()
 }));
@@ -214,7 +227,10 @@ vi.mock('../src/queues/serverDeploymentSetup', () => ({
 }));
 
 vi.mock('../src/queues/serverImplementationCreated', () => ({
-  serverImplementationCreatedQueueProcessor: { type: 'queue', name: 'serverImplementationCreated' },
+  serverImplementationCreatedQueueProcessor: {
+    type: 'queue',
+    name: 'serverImplementationCreated'
+  },
   serverImplementationCreatedQueue: {
     name: 'srd/impl/create',
     add: vi.fn(async () => {})
@@ -279,12 +295,24 @@ describe('Module Index Exports', () => {
     const module = await import('../src/index');
 
     expect(module.serverImplementationService).toBeDefined();
-    expect(typeof module.serverImplementationService.getServerImplementationById).toBe('function');
-    expect(typeof module.serverImplementationService.createServerImplementation).toBe('function');
-    expect(typeof module.serverImplementationService.updateServerImplementation).toBe('function');
-    expect(typeof module.serverImplementationService.deleteServerImplementation).toBe('function');
-    expect(typeof module.serverImplementationService.listServerImplementations).toBe('function');
-    expect(typeof module.serverImplementationService.ensureDefaultImplementation).toBe('function');
+    expect(typeof module.serverImplementationService.getServerImplementationById).toBe(
+      'function'
+    );
+    expect(typeof module.serverImplementationService.createServerImplementation).toBe(
+      'function'
+    );
+    expect(typeof module.serverImplementationService.updateServerImplementation).toBe(
+      'function'
+    );
+    expect(typeof module.serverImplementationService.deleteServerImplementation).toBe(
+      'function'
+    );
+    expect(typeof module.serverImplementationService.listServerImplementations).toBe(
+      'function'
+    );
+    expect(typeof module.serverImplementationService.ensureDefaultImplementation).toBe(
+      'function'
+    );
   });
 
   it('should export serverDeploymentQueueProcessor', async () => {

@@ -1,5 +1,5 @@
 import { getConfig } from '@metorial/config';
-import { Server, ServerDeployment, ServerSession, ServerVariant } from '@metorial/db';
+import { Server, ServerDeployment, ServerSession, ServerVariant, Session } from '@metorial/db';
 import { delay } from '@metorial/delay';
 import {
   badRequestError,
@@ -53,8 +53,12 @@ export let mcpConnectionHandler = async (
     );
   }
 
+  // Legacy sessions always have session on sessionInfo
+  let session = (sessionInfo as any).session as Session;
+  let sessionId = session.id;
+
   c.res.headers.set('Mcp-Session-Id', serverSession.id);
-  c.res.headers.set('Metorial-Session-Id', sessionInfo.session.id);
+  c.res.headers.set('Metorial-Session-Id', sessionId);
 
   if (c.req.method == 'DELETE') {
     // TODO: Handle this like a session delete
@@ -71,11 +75,7 @@ export let mcpConnectionHandler = async (
     );
   }
 
-  let manager = new McpServerConnection(
-    sessionInfo.session,
-    serverSession,
-    sessionInfo.instance
-  );
+  let manager = new McpServerConnection(session, serverSession, sessionInfo.instance);
 
   if (connectionType == 'websocket') {
     let { onMessage, close } = await manager.ensureReceiveConnection();
@@ -118,7 +118,7 @@ export let mcpConnectionHandler = async (
         async stream => {
           if (opts.sessionCreated) {
             let endpointUrl = new URL(
-              `/mcp/${sessionInfo.session.id}/${serverSession.serverDeployment.id}/sse?metorial_server_session_id=${serverSession.id}&key=${sessionInfo.session.clientSecretValue}`,
+              `/mcp/${sessionId}/${serverSession.serverDeployment.id}/sse?metorial_server_session_id=${serverSession.id}&key=${session.clientSecretValue}`,
               getConfig().urls.mcpUrl
             ).toString();
 

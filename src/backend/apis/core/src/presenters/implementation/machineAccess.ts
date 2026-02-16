@@ -15,6 +15,11 @@ export let v1MachineAccessPresenter = Presenter.create(machineAccessType)
     type: machineAccess.type,
     name: machineAccess.name,
 
+    last_used_at: machineAccess.lastUsedAt,
+    created_at: machineAccess.createdAt,
+    updated_at: machineAccess.updatedAt,
+    deleted_at: machineAccess.deletedAt,
+
     actor:
       machineAccess.actor && machineAccess.organization
         ? await v1OrganizationActorPresenter
@@ -62,47 +67,59 @@ export let v1MachineAccessPresenter = Presenter.create(machineAccessType)
             opts
           )
           .run()
-      : null,
-
-    deleted_at: machineAccess.deletedAt,
-    last_used_at: machineAccess.lastUsedAt,
-    created_at: machineAccess.createdAt,
-    updated_at: machineAccess.updatedAt
+      : null
   }))
   .schema(
     v.object({
-      object: v.literal('machine_access'),
+      object: v.literal('machine_access', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({ name: 'id', description: `The machineAccess's unique identifier` }),
+
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
         description: `The machineAccess's status`
       }),
+
       type: v.enumOf(['organization_management', 'instance_secret', 'instance_publishable'], {
         name: 'type',
         description: `The machineAccess's type`
       }),
+
       name: v.string({ name: 'name', description: `The machineAccess's name` }),
-      actor: v.nullable(v1OrganizationActorPresenter.schema),
-      instance: v.nullable(v1InstancePresenter.schema),
-      organization: v.nullable(v1OrganizationPresenter.schema),
-      user: v.nullable(v1UserPresenter.schema),
-      deleted_at: v.date({
-        name: 'deleted_at',
-        description: `The machineAccess's deletion date`
-      }),
+
       last_used_at: v.date({
         name: 'last_used_at',
-        description: `The machineAccess's last used date`
+        description: `The machineAccess's last used date`,
+        examples: [new Date('2024-01-15T09:30:00Z')]
       }),
+
       created_at: v.date({
         name: 'created_at',
-        description: `The machineAccess's creation date`
+        description: `The machineAccess's creation date`,
+        examples: [new Date('2024-01-15T09:30:00Z')]
       }),
+
       updated_at: v.date({
         name: 'updated_at',
-        description: `The machineAccess's last update date`
-      })
+        description: `The machineAccess's last update date`,
+        examples: [new Date('2024-01-15T09:30:00Z')]
+      }),
+
+      deleted_at: v.date({
+        name: 'deleted_at',
+        description: `The machineAccess's deletion date`,
+        examples: [new Date('2024-01-15T09:30:00Z')]
+      }),
+
+      actor: v.nullable(v1OrganizationActorPresenter.schema),
+
+      instance: v.nullable(v1InstancePresenter.schema),
+
+      organization: v.nullable(v1OrganizationPresenter.schema),
+
+      user: v.nullable(v1UserPresenter.schema)
     })
   )
   .build();

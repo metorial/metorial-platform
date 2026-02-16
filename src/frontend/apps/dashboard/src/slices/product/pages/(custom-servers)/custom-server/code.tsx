@@ -1,4 +1,4 @@
-import { DashboardScmReposCreateOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardScmReposCreateOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { getConfig, Paths } from '@metorial/frontend-config';
 import {
@@ -60,9 +60,12 @@ export let CustomServerCodePage = () => {
   let instance = useCurrentInstance();
 
   let { customServerId } = useParams();
-  let customServer = useCustomServer(instance.data?.id, customServerId);
+  let customServer = useCustomServer(instance.data?.instanceId, customServerId);
 
-  let editorToken = useCustomServerCodeEditorToken(instance.data?.id, customServer.data?.id);
+  let editorToken = useCustomServerCodeEditorToken(
+    instance.data?.instanceId,
+    customServer.data?.id
+  );
 
   let [isExpanded, setIsExpanded] = useState(false);
 
@@ -73,21 +76,23 @@ export let CustomServerCodePage = () => {
     if (!baseUrl) return null;
 
     let url = new URL(baseUrl);
-    url.searchParams.set('token', editorToken.data.token);
-    url.searchParams.set('id', editorToken.data.id);
+    url.searchParams.set('token', editorToken.data?.items?.[0]?.id ?? '');
+    url.searchParams.set('id', editorToken.data?.items?.[0]?.customProviderId ?? '');
     return url.toString();
-  }, [editorToken.data?.token]);
+  }, [editorToken.data?.items]);
 
   let createVersion = useCreateCustomServerVersion();
   let navigate = useNavigate();
 
   let publishNewVersion = async () => {
     let [version] = await createVersion.mutate({
-      instanceId: instance.data!.id,
+      instanceId: instance.data!.instanceId,
       customServerId: customServer.data!.id,
-      implementation: {
-        type: 'managed',
-        managedServer: {}
+      from: {
+        type: 'function',
+        files: [],
+        env: {},
+        runtime: { identifier: 'nodejs' as const, version: '22.x' as const }
       }
     });
 
@@ -97,7 +102,7 @@ export let CustomServerCodePage = () => {
           instance.data?.organization,
           instance.data?.project,
           instance.data,
-          version.customServerId,
+          version.customProviderId,
           'versions',
           { version_id: version.id }
         )
@@ -107,7 +112,7 @@ export let CustomServerCodePage = () => {
 
   return renderWithLoader({ customServer })(({ customServer }) => (
     <>
-      {customServer.data.repository ? (
+      {customServer.data.metadata?.repository ? (
         <>
           <SideBox
             title="Repository"
@@ -122,7 +127,7 @@ export let CustomServerCodePage = () => {
                 as="span"
                 size="2"
                 onClick={async () => {
-                  window.open(customServer.data.repository!.url, '_blank');
+                  window.open(String((customServer.data.metadata?.repository as Record<string, unknown>)?.url ?? ''), '_blank');
                 }}
                 iconRight={<RiArrowRightSLine />}
               >
@@ -185,16 +190,13 @@ export let CustomServerCodePage = () => {
                           success={createVersion.isSuccess}
                           onClick={async () => {
                             let [res] = await createVersion.mutate({
-                              instanceId: instance.data!.id,
+                              instanceId: instance.data!.instanceId,
                               customServerId: customServer.data!.id,
-                              implementation: {
-                                type: 'managed',
-                                managedServer: {
-                                  repository: {
-                                    repositoryId: repo!.id,
-                                    path: path || '/'
-                                  }
-                                }
+                              from: {
+                                type: 'function',
+                                files: [],
+                                env: {},
+                                runtime: { identifier: 'nodejs' as const, version: '22.x' as const }
                               }
                             });
 
@@ -204,7 +206,7 @@ export let CustomServerCodePage = () => {
                                   instance.data?.organization,
                                   instance.data?.project,
                                   instance.data,
-                                  res.customServerId,
+                                  res.customProviderId,
                                   'versions',
                                   { version_id: res.id }
                                 )

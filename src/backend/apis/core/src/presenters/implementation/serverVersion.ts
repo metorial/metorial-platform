@@ -45,17 +45,39 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
         ? JSON.parse(serverVersion.schema.schema)
         : serverVersion.schema.schema,
 
-    server: v1ServerPreview(serverVersion.server),
+    created_at: serverVersion.createdAt,
 
-    created_at: serverVersion.createdAt
+    server: v1ServerPreview(serverVersion.server)
   }))
   .schema(
     v.object({
-      object: v.literal('server.server_version'),
+      object: v.literal('server.server_version', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',
         description: 'The unique identifier of the server version'
+      }),
+
+      identifier: v.string({
+        name: 'identifier',
+        description: 'A unique string identifier for the server version'
+      }),
+
+      server_id: v.string({
+        name: 'server_id',
+        description: 'The ID of the associated server'
+      }),
+
+      server_variant_id: v.string({
+        name: 'server_variant_id',
+        description: 'The ID of the associated server variant'
+      }),
+
+      get_launch_params: v.string({
+        name: 'get_launch_params',
+        description: 'Parameters used to launch this server version'
       }),
 
       oauth: v.union(
@@ -77,26 +99,6 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
           description: 'OAuth configuration for the server version'
         }
       ),
-
-      identifier: v.string({
-        name: 'identifier',
-        description: 'A unique string identifier for the server version'
-      }),
-
-      server_id: v.string({
-        name: 'server_id',
-        description: 'The ID of the associated server'
-      }),
-
-      server_variant_id: v.string({
-        name: 'server_variant_id',
-        description: 'The ID of the associated server variant'
-      }),
-
-      get_launch_params: v.string({
-        name: 'get_launch_params',
-        description: 'Parameters used to launch this server version'
-      }),
 
       source: v.union(
         [
@@ -134,12 +136,13 @@ export let v1ServerVersionPresenter = Presenter.create(serverVersionType)
         description: 'The actual schema definition'
       }),
 
-      server: v1ServerPreview.schema,
-
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the server version was created'
-      })
+        description: 'Timestamp when the server version was created',
+        examples: [new Date('2024-01-15T09:30:00Z')]
+      }),
+
+      server: v1ServerPreview.schema
     })
   )
   .build();

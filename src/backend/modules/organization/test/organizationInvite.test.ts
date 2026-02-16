@@ -18,17 +18,19 @@ vi.mock('@metorial/db', () => ({
   ID: {
     generateId: vi.fn()
   },
-  withTransaction: vi.fn((callback) => callback({
-    organizationInvite: {
-      create: vi.fn(),
-      update: vi.fn(),
-      findFirst: vi.fn(),
-      findMany: vi.fn()
-    },
-    organizationMember: {
-      findFirst: vi.fn()
-    }
-  }))
+  withTransaction: vi.fn(callback =>
+    callback({
+      organizationInvite: {
+        create: vi.fn(),
+        update: vi.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn()
+      },
+      organizationMember: {
+        findFirst: vi.fn()
+      }
+    })
+  )
 }));
 
 vi.mock('@metorial/fabric', () => ({
@@ -39,7 +41,7 @@ vi.mock('@metorial/fabric', () => ({
 
 vi.mock('@metorial/pagination', () => ({
   Paginator: {
-    create: vi.fn((fn) => fn)
+    create: vi.fn(fn => fn)
   }
 }));
 
@@ -95,7 +97,7 @@ describe('OrganizationInviteService', () => {
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-1');
         vi.mocked(generateCustomId).mockReturnValue('metorial_inv_abc123');
-        vi.mocked(withTransaction).mockImplementation(async (callback) => {
+        vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationMember: {
               findFirst: vi.fn().mockResolvedValue(null)
@@ -131,10 +133,16 @@ describe('OrganizationInviteService', () => {
           },
           to: ['newuser@example.com']
         });
-        expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.created:before', expect.any(Object));
-        expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.created:after', expect.objectContaining({
-          invite: mockInvite
-        }));
+        expect(Fabric.fire).toHaveBeenCalledWith(
+          'organization.invitation.created:before',
+          expect.any(Object)
+        );
+        expect(Fabric.fire).toHaveBeenCalledWith(
+          'organization.invitation.created:after',
+          expect.objectContaining({
+            invite: mockInvite
+          })
+        );
       });
 
       it('should create an email invite without message', async () => {
@@ -155,7 +163,7 @@ describe('OrganizationInviteService', () => {
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-1');
         vi.mocked(generateCustomId).mockReturnValue('metorial_inv_xyz789');
-        vi.mocked(withTransaction).mockImplementation(async (callback) => {
+        vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationMember: {
               findFirst: vi.fn().mockResolvedValue(null)
@@ -199,7 +207,7 @@ describe('OrganizationInviteService', () => {
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-1');
         vi.mocked(generateCustomId).mockReturnValue('metorial_inv_admin');
-        vi.mocked(withTransaction).mockImplementation(async (callback) => {
+        vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationMember: {
               findFirst: vi.fn().mockResolvedValue(null)
@@ -244,7 +252,7 @@ describe('OrganizationInviteService', () => {
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-1');
         vi.mocked(generateCustomId).mockReturnValue('metorial_inv_test');
-        vi.mocked(withTransaction).mockImplementation(async (callback) => {
+        vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationInvite: {
               create: vi.fn().mockResolvedValue(mockInvite)
@@ -287,7 +295,7 @@ describe('OrganizationInviteService', () => {
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-2');
         vi.mocked(generateCustomId).mockReturnValue('metorial_inv_test2');
-        vi.mocked(withTransaction).mockImplementation(async (callback) => {
+        vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationInvite: {
               create: vi.fn().mockResolvedValue(mockInvite)
@@ -333,7 +341,7 @@ describe('OrganizationInviteService', () => {
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-2');
         vi.mocked(generateCustomId).mockReturnValue('metorial_inv_new');
-        vi.mocked(withTransaction).mockImplementation(async (callback) => {
+        vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationMember: {
               findFirst: vi.fn().mockResolvedValue(null)
@@ -384,7 +392,7 @@ describe('OrganizationInviteService', () => {
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-1');
         vi.mocked(generateCustomId).mockReturnValue('metorial_inv_link123');
-        vi.mocked(withTransaction).mockImplementation(async (callback) => {
+        vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationInvite: {
               create: vi.fn().mockResolvedValue(mockInvite)
@@ -408,10 +416,16 @@ describe('OrganizationInviteService', () => {
         expect(result.email).toBeNull();
         expect(result.message).toBeNull();
         expect(sendOrgInviteEmail.send).not.toHaveBeenCalled();
-        expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.created:before', expect.any(Object));
-        expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.created:after', expect.objectContaining({
-          invite: mockInvite
-        }));
+        expect(Fabric.fire).toHaveBeenCalledWith(
+          'organization.invitation.created:before',
+          expect.any(Object)
+        );
+        expect(Fabric.fire).toHaveBeenCalledWith(
+          'organization.invitation.created:after',
+          expect.objectContaining({
+            invite: mockInvite
+          })
+        );
       });
 
       it('should not send email for link invites', async () => {
@@ -427,7 +441,7 @@ describe('OrganizationInviteService', () => {
 
         vi.mocked(ID.generateId).mockResolvedValue('invite-1');
         vi.mocked(generateCustomId).mockReturnValue('metorial_inv_link');
-        vi.mocked(withTransaction).mockImplementation(async (callback) => {
+        vi.mocked(withTransaction).mockImplementation(async callback => {
           let mockDb = {
             organizationInvite: {
               create: vi.fn().mockResolvedValue(mockInvite)
@@ -464,7 +478,7 @@ describe('OrganizationInviteService', () => {
         invitedBy: mockPerformedBy
       };
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: vi.fn().mockResolvedValue(deletedInvite)
@@ -482,10 +496,16 @@ describe('OrganizationInviteService', () => {
 
       expect(result.status).toBe('deleted');
       expect(result.deletedAt).toBeDefined();
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.deleted:before', expect.any(Object));
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.deleted:after', expect.objectContaining({
-        invite: deletedInvite
-      }));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.deleted:before',
+        expect.any(Object)
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.deleted:after',
+        expect.objectContaining({
+          invite: deletedInvite
+        })
+      );
     });
 
     it('should throw forbidden error when trying to delete already deleted invite', async () => {
@@ -507,7 +527,7 @@ describe('OrganizationInviteService', () => {
 
       // Test email invite
       let emailInvite = { id: 'invite-1', oid: 1, status: 'pending', type: 'email' };
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: vi.fn().mockResolvedValue({
@@ -532,7 +552,7 @@ describe('OrganizationInviteService', () => {
 
       // Test link invite
       let linkInvite = { id: 'invite-2', oid: 2, status: 'pending', type: 'link' };
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: vi.fn().mockResolvedValue({
@@ -569,7 +589,7 @@ describe('OrganizationInviteService', () => {
         invitedBy: mockPerformedBy
       };
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: vi.fn().mockResolvedValue(updatedInvite)
@@ -589,10 +609,16 @@ describe('OrganizationInviteService', () => {
       });
 
       expect(result.role).toBe('admin');
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.updated:before', expect.any(Object));
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.updated:after', expect.objectContaining({
-        invite: updatedInvite
-      }));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.updated:before',
+        expect.any(Object)
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.updated:after',
+        expect.objectContaining({
+          invite: updatedInvite
+        })
+      );
     });
 
     it('should update role from admin to member', async () => {
@@ -604,7 +630,7 @@ describe('OrganizationInviteService', () => {
         invitedBy: { id: 'actor-1', oid: 1 }
       };
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: vi.fn().mockResolvedValue(updatedInvite)
@@ -647,8 +673,14 @@ describe('OrganizationInviteService', () => {
       let mockPerformedBy = { id: 'actor-1', oid: 1 };
 
       // Email invite
-      let emailInvite = { id: 'invite-1', oid: 1, status: 'pending', type: 'email', role: 'member' };
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      let emailInvite = {
+        id: 'invite-1',
+        oid: 1,
+        status: 'pending',
+        type: 'email',
+        role: 'member'
+      };
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: vi.fn().mockResolvedValue({
@@ -673,8 +705,14 @@ describe('OrganizationInviteService', () => {
       expect(result1.role).toBe('admin');
 
       // Link invite
-      let linkInvite = { id: 'invite-2', oid: 2, status: 'pending', type: 'link', role: 'member' };
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      let linkInvite = {
+        id: 'invite-2',
+        oid: 2,
+        status: 'pending',
+        type: 'link',
+        role: 'member'
+      };
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: vi.fn().mockResolvedValue({
@@ -717,7 +755,7 @@ describe('OrganizationInviteService', () => {
         invitedBy: mockPerformedBy
       };
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             findFirst: vi.fn().mockResolvedValue(recentLink)
@@ -755,7 +793,7 @@ describe('OrganizationInviteService', () => {
       vi.mocked(generateCustomId).mockReturnValue('metorial_inv_newlink');
 
       let callCount = 0;
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         callCount++;
         if (callCount === 1) {
           // First call: check for existing link
@@ -808,7 +846,7 @@ describe('OrganizationInviteService', () => {
       vi.mocked(generateCustomId).mockReturnValue('metorial_inv_newlink999');
 
       let callCount = 0;
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         callCount++;
         if (callCount === 1) {
           // First call: check for existing link (none found)
@@ -855,7 +893,7 @@ describe('OrganizationInviteService', () => {
         invitedBy: mockPerformedBy1
       };
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             findFirst: vi.fn().mockResolvedValue(link1)
@@ -1068,7 +1106,7 @@ describe('OrganizationInviteService', () => {
 
       vi.mocked(ID.generateId).mockResolvedValue('invite-1');
       vi.mocked(generateCustomId).mockReturnValue('metorial_inv_test');
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
             findFirst: vi.fn().mockResolvedValue(null)
@@ -1123,7 +1161,7 @@ describe('OrganizationInviteService', () => {
         invitedBy: { id: 'actor-1', oid: 1 }
       };
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: vi.fn().mockResolvedValue(deletedInvite)
@@ -1170,7 +1208,7 @@ describe('OrganizationInviteService', () => {
         .mockReturnValueOnce('metorial_inv_key1')
         .mockReturnValueOnce('metorial_inv_key2');
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
             findFirst: vi.fn().mockResolvedValue(null)
@@ -1214,7 +1252,7 @@ describe('OrganizationInviteService', () => {
 
       vi.mocked(ID.generateId).mockResolvedValue('invite-1');
       vi.mocked(generateCustomId).mockReturnValue('metorial_inv_test');
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             create: vi.fn().mockResolvedValue({
@@ -1235,14 +1273,20 @@ describe('OrganizationInviteService', () => {
         performedBy: mockPerformedBy as any
       });
 
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.created:before', expect.any(Object));
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.created:after', expect.any(Object));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.created:before',
+        expect.any(Object)
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.created:after',
+        expect.any(Object)
+      );
     });
 
     it('should fire before and after events on delete', async () => {
       let mockInvite = { id: 'invite-1', oid: 1, status: 'pending' };
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: vi.fn().mockResolvedValue({
@@ -1263,14 +1307,20 @@ describe('OrganizationInviteService', () => {
         performedBy: { id: 'actor-1', oid: 1 } as any
       });
 
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.deleted:before', expect.any(Object));
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.deleted:after', expect.any(Object));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.deleted:before',
+        expect.any(Object)
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.deleted:after',
+        expect.any(Object)
+      );
     });
 
     it('should fire before and after events on update', async () => {
       let mockInvite = { id: 'invite-1', oid: 1, status: 'pending', role: 'member' };
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationInvite: {
             update: vi.fn().mockResolvedValue({
@@ -1292,8 +1342,14 @@ describe('OrganizationInviteService', () => {
         performedBy: { id: 'actor-1', oid: 1 } as any
       });
 
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.updated:before', expect.any(Object));
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.invitation.updated:after', expect.any(Object));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.updated:before',
+        expect.any(Object)
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.invitation.updated:after',
+        expect.any(Object)
+      );
     });
   });
 });

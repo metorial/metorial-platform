@@ -13,7 +13,6 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
 
     id: serverDeployment.id,
     status: serverDeployment.status,
-
     name: serverDeployment.name,
     description: serverDeployment.description,
 
@@ -28,6 +27,9 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
         { status: 'active' },
 
     metadata: serverDeployment.metadata ?? {},
+
+    created_at: serverDeployment.createdAt,
+    updated_at: serverDeployment.updatedAt,
 
     oauth_connection: serverDeployment.oauthConnection
       ? await v1ProviderOauthConnectionPresenter
@@ -59,14 +61,13 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
               }
             : { status: 'disabled' }
         }
-      : null,
-
-    created_at: serverDeployment.createdAt,
-    updated_at: serverDeployment.updatedAt
+      : null
   }))
   .schema(
     v.object({
-      object: v.literal('server.server_deployment'),
+      object: v.literal('server.server_deployment', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',
@@ -89,10 +90,6 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
           description: 'An optional description of the server deployment'
         })
       ),
-
-      oauth_connection: v.nullable(v1ProviderOauthConnectionPresenter.schema),
-
-      callback: v.nullable(v1CallbackPresenter.schema),
 
       result: v.union(
         [
@@ -139,10 +136,19 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
         description: 'Additional arbitrary metadata related to the server deployment'
       }),
 
-      secret_id: v.string({
-        name: 'secret_id',
-        description: 'Identifier for associated secrets related to this deployment'
+      created_at: v.date({
+        name: 'created_at',
+        description: 'Timestamp when the server deployment was created'
       }),
+
+      updated_at: v.date({
+        name: 'updated_at',
+        description: 'Timestamp when the server deployment was last updated'
+      }),
+
+      oauth_connection: v.nullable(v1ProviderOauthConnectionPresenter.schema),
+
+      callback: v.nullable(v1CallbackPresenter.schema),
 
       server: v1ServerPreview.schema,
 
@@ -194,17 +200,7 @@ export let v1ServerDeploymentPresenter = Presenter.create(serverDeploymentType)
             }
           )
         })
-      ),
-
-      created_at: v.date({
-        name: 'created_at',
-        description: 'Timestamp when the server deployment was created'
-      }),
-
-      updated_at: v.date({
-        name: 'updated_at',
-        description: 'Timestamp when the server deployment was last updated'
-      })
+      )
     })
   )
   .build();

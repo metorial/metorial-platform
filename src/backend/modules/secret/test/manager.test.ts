@@ -189,7 +189,9 @@ describe('SecretStoreManager', () => {
         decrypt: mockDecrypt
       });
 
-      await expect(manager.encryptSecret(mockSecret, 'data')).rejects.toThrow('Encryption failed');
+      await expect(manager.encryptSecret(mockSecret, 'data')).rejects.toThrow(
+        'Encryption failed'
+      );
     });
 
     it('should handle large data', async () => {
@@ -274,7 +276,9 @@ describe('SecretStoreManager', () => {
         decrypt: errorDecrypt
       });
 
-      await expect(manager.decryptSecret(mockSecret, 'data')).rejects.toThrow('Decryption failed');
+      await expect(manager.decryptSecret(mockSecret, 'data')).rejects.toThrow(
+        'Decryption failed'
+      );
     });
 
     it('should handle corrupted data', async () => {
@@ -291,7 +295,9 @@ describe('SecretStoreManager', () => {
         decrypt: corruptDecrypt
       });
 
-      await expect(manager.decryptSecret(mockSecret, 'corrupted')).rejects.toThrow('Invalid ciphertext');
+      await expect(manager.decryptSecret(mockSecret, 'corrupted')).rejects.toThrow(
+        'Invalid ciphertext'
+      );
     });
   });
 

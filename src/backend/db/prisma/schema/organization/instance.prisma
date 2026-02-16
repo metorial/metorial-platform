@@ -77,4 +77,14 @@ model Instance {
   serverDeploymentTemplates ServerDeploymentTemplate[]
   serverListingCollections  ServerListingCollection[]
   dockerServerInstances     DockerServerInstance[]
+
+  subspaceReferenceDeployments       SubspaceReferenceDeployment[]
+  subspaceReferenceConfigs           SubspaceReferenceConfig[]
+  subspaceReferenceConfigVaults      SubspaceReferenceConfigVault[]
+  subspaceReferenceAuthConfigs       SubspaceReferenceAuthConfig[]
+  subspaceReferenceAuthCredentials   SubspaceReferenceAuthCredentials[]
+  subspaceReferenceGroups            SubspaceReferenceGroup[]
+  subspaceReferenceSetupSessions     SubspaceReferenceSetupSession[]
+  subspaceReferenceAuthImports       SubspaceReferenceAuthImport[]
+  subspaceReferenceAuthExports       SubspaceReferenceAuthExport[]
 }

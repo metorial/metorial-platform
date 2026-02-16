@@ -25,7 +25,8 @@ export let magicMcpGroupController = Controller.create(
   {
     name: 'Magic MCP Group',
     description:
-      'Before you can connect to an MCP server, you need to create a magic MCP group.'
+      'Before you can connect to an MCP server, you need to create a magic MCP group.',
+    deprecated: true
   },
   {
     list: instanceGroup
@@ -50,9 +51,10 @@ export let magicMcpGroupController = Controller.create(
               v.union([
                 v.enumOf(Object.keys(MagicMcpGroupStatus) as any),
                 v.array(v.enumOf(Object.keys(MagicMcpGroupStatus) as any))
-              ])
+              ]),
+              { description: 'Filter by group status' }
             ),
-            search: v.optional(v.string())
+            search: v.optional(v.string(), { description: 'Search groups by name' })
           })
         )
       )

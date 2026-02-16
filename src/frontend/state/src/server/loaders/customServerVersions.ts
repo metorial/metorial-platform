@@ -1,7 +1,7 @@
 import {
-  DashboardInstanceCustomServersVersionsCreateBody,
-  DashboardInstanceCustomServersVersionsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+  DashboardInstanceCustomProvidersVersionsCreateBody,
+  DashboardInstanceCustomProvidersVersionsListQuery
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader, useMutation } from '@metorial/data-hooks';
 import useInterval from 'use-interval';
 import { usePaginator } from '../../lib/usePaginator';
@@ -14,34 +14,34 @@ export let customServerVersionsLoader = createLoader({
     i: {
       instanceId: string;
       customServerId: string;
-    } & DashboardInstanceCustomServersVersionsListQuery
-  ) => withAuth(sdk => sdk.customServers.versions.list(i.instanceId, i.customServerId, i)),
+    } & DashboardInstanceCustomProvidersVersionsListQuery
+  ) => withAuth(sdk => sdk.customProviders.versions.list(i.instanceId, i.customServerId, i)),
   mutators: {}
 });
 
 export let useCreateCustomServerVersion = customServerVersionsLoader.createExternalMutator(
   (
-    i: DashboardInstanceCustomServersVersionsCreateBody & {
+    i: DashboardInstanceCustomProvidersVersionsCreateBody & {
       instanceId: string;
       customServerId: string;
     }
-  ) => withAuth(sdk => sdk.customServers.versions.create(i.instanceId, i.customServerId, i))
+  ) => withAuth(sdk => sdk.customProviders.versions.create(i.instanceId, i.customServerId, i))
 );
 
 export let useListServerVersions = () =>
   useMutation(
     (
-      i: DashboardInstanceCustomServersVersionsListQuery & {
+      i: DashboardInstanceCustomProvidersVersionsListQuery & {
         instanceId: string;
         customServerId: string;
       }
-    ) => withAuth(sdk => sdk.customServers.versions.list(i.instanceId, i.customServerId, i))
+    ) => withAuth(sdk => sdk.customProviders.versions.list(i.instanceId, i.customServerId, i))
   );
 
 export let useCustomServerVersions = (
   instanceId: string | null | undefined,
   customServerId: string | null | undefined,
-  query?: DashboardInstanceCustomServersVersionsListQuery
+  query?: DashboardInstanceCustomProvidersVersionsListQuery
 ) => {
   let data = usePaginator(pagination =>
     customServerVersionsLoader.use(
@@ -52,7 +52,7 @@ export let useCustomServerVersions = (
   );
 
   useInterval(() => {
-    let hasDeploying = data.data?.items.some(i => i.status == 'deploying');
+    let hasDeploying = data.data?.items.some((i: { status: string | null }) => i.status == 'deploying');
     if (!hasDeploying) return;
 
     data.refetch();
@@ -66,7 +66,7 @@ export let customServerVersionLoader = createLoader({
   parents: [customServerVersionsLoader],
   fetch: (i: { instanceId: string; customServerId: string; customServerVersionId: string }) =>
     withAuth(sdk =>
-      sdk.customServers.versions.get(i.instanceId, i.customServerId, i.customServerVersionId)
+      sdk.customProviders.versions.get(i.instanceId, i.customServerId, i.customServerVersionId)
     ),
   mutators: {}
 });

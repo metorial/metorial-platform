@@ -22,7 +22,7 @@ describe('flagService', () => {
   describe('getFlags method', () => {
     it('should return default flags', async () => {
       const mockParams: FlagProviderParams = {
-        organization: { id: 'org-1' } as any,
+        organization: { id: 'org-1' } as any
       };
 
       const flags = await flagService.getFlags(mockParams);
@@ -32,7 +32,7 @@ describe('flagService', () => {
     it('should work with user parameter', async () => {
       const mockParams: FlagProviderParams = {
         organization: { id: 'org-1' } as any,
-        user: { id: 'user-1', name: 'Test User' } as any,
+        user: { id: 'user-1', name: 'Test User' } as any
       };
 
       const flags = await flagService.getFlags(mockParams);
@@ -42,7 +42,7 @@ describe('flagService', () => {
     it('should work with machineAccess parameter', async () => {
       const mockParams: FlagProviderParams = {
         organization: { id: 'org-1' } as any,
-        machineAccess: { id: 'machine-1' } as any,
+        machineAccess: { id: 'machine-1' } as any
       };
 
       const flags = await flagService.getFlags(mockParams);
@@ -53,7 +53,7 @@ describe('flagService', () => {
       const mockParams: FlagProviderParams = {
         organization: { id: 'org-1', name: 'Test Org' } as any,
         user: { id: 'user-1', name: 'Test User' } as any,
-        machineAccess: { id: 'machine-1' } as any,
+        machineAccess: { id: 'machine-1' } as any
       };
 
       const flags = await flagService.getFlags(mockParams);
@@ -65,13 +65,13 @@ describe('flagService', () => {
         ...defaultFlags,
         'test-flag': true,
         'metorial-gateway-enabled': false,
-        'magic-mcp-enabled': true,
+        'magic-mcp-enabled': true
       };
 
       setFlagProvider(async () => customFlags);
 
       const mockParams: FlagProviderParams = {
-        organization: { id: 'org-1' } as any,
+        organization: { id: 'org-1' } as any
       };
 
       const flags = await flagService.getFlags(mockParams);
@@ -86,7 +86,7 @@ describe('flagService', () => {
         if (params.organization.id === 'special-org') {
           return {
             ...defaultFlags,
-            'community-profiles-enabled': true,
+            'community-profiles-enabled': true
           };
         }
         return defaultFlags;
@@ -95,7 +95,7 @@ describe('flagService', () => {
       setFlagProvider(mockProvider);
 
       const mockParams: FlagProviderParams = {
-        organization: { id: 'special-org' } as any,
+        organization: { id: 'special-org' } as any
       };
 
       const flags = await flagService.getFlags(mockParams);
@@ -113,7 +113,7 @@ describe('flagService', () => {
       setFlagProvider(errorProvider);
 
       const mockParams: FlagProviderParams = {
-        organization: { id: 'org-1' } as any,
+        organization: { id: 'org-1' } as any
       };
 
       await expect(flagService.getFlags(mockParams)).rejects.toThrow('Flag provider error');
@@ -124,14 +124,14 @@ describe('flagService', () => {
         await new Promise(resolve => setTimeout(resolve, 20));
         return {
           ...defaultFlags,
-          'paid-oauth-takeout': false,
+          'paid-oauth-takeout': false
         };
       };
 
       setFlagProvider(delayedProvider);
 
       const mockParams: FlagProviderParams = {
-        organization: { id: 'org-1' } as any,
+        organization: { id: 'org-1' } as any
       };
 
       const startTime = Date.now();
@@ -145,23 +145,23 @@ describe('flagService', () => {
 
   describe('service behavior with dynamic providers', () => {
     it('should support user-based flag variations', async () => {
-      setFlagProvider(async (params) => {
+      setFlagProvider(async params => {
         const isAdmin = params.user?.id === 'admin-123';
         return {
           ...defaultFlags,
           'magic-mcp-enabled': isAdmin,
-          'managed-servers-enabled': isAdmin,
+          'managed-servers-enabled': isAdmin
         };
       });
 
       const adminParams: FlagProviderParams = {
         organization: { id: 'org-1' } as any,
-        user: { id: 'admin-123' } as any,
+        user: { id: 'admin-123' } as any
       };
 
       const regularParams: FlagProviderParams = {
         organization: { id: 'org-1' } as any,
-        user: { id: 'user-456' } as any,
+        user: { id: 'user-456' } as any
       };
 
       const adminFlags = await flagService.getFlags(adminParams);
@@ -174,21 +174,21 @@ describe('flagService', () => {
     });
 
     it('should support organization-based flag variations', async () => {
-      setFlagProvider(async (params) => {
+      setFlagProvider(async params => {
         const isPremium = params.organization.id === 'premium-org';
         return {
           ...defaultFlags,
           'community-profiles-enabled': isPremium,
-          'custom-servers-remote-enabled': isPremium,
+          'custom-servers-remote-enabled': isPremium
         };
       });
 
       const premiumParams: FlagProviderParams = {
-        organization: { id: 'premium-org' } as any,
+        organization: { id: 'premium-org' } as any
       };
 
       const freeParams: FlagProviderParams = {
-        organization: { id: 'free-org' } as any,
+        organization: { id: 'free-org' } as any
       };
 
       const premiumFlags = await flagService.getFlags(premiumParams);
@@ -208,7 +208,7 @@ describe('flagService', () => {
       });
 
       const mockParams: FlagProviderParams = {
-        organization: { id: 'org-1' } as any,
+        organization: { id: 'org-1' } as any
       };
 
       const promises = [
@@ -216,7 +216,7 @@ describe('flagService', () => {
         flagService.getFlags(mockParams),
         flagService.getFlags(mockParams),
         flagService.getFlags(mockParams),
-        flagService.getFlags(mockParams),
+        flagService.getFlags(mockParams)
       ];
 
       const results = await Promise.all(promises);
@@ -232,7 +232,7 @@ describe('flagService', () => {
   describe('edge cases', () => {
     it('should handle empty organization object', async () => {
       const mockParams: FlagProviderParams = {
-        organization: {} as any,
+        organization: {} as any
       };
 
       const flags = await flagService.getFlags(mockParams);
@@ -244,7 +244,7 @@ describe('flagService', () => {
       const mockParams: FlagProviderParams = {
         organization: { id: 'org-1' } as any,
         user: undefined,
-        machineAccess: undefined,
+        machineAccess: undefined
       };
 
       const flags = await flagService.getFlags(mockParams);
@@ -255,17 +255,17 @@ describe('flagService', () => {
       const firstProvider = async (): Promise<Flags> => ({
         ...defaultFlags,
         'test-flag': true,
-        'magic-mcp-enabled': false,
+        'magic-mcp-enabled': false
       });
 
       const secondProvider = async (): Promise<Flags> => ({
         ...defaultFlags,
         'test-flag': false,
-        'magic-mcp-enabled': true,
+        'magic-mcp-enabled': true
       });
 
       const mockParams: FlagProviderParams = {
-        organization: { id: 'org-1' } as any,
+        organization: { id: 'org-1' } as any
       };
 
       setFlagProvider(firstProvider);
@@ -283,7 +283,7 @@ describe('flagService', () => {
       setFlagProvider(() => Promise.reject(new Error('Network error')));
 
       const mockParams: FlagProviderParams = {
-        organization: { id: 'org-1' } as any,
+        organization: { id: 'org-1' } as any
       };
 
       await expect(flagService.getFlags(mockParams)).rejects.toThrow('Network error');

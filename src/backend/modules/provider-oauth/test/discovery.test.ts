@@ -16,10 +16,21 @@ vi.mock('@metorial/ssrf', () => ({
 import { axiosWithoutSse } from '@metorial/axios-sse';
 
 // Helper to create mock axios response
-const createMockResponse = <T>(data: T, status: number = 200, headers: any = {}): Partial<AxiosResponse<T>> => ({
+const createMockResponse = <T>(
+  data: T,
+  status: number = 200,
+  headers: any = {}
+): Partial<AxiosResponse<T>> => ({
   data,
   status,
-  statusText: status === 200 ? 'OK' : status === 404 ? 'Not Found' : status === 401 ? 'Unauthorized' : 'Error',
+  statusText:
+    status === 200
+      ? 'OK'
+      : status === 404
+        ? 'Not Found'
+        : status === 401
+          ? 'Unauthorized'
+          : 'Error',
   headers,
   config: {} as any
 });
@@ -68,9 +79,7 @@ describe('OAuthDiscovery', () => {
     });
 
     it('should return null when no valid config found', async () => {
-      vi.mocked(axiosWithoutSse).mockResolvedValue(
-        createMockResponse({}, 404) as any
-      );
+      vi.mocked(axiosWithoutSse).mockResolvedValue(createMockResponse({}, 404) as any);
 
       const result = await OAuthDiscovery.discover('https://example.com');
 
@@ -174,9 +183,12 @@ describe('OAuthDiscovery', () => {
       // First request returns 401 with WWW-Authenticate header
       vi.mocked(axiosWithoutSse)
         .mockResolvedValueOnce(createMockResponse({}, 404) as any)
-        .mockResolvedValueOnce(createMockResponse({}, 401, {
-          'www-authenticate': 'Bearer authorization_servers="[\\"https://auth.example.com\\"]"'
-        }) as any)
+        .mockResolvedValueOnce(
+          createMockResponse({}, 401, {
+            'www-authenticate':
+              'Bearer authorization_servers="[\\"https://auth.example.com\\"]"'
+          }) as any
+        )
         .mockResolvedValueOnce(createMockResponse(authServerConfig, 200) as any);
 
       const result = await OAuthDiscovery.discover('https://example.com');
@@ -187,9 +199,11 @@ describe('OAuthDiscovery', () => {
     it('should handle malformed WWW-Authenticate header', async () => {
       vi.mocked(axiosWithoutSse)
         .mockResolvedValueOnce(createMockResponse({}, 404) as any)
-        .mockResolvedValueOnce(createMockResponse({}, 401, {
-          'www-authenticate': 'Bearer malformed'
-        }) as any);
+        .mockResolvedValueOnce(
+          createMockResponse({}, 401, {
+            'www-authenticate': 'Bearer malformed'
+          }) as any
+        );
 
       const result = await OAuthDiscovery.discover('https://example.com');
 
@@ -227,9 +241,7 @@ describe('OAuthDiscovery', () => {
 
   describe('edge cases', () => {
     it('should handle empty response data', async () => {
-      vi.mocked(axiosWithoutSse).mockResolvedValueOnce(
-        createMockResponse(null, 200) as any
-      );
+      vi.mocked(axiosWithoutSse).mockResolvedValueOnce(createMockResponse(null, 200) as any);
 
       const result = await OAuthDiscovery.discover('https://example.com');
 
@@ -258,10 +270,13 @@ describe('OAuthDiscovery', () => {
 
     it('should handle URLs with special characters', async () => {
       vi.mocked(axiosWithoutSse).mockResolvedValueOnce(
-        createMockResponse({
-          authorization_endpoint: 'https://example.com/oauth/authorize',
-          token_endpoint: 'https://example.com/oauth/token'
-        }, 200) as any
+        createMockResponse(
+          {
+            authorization_endpoint: 'https://example.com/oauth/authorize',
+            token_endpoint: 'https://example.com/oauth/token'
+          },
+          200
+        ) as any
       );
 
       const result = await OAuthDiscovery.discover('https://example.com/path%20with%20spaces');

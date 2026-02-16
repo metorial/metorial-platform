@@ -9,7 +9,11 @@ export type DashboardInstanceCustomServersListOutput = {
     publicationStatus: 'public' | 'private';
     name: string;
     description: string | null;
+    currentVersionId: string | null;
     metadata: Record<string, any>;
+    createdAt: Date;
+    updatedAt: Date;
+    deletedAt: Date | null;
     server: {
       object: 'server#preview';
       id: string;
@@ -29,10 +33,6 @@ export type DashboardInstanceCustomServersListOutput = {
         | { type: 'remote'; remote: { domain: string } };
       createdAt: Date;
     };
-    currentVersionId: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-    deletedAt: Date | null;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -53,7 +53,14 @@ export let mapDashboardInstanceCustomServersListOutput =
           ),
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
+          currentVersionId: mtMap.objectField(
+            'current_version_id',
+            mtMap.passthrough()
+          ),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+          deletedAt: mtMap.objectField('deleted_at', mtMap.date()),
           server: mtMap.objectField(
             'server',
             mtMap.object({
@@ -104,14 +111,7 @@ export let mapDashboardInstanceCustomServersListOutput =
               ),
               createdAt: mtMap.objectField('created_at', mtMap.date())
             })
-          ),
-          currentVersionId: mtMap.objectField(
-            'current_version_id',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          deletedAt: mtMap.objectField('deleted_at', mtMap.date())
+          )
         })
       )
     ),

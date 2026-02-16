@@ -12,9 +12,7 @@ vi.mock('@react-email/components', () => ({
 }));
 
 vi.mock('../src/templates/components/wrapper', () => ({
-  Wrapper: ({ children, preview }: any) => (
-    <div data-preview={preview}>{children}</div>
-  )
+  Wrapper: ({ children, preview }: any) => <div data-preview={preview}>{children}</div>
 }));
 
 describe('createEmail', () => {
@@ -145,10 +143,7 @@ describe('createEmail', () => {
       { plainText: false }
     );
 
-    expect(render).toHaveBeenCalledWith(
-      expect.anything(),
-      { plainText: true }
-    );
+    expect(render).toHaveBeenCalledWith(expect.anything(), { plainText: true });
   });
 
   it('should handle content with props', () => {

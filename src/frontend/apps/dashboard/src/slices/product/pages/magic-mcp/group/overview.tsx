@@ -26,11 +26,11 @@ export let MagicMcpGroupOverviewPage = () => {
   let instance = useCurrentInstance();
 
   let { magicMcpGroupId } = useParams();
-  let group = useMagicMcpGroup(instance.data?.id, magicMcpGroupId);
+  let group = useMagicMcpGroup(instance.data?.instanceId, magicMcpGroupId);
   let groupOuter = group;
   let removeServersMutator = group.useRemoveServersMutator();
 
-  let servers = useMagicMcpServers(instance.data?.id, {
+  let servers = useMagicMcpServers(instance.data?.instanceId, {
     order: 'desc',
     magicMcpGroupId
   });
@@ -76,7 +76,7 @@ export let MagicMcpGroupOverviewPage = () => {
 
                 let addServersMutator = groupOuter.useAddServersMutator();
 
-                let servers = useMagicMcpServers(instance.data?.id, {
+                let servers = useMagicMcpServers(instance.data?.instanceId, {
                   limit: 100,
                   search: searchDebounced
                 });
@@ -206,7 +206,7 @@ export let MagicMcpGroupOverviewPage = () => {
                       disabled={removeServersMutator.isLoading}
                       loading={
                         removeServersMutator.isLoading &&
-                        removeServersMutator.input?.magicMcpServerIds?.includes(server.id)
+                        (removeServersMutator.input as Record<string, unknown> | null)?.magicMcpServerIds && ((removeServersMutator.input as Record<string, unknown>).magicMcpServerIds as string[])?.includes(server.id)
                       }
                       onClick={async () => {
                         let [res] = await removeServersMutator.mutate({

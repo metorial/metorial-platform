@@ -25,7 +25,9 @@ export let v1ScmRepoPresenter = Presenter.create(scmRepoType)
   }))
   .schema(
     v.object({
-      object: v.literal('integrations.scm.repo'),
+      object: v.literal('integrations.scm.repo', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({ name: 'id', description: `The SCM repository's unique identifier` }),
       provider: v.enumOf(['github'], { name: 'provider', description: `The SCM provider` }),

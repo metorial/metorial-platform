@@ -203,7 +203,9 @@ describe('Event Type Definitions', () => {
       };
 
       expect(payload.session.serverDeployments).toHaveLength(1);
-      expect(payload.session.serverDeployments[0].serverDeployment.server.name).toBe('Test Server');
+      expect(payload.session.serverDeployments[0].serverDeployment.server.name).toBe(
+        'Test Server'
+      );
     });
 
     it('should handle session with multiple server deployments', () => {
@@ -233,7 +235,9 @@ describe('Event Type Definitions', () => {
       };
 
       expect(payload.session.serverDeployments).toHaveLength(2);
-      expect(payload.session.serverDeployments[1].serverDeployment.server.name).toBe('Server 2');
+      expect(payload.session.serverDeployments[1].serverDeployment.server.name).toBe(
+        'Server 2'
+      );
     });
 
     it('should handle empty server deployments array', () => {

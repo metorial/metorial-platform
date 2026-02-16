@@ -122,18 +122,20 @@ vi.mock('@metorial/db', () => ({
   db: {
     $connect: vi.fn(),
     $disconnect: vi.fn(),
-    $transaction: vi.fn((fn: any) => fn({
-      serverDeployment: {
-        create: vi.fn(),
-        update: vi.fn(),
-        findFirst: vi.fn(),
-        findMany: vi.fn()
-      },
-      serverDeploymentConfig: {
-        create: vi.fn(),
-        update: vi.fn()
-      }
-    })),
+    $transaction: vi.fn((fn: any) =>
+      fn({
+        serverDeployment: {
+          create: vi.fn(),
+          update: vi.fn(),
+          findFirst: vi.fn(),
+          findMany: vi.fn()
+        },
+        serverDeploymentConfig: {
+          create: vi.fn(),
+          update: vi.fn()
+        }
+      })
+    ),
     serverDeployment: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),

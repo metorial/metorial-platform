@@ -25,7 +25,9 @@ export let v1ManagedServerPresenter = Presenter.create(managedServerType)
   }))
   .schema(
     v.object({
-      object: v.literal('custom_server.managed_server'),
+      object: v.literal('custom_server.managed_server', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({ name: 'id', description: `The managed server's unique identifier` }),
 

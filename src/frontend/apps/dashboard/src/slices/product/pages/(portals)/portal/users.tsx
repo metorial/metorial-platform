@@ -6,7 +6,7 @@ import { PortalConsumerProfilesTable } from '../../../scenes/portals/usersTable'
 export let PortalUsersPage = () => {
   let instance = useCurrentInstance();
   let params = useParams();
-  let portal = usePortal(instance.data?.id, params.portalId!);
+  let portal = usePortal(instance.data?.instanceId, params.portalId!);
 
   return (
     <>

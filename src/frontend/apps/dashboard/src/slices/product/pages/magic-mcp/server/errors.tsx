@@ -7,9 +7,9 @@ export let MagicMcpServerErrorsPage = () => {
   let instance = useCurrentInstance();
 
   let { magicMcpServerId } = useParams();
-  let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
+  let server = useMagicMcpServer(instance.data?.instanceId, magicMcpServerId);
 
   return renderWithLoader({ server })(({ server }) => (
-    <ServerErrorsTable serverDeploymentId={[server.data.serverDeployments[0]?.id]} />
+    <ServerErrorsTable />
   ));
 };

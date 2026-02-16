@@ -9,13 +9,15 @@ export let record = <Validator extends ValidationType<any>>(
   items: validator,
   name: opts?.name,
   description: opts?.description,
-  examples: Array.isArray(validator.examples)
-    ? [
-        {
-          key1: validator.examples[0]
-        }
-      ]
-    : undefined,
+  examples:
+    opts?.examples ??
+    (Array.isArray(validator.examples)
+      ? [
+          {
+            key1: validator.examples[0]
+          }
+        ]
+      : undefined),
   validate: value => {
     if (typeof value != 'object' || value === null || Array.isArray(value)) {
       return error([

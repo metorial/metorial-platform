@@ -1,74 +1,55 @@
-import {
-  ProviderOauthConnectionTemplateEvaluateBody,
-  ProviderOauthConnectionTemplateListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
-import { createLoader } from '@metorial/data-hooks';
-import { usePaginator } from '../../lib/usePaginator';
-import { useCurrentOrganization } from '../../organization';
-import { withAuth } from '../../user';
+import React from 'react';
 
-export let providerConnectionTemplatesLoader = createLoader({
-  name: 'providerConnectionTemplates',
-  parents: [],
-  fetch: (i: ProviderOauthConnectionTemplateListQuery & { organizationId: string }) =>
-    withAuth(sdk => sdk.providerOauth.connections.templates.list(i.organizationId, i)),
-  mutators: {}
-});
-
-export let useProviderConnectionTemplates = (
-  query?: ProviderOauthConnectionTemplateListQuery
-) => {
-  let org = useCurrentOrganization();
-
-  let data = usePaginator(pagination =>
-    providerConnectionTemplatesLoader.use(
-      org.data
-        ? {
-            ...pagination,
-            ...query,
-            organizationId: org.data?.id!
-          }
-        : null
-    )
-  );
-
-  return data;
+type ProviderConnectionTemplateData = {
+  object: string;
+  id: string;
+  name: string | null;
+  description: string | null;
+  provider: { id: string; name: string; slug: string; imageUrl: string | null } | null;
+  scopes: string[];
+  variables: { key: string; label: string; description: string | null }[];
+  config: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
-export let useEvaluateProviderConnectionTemplate =
-  providerConnectionTemplatesLoader.createExternalMutator(
-    (
-      i: ProviderOauthConnectionTemplateEvaluateBody & { providerConnectionTemplateId: string }
-    ) =>
-      withAuth(sdk =>
-        sdk.providerOauth.connections.templates.evaluate(i.providerConnectionTemplateId, i)
-      )
-  );
-
-export let providerConnectionTemplateLoader = createLoader({
-  name: 'providerConnectionTemplate',
-  parents: [providerConnectionTemplatesLoader],
-  fetch: (i: { providerConnectionTemplateId: string; organizationId: string }) =>
-    withAuth(sdk =>
-      sdk.providerOauth.connections.templates.get(
-        i.organizationId,
-        i.providerConnectionTemplateId
-      )
-    ),
-  mutators: {}
+let stubMutator = () => ({
+  mutate: (..._args: unknown[]): Promise<[null, null]> => Promise.resolve([null, null]),
+  isLoading: false as const,
+  isSuccess: false as const,
+  error: null,
+  RenderError: (): React.ReactElement | null => null
 });
 
-export let useProviderConnectionTemplate = (
-  providerConnectionTemplateId: string | null | undefined
-) => {
-  let org = useCurrentOrganization();
-  let data = providerConnectionTemplateLoader.use(
-    providerConnectionTemplateId && org.data
-      ? { providerConnectionTemplateId, organizationId: org.data.id }
-      : null
-  );
+// Placeholder exports to prevent import errors in consuming code
+export const providerConnectionTemplatesLoader = null;
 
-  return {
-    ...data
-  };
-};
+export const useProviderConnectionTemplates = (
+  _query?: Record<string, unknown>
+) => ({
+  data: null as {
+    items: ProviderConnectionTemplateData[];
+    pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  } | null,
+  isLoading: false,
+  error: null,
+  next: () => {},
+  previous: () => {},
+  refetch: () => {}
+});
+
+export const useEvaluateProviderConnectionTemplate = () => ({
+  ...stubMutator(),
+  data: null as { config: Record<string, unknown>; providerName?: string } | null
+});
+
+export const providerConnectionTemplateLoader = null;
+
+export const useProviderConnectionTemplate = (
+  _providerConnectionTemplateId?: string | null
+) => ({
+  data: null as ProviderConnectionTemplateData | null,
+  isLoading: false,
+  error: null,
+  refetch: () => {}
+});

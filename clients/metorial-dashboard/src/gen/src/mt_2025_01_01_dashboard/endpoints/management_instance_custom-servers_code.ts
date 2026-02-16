@@ -9,8 +9,8 @@ import {
 } from '../resources';
 
 /**
- * @name Custom Server code controller
- * @description Manager custom server deployments
+ * @name Custom Server Code controller
+ * @description Manager custom server code
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

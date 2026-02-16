@@ -19,7 +19,7 @@ export let SessionLayout = () => {
   let organization = useCurrentOrganization();
 
   let { sessionId } = useParams();
-  let session = useSession(instance.data?.id, sessionId);
+  let session = useSession(instance.data?.instanceId, sessionId);
 
   let pathname = useLocation().pathname;
 
@@ -58,7 +58,7 @@ export let SessionLayout = () => {
             to: Paths.instance.session(...serverPathParams, 'deployments')
           },
           {
-            label: 'Server Runs',
+            label: 'Provider Runs',
             to: Paths.instance.session(...serverPathParams, 'runs')
           }
         ]}
@@ -76,11 +76,11 @@ export let SessionLayout = () => {
             { label: 'Created At', value: <RenderDate date={session.data.createdAt} /> },
             {
               label: 'Client Messages',
-              value: session.data.usage.totalProductiveClientMessageCount
+              value: session.data.usage?.totalProductiveClientMessageCount ?? 0
             },
             {
-              label: 'Server Messages',
-              value: session.data.usage.totalProductiveServerMessageCount
+              label: 'Provider Messages',
+              value: session.data.usage?.totalProductiveServerMessageCount ?? 0
             }
           ]}
         >

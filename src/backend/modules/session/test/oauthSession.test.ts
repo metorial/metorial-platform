@@ -24,15 +24,15 @@ vi.mock('@metorial/db', () => {
   return {
     db: mockDb,
     ID: {
-      generateId: vi.fn((type) => Promise.resolve(`${type}_test_id_${Date.now()}`))
+      generateId: vi.fn(type => Promise.resolve(`${type}_test_id_${Date.now()}`))
     },
-    withTransaction: vi.fn((callback) => callback(mockDb))
+    withTransaction: vi.fn(callback => callback(mockDb))
   };
 });
 
 vi.mock('@metorial/error', () => ({
-  notFoundError: vi.fn((msg) => ({ code: 'not_found', message: msg })),
-  preconditionFailedError: vi.fn((opts) => ({ code: 'precondition_failed', ...opts })),
+  notFoundError: vi.fn(msg => ({ code: 'not_found', message: msg })),
+  preconditionFailedError: vi.fn(opts => ({ code: 'precondition_failed', ...opts })),
   ServiceError: class ServiceError extends Error {
     constructor(public error: any) {
       super(error.message);
@@ -42,7 +42,7 @@ vi.mock('@metorial/error', () => ({
 
 vi.mock('@metorial/pagination', () => ({
   Paginator: {
-    create: vi.fn((fn) => ({
+    create: vi.fn(fn => ({
       prisma: fn,
       __isPaginator: true
     }))
@@ -140,9 +140,10 @@ describe('serverOAuthSessionService', () => {
       db.serverOAuthSession.findFirst.mockResolvedValue(mockOAuthSession);
       db.serverOAuthSession.update.mockResolvedValue({ status: 'opened' });
 
-      const result = await serverOAuthSessionService.getServerOAuthSessionByClientSecretAndReportOpened({
-        clientSecret: 'secret_abc'
-      });
+      const result =
+        await serverOAuthSessionService.getServerOAuthSessionByClientSecretAndReportOpened({
+          clientSecret: 'secret_abc'
+        });
 
       expect(db.serverOAuthSession.update).toHaveBeenCalledWith({
         where: { id: mockOAuthSession.id },

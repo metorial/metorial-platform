@@ -23,7 +23,7 @@ export let providerOauthConnectionEventController = Controller.create(
   {
     name: 'OAuth Event',
     description: 'Manage provider OAuth connection event information',
-    hideInDocs: true
+    deprecated: true
   },
   {
     list: connectionGroup

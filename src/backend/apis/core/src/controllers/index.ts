@@ -12,6 +12,47 @@ import { profileController } from './dashboard/profile';
 import { dashboardRepoController } from './dashboard/repo';
 import { dashboardUsageController } from './dashboard/usage';
 import { dashboardUserController } from './dashboard/user';
+
+import {
+  providerController,
+  providerListingController,
+  providerCategoryController,
+  providerCollectionController,
+  providerGroupController,
+  providerPublisherController,
+  providerVersionController,
+  providerSpecificationController,
+  providerToolController,
+  providerAuthMethodController,
+  providerDeploymentController,
+  providerConfigController,
+  providerConfigVaultController,
+  providerAuthConfigController,
+  providerAuthConfigListController,
+  providerAuthCredentialsController,
+  providerSetupSessionController,
+  providerSetupSessionDashboardController,
+  providerAuthImportController,
+  providerAuthExportController,
+  sessionTemplateController,
+  sessionTemplateProviderController,
+  providerSessionController,
+  subspaceSessionProviderController,
+  subspaceSessionParticipantController,
+  subspaceSessionErrorController,
+  subspaceSessionErrorGroupController,
+  subspaceProviderRunController,
+  subspaceSessionMessageController,
+  subspaceSessionConnectionController,
+  subspaceSessionEventController,
+  // Custom Provider controllers
+  customProviderController,
+  customProviderVersionController,
+  customProviderDeploymentController,
+  customProviderCommitController,
+  customProviderEnvironmentController,
+  providerOAuthSetupController
+} from './provider';
 import { callbackController } from './instance/callback';
 import { callbackDestinationController } from './instance/callbackDestination';
 import { callbackEventController } from './instance/callbackEvent';
@@ -266,3 +307,221 @@ export let fullDashboardController = Controller.create<any>(dashboardController.
   dashboardBootController,
   dashboardUserController
 });
+
+// =============================================================================
+// Magnetar Controllers (2026-02-01)
+// =============================================================================
+
+export let magnetarController = Controller.create<any>(
+  {
+    name: 'Magnetar API',
+    description: 'Magnetar API'
+  },
+  {
+    instanceController,
+
+    providerAuthConfigListController,
+
+    providerPublisherController,
+    providerController,
+    providerCategoryController,
+    providerCollectionController,
+    providerGroupController,
+    providerListingController,
+
+    providerVersionController,
+    providerSpecificationController,
+    providerToolController,
+    providerAuthMethodController,
+
+    providerDeploymentController,
+    providerConfigController,
+    providerConfigVaultController,
+
+    providerAuthConfigController,
+    providerAuthCredentialsController,
+    providerSetupSessionController,
+    providerAuthImportController,
+    providerAuthExportController,
+
+    providerSessionController,
+    sessionTemplateController,
+    sessionTemplateProviderController,
+    subspaceSessionProviderController,
+    subspaceSessionParticipantController,
+    subspaceSessionErrorController,
+    subspaceSessionErrorGroupController,
+    subspaceProviderRunController,
+    subspaceSessionMessageController,
+    subspaceSessionConnectionController,
+    subspaceSessionEventController,
+
+    // Custom Provider controllers
+    customProviderController,
+    customProviderVersionController,
+    customProviderDeploymentController,
+    customProviderCommitController,
+    customProviderEnvironmentController,
+    providerOAuthSetupController,
+
+    portalController,
+    portalConsumerGroupController,
+    portalConsumerAccessController,
+    portalConsumerProfileController,
+    portalConsumerAuthFactorController,
+    consumerSessionController,
+
+    teamManagementController,
+    teamRoleManagementController,
+    teamRolePermissionsManagementController,
+
+    ssoTenantController,
+    ssoUserController,
+    ssoProfileController,
+
+    fileController,
+    fileLinkController
+  }
+);
+
+// will be adjusted with new dashboard
+export let magnetarDashboardController = Controller.create<any>(
+  {
+    name: 'Magnetar Dashboard API',
+    description: 'Magnetar Dashboard API'
+  },
+  {
+    dashboardOrganizationController,
+    dashboardOrganizationInviteController,
+    dashboardBootController,
+    dashboardApiKeyController,
+    dashboardUsageController,
+
+    instanceManagementController,
+    organizationManagementController,
+    organizationInviteManagementController,
+    organizationMemberManagementController,
+    projectManagementController,
+    dashboardUserController,
+
+    fileController,
+    fileLinkController,
+
+    secretController,
+
+    serverController,
+    serverVariantController,
+    serverVersionController,
+    serverListingController,
+    serverListingCategoryController,
+    serverListingCollectionController,
+
+    serverImplementationController,
+    serverDeploymentController,
+    serverDeploymentTemplateController,
+
+    providerSessionController,
+
+    // sessionEventController,
+    // sessionMessageController,
+    // sessionConnectionController,
+
+    serverRunController,
+    serverRunErrorController,
+    serverRunErrorGroupController,
+
+    serverSessionController,
+
+    serverCapabilitiesController,
+
+    serverOauthSessionController,
+
+    profileController,
+
+    dashboardRepoController,
+
+    callbackController,
+    callbackEventController,
+    callbackDestinationController,
+    callbackNotificationController,
+
+    serverConfigVaultController,
+    teamRolePermissionsManagementController,
+    teamRoleManagementController,
+    teamManagementController,
+
+    ssoTenantController,
+    ssoUserController,
+    ssoProfileController,
+
+    portalController,
+    portalConsumerGroupController,
+    portalConsumerAccessController,
+    portalConsumerProfileController,
+    portalConsumerAuthFactorController,
+    portalConsumerServerRequestController,
+    portalFeaturedServersController,
+
+    // Provider API controllers (NEW in magnetar)
+    providerAuthConfigListController,
+
+    providerController,
+    providerListingController,
+    providerCategoryController,
+    providerCollectionController,
+    providerGroupController,
+    providerPublisherController,
+    providerVersionController,
+    providerSpecificationController,
+    providerToolController,
+    providerAuthMethodController,
+    providerDeploymentController,
+    providerConfigController,
+    providerConfigVaultController,
+    providerAuthConfigController,
+    providerAuthCredentialsController,
+    providerSetupSessionDashboardController,
+    providerAuthImportController,
+    providerAuthExportController,
+    sessionTemplateController,
+    sessionTemplateProviderController,
+    subspaceSessionProviderController,
+    subspaceSessionParticipantController,
+    subspaceSessionErrorController,
+    subspaceSessionErrorGroupController,
+    subspaceProviderRunController,
+    subspaceSessionMessageController,
+    subspaceSessionConnectionController,
+    subspaceSessionEventController,
+
+    // Custom Provider controllers
+    customProviderController,
+    customProviderVersionController,
+    customProviderDeploymentController,
+    customProviderCommitController,
+    customProviderEnvironmentController,
+    providerOAuthSetupController,
+
+    // Deprecated controllers (shown in docs with deprecated badge)
+    providerOauthConnectionController,
+    providerOauthConnectionAuthenticationController,
+    providerOauthConnectionEventController,
+    providerOauthConnectionProfileController,
+    providerOauthTakeoutController,
+    providerOauthTakeInController,
+
+    // Magic MCP - will be moved to provider system
+    magicMcpServerController,
+    magicMcpSessionController,
+    magicMcpTokenController,
+    magicMcpGroupController,
+
+    // Custom Servers - will be replaced by provider system
+    customServerController,
+    customServerVersionController,
+    customServerEventController,
+    customServerDeploymentController,
+    remoteServerController,
+    customServerCodeController
+  }
+);

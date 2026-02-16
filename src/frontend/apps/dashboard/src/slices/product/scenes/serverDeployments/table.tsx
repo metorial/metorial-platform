@@ -1,8 +1,10 @@
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { ServersDeploymentsGetOutput } from '@metorial/generated';
-import { ServersDeploymentsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
-import { useCurrentInstance, useServerDeployments } from '@metorial/state';
+import {
+  DashboardInstanceProviderDeploymentsGetOutput,
+  DashboardInstanceProviderDeploymentsListQuery
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { useCurrentInstance, useProviderDeployments } from '@metorial/state';
 import { Entity, Input, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { useState } from 'react';
@@ -10,7 +12,7 @@ import { Link } from 'react-router-dom';
 import { useDebounced } from '../../../../hooks/useDebounced';
 
 export let ServerDeploymentsTable = (
-  filter: ServersDeploymentsListQuery & {
+  filter: DashboardInstanceProviderDeploymentsListQuery & {
     withSearch?: string;
   }
 ) => {
@@ -18,8 +20,10 @@ export let ServerDeploymentsTable = (
   let searchDebounced = useDebounced(search, 500);
 
   let instance = useCurrentInstance();
-  let deployments = useServerDeployments(instance.data?.id, {
-    ...filter,
+  let deployments = useProviderDeployments(instance.data?.instanceId, {
+    providerId: typeof filter.providerId === 'string' ? filter.providerId : Array.isArray(filter.providerId) ? filter.providerId[0] : undefined,
+    providerVersionId: typeof filter.providerVersionId === 'string' ? filter.providerVersionId : Array.isArray(filter.providerVersionId) ? filter.providerVersionId[0] : undefined,
+    status: filter.status,
     search: searchDebounced.length ? searchDebounced : undefined
   });
 
@@ -28,7 +32,7 @@ export let ServerDeploymentsTable = (
       <Input
         label="Search"
         hideLabel
-        placeholder="Search for servers"
+        placeholder="Search for providers"
         value={search}
         onInput={v => setSearch(v)}
       />
@@ -38,7 +42,7 @@ export let ServerDeploymentsTable = (
       {renderWithPagination(deployments)(deployments => (
         <>
           <Table
-            headers={['Info', 'Server', 'Created']}
+            headers={['Info', 'Provider', 'Created']}
             data={deployments.data.items.map(deployment => ({
               data: [
                 <Text size="2" weight="strong">
@@ -54,7 +58,7 @@ export let ServerDeploymentsTable = (
                   )}
                 </Text>,
                 <Text size="2" weight="strong">
-                  {deployment.server.name}
+                  {(deployment as any).server?.name ?? deployment.name ?? 'N/A'}
                 </Text>,
                 <RenderDate date={deployment.createdAt} />
               ],
@@ -79,17 +83,21 @@ export let ServerDeploymentsTable = (
 };
 
 export let ServerDeploymentsList = (
-  filter: ServersDeploymentsListQuery & {
-    onDeploymentClick?: (deployment: ServersDeploymentsGetOutput) => void;
+  filter: DashboardInstanceProviderDeploymentsListQuery & {
+    onDeploymentClick?: (deployment: DashboardInstanceProviderDeploymentsGetOutput) => void;
   }
 ) => {
   let instance = useCurrentInstance();
-  let deployments = useServerDeployments(instance.data?.id, filter);
+  let deployments = useProviderDeployments(instance.data?.instanceId, {
+    providerId: typeof filter.providerId === 'string' ? filter.providerId : undefined,
+    status: filter.status,
+    search: filter.search
+  });
 
   return renderWithPagination(deployments)(deployments => (
     <ServerDeploymentsListItems
-      deployments={deployments.data.items}
-      onDeploymentClick={filter.onDeploymentClick as any}
+      deployments={deployments.data.items as unknown as ServerDeployment[]}
+      onDeploymentClick={filter.onDeploymentClick as unknown as ((deployment: ServerDeployment) => void) | undefined}
     />
   ));
 };
@@ -144,7 +152,11 @@ export let ServerDeploymentsListItems = ({
               />
 
               <Entity.Field
-                title={<Text size="2">{deployment.server.name}</Text>}
+                title={
+                  <Text size="2">
+                    {(deployment as any).server?.name ?? deployment.name ?? 'N/A'}
+                  </Text>
+                }
                 value={<RenderDate date={deployment.createdAt} />}
               />
             </Entity.Content>

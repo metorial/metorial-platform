@@ -16,7 +16,7 @@ export let MagicMcpGroupLayout = () => {
   let organization = useCurrentOrganization();
 
   let { magicMcpGroupId } = useParams();
-  let group = useMagicMcpGroup(instance.data?.id, magicMcpGroupId);
+  let group = useMagicMcpGroup(instance.data?.instanceId, magicMcpGroupId);
 
   let pathname = useLocation().pathname;
 

@@ -27,7 +27,8 @@ export let v1UserPresenter = Presenter.create(userType)
 
       id: v.string({
         name: 'id',
-        description: "The user's unique identifier"
+        description: "The user's unique identifier",
+        examples: ['usr_2xKj8mNpQrStUvWy']
       }),
 
       status: v.enumOf(['active', 'deleted'], {
@@ -43,25 +44,25 @@ export let v1UserPresenter = Presenter.create(userType)
       email: v.string({
         name: 'email',
         description: "The user's email address",
-        examples: ['sam@example.com']
+        examples: ['alex.chen@acme.com']
       }),
 
       name: v.string({
         name: 'name',
         description: "The user's full name",
-        examples: ['Sam']
+        examples: ['Alex Chen']
       }),
 
       first_name: v.string({
         name: 'first_name',
         description: "The user's first name",
-        examples: ['Sam']
+        examples: ['Alex']
       }),
 
       last_name: v.string({
         name: 'last_name',
         description: "The user's last name",
-        examples: ['Smith']
+        examples: ['Chen']
       }),
 
       image_url: v.string({

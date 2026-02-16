@@ -1,81 +1,56 @@
-import {
-  DashboardInstanceMagicMcpTokensCreateBody,
-  DashboardInstanceMagicMcpTokensListQuery,
-  DashboardInstanceMagicMcpTokensUpdateBody
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
-import { createLoader } from '@metorial/data-hooks';
-import { usePaginator } from '../../lib/usePaginator';
-import { withAuth } from '../../user';
+import React from 'react';
 
-export let magicMcpTokensLoader = createLoader({
-  name: 'magicMcpTokens',
-  parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceMagicMcpTokensListQuery) =>
-    withAuth(sdk => sdk.magicMcp.tokens.list(i.instanceId, i)),
-  mutators: {
-    update: (
-      i: DashboardInstanceMagicMcpTokensUpdateBody & {
-        magicMcpTokenId: string;
-      },
-      { input: { instanceId } }
-    ) => withAuth(sdk => sdk.magicMcp.tokens.update(instanceId, i.magicMcpTokenId, i)),
+type MagicMcpTokenData = {
+  id: string;
+  name: string | null;
+  description: string | null;
+  status: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  secret: string | null;
+  groups: { id: string; name: string | null }[];
+};
 
-    delete: (i: { magicMcpTokenId: string }, { input: { instanceId } }) =>
-      withAuth(sdk => sdk.magicMcp.tokens.delete(instanceId, i.magicMcpTokenId))
-  }
+let stubMutator = () => ({
+  mutate: (..._args: unknown[]): Promise<[null, null]> => Promise.resolve([null, null]),
+  isLoading: false as const,
+  isSuccess: false as const,
+  error: null,
+  RenderError: (): React.ReactElement | null => null
 });
 
-export let useCreateMagicMcpToken = magicMcpTokensLoader.createExternalMutator(
-  (i: DashboardInstanceMagicMcpTokensCreateBody & { instanceId: string }) =>
-    withAuth(sdk => sdk.magicMcp.tokens.create(i.instanceId, i)),
-  {
-    disableToast: true
-  }
-);
+export let magicMcpTokensLoader = null;
+
+export let useCreateMagicMcpToken = (_opts?: Record<string, unknown>) => stubMutator();
 
 export let useMagicMcpTokens = (
-  instanceId: string | null | undefined,
-  query?: DashboardInstanceMagicMcpTokensListQuery
-) => {
-  let data = usePaginator(pagination =>
-    magicMcpTokensLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
-  );
-
-  return {
-    ...data,
-    createMutator: useCreateMagicMcpToken,
-    revokeMutator: data.useMutator('delete'),
-    updateMutator: data.useMutator('update')
-  };
-};
-
-export let magicMcpTokenLoader = createLoader({
-  name: 'magicMcpToken',
-  parents: [magicMcpTokensLoader],
-  fetch: (i: { instanceId: string; magicMcpTokenId: string }) =>
-    withAuth(sdk => sdk.magicMcp.tokens.get(i.instanceId, i.magicMcpTokenId)),
-  mutators: {
-    update: (
-      i: DashboardInstanceMagicMcpTokensUpdateBody,
-      { input: { instanceId, magicMcpTokenId } }
-    ) => withAuth(sdk => sdk.magicMcp.tokens.update(instanceId, magicMcpTokenId, i)),
-
-    delete: (_, { input: { instanceId, magicMcpTokenId } }) =>
-      withAuth(sdk => sdk.magicMcp.tokens.delete(instanceId, magicMcpTokenId))
-  }
+  _instanceId?: string | null,
+  _query?: Record<string, unknown>
+) => ({
+  data: null as {
+    items: MagicMcpTokenData[];
+    pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  } | null,
+  isLoading: false,
+  error: null,
+  next: () => {},
+  previous: () => {},
+  refetch: () => {},
+  createMutator: { ...stubMutator(), data: null as { secret: string | null } | null },
+  revokeMutator: stubMutator,
+  updateMutator: stubMutator
 });
 
-export let useMagicMcpToken = (
-  instanceId: string | null | undefined,
-  magicMcpTokenId: string | null | undefined
-) => {
-  let data = magicMcpTokenLoader.use(
-    instanceId && magicMcpTokenId ? { instanceId, magicMcpTokenId } : null
-  );
+export let magicMcpTokenLoader = null;
 
-  return {
-    ...data,
-    useUpdateMutator: data.useMutator('update'),
-    useDeleteMutator: data.useMutator('delete')
-  };
-};
+export let useMagicMcpToken = (
+  _instanceId?: string | null,
+  _magicMcpTokenId?: string | null
+) => ({
+  data: null as MagicMcpTokenData | null,
+  isLoading: false,
+  error: null,
+  refetch: () => {},
+  useUpdateMutator: stubMutator,
+  useDeleteMutator: stubMutator
+});

@@ -1,4 +1,5 @@
-import { DashboardInstanceMagicMcpServersListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+// Type removed in Provider API migration
+type MagicMcpServersListQuery = Record<string, unknown>;
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useMagicMcpServers } from '@metorial/state';
@@ -92,9 +93,9 @@ let EmptyState = styled.div`
   }
 `;
 
-export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQuery) => {
+export let MagicMcpServersGrid = (filter: MagicMcpServersListQuery) => {
   let instance = useCurrentInstance();
-  let servers = useMagicMcpServers(instance.data?.id, {
+  let servers = useMagicMcpServers(instance.data?.instanceId, {
     ...filter,
     order: filter.order ?? 'desc'
   });
@@ -119,7 +120,7 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
               icon={
                 <Avatar
                   entity={{
-                    ...server,
+                    name: server.name ?? 'Unnamed',
                     imageUrl: `https://avatar-cdn.metorial.com/${server.id}`
                   }}
                   size={30}
@@ -138,7 +139,7 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
               bottom={
                 <Aliases>
                   {server.endpoints.map(e => (
-                    <Alias key={e.id}>{e.alias}</Alias>
+                    <Alias key={e.id}>{e.url}</Alias>
                   ))}
                 </Aliases>
               }
@@ -149,9 +150,9 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
 
       {servers.data.items.length == 0 && (
         <>
-          {filter.search ? (
+          {(filter as { search?: string }).search ? (
             <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              No Magic MCP servers found for "{filter.search}".
+              No Magic MCP servers found for "{(filter as { search?: string }).search}".
             </Text>
           ) : (
             <EmptyState>
@@ -180,9 +181,9 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
   ));
 };
 
-export let MagicMcpServersTable = (filter: DashboardInstanceMagicMcpServersListQuery) => {
+export let MagicMcpServersTable = (filter: MagicMcpServersListQuery) => {
   let instance = useCurrentInstance();
-  let servers = useMagicMcpServers(instance.data?.id, {
+  let servers = useMagicMcpServers(instance.data?.instanceId, {
     ...filter,
     order: filter.order ?? 'desc'
   });

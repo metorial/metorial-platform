@@ -1,5 +1,6 @@
 import { CodeBlock } from '@metorial/code';
-import { DashboardInstanceProviderOauthConnectionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+// Type removed in Provider API migration
+type ProviderConnectionData = { id: string; name: string | null; [key: string]: unknown };
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderConnectionProfile } from '@metorial/state';
 import { Attributes, RenderDate, Spacer, theme } from '@metorial/ui';
@@ -10,11 +11,11 @@ export let ProviderConnectionProfile = ({
   providerConnection
 }: {
   profileId: string;
-  providerConnection: DashboardInstanceProviderOauthConnectionsGetOutput | undefined | null;
+  providerConnection: ProviderConnectionData | undefined | null;
 }) => {
   let instance = useCurrentInstance();
   let profile = useProviderConnectionProfile(
-    instance.data?.id,
+    instance.data?.instanceId,
     providerConnection?.id ?? profileId,
     profileId
   );
@@ -38,9 +39,9 @@ export let ProviderConnectionProfile = ({
           },
           {
             label: 'Subject',
-            content: <ID id={profile.data.sub} />
+            content: <ID id={profile.data.sub ?? undefined} />
           },
-          { label: 'Last Used At', content: <RenderDate date={profile.data.lastUsedAt} /> },
+          { label: 'Last Used At', content: profile.data.lastUsedAt ? <RenderDate date={profile.data.lastUsedAt} /> : 'Never' },
           { label: 'Created At', content: <RenderDate date={profile.data.createdAt} /> }
         ]}
       />

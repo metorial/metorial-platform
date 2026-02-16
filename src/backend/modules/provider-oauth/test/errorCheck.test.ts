@@ -5,7 +5,7 @@ const mockDbFindUnique = vi.fn();
 const mockDbCount = vi.fn();
 const mockDbUpsert = vi.fn();
 const mockQueueAdd = vi.fn();
-const mockQueueProcess = vi.fn((handler) => handler);
+const mockQueueProcess = vi.fn(handler => handler);
 const mockCreateQueue = vi.fn(() => ({
   add: mockQueueAdd,
   process: mockQueueProcess
@@ -79,7 +79,7 @@ describe('queue/errorCheck', () => {
 
     beforeEach(async () => {
       vi.resetModules();
-      mockQueueProcess.mockImplementation((handler) => {
+      mockQueueProcess.mockImplementation(handler => {
         processorFn = handler;
         return handler;
       });
@@ -99,9 +99,9 @@ describe('queue/errorCheck', () => {
       // Setup: 100 tokens, 5 errors (5% error rate)
       mockDbCount
         .mockResolvedValueOnce(100) // totalRecentTokens
-        .mockResolvedValueOnce(5)   // errorTokens
+        .mockResolvedValueOnce(5) // errorTokens
         .mockResolvedValueOnce(100) // totalRecentAuths
-        .mockResolvedValueOnce(5);  // errorAuths
+        .mockResolvedValueOnce(5); // errorAuths
 
       await processorFn({ connectionId: 'test-id' });
 
@@ -115,9 +115,9 @@ describe('queue/errorCheck', () => {
       // Setup: 100 tokens, 20 errors (20% error rate > 15% threshold)
       mockDbCount
         .mockResolvedValueOnce(100) // totalRecentTokens
-        .mockResolvedValueOnce(20)  // errorTokens
+        .mockResolvedValueOnce(20) // errorTokens
         .mockResolvedValueOnce(100) // totalRecentAuths
-        .mockResolvedValueOnce(5);  // errorAuths
+        .mockResolvedValueOnce(5); // errorAuths
 
       await processorFn({ connectionId: 'test-id' });
 
@@ -131,7 +131,7 @@ describe('queue/errorCheck', () => {
       // Setup: 100 auths, 20 errors (20% error rate > 15% threshold)
       mockDbCount
         .mockResolvedValueOnce(100) // totalRecentTokens
-        .mockResolvedValueOnce(5)   // errorTokens
+        .mockResolvedValueOnce(5) // errorTokens
         .mockResolvedValueOnce(100) // totalRecentAuths
         .mockResolvedValueOnce(20); // errorAuths
 
@@ -146,7 +146,7 @@ describe('queue/errorCheck', () => {
 
       mockDbCount
         .mockResolvedValueOnce(100) // totalRecentTokens
-        .mockResolvedValueOnce(20)  // errorTokens
+        .mockResolvedValueOnce(20) // errorTokens
         .mockResolvedValueOnce(100) // totalRecentAuths
         .mockResolvedValueOnce(20); // errorAuths
 
@@ -217,10 +217,10 @@ describe('queue/errorCheck', () => {
 
       // Low sample size: 3 tokens, 2 errors (should not trigger)
       mockDbCount
-        .mockResolvedValueOnce(3)   // totalRecentTokens
-        .mockResolvedValueOnce(2)   // errorTokens
+        .mockResolvedValueOnce(3) // totalRecentTokens
+        .mockResolvedValueOnce(2) // errorTokens
         .mockResolvedValueOnce(100) // totalRecentAuths
-        .mockResolvedValueOnce(5);  // errorAuths
+        .mockResolvedValueOnce(5); // errorAuths
 
       await processorFn({ connectionId: 'test-id' });
 
@@ -234,9 +234,9 @@ describe('queue/errorCheck', () => {
       // Low sample size: 3 auths, 2 errors (should not trigger)
       mockDbCount
         .mockResolvedValueOnce(100) // totalRecentTokens
-        .mockResolvedValueOnce(5)   // errorTokens
-        .mockResolvedValueOnce(3)   // totalRecentAuths
-        .mockResolvedValueOnce(2);  // errorAuths
+        .mockResolvedValueOnce(5) // errorTokens
+        .mockResolvedValueOnce(3) // totalRecentAuths
+        .mockResolvedValueOnce(2); // errorAuths
 
       await processorFn({ connectionId: 'test-id' });
 
@@ -284,10 +284,10 @@ describe('queue/errorCheck', () => {
     it('should add job with 30 minute delay', async () => {
       await addErrorCheck('test-connection-id');
 
-      expect(mockQueueAdd).toHaveBeenCalledWith(
-        expect.any(Object),
-        { id: 'test-connection-id', delay: 1000 * 60 * 30 }
-      );
+      expect(mockQueueAdd).toHaveBeenCalledWith(expect.any(Object), {
+        id: 'test-connection-id',
+        delay: 1000 * 60 * 30
+      });
     });
 
     it('should use connection id as job id', async () => {
@@ -315,7 +315,7 @@ describe('queue/errorCheck', () => {
 
     beforeEach(async () => {
       vi.resetModules();
-      mockQueueProcess.mockImplementation((handler) => {
+      mockQueueProcess.mockImplementation(handler => {
         processorFn = handler;
         return handler;
       });
@@ -329,9 +329,9 @@ describe('queue/errorCheck', () => {
       // Exactly 15%: should not trigger (> 0.15, not >= 0.15)
       mockDbCount
         .mockResolvedValueOnce(100) // totalRecentTokens
-        .mockResolvedValueOnce(15)  // errorTokens (exactly 15%)
+        .mockResolvedValueOnce(15) // errorTokens (exactly 15%)
         .mockResolvedValueOnce(100) // totalRecentAuths
-        .mockResolvedValueOnce(0);  // errorAuths
+        .mockResolvedValueOnce(0); // errorAuths
 
       await processorFn({ connectionId: 'test-id' });
 
@@ -344,9 +344,9 @@ describe('queue/errorCheck', () => {
 
       mockDbCount
         .mockResolvedValueOnce(1000) // totalRecentTokens
-        .mockResolvedValueOnce(151)  // errorTokens (15.1%)
-        .mockResolvedValueOnce(100)  // totalRecentAuths
-        .mockResolvedValueOnce(0);   // errorAuths
+        .mockResolvedValueOnce(151) // errorTokens (15.1%)
+        .mockResolvedValueOnce(100) // totalRecentAuths
+        .mockResolvedValueOnce(0); // errorAuths
 
       await processorFn({ connectionId: 'test-id' });
 

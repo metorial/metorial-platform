@@ -1,7 +1,6 @@
-import {
-  DashboardInstanceProviderOauthConnectionsGetOutput,
-  DashboardInstanceProviderOauthConnectionsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+// Types removed in Provider API migration
+type ProviderConnectionData = { id: string; name: string | null; description: string | null; provider: { id: string; name: string; slug: string; url?: string } | null; createdAt: Date; [key: string]: unknown };
+type ProviderConnectionListQuery = Record<string, unknown>;
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderConnections } from '@metorial/state';
@@ -10,10 +9,10 @@ import { Table } from '@metorial/ui-product';
 import { Link } from 'react-router-dom';
 
 export let ProviderConnectionsTable = (
-  filter: DashboardInstanceProviderOauthConnectionsListQuery
+  filter: ProviderConnectionListQuery
 ) => {
   let instance = useCurrentInstance();
-  let providerConnections = useProviderConnections(instance.data?.id, {
+  let providerConnections = useProviderConnections(instance.data?.instanceId, {
     ...filter,
     order: 'desc'
   });
@@ -22,7 +21,7 @@ export let ProviderConnectionsTable = (
     <>
       <Table
         headers={['Info', 'Provider', 'Created']}
-        data={providerConnections.data.items.map(providerConnection => ({
+        data={providerConnections.data.items.map((providerConnection: ProviderConnectionData) => ({
           data: [
             <Text size="2" weight="strong">
               {providerConnection.name ?? (
@@ -43,10 +42,10 @@ export let ProviderConnectionsTable = (
                 gap: 8
               }}
             >
-              <Avatar entity={providerConnection.provider} size={24} />
+              {providerConnection.provider && <Avatar entity={providerConnection.provider} size={24} />}
 
               <Text size="2" weight="strong">
-                {providerConnection.provider.name}
+                {providerConnection.provider?.name ?? 'Unknown'}
               </Text>
             </div>,
             <RenderDate date={providerConnection.createdAt} />
@@ -70,19 +69,19 @@ export let ProviderConnectionsTable = (
 };
 
 export let ProviderConnectionsList = (
-  filter: DashboardInstanceProviderOauthConnectionsListQuery & {
+  filter: ProviderConnectionListQuery & {
     onProviderConnectionClick?: (
-      providerConnection: DashboardInstanceProviderOauthConnectionsGetOutput
+      providerConnection: ProviderConnectionData
     ) => void;
   }
 ) => {
   let instance = useCurrentInstance();
-  let providerConnections = useProviderConnections(instance.data?.id, filter);
+  let providerConnections = useProviderConnections(instance.data?.instanceId, filter);
 
   return renderWithPagination(providerConnections)(providerConnections => (
     <ProviderConnectionsListItems
-      providerConnections={providerConnections.data.items}
-      onProviderConnectionClick={filter.onProviderConnectionClick as any}
+      providerConnections={providerConnections.data.items as ProviderConnectionData[]}
+      onProviderConnectionClick={filter.onProviderConnectionClick as (con: ProviderConnectionData) => void}
     />
   ));
 };
@@ -91,9 +90,9 @@ export let ProviderConnectionsListItems = ({
   providerConnections,
   onProviderConnectionClick
 }: {
-  providerConnections: DashboardInstanceProviderOauthConnectionsGetOutput[];
+  providerConnections: ProviderConnectionData[];
   onProviderConnectionClick?: (
-    providerConnection: DashboardInstanceProviderOauthConnectionsGetOutput
+    providerConnection: ProviderConnectionData
   ) => void;
 }) => {
   let instance = useCurrentInstance();
@@ -121,8 +120,8 @@ export let ProviderConnectionsListItems = ({
               />
 
               <Entity.Field
-                title={<Text size="2">{providerConnection.provider.name}</Text>}
-                value={providerConnection.provider.url}
+                title={<Text size="2">{providerConnection.provider?.name ?? 'Unknown'}</Text>}
+                value={providerConnection.provider?.url}
               />
 
               <Entity.Field title={<RenderDate date={providerConnection.createdAt} />} />

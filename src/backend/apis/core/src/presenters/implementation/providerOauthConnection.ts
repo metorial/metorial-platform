@@ -57,11 +57,14 @@ export let v1ProviderOauthConnectionPresenter = Presenter.create(providerOauthCo
   }))
   .schema(
     v.object({
-      object: v.literal('provider_oauth.connection'),
+      object: v.literal('provider_oauth.connection', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',
-        description: 'The unique identifier for this OAuth connection'
+        description: 'The unique identifier for this OAuth connection',
+        examples: ['poc_8sTuVwXyZaBcDeFg']
       }),
 
       status: v.enumOf(['active', 'archived'], {
@@ -71,23 +74,26 @@ export let v1ProviderOauthConnectionPresenter = Presenter.create(providerOauthCo
 
       name: v.string({
         name: 'name',
-        description: 'A human-readable name for the connection'
+        description: 'A human-readable name for the connection',
+        examples: ['GitHub Production']
       }),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'An optional description for the connection'
+          description: 'An optional description for the connection',
+          examples: ['GitHub OAuth connection for production environment']
         })
       ),
       metadata: v.record(v.any(), {
         name: 'metadata',
-        description: 'A key-value map of additional metadata for the connection'
+        description: 'Custom key-value pairs for storing additional information'
       }),
 
       provider: v.object({
         id: v.string({
           name: 'id',
-          description: 'The unique identifier for the OAuth provider'
+          description: 'The unique identifier for the OAuth provider',
+          examples: ['pop_3gHjKlMnPqRsTuVw']
         }),
         name: v.string({
           name: 'name',
@@ -138,18 +144,21 @@ export let v1ProviderOauthConnectionPresenter = Presenter.create(providerOauthCo
 
       client_id: v.string({
         name: 'client_id',
-        description: 'The OAuth client ID used to authenticate with the provider'
+        description: 'The OAuth client ID used to authenticate with the provider',
+        examples: ['Iv1.a8f3k2m9n7p4q1r6']
       }),
 
       instance_id: v.string({
         name: 'instance_id',
-        description: 'The instance that this connection belongs to'
+        description: 'The instance that this connection belongs to',
+        examples: ['ins_9sTuVwXyZaBcDeFg']
       }),
 
       template_id: v.nullable(
         v.string({
           name: 'template_id',
-          description: 'The template ID this connection was based on, if any'
+          description: 'The template ID this connection was based on, if any',
+          examples: ['poct_2bCdEfGhJkLmNpQr']
         })
       ),
 

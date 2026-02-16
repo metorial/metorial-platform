@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ServiceError, forbiddenError, notFoundError, notImplementedError } from '@metorial/error';
+import {
+  ServiceError,
+  forbiddenError,
+  notFoundError,
+  notImplementedError
+} from '@metorial/error';
 
 // Mock external dependencies
 vi.mock('@metorial/db', () => ({
@@ -17,14 +22,16 @@ vi.mock('@metorial/db', () => ({
   ID: {
     generateId: vi.fn()
   },
-  withTransaction: vi.fn((callback) => callback({
-    instance: {
-      create: vi.fn(),
-      update: vi.fn(),
-      findFirst: vi.fn(),
-      findMany: vi.fn()
-    }
-  }))
+  withTransaction: vi.fn(callback =>
+    callback({
+      instance: {
+        create: vi.fn(),
+        update: vi.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn()
+      }
+    })
+  )
 }));
 
 vi.mock('@metorial/fabric', () => ({
@@ -35,7 +42,7 @@ vi.mock('@metorial/fabric', () => ({
 
 vi.mock('@metorial/pagination', () => ({
   Paginator: {
-    create: vi.fn((fn) => fn)
+    create: vi.fn(fn => fn)
   }
 }));
 
@@ -84,7 +91,7 @@ describe('InstanceService', () => {
       };
 
       vi.mocked(ID.generateId).mockResolvedValue('inst-1');
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           instance: {
             create: vi.fn().mockResolvedValue(mockInstance)
@@ -106,10 +113,16 @@ describe('InstanceService', () => {
 
       expect(result).toEqual(mockInstance);
       expect(ID.generateId).toHaveBeenCalledWith('instance');
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.project.instance.created:before', expect.any(Object));
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.project.instance.created:after', expect.objectContaining({
-        instance: mockInstance
-      }));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.project.instance.created:before',
+        expect.any(Object)
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.project.instance.created:after',
+        expect.objectContaining({
+          instance: mockInstance
+        })
+      );
     });
 
     it('should create production instance', async () => {
@@ -120,7 +133,7 @@ describe('InstanceService', () => {
       };
 
       vi.mocked(ID.generateId).mockResolvedValue('inst-2');
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           instance: {
             create: vi.fn().mockResolvedValue(mockInstance)
@@ -147,7 +160,7 @@ describe('InstanceService', () => {
       let mockInstance = { id: 'inst-3', slug: 'test-slug' };
 
       vi.mocked(ID.generateId).mockResolvedValue('inst-3');
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           instance: {
             create: vi.fn().mockResolvedValue(mockInstance)
@@ -185,7 +198,7 @@ describe('InstanceService', () => {
         name: 'New Name'
       };
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           instance: {
             update: vi.fn().mockResolvedValue(updatedInstance)
@@ -205,8 +218,14 @@ describe('InstanceService', () => {
       });
 
       expect(result.name).toBe('New Name');
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.project.instance.updated:before', expect.any(Object));
-      expect(Fabric.fire).toHaveBeenCalledWith('organization.project.instance.updated:after', expect.any(Object));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.project.instance.updated:before',
+        expect.any(Object)
+      );
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'organization.project.instance.updated:after',
+        expect.any(Object)
+      );
     });
 
     it('should throw forbidden error for deleted instance', async () => {
@@ -239,7 +258,7 @@ describe('InstanceService', () => {
         project: { id: 'proj-1', oid: 1 }
       };
 
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           instance: {
             update: vi.fn().mockResolvedValue(mockInstance)
@@ -651,7 +670,7 @@ describe('InstanceService', () => {
       let mockInstance = { id: 'inst-1', name: '', slug: 'slug' };
 
       vi.mocked(ID.generateId).mockResolvedValue('inst-1');
-      vi.mocked(withTransaction).mockImplementation(async (callback) => {
+      vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           instance: {
             create: vi.fn().mockResolvedValue(mockInstance)

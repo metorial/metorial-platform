@@ -7,6 +7,13 @@ export type ManagementInstanceServersDeploymentsListOutput = {
     status: 'active' | 'archived' | 'deleted';
     name: string;
     description: string | null;
+    result:
+      | { status: 'active' }
+      | { status: 'pending'; step: 'oauth_discovery' }
+      | { status: 'failed'; code: string; message: string };
+    metadata: Record<string, any>;
+    createdAt: Date;
+    updatedAt: Date;
     oauthConnection: {
       object: 'provider_oauth.connection';
       id: string;
@@ -39,12 +46,6 @@ export type ManagementInstanceServersDeploymentsListOutput = {
       createdAt: Date;
       updatedAt: Date;
     } | null;
-    result:
-      | { status: 'active' }
-      | { status: 'pending'; step: 'oauth_discovery' }
-      | { status: 'failed'; code: string; message: string };
-    metadata: Record<string, any>;
-    secretId: string;
     server: {
       object: 'server#preview';
       id: string;
@@ -96,8 +97,6 @@ export type ManagementInstanceServersDeploymentsListOutput = {
         | { status: 'enabled'; ipWhitelist: string[]; ipBlacklist: string[] }
         | { status: 'disabled' };
     } | null;
-    createdAt: Date;
-    updatedAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -113,6 +112,23 @@ export let mapManagementInstanceServersDeploymentsListOutput =
           status: mtMap.objectField('status', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
+          result: mtMap.objectField(
+            'result',
+            mtMap.union([
+              mtMap.unionOption(
+                'object',
+                mtMap.object({
+                  status: mtMap.objectField('status', mtMap.passthrough()),
+                  step: mtMap.objectField('step', mtMap.passthrough()),
+                  code: mtMap.objectField('code', mtMap.passthrough()),
+                  message: mtMap.objectField('message', mtMap.passthrough())
+                })
+              )
+            ])
+          ),
+          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
           oauthConnection: mtMap.objectField(
             'oauth_connection',
             mtMap.object({
@@ -184,22 +200,6 @@ export let mapManagementInstanceServersDeploymentsListOutput =
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
           ),
-          result: mtMap.objectField(
-            'result',
-            mtMap.union([
-              mtMap.unionOption(
-                'object',
-                mtMap.object({
-                  status: mtMap.objectField('status', mtMap.passthrough()),
-                  step: mtMap.objectField('step', mtMap.passthrough()),
-                  code: mtMap.objectField('code', mtMap.passthrough()),
-                  message: mtMap.objectField('message', mtMap.passthrough())
-                })
-              )
-            ])
-          ),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          secretId: mtMap.objectField('secret_id', mtMap.passthrough()),
           server: mtMap.objectField(
             'server',
             mtMap.object({
@@ -325,9 +325,7 @@ export let mapManagementInstanceServersDeploymentsListOutput =
                 ])
               )
             })
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+          )
         })
       )
     ),

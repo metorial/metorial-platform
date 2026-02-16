@@ -70,7 +70,9 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
   })
   .schema(
     v.object({
-      object: v.literal('session.session_connection'),
+      object: v.literal('session.session_connection', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',
@@ -84,7 +86,7 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
 
       mcp: v.object(
         {
-          object: v.literal('mcp'),
+          object: v.literal('mcp', { description: "String representing the object's type" }),
 
           version: v.string({
             name: 'version',
@@ -99,7 +101,9 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
           client: v.nullable(
             v.object(
               {
-                object: v.literal('session.session_connection.client'),
+                object: v.literal('session.session_connection.client', {
+                  description: "String representing the object's type"
+                }),
 
                 name: v.string({
                   name: 'name',
@@ -126,7 +130,9 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
           server: v.nullable(
             v.object(
               {
-                object: v.literal('session.session_connection.server'),
+                object: v.literal('session.session_connection.server', {
+                  description: "String representing the object's type"
+                }),
 
                 name: v.string({
                   name: 'name',

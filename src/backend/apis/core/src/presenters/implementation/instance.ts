@@ -7,8 +7,7 @@ export let v1InstancePresenter = Presenter.create(instanceType)
   .presenter(async ({ instance }, opts) => ({
     object: 'organization.instance',
 
-    id: instance.id,
-    status: instance.status,
+    instance_id: instance.id,
     slug: instance.slug,
     name: instance.name,
     organization_id: instance.organization.id,
@@ -22,29 +21,45 @@ export let v1InstancePresenter = Presenter.create(instanceType)
   }))
   .schema(
     v.object({
-      object: v.literal('organization.instance'),
-
-      id: v.string({ name: 'id', description: `The instance's unique identifier` }),
-      status: v.enumOf(['active', 'deleted'], {
-        name: 'status',
-        description: `The instance's status`
+      object: v.literal('organization.instance', {
+        description: "String representing the object's type"
       }),
-      slug: v.string({ name: 'slug', description: `The instance's slug` }),
-      name: v.string({ name: 'name', description: `The instance's name` }),
+
+      instance_id: v.string({
+        name: 'instance_id',
+        description: `The instance's unique identifier`,
+        examples: ['ins_9sTuVwXyZaBcDeFg']
+      }),
+      slug: v.string({
+        name: 'slug',
+        description: `The instance's slug`,
+        examples: ['production-env']
+      }),
+      name: v.string({
+        name: 'name',
+        description: `The instance's name`,
+        examples: ['Production Environment']
+      }),
+      organization_id: v.string({
+        name: 'organization_id',
+        description: `The organization's unique identifier`,
+        examples: ['org_7hNkPqRsTuVwXyZa']
+      }),
       type: v.enumOf(['development', 'production'], {
         name: 'type',
         description: `The instance's type`
       }),
-      organization_id: v.string({
-        name: 'organization_id',
-        description: `The organization's unique identifier`
+      created_at: v.date({
+        name: 'created_at',
+        description: `The instance's creation date`,
+        examples: ['2026-01-29T12:35:22.304Z']
       }),
-      project: v1ProjectPresenter.schema,
-      created_at: v.date({ name: 'created_at', description: `The instance's creation date` }),
       updated_at: v.date({
         name: 'updated_at',
-        description: `The instance's last update date`
-      })
+        description: `The instance's last update date`,
+        examples: ['2026-01-29T12:35:22.304Z']
+      }),
+      project: v1ProjectPresenter.schema
     })
   )
   .build();

@@ -40,13 +40,16 @@ export class Paginator<T> {
       v.object({
         limit: v.optional(
           v.number({
+            description: 'Maximum number of items to return (1-100)',
             modifiers: [v.minValue(1), v.maxValue(100)]
           })
         ),
-        after: v.optional(v.string()),
-        before: v.optional(v.string()),
-        cursor: v.optional(v.string()),
-        order: v.optional(v.enumOf(['asc', 'desc']))
+        after: v.optional(v.string(), { description: 'Return items after this ID' }),
+        before: v.optional(v.string(), { description: 'Return items before this ID' }),
+        cursor: v.optional(v.string(), {
+          description: 'Pagination cursor from a previous response'
+        }),
+        order: v.optional(v.enumOf(['asc', 'desc']), { description: 'Sort order for results' })
       }),
       inner ?? v.object({})
     ]) as ValidationType<

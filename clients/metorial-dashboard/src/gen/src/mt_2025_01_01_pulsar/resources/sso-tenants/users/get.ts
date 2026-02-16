@@ -3,6 +3,12 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type SsoTenantsUsersGetOutput = {
   object: 'sso.tenant';
   id: string;
+  ssoUserId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  createdAt: Date;
+  updatedAt: Date;
   ssoTenant: {
     object: 'sso.tenant';
     id: string;
@@ -12,10 +18,6 @@ export type SsoTenantsUsersGetOutput = {
     createdAt: Date;
     updatedAt: Date;
   };
-  ssoUserId: string;
-  email: string;
-  firstName: string;
-  lastName: string;
   profiles: {
     object: 'sso.user_profile';
     id: string;
@@ -39,14 +41,18 @@ export type SsoTenantsUsersGetOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  createdAt: Date;
-  updatedAt: Date;
 };
 
 export let mapSsoTenantsUsersGetOutput = mtMap.object<SsoTenantsUsersGetOutput>(
   {
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
+    ssoUserId: mtMap.objectField('sso_user_id', mtMap.passthrough()),
+    email: mtMap.objectField('email', mtMap.passthrough()),
+    firstName: mtMap.objectField('first_name', mtMap.passthrough()),
+    lastName: mtMap.objectField('last_name', mtMap.passthrough()),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
+    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
     ssoTenant: mtMap.objectField(
       'sso_tenant',
       mtMap.object({
@@ -62,10 +68,6 @@ export let mapSsoTenantsUsersGetOutput = mtMap.object<SsoTenantsUsersGetOutput>(
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
     ),
-    ssoUserId: mtMap.objectField('sso_user_id', mtMap.passthrough()),
-    email: mtMap.objectField('email', mtMap.passthrough()),
-    firstName: mtMap.objectField('first_name', mtMap.passthrough()),
-    lastName: mtMap.objectField('last_name', mtMap.passthrough()),
     profiles: mtMap.objectField(
       'profiles',
       mtMap.array(
@@ -105,9 +107,7 @@ export let mapSsoTenantsUsersGetOutput = mtMap.object<SsoTenantsUsersGetOutput>(
           updatedAt: mtMap.objectField('updated_at', mtMap.date())
         })
       )
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
+    )
   }
 );
 

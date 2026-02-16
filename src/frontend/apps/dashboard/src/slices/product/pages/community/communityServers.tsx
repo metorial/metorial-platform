@@ -9,21 +9,17 @@ export let CommunityServersPage = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Community Servers"
-        description="Community servers are remote or managed servers that you have published for other Metorial users to access."
+        title="Community Providers"
+        description="Community providers are remote or managed providers that you have published for other Metorial users to access."
       ></PageHeader>
 
       <ServersTable
-        onlyFromOrganization
-        isPublic
-        instanceId={instance.data?.id}
         getUrl={listing =>
-          Paths.instance.customServer(
+          Paths.instance.provider(
             instance.data?.organization,
             instance.data?.project,
             instance.data,
-            listing.server.id,
-            'listing'
+            listing.id
           )
         }
       />

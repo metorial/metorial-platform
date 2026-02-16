@@ -1,4 +1,7 @@
-import { SessionsGetOutput, SessionsListQuery } from '@metorial/dashboard-sdk';
+import {
+  DashboardInstanceSessionsGetOutput,
+  DashboardInstanceSessionsListQuery
+} from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 
@@ -6,7 +9,7 @@ import { useCurrentInstance, useSessions } from '@metorial/state';
 import { Badge, RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
-export let SessionConnectionStatusBadge = ({ session }: { session: SessionsGetOutput }) => {
+export let SessionConnectionStatusBadge = ({ session }: { session: DashboardInstanceSessionsGetOutput }) => {
   return (
     <Badge
       color={
@@ -24,9 +27,9 @@ export let SessionConnectionStatusBadge = ({ session }: { session: SessionsGetOu
   );
 };
 
-export let SessionsTable = (filter: SessionsListQuery) => {
+export let SessionsTable = (filter: DashboardInstanceSessionsListQuery) => {
   let instance = useCurrentInstance();
-  let sessions = useSessions(instance.data?.id, {
+  let sessions = useSessions(instance.data?.instanceId, {
     ...filter,
     order: filter.order ?? 'desc'
   });
@@ -34,17 +37,18 @@ export let SessionsTable = (filter: SessionsListQuery) => {
   return renderWithPagination(sessions)(sessions => (
     <>
       <Table
-        headers={['Status', 'Deployments', 'MCP Client', 'Created']}
+        headers={['Status', 'Deployments', 'Name', 'Created']}
         data={sessions.data.items.map(session => ({
           data: [
             <SessionConnectionStatusBadge session={session} />,
             <Text size="2" weight="strong">
-              {session.serverDeployments.map(s => s.name ?? s.server.id).join(', ') ||
-                'No deployments'}
+              {session.providerDeployments
+                ?.map(s => s.name ?? s.providerId ?? 'Unknown')
+                .join(', ') || 'No deployments'}
             </Text>,
             <Text size="2">
-              {session.client?.info?.name ?? (
-                <span style={{ color: theme.colors.gray600 }}>Unknown Client</span>
+              {session.name ?? (
+                <span style={{ color: theme.colors.gray600 }}>Unnamed Session</span>
               )}
             </Text>,
             <RenderDate date={session.createdAt} />

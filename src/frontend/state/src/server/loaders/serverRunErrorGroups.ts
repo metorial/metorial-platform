@@ -1,41 +1,99 @@
-import { DashboardInstanceServerRunErrorGroupsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import {
+  DashboardInstanceSessionErrorGroupsListQuery,
+  DashboardInstanceSessionsErrorGroupsListQuery
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
-export let serverRunErrorGroupsLoader = createLoader({
-  name: 'serverRunErrorGroups',
+// Instance-level single error group get (no session ID needed)
+export let sessionErrorGroupLoader = createLoader({
+  name: 'sessionErrorGroup',
   parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceServerRunErrorGroupsListQuery) =>
-    withAuth(sdk => sdk.servers.errors.groups.list(i.instanceId, i)),
+  fetch: (i: { instanceId: string; sessionErrorGroupId: string }) =>
+    withAuth(sdk => sdk.sessionErrorGroups.get(i.instanceId, i.sessionErrorGroupId)),
   mutators: {}
 });
 
-export let useServerRunErrorGroups = (
+export let useSessionErrorGroup = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceServerRunErrorGroupsListQuery
+  sessionErrorGroupId: string | null | undefined
 ) => {
-  let data = usePaginator(pagination =>
-    serverRunErrorGroupsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
+  let data = sessionErrorGroupLoader.use(
+    instanceId && sessionErrorGroupId ? { instanceId, sessionErrorGroupId } : null
   );
 
   return data;
 };
 
-export let serverRunErrorGroupLoader = createLoader({
-  name: 'serverRunErrorGroup',
+// Instance-level error groups (cross-session)
+export let allSessionErrorGroupsLoader = createLoader({
+  name: 'allSessionErrorGroups',
   parents: [],
-  fetch: (i: { instanceId: string; serverRunErrorGroupId: string }) =>
-    withAuth(sdk => sdk.servers.errors.groups.get(i.instanceId, i.serverRunErrorGroupId)),
+  fetch: (i: { instanceId: string } & DashboardInstanceSessionErrorGroupsListQuery) =>
+    withAuth(sdk => sdk.sessionErrorGroups.list(i.instanceId, i)),
   mutators: {}
 });
 
-export let useServerRunErrorGroup = (
+export let useAllSessionErrorGroups = (
   instanceId: string | null | undefined,
-  serverRunErrorGroupId: string | null | undefined
+  query?: DashboardInstanceSessionErrorGroupsListQuery
 ) => {
-  let data = serverRunErrorGroupLoader.use(
-    instanceId && serverRunErrorGroupId ? { instanceId, serverRunErrorGroupId } : null
+  let data = usePaginator(pagination =>
+    allSessionErrorGroupsLoader.use(
+      instanceId ? { instanceId, ...pagination, ...query } : null
+    )
+  );
+
+  return data;
+};
+
+// Session-scoped error groups
+export let sessionErrorGroupsLoader = createLoader({
+  name: 'sessionErrorGroups',
+  parents: [],
+  fetch: (
+    i: {
+      instanceId: string;
+      sessionId: string;
+    } & DashboardInstanceSessionsErrorGroupsListQuery
+  ) => withAuth(sdk => sdk.sessions.errorGroups.list(i.instanceId, i.sessionId, i)),
+  mutators: {}
+});
+
+export let useSessionErrorGroups = (
+  instanceId: string | null | undefined,
+  sessionId: string | null | undefined,
+  query?: DashboardInstanceSessionsErrorGroupsListQuery
+) => {
+  let data = usePaginator(pagination =>
+    sessionErrorGroupsLoader.use(
+      instanceId && sessionId ? { instanceId, sessionId, ...pagination, ...query } : null
+    )
+  );
+
+  return data;
+};
+
+export let sessionScopedErrorGroupLoader = createLoader({
+  name: 'sessionScopedErrorGroup',
+  parents: [],
+  fetch: (i: { instanceId: string; sessionId: string; sessionErrorGroupId: string }) =>
+    withAuth(sdk =>
+      sdk.sessions.errorGroups.get(i.instanceId, i.sessionId, i.sessionErrorGroupId)
+    ),
+  mutators: {}
+});
+
+export let useSessionScopedErrorGroup = (
+  instanceId: string | null | undefined,
+  sessionId: string | null | undefined,
+  sessionErrorGroupId: string | null | undefined
+) => {
+  let data = sessionScopedErrorGroupLoader.use(
+    instanceId && sessionId && sessionErrorGroupId
+      ? { instanceId, sessionId, sessionErrorGroupId }
+      : null
   );
 
   return data;

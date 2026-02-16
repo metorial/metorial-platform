@@ -1,13 +1,18 @@
-import {
-  DashboardInstanceMagicMcpServersGetOutput,
-  DashboardInstanceMagicMcpTokensGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { ServerListing } from '../../../../../../state/server';
+
+// MagicMcp types - inline until SDK has proper support
+type MagicMcpServer = {
+  endpoints: { urls: { streamableHttp: string } }[];
+};
+
+type MagicMcpToken = {
+  secret: string;
+};
 
 export let getCursorConnection = (
   listing: ServerListing,
-  server: DashboardInstanceMagicMcpServersGetOutput,
-  token: DashboardInstanceMagicMcpTokensGetOutput
+  server: MagicMcpServer,
+  token: MagicMcpToken
 ) => {
   let last = listing.slug.split('/').pop() ?? listing.slug;
 
@@ -41,8 +46,8 @@ export let getCursorConnection = (
 
 export let getClaudeCodeConnection = (
   listing: ServerListing,
-  server: DashboardInstanceMagicMcpServersGetOutput,
-  token: DashboardInstanceMagicMcpTokensGetOutput
+  server: MagicMcpServer,
+  token: MagicMcpToken
 ) => {
   let last = listing.slug.split('/').pop() ?? listing.slug;
 
@@ -61,8 +66,8 @@ export let getClaudeCodeConnection = (
 
 export let getGeminiCliConnection = (
   listing: ServerListing,
-  server: DashboardInstanceMagicMcpServersGetOutput,
-  token: DashboardInstanceMagicMcpTokensGetOutput
+  server: MagicMcpServer,
+  token: MagicMcpToken
 ) => {
   let last = listing.slug.split('/').pop() ?? listing.slug;
 
@@ -94,8 +99,8 @@ export let getGeminiCliConnection = (
 
 export let getVisualStudioConnection = (
   listing: ServerListing,
-  server: DashboardInstanceMagicMcpServersGetOutput,
-  token: DashboardInstanceMagicMcpTokensGetOutput
+  server: MagicMcpServer,
+  token: MagicMcpToken
 ) => {
   let last = listing.slug.split('/').pop() ?? listing.slug;
 
@@ -126,8 +131,8 @@ export let getVisualStudioConnection = (
 
 export let getWindsurfConnection = (
   listing: ServerListing,
-  server: DashboardInstanceMagicMcpServersGetOutput,
-  token: DashboardInstanceMagicMcpTokensGetOutput
+  server: MagicMcpServer,
+  token: MagicMcpToken
 ) => {
   let last = listing.slug.split('/').pop() ?? listing.slug;
 

@@ -1,9 +1,9 @@
-import { DashboardInstancePortalsConsumerServerRequestsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstancePortalsConsumerServerRequestsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { useCurrentInstance, usePortalServerRequests } from '@metorial/state';
 import { Button, Flex, RenderDate, Text, toast } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { createServerDeploymentTemplateForConsumerSurface } from './groupAccess';
+import { createSessionTemplateForConsumerSurface } from './groupAccess';
 
 export let PortalConsumerServerRequestsTable = (
   filter: DashboardInstancePortalsConsumerServerRequestsListQuery & {
@@ -11,7 +11,7 @@ export let PortalConsumerServerRequestsTable = (
   }
 ) => {
   let instance = useCurrentInstance();
-  let requests = usePortalServerRequests(instance.data?.id, filter.portalId, filter);
+  let requests = usePortalServerRequests(instance.data?.instanceId, filter.portalId, filter);
 
   let accept = requests.acceptMutator();
   let reject = requests.rejectMutator();
@@ -32,8 +32,8 @@ export let PortalConsumerServerRequestsTable = (
                 variant="outline"
                 disabled={request.status !== 'pending'}
                 onClick={async () => {
-                  createServerDeploymentTemplateForConsumerSurface({
-                    instanceId: instance.data?.id!,
+                  createSessionTemplateForConsumerSurface({
+                    instanceId: instance.data?.instanceId!,
                     serverId: request.server.id,
                     addAccess: async template => {
                       let [res] = await accept.mutate({

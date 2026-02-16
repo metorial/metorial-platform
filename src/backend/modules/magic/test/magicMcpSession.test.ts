@@ -17,7 +17,7 @@ vi.mock('@metorial/db', () => ({
       findMany: vi.fn()
     }
   },
-  ensureEmailIdentity: vi.fn((fn) => fn)
+  ensureEmailIdentity: vi.fn(fn => fn)
 }));
 
 vi.mock('@metorial/pagination', () => ({
@@ -309,9 +309,7 @@ describe('magicMcpSessionService', () => {
       expect(db.magicMcpSession.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            AND: [
-              { magicMcpServerOid: { in: ['mcp_srv_oid_1', 'mcp_srv_oid_2'] } }
-            ]
+            AND: [{ magicMcpServerOid: { in: ['mcp_srv_oid_1', 'mcp_srv_oid_2'] } }]
           })
         })
       );
@@ -365,9 +363,7 @@ describe('magicMcpSessionService', () => {
           },
           session: {
             id: 'sess_1',
-            serverSessions: [
-              { id: 'srv_sess_1', status: 'active' }
-            ]
+            serverSessions: [{ id: 'srv_sess_1', status: 'active' }]
           }
         }
       ];
@@ -400,11 +396,7 @@ describe('magicMcpSessionService', () => {
         magicMcpServer: { id: 'mcp_srv_1' },
         session: {
           id: 'sess_1',
-          serverSessions: [
-            { id: 'srv_sess_1' },
-            { id: 'srv_sess_2' },
-            { id: 'srv_sess_3' }
-          ]
+          serverSessions: [{ id: 'srv_sess_1' }, { id: 'srv_sess_2' }, { id: 'srv_sess_3' }]
         }
       };
       vi.mocked(db.magicMcpSession.findFirst).mockResolvedValue(mockSession as any);

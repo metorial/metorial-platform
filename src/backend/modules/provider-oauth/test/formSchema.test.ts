@@ -122,7 +122,7 @@ describe('formSchema', () => {
       const invalidForm = {
         fields: [
           {
-            type: 'text',
+            type: 'text'
             // missing label and key
           }
         ]

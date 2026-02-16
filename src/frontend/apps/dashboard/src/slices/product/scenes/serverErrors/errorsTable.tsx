@@ -1,43 +1,45 @@
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import { DashboardInstanceServerRunErrorsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
-import { useCurrentInstance, useServerRunErrors } from '@metorial/state';
+import { DashboardInstanceSessionErrorsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { useAllSessionErrors, useCurrentInstance } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
-export let ServerErrorsTable = (filter: DashboardInstanceServerRunErrorsListQuery) => {
+export let ServerErrorsTable = (filter: DashboardInstanceSessionErrorsListQuery) => {
   let instance = useCurrentInstance();
-  let errors = useServerRunErrors(instance.data?.id, filter);
+  let errors = useAllSessionErrors(instance.data?.instanceId, filter);
 
   return renderWithPagination(errors)(errors => (
     <>
       <Table
-        headers={['Code', 'Message', 'Deployment', 'Occurred At']}
+        headers={['Type', 'Message', 'Provider Run', 'Occurred At']}
         data={errors.data.items.map(error => ({
           data: [
-            <Badge color="red">{error.code}</Badge>,
+            <Badge color="red">{error.type ?? 'Unknown'}</Badge>,
             <Text size="2" weight="strong">
-              {error.message}
+              {error.message ?? 'No message'}
             </Text>,
             <Text>
-              {error.serverRun.serverDeployment.name ?? (
-                <span style={{ opacity: 0.6 }}>Untitled</span>
+              {error.providerRunId ?? (
+                <span style={{ opacity: 0.6 }}>N/A</span>
               )}
             </Text>,
             <RenderDate date={error.createdAt} />
           ],
-          href: Paths.instance.serverRun(
-            instance.data?.organization,
-            instance.data?.project,
-            instance.data,
-            error.serverRun.id
-          )
+          href: error.providerRunId
+            ? Paths.instance.providerRun(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                error.providerRunId
+              )
+            : undefined
         }))}
       />
 
       {errors.data.items.length == 0 && (
         <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No server errors found.
+          No provider errors found.
         </Text>
       )}
     </>

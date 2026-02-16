@@ -98,7 +98,8 @@ describe('createDeploymentStepManager', () => {
         log: logs
       });
 
-      const createdLogs = (db.customServerDeploymentStep.create as any).mock.calls[0][0].data.logs;
+      const createdLogs = (db.customServerDeploymentStep.create as any).mock.calls[0][0].data
+        .logs;
       expect(createdLogs).toHaveLength(2);
       expect(createdLogs[0][0]).toBeTypeOf('number'); // timestamp
       expect(createdLogs[0][1]).toEqual(['Starting build']);
@@ -116,7 +117,8 @@ describe('createDeploymentStepManager', () => {
         log: logs
       });
 
-      const createdLogs = (db.customServerDeploymentStep.create as any).mock.calls[0][0].data.logs;
+      const createdLogs = (db.customServerDeploymentStep.create as any).mock.calls[0][0].data
+        .logs;
       expect(createdLogs[0][2]).toBe(1); // Error flag
     });
 
@@ -307,7 +309,8 @@ describe('createDeploymentStepManager', () => {
       });
 
       const afterTime = Date.now();
-      const createdLogs = (db.customServerDeploymentStep.create as any).mock.calls[0][0].data.logs;
+      const createdLogs = (db.customServerDeploymentStep.create as any).mock.calls[0][0].data
+        .logs;
       const timestamp = createdLogs[0][0];
 
       expect(timestamp).toBeGreaterThanOrEqual(beforeTime);
@@ -322,7 +325,8 @@ describe('createDeploymentStepManager', () => {
         log: [{ lines: ['Line 1', 'Line 2', 'Line 3'], type: 'info' }]
       });
 
-      const createdLogs = (db.customServerDeploymentStep.create as any).mock.calls[0][0].data.logs;
+      const createdLogs = (db.customServerDeploymentStep.create as any).mock.calls[0][0].data
+        .logs;
       expect(createdLogs[0][1]).toEqual(['Line 1', 'Line 2', 'Line 3']);
     });
   });
@@ -361,7 +365,8 @@ describe('createDeploymentStepManager', () => {
         log: [{ lines: [longLine], type: 'info' }]
       });
 
-      const createdLogs = (db.customServerDeploymentStep.create as any).mock.calls[0][0].data.logs;
+      const createdLogs = (db.customServerDeploymentStep.create as any).mock.calls[0][0].data
+        .logs;
       expect(createdLogs[0][1][0]).toBe(longLine);
     });
 
@@ -377,7 +382,8 @@ describe('createDeploymentStepManager', () => {
         log: manyLogs
       });
 
-      const createdLogs = (db.customServerDeploymentStep.create as any).mock.calls[0][0].data.logs;
+      const createdLogs = (db.customServerDeploymentStep.create as any).mock.calls[0][0].data
+        .logs;
       expect(createdLogs.length).toBe(100);
     });
   });
@@ -386,7 +392,13 @@ describe('createDeploymentStepManager', () => {
     it('should support all step types', async () => {
       const manager = createDeploymentStepManager({ deployment: mockDeployment });
 
-      const stepTypes = ['started', 'deployed', 'lambda_deploy_create', 'lambda_deploy_update', 'lambda_deploy_failed'] as const;
+      const stepTypes = [
+        'started',
+        'deployed',
+        'lambda_deploy_create',
+        'lambda_deploy_update',
+        'lambda_deploy_failed'
+      ] as const;
 
       for (const type of stepTypes) {
         await manager.createDeploymentStep({ type: type as any });

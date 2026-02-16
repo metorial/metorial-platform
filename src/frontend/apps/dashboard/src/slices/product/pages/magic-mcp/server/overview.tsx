@@ -37,22 +37,22 @@ export let MagicMcpServerOverviewPage = () => {
   let instance = useCurrentInstance();
 
   let { magicMcpServerId } = useParams();
-  let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
+  let server = useMagicMcpServer(instance.data?.instanceId, magicMcpServerId);
   let serverDeployment = server.data?.serverDeployments[0];
 
-  let tokens = useMagicMcpTokens(instance.data?.id, {
+  let tokens = useMagicMcpTokens(instance.data?.instanceId, {
     status: 'active'
   });
 
   let token = tokens.data?.items?.[0];
   let secret = token?.secret;
 
-  let url = server.data?.endpoints[0]?.urls.streamableHttp;
+  let url = server.data?.endpoints[0]?.url;
   if (url && secret) {
     url += `?key=${secret}`;
   }
 
-  let cleanUrl = server.data?.endpoints[0]?.urls.streamableHttp;
+  let cleanUrl = server.data?.endpoints[0]?.url;
   if (url && secret) {
     let keyParts = secret.split('_');
     let secretPart = keyParts.pop()!;
@@ -78,8 +78,8 @@ export let MagicMcpServerOverviewPage = () => {
             content: server.data.name
           },
           {
-            label: 'Server',
-            content: serverDeployment?.server.name ?? '...'
+            label: 'Provider',
+            content: (serverDeployment as any)?.server?.name ?? serverDeployment?.name ?? '...'
           },
           {
             label: 'ID',

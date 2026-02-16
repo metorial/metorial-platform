@@ -90,7 +90,10 @@ describe('serverListingCollectionService', () => {
 
       expect(db.serverListingCollection.findFirst).toHaveBeenCalledWith({
         where: {
-          OR: [{ id: 'test-collection-special-2024' }, { slug: 'test-collection-special-2024' }]
+          OR: [
+            { id: 'test-collection-special-2024' },
+            { slug: 'test-collection-special-2024' }
+          ]
         }
       });
     });

@@ -13,11 +13,13 @@ export type ManagementInstancePortalsConsumerAccessDeleteOutput = {
       server: {
         object: 'server';
         id: string;
-        type: 'public' | 'custom';
         status: 'active' | 'inactive';
         name: string;
         description: string | null;
-        importedServerId: string | null;
+        type: 'public' | 'custom';
+        metadata: Record<string, any>;
+        createdAt: Date;
+        updatedAt: Date;
         variants: {
           object: 'server.server_variant';
           id: string;
@@ -35,20 +37,21 @@ export type ManagementInstancePortalsConsumerAccessDeleteOutput = {
           currentVersion: {
             object: 'server.server_version';
             id: string;
+            identifier: string;
+            serverId: string;
+            serverVariantId: string;
+            getLaunchParams: string;
             oauth:
               | { status: 'disabled' }
               | {
                   status: 'enabled';
                   credentialProvider: 'manual' | 'auto_registration';
                 };
-            identifier: string;
-            serverId: string;
-            serverVariantId: string;
-            getLaunchParams: string;
             source:
               | { type: 'docker'; docker: { image: string; tag: string } }
               | { type: 'remote'; remote: { domain: string } };
             schema: Record<string, any>;
+            createdAt: Date;
             server: {
               object: 'server#preview';
               id: string;
@@ -58,16 +61,12 @@ export type ManagementInstancePortalsConsumerAccessDeleteOutput = {
               createdAt: Date;
               updatedAt: Date;
             };
-            createdAt: Date;
           } | null;
           source:
             | { type: 'docker'; docker: { image: string } }
             | { type: 'remote'; remote: { domain: string } };
           createdAt: Date;
         }[];
-        metadata: Record<string, any>;
-        createdAt: Date;
-        updatedAt: Date;
       };
       createdAt: Date;
       updatedAt: Date;
@@ -108,17 +107,16 @@ export let mapManagementInstancePortalsConsumerAccessDeleteOutput =
               mtMap.object({
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
-                type: mtMap.objectField('type', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
                 description: mtMap.objectField(
                   'description',
                   mtMap.passthrough()
                 ),
-                importedServerId: mtMap.objectField(
-                  'imported_server_id',
-                  mtMap.passthrough()
-                ),
+                type: mtMap.objectField('type', mtMap.passthrough()),
+                metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+                createdAt: mtMap.objectField('created_at', mtMap.date()),
+                updatedAt: mtMap.objectField('updated_at', mtMap.date()),
                 variants: mtMap.objectField(
                   'variants',
                   mtMap.array(
@@ -162,6 +160,22 @@ export let mapManagementInstancePortalsConsumerAccessDeleteOutput =
                             mtMap.passthrough()
                           ),
                           id: mtMap.objectField('id', mtMap.passthrough()),
+                          identifier: mtMap.objectField(
+                            'identifier',
+                            mtMap.passthrough()
+                          ),
+                          serverId: mtMap.objectField(
+                            'server_id',
+                            mtMap.passthrough()
+                          ),
+                          serverVariantId: mtMap.objectField(
+                            'server_variant_id',
+                            mtMap.passthrough()
+                          ),
+                          getLaunchParams: mtMap.objectField(
+                            'get_launch_params',
+                            mtMap.passthrough()
+                          ),
                           oauth: mtMap.objectField(
                             'oauth',
                             mtMap.union([
@@ -179,22 +193,6 @@ export let mapManagementInstancePortalsConsumerAccessDeleteOutput =
                                 })
                               )
                             ])
-                          ),
-                          identifier: mtMap.objectField(
-                            'identifier',
-                            mtMap.passthrough()
-                          ),
-                          serverId: mtMap.objectField(
-                            'server_id',
-                            mtMap.passthrough()
-                          ),
-                          serverVariantId: mtMap.objectField(
-                            'server_variant_id',
-                            mtMap.passthrough()
-                          ),
-                          getLaunchParams: mtMap.objectField(
-                            'get_launch_params',
-                            mtMap.passthrough()
                           ),
                           source: mtMap.objectField(
                             'source',
@@ -236,6 +234,10 @@ export let mapManagementInstancePortalsConsumerAccessDeleteOutput =
                             'schema',
                             mtMap.passthrough()
                           ),
+                          createdAt: mtMap.objectField(
+                            'created_at',
+                            mtMap.date()
+                          ),
                           server: mtMap.objectField(
                             'server',
                             mtMap.object({
@@ -265,10 +267,6 @@ export let mapManagementInstancePortalsConsumerAccessDeleteOutput =
                                 mtMap.date()
                               )
                             })
-                          ),
-                          createdAt: mtMap.objectField(
-                            'created_at',
-                            mtMap.date()
                           )
                         })
                       ),
@@ -307,10 +305,7 @@ export let mapManagementInstancePortalsConsumerAccessDeleteOutput =
                       createdAt: mtMap.objectField('created_at', mtMap.date())
                     })
                   )
-                ),
-                metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                )
               })
             ),
             createdAt: mtMap.objectField('created_at', mtMap.date()),

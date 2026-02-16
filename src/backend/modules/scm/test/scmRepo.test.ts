@@ -700,7 +700,12 @@ describe('scmRepoService', () => {
         ref: 'refs/heads/feature-branch', // Not default branch
         after: 'def456',
         pusher: { name: 'Test', email: 'test@example.com' },
-        repository: { id: 123, name: 'test', full_name: 'test/test', owner: { login: 'test' } },
+        repository: {
+          id: 123,
+          name: 'test',
+          full_name: 'test/test',
+          owner: { login: 'test' }
+        },
         sender: { id: 789, login: 'test' },
         commits: []
       });
@@ -759,7 +764,9 @@ describe('scmRepoService', () => {
           }
         });
 
-      vi.mocked(db.scmInstallation.findUniqueOrThrow).mockResolvedValue(mockInstallation as any);
+      vi.mocked(db.scmInstallation.findUniqueOrThrow).mockResolvedValue(
+        mockInstallation as any
+      );
       vi.mocked(Octokit).mockImplementation(
         () =>
           ({
@@ -793,7 +800,9 @@ describe('scmRepoService', () => {
 
       const mockRequest = vi.fn().mockRejectedValue(new Error('Git Repository is empty'));
 
-      vi.mocked(db.scmInstallation.findUniqueOrThrow).mockResolvedValue(mockInstallation as any);
+      vi.mocked(db.scmInstallation.findUniqueOrThrow).mockResolvedValue(
+        mockInstallation as any
+      );
       vi.mocked(Octokit).mockImplementation(
         () =>
           ({

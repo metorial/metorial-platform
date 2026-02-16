@@ -7,11 +7,11 @@ export let SessionServerRunsPage = () => {
   let instance = useCurrentInstance();
 
   let { sessionId } = useParams();
-  let session = useSession(instance.data?.id, sessionId);
+  let session = useSession(instance.data?.instanceId, sessionId);
 
   return renderWithLoader({ session })(({ session }) => (
     <>
-      <ServerRunsTable sessionId={[session.data.id]} />
+      <ServerRunsTable sessionId={session.data.id} />
     </>
   ));
 };

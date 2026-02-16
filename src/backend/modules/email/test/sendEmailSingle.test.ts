@@ -21,8 +21,8 @@ vi.mock('@metorial/db', () => ({
 }));
 
 vi.mock('@metorial/queue', () => ({
-  createQueue: vi.fn((opts) => ({
-    process: vi.fn((handler) => handler),
+  createQueue: vi.fn(opts => ({
+    process: vi.fn(handler => handler),
     add: vi.fn()
   })),
   QueueRetryError: class QueueRetryError extends Error {

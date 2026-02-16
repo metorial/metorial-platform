@@ -1,4 +1,4 @@
-import { DashboardInstancePortalsConsumerGroupsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstancePortalsConsumerGroupsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -24,7 +24,7 @@ export let PortalConsumerGroupsTable = (
   }
 ) => {
   let instance = useCurrentInstance();
-  let groups = usePortalConsumerGroups(instance.data?.id, filter.portalId, filter);
+  let groups = usePortalConsumerGroups(instance.data?.instanceId, filter.portalId, filter);
 
   return renderWithPagination(groups)(groups => (
     <>
@@ -79,7 +79,7 @@ export let showConsumerGroupFormModal = (d: { portalId: string }) =>
         let [res] = await mutator.mutate({
           name: values.name,
           description: values.description,
-          instanceId: instance.data!.id,
+          instanceId: instance.data!.instanceId,
           portalId: d.portalId
         });
 

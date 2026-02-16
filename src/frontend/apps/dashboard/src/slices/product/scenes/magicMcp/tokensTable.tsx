@@ -1,7 +1,6 @@
-import {
-  DashboardInstanceMagicMcpTokensGetOutput,
-  DashboardInstanceMagicMcpTokensListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+// Types removed in Provider API migration
+type MagicMcpTokenData = { id: string; name: string | null; description: string | null; status: string | null; createdAt: Date; updatedAt: Date; secret: string | null; groups: { id: string; name: string | null }[] };
+type MagicMcpTokensListQuery = Record<string, unknown>;
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
 import {
   useCreateMagicMcpToken,
@@ -30,9 +29,9 @@ import { RiClipboardLine, RiMoreLine } from '@remixicon/react';
 import { useState } from 'react';
 import styled from 'styled-components';
 
-export let MagicTokensTable = (filter: DashboardInstanceMagicMcpTokensListQuery) => {
+export let MagicTokensTable = (filter: MagicMcpTokensListQuery) => {
   let instance = useCurrentInstance();
-  let tokens = useMagicMcpTokens(instance.data?.id, {
+  let tokens = useMagicMcpTokens(instance.data?.instanceId, {
     ...filter,
     order: filter.order ?? 'asc'
   });
@@ -121,7 +120,7 @@ export let MagicTokensTable = (filter: DashboardInstanceMagicMcpTokensListQuery)
                   Revoked
                 </Badge>
               )
-            }[token.status],
+            }[token.status ?? ''],
             <div>
               <Text size="2" weight="strong">
                 {token.name}
@@ -240,7 +239,7 @@ let Action = styled('div')`
   flex-shrink: 0;
 `;
 
-export let TokenSecret = ({ token }: { token: DashboardInstanceMagicMcpTokensGetOutput }) => {
+export let TokenSecret = ({ token }: { token: MagicMcpTokenData }) => {
   let secret = token.secret;
   let copy = useCopy(secret!);
   let [isRevealed, setIsRevealed] = useState(false);
@@ -298,7 +297,7 @@ export let createMagicMcpTokenModal = (opts?: { groupId?: string }) =>
         let [res] = await mutator.mutate({
           name: values.name,
           description: values.description,
-          instanceId: instance.data!.id,
+          instanceId: instance.data!.instanceId,
           groupIds: opts?.groupId ? [opts.groupId] : undefined
         });
 
@@ -306,7 +305,7 @@ export let createMagicMcpTokenModal = (opts?: { groupId?: string }) =>
           close();
 
           setTimeout(() => {
-            if (res && res.secret) {
+            if (res && (res as { secret?: string }).secret) {
               showModal(({ dialogProps, close }) => {
                 return (
                   <Dialog.Wrapper variant="padded" {...dialogProps}>
@@ -316,7 +315,7 @@ export let createMagicMcpTokenModal = (opts?: { groupId?: string }) =>
                       anyone and keep it in a safe place, such as a password manager.
                     </Dialog.Description>
 
-                    <Copy label="Magic MCP Token" value={res.secret ?? '...'} />
+                    <Copy label="Magic MCP Token" value={(res as { secret?: string }).secret ?? '...'} />
 
                     <Spacer height={15} />
 

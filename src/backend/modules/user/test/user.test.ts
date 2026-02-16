@@ -12,16 +12,18 @@ vi.mock('@metorial/db', () => ({
     }
   },
   ID: {
-    generateId: vi.fn((type) => Promise.resolve(`${type}_test_id_${Date.now()}`))
+    generateId: vi.fn(type => Promise.resolve(`${type}_test_id_${Date.now()}`))
   },
-  withTransaction: vi.fn((cb) => cb({
-    user: {
-      findFirst: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn()
-    }
-  }))
+  withTransaction: vi.fn(cb =>
+    cb({
+      user: {
+        findFirst: vi.fn(),
+        findUnique: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn()
+      }
+    })
+  )
 }));
 
 vi.mock('@metorial/fabric', () => ({
@@ -31,10 +33,10 @@ vi.mock('@metorial/fabric', () => ({
 }));
 
 vi.mock('@metorial/error', () => ({
-  conflictError: vi.fn((opts) => ({ type: 'conflict', ...opts })),
-  forbiddenError: vi.fn((opts) => ({ type: 'forbidden', ...opts })),
-  notFoundError: vi.fn((id) => ({ type: 'not_found', id })),
-  notImplementedError: vi.fn((opts) => ({ type: 'not_implemented', ...opts })),
+  conflictError: vi.fn(opts => ({ type: 'conflict', ...opts })),
+  forbiddenError: vi.fn(opts => ({ type: 'forbidden', ...opts })),
+  notFoundError: vi.fn(id => ({ type: 'not_found', id })),
+  notImplementedError: vi.fn(opts => ({ type: 'not_implemented', ...opts })),
   ServiceError: class ServiceError extends Error {
     constructor(public error: any) {
       super(error.message);
@@ -51,7 +53,7 @@ vi.mock('../src/queues/syncUserUpdate', () => ({
 // Mock Bun.password
 global.Bun = {
   password: {
-    hash: vi.fn((pwd) => Promise.resolve(`hashed_${pwd}`)),
+    hash: vi.fn(pwd => Promise.resolve(`hashed_${pwd}`)),
     verify: vi.fn()
   }
 } as any;
@@ -111,10 +113,13 @@ describe('userService', () => {
 
       expect(result).toEqual(mockUser);
       expect(Fabric.fire).toHaveBeenCalledWith('user.created:before', expect.any(Object));
-      expect(Fabric.fire).toHaveBeenCalledWith('user.created:after', expect.objectContaining({
-        user: mockUser,
-        performedBy: mockUser
-      }));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'user.created:after',
+        expect.objectContaining({
+          user: mockUser,
+          performedBy: mockUser
+        })
+      );
     });
 
     it('should create a user successfully without password', async () => {
@@ -273,9 +278,12 @@ describe('userService', () => {
 
       expect(result).toEqual(updatedUser);
       expect(Fabric.fire).toHaveBeenCalledWith('user.updated:before', expect.any(Object));
-      expect(Fabric.fire).toHaveBeenCalledWith('user.updated:after', expect.objectContaining({
-        user: updatedUser
-      }));
+      expect(Fabric.fire).toHaveBeenCalledWith(
+        'user.updated:after',
+        expect.objectContaining({
+          user: updatedUser
+        })
+      );
       expect(syncUserUpdateQueue.add).toHaveBeenCalledWith({
         userId: updatedUser.id
       });

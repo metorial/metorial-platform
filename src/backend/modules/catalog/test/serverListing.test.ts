@@ -274,7 +274,9 @@ describe('serverListingService', () => {
       });
 
       expect(db.serverListingCollection.findMany).toHaveBeenCalledWith({
-        where: { OR: [{ id: { in: ['col_1', 'col_2'] } }, { slug: { in: ['col_1', 'col_2'] } }] }
+        where: {
+          OR: [{ id: { in: ['col_1', 'col_2'] } }, { slug: { in: ['col_1', 'col_2'] } }]
+        }
       });
     });
 
@@ -292,7 +294,9 @@ describe('serverListingService', () => {
       });
 
       expect(db.serverListingCategory.findMany).toHaveBeenCalledWith({
-        where: { OR: [{ id: { in: ['cat_1', 'cat_2'] } }, { slug: { in: ['cat_1', 'cat_2'] } }] }
+        where: {
+          OR: [{ id: { in: ['cat_1', 'cat_2'] } }, { slug: { in: ['cat_1', 'cat_2'] } }]
+        }
       });
     });
 
@@ -310,7 +314,9 @@ describe('serverListingService', () => {
       });
 
       expect(db.profile.findMany).toHaveBeenCalledWith({
-        where: { OR: [{ id: { in: ['prof_1', 'prof_2'] } }, { slug: { in: ['prof_1', 'prof_2'] } }] }
+        where: {
+          OR: [{ id: { in: ['prof_1', 'prof_2'] } }, { slug: { in: ['prof_1', 'prof_2'] } }]
+        }
       });
     });
 
@@ -329,7 +335,10 @@ describe('serverListingService', () => {
 
       expect(db.serverVariantProvider.findMany).toHaveBeenCalledWith({
         where: {
-          OR: [{ id: { in: ['prov_1', 'prov_2'] } }, { identifier: { in: ['prov_1', 'prov_2'] } }]
+          OR: [
+            { id: { in: ['prov_1', 'prov_2'] } },
+            { identifier: { in: ['prov_1', 'prov_2'] } }
+          ]
         }
       });
     });

@@ -1,56 +1,36 @@
-import { CustomServersManagedServerTemplatesListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
-import { createLoader } from '@metorial/data-hooks';
-import { usePaginator } from '../../lib/usePaginator';
-import { useCurrentOrganization } from '../../organization';
-import { withAuth } from '../../user';
-
-export let managedServerTemplatesLoader = createLoader({
-  name: 'managedServerTemplates',
-  parents: [],
-  fetch: (i: CustomServersManagedServerTemplatesListQuery & { organizationId: string }) =>
-    withAuth(sdk => sdk.customServers.managedServerTemplates.list(i.organizationId, i)),
-  mutators: {}
-});
-
-export let useManagedServerTemplates = (
-  query?: CustomServersManagedServerTemplatesListQuery
-) => {
-  let org = useCurrentOrganization();
-
-  let data = usePaginator(pagination =>
-    managedServerTemplatesLoader.use(
-      org.data
-        ? {
-            ...pagination,
-            ...query,
-            organizationId: org.data?.id!
-          }
-        : null
-    )
-  );
-
-  return data;
+type ManagedServerTemplateData = {
+  id: string;
+  name: string | null;
+  slug: string | null;
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
-export let managedServerTemplateLoader = createLoader({
-  name: 'managedServerTemplate',
-  parents: [managedServerTemplatesLoader],
-  fetch: (i: { managedServerTemplateId: string; organizationId: string }) =>
-    withAuth(sdk =>
-      sdk.customServers.managedServerTemplates.get(i.organizationId, i.managedServerTemplateId)
-    ),
-  mutators: {}
+// Placeholder exports to prevent import errors in consuming code
+export const managedServerTemplatesLoader = null;
+
+export const useManagedServerTemplates = (
+  _query?: Record<string, unknown>
+) => ({
+  data: null as {
+    items: ManagedServerTemplateData[];
+    pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  } | null,
+  isLoading: false,
+  error: null,
+  next: () => {},
+  previous: () => {},
+  refetch: () => {}
 });
 
-export let useManagedServerTemplate = (managedServerTemplateId: string | null | undefined) => {
-  let org = useCurrentOrganization();
-  let data = managedServerTemplateLoader.use(
-    managedServerTemplateId && org.data
-      ? { managedServerTemplateId, organizationId: org.data.id }
-      : null
-  );
+export const managedServerTemplateLoader = null;
 
-  return {
-    ...data
-  };
-};
+export const useManagedServerTemplate = (
+  _managedServerTemplateId?: string | null
+) => ({
+  data: null as ManagedServerTemplateData | null,
+  isLoading: false,
+  error: null,
+  refetch: () => {}
+});

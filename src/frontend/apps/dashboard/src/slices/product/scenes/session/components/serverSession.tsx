@@ -1,6 +1,6 @@
-import { DashboardInstanceSessionsServerSessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceSessionsServerSessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { useCurrentInstance, useServerRuns } from '@metorial/state';
+import { useCurrentInstance, useProviderRuns } from '@metorial/state';
 import { Button, theme } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import {
@@ -98,10 +98,13 @@ export let ServerSession = ({
   }, [inView]);
 
   let instance = useCurrentInstance();
-  let serverRuns = useServerRuns(canFetch ? instance.data?.id : undefined, {
-    serverSessionId: [serverSession.id],
-    limit: 100
-  });
+  let serverRuns = useProviderRuns(
+    canFetch ? instance.data?.instanceId : undefined,
+    canFetch ? serverSession.session.id : undefined,
+    {
+      limit: 100
+    }
+  );
 
   let eventItems = useEvents(canFetch ? serverSession.session.id : undefined, {
     serverSessionId: [serverSession.id],
@@ -122,7 +125,11 @@ export let ServerSession = ({
         )}
 
         <Header>
-          <span>{serverSession.serverDeployment.name ?? serverSession.server.name}</span>
+          <span>
+            {serverSession.serverDeployment?.name ??
+              serverSession.server?.name ??
+              'Unknown'}
+          </span>
           <span>
             <ID id={serverSession.connection?.id ?? serverSession.id} />
           </span>
@@ -161,7 +168,7 @@ export let ServerSession = ({
                 {
                   component: (
                     <Entry
-                      title={`Server ${serverRun.serverDeployment.name ?? serverRun.server.name} started`}
+                      title={`Provider ${serverRun.name ?? serverRun.providerId ?? 'Unknown'} started`}
                       icon={<RiServerLine />}
                       time={serverRun.startedAt ?? serverRun.createdAt}
                     />
@@ -169,15 +176,15 @@ export let ServerSession = ({
                   time: serverRun.startedAt ?? serverRun.createdAt
                 },
 
-                serverRun.stoppedAt && {
+                serverRun.completedAt && {
                   component: (
                     <Entry
-                      title={`Server ${serverRun.serverDeployment.name ?? serverRun.server.name} stopped`}
+                      title={`Provider ${serverRun.name ?? serverRun.providerId ?? 'Unknown'} stopped`}
                       icon={<RiServerLine />}
-                      time={serverRun.stoppedAt}
+                      time={serverRun.completedAt}
                     />
                   ),
-                  time: serverRun.stoppedAt
+                  time: serverRun.completedAt
                 }
               ]),
 

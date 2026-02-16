@@ -24,7 +24,9 @@ export let v1SessionPreview = Object.assign(
   }),
   {
     schema: v.object({
-      object: v.literal('session#preview'),
+      object: v.literal('session#preview', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',

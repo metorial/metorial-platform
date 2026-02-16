@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import type { ServersListingsListQuery } from '@metorial/generated/src/mt_2025_01_01_dashboard';
-import { useCurrentInstance, useServerListings } from '@metorial/state';
+import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { useCurrentInstance, useProviderListings } from '@metorial/state';
 import { Avatar, Badge, Text } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { RiCheckLine } from '@remixicon/react';
@@ -25,47 +25,47 @@ let Category = styled.div`
   font-weight: 500;
 `;
 
-export let ServersGrid = (filter: ServersListingsListQuery) => {
+export let ServersGrid = (filter: DashboardInstanceProviderListingsListQuery) => {
   let instance = useCurrentInstance();
-  let servers = useServerListings(filter);
+  let providers = useProviderListings(filter);
   let navigate = useNavigate();
 
-  return renderWithLoader({ servers })(({ servers }) => (
+  return renderWithLoader({ providers })(({ providers }) => (
     <>
-      {servers.data.items.length > 0 && (
+      {providers.data.items.length > 0 && (
         <ItemGrid.Root width="300px">
-          {servers.data.items.map(server => (
+          {providers.data.items.map(provider => (
             <ItemGrid.Item
-              key={server.id}
-              entity={{ id: server.id, hasUsage: true }}
-              title={server.name}
+              key={provider.id}
+              entity={{ id: provider.id, hasUsage: true }}
+              title={provider.name}
               description={
-                server.description.slice(0, 100) +
-                (server.description.length > 100 ? '...' : '')
+                provider.description
+                  ? provider.description.slice(0, 100) +
+                    (provider.description.length > 100 ? '...' : '')
+                  : ''
               }
               height={250}
               icon={
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Avatar
                     entity={{
-                      name: server.profile?.name ?? server.vendor?.name ?? server.name,
-                      photoUrl: server.imageUrl
+                      name: provider.name,
+                      photoUrl: provider.imageUrl || undefined
                     }}
                     size={30}
                     radius={5}
+                    withInitials
                   />
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    {(server.profile?.isVerified || server.isVerified) && (
+                    {provider.flags.isVerified && (
                       <Badge size="1" color="blue">
                         <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
                       </Badge>
                     )}
 
-                    {(server.profile?.isMetorial ||
-                      server.profile?.isOfficial ||
-                      server.isMetorial ||
-                      server.isOfficial) && (
+                    {(provider.flags.isMetorial || provider.flags.isOfficial) && (
                       <Badge size="1" color="gray">
                         Official
                       </Badge>
@@ -75,17 +75,17 @@ export let ServersGrid = (filter: ServersListingsListQuery) => {
               }
               onClick={() =>
                 navigate(
-                  Paths.instance.server(
+                  Paths.instance.provider(
                     instance.data?.organization,
                     instance.data?.project,
                     instance.data,
-                    server.server.id
+                    provider.providerId ?? undefined
                   )
                 )
               }
               bottom={
                 <Categories>
-                  {server.categories.map(category => (
+                  {provider.categories.map(category => (
                     <Category key={category.id}>{category.name}</Category>
                   ))}
                 </Categories>
@@ -95,9 +95,9 @@ export let ServersGrid = (filter: ServersListingsListQuery) => {
         </ItemGrid.Root>
       )}
 
-      {servers.data.items.length == 0 && (
+      {providers.data.items.length == 0 && (
         <Text size="2" color="gray600">
-          No servers found
+          No providers found
         </Text>
       )}
     </>

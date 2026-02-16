@@ -23,11 +23,11 @@ vi.mock('@metorial/fabric', () => ({
 }));
 
 vi.mock('@metorial/queue', () => ({
-  createQueue: vi.fn((config) => ({
+  createQueue: vi.fn(config => ({
     name: config.name,
     add: vi.fn(),
     addMany: vi.fn(),
-    process: vi.fn((handler) => handler)
+    process: vi.fn(handler => handler)
   })),
   QueueRetryError: class QueueRetryError extends Error {
     constructor(message?: string) {
@@ -128,9 +128,7 @@ describe('syncUserUpdate queues', () => {
       const mockUser = {
         id: 'user_123',
         name: 'Test User',
-        members: [
-          { id: 'member_1', organization: { id: 'org_1' } }
-        ]
+        members: [{ id: 'member_1', organization: { id: 'org_1' } }]
       };
 
       db.user.findUnique.mockResolvedValue(mockUser);

@@ -84,7 +84,9 @@ describe('SyncProfile Queue', () => {
 
       let data = { organizationId: 'org-999' };
 
-      await expect((syncProfileQueueProcessor as any).handler(data)).rejects.toThrow(QueueRetryError);
+      await expect((syncProfileQueueProcessor as any).handler(data)).rejects.toThrow(
+        QueueRetryError
+      );
 
       expect(db.organization.findUnique).toHaveBeenCalledWith({
         where: { id: 'org-999' }
@@ -148,7 +150,9 @@ describe('SyncProfile Queue', () => {
 
       let data = { organizationId: '' };
 
-      await expect((syncProfileQueueProcessor as any).handler(data)).rejects.toThrow(QueueRetryError);
+      await expect((syncProfileQueueProcessor as any).handler(data)).rejects.toThrow(
+        QueueRetryError
+      );
     });
 
     it('should handle database errors', async () => {

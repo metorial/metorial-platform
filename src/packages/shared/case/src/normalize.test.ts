@@ -22,7 +22,13 @@ describe('normalizeCase', () => {
   });
 
   it('should handle mixed cases and separators', () => {
-    expect(normalizeCase('helloWorld_test-123Example')).toEqual(['hello', 'world', 'test', '123', 'example']);
+    expect(normalizeCase('helloWorld_test-123Example')).toEqual([
+      'hello',
+      'world',
+      'test',
+      '123',
+      'example'
+    ]);
   });
 
   it('should handle empty strings', () => {

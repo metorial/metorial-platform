@@ -4,12 +4,12 @@ import { normalizeCase } from './normalize';
 import { titleWord, word } from './special';
 
 vi.mock('./normalize', () => ({
-  normalizeCase: vi.fn((input: string) => input.toLowerCase().split(/[\s_-]+/)),
+  normalizeCase: vi.fn((input: string) => input.toLowerCase().split(/[\s_-]+/))
 }));
 
 vi.mock('./special', () => ({
   titleWord: vi.fn((input: string) => input.charAt(0).toUpperCase() + input.slice(1)),
-  word: vi.fn((input: string) => input.toLowerCase()),
+  word: vi.fn((input: string) => input.toLowerCase())
 }));
 
 describe('Cases', () => {

@@ -15,6 +15,7 @@ export let introspectApi = (version: {
     id: string;
     name: string;
     description: string;
+    deprecated: boolean;
   }[] = [];
 
   let endpoints: any[] = [];
@@ -44,7 +45,8 @@ export let introspectApi = (version: {
     let controller = {
       id: `controller_${idIndex++}`,
       name: i.descriptor.name,
-      description: i.descriptor.description
+      description: i.descriptor.description,
+      deprecated: !!i.descriptor.deprecated
     };
 
     controllers.push(controller);
@@ -54,6 +56,10 @@ export let introspectApi = (version: {
         let out = inner.introspect({
           apiVersion: version.version
         });
+
+        if (!out.output) {
+          continue;
+        }
 
         endpoints.push({
           id: `endpoint_${idIndex++}`,

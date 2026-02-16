@@ -120,7 +120,9 @@ describe('Markdown', () => {
     });
 
     it('should convert images', async () => {
-      const markdown = Markdown.from('![Alt text](https://example.com/image.png)', { id: 'test' });
+      const markdown = Markdown.from('![Alt text](https://example.com/image.png)', {
+        id: 'test'
+      });
       const html = await markdown.toHtml();
       expect(html).toContain('<img');
       expect(html).toContain('alt="Alt text"');
@@ -150,13 +152,17 @@ describe('Markdown', () => {
     });
 
     it('should proxy external images (non-metorial)', async () => {
-      const markdown = Markdown.from('![Image](https://external.com/image.png)', { id: 'test' });
+      const markdown = Markdown.from('![Image](https://external.com/image.png)', {
+        id: 'test'
+      });
       const html = await markdown.toHtml();
       expect(html).toContain('https://proxy.metorial.com/image?url=');
     });
 
     it('should not proxy metorial.com images', async () => {
-      const markdown = Markdown.from('![Image](https://metorial.com/image.png)', { id: 'test' });
+      const markdown = Markdown.from('![Image](https://metorial.com/image.png)', {
+        id: 'test'
+      });
       const html = await markdown.toHtml();
       expect(html).toContain('https://metorial.com/image.png');
       expect(html).not.toContain('proxy');
@@ -171,7 +177,10 @@ describe('Markdown', () => {
     });
 
     it('should support GFM tables', async () => {
-      const markdown = Markdown.from('| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |', { id: 'test' });
+      const markdown = Markdown.from(
+        '| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |',
+        { id: 'test' }
+      );
       const html = await markdown.toHtml();
       expect(html).toContain('<table>');
       expect(html).toContain('<thead>');
@@ -232,7 +241,10 @@ describe('Markdown', () => {
     });
 
     it('should handle complex nested markdown', async () => {
-      const markdown = Markdown.from('# Header\n\n> Quote with **bold** and *italic*\n\n- List item with `code`', { id: 'test' });
+      const markdown = Markdown.from(
+        '# Header\n\n> Quote with **bold** and *italic*\n\n- List item with `code`',
+        { id: 'test' }
+      );
       const html = await markdown.toHtml();
       expect(html).toContain('<h1>Header</h1>');
       expect(html).toContain('<blockquote>');
@@ -252,7 +264,9 @@ describe('Markdown', () => {
     });
 
     it('should handle headings h1-h6', async () => {
-      const markdown = Markdown.from('# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6', { id: 'test' });
+      const markdown = Markdown.from('# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6', {
+        id: 'test'
+      });
       const html = await markdown.toHtml();
       expect(html).toContain('<h1>H1</h1>');
       expect(html).toContain('<h2>H2</h2>');
@@ -296,13 +310,17 @@ describe('Markdown', () => {
     });
 
     it('should handle images in HTML', async () => {
-      const markdown = Markdown.from('<img src="https://example.com/image.png" alt="Alt">', { id: 'test' });
+      const markdown = Markdown.from('<img src="https://example.com/image.png" alt="Alt">', {
+        id: 'test'
+      });
       const result = await markdown.toMarkdown();
       expect(result).toContain('![Alt]');
     });
 
     it('should handle lists in HTML', async () => {
-      const markdown = Markdown.from('<ul><li>Item 1</li><li>Item 2</li></ul>', { id: 'test' });
+      const markdown = Markdown.from('<ul><li>Item 1</li><li>Item 2</li></ul>', {
+        id: 'test'
+      });
       const result = await markdown.toMarkdown();
       expect(result).toContain('Item 1');
       expect(result).toContain('Item 2');
@@ -331,7 +349,9 @@ describe('Markdown', () => {
     });
 
     it('should strip script tags', async () => {
-      const markdown = Markdown.from('<script>alert("xss")</script><p>Content</p>', { id: 'test' });
+      const markdown = Markdown.from('<script>alert("xss")</script><p>Content</p>', {
+        id: 'test'
+      });
       const result = await markdown.toMarkdown();
       expect(result).not.toContain('alert');
       expect(result).toContain('Content');
@@ -360,7 +380,9 @@ describe('Markdown', () => {
     });
 
     it('should add target blank for external links', async () => {
-      const markdown = Markdown.from('<a href="https://external.com">Link</a>', { id: 'test' });
+      const markdown = Markdown.from('<a href="https://external.com">Link</a>', {
+        id: 'test'
+      });
       const result = await markdown.toMarkdown();
       // The markdown output should still contain the link
       expect(result).toContain('https://external.com');
@@ -412,7 +434,9 @@ describe('Markdown', () => {
     });
 
     it('should handle nested lists', async () => {
-      const markdown = Markdown.from('- Item 1\n  - Nested 1\n  - Nested 2\n- Item 2', { id: 'test' });
+      const markdown = Markdown.from('- Item 1\n  - Nested 1\n  - Nested 2\n- Item 2', {
+        id: 'test'
+      });
       const html = await markdown.toHtml();
       expect(html).toContain('<ul>');
       expect(html).toContain('Item 1');

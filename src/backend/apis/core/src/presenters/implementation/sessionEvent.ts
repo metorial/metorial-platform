@@ -65,7 +65,9 @@ export let v1SessionEventPresenter = Presenter.create(sessionEventType)
   }))
   .schema(
     v.object({
-      object: v.literal('session.event'),
+      object: v.literal('session.event', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',

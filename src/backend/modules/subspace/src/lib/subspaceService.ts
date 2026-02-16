@@ -1,4 +1,4 @@
-import type { Instance, Organization, OrganizationActor } from '@metorial/db';
+import type { Instance, OrganizationActor } from '@metorial/db';
 import { Service } from '@metorial/service';
 import { getActorForSubspace, getTenantForSubspace } from '../subspace';
 
@@ -16,33 +16,62 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
   for (let methodName of methods) {
     if (methodsObj[methodName]) continue;
 
-    methodsObj[methodName] = async (...args: any[]) => {
+    let callController = async (args: any[]) => {
       let firstArg = args[0] as {
         instance: Instance;
-        organization: Organization;
         organizationActor?: OrganizationActor;
       };
 
-      let { tenant, environment } = await getTenantForSubspace(
-        firstArg.organization,
-        firstArg.instance
-      );
+      let { tenant, environmentId } = await getTenantForSubspace(firstArg.instance);
 
       let actor = await (firstArg.organizationActor
         ? getActorForSubspace(tenant, firstArg.organizationActor)
         : undefined);
 
-      return (controller as any)[methodName](
-        {
-          ...args[0],
-
-          actorId: actor?.id,
-          tenantId: tenant.id,
-          environmentId: environment.id
-        },
-        ...args.slice(1)
-      );
+      let payload = {
+        ...args[0],
+        actorId: actor?.id,
+        tenantId: tenant.id,
+        environmentId
+      };
+      return (controller as any)[methodName](payload, ...args.slice(1));
     };
+
+    if (methodName === 'list') {
+      // make Paginator-compatible object with a .run() method
+      methodsObj[methodName] = async (...args: any[]) => {
+        let firstArg = args[0];
+        return {
+          async run(query: {
+            limit?: number;
+            after?: string;
+            before?: string;
+            cursor?: string;
+            order?: 'asc' | 'desc';
+          }) {
+            let result = await callController([
+              {
+                ...firstArg,
+                limit: query.limit,
+                after: query.after,
+                before: query.before,
+                cursor: query.cursor,
+                order: query.order
+              }
+            ]);
+            return {
+              items: result.items,
+              pagination: {
+                hasNextPage: result.pagination.has_more_after,
+                hasPreviousPage: result.pagination.has_more_before
+              }
+            };
+          }
+        };
+      };
+    } else {
+      methodsObj[methodName] = (...args: any[]) => callController(args);
+    }
   }
 
   let methodsTyped = methodsObj as {
@@ -50,7 +79,7 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
       ...args: any[]
     ) => any
       ? (
-          arg0: { instance: Instance; organization: Organization } & Omit<
+          arg0: { instance: Instance } & Omit<
             Parameters<SubspaceController[K]>[0],
             'tenantId' | 'environmentId'
           > &

@@ -1,4 +1,4 @@
-import { DashboardInstanceSessionsMessagesGetOutput } from '@metorial/generated/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceSessionsMessagesGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { useMemo } from 'react';
 
 export interface AggregatedMessages {
@@ -19,20 +19,23 @@ export let useAggregatedMessages = (
     let map = new Map<string, AggregatedMessages>();
 
     for (let message of messages) {
-      let current = (map.get(message.mcpMessage.id) ?? {}) as AggregatedMessages;
+      let mcpMsg = message.mcpMessage;
+      if (!mcpMsg) continue;
 
-      current.unifiedId = message.mcpMessage.id;
-      current.originalId =
-        current.originalId ?? message.mcpMessage.originalId ?? message.mcpMessage.id;
+      let msgId = String(mcpMsg.id);
+      let current = (map.get(msgId) ?? {}) as AggregatedMessages;
 
-      if (message.mcpMessage.method) {
-        current.method = message.mcpMessage.method;
+      current.unifiedId = msgId;
+      current.originalId = current.originalId ?? String(mcpMsg.originalId ?? mcpMsg.id);
+
+      if (mcpMsg.method) {
+        current.method = mcpMsg.method;
         current.request = message;
       } else {
         current.response = message;
       }
 
-      map.set(message.mcpMessage.id, current);
+      map.set(msgId, current);
     }
 
     return map;

@@ -41,7 +41,11 @@ vi.mock('@metorial/db', () => ({
 vi.mock('@metorial/error', () => ({
   badRequestError: vi.fn((msg: any) => ({ type: 'bad_request', ...msg })),
   forbiddenError: vi.fn((msg: any) => ({ type: 'forbidden', ...msg })),
-  notFoundError: vi.fn((type: string, id: string) => ({ type: 'not_found', resource: type, id })),
+  notFoundError: vi.fn((type: string, id: string) => ({
+    type: 'not_found',
+    resource: type,
+    id
+  })),
   ServiceError: class ServiceError extends Error {
     constructor(public error: any) {
       super(error.message);
@@ -114,7 +118,9 @@ describe('ServerImplementationService', () => {
 
   describe('getServerImplementationById', () => {
     it('should retrieve a server implementation by id', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { db } = await import('@metorial/db');
 
       const mockImplementation = {
@@ -142,7 +148,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should throw not found error when implementation does not exist', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { db } = await import('@metorial/db');
       const { ServiceError } = await import('@metorial/error');
 
@@ -159,7 +167,9 @@ describe('ServerImplementationService', () => {
 
   describe('createServerImplementation', () => {
     it('should create a persistent server implementation', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { withTransaction } = await import('@metorial/db');
       const { Fabric } = await import('@metorial/fabric');
       const { serverImplementationCreatedQueue } = await import(
@@ -222,7 +232,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should create ephemeral server implementation with archived status', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { withTransaction } = await import('@metorial/db');
 
       const mockServerVariant = {
@@ -266,7 +278,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should throw error when server variant is inactive', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { ServiceError } = await import('@metorial/error');
 
       const mockServerVariant = {
@@ -293,7 +307,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should throw error when server is inactive', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { ServiceError } = await import('@metorial/error');
 
       const mockServerVariant = {
@@ -320,7 +336,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should set isDefault to null (not false)', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { withTransaction } = await import('@metorial/db');
 
       const mockServerVariant = {
@@ -368,7 +386,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should include getLaunchParams in creation', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { withTransaction } = await import('@metorial/db');
 
       const mockServerVariant = {
@@ -419,7 +439,9 @@ describe('ServerImplementationService', () => {
 
   describe('ensureDefaultImplementation', () => {
     it('should return existing default implementation if it exists', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { withTransaction } = await import('@metorial/db');
 
       const mockServerVariant = {
@@ -459,7 +481,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should create new default implementation if none exists', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { withTransaction, ID } = await import('@metorial/db');
       const { Fabric } = await import('@metorial/fabric');
 
@@ -505,7 +529,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should throw error when server variant is inactive', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { ServiceError } = await import('@metorial/error');
       const { withTransaction } = await import('@metorial/db');
 
@@ -540,7 +566,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should only fire created event for newly created implementation', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { withTransaction, ID } = await import('@metorial/db');
       const { ingestEventService } = await import('@metorial/module-event');
 
@@ -591,7 +619,9 @@ describe('ServerImplementationService', () => {
 
   describe('updateServerImplementation', () => {
     it('should update server implementation', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { withTransaction } = await import('@metorial/db');
       const { Fabric } = await import('@metorial/fabric');
 
@@ -640,7 +670,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should throw error when updating deleted implementation', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { ServiceError } = await import('@metorial/error');
 
       const mockImplementation = {
@@ -663,7 +695,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should update getLaunchParams', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { withTransaction } = await import('@metorial/db');
 
       const mockImplementation = {
@@ -707,7 +741,9 @@ describe('ServerImplementationService', () => {
 
   describe('deleteServerImplementation', () => {
     it('should delete server implementation and cascade to deployments', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { withTransaction } = await import('@metorial/db');
       const { Fabric } = await import('@metorial/fabric');
 
@@ -761,7 +797,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should throw error when deleting already deleted implementation', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { ServiceError } = await import('@metorial/error');
 
       const mockImplementation = {
@@ -783,7 +821,9 @@ describe('ServerImplementationService', () => {
 
   describe('listServerImplementations', () => {
     it('should list server implementations without search', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { Paginator } = await import('@metorial/pagination');
 
       const mockPaginator = vi.fn();
@@ -798,7 +838,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should list server implementations with search', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { searchService } = await import('@metorial/module-search');
       const { Paginator } = await import('@metorial/pagination');
 
@@ -828,7 +870,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should filter by server variant IDs', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { db } = await import('@metorial/db');
 
       const mockServerVariants = [{ id: 'variant-1', oid: 100 }];
@@ -846,7 +890,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should filter by server IDs', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
       const { db } = await import('@metorial/db');
 
       const mockServers = [{ id: 'server-1', oid: 100 }];
@@ -864,7 +910,9 @@ describe('ServerImplementationService', () => {
     });
 
     it('should filter by status', async () => {
-      const { serverImplementationService } = await import('../src/services/serverImplementation');
+      const { serverImplementationService } = await import(
+        '../src/services/serverImplementation'
+      );
 
       await serverImplementationService.listServerImplementations({
         instance: mockInstance,

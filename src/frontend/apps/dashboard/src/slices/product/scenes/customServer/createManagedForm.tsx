@@ -1,4 +1,4 @@
-import { CustomServersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -72,14 +72,14 @@ let Form = styled.form`
 export let CustomServerManagedCreateForm = (p: {
   templateId?: string;
   close?: () => any;
-  onCreate?: (out: CustomServersGetOutput) => any;
+  onCreate?: (out: CustomProvidersGetOutput) => any;
 }) => {
   let instance = useCurrentInstance();
   let createCustomServer = useCreateCustomServer();
   let listServerVersions = useListServerVersions();
-  let managedServerTemplates = useManagedServerTemplates({
-    limit: 100
-  });
+  let managedServerTemplates = useManagedServerTemplates(
+    { limit: 100 }
+  );
 
   let [selectedRepoId, setSelectedRepoId] = useState<string | undefined>(undefined);
 
@@ -107,24 +107,17 @@ export let CustomServerManagedCreateForm = (p: {
 
       let plainTemplate = selectedRepoId
         ? undefined
-        : managedServerTemplates.data?.items.find(t => t.slug == 'plain-typescript');
+        : managedServerTemplates.data?.items.find((t: { slug: string | null }) => t.slug == 'plain-typescript');
 
       let [customServerRes] = await createCustomServer.mutate({
-        instanceId: instance.data.id,
+        instanceId: instance.data.instanceId,
         name: values.name,
         description: values.description,
-        implementation: {
-          type: 'managed',
-          managedServer: {
-            templateId: templateId ?? plainTemplate?.id,
-            repository: selectedRepoId
-              ? {
-                  repositoryId: selectedRepoId,
-                  path: values.path?.trim() || '/'
-                }
-              : undefined
-          },
-          config: defaultServerConfigManaged
+        from: {
+          type: 'function',
+          files: [],
+          env: {},
+          runtime: { identifier: 'nodejs' as const, version: '22.x' as const }
         }
       });
 
@@ -134,7 +127,7 @@ export let CustomServerManagedCreateForm = (p: {
         for (let i = 0; i < 5; i++) {
           let [versionsRes] = await listServerVersions.mutate({
             limit: 1,
-            instanceId: instance.data.id,
+            instanceId: instance.data.instanceId,
             customServerId: customServerRes.id
           });
           if (versionsRes && versionsRes.items.length > 0) {
@@ -201,7 +194,7 @@ export let CustomServerManagedCreateForm = (p: {
 
   let setTemplate = (templateId: string) => {
     let template = managedServerTemplates.data?.items.find(
-      t => t.id === templateId || t.slug === templateId
+      (t: { id: string; slug: string | null }) => t.id === templateId || t.slug === templateId
     );
     // if (!template) return;
 
@@ -250,7 +243,7 @@ export let CustomServerManagedCreateForm = (p: {
                 ({ managedServerTemplates }) => (
                   <PageWrapper>
                     <Templates>
-                      {managedServerTemplates.data.items.map(template => (
+                      {managedServerTemplates.data.items.map((template: { id: string; name: string | null; slug: string | null }) => (
                         <TemplatesItem
                           key={template.id}
                           type="button"

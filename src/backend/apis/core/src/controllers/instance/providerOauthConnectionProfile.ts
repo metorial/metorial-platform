@@ -23,7 +23,7 @@ export let providerOauthConnectionProfileController = Controller.create(
   {
     name: 'OAuth Profile',
     description: 'Manage provider OAuth connection profile information',
-    hideInDocs: true
+    deprecated: true
   },
   {
     list: connectionGroup

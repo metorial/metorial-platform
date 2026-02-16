@@ -235,7 +235,9 @@ describe('serverCapabilitiesService', () => {
         }
       ];
 
-      vi.mocked(db.serverImplementation.findMany).mockResolvedValue(mockImplementations as any);
+      vi.mocked(db.serverImplementation.findMany).mockResolvedValue(
+        mockImplementations as any
+      );
       vi.mocked(db.serverVariant.findMany).mockResolvedValue(mockVariants as any);
 
       let result = await serverCapabilitiesService.getManyServerCapabilities({
@@ -463,7 +465,9 @@ describe('serverCapabilitiesService', () => {
         }
       }));
 
-      vi.mocked(db.serverVariant.findMany).mockResolvedValue(mockVariants.slice(0, 100) as any);
+      vi.mocked(db.serverVariant.findMany).mockResolvedValue(
+        mockVariants.slice(0, 100) as any
+      );
 
       let result = await serverCapabilitiesService.getManyServerCapabilities({
         serverVariantIds: mockVariants.map(v => v.id)

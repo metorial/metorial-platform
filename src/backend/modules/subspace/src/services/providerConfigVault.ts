@@ -3,6 +3,6 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderConfigVaultService = createSubspaceService(
   subspace.providerConfigVault,
-  ['get', 'list', 'update', 'create'],
+  ['get', 'list', 'update', 'create', 'delete'],
   () => ({})
 );

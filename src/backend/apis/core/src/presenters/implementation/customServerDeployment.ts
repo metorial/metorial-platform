@@ -72,7 +72,9 @@ export let v1CustomServerDeploymentPresenter = Presenter.create(customServerDepl
   }))
   .schema(
     v.object({
-      object: v.literal('custom_server.deployment'),
+      object: v.literal('custom_server.deployment', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',
@@ -129,7 +131,9 @@ export let v1CustomServerDeploymentPresenter = Presenter.create(customServerDepl
 
       steps: v.array(
         v.object({
-          object: v.literal('custom_server.deployment.step'),
+          object: v.literal('custom_server.deployment.step', {
+            description: "String representing the object's type"
+          }),
 
           id: v.string({
             name: 'id',

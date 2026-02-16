@@ -29,7 +29,9 @@ export let v1ServerImplementationPresenter = Presenter.create(serverImplementati
   }))
   .schema(
     v.object({
-      object: v.literal('server.server_implementation'),
+      object: v.literal('server.server_implementation', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string(),
       status: v.enumOf(['active', 'archived', 'deleted']),
@@ -77,7 +79,9 @@ export let dashboardServerImplementationPresenter = Presenter.create(serverImple
   }))
   .schema(
     v.object({
-      object: v.literal('server.server_implementation'),
+      object: v.literal('server.server_implementation', {
+        description: "String representing the object's type"
+      }),
 
       id: v.string({
         name: 'id',

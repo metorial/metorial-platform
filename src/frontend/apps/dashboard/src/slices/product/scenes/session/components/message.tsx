@@ -62,9 +62,10 @@ let Main = styled.main`
 //   overflow-wrap: break-word;
 // `;
 
-let shorten = (id: string, length = 15) => {
-  if (id.length <= length) return id;
-  return `${id.substring(0, length)}...`;
+let shorten = (id: string | number, length = 15) => {
+  let s = String(id);
+  if (s.length <= length) return s;
+  return `${s.substring(0, length)}...`;
 };
 
 export let Message = ({
@@ -74,8 +75,11 @@ export let Message = ({
   message: SessionsMessagesGetOutput;
   aggregatedMessages: Map<string, AggregatedMessages>;
 }) => {
-  let agg = aggregatedMessages.get(message.mcpMessage.id);
-  let isResponse = !message.mcpMessage.method;
+  let mcpMsg = message.mcpMessage;
+  if (!mcpMsg) return null;
+
+  let agg = aggregatedMessages.get(String(mcpMsg.id));
+  let isResponse = !mcpMsg.method;
 
   return (
     <Output data-position={message.sender.type}>
@@ -95,7 +99,7 @@ export let Message = ({
           <CodeBlock
             code={JSON.stringify(
               {
-                ...message.mcpMessage.payload,
+                ...mcpMsg.payload,
                 id: agg?.originalId
               },
               null,
