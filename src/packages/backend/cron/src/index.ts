@@ -16,6 +16,8 @@ export let createCron = (
   },
   handler: () => Promise<void>
 ): IQueueProcessor => {
+  opts.name = `mte/${opts.name}`;
+
   if (seenNames.has(opts.name)) {
     throw new Error(`Cron with name ${opts.name} already exists`);
   }

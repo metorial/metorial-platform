@@ -23,7 +23,7 @@ export let useCreateProviderDeployment = providerDeploymentsLoader.createExterna
 
 export let useProviderDeployments = (
   instanceId: string | null | undefined,
-  opts?: { providerId?: string; providerVersionId?: string; status?: string; search?: string }
+  opts?: DashboardInstanceProviderDeploymentsListQuery
 ) => {
   let data = usePaginator(pagination =>
     providerDeploymentsLoader.use(

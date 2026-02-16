@@ -152,39 +152,33 @@ export let backendEnv: Env = [
 
   {
     key: 'API_URL',
-    defaultValue: `http://${HOSTNAME}:4310`,
-    enterpriseDefaultValue: `http://${HOSTNAME}:4410`
+    defaultValue: `http://${HOSTNAME}:4310`
   },
   { key: 'APP_URL', defaultValue: `http://${HOSTNAME}:4300` },
   { key: 'ID_API_HOST', defaultValue: `http://${HOSTNAME}:4321`, isEnterprise: true },
   { key: 'BILLING_API_URL', defaultValue: `http://${HOSTNAME}:4320`, isEnterprise: true },
   {
     key: 'MCP_URL',
-    defaultValue: `http://${HOSTNAME}:4311`,
-    enterpriseDefaultValue: `http://${HOSTNAME}:4411`
+    defaultValue: `http://${HOSTNAME}:4311`
   },
   {
     key: 'PROVIDER_OAUTH_URL',
-    defaultValue: `http://${HOSTNAME}:4313`,
-    enterpriseDefaultValue: `http://${HOSTNAME}:4413`
+    defaultValue: `http://${HOSTNAME}:4313`
   },
   { key: 'AUTH_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4301`, isEnterprise: true },
   { key: 'TEAM_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4303`, isEnterprise: true },
   { key: 'DASHBOARD_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300` },
   {
     key: 'PORTALS_URL',
-    defaultValue: `http://${HOSTNAME}:4315`,
-    enterpriseDefaultValue: `http://${HOSTNAME}:4415`
+    defaultValue: `http://${HOSTNAME}:4315`
   },
   {
     key: 'INTEGRATIONS_API_URL',
-    defaultValue: `http://${HOSTNAME}:4316`,
-    enterpriseDefaultValue: `http://${HOSTNAME}:4416`
+    defaultValue: `http://${HOSTNAME}:4316`
   },
   {
     key: 'CALLBACKS_URL',
-    defaultValue: `http://${HOSTNAME}:4317`,
-    enterpriseDefaultValue: `http://${HOSTNAME}:4417`
+    defaultValue: `http://${HOSTNAME}:4317`
   },
 
   { key: 'COOKIE_DOMAIN', defaultValue: `${HOSTNAME}`, isEnterprise: true },
@@ -265,6 +259,11 @@ export let backendEnv: Env = [
   },
   { key: 'HORIZON_APP_ID', isEnterprise: true, defaultValue: `metorial-enterprise-dev` },
   { key: 'HORIZON_SIGNING_SECRET', isEnterprise: true, defaultValue: 'secret' },
+
+  {
+    key: 'ARES_INTERNAL_URL',
+    defaultValue: 'http://localhost:52123/metorial-ares-internal/api'
+  },
 
   { key: 'SUBSPACE_SOLUTION', defaultValue: 'metorial-dev' },
   { key: 'SUBSPACE_URL', defaultValue: 'http://localhost:52070/subspace-controller' }

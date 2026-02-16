@@ -42,7 +42,7 @@ services:
     ports:
       - '35432:5432'
     volumes:
-      - pg_1:/var/lib/postgresql/data
+      - pg_2:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
@@ -102,5 +102,5 @@ volumes:
   mongodb_1:
   redis_1:
   meilisearch_1:
-  pg_1:
+  pg_2:
   open_search_1:

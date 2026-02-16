@@ -47,6 +47,8 @@ export interface BullMqCreateOptions {
 export let createBullMqQueue = <JobData>(
   opts: BullMqCreateOptions
 ): IQueue<JobData, BullMqQueueOptions> => {
+  opts.name = `mte/${opts.name}`;
+
   let config = getConfig();
   let redisOpts = parseRedisUrl(config.redisUrl);
 

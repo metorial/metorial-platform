@@ -16,31 +16,21 @@ export let destinations: Destination[] = [
 
   {
     type: 'oss',
-    env: frontendEnv,
-    path: 'src/frontend/apps/code-workspace'
-  },
-
-  {
-    type: 'oss',
-    env: backendEnv,
-    path: 'src/mcp-engine'
-  },
-  {
-    type: 'oss',
     env: backendEnv,
     path: 'src/backend/apps/api'
   },
-  {
-    type: 'oss',
-    env: backendEnv,
-    path: 'src/services/sso'
-  },
 
-  ...['code-bucket', 'listener', 'log', 'usage'].map(v => ({
-    type: 'oss' as const,
-    env: backendEnv,
-    path: `src/services/${v}`
-  })),
+  // {
+  //   type: 'oss',
+  //   env: backendEnv,
+  //   path: 'src/services/sso'
+  // },
+
+  // ...['code-bucket', 'listener', 'log', 'usage'].map(v => ({
+  //   type: 'oss' as const,
+  //   env: backendEnv,
+  //   path: `src/services/${v}`
+  // })),
 
   {
     type: 'enterprise',
@@ -78,7 +68,7 @@ export let destinations: Destination[] = [
     path: 'federation/island/apps/island-core-mcp'
   },
 
-  ...['account', 'admin', 'auth', 'dashboard', 'team'].map(v => ({
+  ...['admin', 'dashboard'].map(v => ({
     type: 'enterprise' as const,
     env: frontendEnv,
     path: `federation/frontend/apps/${v}`
