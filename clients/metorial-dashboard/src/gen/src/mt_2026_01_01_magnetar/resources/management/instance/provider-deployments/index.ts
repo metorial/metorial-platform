@@ -6,6 +6,5 @@ export * from './create';
 export * from './delete';
 export * from './get';
 export * from './list';
-export * from './oauth-setups';
 export * from './setup-sessions';
 export * from './update';

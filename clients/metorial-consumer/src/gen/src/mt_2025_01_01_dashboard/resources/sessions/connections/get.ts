@@ -1,75 +1,34 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type SessionsConnectionsGetOutput = {
-  object: 'session.session_connection';
+  object: 'session.connection';
   id: string;
-  status: 'active' | 'ended';
+  status: string | null;
+  connectionState: string | null;
   mcp: {
-    object: 'mcp';
-    version: string;
-    connectionType: 'sse' | 'streamable_http' | 'websocket';
+    object: 'session.connection.mcp';
+    version: string | null;
+    connectionType: string | null;
     client: {
-      object: 'session.session_connection.client';
-      name: string;
-      version: string;
+      object: 'session.connection.client';
+      name?: string | undefined;
+      version?: string | undefined;
       capabilities: Record<string, any>;
     } | null;
     server: {
-      object: 'session.session_connection.server';
-      name: string;
-      version: string;
+      object: 'session.connection.server';
+      name?: string | undefined;
+      version?: string | undefined;
       capabilities: Record<string, any>;
     } | null;
   };
-  usage: {
-    totalProductiveMessageCount: number;
-    totalProductiveClientMessageCount: number;
-    totalProductiveServerMessageCount: number;
-  };
-  server: {
-    object: 'server#preview';
-    id: string;
-    name: string;
-    description: string | null;
-    type: 'public' | 'custom';
-    createdAt: Date;
-    updatedAt: Date;
-  };
-  session: {
-    object: 'session#preview';
-    id: string;
-    status: 'active' | 'deleted';
-    connectionStatus: 'connected' | 'disconnected';
-    usage: {
-      totalProductiveMessageCount: number;
-      totalProductiveClientMessageCount: number;
-      totalProductiveServerMessageCount: number;
-    };
-    metadata: Record<string, any>;
-    createdAt: Date;
-    updatedAt: Date;
-  };
-  serverDeployment: {
-    object: 'server.server_deployment#preview';
-    id: string;
-    name: string | null;
-    description: string | null;
-    metadata: Record<string, any>;
-    createdAt: Date;
-    updatedAt: Date;
-    server: {
-      object: 'server#preview';
-      id: string;
-      name: string;
-      description: string | null;
-      type: 'public' | 'custom';
-      createdAt: Date;
-      updatedAt: Date;
-    };
-  };
-  createdAt: Date;
-  startedAt: Date;
+  metadata: Record<string, any> | null;
+  sessionId: string;
+  sessionProviderId: string | null;
+  startedAt: Date | null;
   endedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 export let mapSessionsConnectionsGetOutput =
@@ -77,6 +36,7 @@ export let mapSessionsConnectionsGetOutput =
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
+    connectionState: mtMap.objectField('connection_state', mtMap.passthrough()),
     mcp: mtMap.objectField(
       'mcp',
       mtMap.object({
@@ -106,93 +66,15 @@ export let mapSessionsConnectionsGetOutput =
         )
       })
     ),
-    usage: mtMap.objectField(
-      'usage',
-      mtMap.object({
-        totalProductiveMessageCount: mtMap.objectField(
-          'total_productive_message_count',
-          mtMap.passthrough()
-        ),
-        totalProductiveClientMessageCount: mtMap.objectField(
-          'total_productive_client_message_count',
-          mtMap.passthrough()
-        ),
-        totalProductiveServerMessageCount: mtMap.objectField(
-          'total_productive_server_message_count',
-          mtMap.passthrough()
-        )
-      })
+    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
+    sessionProviderId: mtMap.objectField(
+      'session_provider_id',
+      mtMap.passthrough()
     ),
-    server: mtMap.objectField(
-      'server',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    session: mtMap.objectField(
-      'session',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        connectionStatus: mtMap.objectField(
-          'connection_status',
-          mtMap.passthrough()
-        ),
-        usage: mtMap.objectField(
-          'usage',
-          mtMap.object({
-            totalProductiveMessageCount: mtMap.objectField(
-              'total_productive_message_count',
-              mtMap.passthrough()
-            ),
-            totalProductiveClientMessageCount: mtMap.objectField(
-              'total_productive_client_message_count',
-              mtMap.passthrough()
-            ),
-            totalProductiveServerMessageCount: mtMap.objectField(
-              'total_productive_server_message_count',
-              mtMap.passthrough()
-            )
-          })
-        ),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    serverDeployment: mtMap.objectField(
-      'server_deployment',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        description: mtMap.objectField('description', mtMap.passthrough()),
-        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-        server: mtMap.objectField(
-          'server',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            description: mtMap.objectField('description', mtMap.passthrough()),
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        )
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
     startedAt: mtMap.objectField('started_at', mtMap.date()),
-    endedAt: mtMap.objectField('ended_at', mtMap.date())
+    endedAt: mtMap.objectField('ended_at', mtMap.date()),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
+    updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
 

@@ -4,46 +4,54 @@ import { MetorialKeyPrefix, sdkBuilder } from './builder';
 import {
   MetorialApiKeysEndpoint,
   MetorialDashboardEndpoint,
-  MetorialDashboardInstanceCallbacksDestinationsEndpoint,
-  MetorialDashboardInstanceCallbacksEndpoint,
-  MetorialDashboardInstanceCallbacksEventsEndpoint,
-  MetorialDashboardInstanceCallbacksNotificationsEndpoint,
-  MetorialDashboardInstanceCustomServersListingEndpoint,
+  // MetorialDashboardInstanceCallbacksDestinationsEndpoint,
+  // MetorialDashboardInstanceCallbacksEndpoint,
+  // MetorialDashboardInstanceCallbacksEventsEndpoint,
+  // MetorialDashboardInstanceCallbacksNotificationsEndpoint,
+  MetorialDashboardInstanceCustomProvidersCommitsEndpoint,
+  MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint,
+  MetorialDashboardInstanceCustomProvidersEndpoint,
+  MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint,
+  MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
   MetorialDashboardInstanceFilesEndpoint,
   MetorialDashboardInstanceLinksEndpoint,
-  MetorialDashboardInstancePortalsConsumerAccessEndpoint,
-  MetorialDashboardInstancePortalsConsumerAuthFactorsEndpoint,
-  MetorialDashboardInstancePortalsConsumerGroupsEndpoint,
-  MetorialDashboardInstancePortalsConsumerProfilesEndpoint,
-  MetorialDashboardInstancePortalsConsumerServerRequestsEndpoint,
-  MetorialDashboardInstancePortalsEndpoint,
-  MetorialDashboardInstancePortalsFeaturedServersEndpoint,
-  MetorialDashboardInstanceProviderOauthSessionsEndpoint,
-  MetorialDashboardInstanceSecretsEndpoint,
-  MetorialDashboardInstanceServerConfigVaultsEndpoint,
-  MetorialDashboardInstanceServerRunErrorGroupsEndpoint,
-  MetorialDashboardInstanceServerRunErrorsEndpoint,
-  MetorialDashboardInstanceServerRunsEndpoint,
-  MetorialDashboardInstanceServersCapabilitiesEndpoint,
-  MetorialDashboardInstanceServersDeploymentsEndpoint,
-  MetorialDashboardInstanceServersDeploymentsTemplatesEndpoint,
-  MetorialDashboardInstanceServersEndpoint,
-  MetorialDashboardInstanceServersImplementationsEndpoint,
-  MetorialDashboardInstanceServersVariantsEndpoint,
-  MetorialDashboardInstanceServersVersionsEndpoint,
+  // MetorialDashboardInstancePortalsConsumerAccessEndpoint,
+  // MetorialDashboardInstancePortalsConsumerAuthFactorsEndpoint,
+  // MetorialDashboardInstancePortalsConsumerGroupsEndpoint,
+  // MetorialDashboardInstancePortalsConsumerProfilesEndpoint,
+  // MetorialDashboardInstancePortalsConsumerServerRequestsEndpoint,
+  // MetorialDashboardInstancePortalsEndpoint,
+  // MetorialDashboardInstancePortalsFeaturedServersEndpoint,
+  MetorialDashboardInstanceProviderCategoriesEndpoint,
+  MetorialDashboardInstanceProviderCollectionsEndpoint,
+  MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint,
+  MetorialDashboardInstanceProviderDeploymentsAuthCredentialsEndpoint,
+  MetorialDashboardInstanceProviderDeploymentsConfigsEndpoint,
+  MetorialDashboardInstanceProviderDeploymentsConfigVaultsEndpoint,
+  MetorialDashboardInstanceProviderDeploymentsEndpoint,
+  MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint,
+  MetorialDashboardInstanceProviderGroupsEndpoint,
+  MetorialDashboardInstanceProviderListingsEndpoint,
+  MetorialDashboardInstanceProviderRunsEndpoint,
+  MetorialDashboardInstanceProvidersAuthConfigsEndpoint,
+  MetorialDashboardInstanceProvidersAuthMethodsEndpoint,
+  MetorialDashboardInstanceProvidersEndpoint,
+  MetorialDashboardInstanceProvidersSpecificationsEndpoint,
+  MetorialDashboardInstanceProvidersToolsEndpoint,
+  MetorialDashboardInstanceProvidersVersionsEndpoint,
+  MetorialDashboardInstanceSessionErrorGroupsEndpoint,
+  MetorialDashboardInstanceSessionErrorsEndpoint,
   MetorialDashboardInstanceSessionsConnectionsEndpoint,
   MetorialDashboardInstanceSessionsEndpoint,
+  MetorialDashboardInstanceSessionsErrorGroupsEndpoint,
+  MetorialDashboardInstanceSessionsErrorsEndpoint,
   MetorialDashboardInstanceSessionsEventsEndpoint,
   MetorialDashboardInstanceSessionsMessagesEndpoint,
-  MetorialDashboardInstanceSessionsServerSessionsEndpoint,
-  MetorialDashboardInstanceSessionsProvidersEndpoint,
-  MetorialDashboardInstanceSessionsProviderRunsEndpoint,
   MetorialDashboardInstanceSessionsParticipantsEndpoint,
-  MetorialDashboardInstanceSessionsErrorsEndpoint,
-  MetorialDashboardInstanceSessionsErrorGroupsEndpoint,
-  MetorialDashboardInstanceSsoTenantsEndpoint,
-  MetorialDashboardInstanceSsoTenantsProfilesEndpoint,
-  MetorialDashboardInstanceSsoTenantsUsersEndpoint,
+  MetorialDashboardInstanceSessionsProviderRunsEndpoint,
+  MetorialDashboardInstanceSessionsProvidersEndpoint,
+  MetorialDashboardInstanceSessionTemplatesEndpoint,
+  MetorialDashboardInstanceSessionTemplatesProvidersEndpoint,
   MetorialDashboardOrganizationsEndpoint,
   MetorialDashboardOrganizationsInstancesEndpoint,
   MetorialDashboardOrganizationsInvitesEndpoint,
@@ -54,43 +62,10 @@ import {
   MetorialDashboardOrganizationsTeamsMembersEndpoint,
   MetorialDashboardOrganizationsTeamsProjectsEndpoint,
   MetorialDashboardOrganizationsTeamsRolesEndpoint,
-  MetorialDashboardScmAccountsEndpoint,
-  MetorialDashboardScmInstallationsEndpoint,
-  MetorialDashboardScmReposEndpoint,
   MetorialDashboardUsageEndpoint,
   MetorialManagementUserEndpoint,
-  MetorialOrganizationsProfileEndpoint,
-  MetorialServersListingsCategoriesEndpoint,
-  MetorialServersListingsCollectionsEndpoint,
-  MetorialServersListingsEndpoint,
-  // Provider API (Magnetar) endpoints
-  MetorialDashboardInstanceProvidersEndpoint,
-  MetorialDashboardInstanceProvidersVersionsEndpoint,
-  MetorialDashboardInstanceProvidersToolsEndpoint,
-  MetorialDashboardInstanceProvidersAuthMethodsEndpoint,
-  MetorialDashboardInstanceProvidersAuthConfigsEndpoint,
-  MetorialDashboardInstanceProvidersSpecificationsEndpoint,
-  MetorialDashboardInstanceProviderDeploymentsEndpoint,
-  MetorialDashboardInstanceProviderDeploymentsConfigsEndpoint,
-  MetorialDashboardInstanceProviderDeploymentsConfigVaultsEndpoint,
-  MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint,
-  MetorialDashboardInstanceProviderDeploymentsAuthCredentialsEndpoint,
-  MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint,
-  MetorialDashboardInstanceSessionTemplatesEndpoint,
-  MetorialDashboardInstanceSessionTemplatesProvidersEndpoint,
-  MetorialDashboardInstanceProviderGroupsEndpoint,
-  MetorialDashboardInstanceProviderCategoriesEndpoint,
-  MetorialDashboardInstanceProviderCollectionsEndpoint,
-  MetorialDashboardInstanceProviderListingsEndpoint,
-  MetorialDashboardInstanceProviderRunsEndpoint,
-  MetorialDashboardInstanceSessionErrorsEndpoint,
-  MetorialDashboardInstanceSessionErrorGroupsEndpoint,
-  MetorialDashboardInstanceCustomProvidersEndpoint,
-  MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
-  MetorialDashboardInstanceCustomProvidersDeploymentsEndpoint,
-  MetorialDashboardInstanceCustomProvidersCommitsEndpoint,
-  MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint
-} from './gen/src/mt_2026_02_01_dashboard';
+  MetorialOrganizationsProfileEndpoint
+} from './gen/src/mt_2025_01_01_dashboard';
 
 let fetchWithRetry = createFetchWithRetry();
 
@@ -114,37 +89,6 @@ let fetchWithRetryAndLogging = async (
     throw error;
   }
 };
-
-// Legacy API structure (v1) - uses 'serverDeployments' format
-let createLegacyApiEndpoints = (manager: any) => ({
-  servers: Object.assign(new MetorialDashboardInstanceServersEndpoint(manager), {
-    listings: Object.assign(new MetorialServersListingsEndpoint(manager), {
-      collections: new MetorialServersListingsCollectionsEndpoint(manager),
-      categories: new MetorialServersListingsCategoriesEndpoint(manager)
-    }),
-    variants: new MetorialDashboardInstanceServersVariantsEndpoint(manager),
-    versions: new MetorialDashboardInstanceServersVersionsEndpoint(manager),
-    deployments: Object.assign(
-      new MetorialDashboardInstanceServersDeploymentsEndpoint(manager),
-      {
-        templates: new MetorialDashboardInstanceServersDeploymentsTemplatesEndpoint(manager)
-      }
-    ),
-    implementations: new MetorialDashboardInstanceServersImplementationsEndpoint(manager),
-    errors: Object.assign(new MetorialDashboardInstanceServerRunErrorsEndpoint(manager), {
-      groups: new MetorialDashboardInstanceServerRunErrorGroupsEndpoint(manager)
-    }),
-    runs: new MetorialDashboardInstanceServerRunsEndpoint(manager),
-    capabilities: new MetorialDashboardInstanceServersCapabilitiesEndpoint(manager),
-    configVaults: new MetorialDashboardInstanceServerConfigVaultsEndpoint(manager)
-  }),
-  sessions: Object.assign(new MetorialDashboardInstanceSessionsEndpoint(manager), {
-    events: new MetorialDashboardInstanceSessionsEventsEndpoint(manager),
-    messages: new MetorialDashboardInstanceSessionsMessagesEndpoint(manager),
-    serverSessions: new MetorialDashboardInstanceSessionsServerSessionsEndpoint(manager),
-    connections: new MetorialDashboardInstanceSessionsConnectionsEndpoint(manager)
-  })
-});
 
 export let createMetorialDashboardSDK = sdkBuilder.build(
   (soft: {
@@ -184,21 +128,13 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     links: new MetorialDashboardInstanceLinksEndpoint(manager)
   }),
 
-  secrets: new MetorialDashboardInstanceSecretsEndpoint(manager),
-
   usage: new MetorialDashboardUsageEndpoint(manager),
 
-  scm: {
-    installation: new MetorialDashboardScmInstallationsEndpoint(manager),
-    repos: new MetorialDashboardScmReposEndpoint(manager),
-    accounts: new MetorialDashboardScmAccountsEndpoint(manager)
-  },
-
-  callbacks: Object.assign(new MetorialDashboardInstanceCallbacksEndpoint(manager), {
-    events: new MetorialDashboardInstanceCallbacksEventsEndpoint(manager),
-    notifications: new MetorialDashboardInstanceCallbacksNotificationsEndpoint(manager),
-    destinations: new MetorialDashboardInstanceCallbacksDestinationsEndpoint(manager)
-  }),
+  // callbacks: Object.assign(new MetorialDashboardInstanceCallbacksEndpoint(manager), {
+  //   events: new MetorialDashboardInstanceCallbacksEventsEndpoint(manager),
+  //   notifications: new MetorialDashboardInstanceCallbacksNotificationsEndpoint(manager),
+  //   destinations: new MetorialDashboardInstanceCallbacksDestinationsEndpoint(manager)
+  // }),
 
   teams: Object.assign(new MetorialDashboardOrganizationsTeamsEndpoint(manager), {
     roles: new MetorialDashboardOrganizationsTeamsRolesEndpoint(manager),
@@ -206,31 +142,23 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     members: new MetorialDashboardOrganizationsTeamsMembersEndpoint(manager)
   }),
 
-  portals: Object.assign(new MetorialDashboardInstancePortalsEndpoint(manager), {
-    consumerProfiles: new MetorialDashboardInstancePortalsConsumerProfilesEndpoint(manager),
-    consumerGroups: new MetorialDashboardInstancePortalsConsumerGroupsEndpoint(manager),
-    consumerAccess: new MetorialDashboardInstancePortalsConsumerAccessEndpoint(manager),
-    consumerAuthFactors: new MetorialDashboardInstancePortalsConsumerAuthFactorsEndpoint(
-      manager
-    ),
-    consumerServerRequests: new MetorialDashboardInstancePortalsConsumerServerRequestsEndpoint(
-      manager
-    ),
-    featuredServers: new MetorialDashboardInstancePortalsFeaturedServersEndpoint(manager)
-  }),
+  // portals: Object.assign(new MetorialDashboardInstancePortalsEndpoint(manager), {
+  //   consumerProfiles: new MetorialDashboardInstancePortalsConsumerProfilesEndpoint(manager),
+  //   consumerGroups: new MetorialDashboardInstancePortalsConsumerGroupsEndpoint(manager),
+  //   consumerAccess: new MetorialDashboardInstancePortalsConsumerAccessEndpoint(manager),
+  //   consumerAuthFactors: new MetorialDashboardInstancePortalsConsumerAuthFactorsEndpoint(
+  //     manager
+  //   ),
+  //   consumerServerRequests: new MetorialDashboardInstancePortalsConsumerServerRequestsEndpoint(
+  //     manager
+  //   ),
+  //   featuredServers: new MetorialDashboardInstancePortalsFeaturedServersEndpoint(manager)
+  // }),
 
-  ssoTenants: Object.assign(new MetorialDashboardInstanceSsoTenantsEndpoint(manager), {
-    profiles: new MetorialDashboardInstanceSsoTenantsProfilesEndpoint(manager),
-    users: new MetorialDashboardInstanceSsoTenantsUsersEndpoint(manager)
-  }),
-
-  providerOauth: {
-    sessions: new MetorialDashboardInstanceProviderOauthSessionsEndpoint(manager)
-  },
-
-  customServers: {
-    listing: new MetorialDashboardInstanceCustomServersListingEndpoint(manager)
-  },
+  // ssoTenants: Object.assign(new MetorialDashboardInstanceSsoTenantsEndpoint(manager), {
+  //   profiles: new MetorialDashboardInstanceSsoTenantsProfilesEndpoint(manager),
+  //   users: new MetorialDashboardInstanceSsoTenantsUsersEndpoint(manager)
+  // }),
 
   customProviders: Object.assign(
     new MetorialDashboardInstanceCustomProvidersEndpoint(manager),
@@ -242,18 +170,6 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     }
   ),
 
-  // Legacy server endpoints (no Provider API equivalent)
-  servers: {
-    listings: Object.assign(new MetorialServersListingsEndpoint(manager), {
-      collections: new MetorialServersListingsCollectionsEndpoint(manager),
-      categories: new MetorialServersListingsCategoriesEndpoint(manager)
-    }),
-    variants: new MetorialDashboardInstanceServersVariantsEndpoint(manager),
-    capabilities: new MetorialDashboardInstanceServersCapabilitiesEndpoint(manager),
-    implementations: new MetorialDashboardInstanceServersImplementationsEndpoint(manager)
-  },
-
-  // Provider API (Magnetar) - Default API
   providers: Object.assign(new MetorialDashboardInstanceProvidersEndpoint(manager), {
     versions: new MetorialDashboardInstanceProvidersVersionsEndpoint(manager),
     tools: new MetorialDashboardInstanceProvidersToolsEndpoint(manager),
@@ -270,16 +186,21 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     new MetorialDashboardInstanceProviderDeploymentsEndpoint(manager),
     {
       configs: new MetorialDashboardInstanceProviderDeploymentsConfigsEndpoint(manager),
-      configVaults: new MetorialDashboardInstanceProviderDeploymentsConfigVaultsEndpoint(manager),
-      authConfigs: new MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint(manager),
+      configVaults: new MetorialDashboardInstanceProviderDeploymentsConfigVaultsEndpoint(
+        manager
+      ),
+      authConfigs: new MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint(
+        manager
+      ),
       authCredentials: new MetorialDashboardInstanceProviderDeploymentsAuthCredentialsEndpoint(
         manager
       ),
-      setupSessions: new MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint(manager)
+      setupSessions: new MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint(
+        manager
+      )
     }
   ),
 
-  // Sessions (Provider API) - replaces legacy sessions
   sessions: Object.assign(new MetorialDashboardInstanceSessionsEndpoint(manager), {
     events: new MetorialDashboardInstanceSessionsEventsEndpoint(manager),
     messages: new MetorialDashboardInstanceSessionsMessagesEndpoint(manager),
@@ -288,24 +209,17 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     providerRuns: new MetorialDashboardInstanceSessionsProviderRunsEndpoint(manager),
     participants: new MetorialDashboardInstanceSessionsParticipantsEndpoint(manager),
     errors: new MetorialDashboardInstanceSessionsErrorsEndpoint(manager),
-    errorGroups: new MetorialDashboardInstanceSessionsErrorGroupsEndpoint(manager),
-    serverSessions: new MetorialDashboardInstanceSessionsServerSessionsEndpoint(manager)
+    errorGroups: new MetorialDashboardInstanceSessionsErrorGroupsEndpoint(manager)
   }),
 
-  // Instance-level logs (cross-session)
   providerRuns: new MetorialDashboardInstanceProviderRunsEndpoint(manager),
   sessionErrors: new MetorialDashboardInstanceSessionErrorsEndpoint(manager),
   sessionErrorGroups: new MetorialDashboardInstanceSessionErrorGroupsEndpoint(manager),
 
   sessionTemplates: Object.assign(
     new MetorialDashboardInstanceSessionTemplatesEndpoint(manager),
-    {
-      providers: new MetorialDashboardInstanceSessionTemplatesProvidersEndpoint(manager)
-    }
-  ),
-
-  // Legacy API (v1) - For backwards compatibility
-  v1: createLegacyApiEndpoints(manager)
+    { providers: new MetorialDashboardInstanceSessionTemplatesProvidersEndpoint(manager) }
+  )
 }));
 
 export type MetorialDashboardSDK = ReturnType<typeof createMetorialDashboardSDK>;

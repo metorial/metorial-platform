@@ -43,7 +43,6 @@ import {
   v1GroupPresenter,
   v1ProviderConfigVaultPresenter,
   v1ProviderListingPresenter,
-  v1ProviderOAuthSetupPresenter,
   v1ProviderPresenter,
   v1ProviderRunLogsPresenter,
   v1ProviderRunPresenter,
@@ -109,7 +108,6 @@ import {
   profileType,
   projectType,
   providerListingType,
-  providerOAuthSetupType,
   providerRunLogsType,
   providerRunType,
   providerSessionType,
@@ -553,8 +551,3 @@ export let subspaceCustomProviderEnvironmentPresenter = declarePresenter(
     mt_2026_01_01_magnetar: v1CustomProviderEnvironmentPresenter
   }
 );
-
-export let subspaceProviderOAuthSetupPresenter = declarePresenter(providerOAuthSetupType, {
-  mt_2025_01_01_dashboard: v1ProviderOAuthSetupPresenter,
-  mt_2026_01_01_magnetar: v1ProviderOAuthSetupPresenter
-});

@@ -37,7 +37,6 @@ import {
   providerDeploymentController,
   providerGroupController,
   providerListingController,
-  providerOAuthSetupController,
   providerPublisherController,
   providerSessionController,
   providerSetupSessionController,
@@ -106,7 +105,6 @@ export let magnetarController = Controller.create<any>(
     customProviderDeploymentController,
     customProviderCommitController,
     customProviderEnvironmentController,
-    providerOAuthSetupController,
 
     fileController,
     fileLinkController,
@@ -198,8 +196,7 @@ export let dashboardController = Controller.create<any>(
     customProviderVersionController,
     customProviderDeploymentController,
     customProviderCommitController,
-    customProviderEnvironmentController,
-    providerOAuthSetupController
+    customProviderEnvironmentController
 
     // callbackController,
     // callbackEventController,

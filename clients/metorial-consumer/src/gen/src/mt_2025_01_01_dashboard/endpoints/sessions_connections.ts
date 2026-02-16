@@ -13,8 +13,8 @@ import {
 } from '../resources';
 
 /**
- * @name Session Connection controller
- * @description Each time a new MCP connection to a server is established, a session connection is created. This allows you to track and manage the connections made during a session.
+ * @name Session Connections controller
+ * @description Session connections represent the MCP connections established within a session. This read-only resource provides visibility into the connection state and capabilities.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialSessionsConnectionsEndpoint {
 
   /**
    * @name List session connections
-   * @description List all session connections
+   * @description Returns a paginated list of connections for a session.
    *
    * @param `sessionId` - string
    * @param `query` - DashboardInstanceSessionsConnectionsListQuery
@@ -73,7 +73,7 @@ export class MetorialSessionsConnectionsEndpoint {
 
   /**
    * @name Get session connection
-   * @description Get the information of a specific session connection
+   * @description Retrieves a specific connection from a session.
    *
    * @param `sessionId` - string
    * @param `sessionConnectionId` - string

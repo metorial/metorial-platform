@@ -8,6 +8,10 @@ export type DashboardOrganizationsMembersGetOutput = {
   userId: string;
   organizationId: string;
   actorId: string;
+  lastActiveAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date;
   actor: {
     object: 'organization.actor';
     id: string;
@@ -27,10 +31,6 @@ export type DashboardOrganizationsMembersGetOutput = {
     createdAt: Date;
     updatedAt: Date;
   };
-  lastActiveAt: Date;
-  deletedAt: Date;
-  createdAt: Date;
-  updatedAt: Date;
 };
 
 export let mapDashboardOrganizationsMembersGetOutput =
@@ -42,6 +42,10 @@ export let mapDashboardOrganizationsMembersGetOutput =
     userId: mtMap.objectField('user_id', mtMap.passthrough()),
     organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
     actorId: mtMap.objectField('actor_id', mtMap.passthrough()),
+    lastActiveAt: mtMap.objectField('last_active_at', mtMap.date()),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
+    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+    deletedAt: mtMap.objectField('deleted_at', mtMap.date()),
     actor: mtMap.objectField(
       'actor',
       mtMap.object({
@@ -74,10 +78,6 @@ export let mapDashboardOrganizationsMembersGetOutput =
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
-    ),
-    lastActiveAt: mtMap.objectField('last_active_at', mtMap.date()),
-    deletedAt: mtMap.objectField('deleted_at', mtMap.date()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
+    )
   });
 
