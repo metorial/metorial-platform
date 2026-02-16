@@ -171,11 +171,10 @@ export class PresenterBuilder<Type extends PresentableType<any, any>, Output ext
   }
 }
 
-export const PRESENTER_NOT_AVAILABLE = Symbol('PRESENTER_NOT_AVAILABLE');
-
-export type PresenterOrNotAvailable<Type extends PresentableType<any, any>> =
-  | Presenter<Type, any>
-  | typeof PRESENTER_NOT_AVAILABLE;
+export type PresenterOrNotAvailable<Type extends PresentableType<any, any>> = Presenter<
+  Type,
+  any
+>;
 
 export let declarePresenter = <Type extends PresentableType<any, any>>(
   type: Type,
@@ -189,18 +188,10 @@ export let declarePresenter = <Type extends PresentableType<any, any>>(
     (input: GetTypeOfPresentable<Type>) =>
     (context: PresenterContext): PresenterResult => {
       let presenter = (presenters as any)[context.apiVersion];
-      if (!presenter || presenter === PRESENTER_NOT_AVAILABLE) {
-        throw new Error(
-          `Presenter for "${type.name}" is not available in API version "${context.apiVersion}"`
-        );
-      }
       return presenter.present(input, context);
     },
   introspect: ({ apiVersion }: { apiVersion: string }) => {
     let presenter = (presenters as any)[apiVersion];
-    if (!presenter || presenter === PRESENTER_NOT_AVAILABLE) {
-      return null;
-    }
     return presenter.introspect();
   }
 });

@@ -16,7 +16,8 @@ enum ApiKeyKind {
 }
 
 model ApiKeySecret {
-  id String @id
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
 
   secret       String @unique
   secretSha512 String @unique
