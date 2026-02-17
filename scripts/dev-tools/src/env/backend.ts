@@ -264,6 +264,10 @@ export let backendEnv: Env = [
     key: 'ARES_INTERNAL_URL',
     defaultValue: 'http://localhost:52123/metorial-ares-internal/api'
   },
+  {
+    key: 'ARES_AUTH_URL',
+    defaultValue: 'http://localhost:52120'
+  },
 
   { key: 'SUBSPACE_SOLUTION', defaultValue: 'metorial-dev' },
   { key: 'SUBSPACE_URL', defaultValue: 'http://localhost:52070/subspace-controller' },

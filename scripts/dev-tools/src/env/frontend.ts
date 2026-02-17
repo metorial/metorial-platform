@@ -97,11 +97,11 @@ export let frontendEnv: Env = [
     defaultValue: `http://${HOSTNAME}:4300`,
     isEnterprise: true
   },
-  {
-    key: 'VITE_AUTH_FRONTEND_URL',
-    defaultValue: `http://${HOSTNAME}:4301`,
-    isEnterprise: true
-  },
+  // {
+  //   key: 'VITE_AUTH_FRONTEND_URL',
+  //   defaultValue: `http://${HOSTNAME}:4301`,
+  //   isEnterprise: true
+  // },
   {
     key: 'VITE_ACCOUNT_FRONTEND_URL',
     defaultValue: `http://${HOSTNAME}:4302`,
