@@ -7,6 +7,6 @@ export let scmConnectionSetupSessionService = createSubspaceService(
   () => ({})
 );
 
-export type ScmConnectionSetupSession = Awaited<
+export type SubspaceScmConnectionSetupSession = Awaited<
   ReturnType<typeof subspace.scmConnectionSetupSession.get>
 >;

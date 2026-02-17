@@ -7,4 +7,4 @@ export let subspaceProviderRunService = createSubspaceService(
   () => ({})
 );
 
-export type ProviderRun = Awaited<ReturnType<typeof subspace.providerRun.get>>;
+export type SubspaceProviderRun = Awaited<ReturnType<typeof subspace.providerRun.get>>;

@@ -7,4 +7,4 @@ export let scmProviderService = createSubspaceService(
   () => ({})
 );
 
-export type ScmProvider = Awaited<ReturnType<typeof subspace.scmProvider.get>>;
+export type SubspaceScmProvider = Awaited<ReturnType<typeof subspace.scmProvider.get>>;

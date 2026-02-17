@@ -7,4 +7,6 @@ export let subspaceSessionConnectionService = createSubspaceService(
   () => ({})
 );
 
-export type SessionConnection = Awaited<ReturnType<typeof subspace.sessionConnection.get>>;
+export type SubspaceSessionConnection = Awaited<
+  ReturnType<typeof subspace.sessionConnection.get>
+>;

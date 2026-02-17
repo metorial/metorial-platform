@@ -7,4 +7,6 @@ export let subspaceProviderOAuthSetupService = createSubspaceService(
   () => ({})
 );
 
-export type ProviderOAuthSetup = Awaited<ReturnType<typeof subspace.providerOAuthSetup.get>>;
+export type SubspaceProviderOAuthSetup = Awaited<
+  ReturnType<typeof subspace.providerOAuthSetup.get>
+>;

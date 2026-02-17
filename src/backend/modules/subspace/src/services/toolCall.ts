@@ -7,4 +7,4 @@ export let toolCallService = createSubspaceService(
   () => ({})
 );
 
-export type ToolCall = Awaited<ReturnType<typeof subspace.toolCall.get>>;
+export type SubspaceToolCall = Awaited<ReturnType<typeof subspace.toolCall.get>>;

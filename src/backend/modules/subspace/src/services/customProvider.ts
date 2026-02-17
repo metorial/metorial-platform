@@ -7,4 +7,4 @@ export let customProviderService = createSubspaceService(
   () => ({})
 );
 
-export type CustomProvider = Awaited<ReturnType<typeof subspace.customProvider.get>>;
+export type SubspaceCustomProvider = Awaited<ReturnType<typeof subspace.customProvider.get>>;

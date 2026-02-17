@@ -7,6 +7,6 @@ export let customProviderEnvironmentService = createSubspaceService(
   () => ({})
 );
 
-export type CustomProviderEnvironment = Awaited<
+export type SubspaceCustomProviderEnvironment = Awaited<
   ReturnType<typeof subspace.customProviderEnvironment.get>
 >;

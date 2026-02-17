@@ -7,6 +7,6 @@ export let customProviderCommitService = createSubspaceService(
   () => ({})
 );
 
-export type CustomProviderCommit = Awaited<
+export type SubspaceCustomProviderCommit = Awaited<
   ReturnType<typeof subspace.customProviderCommit.get>
 >;
