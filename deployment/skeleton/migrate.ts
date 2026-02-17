@@ -15,10 +15,10 @@ if ((await fs.stat(prismaFolder)).isDirectory()) {
     let hasPrismaFile = (await fs.readdir(folder)).some(f => f == 'schema.prisma');
     console.log(`Migrating ${folder}`);
     if (hasPrismaFile) {
-      await $`bunx prisma db push --schema ${folder}/schema.prisma --skip-generate --accept-data-loss`;
+      await $`bunx prisma db push --schema ${folder}/schema.prisma --accept-data-loss`;
     } else {
       // We're using multiple schema files
-      await $`bunx prisma db push --schema ${folder}/schema --skip-generate --accept-data-loss`;
+      await $`bunx prisma db push --schema ${folder}/schema --accept-data-loss`;
     }
   }
 } else {

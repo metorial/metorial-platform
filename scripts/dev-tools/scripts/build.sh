@@ -11,7 +11,7 @@ cd $ROOT_DIR
 echo "Running Prisma generate..."
 bun prisma:generate
 echo "Running Prisma push..."
-bun prisma:push -- --skip-generate
+bun prisma:push
 echo "Prisma generate and push completed."
 
 # Build the OSS project
