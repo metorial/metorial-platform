@@ -3,6 +3,8 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderDeploymentService = createSubspaceService(
   subspace.providerDeployment,
-  ['get', 'list', 'update', 'create', 'delete'],
+  ['get', 'list', 'update', 'create'],
   () => ({})
 );
+
+export type ProviderDeployment = Awaited<ReturnType<typeof subspace.providerDeployment.get>>;

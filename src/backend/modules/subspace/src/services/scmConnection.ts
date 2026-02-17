@@ -6,3 +6,5 @@ export let scmConnectionService = createSubspaceService(
   ['get', 'list'],
   () => ({})
 );
+
+export type ScmConnection = Awaited<ReturnType<typeof subspace.scmConnection.get>>;

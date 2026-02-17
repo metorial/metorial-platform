@@ -6,3 +6,5 @@ export let subspacePublisherService = createSubspaceService(
   ['get', 'list'],
   () => ({})
 );
+
+export type Publisher = Awaited<ReturnType<typeof subspace.providerRun.get>>;

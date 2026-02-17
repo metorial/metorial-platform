@@ -8,12 +8,13 @@ let solutionProm = new ProgrammablePromise<
   Awaited<ReturnType<typeof subspace.solution.upsert>>
 >();
 
-export let subspace = createSubspaceControllerClient({
-  getHeaders: async () => ({
-    'Subspace-Solution-Id': (await solutionProm.promise).id
-  }),
-  endpoint: env.subspace.SUBSPACE_URL
-});
+export let subspace: ReturnType<typeof createSubspaceControllerClient> =
+  createSubspaceControllerClient({
+    getHeaders: async () => ({
+      'Subspace-Solution-Id': (await solutionProm.promise).id
+    }),
+    endpoint: env.subspace.SUBSPACE_URL
+  });
 
 (async () => {
   while (true) {

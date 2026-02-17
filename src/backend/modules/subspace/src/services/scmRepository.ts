@@ -6,3 +6,5 @@ export let scmRepositoryService = createSubspaceService(
   ['get', 'list', 'listAccountPreviews', 'listRepositoryPreviews'],
   () => ({})
 );
+
+export type ScmRepository = Awaited<ReturnType<typeof subspace.scmRepository.get>>;
