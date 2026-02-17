@@ -16,10 +16,6 @@ const nextConfig: NextConfig = {
     CORE_API_URL: process.env.CORE_API_URL ?? process.env.VITE_CORE_API_URL,
     DASHBOARD_FRONTEND_URL:
       process.env.DASHBOARD_FRONTEND_URL ?? process.env.VITE_DASHBOARD_FRONTEND_URL,
-    AUTH_FRONTEND_URL: process.env.AUTH_FRONTEND_URL ?? process.env.VITE_AUTH_FRONTEND_URL,
-    ACCOUNT_FRONTEND_URL:
-      process.env.ACCOUNT_FRONTEND_URL ?? process.env.VITE_ACCOUNT_FRONTEND_URL,
-    TEAM_FRONTEND_URL: process.env.TEAM_FRONTEND_URL ?? process.env.VITE_TEAM_FRONTEND_URL,
     LANDING_FRONTEND_URL:
       process.env.LANDING_FRONTEND_URL ?? process.env.VITE_LANDING_FRONTEND_URL,
     DOCS_FRONTEND_URL: process.env.DOCS_FRONTEND_URL ?? process.env.VITE_DOCS_FRONTEND_URL,

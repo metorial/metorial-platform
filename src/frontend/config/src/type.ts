@@ -11,10 +11,6 @@ export interface FrontendConfig {
     signupPath: string;
     logoutPath: string;
   };
-
-  microFrontends: {
-    codeEditorUrl?: string;
-  };
 }
 
 export let defaultConfig = {
