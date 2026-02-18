@@ -1,4 +1,4 @@
-import { DashboardScmReposCreateOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardScmReposCreateOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { getConfig, Paths } from '@metorial/frontend-config';
 import {
@@ -134,7 +134,13 @@ export let CustomServerCodePage = () => {
                 as="span"
                 size="2"
                 onClick={async () => {
-                  window.open(String((customServer.data.metadata?.repository as Record<string, unknown>)?.url ?? ''), '_blank');
+                  window.open(
+                    String(
+                      (customServer.data.metadata?.repository as Record<string, unknown>)
+                        ?.url ?? ''
+                    ),
+                    '_blank'
+                  );
                 }}
                 iconRight={<RiArrowRightSLine />}
               >
@@ -203,7 +209,10 @@ export let CustomServerCodePage = () => {
                                 type: 'function',
                                 files: [],
                                 env: {},
-                                runtime: { identifier: 'nodejs' as const, version: '22.x' as const }
+                                runtime: {
+                                  identifier: 'nodejs' as const,
+                                  version: '22.x' as const
+                                }
                               }
                             });
 

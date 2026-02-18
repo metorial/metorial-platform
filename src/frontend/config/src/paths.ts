@@ -1,5 +1,4 @@
 import { joinPaths } from '@metorial/join-paths';
-import { getConfig } from '.';
 
 export type EntityParam = { slug: string } | null | undefined;
 export type SubPages = (string | null | undefined | object)[];
@@ -595,13 +594,7 @@ let ProjectPaths = Object.assign(
 );
 
 let AccountPaths = Object.assign(
-  (...subPages: SubPages) => {
-    if (getConfig().enterprise?.accountFrontendUrl) {
-      return `${getConfig().enterprise!.accountFrontendUrl}${joinPaths(...subPages)}`;
-    }
-
-    return joinPaths('account', ...subPages);
-  },
+  (...subPages: SubPages) => joinPaths('account', ...subPages),
   {
     settings: (...subPages: SubPages) => AccountPaths(...subPages),
     emails: (...subPages: SubPages) => AccountPaths('emails', ...subPages),
@@ -614,10 +607,6 @@ let OrganizationPaths = Object.assign(
     if (!organization) return '#';
 
     let path = joinPaths('o', organization.slug, ...subPages);
-
-    if (getConfig().enterprise?.organizationFrontendUrl) {
-      return `${getConfig().enterprise!.organizationFrontendUrl}${path}`;
-    }
 
     return path;
   },

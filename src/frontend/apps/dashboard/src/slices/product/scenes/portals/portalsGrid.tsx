@@ -1,4 +1,4 @@
-import { DashboardInstancePortalsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstancePortalsListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCreatePortal, useCurrentInstance, usePortals } from '@metorial/state';

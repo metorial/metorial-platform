@@ -23,8 +23,8 @@ if [ -z "$NAME_ARG" ]; then
   exit 1
 fi
 
-bun prisma migrate reset --force --skip-generate
-bun prisma migrate dev --create-only --skip-generate --name "$NAME_ARG"
+bun prisma migrate reset --force
+bun prisma migrate dev --create-only --name "$NAME_ARG"
 
 export DATABASE_URL=$MAIN_DATABASE_URL
 export PAYMENT_DATABASE_URL=$MAIN_PAYMENT_DATABASE_URL

@@ -3,25 +3,18 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type SessionsMessagesGetOutput = {
   object: 'session.message';
   id: string;
-  type:
-    | 'request'
-    | 'response'
-    | 'notification'
-    | 'error'
-    | 'server_error'
-    | 'unknown'
-    | 'debug';
+  type: string | null;
   sender: {
     object: 'session.message.sender';
-    type: 'client' | 'server';
-    id: string;
+    type: string | null;
+    id: string | null;
   };
   mcpMessage: {
     object: 'session.message.mcp_message';
     id: string;
     originalId: string | null;
-    method: string;
-    payload: Record<string, any>;
+    method: string | null;
+    payload: Record<string, any> | null;
   };
   sessionId: string;
   serverSessionId: string;

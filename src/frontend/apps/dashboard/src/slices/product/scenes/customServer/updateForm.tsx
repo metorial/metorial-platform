@@ -1,5 +1,5 @@
 import { CodeEditor } from '@metorial/code-editor';
-import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -26,7 +26,6 @@ import {
 import { Box } from '@metorial/ui-product';
 import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { switcher } from '../../../../lib/switcher';
 import { FormBox } from '../form/box';
 import { Field } from '../form/field';
 import { Form } from '../form/form';
@@ -34,7 +33,7 @@ import { FormPage } from '../form/page';
 import { SchemaEditor } from '../jsonSchemaEditor';
 import { parseConfig } from '../providerConnection/config';
 import { showProviderConnectionFormModal } from '../providerConnection/modal';
-import { defaultServerConfigManaged, defaultServerConfigRemote } from './config';
+import { defaultServerConfigManaged } from './config';
 
 export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutput }) => {
   let instance = useCurrentInstance();
@@ -223,7 +222,9 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
                     {({ value, setValue }) => (
                       <SchemaEditor
                         title={customServer.data?.name || 'Custom Provider Schema'}
-                        value={(value ?? defaultServerConfig.schema) as Record<string, unknown>}
+                        value={
+                          (value ?? defaultServerConfig.schema) as Record<string, unknown>
+                        }
                         onChange={v => setValue(v)}
                       />
                     )}

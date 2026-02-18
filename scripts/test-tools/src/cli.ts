@@ -24,9 +24,7 @@ if (args[0] == 'start') {
 
   let ephemeralDB = `postgres://${pgUser}:${pgPassword}@${pgHost}:${pgPort}/mt_oss_${Math.random().toString(36).substring(2, 15)}`;
 
-  await $`bun run prisma db push --skip-generate`
-    .env({ DATABASE_URL: ephemeralDB })
-    .cwd(dbPackage);
+  await $`bun run prisma db push`.env({ DATABASE_URL: ephemeralDB }).cwd(dbPackage);
 
   console.log(`Database prepared at ${ephemeralDB}`);
 

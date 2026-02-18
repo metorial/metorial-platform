@@ -16,7 +16,8 @@ enum ApiKeyKind {
 }
 
 model ApiKeySecret {
-  id String @id
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
 
   secret       String @unique
   secretSha512 String @unique
@@ -55,8 +56,7 @@ model ApiKey {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
 
-  secrets          ApiKeySecret[]
-  consumerSurfaces ConsumerSurface[]
+  secrets ApiKeySecret[]
 
   @@index([expiresAt])
   @@index([status])

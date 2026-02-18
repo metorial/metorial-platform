@@ -6,3 +6,5 @@ export let subspaceProviderToolService = createSubspaceService(
   ['get', 'list'],
   () => ({})
 );
+
+export type SubspaceProviderTool = Awaited<ReturnType<typeof subspace.providerTool.get>>;

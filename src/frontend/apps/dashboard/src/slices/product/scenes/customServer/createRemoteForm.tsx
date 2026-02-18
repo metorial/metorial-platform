@@ -1,4 +1,4 @@
-import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Stepper } from '../stepper';
-import { defaultServerConfigRemote, remoteServerTemplates } from './config';
+import { remoteServerTemplates } from './config';
 
 let TemplateWrapper = styled.div`
   display: flex;

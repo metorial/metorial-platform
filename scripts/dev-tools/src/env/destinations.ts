@@ -16,69 +16,44 @@ export let destinations: Destination[] = [
 
   {
     type: 'oss',
-    env: frontendEnv,
-    path: 'src/frontend/apps/code-workspace'
-  },
-
-  {
-    type: 'oss',
-    env: backendEnv,
-    path: 'src/mcp-engine'
-  },
-  {
-    type: 'oss',
     env: backendEnv,
     path: 'src/backend/apps/api'
   },
+
+  // {
+  //   type: 'oss',
+  //   env: backendEnv,
+  //   path: 'src/services/sso'
+  // },
+
+  // ...['code-bucket', 'listener', 'log', 'usage'].map(v => ({
+  //   type: 'oss' as const,
+  //   env: backendEnv,
+  //   path: `src/services/${v}`
+  // })),
+
   {
-    type: 'oss',
+    type: 'enterprise',
     env: backendEnv,
-    path: 'src/services/sso'
+    path: 'federation/backend/apps/connection-api'
+  },
+  {
+    type: 'enterprise',
+    env: backendEnv,
+    path: 'federation/backend/apps/core-api'
+  },
+  {
+    type: 'enterprise',
+    env: backendEnv,
+    path: 'federation/backend/apps/federation-api'
+  },
+  {
+    type: 'enterprise',
+    env: backendEnv,
+    path: 'federation/backend/apps/federation-worker'
   },
 
-  ...['code-bucket', 'listener', 'log', 'usage'].map(v => ({
-    type: 'oss' as const,
-    env: backendEnv,
-    path: `src/services/${v}`
-  })),
-
-  {
-    type: 'enterprise',
-    env: backendEnv,
-    path: 'federation/backend/apps/federation-core-api'
-  },
-  {
-    type: 'enterprise',
-    env: backendEnv,
-    path: 'federation/backend/apps/federation-core-worker'
-  },
-  {
-    type: 'enterprise',
-    env: backendEnv,
-    path: 'federation/backend/apps/federation-core-broker'
-  },
-  {
-    type: 'enterprise',
-    env: backendEnv,
-    path: 'federation/island/apps/island-core-api'
-  },
-  {
-    type: 'enterprise',
-    env: backendEnv,
-    path: 'federation/island/apps/island-core-worker'
-  },
-  {
-    type: 'enterprise',
-    env: backendEnv,
-    path: 'federation/island/apps/island-core-broker'
-  },
-  {
-    type: 'enterprise',
-    env: backendEnv,
-    path: 'federation/island/apps/island-core-mcp'
-  },
-
-  ...['account', 'admin', 'auth', 'dashboard', 'team'].map(v => ({
+  ...['admin', 'dashboard'].map(v => ({
     type: 'enterprise' as const,
     env: frontendEnv,
     path: `federation/frontend/apps/${v}`

@@ -11,15 +11,6 @@ export interface FrontendConfig {
     signupPath: string;
     logoutPath: string;
   };
-
-  microFrontends: {
-    codeEditorUrl?: string;
-  };
-
-  enterprise?: {
-    organizationFrontendUrl?: string;
-    accountFrontendUrl?: string;
-  };
 }
 
 export let defaultConfig = {

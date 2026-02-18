@@ -280,6 +280,8 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                             body: e.toResponse()
                           };
                         } else {
+                          if (process.env.NODE_ENV != 'production') console.log(e);
+
                           Sentry.captureException(e);
                           console.error('Error in handler', e);
 
@@ -311,6 +313,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
 
           app.onError(async (err, c) => {
             if (isServiceError(err)) return c.json(err.toResponse(), err.data.status);
+            if (process.env.NODE_ENV != 'production') console.log(err);
             return c.json(internalServerError().toResponse(), 500);
           });
 
@@ -513,12 +516,31 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
 
                     return res;
                   } catch (e) {
-                    if (isServiceError(e))
-                      return json(e.toResponse(), e.data.status, corsHeaders);
+                    if (isServiceError(e)) {
+                      let noCors = false;
+
+                      if (e.data.status == 401) {
+                        if (process.env.METORIAL_ENV === 'production') {
+                          let origin = req.headers.get('origin');
+                          noCors = true;
+
+                          if (origin) {
+                            try {
+                              let url = new URL(origin);
+                              if (url.hostname.endsWith('.metorial.com')) {
+                                noCors = false;
+                              }
+                            } catch {}
+                          }
+                        }
+                      }
+
+                      return json(e.toResponse(), e.data.status, noCors ? {} : corsHeaders);
+                    }
+
+                    if (process.env.NODE_ENV != 'production') console.log(e);
 
                     Sentry.captureException(e);
-
-                    console.error('Error in fetch handler', e);
 
                     return json(internalServerError().toResponse(), 500, corsHeaders);
                   } finally {

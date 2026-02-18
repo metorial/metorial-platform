@@ -1,7 +1,7 @@
 import {
   DashboardInstanceCustomProvidersCommitsListQuery,
   DashboardInstanceCustomProvidersGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useCustomServerEvents } from '@metorial/state';
 import { RenderDate, Text } from '@metorial/ui';
@@ -24,11 +24,9 @@ export let CustomServerEventsTable = ({
         data={events.data.items.map(event => ({
           data: [
             <Text size="2" weight="strong">
-              {
-                {
-                  remote_connection_issue: 'Remote Connection Issue'
-                }[event.trigger as string ?? ''] ?? event.trigger
-              }
+              {{
+                remote_connection_issue: 'Remote Connection Issue'
+              }[(event.trigger as string) ?? ''] ?? event.trigger}
             </Text>,
             <Text size="2" weight="strong">
               {event.error?.message ?? event.status}

@@ -1,6 +1,6 @@
 import { badRequestError, ServiceError } from '@metorial/error';
 import { accessService } from '@metorial/module-access';
-import { consumerAuthService, consumerProfileService } from '@metorial/module-consumer';
+// import { consumerAuthService, consumerProfileService } from '@metorial/module-consumer';
 import { Path } from '@metorial/rest';
 import { apiGroup } from './apiGroup';
 
@@ -26,32 +26,32 @@ export let instanceGroup = apiGroup.use(async ctx => {
       ...consumerPlaceholder
     };
 
-    let consumerSessionClientSecret =
-      ctx.query['consumer_session_client_secret'] ??
-      ctx.headers['metorial-consumer-session-client-secret'];
+    // let consumerSessionClientSecret =
+    //   ctx.query['consumer_session_client_secret'] ??
+    //   ctx.headers['metorial-consumer-session-client-secret'];
 
-    if (consumerSessionClientSecret) {
-      let res = await consumerAuthService.authenticateWithConsumerToken({
-        token: consumerSessionClientSecret,
-        organization: ctx.auth.restrictions.organization
-      });
+    // if (consumerSessionClientSecret) {
+    //   let res = await consumerAuthService.authenticateWithConsumerToken({
+    //     token: consumerSessionClientSecret,
+    //     organization: ctx.auth.restrictions.organization
+    //   });
 
-      let consumerGroups = await consumerProfileService.getGroupsForProfile({
-        consumerProfile: res.consumerProfile
-      });
+    //   let consumerGroups = await consumerProfileService.getGroupsForProfile({
+    //     consumerProfile: res.consumerProfile
+    //   });
 
-      return {
-        ...base,
-        consumerGroups,
-        consumerSurface: res.surface,
-        consumerSession: res.session,
-        consumerProfile: res.consumerProfile,
-        accessTags: [
-          res.consumerProfile.accessTagOid,
-          ...consumerGroups.map(g => g.accessTagOid)
-        ]
-      };
-    }
+    //   return {
+    //     ...base,
+    //     consumerGroups,
+    //     consumerSurface: res.surface,
+    //     consumerSession: res.session,
+    //     consumerProfile: res.consumerProfile,
+    //     accessTags: [
+    //       res.consumerProfile.accessTagOid,
+    //       ...consumerGroups.map(g => g.accessTagOid)
+    //     ]
+    //   };
+    // }
 
     return base;
   }

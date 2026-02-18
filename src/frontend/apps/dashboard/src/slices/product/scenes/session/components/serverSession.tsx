@@ -1,4 +1,4 @@
-import { DashboardInstanceSessionsServerSessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceSessionsServerSessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderRuns } from '@metorial/state';
 import { Button, theme } from '@metorial/ui';
@@ -126,9 +126,7 @@ export let ServerSession = ({
 
         <Header>
           <span>
-            {serverSession.serverDeployment?.name ??
-              serverSession.server?.name ??
-              'Unknown'}
+            {serverSession.serverDeployment?.name ?? serverSession.server?.name ?? 'Unknown'}
           </span>
           <span>
             <ID id={serverSession.connection?.id ?? serverSession.id} />

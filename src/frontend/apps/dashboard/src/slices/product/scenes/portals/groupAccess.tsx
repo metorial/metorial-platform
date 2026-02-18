@@ -1,7 +1,7 @@
 import {
   DashboardInstanceServersDeploymentsTemplatesCreateOutput,
   ServersListingsGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
 import { delay } from '@metorial/delay';
 import {
@@ -523,13 +523,13 @@ export let createSessionTemplateForConsumerSurface = async ({
     });
     if (!template) return;
 
-    let ok = await addAccess(template as unknown as DashboardInstanceServersDeploymentsTemplatesCreateOutput);
+    let ok = await addAccess(
+      template as unknown as DashboardInstanceServersDeploymentsTemplatesCreateOutput
+    );
     if (ok) close();
   };
 
-  if (
-    false /* OAuth status checking removed in Provider API migration */
-  ) {
+  if (false /* OAuth status checking removed in Provider API migration */) {
     showModal(({ dialogProps, close }) => {
       let form = useForm({
         initialValues: {

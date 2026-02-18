@@ -10,17 +10,21 @@ import {
   mapDashboardInstanceSessionsGetOutput,
   mapDashboardInstanceSessionsListOutput,
   mapDashboardInstanceSessionsListQuery,
+  mapDashboardInstanceSessionsUpdateBody,
+  mapDashboardInstanceSessionsUpdateOutput,
   type DashboardInstanceSessionsCreateBody,
   type DashboardInstanceSessionsCreateOutput,
   type DashboardInstanceSessionsDeleteOutput,
   type DashboardInstanceSessionsGetOutput,
   type DashboardInstanceSessionsListOutput,
-  type DashboardInstanceSessionsListQuery
+  type DashboardInstanceSessionsListQuery,
+  type DashboardInstanceSessionsUpdateBody,
+  type DashboardInstanceSessionsUpdateOutput
 } from '../resources';
 
 /**
- * @name Session controller
- * @description Before you can connect to an MCP server, you need to create a session. Each session can be linked to one or more server deployments, allowing you to connect to multiple servers simultaneously. Once you have created a session, you can use the provided MCP URL to connect to the server deployments via MCP.
+ * @name Sessions controller
+ * @description Sessions are connections to providers that allow clients to interact with MCP servers. Each session can include one or more provider deployments.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -47,7 +51,7 @@ export class MetorialSessionsEndpoint {
 
   /**
    * @name List sessions
-   * @description List all sessions
+   * @description Returns a paginated list of sessions.
    *
    * @param `query` - DashboardInstanceSessionsListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -75,7 +79,7 @@ export class MetorialSessionsEndpoint {
 
   /**
    * @name Get session
-   * @description Get the information of a specific session
+   * @description Retrieves a specific session by ID.
    *
    * @param `sessionId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -100,7 +104,7 @@ export class MetorialSessionsEndpoint {
 
   /**
    * @name Create session
-   * @description Create a new session
+   * @description Creates a new session with provider deployments.
    *
    * @param `body` - DashboardInstanceSessionsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -127,8 +131,38 @@ export class MetorialSessionsEndpoint {
   }
 
   /**
+   * @name Update session
+   * @description Updates a session.
+   *
+   * @param `sessionId` - string
+   * @param `body` - DashboardInstanceSessionsUpdateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSessionsUpdateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  update(
+    sessionId: string,
+    body: DashboardInstanceSessionsUpdateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSessionsUpdateOutput> {
+    let path = `sessions/${sessionId}`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceSessionsUpdateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._patch(request).transform(
+      mapDashboardInstanceSessionsUpdateOutput
+    );
+  }
+
+  /**
    * @name Delete session
-   * @description Delete a session
+   * @description Deletes a session.
    *
    * @param `sessionId` - string
    * @param `opts` - { headers?: Record<string, string> }

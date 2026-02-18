@@ -6,3 +6,5 @@ export let subspaceSessionTemplateService = createSubspaceService(
   ['get', 'list', 'create', 'update'],
   () => ({})
 );
+
+export type SubspaceSessionTemplate = Awaited<ReturnType<typeof subspace.sessionTemplate.get>>;

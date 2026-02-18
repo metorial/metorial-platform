@@ -1,4 +1,4 @@
-import { DashboardInstancePortalsConsumerProfilesListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstancePortalsConsumerProfilesListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, usePortalConsumerProfiles } from '@metorial/state';

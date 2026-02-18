@@ -6,3 +6,7 @@ export let customProviderDeploymentService = createSubspaceService(
   ['get', 'list', 'getLogs'],
   () => ({})
 );
+
+export type SubspaceCustomProviderDeployment = Awaited<
+  ReturnType<typeof subspace.customProviderDeployment.get>
+>;

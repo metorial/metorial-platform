@@ -6,3 +6,5 @@ export let subspaceProviderVersionService = createSubspaceService(
   ['get', 'list'],
   () => ({})
 );
+
+export type SubspaceProviderVersion = Awaited<ReturnType<typeof subspace.providerVersion.get>>;

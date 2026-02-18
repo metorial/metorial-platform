@@ -6,6 +6,10 @@ export let redirectToAuth = async (
     intent?: 'login' | 'signup';
   }
 ) => {
+  if ((window as any).enterpriseRedirectingToAuth) {
+    return (window as any).enterpriseRedirectingToAuth(nextUrl, opts);
+  }
+
   let config = await awaitConfig();
 
   let u = new URL(config.auth.loginPath, config.auth.authFrontendUrl ?? location.origin);
@@ -17,6 +21,10 @@ export let redirectToAuth = async (
 };
 
 export let redirectToLogout = async () => {
+  if ((window as any).enterpriseRedirectingToLogout) {
+    return (window as any).enterpriseRedirectingToLogout();
+  }
+
   let config = await awaitConfig();
 
   let u = new URL(config.auth.logoutPath, config.auth.authFrontendUrl ?? location.origin);

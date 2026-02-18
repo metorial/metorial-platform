@@ -5,8 +5,8 @@ export interface PresenterContext {
   apiVersion:
     | 'mt_2025_01_01_pulsar'
     | 'mt_2025_01_01_dashboard'
-    | 'mt_2026_02_01_magnetar'
-    | 'mt_2026_02_01_dashboard';
+    | 'mt_2026_01_01_magnetar'
+    | 'mt_2025_01_01_dashboard';
   accessType:
     | 'instance_secret'
     | 'instance_publishable'
@@ -171,19 +171,16 @@ export class PresenterBuilder<Type extends PresentableType<any, any>, Output ext
   }
 }
 
-export const PRESENTER_NOT_AVAILABLE = Symbol('PRESENTER_NOT_AVAILABLE');
-
-export type PresenterOrNotAvailable<Type extends PresentableType<any, any>> =
-  | Presenter<Type, any>
-  | typeof PRESENTER_NOT_AVAILABLE;
+export type PresenterOrNotAvailable<Type extends PresentableType<any, any>> = Presenter<
+  Type,
+  any
+>;
 
 export let declarePresenter = <Type extends PresentableType<any, any>>(
   type: Type,
   presenters: {
-    mt_2025_01_01_pulsar?: PresenterOrNotAvailable<Type>;
     mt_2025_01_01_dashboard?: PresenterOrNotAvailable<Type>;
-    mt_2026_02_01_magnetar?: PresenterOrNotAvailable<Type>;
-    mt_2026_02_01_dashboard?: PresenterOrNotAvailable<Type>;
+    mt_2026_01_01_magnetar?: PresenterOrNotAvailable<Type>;
   }
 ) => ({
   type,
@@ -191,18 +188,10 @@ export let declarePresenter = <Type extends PresentableType<any, any>>(
     (input: GetTypeOfPresentable<Type>) =>
     (context: PresenterContext): PresenterResult => {
       let presenter = (presenters as any)[context.apiVersion];
-      if (!presenter || presenter === PRESENTER_NOT_AVAILABLE) {
-        throw new Error(
-          `Presenter for "${type.name}" is not available in API version "${context.apiVersion}"`
-        );
-      }
       return presenter.present(input, context);
     },
   introspect: ({ apiVersion }: { apiVersion: string }) => {
     let presenter = (presenters as any)[apiVersion];
-    if (!presenter || presenter === PRESENTER_NOT_AVAILABLE) {
-      return null;
-    }
     return presenter.introspect();
   }
 });

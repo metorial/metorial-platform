@@ -6,3 +6,7 @@ export let subspaceProviderAuthMethodService = createSubspaceService(
   ['get', 'list'],
   () => ({})
 );
+
+export type SubspaceProviderAuthMethod = Awaited<
+  ReturnType<typeof subspace.providerAuthMethod.get>
+>;

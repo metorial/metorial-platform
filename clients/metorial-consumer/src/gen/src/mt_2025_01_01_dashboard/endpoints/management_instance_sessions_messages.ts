@@ -13,8 +13,8 @@ import {
 } from '../resources';
 
 /**
- * @name Session Message controller
- * @description When MCP servers and clients communicate, Metorial captures the messages they send. This allows you to see the raw messages exchanged between the server and client, which can be useful for debugging or understanding the communication flow.
+ * @name Session Messages controller
+ * @description Session messages represent the MCP protocol messages exchanged during a session. This read-only resource provides visibility into the communication between clients and providers.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialManagementInstanceSessionsMessagesEndpoint {
 
   /**
    * @name List session messages
-   * @description List all messages for a specific session
+   * @description Returns a paginated list of messages for a session.
    *
    * @param `instanceId` - string
    * @param `sessionId` - string
@@ -75,7 +75,7 @@ export class MetorialManagementInstanceSessionsMessagesEndpoint {
 
   /**
    * @name Get session message
-   * @description Get details of a specific session message
+   * @description Retrieves a specific message from a session.
    *
    * @param `instanceId` - string
    * @param `sessionId` - string

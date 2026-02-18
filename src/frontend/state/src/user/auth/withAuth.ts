@@ -18,8 +18,13 @@ export let setAuthRequired = (required: boolean) => {
 let redirectToAuthIfNotAuthenticated = async <R>(fn: () => Promise<R>) => {
   if (typeof window === 'undefined') return new Promise(() => {}) as Promise<R>;
 
-  if (window.location.pathname.startsWith('/auth/'))
+  if (window.location.pathname.startsWith('/auth/')) {
     return new Promise(() => {}) as Promise<R>;
+  }
+
+  if ((window as any).enterpriseRedirectToAuthIfNotAuthenticated) {
+    return (window as any).enterpriseRedirectToAuthIfNotAuthenticated(fn) as Promise<R>;
+  }
 
   try {
     return await fn();
@@ -65,6 +70,10 @@ export let fetchUserSpecial = () => {
 
   return redirectToAuthIfNotAuthenticated(() =>
     withDashboardSDK(async sdk => {
+      if ((window as any).enterpriseUserPromise) {
+        await (window as any).enterpriseUserPromise;
+      }
+
       let u = await sdk.user.get();
       if (!firstUserPromise.value) firstUserPromise.resolve(u);
 
@@ -84,13 +93,7 @@ export let withAuth = async <O>(fn: (sdk: MetorialDashboardSDK) => Promise<O>) =
 };
 
 export let withAuthPrivate = async <O>(
-  opts:
-    | {
-        organizationId: string;
-      }
-    | {
-        instanceId: string;
-      },
+  opts: { organizationId: string } | { instanceId: string },
   fn: (sdk: PrivateClient) => Promise<O>
 ) => {
   if (typeof window === 'undefined') return new Promise(() => {}) as Promise<O>;

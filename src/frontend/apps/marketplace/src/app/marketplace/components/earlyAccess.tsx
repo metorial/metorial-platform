@@ -93,11 +93,7 @@ export let EarlyAccessBar = () => {
             </AnimatePresence>
           </div>
 
-          <a
-            href="https://auth.metorial.com/signup?nextUrl=https%3A%2F%2Fapp.metorial.com"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <a href="https://signup.metorial.com" target="_blank" rel="noopener noreferrer">
             <LandingButton variant="white" as="span">
               Get Started
             </LandingButton>

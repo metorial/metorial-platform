@@ -1,7 +1,7 @@
 import {
   DashboardInstanceProviderDeploymentsGetOutput,
   ServersDeploymentsGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { Dialog, showModal } from '@metorial/ui';
 import {
   MagicMcpServerForm,
@@ -48,6 +48,10 @@ export let showMagicMcpServerFormModal = (
           : 'Create a new Magic MCP server to get started.'}
       </Dialog.Description>
 
-      <MagicMcpServerForm {...p} close={close} onCreate={p.onCreate as Parameters<typeof MagicMcpServerForm>[0]['onCreate']} />
+      <MagicMcpServerForm
+        {...p}
+        close={close}
+        onCreate={p.onCreate as Parameters<typeof MagicMcpServerForm>[0]['onCreate']}
+      />
     </Dialog.Wrapper>
   ));

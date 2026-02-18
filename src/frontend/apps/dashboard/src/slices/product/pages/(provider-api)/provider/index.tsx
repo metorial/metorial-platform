@@ -3,22 +3,22 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
-  useProviderDeployments,
   useProvider,
-  useRevealedApiKey,
-  useProviderListings
+  useProviderDeployments,
+  useProviderListings,
+  useRevealedApiKey
 } from '@metorial/state';
-import { Badge, Button, Flex, Spacer, Text, theme } from '@metorial/ui';
+import { Button, Spacer, Text } from '@metorial/ui';
 import { ID, SideBox } from '@metorial/ui-product';
 import dedent from 'dedent';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useApiKeysWithAutoInit } from '../../../scenes/apiKeys/useApiKeysWithAutoInit';
 import { showProviderDeploymentFormModal } from '../../../scenes/providerDeployments/modal';
+import { useProviderVersionContext } from './_layout';
 import { InstructionItem, Instructions } from './components/instructions';
 import { KeySelector } from './components/keySelector';
 import { Skills } from './components/skills';
-import { useProviderVersionContext } from './_layout';
 
 export let ProviderOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -49,7 +49,11 @@ export let ProviderOverviewPage = () => {
   );
 
   let secretApiKey = apiKeys.data?.find(
-    (a: { type: string; status: string; revealInfo?: { forever?: boolean; until?: Date } | null }) =>
+    (a: {
+      type: string;
+      status: string;
+      revealInfo?: { forever?: boolean; until?: Date } | null;
+    }) =>
       a.type === 'instance_access_token_secret' &&
       ((a.status == 'active' && a.revealInfo?.forever) ||
         (a.revealInfo?.until && a.revealInfo?.until > new Date()))
@@ -267,10 +271,15 @@ export let ProviderOverviewPage = () => {
       path: opts.path,
       initialFile: opts.initialFile,
       replacements: {
+        // 'your-metorial-api-key': apiKeySecret,
+        // 'metorial-api-key': apiKeySecret,
+
         'your-server-deployment-id': providerDeployment?.id,
+        'server-deployment-id': providerDeployment?.id,
+        'your-normal-server-deployment-id': providerDeployment?.id,
+        'your-oauth-server-deployment-id': providerDeployment?.id,
         'your-metorial-api-key': apiKeySecret,
-        'metorial-api-key': apiKeySecret,
-        'server-deployment-id': providerDeployment?.id
+        'metorial-api-key': apiKeySecret
       }
     };
   };

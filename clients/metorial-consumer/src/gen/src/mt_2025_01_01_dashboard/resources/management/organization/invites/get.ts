@@ -7,14 +7,26 @@ export type ManagementOrganizationInvitesGetOutput = {
   role: 'member' | 'admin';
   type: 'link' | 'email';
   email: string;
+  inviteLink: {
+    object: 'organization.invite.link';
+    id: string;
+    key: string | null;
+    keyRedacted: string;
+    url: string | null;
+    createdAt: Date;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+  expiresAt: Date;
+  acceptedAt: Date;
+  rejectedAt: Date;
+  deletedAt: Date;
   organization: {
     object: 'organization';
     id: string;
-    status: 'active' | 'deleted';
     type: 'default';
     slug: string;
     name: string;
-    organizationId: string;
     imageUrl: string;
     createdAt: Date;
     updatedAt: Date;
@@ -38,20 +50,6 @@ export type ManagementOrganizationInvitesGetOutput = {
     createdAt: Date;
     updatedAt: Date;
   };
-  inviteLink: {
-    object: 'organization.invite.link';
-    id: string;
-    key: string | null;
-    keyRedacted: string;
-    url: string | null;
-    createdAt: Date;
-  };
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt: Date;
-  expiresAt: Date;
-  acceptedAt: Date;
-  rejectedAt: Date;
 };
 
 export let mapManagementOrganizationInvitesGetOutput =
@@ -62,19 +60,31 @@ export let mapManagementOrganizationInvitesGetOutput =
     role: mtMap.objectField('role', mtMap.passthrough()),
     type: mtMap.objectField('type', mtMap.passthrough()),
     email: mtMap.objectField('email', mtMap.passthrough()),
+    inviteLink: mtMap.objectField(
+      'invite_link',
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        key: mtMap.objectField('key', mtMap.passthrough()),
+        keyRedacted: mtMap.objectField('key_redacted', mtMap.passthrough()),
+        url: mtMap.objectField('url', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date())
+      })
+    ),
+    createdAt: mtMap.objectField('created_at', mtMap.date()),
+    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+    expiresAt: mtMap.objectField('expires_at', mtMap.date()),
+    acceptedAt: mtMap.objectField('accepted_at', mtMap.date()),
+    rejectedAt: mtMap.objectField('rejected_at', mtMap.date()),
+    deletedAt: mtMap.objectField('deleted_at', mtMap.date()),
     organization: mtMap.objectField(
       'organization',
       mtMap.object({
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
         type: mtMap.objectField('type', mtMap.passthrough()),
         slug: mtMap.objectField('slug', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
-        organizationId: mtMap.objectField(
-          'organization_id',
-          mtMap.passthrough()
-        ),
         imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
@@ -112,23 +122,6 @@ export let mapManagementOrganizationInvitesGetOutput =
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
-    ),
-    inviteLink: mtMap.objectField(
-      'invite_link',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        key: mtMap.objectField('key', mtMap.passthrough()),
-        keyRedacted: mtMap.objectField('key_redacted', mtMap.passthrough()),
-        url: mtMap.objectField('url', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date())
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-    deletedAt: mtMap.objectField('deleted_at', mtMap.date()),
-    expiresAt: mtMap.objectField('expires_at', mtMap.date()),
-    acceptedAt: mtMap.objectField('accepted_at', mtMap.date()),
-    rejectedAt: mtMap.objectField('rejected_at', mtMap.date())
+    )
   });
 

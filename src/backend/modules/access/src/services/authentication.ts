@@ -1,9 +1,9 @@
 import { Context } from '@metorial/context';
 import {
   ApiKey,
-  ConsumerProfile,
-  ConsumerSession,
-  ConsumerSurface,
+  // ConsumerProfile,
+  // ConsumerSession,
+  // ConsumerSurface,
   Instance,
   MachineAccess,
   Organization,
@@ -13,13 +13,12 @@ import {
   UserSession
 } from '@metorial/db';
 import { ServiceError, unauthorizedError } from '@metorial/error';
-import { consumerAuthService } from '@metorial/module-consumer';
+// import { consumerAuthService } from '@metorial/module-consumer';
 import { machineAccessAuthService } from '@metorial/module-machine-access';
 import { userAuthService } from '@metorial/module-user';
 import { Service } from '@metorial/service';
 import {
   instancePublishableTokenScopes,
-  instancePublishableTokenWithConsumerScopes,
   instanceSecretTokenScopes,
   orgManagementTokenScopes,
   Scope,
@@ -51,13 +50,13 @@ export type AuthInfo =
             actor: OrganizationActor;
             instance: Instance & { project: Project };
 
-            consumer:
-              | {
-                  consumerSurface: ConsumerSurface;
-                  consumerSession: ConsumerSession;
-                  consumerProfile: ConsumerProfile;
-                }
-              | undefined;
+            // consumer:
+            //   | {
+            //       consumerSurface: ConsumerSurface;
+            //       consumerSession: ConsumerSession;
+            //       consumerProfile: ConsumerProfile;
+            //     }
+            //   | undefined;
           };
     };
 
@@ -135,21 +134,21 @@ class AuthenticationService {
       machineAccess.actor &&
       (machineAccess.type == 'instance_publishable' || machineAccess.type == 'instance_secret')
     ) {
-      let consumerRes = d.consumerSessionClientSecret
-        ? await consumerAuthService.authenticateWithConsumerToken({
-            token: d.consumerSessionClientSecret,
-            organization: machineAccess.organization
-          })
-        : null;
+      // let consumerRes = d.consumerSessionClientSecret
+      //   ? await consumerAuthService.authenticateWithConsumerToken({
+      //       token: d.consumerSessionClientSecret,
+      //       organization: machineAccess.organization
+      //     })
+      //   : null;
 
-      if (consumerRes && machineAccess.type != 'instance_publishable') {
-        throw new ServiceError(
-          unauthorizedError({
-            message:
-              'Consumer session tokens can only be used with instance publishable machine access tokens'
-          })
-        );
-      }
+      // if (consumerRes && machineAccess.type != 'instance_publishable') {
+      //   throw new ServiceError(
+      //     unauthorizedError({
+      //       message:
+      //         'Consumer session tokens can only be used with instance publishable machine access tokens'
+      //     })
+      //   );
+      // }
 
       return {
         type: 'machine',
@@ -157,23 +156,22 @@ class AuthenticationService {
         machineAccess,
         orgScopes:
           machineAccess.type == 'instance_publishable'
-            ? consumerRes
-              ? instancePublishableTokenWithConsumerScopes
-              : instancePublishableTokenScopes
+            ? // consumerRes ? instancePublishableTokenWithConsumerScopes :
+              instancePublishableTokenScopes
             : instanceSecretTokenScopes,
         restrictions: {
           type: 'instance',
           organization: machineAccess.organization,
           actor: machineAccess.actor,
-          instance: machineAccess.instance,
+          instance: machineAccess.instance
 
-          consumer: consumerRes
-            ? {
-                consumerSurface: consumerRes.surface,
-                consumerSession: consumerRes.session,
-                consumerProfile: consumerRes.consumerProfile
-              }
-            : undefined
+          // consumer: consumerRes
+          //   ? {
+          //       consumerSurface: consumerRes.surface,
+          //       consumerSession: consumerRes.session,
+          //       consumerProfile: consumerRes.consumerProfile
+          //     }
+          //   : undefined
         }
       };
     }

@@ -28,25 +28,25 @@ export let apiServer = restServer.launch({
       controller: fullDashboardController
     },
 
-    mt_2026_02_01_magnetar: {
+    mt_2026_01_01_magnetar: {
       displayVersion: '2026-02-01',
-      apiVersion: 'mt_2026_02_01_magnetar',
+      apiVersion: 'mt_2026_01_01_magnetar',
       alternativeIdentifiers: [
         'magnetar',
         '2026_02_01',
         '2026-02-01',
-        'mt_2026_02_01_magnetar',
+        'mt_2026_01_01_magnetar',
         '2026-02-01-magnetar'
       ],
       controller: magnetarController
     },
 
-    mt_2026_02_01_dashboard: {
+    mt_2025_01_01_dashboard: {
       displayVersion: '2026-02-01-dashboard',
-      apiVersion: 'mt_2026_02_01_dashboard',
-      alternativeIdentifiers: ['mt_2026_02_01_dashboard', '2026-02-01-dashboard'],
+      apiVersion: 'mt_2025_01_01_dashboard',
+      alternativeIdentifiers: ['mt_2025_01_01_dashboard', '2026-02-01-dashboard'],
       controller: magnetarDashboardController
     }
   },
-  currentVersion: 'mt_2026_02_01_magnetar'
+  currentVersion: 'mt_2026_01_01_magnetar'
 });
