@@ -5,6 +5,7 @@ import { getSentry } from '@metorial/sentry';
 import { serialize } from '@metorial/serialize';
 import Redis from 'ioredis';
 import PQueue from 'p-queue';
+import { parseRedisUrl } from './utils/parseRedisUrl';
 
 let Sentry = getSentry();
 
@@ -20,7 +21,7 @@ export class RedisStreams<Message> {
   }
 
   private async createRedis() {
-    return new Redis(this.redisUrl!);
+    return new Redis(parseRedisUrl(this.redisUrl!));
   }
 
   async createReceiver(
