@@ -17,9 +17,9 @@ export let ProviderAuthCredentialLayout = () => {
   let organization = useCurrentOrganization();
 
   let { providerDeploymentId, providerAuthCredentialsId } = useParams();
-  let deployment = useProviderDeployment(instance.data?.instanceId, providerDeploymentId);
+  let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
   let credential = useProviderAuthCredential(
-    instance.data?.instanceId,
+    instance.data?.id,
     providerDeploymentId,
     providerAuthCredentialsId
   );
@@ -73,6 +73,13 @@ export let ProviderAuthCredentialLayout = () => {
               {
                 label: 'Overview',
                 to: Paths.instance.providerAuthCredential(...credentialPathParams)
+              },
+              {
+                label: 'Auth Configs',
+                to: Paths.instance.providerAuthCredential(
+                  ...credentialPathParams,
+                  'auth-configs'
+                )
               },
               {
                 label: 'Settings',

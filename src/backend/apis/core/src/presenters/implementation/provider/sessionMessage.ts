@@ -109,25 +109,21 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionM
         description: 'Unique session message identifier',
         examples: ['smg_8hJkLmNpQrStUvWx']
       }),
-      type: v.nullable(
-        v.string({
-          name: 'type',
-          description: 'Message type',
-          examples: ['request', 'response', 'notification']
-        })
-      ),
+      type: v.string({
+        name: 'type',
+        description: 'Message type',
+        examples: ['request', 'response', 'notification']
+      }),
       sender: v.object(
         {
           object: v.literal('session.message.sender', {
             description: "String representing the object's type"
           }),
-          type: v.nullable(
-            v.string({
-              name: 'type',
-              description: 'Sender type',
-              examples: ['client', 'server']
-            })
-          ),
+          type: v.string({
+            name: 'type',
+            description: 'Sender type',
+            examples: ['client', 'server']
+          }),
           id: v.nullable(
             v.string({
               name: 'id',
@@ -160,13 +156,11 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionM
               examples: ['tools/list', 'tools/call']
             })
           ),
-          payload: v.nullable(
-            v.record(v.any(), {
-              name: 'payload',
-              description: 'Message payload',
-              examples: [{ jsonrpc: '2.0', method: 'tools/list' }]
-            })
-          )
+          payload: v.record(v.any(), {
+            name: 'payload',
+            description: 'Message payload',
+            examples: [{ jsonrpc: '2.0', method: 'tools/list' }]
+          })
         },
         {
           name: 'mcp_message',

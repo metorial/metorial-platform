@@ -21,7 +21,7 @@ subspace.solution
     } else {
       console.warn('Continuing without subspace connection (development mode)');
     }
-  });
+});
 
 export let getTenantForSubspace = async (instance: Instance) => {
   if (!instance.subspaceTenantId || !instance.subspaceEnvironmentId) {

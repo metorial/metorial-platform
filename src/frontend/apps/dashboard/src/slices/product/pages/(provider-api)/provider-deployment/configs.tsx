@@ -26,7 +26,7 @@ export let ProviderDeploymentConfigsPage = () => {
       <Spacer size={15} />
 
       <ProviderConfigsTable
-        instanceId={instance.data.instanceId}
+        instanceId={instance.data.id}
         providerDeploymentId={providerDeploymentId!}
       />
     </>

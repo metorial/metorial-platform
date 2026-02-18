@@ -1205,6 +1205,26 @@ export interface SubspaceProviderRun {
   updatedAt: Date;
 }
 
+export interface SubspaceToolCall {
+  id: string;
+  toolKey: string;
+  type: string;
+  status: string;
+  source: string;
+  transport: string;
+  sessionId: string;
+  messageId: string;
+  sessionProviderId: string | null;
+  connectionId: string | null;
+  providerRunId: string | null;
+  tool: SubspaceTool;
+  input: Record<string, unknown> | null;
+  output: Record<string, unknown> | null;
+  error: Record<string, unknown> | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: Date;
+}
+
 export let sessionTemplateType = PresentableType.create<{
   sessionTemplate: SubspaceSessionTemplate;
 }>()('sessionTemplate');
@@ -1232,6 +1252,10 @@ export let sessionErrorGroupType = PresentableType.create<{
 export let providerRunType = PresentableType.create<{
   providerRun: SubspaceProviderRun;
 }>()('providerRun');
+
+export let toolCallType = PresentableType.create<{
+  toolCall: SubspaceToolCall;
+}>()('toolCall');
 
 export interface SubspaceSessionProvider {
   id: string;

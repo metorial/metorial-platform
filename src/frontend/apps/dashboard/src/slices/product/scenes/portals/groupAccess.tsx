@@ -37,11 +37,11 @@ import { useDebounced } from '../../../../hooks/useDebounced';
 
 export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
   let instance = useCurrentInstance();
-  let portal = usePortal(instance.data?.instanceId, p.portalId!);
-  let group = usePortalConsumerGroup(instance.data?.instanceId, portal.data?.id, p.groupId);
+  let portal = usePortal(instance.data?.id, p.portalId!);
+  let group = usePortalConsumerGroup(instance.data?.id, portal.data?.id, p.groupId);
 
   let serverDeploymentTemplateAccess = usePortalAccesses(
-    instance.data?.instanceId,
+    instance.data?.id,
     group.data ? portal.data?.id : undefined,
     {
       consumerGroupId: group.data?.id,
@@ -60,7 +60,7 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
 
       let createTemplateMutator = useCreateSessionTemplate();
 
-      let servers = useMagicMcpServers(instance.data?.instanceId, {
+      let servers = useMagicMcpServers(instance.data?.id, {
         limit: 20,
         search: searchDebounced
       });
@@ -156,7 +156,7 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
 
                   let [templateRes] = await createTemplateMutator.mutate({
                     name: server.name ?? 'Untitled',
-                    instanceId: instance.data!.instanceId
+                    instanceId: instance.data!.id
                   });
                   if (!templateRes) return;
 
@@ -283,7 +283,7 @@ export let PortalGroupAccess = (p: { portalId: string; groupId: string }) => {
                             onSubmit: async values => {
                               let [res] = await update.mutate({
                                 sessionTemplateId: template.id,
-                                instanceId: instance.data!.instanceId,
+                                instanceId: instance.data!.id,
                                 name: values.name,
                                 description: values.description
                               });
@@ -475,7 +475,7 @@ export let linkServerDeploymentTemplate = (p: {
 
               try {
                 await createSessionTemplateForConsumerSurface({
-                  instanceId: instance.data!.instanceId,
+                  instanceId: instance.data!.id,
                   serverId: listing.id,
                   listing: listing as unknown as ServersListingsGetOutput,
                   addAccess: p.addAccess

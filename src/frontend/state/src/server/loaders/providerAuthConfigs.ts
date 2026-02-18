@@ -1,7 +1,8 @@
 import {
   DashboardInstanceProviderDeploymentsAuthConfigsCreateBody,
   DashboardInstanceProviderDeploymentsAuthConfigsListQuery,
-  DashboardInstanceProviderDeploymentsAuthConfigsUpdateBody
+  DashboardInstanceProviderDeploymentsAuthConfigsUpdateBody,
+  DashboardInstanceProvidersAuthConfigsListQuery
 } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
@@ -96,6 +97,38 @@ export let providerAuthConfigLoader = createLoader({
       )
   }
 });
+
+// Instance-scoped auth configs list (not deployment-scoped)
+export let instanceProviderAuthConfigsLoader = createLoader({
+  name: 'instanceProviderAuthConfigs',
+  parents: [],
+  fetch: (
+    i: {
+      instanceId: string;
+    } & DashboardInstanceProvidersAuthConfigsListQuery
+  ) =>
+    withAuth(sdk => sdk.providers.authConfigs.list(i.instanceId, i)),
+  mutators: {}
+});
+
+export let useInstanceProviderAuthConfigs = (
+  instanceId: string | null | undefined,
+  query?: DashboardInstanceProvidersAuthConfigsListQuery
+) => {
+  let data = usePaginator(pagination =>
+    instanceProviderAuthConfigsLoader.use(
+      instanceId
+        ? {
+            instanceId,
+            ...pagination,
+            ...query
+          }
+        : null
+    )
+  );
+
+  return data;
+};
 
 export let useProviderAuthConfig = (
   instanceId: string | null | undefined,

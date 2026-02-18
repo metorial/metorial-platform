@@ -16,14 +16,14 @@ export let MagicMcpServerOauthPage = () => {
   let instance = useCurrentInstance();
 
   let { magicMcpServerId } = useParams();
-  let magicMcpServer = useMagicMcpServer(instance.data?.instanceId, magicMcpServerId);
+  let magicMcpServer = useMagicMcpServer(instance.data?.id, magicMcpServerId);
   let updateMutation = magicMcpServer.useUpdateMutator();
   let deployment = useProviderDeployment(
-    instance.data?.instanceId,
+    instance.data?.id,
     magicMcpServer.data?.serverDeployments[0]?.id
   );
   let oauthConnection = useProviderConnection(
-    instance.data?.instanceId,
+    instance.data?.id,
     (deployment.data as Record<string, unknown>)?.oauthConnection as string | undefined
   );
 
@@ -44,10 +44,10 @@ export let MagicMcpServerOauthCallout = ({ noSpacer }: { noSpacer?: boolean }) =
   let instance = useCurrentInstance();
 
   let { magicMcpServerId } = useParams();
-  let magicMcpServer = useMagicMcpServer(instance.data?.instanceId, magicMcpServerId);
+  let magicMcpServer = useMagicMcpServer(instance.data?.id, magicMcpServerId);
   let updateMutation = magicMcpServer.useUpdateMutator();
   let deployment = useProviderDeployment(
-    instance.data?.instanceId,
+    instance.data?.id,
     magicMcpServer.data?.serverDeployments[0]?.id
   );
 
@@ -82,7 +82,7 @@ export let MagicMcpServerOauthCallout = ({ noSpacer }: { noSpacer?: boolean }) =
           onClick={async () => {
             try {
               let oauthSessionId = await authenticateWithOauth({
-                instanceId: instance.data?.instanceId!,
+                instanceId: instance.data?.id!,
                 providerDeploymentId: deployment.data?.id!
               });
 

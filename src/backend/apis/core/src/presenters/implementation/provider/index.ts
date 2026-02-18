@@ -25,6 +25,7 @@ export { v1SessionParticipantPresenter } from './sessionParticipant';
 export { v1SessionErrorPresenter } from './sessionError';
 export { v1SessionErrorGroupPresenter } from './sessionErrorGroup';
 export { v1ProviderRunPresenter } from './providerRun';
+export { v1ToolCallPresenter } from './toolCall';
 export {
   presentSubspaceSessionMessageAs,
   v1SubspaceSessionMessagePresenter

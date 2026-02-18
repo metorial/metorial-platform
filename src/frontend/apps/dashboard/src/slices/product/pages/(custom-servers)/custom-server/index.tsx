@@ -12,7 +12,7 @@ export let CustomServerOverviewPage = () => {
   let navigate = useNavigate();
 
   let { customServerId } = useParams();
-  let customServer = useCustomServer(instance.data?.instanceId, customServerId);
+  let customServer = useCustomServer(instance.data?.id, customServerId);
 
   return renderWithLoader({ customServer })(({ customServer }) => (
     <>

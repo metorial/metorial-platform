@@ -7,7 +7,7 @@ import { Outlet, useParams } from 'react-router-dom';
 export let PortalSettingsLayout = () => {
   let instance = useCurrentInstance();
   let params = useParams();
-  let portal = usePortal(instance.data?.instanceId, params.portalId!);
+  let portal = usePortal(instance.data?.id, params.portalId!);
 
   let base = [
     instance.data?.organization,

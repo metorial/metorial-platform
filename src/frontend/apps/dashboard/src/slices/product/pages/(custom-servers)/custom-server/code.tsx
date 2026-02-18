@@ -60,10 +60,10 @@ export let CustomServerCodePage = () => {
   let instance = useCurrentInstance();
 
   let { customServerId } = useParams();
-  let customServer = useCustomServer(instance.data?.instanceId, customServerId);
+  let customServer = useCustomServer(instance.data?.id, customServerId);
 
   let editorToken = useCustomServerCodeEditorToken(
-    instance.data?.instanceId,
+    instance.data?.id,
     customServer.data?.id
   );
 
@@ -93,7 +93,7 @@ export let CustomServerCodePage = () => {
 
   let publishNewVersion = async () => {
     let [version] = await createVersion.mutate({
-      instanceId: instance.data!.instanceId,
+      instanceId: instance.data!.id,
       customServerId: customServer.data!.id,
       from: {
         type: 'function',
@@ -197,7 +197,7 @@ export let CustomServerCodePage = () => {
                           success={createVersion.isSuccess}
                           onClick={async () => {
                             let [res] = await createVersion.mutate({
-                              instanceId: instance.data!.instanceId,
+                              instanceId: instance.data!.id,
                               customServerId: customServer.data!.id,
                               from: {
                                 type: 'function',

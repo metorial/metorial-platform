@@ -18,7 +18,7 @@ export let ProviderDeploymentSettingsPage = () => {
   let navigate = useNavigate();
 
   let { providerDeploymentId } = useParams();
-  let deployment = useProviderDeployment(instance.data?.instanceId, providerDeploymentId);
+  let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
   let updateMutator = deployment.useUpdateMutator();
   let deleteMutator = deployment.useDeleteMutator();
 

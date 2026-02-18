@@ -12,7 +12,7 @@ export let ServerImplementationsTable = (filter: DashboardInstanceServersImpleme
   let searchDebounced = useDebounced(search, 500);
 
   let instance = useCurrentInstance();
-  let implementations = useServerImplementations(instance.data?.instanceId, {
+  let implementations = useServerImplementations(instance.data?.id, {
     ...filter,
     search: searchDebounced.length ? searchDebounced : undefined
   });

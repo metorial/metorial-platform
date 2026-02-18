@@ -25,7 +25,7 @@ export let ProviderOverviewPage = () => {
   let { selectedVersionId, selectedVersion } = useProviderVersionContext();
 
   let { providerId } = useParams();
-  let provider = useProvider(instance.data?.instanceId, providerId);
+  let provider = useProvider(instance.data?.id, providerId);
 
   // Fetch the listing for rich metadata (skills, readme, etc.)
   let listings = useProviderListings(
@@ -43,7 +43,7 @@ export let ProviderOverviewPage = () => {
     instance.data
       ? {
           type: 'instance_access_token',
-          instanceId: instance.data.instanceId
+          instanceId: instance.data.id
         }
       : undefined
   );
@@ -64,7 +64,7 @@ export let ProviderOverviewPage = () => {
   }, [key.value]);
   if (key.value) apiKeySecret = key.value;
 
-  let deployments = useProviderDeployments(instance.data?.instanceId, {
+  let deployments = useProviderDeployments(instance.data?.id, {
     providerId: provider.data?.id,
     providerVersionId: selectedVersionId
   });

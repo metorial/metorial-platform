@@ -32,7 +32,7 @@ export let ProjectDeveloperEnvironmentsPage = () => {
         })(({ project }) => (
           <>
             {instances?.map(i => (
-              <Entity.Wrapper key={i.instanceId}>
+              <Entity.Wrapper key={i.id}>
                 <Entity.Content>
                   <Entity.Field
                     title={i.name}

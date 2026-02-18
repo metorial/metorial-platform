@@ -24,9 +24,9 @@ import { useDebounced } from '../../../../../../hooks/useDebounced';
 export let PortalFeaturedServersPage = () => {
   let instance = useCurrentInstance();
   let params = useParams();
-  let portal = usePortal(instance.data?.instanceId, params.portalId!);
+  let portal = usePortal(instance.data?.id, params.portalId!);
 
-  let requests = usePortalFeaturedServers(instance.data?.instanceId, portal.data?.id);
+  let requests = usePortalFeaturedServers(instance.data?.id, portal.data?.id);
   let requestsOuter = requests;
 
   let removeListing = requests.removeListingMutator();

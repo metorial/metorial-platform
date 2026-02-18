@@ -7,9 +7,9 @@ import { Outlet, useParams } from 'react-router-dom';
 export let PortalGroupLayout = () => {
   let instance = useCurrentInstance();
   let params = useParams();
-  let portal = usePortal(instance.data?.instanceId, params.portalId!);
+  let portal = usePortal(instance.data?.id, params.portalId!);
   let group = usePortalConsumerGroup(
-    instance.data?.instanceId,
+    instance.data?.id,
     portal.data?.id,
     params.groupId
   );

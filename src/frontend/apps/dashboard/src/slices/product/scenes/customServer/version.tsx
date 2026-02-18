@@ -56,17 +56,17 @@ export let CustomServerVersion = ({
 }) => {
   let instance = useCurrentInstance();
   let version = useCustomServerVersion(
-    instance.data?.instanceId,
+    instance.data?.id,
     customServer?.id ?? versionId,
     versionId
   );
   let deployment = useCustomServerDeployment(
-    instance.data?.instanceId,
+    instance.data?.id,
     customServer?.id,
     version.data?.deployment?.id
   );
   let deploymentLogs = useCustomServerDeploymentLogs(
-    instance.data?.instanceId,
+    instance.data?.id,
     customServer?.id,
     version.data?.deployment?.id,
     deployment.data?.status

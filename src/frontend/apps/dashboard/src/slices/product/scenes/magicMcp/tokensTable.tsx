@@ -31,7 +31,7 @@ import styled from 'styled-components';
 
 export let MagicTokensTable = (filter: MagicMcpTokensListQuery) => {
   let instance = useCurrentInstance();
-  let tokens = useMagicMcpTokens(instance.data?.instanceId, {
+  let tokens = useMagicMcpTokens(instance.data?.id, {
     ...filter,
     order: filter.order ?? 'asc'
   });
@@ -297,7 +297,7 @@ export let createMagicMcpTokenModal = (opts?: { groupId?: string }) =>
         let [res] = await mutator.mutate({
           name: values.name,
           description: values.description,
-          instanceId: instance.data!.instanceId,
+          instanceId: instance.data!.id,
           groupIds: opts?.groupId ? [opts.groupId] : undefined
         });
 

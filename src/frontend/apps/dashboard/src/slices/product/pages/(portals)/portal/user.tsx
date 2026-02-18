@@ -27,14 +27,14 @@ import { PortalGroupAccess } from '../../../scenes/portals/groupAccess';
 export let PortalUserPage = () => {
   let instance = useCurrentInstance();
   let params = useParams();
-  let portal = usePortal(instance.data?.instanceId, params.portalId!);
+  let portal = usePortal(instance.data?.id, params.portalId!);
   let user = usePortalConsumerProfile(
-    instance.data?.instanceId,
+    instance.data?.id,
     params.portalId!,
     params.userId!
   );
   let userOuter = user;
-  let profiles = useSsoTenantProfiles(instance.data?.instanceId, {
+  let profiles = useSsoTenantProfiles(instance.data?.id, {
     consumerProfileId: params.userId!,
     limit: 100
   });
@@ -108,7 +108,7 @@ export let PortalUserPage = () => {
                   showModal(({ dialogProps, close }) => {
                     let [selected, setSelected] = useState<string[]>([]);
                     let groups = usePortalConsumerGroups(
-                      instance.data?.instanceId,
+                      instance.data?.id,
                       portal.data?.id!
                     );
 

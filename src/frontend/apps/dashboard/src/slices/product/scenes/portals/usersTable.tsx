@@ -11,7 +11,7 @@ export let PortalConsumerProfilesTable = (
   }
 ) => {
   let instance = useCurrentInstance();
-  let groups = usePortalConsumerProfiles(instance.data?.instanceId, filter.portalId, filter);
+  let groups = usePortalConsumerProfiles(instance.data?.id, filter.portalId, filter);
 
   return renderWithPagination(groups)(groups => (
     <>

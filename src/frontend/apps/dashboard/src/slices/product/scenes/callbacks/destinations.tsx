@@ -30,8 +30,8 @@ import { Notifications } from './logs';
 export let CallbackDestinationsList = (p: { callbackId: string | undefined }) => {
   let instance = useCurrentInstance();
 
-  let callback = useCallback(instance.data?.instanceId, p.callbackId);
-  let destinations = useCallbackDestinations(instance.data?.instanceId, {
+  let callback = useCallback(instance.data?.id, p.callbackId);
+  let destinations = useCallbackDestinations(instance.data?.id, {
     callbackId: callback.data?.id
   });
   let deleteMutator = destinations.useDeleteMutator();
@@ -72,7 +72,7 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
                   }),
                 onSubmit: async values => {
                   let [res] = await create.mutate({
-                    instanceId: instance.data?.instanceId!,
+                    instanceId: instance.data?.id!,
                     name: values.name,
                     description: values.description,
                     url: values.url,
@@ -194,7 +194,7 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
 
 let Destination = ({ destinationId }: { destinationId: string }) => {
   let instance = useCurrentInstance();
-  let destination = useCallbackDestination(instance.data?.instanceId, destinationId);
+  let destination = useCallbackDestination(instance.data?.id, destinationId);
 
   return renderWithLoader({ destination })(({ destination }) => (
     <>

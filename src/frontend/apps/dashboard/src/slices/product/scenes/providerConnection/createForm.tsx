@@ -6,26 +6,22 @@ import { Paths } from '@metorial/frontend-config';
 import {
   useAutoDiscoverProviderConnection,
   useCreateProviderConnection,
-  useCurrentInstance,
-  useEvaluateProviderConnectionTemplate,
-  useProviderConnectionTemplates
+  useCurrentInstance
 } from '@metorial/state';
 import {
   Avatar,
   Button,
   Callout,
-  CenteredSpinner,
   Copy,
   Input,
   InputLabel,
   Or,
-  SortableCheckList,
   Spacer,
   TextArrayInput,
   theme,
   toast
 } from '@metorial/ui';
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { remoteServerTemplates } from '../customServer/config';
@@ -85,12 +81,7 @@ export let ProviderConnectionCreateForm = (p: {
 
   let navigate = useNavigate();
 
-  let evaluate = useEvaluateProviderConnectionTemplate();
-
-  let templates = useProviderConnectionTemplates({ limit: 100 });
-  let [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
   let [providerUrl, setProviderUrl] = useState<string | undefined>(undefined);
-  let [templateData, setTemplateData] = useState<Record<string, any>>(() => ({}));
 
   useEffect(() => {
     if (currentStep == 1 && providerUrl) {
@@ -102,12 +93,6 @@ export let ProviderConnectionCreateForm = (p: {
 
   let autoDiscovery = useAutoDiscoverProviderConnection();
   let [autoRegistrationId, setAutoRegistrationId] = useState<string | undefined>(undefined);
-
-  let selectedTemplate = templates.data?.items.find(
-    template => template.id === selectedTemplateId
-  );
-
-  let loading = templates.isLoading;
 
   let form = useForm({
     initialValues: {
@@ -155,12 +140,11 @@ export let ProviderConnectionCreateForm = (p: {
         name: values.name || undefined,
         description: values.description || undefined,
         discoveryUrl: values.discoveryUrl || undefined,
-        templateId: selectedTemplateId || undefined,
 
         scopes: values.scopes.filter(s => s && s.trim()) as string[],
         config,
         metadata: values.metadata || {},
-        instanceId: instance.data.instanceId,
+        instanceId: instance.data.id,
 
         ...(autoRegistrationId
           ? {
@@ -180,19 +164,16 @@ export let ProviderConnectionCreateForm = (p: {
           p.onCreate(res as ProviderOauthConnectionsGetOutput);
         } else {
           navigate(
-            Paths.instance.providerConnection(
+            Paths.instance(
               instance.data.organization,
               instance.data.project,
-              instance.data,
-              (res as { id: string }).id
+              instance.data
             )
           );
         }
       }
     }
   });
-
-  if (loading) return <CenteredSpinner />;
 
   let close = p.close && (
     <Button
@@ -282,7 +263,6 @@ export let ProviderConnectionCreateForm = (p: {
                     type="url"
                     onChange={e => {
                       setProviderUrl(e.target.value);
-                      setSelectedTemplateId(undefined);
                       setAutoRegistrationId(undefined);
                     }}
                     onKeyDown={e => {
@@ -302,25 +282,6 @@ export let ProviderConnectionCreateForm = (p: {
                   <Spacer size={10} />
 
                   <Templates>
-                    {templates.data?.items.map(template => (
-                      <TemplatesItem
-                        key={template.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedTemplateId(template.id);
-                          setProviderUrl(undefined);
-                          setCurrentStep(1);
-                          setAutoRegistrationId(undefined);
-
-                          form.resetForm();
-                        }}
-                        disabled={autoDiscovery.isLoading}
-                      >
-                        <Avatar entity={template.provider} size={24} />
-                        <span>{template.name}</span>
-                      </TemplatesItem>
-                    ))}
-
                     {remoteServerTemplates
                       .filter(t => t.type == 'oauth')
                       .slice(0, 13)
@@ -329,7 +290,6 @@ export let ProviderConnectionCreateForm = (p: {
                           key={template.remoteUrl}
                           type="button"
                           onClick={() => {
-                            setSelectedTemplateId(undefined);
                             setProviderUrl(template.remoteUrl);
                             setAutoRegistrationId(undefined);
                             performAutoDiscovery(template.remoteUrl);
@@ -375,103 +335,6 @@ export let ProviderConnectionCreateForm = (p: {
                   <Spacer size={15} />
                 </>
               );
-
-              if (selectedTemplate) {
-                return (
-                  <>
-                    {redirectUrl}
-
-                    <Input
-                      label="Client ID"
-                      description={`Create a new OAuth application for ${selectedTemplate.provider?.name ?? 'the provider'} to get your Client ID and Client Secret.`}
-                      {...form.getFieldProps('clientId')}
-                      autoFocus
-                    />
-                    <form.RenderError field="clientId" />
-
-                    <Spacer size={15} />
-
-                    <Input
-                      label="Client Secret"
-                      type="password"
-                      {...form.getFieldProps('clientSecret')}
-                    />
-                    <form.RenderError field="clientSecret" />
-
-                    <Spacer size={15} />
-
-                    <InputLabel>OAuth Scopes</InputLabel>
-                    <div
-                      style={{
-                        maxHeight: 200,
-                        overflowY: 'auto',
-                        border: `1px solid ${theme.colors.gray300}`,
-                        padding: 10,
-                        borderRadius: 10,
-                        marginTop: 4
-                      }}
-                    >
-                      <SortableCheckList
-                        items={selectedTemplate.scopes.map((scope: string) => ({
-                          id: scope,
-                          label: scope,
-                          isChecked: form.values.scopes.includes(scope)
-                        }))}
-                        onChange={items => {
-                          form.setFieldValue(
-                            'scopes',
-                            items.filter(item => item.isChecked).map(item => item.label)
-                          );
-                        }}
-                      />
-                    </div>
-
-                    {selectedTemplate.variables.map((v: { key: string; label: string; description: string | null }) => (
-                      <Fragment key={v.key}>
-                        <Spacer size={15} />
-
-                        <Input
-                          label={v.label}
-                          description={v.description ?? undefined}
-                          value={templateData?.[v.key] || ''}
-                          onChange={e => {
-                            setTemplateData(prev => ({
-                              ...prev,
-                              [v.key]: e.target.value
-                            }));
-                          }}
-                        />
-                      </Fragment>
-                    ))}
-
-                    <Actions>
-                      {close}
-
-                      <Button
-                        type="button"
-                        size="2"
-                        loading={evaluate.isLoading}
-                        disabled={!form.values.clientId || !form.values.clientSecret}
-                        onClick={async e => {
-                          let [res] = await evaluate.mutate({
-                            providerConnectionTemplateId: selectedTemplate.id,
-                            data: templateData
-                          });
-                          if (res) {
-                            form.setFieldValue('config', JSON.stringify((res as { config: Record<string, unknown> }).config, null, 2));
-                            form.setFieldValue('name', selectedTemplate.provider?.name ?? '');
-                            setCurrentStep(2);
-                          }
-                        }}
-                      >
-                        Continue
-                      </Button>
-                    </Actions>
-
-                    <evaluate.RenderError />
-                  </>
-                );
-              }
 
               if (providerUrl) {
                 return (

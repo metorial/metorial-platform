@@ -6,41 +6,20 @@ import {
 } from '@metorial/state';
 import { Attributes, Button, RenderDate, Spacer } from '@metorial/ui';
 import { ID, SideBox } from '@metorial/ui-product';
-import { useEffect, useRef } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { ProviderAuthConfigsTable } from '../../../scenes/providerAuthConfigs/table';
 import { showProviderSetupSessionModal } from '../../../scenes/providerDeployments/setupSessionModal';
+import { UsageScene } from '../../../scenes/usage/usage';
 
 export let ProviderDeploymentOverviewPage = () => {
   let instance = useCurrentInstance();
 
   let { providerDeploymentId } = useParams();
-  let deployment = useProviderDeployment(instance.data?.instanceId, providerDeploymentId);
-  let [searchParams, setSearchParams] = useSearchParams();
+  let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
   let authConfigs = useProviderAuthConfigs(
-    instance.data?.instanceId,
+    instance.data?.id,
     deployment.data?.id ?? providerDeploymentId
   );
-  let setupOpenedRef = useRef(false);
-
-  useEffect(() => {
-    if (searchParams.get('auth') !== 'setup') return;
-    if (setupOpenedRef.current) return;
-    if (!instance.data || !deployment.data) return;
-
-    setupOpenedRef.current = true;
-
-    let nextSearch = new URLSearchParams(searchParams);
-    nextSearch.delete('auth');
-    setSearchParams(nextSearch, { replace: true });
-
-    showProviderSetupSessionModal({
-      instanceId: instance.data.instanceId,
-      providerId: deployment.data.providerId,
-      deploymentId: deployment.data.id,
-      onComplete: () => authConfigs.refetch?.()
-    });
-  }, [searchParams, setSearchParams, instance.data, deployment.data, authConfigs]);
 
   return renderWithLoader({ deployment })(({ deployment }) => (
     <>
@@ -77,7 +56,7 @@ export let ProviderDeploymentOverviewPage = () => {
           onClick={() => {
             if (!instance.data) return;
             showProviderSetupSessionModal({
-              instanceId: instance.data.instanceId,
+              instanceId: instance.data.id,
               providerId: deployment.data.providerId,
               deploymentId: deployment.data.id,
               onComplete: () => authConfigs.refetch?.()
@@ -90,8 +69,17 @@ export let ProviderDeploymentOverviewPage = () => {
 
       <Spacer height={15} />
 
+      <UsageScene
+        title="Usage"
+        description="See how this provider deployment is being used."
+        entities={[{ type: 'provider_deployment', id: deployment.data.id }]}
+        entityNames={{ [deployment.data.id]: deployment.data.name ?? 'Deployment' }}
+      />
+
+      <Spacer height={15} />
+
       <ProviderAuthConfigsTable
-        instanceId={instance.data!.instanceId}
+        instanceId={instance.data!.id}
         providerDeploymentId={deployment.data.id}
       />
     </>

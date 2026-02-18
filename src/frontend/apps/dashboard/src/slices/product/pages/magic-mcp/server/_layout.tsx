@@ -17,9 +17,9 @@ export let MagicMcpServerLayout = () => {
   let organization = useCurrentOrganization();
 
   let { magicMcpServerId } = useParams();
-  let server = useMagicMcpServer(instance.data?.instanceId, magicMcpServerId);
+  let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
   let serverDeployment = useProviderDeployment(
-    instance.data?.instanceId,
+    instance.data?.id,
     server.data?.serverDeployments[0]?.id
   );
 

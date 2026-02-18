@@ -1,4 +1,3 @@
-import { subspaceReferenceSetupSessionService } from '@metorial/module-subspace-reference';
 import { subspaceProviderSetupSessionService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller, Path } from '@metorial/rest';
@@ -123,27 +122,13 @@ export let providerSetupSessionDashboardController = Controller.create(
           providerAuthCredentialsId: ctx.body.providerAuthCredentialsId,
           name: ctx.body.name ?? 'Setup Session',
           description: ctx.body.description,
-          uiMode: 'dashboard_embeddable',
+          uiMode: 'metorial_elements',
           type: 'auth_only',
           ip: ctx.context.ip,
           ua: ctx.context.ua ?? '',
           redirectUrl: ctx.body.redirectUrl,
           metadata: ctx.body.metadata
         });
-
-        await subspaceReferenceSetupSessionService
-          .create({
-            instance: ctx.instance,
-            setupSession: {
-              id: setupSession.id,
-              providerId: ctx.deployment.providerId,
-              providerDeploymentId: setupSession.providerDeploymentId,
-              providerAuthMethodId: ctx.body.providerAuthMethodId,
-              name: setupSession.name,
-              createdAt: setupSession.createdAt
-            }
-          })
-          .catch(err => console.error('Failed to store subspace reference:', err));
 
         return providerSetupSessionPresenter.present({
           setupSession: setupSession as SubspaceSetupSession

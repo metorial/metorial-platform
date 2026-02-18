@@ -30,6 +30,7 @@ import {
   providerAuthConfigController,
   providerAuthConfigListController,
   providerAuthCredentialsController,
+  providerAuthCredentialsListController,
   providerSetupSessionController,
   providerSetupSessionDashboardController,
   providerAuthImportController,
@@ -45,6 +46,7 @@ import {
   subspaceSessionMessageController,
   subspaceSessionConnectionController,
   subspaceSessionEventController,
+  subspaceToolCallController,
   // Custom Provider controllers
   customProviderController,
   customProviderCodeController,
@@ -321,8 +323,6 @@ export let magnetarController = Controller.create<any>(
   {
     instanceController,
 
-    providerAuthConfigListController,
-
     providerPublisherController,
     providerController,
     providerCategoryController,
@@ -356,6 +356,7 @@ export let magnetarController = Controller.create<any>(
     subspaceSessionMessageController,
     subspaceSessionConnectionController,
     subspaceSessionEventController,
+    subspaceToolCallController,
 
     // Custom Provider controllers
     customProviderController,
@@ -466,6 +467,7 @@ export let magnetarDashboardController = Controller.create<any>(
 
     // Provider API controllers (NEW in magnetar)
     providerAuthConfigListController,
+    providerAuthCredentialsListController,
 
     providerController,
     providerListingController,
@@ -495,6 +497,7 @@ export let magnetarDashboardController = Controller.create<any>(
     subspaceSessionMessageController,
     subspaceSessionConnectionController,
     subspaceSessionEventController,
+    subspaceToolCallController,
 
     // Custom Provider controllers
     customProviderController,

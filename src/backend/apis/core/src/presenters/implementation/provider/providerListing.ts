@@ -22,7 +22,7 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
       is_verified: providerListing.isVerified ?? false,
       is_official: providerListing.isOfficial ?? false
     },
-    provider_id: providerListing.provider?.id,
+    provider_id: providerListing.provider?.id ?? null,
     categories: providerListing.categories
       ? await Promise.all(
           providerListing.categories.map(c =>

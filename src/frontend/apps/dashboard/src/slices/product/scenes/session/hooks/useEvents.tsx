@@ -17,12 +17,12 @@ export let useEvents = (
   let instance = useCurrentInstance();
 
   let events = useSessionEvents(
-    sessionId ? instance.data?.instanceId : undefined,
+    sessionId ? instance.data?.id : undefined,
     sessionId,
     opts
   );
   let messages = useSessionMessages(
-    sessionId ? instance.data?.instanceId : undefined,
+    sessionId ? instance.data?.id : undefined,
     sessionId,
     opts
   );

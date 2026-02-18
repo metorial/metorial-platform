@@ -104,8 +104,9 @@ export let ExplorerPage = () => {
   let [search, setSearch] = useSearchParams();
   let providerIdParam = search.get('provider_id');
   let providerDeploymentIdParam = search.get('provider_deployment_id');
+  let sessionIdParam = search.get('session_id');
 
-  let provider = useProvider(instance.data?.instanceId, providerIdParam ?? undefined);
+  let provider = useProvider(instance.data?.id, providerIdParam ?? undefined);
   let [selectedProvider, _setSelectedProvider] = useState<Provider | null>(null);
   useEffect(() => {
     if (provider.data) {
@@ -138,7 +139,7 @@ export let ExplorerPage = () => {
     [selectedProvider]
   );
 
-  let deployments = useProviderDeployments(instance.data?.instanceId, deploymentsFilter);
+  let deployments = useProviderDeployments(instance.data?.id, deploymentsFilter);
 
   useEffect(() => {
     let deploymentsForCurrentProvider = deployments.data?.items.filter(
@@ -162,7 +163,7 @@ export let ExplorerPage = () => {
     setCreateError(null);
 
     let [result, err] = await createMutation.mutate({
-      instanceId: instance.data.instanceId,
+      instanceId: instance.data.id,
       name: deploymentName.trim(),
       description: deploymentDescription.trim() || undefined,
       providerId: selectedProvider.id
@@ -374,7 +375,10 @@ export let ExplorerPage = () => {
         )}
 
         {providerDeploymentId && (
-          <InspectorFrame providerDeployment={{ id: providerDeploymentId }} />
+          <InspectorFrame
+            providerDeployment={{ id: providerDeploymentId }}
+            sessionId={sessionIdParam ?? undefined}
+          />
         )}
       </Main>
 

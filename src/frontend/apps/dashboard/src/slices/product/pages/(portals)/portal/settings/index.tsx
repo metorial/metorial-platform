@@ -9,7 +9,7 @@ import { PortalForm } from '../../../../scenes/portals/form';
 export let PortalSettingsOverviewPage = () => {
   let instance = useCurrentInstance();
   let params = useParams();
-  let portal = usePortal(instance.data?.instanceId, params.portalId!);
+  let portal = usePortal(instance.data?.id, params.portalId!);
 
   let deleteMutator = portal.useDeleteMutator();
   let navigate = useNavigate();

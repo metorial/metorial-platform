@@ -17,7 +17,7 @@ export let ProjectHomePage = () => {
 
   let boot = useBoot();
   let otherInstancesFromThisProject = boot.data?.instances.filter(
-    i => i.project.id == instance.data?.project.id && i.instanceId != instance.data?.instanceId
+    i => i.project.id == instance.data?.project.id && i.id != instance.data?.id
   );
   let otherProductionInstance = otherInstancesFromThisProject?.find(
     i => i.type == 'production'
@@ -26,14 +26,14 @@ export let ProjectHomePage = () => {
     i => i.type == 'development'
   );
 
-  let deployments = useProviderDeployments(instance.data?.instanceId);
+  let deployments = useProviderDeployments(instance.data?.id);
   let hasDeployments = !!deployments.data?.items.length;
 
   let apiKeys = useApiKeysWithAutoInit(
     instance.data
       ? {
           type: 'instance_access_token',
-          instanceId: instance.data.instanceId
+          instanceId: instance.data.id
         }
       : undefined
   );

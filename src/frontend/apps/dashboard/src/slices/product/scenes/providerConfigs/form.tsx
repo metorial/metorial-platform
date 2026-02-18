@@ -24,7 +24,7 @@ export let ProviderConfigForm = (
 
   // Fetch config schema for the provider deployment
   let configSchema = useProviderConfigSchema(
-    instance.data?.instanceId,
+    instance.data?.id,
     props.providerDeploymentId
   );
 
@@ -48,7 +48,7 @@ export let ProviderConfigForm = (
       }
 
       let [result] = await createMutation.mutate({
-        instanceId: instance.data.instanceId,
+        instanceId: instance.data.id,
         providerDeploymentId: props.providerDeploymentId,
         name,
         description: description || undefined,

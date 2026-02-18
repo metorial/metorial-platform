@@ -34,3 +34,4 @@ export * from './sessionParticipant';
 export * from './sessionProvider';
 export * from './sessionTemplate';
 export * from './sessionTemplateProvider';
+export * from './toolCall';

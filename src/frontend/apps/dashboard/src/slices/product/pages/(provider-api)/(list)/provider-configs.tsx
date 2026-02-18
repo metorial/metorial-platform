@@ -59,7 +59,7 @@ export let ProviderConfigsOverviewPage = () => {
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
 
-  let deployments = useProviderDeployments(instance.data?.instanceId, {
+  let deployments = useProviderDeployments(instance.data?.id, {
     search: searchDebounced
   });
 
@@ -99,7 +99,7 @@ export let ProviderConfigsOverviewPage = () => {
         let perDeployment = await mapWithConcurrency(deploymentItems, 4, async deployment => {
           try {
             let response = await withAuth(sdk =>
-              sdk.providerDeployments.configs.list(instance.data!.instanceId, deployment.id)
+              sdk.providerDeployments.configs.list(instance.data!.id, deployment.id)
             );
 
             return {
@@ -155,7 +155,7 @@ export let ProviderConfigsOverviewPage = () => {
     return () => {
       isCanceled = true;
     };
-  }, [instance.data?.instanceId, deploymentSignature, reloadKey]);
+  }, [instance.data?.id, deploymentSignature, reloadKey]);
 
   return renderWithLoader({ instance, deployments })(({ instance }) => (
     <>

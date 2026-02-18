@@ -2,24 +2,29 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
+  useCreateSession,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
   useSessionTemplate,
   useSessionTemplateProviders
 } from '@metorial/state';
-import { Button, LinkTabs } from '@metorial/ui';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { Button, Flex, LinkTabs } from '@metorial/ui';
+import { useState } from 'react';
+import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { showAddProviderModal } from './providers';
 
 export let SessionTemplateLayout = () => {
   let instance = useCurrentInstance();
   let project = useCurrentProject();
   let organization = useCurrentOrganization();
+  let navigate = useNavigate();
 
   let { sessionTemplateId } = useParams();
-  let template = useSessionTemplate(instance.data?.instanceId, sessionTemplateId);
-  let providers = useSessionTemplateProviders(instance.data?.instanceId, sessionTemplateId);
+  let template = useSessionTemplate(instance.data?.id, sessionTemplateId);
+  let providers = useSessionTemplateProviders(instance.data?.id, sessionTemplateId);
+  let createSession = useCreateSession(instance.data?.id);
+  let [isCreatingSession, setIsCreatingSession] = useState(false);
 
   let pathname = useLocation().pathname;
 
@@ -29,6 +34,39 @@ export let SessionTemplateLayout = () => {
     instance.data,
     template.data?.id ?? sessionTemplateId
   ] as const;
+
+  let handleOpenExplorer = async () => {
+    if (!instance.data || !providers.data?.items.length) return;
+
+    setIsCreatingSession(true);
+
+    let providerEntries = providers.data.items
+      .filter(p => p.providerDeploymentId)
+      .map(p => ({
+        providerDeployment: p.providerDeploymentId!,
+        sessionTemplateId: sessionTemplateId!
+      }));
+
+    if (!providerEntries.length) {
+      setIsCreatingSession(false);
+      return;
+    }
+
+    let [res] = await createSession.mutate({ providers: providerEntries });
+    setIsCreatingSession(false);
+
+    if (res) {
+      let firstDeploymentId = res.providerDeployments?.[0]?.providerDeploymentId;
+      if (firstDeploymentId) {
+        navigate(
+          Paths.instance.explorer(organization.data, project.data, instance.data, {
+            provider_deployment_id: firstDeploymentId,
+            session_id: res.id
+          })
+        );
+      }
+    }
+  };
 
   return (
     <ContentLayout>
@@ -56,18 +94,29 @@ export let SessionTemplateLayout = () => {
         ]}
         actions={
           instance.data ? (
-            <Button
-              size="2"
-              onClick={() =>
-                showAddProviderModal({
-                  instanceId: instance.data!.instanceId,
-                  sessionTemplateId: sessionTemplateId!,
-                  onComplete: () => providers.refetch()
-                })
-              }
-            >
-              Add Provider
-            </Button>
+            <Flex gap={8}>
+              <Button
+                size="2"
+                variant="outline"
+                onClick={handleOpenExplorer}
+                loading={isCreatingSession}
+              >
+                Open Explorer
+              </Button>
+
+              <Button
+                size="2"
+                onClick={() =>
+                  showAddProviderModal({
+                    instanceId: instance.data!.id,
+                    sessionTemplateId: sessionTemplateId!,
+                    onComplete: () => providers.refetch()
+                  })
+                }
+              >
+                Add Provider
+              </Button>
+            </Flex>
           ) : undefined
         }
       />

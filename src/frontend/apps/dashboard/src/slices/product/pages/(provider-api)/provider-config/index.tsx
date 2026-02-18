@@ -8,9 +8,9 @@ export let ProviderConfigOverviewPage = () => {
   let instance = useCurrentInstance();
 
   let { providerDeploymentId, providerConfigId } = useParams();
-  let deployment = useProviderDeployment(instance.data?.instanceId, providerDeploymentId);
+  let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
   let config = useProviderConfig(
-    instance.data?.instanceId,
+    instance.data?.id,
     providerDeploymentId,
     providerConfigId
   );

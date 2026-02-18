@@ -15,12 +15,12 @@ import { Field } from '../../../../scenes/form/field';
 export let PortalSettingsAuthPage = () => {
   let instance = useCurrentInstance();
   let params = useParams();
-  let portal = usePortal(instance.data?.instanceId, params.portalId!);
-  let factors = usePortalConsumerAuthFactors(instance.data?.instanceId, portal.data?.id, {
+  let portal = usePortal(instance.data?.id, params.portalId!);
+  let factors = usePortalConsumerAuthFactors(instance.data?.id, portal.data?.id, {
     limit: 100
   });
   let factorsOuter = factors;
-  let ssoTenants = useSsoTenants(instance.data?.instanceId);
+  let ssoTenants = useSsoTenants(instance.data?.id);
 
   let updateMutator = portal.useUpdateMutator();
 

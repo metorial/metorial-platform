@@ -10,7 +10,7 @@ export let SessionTemplatesPage = () => {
     <>
       <Spacer size={15} />
 
-      <SessionTemplatesTable instanceId={instance.data.instanceId} />
+      <SessionTemplatesTable instanceId={instance.data.id} />
     </>
   ));
 };

@@ -17,6 +17,8 @@ import { UpgradeWebSocket, WSEvents } from 'hono/ws';
 import { McpServerConnection, tryParseMessages } from './connection';
 import { ALIAS_TO_CONNECTION_TYPE, CONNECTION_TYPES } from './constants';
 import { SessionInfo } from './getSession';
+import type { ProviderSessionResult } from './getServerSession';
+import { proxySubspacePost, proxySubspaceSSE } from './subspaceProxy';
 
 export let mcpConnectionHandler = async (
   c: Context,
@@ -240,6 +242,35 @@ export let mcpConnectionHandler = async (
         }
       );
     }
+  }
+
+  return c.json(methodNotAllowedError().toResponse(), 405);
+};
+
+export let providerMcpConnectionHandler = async (
+  c: Context,
+  next: Next,
+  sessionInfo: SessionInfo,
+  serverSessionResult: ProviderSessionResult,
+  opts: {
+    connectionType: string;
+  }
+) => {
+  let instance = sessionInfo.instance;
+  let sessionId = serverSessionResult.sessionId;
+  let providerDeploymentId = serverSessionResult.providerDeploymentId ?? '';
+
+  if (c.req.method == 'DELETE') {
+    throw new ServiceError(methodNotAllowedError({}));
+  }
+
+  if (c.req.method == 'GET') {
+    return proxySubspaceSSE(c, instance, sessionId, providerDeploymentId);
+  }
+
+  if (c.req.method == 'POST') {
+    let connectionToken = c.req.query('connection_token') ?? null;
+    return proxySubspacePost(c, instance, sessionId, connectionToken);
   }
 
   return c.json(methodNotAllowedError().toResponse(), 405);

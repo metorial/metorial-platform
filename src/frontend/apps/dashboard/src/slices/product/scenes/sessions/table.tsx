@@ -29,7 +29,7 @@ export let SessionConnectionStatusBadge = ({ session }: { session: DashboardInst
 
 export let SessionsTable = (filter: DashboardInstanceSessionsListQuery) => {
   let instance = useCurrentInstance();
-  let sessions = useSessions(instance.data?.instanceId, {
+  let sessions = useSessions(instance.data?.id, {
     ...filter,
     order: filter.order ?? 'desc'
   });

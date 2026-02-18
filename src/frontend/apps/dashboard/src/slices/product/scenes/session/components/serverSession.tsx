@@ -99,7 +99,7 @@ export let ServerSession = ({
 
   let instance = useCurrentInstance();
   let serverRuns = useProviderRuns(
-    canFetch ? instance.data?.instanceId : undefined,
+    canFetch ? instance.data?.id : undefined,
     canFetch ? serverSession.session.id : undefined,
     {
       limit: 100

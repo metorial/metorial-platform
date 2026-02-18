@@ -165,7 +165,7 @@ export let ProviderToolsPage = () => {
   let instance = useCurrentInstance();
   let { providerId } = useParams();
   let { selectedVersionId } = useProviderVersionContext();
-  let tools = useProviderTools(instance.data?.instanceId, providerId, {
+  let tools = useProviderTools(instance.data?.id, providerId, {
     providerVersionId: selectedVersionId
   });
 

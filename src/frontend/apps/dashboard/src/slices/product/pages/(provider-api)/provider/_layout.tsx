@@ -49,19 +49,19 @@ export let ProviderLayout = () => {
   let organization = useCurrentOrganization();
 
   let { providerId } = useParams();
-  let provider = useProvider(instance.data?.instanceId, providerId);
+  let provider = useProvider(instance.data?.id, providerId);
 
   let pathname = useLocation().pathname;
 
   // ── Version state (persists across tab navigation) ───────────────
-  let versions = useProviderVersions(instance.data?.instanceId, providerId);
+  let versions = useProviderVersions(instance.data?.id, providerId);
   let allVersions = (versions.data?.items ?? []) as VersionItem[];
   let currentVersionId = provider.data?.currentVersion?.id;
 
   let [selectedVersionId, setSelectedVersionId] = useState<string | undefined>(undefined);
   let versionStorageKey =
-    instance.data?.instanceId && providerId
-      ? `provider:selected-version:${instance.data.instanceId}:${providerId}`
+    instance.data?.id && providerId
+      ? `provider:selected-version:${instance.data.id}:${providerId}`
       : undefined;
 
   // Initialize from persisted selection (per provider) and fallback to current version.

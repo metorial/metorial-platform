@@ -1,4 +1,5 @@
 export * from './auth-configs';
+export * from './auth-credentials';
 export * from './auth-methods';
 export * from './get';
 export * from './list';

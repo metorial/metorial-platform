@@ -23,7 +23,7 @@ import { RiMoreLine } from '@remixicon/react';
 
 export let MagicGroupsTable = (filter: DashboardInstanceProviderGroupsListQuery) => {
   let instance = useCurrentInstance();
-  let groups = useMagicMcpGroups(instance.data?.instanceId, {
+  let groups = useMagicMcpGroups(instance.data?.id, {
     ...filter,
     order: filter.order ?? 'asc'
   });
@@ -197,7 +197,7 @@ export let createMagicMcpGroupModal = () =>
         let [res] = await mutator.mutate({
           name: values.name,
           description: values.description,
-          instanceId: instance.data!.instanceId
+          instanceId: instance.data!.id
         });
 
         if (res) {

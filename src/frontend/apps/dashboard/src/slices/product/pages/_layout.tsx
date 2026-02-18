@@ -7,7 +7,6 @@ import {
   useCurrentOrganization
 } from '@metorial/state';
 import {
-  RiArrowLeftRightLine,
   RiBriefcase4Line,
   RiFileList3Line,
   RiFlowChart,
@@ -46,7 +45,7 @@ export let ProjectPageLayout = () => {
 
   useEffect(() => {
     if (!instance.data) return;
-    lastInstanceIdStore.set(instance.data.instanceId);
+    lastInstanceIdStore.set(instance.data.id);
   }, [instance.data]);
 
   let params = [organization.data, instance.data?.project, instance.data] as [
@@ -167,12 +166,6 @@ export let ProjectPageLayout = () => {
               icon: <RiUploadCloud2Line />,
               label: 'External Providers',
               to: Paths.instance.externalProviders(...params),
-              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-            },
-            {
-              icon: <RiArrowLeftRightLine />,
-              label: 'Auth Connections',
-              to: Paths.instance.providerConnections(...params),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             }
           ]

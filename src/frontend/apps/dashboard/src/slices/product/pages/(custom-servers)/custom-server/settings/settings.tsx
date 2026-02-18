@@ -7,7 +7,7 @@ export let CustomServerSettingsPage = () => {
   let instance = useCurrentInstance();
 
   let { customServerId } = useParams();
-  let customServer = useCustomServer(instance.data?.instanceId, customServerId);
+  let customServer = useCustomServer(instance.data?.id, customServerId);
 
   return renderWithLoader({ customServer })(({ customServer }) => (
     <CustomServerUpdateForm customServer={customServer.data} />

@@ -47,7 +47,7 @@ export type ApiKeysCreateOutput = {
     } | null;
     instance: {
       object: 'organization.instance';
-      instanceId: string;
+      id: string;
       slug: string;
       name: string;
       organizationId: string;
@@ -159,7 +159,7 @@ export let mapApiKeysCreateOutput = mtMap.object<ApiKeysCreateOutput>({
         'instance',
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
-          instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
           slug: mtMap.objectField('slug', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           organizationId: mtMap.objectField(

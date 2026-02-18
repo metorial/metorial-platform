@@ -5,13 +5,39 @@ import { accessLimiterService } from '@metorial/module-protect';
 import { serverSessionService } from '@metorial/module-session';
 import { SessionInfo } from './getSession';
 
+export type ProviderSessionResult = {
+  type: 'provider';
+  sessionId: string;
+  providerDeploymentId: string | null;
+};
+
+export type LegacySessionResult = {
+  type: 'legacy';
+  serverSession: Awaited<
+    ReturnType<typeof serverSessionService.getServerSessionById>
+  >;
+  sessionCreated: boolean;
+};
+
+export type ServerSessionResult = ProviderSessionResult | LegacySessionResult;
+
 export let getServerSession = async (
   d: SessionInfo,
   context: Context,
   deploymentId: string | null,
   serverSessionId: string | null,
   connectionType: SessionMcpConnectionType
-) => {
+): Promise<ServerSessionResult> => {
+  // Provider (Subspace) sessions are not handled via the local engine.
+  // Return early so the caller can route to the provider proxy handler.
+  if (d.type === 'subspace_session_client_secret') {
+    return {
+      type: 'provider',
+      sessionId: d.sessionId,
+      providerDeploymentId: d.providerDeploymentId ?? null
+    };
+  }
+
   if (serverSessionId) {
     let serverSession = await serverSessionService.getServerSessionById({
       session: d.session,
@@ -27,6 +53,7 @@ export let getServerSession = async (
     }
 
     return {
+      type: 'legacy',
       serverSession,
       sessionCreated: false
     };
@@ -50,6 +77,7 @@ export let getServerSession = async (
   }
 
   return {
+    type: 'legacy',
     serverSession,
     sessionCreated: true
   };
@@ -59,9 +87,19 @@ let getServerSessionDeployment = async (
   d: SessionInfo,
   serverSessionOrDeploymentId: string | null
 ) => {
+  if (d.type === 'subspace_session_client_secret') {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Server session lookup is not supported for provider sessions'
+      })
+    );
+  }
+
+  let session = d.session;
+
   if (!serverSessionOrDeploymentId) {
-    if (d.session.connectionType == 'mcp' && d.session.serverDeployments.length == 1) {
-      return d.session.serverDeployments[0];
+    if (session.connectionType == 'mcp' && session.serverDeployments.length == 1) {
+      return session.serverDeployments[0];
     }
 
     throw new ServiceError(
@@ -72,7 +110,7 @@ let getServerSessionDeployment = async (
     );
   }
 
-  let deployment = d.session.serverDeployments.find(
+  let deployment = session.serverDeployments.find(
     d =>
       d.serverDeployment.id == serverSessionOrDeploymentId ||
       d.serverDeployment.server.id == serverSessionOrDeploymentId ||

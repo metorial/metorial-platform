@@ -1,7 +1,8 @@
 import {
   DashboardInstanceProviderDeploymentsAuthCredentialsCreateBody,
   DashboardInstanceProviderDeploymentsAuthCredentialsListQuery,
-  DashboardInstanceProviderDeploymentsAuthCredentialsUpdateBody
+  DashboardInstanceProviderDeploymentsAuthCredentialsUpdateBody,
+  DashboardInstanceProvidersAuthCredentialsListQuery
 } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
@@ -115,4 +116,36 @@ export let useProviderAuthCredential = (
     useUpdateMutator: data.useMutator('update'),
     useDeleteMutator: data.useMutator('delete')
   };
+};
+
+// Instance-scoped auth credentials list (not deployment-scoped)
+export let instanceProviderAuthCredentialsLoader = createLoader({
+  name: 'instanceProviderAuthCredentials',
+  parents: [],
+  fetch: (
+    i: {
+      instanceId: string;
+    } & DashboardInstanceProvidersAuthCredentialsListQuery
+  ) =>
+    withAuth(sdk => sdk.providers.authCredentials.list(i.instanceId, i)),
+  mutators: {}
+});
+
+export let useInstanceProviderAuthCredentials = (
+  instanceId: string | null | undefined,
+  query?: DashboardInstanceProvidersAuthCredentialsListQuery
+) => {
+  let data = usePaginator(pagination =>
+    instanceProviderAuthCredentialsLoader.use(
+      instanceId
+        ? {
+            instanceId,
+            ...pagination,
+            ...query
+          }
+        : null
+    )
+  );
+
+  return data;
 };

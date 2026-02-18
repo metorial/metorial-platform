@@ -86,7 +86,7 @@ export let CustomServerRemoteCreateForm = (p: {
       if (!instance.data) return;
 
       let [customServerRes] = await createCustomServer.mutate({
-        instanceId: instance.data.instanceId,
+        instanceId: instance.data.id,
         name: values.name,
         description: values.description,
         from: {
@@ -102,7 +102,7 @@ export let CustomServerRemoteCreateForm = (p: {
         for (let i = 0; i < 5; i++) {
           let [versionsRes] = await listServerVersions.mutate({
             limit: 1,
-            instanceId: instance.data.instanceId,
+            instanceId: instance.data.id,
             customServerId: customServerRes.id
           });
           if (versionsRes && versionsRes.items.length > 0) {

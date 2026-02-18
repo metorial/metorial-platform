@@ -38,7 +38,7 @@ import { defaultServerConfigManaged, defaultServerConfigRemote } from './config'
 
 export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutput }) => {
   let instance = useCurrentInstance();
-  let customServer = useCustomServer(instance.data?.instanceId, p.customServer?.id);
+  let customServer = useCustomServer(instance.data?.id, p.customServer?.id);
 
   let defaultServerConfig = defaultServerConfigManaged;
 
@@ -49,11 +49,11 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
   let createVersionMutatorOauth = useCreateCustomServerVersion();
 
   let currentVersion = useCustomServerVersion(
-    instance.data?.instanceId,
+    instance.data?.id,
     p.customServer?.id,
     customServer.data?.provider?.currentVersion?.id ?? 'current'
   );
-  let newVersionList = useCustomServerVersions(instance.data?.instanceId, p.customServer?.id, {
+  let newVersionList = useCustomServerVersions(instance.data?.id, p.customServer?.id, {
     order: 'desc',
     limit: 1
   });
@@ -127,7 +127,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
             if (!instance.data || !p.customServer) return;
 
             let [res] = await createVersionMutatorSchema.mutate({
-              instanceId: instance.data.instanceId,
+              instanceId: instance.data.id,
               customServerId: p.customServer.id,
               from: {
                 type: 'remote',
@@ -194,7 +194,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
                   if (!instance.data || !p.customServer) return;
 
                   let [res] = await createVersionMutatorSchema.mutate({
-                    instanceId: instance.data.instanceId,
+                    instanceId: instance.data.id,
                     customServerId: p.customServer.id,
                     from: {
                       type: 'function',
@@ -306,7 +306,7 @@ export let CustomServerUpdateForm = (p: { customServer?: CustomProvidersGetOutpu
             []) as string[];
 
           let [res] = await createVersionMutatorOauth.mutate({
-            instanceId: instance.data.instanceId,
+            instanceId: instance.data.id,
             customServerId: p.customServer.id,
             from: {
               type: 'function',

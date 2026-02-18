@@ -1,5 +1,4 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceReferenceAuthExportService } from '@metorial/module-subspace-reference';
 import { subspaceProviderAuthExportService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -115,17 +114,6 @@ export let providerAuthExportController = Controller.create(
           ua: ctx.context.ua ?? '',
           metadata: ctx.body.metadata
         });
-
-        await subspaceReferenceAuthExportService
-          .create({
-            instance: ctx.instance,
-            authExport: {
-              id: authExport.id,
-              providerAuthConfigId: ctx.authConfig.id,
-              createdAt: authExport.createdAt
-            }
-          })
-          .catch(err => console.error('Failed to store subspace reference:', err));
 
         return providerAuthExportPresenter.present({
           authExport: authExport as SubspaceAuthExport

@@ -6,7 +6,7 @@ import { PortalConsumerServerRequestsTable } from '../../../scenes/portals/serve
 export let PortalServerRequestsPage = () => {
   let instance = useCurrentInstance();
   let params = useParams();
-  let portal = usePortal(instance.data?.instanceId, params.portalId!);
+  let portal = usePortal(instance.data?.id, params.portalId!);
 
   return (
     <>

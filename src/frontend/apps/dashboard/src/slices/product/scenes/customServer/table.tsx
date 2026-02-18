@@ -31,7 +31,7 @@ export let CustomServersTable = (
   let searchDebounced = useDebounced(search, 300);
 
   let instance = useCurrentInstance();
-  let customServers = useCustomServers(instance.data?.instanceId, {
+  let customServers = useCustomServers(instance.data?.id, {
     ...(({ withSearch, ...rest }) => rest)(filter),
     search: searchDebounced || undefined,
     order: 'desc'

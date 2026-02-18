@@ -13,13 +13,13 @@ export let SessionTemplateOverviewPage = () => {
   let instance = useCurrentInstance();
 
   let { sessionTemplateId } = useParams();
-  let template = useSessionTemplate(instance.data?.instanceId, sessionTemplateId);
+  let template = useSessionTemplate(instance.data?.id, sessionTemplateId);
 
   let apiKeys = useApiKeysWithAutoInit(
     instance.data
       ? {
           type: 'instance_access_token',
-          instanceId: instance.data.instanceId
+          instanceId: instance.data.id
         }
       : undefined
   );

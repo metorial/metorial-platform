@@ -11,7 +11,7 @@ export let PortalConsumerServerRequestsTable = (
   }
 ) => {
   let instance = useCurrentInstance();
-  let requests = usePortalServerRequests(instance.data?.instanceId, filter.portalId, filter);
+  let requests = usePortalServerRequests(instance.data?.id, filter.portalId, filter);
 
   let accept = requests.acceptMutator();
   let reject = requests.rejectMutator();
@@ -33,7 +33,7 @@ export let PortalConsumerServerRequestsTable = (
                 disabled={request.status !== 'pending'}
                 onClick={async () => {
                   createSessionTemplateForConsumerSurface({
-                    instanceId: instance.data?.instanceId!,
+                    instanceId: instance.data?.id!,
                     serverId: request.server.id,
                     addAccess: async template => {
                       let [res] = await accept.mutate({

@@ -91,7 +91,7 @@ export let ProviderSearch = ({
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 300);
 
-  let providers = useProviders(instance.data?.instanceId);
+  let providers = useProviders(instance.data?.id);
 
   return (
     <Wrapper>

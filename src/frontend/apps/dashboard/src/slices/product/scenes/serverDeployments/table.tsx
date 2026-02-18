@@ -20,7 +20,7 @@ export let ServerDeploymentsTable = (
   let searchDebounced = useDebounced(search, 500);
 
   let instance = useCurrentInstance();
-  let deployments = useProviderDeployments(instance.data?.instanceId, {
+  let deployments = useProviderDeployments(instance.data?.id, {
     providerId: typeof filter.providerId === 'string' ? filter.providerId : Array.isArray(filter.providerId) ? filter.providerId[0] : undefined,
     providerVersionId: typeof filter.providerVersionId === 'string' ? filter.providerVersionId : Array.isArray(filter.providerVersionId) ? filter.providerVersionId[0] : undefined,
     status: filter.status,
@@ -88,7 +88,7 @@ export let ServerDeploymentsList = (
   }
 ) => {
   let instance = useCurrentInstance();
-  let deployments = useProviderDeployments(instance.data?.instanceId, {
+  let deployments = useProviderDeployments(instance.data?.id, {
     providerId: typeof filter.providerId === 'string' ? filter.providerId : undefined,
     status: filter.status,
     search: filter.search

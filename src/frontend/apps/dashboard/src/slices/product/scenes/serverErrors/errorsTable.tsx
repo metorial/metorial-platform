@@ -7,7 +7,7 @@ import { Table } from '@metorial/ui-product';
 
 export let ServerErrorsTable = (filter: DashboardInstanceSessionErrorsListQuery) => {
   let instance = useCurrentInstance();
-  let errors = useAllSessionErrors(instance.data?.instanceId, filter);
+  let errors = useAllSessionErrors(instance.data?.id, filter);
 
   return renderWithPagination(errors)(errors => (
     <>

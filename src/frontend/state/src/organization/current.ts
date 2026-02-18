@@ -40,7 +40,7 @@ export let useCurrentOrganization = () => {
 
     if (instanceId) {
       let instance = boot.data?.instances.find(
-        instance => instance.instanceId == instanceId || instance.slug == instanceId
+        instance => instance.id == instanceId || instance.slug == instanceId
       );
       if (instance) {
         let org = boot.data?.organizations.find(org => org.id == instance.organizationId);
@@ -104,7 +104,7 @@ export let useCurrentOrganization = () => {
       foundItem?.project.id == projectId ||
       foundItem?.project.slug == projectId) &&
       (!instanceId ||
-        foundItem?.instance.instanceId == instanceId ||
+        foundItem?.instance.id == instanceId ||
         foundItem?.instance.slug == instanceId) &&
       (!organizationId ||
         foundItem?.organization.id == organizationId ||
@@ -219,7 +219,7 @@ export let useCurrentProject = () => {
 
 export let useCurrentInstance = () => {
   let org = useCurrentOrganization();
-  let instance = useInstance(org.data?.id, org.data?.currentInstance?.instanceId);
+  let instance = useInstance(org.data?.id, org.data?.currentInstance?.id);
 
   if (org.error || !org.data) {
     return {

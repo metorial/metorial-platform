@@ -38,7 +38,7 @@ export let ProviderDeploymentsList = ({
   onDeploymentClick?: (deployment: ProviderDeployment) => void;
 }) => {
   let instance = useCurrentInstance();
-  let deployments = useProviderDeployments(instance.data?.instanceId, {
+  let deployments = useProviderDeployments(instance.data?.id, {
     providerId: providerId
       ? Array.isArray(providerId)
         ? providerId[0]

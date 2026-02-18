@@ -7,7 +7,7 @@ export let MagicMcpServerConfigPage = () => {
   let instance = useCurrentInstance();
 
   let { magicMcpServerId } = useParams();
-  let server = useMagicMcpServer(instance.data?.instanceId, magicMcpServerId);
+  let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
 
   return renderWithLoader({ server })(({ server }) => (
     <MagicMcpServerForm type="update" magicMcpServerId={server.data.id} />

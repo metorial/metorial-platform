@@ -95,7 +95,7 @@ let EmptyState = styled.div`
 
 export let MagicMcpServersGrid = (filter: MagicMcpServersListQuery) => {
   let instance = useCurrentInstance();
-  let servers = useMagicMcpServers(instance.data?.instanceId, {
+  let servers = useMagicMcpServers(instance.data?.id, {
     ...filter,
     order: filter.order ?? 'desc'
   });
@@ -183,7 +183,7 @@ export let MagicMcpServersGrid = (filter: MagicMcpServersListQuery) => {
 
 export let MagicMcpServersTable = (filter: MagicMcpServersListQuery) => {
   let instance = useCurrentInstance();
-  let servers = useMagicMcpServers(instance.data?.instanceId, {
+  let servers = useMagicMcpServers(instance.data?.id, {
     ...filter,
     order: filter.order ?? 'desc'
   });

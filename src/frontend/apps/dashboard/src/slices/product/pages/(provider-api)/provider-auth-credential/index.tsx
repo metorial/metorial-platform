@@ -1,22 +1,40 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject,
+  useProviderAuthConfigs,
   useProviderAuthCredential,
   useProviderDeployment
 } from '@metorial/state';
 import { Attributes, RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 export let ProviderAuthCredentialOverviewPage = () => {
   let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
 
   let { providerDeploymentId, providerAuthCredentialsId } = useParams();
-  let deployment = useProviderDeployment(instance.data?.instanceId, providerDeploymentId);
+  let deployment = useProviderDeployment(instance.data?.id, providerDeploymentId);
   let credential = useProviderAuthCredential(
-    instance.data?.instanceId,
+    instance.data?.id,
     providerDeploymentId,
     providerAuthCredentialsId
+  );
+  let authConfigs = useProviderAuthConfigs(
+    instance.data?.id,
+    providerDeploymentId,
+    { providerAuthCredentialsId }
+  );
+
+  let deploymentHref = Paths.instance.providerDeployment(
+    organization.data,
+    project.data,
+    instance.data,
+    deployment.data?.id ?? providerDeploymentId
   );
 
   return renderWithLoader({ credential })(({ credential }) => (
@@ -24,14 +42,6 @@ export let ProviderAuthCredentialOverviewPage = () => {
       <Attributes
         itemWidth="250px"
         attributes={[
-          {
-            label: 'Name',
-            content: credential.data.name ?? '—'
-          },
-          {
-            label: 'Description',
-            content: credential.data.description ?? '—'
-          },
           {
             label: 'ID',
             content: <ID id={credential.data.id} />
@@ -46,7 +56,17 @@ export let ProviderAuthCredentialOverviewPage = () => {
           },
           {
             label: 'Deployment',
-            content: deployment.data?.name ?? '—'
+            content: (
+              <Link to={deploymentHref}>
+                {deployment.data?.name ?? '—'}
+              </Link>
+            )
+          },
+          {
+            label: 'Auth Configs',
+            content: authConfigs.data?.items
+              ? String(authConfigs.data.items.length)
+              : '—'
           },
           {
             label: 'Created',

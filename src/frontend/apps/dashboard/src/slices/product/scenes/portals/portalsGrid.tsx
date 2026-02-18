@@ -93,7 +93,7 @@ let EmptyState = styled.div`
 
 export let PortalsGrid = (filter: DashboardInstancePortalsListQuery) => {
   let instance = useCurrentInstance();
-  let portals = usePortals(instance.data?.instanceId, {
+  let portals = usePortals(instance.data?.id, {
     ...filter,
     order: filter.order ?? 'desc'
   });
@@ -178,7 +178,7 @@ export let showPortalFormModal = () =>
         let [res] = await mutator.mutate({
           name: values.name,
           description: values.description,
-          instanceId: instance.data!.instanceId
+          instanceId: instance.data!.id
         });
 
         if (res) setTimeout(() => close(), 500);

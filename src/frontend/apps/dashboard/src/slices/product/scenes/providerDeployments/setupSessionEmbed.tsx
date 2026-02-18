@@ -3,10 +3,11 @@ import {
   useCreateProviderSetupSession,
   useGetProviderSetupSession,
   useProviderAuthCredentials,
-  useProviderAuthMethods
+  useProviderAuthMethods,
+  useProviderDeployment
 } from '@metorial/state';
-import { Button, Flex, Input, Select, Spacer, Text } from '@metorial/ui';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, CenteredSpinner, Flex, Input, Select, Spacer, Text } from '@metorial/ui';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Stepper } from '../stepper';
 
 type AuthMethod = {
@@ -46,6 +47,7 @@ export let ProviderSetupSessionEmbed = ({
   onCancel?: () => void;
   cancelLabel?: string;
 }) => {
+  let deployment = useProviderDeployment(instanceId, deploymentId);
   let authMethods = useProviderAuthMethods(instanceId, providerId);
   let authCredentials = useProviderAuthCredentials(instanceId, deploymentId);
 
@@ -99,10 +101,27 @@ export let ProviderSetupSessionEmbed = ({
   }, [selectedMethodId, hasSingleMethod, authMethods.data?.items]);
 
   useEffect(() => {
-    if (selectedMethodId) {
-      setStep(hasSingleMethod ? connectStepIndex : 0);
+    if (selectedMethodId && hasSingleMethod) {
+      setStep(isOAuth ? 1 : connectStepIndex);
     }
-  }, [selectedMethodId, hasSingleMethod, connectStepIndex]);
+  }, [selectedMethodId, hasSingleMethod, isOAuth, connectStepIndex]);
+
+  let resetCredentialsState = () => {
+    setSelectedCredentialsId('');
+    setIsCreatingCredentials(false);
+    setNewCredName('');
+    setNewCredClientId('');
+    setNewCredClientSecret('');
+  };
+
+  let resetConnectState = () => {
+    closePopup();
+    setSetupSession(null);
+    pollingRef.current = false;
+    completedRef.current = false;
+    setIsStarting(false);
+    setError(null);
+  };
 
   let handleCreateCredentials = async (): Promise<boolean> => {
     if (!newCredName || !newCredClientId || !newCredClientSecret) return false;
@@ -138,15 +157,32 @@ export let ProviderSetupSessionEmbed = ({
     return true;
   };
 
+  let popupRef = useRef<Window | null>(null);
+
+  let closePopup = useCallback(() => {
+    if (popupRef.current && !popupRef.current.closed) {
+      popupRef.current.close();
+    }
+    popupRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    return () => closePopup();
+  }, [closePopup]);
+
   let handleStartSetup = async () => {
     if (!selectedMethodId) return;
 
     setError(null);
     setIsStarting(true);
 
+    let providerName = deployment.data?.provider?.name ?? deployment.data?.name ?? 'Provider';
+    let methodName = selectedMethod?.name ?? 'Connection';
+
     let [session, err] = await createSetupSession.mutate({
       providerAuthMethodId: selectedMethodId,
-      providerAuthCredentialsId: selectedCredentialsId || undefined
+      providerAuthCredentialsId: selectedCredentialsId || undefined,
+      name: `${providerName} — ${methodName}`
     });
 
     setIsStarting(false);
@@ -161,111 +197,22 @@ export let ProviderSetupSessionEmbed = ({
       completedRef.current = false;
       pollingRef.current = false;
       setSetupSession(session as SetupSession);
+
+      let s = session as SetupSession;
+      if (s.url) {
+        let width = 600;
+        let height = 700;
+        let left = window.screenX + (window.outerWidth - width) / 2;
+        let top = window.screenY + (window.outerHeight - height) / 2;
+        closePopup();
+        popupRef.current = window.open(
+          s.url,
+          'provider-auth',
+          `width=${width},height=${height},left=${left},top=${top},popup=yes`
+        );
+      }
     }
   };
-
-  useEffect(() => {
-    if (!setupSession?.id || pollingRef.current) return;
-    pollingRef.current = true;
-
-    let canceled = false;
-    let attempts = 0;
-
-    let poll = async () => {
-      if (canceled || completedRef.current) return;
-
-      let [res, err] = await getSetupSessionRef.current.mutate({
-        setupSessionId: setupSession.id
-      });
-
-      if (err) {
-        console.warn('Failed to poll setup session:', err);
-      } else {
-        if (res) setSetupSession(res as SetupSession);
-
-        if (res?.status === 'completed') {
-          completedRef.current = true;
-          onCompleteRef.current(res as SetupSession);
-          return;
-        }
-
-        if (res?.status === 'failed' || res?.status === 'expired') {
-          setError(
-            res?.status === 'expired'
-              ? 'Setup session expired. Please start again.'
-              : 'Setup session failed. Please try again.'
-          );
-          return;
-        }
-      }
-
-      attempts += 1;
-      if (attempts > 120) {
-        setError('Authentication timed out. Please try again.');
-        return;
-      }
-
-      setTimeout(poll, 2000);
-    };
-
-    poll();
-
-    return () => {
-      canceled = true;
-    };
-  }, [setupSession?.id]);
-
-  if (authMethods.isLoading || authCredentials.isLoading) {
-    return (
-      <Text size="2" color="gray600">
-        Loading authentication methods...
-      </Text>
-    );
-  }
-
-  if (!authMethods.data?.items?.length) {
-    return (
-      <Flex direction="column" gap={8}>
-        <Text size="2" color="gray600">
-          This provider does not require authentication.
-        </Text>
-        <Flex gap={10}>
-          {onCancel && (
-            <Button variant="outline" onClick={onCancel}>
-              {cancelLabel}
-            </Button>
-          )}
-          <Button onClick={() => onComplete(null)}>Continue</Button>
-        </Flex>
-      </Flex>
-    );
-  }
-
-  if (setupSession && !setupSession.url) {
-    return (
-      <Flex direction="column" gap={8}>
-        <Text size="2" color="red600">
-          Setup session did not return a URL. Please try again.
-        </Text>
-        <Flex gap={10}>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setSetupSession(null);
-              pollingRef.current = false;
-            }}
-          >
-            Change Method
-          </Button>
-          {onCancel && (
-            <Button variant="outline" onClick={onCancel}>
-              {cancelLabel}
-            </Button>
-          )}
-        </Flex>
-      </Flex>
-    );
-  }
 
   let steps = useMemo(() => {
     let methodStep = {
@@ -279,9 +226,8 @@ export let ProviderSetupSessionEmbed = ({
             placeholder="Select an authentication method..."
             onChange={value => {
               setSelectedMethodId(value);
-              setSelectedCredentialsId('');
-              setIsCreatingCredentials(false);
-              setError(null);
+              resetCredentialsState();
+              resetConnectState();
             }}
             items={(authMethods.data?.items ?? []).map((method: AuthMethod) => ({
               id: method.id,
@@ -367,6 +313,7 @@ export let ProviderSetupSessionEmbed = ({
                 placeholder="My OAuth App"
                 required
               />
+              <Spacer size={6} />
               <Input
                 label="Client ID"
                 value={newCredClientId}
@@ -374,6 +321,7 @@ export let ProviderSetupSessionEmbed = ({
                 placeholder="Enter client ID from provider"
                 required
               />
+              <Spacer size={6} />
               <Input
                 label="Client Secret"
                 value={newCredClientSecret}
@@ -397,9 +345,14 @@ export let ProviderSetupSessionEmbed = ({
             <Button
               type="button"
               variant="outline"
-              onClick={() =>
-                isCreatingCredentials ? setIsCreatingCredentials(false) : setStep(0)
-              }
+              onClick={() => {
+                if (isCreatingCredentials) {
+                  setIsCreatingCredentials(false);
+                } else {
+                  resetConnectState();
+                  setStep(0);
+                }
+              }}
             >
               Back
             </Button>
@@ -425,34 +378,52 @@ export let ProviderSetupSessionEmbed = ({
       render: () => {
         if (setupSession?.url) {
           return (
-            <>
-              <Text size="2" weight="strong">
-                Complete authentication
-              </Text>
-              <Text size="2" color="gray600">
-                Finish the setup below. This window will update once authentication completes.
-              </Text>
-              <Spacer size={5} />
-              <iframe
-                title="Provider Setup"
-                src={setupSession.url}
-                style={{
-                  width: '100%',
-                  height: 560,
-                  borderRadius: 8,
-                  border: '1px solid var(--color-gray300)'
-                }}
-              />
-              <Spacer size={8} />
+            <Flex direction="column" gap={8}>
+              <Flex direction="column" gap={4} style={{ alignItems: 'center', padding: '24px 0' }}>
+                <CenteredSpinner />
+                <Spacer size={4} />
+                <Text size="2" weight="strong">
+                  Waiting for authentication
+                </Text>
+                <Text size="2" color="gray600" style={{ textAlign: 'center' }}>
+                  Complete the sign-in in the popup window. This will update automatically once
+                  you're done.
+                </Text>
+              </Flex>
+              {error && (
+                <Text size="2" color="red600">
+                  {error}
+                </Text>
+              )}
               <Flex gap={8}>
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setSetupSession(null);
-                    pollingRef.current = false;
+                    resetConnectState();
+                    resetCredentialsState();
+                    setStep(0);
                   }}
                 >
                   Change Method
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (setupSession?.url) {
+                      let width = 600;
+                      let height = 700;
+                      let left = window.screenX + (window.outerWidth - width) / 2;
+                      let top = window.screenY + (window.outerHeight - height) / 2;
+                      closePopup();
+                      popupRef.current = window.open(
+                        setupSession.url,
+                        'provider-auth',
+                        `width=${width},height=${height},left=${left},top=${top},popup=yes`
+                      );
+                    }
+                  }}
+                >
+                  Reopen Popup
                 </Button>
                 {onCancel && (
                   <Button variant="outline" onClick={onCancel}>
@@ -460,41 +431,33 @@ export let ProviderSetupSessionEmbed = ({
                   </Button>
                 )}
               </Flex>
-              {error && (
-                <>
-                  <Spacer size={5} />
-                  <Text size="2" color="red600">
-                    {error}
-                  </Text>
-                </>
-              )}
-            </>
+            </Flex>
           );
         }
         return (
-          <>
-            <Button
-              type="button"
-              onClick={handleStartSetup}
-              loading={isStarting || createSetupSession.isPending}
-              disabled={!selectedMethodId}
-            >
-              {isOAuth ? 'Connect with OAuth' : 'Start Setup'}
-            </Button>
+          <Flex direction="column" gap={6}>
+            <Text size="2" weight="strong">
+              {isOAuth ? 'Connect your account' : 'Start authentication'}
+            </Text>
+            <Text size="2" color="gray600">
+              {isOAuth
+                ? "A popup window will open for you to authorize access with the provider."
+                : 'Click below to begin the authentication setup.'}
+            </Text>
             {error && (
-              <>
-                <Spacer size={5} />
-                <Text size="2" color="red600">
-                  {error}
-                </Text>
-              </>
+              <Text size="2" color="red600">
+                {error}
+              </Text>
             )}
-            <Spacer size={8} />
+            <Spacer size={6} />
             <Flex gap={8}>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setStep(prev => prev - 1)}
+                onClick={() => {
+                  resetConnectState();
+                  setStep(prev => prev - 1);
+                }}
               >
                 Back
               </Button>
@@ -503,8 +466,16 @@ export let ProviderSetupSessionEmbed = ({
                   {cancelLabel}
                 </Button>
               )}
+              <Button
+                type="button"
+                onClick={handleStartSetup}
+                loading={isStarting || createSetupSession.isPending}
+                disabled={!selectedMethodId}
+              >
+                {isOAuth ? 'Connect with OAuth' : 'Start Setup'}
+              </Button>
             </Flex>
-          </>
+          </Flex>
         );
       }
     };
@@ -533,6 +504,114 @@ export let ProviderSetupSessionEmbed = ({
     authMethods.data?.items,
     authCredentials.data?.items
   ]);
+
+  useEffect(() => {
+    if (!setupSession?.id || pollingRef.current) return;
+    pollingRef.current = true;
+
+    let canceled = false;
+    let attempts = 0;
+
+    let poll = async () => {
+      if (canceled || completedRef.current) return;
+
+      let [res, err] = await getSetupSessionRef.current.mutate({
+        setupSessionId: setupSession.id
+      });
+
+      if (err) {
+        console.warn('Failed to poll setup session:', err);
+      } else {
+        if (res) setSetupSession(res as SetupSession);
+
+        if (res?.status === 'completed') {
+          completedRef.current = true;
+          if (popupRef.current && !popupRef.current.closed) {
+            popupRef.current.close();
+          }
+          popupRef.current = null;
+          onCompleteRef.current(res as SetupSession);
+          return;
+        }
+
+        if (res?.status === 'failed' || res?.status === 'expired') {
+          setError(
+            res?.status === 'expired'
+              ? 'Setup session expired. Please start again.'
+              : 'Setup session failed. Please try again.'
+          );
+          return;
+        }
+      }
+
+      attempts += 1;
+      if (attempts > 120) {
+        setError('Authentication timed out. Please try again.');
+        return;
+      }
+
+      setTimeout(poll, 2000);
+    };
+
+    poll();
+
+    return () => {
+      canceled = true;
+    };
+  }, [setupSession?.id]);
+
+  if (authMethods.isLoading || authCredentials.isLoading) {
+    return (
+      <Text size="2" color="gray600">
+        Loading authentication methods...
+      </Text>
+    );
+  }
+
+  if (!authMethods.data?.items?.length) {
+    return (
+      <Flex direction="column" gap={8}>
+        <Text size="2" color="gray600">
+          This provider does not require authentication.
+        </Text>
+        <Flex gap={10}>
+          {onCancel && (
+            <Button variant="outline" onClick={onCancel}>
+              {cancelLabel}
+            </Button>
+          )}
+          <Button onClick={() => onComplete(null)}>Continue</Button>
+        </Flex>
+      </Flex>
+    );
+  }
+
+  if (setupSession && !setupSession.url) {
+    return (
+      <Flex direction="column" gap={8}>
+        <Text size="2" color="red600">
+          Setup session did not return a URL. Please try again.
+        </Text>
+        <Flex gap={10}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              resetConnectState();
+              resetCredentialsState();
+              setStep(0);
+            }}
+          >
+            Change Method
+          </Button>
+          {onCancel && (
+            <Button variant="outline" onClick={onCancel}>
+              {cancelLabel}
+            </Button>
+          )}
+        </Flex>
+      </Flex>
+    );
+  }
 
   return <Stepper steps={steps} currentStep={step} setCurrentStep={setStep} />;
 };

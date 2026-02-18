@@ -27,7 +27,7 @@ export let ProviderConnectionUpdateForm = (p: {
 }) => {
   let instance = useCurrentInstance();
   let providerConnection = useProviderConnection(
-    instance.data?.instanceId,
+    instance.data?.id,
     p.providerConnection?.id
   );
 
@@ -191,7 +191,7 @@ export let ProviderConnectionUpdateForm = (p: {
                   if (res) {
                     toast.success('OAuth connection deleted successfully.');
                     navigate(
-                      Paths.instance.providerConnections(
+                      Paths.instance(
                         instance.data?.organization,
                         instance.data?.project,
                         instance.data

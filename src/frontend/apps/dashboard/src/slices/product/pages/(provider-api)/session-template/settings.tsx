@@ -18,7 +18,7 @@ export let SessionTemplateSettingsPage = () => {
   let navigate = useNavigate();
 
   let { sessionTemplateId } = useParams();
-  let template = useSessionTemplate(instance.data?.instanceId, sessionTemplateId);
+  let template = useSessionTemplate(instance.data?.id, sessionTemplateId);
   let updateMutator = template.useUpdateMutator();
 
   let [name, setName] = useState('');

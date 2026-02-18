@@ -25,7 +25,7 @@ import { RouterPanel } from '../routerPanel';
 
 export let CallbackLogsList = (p: { callbackId: string | undefined }) => {
   let instance = useCurrentInstance();
-  let callback = useCallback(instance.data?.instanceId, p.callbackId);
+  let callback = useCallback(instance.data?.id, p.callbackId);
 
   return (
     <>
@@ -61,7 +61,7 @@ export let Notifications = (
   props: DashboardInstanceCallbacksNotificationsListQuery & { details?: boolean }
 ) => {
   let instance = useCurrentInstance();
-  let notifications = useCallbackNotifications(instance.data?.instanceId, {
+  let notifications = useCallbackNotifications(instance.data?.id, {
     order: 'desc',
     ...props
   });
@@ -110,8 +110,8 @@ let Notification = ({
   callbackId: string;
 }) => {
   let instance = useCurrentInstance();
-  let callback = useCallback(instance.data?.instanceId, callbackId);
-  let notification = useCallbackNotification(instance.data?.instanceId, notificationId);
+  let callback = useCallback(instance.data?.id, callbackId);
+  let notification = useCallbackNotification(instance.data?.id, notificationId);
 
   let formattedRequestBody = useMemo(() => {
     if (!notification.data) return '...';

@@ -1,5 +1,5 @@
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance } from '@metorial/state';
+import { useCurrentInstance, useSession } from '@metorial/state';
 import { Button, CenteredSpinner, Error, theme } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
@@ -68,12 +68,37 @@ let Status = styled(motion.div)`
 `;
 
 export let InspectorFrame = ({
-  providerDeployment
+  providerDeployment,
+  sessionId
 }: {
   providerDeployment: { id: string };
+  sessionId?: string;
 }) => {
   let instance = useCurrentInstance();
-  let session = useSessionForDeployment(instance.data?.instanceId, providerDeployment.id);
+  let createdSession = useSessionForDeployment(
+    sessionId ? undefined : instance.data?.id,
+    sessionId ? undefined : providerDeployment.id
+  );
+  let existingSession = useSession(
+    sessionId ? instance.data?.id : undefined,
+    sessionId
+  );
+  let session = sessionId
+    ? {
+        ...existingSession,
+        state: existingSession.isLoading
+          ? ('loading' as const)
+          : existingSession.error
+            ? ('error' as const)
+            : ('ready' as const),
+        onAuthComplete: () => {},
+        authMethods: [] as any[],
+        authCredentials: [] as any[],
+        provider: null as any,
+        refetchAuthCredentials: undefined,
+        deployment: null as any
+      }
+    : createdSession;
 
   let [isLoading, setIsLoading] = useState(true);
 
@@ -84,16 +109,28 @@ export let InspectorFrame = ({
       (window as any).METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!
     ); // https://inspector.mcp.metorial.com
 
-    // Use the direct Subspace MCP connection URL from the session response
-    let connectionUrl = session.data.connectionUrl;
-    if (!connectionUrl) return undefined;
+    let mcpBaseUrl =
+      (window as any).METORIAL_MCP_API_URL ?? import.meta.env.VITE_MCP_API_URL;
 
-    url.searchParams.set('sse_url', connectionUrl);
+    let sseUrl: string;
+    if (mcpBaseUrl) {
+      let mcpUrl = new URL(
+        `/mcp/${session.data.id}/${providerDeployment.id}/sse`,
+        mcpBaseUrl
+      );
+      sseUrl = mcpUrl.toString();
+    } else {
+      let connectionUrl = session.data.connectionUrl;
+      if (!connectionUrl) return undefined;
+      sseUrl = connectionUrl;
+    }
+
+    url.searchParams.set('sse_url', sseUrl);
     url.searchParams.set('transport_type', 'sse');
     url.searchParams.set('direction', 'vertical');
 
     return url.toString();
-  }, [session.data]);
+  }, [session.data, providerDeployment.id]);
 
   return (
     <>
@@ -152,7 +189,7 @@ export let InspectorFrame = ({
         {session.state == 'auth_required' ? (
           <Center>
             <AuthPanel
-              instanceId={instance.data!.instanceId}
+              instanceId={instance.data!.id}
               deploymentId={providerDeployment.id}
               provider={{
                 id: session.provider?.id ?? '',

@@ -37,10 +37,10 @@ export let MagicMcpServerOverviewPage = () => {
   let instance = useCurrentInstance();
 
   let { magicMcpServerId } = useParams();
-  let server = useMagicMcpServer(instance.data?.instanceId, magicMcpServerId);
+  let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
   let serverDeployment = server.data?.serverDeployments[0];
 
-  let tokens = useMagicMcpTokens(instance.data?.instanceId, {
+  let tokens = useMagicMcpTokens(instance.data?.id, {
     status: 'active'
   });
 

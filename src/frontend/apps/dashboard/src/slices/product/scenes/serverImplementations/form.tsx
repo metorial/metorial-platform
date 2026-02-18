@@ -36,7 +36,7 @@ export let ServerImplementationForm = (
   let instance = useCurrentInstance();
   let implementation =
     p.type == 'update'
-      ? useServerImplementation(instance.data?.instanceId, p.serverImplementationId)
+      ? useServerImplementation(instance.data?.id, p.serverImplementationId)
       : null;
 
   let update = implementation?.useUpdateMutator();
@@ -51,7 +51,7 @@ export let ServerImplementationForm = (
   );
 
   let variants = useServerVariants(
-    instance.data?.instanceId,
+    instance.data?.id,
     p.type == 'create'
       ? (p.for?.serverId ?? searchServer?.providerId)
       : (implementation?.data?.server?.id ??
@@ -99,7 +99,7 @@ export let ServerImplementationForm = (
           description: values.description,
           metadata: values.metadata,
           getLaunchParams: values.getLaunchParams,
-          instanceId: instance.data?.instanceId!,
+          instanceId: instance.data?.id!,
           serverId: p.for?.serverId ?? searchServer?.providerId!,
           ...p.for
         });

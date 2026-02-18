@@ -19,7 +19,7 @@ export let ProviderAuthConnectionSettingsPage = () => {
 
   let { providerDeploymentId, providerAuthConfigId } = useParams();
   let authConfig = useProviderAuthConfig(
-    instance.data?.instanceId,
+    instance.data?.id,
     providerDeploymentId,
     providerAuthConfigId
   );

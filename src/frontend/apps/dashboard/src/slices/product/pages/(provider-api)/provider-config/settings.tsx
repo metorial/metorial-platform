@@ -19,7 +19,7 @@ export let ProviderConfigSettingsPage = () => {
 
   let { providerDeploymentId, providerConfigId } = useParams();
   let config = useProviderConfig(
-    instance.data?.instanceId,
+    instance.data?.id,
     providerDeploymentId,
     providerConfigId
   );

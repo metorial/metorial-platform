@@ -18,7 +18,7 @@ export let ServerErrorLayout = () => {
   let organization = useCurrentOrganization();
 
   let { serverErrorId } = useParams();
-  let error = useSessionErrorGroup(instance.data?.instanceId, serverErrorId);
+  let error = useSessionErrorGroup(instance.data?.id, serverErrorId);
 
   let pathname = useLocation().pathname;
 

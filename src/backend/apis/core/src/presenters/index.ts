@@ -132,6 +132,7 @@ import {
   v1SessionErrorPresenter,
   v1SessionErrorGroupPresenter,
   v1ProviderRunPresenter,
+  v1ToolCallPresenter,
   presentSubspaceSessionMessageAs,
   v1SubspaceSessionMessagePresenter,
   v1SubspaceSessionConnectionPresenter,
@@ -259,6 +260,7 @@ import {
   sessionErrorType,
   sessionErrorGroupType,
   providerRunType,
+  toolCallType,
   // Provider Session type (Magnetar)
   providerSessionType,
   // Provider API session-nested types (Magnetar)
@@ -1077,6 +1079,13 @@ export let subspaceProviderRunPresenter = declarePresenter(providerRunType, {
   mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
   mt_2026_02_01_magnetar: v1ProviderRunPresenter,
   mt_2026_02_01_dashboard: v1ProviderRunPresenter
+});
+
+export let subspaceToolCallPresenter = declarePresenter(toolCallType, {
+  mt_2025_01_01_pulsar: PRESENTER_NOT_AVAILABLE,
+  mt_2025_01_01_dashboard: PRESENTER_NOT_AVAILABLE,
+  mt_2026_02_01_magnetar: v1ToolCallPresenter,
+  mt_2026_02_01_dashboard: v1ToolCallPresenter
 });
 
 // Provider Session presenter (Magnetar only - uses provider_deployments instead of server_deployments)

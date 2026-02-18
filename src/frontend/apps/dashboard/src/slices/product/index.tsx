@@ -23,8 +23,8 @@ let ProviderDeploymentsPage = dynamicPage(() =>
   )
 );
 let ProviderAuthConfigsOverviewPage = dynamicPage(() =>
-  import('./pages/(provider-api)/(list)/provider-auth-credentials').then(
-    c => c.ProviderAuthCredentialsOverviewPage
+  import('./pages/(provider-api)/(list)/provider-auth-configs').then(
+    c => c.ProviderAuthConfigsOverviewPage
   )
 );
 let ProviderAuthCredentialsOverviewPage = dynamicPage(() =>
@@ -121,6 +121,11 @@ let ProviderAuthCredentialLayout = dynamicPage(() =>
 let ProviderAuthCredentialOverviewPage = dynamicPage(() =>
   import('./pages/(provider-api)/provider-auth-credential/index').then(
     c => c.ProviderAuthCredentialOverviewPage
+  )
+);
+let ProviderAuthCredentialAuthConfigsPage = dynamicPage(() =>
+  import('./pages/(provider-api)/provider-auth-credential/auth-configs').then(
+    c => c.ProviderAuthCredentialAuthConfigsPage
   )
 );
 let ProviderAuthCredentialSettingsPage = dynamicPage(() =>
@@ -228,36 +233,6 @@ let MagicMcpTokensPage = dynamicPage(() =>
 let MagicMcpSessionsPage = dynamicPage(() =>
   import('./pages/magic-mcp/(list)/sessions').then(c => c.MagicMcpSessionsPage)
 );
-let ProviderConnectionOverviewPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/provider-connection').then(
-    c => c.ProviderConnectionOverviewPage
-  )
-);
-let ProviderConnectionLogsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/provider-connection/logs').then(
-    c => c.ProviderConnectionLogsPage
-  )
-);
-let ProviderConnectionProfilesPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/provider-connection/profiles').then(
-    c => c.ProviderConnectionProfilesPage
-  )
-);
-let ProviderConnectionSettingsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/provider-connection/settings').then(
-    c => c.ProviderConnectionSettingsPage
-  )
-);
-let ProviderConnectionLayout = dynamicPage(() =>
-  import('./pages/(custom-servers)/provider-connection/_layout').then(
-    c => c.ProviderConnectionLayout
-  )
-);
-let ProviderConnectionTestResponsePage = dynamicPage(() =>
-  import('./pages/(custom-servers)/provider-connection/testResponse').then(
-    c => c.ProviderConnectionTestResponsePage
-  )
-);
 let CustomServerOverviewPage = dynamicPage(() =>
   import('./pages/(custom-servers)/custom-server').then(c => c.CustomServerOverviewPage)
 );
@@ -274,9 +249,6 @@ let CustomServerSettingsPage = dynamicPage(() =>
 let CustomServerLayout = dynamicPage(() =>
   import('./pages/(custom-servers)/custom-server/_layout').then(c => c.CustomServerLayout)
 );
-let ProviderConnectionsListLayout = dynamicPage(() =>
-  import('./pages/(custom-servers)/(list)/_layout').then(c => c.ProviderConnectionsListLayout)
-);
 let ManagedServersListLayout = dynamicPage(() =>
   import('./pages/(custom-servers)/(list)/_layout').then(c => c.ManagedServersListLayout)
 );
@@ -288,11 +260,6 @@ let ExternalServersPage = dynamicPage(() =>
 );
 let ManagedServersPage = dynamicPage(() =>
   import('./pages/(custom-servers)/(list)/managed-servers').then(c => c.ManagedServersPage)
-);
-let ProviderConnectionsPage = dynamicPage(() =>
-  import('./pages/(custom-servers)/(list)/provider-connections').then(
-    c => c.ProviderConnectionsPage
-  )
 );
 let LogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.LogsListLayout)
@@ -449,7 +416,7 @@ let ProductWrapper = () => {
 
   useEffect(() => {
     if (!instance.data) return;
-    lastInstanceIdStore.set(instance.data.instanceId);
+    lastInstanceIdStore.set(instance.data.id);
   }, [instance.data]);
 
   return <Outlet />;
@@ -540,22 +507,6 @@ export let productInnerSlice = createSlice([
           },
 
           {
-            path: '',
-            element: (
-              <FlaggedPage flag="metorial-gateway-enabled">
-                <ProviderConnectionsListLayout />
-              </FlaggedPage>
-            ),
-
-            children: [
-              {
-                path: 'provider-connections',
-                element: <ProviderConnectionsPage />
-              }
-            ]
-          },
-
-          {
             path: 'custom-server/:customServerId',
             element: (
               <FlaggedPage flag="metorial-gateway-enabled">
@@ -591,37 +542,6 @@ export let productInnerSlice = createSlice([
             ]
           },
 
-          {
-            path: 'provider-connection/:providerConnectionId',
-            element: (
-              <FlaggedPage flag="metorial-gateway-enabled">
-                <ProviderConnectionLayout />
-              </FlaggedPage>
-            ),
-
-            children: [
-              {
-                path: '',
-                element: <ProviderConnectionOverviewPage />
-              },
-              {
-                path: 'logs',
-                element: <ProviderConnectionLogsPage />
-              },
-              {
-                path: 'profiles',
-                element: <ProviderConnectionProfilesPage />
-              },
-              {
-                path: 'settings',
-                element: <ProviderConnectionSettingsPage />
-              },
-              {
-                path: 'test-response',
-                element: <ProviderConnectionTestResponsePage />
-              }
-            ]
-          }
         ]
       },
 
@@ -948,6 +868,10 @@ export let productInnerSlice = createSlice([
           {
             path: '',
             element: <ProviderAuthCredentialOverviewPage />
+          },
+          {
+            path: 'auth-configs',
+            element: <ProviderAuthCredentialAuthConfigsPage />
           },
           {
             path: 'settings',

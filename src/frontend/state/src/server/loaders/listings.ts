@@ -18,8 +18,8 @@ export let useProviderListings = (
   let instance = useCurrentInstance();
   let data = usePaginator(pagination =>
     providerListingsLoader.use(
-      input && instance.data?.instanceId
-        ? { ...pagination, ...input, instanceId: instance.data.instanceId }
+      input && instance.data?.id
+        ? { ...pagination, ...input, instanceId: instance.data.id }
         : null
     )
   );

@@ -8,7 +8,7 @@ import { createBunWebSocket } from 'hono/bun';
 import { ALL_CONNECTION_TYPES, toConnectionType } from './constants';
 import { getServerSession } from './getServerSession';
 import { getSessionAndAuthenticate } from './getSession';
-import { mcpConnectionHandler } from './handler';
+import { mcpConnectionHandler, providerMcpConnectionHandler } from './handler';
 
 export let startMcpServer = (d: { port: number; authenticate: Authenticator<AuthInfo> }) => {
   let { upgradeWebSocket, websocket } = createBunWebSocket<ServerWebSocket>();
@@ -33,7 +33,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
       return c.text('');
     })
     .get('/ping', c => c.text('OK'))
-    .all('/mcp/:sessionId', async (c, next) => {
+    .all('/mcp/:sessionId/:serverDeploymentId?/:connectionType?', async (c, next) => {
       let { sessionId, serverDeploymentId, connectionType: connectionTypeRaw } = c.req.param();
       let context = useRequestContext(c);
 
@@ -42,7 +42,7 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
         serverDeploymentId &&
         ALL_CONNECTION_TYPES.has(serverDeploymentId)
       ) {
-        connectionTypeRaw = sessionId;
+        connectionTypeRaw = serverDeploymentId;
         serverDeploymentId = undefined;
       }
 
@@ -68,7 +68,8 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
           let sessionInfo = await getSessionAndAuthenticate(
             {
               type: 'session',
-              sessionId
+              sessionId,
+              providerDeploymentId: serverDeploymentId
             },
             req,
             url,
@@ -83,83 +84,34 @@ export let startMcpServer = (d: { port: number; authenticate: Authenticator<Auth
             connectionType
           );
 
-          return await mcpConnectionHandler(
-            c,
-            next,
-            sessionInfo,
-            serverSessionResult.serverSession,
-            {
-              connectionType,
-              upgradeWebSocket,
-              sessionCreated: serverSessionResult.sessionCreated
-            }
-          );
-        }
-      );
-    })
-    /*
-    .all('/magic/:magicMcpServerId/:connectionType', async (c, next) => {
-      let { magicMcpServerId, connectionType: connectionTypeRaw } = c.req.param();
-      let context = useRequestContext(c);
+          if (
+            serverSessionResult.type === 'provider' &&
+            sessionInfo.type === 'subspace_session_client_secret'
+          ) {
+            return await providerMcpConnectionHandler(c, next, sessionInfo, serverSessionResult, {
+              connectionType
+            });
+          }
 
-      let connectionType = toConnectionType(connectionTypeRaw ?? 'sse');
-      if (!connectionType) connectionType = 'sse';
+          if (serverSessionResult.type === 'legacy') {
+            return await mcpConnectionHandler(
+              c,
+              next,
+              sessionInfo,
+              serverSessionResult.serverSession,
+              {
+                connectionType,
+                upgradeWebSocket,
+                sessionCreated: serverSessionResult.sessionCreated
+              }
+            );
+          }
 
-      let url = new URL(c.req.url);
-      let req = c.req.raw;
-
-      let serverSessionId =
-        c.req.query('metorial_server_session_id') ??
-        c.req.header('mcp-session-id') ??
-        c.req.header('metorial-server-session-id');
-
-      let oauthSessionId = c.req.query('oauth_session_id');
-
-      return provideExecutionContext(
-        createExecutionContext({
-          userAgent: context.ua ?? 'unknown',
-          ip: context.ip,
-          contextId: generateSnowflakeId('mreq'),
-          type: 'request'
-        }),
-        async () => {
-          let sessionInfo = await getSessionAndAuthenticate(
-            {
-              type: 'magic_mcp_server',
-              magicMcpServerId,
-              serverSessionId,
-              oauthSessionId
-            },
-            req,
-            url,
-            d.authenticate,
-            context
-          );
-
-          let serverSessionResult = await getServerSession(
-            sessionInfo,
-            context,
-            null,
-            serverSessionId ?? null,
-            connectionType
-          );
-
-          return await mcpConnectionHandler(
-            c,
-            next,
-            sessionInfo,
-            serverSessionResult.serverSession,
-            {
-              connectionType,
-              upgradeWebSocket,
-              sessionCreated: serverSessionResult.sessionCreated
-            }
-          );
+          throw new Error('Invalid session state');
         }
       );
     });
-  */
- 
+
   Bun.serve({
     port: d.port,
     fetch: hono.fetch,

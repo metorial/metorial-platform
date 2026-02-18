@@ -250,5 +250,6 @@ export let backendEnv: Env = [
   { key: 'CHROME_SIDEBAR_CHANGELOG_ENABLED', isEnterprise: true, defaultValue: 'true' },
 
   { key: 'SUBSPACE_SOLUTION', defaultValue: 'metorial-dev' },
-  { key: 'SUBSPACE_URL', defaultValue: 'http://localhost:52070/subspace-controller' }
+  { key: 'SUBSPACE_URL', defaultValue: 'http://localhost:52070/subspace-controller' },
+  { key: 'SUBSPACE_CONNECTION_URL', defaultValue: 'http://localhost:52073' }
 ];

@@ -38,8 +38,8 @@ export let DeployPage = () => {
   }, [providerId, instance.data, nextUrl, navigate]);
 
   // legacy
-  let serverListing = useProviderListing(instance.data?.instanceId, serverId);
-  let provider = useProvider(instance.data?.instanceId, providerId ?? undefined);
+  let serverListing = useProviderListing(instance.data?.id, serverId);
+  let provider = useProvider(instance.data?.id, providerId ?? undefined);
 
   if (providerId) {
     return (

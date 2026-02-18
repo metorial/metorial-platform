@@ -29,6 +29,7 @@ export * from './subspaceProviderRun';
 export * from './subspaceSessionMessage';
 export * from './subspaceSessionConnection';
 export * from './subspaceSessionEvent';
+export * from './subspaceToolCall';
 
 // Custom Provider controllers
 export * from './customProvider';

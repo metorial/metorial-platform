@@ -2,7 +2,7 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,
   useDeleteSessionTemplateProvider,
-  useProviderAuthConfigs,
+  useInstanceProviderAuthConfigs,
   useProviderConfigs,
   useProviderDeployments,
   useProviderListings,
@@ -51,7 +51,7 @@ type TemplateProvider = {
   providerDeploymentName: string | null;
   providerConfigName: string | null;
   providerAuthConfigName: string | null;
-  createdAt: string;
+  createdAt: Date;
 };
 
 let AddProviderModalContent = ({
@@ -521,7 +521,10 @@ let DeploymentConfigureStep = ({
   onSave: () => void;
 }) => {
   let configs = useProviderConfigs(instanceId, deploymentId);
-  let authConfigs = useProviderAuthConfigs(instanceId, deploymentId);
+  // TODO: fix properly — deployment-scoped query returns empty because auth configs
+  // created via OAuth may not have a matching providerDeploymentId in subspace.
+  // Using instance-scoped query filtered by providerId as a workaround.
+  let authConfigs = useInstanceProviderAuthConfigs(instanceId, { providerId });
   let tools = useProviderTools(instanceId, providerId);
 
   let configItems = (configs.data?.items ?? []) as Array<{ id: string; name: string | null }>;
@@ -839,7 +842,7 @@ let ProvidersTable = ({
 
   return (
     <Table
-      headers={['Provider', 'Deployment', 'Config', 'Auth', '']}
+      headers={['Provider', 'Deployment', 'Config', 'Auth Credential', '']}
       data={items.map(provider => {
         let listing = listingLookup[provider.providerId];
         let providerName = provider.name ?? listing?.name ?? provider.providerId;
@@ -933,14 +936,14 @@ let ProvidersTable = ({
 export let SessionTemplateProvidersPage = () => {
   let instance = useCurrentInstance();
   let { sessionTemplateId } = useParams();
-  let template = useSessionTemplate(instance.data?.instanceId, sessionTemplateId);
+  let template = useSessionTemplate(instance.data?.id, sessionTemplateId);
 
   return renderWithLoader({ template })(({ template }) => (
     <>
       <Spacer size={16} />
 
       <ProvidersTable
-        instanceId={instance.data!.instanceId}
+        instanceId={instance.data!.id}
         sessionTemplateId={sessionTemplateId!}
       />
     </>

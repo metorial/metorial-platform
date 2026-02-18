@@ -1,5 +1,4 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceReferenceConfigVaultService } from '@metorial/module-subspace-reference';
 import { subspaceProviderConfigVaultService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -126,20 +125,6 @@ export let providerConfigVaultController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        await subspaceReferenceConfigVaultService
-          .create({
-            instance: ctx.instance,
-            configVault: {
-              id: configVault.id,
-              providerId: ctx.deployment.providerId,
-              providerDeploymentId: configVault.providerDeploymentId,
-              name: configVault.name,
-              isEphemeral: configVault.isEphemeral,
-              createdAt: configVault.createdAt
-            }
-          })
-          .catch(err => console.error('Failed to store subspace reference:', err));
-
         return providerConfigVaultPresenter.present({
           configVault: configVault as SubspaceConfigVault
         });
@@ -203,13 +188,6 @@ export let providerConfigVaultController = Controller.create(
           instance: ctx.instance,
           providerConfigVaultId: ctx.configVault.id
         });
-
-        await subspaceReferenceConfigVaultService
-          .delete({
-            instance: ctx.instance,
-            id: ctx.configVault.id
-          })
-          .catch(err => console.error('Failed to remove subspace reference:', err));
 
         return providerConfigVaultPresenter.present({ configVault: ctx.configVault });
       })

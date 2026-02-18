@@ -79,7 +79,7 @@ export let ServerRunEvents = ({ serverRun }: { serverRun: ServerRunsGetOutput })
   let sessionId =
     (serverRun as any)?.sessionId ?? (serverRun as any)?.serverSession?.sessionId;
 
-  let errors = useSessionErrors(serverRun ? instance.data?.instanceId : null, serverRun?.id ?? '');
+  let errors = useSessionErrors(serverRun ? instance.data?.id : null, serverRun?.id ?? '');
   let error = errors.data?.items[0];
 
   let eventItems = useEvents(sessionId, {
@@ -87,7 +87,7 @@ export let ServerRunEvents = ({ serverRun }: { serverRun: ServerRunsGetOutput })
   });
 
   let providerId = (serverRun as any)?.providerId ?? serverRun?.serverDeployment?.server?.id;
-  let provider = useProvider(instance.data?.instanceId, providerId);
+  let provider = useProvider(instance.data?.id, providerId);
   let providerName =
     provider.data?.name ??
     serverRun?.serverDeployment?.name ??

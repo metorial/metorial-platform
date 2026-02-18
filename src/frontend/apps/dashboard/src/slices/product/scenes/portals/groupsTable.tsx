@@ -24,7 +24,7 @@ export let PortalConsumerGroupsTable = (
   }
 ) => {
   let instance = useCurrentInstance();
-  let groups = usePortalConsumerGroups(instance.data?.instanceId, filter.portalId, filter);
+  let groups = usePortalConsumerGroups(instance.data?.id, filter.portalId, filter);
 
   return renderWithPagination(groups)(groups => (
     <>
@@ -79,7 +79,7 @@ export let showConsumerGroupFormModal = (d: { portalId: string }) =>
         let [res] = await mutator.mutate({
           name: values.name,
           description: values.description,
-          instanceId: instance.data!.instanceId,
+          instanceId: instance.data!.id,
           portalId: d.portalId
         });
 

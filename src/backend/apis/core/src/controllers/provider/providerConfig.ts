@@ -1,6 +1,5 @@
 import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceReferenceConfigService } from '@metorial/module-subspace-reference';
 import { subspaceProviderConfigService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -151,20 +150,6 @@ export let providerConfigController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        await subspaceReferenceConfigService
-          .create({
-            instance: ctx.instance,
-            config: {
-              id: config.id,
-              providerId: ctx.deployment.providerId,
-              providerDeploymentId: config.providerDeploymentId,
-              name: config.name,
-              isEphemeral: config.isEphemeral,
-              createdAt: config.createdAt
-            }
-          })
-          .catch(err => console.error('Failed to store subspace reference:', err));
-
         return providerConfigPresenter.present({ config: config as SubspaceConfig });
       }),
 
@@ -221,13 +206,6 @@ export let providerConfigController = Controller.create(
           instance: ctx.instance,
           providerConfigId: ctx.config.id
         });
-
-        await subspaceReferenceConfigService
-          .delete({
-            instance: ctx.instance,
-            id: ctx.config.id
-          })
-          .catch(err => console.error('Failed to remove subspace reference:', err));
 
         return providerConfigPresenter.present({ config: ctx.config });
       }),

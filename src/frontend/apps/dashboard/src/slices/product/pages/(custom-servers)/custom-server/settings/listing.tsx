@@ -20,11 +20,11 @@ export let CustomServerListingPage = () => {
   let instance = useCurrentInstance();
 
   let { customServerId } = useParams();
-  let customServer = useCustomServer(instance.data?.instanceId, customServerId);
+  let customServer = useCustomServer(instance.data?.id, customServerId);
 
-  let listing = useCustomServerListing(instance.data?.instanceId, customServer.data?.id);
+  let listing = useCustomServerListing(instance.data?.id, customServer.data?.id);
   let version = useCustomServerVersion(
-    instance.data?.instanceId,
+    instance.data?.id,
     customServer.data?.id,
     customServer.data?.provider?.currentVersion?.id
   );

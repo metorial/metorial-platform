@@ -4,14 +4,29 @@ import { getActorForSubspace, getTenantForSubspace } from '../subspace';
 
 export type Tail<T extends any[]> = T extends [any, ...infer U] ? U : [];
 
+export type SubspaceService<SubspaceController extends {}, Overrides extends {}> = {
+  [K in Exclude<keyof SubspaceController, keyof Overrides>]: SubspaceController[K] extends (
+    ...args: any[]
+  ) => any
+    ? (
+        arg0: { instance: Instance } & Omit<
+          Parameters<SubspaceController[K]>[0],
+          'tenantId' | 'environmentId'
+        > &
+          (Parameters<SubspaceController[K]>[0] extends { actorId: any }
+            ? { organizationActor: OrganizationActor }
+            : {}),
+        ...args: Tail<Parameters<SubspaceController[K]>>
+      ) => ReturnType<SubspaceController[K]>
+    : never;
+} & Overrides;
+
 export let createSubspaceService = <SubspaceController extends {}, Overrides extends {}>(
   controller: SubspaceController,
   methods: (keyof SubspaceController)[],
-  overrides: (subspace: SubspaceController) => Overrides
+  overrides: (subspace: SubspaceService<SubspaceController, {}>) => Overrides
 ) => {
-  let methodsObj: any = {
-    ...overrides(controller)
-  };
+  let methodsObj: any = {};
 
   for (let methodName of methods) {
     if (methodsObj[methodName]) continue;
@@ -74,22 +89,12 @@ export let createSubspaceService = <SubspaceController extends {}, Overrides ext
     }
   }
 
-  let methodsTyped = methodsObj as {
-    [K in Exclude<keyof SubspaceController, keyof Overrides>]: SubspaceController[K] extends (
-      ...args: any[]
-    ) => any
-      ? (
-          arg0: { instance: Instance } & Omit<
-            Parameters<SubspaceController[K]>[0],
-            'tenantId' | 'environmentId'
-          > &
-            (Parameters<SubspaceController[K]>[0] extends { actorId: any }
-              ? { organizationActor: OrganizationActor }
-              : {}),
-          ...args: Tail<Parameters<SubspaceController[K]>>
-        ) => ReturnType<SubspaceController[K]>
-      : never;
-  } & Overrides;
+  let overRideMethods = overrides(methodsObj);
+
+  let methodsTyped = {
+    ...methodsObj,
+    ...overRideMethods
+  } as SubspaceService<SubspaceController, {}>;
 
   return Service.create('subspace', () => methodsTyped).build();
 };

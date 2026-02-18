@@ -11,7 +11,7 @@ import { ServerSession } from './components/serverSession';
 export let SessionEvents = ({ session }: { session: SessionsGetOutput | null }) => {
   let instance = useCurrentInstance();
 
-  let serverSessions = useSessionServerSessions(instance.data?.instanceId, session?.id, {
+  let serverSessions = useSessionServerSessions(instance.data?.id, session?.id, {
     limit: 100,
     order: 'asc'
   });

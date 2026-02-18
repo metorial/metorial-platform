@@ -1,12 +1,11 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceReferenceAuthCredentialsService } from '@metorial/module-subspace-reference';
 import { subspaceProviderAuthCredentialsService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
-import { instancePath } from '../../middleware/instanceGroup';
+import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerAuthCredentialsPresenter } from '../../presenters';
 import { SubspaceAuthCredentials } from '../../presenters/types';
 import { providerDeploymentGroup } from './providerDeployment';
@@ -147,19 +146,6 @@ export let providerAuthCredentialsController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        await subspaceReferenceAuthCredentialsService
-          .create({
-            instance: ctx.instance,
-            authCredentials: {
-              id: authCredentials.id,
-              providerId: ctx.deployment.providerId,
-              providerAuthMethodId: null,
-              name: authCredentials.name,
-              createdAt: authCredentials.createdAt
-            }
-          })
-          .catch(err => console.error('Failed to store subspace reference:', err));
-
         return providerAuthCredentialsPresenter.present({
           authCredentials: authCredentials as SubspaceAuthCredentials
         });
@@ -221,16 +207,56 @@ export let providerAuthCredentialsController = Controller.create(
           providerAuthCredentialsId: ctx.authCredentials.id
         });
 
-        await subspaceReferenceAuthCredentialsService
-          .delete({
-            instance: ctx.instance,
-            id: ctx.authCredentials.id
-          })
-          .catch(err => console.error('Failed to remove subspace reference:', err));
-
         return providerAuthCredentialsPresenter.present({
           authCredentials: ctx.authCredentials
         });
+      })
+  }
+);
+
+// Instance-scoped auth credentials list (not deployment-scoped)
+export let providerAuthCredentialsListController = Controller.create(
+  {
+    name: 'Provider Auth Credentials (Instance-scoped)',
+    description:
+      'List auth credentials scoped to the instance, optionally filtered by provider.'
+  },
+  {
+    list: instanceGroup
+      .get(instancePath('providers/auth-credentials', 'providers.authCredentials.list'), {
+        name: 'List provider auth credentials',
+        description:
+          'Returns a paginated list of auth credentials, optionally filtered by provider ID(s).'
+      })
+      .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
+      .outputList(providerAuthCredentialsPresenter)
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider ID(s)'
+            }),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by credential ID(s)'
+            })
+          })
+        )
+      )
+      .do(async ctx => {
+        let paginator = await subspaceProviderAuthCredentialsService.list({
+          instance: ctx.instance,
+          ids: normalizeArrayParam(ctx.query.id),
+          providerIds: normalizeArrayParam(ctx.query.provider_id)
+        });
+
+        let list = await paginator.run(ctx.query);
+
+        return Paginator.present(list, authCredentials =>
+          providerAuthCredentialsPresenter.present({
+            authCredentials: authCredentials as SubspaceAuthCredentials
+          })
+        );
       })
   }
 );

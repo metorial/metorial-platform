@@ -80,12 +80,12 @@ let ServerDeploymentFormInternal = (
       : ('server_deployment' as const);
 
   let magicMcpServer = useMagicMcpServer(
-    instance.data?.instanceId,
+    instance.data?.id,
     p.type == 'magic_mcp_server.update' ? p.magicMcpServerId : undefined
   );
 
   let serverDeployment = useProviderDeployment(
-    instance.data?.instanceId,
+    instance.data?.id,
     magicMcpServer.data
       ? magicMcpServer.data.serverDeployments[0].id
       : p.type == 'server_deployment.update'
@@ -96,7 +96,7 @@ let ServerDeploymentFormInternal = (
   let updateResource = resource == 'magic_mcp_server' ? magicMcpServer : serverDeployment;
 
   let listing = useProviderListing(
-    instance.data?.instanceId,
+    instance.data?.id,
     (serverDeployment.data as any)?.server?.id ??
       (serverDeployment.data as any)?.providerId ??
       p.for?.serverId
@@ -130,7 +130,7 @@ let ServerDeploymentFormInternal = (
   if (serverId && currentStep == 0) currentStep = 1;
 
   // In v2 API, providers have currentVersion directly (no variants)
-  let provider = useProvider(instance.data?.instanceId, serverId);
+  let provider = useProvider(instance.data?.id, serverId);
 
   let providerNeedsConfig = false; // Schema is no longer directly on provider version in the new API
 
@@ -189,7 +189,7 @@ let ServerDeploymentFormInternal = (
             name: values.name || '',
             description: values.description,
             metadata: { ...values.metadata, ...(config ? { config } : {}) },
-            instanceId: instance.data?.instanceId!,
+            instanceId: instance.data?.id!,
             providerId
           });
 
@@ -507,7 +507,7 @@ let ServerDeploymentFormInternal = (
 
               return (
                 <AuthStep
-                  instanceId={instance.data.instanceId}
+                  instanceId={instance.data.id}
                   providerId={createdDeployment.providerId}
                   deploymentId={createdDeployment.id}
                   onComplete={handleAuthComplete}

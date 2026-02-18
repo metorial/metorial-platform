@@ -41,7 +41,7 @@ export let SessionConnectionStatusBadge = ({
 
 export let MagicSessionsTable = (filter: MagicMcpSessionsListQuery) => {
   let instance = useCurrentInstance();
-  let sessions = useMagicMcpSessions(instance.data?.instanceId, {
+  let sessions = useMagicMcpSessions(instance.data?.id, {
     ...filter,
     order: (filter as { order?: string }).order ?? 'desc'
   });

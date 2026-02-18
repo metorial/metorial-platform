@@ -119,7 +119,7 @@ export let CustomServerManagedCreateForm = (p: {
             `  "hello",`,
             `  "Return a simple greeting.",`,
             `  async () => ({`,
-            `    content: [{ type: "text", text: "Hello from Metorial managed provider." }]`,
+            `    content: [{ type: "text", text: "Hello from Metorial custom provider." }]`,
             `  })`,
             `);`,
             ``,
@@ -132,7 +132,7 @@ export let CustomServerManagedCreateForm = (p: {
           filename: 'package.json',
           content: `${JSON.stringify(
             {
-              name: 'managed-provider',
+              name: 'custom-provider',
               private: true,
               version: '1.0.0',
               main: 'index.ts',
@@ -148,7 +148,7 @@ export let CustomServerManagedCreateForm = (p: {
       ];
 
       let [customServerRes] = await createCustomServer.mutate({
-        instanceId: instance.data.instanceId,
+        instanceId: instance.data.id,
         name: values.name,
         description: values.description,
         from: {
@@ -165,7 +165,7 @@ export let CustomServerManagedCreateForm = (p: {
         for (let i = 0; i < 5; i++) {
           let [versionsRes] = await listServerVersions.mutate({
             limit: 1,
-            instanceId: instance.data.instanceId,
+            instanceId: instance.data.id,
             customServerId: customServerRes.id
           });
           if (versionsRes && versionsRes.items.length > 0) {

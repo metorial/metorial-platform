@@ -23,9 +23,9 @@ export let showCustomServerRemoteFormModal = (p: {
 
         {p.type == 'managed' && (
           <>
-            <Dialog.Title>Create Managed Provider</Dialog.Title>
+            <Dialog.Title>Create Custom Provider</Dialog.Title>
             <Dialog.Description>
-              Create a new managed MCP provider powered by Metorial.
+              Create a new custom MCP provider powered by Metorial.
             </Dialog.Description>
 
             <CustomServerManagedCreateForm {...p} close={close} onCreate={p.onCreate} />

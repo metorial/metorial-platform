@@ -59,6 +59,7 @@ export type ServersCapabilitiesListOutput = {
   tools: {
     mcpServerId: string;
     name: string;
+    title?: string | undefined;
     description?: string | undefined;
     inputSchema?: any | undefined;
     outputSchema?: any | undefined;
@@ -67,6 +68,7 @@ export type ServersCapabilitiesListOutput = {
   prompts: {
     mcpServerId: string;
     name: string;
+    title?: string | undefined;
     description?: string | undefined;
     arguments?: any | undefined;
   }[];
@@ -74,6 +76,7 @@ export type ServersCapabilitiesListOutput = {
     mcpServerId: string;
     uriTemplate: string;
     name: string;
+    title?: string | undefined;
     description?: string | undefined;
     mimeType?: string | undefined;
   }[];
@@ -230,6 +233,7 @@ export let mapServersCapabilitiesListOutput =
         mtMap.object({
           mcpServerId: mtMap.objectField('mcp_server_id', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
+          title: mtMap.objectField('title', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           inputSchema: mtMap.objectField('input_schema', mtMap.passthrough()),
           outputSchema: mtMap.objectField('output_schema', mtMap.passthrough()),
@@ -243,6 +247,7 @@ export let mapServersCapabilitiesListOutput =
         mtMap.object({
           mcpServerId: mtMap.objectField('mcp_server_id', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
+          title: mtMap.objectField('title', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           arguments: mtMap.objectField('arguments', mtMap.passthrough())
         })
@@ -255,6 +260,7 @@ export let mapServersCapabilitiesListOutput =
           mcpServerId: mtMap.objectField('mcp_server_id', mtMap.passthrough()),
           uriTemplate: mtMap.objectField('uri_template', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
+          title: mtMap.objectField('title', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           mimeType: mtMap.objectField('mime_type', mtMap.passthrough())
         })

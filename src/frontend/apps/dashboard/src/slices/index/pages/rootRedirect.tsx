@@ -23,7 +23,7 @@ export let RootRedirect = () => {
         );
         let orgInstances = boot.data.instances.filter(i => i.organizationId === org?.id);
 
-        let instance = orgInstances.find(i => i.instanceId === lastInstanceId);
+        let instance = orgInstances.find(i => i.id === lastInstanceId);
         if (!instance) instance = orgInstances[0];
 
         if (instance && org) {
@@ -33,7 +33,7 @@ export let RootRedirect = () => {
         }
       }
 
-      let instance = boot.data.instances.find(i => i.instanceId === lastInstanceId);
+      let instance = boot.data.instances.find(i => i.id === lastInstanceId);
 
       if (instance) {
         navigate(Paths.instance(instance.organization, instance.project, instance, path), {

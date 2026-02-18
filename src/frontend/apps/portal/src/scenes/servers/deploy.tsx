@@ -181,7 +181,7 @@ export let deployServer = async ({
   template: ServersDeploymentsTemplatesGetOutput;
   onComplete?: (magicMcpServer: DashboardInstanceMagicMcpServersCreateOutput) => void;
 }) => {
-  let currentVersion = server.currentVersion;
+  let currentVersion = server.variants?.[0]?.currentVersion;
   if (!currentVersion) return;
 
   let serverNeedsConfig =

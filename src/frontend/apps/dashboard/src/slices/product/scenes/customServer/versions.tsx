@@ -15,7 +15,7 @@ export let CustomServerVersionsTable = (
   }
 ) => {
   let instance = useCurrentInstance();
-  let versions = useCustomServerVersions(instance.data?.instanceId, filter.customServer?.id, {
+  let versions = useCustomServerVersions(instance.data?.id, filter.customServer?.id, {
     ...filter,
     order: 'desc'
   });

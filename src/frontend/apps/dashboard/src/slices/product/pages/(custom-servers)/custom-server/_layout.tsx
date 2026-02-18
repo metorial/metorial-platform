@@ -21,7 +21,7 @@ export let CustomServerLayout = () => {
   let organization = useCurrentOrganization();
 
   let { customServerId } = useParams();
-  let customServer = useCustomServer(instance.data?.instanceId, customServerId);
+  let customServer = useCustomServer(instance.data?.id, customServerId);
 
   let navigate = useNavigate();
   useEffect(() => {
@@ -52,7 +52,7 @@ export let CustomServerLayout = () => {
             label:
               customServer.data?.status == 'active'
                 ? 'External Providers'
-                : 'Managed Providers',
+                : 'Custom Providers',
             href:
               customServer.data?.status == 'active'
                 ? Paths.instance.externalServers(

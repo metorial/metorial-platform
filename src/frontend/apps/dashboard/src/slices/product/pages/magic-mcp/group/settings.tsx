@@ -10,7 +10,7 @@ export let MagicMcpGroupSettingsPage = () => {
   let navigate = useNavigate();
 
   let { magicMcpGroupId } = useParams();
-  let group = useMagicMcpGroup(instance.data?.instanceId, magicMcpGroupId);
+  let group = useMagicMcpGroup(instance.data?.id, magicMcpGroupId);
 
   let updateMutator = group.useUpdateMutator();
   let deleteMutator = group.useDeleteMutator();
