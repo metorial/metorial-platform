@@ -14,6 +14,7 @@ export type DashboardInstanceSessionsCreateOutput = {
   };
   metadata: Record<string, any> | null;
   connectionUrl: string | null;
+  connectionKey: string | null;
   providerDeployments: {
     object: 'session.provider_deployment#preview';
     id: string;
@@ -55,6 +56,7 @@ export let mapDashboardInstanceSessionsCreateOutput =
     ),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     connectionUrl: mtMap.objectField('connection_url', mtMap.passthrough()),
+    connectionKey: mtMap.objectField('connection_key', mtMap.passthrough()),
     providerDeployments: mtMap.objectField(
       'provider_deployments',
       mtMap.array(

@@ -1,6 +1,8 @@
 import { convertKeysToCamelCase } from '@metorial/case';
 import { getConfig } from '@metorial/config';
+import { Instance, Organization, OrganizationActor } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
+import { apiKeyService } from '@metorial/module-machine-access';
 import { subspaceSessionService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -19,6 +21,28 @@ let withConnectionUrl = (session: any, _instance: any) => ({
   ...session,
   connectionUrl: `${getConfig().urls.mcpUrl}/mcp/${session.id}`
 });
+
+let createSessionConnectionKey = async (d: {
+  sessionId: string;
+  instance: Instance;
+  organization: Organization;
+  actor: OrganizationActor;
+  context: { ip: string; ua?: string | null };
+}) => {
+  let { secret } = await apiKeyService.createApiKey({
+    input: {
+      name: `Session ${d.sessionId}`
+    },
+    context: d.context,
+    kind: 'system_internal',
+    type: 'instance_access_token_secret',
+    instance: d.instance,
+    organization: d.organization,
+    performedBy: d.actor
+  });
+
+  return secret.secret;
+};
 
 export let providerSessionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionId) {
@@ -133,8 +157,19 @@ export let providerSessionController = Controller.create(
           }))
         });
 
+        let connectionKey = await createSessionConnectionKey({
+          sessionId: subspaceSession.id,
+          instance: ctx.instance,
+          organization: ctx.organization,
+          actor: ctx.actor,
+          context: { ip: ctx.context.ip, ua: ctx.context.ua }
+        });
+
         return providerSessionPresenter.present({
-          session: withConnectionUrl(subspaceSession, ctx.instance)
+          session: {
+            ...withConnectionUrl(subspaceSession, ctx.instance),
+            connectionKey
+          }
         });
       }),
 

@@ -92,6 +92,9 @@ export let InspectorFrame = ({
     url.searchParams.set('transport_type', 'sse');
     url.searchParams.set('direction', 'vertical');
 
+    if (session.data.connectionKey)
+      url.searchParams.set('bearer_token', session.data.connectionKey);
+
     return url.toString();
   }, [session.data]);
 

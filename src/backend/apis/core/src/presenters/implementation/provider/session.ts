@@ -25,6 +25,7 @@ export let v1ProviderSessionPresenter = Presenter.create(providerSessionType)
       },
       metadata: session.metadata,
       connection_url: session.connectionUrl ?? null,
+      connection_key: session.connectionKey ?? null,
       provider_deployments: (session.providers ?? []).map(p => ({
         object: 'session.provider_deployment#preview' as const,
         id: p.id,
@@ -94,6 +95,12 @@ export let v1ProviderSessionPresenter = Presenter.create(providerSessionType)
           examples: [
             'https://mcp.metorial.com/mcp/ses_4dEfGhJkLmNpQrSt'
           ]
+        })
+      ),
+      connection_key: v.nullable(
+        v.string({
+          name: 'connection_key',
+          description: 'API key for authenticating MCP proxy connections to this session'
         })
       ),
       provider_deployments: v.array(

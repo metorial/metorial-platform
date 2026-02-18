@@ -818,6 +818,7 @@ export interface SubspaceSession {
   };
   providers?: SubspaceSessionProvider[];
   connectionUrl?: string;
+  connectionKey?: string;
   createdAt: Date;
   updatedAt: Date;
 }
