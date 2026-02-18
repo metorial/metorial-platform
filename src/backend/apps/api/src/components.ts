@@ -11,7 +11,6 @@ import { initLogger } from '@metorial/logging';
 let apiPort = parseInt(process.env.API_PORT || '4310');
 let mcpPort = parseInt(process.env.MCP_PORT || '4311');
 let oauthPort = parseInt(process.env.OAUTH_PORT || '4313');
-let portalPort = parseInt(process.env.PORTAL_PORT || '4315');
 let runnerPort = parseInt(process.env.RUNNER_PORT || '3399');
 let privateApiPort = parseInt(process.env.PRIVATE_API_PORT || '4314');
 let marketplaceApiPort = parseInt(process.env.MARKETPLACE_API_PORT || '4312');
@@ -45,11 +44,6 @@ Bun.serve({
 Bun.serve({
   port: marketplaceApiPort,
   fetch: marketplaceApp.fetch
-});
-
-Bun.serve({
-  port: portalPort,
-  fetch: portalApp.fetch
 });
 
 console.log(`Listening on port ${apiPort}`);

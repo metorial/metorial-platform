@@ -1,4 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
+import { subspaceReferenceAuthExportService } from '@metorial/module-subspace-reference';
 import { subspaceProviderAuthExportService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -6,7 +7,7 @@ import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthExportPresenter } from '../../presenters';
-import { SubspaceAuthExport } from '../../presenters/types';
+
 import { providerAuthConfigGroup } from './providerAuthConfig';
 
 export let providerAuthExportGroup = providerAuthConfigGroup.use(async ctx => {
@@ -62,7 +63,7 @@ export let providerAuthExportController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, authExport =>
-          providerAuthExportPresenter.present({ authExport: authExport as SubspaceAuthExport })
+          providerAuthExportPresenter.present({ authExport })
         );
       }),
 
@@ -115,9 +116,18 @@ export let providerAuthExportController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerAuthExportPresenter.present({
-          authExport: authExport as SubspaceAuthExport
-        });
+        await subspaceReferenceAuthExportService
+          .create({
+            instance: ctx.instance,
+            authExport: {
+              id: authExport.id,
+              providerAuthConfigId: ctx.authConfig.id,
+              createdAt: authExport.createdAt
+            }
+          })
+          .catch(err => console.error('Failed to store subspace reference:', err));
+
+        return providerAuthExportPresenter.present({ authExport });
       })
   }
 );

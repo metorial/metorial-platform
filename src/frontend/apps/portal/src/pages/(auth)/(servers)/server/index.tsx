@@ -14,7 +14,7 @@ export let ServerPage = () => {
 
   return renderWithLoader({ server, listing, readme })(({ server, listing, readme }) => (
     <>
-      {!server.data?.variants?.some(v => v.currentVersion) && (
+      {!server.data?.currentVersion && (
         <>
           <Callout color="orange">
             <span>This server isn't supported by Metorial yet.</span>

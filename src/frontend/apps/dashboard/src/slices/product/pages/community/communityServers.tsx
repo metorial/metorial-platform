@@ -10,7 +10,7 @@ export let CommunityServersPage = () => {
     <ContentLayout>
       <PageHeader
         title="Community Providers"
-        description="Community providers are remote or custom providers that you have published for other Metorial users to access."
+        description="Community providers are remote or managed providers that you have published for other Metorial users to access."
       ></PageHeader>
 
       <ServersTable

@@ -28,12 +28,12 @@ export let SetupProviderPage = () => {
           return;
         }
         navigate(
-          Paths.instance.providerDeployment(
+          `${Paths.instance.providerDeployment(
             instance.data.organization,
             instance.data.project,
             instance.data,
             deployment.id
-          )
+          )}?auth=setup`
         );
       },
       onClose: () => {

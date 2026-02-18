@@ -89,8 +89,8 @@ export let ProviderConnection = ({
     endedAt?: Date | null;
   };
   providerName?: string;
-  messageItems?: { component: React.ReactNode; time: Date; order?: number }[];
-  eventItems?: { component: React.ReactNode; time: Date; order?: number }[];
+  messageItems?: { component: React.ReactNode; time: Date }[];
+  eventItems?: { component: React.ReactNode; time: Date }[];
 }) => {
   let [isCollapsed, setIsCollapsed] = useState(true);
 

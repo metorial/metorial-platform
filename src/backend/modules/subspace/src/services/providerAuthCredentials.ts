@@ -14,7 +14,7 @@ export let subspaceProviderAuthCredentialsService = createSubspaceService(
           instance: params[0].instance,
           authCredentials: {
             id: authCredentials.id,
-            providerId: params[0].providerId,
+            providerId: authCredentials.providerId,
             providerAuthMethodId: null,
             name: authCredentials.name,
             createdAt: authCredentials.createdAt
@@ -27,6 +27,4 @@ export let subspaceProviderAuthCredentialsService = createSubspaceService(
   })
 );
 
-export type SubspaceProviderAuthCredentials = Awaited<
-  ReturnType<typeof subspace.providerAuthCredentials.get>
->;
+export type SubspaceProviderAuthCredentials = Awaited<ReturnType<typeof subspace.providerAuthCredentials.get>>;

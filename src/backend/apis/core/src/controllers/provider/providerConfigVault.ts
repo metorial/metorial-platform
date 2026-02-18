@@ -1,4 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
+import { subspaceReferenceConfigVaultService } from '@metorial/module-subspace-reference';
 import { subspaceProviderConfigVaultService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -6,7 +7,7 @@ import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerConfigVaultPresenter } from '../../presenters';
-import { SubspaceConfigVault } from '../../presenters/types';
+
 import { providerDeploymentGroup } from './providerDeployment';
 
 export let providerConfigVaultGroup = providerDeploymentGroup.use(async ctx => {
@@ -58,9 +59,7 @@ export let providerConfigVaultController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, configVault =>
-          providerConfigVaultPresenter.present({
-            configVault: configVault as SubspaceConfigVault
-          })
+          providerConfigVaultPresenter.present({ configVault })
         );
       }),
 
@@ -125,9 +124,20 @@ export let providerConfigVaultController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerConfigVaultPresenter.present({
-          configVault: configVault as SubspaceConfigVault
-        });
+        await subspaceReferenceConfigVaultService
+          .create({
+            instance: ctx.instance,
+            configVault: {
+              id: configVault.id,
+              providerId: ctx.deployment.providerId,
+              providerDeploymentId: ctx.deployment?.id,
+              name: configVault.name,
+              createdAt: configVault.createdAt
+            }
+          })
+          .catch(err => console.error('Failed to store subspace reference:', err));
+
+        return providerConfigVaultPresenter.present({ configVault });
       }),
 
     update: providerConfigVaultGroup
@@ -165,31 +175,9 @@ export let providerConfigVaultController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerConfigVaultPresenter.present({
-          configVault: configVault as SubspaceConfigVault
-        });
+        return providerConfigVaultPresenter.present({ configVault });
       }),
 
-    delete: providerConfigVaultGroup
-      .delete(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/config-vaults/:providerConfigVaultId',
-          'providerDeployments.configVaults.delete'
-        ),
-        {
-          name: 'Delete provider config vault',
-          description: 'Permanently deletes a provider config vault.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
-      .output(providerConfigVaultPresenter)
-      .do(async ctx => {
-        await subspaceProviderConfigVaultService.delete({
-          instance: ctx.instance,
-          providerConfigVaultId: ctx.configVault.id
-        });
-
-        return providerConfigVaultPresenter.present({ configVault: ctx.configVault });
-      })
+    // delete handler removed: delete method not available on subspaceProviderConfigVaultService
   }
 );

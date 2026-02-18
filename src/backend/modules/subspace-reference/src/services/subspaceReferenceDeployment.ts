@@ -27,10 +27,7 @@ class SubspaceReferenceDeploymentServiceImpl {
   async delete(input: { instance: Instance; id: string }) {
     return db.subspaceReferenceDeployment.delete({
       where: {
-        instanceOid_id: {
-          instanceOid: input.instance.oid,
-          id: input.id
-        }
+        id: input.id
       }
     });
   }

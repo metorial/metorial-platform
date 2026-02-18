@@ -1,34 +1,8 @@
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useSessions } from '@metorial/state';
-import { Badge, RenderDate, Text, theme } from '@metorial/ui';
+import { RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-
-export let ProviderSessionStatusBadge = ({ status }: { status: string }) => {
-  let statusColorMap: Record<string, 'orange' | 'red' | 'blue' | 'green' | 'gray'> = {
-    connected: 'blue',
-    active: 'green',
-    running: 'orange',
-    failed: 'red',
-    completed: 'blue',
-    stopped: 'gray',
-    disconnected: 'gray'
-  };
-  let statusLabelMap: Record<string, string> = {
-    connected: 'Connected',
-    active: 'Active',
-    running: 'Running',
-    failed: 'Failed',
-    completed: 'Completed',
-    stopped: 'Stopped',
-    disconnected: 'Disconnected'
-  };
-  return (
-    <Badge size="1" color={statusColorMap[status ?? ''] ?? 'gray'}>
-      {statusLabelMap[status ?? ''] ?? status}
-    </Badge>
-  );
-};
 
 export let ProviderSessionsTable = ({
   instanceId,
@@ -66,18 +40,8 @@ export let ProviderSessionsTable = ({
                 </Text>
               )}
             </Text>,
-            <ProviderSessionStatusBadge status={session.connectionStatus} />,
-            <Text size="2">
-              {session.providerDeployments?.length
-                ? session.providerDeployments
-                    .slice(0, 3)
-                    .map(dep => dep.name ?? dep.id.slice(0, 8))
-                    .join(', ') +
-                  (session.providerDeployments.length > 3
-                    ? `, +${session.providerDeployments.length - 3} more`
-                    : '')
-                : 'No providers'}
-            </Text>,
+            <Text size="2">{session.status}</Text>,
+            <Text size="2">{session.providerDeployments?.length ?? 0} providers</Text>,
             <RenderDate date={session.createdAt} />
           ],
           href: Paths.instance.providerSession(

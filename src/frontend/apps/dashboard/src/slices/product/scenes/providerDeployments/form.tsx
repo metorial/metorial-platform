@@ -60,7 +60,7 @@ export let ProviderDeploymentForm = (
           instance.data,
           result.id
         );
-        navigate(deploymentPath);
+        navigate(`${deploymentPath}?auth=setup`);
       }
 
       props.close?.();

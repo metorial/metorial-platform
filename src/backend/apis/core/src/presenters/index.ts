@@ -494,3 +494,5 @@ export let subspaceCustomProviderEnvironmentPresenter = declarePresenter(
     mt_2025_01_01_dashboard: v1CustomProviderEnvironmentPresenter,
   }
 );
+
+export { presentSubspaceSessionMessageAs } from './implementation/provider';

@@ -7,7 +7,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionConnectionPresenter } from '../../presenters';
-import { SubspaceSessionConnection } from '../../presenters/types';
+
 import { subspaceSessionGroup } from './subspaceSession';
 
 export let subspaceSessionConnectionGroup = subspaceSessionGroup.use(async ctx => {
@@ -60,17 +60,15 @@ export let subspaceSessionConnectionController = Controller.create(
         let paginator = await subspaceSessionConnectionService.list({
           instance: ctx.instance,
           sessionIds: [ctx.session.id],
-          status: ctx.query.status,
-          connectionState: ctx.query.connection_state,
+          status: ctx.query.status ? [ctx.query.status] as ('active' | 'archived')[] : undefined,
+          connectionState: ctx.query.connection_state ? [ctx.query.connection_state] as ('disconnected' | 'connected')[] : undefined,
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id)
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, sessionConnection =>
-          subspaceSessionConnectionPresenter.present({
-            sessionConnection: sessionConnection as SubspaceSessionConnection
-          })
+          subspaceSessionConnectionPresenter.present({ sessionConnection })
         );
       }),
 

@@ -7,6 +7,4 @@ export let subspaceSessionErrorGroupService = createSubspaceService(
   () => ({})
 );
 
-export type SubspaceSessionErrorGroup = Awaited<
-  ReturnType<typeof subspace.sessionErrorGroup.get>
->;
+export type SubspaceSessionErrorGroup = Awaited<ReturnType<typeof subspace.sessionErrorGroup.get>>;

@@ -1,7 +1,7 @@
 import {
   DashboardInstanceMagicMcpServersCreateOutput,
   ServersGetOutput
-} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { ServersDeploymentsTemplatesGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { useForm } from '@metorial/data-hooks';
 import { Button, Dialog, Entity, Input, Panel, showModal, Spacer } from '@metorial/ui';
@@ -181,7 +181,7 @@ export let deployServer = async ({
   template: ServersDeploymentsTemplatesGetOutput;
   onComplete?: (magicMcpServer: DashboardInstanceMagicMcpServersCreateOutput) => void;
 }) => {
-  let currentVersion = server.variants?.[0]?.currentVersion;
+  let currentVersion = server.currentVersion;
   if (!currentVersion) return;
 
   let serverNeedsConfig =

@@ -1,7 +1,7 @@
 import {
   ServersListingsGetOutput,
   ServersListingsListQuery
-} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_dashboard';
+} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';

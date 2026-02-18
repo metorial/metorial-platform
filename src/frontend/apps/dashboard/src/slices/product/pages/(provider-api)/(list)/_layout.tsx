@@ -587,7 +587,7 @@ export let ProviderDeploymentsListLayout = () => {
             }
           }}
         >
-          Create Auth Config
+          Connect
         </Button>
       );
     }

@@ -4,7 +4,7 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderListingGroupService = createSubspaceService(
   subspace.providerListingGroup,
-  ['get', 'list', 'create', 'update', 'addListing', 'removeListing'],
+  ['get', 'list', 'create', 'update', 'addProvider', 'removeProvider'],
   inner => ({
     create: async (...params: Parameters<typeof inner.create>) => {
       let group = await inner.create(...params);
@@ -26,6 +26,4 @@ export let subspaceProviderListingGroupService = createSubspaceService(
   })
 );
 
-export type SubspaceProviderListingGroup = Awaited<
-  ReturnType<typeof subspace.providerListingGroup.get>
->;
+export type SubspaceProviderListingGroup = Awaited<ReturnType<typeof subspace.providerListingGroup.get>>;

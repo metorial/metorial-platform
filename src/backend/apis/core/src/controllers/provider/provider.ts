@@ -53,8 +53,7 @@ export let providerController = Controller.create(
       )
       .do(async ctx => {
         let paginator = await subspaceProviderService.list({
-          instance: ctx.instance,
-          publisherIds: normalizeArrayParam(ctx.query.publisher_id)
+          instance: ctx.instance
         });
 
         let list = await paginator.run(ctx.query);

@@ -11,16 +11,16 @@ export let ManagedServersPage = () => {
     <>
       {!flags.data.flags['managed-servers-enabled'] ? (
         <ComingSoon
-          title="Custom Providers"
-          description="Deploy custom MCP providers on the same reliable infra that runs every MCP provider on Metorial. Implement custom behavior or fork existing providers."
+          title="Managed MCP Servers"
+          description="Deploy custom MCP servers on the same reliable infra that runs every MCP server on Metorial. Implement custom behavior or fork existing servers."
         />
       ) : !flags.data.flags['paid-custom-servers'] ? (
         <Upgrade
-          title="Custom Providers"
-          description="Deploy custom MCP providers on the same reliable infra that runs every MCP provider on Metorial. Implement custom behavior or fork existing providers."
+          title="Managed MCP Servers"
+          description="Deploy custom MCP servers on the same reliable infra that runs every MCP server on Metorial. Implement custom behavior or fork existing servers."
         />
       ) : (
-        <CustomServersTable type={['function', 'container']} withSearch />
+        <CustomServersTable type={['managed', 'docker']} withSearch />
       )}
     </>
   ));

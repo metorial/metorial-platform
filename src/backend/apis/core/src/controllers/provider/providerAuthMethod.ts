@@ -6,7 +6,7 @@ import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthMethodPresenter } from '../../presenters';
-import { SubspaceAuthMethod } from '../../presenters/types';
+
 import { providerGroup } from './provider';
 
 export let providerAuthMethodGroup = providerGroup.use(async ctx => {
@@ -58,7 +58,7 @@ export let providerAuthMethodController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, authMethod =>
-          providerAuthMethodPresenter.present({ authMethod: authMethod as SubspaceAuthMethod })
+          providerAuthMethodPresenter.present({ authMethod })
         );
       }),
 

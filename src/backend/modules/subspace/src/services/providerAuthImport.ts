@@ -14,9 +14,9 @@ export let subspaceProviderAuthImportService = createSubspaceService(
           instance: params[0].instance,
           authImport: {
             id: authImport.id,
-            providerId: params[0].providerId,
-            providerDeploymentId: authImport.providerDeploymentId,
-            providerAuthConfigId: authImport.providerAuthConfigId,
+            providerId: authImport.providerId,
+            providerDeploymentId: authImport.providerDeploymentId ?? null,
+            providerAuthConfigId: authImport.authConfig?.id ?? null,
             createdAt: authImport.createdAt
           }
         })
@@ -27,6 +27,4 @@ export let subspaceProviderAuthImportService = createSubspaceService(
   })
 );
 
-export type SubspaceProviderAuthImport = Awaited<
-  ReturnType<typeof subspace.providerAuthImport.get>
->;
+export type SubspaceProviderAuthImport = Awaited<ReturnType<typeof subspace.providerAuthImport.get>>;

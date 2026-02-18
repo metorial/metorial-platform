@@ -1,85 +1,166 @@
-import { renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useInstanceProviderAuthConfigs,
-  useProviderDeployments
+  withAuth
 } from '@metorial/state';
-import { RenderDate, Text, theme } from '@metorial/ui';
+import { Input, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useState } from 'react';
+import { useDebounced } from '../../../../../hooks/useDebounced';
+
+type AuthConnectionRow = {
+  key: string;
+  name: string | null;
+  type: string | null;
+  providerId: string;
+  providerDeploymentId: string | null;
+  createdAt: string | null;
+};
+
+let formatType = (type: string | null | undefined) => {
+  if (type === 'oauth_automated') return 'OAuth (Automated)';
+  if (type === 'oauth_manual') return 'OAuth (Manual)';
+  if (type === 'manual') return 'Manual';
+  return '\u2014';
+};
 
 export let ProviderAuthConfigsOverviewPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
-  let authConfigs = useInstanceProviderAuthConfigs(instance.data?.id);
-  let deployments = useProviderDeployments(instance.data?.id);
+  let [search, setSearch] = useState('');
+  let searchDebounced = useDebounced(search, 500);
+
+  let [rows, setRows] = useState<AuthConnectionRow[]>([]);
+  let [isLoading, setIsLoading] = useState(false);
+  let [error, setError] = useState<string | null>(null);
+  let [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    let onCreated = () => authConfigs.refetch?.();
+    let onCreated = () => setReloadKey(key => key + 1);
     window.addEventListener('provider-auth-config-created', onCreated);
     return () => window.removeEventListener('provider-auth-config-created', onCreated);
-  }, [authConfigs.refetch]);
+  }, []);
 
-  let deploymentById = useMemo(() => {
-    let map = new Map<string, { id: string; name: string | null }>();
-    for (let d of deployments.data?.items ?? []) {
-      map.set(d.id, { id: d.id, name: d.name });
-    }
-    return map;
-  }, [deployments.data?.items]);
+  useEffect(() => {
+    if (!instance.data) return;
 
-  let providerNameById = useMemo(() => {
-    let map = new Map<string, string>();
-    for (let d of deployments.data?.items ?? []) {
-      if (d.provider?.name) map.set(d.providerId, d.provider.name);
-    }
-    return map;
-  }, [deployments.data?.items]);
+    let isCanceled = false;
 
-  return renderWithPagination(authConfigs)(authConfigs => (
+    let load = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        let response = await withAuth(sdk =>
+          sdk.providers.authConfigs.list(instance.data!.id)
+        );
+
+        if (isCanceled) return;
+
+        let items = (response?.items ?? []) as any[];
+
+        let nextRows: AuthConnectionRow[] = items
+          .filter((config: any) => {
+            if (!searchDebounced.trim()) return true;
+            let q = searchDebounced.toLowerCase();
+            return (
+              (config.name ?? '').toLowerCase().includes(q) ||
+              (config.type ?? '').toLowerCase().includes(q) ||
+              (config.providerId ?? '').toLowerCase().includes(q)
+            );
+          })
+          .map((config: any) => ({
+            key: config.id,
+            name: config.name ?? null,
+            type: config.type ?? null,
+            providerId: config.providerId ?? '',
+            providerDeploymentId: config.providerDeploymentId ?? null,
+            createdAt: config.createdAt ?? null
+          }));
+
+        setRows(nextRows);
+      } catch (e: any) {
+        if (!isCanceled) {
+          setError(e?.data?.message || e?.message || 'Failed to load auth connections.');
+          setRows([]);
+        }
+      } finally {
+        if (!isCanceled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      isCanceled = true;
+    };
+  }, [instance.data?.id, reloadKey, searchDebounced]);
+
+  return renderWithLoader({ instance })(({ instance }) => (
     <>
-      <Table
-        headers={['Name', 'Type', 'Provider', 'Created']}
-        data={authConfigs.data.items.map(config => {
-          let deployment = config.providerDeploymentId
-            ? deploymentById.get(config.providerDeploymentId)
-            : undefined;
-
-          return {
-            href:
-              deployment && config.providerDeploymentId
-                ? Paths.instance.providerAuthConnection(
-                    organization.data as any,
-                    project.data as any,
-                    instance.data as any,
-                    config.providerDeploymentId,
-                    config.id
-                  )
-                : undefined,
-            data: [
-              <Text size="2" weight="strong">
-                {config.name ?? (
-                  <span style={{ color: theme.colors.gray600 }}>Unnamed</span>
-                )}
-              </Text>,
-              <Text size="2">{config.type}</Text>,
-              <Text size="2">
-                {providerNameById.get(config.providerId) ?? config.providerId}
-              </Text>,
-              <RenderDate date={config.createdAt} />
-            ]
-          };
-        })}
+      <Input
+        label="Search"
+        hideLabel
+        placeholder="Search auth connections..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
       />
 
-      {authConfigs.data.items.length === 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No auth configs found.
+      <Spacer size={15} />
+
+      {isLoading && (
+        <Text size="2" color="gray600">
+          Loading auth connections...
+        </Text>
+      )}
+
+      {error && (
+        <Text size="2" color="red500">
+          {error}
+        </Text>
+      )}
+
+      {!isLoading && rows.length > 0 && (
+        <Table
+          headers={['Name', 'Type', 'Provider', 'Created']}
+          data={rows.map(row => ({
+            href: row.providerDeploymentId
+              ? Paths.instance.providerAuthConnection(
+                  organization.data as any,
+                  project.data as any,
+                  instance.data as any,
+                  row.providerDeploymentId,
+                  row.key
+                )
+              : undefined,
+            data: [
+              <Text size="2" weight="strong">
+                {row.name || '\u2014'}
+              </Text>,
+              <Text size="2">{formatType(row.type)}</Text>,
+              <Text size="2">{row.providerId}</Text>,
+              row.createdAt ? (
+                <RenderDate date={row.createdAt} />
+              ) : (
+                <Text size="2" color="gray600">
+                  {'\u2014'}
+                </Text>
+              )
+            ]
+          }))}
+        />
+      )}
+
+      {!isLoading && !error && rows.length === 0 && (
+        <Text size="2" color="gray600">
+          No auth connections found. Complete an OAuth flow from the Explorer to create one.
         </Text>
       )}
     </>

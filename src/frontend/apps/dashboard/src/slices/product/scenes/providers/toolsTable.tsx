@@ -17,11 +17,11 @@ export let ProviderToolsTable = ({
   return renderWithPagination(tools)(tools => (
     <>
       <Table
-        headers={['Title', 'Name', 'Description']}
+        headers={['Name', 'Key', 'Description']}
         data={tools.data.items.map(tool => ({
           data: [
             <Text size="2" weight="strong">
-              {tool.title ?? tool.name ?? <span style={{ color: theme.colors.gray600 }}>Unnamed</span>}
+              {tool.name ?? <span style={{ color: theme.colors.gray600 }}>Unnamed</span>}
             </Text>,
             <Text size="2" style={{ fontFamily: 'monospace' }}>
               {tool.name}

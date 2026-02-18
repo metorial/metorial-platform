@@ -4,7 +4,7 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderConfigVaultService = createSubspaceService(
   subspace.providerConfigVault,
-  ['get', 'list', 'update', 'create', 'delete'],
+  ['get', 'list', 'update', 'create'],
   inner => ({
     create: async (...params: Parameters<typeof inner.create>) => {
       let configVault = await inner.create(...params);
@@ -14,33 +14,17 @@ export let subspaceProviderConfigVaultService = createSubspaceService(
           instance: params[0].instance,
           configVault: {
             id: configVault.id,
-            providerId: params[0].providerId,
-            providerDeploymentId: configVault.providerDeploymentId,
+            providerId: configVault.providerId,
+            providerDeploymentId: configVault.deploymentId?.id ?? null,
             name: configVault.name,
-            isEphemeral: configVault.isEphemeral,
             createdAt: configVault.createdAt
           }
         })
         .catch(err => console.error('Failed to store subspace reference:', err));
 
       return configVault;
-    },
-
-    delete: async (...params: Parameters<typeof inner.delete>) => {
-      let result = await inner.delete(...params);
-
-      await subspaceReferenceConfigVaultService
-        .delete({
-          instance: params[0].instance,
-          id: params[0].providerConfigVaultId
-        })
-        .catch(err => console.error('Failed to remove subspace reference:', err));
-
-      return result;
     }
   })
 );
 
-export type SubspaceProviderConfigVault = Awaited<
-  ReturnType<typeof subspace.providerConfigVault.get>
->;
+export type SubspaceProviderConfigVault = Awaited<ReturnType<typeof subspace.providerConfigVault.get>>;

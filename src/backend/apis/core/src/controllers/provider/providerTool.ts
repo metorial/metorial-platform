@@ -6,7 +6,7 @@ import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerToolPresenter } from '../../presenters';
-import { SubspaceTool } from '../../presenters/types';
+
 import { providerGroup } from './provider';
 
 export let providerToolGroup = providerGroup.use(async ctx => {
@@ -53,14 +53,13 @@ export let providerToolController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceProviderToolService.list({
           instance: ctx.instance,
-          providerId: ctx.provider.id,
-          providerVersion: ctx.query.provider_version_id
+          providerVersion: ctx.query.provider_version_id ?? ctx.provider.currentVersion!.id
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, tool =>
-          providerToolPresenter.present({ tool: tool as SubspaceTool })
+          providerToolPresenter.present({ tool })
         );
       }),
 

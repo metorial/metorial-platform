@@ -6,7 +6,7 @@ import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { sessionParticipantPresenter } from '../../presenters';
-import { SubspaceSessionParticipant } from '../../presenters/types';
+
 import { subspaceSessionGroup } from './subspaceSession';
 
 export let subspaceSessionParticipantGroup = subspaceSessionGroup.use(async ctx => {
@@ -52,15 +52,13 @@ export let subspaceSessionParticipantController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionParticipantService.list({
           instance: ctx.instance,
-          sessionId: ctx.session.id
+          sessionIds: [ctx.session.id]
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, sessionParticipant =>
-          sessionParticipantPresenter.present({
-            sessionParticipant: sessionParticipant as SubspaceSessionParticipant
-          })
+          sessionParticipantPresenter.present({ sessionParticipant })
         );
       }),
 

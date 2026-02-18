@@ -1,4 +1,4 @@
-import { MagicMcpServersListQuery } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { MagicMcpServersListQuery } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { Avatar, RenderDate, Text } from '@metorial/ui';
 import { ItemGrid, Table } from '@metorial/ui-product';

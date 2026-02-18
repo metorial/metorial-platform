@@ -7,7 +7,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionEventPresenter } from '../../presenters';
-import { SubspaceSessionEvent } from '../../presenters/types';
+
 import { subspaceSessionGroup } from './subspaceSession';
 
 export let subspaceSessionEventGroup = subspaceSessionGroup.use(async ctx => {
@@ -67,9 +67,7 @@ export let subspaceSessionEventController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, sessionEvent =>
-          subspaceSessionEventPresenter.present({
-            sessionEvent: sessionEvent as SubspaceSessionEvent
-          })
+          subspaceSessionEventPresenter.present({ sessionEvent })
         );
       }),
 

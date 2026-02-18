@@ -1,3 +1,4 @@
+import { subspaceReferenceSetupSessionService } from '@metorial/module-subspace-reference';
 import { subspaceProviderSetupSessionService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller, Path } from '@metorial/rest';
@@ -5,7 +6,7 @@ import { v } from '@metorial/validation';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { providerSetupSessionPresenter } from '../../presenters';
-import { SubspaceSetupSession } from '../../presenters/types';
+
 import { providerDeploymentGroup } from './providerDeployment';
 import { providerSetupSessionGroup } from './providerSetupSession';
 
@@ -45,15 +46,13 @@ export let providerSetupSessionDashboardController = Controller.create(
           instance: ctx.instance,
           providerIds: [ctx.deployment.providerId],
           providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id),
-          status: ctx.query.status
+          status: ctx.query.status ? [ctx.query.status] as ('completed' | 'failed' | 'pending' | 'expired' | 'archived')[] : undefined
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, setupSession =>
-          providerSetupSessionPresenter.present({
-            setupSession: setupSession as SubspaceSetupSession
-          })
+          providerSetupSessionPresenter.present({ setupSession })
         );
       }),
 
@@ -122,7 +121,7 @@ export let providerSetupSessionDashboardController = Controller.create(
           providerAuthCredentialsId: ctx.body.providerAuthCredentialsId,
           name: ctx.body.name ?? 'Setup Session',
           description: ctx.body.description,
-          uiMode: 'metorial_elements',
+          uiMode: 'dashboard_embeddable',
           type: 'auth_only',
           ip: ctx.context.ip,
           ua: ctx.context.ua ?? '',
@@ -130,9 +129,21 @@ export let providerSetupSessionDashboardController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerSetupSessionPresenter.present({
-          setupSession: setupSession as SubspaceSetupSession
-        });
+        await subspaceReferenceSetupSessionService
+          .create({
+            instance: ctx.instance,
+            setupSession: {
+              id: setupSession.id,
+              providerId: ctx.deployment.providerId,
+              providerDeploymentId: ctx.deployment?.id,
+              providerAuthMethodId: ctx.body.providerAuthMethodId,
+              name: setupSession.name,
+              createdAt: setupSession.createdAt
+            }
+          })
+          .catch(err => console.error('Failed to store subspace reference:', err));
+
+        return providerSetupSessionPresenter.present({ setupSession });
       }),
 
     update: providerSetupSessionGroup
@@ -172,31 +183,9 @@ export let providerSetupSessionDashboardController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerSetupSessionPresenter.present({
-          setupSession: setupSession as SubspaceSetupSession
-        });
+        return providerSetupSessionPresenter.present({ setupSession });
       }),
 
-    delete: providerSetupSessionGroup
-      .delete(
-        Path(
-          '/dashboard/instances/:instanceId/provider-deployments/:providerDeploymentId/setup-sessions/:providerSetupSessionId',
-          'dashboard.instance.providerDeployments.setupSessions.delete'
-        ),
-        {
-          name: 'Delete provider setup session',
-          description: 'Deletes a provider setup session.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
-      .output(providerSetupSessionPresenter)
-      .do(async ctx => {
-        await subspaceProviderSetupSessionService.delete({
-          instance: ctx.instance,
-          providerSetupSessionId: ctx.setupSession.id
-        });
-
-        return providerSetupSessionPresenter.present({ setupSession: ctx.setupSession });
-      })
+    // delete handler removed: delete method not available on subspaceProviderSetupSessionService
   }
 );

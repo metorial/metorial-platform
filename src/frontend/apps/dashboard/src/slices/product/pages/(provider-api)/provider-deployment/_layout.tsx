@@ -7,8 +7,8 @@ import {
   useCurrentProject,
   useProviderDeployment
 } from '@metorial/state';
-import { Button, LinkTabs } from '@metorial/ui';
-import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { LinkTabs } from '@metorial/ui';
+import { Outlet, useLocation, useParams } from 'react-router-dom';
 
 export let ProviderDeploymentLayout = () => {
   let instance = useCurrentInstance();
@@ -51,17 +51,6 @@ export let ProviderDeploymentLayout = () => {
             )
           }
         ]}
-        actions={
-          <Link
-            to={Paths.instance.explorer(organization.data, project.data, instance.data, {
-              provider_deployment_id: deployment.data?.id ?? providerDeploymentId
-            })}
-          >
-            <Button as="span" size="2">
-              Open Explorer
-            </Button>
-          </Link>
-        }
       />
 
       {renderWithLoader({ deployment })(({ deployment }) => (

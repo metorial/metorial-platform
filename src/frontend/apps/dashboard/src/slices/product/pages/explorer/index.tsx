@@ -104,7 +104,6 @@ export let ExplorerPage = () => {
   let [search, setSearch] = useSearchParams();
   let providerIdParam = search.get('provider_id');
   let providerDeploymentIdParam = search.get('provider_deployment_id');
-  let sessionIdParam = search.get('session_id');
 
   let provider = useProvider(instance.data?.id, providerIdParam ?? undefined);
   let [selectedProvider, _setSelectedProvider] = useState<Provider | null>(null);
@@ -375,10 +374,7 @@ export let ExplorerPage = () => {
         )}
 
         {providerDeploymentId && (
-          <InspectorFrame
-            providerDeployment={{ id: providerDeploymentId }}
-            sessionId={sessionIdParam ?? undefined}
-          />
+          <InspectorFrame providerDeployment={{ id: providerDeploymentId }} />
         )}
       </Main>
 

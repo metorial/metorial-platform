@@ -15,7 +15,6 @@ import {
   RiServerLine
 } from '@remixicon/react';
 import { useMemo } from 'react';
-import useInterval from 'use-interval';
 import { useParams } from 'react-router-dom';
 import { Entry } from '../../../scenes/session/components/entry';
 import { ItemList } from '../../../scenes/session/components/itemList';
@@ -33,34 +32,21 @@ export let ProviderSessionLogsPage = () => {
   ));
 };
 
-let activeSessionStatuses = new Set(['active', 'running']);
-
 let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetOutput }) => {
   let instance = useCurrentInstance();
   let instanceId = instance.data?.id;
 
-  let sessionQuery = useSession(instanceId, session.id);
   let connections = useSessionConnections(instanceId, session.id, {
     limit: 100,
     order: 'asc'
   });
 
-  let messages = useSessionMessages(instanceId, session.id, { limit: 100, order: 'asc' });
-  let events = useSessionEvents(instanceId, session.id, { limit: 100, order: 'asc' });
-
-  let liveStatus = sessionQuery.data?.status ?? session.status;
-  let isActive = liveStatus ? activeSessionStatuses.has(liveStatus) : false;
-  useInterval(() => {
-    if (!isActive) return;
-
-    sessionQuery.refetch();
-    connections.refetch();
-    messages.refetch();
-    events.refetch();
-  }, 1000 * 3);
+  let messages = useSessionMessages(instanceId, session.id, { limit: 100 });
+  let events = useSessionEvents(instanceId, session.id, { limit: 100 });
 
   let aggregatedMessages = useAggregatedMessages(messages.data?.items);
 
+  // Find MCP client/server info from first connection
   let mcp = useMemo(() => {
     for (let conn of connections.data?.items ?? []) {
       let m = conn.mcp;
@@ -72,6 +58,7 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
 
   let connectionItems = connections.data?.items ?? [];
 
+  // Group messages by connectionId (mapped to serverSessionId)
   let messagesByConnection = useMemo(() => {
     let items = messages.data?.items ?? [];
     let map = new Map<string, typeof items>();
@@ -87,12 +74,13 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
     return map;
   }, [messages.data?.items]);
 
+  // Group events by connection (using raw connectionId from event data)
   let eventsByConnection = useMemo(() => {
     let eventItems = events.data?.items ?? [];
     let map = new Map<string, typeof eventItems>();
     for (let evt of eventItems) {
       let raw = evt as Record<string, unknown>;
-
+      // Events have connection info in the raw data
       let connId =
         (raw.connectionId as string) ??
         ((raw.connection as Record<string, unknown>)?.id as string) ??
@@ -107,30 +95,21 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
     return map;
   }, [events.data?.items]);
 
+  // Build message UI items for a specific connection
   let buildMessageItems = (connId: string) => {
     let connMessages = messagesByConnection.get(connId) ?? [];
-    return connMessages.map((msg, index) => {
-      let mcpMsg = msg.mcpMessage;
-      let msgId = mcpMsg?.id != null ? String(mcpMsg.id) : null;
-      let agg = msgId ? aggregatedMessages.get(msgId) : undefined;
-      let displayId =
-        mcpMsg?.originalId ??
-        agg?.originalId ??
-        (mcpMsg?.payload as Record<string, unknown>)?.id;
-      let numericId = displayId != null ? Number(displayId) : NaN;
-      return {
-        component: (
-          <Message
-            message={msg as Parameters<typeof Message>[0]['message']}
-            aggregatedMessages={aggregatedMessages}
-          />
-        ),
-        time: msg.createdAt,
-        order: !isNaN(numericId) ? numericId : index
-      };
-    });
+    return connMessages.map(msg => ({
+      component: (
+        <Message
+          message={msg as Parameters<typeof Message>[0]['message']}
+          aggregatedMessages={aggregatedMessages}
+        />
+      ),
+      time: msg.createdAt
+    }));
   };
 
+  // Build event UI items for a specific connection
   let buildEventItems = (connId: string) => {
     let connEvents = eventsByConnection.get(connId) ?? [];
     let items: { component: React.ReactNode; time: Date }[] = [];
@@ -179,6 +158,7 @@ let ProviderSessionLogs = ({ session }: { session: DashboardInstanceSessionsGetO
     return items;
   };
 
+  // Get provider name from session deployments
   let providers = session.providerDeployments ?? [];
   let providerName = providers[0]?.name ?? undefined;
 

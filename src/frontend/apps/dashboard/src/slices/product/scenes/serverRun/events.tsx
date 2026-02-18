@@ -79,7 +79,10 @@ export let ServerRunEvents = ({ serverRun }: { serverRun: ServerRunsGetOutput })
   let sessionId =
     (serverRun as any)?.sessionId ?? (serverRun as any)?.serverSession?.sessionId;
 
-  let errors = useSessionErrors(serverRun ? instance.data?.id : null, serverRun?.id ?? '');
+  let errors = useSessionErrors(
+    serverRun ? instance.data?.id : null,
+    serverRun?.id ?? ''
+  );
   let error = errors.data?.items[0];
 
   let eventItems = useEvents(sessionId, {

@@ -4,7 +4,7 @@ import { subspace } from '../subspace';
 
 export let subspaceProviderSetupSessionService = createSubspaceService(
   subspace.providerSetupSession,
-  ['get', 'list', 'create', 'update', 'delete'],
+  ['get', 'list', 'create', 'update'],
   inner => ({
     create: async (...params: Parameters<typeof inner.create>) => {
       let setupSession = await inner.create(...params);
@@ -14,9 +14,9 @@ export let subspaceProviderSetupSessionService = createSubspaceService(
           instance: params[0].instance,
           setupSession: {
             id: setupSession.id,
-            providerId: params[0].providerId,
-            providerDeploymentId: setupSession.providerDeploymentId,
-            providerAuthMethodId: params[0].providerAuthMethodId,
+            providerId: setupSession.providerId,
+            providerDeploymentId: setupSession.deployment?.id ?? null,
+            providerAuthMethodId: setupSession.authMethod?.id ?? '',
             name: setupSession.name,
             createdAt: setupSession.createdAt
           }
@@ -28,6 +28,4 @@ export let subspaceProviderSetupSessionService = createSubspaceService(
   })
 );
 
-export type SubspaceProviderSetupSession = Awaited<
-  ReturnType<typeof subspace.providerSetupSession.get>
->;
+export type SubspaceProviderSetupSession = Awaited<ReturnType<typeof subspace.providerSetupSession.get>>;

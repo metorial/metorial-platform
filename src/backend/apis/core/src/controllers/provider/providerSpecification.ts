@@ -5,7 +5,7 @@ import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerSpecificationPresenter } from '../../presenters';
-import { SubspaceSpecification } from '../../presenters/types';
+
 import { providerGroup } from './provider';
 
 export let providerSpecificationGroup = providerGroup.use(async ctx => {
@@ -53,9 +53,7 @@ export let providerSpecificationController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, specification =>
-          providerSpecificationPresenter.present({
-            specification: specification as SubspaceSpecification
-          })
+          providerSpecificationPresenter.present({ specification })
         );
       }),
 

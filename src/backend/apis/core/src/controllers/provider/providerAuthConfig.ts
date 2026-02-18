@@ -1,4 +1,5 @@
 import { badRequestError, ServiceError } from '@metorial/error';
+import { subspaceReferenceAuthConfigService } from '@metorial/module-subspace-reference';
 import { subspaceProviderAuthConfigService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -7,7 +8,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerAuthConfigPresenter } from '../../presenters';
-import { SubspaceAuthConfig } from '../../presenters/types';
+
 import { providerDeploymentGroup } from './providerDeployment';
 
 export let providerAuthConfigGroup = providerDeploymentGroup.use(async ctx => {
@@ -76,7 +77,7 @@ export let providerAuthConfigController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, authConfig =>
-          providerAuthConfigPresenter.present({ authConfig: authConfig as SubspaceAuthConfig })
+          providerAuthConfigPresenter.present({ authConfig })
         );
       }),
 
@@ -168,9 +169,22 @@ export let providerAuthConfigController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerAuthConfigPresenter.present({
-          authConfig: authConfig as SubspaceAuthConfig
-        });
+        await subspaceReferenceAuthConfigService
+          .create({
+            instance: ctx.instance,
+            authConfig: {
+              id: authConfig.id,
+              providerId: ctx.deployment.providerId,
+              providerDeploymentId: ctx.deployment?.id,
+              providerAuthMethodId: ctx.body.provider_auth_method_id,
+              name: authConfig.name,
+              isEphemeral: authConfig.isEphemeral,
+              createdAt: authConfig.createdAt
+            }
+          })
+          .catch(err => console.error('Failed to store subspace reference:', err));
+
+        return providerAuthConfigPresenter.present({ authConfig });
       }),
 
     update: providerAuthConfigGroup
@@ -212,32 +226,10 @@ export let providerAuthConfigController = Controller.create(
           ua: ctx.context.ua ?? ''
         });
 
-        return providerAuthConfigPresenter.present({
-          authConfig: authConfig as SubspaceAuthConfig
-        });
+        return providerAuthConfigPresenter.present({ authConfig });
       }),
 
-    delete: providerAuthConfigGroup
-      .delete(
-        instancePath(
-          'provider-deployments/:providerDeploymentId/auth-configs/:providerAuthConfigId',
-          'providerDeployments.authConfigs.delete'
-        ),
-        {
-          name: 'Delete provider auth config',
-          description: 'Permanently deletes a provider auth config.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
-      .output(providerAuthConfigPresenter)
-      .do(async ctx => {
-        await subspaceProviderAuthConfigService.delete({
-          instance: ctx.instance,
-          providerAuthConfigId: ctx.authConfig.id
-        });
-
-        return providerAuthConfigPresenter.present({ authConfig: ctx.authConfig });
-      })
+    // delete handler removed: delete method not available on subspaceProviderAuthConfigService
   }
 );
 
@@ -283,7 +275,7 @@ export let providerAuthConfigListController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, authConfig =>
-          providerAuthConfigPresenter.present({ authConfig: authConfig as SubspaceAuthConfig })
+          providerAuthConfigPresenter.present({ authConfig })
         );
       })
   }

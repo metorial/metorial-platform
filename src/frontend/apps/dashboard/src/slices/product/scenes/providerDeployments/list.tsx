@@ -98,7 +98,9 @@ export let ProviderDeploymentsList = ({
             return (
               <ItemButton
                 key={deployment.id}
-                onClick={() => onDeploymentClick?.(deployment as unknown as ProviderDeployment)}
+                onClick={() =>
+                  onDeploymentClick?.(deployment as unknown as ProviderDeployment)
+                }
                 type="button"
               >
                 {inner}

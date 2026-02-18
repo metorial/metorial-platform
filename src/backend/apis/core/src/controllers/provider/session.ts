@@ -1,6 +1,7 @@
 import { convertKeysToCamelCase } from '@metorial/case';
+import { getConfig } from '@metorial/config';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { buildSubspaceMcpUrl, subspaceSessionService } from '@metorial/module-subspace';
+import { subspaceSessionService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -13,12 +14,10 @@ import {
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerSessionPresenter } from '../../presenters';
-import { SubspaceSession } from '../../presenters/types';
 
-// @tobias put here or somewhere else?
-let withConnectionUrl = (session: any, instance: any): SubspaceSession => ({
+let withConnectionUrl = (session: any, _instance: any) => ({
   ...session,
-  connectionUrl: buildSubspaceMcpUrl(instance, session.id)
+  connectionUrl: `${getConfig().urls.mcpUrl}/mcp/${session.id}`
 });
 
 export let providerSessionGroup = instanceGroup.use(async ctx => {
@@ -66,7 +65,7 @@ export let providerSessionController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionService.list({
           instance: ctx.instance,
-          status: normalizeArrayParam(ctx.query.status)?.[0],
+          status: normalizeArrayParam(ctx.query.status) as ('active' | 'archived')[] | undefined,
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id)
         });

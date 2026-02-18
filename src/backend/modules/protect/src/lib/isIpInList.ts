@@ -12,7 +12,11 @@ export let isIpInList = (ip: string, allowList: string[]) => {
           let prefix = parseInt(prefixLength, 10);
 
           if (testIp.kind() !== parsedRange.kind()) continue;
-          if (testIp.match(parsedRange, prefix)) return true;
+          if (testIp.kind() === 'ipv4') {
+            if ((testIp as ipaddr.IPv4).match(parsedRange as ipaddr.IPv4, prefix)) return true;
+          } else {
+            if ((testIp as ipaddr.IPv6).match(parsedRange as ipaddr.IPv6, prefix)) return true;
+          }
         } else {
           let parsedRule = ipaddr.process(rule);
 
