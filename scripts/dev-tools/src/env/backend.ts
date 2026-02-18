@@ -63,16 +63,6 @@ export let backendEnv: Env = [
   { key: 'SAML_AUDIENCE', defaultValue: 'https://sso.development.metorial.work' },
 
   {
-    key: 'SSO_SERVICE_RPC_URL',
-    defaultValue: `http://localhost:4341`
-  },
-
-  {
-    key: 'CODE_WORKSPACE_SERVICE_ADDRESS',
-    defaultValue: `http://localhost:4041`
-  },
-
-  {
     key: 'SUBSPACE_SOLUTION',
     defaultValue: 'metorial-enterprise'
   },
@@ -161,32 +151,13 @@ export let backendEnv: Env = [
     key: 'MCP_URL',
     defaultValue: `http://${HOSTNAME}:4311`
   },
-  {
-    key: 'PROVIDER_OAUTH_URL',
-    defaultValue: `http://${HOSTNAME}:4313`
-  },
-  { key: 'AUTH_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4301`, isEnterprise: true },
-  { key: 'TEAM_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4303`, isEnterprise: true },
   { key: 'DASHBOARD_FRONTEND_HOST', defaultValue: `http://${HOSTNAME}:4300` },
   {
     key: 'PORTALS_URL',
     defaultValue: `http://${HOSTNAME}:4315`
   },
-  {
-    key: 'INTEGRATIONS_API_URL',
-    defaultValue: `http://${HOSTNAME}:4316`
-  },
-  {
-    key: 'CALLBACKS_URL',
-    defaultValue: `http://${HOSTNAME}:4317`
-  },
 
   { key: 'COOKIE_DOMAIN', defaultValue: `${HOSTNAME}`, isEnterprise: true },
-
-  { key: 'EARLY_ACCESS_XATA_API_KEY', isEnterprise: true },
-
-  { key: 'RESEND_API_KEY', isEnterprise: true },
-  { key: 'BREVO_API_KEY', isEnterprise: true },
 
   { key: 'LEMON_SQUEEZY_DEV_STORE_ID', isEnterprise: true },
   { key: 'LEMON_SQUEEZY_DEV_API_KEY', isEnterprise: true },
@@ -196,17 +167,6 @@ export let backendEnv: Env = [
   { key: 'STRIPE_DEV_PUBLISHABLE_API_KEY', isEnterprise: true },
   { key: 'STRIPE_DEV_WEBHOOK_SECRET', isEnterprise: true },
 
-  { key: 'SUPPORT_CRISP_WEBSITE_ID', isEnterprise: true },
-  { key: 'SUPPORT_CRISP_TOKEN_ID', isEnterprise: true },
-  { key: 'SUPPORT_CRISP_TOKEN_KEY', isEnterprise: true },
-
-  { key: 'OAUTH_GITHUB_CLIENT_ID', isEnterprise: true },
-  { key: 'OAUTH_GITHUB_CLIENT_SECRET', isEnterprise: true },
-  { key: 'OAUTH_GITHUB_REDIRECT_URI', isEnterprise: true },
-  { key: 'OAUTH_GOOGLE_CLIENT_ID', isEnterprise: true },
-  { key: 'OAUTH_GOOGLE_CLIENT_SECRET', isEnterprise: true },
-  { key: 'OAUTH_GOOGLE_REDIRECT_URI', isEnterprise: true },
-
   { key: 'ENTERPRISE_FILES_DATABASE_URL', isEnterprise: true },
   { key: 'ENTERPRISE_FILES_SIGNATURE_PASSWORD', isEnterprise: true },
   { key: 'ENTERPRISE_FILES_HOST', isEnterprise: true },
@@ -214,38 +174,14 @@ export let backendEnv: Env = [
   { key: 'STATSIG_API_KEY', isEnterprise: true },
   { key: 'STATSIG_ENVIRONMENT', isEnterprise: true },
 
-  {
-    key: 'ISLANDS_METORIAL_HOSTED_FED_DEFAULT_ADDRESS',
-    defaultValue: 'http://localhost:4201/',
-    isEnterprise: true
-  },
-  { key: 'FEDERATION_ADDRESS', defaultValue: 'http://localhost:4200/', isEnterprise: true },
-  {
-    key: 'ISLAND_IDENTIFIER',
-    defaultValue: 'metorial_hosted_fed_default',
-    isEnterprise: true
-  },
-  { key: 'ISLAND_PORT', defaultValue: '4201', isEnterprise: true },
-  { key: 'FEDERATION_PORT', defaultValue: '4200', isEnterprise: true },
-
   { key: 'ALGOLIA_APP_ID', isEnterprise: false, isRequired: false },
   { key: 'ALGOLIA_ADMIN_KEY', isEnterprise: false, isRequired: false },
-
-  { key: 'SLACK_INVITE_BOT_TOKEN', isEnterprise: true, isRequired: false },
-
-  { key: 'DENO_DEPLOY_TOKEN', isEnterprise: true },
-  { key: 'DENO_ORGANIZATION_ID', isEnterprise: true },
-
-  { key: 'SCM_GITHUB_CLIENT_ID', isEnterprise: false },
-  { key: 'SCM_GITHUB_CLIENT_SECRET', isEnterprise: false },
 
   { key: 'AWS_ACCESS_KEY_ID' },
   { key: 'AWS_SECRET_ACCESS_KEY' },
   { key: 'AWS_REGION' },
   { key: 'AWS_ACCOUNT_ID' },
-  { key: 'LAMBDA_DEPLOY_RESOURCE_PREFIX' },
 
-  { key: 'ENABLE_EMAIL_CAMPAIGNS', isEnterprise: true, defaultValue: 'true' },
   { key: 'BILLING_ENABLED', isEnterprise: true, defaultValue: 'true' },
   { key: 'SUPPORT_ENABLED', isEnterprise: true, defaultValue: 'true' },
   { key: 'CHROME_SIDEBAR_DOCS_ENABLED', isEnterprise: true, defaultValue: 'true' },
