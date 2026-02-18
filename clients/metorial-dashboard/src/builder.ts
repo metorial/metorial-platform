@@ -8,14 +8,14 @@ export type MetorialKeyPrefix =
   | 'metorial_pk_';
 
 export let sdkBuilder = MetorialSDKBuilder.create<
-  '2026-02-01-dashboard',
+  '2025-01-01-dashboard',
   {
-    apiVersion: '2026-02-01-dashboard';
+    apiVersion: '2025-01-01-dashboard';
     apiKey?: `${MetorialKeyPrefix}${string}` | string;
     headers?: Record<string, string>;
     apiHost?: string;
   }
->('metorial-management-api', '2026-02-01-dashboard')
+>('metorial-management-api', '2025-01-01-dashboard')
   .setGetApiHost(config => config.apiHost ?? 'https://api.metorial.com')
   .setGetHeaders(config => ({
     'Metorial-Version': config.apiVersion,

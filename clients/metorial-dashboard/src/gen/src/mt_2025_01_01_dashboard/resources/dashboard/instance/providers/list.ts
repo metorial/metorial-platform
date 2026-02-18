@@ -1,62 +1,76 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
-export type DashboardOrganizationsInstancesListOutput = {
+export type DashboardInstanceProvidersListOutput = {
   items: {
-    object: 'organization.instance';
+    object: 'provider';
     id: string;
-    slug: string;
     name: string;
-    organizationId: string;
-    type: 'development' | 'production';
-    createdAt: Date;
-    updatedAt: Date;
-    project: {
-      object: 'organization.project';
+    description: string | null;
+    slug: string;
+    publisher: {
+      object: 'provider.publisher';
       id: string;
-      status: 'active' | 'deleted';
-      slug: string;
       name: string;
-      organizationId: string;
+      description: string | null;
+      slug: string;
+      imageUrl: string | null;
       createdAt: Date;
       updatedAt: Date;
-    };
+    } | null;
+    currentVersion: {
+      object: 'provider.version';
+      id: string;
+      version: string;
+      status: string;
+      createdAt: Date;
+      updatedAt: Date;
+    } | null;
+    createdAt: Date;
+    updatedAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapDashboardOrganizationsInstancesListOutput =
-  mtMap.object<DashboardOrganizationsInstancesListOutput>({
+export let mapDashboardInstanceProvidersListOutput =
+  mtMap.object<DashboardInstanceProvidersListOutput>({
     items: mtMap.objectField(
       'items',
       mtMap.array(
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date()),
-          project: mtMap.objectField(
-            'project',
+          description: mtMap.objectField('description', mtMap.passthrough()),
+          slug: mtMap.objectField('slug', mtMap.passthrough()),
+          publisher: mtMap.objectField(
+            'publisher',
             mtMap.object({
               object: mtMap.objectField('object', mtMap.passthrough()),
               id: mtMap.objectField('id', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              slug: mtMap.objectField('slug', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              organizationId: mtMap.objectField(
-                'organization_id',
+              description: mtMap.objectField(
+                'description',
                 mtMap.passthrough()
               ),
+              slug: mtMap.objectField('slug', mtMap.passthrough()),
+              imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
-          )
+          ),
+          currentVersion: mtMap.objectField(
+            'current_version',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              version: mtMap.objectField('version', mtMap.passthrough()),
+              status: mtMap.objectField('status', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date())
+            })
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
         })
       )
     ),
@@ -72,15 +86,15 @@ export let mapDashboardOrganizationsInstancesListOutput =
     )
   });
 
-export type DashboardOrganizationsInstancesListQuery = {
+export type DashboardInstanceProvidersListQuery = {
   limit?: number | undefined;
   after?: string | undefined;
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & {};
+} & { publisherId?: string | string[] | undefined };
 
-export let mapDashboardOrganizationsInstancesListQuery = mtMap.union([
+export let mapDashboardInstanceProvidersListQuery = mtMap.union([
   mtMap.unionOption(
     'object',
     mtMap.object({
@@ -88,7 +102,17 @@ export let mapDashboardOrganizationsInstancesListQuery = mtMap.union([
       after: mtMap.objectField('after', mtMap.passthrough()),
       before: mtMap.objectField('before', mtMap.passthrough()),
       cursor: mtMap.objectField('cursor', mtMap.passthrough()),
-      order: mtMap.objectField('order', mtMap.passthrough())
+      order: mtMap.objectField('order', mtMap.passthrough()),
+      publisherId: mtMap.objectField(
+        'publisher_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      )
     })
   )
 ]);

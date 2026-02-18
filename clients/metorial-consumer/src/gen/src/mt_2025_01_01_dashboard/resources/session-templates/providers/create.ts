@@ -9,6 +9,9 @@ export type SessionTemplatesProvidersCreateOutput = {
   sessionTemplateId: string;
   providerId: string;
   providerDeploymentId: string | null;
+  providerDeploymentName: string | null;
+  providerConfigName: string | null;
+  providerAuthConfigName: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -27,6 +30,18 @@ export let mapSessionTemplatesProvidersCreateOutput =
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
     providerDeploymentId: mtMap.objectField(
       'provider_deployment_id',
+      mtMap.passthrough()
+    ),
+    providerDeploymentName: mtMap.objectField(
+      'provider_deployment_name',
+      mtMap.passthrough()
+    ),
+    providerConfigName: mtMap.objectField(
+      'provider_config_name',
+      mtMap.passthrough()
+    ),
+    providerAuthConfigName: mtMap.objectField(
+      'provider_auth_config_name',
       mtMap.passthrough()
     ),
     createdAt: mtMap.objectField('created_at', mtMap.date()),

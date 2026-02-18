@@ -1,7 +1,7 @@
 import {
   MagicMcpTokensGetOutput,
   MagicMcpTokensListQuery
-} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
+} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
 import {
   Badge,

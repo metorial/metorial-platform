@@ -1,4 +1,4 @@
-import { ServersCapabilitiesListQuery } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
+import { ServersCapabilitiesListQuery } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { withSdk } from './client';
 

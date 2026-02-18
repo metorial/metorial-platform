@@ -2,7 +2,7 @@ import {
   MagicMcpServersCreateBody,
   MagicMcpServersListQuery,
   MagicMcpServersUpdateBody
-} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
+} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { mutation } from '@metorial/state/src/lib/mutation';
 import { usePaginator } from '../lib/usePaginator';

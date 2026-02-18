@@ -1,7 +1,7 @@
 import {
   DashboardInstanceMagicMcpServersCreateOutput,
   ServersGetOutput
-} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
+} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { ServersDeploymentsTemplatesGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { useForm } from '@metorial/data-hooks';
 import { Button, Dialog, Entity, Input, Panel, showModal, Spacer } from '@metorial/ui';

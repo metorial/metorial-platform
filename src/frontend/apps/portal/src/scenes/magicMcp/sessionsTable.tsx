@@ -1,7 +1,7 @@
 import {
   MagicMcpSessionsGetOutput,
   MagicMcpSessionsListQuery
-} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
+} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Badge, RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';

@@ -3,7 +3,7 @@ import { Paths } from '@metorial/frontend-config';
 import {
   DashboardInstanceProviderDeploymentsGetOutput,
   DashboardInstanceProviderDeploymentsListQuery
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useProviderDeployments } from '@metorial/state';
 import { Entity, Input, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';

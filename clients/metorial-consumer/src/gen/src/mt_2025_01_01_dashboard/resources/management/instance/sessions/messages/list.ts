@@ -4,10 +4,10 @@ export type ManagementInstanceSessionsMessagesListOutput = {
   items: {
     object: 'session.message';
     id: string;
-    type: string | null;
+    type: string;
     sender: {
       object: 'session.message.sender';
-      type: string | null;
+      type: string;
       id: string | null;
     };
     mcpMessage: {
@@ -15,7 +15,7 @@ export type ManagementInstanceSessionsMessagesListOutput = {
       id: string;
       originalId: string | null;
       method: string | null;
-      payload: Record<string, any> | null;
+      payload: Record<string, any>;
     };
     sessionId: string;
     serverSessionId: string;

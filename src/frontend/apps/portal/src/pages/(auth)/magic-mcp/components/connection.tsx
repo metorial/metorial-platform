@@ -1,7 +1,7 @@
 import {
   MagicMcpServersGetOutput,
   MagicMcpTokensGetOutput
-} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
+} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { slugify } from '@metorial/slugify';
 
 export let getCursorConnection = (

@@ -50,33 +50,6 @@ export class MetorialDashboardOrganizationsTeamsEndpoint {
   }
 
   /**
-   * @name Get team
-   * @description Get the information of a specific team
-   *
-   * @param `organizationId` - string
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardOrganizationsTeamsPermissionsOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  permissions(
-    organizationId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardOrganizationsTeamsPermissionsOutput> {
-    let path = `dashboard/organizations/${organizationId}/team-role-permissions`;
-
-    let request = {
-      path,
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._get(request).transform(
-      mapDashboardOrganizationsTeamsPermissionsOutput
-    );
-  }
-
-  /**
    * @name List organization teams
    * @description List all organization teams
    *
@@ -196,6 +169,33 @@ export class MetorialDashboardOrganizationsTeamsEndpoint {
 
     return this._post(request).transform(
       mapDashboardOrganizationsTeamsCreateOutput
+    );
+  }
+
+  /**
+   * @name Get team
+   * @description Get the information of a specific team
+   *
+   * @param `organizationId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardOrganizationsTeamsPermissionsOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  permissions(
+    organizationId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardOrganizationsTeamsPermissionsOutput> {
+    let path = `dashboard/organizations/${organizationId}/team-role-permissions`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardOrganizationsTeamsPermissionsOutput
     );
   }
 }

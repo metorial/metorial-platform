@@ -1,4 +1,4 @@
-import { ServersListingsListQuery } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
+import { ServersListingsListQuery } from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Avatar, Badge, Text } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';

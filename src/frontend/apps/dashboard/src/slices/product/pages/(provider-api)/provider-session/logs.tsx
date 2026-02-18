@@ -1,4 +1,4 @@
-import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCurrentInstance,

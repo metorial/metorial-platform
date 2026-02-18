@@ -1,7 +1,7 @@
 import {
   ConsumerServerRequestsCreateBody,
   ConsumerServerRequestsListQuery
-} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
+} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../lib/usePaginator';
 import { withSdk } from './client';

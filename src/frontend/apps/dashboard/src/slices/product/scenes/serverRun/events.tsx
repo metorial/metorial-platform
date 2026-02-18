@@ -1,4 +1,4 @@
-import { ServerRunsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { ServerRunsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useProvider, useSessionErrors } from '@metorial/state';
 import { Button, Callout, Spacer, theme } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';

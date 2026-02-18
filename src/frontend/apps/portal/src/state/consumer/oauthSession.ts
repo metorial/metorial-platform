@@ -1,7 +1,7 @@
 import {
   ProviderOauthSessionsCreateBody,
   ProviderOauthSessionsListQuery
-} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_pulsar';
+} from '@metorial/consumer-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { createLoader, useMutation } from '@metorial/data-hooks';
 import { delay } from '@metorial/delay';
 import { useMemo } from 'react';
