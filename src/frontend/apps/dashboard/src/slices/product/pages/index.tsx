@@ -47,8 +47,9 @@ export let ProjectHomePage = () => {
   let secretApiKey = apiKeys.data?.find(
     a =>
       a.type === 'instance_access_token_secret' &&
-      ((a.status == 'active' && a.revealInfo?.forever) ||
-        (a.revealInfo?.until && a.revealInfo?.until > new Date()))
+      a.status == 'active' &&
+      (((a as any).revealInfo?.forever) ||
+        ((a as any).revealInfo?.until && (a as any).revealInfo?.until > new Date()))
   );
 
   return (

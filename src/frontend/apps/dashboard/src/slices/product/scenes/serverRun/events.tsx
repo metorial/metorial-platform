@@ -1,4 +1,4 @@
-import { ServerRunsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceProviderRunsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { useCurrentInstance, useProvider, useSessionErrors } from '@metorial/state';
 import { Button, Callout, Spacer, theme } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
@@ -72,12 +72,11 @@ let Main = styled.main`
   padding: 20px;
 `;
 
-export let ServerRunEvents = ({ serverRun }: { serverRun: ServerRunsGetOutput }) => {
+export let ServerRunEvents = ({ serverRun }: { serverRun: DashboardInstanceProviderRunsGetOutput }) => {
   let instance = useCurrentInstance();
   let [isCollapsed, setIsCollapsed] = useState(true);
 
-  let sessionId =
-    (serverRun as any)?.sessionId ?? (serverRun as any)?.serverSession?.sessionId;
+  let sessionId = serverRun.sessionId;
 
   let errors = useSessionErrors(
     serverRun ? instance.data?.id : null,
@@ -89,16 +88,15 @@ export let ServerRunEvents = ({ serverRun }: { serverRun: ServerRunsGetOutput })
     serverRunId: serverRun?.id
   });
 
-  let providerId = (serverRun as any)?.providerId ?? serverRun?.serverDeployment?.server?.id;
+  let providerId = serverRun.providerId;
   let provider = useProvider(instance.data?.id, providerId);
   let providerName =
     provider.data?.name ??
-    serverRun?.serverDeployment?.name ??
-    (serverRun as any)?.server?.name ??
+    serverRun.name ??
     providerId ??
     'Unknown';
-  let startTime = (serverRun as any)?.startedAt ?? serverRun?.createdAt;
-  let endTime = (serverRun as any)?.completedAt ?? (serverRun as any)?.stoppedAt;
+  let startTime = serverRun.startedAt ?? serverRun.createdAt;
+  let endTime = serverRun.completedAt;
 
   let allItems = [
     {

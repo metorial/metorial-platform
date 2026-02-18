@@ -545,7 +545,7 @@ export let ApiKeySecret = ({ apiKey }: { apiKey: MetorialApiKey }) => {
 
   let now = useNow();
   let canReveal =
-    apiKey.revealInfo && (apiKey.revealInfo.forever || apiKey.revealInfo.until > now);
+    apiKey.revealInfo && (apiKey.revealInfo.forever || (apiKey.revealInfo.until && apiKey.revealInfo.until > now));
 
   let [isRevealed, setIsRevealed] = useState(false);
 

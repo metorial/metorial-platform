@@ -1,57 +1,42 @@
-import {
-  DashboardInstanceProviderDeploymentsGetOutput,
-  ServersDeploymentsGetOutput
-} from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
-import { Dialog, showModal } from '@metorial/ui';
-import {
-  MagicMcpServerForm,
-  MagicMcpServerFormProps,
-  ServerDeploymentForm,
-  ServerDeploymentFormProps
-} from './form';
+import { DashboardInstanceProviderDeploymentsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { Dialog, showModal, Text } from '@metorial/ui';
+
+export type ServerDeploymentFormProps =
+  | { type: 'update'; serverDeploymentId: string }
+  | { type: 'create'; for?: { serverId: string } };
+
+export type MagicMcpServerFormProps =
+  | { type: 'update'; serverDeploymentId: string }
+  | { type: 'create'; for?: { serverId: string } };
 
 export let showServerDeploymentFormModal = (
-  p: ServerDeploymentFormProps & {
-    onCreate?: (deal: ServersDeploymentsGetOutput) => any;
+  _p: ServerDeploymentFormProps & {
+    onCreate?: (deal: unknown) => void;
   }
 ) =>
-  showModal(({ dialogProps, close }) => (
+  showModal(({ dialogProps }) => (
     <Dialog.Wrapper {...dialogProps} width={650}>
-      <Dialog.Title>
-        {p.type == 'update' ? 'Update Deployment' : 'Create Deployment'}
-      </Dialog.Title>
-
+      <Dialog.Title>Server Deployment</Dialog.Title>
       <Dialog.Description>
-        {p.type == 'update'
-          ? 'Update the deployment details.'
-          : 'Create a new deployment for this MCP server.'}
+        <Text size="2" color="gray600">
+          Server deployment management has been moved to the provider API.
+        </Text>
       </Dialog.Description>
-
-      <ServerDeploymentForm {...p} close={close} onCreate={p.onCreate} />
     </Dialog.Wrapper>
   ));
 
 export let showMagicMcpServerFormModal = (
-  p: MagicMcpServerFormProps & {
+  _p: MagicMcpServerFormProps & {
     onCreate?: (deal: DashboardInstanceProviderDeploymentsGetOutput) => void;
   }
 ) =>
-  showModal(({ dialogProps, close }) => (
+  showModal(({ dialogProps }) => (
     <Dialog.Wrapper {...dialogProps} width={650}>
-      <Dialog.Title>
-        {p.type == 'update' ? 'Update Magic MCP Server' : 'Create Magic MCP Server'}
-      </Dialog.Title>
-
+      <Dialog.Title>Magic MCP Server</Dialog.Title>
       <Dialog.Description>
-        {p.type == 'update'
-          ? 'Update the Magic MCP server details.'
-          : 'Create a new Magic MCP server to get started.'}
+        <Text size="2" color="gray600">
+          Magic MCP server management has been moved to the provider API.
+        </Text>
       </Dialog.Description>
-
-      <MagicMcpServerForm
-        {...p}
-        close={close}
-        onCreate={p.onCreate as Parameters<typeof MagicMcpServerForm>[0]['onCreate']}
-      />
     </Dialog.Wrapper>
   ));

@@ -86,15 +86,6 @@ export let providerAuthCredentialLoader = createLoader({
           providerAuthCredentialsId,
           body
         )
-      ),
-
-    delete: (_, { input: { instanceId, providerDeploymentId, providerAuthCredentialsId } }) =>
-      withAuth(sdk =>
-        sdk.providerDeployments.authCredentials.delete(
-          instanceId,
-          providerDeploymentId,
-          providerAuthCredentialsId
-        )
       )
   }
 });
@@ -112,7 +103,6 @@ export let useProviderAuthCredential = (
 
   return {
     ...data,
-    useUpdateMutator: data.useMutator('update'),
-    useDeleteMutator: data.useMutator('delete')
+    useUpdateMutator: data.useMutator('update')
   };
 };

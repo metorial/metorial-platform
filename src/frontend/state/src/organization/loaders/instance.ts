@@ -10,7 +10,7 @@ export let instancesLoader = createLoader({
     withAuth(sdk =>
       autoPaginate(
         cursor => sdk.instances.list(i.organizationId, { ...cursor, limit: 100 }),
-        item => item.id
+        (item: { id: string }) => item.id
       )
     ),
   mutators: {

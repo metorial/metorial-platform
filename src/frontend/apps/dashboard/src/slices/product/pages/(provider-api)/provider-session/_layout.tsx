@@ -7,7 +7,7 @@ import {
   useCurrentProject,
   useSession
 } from '@metorial/state';
-import { SessionsGetOutput } from '@metorial/dashboard-sdk';
+import { SessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { LinkTabs, RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Outlet, useLocation, useParams } from 'react-router-dom';

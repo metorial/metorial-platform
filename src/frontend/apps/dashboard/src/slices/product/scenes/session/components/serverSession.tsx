@@ -1,4 +1,4 @@
-import { DashboardInstanceSessionsServerSessionsGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
+import { DashboardInstanceSessionsProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance, useProviderRuns } from '@metorial/state';
 import { Button, theme } from '@metorial/ui';
@@ -85,7 +85,7 @@ let Main = styled.main`
 export let ServerSession = ({
   serverSession
 }: {
-  serverSession: DashboardInstanceSessionsServerSessionsGetOutput;
+  serverSession: DashboardInstanceSessionsProvidersGetOutput;
 }) => {
   let ref = useRef<HTMLDivElement>(null);
   let inView = useInView(ref, {});
@@ -100,13 +100,13 @@ export let ServerSession = ({
   let instance = useCurrentInstance();
   let serverRuns = useProviderRuns(
     canFetch ? instance.data?.id : undefined,
-    canFetch ? serverSession.session.id : undefined,
+    canFetch ? serverSession.sessionId : undefined,
     {
       limit: 100
     }
   );
 
-  let eventItems = useEvents(canFetch ? serverSession.session.id : undefined, {
+  let eventItems = useEvents(canFetch ? serverSession.sessionId : undefined, {
     serverSessionId: [serverSession.id],
     limit: 100
   });
@@ -126,10 +126,10 @@ export let ServerSession = ({
 
         <Header>
           <span>
-            {serverSession.serverDeployment?.name ?? serverSession.server?.name ?? 'Unknown'}
+            {serverSession.name ?? 'Unknown'}
           </span>
           <span>
-            <ID id={serverSession.connection?.id ?? serverSession.id} />
+            <ID id={serverSession.id} />
           </span>
         </Header>
 
@@ -147,20 +147,16 @@ export let ServerSession = ({
                 time: serverSession.createdAt
               },
 
-              ...(serverSession.connection
-                ? [
-                    {
-                      component: (
-                        <Entry
-                          icon={<RiSendPlane2Line />}
-                          title={`Session connection created`}
-                          time={serverSession.createdAt}
-                        />
-                      ),
-                      time: serverSession.createdAt
-                    }
-                  ]
-                : []),
+              {
+                component: (
+                  <Entry
+                    icon={<RiSendPlane2Line />}
+                    title={`Session connection created`}
+                    time={serverSession.createdAt}
+                  />
+                ),
+                time: serverSession.createdAt
+              },
 
               ...serverRuns.data.items.flatMap(serverRun => [
                 {

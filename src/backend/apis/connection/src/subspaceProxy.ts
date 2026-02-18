@@ -43,7 +43,7 @@ export let proxySubspaceSSE = async (
   let encoder = new TextEncoder();
 
   let proxyStream = new ReadableStream({
-    async pull(controller) {
+    async pull(controller: ReadableStreamDefaultController<Uint8Array>) {
       try {
         let { done, value } = await reader.read();
         if (done) {
@@ -56,7 +56,7 @@ export let proxySubspaceSSE = async (
         if (text.includes('event: endpoint')) {
           text = text.replace(
             /(event:\s*endpoint\ndata:\s*)(\S+)/g,
-            (_match, prefix, subspacePostUrl) => {
+            (_match: string, prefix: string, subspacePostUrl: string) => {
               try {
                 let parsed = new URL(subspacePostUrl);
                 let connectionToken = parsed.searchParams.get('connection_token');

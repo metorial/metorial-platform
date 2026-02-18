@@ -6,7 +6,6 @@ import {
 import {
   mapDashboardInstanceProviderDeploymentsAuthCredentialsCreateBody,
   mapDashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput,
-  mapDashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput,
   mapDashboardInstanceProviderDeploymentsAuthCredentialsGetOutput,
   mapDashboardInstanceProviderDeploymentsAuthCredentialsListOutput,
   mapDashboardInstanceProviderDeploymentsAuthCredentialsListQuery,
@@ -14,7 +13,6 @@ import {
   mapDashboardInstanceProviderDeploymentsAuthCredentialsUpdateOutput,
   type DashboardInstanceProviderDeploymentsAuthCredentialsCreateBody,
   type DashboardInstanceProviderDeploymentsAuthCredentialsCreateOutput,
-  type DashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput,
   type DashboardInstanceProviderDeploymentsAuthCredentialsGetOutput,
   type DashboardInstanceProviderDeploymentsAuthCredentialsListOutput,
   type DashboardInstanceProviderDeploymentsAuthCredentialsListQuery,
@@ -183,37 +181,6 @@ export class MetorialManagementInstanceProviderDeploymentsAuthCredentialsEndpoin
 
     return this._patch(request).transform(
       mapDashboardInstanceProviderDeploymentsAuthCredentialsUpdateOutput
-    );
-  }
-
-  /**
-   * @name Delete provider auth credentials
-   * @description Permanently deletes provider auth credentials.
-   *
-   * @param `instanceId` - string
-   * @param `providerDeploymentId` - string
-   * @param `providerAuthCredentialsId` - string
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  delete(
-    instanceId: string,
-    providerDeploymentId: string,
-    providerAuthCredentialsId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput> {
-    let path = `instances/${instanceId}/provider-deployments/${providerDeploymentId}/auth-credentials/${providerAuthCredentialsId}`;
-
-    let request = {
-      path,
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._delete(request).transform(
-      mapDashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput
     );
   }
 }

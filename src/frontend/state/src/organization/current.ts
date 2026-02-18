@@ -5,6 +5,7 @@ import { useBoot } from './loaders/boot';
 import { useInstance, useInstances } from './loaders/instance';
 import { useOrganization } from './loaders/organization';
 import { useProject, useProjects } from './loaders/project';
+import { MetorialInstance, MetorialProject } from './types';
 
 let orgNotFound = new MetorialSDKError({
   status: 404,
@@ -150,12 +151,12 @@ export let useCurrentOrganization = () => {
   }
 
   let instances = boot.data.instances.filter(
-    instance => instance.organizationId == foundItem.organization.id
+    (instance: MetorialInstance) => instance.organizationId == foundItem.organization.id
   );
   let projects = boot.data.projects
-    .filter(project => project.organizationId == foundItem.organization.id)
-    .map(project => {
-      let projectInstances = instances.filter(instance => instance.project.id == project.id);
+    .filter((project: MetorialProject) => project.organizationId == foundItem.organization.id)
+    .map((project: MetorialProject) => {
+      let projectInstances = instances.filter((instance: MetorialInstance) => instance.project.id == project.id);
       return {
         ...project,
         instances: projectInstances
@@ -209,7 +210,7 @@ export let useCurrentProject = () => {
       ...org.data.currentProject,
       organization: org.data,
       instances: org.data.instances.filter(
-        instance => instance.project.id == org.data.currentProject!.id
+        (instance: MetorialInstance) => instance.project.id == org.data.currentProject!.id
       )
     },
     error: org.error,

@@ -6,7 +6,6 @@ import {
 import {
   mapDashboardInstanceProviderDeploymentsCreateBody,
   mapDashboardInstanceProviderDeploymentsCreateOutput,
-  mapDashboardInstanceProviderDeploymentsDeleteOutput,
   mapDashboardInstanceProviderDeploymentsGetOutput,
   mapDashboardInstanceProviderDeploymentsListOutput,
   mapDashboardInstanceProviderDeploymentsListQuery,
@@ -14,7 +13,6 @@ import {
   mapDashboardInstanceProviderDeploymentsUpdateOutput,
   type DashboardInstanceProviderDeploymentsCreateBody,
   type DashboardInstanceProviderDeploymentsCreateOutput,
-  type DashboardInstanceProviderDeploymentsDeleteOutput,
   type DashboardInstanceProviderDeploymentsGetOutput,
   type DashboardInstanceProviderDeploymentsListOutput,
   type DashboardInstanceProviderDeploymentsListQuery,
@@ -161,33 +159,6 @@ export class MetorialProviderDeploymentsEndpoint {
 
     return this._patch(request).transform(
       mapDashboardInstanceProviderDeploymentsUpdateOutput
-    );
-  }
-
-  /**
-   * @name Delete provider deployment
-   * @description Permanently deletes a provider deployment.
-   *
-   * @param `providerDeploymentId` - string
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceProviderDeploymentsDeleteOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  delete(
-    providerDeploymentId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceProviderDeploymentsDeleteOutput> {
-    let path = `provider-deployments/${providerDeploymentId}`;
-
-    let request = {
-      path,
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._delete(request).transform(
-      mapDashboardInstanceProviderDeploymentsDeleteOutput
     );
   }
 }

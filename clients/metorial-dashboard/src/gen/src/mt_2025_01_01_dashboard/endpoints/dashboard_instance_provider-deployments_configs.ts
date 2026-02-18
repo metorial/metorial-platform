@@ -6,7 +6,6 @@ import {
 import {
   mapDashboardInstanceProviderDeploymentsConfigsCreateBody,
   mapDashboardInstanceProviderDeploymentsConfigsCreateOutput,
-  mapDashboardInstanceProviderDeploymentsConfigsDeleteOutput,
   mapDashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput,
   mapDashboardInstanceProviderDeploymentsConfigsGetOutput,
   mapDashboardInstanceProviderDeploymentsConfigsListOutput,
@@ -15,7 +14,6 @@ import {
   mapDashboardInstanceProviderDeploymentsConfigsUpdateOutput,
   type DashboardInstanceProviderDeploymentsConfigsCreateBody,
   type DashboardInstanceProviderDeploymentsConfigsCreateOutput,
-  type DashboardInstanceProviderDeploymentsConfigsDeleteOutput,
   type DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput,
   type DashboardInstanceProviderDeploymentsConfigsGetOutput,
   type DashboardInstanceProviderDeploymentsConfigsListOutput,
@@ -185,37 +183,6 @@ export class MetorialDashboardInstanceProviderDeploymentsConfigsEndpoint {
 
     return this._patch(request).transform(
       mapDashboardInstanceProviderDeploymentsConfigsUpdateOutput
-    );
-  }
-
-  /**
-   * @name Delete provider config
-   * @description Permanently deletes a provider config.
-   *
-   * @param `instanceId` - string
-   * @param `providerDeploymentId` - string
-   * @param `providerConfigId` - string
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceProviderDeploymentsConfigsDeleteOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  delete(
-    instanceId: string,
-    providerDeploymentId: string,
-    providerConfigId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceProviderDeploymentsConfigsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-deployments/${providerDeploymentId}/configs/${providerConfigId}`;
-
-    let request = {
-      path,
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._delete(request).transform(
-      mapDashboardInstanceProviderDeploymentsConfigsDeleteOutput
     );
   }
 

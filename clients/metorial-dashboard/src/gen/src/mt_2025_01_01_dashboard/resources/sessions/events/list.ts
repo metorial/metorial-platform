@@ -6,7 +6,7 @@ export type SessionsEventsListOutput = {
     id: string;
     type: string | null;
     name: string | null;
-    message: string | null;
+    message: Record<string, any> | null;
     data: Record<string, any> | null;
     metadata: Record<string, any> | null;
     sessionId: string;
