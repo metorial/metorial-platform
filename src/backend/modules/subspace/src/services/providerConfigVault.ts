@@ -40,3 +40,7 @@ export let subspaceProviderConfigVaultService = createSubspaceService(
     }
   })
 );
+
+export type SubspaceProviderConfigVault = Awaited<
+  ReturnType<typeof subspace.providerConfigVault.get>
+>;

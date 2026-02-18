@@ -1,4 +1,4 @@
-import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { CustomProvidersGetOutput } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -25,7 +25,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Stepper } from '../stepper';
-import { defaultServerConfigManaged } from './config';
 import { ConnectGitHubButton, SelectRepo } from './selectRepo';
 
 let PageWrapper = styled.div`
@@ -77,9 +76,7 @@ export let CustomServerManagedCreateForm = (p: {
   let instance = useCurrentInstance();
   let createCustomServer = useCreateCustomServer();
   let listServerVersions = useListServerVersions();
-  let managedServerTemplates = useManagedServerTemplates(
-    { limit: 100 }
-  );
+  let managedServerTemplates = useManagedServerTemplates({ limit: 100 });
 
   let [selectedRepoId, setSelectedRepoId] = useState<string | undefined>(undefined);
 
@@ -105,55 +102,19 @@ export let CustomServerManagedCreateForm = (p: {
     onSubmit: async values => {
       if (!instance.data) return;
 
-      let starterFiles = [
-        {
-          filename: 'index.ts',
-          content: [
-            `import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";`,
-            `import { createMcpServer } from "@metorial/mcp-server";`,
-            ``,
-            `let server = new McpServer({ name: "${values.name || 'mcp-server'}", version: "1.0.0" });`,
-            `let mcpServer: any = server;`,
-            ``,
-            `mcpServer.tool(`,
-            `  "hello",`,
-            `  "Return a simple greeting.",`,
-            `  async () => ({`,
-            `    content: [{ type: "text", text: "Hello from Metorial custom provider." }]`,
-            `  })`,
-            `);`,
-            ``,
-            `export { server };`,
-            `export default createMcpServer({ server });`,
-            ``
-          ].join('\n')
-        },
-        {
-          filename: 'package.json',
-          content: `${JSON.stringify(
-            {
-              name: 'custom-provider',
-              private: true,
-              version: '1.0.0',
-              main: 'index.ts',
-              dependencies: {
-                '@metorial/mcp-server': 'latest',
-                '@modelcontextprotocol/sdk': 'latest'
-              }
-            },
-            null,
-            2
-          )}\n`
-        }
-      ];
+      let plainTemplate = selectedRepoId
+        ? undefined
+        : managedServerTemplates.data?.items.find(
+            (t: { slug: string | null }) => t.slug == 'plain-typescript'
+          );
 
       let [customServerRes] = await createCustomServer.mutate({
-        instanceId: instance.data.id,
+        instanceId: instance.data.instanceId,
         name: values.name,
         description: values.description,
         from: {
           type: 'function',
-          files: starterFiles,
+          files: [],
           env: {},
           runtime: { identifier: 'nodejs' as const, version: '22.x' as const }
         }
@@ -165,7 +126,7 @@ export let CustomServerManagedCreateForm = (p: {
         for (let i = 0; i < 5; i++) {
           let [versionsRes] = await listServerVersions.mutate({
             limit: 1,
-            instanceId: instance.data.id,
+            instanceId: instance.data.instanceId,
             customServerId: customServerRes.id
           });
           if (versionsRes && versionsRes.items.length > 0) {
@@ -174,7 +135,7 @@ export let CustomServerManagedCreateForm = (p: {
           }
         }
 
-        toast.success('Provider created successfully');
+        toast.success('Server created successfully');
 
         if (p.onCreate) {
           p.onCreate(customServerRes);
@@ -275,21 +236,27 @@ export let CustomServerManagedCreateForm = (p: {
         steps={[
           {
             title: 'Choose Template',
-            subtitle: 'Choose a template for your MCP provider',
+            subtitle: 'Choose a template for your MCP server',
             render: () => {
               return renderWithLoader({ managedServerTemplates })(
                 ({ managedServerTemplates }) => (
                   <PageWrapper>
                     <Templates>
-                      {managedServerTemplates.data.items.map((template: { id: string; name: string | null; slug: string | null }) => (
-                        <TemplatesItem
-                          key={template.id}
-                          type="button"
-                          onClick={() => setTemplate(template.id)}
-                        >
-                          <span>{template.name}</span>
-                        </TemplatesItem>
-                      ))}
+                      {managedServerTemplates.data.items.map(
+                        (template: {
+                          id: string;
+                          name: string | null;
+                          slug: string | null;
+                        }) => (
+                          <TemplatesItem
+                            key={template.id}
+                            type="button"
+                            onClick={() => setTemplate(template.id)}
+                          >
+                            <span>{template.name}</span>
+                          </TemplatesItem>
+                        )
+                      )}
                     </Templates>
 
                     <Spacer size={10} />

@@ -1,4 +1,4 @@
-import { DashboardInstanceCustomProvidersListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2026_02_01_dashboard';
+import { DashboardInstanceCustomProvidersListQuery } from '@metorial/dashboard-sdk/src/gen/src/mt_2025_01_01_dashboard';
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useCustomServers } from '@metorial/state';
@@ -7,23 +7,6 @@ import { Table } from '@metorial/ui-product';
 import { useState } from 'react';
 import { useDebounced } from '../../../../hooks/useDebounced';
 
-let statusColor = (status: string | null) => {
-  switch (status) {
-    case 'active':
-      return 'green' as const;
-    case 'deploying':
-    case 'building':
-      return 'blue' as const;
-    case 'archived':
-      return 'gray' as const;
-    case 'error':
-    case 'failed':
-      return 'red' as const;
-    default:
-      return 'blue' as const;
-  }
-};
-
 export let CustomServersTable = (
   filter: DashboardInstanceCustomProvidersListQuery & { withSearch?: boolean }
 ) => {
@@ -31,9 +14,8 @@ export let CustomServersTable = (
   let searchDebounced = useDebounced(search, 300);
 
   let instance = useCurrentInstance();
-  let customServers = useCustomServers(instance.data?.id, {
+  let customServers = useCustomServers(instance.data?.instanceId, {
     ...(({ withSearch, ...rest }) => rest)(filter),
-    search: searchDebounced || undefined,
     order: 'desc'
   } as Record<string, unknown>);
 
@@ -42,9 +24,8 @@ export let CustomServersTable = (
       {filter.withSearch && (
         <>
           <Input
-            label="Search Providers"
+            label="Search Custom Providers"
             hideLabel
-            placeholder="Search providers..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -56,12 +37,7 @@ export let CustomServersTable = (
       {renderWithPagination(customServers)(customServers => (
         <>
           <Table
-            headers={[
-              'Provider',
-              'Status',
-              'Version',
-              'Created'
-            ]}
+            headers={['Info', 'Status', 'Created']}
             data={customServers.data.items.map(customServer => ({
               data: [
                 <Text size="2" weight="strong">
@@ -76,10 +52,7 @@ export let CustomServersTable = (
                     </Text>
                   )}
                 </Text>,
-                <Badge color={statusColor(customServer.status)}>{customServer.status ?? 'unknown'}</Badge>,
-                <Text size="2" color="gray600">
-                  {customServer.provider?.currentVersion?.version ?? '-'}
-                </Text>,
+                <Badge color="blue">{customServer.status ?? 'unknown'}</Badge>,
                 <RenderDate date={customServer.createdAt} />
               ],
               href: Paths.instance.customServer(
@@ -93,7 +66,7 @@ export let CustomServersTable = (
 
           {customServers.data.items.length == 0 && (
             <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              {searchDebounced ? 'No providers match your search.' : 'No providers found.'}
+              No custom providers found.
             </Text>
           )}
         </>
