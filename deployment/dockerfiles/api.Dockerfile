@@ -20,8 +20,6 @@ COPY /clients/metorial-dashboard ./clients/metorial-dashboard
 COPY /clients/metorial-consumer ./clients/metorial-consumer
 COPY /src/backend ./src/backend
 COPY /src/packages ./src/packages
-COPY /src/mcp-engine ./src/mcp-engine
-COPY /src/services ./src/services
 
 COPY /package.json ./package.json
 COPY /turbo.json ./turbo.json
@@ -89,12 +87,11 @@ RUN apt-get update && apt-get install -y curl wget
 
 RUN bunx prisma generate --schema prisma/oss/schema
 
-# Copy the ".so.node" files from prisma/generated to the dist folder
-RUN cp -r prisma/oss/generated/*.wasm dist/
-RUN cp -r prisma/oss/generated/*.wasm ./
-RUN mkdir -p ./prisma/generated
-RUN cp -r prisma/oss/generated/*.wasm ./prisma/generated/
-RUN cp -r prisma/oss/generated/*.wasm ./prisma/
+RUN mkdir -p ./prisma/generated && \
+    (cp -r prisma/oss/generated/*.wasm dist/ 2>/dev/null || true) && \
+    (cp -r prisma/oss/generated/*.wasm ./ 2>/dev/null || true) && \
+    (cp -r prisma/oss/generated/*.wasm ./prisma/generated/ 2>/dev/null || true) && \
+    (cp -r prisma/oss/generated/*.wasm ./prisma/ 2>/dev/null || true)
 
 # RUN chmod +x ./entrypoint-global-services.sh
 # ENTRYPOINT ["./entrypoint-global-services.sh"]

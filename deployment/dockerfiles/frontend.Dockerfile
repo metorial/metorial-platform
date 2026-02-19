@@ -22,8 +22,6 @@ COPY /clients ./clients
 COPY /src/frontend ./src/frontend
 COPY /src/backend ./src/backend
 COPY /src/packages ./src/packages
-COPY /src/mcp-engine ./src/mcp-engine
-COPY /src/services ./src/services
 
 # Copy root configuration files
 COPY /package.json ./package.json

@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapManagementInstanceProviderDeploymentsSetupSessionsCreateBody,
@@ -73,9 +70,7 @@ export class MetorialManagementInstanceProviderDeploymentsSetupSessionsEndpoint 
       path,
 
       query: query
-        ? mapManagementInstanceProviderDeploymentsSetupSessionsListQuery.transformTo(
-            query
-          )
+        ? mapManagementInstanceProviderDeploymentsSetupSessionsListQuery.transformTo(query)
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -138,9 +133,7 @@ export class MetorialManagementInstanceProviderDeploymentsSetupSessionsEndpoint 
 
     let request = {
       path,
-      body: mapManagementInstanceProviderDeploymentsSetupSessionsCreateBody.transformTo(
-        body
-      ),
+      body: mapManagementInstanceProviderDeploymentsSetupSessionsCreateBody.transformTo(body),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -174,9 +167,7 @@ export class MetorialManagementInstanceProviderDeploymentsSetupSessionsEndpoint 
 
     let request = {
       path,
-      body: mapManagementInstanceProviderDeploymentsSetupSessionsUpdateBody.transformTo(
-        body
-      ),
+      body: mapManagementInstanceProviderDeploymentsSetupSessionsUpdateBody.transformTo(body),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;

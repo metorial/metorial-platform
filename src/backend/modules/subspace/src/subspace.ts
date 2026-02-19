@@ -1,27 +1,44 @@
+import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { createSubspaceControllerClient } from '@metorial-services/subspace-client';
 import { db, OrganizationActor, type Instance } from '@metorial/db';
+import { delay } from '@metorial/delay';
 import { env } from './env';
 
-export let subspace = createSubspaceControllerClient({
-  headers: {
-    'Subspace-Solution-Id': env.subspace.SUBSPACE_SOLUTION
-  },
-  endpoint: env.subspace.SUBSPACE_URL
-});
+let solutionProm = new ProgrammablePromise<
+  Awaited<ReturnType<typeof subspace.solution.upsert>>
+>();
 
-subspace.solution
-  .upsert({
-    name: 'Metorial Platform',
-    identifier: env.subspace.SUBSPACE_SOLUTION
-  })
-  .catch((err: Error) => {
-    console.error('Failed to upsert subspace solution:', err);
-    if (process.env.NODE_ENV === 'production') {
-      process.exit(1);
-    } else {
-      console.warn('Continuing without subspace connection (development mode)');
-    }
+export let subspace: ReturnType<typeof createSubspaceControllerClient> =
+  createSubspaceControllerClient({
+    getHeaders: async () => ({
+      'Subspace-Solution-Id': (await solutionProm.promise).id
+    }),
+    endpoint: env.subspace.SUBSPACE_URL
   });
+
+(async () => {
+  let client = createSubspaceControllerClient({
+    endpoint: env.subspace.SUBSPACE_URL
+  });
+
+  while (true) {
+    try {
+      console.log('Trying to create subspace solution');
+
+      let sol = await client.solution.upsert({
+        name: 'Metorial Platform',
+        identifier: env.subspace.SUBSPACE_SOLUTION
+      });
+      solutionProm.resolve(sol);
+      console.log('Created subspace solution: ', sol.id);
+      return;
+    } catch (err) {
+      console.log('Failed to create subspace solution ... retrying', err);
+    }
+
+    await delay(5000);
+  }
+})();
 
 export let getTenantForSubspace = async (instance: Instance) => {
   if (!instance.subspaceTenantId || !instance.subspaceEnvironmentId) {

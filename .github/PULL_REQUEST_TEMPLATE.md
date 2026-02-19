@@ -5,9 +5,10 @@
 ## Changes
 
 <!-- Bullet point list of the main changes. Keep it brief. -->
-- 
-- 
-- 
+
+-
+-
+-
 
 ## Related Issues
 

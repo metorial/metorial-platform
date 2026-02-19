@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceSessionsCreateBody,
@@ -68,9 +65,7 @@ export class MetorialSessionsEndpoint {
     let request = {
       path,
 
-      query: query
-        ? mapDashboardInstanceSessionsListQuery.transformTo(query)
-        : undefined,
+      query: query ? mapDashboardInstanceSessionsListQuery.transformTo(query) : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
@@ -125,9 +120,7 @@ export class MetorialSessionsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapDashboardInstanceSessionsCreateOutput
-    );
+    return this._post(request).transform(mapDashboardInstanceSessionsCreateOutput);
   }
 
   /**
@@ -155,9 +148,7 @@ export class MetorialSessionsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._patch(request).transform(
-      mapDashboardInstanceSessionsUpdateOutput
-    );
+    return this._patch(request).transform(mapDashboardInstanceSessionsUpdateOutput);
   }
 
   /**
@@ -182,8 +173,6 @@ export class MetorialSessionsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._delete(request).transform(
-      mapDashboardInstanceSessionsDeleteOutput
-    );
+    return this._delete(request).transform(mapDashboardInstanceSessionsDeleteOutput);
   }
 }

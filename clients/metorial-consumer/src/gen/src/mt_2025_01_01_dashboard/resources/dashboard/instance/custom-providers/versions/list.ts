@@ -77,10 +77,7 @@ export let mapDashboardInstanceCustomProvidersVersionsListOutput =
               id: mtMap.objectField('id', mtMap.passthrough()),
               status: mtMap.objectField('status', mtMap.passthrough()),
               trigger: mtMap.objectField('trigger', mtMap.passthrough()),
-              customProviderId: mtMap.objectField(
-                'custom_provider_id',
-                mtMap.passthrough()
-              ),
+              customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
               providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
               customProviderVersionId: mtMap.objectField(
                 'custom_provider_version_id',
@@ -130,18 +127,12 @@ export let mapDashboardInstanceCustomProvidersVersionsListOutput =
                       'custom_provider_id',
                       mtMap.passthrough()
                     ),
-                    providerId: mtMap.objectField(
-                      'provider_id',
-                      mtMap.passthrough()
-                    ),
+                    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
                     currentProviderVersionId: mtMap.objectField(
                       'current_provider_version_id',
                       mtMap.passthrough()
                     ),
-                    instanceId: mtMap.objectField(
-                      'instance_id',
-                      mtMap.passthrough()
-                    ),
+                    instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
                     createdAt: mtMap.objectField('created_at', mtMap.date()),
                     updatedAt: mtMap.objectField('updated_at', mtMap.date())
                   })
@@ -149,10 +140,7 @@ export let mapDashboardInstanceCustomProvidersVersionsListOutput =
               })
             )
           ),
-          customProviderId: mtMap.objectField(
-            'custom_provider_id',
-            mtMap.passthrough()
-          ),
+          customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
           providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
           actor: mtMap.objectField(
             'actor',
@@ -174,10 +162,7 @@ export let mapDashboardInstanceCustomProvidersVersionsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -226,4 +211,3 @@ export let mapDashboardInstanceCustomProvidersVersionsListQuery = mtMap.union([
     })
   )
 ]);
-
