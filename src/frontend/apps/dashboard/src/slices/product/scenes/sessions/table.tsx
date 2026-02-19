@@ -12,7 +12,7 @@ import { Table } from '@metorial/ui-product';
 export let SessionConnectionStatusBadge = ({
   session
 }: {
-  session: DashboardInstanceSessionsGetOutput;
+  session: Pick<DashboardInstanceSessionsGetOutput, 'connectionStatus'>;
 }) => {
   return (
     <Badge
