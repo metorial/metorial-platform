@@ -73,7 +73,9 @@ export let providerSpecificationController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider:read'] }))
       .output(providerSpecificationPresenter)
       .do(async ctx => {
-        return providerSpecificationPresenter.present({ specification: ctx.specification });
+        return providerSpecificationPresenter.present({
+          specification: ctx.specification as unknown as SubspaceSpecification
+        });
       })
   }
 );

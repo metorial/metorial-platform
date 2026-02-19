@@ -126,31 +126,7 @@ class ProfileService {
     });
   }
 
-  async ensureProfileVariantProvider(d: { profile: Profile }) {
-    if (d.profile.providerOid) {
-      return (await db.serverVariantProvider.findUnique({
-        where: { oid: d.profile.providerOid }
-      }))!;
-    }
 
-    let provider = await db.serverVariantProvider.create({
-      data: {
-        id: await ID.generateId('serverVariantProvider'),
-        name: d.profile.name,
-        description: d.profile.description,
-        image: d.profile.image as any,
-        attributes: d.profile.attributes,
-        identifier: `profile-${d.profile.id}`
-      }
-    });
-
-    await db.profile.updateMany({
-      where: { oid: d.profile.oid },
-      data: { providerOid: provider.oid }
-    });
-
-    return provider;
-  }
 }
 
 export let profileService = Service.create(

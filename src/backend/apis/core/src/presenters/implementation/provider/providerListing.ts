@@ -10,10 +10,10 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
     object: 'provider.listing' as const,
     id: providerListing.id,
     name: providerListing.name,
-    description: providerListing.description,
-    slug: providerListing.slug ?? providerListing.identifier,
-    image_url: providerListing.image?.url ?? providerListing.source?.url ?? null,
-    readme: providerListing.readme,
+    description: (providerListing.description ?? null) as string | null,
+    slug: providerListing.slug ?? providerListing.identifier ?? '',
+    image_url: (providerListing.image?.url ?? providerListing.source?.url ?? null) as string | null,
+    readme: (providerListing.readme ?? null) as string | null,
     skills: providerListing.skills ?? [],
     flags: {
       is_public: providerListing.isPublic ?? true,
@@ -22,7 +22,7 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
       is_verified: providerListing.isVerified ?? false,
       is_official: providerListing.isOfficial ?? false
     },
-    provider_id: providerListing.provider?.id,
+    provider_id: (providerListing.provider?.id ?? null) as string | null,
     categories: providerListing.categories
       ? await Promise.all(
           providerListing.categories.map(c =>

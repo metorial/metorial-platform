@@ -101,7 +101,7 @@ export let subspaceSessionErrorController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionErrorService.list({
           instance: ctx.instance,
-          sessionId: ctx.session.id,
+          sessionIds: [ctx.session.id],
           sessionErrorGroupIds: normalizeArrayParam(ctx.query.session_error_group_id),
           providerRunIds: normalizeArrayParam(ctx.query.provider_run_id)
         });

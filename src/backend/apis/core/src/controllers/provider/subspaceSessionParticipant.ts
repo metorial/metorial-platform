@@ -52,7 +52,7 @@ export let subspaceSessionParticipantController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionParticipantService.list({
           instance: ctx.instance,
-          sessionId: ctx.session.id
+          sessionIds: [ctx.session.id]
         });
 
         let list = await paginator.run(ctx.query);

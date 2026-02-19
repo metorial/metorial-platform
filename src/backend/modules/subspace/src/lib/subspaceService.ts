@@ -4,11 +4,25 @@ import { getActorForSubspace, getTenantForSubspace } from '../subspace';
 
 export type Tail<T extends any[]> = T extends [any, ...infer U] ? U : [];
 
-export type SubspaceService<SubspaceController extends {}, Overrides extends {}> = {
-  [K in Exclude<keyof SubspaceController, keyof Overrides>]: SubspaceController[K] extends (
-    ...args: any[]
-  ) => any
-    ? (
+type SubspaceListResult = {
+  run: (query: {
+    limit?: number;
+    after?: string;
+    before?: string;
+    cursor?: string;
+    order?: 'asc' | 'desc';
+  }) => Promise<{
+    items: any[];
+    pagination: {
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+  }>;
+};
+
+type SubspaceMethodArgs<SubspaceController extends {}, K extends keyof SubspaceController> =
+  SubspaceController[K] extends (...args: any[]) => any
+    ? [
         arg0: { instance: Instance } & Omit<
           Parameters<SubspaceController[K]>[0],
           'tenantId' | 'environmentId'
@@ -17,7 +31,16 @@ export type SubspaceService<SubspaceController extends {}, Overrides extends {}>
             ? { organizationActor: OrganizationActor }
             : {}),
         ...args: Tail<Parameters<SubspaceController[K]>>
-      ) => ReturnType<SubspaceController[K]>
+      ]
+    : never;
+
+export type SubspaceService<SubspaceController extends {}, Overrides extends {}> = {
+  [K in Exclude<keyof SubspaceController, keyof Overrides>]: SubspaceController[K] extends (
+    ...args: any[]
+  ) => any
+    ? K extends 'list'
+      ? (...args: SubspaceMethodArgs<SubspaceController, K>) => Promise<SubspaceListResult>
+      : (...args: SubspaceMethodArgs<SubspaceController, K>) => ReturnType<SubspaceController[K]>
     : never;
 } & Overrides;
 

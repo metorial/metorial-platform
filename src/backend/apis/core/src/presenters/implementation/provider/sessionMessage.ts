@@ -29,7 +29,7 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionM
         id: mcpId,
         original_id: null as string | null,
         method,
-        payload: payload ?? {}
+        payload: payload ?? null
       },
       session_id: sessionMessage.sessionId,
       server_session_id:
@@ -49,25 +49,21 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionM
         description: 'Unique session message identifier',
         examples: ['smg_8hJkLmNpQrStUvWx']
       }),
-      type: v.nullable(
-        v.string({
-          name: 'type',
-          description: 'Message type',
-          examples: ['request', 'response', 'notification']
-        })
-      ),
+      type: v.string({
+        name: 'type',
+        description: 'Message type',
+        examples: ['request', 'response', 'notification']
+      }),
       sender: v.object(
         {
           object: v.literal('session.message.sender', {
             description: "String representing the object's type"
           }),
-          type: v.nullable(
-            v.string({
-              name: 'type',
-              description: 'Sender type',
-              examples: ['client', 'server']
-            })
-          ),
+          type: v.string({
+            name: 'type',
+            description: 'Sender type',
+            examples: ['client', 'server']
+          }),
           id: v.nullable(
             v.string({
               name: 'id',

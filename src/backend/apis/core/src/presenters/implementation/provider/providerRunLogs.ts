@@ -6,8 +6,8 @@ export let v1ProviderRunLogsPresenter = Presenter.create(providerRunLogsType)
   .presenter(async ({ logs }) => ({
     object: 'session.provider_run.logs' as const,
     logs: logs.logs.map(log => ({
-      type: log.type,
-      line: log.line,
+      type: log.outputType,
+      line: log.message,
       timestamp: log.timestamp ?? null
     }))
   }))

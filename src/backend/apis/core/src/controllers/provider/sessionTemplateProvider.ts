@@ -65,7 +65,7 @@ export let sessionTemplateProviderController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionTemplateProviderService.list({
           instance: ctx.instance,
-          sessionTemplateId: ctx.sessionTemplate.id
+          sessionTemplateIds: [ctx.sessionTemplate.id]
         });
 
         let list = await paginator.run(ctx.query);

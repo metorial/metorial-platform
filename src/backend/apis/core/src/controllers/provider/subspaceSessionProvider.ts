@@ -62,9 +62,9 @@ export let subspaceSessionProviderController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionProviderService.list({
           instance: ctx.instance,
-          sessionId: ctx.session.id,
+          sessionIds: [ctx.session.id],
           providerIds: normalizeArrayParam(ctx.query.provider_id),
-          status: ctx.query.status
+          status: ctx.query.status ? [ctx.query.status] as ("active" | "archived")[] : undefined
         });
 
         let list = await paginator.run(ctx.query);

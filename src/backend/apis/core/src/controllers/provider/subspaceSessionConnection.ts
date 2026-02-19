@@ -60,8 +60,8 @@ export let subspaceSessionConnectionController = Controller.create(
         let paginator = await subspaceSessionConnectionService.list({
           instance: ctx.instance,
           sessionIds: [ctx.session.id],
-          status: ctx.query.status,
-          connectionState: ctx.query.connection_state,
+          status: ctx.query.status ? [ctx.query.status] as ("active" | "archived")[] : undefined,
+          connectionState: ctx.query.connection_state ? [ctx.query.connection_state] as ("connected" | "disconnected")[] : undefined,
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id)
         });
 

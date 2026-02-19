@@ -1,5 +1,4 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceReferenceAuthCredentialsService } from '@metorial/module-subspace-reference';
 import { subspaceProviderAuthCredentialsService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -147,19 +146,6 @@ export let providerAuthCredentialsController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        await subspaceReferenceAuthCredentialsService
-          .create({
-            instance: ctx.instance,
-            authCredentials: {
-              id: authCredentials.id,
-              providerId: ctx.deployment.providerId,
-              providerAuthMethodId: null,
-              name: authCredentials.name,
-              createdAt: authCredentials.createdAt
-            }
-          })
-          .catch(err => console.error('Failed to store subspace reference:', err));
-
         return providerAuthCredentialsPresenter.present({
           authCredentials: authCredentials as SubspaceAuthCredentials
         });
@@ -216,18 +202,6 @@ export let providerAuthCredentialsController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .output(providerAuthCredentialsPresenter)
       .do(async ctx => {
-        await subspaceProviderAuthCredentialsService.delete({
-          instance: ctx.instance,
-          providerAuthCredentialsId: ctx.authCredentials.id
-        });
-
-        await subspaceReferenceAuthCredentialsService
-          .delete({
-            instance: ctx.instance,
-            id: ctx.authCredentials.id
-          })
-          .catch(err => console.error('Failed to remove subspace reference:', err));
-
         return providerAuthCredentialsPresenter.present({
           authCredentials: ctx.authCredentials
         });

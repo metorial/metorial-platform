@@ -66,7 +66,7 @@ export let subspaceProviderRunController = Controller.create(
           sessionIds: normalizeArrayParam(ctx.query.session_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
-          status: ctx.query.status
+          status: ctx.query.status ? [ctx.query.status] as ("running" | "stopped")[] : undefined
         });
 
         let list = await paginator.run(ctx.query);
@@ -134,10 +134,10 @@ export let subspaceProviderRunController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceProviderRunService.list({
           instance: ctx.instance,
-          sessionId: ctx.session.id,
+          sessionIds: [ctx.session.id],
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
-          status: ctx.query.status
+          status: ctx.query.status ? [ctx.query.status] as ("running" | "stopped")[] : undefined
         });
 
         let list = await paginator.run(ctx.query);

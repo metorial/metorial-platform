@@ -109,7 +109,7 @@ class ApiKeyService {
 
       let secretKey = UnifiedApiKey.create({
         type: d.type,
-        config: { url: getConfig().urls.apiUrl }
+        config: { url: getConfig().urls.apiUrl, instance: 'v2-us1' }
       });
 
       let limitReveal =
@@ -315,7 +315,7 @@ class ApiKeyService {
 
       let secretKey = UnifiedApiKey.create({
         type: d.apiKey.type,
-        config: { url: getConfig().urls.apiUrl }
+        config: { url: getConfig().urls.apiUrl, instance: 'v2-us1' }
       });
 
       let currentSecrets = await db.apiKeySecret.findMany({

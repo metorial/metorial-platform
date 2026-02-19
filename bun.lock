@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@metorial/oss",
@@ -606,7 +607,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/programmable-promise": "^1.0.6",
-        "@metorial-services/subspace-client": "^1.0.2",
+        "@metorial-services/subspace-client": "^1.0.6",
         "@metorial/context": "1.0.0",
         "@metorial/db": "1.0.0",
         "@metorial/error": "1.0.0",
@@ -2368,7 +2369,7 @@
 
     "@marsidev/react-turnstile": ["@marsidev/react-turnstile@1.4.2", "", { "peerDependencies": { "react": "^17.0.2 || ^18.0.0 || ^19.0", "react-dom": "^17.0.2 || ^18.0.0 || ^19.0" } }, "sha512-xs1qOuyeMOz6t9BXXCXWiukC0/0+48vR08B7uwNdG05wCMnbcNgxiFmdFKDOFbM76qFYFRYlGeRfhfq1U/iZmA=="],
 
-    "@metorial-services/subspace-client": ["@metorial-services/subspace-client@1.0.2", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.0.3", "@lowerdeck/validation": "^1.0.4" } }, "sha512-LYVPrb+ikUT7WkWvGfHKZsmIE2UJi5ohxa/Ik2ncB/CXKbGKdl/3sROxjNxIecfBkAKaCzGaRF2sthLTIelVKw=="],
+    "@metorial-services/subspace-client": ["@metorial-services/subspace-client@1.0.6", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.0.3", "@lowerdeck/validation": "^1.0.4" } }, "sha512-Ha6yFS9Jj14x05p5WRm6DJGKyaelph03nzuJr+bk5u4kYqzUuoZ7lS2DDFQBb25C9Ampsm5yJ20/LFY+XpH1Cw=="],
 
     "@metorial/anonymize-ip": ["@metorial/anonymize-ip@workspace:src/packages/shared/anonymize-ip"],
 
