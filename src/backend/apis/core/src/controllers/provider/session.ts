@@ -1,9 +1,6 @@
 import { convertKeysToCamelCase } from '@metorial/case';
-import { getConfig } from '@metorial/config';
-import { Instance, Organization, OrganizationActor } from '@metorial/db';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { apiKeyService } from '@metorial/module-machine-access';
-import { subspaceSessionService } from '@metorial/module-subspace';
+import { buildSubspaceMcpUrl, subspaceSessionService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
 import { v } from '@metorial/validation';
@@ -16,33 +13,13 @@ import {
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerSessionPresenter } from '../../presenters';
+import { SubspaceSession } from '../../presenters/types';
 
-let withConnectionUrl = (session: any, _instance: any) => ({
+// @tobias put here or somewhere else?
+let withConnectionUrl = (session: any, instance: any): SubspaceSession => ({
   ...session,
-  connectionUrl: `${getConfig().urls.mcpUrl}/mcp/${session.id}`
+  connectionUrl: buildSubspaceMcpUrl(instance, session.id)
 });
-
-let createSessionConnectionKey = async (d: {
-  sessionId: string;
-  instance: Instance;
-  organization: Organization;
-  actor: OrganizationActor;
-  context: { ip: string; ua?: string | null };
-}) => {
-  let { secret } = await apiKeyService.createApiKey({
-    input: {
-      name: `Session ${d.sessionId}`
-    },
-    context: d.context,
-    kind: 'system_internal',
-    type: 'instance_access_token_secret',
-    instance: d.instance,
-    organization: d.organization,
-    performedBy: d.actor
-  });
-
-  return secret.secret;
-};
 
 export let providerSessionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionId) {
@@ -89,9 +66,7 @@ export let providerSessionController = Controller.create(
       .do(async ctx => {
         let paginator = await subspaceSessionService.list({
           instance: ctx.instance,
-          status: normalizeArrayParam(ctx.query.status) as
-            | ('active' | 'archived')[]
-            | undefined,
+          status: normalizeArrayParam(ctx.query.status) as ("active" | "archived")[] | undefined,
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id)
         });
@@ -159,19 +134,8 @@ export let providerSessionController = Controller.create(
           }))
         });
 
-        let connectionKey = await createSessionConnectionKey({
-          sessionId: subspaceSession.id,
-          instance: ctx.instance,
-          organization: ctx.organization,
-          actor: ctx.actor,
-          context: { ip: ctx.context.ip, ua: ctx.context.ua }
-        });
-
         return providerSessionPresenter.present({
-          session: {
-            ...withConnectionUrl(subspaceSession, ctx.instance),
-            connectionKey
-          }
+          session: withConnectionUrl(subspaceSession, ctx.instance)
         });
       }),
 

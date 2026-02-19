@@ -12,8 +12,8 @@ export let v1InstancePresenter = Presenter.create(instanceType)
     name: instance.name,
     organization_id: instance.organization.id,
     type: instance.type,
-    created_at: instance.createdAt,
-    updated_at: instance.updatedAt,
+    created_at: new Date(instance.createdAt),
+    updated_at: new Date(instance.updatedAt),
 
     project: await v1ProjectPresenter
       .present({ project: { ...instance.project, organization: instance.organization } }, opts)

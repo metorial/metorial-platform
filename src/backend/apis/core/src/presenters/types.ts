@@ -387,17 +387,15 @@ export interface SubspaceProviderListing {
 
 export interface SubspaceAuthMethodScope {
   id: string;
-  object?: string;
   scope: string;
   name?: string;
   title?: string;
-  description?: string | null;
+  description: string | null;
 }
 
 export interface SubspaceTool {
   id: string;
   name: string;
-  title?: string | null;
   description: string | null;
   inputSchema?: Record<string, unknown> | null;
   inputJsonSchema?: Record<string, unknown> | null;
@@ -444,7 +442,7 @@ export interface SubspaceConfig {
   isDefault?: boolean;
   name: string | null;
   description: string | null;
-  metadata: unknown;
+  metadata?: unknown;
   providerId: string;
   providerDeploymentId?: string | null;
   deploymentId?: string | null;
@@ -458,7 +456,7 @@ export interface SubspaceDeployment {
   isDefault?: boolean;
   name: string | null;
   description: string | null;
-  metadata: unknown;
+  metadata?: unknown;
   providerId: string;
   provider?: {
     id: string;
@@ -481,21 +479,10 @@ export interface SubspaceConfigVault {
   id: string;
   name: string | null;
   description: string | null;
-  metadata: unknown;
+  metadata?: unknown;
   providerId: string;
   providerDeploymentId?: string | null;
-  deploymentId?: {
-    object: string;
-    id: string;
-    isEphemeral: boolean;
-    isDefault: boolean;
-    name: string | null;
-    description: string | null;
-    metadata: unknown;
-    providerId: string;
-    createdAt: Date;
-    updatedAt: Date;
-  } | null;
+  deploymentId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -507,7 +494,7 @@ export interface SubspaceAuthConfig {
   status?: string;
   name: string | null;
   description: string | null;
-  metadata: unknown;
+  metadata?: unknown;
   providerId: string;
   providerDeploymentId?: string | null;
   deploymentId?: string | null;
@@ -522,7 +509,7 @@ export interface SubspaceAuthCredentials {
   type?: string;
   name: string | null;
   description: string | null;
-  metadata: unknown;
+  metadata?: unknown;
   providerId: string;
   clientId?: string | null;
   scopes?: SubspaceAuthMethodScope[] | null;
@@ -536,7 +523,7 @@ export interface SubspaceSetupSession {
   status?: string;
   name: string | null;
   description: string | null;
-  metadata: unknown;
+  metadata?: unknown;
   providerId: string;
   providerDeploymentId?: string | null;
   deploymentId?: string | null;
@@ -555,7 +542,7 @@ export interface SubspaceSetupSession {
 export interface SubspaceAuthImport {
   id: string;
   note: string | null;
-  metadata: unknown;
+  metadata?: unknown;
   providerId?: string | null;
   providerDeploymentId?: string | null;
   deploymentId?: string | null;
@@ -569,7 +556,7 @@ export interface SubspaceAuthImport {
 export interface SubspaceAuthExport {
   id: string;
   note: string | null;
-  metadata: unknown;
+  metadata?: unknown;
   providerAuthConfigId?: string;
   authConfigId?: string;
   value?: Record<string, unknown>;
@@ -648,7 +635,7 @@ export interface SubspaceSessionTemplate {
   id: string;
   name: string | null;
   description: string | null;
-  metadata: unknown;
+  metadata?: unknown;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -661,9 +648,6 @@ export interface SubspaceSessionTemplateProvider {
   sessionTemplateId: string;
   providerId: string;
   providerDeploymentId?: string | null;
-  deployment?: { id: string; name: string | null } | null;
-  config?: { id: string; name: string | null } | null;
-  authConfig?: { id: string; name: string | null } | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -683,8 +667,8 @@ export interface SubspaceSessionProvider {
 
 export interface SubspaceSessionParticipant {
   id: string;
-  type?: string | null;
-  name?: string | null;
+  type: string | null;
+  name: string | null;
   description?: string | null;
   metadata?: unknown;
   sessionId?: string;
@@ -696,12 +680,12 @@ export interface SubspaceSessionError {
   id: string;
   type?: string | null;
   name?: string | null;
-  message?: string | null;
+  message: string | null;
   stack?: string | null;
   metadata?: unknown;
   sessionId: string;
   sessionErrorGroupId?: string | null;
-  providerRunId?: string | null;
+  providerRunId: string | null;
   createdAt: Date;
 }
 
@@ -709,7 +693,7 @@ export interface SubspaceSessionErrorGroup {
   id: string;
   type?: string | null;
   name?: string | null;
-  message?: string | null;
+  message: string | null;
   count?: number;
   metadata?: unknown;
   sessionId?: string;
@@ -724,34 +708,14 @@ export interface SubspaceProviderRun {
   description?: string | null;
   metadata?: unknown;
   sessionId: string;
-  sessionProviderId?: string | null;
-  providerId?: string | null;
+  sessionProviderId: string | null;
+  providerId: string | null;
   providerDeploymentId?: string | null;
   providerVersionId?: string | null;
   startedAt?: Date | null;
-  completedAt?: Date | null;
+  completedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-}
-
-export interface SubspaceToolCall {
-  id: string;
-  toolKey: string;
-  type: string;
-  status: string;
-  source: string;
-  transport: string;
-  sessionId: string;
-  messageId: string;
-  sessionProviderId: string | null;
-  connectionId: string | null;
-  providerRunId: string | null;
-  tool: SubspaceTool;
-  input: Record<string, unknown> | null;
-  output: Record<string, unknown> | null;
-  error: Record<string, unknown> | null;
-  metadata: Record<string, unknown> | null;
-  createdAt: Date;
 }
 
 export let sessionTemplateType = PresentableType.create<{
@@ -782,10 +746,6 @@ export let providerRunType = PresentableType.create<{
   providerRun: SubspaceProviderRun;
 }>()('providerRun');
 
-export let toolCallType = PresentableType.create<{
-  toolCall: SubspaceToolCall;
-}>()('toolCall');
-
 export interface SubspaceSessionProvider {
   id: string;
   status: string | null;
@@ -810,7 +770,7 @@ export interface SubspaceSession {
   name: string | null;
   description: string | null;
   status: string | null;
-  connectionState?: string | null;
+  connectionState: string | null;
   metadata?: unknown;
   usage?: {
     totalProductiveClientMessageCount: number;
@@ -818,7 +778,6 @@ export interface SubspaceSession {
   };
   providers?: SubspaceSessionProvider[];
   connectionUrl?: string;
-  connectionKey?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -861,12 +820,12 @@ export interface SubspaceSessionConnection {
   connectionState: string | null;
   mcpVersion?: string | null;
   mcpConnectionType?: string | null;
-  clientInfo?: unknown;
-  serverInfo?: unknown;
-  clientCapabilities?: unknown;
-  serverCapabilities?: unknown;
+  clientInfo?: Record<string, unknown> | null;
+  serverInfo?: Record<string, unknown> | null;
+  clientCapabilities?: Record<string, unknown> | null;
+  serverCapabilities?: Record<string, unknown> | null;
   metadata?: unknown;
-  sessionId: string;
+  sessionId?: string;
   sessionProviderId?: string | null;
   startedAt?: Date | null;
   endedAt?: Date | null;
@@ -876,10 +835,10 @@ export interface SubspaceSessionConnection {
 
 export interface SubspaceSessionEvent {
   id: string;
-  type?: string | null;
+  type: string | null;
   name?: string | null;
-  message?: Record<string, unknown> | null;
-  data?: unknown;
+  message?: string | null;
+  data?: Record<string, unknown> | null;
   metadata?: unknown;
   sessionId: string;
   sessionProviderId?: string | null;
@@ -888,7 +847,11 @@ export interface SubspaceSessionEvent {
 }
 
 export interface SubspaceProviderRunLogs {
-  logs: Array<Record<string, unknown>>;
+  logs: Array<{
+    timestamp?: Date | null;
+    message: string;
+    outputType: string;
+  }>;
 }
 
 export interface SubspaceConfigSchema {
@@ -896,7 +859,7 @@ export interface SubspaceConfigSchema {
 }
 
 export interface SubspaceAuthImportSchema {
-  schema?: Record<string, unknown> | null;
+  schema: Record<string, unknown> | null;
 }
 
 export let subspaceSessionMessageType = PresentableType.create<{
@@ -939,7 +902,7 @@ export interface SubspaceCustomProvider {
   status: string | null;
   name: string | null;
   description: string | null;
-  metadata: Record<string, unknown> | null;
+  metadata?: unknown;
   provider?: SubspaceProvider | null;
   createdAt: Date;
   updatedAt: Date;
@@ -986,28 +949,10 @@ export interface SubspaceCustomProviderVersion {
 }
 
 export interface SubspaceCustomProviderDeploymentLogs {
-  logs?: Array<{
+  logs: Array<{
     type: string;
     line: string;
     timestamp?: Date | null;
-  }>;
-  steps?: Array<{
-    id?: string;
-    type?: string;
-    status?: string;
-    source?: {
-      provider?: string;
-      workflowRunId?: string;
-      workflowId?: string;
-      functionDeploymentId?: string;
-    } | null;
-    logs?: Array<{
-      type?: string;
-      line?: string;
-      message?: string;
-      timestamp?: Date | string | number | null;
-    }>;
-    createdAt?: Date | null;
   }>;
 }
 
@@ -1049,7 +994,7 @@ export interface SubspaceProviderOAuthSetupAuthConfig {
   type?: string | null;
   name: string | null;
   description: string | null;
-  metadata: Record<string, unknown> | null;
+  metadata?: unknown;
   providerId: string;
   providerDeploymentId?: string | null;
   providerAuthMethodId?: string | null;
@@ -1062,7 +1007,7 @@ export interface SubspaceProviderOAuthSetupCredentials {
   type?: string | null;
   name: string | null;
   description: string | null;
-  metadata: Record<string, unknown> | null;
+  metadata?: unknown;
   providerId: string;
   clientId?: string | null;
   createdAt: Date;
@@ -1082,7 +1027,7 @@ export interface SubspaceProviderOAuthSetup {
   providerId: string;
   name: string | null;
   description: string | null;
-  metadata: Record<string, unknown> | null;
+  metadata?: unknown;
   redirectUrl?: string | null;
   url?: string | null;
   authConfig?: SubspaceProviderOAuthSetupAuthConfig | null;

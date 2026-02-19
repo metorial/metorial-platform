@@ -7,6 +7,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceProviderRunPresenter, providerRunLogsPresenter } from '../../presenters';
+import { SubspaceProviderRun, SubspaceProviderRunLogs } from '../../presenters/types';
 import { instanceGroup } from '../../middleware/instanceGroup';
 import { subspaceSessionGroup } from './subspaceSession';
 
@@ -65,15 +66,15 @@ export let subspaceProviderRunController = Controller.create(
           sessionIds: normalizeArrayParam(ctx.query.session_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
-          status: ctx.query.status
-            ? ([ctx.query.status] as ('running' | 'stopped')[])
-            : undefined
+          status: ctx.query.status ? [ctx.query.status] as ("running" | "stopped")[] : undefined
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, providerRun =>
-          subspaceProviderRunPresenter.present({ providerRun })
+          subspaceProviderRunPresenter.present({
+            providerRun: providerRun as SubspaceProviderRun
+          })
         );
       }),
 
@@ -89,7 +90,9 @@ export let subspaceProviderRunController = Controller.create(
           instance: ctx.instance,
           providerRunId: ctx.params.providerRunId
         });
-        return subspaceProviderRunPresenter.present({ providerRun });
+        return subspaceProviderRunPresenter.present({
+          providerRun: providerRun as SubspaceProviderRun
+        });
       }),
 
     getLogsById: instanceGroup
@@ -104,7 +107,7 @@ export let subspaceProviderRunController = Controller.create(
           instance: ctx.instance,
           providerRunId: ctx.params.providerRunId
         });
-        return providerRunLogsPresenter.present({ logs });
+        return providerRunLogsPresenter.present({ logs: logs as SubspaceProviderRunLogs });
       }),
 
     list: subspaceSessionGroup
@@ -134,15 +137,15 @@ export let subspaceProviderRunController = Controller.create(
           sessionIds: [ctx.session.id],
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),
-          status: ctx.query.status
-            ? ([ctx.query.status] as ('running' | 'stopped')[])
-            : undefined
+          status: ctx.query.status ? [ctx.query.status] as ("running" | "stopped")[] : undefined
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, providerRun =>
-          subspaceProviderRunPresenter.present({ providerRun })
+          subspaceProviderRunPresenter.present({
+            providerRun: providerRun as SubspaceProviderRun
+          })
         );
       }),
 
@@ -182,7 +185,7 @@ export let subspaceProviderRunController = Controller.create(
           providerRunId: ctx.providerRun.id
         });
 
-        return providerRunLogsPresenter.present({ logs });
+        return providerRunLogsPresenter.present({ logs: logs as SubspaceProviderRunLogs });
       })
   }
 );

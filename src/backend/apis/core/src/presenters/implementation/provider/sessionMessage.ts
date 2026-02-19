@@ -90,7 +90,7 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(subspaceSessionM
         id: mcpId,
         original_id: null as string | null,
         method,
-        payload: payload ?? {}
+        payload: payload ?? null
       },
       session_id: sessionMessage.sessionId,
       server_session_id:

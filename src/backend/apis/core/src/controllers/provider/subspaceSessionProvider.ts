@@ -13,7 +13,7 @@ import {
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { sessionProviderPresenter } from '../../presenters';
-
+import { SubspaceSessionProvider } from '../../presenters/types';
 import { subspaceSessionGroup } from './subspaceSession';
 
 export let subspaceSessionProviderGroup = subspaceSessionGroup.use(async ctx => {
@@ -64,15 +64,15 @@ export let subspaceSessionProviderController = Controller.create(
           instance: ctx.instance,
           sessionIds: [ctx.session.id],
           providerIds: normalizeArrayParam(ctx.query.provider_id),
-          status: ctx.query.status
-            ? ([ctx.query.status] as ('active' | 'archived')[])
-            : undefined
+          status: ctx.query.status ? [ctx.query.status] as ("active" | "archived")[] : undefined
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, sessionProvider =>
-          sessionProviderPresenter.present({ sessionProvider })
+          sessionProviderPresenter.present({
+            sessionProvider: sessionProvider as SubspaceSessionProvider
+          })
         );
       }),
 
@@ -129,7 +129,9 @@ export let subspaceSessionProviderController = Controller.create(
             : undefined
         });
 
-        return sessionProviderPresenter.present({ sessionProvider });
+        return sessionProviderPresenter.present({
+          sessionProvider: sessionProvider as SubspaceSessionProvider
+        });
       }),
 
     update: subspaceSessionProviderGroup
@@ -164,7 +166,9 @@ export let subspaceSessionProviderController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return sessionProviderPresenter.present({ sessionProvider });
+        return sessionProviderPresenter.present({
+          sessionProvider: sessionProvider as SubspaceSessionProvider
+        });
       }),
 
     delete: subspaceSessionProviderGroup

@@ -4,52 +4,43 @@ import { getActorForSubspace, getTenantForSubspace } from '../subspace';
 
 export type Tail<T extends any[]> = T extends [any, ...infer U] ? U : [];
 
-type SubspacePaginatorQuery = {
-  limit?: number;
-  after?: string;
-  before?: string;
-  cursor?: string;
-  order?: 'asc' | 'desc';
+type SubspaceListResult = {
+  run: (query: {
+    limit?: number;
+    after?: string;
+    before?: string;
+    cursor?: string;
+    order?: 'asc' | 'desc';
+  }) => Promise<{
+    items: any[];
+    pagination: {
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+  }>;
 };
 
-type SubspacePaginatedResult<T> = {
-  items: T[];
-  pagination: { hasNextPage: boolean; hasPreviousPage: boolean };
-};
-
-type ExtractListItems<F> = F extends (...args: any[]) => Promise<{ items: (infer I)[] }>
-  ? I
-  : unknown;
-
-type SubspaceMethodArgs<SubspaceController extends {}, K extends keyof SubspaceController> = {
-  instance: Instance;
-} & Omit<
-  Parameters<Extract<SubspaceController[K], (...args: any[]) => any>>[0],
-  'tenantId' | 'environmentId'
-> &
-  (Parameters<Extract<SubspaceController[K], (...args: any[]) => any>>[0] extends {
-    actorId: any;
-  }
-    ? { organizationActor: OrganizationActor }
-    : {});
+type SubspaceMethodArgs<SubspaceController extends {}, K extends keyof SubspaceController> =
+  SubspaceController[K] extends (...args: any[]) => any
+    ? [
+        arg0: { instance: Instance } & Omit<
+          Parameters<SubspaceController[K]>[0],
+          'tenantId' | 'environmentId'
+        > &
+          (Parameters<SubspaceController[K]>[0] extends { actorId: any }
+            ? { organizationActor: OrganizationActor }
+            : {}),
+        ...args: Tail<Parameters<SubspaceController[K]>>
+      ]
+    : never;
 
 export type SubspaceService<SubspaceController extends {}, Overrides extends {}> = {
   [K in Exclude<keyof SubspaceController, keyof Overrides>]: SubspaceController[K] extends (
     ...args: any[]
   ) => any
     ? K extends 'list'
-      ? (
-          arg0: SubspaceMethodArgs<SubspaceController, K>,
-          ...args: Tail<Parameters<SubspaceController[K]>>
-        ) => Promise<{
-          run(
-            query: SubspacePaginatorQuery
-          ): Promise<SubspacePaginatedResult<ExtractListItems<SubspaceController[K]>>>;
-        }>
-      : (
-          arg0: SubspaceMethodArgs<SubspaceController, K>,
-          ...args: Tail<Parameters<SubspaceController[K]>>
-        ) => ReturnType<SubspaceController[K]>
+      ? (...args: SubspaceMethodArgs<SubspaceController, K>) => Promise<SubspaceListResult>
+      : (...args: SubspaceMethodArgs<SubspaceController, K>) => ReturnType<SubspaceController[K]>
     : never;
 } & Overrides;
 

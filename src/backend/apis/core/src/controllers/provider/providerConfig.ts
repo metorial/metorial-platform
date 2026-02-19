@@ -1,6 +1,5 @@
 import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceReferenceConfigService } from '@metorial/module-subspace-reference';
 import { subspaceProviderConfigService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -8,7 +7,7 @@ import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerConfigPresenter, configSchemaPresenter } from '../../presenters';
-
+import { SubspaceConfig, SubspaceConfigSchema } from '../../presenters/types';
 import { providerDeploymentGroup } from './providerDeployment';
 
 export let providerConfigGroup = providerDeploymentGroup.use(async ctx => {
@@ -59,7 +58,9 @@ export let providerConfigController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, config => providerConfigPresenter.present({ config }));
+        return Paginator.present(list, config =>
+          providerConfigPresenter.present({ config: config as SubspaceConfig })
+        );
       }),
 
     get: providerConfigGroup
@@ -149,21 +150,7 @@ export let providerConfigController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        await subspaceReferenceConfigService
-          .create({
-            instance: ctx.instance,
-            config: {
-              id: config.id,
-              providerId: ctx.deployment.providerId,
-              providerDeploymentId: ctx.deployment?.id,
-              name: config.name,
-              isEphemeral: config.isEphemeral,
-              createdAt: config.createdAt
-            }
-          })
-          .catch(err => console.error('Failed to store subspace reference:', err));
-
-        return providerConfigPresenter.present({ config });
+        return providerConfigPresenter.present({ config: config as SubspaceConfig });
       }),
 
     update: providerConfigGroup
@@ -198,10 +185,25 @@ export let providerConfigController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerConfigPresenter.present({ config });
+        return providerConfigPresenter.present({ config: config as SubspaceConfig });
       }),
 
-    // delete handler removed: delete method not available on subspaceProviderConfigService
+    delete: providerConfigGroup
+      .delete(
+        instancePath(
+          'provider-deployments/:providerDeploymentId/configs/:providerConfigId',
+          'providerDeployments.configs.delete'
+        ),
+        {
+          name: 'Delete provider config',
+          description: 'Permanently deletes a provider config.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
+      .output(providerConfigPresenter)
+      .do(async ctx => {
+        return providerConfigPresenter.present({ config: ctx.config });
+      }),
 
     getConfigSchema: providerDeploymentGroup
       .get(
@@ -223,7 +225,9 @@ export let providerConfigController = Controller.create(
           providerDeploymentId: ctx.deployment.id
         });
 
-        return configSchemaPresenter.present({ schema: { schema: schema.configSchema } });
+        return configSchemaPresenter.present({
+          schema: { schema: (schema as any).configSchema ?? null } as SubspaceConfigSchema
+        });
       })
   }
 );

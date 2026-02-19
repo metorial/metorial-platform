@@ -79,7 +79,9 @@ export let subspaceSessionEventController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(subspaceSessionEventPresenter)
       .do(async ctx => {
-        return subspaceSessionEventPresenter.present({ sessionEvent: ctx.sessionEvent });
+        return subspaceSessionEventPresenter.present({
+          sessionEvent: ctx.sessionEvent as SubspaceSessionEvent
+        });
       })
   }
 );

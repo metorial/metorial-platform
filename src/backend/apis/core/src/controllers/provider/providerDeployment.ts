@@ -1,6 +1,5 @@
 import { convertKeysToCamelCase } from '@metorial/case';
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceReferenceDeploymentService } from '@metorial/module-subspace-reference';
 import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -9,6 +8,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
 import { providerDeploymentPresenter } from '../../presenters';
+import { SubspaceDeployment } from '../../presenters/types';
 
 export let providerDeploymentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerDeploymentId) {
@@ -62,15 +62,13 @@ export let providerDeploymentController = Controller.create(
           instance: ctx.instance,
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
-          status: ctx.query.status
-            ? ([ctx.query.status] as ('active' | 'archived')[])
-            : undefined
+          status: ctx.query.status ? [ctx.query.status] as ("active" | "archived")[] : undefined
         });
 
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, deployment =>
-          providerDeploymentPresenter.present({ deployment })
+          providerDeploymentPresenter.present({ deployment: deployment as SubspaceDeployment })
         );
       }),
 
@@ -177,20 +175,9 @@ export let providerDeploymentController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        await subspaceReferenceDeploymentService
-          .create({
-            instance: ctx.instance,
-            deployment: {
-              id: deployment.id,
-              providerId: ctx.body.provider_id,
-              name: deployment.name,
-              isEphemeral: deployment.isEphemeral,
-              createdAt: deployment.createdAt
-            }
-          })
-          .catch(err => console.error('Failed to store subspace reference:', err));
-
-        return providerDeploymentPresenter.present({ deployment });
+        return providerDeploymentPresenter.present({
+          deployment: deployment as SubspaceDeployment
+        });
       }),
 
     update: providerDeploymentGroup
@@ -228,9 +215,28 @@ export let providerDeploymentController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        return providerDeploymentPresenter.present({ deployment });
-      })
+        return providerDeploymentPresenter.present({
+          deployment: deployment as SubspaceDeployment
+        });
+      }),
 
-    // delete handler removed: delete method not available on subspaceProviderDeploymentService
+    delete: providerDeploymentGroup
+      .delete(
+        instancePath(
+          'provider-deployments/:providerDeploymentId',
+          'providerDeployments.delete'
+        ),
+        {
+          name: 'Delete provider deployment',
+          description: 'Permanently deletes a provider deployment.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
+      .output(providerDeploymentPresenter)
+      .do(async ctx => {
+        return providerDeploymentPresenter.present({
+          deployment: ctx.deployment as SubspaceDeployment
+        });
+      })
   }
 );

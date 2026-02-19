@@ -1,5 +1,4 @@
 import { badRequestError, ServiceError } from '@metorial/error';
-import { subspaceReferenceAuthImportService } from '@metorial/module-subspace-reference';
 import { subspaceProviderAuthImportService } from '@metorial/module-subspace';
 import { Paginator } from '@metorial/pagination';
 import { Controller } from '@metorial/rest';
@@ -7,7 +6,7 @@ import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthImportPresenter, authImportSchemaPresenter } from '../../presenters';
-
+import { SubspaceAuthImport, SubspaceAuthImportSchema } from '../../presenters/types';
 import { providerAuthConfigGroup } from './providerAuthConfig';
 
 export let providerAuthImportGroup = providerAuthConfigGroup.use(async ctx => {
@@ -64,7 +63,7 @@ export let providerAuthImportController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, authImport =>
-          providerAuthImportPresenter.present({ authImport })
+          providerAuthImportPresenter.present({ authImport: authImport as SubspaceAuthImport })
         );
       }),
 
@@ -138,20 +137,9 @@ export let providerAuthImportController = Controller.create(
           metadata: ctx.body.metadata
         });
 
-        await subspaceReferenceAuthImportService
-          .create({
-            instance: ctx.instance,
-            authImport: {
-              id: authImport.id,
-              providerId: ctx.deployment.providerId,
-              providerDeploymentId: authImport.providerDeploymentId,
-              providerAuthConfigId: ctx.authConfig?.id,
-              createdAt: authImport.createdAt
-            }
-          })
-          .catch(err => console.error('Failed to store subspace reference:', err));
-
-        return providerAuthImportPresenter.present({ authImport });
+        return providerAuthImportPresenter.present({
+          authImport: authImport as SubspaceAuthImport
+        });
       }),
 
     getSchema: providerAuthConfigGroup
@@ -173,7 +161,9 @@ export let providerAuthImportController = Controller.create(
           providerAuthConfigId: ctx.authConfig.id
         });
 
-        return authImportSchemaPresenter.present({ schema });
+        return authImportSchemaPresenter.present({
+          schema: schema as SubspaceAuthImportSchema
+        });
       })
   }
 );

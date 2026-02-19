@@ -125,6 +125,8 @@ class ProfileService {
       }
     });
   }
+
+
 }
 
 export let profileService = Service.create(

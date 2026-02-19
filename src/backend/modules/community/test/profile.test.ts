@@ -12,6 +12,10 @@ vi.mock('@metorial/db', () => ({
     },
     profileUpdate: {
       create: vi.fn()
+    },
+    serverVariantProvider: {
+      findUnique: vi.fn(),
+      create: vi.fn()
     }
   },
   ID: {
@@ -525,4 +529,5 @@ describe('ProfileService', () => {
       );
     });
   });
+
 });

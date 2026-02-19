@@ -76,7 +76,9 @@ export let providerAuthMethodController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .output(providerAuthMethodPresenter)
       .do(async ctx => {
-        return providerAuthMethodPresenter.present({ authMethod: ctx.authMethod });
+        return providerAuthMethodPresenter.present({
+          authMethod: ctx.authMethod as unknown as SubspaceAuthMethod
+        });
       })
   }
 );
