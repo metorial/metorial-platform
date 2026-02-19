@@ -6,6 +6,7 @@ import { v } from '@metorial/validation';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerAuthMethodPresenter } from '../../presenters';
+import type { SubspaceAuthMethod } from '../../presenters/types';
 
 import { providerGroup } from './provider';
 

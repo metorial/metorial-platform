@@ -41,7 +41,7 @@ export let v1SubspaceSessionEventPresenter = Presenter.create(subspaceSessionEve
         })
       ),
       message: v.nullable(
-        v.record(v.any(), {
+        v.string({
           name: 'message',
           description: 'Event message'
         })

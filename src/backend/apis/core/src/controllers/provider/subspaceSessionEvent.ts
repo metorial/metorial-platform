@@ -7,6 +7,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { subspaceSessionEventPresenter } from '../../presenters';
+import type { SubspaceSessionEvent } from '../../presenters/types';
 
 import { subspaceSessionGroup } from './subspaceSession';
 

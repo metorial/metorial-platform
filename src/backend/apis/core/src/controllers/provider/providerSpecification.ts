@@ -5,6 +5,7 @@ import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instancePath } from '../../middleware/instanceGroup';
 import { providerSpecificationPresenter } from '../../presenters';
+import type { SubspaceSpecification } from '../../presenters/types';
 
 import { providerGroup } from './provider';
 
