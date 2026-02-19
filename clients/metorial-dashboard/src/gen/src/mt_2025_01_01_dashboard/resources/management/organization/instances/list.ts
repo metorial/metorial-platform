@@ -34,10 +34,7 @@ export let mapManagementOrganizationInstancesListOutput =
           id: mtMap.objectField('id', mtMap.passthrough()),
           slug: mtMap.objectField('slug', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
-          organizationId: mtMap.objectField(
-            'organization_id',
-            mtMap.passthrough()
-          ),
+          organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
           type: mtMap.objectField('type', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date()),
@@ -49,10 +46,7 @@ export let mapManagementOrganizationInstancesListOutput =
               status: mtMap.objectField('status', mtMap.passthrough()),
               slug: mtMap.objectField('slug', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              organizationId: mtMap.objectField(
-                'organization_id',
-                mtMap.passthrough()
-              ),
+              organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
@@ -63,10 +57,7 @@ export let mapManagementOrganizationInstancesListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -92,4 +83,3 @@ export let mapManagementOrganizationInstancesListQuery = mtMap.union([
     })
   )
 ]);
-

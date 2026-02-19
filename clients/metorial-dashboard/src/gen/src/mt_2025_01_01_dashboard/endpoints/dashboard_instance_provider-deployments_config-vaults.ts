@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceProviderDeploymentsConfigVaultsCreateBody,
@@ -71,9 +68,7 @@ export class MetorialDashboardInstanceProviderDeploymentsConfigVaultsEndpoint {
       path,
 
       query: query
-        ? mapDashboardInstanceProviderDeploymentsConfigVaultsListQuery.transformTo(
-            query
-          )
+        ? mapDashboardInstanceProviderDeploymentsConfigVaultsListQuery.transformTo(query)
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -136,9 +131,7 @@ export class MetorialDashboardInstanceProviderDeploymentsConfigVaultsEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceProviderDeploymentsConfigVaultsCreateBody.transformTo(
-        body
-      ),
+      body: mapDashboardInstanceProviderDeploymentsConfigVaultsCreateBody.transformTo(body),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -172,9 +165,7 @@ export class MetorialDashboardInstanceProviderDeploymentsConfigVaultsEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceProviderDeploymentsConfigVaultsUpdateBody.transformTo(
-        body
-      ),
+      body: mapDashboardInstanceProviderDeploymentsConfigVaultsUpdateBody.transformTo(body),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;

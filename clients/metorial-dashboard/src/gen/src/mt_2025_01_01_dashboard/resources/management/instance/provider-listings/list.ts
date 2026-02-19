@@ -69,10 +69,7 @@ export let mapManagementInstanceProviderListingsListOutput =
             'flags',
             mtMap.object({
               isPublic: mtMap.objectField('is_public', mtMap.passthrough()),
-              isCustomized: mtMap.objectField(
-                'is_customized',
-                mtMap.passthrough()
-              ),
+              isCustomized: mtMap.objectField('is_customized', mtMap.passthrough()),
               isMetorial: mtMap.objectField('is_metorial', mtMap.passthrough()),
               isVerified: mtMap.objectField('is_verified', mtMap.passthrough()),
               isOfficial: mtMap.objectField('is_official', mtMap.passthrough())
@@ -86,10 +83,7 @@ export let mapManagementInstanceProviderListingsListOutput =
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
+                description: mtMap.objectField('description', mtMap.passthrough()),
                 slug: mtMap.objectField('slug', mtMap.passthrough()),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
@@ -103,10 +97,7 @@ export let mapManagementInstanceProviderListingsListOutput =
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
+                description: mtMap.objectField('description', mtMap.passthrough()),
                 slug: mtMap.objectField('slug', mtMap.passthrough()),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
@@ -120,10 +111,7 @@ export let mapManagementInstanceProviderListingsListOutput =
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                ),
+                description: mtMap.objectField('description', mtMap.passthrough()),
                 slug: mtMap.objectField('slug', mtMap.passthrough()),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date())
@@ -138,10 +126,7 @@ export let mapManagementInstanceProviderListingsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -191,10 +176,7 @@ export let mapManagementInstanceProviderListingsListQuery = mtMap.union([
           )
         ])
       ),
-      providerVersionId: mtMap.objectField(
-        'provider_version_id',
-        mtMap.passthrough()
-      ),
+      providerVersionId: mtMap.objectField('provider_version_id', mtMap.passthrough()),
       providerCategoryId: mtMap.objectField(
         'provider_category_id',
         mtMap.union([
@@ -247,4 +229,3 @@ export let mapManagementInstanceProviderListingsListQuery = mtMap.union([
     })
   )
 ]);
-

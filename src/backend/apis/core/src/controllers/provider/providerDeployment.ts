@@ -62,7 +62,9 @@ export let providerDeploymentController = Controller.create(
           instance: ctx.instance,
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
-          status: ctx.query.status ? [ctx.query.status] as ('active' | 'archived')[] : undefined
+          status: ctx.query.status
+            ? ([ctx.query.status] as ('active' | 'archived')[])
+            : undefined
         });
 
         let list = await paginator.run(ctx.query);
@@ -227,7 +229,7 @@ export let providerDeploymentController = Controller.create(
         });
 
         return providerDeploymentPresenter.present({ deployment });
-      }),
+      })
 
     // delete handler removed: delete method not available on subspaceProviderDeploymentService
   }

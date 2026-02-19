@@ -29,4 +29,3 @@ export let mapDashboardOrganizationsProjectsCreateBody =
   mtMap.object<DashboardOrganizationsProjectsCreateBody>({
     name: mtMap.objectField('name', mtMap.passthrough())
   });
-

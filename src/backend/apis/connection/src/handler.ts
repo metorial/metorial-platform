@@ -3,11 +3,7 @@ import { methodNotAllowedError, ServiceError } from '@metorial/error';
 import { Context } from 'hono';
 import { proxySubspacePost, proxySubspaceSSE } from './subspaceProxy';
 
-export let mcpProxyHandler = async (
-  c: Context,
-  instance: Instance,
-  sessionId: string
-) => {
+export let mcpProxyHandler = async (c: Context, instance: Instance, sessionId: string) => {
   if (c.req.method == 'DELETE') {
     throw new ServiceError(methodNotAllowedError({}));
   }

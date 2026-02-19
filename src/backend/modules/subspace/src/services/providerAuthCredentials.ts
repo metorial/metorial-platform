@@ -27,4 +27,6 @@ export let subspaceProviderAuthCredentialsService = createSubspaceService(
   })
 );
 
-export type SubspaceProviderAuthCredentials = Awaited<ReturnType<typeof subspace.providerAuthCredentials.get>>;
+export type SubspaceProviderAuthCredentials = Awaited<
+  ReturnType<typeof subspace.providerAuthCredentials.get>
+>;

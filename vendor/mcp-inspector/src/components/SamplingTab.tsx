@@ -1,10 +1,7 @@
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { TabsContent } from "@/components/ui/tabs";
-import {
-  CreateMessageRequest,
-  CreateMessageResult,
-} from "@modelcontextprotocol/sdk/types.js";
-import SamplingRequest from "./SamplingRequest";
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { TabsContent } from '@/components/ui/tabs';
+import { CreateMessageRequest, CreateMessageResult } from '@modelcontextprotocol/sdk/types.js';
+import SamplingRequest from './SamplingRequest';
 
 export type PendingRequest = {
   id: number;
@@ -23,13 +20,12 @@ const SamplingTab = ({ pendingRequests, onApprove, onReject }: Props) => {
       <div className="h-96">
         <Alert>
           <AlertDescription>
-            When the server requests LLM sampling, requests will appear here for
-            approval.
+            When the server requests LLM sampling, requests will appear here for approval.
           </AlertDescription>
         </Alert>
         <div className="mt-4 space-y-4">
           <h3 className="text-lg font-semibold">Recent Requests</h3>
-          {pendingRequests.map((request) => (
+          {pendingRequests.map(request => (
             <SamplingRequest
               key={request.id}
               request={request}

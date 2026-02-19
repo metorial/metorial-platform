@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapManagementOrganizationGetOutput,
@@ -48,9 +45,7 @@ export class MetorialManagementOrganizationEndpoint {
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  get(opts?: {
-    headers?: Record<string, string>;
-  }): Promise<ManagementOrganizationGetOutput> {
+  get(opts?: { headers?: Record<string, string> }): Promise<ManagementOrganizationGetOutput> {
     let path = 'organization';
 
     let request = {
@@ -85,8 +80,6 @@ export class MetorialManagementOrganizationEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._patch(request).transform(
-      mapManagementOrganizationUpdateOutput
-    );
+    return this._patch(request).transform(mapManagementOrganizationUpdateOutput);
   }
 }

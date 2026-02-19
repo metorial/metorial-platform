@@ -176,7 +176,7 @@ export let providerConfigVaultController = Controller.create(
         });
 
         return providerConfigVaultPresenter.present({ configVault });
-      }),
+      })
 
     // delete handler removed: delete method not available on subspaceProviderConfigVaultService
   }

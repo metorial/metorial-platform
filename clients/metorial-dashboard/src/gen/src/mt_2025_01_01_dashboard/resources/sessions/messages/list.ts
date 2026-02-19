@@ -24,53 +24,46 @@ export type SessionsMessagesListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapSessionsMessagesListOutput =
-  mtMap.object<SessionsMessagesListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          sender: mtMap.objectField(
-            'sender',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              type: mtMap.objectField('type', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough())
-            })
-          ),
-          mcpMessage: mtMap.objectField(
-            'mcp_message',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              originalId: mtMap.objectField('original_id', mtMap.passthrough()),
-              method: mtMap.objectField('method', mtMap.passthrough()),
-              payload: mtMap.objectField('payload', mtMap.passthrough())
-            })
-          ),
-          sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
-          serverSessionId: mtMap.objectField(
-            'server_session_id',
-            mtMap.passthrough()
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
+export let mapSessionsMessagesListOutput = mtMap.object<SessionsMessagesListOutput>({
+  items: mtMap.objectField(
+    'items',
+    mtMap.array(
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        type: mtMap.objectField('type', mtMap.passthrough()),
+        sender: mtMap.objectField(
+          'sender',
+          mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
+            type: mtMap.objectField('type', mtMap.passthrough()),
+            id: mtMap.objectField('id', mtMap.passthrough())
+          })
         ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
+        mcpMessage: mtMap.objectField(
+          'mcp_message',
+          mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            originalId: mtMap.objectField('original_id', mtMap.passthrough()),
+            method: mtMap.objectField('method', mtMap.passthrough()),
+            payload: mtMap.objectField('payload', mtMap.passthrough())
+          })
+        ),
+        sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
+        serverSessionId: mtMap.objectField('server_session_id', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date())
       })
     )
-  });
+  ),
+  pagination: mtMap.objectField(
+    'pagination',
+    mtMap.object({
+      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
+    })
+  )
+});
 
 export type SessionsMessagesListQuery = {
   limit?: number | undefined;
@@ -117,4 +110,3 @@ export let mapSessionsMessagesListQuery = mtMap.union([
     })
   )
 ]);
-

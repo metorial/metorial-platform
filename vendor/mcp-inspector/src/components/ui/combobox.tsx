@@ -1,19 +1,15 @@
-import React from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import React from 'react';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  CommandItem
+} from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface ComboboxProps {
   value: string;
@@ -30,9 +26,9 @@ export function Combobox({
   onChange,
   onInputChange,
   options = [],
-  placeholder = "Select...",
-  emptyMessage = "No results found.",
-  id,
+  placeholder = 'Select...',
+  emptyMessage = 'No results found.',
+  id
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -41,14 +37,14 @@ export function Combobox({
       onChange(option);
       setOpen(false);
     },
-    [onChange],
+    [onChange]
   );
 
   const handleInputChange = React.useCallback(
     (value: string) => {
       onInputChange(value);
     },
-    [onInputChange],
+    [onInputChange]
   );
 
   return (
@@ -74,16 +70,12 @@ export function Combobox({
           />
           <CommandEmpty>{emptyMessage}</CommandEmpty>
           <CommandGroup>
-            {options.map((option) => (
-              <CommandItem
-                key={option}
-                value={option}
-                onSelect={() => handleSelect(option)}
-              >
+            {options.map(option => (
+              <CommandItem key={option} value={option} onSelect={() => handleSelect(option)}>
                 <Check
                   className={cn(
-                    "mr-2 h-4 w-4",
-                    value === option ? "opacity-100" : "opacity-0",
+                    'mr-2 h-4 w-4',
+                    value === option ? 'opacity-100' : 'opacity-0'
                   )}
                 />
                 {option}

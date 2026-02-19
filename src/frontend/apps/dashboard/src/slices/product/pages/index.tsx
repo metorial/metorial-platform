@@ -48,7 +48,7 @@ export let ProjectHomePage = () => {
     a =>
       a.type === 'instance_access_token_secret' &&
       a.status == 'active' &&
-      (((a as any).revealInfo?.forever) ||
+      ((a as any).revealInfo?.forever ||
         ((a as any).revealInfo?.until && (a as any).revealInfo?.until > new Date()))
   );
 
@@ -219,7 +219,11 @@ export let ProjectHomePage = () => {
           <ServersGrid
             limit={6}
             providerCollectionId={
-              (window as unknown as { metorial_enterprise?: { landing_collection_ids?: string | string[] } }).metorial_enterprise?.landing_collection_ids
+              (
+                window as unknown as {
+                  metorial_enterprise?: { landing_collection_ids?: string | string[] };
+                }
+              ).metorial_enterprise?.landing_collection_ids
             }
           />
 

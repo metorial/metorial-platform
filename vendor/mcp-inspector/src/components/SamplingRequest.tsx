@@ -1,14 +1,14 @@
-import { Button } from "@/components/ui/button";
-import JsonView from "./JsonView";
-import { useMemo, useState } from "react";
+import { Button } from '@/components/ui/button';
+import JsonView from './JsonView';
+import { useMemo, useState } from 'react';
 import {
   CreateMessageResult,
-  CreateMessageResultSchema,
-} from "@modelcontextprotocol/sdk/types.js";
-import { PendingRequest } from "./SamplingTab";
-import DynamicJsonForm from "./DynamicJsonForm";
-import { useToast } from "@/hooks/use-toast";
-import { JsonSchemaType, JsonValue } from "@/utils/jsonUtils";
+  CreateMessageResultSchema
+} from '@modelcontextprotocol/sdk/types.js';
+import { PendingRequest } from './SamplingTab';
+import DynamicJsonForm from './DynamicJsonForm';
+import { useToast } from '@/hooks/use-toast';
+import { JsonSchemaType, JsonValue } from '@/utils/jsonUtils';
 
 export type SamplingRequestProps = {
   request: PendingRequest;
@@ -16,21 +16,17 @@ export type SamplingRequestProps = {
   onReject: (id: number) => void;
 };
 
-const SamplingRequest = ({
-  onApprove,
-  request,
-  onReject,
-}: SamplingRequestProps) => {
+const SamplingRequest = ({ onApprove, request, onReject }: SamplingRequestProps) => {
   const { toast } = useToast();
 
   const [messageResult, setMessageResult] = useState<JsonValue>({
-    model: "stub-model",
-    stopReason: "endTurn",
-    role: "assistant",
+    model: 'stub-model',
+    stopReason: 'endTurn',
+    role: 'assistant',
     content: {
-      type: "text",
-      text: "",
-    },
+      type: 'text',
+      text: ''
+    }
   });
 
   const contentType = (
@@ -41,74 +37,74 @@ const SamplingRequest = ({
 
   const schema = useMemo(() => {
     const s: JsonSchemaType = {
-      type: "object",
-      description: "Message result",
+      type: 'object',
+      description: 'Message result',
       properties: {
         model: {
-          type: "string",
-          default: "stub-model",
-          description: "model name",
+          type: 'string',
+          default: 'stub-model',
+          description: 'model name'
         },
         stopReason: {
-          type: "string",
-          default: "endTurn",
-          description: "Stop reason",
+          type: 'string',
+          default: 'endTurn',
+          description: 'Stop reason'
         },
         role: {
-          type: "string",
-          default: "endTurn",
-          description: "Role of the model",
+          type: 'string',
+          default: 'endTurn',
+          description: 'Role of the model'
         },
         content: {
-          type: "object",
+          type: 'object',
           properties: {
             type: {
-              type: "string",
-              default: "text",
-              description: "Type of content",
-            },
-          },
-        },
-      },
+              type: 'string',
+              default: 'text',
+              description: 'Type of content'
+            }
+          }
+        }
+      }
     };
 
-    if (contentType === "text" && s.properties) {
+    if (contentType === 'text' && s.properties) {
       s.properties.content.properties = {
         ...s.properties.content.properties,
         text: {
-          type: "string",
-          default: "",
-          description: "text content",
-        },
+          type: 'string',
+          default: '',
+          description: 'text content'
+        }
       };
-      setMessageResult((prev) => ({
+      setMessageResult(prev => ({
         ...(prev as { [key: string]: JsonValue }),
         content: {
           type: contentType,
-          text: "",
-        },
+          text: ''
+        }
       }));
-    } else if (contentType === "image" && s.properties) {
+    } else if (contentType === 'image' && s.properties) {
       s.properties.content.properties = {
         ...s.properties.content.properties,
         data: {
-          type: "string",
-          default: "",
-          description: "Base64 encoded image data",
+          type: 'string',
+          default: '',
+          description: 'Base64 encoded image data'
         },
         mimeType: {
-          type: "string",
-          default: "",
-          description: "Mime type of the image",
-        },
+          type: 'string',
+          default: '',
+          description: 'Mime type of the image'
+        }
       };
-      setMessageResult((prev) => ({
+      setMessageResult(prev => ({
         ...(prev as { [key: string]: JsonValue }),
         content: {
           type: contentType,
-          data: "",
-          mimeType: "",
-        },
+          data: '',
+          mimeType: ''
+        }
       }));
     }
 
@@ -119,9 +115,9 @@ const SamplingRequest = ({
     const validationResult = CreateMessageResultSchema.safeParse(messageResult);
     if (!validationResult.success) {
       toast({
-        title: "Error",
+        title: 'Error',
         description: `There was an error validating the message result: ${validationResult.error.message}`,
-        variant: "destructive",
+        variant: 'destructive'
       });
       return;
     }
@@ -130,10 +126,7 @@ const SamplingRequest = ({
   };
 
   return (
-    <div
-      data-testid="sampling-request"
-      className="flex gap-4 p-4 border rounded-lg space-y-4"
-    >
+    <div data-testid="sampling-request" className="flex gap-4 p-4 border rounded-lg space-y-4">
       <div className="flex-1 bg-gray-50 dark:bg-gray-800 dark:text-gray-100 p-2 rounded">
         <JsonView data={JSON.stringify(request.request)} />
       </div>
@@ -151,11 +144,7 @@ const SamplingRequest = ({
           <Button type="button" onClick={() => handleApprove(request.id)}>
             Approve
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onReject(request.id)}
-          >
+          <Button type="button" variant="outline" onClick={() => onReject(request.id)}>
             Reject
           </Button>
         </div>

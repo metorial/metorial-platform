@@ -32,9 +32,7 @@ export let ProviderAuthConfigsTable = ({
                 </Text>
               )}
             </Text>,
-            <Text size="2">
-              {config.providerAuthMethodId}
-            </Text>,
+            <Text size="2">{config.providerAuthMethodId}</Text>,
             <Text size="2">{formatType(config.type)}</Text>,
             <RenderDate date={config.createdAt} />
           ]

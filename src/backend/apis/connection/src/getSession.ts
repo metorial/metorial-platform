@@ -39,7 +39,8 @@ export let authenticateAndResolveInstance = async (
   throw new ServiceError(
     unauthorizedError({
       message: 'API key authentication required',
-      description: 'MCP proxy connections require an API key. Use a Bearer token with your API key.'
+      description:
+        'MCP proxy connections require an API key. Use a Bearer token with your API key.'
     })
   );
 };

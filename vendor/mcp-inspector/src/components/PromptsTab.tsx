@@ -121,7 +121,9 @@ const PromptsTab = ({
         <div className="bg-card rounded-lg border border-gray-200">
           <div className="p-4 border-b border-gray-200 dark:border-gray-800">
             <h3 className="font-semibold">
-              {selectedPrompt ? (selectedPrompt.title ?? selectedPrompt.name) : 'Select a prompt'}
+              {selectedPrompt
+                ? (selectedPrompt.title ?? selectedPrompt.name)
+                : 'Select a prompt'}
             </h3>
           </div>
           <div className="p-4">

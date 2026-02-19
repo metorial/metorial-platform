@@ -193,7 +193,7 @@ export let providerAuthCredentialsController = Controller.create(
         });
 
         return providerAuthCredentialsPresenter.present({ authCredentials });
-      }),
+      })
 
     // delete handler removed: delete method not available on subspaceProviderAuthCredentialsService
   }

@@ -206,10 +206,7 @@ let RenderField = ({
     if (depth > 0 || Object.keys(nestedProperties).length > 3) {
       return (
         <FieldWrapper>
-          <AccordionSingle
-            title={label}
-            defaultOpen={depth === 0}
-          >
+          <AccordionSingle title={label} defaultOpen={depth === 0}>
             {nestedContent}
           </AccordionSingle>
         </FieldWrapper>
@@ -243,7 +240,14 @@ let RenderField = ({
           description={property.description}
           value={value[key] ?? []}
           onChange={v => updateField(key, v)}
-          placeholder={Array.isArray((property.items as Record<string, unknown>)?.examples) ? String(((property.items as Record<string, unknown>).examples as unknown[])[0] ?? 'Enter a value') : 'Enter a value'}
+          placeholder={
+            Array.isArray((property.items as Record<string, unknown>)?.examples)
+              ? String(
+                  ((property.items as Record<string, unknown>).examples as unknown[])[0] ??
+                    'Enter a value'
+                )
+              : 'Enter a value'
+          }
         />
       </FieldWrapper>
     );

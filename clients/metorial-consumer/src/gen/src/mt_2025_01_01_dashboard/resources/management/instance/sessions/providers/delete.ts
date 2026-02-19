@@ -24,11 +24,7 @@ export let mapManagementInstanceSessionsProvidersDeleteOutput =
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
     sessionId: mtMap.objectField('session_id', mtMap.passthrough()),
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    providerDeploymentId: mtMap.objectField(
-      'provider_deployment_id',
-      mtMap.passthrough()
-    ),
+    providerDeploymentId: mtMap.objectField('provider_deployment_id', mtMap.passthrough()),
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
-

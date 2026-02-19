@@ -68,10 +68,7 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
               id: mtMap.objectField('id', mtMap.passthrough()),
               type: mtMap.objectField('type', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
+              description: mtMap.objectField('description', mtMap.passthrough()),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
               providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
               providerDeploymentId: mtMap.objectField(
@@ -92,10 +89,7 @@ export let mapProviderDeploymentsSetupSessionsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -135,4 +129,3 @@ export let mapProviderDeploymentsSetupSessionsListQuery = mtMap.union([
     })
   )
 ]);
-

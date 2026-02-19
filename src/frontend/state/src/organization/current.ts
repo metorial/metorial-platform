@@ -156,7 +156,9 @@ export let useCurrentOrganization = () => {
   let projects = boot.data.projects
     .filter((project: MetorialProject) => project.organizationId == foundItem.organization.id)
     .map((project: MetorialProject) => {
-      let projectInstances = instances.filter((instance: MetorialInstance) => instance.project.id == project.id);
+      let projectInstances = instances.filter(
+        (instance: MetorialInstance) => instance.project.id == project.id
+      );
       return {
         ...project,
         instances: projectInstances

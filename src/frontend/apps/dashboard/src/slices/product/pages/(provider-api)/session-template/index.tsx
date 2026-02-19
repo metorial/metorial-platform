@@ -25,7 +25,11 @@ export let SessionTemplateOverviewPage = () => {
   );
 
   let secretApiKey = apiKeys.data?.find(
-    (a: { type: string; status: string; revealInfo?: { forever?: boolean; until?: Date } | null }) =>
+    (a: {
+      type: string;
+      status: string;
+      revealInfo?: { forever?: boolean; until?: Date } | null;
+    }) =>
       a.type === 'instance_access_token_secret' &&
       ((a.status == 'active' && a.revealInfo?.forever) ||
         (a.revealInfo?.until && a.revealInfo?.until > new Date()))

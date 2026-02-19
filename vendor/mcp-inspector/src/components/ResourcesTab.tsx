@@ -176,7 +176,12 @@ const ResourcesTab = ({
           <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
             <h3
               className="font-semibold truncate"
-              title={selectedResource?.title ?? selectedResource?.name ?? selectedTemplate?.title ?? selectedTemplate?.name}
+              title={
+                selectedResource?.title ??
+                selectedResource?.name ??
+                selectedTemplate?.title ??
+                selectedTemplate?.name
+              }
             >
               {selectedResource
                 ? (selectedResource.title ?? selectedResource.name)

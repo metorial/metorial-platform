@@ -58,7 +58,9 @@ let commitSchema = v.object({
   })
 });
 
-let normalizeTimestamp = (timestamp: Date | string | number | null | undefined): Date | null => {
+let normalizeTimestamp = (
+  timestamp: Date | string | number | null | undefined
+): Date | null => {
   if (!timestamp) return null;
   if (timestamp instanceof Date) return timestamp;
   if (typeof timestamp == 'number') return new Date(timestamp);

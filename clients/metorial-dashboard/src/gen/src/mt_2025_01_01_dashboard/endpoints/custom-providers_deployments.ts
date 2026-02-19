@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceCustomProvidersDeploymentsGetLogsOutput,
@@ -63,9 +60,7 @@ export class MetorialCustomProvidersDeploymentsEndpoint {
       path,
 
       query: query
-        ? mapDashboardInstanceCustomProvidersDeploymentsListQuery.transformTo(
-            query
-          )
+        ? mapDashboardInstanceCustomProvidersDeploymentsListQuery.transformTo(query)
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;

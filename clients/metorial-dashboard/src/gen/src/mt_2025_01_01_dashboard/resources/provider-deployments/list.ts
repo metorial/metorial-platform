@@ -40,75 +40,65 @@ export type ProviderDeploymentsListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapProviderDeploymentsListOutput =
-  mtMap.object<ProviderDeploymentsListOutput>({
-    items: mtMap.objectField(
-      'items',
-      mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-          provider: mtMap.objectField(
-            'provider',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              slug: mtMap.objectField('slug', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          lockedVersion: mtMap.objectField(
-            'locked_version',
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              version: mtMap.objectField('version', mtMap.passthrough()),
-              status: mtMap.objectField('status', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          defaultConfig: mtMap.objectField(
-            'default_config',
-            mtMap.object({
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
-              metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-              providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-              createdAt: mtMap.objectField('created_at', mtMap.date()),
-              updatedAt: mtMap.objectField('updated_at', mtMap.date())
-            })
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
-      )
-    ),
-    pagination: mtMap.objectField(
-      'pagination',
+export let mapProviderDeploymentsListOutput = mtMap.object<ProviderDeploymentsListOutput>({
+  items: mtMap.objectField(
+    'items',
+    mtMap.array(
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        description: mtMap.objectField('description', mtMap.passthrough()),
+        metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+        provider: mtMap.objectField(
+          'provider',
+          mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            name: mtMap.objectField('name', mtMap.passthrough()),
+            description: mtMap.objectField('description', mtMap.passthrough()),
+            slug: mtMap.objectField('slug', mtMap.passthrough()),
+            createdAt: mtMap.objectField('created_at', mtMap.date()),
+            updatedAt: mtMap.objectField('updated_at', mtMap.date())
+          })
         ),
-        hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
+        lockedVersion: mtMap.objectField(
+          'locked_version',
+          mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            version: mtMap.objectField('version', mtMap.passthrough()),
+            status: mtMap.objectField('status', mtMap.passthrough()),
+            createdAt: mtMap.objectField('created_at', mtMap.date()),
+            updatedAt: mtMap.objectField('updated_at', mtMap.date())
+          })
+        ),
+        defaultConfig: mtMap.objectField(
+          'default_config',
+          mtMap.object({
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            name: mtMap.objectField('name', mtMap.passthrough()),
+            description: mtMap.objectField('description', mtMap.passthrough()),
+            metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+            providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+            createdAt: mtMap.objectField('created_at', mtMap.date()),
+            updatedAt: mtMap.objectField('updated_at', mtMap.date())
+          })
+        ),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
     )
-  });
+  ),
+  pagination: mtMap.objectField(
+    'pagination',
+    mtMap.object({
+      hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
+      hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
+    })
+  )
+});
 
 export type ProviderDeploymentsListQuery = {
   limit?: number | undefined;
@@ -157,4 +147,3 @@ export let mapProviderDeploymentsListQuery = mtMap.union([
     })
   )
 ]);
-

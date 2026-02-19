@@ -18,4 +18,3 @@ export let mapDashboardOrganizationsTeamsPermissionsOutput =
       )
     )
   });
-

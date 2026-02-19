@@ -15,27 +15,25 @@ export type OrganizationsProfileGetOutput = {
   updatedAt: Date;
 };
 
-export let mapOrganizationsProfileGetOutput =
-  mtMap.object<OrganizationsProfileGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    slug: mtMap.objectField('slug', mtMap.passthrough()),
-    imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-    isOfficial: mtMap.objectField('is_official', mtMap.passthrough()),
-    isMetorial: mtMap.objectField('is_metorial', mtMap.passthrough()),
-    isVerified: mtMap.objectField('is_verified', mtMap.passthrough()),
-    badges: mtMap.objectField(
-      'badges',
-      mtMap.array(
-        mtMap.object({
-          type: mtMap.objectField('type', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough())
-        })
-      )
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+export let mapOrganizationsProfileGetOutput = mtMap.object<OrganizationsProfileGetOutput>({
+  object: mtMap.objectField('object', mtMap.passthrough()),
+  id: mtMap.objectField('id', mtMap.passthrough()),
+  name: mtMap.objectField('name', mtMap.passthrough()),
+  description: mtMap.objectField('description', mtMap.passthrough()),
+  slug: mtMap.objectField('slug', mtMap.passthrough()),
+  imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+  isOfficial: mtMap.objectField('is_official', mtMap.passthrough()),
+  isMetorial: mtMap.objectField('is_metorial', mtMap.passthrough()),
+  isVerified: mtMap.objectField('is_verified', mtMap.passthrough()),
+  badges: mtMap.objectField(
+    'badges',
+    mtMap.array(
+      mtMap.object({
+        type: mtMap.objectField('type', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough())
+      })
+    )
+  ),
+  createdAt: mtMap.objectField('created_at', mtMap.date()),
+  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+});

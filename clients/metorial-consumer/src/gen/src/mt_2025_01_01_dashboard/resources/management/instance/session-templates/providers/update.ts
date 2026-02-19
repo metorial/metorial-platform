@@ -23,23 +23,11 @@ export let mapManagementInstanceSessionTemplatesProvidersUpdateOutput =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    sessionTemplateId: mtMap.objectField(
-      'session_template_id',
-      mtMap.passthrough()
-    ),
+    sessionTemplateId: mtMap.objectField('session_template_id', mtMap.passthrough()),
     providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    providerDeploymentId: mtMap.objectField(
-      'provider_deployment_id',
-      mtMap.passthrough()
-    ),
-    providerDeploymentName: mtMap.objectField(
-      'provider_deployment_name',
-      mtMap.passthrough()
-    ),
-    providerConfigName: mtMap.objectField(
-      'provider_config_name',
-      mtMap.passthrough()
-    ),
+    providerDeploymentId: mtMap.objectField('provider_deployment_id', mtMap.passthrough()),
+    providerDeploymentName: mtMap.objectField('provider_deployment_name', mtMap.passthrough()),
+    providerConfigName: mtMap.objectField('provider_config_name', mtMap.passthrough()),
     providerAuthConfigName: mtMap.objectField(
       'provider_auth_config_name',
       mtMap.passthrough()
@@ -141,14 +129,8 @@ export let mapManagementInstanceSessionTemplatesProvidersUpdateBody =
                         mtMap.unionOption(
                           'object',
                           mtMap.object({
-                            type: mtMap.objectField(
-                              'type',
-                              mtMap.passthrough()
-                            ),
-                            data: mtMap.objectField(
-                              'data',
-                              mtMap.passthrough()
-                            ),
+                            type: mtMap.objectField('type', mtMap.passthrough()),
+                            data: mtMap.objectField('data', mtMap.passthrough()),
                             providerConfigVaultId: mtMap.objectField(
                               'provider_config_vault_id',
                               mtMap.passthrough()
@@ -173,10 +155,7 @@ export let mapManagementInstanceSessionTemplatesProvidersUpdateBody =
           'object',
           mtMap.object({
             type: mtMap.objectField('type', mtMap.passthrough()),
-            providerConfigId: mtMap.objectField(
-              'provider_config_id',
-              mtMap.passthrough()
-            ),
+            providerConfigId: mtMap.objectField('provider_config_id', mtMap.passthrough()),
             name: mtMap.objectField('name', mtMap.passthrough()),
             config: mtMap.objectField(
               'config',
@@ -224,11 +203,7 @@ export let mapManagementInstanceSessionTemplatesProvidersUpdateBody =
     toolFilters: mtMap.objectField(
       'tool_filters',
       mtMap.object({
-        toolKeys: mtMap.objectField(
-          'tool_keys',
-          mtMap.array(mtMap.passthrough())
-        )
+        toolKeys: mtMap.objectField('tool_keys', mtMap.array(mtMap.passthrough()))
       })
     )
   });
-

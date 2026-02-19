@@ -91,10 +91,7 @@ export let mapProvidersSpecificationsGetOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 scope: mtMap.objectField('scope', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                description: mtMap.objectField(
-                  'description',
-                  mtMap.passthrough()
-                )
+                description: mtMap.objectField('description', mtMap.passthrough())
               })
             )
           ),
@@ -112,4 +109,3 @@ export let mapProvidersSpecificationsGetOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
-

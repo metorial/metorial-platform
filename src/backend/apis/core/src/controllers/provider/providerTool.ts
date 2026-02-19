@@ -58,9 +58,7 @@ export let providerToolController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, tool =>
-          providerToolPresenter.present({ tool })
-        );
+        return Paginator.present(list, tool => providerToolPresenter.present({ tool }));
       }),
 
     get: providerToolGroup

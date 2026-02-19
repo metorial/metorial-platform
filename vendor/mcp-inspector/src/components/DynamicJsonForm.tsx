@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import JsonEditor from "./JsonEditor";
-import { updateValueAtPath } from "@/utils/jsonUtils";
-import { generateDefaultValue } from "@/utils/schemaUtils";
-import type { JsonValue, JsonSchemaType } from "@/utils/jsonUtils";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import JsonEditor from './JsonEditor';
+import { updateValueAtPath } from '@/utils/jsonUtils';
+import { generateDefaultValue } from '@/utils/schemaUtils';
+import type { JsonValue, JsonSchemaType } from '@/utils/jsonUtils';
 
 interface DynamicJsonFormProps {
   schema: JsonSchemaType;
@@ -14,27 +14,22 @@ interface DynamicJsonFormProps {
 }
 
 const isSimpleObject = (schema: JsonSchemaType): boolean => {
-  const supportedTypes = ["string", "number", "integer", "boolean", "null"];
+  const supportedTypes = ['string', 'number', 'integer', 'boolean', 'null'];
   if (supportedTypes.includes(schema.type)) return true;
-  if (schema.type !== "object") return false;
-  return Object.values(schema.properties ?? {}).every((prop) =>
-    supportedTypes.includes(prop.type),
+  if (schema.type !== 'object') return false;
+  return Object.values(schema.properties ?? {}).every(prop =>
+    supportedTypes.includes(prop.type)
   );
 };
 
-const DynamicJsonForm = ({
-  schema,
-  value,
-  onChange,
-  maxDepth = 3,
-}: DynamicJsonFormProps) => {
+const DynamicJsonForm = ({ schema, value, onChange, maxDepth = 3 }: DynamicJsonFormProps) => {
   const isOnlyJSON = !isSimpleObject(schema);
   const [isJsonMode, setIsJsonMode] = useState(isOnlyJSON);
   const [jsonError, setJsonError] = useState<string>();
   // Store the raw JSON string to allow immediate feedback during typing
   // while deferring parsing until the user stops typing
   const [rawJsonValue, setRawJsonValue] = useState<string>(
-    JSON.stringify(value ?? generateDefaultValue(schema), null, 2),
+    JSON.stringify(value ?? generateDefaultValue(schema), null, 2)
   );
 
   // Use a ref to manage debouncing timeouts to avoid parsing JSON
@@ -60,15 +55,13 @@ const DynamicJsonForm = ({
         }
       }, 300);
     },
-    [onChange, setJsonError],
+    [onChange, setJsonError]
   );
 
   // Update rawJsonValue when value prop changes
   useEffect(() => {
     if (!isJsonMode) {
-      setRawJsonValue(
-        JSON.stringify(value ?? generateDefaultValue(schema), null, 2),
-      );
+      setRawJsonValue(JSON.stringify(value ?? generateDefaultValue(schema), null, 2));
     }
   }, [value, schema, isJsonMode]);
 
@@ -82,13 +75,11 @@ const DynamicJsonForm = ({
         // Switch to form mode
         setIsJsonMode(false);
       } catch (err) {
-        setJsonError(err instanceof Error ? err.message : "Invalid JSON");
+        setJsonError(err instanceof Error ? err.message : 'Invalid JSON');
       }
     } else {
       // Update raw JSON value when switching to JSON mode
-      setRawJsonValue(
-        JSON.stringify(value ?? generateDefaultValue(schema), null, 2),
-      );
+      setRawJsonValue(JSON.stringify(value ?? generateDefaultValue(schema), null, 2));
       setIsJsonMode(true);
     }
   };
@@ -104,7 +95,7 @@ const DynamicJsonForm = ({
       debouncedUpdateParent(formatted);
       setJsonError(undefined);
     } catch (err) {
-      setJsonError(err instanceof Error ? err.message : "Invalid JSON");
+      setJsonError(err instanceof Error ? err.message : 'Invalid JSON');
     }
   };
 
@@ -112,27 +103,20 @@ const DynamicJsonForm = ({
     propSchema: JsonSchemaType,
     currentValue: JsonValue,
     path: string[] = [],
-    depth: number = 0,
+    depth: number = 0
   ) => {
-    if (
-      depth >= maxDepth &&
-      (propSchema.type === "object" || propSchema.type === "array")
-    ) {
+    if (depth >= maxDepth && (propSchema.type === 'object' || propSchema.type === 'array')) {
       // Render as JSON editor when max depth is reached
       return (
         <JsonEditor
-          value={JSON.stringify(
-            currentValue ?? generateDefaultValue(propSchema),
-            null,
-            2,
-          )}
-          onChange={(newValue) => {
+          value={JSON.stringify(currentValue ?? generateDefaultValue(propSchema), null, 2)}
+          onChange={newValue => {
             try {
               const parsed = JSON.parse(newValue);
               handleFieldChange(path, parsed);
               setJsonError(undefined);
             } catch (err) {
-              setJsonError(err instanceof Error ? err.message : "Invalid JSON");
+              setJsonError(err instanceof Error ? err.message : 'Invalid JSON');
             }
           }}
           error={jsonError}
@@ -141,12 +125,12 @@ const DynamicJsonForm = ({
     }
 
     switch (propSchema.type) {
-      case "string":
+      case 'string':
         return (
           <Input
             type="text"
-            value={(currentValue as string) ?? ""}
-            onChange={(e) => {
+            value={(currentValue as string) ?? ''}
+            onChange={e => {
               const val = e.target.value;
               // Allow clearing non-required fields by setting undefined
               // This preserves the distinction between empty string and unset
@@ -160,12 +144,12 @@ const DynamicJsonForm = ({
             required={propSchema.required}
           />
         );
-      case "number":
+      case 'number':
         return (
           <Input
             type="number"
-            value={(currentValue as number)?.toString() ?? ""}
-            onChange={(e) => {
+            value={(currentValue as number)?.toString() ?? ''}
+            onChange={e => {
               const val = e.target.value;
               // Allow clearing non-required number fields
               // This preserves the distinction between 0 and unset
@@ -182,13 +166,13 @@ const DynamicJsonForm = ({
             required={propSchema.required}
           />
         );
-      case "integer":
+      case 'integer':
         return (
           <Input
             type="number"
             step="1"
-            value={(currentValue as number)?.toString() ?? ""}
-            onChange={(e) => {
+            value={(currentValue as number)?.toString() ?? ''}
+            onChange={e => {
               const val = e.target.value;
               // Allow clearing non-required integer fields
               // This preserves the distinction between 0 and unset
@@ -206,12 +190,12 @@ const DynamicJsonForm = ({
             required={propSchema.required}
           />
         );
-      case "boolean":
+      case 'boolean':
         return (
           <Input
             type="checkbox"
             checked={(currentValue as boolean) ?? false}
-            onChange={(e) => handleFieldChange(path, e.target.checked)}
+            onChange={e => handleFieldChange(path, e.target.checked)}
             className="w-4 h-4"
             required={propSchema.required}
           />
@@ -231,13 +215,13 @@ const DynamicJsonForm = ({
       const newValue = updateValueAtPath(value, path, fieldValue);
       onChange(newValue);
     } catch (error) {
-      console.error("Failed to update form value:", error);
+      console.error('Failed to update form value:', error);
       onChange(value);
     }
   };
 
   const shouldUseJsonMode =
-    schema.type === "object" &&
+    schema.type === 'object' &&
     (!schema.properties || Object.keys(schema.properties).length === 0);
 
   useEffect(() => {
@@ -250,18 +234,13 @@ const DynamicJsonForm = ({
     <div className="space-y-4">
       <div className="flex justify-end space-x-2">
         {isJsonMode && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={formatJson}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={formatJson}>
             Format JSON
           </Button>
         )}
         {!isOnlyJSON && (
           <Button variant="outline" size="sm" onClick={handleSwitchToFormMode}>
-            {isJsonMode ? "Switch to Form" : "Switch to JSON"}
+            {isJsonMode ? 'Switch to Form' : 'Switch to JSON'}
           </Button>
         )}
       </div>
@@ -269,7 +248,7 @@ const DynamicJsonForm = ({
       {isJsonMode ? (
         <JsonEditor
           value={rawJsonValue}
-          onChange={(newValue) => {
+          onChange={newValue => {
             // Always update local state
             setRawJsonValue(newValue);
 
@@ -280,23 +259,18 @@ const DynamicJsonForm = ({
         />
       ) : // If schema type is object but value is not an object or is empty, and we have actual JSON data,
       // render a simple representation of the JSON data
-      schema.type === "object" &&
-        (typeof value !== "object" ||
-          value === null ||
-          Object.keys(value).length === 0) &&
+      schema.type === 'object' &&
+        (typeof value !== 'object' || value === null || Object.keys(value).length === 0) &&
         rawJsonValue &&
-        rawJsonValue !== "{}" ? (
+        rawJsonValue !== '{}' ? (
         <div className="space-y-4 border rounded-md p-4">
           <p className="text-sm text-gray-500">
-            Form view not available for this JSON structure. Using simplified
-            view:
+            Form view not available for this JSON structure. Using simplified view:
           </p>
           <pre className="bg-gray-50 dark:bg-gray-800 dark:text-gray-100 p-4 rounded text-sm overflow-auto">
             {rawJsonValue}
           </pre>
-          <p className="text-sm text-gray-500">
-            Use JSON mode for full editing capabilities.
-          </p>
+          <p className="text-sm text-gray-500">Use JSON mode for full editing capabilities.</p>
         </div>
       ) : (
         renderFormFields(schema, value)

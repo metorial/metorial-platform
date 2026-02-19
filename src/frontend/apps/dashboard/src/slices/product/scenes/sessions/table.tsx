@@ -9,7 +9,11 @@ import { useCurrentInstance, useSessions } from '@metorial/state';
 import { Badge, RenderDate, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 
-export let SessionConnectionStatusBadge = ({ session }: { session: DashboardInstanceSessionsGetOutput }) => {
+export let SessionConnectionStatusBadge = ({
+  session
+}: {
+  session: DashboardInstanceSessionsGetOutput;
+}) => {
   return (
     <Badge
       color={

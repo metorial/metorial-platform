@@ -10,4 +10,3 @@ export let mapProviderDeploymentsAuthConfigsImportsGetSchemaOutput =
     object: mtMap.objectField('object', mtMap.passthrough()),
     schema: mtMap.objectField('schema', mtMap.passthrough())
   });
-

@@ -27,9 +27,5 @@ export type ManagementInstanceProviderGroupsAddListingBody = {
 
 export let mapManagementInstanceProviderGroupsAddListingBody =
   mtMap.object<ManagementInstanceProviderGroupsAddListingBody>({
-    providerListingId: mtMap.objectField(
-      'provider_listing_id',
-      mtMap.passthrough()
-    )
+    providerListingId: mtMap.objectField('provider_listing_id', mtMap.passthrough())
   });
-

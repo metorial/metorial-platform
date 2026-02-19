@@ -1,8 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import {
-  useCurrentInstance,
-  useProviderAuthCredential
-} from '@metorial/state';
+import { useCurrentInstance, useProviderAuthCredential } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useState } from 'react';

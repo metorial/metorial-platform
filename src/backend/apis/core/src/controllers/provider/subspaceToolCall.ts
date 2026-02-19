@@ -139,10 +139,7 @@ export let subspaceToolCallController = Controller.create(
 
     get: subspaceToolCallGroup
       .get(
-        instancePath(
-          'sessions/:sessionId/tool-calls/:toolCallId',
-          'sessions.toolCalls.get'
-        ),
+        instancePath('sessions/:sessionId/tool-calls/:toolCallId', 'sessions.toolCalls.get'),
         {
           name: 'Get tool call',
           description: 'Retrieves a specific tool call for a session.'

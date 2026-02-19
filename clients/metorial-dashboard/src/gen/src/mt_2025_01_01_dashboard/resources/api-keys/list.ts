@@ -17,10 +17,7 @@ export type ApiKeysListOutput = {
       object: 'machine_access';
       id: string;
       status: 'active' | 'deleted';
-      type:
-        | 'organization_management'
-        | 'instance_secret'
-        | 'instance_publishable';
+      type: 'organization_management' | 'instance_secret' | 'instance_publishable';
       name: string;
       lastUsedAt: Date;
       createdAt: Date;
@@ -106,10 +103,7 @@ export let mapApiKeysListOutput = mtMap.object<ApiKeysListOutput>({
         object: mtMap.objectField('object', mtMap.passthrough()),
         id: mtMap.objectField('id', mtMap.passthrough()),
         status: mtMap.objectField('status', mtMap.passthrough()),
-        secretRedacted: mtMap.objectField(
-          'secret_redacted',
-          mtMap.passthrough()
-        ),
+        secretRedacted: mtMap.objectField('secret_redacted', mtMap.passthrough()),
         secret: mtMap.objectField('secret', mtMap.passthrough()),
         type: mtMap.objectField('type', mtMap.passthrough()),
         name: mtMap.objectField('name', mtMap.passthrough()),
@@ -132,10 +126,7 @@ export let mapApiKeysListOutput = mtMap.object<ApiKeysListOutput>({
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 type: mtMap.objectField('type', mtMap.passthrough()),
-                organizationId: mtMap.objectField(
-                  'organization_id',
-                  mtMap.passthrough()
-                ),
+                organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
                 email: mtMap.objectField('email', mtMap.passthrough()),
                 imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
@@ -146,10 +137,7 @@ export let mapApiKeysListOutput = mtMap.object<ApiKeysListOutput>({
                       id: mtMap.objectField('id', mtMap.passthrough()),
                       name: mtMap.objectField('name', mtMap.passthrough()),
                       slug: mtMap.objectField('slug', mtMap.passthrough()),
-                      assignmentId: mtMap.objectField(
-                        'assignment_id',
-                        mtMap.passthrough()
-                      ),
+                      assignmentId: mtMap.objectField('assignment_id', mtMap.passthrough()),
                       createdAt: mtMap.objectField('created_at', mtMap.date()),
                       updatedAt: mtMap.objectField('updated_at', mtMap.date())
                     })
@@ -166,10 +154,7 @@ export let mapApiKeysListOutput = mtMap.object<ApiKeysListOutput>({
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 slug: mtMap.objectField('slug', mtMap.passthrough()),
                 name: mtMap.objectField('name', mtMap.passthrough()),
-                organizationId: mtMap.objectField(
-                  'organization_id',
-                  mtMap.passthrough()
-                ),
+                organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
                 type: mtMap.objectField('type', mtMap.passthrough()),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date()),
@@ -181,10 +166,7 @@ export let mapApiKeysListOutput = mtMap.object<ApiKeysListOutput>({
                     status: mtMap.objectField('status', mtMap.passthrough()),
                     slug: mtMap.objectField('slug', mtMap.passthrough()),
                     name: mtMap.objectField('name', mtMap.passthrough()),
-                    organizationId: mtMap.objectField(
-                      'organization_id',
-                      mtMap.passthrough()
-                    ),
+                    organizationId: mtMap.objectField('organization_id', mtMap.passthrough()),
                     createdAt: mtMap.objectField('created_at', mtMap.date()),
                     updatedAt: mtMap.objectField('updated_at', mtMap.date())
                   })
@@ -264,4 +246,3 @@ export let mapApiKeysListQuery = mtMap.union([
     })
   )
 ]);
-

@@ -9,13 +9,11 @@ export type ProvidersVersionsGetOutput = {
   updatedAt: Date;
 };
 
-export let mapProvidersVersionsGetOutput =
-  mtMap.object<ProvidersVersionsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    version: mtMap.objectField('version', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+export let mapProvidersVersionsGetOutput = mtMap.object<ProvidersVersionsGetOutput>({
+  object: mtMap.objectField('object', mtMap.passthrough()),
+  id: mtMap.objectField('id', mtMap.passthrough()),
+  version: mtMap.objectField('version', mtMap.passthrough()),
+  status: mtMap.objectField('status', mtMap.passthrough()),
+  createdAt: mtMap.objectField('created_at', mtMap.date()),
+  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+});

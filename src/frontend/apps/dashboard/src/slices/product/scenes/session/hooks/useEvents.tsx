@@ -16,11 +16,7 @@ export let useEvents = (
 ) => {
   let instance = useCurrentInstance();
 
-  let events = useSessionEvents(
-    sessionId ? instance.data?.id : undefined,
-    sessionId,
-    opts
-  );
+  let events = useSessionEvents(sessionId ? instance.data?.id : undefined, sessionId, opts);
   let messages = useSessionMessages(
     sessionId ? instance.data?.id : undefined,
     sessionId,
@@ -35,7 +31,12 @@ export let useEvents = (
       error: events.error || messages.error,
       data: [
         ...(messages.data?.items ?? []).map((message, i) => ({
-          component: <Message message={message as Parameters<typeof Message>[0]['message']} aggregatedMessages={aggregatedMessages} />,
+          component: (
+            <Message
+              message={message as Parameters<typeof Message>[0]['message']}
+              aggregatedMessages={aggregatedMessages}
+            />
+          ),
           time: message.createdAt
         })),
 

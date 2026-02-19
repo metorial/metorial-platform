@@ -19,4 +19,6 @@ export let getBoot = () => bootLoader.fetchAndReturn({});
 export let getInstances = () => getBoot().then(boot => boot.instances);
 
 export let getOrgForInstance = (instanceId: string) =>
-  getBoot().then(boot => boot.instances.find((i: MetorialInstance) => i.id === instanceId)?.organization);
+  getBoot().then(
+    boot => boot.instances.find((i: MetorialInstance) => i.id === instanceId)?.organization
+  );

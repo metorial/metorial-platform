@@ -42,10 +42,7 @@ export let mapDashboardInstanceCustomProvidersDeploymentsGetLogsOutput =
             'source',
             mtMap.object({
               provider: mtMap.objectField('provider', mtMap.passthrough()),
-              workflowRunId: mtMap.objectField(
-                'workflow_run_id',
-                mtMap.passthrough()
-              ),
+              workflowRunId: mtMap.objectField('workflow_run_id', mtMap.passthrough()),
               workflowId: mtMap.objectField('workflow_id', mtMap.passthrough()),
               functionDeploymentId: mtMap.objectField(
                 'function_deployment_id',
@@ -68,4 +65,3 @@ export let mapDashboardInstanceCustomProvidersDeploymentsGetLogsOutput =
       )
     )
   });
-

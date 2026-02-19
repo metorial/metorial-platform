@@ -10,14 +10,12 @@ export type SessionTemplatesGetOutput = {
   updatedAt: Date;
 };
 
-export let mapSessionTemplatesGetOutput =
-  mtMap.object<SessionTemplatesGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    name: mtMap.objectField('name', mtMap.passthrough()),
-    description: mtMap.objectField('description', mtMap.passthrough()),
-    metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    updatedAt: mtMap.objectField('updated_at', mtMap.date())
-  });
-
+export let mapSessionTemplatesGetOutput = mtMap.object<SessionTemplatesGetOutput>({
+  object: mtMap.objectField('object', mtMap.passthrough()),
+  id: mtMap.objectField('id', mtMap.passthrough()),
+  name: mtMap.objectField('name', mtMap.passthrough()),
+  description: mtMap.objectField('description', mtMap.passthrough()),
+  metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+  createdAt: mtMap.objectField('created_at', mtMap.date()),
+  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+});

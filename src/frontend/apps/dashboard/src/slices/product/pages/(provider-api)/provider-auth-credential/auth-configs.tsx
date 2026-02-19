@@ -24,11 +24,9 @@ export let ProviderAuthCredentialAuthConfigsPage = () => {
 
   let { providerDeploymentId, providerAuthCredentialsId } = useParams();
 
-  let authConfigs = useProviderAuthConfigs(
-    instance.data?.id,
-    providerDeploymentId,
-    { providerAuthCredentialsId }
-  );
+  let authConfigs = useProviderAuthConfigs(instance.data?.id, providerDeploymentId, {
+    providerAuthCredentialsId
+  });
 
   return renderWithPagination(authConfigs)(authConfigs => (
     <>
@@ -44,9 +42,7 @@ export let ProviderAuthCredentialAuthConfigsPage = () => {
           ),
           data: [
             <Text size="2" weight="strong">
-              {config.name ?? (
-                <span style={{ color: theme.colors.gray600 }}>Unnamed</span>
-              )}
+              {config.name ?? <span style={{ color: theme.colors.gray600 }}>Unnamed</span>}
             </Text>,
             <Text size="2">{formatType(config.type)}</Text>,
             <Text size="2">{config.providerAuthMethodId}</Text>,

@@ -26,4 +26,6 @@ export let subspaceProviderListingGroupService = createSubspaceService(
   })
 );
 
-export type SubspaceProviderListingGroup = Awaited<ReturnType<typeof subspace.providerListingGroup.get>>;
+export type SubspaceProviderListingGroup = Awaited<
+  ReturnType<typeof subspace.providerListingGroup.get>
+>;

@@ -31,4 +31,3 @@ export let mapManagementOrganizationProjectsUpdateBody =
   mtMap.object<ManagementOrganizationProjectsUpdateBody>({
     name: mtMap.objectField('name', mtMap.passthrough())
   });
-

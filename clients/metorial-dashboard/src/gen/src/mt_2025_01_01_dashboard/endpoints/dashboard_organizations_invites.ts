@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardOrganizationsInvitesCreateBody,
@@ -72,15 +69,11 @@ export class MetorialDashboardOrganizationsInvitesEndpoint {
     let request = {
       path,
 
-      query: query
-        ? mapDashboardOrganizationsInvitesListQuery.transformTo(query)
-        : undefined,
+      query: query ? mapDashboardOrganizationsInvitesListQuery.transformTo(query) : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardOrganizationsInvitesListOutput
-    );
+    return this._get(request).transform(mapDashboardOrganizationsInvitesListOutput);
   }
 
   /**
@@ -107,9 +100,7 @@ export class MetorialDashboardOrganizationsInvitesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardOrganizationsInvitesGetOutput
-    );
+    return this._get(request).transform(mapDashboardOrganizationsInvitesGetOutput);
   }
 
   /**
@@ -137,9 +128,7 @@ export class MetorialDashboardOrganizationsInvitesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapDashboardOrganizationsInvitesCreateOutput
-    );
+    return this._post(request).transform(mapDashboardOrganizationsInvitesCreateOutput);
   }
 
   /**
@@ -164,9 +153,7 @@ export class MetorialDashboardOrganizationsInvitesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapDashboardOrganizationsInvitesEnsureLinkOutput
-    );
+    return this._post(request).transform(mapDashboardOrganizationsInvitesEnsureLinkOutput);
   }
 
   /**
@@ -193,9 +180,7 @@ export class MetorialDashboardOrganizationsInvitesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._delete(request).transform(
-      mapDashboardOrganizationsInvitesDeleteOutput
-    );
+    return this._delete(request).transform(mapDashboardOrganizationsInvitesDeleteOutput);
   }
 
   /**
@@ -225,8 +210,6 @@ export class MetorialDashboardOrganizationsInvitesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapDashboardOrganizationsInvitesUpdateOutput
-    );
+    return this._post(request).transform(mapDashboardOrganizationsInvitesUpdateOutput);
   }
 }

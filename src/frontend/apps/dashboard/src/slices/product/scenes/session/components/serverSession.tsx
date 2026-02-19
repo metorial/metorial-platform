@@ -125,9 +125,7 @@ export let ServerSession = ({
         )}
 
         <Header>
-          <span>
-            {serverSession.name ?? 'Unknown'}
-          </span>
+          <span>{serverSession.name ?? 'Unknown'}</span>
           <span>
             <ID id={serverSession.id} />
           </span>

@@ -22,10 +22,7 @@ export let ProviderDeploymentsPage = () => {
 
       <Spacer size={15} />
 
-      <ProviderDeploymentsTable
-        instanceId={instance.data.id}
-        search={searchDebounced}
-      />
+      <ProviderDeploymentsTable instanceId={instance.data.id} search={searchDebounced} />
     </>
   ));
 };

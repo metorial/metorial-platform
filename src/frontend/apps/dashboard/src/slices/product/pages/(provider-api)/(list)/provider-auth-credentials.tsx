@@ -99,10 +99,7 @@ export let ProviderAuthCredentialsOverviewPage = () => {
         let perDeployment = await mapWithConcurrency(deploymentItems, 4, async deployment => {
           try {
             let response = await withAuth(sdk =>
-              sdk.providerDeployments.authCredentials.list(
-                instance.data!.id,
-                deployment.id
-              )
+              sdk.providerDeployments.authCredentials.list(instance.data!.id, deployment.id)
             );
 
             return {

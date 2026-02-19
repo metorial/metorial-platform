@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardOrganizationsTeamsCreateBody,
@@ -69,9 +66,7 @@ export class MetorialManagementOrganizationTeamsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardOrganizationsTeamsPermissionsOutput
-    );
+    return this._get(request).transform(mapDashboardOrganizationsTeamsPermissionsOutput);
   }
 
   /**
@@ -93,15 +88,11 @@ export class MetorialManagementOrganizationTeamsEndpoint {
     let request = {
       path,
 
-      query: query
-        ? mapDashboardOrganizationsTeamsListQuery.transformTo(query)
-        : undefined,
+      query: query ? mapDashboardOrganizationsTeamsListQuery.transformTo(query) : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardOrganizationsTeamsListOutput
-    );
+    return this._get(request).transform(mapDashboardOrganizationsTeamsListOutput);
   }
 
   /**
@@ -126,9 +117,7 @@ export class MetorialManagementOrganizationTeamsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardOrganizationsTeamsGetOutput
-    );
+    return this._get(request).transform(mapDashboardOrganizationsTeamsGetOutput);
   }
 
   /**
@@ -156,9 +145,7 @@ export class MetorialManagementOrganizationTeamsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapDashboardOrganizationsTeamsUpdateOutput
-    );
+    return this._post(request).transform(mapDashboardOrganizationsTeamsUpdateOutput);
   }
 
   /**
@@ -184,8 +171,6 @@ export class MetorialManagementOrganizationTeamsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapDashboardOrganizationsTeamsCreateOutput
-    );
+    return this._post(request).transform(mapDashboardOrganizationsTeamsCreateOutput);
   }
 }

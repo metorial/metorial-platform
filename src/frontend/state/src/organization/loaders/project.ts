@@ -17,8 +17,10 @@ export let projectsLoader = createLoader({
       )
     ),
   mutators: {
-    create: (i: DashboardOrganizationsProjectsCreateBody, { input: { organizationId } }: any) =>
-      withAuth(sdk => sdk.projects.create(organizationId, i))
+    create: (
+      i: DashboardOrganizationsProjectsCreateBody,
+      { input: { organizationId } }: any
+    ) => withAuth(sdk => sdk.projects.create(organizationId, i))
   }
 });
 

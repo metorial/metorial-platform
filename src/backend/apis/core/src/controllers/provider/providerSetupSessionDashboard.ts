@@ -46,7 +46,15 @@ export let providerSetupSessionDashboardController = Controller.create(
           instance: ctx.instance,
           providerIds: [ctx.deployment.providerId],
           providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id),
-          status: ctx.query.status ? [ctx.query.status] as ('completed' | 'failed' | 'pending' | 'expired' | 'archived')[] : undefined
+          status: ctx.query.status
+            ? ([ctx.query.status] as (
+                | 'completed'
+                | 'failed'
+                | 'pending'
+                | 'expired'
+                | 'archived'
+              )[])
+            : undefined
         });
 
         let list = await paginator.run(ctx.query);
@@ -184,7 +192,7 @@ export let providerSetupSessionDashboardController = Controller.create(
         });
 
         return providerSetupSessionPresenter.present({ setupSession });
-      }),
+      })
 
     // delete handler removed: delete method not available on subspaceProviderSetupSessionService
   }

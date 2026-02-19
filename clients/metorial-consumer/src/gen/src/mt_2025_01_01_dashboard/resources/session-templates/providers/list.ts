@@ -30,10 +30,7 @@ export let mapSessionTemplatesProvidersListOutput =
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
           metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-          sessionTemplateId: mtMap.objectField(
-            'session_template_id',
-            mtMap.passthrough()
-          ),
+          sessionTemplateId: mtMap.objectField('session_template_id', mtMap.passthrough()),
           providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
           providerDeploymentId: mtMap.objectField(
             'provider_deployment_id',
@@ -43,10 +40,7 @@ export let mapSessionTemplatesProvidersListOutput =
             'provider_deployment_name',
             mtMap.passthrough()
           ),
-          providerConfigName: mtMap.objectField(
-            'provider_config_name',
-            mtMap.passthrough()
-          ),
+          providerConfigName: mtMap.objectField('provider_config_name', mtMap.passthrough()),
           providerAuthConfigName: mtMap.objectField(
             'provider_auth_config_name',
             mtMap.passthrough()
@@ -59,10 +53,7 @@ export let mapSessionTemplatesProvidersListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -98,4 +89,3 @@ export let mapSessionTemplatesProvidersListQuery = mtMap.union([
     })
   )
 ]);
-

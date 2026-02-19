@@ -27,7 +27,9 @@ type SubspaceMethodArgs<SubspaceController extends {}, K extends keyof SubspaceC
   Parameters<Extract<SubspaceController[K], (...args: any[]) => any>>[0],
   'tenantId' | 'environmentId'
 > &
-  (Parameters<Extract<SubspaceController[K], (...args: any[]) => any>>[0] extends { actorId: any }
+  (Parameters<Extract<SubspaceController[K], (...args: any[]) => any>>[0] extends {
+    actorId: any;
+  }
     ? { organizationActor: OrganizationActor }
     : {});
 
@@ -40,7 +42,9 @@ export type SubspaceService<SubspaceController extends {}, Overrides extends {}>
           arg0: SubspaceMethodArgs<SubspaceController, K>,
           ...args: Tail<Parameters<SubspaceController[K]>>
         ) => Promise<{
-          run(query: SubspacePaginatorQuery): Promise<SubspacePaginatedResult<ExtractListItems<SubspaceController[K]>>>;
+          run(
+            query: SubspacePaginatorQuery
+          ): Promise<SubspacePaginatedResult<ExtractListItems<SubspaceController[K]>>>;
         }>
       : (
           arg0: SubspaceMethodArgs<SubspaceController, K>,

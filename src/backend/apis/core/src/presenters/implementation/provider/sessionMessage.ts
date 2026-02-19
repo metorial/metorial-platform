@@ -10,7 +10,8 @@ export let presentSubspaceSessionMessageAs = (
   let hasInput = !!sessionMessage.input;
   let hasOutput = !!sessionMessage.output;
   let method =
-    ((sessionMessage.input as Record<string, unknown> | null)?.method as string | null) ?? null;
+    ((sessionMessage.input as Record<string, unknown> | null)?.method as string | null) ??
+    null;
 
   let payload: Record<string, unknown>;
   let senderType: string;

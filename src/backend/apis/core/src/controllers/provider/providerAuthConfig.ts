@@ -227,7 +227,7 @@ export let providerAuthConfigController = Controller.create(
         });
 
         return providerAuthConfigPresenter.present({ authConfig });
-      }),
+      })
 
     // delete handler removed: delete method not available on subspaceProviderAuthConfigService
   }

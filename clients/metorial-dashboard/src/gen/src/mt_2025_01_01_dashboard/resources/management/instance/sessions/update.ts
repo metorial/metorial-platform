@@ -32,10 +32,7 @@ export let mapManagementInstanceSessionsUpdateOutput =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
-    connectionStatus: mtMap.objectField(
-      'connection_status',
-      mtMap.passthrough()
-    ),
+    connectionStatus: mtMap.objectField('connection_status', mtMap.passthrough()),
     usage: mtMap.objectField(
       'usage',
       mtMap.object({
@@ -86,4 +83,3 @@ export let mapManagementInstanceSessionsUpdateBody =
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough())
   });
-

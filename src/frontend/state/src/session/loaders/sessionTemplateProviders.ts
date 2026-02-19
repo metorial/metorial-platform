@@ -17,9 +17,7 @@ export let useSessionTemplateProviders = (
 ) => {
   let data = usePaginator(pagination =>
     sessionTemplateProvidersLoader.use(
-      instanceId && sessionTemplateId
-        ? { instanceId, sessionTemplateId, ...pagination }
-        : null
+      instanceId && sessionTemplateId ? { instanceId, sessionTemplateId, ...pagination } : null
     )
   );
 

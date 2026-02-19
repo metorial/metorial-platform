@@ -1,8 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import {
-  useCurrentInstance,
-  useProviderConfig
-} from '@metorial/state';
+import { useCurrentInstance, useProviderConfig } from '@metorial/state';
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useState } from 'react';
@@ -12,11 +9,7 @@ export let ProviderConfigSettingsPage = () => {
   let instance = useCurrentInstance();
 
   let { providerDeploymentId, providerConfigId } = useParams();
-  let config = useProviderConfig(
-    instance.data?.id,
-    providerDeploymentId,
-    providerConfigId
-  );
+  let config = useProviderConfig(instance.data?.id, providerDeploymentId, providerConfigId);
   let updateMutator = config.useUpdateMutator();
 
   let [name, setName] = useState('');

@@ -52,8 +52,8 @@ services:
   minio:
     image: minio/minio:latest
     ports:
-      - "9000:9000"  
-      - "9001:9001"  # MinIO Console
+      - '9000:9000'
+      - '9001:9001' # MinIO Console
     volumes:
       - ./_volumes/minio:/data
     environment:
@@ -67,8 +67,8 @@ services:
     environment:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
-      - DISABLE_SECURITY_PLUGIN=true   # disable SSL & auth
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - DISABLE_SECURITY_PLUGIN=true # disable SSL & auth
+      - 'OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m'
       - OPENSEARCH_USERNAME=admin
       - OPENSEARCH_PASSWORD=admin
     ulimits:
@@ -76,8 +76,8 @@ services:
         soft: -1
         hard: -1
     ports:
-      - "9200:9200"
-      - "9600:9600"  # Performance analyzer
+      - '9200:9200'
+      - '9600:9600' # Performance analyzer
     volumes:
       - ./_volumes/opensearch:/usr/share/opensearch/data
     restart: unless-stopped
@@ -85,18 +85,18 @@ services:
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:2.9.0
     ports:
-      - "5601:5601"
+      - '5601:5601'
     environment:
       - OPENSEARCH_HOSTS=http://opensearch:9200
       - OPENSEARCH_USERNAME=admin
       - OPENSEARCH_PASSWORD=admin
-      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true   # disable SSL & auth
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true # disable SSL & auth
     depends_on:
       - opensearch
     restart: unless-stopped
 
   api:
-    image: 
+    image:
     environment:
       - EMAIL_SES_ACCESS_KEY_ID=${EMAIL_SES_ACCESS_KEY_ID}
       - EMAIL_SES_SECRET_ACCESS_KEY=${EMAIL_SES_SECRET_ACCESS_KEY}
@@ -181,6 +181,3 @@ services:
       - VITE_DOCS_FRONTEND_URL=https://metorial.com/docs
       - VITE_API_DOCS_FRONTEND_URL=https://metorial.com/api
       - VITE_PUBLIC_API_URL=${HOST}:4310
-
-      
-  

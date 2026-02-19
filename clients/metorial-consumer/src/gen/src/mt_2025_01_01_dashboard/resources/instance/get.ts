@@ -44,4 +44,3 @@ export let mapInstanceGetOutput = mtMap.object<InstanceGetOutput>({
     })
   )
 });
-

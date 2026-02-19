@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceProviderDeploymentsCreateBody,
@@ -74,9 +71,7 @@ export class MetorialManagementInstanceProviderDeploymentsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardInstanceProviderDeploymentsListOutput
-    );
+    return this._get(request).transform(mapDashboardInstanceProviderDeploymentsListOutput);
   }
 
   /**
@@ -103,9 +98,7 @@ export class MetorialManagementInstanceProviderDeploymentsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardInstanceProviderDeploymentsGetOutput
-    );
+    return this._get(request).transform(mapDashboardInstanceProviderDeploymentsGetOutput);
   }
 
   /**
@@ -133,9 +126,7 @@ export class MetorialManagementInstanceProviderDeploymentsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapDashboardInstanceProviderDeploymentsCreateOutput
-    );
+    return this._post(request).transform(mapDashboardInstanceProviderDeploymentsCreateOutput);
   }
 
   /**
@@ -165,8 +156,6 @@ export class MetorialManagementInstanceProviderDeploymentsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._patch(request).transform(
-      mapDashboardInstanceProviderDeploymentsUpdateOutput
-    );
+    return this._patch(request).transform(mapDashboardInstanceProviderDeploymentsUpdateOutput);
   }
 }

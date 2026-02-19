@@ -59,9 +59,7 @@ export let providerConfigController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, config =>
-          providerConfigPresenter.present({ config })
-        );
+        return Paginator.present(list, config => providerConfigPresenter.present({ config }));
       }),
 
     get: providerConfigGroup

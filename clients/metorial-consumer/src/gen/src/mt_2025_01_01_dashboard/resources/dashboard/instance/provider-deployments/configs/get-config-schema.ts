@@ -6,10 +6,7 @@ export type DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput = {
 };
 
 export let mapDashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput =
-  mtMap.object<DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput>(
-    {
-      object: mtMap.objectField('object', mtMap.passthrough()),
-      schema: mtMap.objectField('schema', mtMap.passthrough())
-    }
-  );
-
+  mtMap.object<DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput>({
+    object: mtMap.objectField('object', mtMap.passthrough()),
+    schema: mtMap.objectField('schema', mtMap.passthrough())
+  });

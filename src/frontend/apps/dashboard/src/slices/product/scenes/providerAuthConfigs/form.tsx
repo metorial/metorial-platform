@@ -33,16 +33,10 @@ export let ProviderAuthConfigForm = (
   let createMutation = useCreateProviderAuthConfig();
 
   // Get the provider deployment to get the providerId
-  let deployment = useProviderDeployment(
-    instance.data?.id,
-    props.providerDeploymentId
-  );
+  let deployment = useProviderDeployment(instance.data?.id, props.providerDeploymentId);
 
   // Fetch auth methods for the provider
-  let authMethods = useProviderAuthMethods(
-    instance.data?.id,
-    deployment.data?.providerId
-  );
+  let authMethods = useProviderAuthMethods(instance.data?.id, deployment.data?.providerId);
 
   let [name, setName] = useState('');
   let [description, setDescription] = useState('');

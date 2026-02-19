@@ -92,9 +92,7 @@ export let v1ProviderSessionPresenter = Presenter.create(providerSessionType)
         v.string({
           name: 'connection_url',
           description: 'MCP connection URL for this session',
-          examples: [
-            'https://mcp.metorial.com/mcp/ses_4dEfGhJkLmNpQrSt'
-          ]
+          examples: ['https://mcp.metorial.com/mcp/ses_4dEfGhJkLmNpQrSt']
         })
       ),
       connection_key: v.nullable(

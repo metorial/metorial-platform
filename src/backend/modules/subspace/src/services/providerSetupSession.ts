@@ -28,4 +28,6 @@ export let subspaceProviderSetupSessionService = createSubspaceService(
   })
 );
 
-export type SubspaceProviderSetupSession = Awaited<ReturnType<typeof subspace.providerSetupSession.get>>;
+export type SubspaceProviderSetupSession = Awaited<
+  ReturnType<typeof subspace.providerSetupSession.get>
+>;

@@ -4,6 +4,6 @@
   "exclude": ["dist"],
   "include": ["src"],
   "compilerOptions": {
-    "outDir": "dist",
+    "outDir": "dist"
   }
 }

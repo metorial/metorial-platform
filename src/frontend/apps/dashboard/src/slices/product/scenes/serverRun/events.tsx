@@ -72,16 +72,17 @@ let Main = styled.main`
   padding: 20px;
 `;
 
-export let ServerRunEvents = ({ serverRun }: { serverRun: DashboardInstanceProviderRunsGetOutput }) => {
+export let ServerRunEvents = ({
+  serverRun
+}: {
+  serverRun: DashboardInstanceProviderRunsGetOutput;
+}) => {
   let instance = useCurrentInstance();
   let [isCollapsed, setIsCollapsed] = useState(true);
 
   let sessionId = serverRun.sessionId;
 
-  let errors = useSessionErrors(
-    serverRun ? instance.data?.id : null,
-    serverRun?.id ?? ''
-  );
+  let errors = useSessionErrors(serverRun ? instance.data?.id : null, serverRun?.id ?? '');
   let error = errors.data?.items[0];
 
   let eventItems = useEvents(sessionId, {
@@ -90,11 +91,7 @@ export let ServerRunEvents = ({ serverRun }: { serverRun: DashboardInstanceProvi
 
   let providerId = serverRun.providerId;
   let provider = useProvider(instance.data?.id, providerId);
-  let providerName =
-    provider.data?.name ??
-    serverRun.name ??
-    providerId ??
-    'Unknown';
+  let providerName = provider.data?.name ?? serverRun.name ?? providerId ?? 'Unknown';
   let startTime = serverRun.startedAt ?? serverRun.createdAt;
   let endTime = serverRun.completedAt;
 

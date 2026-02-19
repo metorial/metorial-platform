@@ -32,10 +32,7 @@ export let mapDashboardInstanceSessionsDeleteOutput =
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
-    connectionStatus: mtMap.objectField(
-      'connection_status',
-      mtMap.passthrough()
-    ),
+    connectionStatus: mtMap.objectField('connection_status', mtMap.passthrough()),
     usage: mtMap.objectField(
       'usage',
       mtMap.object({
@@ -73,4 +70,3 @@ export let mapDashboardInstanceSessionsDeleteOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
-

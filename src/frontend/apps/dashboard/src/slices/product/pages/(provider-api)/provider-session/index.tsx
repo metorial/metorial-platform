@@ -37,10 +37,7 @@ export let ProviderSessionOverviewPage = () => {
       <Spacer height={15} />
 
       {session.data.connectionUrl && (
-        <SideBox
-          title="Connection URL"
-          description="Use this URL to connect to this session."
-        >
+        <SideBox title="Connection URL" description="Use this URL to connect to this session.">
           <div>
             <strong>URL:</strong>{' '}
             <code style={{ fontSize: '12px', wordBreak: 'break-all' }}>

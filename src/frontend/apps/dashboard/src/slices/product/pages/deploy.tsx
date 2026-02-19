@@ -1,10 +1,6 @@
 import { Paths } from '@metorial/frontend-config';
 import { SetupLayout } from '@metorial/layout';
-import {
-  useCurrentInstance,
-  useProvider,
-  useProviderListing
-} from '@metorial/state';
+import { useCurrentInstance, useProvider, useProviderListing } from '@metorial/state';
 import { Text } from '@metorial/ui';
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';

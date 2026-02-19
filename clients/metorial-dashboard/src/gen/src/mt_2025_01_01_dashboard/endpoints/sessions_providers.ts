@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceSessionsProvidersCreateBody,
@@ -76,9 +73,7 @@ export class MetorialSessionsProvidersEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardInstanceSessionsProvidersListOutput
-    );
+    return this._get(request).transform(mapDashboardInstanceSessionsProvidersListOutput);
   }
 
   /**
@@ -105,9 +100,7 @@ export class MetorialSessionsProvidersEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardInstanceSessionsProvidersGetOutput
-    );
+    return this._get(request).transform(mapDashboardInstanceSessionsProvidersGetOutput);
   }
 
   /**
@@ -135,9 +128,7 @@ export class MetorialSessionsProvidersEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapDashboardInstanceSessionsProvidersCreateOutput
-    );
+    return this._post(request).transform(mapDashboardInstanceSessionsProvidersCreateOutput);
   }
 
   /**
@@ -167,9 +158,7 @@ export class MetorialSessionsProvidersEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._patch(request).transform(
-      mapDashboardInstanceSessionsProvidersUpdateOutput
-    );
+    return this._patch(request).transform(mapDashboardInstanceSessionsProvidersUpdateOutput);
   }
 
   /**
@@ -196,8 +185,6 @@ export class MetorialSessionsProvidersEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._delete(request).transform(
-      mapDashboardInstanceSessionsProvidersDeleteOutput
-    );
+    return this._delete(request).transform(mapDashboardInstanceSessionsProvidersDeleteOutput);
   }
 }

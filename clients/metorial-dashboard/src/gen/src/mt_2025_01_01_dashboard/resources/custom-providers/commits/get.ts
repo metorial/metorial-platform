@@ -149,295 +149,245 @@ export type CustomProvidersCommitsGetOutput = {
   appliedAt: Date | null;
 };
 
-export let mapCustomProvidersCommitsGetOutput =
-  mtMap.object<CustomProvidersCommitsGetOutput>({
-    object: mtMap.objectField('object', mtMap.passthrough()),
-    id: mtMap.objectField('id', mtMap.passthrough()),
-    status: mtMap.objectField('status', mtMap.passthrough()),
-    trigger: mtMap.objectField('trigger', mtMap.passthrough()),
-    error: mtMap.objectField(
-      'error',
-      mtMap.object({
-        code: mtMap.objectField('code', mtMap.passthrough()),
-        message: mtMap.objectField('message', mtMap.passthrough())
-      })
-    ),
-    customProviderId: mtMap.objectField(
-      'custom_provider_id',
-      mtMap.passthrough()
-    ),
-    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-    customProviderDeploymentId: mtMap.objectField(
-      'custom_provider_deployment_id',
-      mtMap.passthrough()
-    ),
-    toEnvironment: mtMap.objectField(
-      'to_environment',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        customProviderId: mtMap.objectField(
-          'custom_provider_id',
-          mtMap.passthrough()
-        ),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        currentProviderVersionId: mtMap.objectField(
-          'current_provider_version_id',
-          mtMap.passthrough()
-        ),
-        instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    fromEnvironment: mtMap.objectField(
-      'from_environment',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        customProviderId: mtMap.objectField(
-          'custom_provider_id',
-          mtMap.passthrough()
-        ),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        currentProviderVersionId: mtMap.objectField(
-          'current_provider_version_id',
-          mtMap.passthrough()
-        ),
-        instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    targetCustomProviderVersion: mtMap.objectField(
-      'target_custom_provider_version',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        index: mtMap.objectField('index', mtMap.passthrough()),
-        identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-        deployment: mtMap.objectField(
-          'deployment',
+export let mapCustomProvidersCommitsGetOutput = mtMap.object<CustomProvidersCommitsGetOutput>({
+  object: mtMap.objectField('object', mtMap.passthrough()),
+  id: mtMap.objectField('id', mtMap.passthrough()),
+  status: mtMap.objectField('status', mtMap.passthrough()),
+  trigger: mtMap.objectField('trigger', mtMap.passthrough()),
+  error: mtMap.objectField(
+    'error',
+    mtMap.object({
+      code: mtMap.objectField('code', mtMap.passthrough()),
+      message: mtMap.objectField('message', mtMap.passthrough())
+    })
+  ),
+  customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+  providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+  customProviderDeploymentId: mtMap.objectField(
+    'custom_provider_deployment_id',
+    mtMap.passthrough()
+  ),
+  toEnvironment: mtMap.objectField(
+    'to_environment',
+    mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+      currentProviderVersionId: mtMap.objectField(
+        'current_provider_version_id',
+        mtMap.passthrough()
+      ),
+      instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
+      createdAt: mtMap.objectField('created_at', mtMap.date()),
+      updatedAt: mtMap.objectField('updated_at', mtMap.date())
+    })
+  ),
+  fromEnvironment: mtMap.objectField(
+    'from_environment',
+    mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+      currentProviderVersionId: mtMap.objectField(
+        'current_provider_version_id',
+        mtMap.passthrough()
+      ),
+      instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
+      createdAt: mtMap.objectField('created_at', mtMap.date()),
+      updatedAt: mtMap.objectField('updated_at', mtMap.date())
+    })
+  ),
+  targetCustomProviderVersion: mtMap.objectField(
+    'target_custom_provider_version',
+    mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      status: mtMap.objectField('status', mtMap.passthrough()),
+      index: mtMap.objectField('index', mtMap.passthrough()),
+      identifier: mtMap.objectField('identifier', mtMap.passthrough()),
+      deployment: mtMap.objectField(
+        'deployment',
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
+          trigger: mtMap.objectField('trigger', mtMap.passthrough()),
+          customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+          customProviderVersionId: mtMap.objectField(
+            'custom_provider_version_id',
+            mtMap.passthrough()
+          ),
+          commit: mtMap.objectField(
+            'commit',
+            mtMap.object({
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              type: mtMap.objectField('type', mtMap.passthrough()),
+              message: mtMap.objectField('message', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date())
+            })
+          ),
+          actor: mtMap.objectField(
+            'actor',
+            mtMap.object({
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              type: mtMap.objectField('type', mtMap.passthrough()),
+              organizationActorId: mtMap.objectField(
+                'organization_actor_id',
+                mtMap.passthrough()
+              )
+            })
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      ),
+      environments: mtMap.objectField(
+        'environments',
+        mtMap.array(
           mtMap.object({
             object: mtMap.objectField('object', mtMap.passthrough()),
             id: mtMap.objectField('id', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            trigger: mtMap.objectField('trigger', mtMap.passthrough()),
-            customProviderId: mtMap.objectField(
-              'custom_provider_id',
+            isCurrentVersionForEnvironment: mtMap.objectField(
+              'is_current_version_for_environment',
               mtMap.passthrough()
             ),
-            providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-            customProviderVersionId: mtMap.objectField(
-              'custom_provider_version_id',
-              mtMap.passthrough()
-            ),
-            commit: mtMap.objectField(
-              'commit',
+            environment: mtMap.objectField(
+              'environment',
               mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                message: mtMap.objectField('message', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date())
-              })
-            ),
-            actor: mtMap.objectField(
-              'actor',
-              mtMap.object({
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                organizationActorId: mtMap.objectField(
-                  'organization_actor_id',
+                customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+                providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+                currentProviderVersionId: mtMap.objectField(
+                  'current_provider_version_id',
                   mtMap.passthrough()
-                )
+                ),
+                instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
+                createdAt: mtMap.objectField('created_at', mtMap.date()),
+                updatedAt: mtMap.objectField('updated_at', mtMap.date())
               })
-            ),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        environments: mtMap.objectField(
-          'environments',
-          mtMap.array(
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              isCurrentVersionForEnvironment: mtMap.objectField(
-                'is_current_version_for_environment',
-                mtMap.passthrough()
-              ),
-              environment: mtMap.objectField(
-                'environment',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  customProviderId: mtMap.objectField(
-                    'custom_provider_id',
-                    mtMap.passthrough()
-                  ),
-                  providerId: mtMap.objectField(
-                    'provider_id',
-                    mtMap.passthrough()
-                  ),
-                  currentProviderVersionId: mtMap.objectField(
-                    'current_provider_version_id',
-                    mtMap.passthrough()
-                  ),
-                  instanceId: mtMap.objectField(
-                    'instance_id',
-                    mtMap.passthrough()
-                  ),
-                  createdAt: mtMap.objectField('created_at', mtMap.date()),
-                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                })
-              )
-            })
-          )
-        ),
-        customProviderId: mtMap.objectField(
-          'custom_provider_id',
-          mtMap.passthrough()
-        ),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        actor: mtMap.objectField(
-          'actor',
-          mtMap.object({
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            organizationActorId: mtMap.objectField(
-              'organization_actor_id',
-              mtMap.passthrough()
             )
           })
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    previousCustomProviderVersion: mtMap.objectField(
-      'previous_custom_provider_version',
-      mtMap.object({
-        object: mtMap.objectField('object', mtMap.passthrough()),
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        status: mtMap.objectField('status', mtMap.passthrough()),
-        index: mtMap.objectField('index', mtMap.passthrough()),
-        identifier: mtMap.objectField('identifier', mtMap.passthrough()),
-        deployment: mtMap.objectField(
-          'deployment',
-          mtMap.object({
-            object: mtMap.objectField('object', mtMap.passthrough()),
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            status: mtMap.objectField('status', mtMap.passthrough()),
-            trigger: mtMap.objectField('trigger', mtMap.passthrough()),
-            customProviderId: mtMap.objectField(
-              'custom_provider_id',
-              mtMap.passthrough()
-            ),
-            providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-            customProviderVersionId: mtMap.objectField(
-              'custom_provider_version_id',
-              mtMap.passthrough()
-            ),
-            commit: mtMap.objectField(
-              'commit',
-              mtMap.object({
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                message: mtMap.objectField('message', mtMap.passthrough()),
-                createdAt: mtMap.objectField('created_at', mtMap.date())
-              })
-            ),
-            actor: mtMap.objectField(
-              'actor',
-              mtMap.object({
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                name: mtMap.objectField('name', mtMap.passthrough()),
-                type: mtMap.objectField('type', mtMap.passthrough()),
-                organizationActorId: mtMap.objectField(
-                  'organization_actor_id',
-                  mtMap.passthrough()
-                )
-              })
-            ),
-            createdAt: mtMap.objectField('created_at', mtMap.date()),
-            updatedAt: mtMap.objectField('updated_at', mtMap.date())
-          })
-        ),
-        environments: mtMap.objectField(
-          'environments',
-          mtMap.array(
-            mtMap.object({
-              object: mtMap.objectField('object', mtMap.passthrough()),
-              id: mtMap.objectField('id', mtMap.passthrough()),
-              isCurrentVersionForEnvironment: mtMap.objectField(
-                'is_current_version_for_environment',
-                mtMap.passthrough()
-              ),
-              environment: mtMap.objectField(
-                'environment',
-                mtMap.object({
-                  object: mtMap.objectField('object', mtMap.passthrough()),
-                  id: mtMap.objectField('id', mtMap.passthrough()),
-                  customProviderId: mtMap.objectField(
-                    'custom_provider_id',
-                    mtMap.passthrough()
-                  ),
-                  providerId: mtMap.objectField(
-                    'provider_id',
-                    mtMap.passthrough()
-                  ),
-                  currentProviderVersionId: mtMap.objectField(
-                    'current_provider_version_id',
-                    mtMap.passthrough()
-                  ),
-                  instanceId: mtMap.objectField(
-                    'instance_id',
-                    mtMap.passthrough()
-                  ),
-                  createdAt: mtMap.objectField('created_at', mtMap.date()),
-                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
-                })
-              )
-            })
-          )
-        ),
-        customProviderId: mtMap.objectField(
-          'custom_provider_id',
-          mtMap.passthrough()
-        ),
-        providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
-        actor: mtMap.objectField(
-          'actor',
-          mtMap.object({
-            id: mtMap.objectField('id', mtMap.passthrough()),
-            name: mtMap.objectField('name', mtMap.passthrough()),
-            type: mtMap.objectField('type', mtMap.passthrough()),
-            organizationActorId: mtMap.objectField(
-              'organization_actor_id',
-              mtMap.passthrough()
-            )
-          })
-        ),
-        createdAt: mtMap.objectField('created_at', mtMap.date()),
-        updatedAt: mtMap.objectField('updated_at', mtMap.date())
-      })
-    ),
-    actor: mtMap.objectField(
-      'actor',
-      mtMap.object({
-        id: mtMap.objectField('id', mtMap.passthrough()),
-        name: mtMap.objectField('name', mtMap.passthrough()),
-        type: mtMap.objectField('type', mtMap.passthrough()),
-        organizationActorId: mtMap.objectField(
-          'organization_actor_id',
-          mtMap.passthrough()
         )
-      })
-    ),
-    createdAt: mtMap.objectField('created_at', mtMap.date()),
-    appliedAt: mtMap.objectField('applied_at', mtMap.date())
-  });
-
+      ),
+      customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+      actor: mtMap.objectField(
+        'actor',
+        mtMap.object({
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          type: mtMap.objectField('type', mtMap.passthrough()),
+          organizationActorId: mtMap.objectField('organization_actor_id', mtMap.passthrough())
+        })
+      ),
+      createdAt: mtMap.objectField('created_at', mtMap.date()),
+      updatedAt: mtMap.objectField('updated_at', mtMap.date())
+    })
+  ),
+  previousCustomProviderVersion: mtMap.objectField(
+    'previous_custom_provider_version',
+    mtMap.object({
+      object: mtMap.objectField('object', mtMap.passthrough()),
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      status: mtMap.objectField('status', mtMap.passthrough()),
+      index: mtMap.objectField('index', mtMap.passthrough()),
+      identifier: mtMap.objectField('identifier', mtMap.passthrough()),
+      deployment: mtMap.objectField(
+        'deployment',
+        mtMap.object({
+          object: mtMap.objectField('object', mtMap.passthrough()),
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          status: mtMap.objectField('status', mtMap.passthrough()),
+          trigger: mtMap.objectField('trigger', mtMap.passthrough()),
+          customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+          providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+          customProviderVersionId: mtMap.objectField(
+            'custom_provider_version_id',
+            mtMap.passthrough()
+          ),
+          commit: mtMap.objectField(
+            'commit',
+            mtMap.object({
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              type: mtMap.objectField('type', mtMap.passthrough()),
+              message: mtMap.objectField('message', mtMap.passthrough()),
+              createdAt: mtMap.objectField('created_at', mtMap.date())
+            })
+          ),
+          actor: mtMap.objectField(
+            'actor',
+            mtMap.object({
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              type: mtMap.objectField('type', mtMap.passthrough()),
+              organizationActorId: mtMap.objectField(
+                'organization_actor_id',
+                mtMap.passthrough()
+              )
+            })
+          ),
+          createdAt: mtMap.objectField('created_at', mtMap.date()),
+          updatedAt: mtMap.objectField('updated_at', mtMap.date())
+        })
+      ),
+      environments: mtMap.objectField(
+        'environments',
+        mtMap.array(
+          mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            isCurrentVersionForEnvironment: mtMap.objectField(
+              'is_current_version_for_environment',
+              mtMap.passthrough()
+            ),
+            environment: mtMap.objectField(
+              'environment',
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+                providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+                currentProviderVersionId: mtMap.objectField(
+                  'current_provider_version_id',
+                  mtMap.passthrough()
+                ),
+                instanceId: mtMap.objectField('instance_id', mtMap.passthrough()),
+                createdAt: mtMap.objectField('created_at', mtMap.date()),
+                updatedAt: mtMap.objectField('updated_at', mtMap.date())
+              })
+            )
+          })
+        )
+      ),
+      customProviderId: mtMap.objectField('custom_provider_id', mtMap.passthrough()),
+      providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
+      actor: mtMap.objectField(
+        'actor',
+        mtMap.object({
+          id: mtMap.objectField('id', mtMap.passthrough()),
+          name: mtMap.objectField('name', mtMap.passthrough()),
+          type: mtMap.objectField('type', mtMap.passthrough()),
+          organizationActorId: mtMap.objectField('organization_actor_id', mtMap.passthrough())
+        })
+      ),
+      createdAt: mtMap.objectField('created_at', mtMap.date()),
+      updatedAt: mtMap.objectField('updated_at', mtMap.date())
+    })
+  ),
+  actor: mtMap.objectField(
+    'actor',
+    mtMap.object({
+      id: mtMap.objectField('id', mtMap.passthrough()),
+      name: mtMap.objectField('name', mtMap.passthrough()),
+      type: mtMap.objectField('type', mtMap.passthrough()),
+      organizationActorId: mtMap.objectField('organization_actor_id', mtMap.passthrough())
+    })
+  ),
+  createdAt: mtMap.objectField('created_at', mtMap.date()),
+  appliedAt: mtMap.objectField('applied_at', mtMap.date())
+});

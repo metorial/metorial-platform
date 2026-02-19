@@ -10,11 +10,7 @@
     "inlineSources": false,
     "isolatedModules": true,
     "moduleResolution": "node",
-    "lib": [
-      "ESNext",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "target": "ESNext",
     "noUnusedLocals": false,
     "noUnusedParameters": false,
@@ -22,9 +18,7 @@
     "skipLibCheck": true,
     "strict": true,
     "downlevelIteration": true,
-    "resolveJsonModule": true,
+    "resolveJsonModule": true
   },
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }
